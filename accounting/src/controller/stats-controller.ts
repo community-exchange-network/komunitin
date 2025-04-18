@@ -20,7 +20,7 @@ import { Prisma } from "@prisma/client";
  */
 export class StatsController extends AbstractCurrencyController implements IStatsController {
 
-  private async getVolumeSingleValue(from: Date|undefined, to: Date|undefined) {
+  private async getAmountSingleValue(from: Date|undefined, to: Date|undefined) {
     const value = await this.db().transfer.aggregate({
       _sum: {
         amount: true
@@ -95,7 +95,7 @@ export class StatsController extends AbstractCurrencyController implements IStat
     return newDate
   }
 
-  private async getVolumeValues(from: Date, to: Date, interval: StatsInterval): Promise<number[]> {
+  private async getAmountValues(from: Date, to: Date, interval: StatsInterval): Promise<number[]> {
     
     const sqlInterval = this.sqlInterval(interval)
     const sqlIntervals = this.intervalsSqlTemplate(from, to, interval)
@@ -171,14 +171,14 @@ export class StatsController extends AbstractCurrencyController implements IStat
    *   - "interval": string (one of "PT1H", "P1D", "P1W", "P1M", "P1Y" or undefined for single value)
    * @returns 
    */
-  public async getVolume(ctx: Context, params: StatsOptions): Promise<Stats> {
+  public async getAmount(ctx: Context, params: StatsOptions): Promise<Stats> {
     const { from, to, interval } = params
 
     const toDate = to ?? new Date()
 
     // No interval, so return single value.
     if (interval === undefined) {
-      const value = await this.getVolumeSingleValue(from, toDate)
+      const value = await this.getAmountSingleValue(from, toDate)
       return {
         from: from,
         to: toDate,
@@ -187,7 +187,7 @@ export class StatsController extends AbstractCurrencyController implements IStat
     } else {
       // If interval is provided, we need to have an explicit "from" date.
       const fromDate = from ?? this.truncateDate(await this.getFirstTransferDate(), interval)
-      const values = await this.getVolumeValues(fromDate, toDate, interval)
+      const values = await this.getAmountValues(fromDate, toDate, interval)
       
       return ({
         from: fromDate,

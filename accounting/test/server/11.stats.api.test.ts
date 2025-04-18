@@ -16,7 +16,7 @@ describe('Statistics endpoints', async () => {
   })
 
   it('volume in one month', async () => {
-    const response = await t.api.get('/TEST/stats/volume?from=2024-06-01Z&to=2024-07-01Z', t.user1)
+    const response = await t.api.get('/TEST/stats/amount?from=2024-06-01Z&to=2024-07-01Z', t.user1)
     assert.equal(response.body.data.attributes.values.length, 1)
     assert.equal(response.body.data.attributes.values[0], 1868700)
     assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-06-01Z").toISOString())
@@ -24,7 +24,7 @@ describe('Statistics endpoints', async () => {
   })
 
   it('volume all time', async () => {
-    const response = await t.api.get('/TEST/stats/volume', t.user1)
+    const response = await t.api.get('/TEST/stats/amount', t.user1)
     assert.equal(response.body.data.attributes.values.length, 1)
     assert.equal(response.body.data.attributes.values[0], 45743200)
     assert.equal(response.body.data.attributes.from, undefined)
@@ -32,7 +32,7 @@ describe('Statistics endpoints', async () => {
   })
 
   it('volume by months across a year', async () => {
-    const response = await t.api.get('/TEST/stats/volume?from=2024-01-01Z&to=2025-01-01Z&interval=P1M', t.user1)
+    const response = await t.api.get('/TEST/stats/amount?from=2024-01-01Z&to=2025-01-01Z&interval=P1M', t.user1)
     assert.equal(response.body.data.attributes.values.length, 12)
     assert.equal(response.body.data.attributes.values[5], 1868700)
     assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-01-01Z").toISOString())
@@ -41,7 +41,7 @@ describe('Statistics endpoints', async () => {
   })
 
   it('volume all time by weeks', async () => {
-    const response = await t.api.get('/TEST/stats/volume?interval=P1W', t.user1)
+    const response = await t.api.get('/TEST/stats/amount?interval=P1W', t.user1)
     // The number of weeks since 2024-01-01. This can fail in very specific cases, but should be good enough.
     const from = new Date(response.body.data.attributes.from)
     const weeks = Math.ceil((new Date().getTime() - from.getTime()) / (1000*60*60*24*7))

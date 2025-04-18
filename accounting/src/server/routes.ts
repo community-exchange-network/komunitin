@@ -199,10 +199,10 @@ export function getRoutes(controller: SharedController) {
     })
   )
 
-  router.get('/:code/stats/volume', userAuth([Scope.Accounting, Scope.AccountingReadAll]), 
+  router.get('/:code/stats/amount', userAuth([Scope.Accounting, Scope.AccountingReadAll]), 
     currencyHandler(controller, async (currencyController, ctx, req) => {
       const params = statsParams(req)
-      const stats = await currencyController.stats.getVolume(ctx, params)
+      const stats = await currencyController.stats.getAmount(ctx, params)
       return StatsSerializer.serialize(stats)
     })
   )
