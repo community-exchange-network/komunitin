@@ -53,12 +53,12 @@ function fakeContactName(type: string) {
       return faker.internet.email();
   }
 }
-
+// [longitude, latitude]
 function fakeLocation() {
   return {
     name: faker.address.county(),
     type: "Point",
-    coordinates: [faker.address.longitude(), faker.address.latitude()]
+    coordinates: [faker.random.number({min:-10, max:40, precision: 4}), faker.random.number({min:0, max:60, precision: 4})]
   };
 }
 

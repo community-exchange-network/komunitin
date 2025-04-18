@@ -60,6 +60,14 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
+        path: 'server-stats',
+        name: 'ServerStats',
+        component: () => import('../pages/home/ServerStats.vue'),
+        meta: {
+          public: true
+        }
+      },
+      {
         path: '/signup-group',
         name: 'SignupGroup',
         component: () => import('../pages/groups/SignupGroup.vue'),

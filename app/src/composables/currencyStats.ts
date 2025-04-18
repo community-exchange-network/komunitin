@@ -1,14 +1,22 @@
+import { KOptions } from "src/boot/koptions";
 import { checkFetchResponse } from "src/KError";
-import formatCurrency from "src/plugins/FormatCurrency";
+import  formatCurrency, { formatGobalCurrency }  from "src/plugins/FormatCurrency";
 import { Currency } from "src/store/model";
 import { computed, MaybeRefOrGetter, ref, toRef, toValue, watch, watchEffect } from "vue";
 import { useStore } from "vuex";
 
-export type StatsValue = "volume" | "accounts"
+export type StatsValue = "amount" | "transactions" | "accounts"
 export type StatsInterval = "PT1H" | "P1D" | "P1W" | "P1M" | "P1Y"
 
 export interface CurrencyStatsOptions {
-  currency: Currency
+  
+  /**
+   * The currency to get the stats for. If not provided, the combined stats for all currencies in the server are returned.
+   */
+  currency?: Currency
+  /**
+   * The metric to get the stats for.
+   */
   value: StatsValue
   /**
    * The start date of the stats. Default to all time.
@@ -35,9 +43,17 @@ export interface CurrencyStatsOptions {
 async function getCurrencyStats(options: Omit<CurrencyStatsOptions, "change">, accessToken: string) {
   const {currency, value, from, to, interval, parameters} = options
 
-  // Get the accounting api url
-  const baseUrl = currency.links.self.replace(/\/currency$/, "")
-  let url = `${baseUrl}/stats/${value}`
+  let url: string
+  if (currency == undefined) {
+    // Server stats, using the default configured accounting URL.
+    const baseUrl = KOptions.url.accounting
+    url = `${baseUrl}/currencies/stats/${value}`
+  } else {
+    // Currency stats, using the currency URL.
+    const baseUrl = currency.links.self.replace(/\/currency$/, "")
+    url = `${baseUrl}/stats/${value}`
+  }
+
   // Build the query
   const query = new URLSearchParams()
   if (from) query.set("from", from.toISOString())
@@ -99,19 +115,20 @@ export function useCurrencyStats(options: MaybeRefOrGetter<CurrencyStatsOptions>
 }
 
 
+export interface CurrencyStatsFormattedValueOptions {
+  currency?: Currency,
+  from?: Date
+  to?: Date
+  value: StatsValue
+  change?: boolean
+  parameters?: Record<string, string|number>
+}
 /**
  * Composable for getting a single stats value formatted with the percentage change.
  * 
 */
 export function useCurrencyStatsFormattedValue(
-  options: MaybeRefOrGetter<{
-    currency: Currency,
-    from?: Date
-    to?: Date
-    value: StatsValue
-    change?: boolean
-    parameters?: Record<string, string|number>
-  }>) {
+  options: MaybeRefOrGetter<CurrencyStatsFormattedValueOptions>) {
 
   // The main composable use "previous" instead of "change" so we need to adapt the options
   const statsOptions = computed(() => {
@@ -131,8 +148,12 @@ export function useCurrencyStatsFormattedValue(
     const data = stats.value?.values?.[0]
     const opt = toValue(options)
     if (data) {
-      if (opt.value === "volume") {
-        value.value = formatCurrency(data, opt.currency, {decimals: false})
+      if (opt.value === "amount") {
+        if (opt.currency) {
+          value.value = formatCurrency(data, opt.currency, {decimals: false})
+        } else {
+          value.value = formatGobalCurrency(data, {decimals: false})
+        }
       } else {
         value.value = data.toString()
       }

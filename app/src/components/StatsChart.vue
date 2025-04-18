@@ -37,10 +37,10 @@
       <div class="col-12 col-sm-4">
         <div class="column q-gutter-y-md">
           <div>
-            <q-select :model-value="period" outlined name="period" :options="periodOptions" :label="$t('period')" @update:model-value="updatePeriod" />
+            <q-select :model-value="period" outlined name="period" :options="periodOptions" :label="t('period')" @update:model-value="updatePeriod" />
           </div>
           <div>
-            <q-select v-model="interval" outlined name="interval" :options="intervalOptions" :label="$t('interval')" />
+            <q-select v-model="interval" outlined name="interval" :options="intervalOptions" :label="t('interval')" />
           </div>
         </div>
       </div>
@@ -48,7 +48,7 @@
     <q-card-section>
       <time-series-chart 
         :currency="currency"
-        :is-currency="value == 'volume'"
+        :is-currency="value == 'amount'"
         :data="data.values ?? []"
         :previous="data.previous"
         :interval="interval.value"

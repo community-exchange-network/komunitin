@@ -35,30 +35,53 @@ export default function formatCurrency(
   currency: Currency,
   options?: CurrencyFormat
 ): string {
+  
+  const currencyOptions = {
+    scale: currency.attributes.scale,
+    decimals: currency.attributes.decimals,
+    symbol: currency.attributes.symbol
+  }
+  return formatCurrencyAmount(amount, currencyOptions, options)
+}
+
+export function formatGobalCurrency(
+  amount: number,
+  options?: CurrencyFormat
+): string {
+
+  const globalCurrencyOptions = {
+    scale: 6,
+    decimals: 2,
+    symbol: 'h'
+  }
+  return formatCurrencyAmount(amount, globalCurrencyOptions, options)
+}
+
+function formatCurrencyAmount(amount: number, currencyOptions: {scale: number, decimals: number, symbol: string}, formatOptions?: CurrencyFormat) {
   const {n} = i18n.global
   // Decimals and scale are true if undefined.
-  const decimals = options?.decimals ?? true;
-  const scale = options?.scale ?? true;
-  const symbol = options?.symbol ?? true;
-
-  if (scale) {
-    amount = amount / 10 ** currency.attributes.scale;
+  const doDecimals = formatOptions?.decimals ?? true;
+  const doScale = formatOptions?.scale ?? true;
+  const doSymbol = formatOptions?.symbol ?? true;
+  
+  if (doScale) {
+    amount = amount / 10 ** currencyOptions.scale;
   }
-  let amountString = decimals
-    ? n(amount, {
-      minimumFractionDigits: currency.attributes.decimals,
-      maximumFractionDigits: currency.attributes.decimals,
-    })
-    : n(amount);
 
-  // Append or prepend the currency symbol depending on the locale.
-  if (symbol) {
+  let amountString = doDecimals
+  ? n(amount, {
+    minimumFractionDigits: currencyOptions.decimals,
+    maximumFractionDigits: currencyOptions.decimals,
+  })
+  : n(amount);
+
+  if (doSymbol) {
     const sampleCurrency = n(1, {style: 'currency', currency: 'USD'})
     amountString = sampleCurrency.startsWith('1') 
-      ? `${amountString}${currency.attributes.symbol}` 
-      : `${currency.attributes.symbol}${amountString}` 
+      ? `${amountString}${currencyOptions.symbol}` 
+      : `${currencyOptions.symbol}${amountString}` 
   }
-  return amountString;
+  return amountString
 }
 
 /**

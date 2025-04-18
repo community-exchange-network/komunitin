@@ -347,7 +347,8 @@
   "volume": "Volume",
   "activeAccountsChart": "Active accounts",
   "activeAccountsChartText": "Accounts with at least one transaction over the selected period",
-
+  "nCommunities": "{n} communities",
+  "nCommunitiesText": "are using this server",
 
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",

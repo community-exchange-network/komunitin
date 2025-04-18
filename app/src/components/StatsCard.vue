@@ -34,7 +34,7 @@
   </q-card>
 </template>
 <script setup lang="ts">
-import { useCurrencyStatsFormattedValue } from 'src/composables/currencyStats';
+import { useCurrencyStatsFormattedValue  } from 'src/composables/currencyStats';
 import { Currency } from 'src/store/model';
 import { computed } from 'vue';
 
@@ -42,7 +42,7 @@ import { computed } from 'vue';
 const props = defineProps<{
   title: string
   icon: string
-  currency: Currency
+  currency?: Currency
   /** 
    * The period for which the stats are computed, until now (in seconds).
    * */  
@@ -52,7 +52,7 @@ const props = defineProps<{
 
 const options = computed(() => ({
   currency: props.currency,
-  value: "volume" as const,
+  value: "amount" as const,
   from: props.period ? new Date(Date.now() - (props.period)*1000) : undefined,
   change: !!(props.period)
 }))
