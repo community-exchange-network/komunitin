@@ -11,18 +11,19 @@
       :key="group.id"
       :lat-lng="reverseCoordinates(group.attributes.location.coordinates)"
     >
-      <l-tooltip :interactive="true" :permanent="true" :sticky="true">
+      <l-popup :interactive="true" :permanent="false">
         <div>
           <div class="text-subtitle-2">{{ group.attributes.name }}</div>
           <div class="text-onsurface-m">{{  group.relationships.members?.meta.count ?? 0 }} {{ $t('members') }}</div>
+          <div><a :href="`/groups/${group.attributes.code}`">Explore</a></div>
         </div>
-      </l-tooltip>
+      </l-popup>
     </l-marker>
   </simple-map>
 </template>
 <script setup lang="ts">
 import SimpleMap from "./SimpleMap.vue";
-import { LMarker, LTooltip } from "@vue-leaflet/vue-leaflet";
+import { LMarker, LPopup } from "@vue-leaflet/vue-leaflet";
 import { computed, } from "vue";
 import { Group } from "src/store/model";
 import type { LatLngBounds } from "leaflet";

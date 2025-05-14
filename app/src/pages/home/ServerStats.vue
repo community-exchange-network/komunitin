@@ -10,18 +10,6 @@
             <h2 class="q-mt-md q-mb-xs text-onsurface-m">{{t('nCommunities', nCommunities)}}</h2>
             <p class="text-subtitle1">{{t('nCommunitiesText')}}</p>
           </div>
-        
-          <div class="q-mt-md">
-            <q-btn
-              class="q-mb-md"
-              unelevated
-              :label="t('explore')"
-              color="primary"
-              text-color="onprimary"
-              to="/groups"
-              icon="explore"
-            />
-          </div>
         </div>
         <q-card 
           flat 

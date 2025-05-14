@@ -2,3 +2,4 @@ bundle
 dist
 node_modules
 .env
+komunitin-project-backup-credentials.json

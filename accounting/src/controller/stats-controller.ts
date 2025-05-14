@@ -1,9 +1,9 @@
 import { Context } from "src/utils/context";
-import { AbstractCurrencyController } from "./abstract-currency-controller"
-import { AccountStatsOptions, CollectionOptions, StatsOptions } from "src/server/request";
+import { AccountStatsOptions, StatsOptions } from "src/server/request";
 import { Stats, StatsInterval } from "src/model/stats";
 import { StatsController as IStatsController } from "src/controller";
 import { Prisma } from "@prisma/client";
+import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant";
 
 
 /**
@@ -18,7 +18,21 @@ import { Prisma } from "@prisma/client";
  *  - use more efficient SQL queries if possible
  *  - use caching
  */
-export class StatsController extends AbstractCurrencyController implements IStatsController {
+export class StatsController implements IStatsController {
+
+  prismaClient: TenantPrismaClient | PrivilegedPrismaClient
+
+  /**
+   * The PrismaClient can be either a tenant client (for stats of a single currency)
+   * or a global client (for stats of all currencies). 
+   */
+  constructor(db: TenantPrismaClient | PrivilegedPrismaClient) {
+    this.prismaClient = db  
+  }
+
+  db() {
+    return this.prismaClient
+  }
 
   private async getAmountSingleValue(from: Date|undefined, to: Date|undefined) {
     const value = await this.db().transfer.aggregate({
@@ -310,6 +324,17 @@ export class StatsController extends AbstractCurrencyController implements IStat
       values
     }
 
+  }
+
+  /**
+   * Return the number of transfers that have been committed in the period
+   * provided by the "from" and "to" parameters and grouped by the parameter
+   * "interval".
+   * @param ctx 
+   * @param params 
+   */
+  public async getTransfers(ctx: Context, params: StatsOptions): Promise<Stats> {
+    
   }
 
   

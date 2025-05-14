@@ -3,6 +3,7 @@ import assert from "node:assert"
 
 import { setupServerTest } from './setup'
 import { seedAccounts, seedTransfers } from "./db"
+import { userAuth } from "./api.data"
 
 describe('Statistics endpoints', async () => {
   const t = setupServerTest()
@@ -13,6 +14,14 @@ describe('Statistics endpoints', async () => {
     await seedAccounts("TEST", 80, start, end)
     // Add some transfers to the DB (without actually performing them in the ledger for speed)
     await seedTransfers("TEST", 1000, start, end)
+
+    // Create a 2nd currency for global stats.
+    await t.createCurrency({
+      code: "STAT"
+    }, userAuth("10"))
+
+    await seedAccounts("STAT", 100, start, end)
+    await seedTransfers("STAT", 2000, start, end)
   })
 
   it('volume in one month', async () => {
@@ -88,8 +97,6 @@ describe('Statistics endpoints', async () => {
     assert.equal(response.body.data.attributes.values[1], 7)
     assert.equal(response.body.data.attributes.values[10], 2)
     assert.equal(response.body.data.attributes.values[12], 70)
-
-
   })
   it('check monthly account activity coherence', async () => {
     const active = await t.api.get(`/TEST/stats/accounts?from=2024-01-01Z&to=2025-03-01Z&interval=P1M&minTransactions=1`, t.user1)
@@ -102,4 +109,6 @@ describe('Statistics endpoints', async () => {
       assert.equal(activeValues[i] + inactiveValues[i], allValues[i])
     }
   })
+  
+    
 })
