@@ -283,7 +283,7 @@
   "scanThisQR": "Scan this QR code with the app to make the transfer",
   "scanQRCode": "Scan the transfer QR code",
   "nfcTags": "NFC tags",
-  "nfcTagsText": "Convert any NFT tag into a digital wallet linked to your account.",
+  "nfcTagsText": "Convert any NFC tag into a digital wallet linked to your account.",
   "deleteNFCTagConfirmation": "Are you sure you want to delete the NFC tag with name {name}?",
   "addTag": "Add tag",
   "editTag": "Edit tag",
