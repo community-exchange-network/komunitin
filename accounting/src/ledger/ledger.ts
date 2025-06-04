@@ -319,11 +319,15 @@ export interface LedgerAccount {
    * 
    * The credit key is required when increasing the credit, while the account (or admin)
    * key is required when reducing the credit.
+   * 
+   * When increasing the credit, the issuer key may be required as well if the credit
+   * account does not have enough balance.
    */
   updateCredit(amount: string, keys: {
     sponsor: KeyPair,
     credit?: KeyPair,
-    account?: KeyPair
+    account?: KeyPair,
+    issuer?: KeyPair
   }): Promise<string>
 
 }

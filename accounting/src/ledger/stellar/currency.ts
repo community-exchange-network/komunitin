@@ -356,7 +356,6 @@ export class StellarCurrency implements LedgerCurrency {
     // 2. Credit account.
     this.createAccountTransaction(builder, {
       publicKey: this.data.creditPublicKey,
-      initialCredit: "0",
       maximumBalance: undefined
     })
     // 2.1 Initially fund credit account
@@ -370,7 +369,6 @@ export class StellarCurrency implements LedgerCurrency {
     // 3. Admin account
     this.createAccountTransaction(builder, {
       publicKey: this.data.adminPublicKey,
-      initialCredit: "0",
       maximumBalance: undefined
     })
     
@@ -383,7 +381,7 @@ export class StellarCurrency implements LedgerCurrency {
    * Give the credit key only if this.config.externalTraderInitialCredit is not zero.
    * @param keys 
    */
-  async installExternalTransaction(builder: TransactionBuilder) {
+  installExternalTransaction(builder: TransactionBuilder) {
     const sponsorPublicKey = this.ledger.sponsorPublicKey.publicKey()
     
     // 1. Create external issuer.
@@ -409,9 +407,12 @@ export class StellarCurrency implements LedgerCurrency {
     // 2.0 Create external trader with local currency balance.
     this.createAccountTransaction(builder, {
       publicKey: this.data.externalTraderPublicKey,
-      initialCredit: this.config.externalTraderInitialCredit ?? "0",
       maximumBalance: this.config.externalTraderMaximumBalance
     })
+    if (this.config.externalTraderInitialCredit) {
+      this.addCreditTransaction(builder, this.data.externalTraderPublicKey, this.config.externalTraderInitialCredit,this.creditAccountStartingBalance())
+    }
+
     // Add additional properties to external trader.
     builder.addOperation(Operation.beginSponsoringFutureReserves({
       source: sponsorPublicKey,
@@ -508,31 +509,38 @@ export class StellarCurrency implements LedgerCurrency {
   }
 
   /**
-   * Ensures that the credit account has sufficient funds, and transfers more from 
-   * the issuer if needed.
+   * Adds an operation to the given TransactionBuilder to ensure the credit account has at
+   * least the minAmount in balance. Otherwise, it adds a multiple of the return value of
+   * {@link creditAccountStartingBalance}.
    * 
-   * @param keys 
+   * @param builder 
+   * @param minAmount 
+   * @returns 
    */
-  public async fundCreditAccount(keys: {
-    sponsor: Keypair
-    issuer: Keypair,
-  }) {
-    const creditAccount = await this.creditAccount()
-    const balance = Big(creditAccount.balance())
+  fundCreditAccountTransaction(builder: TransactionBuilder, creditAccountBalance: string, minAmount: string|undefined): {issuer: boolean} {
+    const balance = Big(creditAccountBalance)
+
+    // If minAmount is not defined, we use the default starting balance.
     const starting = Big(this.creditAccountStartingBalance())
-    if (balance.lt(starting)) {
-      const diff = starting.minus(balance)
-      const issuerAccount = await this.issuerAccount()
-      const builder = this.ledger.transactionBuilder(issuerAccount)
-        .addOperation(Operation.payment({
-          source: this.data.issuerPublicKey,
-          destination: this.data.creditPublicKey,
-          asset: this.asset(),
-          amount: diff.toString()
-        }))
-      return await this.ledger.submitTransaction(builder, [keys.issuer], keys.sponsor)
+    const minBalance = minAmount ? Big(minAmount) : starting
+    const diff = minBalance.minus(balance)
+
+    if (diff.gt(0)) {
+      // In this case we need to transfer more funds from the issuer account.
+      // We won't just transfer the difference, but we will transfer a multiple 
+      // of the starting balance.
+      const amount = diff.div(starting).round(0, Big.roundUp).times(starting).toString()
+      const asset = this.asset()
+      builder.addOperation(Operation.payment({
+        source: this.data.issuerPublicKey,
+        destination: this.data.creditPublicKey,
+        asset: this.asset(),
+        amount
+      }))
+      logger.info(`Funding the credit account with ${asset.code} ${amount}`)
+      return {issuer: true}
     }
-    return false
+    return {issuer: false}
   }
 
   // Return the balance that the credit account should have so it can continue its operation for 
@@ -548,10 +556,12 @@ export class StellarCurrency implements LedgerCurrency {
    * the credit account. Note that this transaction will need to be signed by the sponsor, the new account,
    * the issuer and optionally the credit account if config.initialCredit > 0.
    * 
+   * You may want to call {@link addCreditTransaction} to give some credit to the account.
+   * 
    * @param t The transaction builder.
    * @param config Account parameters.
    */
-  private createAccountTransaction(t: TransactionBuilder, config: {publicKey: string, initialCredit: string, maximumBalance?: string, adminSigner?: string}) {
+  private createAccountTransaction(t: TransactionBuilder, config: {publicKey: string, maximumBalance?: string, adminSigner?: string}) {
     const sponsorPublicKey = this.ledger.sponsorPublicKey.publicKey()
     const asset = this.asset()
 
@@ -602,17 +612,28 @@ export class StellarCurrency implements LedgerCurrency {
     t.addOperation(Operation.endSponsoringFutureReserves({
       source: config.publicKey
     }))
+  }
 
-    // Add initial funding.
-    if (Big(config.initialCredit).gt(0)) {
+  addCreditTransaction(t: TransactionBuilder, publicKey: string, credit: string, creditAccountBalance: string): {issuer: boolean, credit: boolean} {
+    if (Big(credit).gt(0)) {
+      const {issuer} = this.fundCreditAccountTransaction(t, creditAccountBalance, credit)
+      
+      const asset = this.asset()
       t.addOperation(Operation.payment({
         source: this.data.creditPublicKey,
-        destination: config.publicKey,
+        destination: publicKey,
         asset,
-        amount: config.initialCredit
+        amount: credit
       }))
+      return {
+        issuer,
+        credit: true
+      }
     }
-    
+    return {
+      issuer: false,
+      credit: false
+    }
   }
   /**
    * Implements {@link LedgerCurrency.createAccount()}
@@ -638,10 +659,11 @@ export class StellarCurrency implements LedgerCurrency {
 
     this.createAccountTransaction(builder, {
       publicKey: account.publicKey(),
-      initialCredit: options.initialCredit,
       maximumBalance: options.maximumBalance,
       adminSigner: this.data.adminPublicKey
     })
+    const creditAccount = await this.creditAccount()
+    this.addCreditTransaction(builder, account.publicKey(), options.initialCredit, creditAccount.balance())
     // array of keys discarding undefineds.
     const givenKeys = Object.values(keys).filter(Boolean)
     await this.ledger.submitTransaction(builder, [...givenKeys, account], keys.sponsor)
