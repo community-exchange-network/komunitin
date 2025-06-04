@@ -97,6 +97,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
       await ledgerAccount.updateCredit(this.currencyController.amountToLedger(data.creditLimit), {
         sponsor: await this.keys().sponsorKey(),
         credit: data.creditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
+        issuer: data.creditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
         account: data.creditLimit < account.creditLimit ? await this.keys().adminKey() : undefined
       })
     }

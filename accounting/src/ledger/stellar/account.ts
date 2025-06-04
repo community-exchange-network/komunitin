@@ -89,6 +89,7 @@ export class StellarAccount implements LedgerAccount {
   async updateCredit(amount: string, keys: {
     account?: Keypair,
     credit?: Keypair,
+    issuer?: Keypair,
     sponsor: Keypair
   }) {
     const currentCredit = await this.credit()
@@ -109,14 +110,22 @@ export class StellarAccount implements LedgerAccount {
         if (!keys.credit) {
           throw internalError("Required credit key when increasing the credit")
         }
-        const credit = await this.currency.creditAccount()
-        await credit.pay({
-          payeePublicKey: this.stellarAccount().accountId(),
-          amount: diff.toString()
-        }, {
-          sponsor: keys.sponsor,
-          account: keys.credit
-        })
+        const creditAccount = await this.currency.creditAccount()
+        const builder = this.currency.ledger.transactionBuilder(creditAccount )
+
+        const {issuer} = this.currency.addCreditTransaction(
+          builder, 
+          this.account?.accountId() as string, 
+          diff.toString(),
+          creditAccount.balance()
+        )
+        const signers = [keys.credit]
+        if (issuer && keys.issuer) { 
+          signers.push(keys.issuer)
+        } else if (issuer) {
+          throw internalError("Required issuer key when updating credit balance")
+        }
+        await this.currency.ledger.submitTransaction(builder, signers, keys.sponsor)
       }
     }
     return amount
