@@ -47,17 +47,20 @@ export class StellarAccount implements LedgerAccount {
   }
   
   /**
-   * Implements LedgerAccount.transfers()
+   * Return all payments made from/to this account with the local asset.
    */
   async transfers(): Promise<LedgerTransfer[]> {
     const transfers = [] as LedgerTransfer[]
+    const localAsset = this.currency.asset()
     let result = await this.stellarAccount().payments({
       limit: 20,
     })
     do {
       transfers
       .push(...result.records
-      .filter((r) => r.type == "payment")
+      .filter((r) => r.type === "payment")
+      .filter(r => (r.asset_type === "credit_alphanum4" || r.asset_type === "credit_alphanum12"))
+      .filter(r => r.asset_code === localAsset.code && r.asset_issuer === localAsset.issuer)
       .map((r) => ({
         amount: r.amount,
         asset: new Asset(r.asset_code as string, r.asset_issuer),
@@ -78,7 +81,8 @@ export class StellarAccount implements LedgerAccount {
    */
   async credit(): Promise<string> {
     const transfers = await this.transfers()
-    return transfers.filter(t => t.payer == this.currency.data.creditPublicKey)
+    return transfers
+      .filter(t => t.payer == this.currency.data.creditPublicKey)
       .reduce((amount, transfer) => Big(transfer.amount).add(amount), Big(0))
       .toString()
   }
