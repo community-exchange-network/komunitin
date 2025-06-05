@@ -1,4 +1,4 @@
-import { Transfer } from "src/model";
+import { FullTransfer } from "src/model";
 import { systemContext } from "src/utils/context";
 import { CurrencyController, SharedController } from "..";
 
@@ -8,7 +8,7 @@ import { CurrencyController, SharedController } from "..";
  * setting of the account.
  */
 export const initUpdateCreditOnPayment = (controller: SharedController) => {
-  const onTransferUpdated = async (transfer: Transfer, currencyController: CurrencyController) => {
+  const onTransferUpdated = async (transfer: FullTransfer, currencyController: CurrencyController) => {
     // Only handle committed transfers.
     if (transfer.state !== "committed") {
       return

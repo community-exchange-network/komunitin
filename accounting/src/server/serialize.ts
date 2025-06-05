@@ -1,7 +1,7 @@
 import { ExternalResource } from 'src/model/resource';
 import { Trustline } from 'src/model/trustline';
 import { Linker, Metaizer, Relator, Serializer, SerializerOptions } from 'ts-japi';
-import { Account, AccountSettings, Currency, CurrencySettings, Transfer, User } from '../model';
+import { FullAccount, AccountSettings, Currency, CurrencySettings, FullTransfer, User, Account } from '../model';
 import { config } from 'src/config';
 import { Stats } from 'src/model/stats';
 /*
@@ -46,7 +46,7 @@ export const CurrencySerializer = new Serializer<Currency>("currencies", {
     settings: new Relator<Currency,CurrencySettings>(async (currency) => {
       return currency.settings
     }, CurrencySettingsSerializer, { relatedName: "settings" }),
-    accounts: new Relator<Currency,Account>(async () => undefined, undefined as any, {
+    accounts: new Relator<Currency,FullAccount>(async () => undefined, undefined as any, {
       relatedName: "accounts",
       linkers: {
         related: new Linker((currency: Currency) => `${config.API_BASE_URL}/${currency.code}/accounts`)
@@ -100,8 +100,8 @@ export const AccountSerializer = new Serializer<Account>("accounts", {
 })
 
 // Serializer customization to merge "externalPayee" into the "payee" relationship.
-class CustomTransferSerializer extends Serializer<Transfer> {
-  async serialize(transfer: Transfer|Transfer[], options?: Partial<SerializerOptions<Transfer>>) {
+class CustomTransferSerializer extends Serializer<FullTransfer> {
+  async serialize(transfer: FullTransfer|FullTransfer[], options?: Partial<SerializerOptions<FullTransfer>>) {
     const omittedAccountIds: string[] = []
     const fixRelationships = (resource: any) => {
       if (resource.relationships?.externalPayee) {
@@ -139,31 +139,31 @@ class CustomTransferSerializer extends Serializer<Transfer> {
   }
 }
 
-export const ExternalAccountSerializer = externalResourceSerializer<Account>("accounts")
+export const ExternalAccountSerializer = externalResourceSerializer<FullAccount>("accounts")
 
 export const TransferSerializer = new CustomTransferSerializer("transfers", {
   version: null,
-  projection: projection<Transfer>(['state', 'amount', 'meta', 'created', 'updated', 'hash']),
+  projection: projection<FullTransfer>(['state', 'amount', 'meta', 'created', 'updated', 'hash']),
   relators: {
-    payer: new Relator<Transfer,Account>(async (transfer) => {
+    payer: new Relator<FullTransfer,FullAccount>(async (transfer) => {
       return transfer.payer
     }, AccountSerializer, { relatedName: "payer" }),
-    payee: new Relator<Transfer,Account>(async (transfer) => {
+    payee: new Relator<FullTransfer,FullAccount>(async (transfer) => {
       return transfer.payee
     }, AccountSerializer, { relatedName: "payee" }),
-    externalPayee: new Relator<Transfer, ExternalResource<Account>>(async (transfer) => {
+    externalPayee: new Relator<FullTransfer, ExternalResource<FullAccount>>(async (transfer) => {
       return transfer.externalPayee
     }, ExternalAccountSerializer, { relatedName: "externalPayee" }),
-    externalPayer: new Relator<Transfer, ExternalResource<Account>>(async (transfer) => {
+    externalPayer: new Relator<FullTransfer, ExternalResource<FullAccount>>(async (transfer) => {
       return transfer.externalPayer
     }, ExternalAccountSerializer, { relatedName: "externalPayer" }),
-    currency: new Relator<Transfer,Currency>(async (transfer) => {
+    currency: new Relator<FullTransfer,Currency>(async (transfer) => {
       return transfer.payee.currency
     }, CurrencySerializer, { relatedName: "currency" })
   },
   linkers: {
     // note that both payer and payee are local in Transfer object.
-    resource: new Linker((transfer: Transfer) => `${config.API_BASE_URL}/${transfer.payee.currency.code}/transfers/${transfer.id}`)
+    resource: new Linker((transfer: FullTransfer) => `${config.API_BASE_URL}/${transfer.payee.currency.code}/transfers/${transfer.id}`)
   } 
 })
 

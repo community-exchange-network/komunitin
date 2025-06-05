@@ -1,5 +1,5 @@
 import { AtLeast } from "src/utils/types"
-import { Account, AccountRecord, recordToAccount } from "./account"
+import { FullAccount, Account, AccountRecord, recordToAccount } from "./account"
 import { Transfer as TransferRecord, ExternalTransfer as ExternalTransferRecord } from "@prisma/client"
 import { Currency, User } from "."
 import { ExternalResource, ExternalResourceRecord, recordToExternalResource, RelatedResource } from "./resource"
@@ -36,7 +36,9 @@ export type TransferAuthorization = {
   hash?: string
 }
 
-export interface Transfer {
+export type Transfer = Omit<FullTransfer, "payer" | "payee"> & {payer: Account, payee: Account}
+
+export interface FullTransfer {
   id: string
 
   state: TransferState
@@ -50,24 +52,24 @@ export interface Transfer {
 
   authorization?: TransferAuthorization
   
-  payer: Account
-  payee: Account
+  payer: FullAccount
+  payee: FullAccount
 
-  externalPayer?: ExternalResource<Account>
-  externalPayee?: ExternalResource<Account>
+  externalPayer?: ExternalResource<FullAccount>
+  externalPayee?: ExternalResource<FullAccount>
 
   user: User
 }
 
-export type InputTransfer = AtLeast<Omit<Transfer, "created" | "updated" | "payer" | "payee">, "amount" | "meta" | "state"> & {payer: RelatedResource, payee: RelatedResource}
-export type UpdateTransfer = AtLeast<Omit<Transfer, "created" | "updated" | "payer" | "payee"> & {payer: RelatedResource, payee: RelatedResource}, "id">
+export type InputTransfer = AtLeast<Omit<FullTransfer, "created" | "updated" | "payer" | "payee">, "amount" | "meta" | "state"> & {payer: RelatedResource, payee: RelatedResource}
+export type UpdateTransfer = AtLeast<Omit<FullTransfer, "created" | "updated" | "payer" | "payee"> & {payer: RelatedResource, payee: RelatedResource}, "id">
 
 export const recordToTransfer = (record: TransferRecord, accounts: {
-  payer: Account, 
-  payee: Account,
-  externalPayer?: ExternalResource<Account>,
-  externalPayee?: ExternalResource<Account>
-}): Transfer => ({
+  payer: FullAccount, 
+  payee: FullAccount,
+  externalPayer?: ExternalResource<FullAccount>,
+  externalPayee?: ExternalResource<FullAccount>
+}): FullTransfer => ({
   id: record.id,
   state: record.state as TransferState,
   amount: Number(record.amount),

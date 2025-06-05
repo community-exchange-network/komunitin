@@ -7,7 +7,7 @@ import TypedEmitter from "typed-emitter";
 import { ControllerEvents, CurrencyController } from ".";
 import { LedgerCurrency, LedgerCurrencyState, LedgerTransfer } from "../ledger";
 import {
-  Account,
+  FullAccount,
   Currency,
   CurrencySettings,
   UpdateCurrency,
@@ -299,14 +299,14 @@ export class LedgerCurrencyController implements CurrencyController {
 
   async handleIncommingTransferEvent(ledgerTransfer: LedgerTransfer) {
     const payeeAccount = await this.accounts.getAccountByKey(systemContext(), ledgerTransfer.payee)
-    await this.accounts.updateAccountBalance(payeeAccount as Account)
+    await this.accounts.updateAccountBalance(payeeAccount as FullAccount)
     const payerAccount = this.model.externalAccount
     await this.accounts.updateAccountBalance(payerAccount)
   }
 
   async handleOutgoingTransferEvent(ledgerTransfer: LedgerTransfer) {
     const payerAccount = await this.accounts.getAccountByKey(systemContext(), ledgerTransfer.payer)
-    await this.accounts.updateAccountBalance(payerAccount as Account)
+    await this.accounts.updateAccountBalance(payerAccount as FullAccount)
     const payeeAccount = this.model.externalAccount
     await this.accounts.updateAccountBalance(payeeAccount)
   }

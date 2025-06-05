@@ -10,20 +10,14 @@ export class UserController extends AbstractCurrencyController {
     super(currencyController)
   }
 
-  /**
-   * Check that the current user has an account in this currency.
-   * @param ctx 
-   * @returns the user object
-   */
-  async checkUser(ctx: Context): Promise<User> {
+  async getUser(ctx: Context): Promise<User | undefined> {
     if (ctx.type === "system") {
       return this.currency().admin
     }
     if (!ctx.userId) {
-      throw forbidden("User not set")
+      return undefined
     }
     let where
-    
 
     if (/^\d+$/.test(ctx.userId)) {
       const hex = parseInt(ctx.userId).toString(16) // integer to hex.
@@ -50,9 +44,26 @@ export class UserController extends AbstractCurrencyController {
     
     const record = await this.db().user.findFirst({ where })
     if (!record) {
-      throw forbidden(`User not found in currency ${this.currency().code}`)
+      return undefined
     }
     return {id: record.id}
+  }
+
+  /**
+   * Check that the current user has an account in this currency.
+   * @param ctx 
+   * @returns the user object
+   */
+  async checkUser(ctx: Context): Promise<User> {
+    const user = await this.getUser(ctx)
+    if (!user) {
+      if (!ctx.userId) {
+        throw forbidden("User id not set")
+      } else {
+        throw forbidden(`User ${ctx.userId} not found in currency ${this.currency().code}`)
+      }
+    }
+    return user
   }
 
   /**

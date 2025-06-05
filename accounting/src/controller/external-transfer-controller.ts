@@ -1,4 +1,4 @@
-import { Account, Currency, InputTransfer, Transfer, TransferState, UpdateTransfer, User, userHasAccount } from "src/model";
+import { FullAccount, Currency, InputTransfer, FullTransfer, TransferState, UpdateTransfer, User, userHasAccount, Account } from "src/model";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
 import { isExternalResourceIdentifier } from "./external-resource-controller";
 import { Context } from "src/utils/context";
@@ -10,10 +10,9 @@ import { TransferSerializer } from "src/server/serialize";
 import { createExternalToken } from "./external-jwt";
 import { config } from "src/config";
 import { mount } from "src/server/parse";
-import { header } from "express-validator";
 
-type ExternalPayeeTransfer = WithRequired<Transfer, "externalPayee">
-type ExternalPayerTransfer = WithRequired<Transfer, "externalPayer">
+type ExternalPayeeTransfer = WithRequired<FullTransfer, "externalPayee">
+type ExternalPayerTransfer = WithRequired<FullTransfer, "externalPayer">
 
 /**
  * This class implements the external transfers. There are requests to be handled:
@@ -58,14 +57,14 @@ export class ExternalTransferController extends AbstractCurrencyController {
   /**
    * Helper to check whether a loaded transfer is external.
    */
-  public isExternalTransfer(transfer: Transfer) {
+  public isExternalTransfer(transfer: FullTransfer) {
     return transfer.externalPayee || transfer.externalPayer
   }
 
   /**
    * This is the main function to create an external transfer. 
    */
-  public async createExternalTransfer(ctx: Context, data: InputTransfer): Promise<Transfer> {
+  public async createExternalTransfer(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
     const isExternalPayer = isExternalResourceIdentifier(data.payer) 
     const isExternalPayee = isExternalResourceIdentifier(data.payee)
 
@@ -86,7 +85,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
   /**
    * Payment to external account. 
    */
-  private async createTransferExternalPayee(ctx: Context, data: InputTransfer): Promise<Transfer> {
+  private async createTransferExternalPayee(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
     if (ctx.type === "external") {
       return await this.createTransferExternalPayeeExternalUser(ctx, data)
     } else {
@@ -97,7 +96,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
   /**
    * Handle the case of a transfer with external payee and local payer initiated by an external service. 
    */
-  private async createTransferExternalPayeeExternalUser(ctx: Context, data: InputTransfer): Promise<Transfer> {
+  private async createTransferExternalPayeeExternalUser(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
     if (!this.currency().settings.enableExternalPaymentRequests) {
       throw forbidden(`External payment requests are disabled.`)
     }
@@ -106,7 +105,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
       throw badRequest(`The transfer state must be "committed"`)
     }
     // Check that the local payer account exists and has the sufficient rights.
-    const payer = await this.accounts().getAccount(ctx, data.payer.id)
+    const payer = await this.accounts().getFullAccount(data.payer.id)
     if (!(payer.settings.allowExternalPaymentRequests || this.currency().settings.defaultAllowExternalPaymentRequests)) {
       throw forbidden("Account is not allowed to receive external payment requests")
     }
@@ -137,14 +136,14 @@ export class ExternalTransferController extends AbstractCurrencyController {
   /**
    * Handle the case of a transfer with local payer and external payee initiated by a local user.
    */
-  private async createTransferExternalPayeeLocalUser(ctx: Context, data: InputTransfer): Promise<Transfer> {
+  private async createTransferExternalPayeeLocalUser(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
     if (!this.currency().settings.enableExternalPayments) {
       throw forbidden(`External payments are disabled.`)
     }
     const user = await this.users().checkUser(ctx)
 
     // Check that the user is either the admin or the payer.
-    const payer = await this.accounts().getAccount(ctx, data.payer.id)
+    const payer = await this.accounts().getFullAccount(data.payer.id)
     if (!this.users().isAdmin(user) 
       && !userHasAccount(user, payer)) {
       throw forbidden("User is not allowed to transfer from this account")
@@ -175,7 +174,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
   /**
    * Payment from external account.
    */
-  private async createTransferExternalPayer(ctx: Context, data: InputTransfer): Promise<Transfer> {
+  private async createTransferExternalPayer(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
     // The payer is external and the payee is local, so it is the remote server that 
     // needs to submit the transfer to the ledger.There are 2 cases:
 
@@ -195,7 +194,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
    * 
    * Since the other service is the payer's, this case just acknowledges a submitted transfer.
    */
-  private async createTransferExternalPayerExternalUser(ctx: Context, data: InputTransfer): Promise<Transfer> {
+  private async createTransferExternalPayerExternalUser(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
     // Case 1.
     if (data.state !== "committed") {
       throw badRequest(`Only "committed" transfers can be created externally by the external payer.`)
@@ -212,13 +211,13 @@ export class ExternalTransferController extends AbstractCurrencyController {
     }
 
     // Check that the given local payee exists and matches the transfer key.
-    const payee = await this.accounts().getAccount(ctx, data.payee.id)
+    const payee = await this.accounts().getFullAccount(data.payee.id)
     if (ledgerTransfer.payee !== payee.key) {
       throw badRequest(`The given payee ${data.payee.id} does not match the transfer key ${ledgerTransfer.payee}`)
     }
 
     // Check the external payer
-    const externalPayer = await this.externalResources().getExternalResource<Account>(ctx, data.payer as ExternalResourceIdentifier)
+    const externalPayer = await this.externalResources().getExternalResource<FullAccount>(ctx, data.payer as ExternalResourceIdentifier)
     if (ledgerTransfer.payer !== externalPayer.resource.key) {
       throw badRequest(`The given payer ${data.payer.id} does not match the transfer key ${ledgerTransfer.payer}`)
     }
@@ -249,7 +248,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
    * 
    * Since the other is the payer's, this case just notifies the payer service.
    */
-  private async createTransferExternalPayerLocalUser(ctx: Context, data: InputTransfer): Promise<Transfer> {
+  private async createTransferExternalPayerLocalUser(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
     // Check that the local currency supports external payment requests.
     if (!this.currency().settings.enableExternalPaymentRequests) {
       throw forbidden(`External payment requests are disabled.`)
@@ -259,7 +258,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     const user = await this.users().checkUser(ctx)
 
     // Check that the user is either the admin or the payee.
-    const payee = await this.accounts().getAccount(ctx, data.payee.id)
+    const payee = await this.accounts().getFullAccount(data.payee.id)
     if (!this.users().isAdmin(user) 
       && !userHasAccount(user, payee)) {
       throw forbidden("User is not allowed to transfer from this account")
@@ -307,7 +306,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
    * 
    * This function is called when accepting/rejecting an external payment request.
    */
-  public async updateExternalTransfer(ctx: Context, data: UpdateTransfer, transfer: Transfer): Promise<Transfer> {
+  public async updateExternalTransfer(ctx: Context, data: UpdateTransfer, transfer: FullTransfer): Promise<FullTransfer> {
     // There are two use cases for this function:
     if (transfer.state !== "pending") {
       throw badRequest("Only pending external transfers can be updated")
@@ -476,7 +475,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
 
   private async getExternalAccount(ctx: Context, resourceId: ExternalResourceIdentifier) {
     // Fetch and save external account.
-    return await this.externalResources().getExternalResource<Account>(ctx, resourceId)
+    return await this.externalResources().getExternalResource<FullAccount>(ctx, resourceId)
   }
 
   private async getExternalAccountCurrency(ctx: Context, externalAccount: ExternalResource<Account>) {
@@ -510,7 +509,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     return account.href.substring(0, account.href.lastIndexOf("/accounts/")) + "/transfers"
   }
 
-  private accountToExternal(account: Account): ExternalResource<Account> {
+  private accountToExternal(account: FullAccount): ExternalResource<FullAccount> {
     return {
       id: account.id,
       type: "accounts",
@@ -577,7 +576,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     return response
   }
 
-  private async notifyCreateExternalTransfer(ctx: Context, endpoint: string, transfer: Transfer, publicKey: string) {
+  private async notifyCreateExternalTransfer(ctx: Context, endpoint: string, transfer: FullTransfer, publicKey: string) {
     const data = await TransferSerializer.serialize(transfer)
     return await this.notifyExternalTransferRequest("POST", endpoint, data, publicKey)
   }
@@ -609,7 +608,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     }
     const resource = await response.json() as { data: any }
     const result = mount(resource.data)
-    return result as Transfer
+    return result as FullTransfer
   }
 
 }
