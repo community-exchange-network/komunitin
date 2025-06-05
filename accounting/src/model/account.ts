@@ -1,4 +1,4 @@
-import { AtLeast } from 'src/utils/types'
+import { AtLeast, Optional } from 'src/utils/types'
 import { Currency } from './currency'
 import { Account as AccountRecord, User as UserRecord, AccountTag as AccountTagRecord, Prisma } from '@prisma/client'
 import { User } from './user'
@@ -10,7 +10,10 @@ export enum AccountStatus {
   Deleted = "deleted",
 }
 
-export interface Account {
+// Accounts, as returned by the API, do not need to have all fields filled. 
+// That depends on the permissions of the caller.
+export type Account = Optional<FullAccount, "balance" | "creditLimit" | "maximumBalance" | "users" | "settings">
+export interface FullAccount {
   id: string,
   code: string,
   key: string
@@ -19,7 +22,6 @@ export interface Account {
   created: Date
   updated: Date
 
-  // These are calculated fields from the ledger.
   balance: number,
   creditLimit: number,
   maximumBalance?: number,
@@ -127,7 +129,7 @@ export type AccountSettings = {
 }
 
 // No input needed for creating an account (beyond implicit currency)!
-export type InputAccount = Pick<Account, "id" | "code" | "creditLimit" | "maximumBalance" | "settings" | "users">
+export type InputAccount = Pick<FullAccount, "id" | "code" | "creditLimit" | "maximumBalance" | "settings" | "users">
 export type UpdateAccount = AtLeast<InputAccount, "id">
 
 export function accountToRecord(account: UpdateAccount): Prisma.AccountUpdateInput {
@@ -148,7 +150,7 @@ export function accountToRecord(account: UpdateAccount): Prisma.AccountUpdateInp
 
 type AccountRecordComplete = AccountRecord & {users?: {user: UserRecord}[], tags?: AccountTagRecord[]}
 
-export const recordToAccount = (record: AccountRecordComplete, currency: Currency): Account => {
+export const recordToAccount = (record: AccountRecordComplete, currency: Currency): FullAccount => {
   const users = record.users ? record.users.map(accountUser => ({id: accountUser.user.id})) : undefined;
   const tags = record.tags ? record.tags.map(tag => ({
     id: tag.id,
@@ -178,6 +180,6 @@ export const recordToAccount = (record: AccountRecordComplete, currency: Currenc
   }
 }
 
-export const userHasAccount = (user: User, account: Account): boolean | undefined => {
+export const userHasAccount = (user: User, account: FullAccount): boolean | undefined => {
   return account.users?.some(u => u.id === user.id)
 }

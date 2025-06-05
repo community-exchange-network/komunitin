@@ -3,7 +3,7 @@ import { LedgerCurrencyState } from "../ledger";
 import { Optional, Rate } from "../utils/types";
 import { Currency as CurrencyRecord, Prisma } from "@prisma/client"
 import { User } from "./user";
-import { Account, AccountRecord, recordToAccount } from "./account";
+import { FullAccount, AccountRecord, recordToAccount } from "./account";
 
 
 export { CurrencyRecord }
@@ -128,7 +128,7 @@ export interface Currency {
     externalIssuer: string
   }
 
-  externalAccount: Account
+  externalAccount: FullAccount
 
   settings: CurrencySettings
   state: LedgerCurrencyState

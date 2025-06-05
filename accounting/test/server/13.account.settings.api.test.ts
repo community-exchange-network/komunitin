@@ -36,7 +36,7 @@ describe('Account settings', async () => {
   })
 
   it('user cannot hide own balance', async () => {
-    await t.api.patch(`/TEST/accounts/${t.account2.id}`, {
+    await t.api.patch(`/TEST/accounts/${t.account2.id}/settings`, {
       data: { attributes: { hideBalance: true } }
     }, t.user2, 403)
   })
@@ -58,5 +58,11 @@ describe('Account settings', async () => {
     hasBalance(response.body.data[0]) // account0
     doesNotHaveBalance(response.body.data[1]) // account1
     hasBalance(response.body.data[2]) // user2 own account
+  })
+
+  it.todo("balances are hidden even if accounts are included from a transfer", async () => {
+    // This test should check that balances are hidden even if accounts are included in a transfer response.
+    // It requires a transfer to be created and then fetched with account details.
+    // The test should ensure that the balance of the other account is not visible.
   })
 })
