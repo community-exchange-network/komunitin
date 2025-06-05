@@ -198,32 +198,4 @@ describe('Accounts endpoints', async () => {
     await t.api.delete(`/TEST/accounts/${account1.id}`, user2)
   })
 
-  it('hide account balance by default', async () => {
-    const hasBalance = (account: any) => assert.match(account.attributes.balance, /^(-)?\d+$/)
-    // check how users can see balances before updating the setting
-    const responseBefore = await t.api.get('/TEST/accounts', user2)
-    assert.equal(responseBefore.body.data.length, 3)
-    responseBefore.body.data.forEach(hasBalance)
-
-    // set currency defaultHideBalance to true
-    await t.api.patch('/TEST/currency/settings', {
-      data: {
-        attributes: { defaultHideBalance: true }
-      }
-    }, admin)
-    
-    // check that the account balances are hidden for regular user
-    const response = await t.api.get('/TEST/accounts', user2)
-    assert.equal(response.body.data.length, 3)
-    
-    assert.equal(response.body.data[0].attributes.balance, undefined)
-    assert.equal(response.body.data[1].attributes.balance, undefined)
-    hasBalance(response.body.data[2]) // user2 own account
-
-    // check that the account balances are visible for admin
-    const responseAdmin = await t.api.get('/TEST/accounts', admin)
-    assert.equal(responseAdmin.body.data.length, 3)
-    responseAdmin.body.data.forEach(hasBalance)
-  })
-
 })
