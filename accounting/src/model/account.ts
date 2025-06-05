@@ -119,6 +119,11 @@ export type AccountSettings = {
   
   /**  Tags that can be used to pre-authorize payments. */
   tags?: Tag[]
+
+  /**
+   * Whether to hide the balance of this account from other users.
+   */
+  hideBalance?: boolean
 }
 
 // No input needed for creating an account (beyond implicit currency)!

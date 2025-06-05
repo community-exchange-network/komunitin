@@ -94,6 +94,10 @@ export type CurrencySettings = {
    * The maximum balance in local currency that the external trader account may have.
    */
   externalTraderMaximumBalance?: number
+  /**
+   * Whether to hide other's account balances by default.
+   */
+  defaultHideBalance?: boolean
 }
 
 export type CurrencyStatus = "new" | "active"
