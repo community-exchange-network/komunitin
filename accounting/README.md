@@ -137,9 +137,9 @@ echo $TOKEN
 ```
 Method 2: harvest it from your browser dev tools while visiting http://localhost:2030/ (log in with `fermat@komunitin.org` / `komunitin`).
 
-3. Using the `$VOSTRO` and `$TOKEN` env vars, you can graft the Komunitin node onto the CC tree:
+3. Using the `$VOSTRO` and `$TOKEN` env vars, you can graft the Komunitin node onto the CC tree (assuming [trunk runs on port 8080](https://github.com/tubsproject/reflector/blob/121d3c912414cfdb5b4421baef09ae3c8484058f/src/main.ts#L132)):
 ```sh
-curl -i -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" -X POST -d"{\"data\":{\"attributes\":{\"peerNodePath\":\"trunk\",\"lastHash\":\"trunk\",\"vostroId\":\"$VOSTRO\"},\"relationships\":{\"vostro\":{\"data\":{\"type\":\"accounts\",\"id\":\"$VOSTRO\"}}}}}" http://localhost:2025/NET2/cc/nodes
+curl -i -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" -X POST -d"{\"data\":{\"attributes\":{\"peerNodePath\":\"trunk\",\"ourNodePath\":\"trunk/branch2\",\"url\":\"http://localhost:8080/\",\"lastHash\":\"trunk\",\"vostroId\":\"$VOSTRO\"},\"relationships\":{\"vostro\":{\"data\":{\"type\":\"accounts\",\"id\":\"$VOSTRO\"}}}}}" http://localhost:2025/NET2/cc/nodes
 ```
 4. Give the Credit Commons Vostro account a healthy credit limit of 9,000 ECO:
 ```sh
