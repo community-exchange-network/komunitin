@@ -285,10 +285,8 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     await this.makeRemoteCall(transaction, remoteNode)
     await this.transfers().createTransfer(systemContext(), localTransfer)
     console.log('calculating new hash', ctx);
-    if (typeof ctx.lastHashAuth !== 'undefined') {
-      const newHash = makeHash(transaction, ctx.lastHashAuth.lastHash)
-      await this.updateNodeHash(ctx.lastHashAuth.peerNodePath, newHash)
-    }
+    const newHash = makeHash(transaction, remoteNode.lastHash)
+    await this.updateNodeHash(remoteNode.peerNodePath, newHash)
     return transaction
   }
   async getAccount(ctx: Context, accountId: string): Promise<{ body: CCAccountSummary, trace: string }> {
