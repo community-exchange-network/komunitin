@@ -18,46 +18,53 @@
         ],
         "parameters": [],
         "responses": {
-          "401": {
-            "description": "Unauthorized",
+          "200": {
+            "description": "OK",
             "schema": {
               "type": "object",
               "properties": {
-                "errors": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "status": {
-                        "type": "string"
-                      },
-                      "code": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "detail": {
-                        "type": "string"
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "message"
+                    },
+                    "attributes": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "Welcome to the Credit Commons federation protocol."
+                        }
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "self": {
+                          "type": "string",
+                          "example": "http://localhost:2025/TEST/cc/"
+                        }
                       }
                     }
-                  },
-                  "example": [
-                    {
-                      "status": "401",
-                      "code": "Unauthorized",
-                      "title": "Unauthorized",
-                      "detail": "This currency has not (yet) been grafted onto any CreditCommons tree."
-                    }
-                  ]
+                  }
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "tags": [],
         "produces": [
           "application/vnd.api+json"
+        ],
+        "security": [
+          {
+            "authorization": []
+          }
         ]
       }
     },
@@ -776,7 +783,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "TES1"
+            "example": "TEST"
           },
           {
             "type": "string",
@@ -1483,7 +1490,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "TEST"
+            "example": "EXTR"
           },
           {
             "in": "body",
@@ -2235,7 +2242,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "165ec78c-87d4-49f1-bbc7-f533a449d8c8"
+            "example": "4290f992-a898-4a08-b963-ab0c7b89ad44"
           },
           {
             "type": "string",
@@ -2422,7 +2429,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "4e1950d2-4a8f-4ce8-8e9d-6441fce1a601"
+            "example": "ef912392-1d86-416b-8349-a003fd089518"
           },
           {
             "in": "body",
@@ -2688,7 +2695,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "1c59fba4-e834-4ff7-9ab4-37610f19e5f8"
+            "example": "8437db11-b000-4487-a068-3f36951b51b7"
           }
         ],
         "responses": {
@@ -2771,7 +2778,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "d0f50666-e329-4b71-b4d2-8c651ef1b570"
+            "example": "6e164f61-8e1f-4c5e-b757-35ccd71aff3e"
           }
         ],
         "responses": {
@@ -2924,7 +2931,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "78709fee-6c6c-4935-a7f7-59632d56ec7c"
+            "example": "96751c8c-be94-4a9f-95df-374284cc87a6"
           },
           {
             "in": "body",
@@ -3677,7 +3684,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "12556428-5d31-4a91-bbb3-ec4f1167d61a"
+            "example": "eb39d844-d02c-4a35-83c6-f0d05af3a87a"
           },
           {
             "in": "body",
@@ -3965,7 +3972,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "54511634-08ba-4c16-ba3d-972be39822d1"
+            "example": "0597f968-95a3-4d48-878b-ded2e0942ec2"
           }
         ],
         "responses": {
@@ -4082,7 +4089,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "22a945c6-0e91-45a3-bae4-fbe4c01d4806"
+            "example": "eb39d844-d02c-4a35-83c6-f0d05af3a87a"
           },
           {
             "type": "string",
@@ -4661,7 +4668,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "example": "d36f1173-ccfe-46a9-9995-c0c0d32800f6"
+            "example": "358f2b1a-27d5-477f-9424-8ad93098d40c"
           }
         ],
         "responses": {
@@ -4944,6 +4951,42 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "detail": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "status": "403",
+                      "code": "Forbidden",
+                      "title": "Forbidden",
+                      "detail": "Insufficient Scope"
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
         "tags": [],
@@ -4967,10 +5010,156 @@
           {
             "name": "code",
             "in": "path",
-            "required": true
+            "required": true,
+            "type": "string",
+            "example": "EXTR"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "attributes": {
+                      "type": "object",
+                      "properties": {
+                        "uuid": {
+                          "type": "string",
+                          "example": "3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c"
+                        },
+                        "state": {
+                          "type": "string",
+                          "example": "V"
+                        },
+                        "workflow": {
+                          "type": "string",
+                          "example": "|P-PC+CX+"
+                        },
+                        "entries": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "payee": {
+                                "type": "string"
+                              },
+                              "payer": {
+                                "type": "string"
+                              },
+                              "quant": {
+                                "type": "number"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "properties": {
+                                  "foo": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "example": [
+                            {
+                              "payee": "trunk/branch2/TEST0002",
+                              "payer": "trunk/EXTR0000",
+                              "quant": 0.01,
+                              "description": "test long distance for 3 from leaf",
+                              "metadata": {
+                                "foo": "bar"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         ],
         "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "creditCommonsTransactions"
+                    },
+                    "attributes": {
+                      "type": "object",
+                      "properties": {
+                        "uuid": {
+                          "type": "string",
+                          "example": "3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c"
+                        },
+                        "state": {
+                          "type": "string",
+                          "example": "V"
+                        },
+                        "workflow": {
+                          "type": "string",
+                          "example": "|P-PC+CX+"
+                        },
+                        "entries": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "payee": {
+                                "type": "string"
+                              },
+                              "payer": {
+                                "type": "string"
+                              },
+                              "quant": {
+                                "type": "number"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "properties": {
+                                  "foo": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "example": [
+                            {
+                              "payee": "trunk/branch2/TEST0002",
+                              "payer": "trunk/EXTR0000",
+                              "quant": 0.01,
+                              "description": "test long distance for 3 from leaf",
+                              "metadata": {
+                                "foo": "bar"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "400": {
             "description": "Bad Request",
             "schema": {
@@ -5006,6 +5195,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "500": {
             "description": "Internal Server Error",
@@ -5047,6 +5239,11 @@
         "tags": [],
         "produces": [
           "application/vnd.api+json"
+        ],
+        "security": [
+          {
+            "authorization": []
+          }
         ]
       }
     },
@@ -5199,11 +5396,19 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "tags": [],
         "produces": [
           "application/vnd.api+json"
+        ],
+        "security": [
+          {
+            "authorization": []
+          }
         ]
       }
     },
@@ -5230,8 +5435,63 @@
             "required": true
           }
         ],
-        "responses": {},
-        "tags": []
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "value of last-hash header \"qwer\" does not match our records."
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "Transfer non-existing not found"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "not implemented yet"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/vnd.api+json"
+        ]
       }
     },
     "/{code}/cc/account": {
@@ -5244,11 +5504,67 @@
           {
             "name": "code",
             "in": "path",
-            "required": true
+            "required": true,
+            "type": "string",
+            "example": "TEST"
+          },
+          {
+            "type": "string",
+            "name": "acc_path",
+            "in": "query",
+            "example": "TEST0002"
           }
         ],
-        "responses": {},
-        "tags": []
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "trades": {
+                  "type": "number",
+                  "example": 0
+                },
+                "entries": {
+                  "type": "number",
+                  "example": 0
+                },
+                "gross_in": {
+                  "type": "number",
+                  "example": 0
+                },
+                "gross_out": {
+                  "type": "number",
+                  "example": 0
+                },
+                "partners": {
+                  "type": "number",
+                  "example": 0
+                },
+                "pending": {
+                  "type": "number",
+                  "example": 0
+                },
+                "balance": {
+                  "type": "number",
+                  "example": 0
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/vnd.api+json"
+        ],
+        "security": [
+          {
+            "authorization": []
+          }
+        ]
       }
     },
     "/{code}/cc/account/history": {
@@ -5261,11 +5577,68 @@
           {
             "name": "code",
             "in": "path",
-            "required": true
+            "required": true,
+            "type": "string",
+            "example": "TEST"
+          },
+          {
+            "type": "string",
+            "name": "acc_path",
+            "in": "query",
+            "example": "TEST0002"
           }
         ],
-        "responses": {},
-        "tags": []
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "min": {
+                      "type": "null",
+                      "example": null
+                    },
+                    "max": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "points": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "start": {
+                      "type": "string",
+                      "example": "9999-01-01 00:00:00"
+                    },
+                    "end": {
+                      "type": "string",
+                      "example": "0000-01-01 00:00:00"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/vnd.api+json"
+        ],
+        "security": [
+          {
+            "authorization": []
+          }
+        ]
       }
     },
     "/{code}/creditCommonsNodes": {

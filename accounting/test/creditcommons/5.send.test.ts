@@ -51,11 +51,12 @@ describe('send', async () => {
     await t.api.post('/EXTR/cc/nodes', testCreditCommonsNeighbour(neighbour), eAdminAuth)
     assert.equal(eCurrency.attributes.code, 'EXTR')
     assert.equal(typeof eVostro.id, 'string')
-    
-    await t.api.post('/EXTR/cc/send', {
+    const body = {
       data: {
         attributes: generateCcTransaction('3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c', `trunk/${eAccount1.attributes.code}`, false)
       }
-    }, eUser1Auth)
+    };
+    // console.log('sending', '/EXTR/cc/send', body, eUser1Auth)
+    await t.api.post('/EXTR/cc/send', body, eUser1Auth)
   })
 })
