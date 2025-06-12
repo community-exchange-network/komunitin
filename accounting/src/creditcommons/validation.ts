@@ -5,6 +5,7 @@ export namespace CreditCommonsValidators {
     body("data.attributes.peerNodePath").isString(),
     body("data.attributes.ourNodePath").isString(),
     body("data.attributes.lastHash").isString(),
+    body("data.attributes.url").isString(),
     body("data.attributes.vostroId").isString(),
     body("data.relationships.vostro.data.type").isString(),
     body("data.relationships.vostro.data.id").isString(),

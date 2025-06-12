@@ -26,7 +26,7 @@ export function client(app: Express) {
       if (auth.ccNode) {
         req.set('cc-node', auth.ccNode)
       }
-      if (auth.lastHash) {
+      if (typeof auth.lastHash !== 'undefined') {
         req.set('last-hash', auth.lastHash)
       }
     }

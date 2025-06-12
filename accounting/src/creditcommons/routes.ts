@@ -1,6 +1,6 @@
 import { Router, ErrorRequestHandler } from 'express'
 import { checkExact } from 'express-validator'
-import { CreditCommonsNode } from 'src/model'
+import { CreditCommonsNode, CreditCommonsTransaction } from 'src/model'
 import { SharedController } from 'src/controller'
 import { Scope, userAuth, lastHashAuth } from 'src/server/auth'
 import { currencyInputHandler, currencyResourceHandler, asyncHandler} from 'src/server/handlers'
@@ -12,6 +12,7 @@ import { getKError } from '../server/errors'
 import {
   CreditCommonsNodeSerializer,
   CreditCommonsMessageSerializer,
+  CreditCommonsTransactionSerializer
 } from './serialize';
 
 export const ccErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
@@ -38,8 +39,21 @@ export function getRoutes(controller: SharedController) {
     checkExact(CreditCommonsValidators.isGraft()),
     currencyInputHandler(controller, async (currencyController, ctx, data: CreditCommonsNode) => {
       // setResponseTrace(req, res)
-      return await currencyController.creditCommons.createNode(ctx, data.peerNodePath, data.ourNodePath, data.lastHash, data.vostroId)
+      return await currencyController.creditCommons.createNode(ctx, data)
     }, CreditCommonsNodeSerializer, 201)
+  )
+
+  /**
+   * Send a Credit Commons transaction.
+   * This route is not part of the CC API, so it uses Komunitin's standard auth and error handling
+   */
+  router.post('/:code/cc/send',
+    userAuth(Scope.Accounting),
+    checkExact(CreditCommonsValidators.isTransaction()),
+    currencyInputHandler(controller, async (currencyController, ctx, data: CreditCommonsTransaction) => {
+      // setResponseTrace(req, res)
+      return await currencyController.creditCommons.sendTransaction(ctx, data)
+    }, CreditCommonsTransactionSerializer, 201)
   )
 
   /**
