@@ -7,6 +7,7 @@ import { InputTransfer } from "src/model/transfer"
 import { systemContext } from "src/utils/context"
 import { Transfer } from "src/model"
 import { logger } from "../utils/logger"
+import { config } from 'src/config'
 
 function formatDateTime(d: Date) {
   const year = ('0000'+(d.getUTCFullYear())).slice(-4)
@@ -71,6 +72,11 @@ export interface CCTransactionResponse {
   }
 }
 
+export interface AccountAddresses {
+  creditCommons?: string,
+  komunitin: string
+}
+
 export interface CreditCommonsController {
   getWelcome(ctx: Context): Promise<{ message: string }>
   createNode(ctx: Context, data: CreditCommonsNode): Promise<CreditCommonsNode>
@@ -88,6 +94,7 @@ export interface CreditCommonsController {
     body: CCAccountHistory,
     trace: string
   }>
+  getAccountAdresses(ctx: Context, id: string): Promise<AccountAddresses>
 }
 
 export class CreditCommonsControllerImpl extends AbstractCurrencyController implements CreditCommonsController {
@@ -348,5 +355,16 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       },
       trace: responseTrace
     };
+  }
+  async getAccountAdresses(ctx: Context, id: string): Promise<AccountAddresses> {
+    const account = await this.accounts().getAccount(ctx, id)
+    const adresses = {
+      komunitin: `${config.API_BASE_URL}/${account.currency.code}/accounts/${account.id}`
+    } as AccountAddresses
+    const remoteNode = await this.makeRoutingDecision(undefined)
+    if (remoteNode) {
+      adresses.creditCommons = `${remoteNode.ourNodePath}/${account.code}`
+    }
+    return adresses
   }
 }

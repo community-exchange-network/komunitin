@@ -2,7 +2,7 @@ import { Router, ErrorRequestHandler } from 'express'
 import { checkExact } from 'express-validator'
 import { CreditCommonsNode, CreditCommonsTransaction } from 'src/model'
 import { SharedController } from 'src/controller'
-import { Scope, userAuth, lastHashAuth } from 'src/server/auth'
+import { Scope, userAuth, lastHashAuth, noAuth } from 'src/server/auth'
 import { currencyInputHandler, currencyResourceHandler, asyncHandler} from 'src/server/handlers'
 import { context } from 'src/utils/context'
 import { CreditCommonsValidators } from './validation'
@@ -129,6 +129,18 @@ export function getRoutes(controller: SharedController) {
     }),
     ccErrorHandler
   )
+
+  /**
+   * 
+   * 
+  */
+  router.get('/:code/cc/addresses/:id', noAuth(), asyncHandler(async (req, res) => {
+    const ctx = context(req)
+    const currencyController = await controller.getCurrencyController(req.params.code)
+    const response = await currencyController.creditCommons.getAccountAdresses(ctx, req.params.id)
+    res.setHeader('Content-Type', 'application/json')
+    res.status(200).json(response)
+  }))
 
   return router
 }
