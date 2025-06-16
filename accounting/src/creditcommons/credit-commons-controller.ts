@@ -284,7 +284,6 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     const localTransfer = await this.checkSenderBalance(transaction, remoteNode)
     await this.makeRemoteCall(transaction, remoteNode)
     await this.transfers().createTransfer(systemContext(), localTransfer)
-    console.log('calculating new hash', ctx);
     const newHash = makeHash(transaction, remoteNode.lastHash)
     await this.updateNodeHash(remoteNode.peerNodePath, newHash)
     return transaction

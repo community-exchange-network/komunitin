@@ -39,7 +39,6 @@ describe('send', async () => {
     eCurrency = response.body.data
     // Create account in EXTR for user1
     eAccount1 = await t.createAccount(eUser1Auth.user, "EXTR", eAdminAuth)
-    // console.log(eAccount1)
     eVostro = await t.createAccount(eAdminAuth.user, "EXTR", eAdminAuth)
     const neighbour: CreditCommonsNode = {
       peerNodePath: 'trunk/branch2',
@@ -56,7 +55,6 @@ describe('send', async () => {
         attributes: generateCcTransaction('3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c', `trunk/${eAccount1.attributes.code}`, false)
       }
     };
-    // console.log('sending', '/EXTR/cc/send', body, eUser1Auth)
     await t.api.post('/EXTR/cc/send', body, eUser1Auth)
   })
 })
