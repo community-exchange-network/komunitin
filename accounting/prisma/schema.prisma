@@ -289,6 +289,7 @@ model CreditCommonsNode {
   peerNodePath    String @db.VarChar(255)
   ourNodePath String @db.VarChar(255)
   lastHash      String @db.VarChar(255)
+  url           String @db.VarChar(255)
 
   // Vostro account acts as a proxy representing this Credit Commons Node on our ledger
   vostroId String

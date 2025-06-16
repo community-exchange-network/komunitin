@@ -1,8 +1,8 @@
-import { createHash } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import { AbstractCurrencyController } from "../controller/abstract-currency-controller"
 import { Context } from "../utils/context"
 import { CreditCommonsNode, CreditCommonsTransaction, CreditCommonsEntry } from "../model/creditCommons"
-import { badRequest, notImplemented, unauthorized } from "src/utils/error"
+import { badRequest, notImplemented, unauthorized, noTrustPath, notFound } from "src/utils/error"
 import { InputTransfer } from "src/model/transfer"
 import { systemContext } from "src/utils/context"
 import { Transfer } from "src/model"
@@ -27,6 +27,20 @@ function makeHash(transaction: CreditCommonsTransaction, lastHash: string): stri
     transaction.version,
   ].join('|');
   return createHash('md5').update(str).digest('hex');
+}
+
+function ledgerOf(ccAddress: string): string {
+  const parts = ccAddress.split('/')
+  if (parts.length === 1) {
+    return ''
+  }
+  const ledgerParts = parts.slice(0, parts.length - 1)
+  return ledgerParts.join('/') + '/'
+}
+
+function accountOf(ccAddress: string): string {
+  const ledger = ledgerOf(ccAddress)
+  return ccAddress.substring(ledger.length)
 }
 
 export interface CCAccountSummary {
@@ -59,7 +73,8 @@ export interface CCTransactionResponse {
 
 export interface CreditCommonsController {
   getWelcome(ctx: Context): Promise<{ message: string }>
-  createNode(ctx: Context, peerNodePath: string, ourNodePath: string, lastHash: string, vostroId: string): Promise<CreditCommonsNode>
+  createNode(ctx: Context, data: CreditCommonsNode): Promise<CreditCommonsNode>
+  sendTransaction(ctx: Context, transaction: CreditCommonsTransaction): Promise<CreditCommonsTransaction>
   createTransaction(ctx: Context, transaction: CreditCommonsTransaction): Promise<{
     body: CCTransactionResponse,
     trace: string
@@ -99,12 +114,129 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       responseTrace: `${ctx.lastHashAuth.requestTrace}, <${ourNodeName}`
     }
   }
+  async createNode(ctx: Context, data: CreditCommonsNode): Promise<CreditCommonsNode> {
+    // Only admins are allowed to set the trunkward node:
+    await this.users().checkAdmin(ctx)
+    await this.db().creditCommonsNode.create({
+      data: {
+        tenantId: this.db().tenantId,
+        peerNodePath: data.peerNodePath,
+        ourNodePath: data.ourNodePath,
+        lastHash: data.lastHash,
+        url: data.url,
+        vostroId: data.vostroId
+      }
+    });
 
+    return data as CreditCommonsNode;
+  }
+  async updateNodeHash(peerNodePath: string, lastHash: string): Promise<void> {
+    logger.info(`Updating hash for CreditCommons node ${peerNodePath} to '${lastHash}'`)
+    await this.db().creditCommonsNode.update({
+      where: {
+        tenantId_peerNodePath: {
+          tenantId: this.db().tenantId,
+          peerNodePath
+        }
+      },
+      data: {
+        lastHash
+      }
+    });
+  }
+  async getWelcome(ctx: Context) {
+    await this.checkLastHashAuth(ctx)
+    return { message: 'Welcome to the Credit Commons federation protocol.' }
+  }
+  private async ccToLocal(transaction: CreditCommonsTransaction, ourNodePath: string, vostroId: string, outgoing: boolean): Promise<InputTransfer> {
+    const ledgerBase = `${ourNodePath}/`
+    let netGain = 0
+    let localParty = null
+    let metas: string[] = []
+    let froms: string[] = []
+    for (let i=0; i < transaction.entries.length; i++) {
+      logger.info(`Checking entry ${transaction.entries[i].payer} -> ${transaction.entries[i].payee} on ${ledgerBase}`)
+      let thisLocalParty;
+      if (ledgerOf(transaction.entries[i].payer) === ledgerBase) {
+        thisLocalParty = transaction.entries[i].payer.slice(ledgerBase.length)
+        netGain -= transaction.entries[i].quant
+        metas.push(`-${transaction.entries[i].quant} (${transaction.entries[i].description})`)
+      }
+      if (ledgerOf(transaction.entries[i].payee) === ledgerBase) {
+        if (thisLocalParty) {
+          throw badRequest('Payer and Payee cannot both be local')
+        }
+        thisLocalParty = transaction.entries[i].payee.slice(ledgerBase.length)
+        netGain += transaction.entries[i].quant
+        metas.push(`+${transaction.entries[i].quant} (${transaction.entries[i].description})`)
+        froms.push(transaction.entries[i].payer)
+      }
+      if (!thisLocalParty) {
+        throw badRequest('Payer and Payee cannot both be remote')
+      }
+      if (localParty && localParty !== thisLocalParty) {
+        throw badRequest('All entries must be to or from the same local account')
+      }
+      localParty = thisLocalParty
+    }
+    if (netGain <= 0 && outgoing === false) {
+      throw badRequest('Net gain must be positive for incoming transaction')
+    }
+    if (netGain >= 0 && outgoing === true) {
+      throw badRequest('Net gain must be negative for outgoing transaction')
+    }
+    // if recipientId is a code like NET20002
+    // then payeeId is an account ID like
+    // 2791faf5-4566-4da0-99f6-24c41041c50a
+    let payeeId
+    if (localParty) {
+       payeeId = await this.accountCodeToAccountId(localParty);
+    }
+    if (!payeeId) {
+      throw notFound(`local party ${localParty} not found on ${ourNodePath}`)
+    }
+    let payer = { id: vostroId, type: 'account' }
+    let payee = { id: payeeId, type: 'account' }
+    if (outgoing) {
+      netGain = -netGain
+      payer = { id: payeeId, type: 'account' }
+      payee = { id: vostroId, type: 'account' }
+    }
+    return {
+      id: transaction.uuid,
+      state: 'committed',
+      amount: this.currencyController.amountFromLedger(netGain.toString()),
+      meta: `From Credit Commons [${froms.join(', ')}]:` + metas.join(' '),
+      payer,
+      payee,
+    }
+  }
+  async createTransaction(ctx: Context, transaction: CreditCommonsTransaction): Promise<{ body:  CCTransactionResponse, trace: string }>{
+    const { vostroId, ourNodePath, responseTrace } = await this.checkLastHashAuth(ctx)
+    const localTransfer = await this.ccToLocal(transaction, ourNodePath, vostroId, false)
+    await this.transfers().createTransfer(systemContext(), localTransfer)
+    const newHash = makeHash(transaction, ctx.lastHashAuth!.lastHash)
+    await this.updateNodeHash(ctx.lastHashAuth!.peerNodePath, newHash)
+    return {
+      body: {
+        data: transaction.entries,
+        meta: {
+          secs_valid_left: 0
+        }
+      },
+      trace: responseTrace
+    }
+  }
+  async updateTransaction(ctx: Context, transId: string, newState: string) {
+    await this.checkLastHashAuth(ctx)
+    // Check if the transaction exists
+    await this.transfers().getTransfer(systemContext(), transId)
+    throw notImplemented('not implemented yet')
+  }
   private async accountCodeToAccountId(accountCode: string): Promise<string | undefined> {
     const account = await this.accounts().getAccountBy(systemContext(), "code", accountCode)
     return account?.id
   }
-
   private async getTransactions(accountCode: string): Promise<{ transfersIn: Transfer[], transfersOut: Transfer[] }> {
     const accountId = await this.accountCodeToAccountId(accountCode)
     if (!accountId) {
@@ -124,7 +256,38 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       transfersOut: (transfers).filter(t => t.payer.id === accountId)
     }
   }
-  
+  private async checkSenderBalance(transaction: CreditCommonsTransaction, remoteNode: CreditCommonsNode): Promise<InputTransfer> {
+    return this.ccToLocal(transaction, remoteNode.ourNodePath, remoteNode.vostroId, true)
+  }
+  private async makeRoutingDecision(transaction: CreditCommonsTransaction): Promise<CreditCommonsNode | null> {
+    return await this.db().creditCommonsNode.findFirst({})
+  }
+  private async makeRemoteCall(transaction: CreditCommonsTransaction, remoteNode: CreditCommonsNode): Promise<void> {
+    const response = await fetch(`${remoteNode.url}transaction/relay`, {
+      method: 'POST',
+      body: JSON.stringify(transaction, null, 2),
+      headers: {
+        'Content-Type': 'application/json',
+        'cc-node': accountOf(remoteNode.ourNodePath),
+        'last-hash': remoteNode.lastHash
+      }
+    })
+    if (response.status !== 201) {
+      throw noTrustPath('CreditCommons transaction failed remotely')
+    }
+  }
+  async sendTransaction(ctx: Context, transaction: CreditCommonsTransaction): Promise<CreditCommonsTransaction> {
+    const remoteNode = await this.makeRoutingDecision(transaction)
+    if (!remoteNode) {
+      throw noTrustPath('CreditCommons transaction not routable')
+    }
+    const localTransfer = await this.checkSenderBalance(transaction, remoteNode)
+    await this.makeRemoteCall(transaction, remoteNode)
+    await this.transfers().createTransfer(systemContext(), localTransfer)
+    const newHash = makeHash(transaction, remoteNode.lastHash)
+    await this.updateNodeHash(remoteNode.peerNodePath, newHash)
+    return transaction
+  }
   async getAccount(ctx: Context, accountId: string): Promise<{ body: CCAccountSummary, trace: string }> {
     const { responseTrace } = await this.checkLastHashAuth(ctx)
     const { transfersIn, transfersOut } = await this.getTransactions(accountId)
@@ -185,112 +348,5 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       },
       trace: responseTrace
     };
-  }
-  async createNode(ctx: Context, peerNodePath: string, ourNodePath: string, lastHash: string, vostroId: string): Promise<CreditCommonsNode> {
-    // Only admins are allowed to set the trunkward node:
-    await this.users().checkAdmin(ctx)
-    await this.db().creditCommonsNode.create({
-      data: {
-        tenantId: this.db().tenantId,
-        peerNodePath,
-        ourNodePath,
-        lastHash,
-        vostroId,
-      }
-    });
-
-    return {
-      peerNodePath,
-      lastHash
-    } as CreditCommonsNode;
-  }
-  async updateNodeHash(peerNodePath: string, lastHash: string): Promise<void> {
-    logger.info(`Updating hash for CreditCommons node ${peerNodePath} to '${lastHash}'`)
-    await this.db().creditCommonsNode.update({
-      where: {
-        tenantId_peerNodePath: {
-          tenantId: this.db().tenantId,
-          peerNodePath
-        }
-      },
-      data: {
-        lastHash
-      }
-    });
-  }
-  async getWelcome(ctx: Context) {
-    await this.checkLastHashAuth(ctx)
-    return { message: 'Welcome to the Credit Commons federation protocol.' }
-  }
-
-  async createTransaction(ctx: Context, transaction: CreditCommonsTransaction): Promise<{ body:  CCTransactionResponse, trace: string }>{
-    const { vostroId, ourNodePath, responseTrace } = await this.checkLastHashAuth(ctx)
-    const ledgerBase = `${ourNodePath}/`
-    let netGain = 0
-    let recipient = null
-    let metas: string[] = []
-    let froms: string[] = []
-    for (let i=0; i < transaction.entries.length; i++) {
-      let thisRecipient;
-      if (transaction.entries[i].payer.startsWith(ledgerBase)) {
-        thisRecipient = transaction.entries[i].payer.slice(ledgerBase.length)
-        netGain -= transaction.entries[i].quant
-        metas.push(`-${transaction.entries[i].quant} (${transaction.entries[i].description})`)
-      }
-      if (transaction.entries[i].payee.startsWith(ledgerBase)) {
-        if (thisRecipient) {
-          throw badRequest('Payer and Payee cannot both be local')
-        }
-        thisRecipient = transaction.entries[i].payee.slice(ledgerBase.length)
-        netGain += transaction.entries[i].quant
-        metas.push(`+${transaction.entries[i].quant} (${transaction.entries[i].description})`)
-        froms.push(transaction.entries[i].payer)
-      }
-      if (!thisRecipient) {
-        throw badRequest('Payer and Payee cannot both be remote')
-      }
-      if (recipient && recipient !== thisRecipient) {
-        throw badRequest('All entries must be to or from the same local account')
-      }
-      recipient = thisRecipient
-    }
-    if (netGain <= 0) {
-      throw badRequest('Net gain must be positive')
-    }
-    // if recipientId is a code like NET20002
-    // then payeeId is an account ID like
-    // 2791faf5-4566-4da0-99f6-24c41041c50a
-    let payeeId
-    if (recipient) {
-       payeeId = await this.accountCodeToAccountId(recipient);
-    }
-    if (payeeId) {
-      let localTransfer: InputTransfer = {
-        id: transaction.uuid,
-        state: 'committed',
-        amount: this.currencyController.amountFromLedger(netGain.toString()),
-        meta: `From Credit Commons [${froms.join(', ')}]:` + metas.join(' '),
-        payer: { id: vostroId, type: 'account' },
-        payee: { id: payeeId, type: 'account' },
-      }
-      await this.transfers().createTransfer(systemContext(), localTransfer)
-      const newHash = makeHash(transaction, ctx.lastHashAuth!.lastHash)
-      await this.updateNodeHash(ctx.lastHashAuth!.peerNodePath, newHash)
-    }
-    return {
-      body: {
-        data: transaction.entries,
-        meta: {
-          secs_valid_left: 0
-        }
-      },
-      trace: responseTrace
-    }
-  }
-  async updateTransaction(ctx: Context, transId: string, newState: string) {
-    await this.checkLastHashAuth(ctx)
-    // Check if the transaction exists
-    await this.transfers().getTransfer(systemContext(), transId)
-    throw notImplemented('not implemented yet')
   }
 }

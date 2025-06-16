@@ -4,6 +4,7 @@ CREATE TABLE "CreditCommonsNode" (
     "peerNodePath" VARCHAR(255) NOT NULL,
     "ourNodePath" VARCHAR(255) NOT NULL,
     "lastHash" VARCHAR(255) NOT NULL,
+    "url" VARCHAR(255) NOT NULL,
     "vostroId" TEXT NOT NULL,
 
     CONSTRAINT "CreditCommonsNode_pkey" PRIMARY KEY ("tenantId","peerNodePath")

@@ -89,7 +89,7 @@ In order to feature trade between communities, the following model is proposed:
 Komunitin's Credit Commons API is a recent addition, it's not complete, and there are a few known issues:
 * The only [CC workflow](https://gitlab.com/credit-commons/cc-node/-/blob/0.9.x/doc/developers.md?ref_type=heads#workflow) that is currently supported is `_C-`, meaning the payer sends money and it completes immediately (just a POST, no PATCH).
 * In the future we also want to implement `_P+PC-` meaning the payee sends a payment request over Credit Commons with a POST, and the payer approves it with a PATCH.
-* It is also not possible yet to send transactions, only to receive them.
+* It is also not possible yet to send transactions from the GUI, but you can trigger a credcom send from Komunitin via curl.
 * There is quite some manual setup required from currency admins.
 * This functionality has so far only been tested in testing and development environments, enabling it in production is not yet recommended.
 * The current implementation waits for Stellar to commit the transaction, which [may not be the best design](https://github.com/komunitin/komunitin/pull/367#discussion_r2032891494).
@@ -137,9 +137,9 @@ echo $TOKEN
 ```
 Method 2: harvest it from your browser dev tools while visiting http://localhost:2030/ (log in with `fermat@komunitin.org` / `komunitin`).
 
-3. Using the `$VOSTRO` and `$TOKEN` env vars, you can graft the Komunitin node onto the CC tree:
+3. Using the `$VOSTRO` and `$TOKEN` env vars, you can graft the Komunitin node onto the CC tree (assuming [trunk runs on port 8080](https://github.com/tubsproject/reflector/blob/121d3c912414cfdb5b4421baef09ae3c8484058f/src/main.ts#L132)):
 ```sh
-curl -i -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" -X POST -d"{\"data\":{\"attributes\":{\"peerNodePath\":\"trunk\",\"lastHash\":\"trunk\",\"vostroId\":\"$VOSTRO\"},\"relationships\":{\"vostro\":{\"data\":{\"type\":\"accounts\",\"id\":\"$VOSTRO\"}}}}}" http://localhost:2025/NET2/cc/nodes
+curl -i -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" -X POST -d"{\"data\":{\"attributes\":{\"peerNodePath\":\"trunk\",\"ourNodePath\":\"trunk/branch2\",\"url\":\"http://localhost:8080/\",\"lastHash\":\"trunk\",\"vostroId\":\"$VOSTRO\"},\"relationships\":{\"vostro\":{\"data\":{\"type\":\"accounts\",\"id\":\"$VOSTRO\"}}}}}" http://localhost:2025/NET2/cc/nodes
 ```
 4. Give the Credit Commons Vostro account a healthy credit limit of 9,000 ECO:
 ```sh
@@ -169,6 +169,14 @@ You may also need to make sure you use the latest commit from [insert-my-node](h
 
 You will see some errors scrolling by, and [this assertion](https://gitlab.com/credit-commons/cc-server/-/blob/5a680dfbe4b7aa7e3282ea0096cf48a49572503e/tests/MultiNodeTest.php#L188) will fail because the workflow that it tests is not supported in Komunitin.
 
+### Sending a transaction from Komunitin
+Make an API call to Komunitin that triggers a credcom transaction.
+
+FIXME: add entries, see `generateCcTransaction` in accounting/test/creditcommons/api.data.ts for an example
+
+```sh
+curl -i -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" -X POST -d"{\"data\":{\"attributes\":{\"uuid\":\"3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c\",\"state\":\"V\",\"workflow\":\"|P-PC+CX+\",\"entries\":[],\"version\":\"1\"},\"relationships\":{}}}}" http://localhost:2025/NET2/cc/send
+```
 
 ### Reset
 To  restart from scratch, do `docker compose down -v`. Make sure with `docker ps -a` and `docker volume ls` that all relevant containers are stopped and removed, and repeat if necessary. There might also be an unnamed volume that you need to remove. If see `DUPLICATE ENTRY` errors on the next run then you know it wasn't removed completely.

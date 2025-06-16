@@ -98,13 +98,18 @@ describe('Input validation', async () => {
       data: {
         attributes: {
           peerNodePath: 'trunk',
-          lastHash: 'asdf',
           ourNodePath: 'trunk/branch2',
+          lastHash: 'asdf',
+          url: 'http://branch2.example.com',
           vostroId: '3bc8e447-32cb-4dc7-b7ec-6a6f33c6c99'
-          // \"$VOSTRO\"},\"relationships\":{\"vostro\":{\"data\":{\"type\":\"accounts\",\"id\":\"$VOSTRO\"}}}}
         },
         relationships: {
-          vostro: { data: { id: '3bc8e447-32cb-4dc7-b7ec-6a6f33c6c99', type: 'accounts' } }
+          vostro: {
+            data: {
+              id: '3bc8e447-32cb-4dc7-b7ec-6a6f33c6c99',
+              type: 'accounts'
+            }
+          }
         }
       }
     })

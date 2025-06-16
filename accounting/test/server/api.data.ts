@@ -1,5 +1,5 @@
 import { Scope } from "src/server/auth"
-import { CreditCommonsTransaction } from "../../src/model/creditCommons"
+import { CreditCommonsNode } from "../../src/model/creditCommons"
 
 export const testCurrency = (props?: any) => {
   props = {
@@ -61,16 +61,11 @@ export const testTransfer = (payerId: string, payeeId: string, amount: number, m
   }
 })
 
-export const testCreditCommonsNeighbour = (peerNodePath: string, ourNodePath: string, lastHash: string, vostroId: string) => ({
+export const testCreditCommonsNeighbour = (neighbour: CreditCommonsNode) => ({
   data: {
-    attributes: {
-      peerNodePath,
-      ourNodePath,
-      lastHash,
-      vostroId
-    },
+    attributes: neighbour,
     relationships: {
-      vostro: { data: { type: "accounts", id: vostroId }}
+      vostro: { data: { type: "accounts", id: neighbour.vostroId }}
     }
   }
 })

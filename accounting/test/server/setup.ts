@@ -2,7 +2,9 @@ import { before, after } from "node:test"
 import { TestApiClient, client } from "./net.client"
 import { clearEvents, startServer, stopServer } from "./net.mock"
 import { clearDb } from "./db"
-import { createApp, closeApp, ExpressExtended, setupApp } from "../../src/server/app"
+import { closeApp, ExpressExtended, setupApp } from "../../src/server/app"
+import { CreditCommonsNode } from "../../src/model/creditCommons"
+import { config } from "src/config"
 import { testAccount, testCurrency, testTransfer, testCreditCommonsNeighbour, userAuth } from "./api.data"
 import express from "express"
 import expressOasGenerator from "express-oas-generator"
@@ -45,7 +47,7 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
     account0: undefined as any,
     account1: undefined as any,
     account2: undefined as any,
-    ccNeighbour: { peerNodePath: 'trunk', ourNodePath: 'trunk/branch2', lastHash: 'trunk' },
+    ccNeighbour: { peerNodePath: 'trunk', ourNodePath: 'trunk/branch2', lastHash: 'trunk', url: `${config.API_BASE_URL}/EXTR/cc/`, vostroId: '' },
 
     createAccount: async (user: string, code = "TEST", admin = userAuth("0")) => {
       const response = await test.api?.post(`/${code}/accounts`, testAccount(user), admin)
@@ -57,8 +59,8 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
       return response.body.data
     },
 
-    createCreditCommonsNeighbour: async (peerNodePath: string, ourNodePath: string, lastHash: string, vostroId: string, admin = userAuth("0")) => {
-      await test.api?.post('/TEST/cc/nodes', testCreditCommonsNeighbour(peerNodePath, ourNodePath, lastHash, vostroId), admin)
+    createCreditCommonsNeighbour: async (neighbour: CreditCommonsNode, admin = userAuth("0")) => {
+      await test.api?.post('/TEST/cc/nodes', testCreditCommonsNeighbour(neighbour), admin)
     }
   }
 
@@ -84,7 +86,8 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
       test.account2 = await test.createAccount(test.user2.user)
       // Create CC trunkward
       if (graftCreditCommons) {
-        await test.createCreditCommonsNeighbour(test.ccNeighbour.peerNodePath, test.ccNeighbour.ourNodePath, test.ccNeighbour.lastHash, test.account0.id)
+        test.ccNeighbour.vostroId = test.account0.id
+        await test.createCreditCommonsNeighbour(test.ccNeighbour)
       }
     }
   })

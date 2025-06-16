@@ -4,6 +4,7 @@ export interface CreditCommonsNode {
   peerNodePath: string,
   ourNodePath: string,
   lastHash: string,
+  url: string,
   vostroId: string,
 }
 
