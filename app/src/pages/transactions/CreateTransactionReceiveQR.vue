@@ -53,7 +53,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Currency, ExtendedTransfer } from "src/store/model";
+import { Currency, ExtendedTransfer, Account } from "src/store/model";
 import { computed, ref } from "vue"
 import { useStore } from "vuex";
 import CreateTransactionSingleForm from "./CreateTransactionSingleForm.vue";
@@ -86,9 +86,16 @@ const onFilled = (value: ExtendedTransfer) => {
 
 const base = window?.location.origin ?? ""
 
+// We should find a more robust way to get that url.
+const getAcountAddressesUrl = (account: Account) => {
+  // https:/..../:currencyCode/accounts/:id
+  const currencyUrl = account.links.self.split('/').slice(0,-2).join('/')
+  return `${currencyUrl}/cc/account/${account.id}`
+} 
+
 const qrData = computed(() => {
   const query = new URLSearchParams()
-  query.set("t", transfer.value?.payee.links.self ?? "")
+  query.set("c", getAcountAddressesUrl(transfer.value?.payee))
   query.set("a", transfer.value?.attributes.amount.toString() ?? "")
   query.set("m", transfer.value?.attributes.meta ?? "")
   return `${base}/pay?${query.toString()}`
