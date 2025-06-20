@@ -25,7 +25,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Account, ExtendedAccount, ExtendedTransfer } from "src/store/model"
+import { Account, CreditCommonsAccount, ExtendedAccount, ExtendedTransfer } from "src/store/model"
 import { computed, Ref, ref, watch } from "vue"
 import { useStore } from "vuex"
 import { transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
@@ -54,7 +54,7 @@ const myCurrency = computed(() => store.getters.myAccount.currency)
 const state = ref<"scan" | "confirm">("scan")
 
 const payerAccount = useCreateTransferPayerAccount(props.code, props.memberCode, "send") as Ref<Account>
-const payeeAccount = ref<Account>()
+const payeeAccount = ref<Account|CreditCommonsAccount>()
 
 const transfer = ref<ExtendedTransfer>()
 useFullTransferByResource(transfer)
@@ -64,39 +64,53 @@ const { t } = useI18n()
 
 const parsePaymentUrl = (paymentUrl: string) => {
   const url = new URL(paymentUrl)
-  const payeeHref = url.searchParams.get("t")
+  const addressesUrl = url.searchParams.get("c")
   const amount = url.searchParams.get("a")
   const meta = url.searchParams.get("m")
 
-  if (!payeeHref || !amount) {
+  if (!addressesUrl || !amount) {
     throw new KError(KErrorCode.QRCodeError, "Invalid transfer URL")
   }
 
-  return { payeeHref, amount, meta } 
+  return { addressesUrl, amount, meta } 
 }
 
 const onPaymentUrl = async (paymentUrl: string) => {
   try {
-    const {payeeHref, amount, meta} = parsePaymentUrl(paymentUrl)
-
-    await store.dispatch("accounts/load", {
-      url: payeeHref,
-    } as LoadByUrlPayload)
-    
-    payeeAccount.value = store.getters["accounts/current"]
-
-    if (!payeeAccount.value) {
-      throw new KError(KErrorCode.QRCodeError, "Payee account not found")
-    }
+    const {addressesUrl, amount, meta} = parsePaymentUrl(paymentUrl)
     let localAmount = Number(amount)
-    if (payeeAccount.value.relationships.currency.data.id !== myCurrency.value.id) {
-      // Payee is external. Load currency.
-      // Note that the useFullTransferByResource already calls this function so probably there's a more 
-      // elegant way to accomplish the same with just one call.
-      await loadExternalAccountRelationships(payeeAccount.value, store)
-      localAmount = convertCurrency(localAmount, (payeeAccount.value as ExtendedAccount).currency, myCurrency.value)
-    }
 
+    const result = await fetch(addressesUrl)
+    if (!result.ok) {
+      throw new KError(KErrorCode.QRCodeError, "There has been an error fetching the payee account")
+    }
+    const addresses = await result.json()
+
+    if (addresses.komunitin) {
+      await store.dispatch("accounts/load", {
+        url: addresses.komunitin,
+      } as LoadByUrlPayload)
+      
+      payeeAccount.value = store.getters["accounts/current"]
+      if (!payeeAccount.value) {
+        throw new KError(KErrorCode.QRCodeError, "Payee account not found")
+      }
+
+      if (payeeAccount.value.relationships.currency.data.id !== myCurrency.value.id) {
+        // Payee is external. Load currency.
+        // Note that the useFullTransferByResource already calls this function so probably there's a more 
+        // elegant way to accomplish the same with just one call.
+        await loadExternalAccountRelationships(payeeAccount.value, store)
+        localAmount = convertCurrency(localAmount, (payeeAccount.value as ExtendedAccount).currency, myCurrency.value)
+      }
+    } else if (addresses.creditCommons) {
+      payeeAccount.value = {
+        type: "credit-commons-account",
+        id: addresses.creditCommons
+      }
+      // TODO: Quote the currency conversion rate. Assuming it is 1 to 1.
+    }
+    
     const resource = {
       type: "transfers",
       attributes: {
@@ -107,15 +121,13 @@ const onPaymentUrl = async (paymentUrl: string) => {
         updated: new Date().toISOString(),
       },
       relationships: transferAccountRelationships(payerAccount.value, payeeAccount.value, myCurrency.value),
-
       payer: payerAccount.value,
       payee: payeeAccount.value,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
-
     transfer.value = resource
-
     state.value = "confirm"
+    
   } catch (error) {
     errorMessage.value = t('qrInvalidError')
     if (error instanceof KError) {
