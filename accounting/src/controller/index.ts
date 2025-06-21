@@ -1,6 +1,6 @@
 
 import { AccountStatsOptions, CollectionOptions, StatsOptions } from "../server/request"
-import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, FullAccount, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account } from "../model"
+import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, FullAccount, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer } from "../model"
 export { createController } from "./base-controller"
 import { Context } from "../utils/context"
 import TypedEmitter from "typed-emitter"
@@ -70,9 +70,9 @@ export interface AccountController {
 export interface TransferController {
   createTransfer(ctx: Context, transfer: InputTransfer): Promise<FullTransfer>
   createMultipleTransfers(ctx: Context, transfers: InputTransfer[]): Promise<FullTransfer[]>
-  getTransfer(ctx: Context, id: string): Promise<FullTransfer>
-  getTransferByHash(ctx: Context, hash: string): Promise<FullTransfer>
-  getTransfers(ctx: Context, params: CollectionOptions): Promise<FullTransfer[]>
+  getTransfer(ctx: Context, id: string): Promise<Transfer>
+  //getFullTransferByHash(ctx: Context, hash: string): Promise<FullTransfer>
+  getTransfers(ctx: Context, params: CollectionOptions): Promise<Transfer[]>
   updateTransfer(ctx: Context, transfer: UpdateTransfer): Promise<FullTransfer>
   deleteTransfer(ctx: Context, id: string): Promise<void>
 }

@@ -60,9 +60,27 @@ describe('Account settings', async () => {
     hasBalance(response.body.data[2]) // user2 own account
   })
 
-  it.todo("balances are hidden even if accounts are included from a transfer", async () => {
-    // This test should check that balances are hidden even if accounts are included in a transfer response.
-    // It requires a transfer to be created and then fetched with account details.
-    // The test should ensure that the balance of the other account is not visible.
+  it("balances are hidden even if accounts are included from a transfer", async () => {
+    // Create a transfer between account1 and account2
+    const transfer = await t.payment(t.account2.id, t.account1.id, 100, "Transfer for balance check", "committed", t.user2)
+    const res2 = await t.api.get(`/TEST/accounts/${t.account2.id}`, t.user2)
+    const res1 = await t.api.get(`/TEST/accounts/${t.account1.id}`, t.user2)
+    assert.equal(res2.body.data.attributes.balance, -100)
+    doesNotHaveBalance(res1.body.data) // account1 balance is hidden
+    // Check also account 2 balance is hidden when retrieved through transfer
+    const res3 = await t.api.get(`/TEST/transfers/${transfer.id}?include=payer,payee`, t.user2)
+    const included = res3.body.included
+    const payer = included.find((i: any) => i.type === 'accounts' && i.id === t.account2.id)
+    const payee = included.find((i: any) => i.type === 'accounts' && i.id === t.account1.id)
+    assert.equal(payer.attributes.balance, -100)
+    doesNotHaveBalance(payee) // account1 balance is hidden
+
+    const res4 = await t.api.get(`/TEST/transfers?include=payer,payee`, t.user2)
+    const included2 = res4.body.included
+    const payer2 = included2.find((i: any) => i.type === 'accounts' && i.id === t.account2.id)
+    const payee2 = included2.find((i: any) => i.type === 'accounts' && i.id === t.account1.id)
+    assert.equal(payer2.attributes.balance, -100)
+    doesNotHaveBalance(payee2) // account1 balance is hidden
+
   })
 })

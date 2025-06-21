@@ -122,7 +122,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
     return recordToAccount(updated, this.currency())
   }
 
-  private filterAccount(user: User|undefined, account: FullAccount): Account {
+  filterAccount(user: User|undefined, account: FullAccount): Account {
     // Check if the balance should be hidden.
     const accountHideBalance = (account.settings.hideBalance ?? this.currency().settings.defaultHideBalance) ?? false
     if (!user || (accountHideBalance && !this.users().isAdmin(user) && !userHasAccount(user, account))) {

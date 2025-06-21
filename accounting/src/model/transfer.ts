@@ -36,8 +36,14 @@ export type TransferAuthorization = {
   hash?: string
 }
 
+/**
+ * Transfer object as returned by the API, with some fields omitted due to access permissions.
+ */
 export type Transfer = Omit<FullTransfer, "payer" | "payee"> & {payer: Account, payee: Account}
 
+/**
+ * This is the internal transfer object with all fields filled.
+ */
 export interface FullTransfer {
   id: string
 
