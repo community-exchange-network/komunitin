@@ -14,7 +14,9 @@
           <div>
             {{ $t('account') }}
           </div>
-          <div class="text-right">
+          <div v-if="showBalances" 
+            class="text-right"
+          >
             {{ $t('balance') }}
           </div>
         </div>
@@ -36,7 +38,7 @@
               :member="member"
               :to="`/groups/${code}/members/${member.attributes.code}`"
             >
-              <template #side>
+              <template v-if="showBalances" #side>
                 <div class="column items-end">
                   <div
                     class="col currency text-h6"
@@ -62,37 +64,34 @@
     </q-page-container>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
+import { computed, ref } from "vue";
+
 import FormatCurrency from "../../plugins/FormatCurrency";
-
 import PageHeader from "../../layouts/PageHeader.vue";
-
 import ResourceCards from "../ResourceCards.vue";
-
 import MemberHeader from "../../components/MemberHeader.vue";
+import { useCurrencySettings } from "../../composables/currencySettings";
+import { useStore } from "vuex";
 
+const props = defineProps<{
+  code: string
+}>();
 
-export default defineComponent({
-  name: "MemberList",
-  components: {
-    MemberHeader,
-    ResourceCards,
-    PageHeader,
-  },
-  props: {
-    code: {
-      type: String,
-      required: true
-    }
-  },
-  setup() {
-    return { FormatCurrency }
-  },
-  methods: {
-    search(query: string) {
-      (this.$refs.memberItems as {fetchResources: (s: string) => void}).fetchResources(query);
-    }
+const store = useStore();
+const currencySettings = useCurrencySettings(props.code);
+
+const showBalances = computed(() => 
+  currencySettings.value?.attributes.defaultHideBalance !== true
+  || store.getters.isAdmin
+);
+
+const memberItems = ref<InstanceType<typeof ResourceCards> | null>(null);
+
+const search = (query: string) => {
+  if (memberItems.value) {
+    memberItems.value.fetchResources(query);
   }
-});
+}
+
 </script>

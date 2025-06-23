@@ -34,8 +34,9 @@
             {{ member.account.attributes.code }}
           </div>
         </div>
-        <div v-if="member.account">
-          <div class="text-overline text-uppercase text-onsurface-d q-mt-md">
+        <div v-if="member.account?.attributes.balance !== undefined">
+          <div 
+            class="text-overline text-uppercase text-onsurface-d q-mt-md">
             {{ $t("balance") }}
           </div>
           <div>

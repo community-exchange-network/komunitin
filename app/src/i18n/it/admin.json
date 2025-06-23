@@ -98,5 +98,8 @@
   "allowAnonymousMemberList": "Consenti agli utenti esterni di elencare i membri del gruppo",
   "allowAnonymousMemberListHint": "Consenti agli utenti di qualsiasi altro gruppo di vedere l'elenco di nomi, avatar e numeri di conto dei membri di questo gruppo. Non vengono condivise e-mail o altre informazioni personali.",
   "accountRequests": "Richieste di Account",
-  "noAccountRequests": "Nessuna richiesta di account in sospeso."
+  "noAccountRequests": "Nessuna richiesta di account in sospeso.",
+  "privacy": "Privacy",
+  "hideBalance": "Nascondi Saldo",
+  "hideBalanceHint": "Nascondi il saldo e i limiti dell'account agli altri utenti."
 }
