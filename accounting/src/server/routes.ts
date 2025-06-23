@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { checkExact, oneOf } from 'express-validator';
-import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
+import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, Transfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
 import { context } from 'src/utils/context';
 import { SharedController, MigrationController } from '../controller';
 import { Scope, userAuth, noAuth, anyAuth, externalAuth } from './auth';
@@ -94,7 +94,7 @@ export function getRoutes(controller: SharedController) {
 
   // Get account. No auth required to get an account having its id. We need that for
   // external transactions.
-  router.get('/:code/accounts/:id', noAuth(), 
+  router.get('/:code/accounts/:id', anyAuth(userAuth([Scope.Accounting, Scope.AccountingReadAll]), noAuth()), 
     currencyResourceHandler(controller, async (currencyController, ctx, id) => {
       return await currencyController.accounts.getAccount(ctx, id)
     }, AccountSerializer, {

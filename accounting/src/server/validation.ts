@@ -43,7 +43,8 @@ export namespace Validators {
     body(`${path}.defaultAllowExternalPaymentRequests`).optional().isBoolean(),
     body(`${path}.defaultAcceptExternalPaymentsAutomatically`).optional().isBoolean(),
     body(`${path}.externalTraderCreditLimit`).optional().isInt({min: 0}),
-    body(`${path}.externalTraderMaximumBalance`).optional().isInt({min: 0})
+    body(`${path}.externalTraderMaximumBalance`).optional().isInt({min: 0}),
+    body(`${path}.defaultHideBalance`).optional().isBoolean()
   ]
 
   const isUpdateCurrencyAttributes = (path: string) => [
@@ -245,6 +246,8 @@ export namespace Validators {
     body(`${path}.tags.*.name`).notEmpty().optional(),
     body(`${path}.tags.*.value`).isString().notEmpty().optional(),
     body(`${path}.tags.*.id`).isUUID().optional(),
+
+    body(`${path}.hideBalance`).optional().isBoolean(),
   ]
 
   export const isUpdateAccountSettings = () => [

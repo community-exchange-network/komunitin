@@ -390,6 +390,9 @@ export interface AccountSettings extends ResourceObject {
     
     // Tags
     tags?: AccountTag[] | null
+
+    // Privacy
+    hideBalance?: boolean | null
   }
   relationships: {
     account: RelatedResource
@@ -523,6 +526,7 @@ export interface CurrencySettings extends ResourceObject {
     defaultAcceptExternalPaymentsAutomatically: boolean
     externalTraderCreditLimit: number
     externalTraderMaximumBalance: number | false
+    defaultHideBalance: boolean
   }
 }
 
