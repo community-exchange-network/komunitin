@@ -77,7 +77,9 @@ describe('Input validation', async () => {
         attributes: {
           state: "committed",
           amount: 100,
-          meta: "hello",
+          meta: {
+            description: "hello",
+          }
         },
         relationships: {
           payer: { data: {id: "3bc8e447-32cb-4dc7-b7ec-6a6f33c6c99e", type: "accounts"} },
