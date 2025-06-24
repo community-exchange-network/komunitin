@@ -400,11 +400,16 @@ export interface AccountSettings extends ResourceObject {
 }
 
 export type TransferState = "new" | "pending" | "accepted" | "committed" | "rejected" | "failed" | "deleted"
+export type TransferMeta = {
+  description: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+};
 
 export interface Transfer extends ResourceObject {
   attributes: {
     amount: number,
-    meta: string,
+    meta: TransferMeta,
     state: TransferState;
     authorization?: {
       type: "tag",

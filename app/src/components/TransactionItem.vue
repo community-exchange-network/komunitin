@@ -10,7 +10,7 @@
       v-if="$q.screen.lt.md" 
       #caption
     >
-      {{ transfer.attributes.meta }}
+      {{ transfer.attributes.meta.description }}
     </template>
     <template 
       v-if="$q.screen.gt.sm" 
@@ -18,7 +18,7 @@
     >
       <q-item-section class="section-extra">
         <q-item-label lines="2">
-          {{ transfer.attributes.meta }}
+          {{ transfer.attributes.meta.description }}
         </q-item-label>
       </q-item-section>
     </template>

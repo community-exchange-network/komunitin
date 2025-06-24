@@ -51,6 +51,15 @@ export class TransferController  extends AbstractCurrencyController implements I
         throw badRequest("Invalid authorization")
       }
     }
+    // Backwards compatibility for meta field.
+    if (typeof data.meta === "string") {
+      data.meta = {
+        description: data.meta
+      }
+    }
+    if (!data.meta || typeof data.meta !== "object" || typeof data.meta.description !== "string") {
+      throw badRequest("Transfer meta must be an object with a description string")
+    }
   }
 
   /**
