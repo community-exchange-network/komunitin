@@ -3,7 +3,7 @@ import { FullAccount, Account, AccountRecord, recordToAccount } from "./account"
 import { Transfer as TransferRecord, ExternalTransfer as ExternalTransferRecord } from "@prisma/client"
 import { Currency, User } from "."
 import { ExternalResource, ExternalResourceRecord, recordToExternalResource, RelatedResource } from "./resource"
-import { JsonValue } from "@prisma/client/runtime/library"
+import { Prisma } from "@prisma/client";
 import { internalError } from "../utils/error"
 
 export { TransferRecord }
@@ -78,7 +78,7 @@ export type InputTransfer = AtLeast<Omit<FullTransfer, "created" | "updated" | "
 export type UpdateTransfer = AtLeast<Omit<FullTransfer, "created" | "updated" | "payer" | "payee"> & {payer: RelatedResource, payee: RelatedResource}, "id">
 
 
-const metaJson = (meta: JsonValue) : TransferMeta => {
+const metaJson = (meta: Prisma.JsonValue) : TransferMeta => {
   if (typeof meta === "object" && !Array.isArray(meta) && meta && typeof meta.description === "string") {
     return {
       ...meta,

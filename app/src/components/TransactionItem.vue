@@ -10,7 +10,7 @@
       v-if="$q.screen.lt.md" 
       #caption
     >
-      {{ transfer.attributes.meta.description }}
+      {{ description }}
     </template>
     <template 
       v-if="$q.screen.gt.sm" 
@@ -18,7 +18,7 @@
     >
       <q-item-section class="section-extra">
         <q-item-label lines="2">
-          {{ transfer.attributes.meta.description }}
+          {{ description }}
         </q-item-label>
       </q-item-section>
     </template>
@@ -87,6 +87,10 @@ const otherAccount = (transfer: ExtendedTransfer): Account => {
   // We can't directly compare object references because they're not the same.
   const other = props.account.id == transfer.relationships.payer.data.id ? payee : payer
   return other
+}
+
+const description = (transfer: ExtendedTransfer): string => {
+  return transfer.attributes.meta.description || "";
 }
 
 </script>

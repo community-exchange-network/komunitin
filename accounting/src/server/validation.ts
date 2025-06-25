@@ -146,7 +146,9 @@ export namespace Validators {
   ]
 
   const isCreateTransferAttributes = (path: string) => [
-    body(`${path}.meta.description`).isString(),
+    body(`${path}.meta`).custom((value => {
+      return value && typeof value === "object" && !Array.isArray(value) && typeof value.description === "string"
+    })),
     body(`${path}.amount`).isInt({gt: 0}),
     body(`${path}.state`).isIn(["new", "committed"]),
     body(`${path}.hash`).optional().isString(),
@@ -195,7 +197,9 @@ export namespace Validators {
   ]
 
   const isUpdateTransferAttributes = (path: string) => [
-    body(`${path}.meta.description`).optional().isString(),
+    body(`${path}.meta`).optional().custom((value => {
+      return value && typeof value === "object" && !Array.isArray(value) && typeof value.description === "string";
+    })),
     body(`${path}.amount`).optional().isInt({gt: 0}),
     body(`${path}.hash`).optional().isString(),
     body(`${path}.state`).optional().isIn(["new", "committed", "rejected", "deleted"]),

@@ -400,10 +400,11 @@ export interface AccountSettings extends ResourceObject {
 }
 
 export type TransferState = "new" | "pending" | "accepted" | "committed" | "rejected" | "failed" | "deleted"
+export type AnyJson = string | number | boolean | null | { [key: string]: AnyJson } | AnyJson[];
+
 export type TransferMeta = {
   description: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: string]: AnyJson;
 };
 
 export interface Transfer extends ResourceObject {
