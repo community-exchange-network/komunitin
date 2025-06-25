@@ -1,6 +1,6 @@
 <template>
   <account-header
-    :account="otherAccount(transfer)"
+    :account="otherAccount"
     :clickable="!!transfer.id"
     class="transaction-item"
     :class="transfer.attributes.state"
@@ -44,18 +44,19 @@
         <div
           class="col transaction-amount text-h6"
           :class="
-            signedAmount(transfer) >= 0
+            signedAmount >= 0
               ? 'positive-amount'
               : 'negative-amount'
           "
         >
-          {{ FormatCurrency(signedAmount(transfer), account.currency) }}
+          {{ FormatCurrency(signedAmount, account.currency) }}
         </div>
       </div>
     </template>
   </account-header>
 </template>
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Account, Currency, ExtendedTransfer } from 'src/store/model';
 import FormatCurrency from "../plugins/FormatCurrency";
 import AccountHeader from "./AccountHeader.vue";
@@ -76,22 +77,20 @@ const props = defineProps<{
   
 }>()
 
-const signedAmount = (transfer: ExtendedTransfer): number => {
-  const amount = transfer.attributes.amount
-  return (transfer.relationships.payer.data.id == props.account.id ? -1 : 1) * amount;
-}
+const signedAmount = computed<number>(() => {
+  const amount = props.transfer.attributes.amount
+  return (props.transfer.relationships.payer.data.id == props.account.id ? -1 : 1) * amount;
+})
 
-const otherAccount = (transfer: ExtendedTransfer): Account => {
-  const payer = transfer.payer
-  const payee = transfer.payee
+const otherAccount = computed<Account>(() => {
+  const payer = props.transfer.payer
+  const payee = props.transfer.payee
   // We can't directly compare object references because they're not the same.
-  const other = props.account.id == transfer.relationships.payer.data.id ? payee : payer
+  const other = props.account.id == props.transfer.relationships.payer.data.id ? payee : payer
   return other
-}
+})
 
-const description = (transfer: ExtendedTransfer): string => {
-  return transfer.attributes.meta.description || "";
-}
+const description = computed(() => props.transfer.attributes.meta.description || "")
 
 </script>
 <style lang="scss" scoped>
