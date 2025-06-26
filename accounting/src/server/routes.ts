@@ -1,17 +1,17 @@
 import { Router } from 'express';
-import { check, checkExact, oneOf } from 'express-validator';
-import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
+import { checkExact, oneOf } from 'express-validator';
+import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, Transfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
 import { context } from 'src/utils/context';
 import { SharedController, MigrationController } from '../controller';
 import { Scope, userAuth, noAuth, anyAuth, externalAuth } from './auth';
-import { asyncHandler, currencyCollectionHandler, currencyInputHandler, currencyInputHandlerMultiple, currencyResourceHandler } from './handlers';
+import { asyncHandler, currencyCollectionHandler, currencyHandler, currencyInputHandler, currencyInputHandlerMultiple, currencyResourceHandler } from './handlers';
 import { input } from './parse';
-import { AccountSerializer, AccountSettingsSerializer, CurrencySerializer, CurrencySettingsSerializer, TransferSerializer, TrustlineSerializer } from './serialize';
+import { AccountSerializer, AccountSettingsSerializer, CurrencySerializer, CurrencySettingsSerializer, StatsSerializer, TransferSerializer, TrustlineSerializer } from './serialize';
 import { Validators } from './validation';
 import { InputTrustline, Trustline, UpdateTrustline } from 'src/model/trustline';
 import { badRequest } from 'src/utils/error';
 import { CreateMigration } from 'src/controller/migration/migration';
-import { collectionParams, resourceParams } from './request';
+import { accountStatsParams, collectionParams, statsParams } from './request';
 
 export function getRoutes(controller: SharedController) {
   const router = Router()
@@ -94,7 +94,7 @@ export function getRoutes(controller: SharedController) {
 
   // Get account. No auth required to get an account having its id. We need that for
   // external transactions.
-  router.get('/:code/accounts/:id', noAuth(), 
+  router.get('/:code/accounts/:id', anyAuth(userAuth([Scope.Accounting, Scope.AccountingReadAll]), noAuth()), 
     currencyResourceHandler(controller, async (currencyController, ctx, id) => {
       return await currencyController.accounts.getAccount(ctx, id)
     }, AccountSerializer, {
@@ -198,6 +198,23 @@ export function getRoutes(controller: SharedController) {
       include: ["currency", "trusted"]
     })
   )
+
+  router.get('/:code/stats/volume', userAuth([Scope.Accounting, Scope.AccountingReadAll]), 
+    currencyHandler(controller, async (currencyController, ctx, req) => {
+      const params = statsParams(req)
+      const stats = await currencyController.stats.getVolume(ctx, params)
+      return StatsSerializer.serialize(stats)
+    })
+  )
+
+  router.get('/:code/stats/accounts', userAuth([Scope.Accounting, Scope.AccountingReadAll]),
+    currencyHandler(controller, async (currencyController, ctx, req) => {
+      const params = accountStatsParams(req)
+      const stats = await currencyController.stats.getAccounts(ctx, params)
+      return StatsSerializer.serialize(stats)
+    }
+  ))
+
 
   // Migrations (WIP)
   router.post('/migrations', userAuth(Scope.Accounting), checkExact(Validators.isCreateMigration()), asyncHandler(async (req, res) => {

@@ -141,14 +141,23 @@ export default {
     accessToken: (state) => 
       state.tokens?.accessToken
     ,
+    /*
+    * Returns true if the group is using the legacy (IntegralCES) accounting API.
+    */
+    isLegacyAccounting: (state, getters) => {
+      // This next check implies that the group is using the legacy accounting API, 
+      // since the old api don't have the admins relationship. Otherwise the admin
+      // interface is disabled.
+      return (getters.myCurrency !== undefined) 
+        ? !getters.myCurrency.relationships.admins
+        : undefined
+    },
     isAdmin: (state, getters) => {
       return state.myUserId !== undefined 
-        // This next check implies that the group is using the new accounting API, 
-        // since the old api don't have the admins relationship. Otherwise the admin
-        // interface is disabled.
-        && getters.myCurrency?.relationships?.admins
+        && !getters.isLegacyAccounting
         && getters.myCurrency.relationships.admins.data.some((r: { id: string }) => r.id === state.myUserId)
-    }
+    },
+    
   },
   mutations: {
     tokens: (state, tokens) => (state.tokens = tokens),

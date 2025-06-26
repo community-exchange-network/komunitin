@@ -146,6 +146,10 @@ export default createStore({
 });
 
 export const setAccountingApiUrl = (url: string) => {
+  // Update the global config object
+  KOptions.url.accounting = url;
+
+  // Update the base urls of the resource modules
   currencies.setBaseUrl(url);
   currencySettings.setBaseUrl(url);
   accounts.setBaseUrl(url);

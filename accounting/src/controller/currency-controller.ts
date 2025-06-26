@@ -7,7 +7,7 @@ import TypedEmitter from "typed-emitter";
 import { ControllerEvents, CurrencyController } from ".";
 import { LedgerCurrency, LedgerCurrencyState, LedgerTransfer } from "../ledger";
 import {
-  Account,
+  FullAccount,
   Currency,
   CurrencySettings,
   UpdateCurrency,
@@ -24,9 +24,9 @@ import { KeyController } from "./key-controller";
 import { TenantPrismaClient } from "./multitenant";
 import { whereFilter } from "./query";
 import { TransferController } from "./transfer-controller";
-import { CreditCommonsController } from ".";
-import { CreditCommonsControllerImpl } from "../creditcommons/credit-commons-controller";
+import { CreditCommonsController, CreditCommonsControllerImpl } from "../creditcommons/credit-commons-controller";
 import { UserController } from "./user-controller";
+import { StatsController } from "./stats-controller";
 
 export function amountToLedger(currency: AtLeast<Currency, "scale">, amount: number) {
   return Big(amount).div(Big(10).pow(currency.scale)).toString()
@@ -53,6 +53,7 @@ export class LedgerCurrencyController implements CurrencyController {
   transfers: TransferController
   externalResources: ExternalResourceController
   creditCommons: CreditCommonsController
+  stats: StatsController
 
   constructor(model: Currency, ledger: LedgerCurrency, db: TenantPrismaClient, encryptionKey: () => Promise<KeyObject>, sponsorKey: () => Promise<Keypair>, emitter: TypedEmitter<ControllerEvents>) {
     this.db = db
@@ -66,6 +67,7 @@ export class LedgerCurrencyController implements CurrencyController {
     this.transfers = new TransferController(this)
     this.externalResources = new ExternalResourceController(this)
     this.creditCommons = new CreditCommonsControllerImpl(this)
+    this.stats = new StatsController(this)
   }
 
   /**
@@ -300,14 +302,14 @@ export class LedgerCurrencyController implements CurrencyController {
 
   async handleIncommingTransferEvent(ledgerTransfer: LedgerTransfer) {
     const payeeAccount = await this.accounts.getAccountByKey(systemContext(), ledgerTransfer.payee)
-    await this.accounts.updateAccountBalance(payeeAccount as Account)
+    await this.accounts.updateAccountBalance(payeeAccount as FullAccount)
     const payerAccount = this.model.externalAccount
     await this.accounts.updateAccountBalance(payerAccount)
   }
 
   async handleOutgoingTransferEvent(ledgerTransfer: LedgerTransfer) {
     const payerAccount = await this.accounts.getAccountByKey(systemContext(), ledgerTransfer.payer)
-    await this.accounts.updateAccountBalance(payerAccount as Account)
+    await this.accounts.updateAccountBalance(payerAccount as FullAccount)
     const payeeAccount = this.model.externalAccount
     await this.accounts.updateAccountBalance(payeeAccount)
   }

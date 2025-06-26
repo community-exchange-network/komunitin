@@ -98,5 +98,8 @@
   "allowAnonymousMemberList": "Permitir que los usuarios externos enumeren los miembros del grupo",
   "allowAnonymousMemberListHint": "Permite a los usuarios de cualquier otro grupo ver la lista de nombres, avatares y números de cuenta de los miembros de este grupo. No se comparten correos electrónicos ni otra información personal.",
   "accountRequests": "Solicitudes de cuenta",
-  "noAccountRequests": "No hay solicitudes de cuenta pendientes."
+  "noAccountRequests": "No hay solicitudes de cuenta pendientes.",
+  "privacy": "Privacidad",
+  "hideBalance": "Ocultar saldo",
+  "hideBalanceHint": "Oculta el saldo y los límites de la cuenta a otros usuarios."
 }

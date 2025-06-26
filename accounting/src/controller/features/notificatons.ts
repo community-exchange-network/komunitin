@@ -1,7 +1,7 @@
 import { CurrencyController, SharedController } from "..";
 import { systemContext } from "src/utils/context";
 import { config } from "src/config";
-import { Transfer, User } from "src/model";
+import { FullTransfer, User } from "src/model";
 import { Relator, Serializer } from "ts-japi";
 import { UserSerializer } from "src/server/serialize";
 import { fixUrl } from "src/utils/net";
@@ -65,7 +65,7 @@ export const initNotifications = (controller: SharedController) => {
     rejected: EventName.TransferRejected
   }
 
-  const onTransferChanged = async (transfer: Transfer, currencyController: CurrencyController) => {
+  const onTransferChanged = async (transfer: FullTransfer, currencyController: CurrencyController) => {
     const state = transfer.state
     if (state in notifiedStates) {
       const ctx = systemContext()

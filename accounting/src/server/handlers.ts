@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express"
 import { CurrencyController, SharedController } from "src/controller"
-import { CollectionOptions, CollectionParamsOptions, ResourceOptions, ResourceParamsOptions, collectionParams, resourceParams } from "./request"
+import { CollectionOptions, CollectionParamsOptions, ResourceOptions, ResourceParamsOptions, StatsOptions, accountStatsParams, collectionParams, resourceParams, statsParams } from "./request"
 import { Context, context } from "src/utils/context"
 import { DataDocument, Dictionary, Linker, Paginator, Serializer } from "ts-japi"
 import { input, Resource } from "./parse"
@@ -22,7 +22,7 @@ export const asyncHandler = (fn: (req: Request, res: Response) => Promise<void>)
   }
 }
 
-export function currencyHandlerHelper<T extends Dictionary<any>>(controller: SharedController, fn: (currencyController: CurrencyController, context: Context, req: Request) => Promise<Partial<DataDocument<T>>>, status = 200) {
+export function currencyHandler<T extends Dictionary<any>>(controller: SharedController, fn: (currencyController: CurrencyController, context: Context, req: Request) => Promise<Partial<DataDocument<T>>>, status = 200) {
   return asyncHandler(async (req, res) => {
     const ctx = context(req)
     const currencyController = await controller.getCurrencyController(req.params.code)
@@ -63,7 +63,7 @@ type CurrencyResourceHandler<T> = (controller: CurrencyController, context: Cont
  * Helper for route handlers that return a single resource within a currency.
  */
 export function currencyResourceHandler<T extends Dictionary<any>>(controller: SharedController, fn: CurrencyResourceHandler<T>, serializer: Serializer<T>, paramOptions: ResourceParamsOptions, status = 200) {
-  return currencyHandlerHelper(controller, async (currencyController, ctx, req) => {
+  return currencyHandler(controller, async (currencyController, ctx, req) => {
     const params = resourceParams(req, paramOptions)
     const resource = await fn(currencyController, ctx, req.params.id, params)
     return serializer.serialize(resource, {
@@ -83,7 +83,7 @@ type CurrencyCollectionHandler<T> = (controller: CurrencyController, context: Co
  * Helper for route handlers that return a collection of resources within a currency.
  */
 export function currencyCollectionHandler<T extends Dictionary<any>>(controller: SharedController, fn: CurrencyCollectionHandler<T>, serializer: Serializer<T>, paramOptions: CollectionParamsOptions, status = 200) {
-  return currencyHandlerHelper(controller, async (currencyController, ctx, req) => {
+  return currencyHandler(controller, async (currencyController, ctx, req) => {
     const params = collectionParams(req, paramOptions)
     const resource = await fn(currencyController, ctx, params)
     return serializer.serialize(resource, {
@@ -104,7 +104,7 @@ type CurrencyInputHandlerMultiple<T,D> = ((controller: CurrencyController, conte
  * Helper for route handlers that require input data.
  */
 export function currencyInputHandler<T extends Dictionary<any>, D extends Resource>(controller: SharedController, fn: CurrencyInputHandler<T,D>, serializer: Serializer<T>, status = 200) {
-  return currencyHandlerHelper(controller, async (currencyController, ctx, req) => {
+  return currencyHandler(controller, async (currencyController, ctx, req) => {
     const data = input<D>(req)
     if (Array.isArray(data)) {
       throw badRequest("Expected a single resource")
@@ -115,7 +115,7 @@ export function currencyInputHandler<T extends Dictionary<any>, D extends Resour
 }
 
 export function currencyInputHandlerMultiple<T extends Dictionary<any>, D extends Resource>(controller: SharedController, fn: CurrencyInputHandlerMultiple<T,D>, serializer: Serializer<T>, status = 200) {
-  return currencyHandlerHelper(controller, async (currencyController, ctx, req) => {
+  return currencyHandler(controller, async (currencyController, ctx, req) => {
     const data = input<D>(req)
     const resource = await fn(currencyController, ctx, data)
     return serializer.serialize(resource)

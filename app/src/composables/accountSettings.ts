@@ -24,6 +24,7 @@ export const currencySettingsToAccountSettingsAttributes = (currencySettings: Cu
     allowExternalPayments: vals.defaultAllowExternalPayments ?? false,
     allowExternalPaymentRequests: vals.defaultAllowExternalPaymentRequests ?? false,
     acceptExternalPaymentsAutomatically: vals.defaultAcceptExternalPaymentsAutomatically ?? false,
+    hideBalance: vals.defaultHideBalance ?? false,
   } as AccountSettings["attributes"]
 }
 

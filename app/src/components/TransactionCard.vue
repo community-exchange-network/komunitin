@@ -41,7 +41,7 @@
         {{ $formatDate(transfer.attributes.updated) }}
       </div>
       <div class="text-body1">
-        {{ transfer.attributes.meta }}
+        {{ transfer.attributes.meta.description }}
       </div>
     </q-card-section>
     <q-separator />

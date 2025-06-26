@@ -13,7 +13,7 @@ describe('Transfer endpoints', async () => {
   await it('user performs payment', async () => {
     const transfer = await t.payment(t.account1.id, t.account2.id, 100, "User transfer", "committed", t.user1)
     assert.equal(transfer.attributes.amount, 100)
-    assert.equal(transfer.attributes.meta, "User transfer")
+    assert.equal(transfer.attributes.meta.description, "User transfer")
     assert.equal(transfer.attributes.state, "committed")
     assert.equal(transfer.relationships.payer.data.id, t.account1.id)
     assert.equal(transfer.relationships.payee.data.id, t.account2.id)
@@ -57,7 +57,7 @@ describe('Transfer endpoints', async () => {
     }, t.user1)
     const transfer2 = response2.body.data
     assert.equal(transfer2.attributes.state, "committed")
-    assert.equal(transfer2.attributes.meta, "Two-step transfer")
+    assert.equal(transfer2.attributes.meta.description, "Two-step transfer")
     assert.equal(transfer2.attributes.amount, 30)
 
     //balance changed
@@ -120,7 +120,9 @@ describe('Transfer endpoints', async () => {
       data: { 
         attributes: { 
           amount: 200,
-          meta: "Updated transfer",
+          meta: {
+            description: "Updated transfer",
+          }
         },
         relationships: {
           payee: { data: { type: "accounts", id: t.account0.id } }
@@ -129,7 +131,7 @@ describe('Transfer endpoints', async () => {
     }, t.user1)
     const updatedTransfer = response.body.data
     assert.equal(updatedTransfer.attributes.amount, 200)
-    assert.equal(updatedTransfer.attributes.meta, "Updated transfer")
+    assert.equal(updatedTransfer.attributes.meta.description, "Updated transfer")
     assert.equal(updatedTransfer.attributes.state, "new")
     assert.equal(updatedTransfer.relationships.payee.data.id, t.account0.id)
   })
@@ -168,7 +170,7 @@ describe('Transfer endpoints', async () => {
     const fetchedTransfer = response.body.data
     assert.equal(fetchedTransfer.id, transfer.id)
     assert.equal(fetchedTransfer.attributes.amount, 100)
-    assert.equal(fetchedTransfer.attributes.meta, "Get transfer")
+    assert.equal(fetchedTransfer.attributes.meta.description, "Get transfer")
     assert.equal(fetchedTransfer.attributes.state, "new")
     assert.equal(fetchedTransfer.relationships.payer.data.id, t.account1.id)
     assert.equal(fetchedTransfer.relationships.payee.data.id, t.account2.id)
@@ -189,7 +191,7 @@ describe('Transfer endpoints', async () => {
     assert.equal(norl(response.body.links.next), norl("/TEST/transfers?page[size]=3&sort=-created&page[after]=3"))
     const transfers = response.body.data
     // Last transfer
-    assert.equal(transfers[0].attributes.meta, "Get transfer")
+    assert.equal(transfers[0].attributes.meta.description, "Get transfer")
     assert.equal(transfers[0].attributes.amount, 100)
     assert.equal(transfers[0].attributes.state, "new")
     assert.equal(transfers[0].relationships.payer.data.id, t.account1.id)

@@ -49,7 +49,7 @@ func validateAuthorization(w http.ResponseWriter, r *http.Request, user *api.Ext
 	if fetchedUser.Id != user.Id {
 		msg := "the token provided authorizes another user"
 		http.Error(w, msg, http.StatusForbidden)
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 
 	}
 	found := false
@@ -61,7 +61,7 @@ func validateAuthorization(w http.ResponseWriter, r *http.Request, user *api.Ext
 	if !found {
 		msg := "the user doesn't have the required member"
 		http.Error(w, msg, http.StatusForbidden)
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 	}
 	return nil
 }

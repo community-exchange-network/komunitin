@@ -16,7 +16,7 @@ interface TestSetup {
   app: ExpressExtended,
   api: TestApiClient,
   createAccount: (user: string, code?: string, admin?: UserAuth) => Promise<any>,
-  payment: (payer: string, payee: string, amount: number, meta: string, state: string, auth: any, httpStatus?: number) => Promise<any>,
+  payment: (payer: string, payee: string, amount: number, description: string, state: string, auth: any, httpStatus?: number) => Promise<any>,
 }
 
 export interface TestSetupWithCurrency extends TestSetup {
@@ -54,8 +54,8 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
       return response.body.data
     },
 
-    payment: async (payer: string, payee: string, amount: number, meta: string, state: string, auth: any, httpStatus = 201) => {
-      const response = await test.api?.post('/TEST/transfers', testTransfer(payer, payee, amount, meta, state), auth, httpStatus)
+    payment: async (payer: string, payee: string, amount: number, description: string, state: string, auth: any, httpStatus = 201) => {
+      const response = await test.api?.post('/TEST/transfers', testTransfer(payer, payee, amount, description, state), auth, httpStatus)
       return response.body.data
     },
 

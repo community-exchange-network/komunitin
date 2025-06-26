@@ -15,7 +15,7 @@
 		"test": "pnpm test-unit && pnpm test-ledger && pnpm test-server"
 	},
 	"dependencies": {
-		"@prisma/client": "5.13.0",
+		"@prisma/client": "^5.22.0",
 		"@stellar/stellar-sdk": "^11.3.0",
 		"big.js": "^6.2.2",
 		"cors": "^2.8.5",
@@ -44,7 +44,7 @@
 		"express-oas-generator": "^1.0.46",
 		"msw": "^2.3.0",
 		"pino-pretty": "^11.0.0",
-		"prisma": "^5.13.0",
+		"prisma": "^5.22.0",
 		"supertest": "^7.0.0",
 		"tsx": "^4.7.3",
 		"typed-emitter": "^2.1.0",

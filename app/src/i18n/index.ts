@@ -41,7 +41,15 @@ const langs = {
     loadQuasar: async () => (await import("quasar/lang/es")).default,
     loadDateFNS: async () => (await import("date-fns/locale/es")).es,
     loadCountries: async () => (await import("i18n-iso-countries/langs/es.json")).default
-  } as LocaleDefinition
+  } as LocaleDefinition,
+  "it": {
+    label: "Italiano",
+    loadMessages: async () => (await import("src/i18n/it/index.json")).default,
+    loadAdminMessages: async () => (await import("src/i18n/it/admin.json")).default,
+    loadQuasar: async () => (await import("quasar/lang/it")).default,
+    loadDateFNS: async () => (await import("date-fns/locale/it")).it,
+    loadCountries: async () => (await import("i18n-iso-countries/langs/it.json")).default
+  } as LocaleDefinition,
 }
 
 export type LangName = keyof typeof langs

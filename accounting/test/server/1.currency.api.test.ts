@@ -159,6 +159,7 @@ describe('Currencies endpoints', async () => {
         defaultAllowExternalPayments: true,
         defaultAllowExternalPaymentRequests: false,
         defaultAcceptExternalPaymentsAutomatically: false,
+        defaultHideBalance: false,
       }
     }}, admin2)
 

@@ -18,7 +18,7 @@ Login credentials:
 The Komunitin system is made of several microservices:
  - Komunitin app: The client application with user interface. See the [app](app/) folder.
  - Notifications service: The backend service for the messaging system including mails and push notifications. See the [notifications](notifications/) folder.
- - Accounting service: [IN PROGRESS]: The decentralized backend for the accounting API based on the [Stellar](https://stellar.org) blockchain. See the [accounting](accounting) folder.
+ - Accounting service: The decentralized backend for the accounting API based on the [Stellar](https://stellar.org) blockchain. See the [accounting](accounting) folder.
  - IntegralCES: The current backend for the social APIs based on the legacy project built on Drupal. See the [ices project](https://drupal.org/project/ices). This will be rewritten to a new service.
  - Social service: [TODO] The new decentralized backend for the social API.
 
@@ -32,7 +32,7 @@ git clone https://git.drupalcode.org/project/ices.git
 
 Before running the system you need to setup some environment variables. You may use the `.env.template` file as a reference and create a new `.env` file with the correct values. Also, copy the file `komunitin-project-firebase-adminsdk.json` in the `notifications` folder with the firebase admin sdk credentials.
 
-Then you can run the start script with the options `--up` to start the containers, `--ices` to install the IntegralCES site and `--demo` to seed the system with demo data.
+Then you can run the start script with the options `--up` to start the containers, `--ices` to install the IntegralCES site, `--dev` to start the debuggers and other development utils and `--demo` to seed the system with demo data.
 
 ```bash
 ./start.sh --up --ices --dev --demo

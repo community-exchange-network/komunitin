@@ -428,8 +428,12 @@ export class StellarLedger implements Ledger {
         }
       } else if (data.status === 400 && data.extras) {
         // Transaction failed
-        const result = data.extras.result_codes
-        return transactionError(msg, {details: {operations, results: result.operations, result: result.transaction}, cause: error})
+        const result = data.extras.result_codes as {
+          transaction: string;
+          operations?: string[];
+          inner_transaction?: string;
+        };
+        return transactionError(msg, {details: {operations, results: result.operations, result: result.transaction, inner: result.inner_transaction}, cause: error})
       } else {
         // Other Horizon error
         return transactionError(msg, {details: {operations, data}, cause: error})

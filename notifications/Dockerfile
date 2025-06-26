@@ -1,4 +1,4 @@
-FROM golang:1.22 AS notifications-build
+FROM golang:1.24 AS notifications-build
 
 RUN mkdir /opt/notifications
 WORKDIR /opt/notifications

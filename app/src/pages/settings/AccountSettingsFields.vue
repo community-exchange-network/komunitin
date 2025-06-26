@@ -210,7 +210,23 @@
       outlined
       :disable="!enableOnPaymentCreditLimit"
     />
+    <div 
+      v-if="['hideBalance'].some(show)"
+      class="text-overline text-uppercase text-onsurface-m"
+    >
+      {{ $t('privacy') }}
+    </div>
+    <toggle-item
+      v-if="show('hideBalance')"
+      :model-value="settings.hideBalance"
+      :label="$t('hideBalance')"
+      :hint="$t('hideBalanceHint')"
+      :default-value="def?.hideBalance"
+      :toggle-indeterminate="props.indeterminateStates"
+      @update:model-value="settings.hideBalance = $event"
+    />
   </div>
+  
 </template>
 <script setup lang="ts">
 /**

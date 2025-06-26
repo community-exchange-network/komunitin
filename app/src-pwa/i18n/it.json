@@ -1,0 +1,18 @@
+{
+  "newOfferFrom": "Nuova offerta da {name}",
+  "newNeedFrom": "Nuovo bisogno da {name}",
+  "newMemberInGroup": "{name} si è unito a {group}",
+  "newMemberLocation": "Nuovo membro da {location}. Guarda il suo profilo.",
+  "newPurchase": "Nuovo acquisto",
+  "newPurchaseText": "Acquisto di {amount} da {name}.",
+  "paymentPending": "Nuovo pagamento in sospeso",
+  "paymentPendingText": "Hai un nuovo pagamento di {amount} per {name}. Accetta o rifiuta la transazione il prima possibile.",
+  "paymentReceived": "Pagamento ricevuto",
+  "paymentReceivedText": "Hai ricevuto {amount} da {name}.",
+  "paymentRejected": "Pagamento rifiutato",
+  "paymentRejectedText": "{name} ha rifiutato un pagamento di {amount}.",
+  "offerExpired": "La tua offerta è scaduta",
+  "offerExpiredText": "La tua offerta '{title}' è scaduta e non è più visibile agli altri membri. Puoi rinnovarla per renderla di nuovo visibile.",
+  "needExpired": "Il tuo bisogno è scaduto",
+  "needExpiredText": "Il tuo bisogno '{content}' è scaduto e non è più visibile agli altri membri. Puoi rinnovarlo o eliminarlo se è già stato soddisfatto."
+}

@@ -25,7 +25,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Account, CreditCommonsAccount, ExtendedAccount, ExtendedTransfer } from "src/store/model"
+import { Account, ExtendedAccount, ExtendedTransfer } from "src/store/model"
 import { computed, Ref, ref, watch } from "vue"
 import { useStore } from "vuex"
 import { transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
@@ -66,18 +66,18 @@ const parsePaymentUrl = (paymentUrl: string) => {
   const url = new URL(paymentUrl)
   const addressesUrl = url.searchParams.get("c")
   const amount = url.searchParams.get("a")
-  const meta = url.searchParams.get("m")
+  const description = url.searchParams.get("m")
 
   if (!addressesUrl || !amount) {
     throw new KError(KErrorCode.QRCodeError, "Invalid transfer URL")
   }
 
-  return { addressesUrl, amount, meta } 
+  return { addressesUrl, amount, description } 
 }
 
 const onPaymentUrl = async (paymentUrl: string) => {
   try {
-    const {addressesUrl, amount, meta} = parsePaymentUrl(paymentUrl)
+    const {addressesUrl, amount, description} = parsePaymentUrl(paymentUrl)
     let localAmount = Number(amount)
 
     const result = await fetch(addressesUrl)
@@ -115,7 +115,9 @@ const onPaymentUrl = async (paymentUrl: string) => {
       type: "transfers",
       attributes: {
         amount: localAmount,
-        meta: meta ?? "",
+        meta: {
+          description: description ?? ""
+        },
         state: "new",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

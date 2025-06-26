@@ -9,9 +9,6 @@ import { friendbot } from "src/ledger/stellar/friendbot"
 import { config } from "src/config"
 import { logger } from "src/utils/logger"
 
-
-logger.level = "debug"
-
 /**
  * Test the Stellar ledger implementation using the real Stellar testnet.
  * Note that this test is not 100% deterministic because it depends on the 
@@ -29,6 +26,7 @@ describe('Creates stellar elements', async () => {
   let currency2Keys: LedgerCurrencyKeys
 
   before(async() => {
+    logger.level = "debug"
     // Create and fund a sponsor account.
     sponsor = Keypair.random()
     await friendbot(config.STELLAR_FRIENDBOT_URL, sponsor.publicKey())
@@ -51,6 +49,7 @@ describe('Creates stellar elements', async () => {
   after(() => {
     // Remove the listeners.
     ledger.stop()
+    logger.level = "info"
   })
   
   const pubKeyRegex = /G[A-Z0-9]{55}/

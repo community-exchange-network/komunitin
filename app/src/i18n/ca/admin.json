@@ -98,5 +98,8 @@
   "allowAnonymousMemberList": "Permetre que els usuaris externs llistin els membres del grup",
   "allowAnonymousMemberListHint": "Permet als usuaris de qualsevol altre grup veure la llista de noms, avatars i números de compte dels membres d'aquest grup. No es comparteixen correus electrònics ni altra informació personal.",
   "accountRequests": "Sol·licituds de registre",
-  "noAccountRequests": "No hi ha sol·licituds de registre pendents."
+  "noAccountRequests": "No hi ha sol·licituds de registre pendents.",
+  "privacy": "Privacitat",
+  "hideBalance": "Amagar saldo",
+  "hideBalanceHint": "Amaga el saldo i els límits del compte als altres usuaris."
 }
