@@ -25,8 +25,8 @@ describe("External transfers", async () => {
   let eAccount1: any
   let eTrustline: any
 
-  const externalTransfer = async (currency: any, externalCurrency: any, payer: any, payee: any, amount: number, meta: string, state: string, auth: any, httpStatus = 201) => {
-    const transfer = testTransfer(payer.id, payee.id, amount, meta, state)
+  const externalTransfer = async (currency: any, externalCurrency: any, payer: any, payee: any, amount: number, description: string, state: string, auth: any, httpStatus = 201) => {
+    const transfer = testTransfer(payer.id, payee.id, amount, description, state)
     if (payer.relationships.currency.data.id !== currency.id) {
       (transfer.data.relationships.payer.data as any).meta = { 
         external: true, 
@@ -132,7 +132,7 @@ describe("External transfers", async () => {
 
     const checkTransfer = (transfer: any, test: boolean) => {
       assert.equal(transfer.attributes.amount, test ? 100 : 20)
-      assert.equal(transfer.attributes.meta, "TEST => EXTR")
+      assert.equal(transfer.attributes.meta.description, "TEST => EXTR")
       assert.equal(transfer.attributes.state, "committed")
       assert.equal(transfer.relationships.payer.data.id, t.account1.id)
       assert.equal(transfer.relationships.payee.data.id, eAccount1.id)

@@ -72,7 +72,9 @@ watch(() => props.rows, () => {
       type: "transfers",
       attributes: {
         amount: transferAmount(row.amount as number),
-        meta: row.description,
+        meta: {
+          description: row.description,
+        },
         created: new Date().toUTCString(),
         updated: new Date().toUTCString(),
         state: "new"

@@ -110,7 +110,9 @@ export default {
     }),
     transfer: Factory.extend({
       amount: () => faker.random.number({min: 0.1*10000, max: 100*10000, precision: 100}),
-      meta: () => faker.company.catchPhrase(),
+      meta: () => ({
+        description: faker.company.catchPhrase(),
+      }),
       state: (i: number) => (i < 3 ? "pending" : (i % 8 == 0) ? "rejected" : "committed"),
       created: (i: number) => faker.date.recent(i % 5).toJSON(),
       updated: (i: number) => faker.date.recent(i % 5).toJSON(),

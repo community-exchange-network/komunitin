@@ -124,7 +124,9 @@ export async function seedTransfers(tenantId: string, n: number, start: Date, en
         amount,
         payerId: payer.id,
         payeeId: payee.id,
-        meta: text,
+        meta: {
+          description: text,
+        },
         userId: "0",
         state: r(0, 10) > 0 ? "committed" : "rejected",
         created,
