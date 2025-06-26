@@ -46,8 +46,15 @@ const props = defineProps<{
 const store = useStore()
 const myGroup = computed<Group>(() => store.getters.myMember.group)
 
+const isAccount = computed(() => props.account.type === "account")
 const isLocal = computed(() => props.account.member?.group?.id == myGroup.value.id)
 const hasMember = computed(() => !!props.account.member)
+
+const isCreditCommonsAccount = computed(() => props.account.type === "credit-commons-account")
+const creditCommonsName = computed(() => props.account.id.split("/").pop())
+const creditCommonsParents = computed(() => {
+  return props.account.id.split("/").slice(0, -1).join("/")
+})
 
 const link = computed(() => {
   if (props.to !== undefined) {
@@ -64,19 +71,35 @@ const avatarImage = computed(() => hasMember.value
   : props.account.currency?.group?.attributes.image
 )
 
-const avatarText = computed(() => hasMember.value 
-  ? props.account.member?.attributes.name 
-  : props.account.attributes.code
-)
+const avatarText = computed(() => { 
+  if (isAccount.value) { 
+    return hasMember.value 
+    ? props.account.member?.attributes.name 
+    : props.account.attributes.code
+  } else if (isCreditCommonsAccount.value) {
+    return props.account.id
+  }
+  return ""
+})
 
-const primaryText = computed(() => hasMember.value 
-  ? props.account.member?.attributes.name 
-  : (props.account.currency?.group?.attributes.name ?? props.account.attributes.code)
-)
+const primaryText = computed(() => { 
+  if (isAccount.value) {
+    if (hasMember.value) {
+      return props.account.member?.attributes.name 
+    } else if (props.account.currency?.group) {
+      return props.account.currency.group.attributes.name
+    } else {
+      return props.account.attributes.code  
+    }
+  } else if (isCreditCommonsAccount.value) {
+    return props.account.id
+  }
+})
 
-const secondaryText = computed(() => primaryText.value !== props.account.attributes.code
-  ? props.account.attributes.code
-  : ""
+const secondaryText = computed(() => {
+  return primaryText.value !== props.account.attributes.code
+    ? props.account.attributes.code
+    : ""}
 )
 
 </script>
