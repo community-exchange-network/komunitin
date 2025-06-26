@@ -6,6 +6,7 @@
 import en from "./en-us.json"
 import es from "./es.json"
 import ca from "./ca.json"
+import it from "./it.json"
 
 import LocalStorage from "src/plugins/LocalStorage"
 
@@ -21,7 +22,18 @@ export async function translator() {
     lang = "en"
   }
   // Get the translation object for the language.
-  const messages = (lang === "es" ? es : lang === "ca" ? ca : en) as Record<string, string>
+  const languages = {
+    "en": en,
+    "es": es,
+    "ca": ca,
+    "it": it
+  }
+  // Get the translation object for the language.
+  const messages = (lang in languages 
+    ? languages[lang as keyof typeof languages] 
+    : languages["en"]
+  ) as Record<string,string>
+  
   return {
     t: (key: string, params?: Record<string,string>) => {
       // Get the translation for the key.

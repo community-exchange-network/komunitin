@@ -1,3 +1,5 @@
+import { ErrorResponse } from "./store/model";
+
 export enum KErrorCode {
   // Shared server errors codes.
   Unauthorized = "Unauthorized",
@@ -48,6 +50,22 @@ export enum KErrorCode {
    */
   ScriptError = "ScriptError",
   UserLoggingOut = "UserLoggingOut",
+}
+
+/**
+ * @param response The fetch response.
+ * @throws KError with the appropriate code.
+ */
+export async function checkFetchResponse(response: Response) {
+  if (!response.ok) {
+    const data = await response.json() as ErrorResponse
+    // Check that the code is actually known.
+    const serverCode = data.errors?.[0]?.code
+    const title = data.errors?.[0]?.title
+    // check if serverCode is in enum KErrorCode:
+    const code = (serverCode && serverCode in KErrorCode) ? serverCode as KErrorCode : KErrorCode.UnknownServer
+    throw new KError(code, title);
+  }
 }
 
 /**

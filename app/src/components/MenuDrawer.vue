@@ -87,6 +87,13 @@
       :title="$t('members')"
       :to="`/groups/${groupCode}/members`"
     />
+    <menu-item
+      v-if="!isLegacyAccounting"  
+      id="menu-stats"
+      icon="insert_chart"
+      :title="$t('statistics')"
+      :to="`/groups/${groupCode}/stats`"
+    />
 
     <template v-if="isAdmin">
       <q-separator />
@@ -143,6 +150,7 @@ const myMember = computed(() => store.getters.myMember)
 const myAccount = computed(() => store.getters.myAccount)
 const groupCode = computed(() => myMember?.value.group.attributes.code)
 const isAdmin = computed(() => store.getters.isAdmin)
+const isLegacyAccounting = computed(() => store.getters.isLegacyAccounting)
 
 const groupActive = computed(() => (route.fullPath ==`/groups/${myMember.value.group.attributes.code}`))
 const logout = async () => {

@@ -127,8 +127,10 @@ jobs:
       run: ssh-keyscan -H demo.komunitin.org >> ~/.ssh/known_hosts
 
     - name: Deploy demo.komunitin.org
+# This ssh options keep the connection alive for 15 minutes even if there is no activity
+# due to long compilation times.
       run: > 
-        ssh deploy@demo.komunitin.org 
+        ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@demo.komunitin.org 
         "cd /opt/demo.komunitin.org
         && cd ices && git pull && cd ..
         && cd komunitin && git pull

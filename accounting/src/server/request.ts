@@ -1,5 +1,5 @@
 import {Request} from "express"
-import { internalError } from "src/utils/error"
+import { badRequest, internalError } from "src/utils/error"
 
 // We use the the classic limit-offset pagination. This is the strategy that 
 // offers more flexibility since we can order the dataset by any field. The
@@ -97,12 +97,21 @@ export type CollectionOptions = {
   pagination: PaginationOptions
   filters: FilterOptions
   sort: SortOptions
-  include: string[]
+  include: string[],
 }
 export type CollectionParamsOptions = {
   filter?: string[],
   sort: string[],
   include?: string[]
+}
+export type StatsOptions = {
+  from: Date|undefined
+  to: Date|undefined
+  interval: "PT1H" | "P1D" | "P1W" | "P1M" | "P1Y" | undefined
+}
+export type AccountStatsOptions = StatsOptions & {
+  minTransactions: number|undefined
+  maxTransactions: number|undefined
 }
 /**
  * Return the request pagination, filtering and sort parameters. 
@@ -144,3 +153,52 @@ export const resourceParams = (req: Request, options: ResourceParamsOptions): Re
     include: include(req, options?.include ?? [])
   }
 }
+const checkDateParam = (req: Request, paramName: string) => {
+  const param = req.query[paramName]
+  if (param === undefined) {
+    return undefined
+  } else if (typeof param === "string") {
+    const date = new Date(param)
+    if (!isNaN(date.getTime())) {
+      return date
+    }
+  }
+  throw badRequest(`Invalid ${paramName} parameter`)
+}
+
+const checkIntParam = (req: Request, paramName: string) => {
+  const param = req.query[paramName]
+  if (param === undefined) {
+    return undefined
+  } else if (typeof param === "string") {
+    const value = parseInt(param)
+    if (!isNaN(value) && value >= 0) {
+      return value
+    }
+  }
+  throw badRequest(`Invalid ${paramName} parameter`)
+}
+
+export const statsParams = (req: Request): StatsOptions => {
+  const from = checkDateParam(req, "from")
+  const to = checkDateParam(req, "to")
+
+  if (req.query.interval !== undefined && (typeof req.query.interval !== "string"
+    || !["PT1H", "P1D", "P1W", "P1M", "P1Y"].includes(req.query.interval)
+  )) {
+    throw badRequest("Invalid interval parameter")
+  }
+  const interval = req.query.interval as "PT1H" | "P1D" | "P1W" | "P1M" | "P1Y" | undefined
+  return {from, to, interval}
+}
+
+export const accountStatsParams = (req: Request): AccountStatsOptions => {
+  const params = statsParams(req)
+
+  const minTransactions = checkIntParam(req, "minTransactions")
+  const maxTransactions = checkIntParam(req, "maxTransactions")
+  
+  return {...params, minTransactions, maxTransactions}
+
+}
+

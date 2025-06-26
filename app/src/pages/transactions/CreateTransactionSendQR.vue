@@ -66,18 +66,18 @@ const parsePaymentUrl = (paymentUrl: string) => {
   const url = new URL(paymentUrl)
   const payeeHref = url.searchParams.get("t")
   const amount = url.searchParams.get("a")
-  const meta = url.searchParams.get("m")
+  const description = url.searchParams.get("m")
 
   if (!payeeHref || !amount) {
     throw new KError(KErrorCode.QRCodeError, "Invalid transfer URL")
   }
 
-  return { payeeHref, amount, meta } 
+  return { payeeHref, amount, description } 
 }
 
 const onPaymentUrl = async (paymentUrl: string) => {
   try {
-    const {payeeHref, amount, meta} = parsePaymentUrl(paymentUrl)
+    const {payeeHref, amount, description} = parsePaymentUrl(paymentUrl)
 
     await store.dispatch("accounts/load", {
       url: payeeHref,
@@ -101,7 +101,9 @@ const onPaymentUrl = async (paymentUrl: string) => {
       type: "transfers",
       attributes: {
         amount: localAmount,
-        meta: meta ?? "",
+        meta: {
+          description: description ?? ""
+        },
         state: "new",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

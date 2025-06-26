@@ -43,7 +43,8 @@ export namespace Validators {
     body(`${path}.defaultAllowExternalPaymentRequests`).optional().isBoolean(),
     body(`${path}.defaultAcceptExternalPaymentsAutomatically`).optional().isBoolean(),
     body(`${path}.externalTraderCreditLimit`).optional().isInt({min: 0}),
-    body(`${path}.externalTraderMaximumBalance`).optional().isInt({min: 0})
+    body(`${path}.externalTraderMaximumBalance`).optional().isInt({min: 0}),
+    body(`${path}.defaultHideBalance`).optional().isBoolean()
   ]
 
   const isUpdateCurrencyAttributes = (path: string) => [
@@ -145,7 +146,9 @@ export namespace Validators {
   ]
 
   const isCreateTransferAttributes = (path: string) => [
-    body(`${path}.meta`).isString(),
+    body(`${path}.meta`).custom((value => {
+      return value && typeof value === "object" && !Array.isArray(value) && typeof value.description === "string"
+    })),
     body(`${path}.amount`).isInt({gt: 0}),
     body(`${path}.state`).isIn(["new", "committed"]),
     body(`${path}.hash`).optional().isString(),
@@ -194,7 +197,9 @@ export namespace Validators {
   ]
 
   const isUpdateTransferAttributes = (path: string) => [
-    body(`${path}.meta`).optional().isString(),
+    body(`${path}.meta`).optional().custom((value => {
+      return value && typeof value === "object" && !Array.isArray(value) && typeof value.description === "string";
+    })),
     body(`${path}.amount`).optional().isInt({gt: 0}),
     body(`${path}.hash`).optional().isString(),
     body(`${path}.state`).optional().isIn(["new", "committed", "rejected", "deleted"]),
@@ -245,6 +250,8 @@ export namespace Validators {
     body(`${path}.tags.*.name`).notEmpty().optional(),
     body(`${path}.tags.*.value`).isString().notEmpty().optional(),
     body(`${path}.tags.*.id`).isUUID().optional(),
+
+    body(`${path}.hideBalance`).optional().isBoolean(),
   ]
 
   export const isUpdateAccountSettings = () => [

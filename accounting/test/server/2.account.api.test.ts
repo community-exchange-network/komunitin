@@ -1,13 +1,9 @@
-import { describe, before, after, it } from "node:test"
 import assert from "node:assert"
-import { validate as isUuid } from "uuid"
-import { ExpressExtended, closeApp, createApp } from "src/server/app"
-import { TestApiClient, client } from "./net.client"
-import { startServer, stopServer } from "./net.mock"
-import { Scope } from "src/server/auth"
-import { clearDb } from "./db"
-import { testCurrency } from "./api.data"
+import { before, describe, it } from "node:test"
 import { config } from "src/config"
+import { Scope } from "src/server/auth"
+import { validate as isUuid } from "uuid"
+import { testCurrency } from "./api.data"
 import { setupServerTest } from "./setup"
 
 describe('Accounts endpoints', async () => {
@@ -150,6 +146,17 @@ describe('Accounts endpoints', async () => {
     assert.equal(response.body.data.attributes.code, 'TEST0000')
     assert.equal(response.body.data.attributes.creditLimit, 2000)
   })
+
+  it('admin updates with large credit limit', async () => {
+    const response = await t.api.patch(`/TEST/accounts/${account0.id}`, {
+      data: {
+        attributes: { creditLimit: 10000000000 }
+      }
+    }, admin)
+    assert.equal(response.body.data.attributes.code, 'TEST0000')
+    assert.equal(response.body.data.attributes.creditLimit, 10000000000)
+  })
+
   it('admin updates code', async () => {
     const response = await t.api.patch(`/TEST/accounts/${account0.id}`, {
       data: {

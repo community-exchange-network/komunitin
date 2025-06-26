@@ -8,12 +8,35 @@ import { internalError, insufficientBalance } from "../../utils/error"
 export class StellarAccount implements LedgerAccount {
   public currency: StellarCurrency
 
+  // account address = public key.
+  private accountId: string
+
   // Use getStellarAccount() instead.
   private account: Horizon.AccountResponse | undefined
 
-  constructor(account: Horizon.AccountResponse, currency: StellarCurrency) {
+  private loadPromise: Promise<Horizon.AccountResponse> | undefined
+
+  constructor(accountId: string, currency: StellarCurrency) {
+    this.accountId = accountId
     this.currency = currency
-    this.account = account
+  }
+
+  public async update() {
+    // We use the loadPromise to avoid multiple parallel calls to loadAccount().
+    // Indeed, if we call load() before the previous call to loadAccount() is finished,
+    // it will just wait for the previous promise and use the same result.
+    if (this.loadPromise === undefined) {
+      this.loadPromise = this.currency.ledger.loadAccount(this.accountId)
+    }
+    const loaded = await this.loadPromise
+    this.loadPromise = undefined
+    // If we already have a loaded account, we update the sequence number of the new one
+    // just in case the current account increased the sequence number while we were loading
+    // the new one.
+    if (this.account !== undefined && this.account.sequenceNumber() > loaded.sequenceNumber()) {
+      loaded.sequence = this.account.sequenceNumber()
+    }
+    this.account = loaded
   }
 
   private stellarAccount() {
@@ -22,24 +45,22 @@ export class StellarAccount implements LedgerAccount {
     }
     return this.account
   }
-
-  async update() {
-    this.account = await this.currency.ledger.loadAccount(this.stellarAccount().accountId())
-    return this
-  }
   
   /**
-   * Implements LedgerAccount.transfers()
+   * Return all payments made from/to this account with the local asset.
    */
   async transfers(): Promise<LedgerTransfer[]> {
     const transfers = [] as LedgerTransfer[]
+    const localAsset = this.currency.asset()
     let result = await this.stellarAccount().payments({
       limit: 20,
     })
     do {
       transfers
       .push(...result.records
-      .filter((r) => r.type == "payment")
+      .filter((r) => r.type === "payment")
+      .filter(r => (r.asset_type === "credit_alphanum4" || r.asset_type === "credit_alphanum12"))
+      .filter(r => r.asset_code === localAsset.code && r.asset_issuer === localAsset.issuer)
       .map((r) => ({
         amount: r.amount,
         asset: new Asset(r.asset_code as string, r.asset_issuer),
@@ -60,7 +81,8 @@ export class StellarAccount implements LedgerAccount {
    */
   async credit(): Promise<string> {
     const transfers = await this.transfers()
-    return transfers.filter(t => t.payer == this.currency.data.creditPublicKey)
+    return transfers
+      .filter(t => t.payer == this.currency.data.creditPublicKey)
       .reduce((amount, transfer) => Big(transfer.amount).add(amount), Big(0))
       .toString()
   }
@@ -71,6 +93,7 @@ export class StellarAccount implements LedgerAccount {
   async updateCredit(amount: string, keys: {
     account?: Keypair,
     credit?: Keypair,
+    issuer?: Keypair,
     sponsor: Keypair
   }) {
     const currentCredit = await this.credit()
@@ -91,14 +114,22 @@ export class StellarAccount implements LedgerAccount {
         if (!keys.credit) {
           throw internalError("Required credit key when increasing the credit")
         }
-        const credit = await this.currency.creditAccount()
-        await credit.pay({
-          payeePublicKey: this.stellarAccount().accountId(),
-          amount: diff.toString()
-        }, {
-          sponsor: keys.sponsor,
-          account: keys.credit
-        })
+        const creditAccount = await this.currency.creditAccount()
+        const builder = this.currency.ledger.transactionBuilder(creditAccount )
+
+        const {issuer} = this.currency.addCreditTransaction(
+          builder, 
+          this.account?.accountId() as string, 
+          diff.toString(),
+          creditAccount.balance()
+        )
+        const signers = [keys.credit]
+        if (issuer && keys.issuer) { 
+          signers.push(keys.issuer)
+        } else if (issuer) {
+          throw internalError("Required issuer key when updating credit balance")
+        }
+        await this.currency.ledger.submitTransaction(builder, signers, keys.sponsor)
       }
     }
     return amount
@@ -202,6 +233,7 @@ export class StellarAccount implements LedgerAccount {
       asset: this.currency.asset(),
       amount: payment.amount
     }))
+    logger.debug(`Submitting payment of ${payment.amount} with sequence ${this.account?.sequenceNumber()}`)
     const transaction = await this.currency.ledger.submitTransaction(builder, [keys.account], keys.sponsor)
     
     const transfer = {

@@ -1,6 +1,6 @@
 module github.com/komunitin/komunitin/notifications
 
-go 1.22
+go 1.24
 
 require (
 	firebase.google.com/go/v4 v4.15.0
@@ -12,8 +12,8 @@ require (
 	github.com/mailersend/mailersend-go v1.5.1
 	github.com/nicksnyder/go-i18n/v2 v2.4.0
 	github.com/rs/xid v1.5.0
-	golang.org/x/net v0.33.0
-	golang.org/x/text v0.21.0
+	golang.org/x/net v0.38.0
+	golang.org/x/text v0.23.0
 )
 
 require (
@@ -30,7 +30,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -44,10 +44,10 @@ require (
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/api v0.172.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect

@@ -108,8 +108,8 @@
     </q-page-container>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent, ref } from "vue"
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
 
 import md2html from "../../plugins/Md2html";
 
@@ -119,77 +119,45 @@ import PageHeader from "../../layouts/PageHeader.vue";
 import Carousel from "../../components/Carousel.vue";
 import CategoryAvatar from "../../components/CategoryAvatar.vue";
 import ContactButton from "../../components/ContactButton.vue";
+import DeleteOfferBtn from "../../components/DeleteOfferBtn.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
 import ShareButton from "../../components/ShareButton.vue";
 import SimpleMap from "../../components/SimpleMap.vue";
-import DeleteOfferBtn from "../../components/DeleteOfferBtn.vue"
 
-import { Offer, Member, Account, Currency, Category, Contact } from "../../store/model";
-import {formatPrice} from "src/plugins/FormatCurrency";
+import { formatPrice } from "src/plugins/FormatCurrency";
+import { useStore } from "vuex";
 
-export default defineComponent({
-  components: {
-    MemberHeader,
-    SimpleMap,
-    PageHeader,
-    CategoryAvatar,
-    ShareButton,
-    ContactButton,
-    Carousel,
-    OfferLayout,
-    DeleteOfferBtn
-  },
-  props: {
-    code: {
-      type: String,
-      required: true,
-    },
-    offerCode: {
-      type: String,
-      required: true
-    }
-  },
-  setup() {
-    const ready = ref(false)
-    return {
-      md2html,
-      ready
-    }
-  },
-  computed: {
-    offer(): Offer & {category: Category} & {member: Member & { account: Account & { currency: Currency }, contacts: Contact[] } } {
-      return this.$store.getters["offers/current"];
-    },
-    isLoading(): boolean {
-      return !(this.ready || this.offer && this.offer.category && this.offer.member 
-        && this.offer.member.contacts && this.offer.member.account 
-        && this.offer.member.account.currency)
-    },
-    /**
-     * If price is a number, format it following the currency format,
-     * otherwise just return the offer.price string.
-     */
-    price(): string {
-      return formatPrice(this.offer.attributes.price, this.offer.member.account.currency)
-    },
-    isMine(): boolean {
-      return this.offer && this.offer.member && this.offer.member.id == this.$store.getters.myMember.id
-    }
-  },
-  created() {
-    // See comment in analogous function at Group.vue.
-    this.$watch("offerCode", this.fetchData, { immediate: true });
-    
-  },
-  methods: {
-    async fetchData(offerCode: string) {
-      await this.$store.dispatch("offers/load", {
-        id: offerCode,
-        group: this.code,
-        include: "category,member,member.contacts,member.account,member.account.currency"
-      });
-      this.ready = true
-    }
-  }
+const props = defineProps<{
+  code: string,
+  offerCode: string
+}>()
+
+const store = useStore()
+
+const ready = ref(false)
+const offer = computed(() => {
+  return store.getters["offers/current"]
 })
+
+const isLoading = computed(() => {
+  return !(ready.value || offer.value && offer.value.category && offer.value.member 
+    && offer.value.member.contacts && offer.value.member.group 
+    && offer.value.member.group.currency)
+})
+const price = computed(() => {
+  return formatPrice(offer.value.attributes.price, offer.value.member.group.currency)
+})
+const isMine = computed(() => {
+  return offer.value && offer.value.member && offer.value.member.id == store.getters.myMember.id
+})
+const fetchData = async(offerCode: string) => {
+  await store.dispatch("offers/load", {
+    id: offerCode,
+    group: props.code,
+    include: "category,member,member.contacts,member.group,member.group.currency"
+  });
+  ready.value = true
+}
+
+watch(() => props.offerCode, fetchData, { immediate: true })
 </script>

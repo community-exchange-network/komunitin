@@ -171,7 +171,7 @@ model Transfer {
 
   state  String @default("new") @db.VarChar(31)
   amount BigInt
-  meta   String @db.Text
+  meta   Json
 
   hash String? @db.VarChar(255)
 

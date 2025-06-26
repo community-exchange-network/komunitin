@@ -93,7 +93,9 @@ describe('Preauthorized transfers with NFC tags', async () => {
       data: {
         attributes: {
           amount: 100,
-          meta: 'Transfer preauthorized with tag',
+          meta:{
+            description: 'Transfer preauthorized with tag'
+          },
           state: 'committed',
           authorization: {
             type: 'tag',
@@ -126,7 +128,9 @@ describe('Preauthorized transfers with NFC tags', async () => {
       data: {
         attributes: {
           amount: 100,
-          meta: 'Transfer preauthorized with tag',
+          meta: {
+            description: 'Transfer preauthorized with tag',
+          },
           state: 'committed',
           authorization: {
             type: 'tag',
@@ -144,7 +148,9 @@ describe('Preauthorized transfers with NFC tags', async () => {
       data: {
         attributes: {
           amount: 100,
-          meta: 'Transfer preauthorized with tag',
+          meta: {
+            description: 'Transfer preauthorized with tag',
+          },
           state: 'committed',
           authorization: {
             type: 'tag',

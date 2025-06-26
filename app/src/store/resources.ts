@@ -1,4 +1,4 @@
-import KError, { KErrorCode } from "src/KError";
+import KError, { checkFetchResponse, KErrorCode } from "src/KError";
 import { Module, ActionContext } from "vuex";
 import { cloneDeep } from "lodash-es";
 
@@ -6,8 +6,7 @@ import {
   CollectionResponseInclude,
   ResourceIdentifierObject,
   ResourceObject,
-  ExternalResourceObject,
-  ErrorResponse
+  ExternalResourceObject
 } from "src/store/model";
 
 export const DEFAULT_PAGE_SIZE = 20
@@ -370,7 +369,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
         await context.dispatch("authorize", {force: true}, {root: true})
         response = await request()
       }
-      await this.checkResponse(response)
+      await checkFetchResponse(response)
       // No content
       if (response.status == 204) {
         return null
@@ -492,23 +491,6 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     }
     
   }
-  /**
-   * Handle error from the API.
-   *
-   * @param error The Network error.
-   */
-  protected async checkResponse(response: Response) {
-    if (!response.ok) {
-      const data = await response.json() as ErrorResponse
-      // Check that the code is actually known.
-      const serverCode = data.errors?.[0]?.code
-      const title = data.errors?.[0]?.title
-      // check if serverCode is in enum KErrorCode:
-      const code = (serverCode && serverCode in KErrorCode) ? serverCode as KErrorCode : KErrorCode.UnknownServer
-      throw new KError(code, title);
-    }
-  }
-
   /**
    * Foreach relationship in main resource with linkage data, add a property of the same
    * name to the object with the value of the linked resource(s). This is done through a

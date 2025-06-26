@@ -35,7 +35,7 @@
               {{ FormatCurrency(transfer.attributes.amount, currency) }}
             </div>
             <div class="text-body1">
-              {{ transfer.attributes.meta }}
+              {{ transfer.attributes.meta.description }}
             </div>
           </q-card-section>
         </q-card>
@@ -90,7 +90,7 @@ const qrData = computed(() => {
   const query = new URLSearchParams()
   query.set("t", transfer.value?.payee.links.self ?? "")
   query.set("a", transfer.value?.attributes.amount.toString() ?? "")
-  query.set("m", transfer.value?.attributes.meta ?? "")
+  query.set("m", transfer.value?.attributes.meta.description ?? "")
   return `${base}/pay?${query.toString()}`
 })
 </script>

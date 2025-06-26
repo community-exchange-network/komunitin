@@ -41,7 +41,7 @@
               {{ FormatCurrency(editTransfer.attributes.amount, myCurrency) }}
             </div>
             <div class="text-body1">
-              {{ editTransfer.attributes.meta }}
+              {{ editTransfer.attributes.meta.description }}
             </div>
           </q-card-section>
         </q-card>
