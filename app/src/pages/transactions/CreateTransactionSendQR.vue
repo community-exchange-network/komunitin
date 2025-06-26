@@ -115,9 +115,7 @@ const onPaymentUrl = async (paymentUrl: string) => {
       type: "transfers",
       attributes: {
         amount: localAmount,
-        meta: {
-          description: description ?? ""
-        },
+        meta,
         state: "new",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

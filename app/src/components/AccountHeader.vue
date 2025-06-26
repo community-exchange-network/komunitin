@@ -51,10 +51,10 @@ const isLocal = computed(() => props.account.member?.group?.id == myGroup.value.
 const hasMember = computed(() => !!props.account.member)
 
 const isCreditCommonsAccount = computed(() => props.account.type === "credit-commons-account")
-const creditCommonsName = computed(() => props.account.id.split("/").pop())
-const creditCommonsParents = computed(() => {
-  return props.account.id.split("/").slice(0, -1).join("/")
-})
+// const creditCommonsName = computed(() => props.account.id.split("/").pop())
+// const creditCommonsParents = computed(() => {
+//   return props.account.id.split("/").slice(0, -1).join("/")
+// })
 
 const link = computed(() => {
   if (props.to !== undefined) {
@@ -93,6 +93,8 @@ const primaryText = computed(() => {
     }
   } else if (isCreditCommonsAccount.value) {
     return props.account.id
+  } else {
+    return 'primary text'
   }
 })
 
