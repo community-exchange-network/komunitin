@@ -223,7 +223,7 @@
       :hint="$t('hideBalanceHint')"
       :default-value="def?.hideBalance"
       :toggle-indeterminate="props.indeterminateStates"
-      @update:model-value="settings.hideBalance = $event as boolean | undefined"
+      @update:model-value="settings.hideBalance = $event"
     />
   </div>
   
