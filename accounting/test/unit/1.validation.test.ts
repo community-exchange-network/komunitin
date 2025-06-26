@@ -2,6 +2,7 @@ import { checkExact, matchedData, ValidationChain, validationResult } from "expr
 import { describe, it } from "node:test"
 import assert from "node:assert"
 import { Validators } from "src/server/validation"
+import { CreditCommonsValidators } from "src/creditcommons/validation"
 import { validateInput } from "src/server/parse"
 
 describe('Input validation', async () => {
@@ -93,5 +94,26 @@ describe('Input validation', async () => {
       value: "1234567890"
     }
     await testValidation(Validators.isCreateTransfer(), testTransfer)
+  })
+  await it('CreditCommons graft', async () => {
+    await testValidation(CreditCommonsValidators.isGraft(), {
+      data: {
+        attributes: {
+          peerNodePath: 'trunk',
+          ourNodePath: 'trunk/branch2',
+          lastHash: 'asdf',
+          url: 'http://branch2.example.com',
+          vostroId: '3bc8e447-32cb-4dc7-b7ec-6a6f33c6c99'
+        },
+        relationships: {
+          vostro: {
+            data: {
+              id: '3bc8e447-32cb-4dc7-b7ec-6a6f33c6c99',
+              type: 'accounts'
+            }
+          }
+        }
+      }
+    })
   })
 })

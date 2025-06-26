@@ -38,13 +38,10 @@ describe('Crypto', async () => {
 
     const key = Keypair.random()
     const token = await createExternalToken(key)
-    // change last char
-    console.log(token)
 
-    // Caange an arbitrary character in the token signature
+    // Change an arbitrary character in the token signature
     const corrupted = replaceChar(token, token.length - 4)
     
-    console.log(corrupted)
     await assert.rejects(async () => {
       // Using a function to ensure errors are converted to promise rejections.
       await verifyExternalToken(corrupted)

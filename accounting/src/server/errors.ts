@@ -24,7 +24,7 @@ const errorObject = (kerror: KError) : ErrorObject => {
   }
 }
 
-const getKError = (error: any): KError => {
+export const getKError = (error: any): KError => {
   // App error.
   if (error instanceof KError) {
     return error
