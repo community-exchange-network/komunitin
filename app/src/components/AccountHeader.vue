@@ -46,7 +46,7 @@ const props = defineProps<{
   },
   /**
    * In case of a credit commons account, the address to show.
-   * If the account is defined, this will be ignored.
+   * If this is defined, the `account` prop is ignored.
    */
   address?: string,
   /**
@@ -59,7 +59,6 @@ const store = useStore()
 const myGroup = computed<Group>(() => store.getters.myMember.group)
 
 const isLocal = computed(() => props.account?.member?.group?.id == myGroup.value.id)
-const hasMember = computed(() => !!(props.account?.member))
 
 const addressLeaf = computed(() => {
   return props.address?.split("/").pop()
@@ -75,40 +74,46 @@ const link = computed(() => {
   }
 })
 
-const avatarImage = computed(() => hasMember.value 
-  ? props.account?.member?.attributes.image 
-  : props.account?.currency?.group?.attributes.image
-)
+const avatarImage = computed(() => {
+  if (props.address) {
+    return undefined
+  } else if (props.account?.member) {
+    return props.account.member.attributes.image
+  } else if (props.account?.currency?.group) {
+    return props.account.currency.group.attributes.image
+  }
+  return undefined  
+})
 
 const avatarText = computed(() => { 
-  if (props.account?.member) {
+  if (addressLeaf.value) {
+    return addressLeaf.value
+  } else if (props.account?.member) {
     return props.account.member.attributes.name as string
   } else if (props.account) {
     return props.account.attributes.code
-  } else if (addressLeaf.value) {
-    return addressLeaf.value
   }
   return ""
 })
 
 const primaryText = computed(() => { 
-  if (props.account?.member) {
+  if (addressLeaf.value) {
+    return addressLeaf.value
+  } else if (props.account?.member) {
     return props.account.member.attributes.name as string
   } else if (props.account?.currency?.group) {
     return props.account.currency.group.attributes.name
   } else if (props.account) {
     return props.account.attributes.code
-  } else if (addressLeaf.value) {
-    return addressLeaf.value
   }
   return ""
 })
 
 const secondaryText = computed(() => {
-  if (props.account && primaryText.value !== props.account.attributes.code) {
-    return props.account.attributes.code
-  } else if (props.address) {
+  if (props.address) {
     return props.address.split("/").slice(0, -1).join("/")
+  } else if (props.account && primaryText.value !== props.account.attributes.code) {
+    return props.account.attributes.code
   }
   return ""
 })
