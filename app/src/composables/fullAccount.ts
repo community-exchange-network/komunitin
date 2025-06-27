@@ -1,5 +1,5 @@
 import { MaybeRefOrGetter, toValue } from "@vueuse/core"
-import { Account, Currency, ExtendedAccount, RelatedResource, ResourceIdentifierObject } from "src/store/model"
+import { Account, Currency, ExtendedAccount, RelatedResource } from "src/store/model"
 import { ref, watchEffect } from "vue"
 import { useStore } from "vuex"
 
@@ -84,9 +84,8 @@ export const transferAccountRelationships = (payer: Account|undefined, payee: Ac
   }
 
   const relationships = {
-    ...(payer && payer.type == "account" ? { payer: accountRelationship(payer)} : {}),
-    ...(payer && payer.type == "credit-commons-account" ? {payer} : {}),
-    ...(payee && payee.type == "account" ? { payee: accountRelationship(payee)} : {}),
+    ...(payer ? { payer: accountRelationship(payer)} : {}),
+    ...(payee ? { payee: accountRelationship(payee)} : {}),
     
   }
   return relationships

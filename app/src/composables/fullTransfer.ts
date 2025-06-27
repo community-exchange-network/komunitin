@@ -15,17 +15,17 @@ export const useFullTransferByResource = (transfer: Ref<ExtendedTransfer|undefin
   
   watch(transfer, async (transfer) => {
     if (!transfer) { return }
-    const isExternalPayer = transfer.relationships.payer.data.meta?.external
-    const isExternalPayee = transfer.relationships.payee.data.meta?.external
+    const isExternalPayer = transfer.relationships.payer?.data.meta?.external
+    const isExternalPayee = transfer.relationships.payee?.data.meta?.external
     // Load local members (except for the logged in account which is already loaded).
     const myAccount = store.getters.myAccount
     const myCurrency = myAccount.currency
 
     const localAccountIds = []
-    if (!isExternalPayer && transfer.payer.id !== myAccount.id) {
+    if (!isExternalPayer && transfer.payer && transfer.payer.id !== myAccount.id) {
       localAccountIds.push(transfer.payer.id)
     }
-    if (!isExternalPayee && transfer.payee.id !== myAccount.id) {
+    if (!isExternalPayee && transfer.payee && transfer.payee.id !== myAccount.id) {
       localAccountIds.push(transfer.payee.id)
     }
     if (localAccountIds.length > 0) {

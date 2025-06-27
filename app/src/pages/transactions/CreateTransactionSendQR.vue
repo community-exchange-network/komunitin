@@ -25,7 +25,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Account, ExtendedAccount, ExtendedTransfer } from "src/store/model"
+import { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "src/store/model"
 import { computed, Ref, ref, watch } from "vue"
 import { useStore } from "vuex"
 import { transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
@@ -54,7 +54,7 @@ const myCurrency = computed(() => store.getters.myAccount.currency)
 const state = ref<"scan" | "confirm">("scan")
 
 const payerAccount = useCreateTransferPayerAccount(props.code, props.memberCode, "send") as Ref<Account>
-const payeeAccount = ref<Account|CreditCommonsAccount>()
+const payeeAccount = ref<Account|undefined>()
 
 const transfer = ref<ExtendedTransfer>()
 useFullTransferByResource(transfer)
@@ -79,6 +79,9 @@ const onPaymentUrl = async (paymentUrl: string) => {
   try {
     const {addressesUrl, amount, description} = parsePaymentUrl(paymentUrl)
     let localAmount = Number(amount)
+    const meta = {
+      description: description ?? "",
+    } as TransferMeta
 
     const result = await fetch(addressesUrl)
     if (!result.ok) {
@@ -86,7 +89,8 @@ const onPaymentUrl = async (paymentUrl: string) => {
     }
     const addresses = await result.json()
 
-    if (addresses.komunitin) {
+    // TODO: Remove this !addresses.creditCommons to give preference to Komunitin addresses.
+    if (!addresses.creditCommons && addresses.komunitin) {
       await store.dispatch("accounts/load", {
         url: addresses.komunitin,
       } as LoadByUrlPayload)
@@ -104,20 +108,18 @@ const onPaymentUrl = async (paymentUrl: string) => {
         localAmount = convertCurrency(localAmount, (payeeAccount.value as ExtendedAccount).currency, myCurrency.value)
       }
     } else if (addresses.creditCommons) {
-      payeeAccount.value = {
-        type: "credit-commons-account",
-        id: addresses.creditCommons
-      }
+      payeeAccount.value = undefined
       // TODO: Quote the currency conversion rate. Assuming it is 1 to 1.
+      meta.creditCommons = {
+        payeeAddress: addresses.creditCommons
+      }
     }
     
     const resource = {
       type: "transfers",
       attributes: {
         amount: localAmount,
-        meta: {
-          description: description ?? ""
-        },
+        meta,
         state: "new",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

@@ -88,9 +88,9 @@ const base = window?.location.origin ?? ""
 
 // We should find a more robust way to get that url.
 const getAcountAddressesUrl = (account: Account) => {
-  // https:/..../:currencyCode/accounts/:id
+  // https:/..../:currencyCode/addresses/:id
   const currencyUrl = account.links.self.split('/').slice(0,-2).join('/')
-  return `${currencyUrl}/cc/account/${account.id}`
+  return `${currencyUrl}/cc/addresses/${account.id}`
 } 
 
 const qrData = computed(() => {
