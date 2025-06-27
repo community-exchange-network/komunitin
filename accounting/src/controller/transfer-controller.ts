@@ -1,5 +1,5 @@
 import { FullAccount, InputTransfer, recordToTransfer, recordToTransferWithAccounts, FullTransfer, TransferAuthorization, TransferState, UpdateTransfer, User, userHasAccount, Transfer } from "src/model";
-import { badRequest, forbidden, notFound } from "src/utils/error";
+import { badRequest, forbidden, notFound, notImplemented } from "src/utils/error";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
 
 import { CollectionOptions } from "src/server/request";
@@ -37,13 +37,13 @@ export class TransferController  extends AbstractCurrencyController implements I
     if (data.amount <= 0) {
       throw badRequest("Transfer amount must be positive")
     }
-    if (!(data.payer && data.payer.id)) {
+    if (data.payer && !data.payer.id) {
       throw badRequest("Payer account id is required")
     }
-    if (!(data.payee && data.payee.id)) {
+    if (data.payee && !data.payee.id) {
       throw badRequest("Payee account id is required")
     }
-    if (data.payer.id === data.payee.id) {
+    if (data.payer?.id === data.payee?.id) {
       throw badRequest("Payer and payee must be different")
     }
     if (data.authorization) {
@@ -116,6 +116,11 @@ export class TransferController  extends AbstractCurrencyController implements I
     // If this is an external transfer, let the specialized controller handle it.
     if (this.externalTransfers.isExternalInputTransfer(data)) {
       return await this.externalTransfers.createExternalTransfer(ctx, data)
+    }
+
+    // If this is a credit commons transfer, let the specialized controller handle it.
+    if (this.currencyController.creditCommons.isCreditCommonsTransfer(data)) {
+      return await this.currencyController.creditCommons.createCreditCommonsTransfer(ctx, data)
     }
 
     // Otherwise, this is a transfer between two accounts in this currency.
@@ -213,7 +218,7 @@ export class TransferController  extends AbstractCurrencyController implements I
    * failed ?-> deleted
    * @returns 
    */
-  private async updateTransferState(transfer: FullTransfer, state: TransferState, user: User) {
+  async updateTransferState(transfer: FullTransfer, state: TransferState, user: User) {
     // Allow identity transitions.
     if (transfer.state == state) {
       return
@@ -480,8 +485,14 @@ export class TransferController  extends AbstractCurrencyController implements I
   public async updateTransfer(ctx: Context, data: UpdateTransfer): Promise<FullTransfer> {
     let transfer = await this.getFullTransfer(ctx, data.id)
 
+    // If this is an external transfer, let the specialized controller handle it.
     if (this.externalTransfers.isExternalTransfer(transfer)) {
       return this.externalTransfers.updateExternalTransfer(ctx, data, transfer)
+    }
+
+    // If this is a credit commons transfer, let the specialized controller handle it.
+    if (this.currencyController.creditCommons.isCreditCommonsTransfer(transfer)) {
+      throw notImplemented("Credit commons transfers cannot be updated yet")
     }
 
     const user = await this.users().checkUser(ctx)

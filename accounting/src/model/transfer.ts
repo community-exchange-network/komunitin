@@ -38,9 +38,13 @@ export type TransferAuthorization = {
   hash?: string
 }
 
+export type anyJson = string | number | boolean | null | undefined | { [key: string]: anyJson } | anyJson[]
 export type TransferMeta = {
   description: string
-  [key: string]: any
+  creditCommons?: {
+    payeeAddress?: string
+  },
+  [key: string]: anyJson
 }
 
 /**

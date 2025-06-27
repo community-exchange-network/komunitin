@@ -59,6 +59,6 @@ export async function fetchExternalResource<T extends Record<string, any>>(resou
   return resource
 }
 
-export function isExternalResourceIdentifier(resource: RelatedResource): resource is ExternalResourceIdentifier {
-  return (resource as ExternalResourceIdentifier).meta?.external === true
+export function isExternalResourceIdentifier(resource: RelatedResource | undefined): resource is ExternalResourceIdentifier {
+  return (resource !== undefined) && (resource as ExternalResourceIdentifier).meta?.external === true
 }
