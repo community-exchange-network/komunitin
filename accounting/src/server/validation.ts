@@ -164,22 +164,42 @@ export namespace Validators {
     body(`${path}.data.type`).equals(type),
   ]
 
-  const isExternalResourceId = (path: string, type: string) => [
-    ...isResourceId(path, type),
+  const isOptionalResourceId = (path: string, type: string) => [
+    body(`${path}.data.id`).optional().isUUID(),
+    body(`${path}.data.type`).optional().equals(type)
+  ]
+
+  const isExternal = (path: string) => [
     body(`${path}.data.meta.external`).equals("true"),
     body(`${path}.data.meta.href`).isString().notEmpty(),
+  ]
+
+  const isOptionallyExternal = (path: string) => [
+    body(`${path}.data.meta.external`).optional().equals("true"),
+    body(`${path}.data.meta.href`).optional().isString().notEmpty(),
+  ]
+
+  const isExternalResourceId = (path: string, type: string) => [
+    ...isResourceId(path, type),
+    ...isExternal(path)
   ]
 
   // Resource id that is optionally external
   const isRelatedResourceId = (path: string, type: string) => [
     ...isResourceId(path, type),
-    body(`${path}.data.meta.external`).optional().equals("true"),
-    body(`${path}.data.meta.href`).optional().isString().notEmpty(),
+    ...isOptionallyExternal(path)
+  ]
+
+  // Optional resource id that is optionally external
+  const isOptionalRelatedResourceId = (path: string, type: string) => [
+    ...isOptionalResourceId(path, type),
+    ...isOptionallyExternal(path),
+    body(`${path}`).optional().isObject()
   ]
 
   const isCreateTransferRelationships = (path: string) => [
     ...isRelatedResourceId(`${path}.payer`, "accounts"),
-    ...isRelatedResourceId(`${path}.payee`, "accounts"),
+    ...isOptionalRelatedResourceId(`${path}.payee`, "accounts"),
     ...isOptionalResourceId(`${path}.currency`, "currencies"),
   ]
 
@@ -203,11 +223,6 @@ export namespace Validators {
     body(`${path}.amount`).optional().isInt({gt: 0}),
     body(`${path}.hash`).optional().isString(),
     body(`${path}.state`).optional().isIn(["new", "committed", "rejected", "deleted"]),
-  ]
-
-  const isOptionalResourceId = (path: string, type: string) => [
-    body(`${path}.data.id`).isUUID().optional(),
-    body(`${path}.data.type`).equals(type).optional()
   ]
 
   const isUpdateTransferRelationships = (path: string) => [

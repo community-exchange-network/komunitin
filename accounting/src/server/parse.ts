@@ -28,7 +28,7 @@ const mountResource = <D extends Resource>(data: Resource, included?: Resource[]
   let relationships: Resource = {}
   if (data.relationships) {
     Object.entries(data.relationships).forEach(([key, value]: [string, any]) => {
-      if (value.data) {
+      if (value && value.data) {
         // If the relationship includes linkage data, try finding the included resource from the included array.
         const includedResource = (resourceId: RelatedResource) => {
           const resource = included?.find(resource => resource.id === resourceId.id && resource.type === resourceId.type)
