@@ -84,9 +84,8 @@ export const transferAccountRelationships = (payer: Account|undefined, payee: Ac
   }
 
   const relationships = {
-    ...(payer && payer.type == "account" ? { payer: accountRelationship(payer)} : {}),
-    ...(payer && payer.type == "credit-commons-account" ? {payer} : {}),
-    ...(payee && payee.type == "account" ? { payee: accountRelationship(payee)} : {}),
+    ...(payer ? { payer: accountRelationship(payer)} : {}),
+    ...(payee ? { payee: accountRelationship(payee)} : {}),
     
   }
   return relationships

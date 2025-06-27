@@ -20,6 +20,7 @@
       </div>
       <account-header
         :account="transfer.payee"
+        :address="transfer.attributes.meta.creditCommons?.payeeAddress"
       />
     </q-card-section>
     <q-separator />
@@ -50,7 +51,7 @@
       <div>
         <span class="text-onsurface-d">{{ $t("state") }}</span><span class="q-pl-sm">{{ state }}</span>
       </div>
-      <div>
+      <div v-if="payerGroup">
         <span class="text-onsurface-d">{{ otherCurrency ? $t('payerGroup') : $t("group") }}</span><span class="q-pl-sm">{{ payerGroup.attributes.name }}</span>
       </div>
       <div v-if="otherCurrency">
@@ -107,17 +108,16 @@ const state = computed(() => {
 })
 
 const payerGroup = computed(() => (props.transfer.payer.currency as Currency & {group: Group}).group)
-const payeeGroup = computed(() => (props.transfer.payee.currency as Currency & {group: Group}).group)
+const payeeGroup = computed(() => (props.transfer.payee?.currency as undefined | Currency & {group: Group})?.group)
 
 const payerCurrency = computed(() => props.transfer.payer.currency)
-
-const payeeCurrency = computed(() => props.transfer.payee.currency)
+const payeeCurrency = computed<Currency|undefined>(() => props.transfer.payee?.currency)
 
 const myCurrency = computed(() => myAccount.currency)
 
 const otherCurrency = computed(() => {
   if (myCurrency.value.id == payerCurrency.value.id) {
-    return payeeCurrency.value.id == myCurrency.value.id ? null : payeeCurrency.value;
+    return payeeCurrency.value?.id == myCurrency.value.id ? null : payeeCurrency.value;
   } else {
     // We're assuming that the user has the same currency as one of the two.
     return payerCurrency.value.id == myCurrency.value.id ? null : payerCurrency.value;
