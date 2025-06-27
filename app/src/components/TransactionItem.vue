@@ -1,6 +1,7 @@
 <template>
   <account-header
     :account="otherAccount"
+    :address="transfer.attributes.meta.creditCommons?.payeeAddress"
     :clickable="!!transfer.id"
     class="transaction-item"
     :class="transfer.attributes.state"
@@ -82,7 +83,7 @@ const signedAmount = computed<number>(() => {
   return (props.transfer.relationships.payer.data.id == props.account.id ? -1 : 1) * amount;
 })
 
-const otherAccount = computed<Account>(() => {
+const otherAccount = computed<Account|undefined>(() => {
   const payer = props.transfer.payer
   const payee = props.transfer.payee
   // We can't directly compare object references because they're not the same.

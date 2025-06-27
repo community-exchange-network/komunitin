@@ -1,2 +1,4 @@
 .env
+.pnpm-store/
+.vscode/settings.json
 accounting/komunitin-project-backup-credentials.json

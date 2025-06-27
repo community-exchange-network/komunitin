@@ -9,7 +9,7 @@
 		"start": "node --enable-source-maps bundle/index.js",
 		"dev": "tsx --inspect=0.0.0.0:9229 --watch src/index.ts | pino-pretty",
 		"test-ledger": "tsx --test test/ledger/*.ts",
-		"test-server": "prisma migrate reset --force && tsx --test --test-concurrency=1 test/server/*.test.ts",
+		"test-server": "prisma migrate reset --force && tsx --test --test-concurrency=1 test/server/*.test.ts && tsx --test --test-concurrency=1 test/creditcommons/*.test.ts",
 		"test-unit": "tsx --test test/unit/*.ts",
 		"test-one": "tsx --test --test-concurrency=1",
 		"test": "pnpm test-unit && pnpm test-ledger && pnpm test-server"
