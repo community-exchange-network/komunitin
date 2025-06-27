@@ -98,6 +98,7 @@ const qrData = computed(() => {
   query.set("c", getAcountAddressesUrl(transfer.value?.payee))
   query.set("a", transfer.value?.attributes.amount.toString() ?? "")
   query.set("m", transfer.value?.attributes.meta.description ?? "")
+  console.log('creating QR code', query.toString());
   return `${base}/pay?${query.toString()}`
 })
 </script>

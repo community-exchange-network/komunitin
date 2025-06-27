@@ -74,8 +74,8 @@ const avatarImage = computed(() => hasMember.value
 const avatarText = computed(() => { 
   if (isAccount.value) { 
     return hasMember.value 
-    ? props.account.member?.attributes.name 
-    : props.account.attributes.code
+      ? props.account.member?.attributes.name
+      : props.account.attributes.code
   } else if (isCreditCommonsAccount.value) {
     return props.account.id
   }
