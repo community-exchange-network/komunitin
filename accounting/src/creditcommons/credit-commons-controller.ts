@@ -3,7 +3,7 @@ import { AbstractCurrencyController } from "../controller/abstract-currency-cont
 import { Context } from "../utils/context"
 import { CreditCommonsNode, CreditCommonsTransaction, CreditCommonsEntry } from "../model/creditCommons"
 import { badRequest, notImplemented, unauthorized, noTrustPath, notFound } from "src/utils/error"
-import { InputTransfer } from "src/model/transfer"
+import { FullTransfer, InputTransfer } from "src/model/transfer"
 import { systemContext } from "src/utils/context"
 import { Transfer } from "src/model"
 import { logger } from "../utils/logger"
@@ -95,6 +95,8 @@ export interface CreditCommonsController {
     trace: string
   }>
   getAccountAdresses(ctx: Context, id: string): Promise<AccountAddresses>
+  isCreditCommonsTransfer(transfer: Transfer|InputTransfer): boolean
+  createCreditCommonsTransfer(ctx: Context, transfer: InputTransfer): Promise<FullTransfer>
 }
 
 export class CreditCommonsControllerImpl extends AbstractCurrencyController implements CreditCommonsController {
@@ -283,6 +285,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       throw noTrustPath('CreditCommons transaction failed remotely')
     }
   }
+  
   async sendTransaction(ctx: Context, transaction: CreditCommonsTransaction): Promise<CreditCommonsTransaction> {
     const remoteNode = await this.makeRoutingDecision(transaction)
     if (!remoteNode) {
@@ -295,6 +298,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     await this.updateNodeHash(remoteNode.peerNodePath, newHash)
     return transaction
   }
+
   async getAccount(ctx: Context, accountId: string): Promise<{ body: CCAccountSummary, trace: string }> {
     const { responseTrace } = await this.checkLastHashAuth(ctx)
     const { transfersIn, transfersOut } = await this.getTransactions(accountId)
@@ -366,5 +370,68 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       adresses.creditCommons = `${remoteNode.ourNodePath}/${account.code}`
     }
     return adresses
+  }
+
+  /**
+   * Right now only sending transfers to a Credit Commons payee is supported.
+   */
+  isCreditCommonsTransfer(transfer: Transfer|InputTransfer): boolean {
+    return transfer.meta.creditCommons?.payeeAddress !== undefined
+  }
+
+  /**
+   * Creates a Credit Commons transfer. Only supports sending transfers to a Credit Commons
+   * payee. The transfer object must have the `meta.creditCommons.payeeAddress` field set.
+   * 
+   *
+   * @param ctx The context of the request.
+   * @param transfer The transfer object to create.
+   * @returns The created FullTransfer object.
+   */
+  async createCreditCommonsTransfer(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
+    // Only users with accounts in this currency can create transfers.
+    const user = await this.users().checkUser(ctx)
+
+    // Get the destination address.
+    const ccPayeeAddress = data.meta?.creditCommons?.payeeAddress
+    if (!ccPayeeAddress) {
+      throw badRequest('Credit Commons transfer must have a payee address in meta.creditCommons.payeeAddress')
+    }
+
+    const record = await this.db().creditCommonsNode.findFirst({})
+    if (!record) {
+      throw notFound('This currency has not yet been grafted onto any CreditCommons tree.')
+    }
+
+    // Create the local transfer record between the user's account and the vostro account,
+    // with state="new"
+    const vostro = await this.accounts().getFullAccount(record.vostroId)
+    const payer = await this.accounts().getFullAccount(data.payer.id)
+
+    const transfer = await this.transfers().createTransferRecord(data, payer, vostro, user)
+
+    // Now it is time to submit the transaction. 
+     
+    // 1. Perform first the local part.
+    await this.transfers().updateTransferState(transfer, data.state, user)
+
+    // 2. Send the Credit Commons transaction if the local part was successful.
+    if (transfer.state === 'committed') {
+      try {
+        const amount = this.currencyController.amountToLedger(data.amount)
+        // TODO @michielbdejong Create the CreditCommonsTransaction object and call the remote node.
+        // This is similar to the `sendTransaction` method, but take in count that now we already have 
+        // the local transfer object so it is only missing the Credit Commons part. Note also that the
+        // `sendTransaction` related endpoint is no longer necessary, but I've not deleted it yet.
+        throw notImplemented('Still need to to finish implementing sending the Credit Commons transaction')
+      } catch (err) {
+        // Should we revert the local transfer in case of CC error?
+        // Reverting transfers is not implemented yet but it is planned. Of course it
+        // is not really straightforward because they are immutable on the ledger.
+        throw err
+      }
+    }
+
+    return transfer
   }
 }
