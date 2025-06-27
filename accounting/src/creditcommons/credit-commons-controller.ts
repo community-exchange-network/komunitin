@@ -398,14 +398,14 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       throw badRequest('Credit Commons transfer must have a payee address in meta.creditCommons.payeeAddress')
     }
 
-    const record = await this.db().creditCommonsNode.findFirst({})
-    if (!record) {
+    const remoteNode = await this.makeRoutingDecision(undefined)
+    if (!remoteNode) {
       throw notFound('This currency has not yet been grafted onto any CreditCommons tree.')
     }
 
     // Create the local transfer record between the user's account and the vostro account,
     // with state="new"
-    const vostro = await this.accounts().getFullAccount(record.vostroId)
+    const vostro = await this.accounts().getFullAccount(remoteNode.vostroId)
     const payer = await this.accounts().getFullAccount(data.payer.id)
 
     const transfer = await this.transfers().createTransferRecord(data, payer, vostro, user)
