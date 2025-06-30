@@ -215,7 +215,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       id: transaction.uuid,
       state: 'committed',
       amount: this.currencyController.amountFromLedger(netGain.toString()),
-      meta: `From Credit Commons [${froms.join(', ')}]:` + metas.join(' '),
+      meta: { description: `From Credit Commons [${froms.join(', ')}]:` + metas.join(' ') },
       payer,
       payee,
     }
@@ -268,7 +268,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
   private async checkSenderBalance(transaction: CreditCommonsTransaction, remoteNode: CreditCommonsNode): Promise<InputTransfer> {
     return this.ccToLocal(transaction, remoteNode.ourNodePath, remoteNode.vostroId, true)
   }
-  private async makeRoutingDecision(transaction: CreditCommonsTransaction): Promise<CreditCommonsNode | null> {
+  private async makeRoutingDecision(transaction?: CreditCommonsTransaction): Promise<CreditCommonsNode | null> {
     return await this.db().creditCommonsNode.findFirst({})
   }
   private async makeRemoteCall(transaction: CreditCommonsTransaction, remoteNode: CreditCommonsNode): Promise<void> {
@@ -365,7 +365,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     const adresses = {
       komunitin: `${config.API_BASE_URL}/${account.currency.code}/accounts/${account.id}`
     } as AccountAddresses
-    const remoteNode = await this.makeRoutingDecision(undefined)
+    const remoteNode = await this.makeRoutingDecision()
     if (remoteNode) {
       adresses.creditCommons = `${remoteNode.ourNodePath}/${account.code}`
     }
@@ -376,6 +376,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
    * Right now only sending transfers to a Credit Commons payee is supported.
    */
   isCreditCommonsTransfer(transfer: Transfer|InputTransfer): boolean {
+    console.log('isCreditCommonsTransfer check', transfer.meta.creditCommons?.payeeAddress)
     return transfer.meta.creditCommons?.payeeAddress !== undefined
   }
 
