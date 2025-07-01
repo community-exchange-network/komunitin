@@ -282,6 +282,8 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       }
     })
     if (response.status !== 201) {
+      console.log('response code', response.status)
+      console.log(await response.text())
       throw noTrustPath('CreditCommons transaction failed remotely')
     }
   }
@@ -420,7 +422,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     if (transfer.state === 'committed') {
       try {
         const amount = this.currencyController.amountToLedger(data.amount)
-        const transaction: CreditCommonsTransaction = {
+        const transaction = {
           version: 1,
           uuid: '3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c',
           state: 'V',

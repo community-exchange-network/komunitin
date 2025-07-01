@@ -62,4 +62,5 @@ RUN sed -i '3 a require_once __DIR__ . "/../vendor/autoload.php";' vendor/credit
 WORKDIR /var/www
 RUN rm -rf html
 RUN ln -s /workspaces/cc-server html
+WORKDIR /var/www/html
 EXPOSE 80

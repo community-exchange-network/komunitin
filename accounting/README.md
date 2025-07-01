@@ -105,26 +105,28 @@ docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
 docker exec -it komunitin-cc-1 /bin/bash -c "vendor/bin/phpunit tests/SingleNodeTest.php"
 docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/twig.cc-server.yml configs/localhost.yml"
 docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/twig.cc-server.yml configs/host.docker.internal.yml"
-docker exec -it komunitin-cc-1 mysql credcom_twig
-```
-And inside the CC MySQL db:
-```sql
-insert into accounts (acc_id, min, max, url) values ('NET1', -1000000, +1000000, 'http://host.docker.internal:2025/NET1/cc');
-insert into accounts (acc_id, min, max, url) values ('NET2', -1000000, +1000000, 'http://host.docker.internal:2025/NET2/cc');
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET1', -1000000, +1000000, 'http://host.docker.internal:2025/NET1/cc');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET2', -1000000, +1000000, 'http://host.docker.internal:2025/NET2/cc');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET1', 0, 'trunk', 'NET1');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET2', 0, 'trunk', 'NET2');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "select * from accounts;"
 ```
 
+### Sending a transaction from Komunitin
+Log in to https://localhost:2030 (tell your browser to accept the self-signed cert) as `noether@komunitin.org` / `komunitin`, go to transactions -> receive -> QR, and generate a QR code for a value of 0.01 or a similarly small amount. With your phone, make a photo of your laptop screen.
+Log out and log in as `euclides@komunitin.org` / `komunitin`, go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
+Click 'Confirm', and the payment should go through, via CreditCommons.
+
 ### Connecting with docker exec
+You can interact with the various containers and databases through docker, here is a little cheat sheet with some oneliners that might be useful for that:
 ```sh
-docker exec -it komunitin-cc-1 /bin/bash -c "curl -i http://komunitin-accounting-1:2025/"
+docker ps
+docker exec -it komunitin-cc-1 mysql credcom_twig
+docker exec -it komunitin-cc-1 /bin/bash -c "curl -i http://host.docker.internal:2025/"
 docker exec -it komunitin-integralces-1 mysql -u integralces -pintegralces -h komunitin-db-integralces-1 integralces
 docker exec -it komunitin-db-accounting-1 psql postgresql://accounting:accounting@localhost:5432/accounting
 ```
 In psql, execute `SELECT set_config('app.bypass_rls', 'on', false);` to bypass Row Level Security, then `\d+` to see a list of tables, and e.g. `select * from "Transfer";` to see the contents of the Transfers table.
-
-### Sending a transaction from Komunitin
-Log in to https://localhost:2030 as `noether@komunitin.org` / `komunitin`, go to transactions -> receive -> QR, and generate a QR code for a value of 0.01. With your phone, make a photo of your laptop screen.
-Log out and log in as `euclides@komunitin.org` / `komunitin`, go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
-Click 'Confirm', and the payment should go through, via CreditCommons.
 
 ### Reset
 To  restart from scratch, do `docker compose down -v`. Make sure with `docker ps -a` and `docker volume ls` that all relevant containers are stopped and removed, and repeat if necessary. There might also be an unnamed volume that you need to remove. If see `DUPLICATE ENTRY` errors on the next run then you know it wasn't removed completely.
