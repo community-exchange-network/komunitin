@@ -21,6 +21,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
+              value="accounts"
               :title="t('monthlyActiveAccounts')"
               :text="t('monthlyActiveAccountsText')"
               :period="30*24*60*60"
@@ -30,6 +31,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
+              value="accounts"
               :title="t('yearlyActiveAccounts')"
               :text="t('yearlyActiveAccountsText')"
               :period="365*24*60*60"
@@ -39,6 +41,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
+              value="transactions"
               :title="t('monthlyTransactions')"
               :text="t('monthlyTransactionsText')"
               :period="30*24*60*60"
@@ -48,6 +51,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
+              value="transactions"
               :title="t('yearlyTransactions')"
               :text="t('yearlyTransactionsText')"
               :period="365*24*60*60"
