@@ -103,7 +103,7 @@ cp .env.template .env
 ./start.sh --up --ices --dev --demo
 docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
 docker exec -it komunitin-cc-1 /bin/bash -c "vendor/bin/phpunit tests/SingleNodeTest.php"
-docker exec -it komunitin-cc-1 /bin/bash -c "mv configs/twig.cc-server.yml configs/localhost.yml"
+docker exec -it komunitin-cc-1 /bin/bash -c "mv configs/twig.cc-server.yml configs/host.docker.internal.yml"
 ```
 
 ### Connecting with docker exec
