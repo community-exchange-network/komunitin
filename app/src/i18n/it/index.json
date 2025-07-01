@@ -318,8 +318,11 @@
   "codeTaken": "Questo codice è già in uso",
   "invalidValue": "Valore non valido",
   "newGroupRequestedText": "La tua richiesta per il nuovo gruppo {name} è stata inviata e verrà esaminata manualmente. Riceverai un'e-mail quando sarà attivata e potrai iniziare a configurarla. Se non ricevi alcuna risposta entro qualche giorno, contatta il team.",
-
-
+  "monthlyTransactions": "Transazioni mensili",
+  "monthlyTransactionsText": "Numero di transazioni nell'ultimo mese",
+  "yearlyTransactions": "Transazioni annuali",
+  "yearlyTransactionsText": "Numero di transazioni nell'ultimo anno",
+  "serverStats": "Statistiche del sito",
 
   "ErrorUnknown": "Errore: Sconosciuto",
   "ErrorIncorrectRequest": "Errore: Richiesta non corretta",

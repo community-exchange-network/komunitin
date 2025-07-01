@@ -347,6 +347,11 @@
   "volume": "Volume",
   "activeAccountsChart": "Cuentas activas",
   "activeAccountsChartText": "Cuentas con almenos una transacción durante el período seleccionado",
+  "monthlyTransactions": "Transacciones mensuales",
+  "monthlyTransactionsText": "Número de transacciones en el último mes",
+  "yearlyTransactions": "Transacciones anuales",
+  "yearlyTransactionsText": "Número de transacciones en el último año",
+  "serverStats": "Estadísticas del sitio",
 
   "ErrorAuthNoCredentials": "Email o password incorrectos",
   "ErrorInvalidPassword": "Contraseña incorrecta",
