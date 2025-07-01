@@ -59,5 +59,7 @@ RUN /bin/bash -c 'source ~/.bashrc ; npm install'
 RUN /bin/bash -c 'source ~/.bashrc ; npm run build'
 WORKDIR /workspaces/cc-server
 RUN sed -i '3 a require_once __DIR__ . "/../vendor/autoload.php";' vendor/credit-commons/cc-node/src/functions.php
-
+WORKDIR /var/www
+RUN rm -rf html
+RUN ln -s /workspaces/cc-server html
 EXPOSE 80
