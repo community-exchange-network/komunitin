@@ -383,7 +383,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
    * Right now only sending transfers to a Credit Commons payee is supported.
    */
   isCreditCommonsTransfer(transfer: Transfer|InputTransfer): boolean {
-    console.log('isCreditCommonsTransfer check', transfer.meta.creditCommons?.payeeAddress)
+    logger.debug('isCreditCommonsTransfer check', transfer.meta.creditCommons?.payeeAddress)
     return transfer.meta.creditCommons?.payeeAddress !== undefined
   }
 
