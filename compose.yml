@@ -13,7 +13,8 @@ services:
       NOTIFICATIONS_URL: ${KOMUNITIN_NOTIFICATIONS_URL}
       PUSH_SERVER_KEY: ${PUSH_SERVER_KEY}
       GTAG_ID: ${GTAG_ID}
-
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   redis:
     image: redis:7
     restart: unless-stopped

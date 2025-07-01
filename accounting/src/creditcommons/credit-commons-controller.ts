@@ -420,11 +420,26 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     if (transfer.state === 'committed') {
       try {
         const amount = this.currencyController.amountToLedger(data.amount)
-        // TODO @michielbdejong Create the CreditCommonsTransaction object and call the remote node.
-        // This is similar to the `sendTransaction` method, but take in count that now we already have 
-        // the local transfer object so it is only missing the Credit Commons part. Note also that the
-        // `sendTransaction` related endpoint is no longer necessary, but I've not deleted it yet.
-        throw notImplemented('Still need to to finish implementing sending the Credit Commons transaction')
+        const transaction: CreditCommonsTransaction = {
+          version: 1,
+          uuid: '3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c',
+          state: 'V',
+          workflow: '|P-PC+CX+',
+          entries: [{
+            payee: ccPayeeAddress,
+            payer: `${remoteNode.ourNodePath}/${payer.code}`,
+            quant: parseFloat(amount),
+            description: data.meta.description,
+            metadata: {}
+          }],
+        }
+        console.log('making remote call', transaction, remoteNode)
+        await this.makeRemoteCall(transaction, remoteNode)
+        console.log('calculating new hash')
+        const newHash = makeHash(transaction, remoteNode.lastHash)
+        console.log('setting new hash', newHash)
+        await this.updateNodeHash(remoteNode.peerNodePath, newHash)
+        console.log('done!')
       } catch (err) {
         // Should we revert the local transfer in case of CC error?
         // Reverting transfers is not implemented yet but it is planned. Of course it
