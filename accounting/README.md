@@ -103,18 +103,21 @@ cp .env.template .env
 ./start.sh --up --ices --dev --demo
 docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
 docker exec -it komunitin-cc-1 /bin/bash -c "vendor/bin/phpunit tests/SingleNodeTest.php"
-docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/twig.cc-server.yml configs/localhost.yml"
 docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/twig.cc-server.yml configs/host.docker.internal.yml"
+docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/node_name: twig/node_name: trunk/\" configs/twig.cc-server.yml > configs/host.docker.internal.yml"
+docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/request_timeout: 2/request_timeout: 20/\" configs/host.docker.internal.yml"
+docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/host.docker.internal.yml configs/localhost.yml"
 docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET1', -1000000, +1000000, 'http://host.docker.internal:2025/NET1/cc');"
 docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET2', -1000000, +1000000, 'http://host.docker.internal:2025/NET2/cc');"
 docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET1', 0, 'trunk', 'NET1');"
 docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET2', 0, 'trunk', 'NET2');"
-docker exec -it komunitin-cc-1 mysql credcom_twig -e "select * from accounts;"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "select * from log;"
+docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/pathprefix/pathPrefix/\" vendor/credit-commons/cc-php-lib/src/Requester.php"
 ```
 
 ### Sending a transaction from Komunitin
-Log in to https://localhost:2030 (tell your browser to accept the self-signed cert) as `noether@komunitin.org` / `komunitin`, go to transactions -> receive -> QR, and generate a QR code for a value of 0.01 or a similarly small amount. With your phone, make a photo of your laptop screen.
-Log out and log in as `euclides@komunitin.org` / `komunitin`, go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
+Log in to https://localhost:2030 (tell your browser to accept the self-signed cert) as `euclides@komunitin.org` / `komunitin`, go to transactions -> receive -> QR, and generate a QR code for a value of more than 1 (to cover the transaction fee) but less than 19 (so that Noether's balance is enough). With your phone, make a photo of your laptop screen.
+Log out and log in as `noether@komunitin.org` / `komunitin`, go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
 Click 'Confirm', and the payment should go through, via CreditCommons.
 
 ### Connecting with docker exec

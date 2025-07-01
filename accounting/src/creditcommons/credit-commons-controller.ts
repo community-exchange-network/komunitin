@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'crypto'
+import { v4 as uuid } from "uuid"
 import { AbstractCurrencyController } from "../controller/abstract-currency-controller"
 import { Context } from "../utils/context"
 import { CreditCommonsNode, CreditCommonsTransaction, CreditCommonsEntry } from "../model/creditCommons"
@@ -169,6 +170,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       if (ledgerOf(transaction.entries[i].payer) === ledgerBase) {
         thisLocalParty = transaction.entries[i].payer.slice(ledgerBase.length)
         netGain -= transaction.entries[i].quant
+        logger.info(`This entry COSTS us ${transaction.entries[i].quant}`)
         metas.push(`-${transaction.entries[i].quant} (${transaction.entries[i].description})`)
       }
       if (ledgerOf(transaction.entries[i].payee) === ledgerBase) {
@@ -177,6 +179,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
         }
         thisLocalParty = transaction.entries[i].payee.slice(ledgerBase.length)
         netGain += transaction.entries[i].quant
+        logger.info(`This entry YIELDS us ${transaction.entries[i].quant}`)
         metas.push(`+${transaction.entries[i].quant} (${transaction.entries[i].description})`)
         froms.push(transaction.entries[i].payer)
       }
@@ -188,6 +191,8 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       }
       localParty = thisLocalParty
     }
+    logger.info(`Net gain is ${netGain}`)
+
     if (netGain <= 0 && outgoing === false) {
       throw badRequest('Net gain must be positive for incoming transaction')
     }
@@ -424,7 +429,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
         const amount = this.currencyController.amountToLedger(data.amount)
         const transaction = {
           version: 1,
-          uuid: '3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c',
+          uuid: uuid(),
           state: 'V',
           workflow: '|P-PC+CX+',
           entries: [{
