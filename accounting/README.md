@@ -107,8 +107,8 @@ docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/twig.cc-server.yml confi
 docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/node_name: twig/node_name: trunk/\" configs/twig.cc-server.yml > configs/host.docker.internal.yml"
 docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/request_timeout: 2/request_timeout: 20/\" configs/host.docker.internal.yml"
 docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/host.docker.internal.yml configs/localhost.yml"
-docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET1', -1000000, +1000000, 'http://host.docker.internal:2025/NET1/cc');"
-docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET2', -1000000, +1000000, 'http://host.docker.internal:2025/NET2/cc');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET1', -1000000, +1000000, 'http://accounting:2025/NET1/cc');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET2', -1000000, +1000000, 'http://accounting:2025/NET2/cc');"
 docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET1', 0, 'trunk', 'NET1');"
 docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET2', 0, 'trunk', 'NET2');"
 docker exec -it komunitin-cc-1 mysql credcom_twig -e "select * from log;"
@@ -125,7 +125,7 @@ You can interact with the various containers and databases through docker, here 
 ```sh
 docker ps
 docker exec -it komunitin-cc-1 mysql credcom_twig
-docker exec -it komunitin-cc-1 /bin/bash -c "curl -i http://host.docker.internal:2025/"
+docker exec -it komunitin-cc-1 /bin/bash -c "curl -i http://accounting:2025/"
 docker exec -it komunitin-integralces-1 mysql -u integralces -pintegralces -h komunitin-db-integralces-1 integralces
 docker exec -it komunitin-db-accounting-1 psql postgresql://accounting:accounting@localhost:5432/accounting
 ```
