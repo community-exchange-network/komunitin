@@ -287,8 +287,8 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       }
     })
     if (response.status !== 201) {
-      console.log('response code', response.status)
-      console.log(await response.text())
+      logger.error(`CreditCommons transaction failed remotely. Response code: ${response.status}`)
+      logger.error(`Response text: ${await response.text()}`)
       throw noTrustPath('CreditCommons transaction failed remotely')
     }
   }
