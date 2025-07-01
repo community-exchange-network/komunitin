@@ -57,6 +57,11 @@ export function setupServerTest(createData: boolean = true): TestSetupWithCurren
     createCurrency: async (settings: any, admin: AuthInfo) => {
       const response = await test.api?.post('/currencies', testCurrency(settings), admin)
       return response.body.data
+    },
+
+    createCurrency: async (settings: any, admin: AuthInfo) => {
+      const response = await test.api?.post('/currencies', testCurrency(settings), admin)
+      return response.body.data
     }
   }
 
