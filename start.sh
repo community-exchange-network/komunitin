@@ -97,6 +97,7 @@ docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/dru
 ./accounting/cli/trust.sh "fermat@komunitin.org" "komunitin" "NET2" "NET1" 1000
 
 # Create Credit commons node
+# FIXME: this should work with http://cc:8080 but for some reason it only works with http://host.docker.internal:8080
 ./accounting/cli/create_credit_commons_node.sh "riemann@komunitin.org" "komunitin" "NET1" "http://host.docker.internal:8080"
 ./accounting/cli/create_credit_commons_node.sh "fermat@komunitin.org" "komunitin" "NET2" "http://host.docker.internal:8080"
 
