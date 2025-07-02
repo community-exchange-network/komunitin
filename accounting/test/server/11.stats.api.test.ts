@@ -13,7 +13,7 @@ describe('Statistics endpoints', async () => {
     // Add some accounts to the DB (without creating ledger accounts)
     await seedAccounts("TEST", 80, start, end)
     // Add some transfers to the DB (without actually performing them in the ledger for speed)
-    await seedTransfers("TEST", 1000, start, end)
+    await seedTransfers("TEST", 1000, start, end, "0")
 
     // Create a 2nd currency for global stats.
     await t.createCurrency({
@@ -21,7 +21,7 @@ describe('Statistics endpoints', async () => {
     }, userAuth("10"))
 
     await seedAccounts("STAT", 100, start, end)
-    await seedTransfers("STAT", 2000, start, end)
+    await seedTransfers("STAT", 2000, start, end, "10")
   })
 
   it('volume in one month', async () => {
@@ -57,6 +57,44 @@ describe('Statistics endpoints', async () => {
     assert.equal(response.body.data.attributes.values.length, weeks)
     assert.equal(response.body.data.attributes.values[0], 22900)
     assert.equal(response.body.data.attributes.values[1], 130400)
+    assert.equal(response.body.data.attributes.values[weeks-1], 0)
+    assert.equal(from.toISOString(), "2024-01-22T00:00:00.000Z")
+    assert.ok(new Date().getTime() - new Date(response.body.data.attributes.to).getTime() < 1000, "To date should be now")
+  })
+
+  it('transfers in one month', async () => {
+    const response = await t.api.get('/TEST/stats/transfers?from=2024-06-01Z&to=2024-07-01Z', t.user1)
+    assert.equal(response.body.data.attributes.values.length, 1)
+    assert.equal(response.body.data.attributes.values[0], 38)
+    assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-06-01Z").toISOString())
+    assert.equal(new Date(response.body.data.attributes.to).toISOString(), new Date("2024-07-01Z").toISOString())
+  })
+
+  it('transfers all time', async () => {
+    const response = await t.api.get('/TEST/stats/transfers', t.user1)
+    assert.equal(response.body.data.attributes.values.length, 1)
+    assert.equal(response.body.data.attributes.values[0], 907)
+    assert.equal(response.body.data.attributes.from, undefined)
+    assert.ok(new Date().getTime() - new Date(response.body.data.attributes.to).getTime() < 1000, "To date should be now")
+  })
+
+  it('transfers by months across a year', async () => {
+    const response = await t.api.get('/TEST/stats/transfers?from=2024-01-01Z&to=2025-01-01Z&interval=P1M', t.user1)
+    assert.equal(response.body.data.attributes.values.length, 12)
+    assert.equal(response.body.data.attributes.values[5], 38)
+    assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-01-01Z").toISOString())
+    assert.equal(new Date(response.body.data.attributes.to).toISOString(), new Date("2025-01-01Z").toISOString())
+    assert.equal(response.body.data.attributes.interval, "P1M")
+  })
+
+  it('transfers all time by weeks', async () => {
+    const response = await t.api.get('/TEST/stats/transfers?interval=P1W', t.user1)
+    // The number of weeks since 2024-01-01.
+    const from = new Date(response.body.data.attributes.from)
+    const weeks = Math.ceil((new Date().getTime() - from.getTime()) / (1000*60*60*24*7))
+    assert.equal(response.body.data.attributes.values.length, weeks)
+    assert.equal(response.body.data.attributes.values[0], 1)
+    assert.equal(response.body.data.attributes.values[1], 2)
     assert.equal(response.body.data.attributes.values[weeks-1], 0)
     assert.equal(from.toISOString(), "2024-01-22T00:00:00.000Z")
     assert.ok(new Date().getTime() - new Date(response.body.data.attributes.to).getTime() < 1000, "To date should be now")
@@ -109,6 +147,51 @@ describe('Statistics endpoints', async () => {
       assert.equal(activeValues[i] + inactiveValues[i], allValues[i])
     }
   })
-  
+  // Global stats
+  it('global volume in one month', async () => {
+    const response = await t.api.get('/currencies/stats/amount?from=2024-06-01Z&to=2024-07-01Z', t.user1)
+    assert.equal(response.body.data.attributes.values.length, 1)
+    assert.equal(response.body.data.attributes.values[0], 5759900)
+    assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-06-01Z").toISOString())
+    assert.equal(new Date(response.body.data.attributes.to).toISOString(), new Date("2024-07-01Z").toISOString())
+  })
+  it('global volume in one year, monthly', async () => {
+    const response = await t.api.get('/currencies/stats/amount?from=2024-01-01Z&to=2025-01-01Z&interval=P1M', t.user1)
+    assert.equal(response.body.data.attributes.values.length, 12)
+    assert.equal(response.body.data.attributes.values[5], 5759900)
+    assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-01-01Z").toISOString())
+    assert.equal(new Date(response.body.data.attributes.to).toISOString(), new Date("2025-01-01Z").toISOString())
+    assert.equal(response.body.data.attributes.interval, "P1M")
+  })
+  it('global transfers in one month', async () => {
+    const response = await t.api.get('/currencies/stats/transfers?from=2024-06-01Z&to=2024-07-01Z', t.user1)
+    assert.equal(response.body.data.attributes.values.length, 1)
+    assert.equal(response.body.data.attributes.values[0], 123)
+    assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-06-01Z").toISOString())
+    assert.equal(new Date(response.body.data.attributes.to).toISOString(), new Date("2024-07-01Z").toISOString())
+  })
+  it('global transfers in one year, monthly', async () => {
+    const response = await t.api.get('/currencies/stats/transfers?from=2024-01-01Z&to=2025-01-01Z&interval=P1M', t.user1)
+    assert.equal(response.body.data.attributes.values.length, 12)
+    assert.equal(response.body.data.attributes.values[5], 123)
+    assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-01-01Z").toISOString())
+    assert.equal(new Date(response.body.data.attributes.to).toISOString(), new Date("2025-01-01Z").toISOString())
+    assert.equal(response.body.data.attributes.interval, "P1M")
+  })
+  it('global active accounts in one month', async () => {
+    const response = await t.api.get('/currencies/stats/accounts?from=2024-06-01Z&to=2024-07-01Z&minTransactions=1', t.user1)
+    assert.equal(response.body.data.attributes.values.length, 1)
+    assert.equal(response.body.data.attributes.values[0], 75)
+    assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-06-01Z").toISOString())
+    assert.equal(new Date(response.body.data.attributes.to).toISOString(), new Date("2024-07-01Z").toISOString())
+  })
+  it('global active accounts in one year, monthly', async () => {
+    const response = await t.api.get('/currencies/stats/accounts?from=2024-01-01Z&to=2025-01-01Z&interval=P1M&minTransactions=1', t.user1)
+    assert.equal(response.body.data.attributes.values.length, 12)
+    assert.equal(response.body.data.attributes.values[5], 75)
+    assert.equal(new Date(response.body.data.attributes.from).toISOString(), new Date("2024-01-01Z").toISOString())
+    assert.equal(new Date(response.body.data.attributes.to).toISOString(), new Date("2025-01-01Z").toISOString())
+    assert.equal(response.body.data.attributes.interval, "P1M")
+  })
     
 })
