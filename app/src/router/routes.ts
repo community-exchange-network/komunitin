@@ -60,7 +60,7 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
-        path: 'server-stats',
+        path: '/server-stats',
         name: 'ServerStats',
         component: () => import('../pages/home/ServerStats.vue'),
         meta: {
