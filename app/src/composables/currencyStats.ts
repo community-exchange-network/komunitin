@@ -1,6 +1,6 @@
 import { KOptions } from "src/boot/koptions";
 import { checkFetchResponse } from "src/KError";
-import  formatCurrency, { formatGobalCurrency }  from "src/plugins/FormatCurrency";
+import formatCurrency, { formatGobalCurrency } from "src/plugins/FormatCurrency";
 import { Currency } from "src/store/model";
 import { computed, MaybeRefOrGetter, ref, toRef, toValue, watch, watchEffect } from "vue";
 import { useStore } from "vuex";
