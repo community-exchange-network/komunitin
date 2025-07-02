@@ -48,7 +48,7 @@
   "devDependencies": {
     "@electron/typescript-definitions": "^8.9.6",
     "@eslint/js": "^9.13.0",
-    "@quasar/app-webpack": "^3.14.2",
+    "@quasar/app-webpack": "^4.2.0",
     "@statoscope/webpack-plugin": "^5.28.2",
     "@stylistic/eslint-plugin": "^2.9.0",
     "@types/clamp-js": "^0.7.3",
