@@ -1,6 +1,6 @@
 import { KOptions } from "src/boot/koptions";
 import { checkFetchResponse } from "src/KError";
-import  formatCurrency, { formatGobalCurrency }  from "src/plugins/FormatCurrency";
+import  formatCurrency, { formatGlobalCurrency }  from "src/plugins/FormatCurrency";
 import { Currency } from "src/store/model";
 import { computed, MaybeRefOrGetter, ref, toRef, toValue, watch, watchEffect } from "vue";
 import { useStore } from "vuex";
@@ -152,7 +152,7 @@ export function useCurrencyStatsFormattedValue(
         if (opt.currency) {
           value.value = formatCurrency(data, opt.currency, {decimals: false})
         } else {
-          value.value = formatGobalCurrency(data, {decimals: false})
+          value.value = formatGlobalCurrency(data, {decimals: false})
         }
       } else {
         value.value = data.toString()
