@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { checkExact, oneOf } from 'express-validator';
 import { CreateMigration } from 'src/controller/migration/migration';
 import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
@@ -12,6 +12,7 @@ import { input } from './parse';
 import { accountStatsParams, collectionParams, statsParams } from './request';
 import { AccountSerializer, AccountSettingsSerializer, CurrencySerializer, CurrencySettingsSerializer, StatsSerializer, TransferSerializer, TrustlineSerializer } from './serialize';
 import { Validators } from './validation';
+import { middleware as cache } from 'apicache';
 
 export function getRoutes(controller: SharedController) {
   const router = Router()
@@ -199,8 +200,13 @@ export function getRoutes(controller: SharedController) {
     })
   )
 
-  // TODO: Add cache to stats endpoints
-  router.get('/currencies/stats/amount', noAuth(), asyncHandler(async (req, res) => {
+  const successCache = (duration: string) => cache(duration, (req: Request, res: Response) => {
+    // Cache only successful responses
+    return res.statusCode === 200
+  })
+  const publicStatsCache = successCache('4 hours')
+
+  router.get('/currencies/stats/amount', noAuth(), publicStatsCache, asyncHandler(async (req, res) => {
     const params = statsParams(req)
     const ctx = context(req)
     const stats = await controller.stats.getAmount(ctx, params)
@@ -208,7 +214,7 @@ export function getRoutes(controller: SharedController) {
     res.status(200).json(result)
   }))
 
-  router.get('/currencies/stats/accounts', noAuth(), asyncHandler(async (req, res) => {
+  router.get('/currencies/stats/accounts', noAuth(), publicStatsCache, asyncHandler(async (req, res) => {
     const params = accountStatsParams(req)
     const ctx = context(req)
     const stats = await controller.stats.getAccounts(ctx, params)
@@ -216,7 +222,7 @@ export function getRoutes(controller: SharedController) {
     res.status(200).json(result)
   }))
   
-  router.get('/currencies/stats/transfers', noAuth(), asyncHandler(async (req, res) => {
+  router.get('/currencies/stats/transfers', noAuth(), publicStatsCache, asyncHandler(async (req, res) => {
     const params = statsParams(req)
     const ctx = context(req)
     const stats = await controller.stats.getTransfers(ctx, params)
@@ -224,7 +230,9 @@ export function getRoutes(controller: SharedController) {
     res.status(200).json(result)
   }))
 
-  router.get('/:code/stats/amount', userAuth([Scope.Accounting, Scope.AccountingReadAll]), 
+  const currencyStatsCache = successCache('10 minutes')
+
+  router.get('/:code/stats/amount', userAuth([Scope.Accounting, Scope.AccountingReadAll]), currencyStatsCache,
     currencyHandler(controller, async (currencyController, ctx, req) => {
       const params = statsParams(req)
       const stats = await currencyController.stats.getAmount(ctx, params)
@@ -232,7 +240,7 @@ export function getRoutes(controller: SharedController) {
     })
   )
 
-  router.get('/:code/stats/accounts', userAuth([Scope.Accounting, Scope.AccountingReadAll]),
+  router.get('/:code/stats/accounts', userAuth([Scope.Accounting, Scope.AccountingReadAll]), currencyStatsCache,
     currencyHandler(controller, async (currencyController, ctx, req) => {
       const params = accountStatsParams(req)
       const stats = await currencyController.stats.getAccounts(ctx, params)
@@ -240,7 +248,7 @@ export function getRoutes(controller: SharedController) {
     }
   ))
 
-  router.get('/:code/stats/transfers', userAuth([Scope.Accounting, Scope.AccountingReadAll]),
+  router.get('/:code/stats/transfers', userAuth([Scope.Accounting, Scope.AccountingReadAll]), currencyStatsCache,
     currencyHandler(controller, async (currencyController, ctx, req) => {
       const params = statsParams(req)
       const stats = await currencyController.stats.getTransfers(ctx, params)
