@@ -82,4 +82,5 @@ export interface TransferController {
 export interface StatsController {
   getAmount(ctx: Context, params: StatsOptions): Promise<Stats>
   getAccounts(ctx: Context, params: AccountStatsOptions): Promise<Stats>
+  getTransfers(ctx: Context, params: StatsOptions): Promise<Stats>
 }

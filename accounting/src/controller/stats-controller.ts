@@ -203,12 +203,73 @@ export class StatsController implements IStatsController {
       const fromDate = from ?? this.truncateDate(await this.getFirstTransferDate(), interval)
       const values = await this.getAmountValues(fromDate, toDate, interval)
       
-      return ({
+      return {
         from: fromDate,
         to: toDate,
         interval: interval,
         values
-      })
+      }
+    }
+  }
+
+
+  private async getTransfersSingleValue(from: Date|undefined, to: Date|undefined) {
+    const value = await this.db().transfer.count({
+      where: {
+        updated: {
+          gte: from,
+          lt: to
+        },
+        state: "committed"
+      }
+    })
+    return value
+  }
+  private async getTransfersValues(from: Date, to: Date, interval: StatsInterval): Promise<number[]> {
+    const sqlInterval = this.sqlInterval(interval)
+    const sqlIntervals = this.intervalsSqlTemplate(from, to, interval)
+    const query = await this.db().$queryRaw`
+      ${sqlIntervals}
+      SELECT i."interval" AS "interval", COUNT(t."id") AS "count"
+      FROM "Intervals" i
+      LEFT JOIN "Transfer" t ON t."updated" >= i."interval" 
+        AND t."updated" < LEAST(i."interval" + ${sqlInterval}::interval, ${to}::timestamp) 
+        AND t."state" = 'committed'
+      GROUP BY i."interval"
+      ORDER BY i."interval"
+      ` as Array<{ interval: Date, count: number }>;
+    
+    return query.map(r => Number(r.count))
+  }
+  /**
+   * Return the number of transfers that have been committed in the period
+   * provided by the "from" and "to" parameters and grouped by the parameter
+   * "interval".
+   * @param ctx 
+   * @param params 
+   */
+  public async getTransfers(ctx: Context, params: StatsOptions): Promise<Stats> {
+    const { from, to, interval } = params
+    const toDate = to ?? new Date()
+
+    if (interval === undefined) {
+      // Single value: count all committed transfers in the period
+      const value = await this.getTransfersSingleValue(from, toDate)
+      return { 
+        from, 
+        to: toDate, 
+        values: [value]
+      }
+    } else {
+      const fromDate = from ?? this.truncateDate(await this.getFirstTransferDate(), interval)
+      const values = await this.getTransfersValues(fromDate, toDate, interval)
+      
+      return {
+        from: fromDate,
+        to: toDate,
+        interval: interval,
+        values
+      }
     }
   }
 
@@ -324,17 +385,6 @@ export class StatsController implements IStatsController {
       values
     }
 
-  }
-
-  /**
-   * Return the number of transfers that have been committed in the period
-   * provided by the "from" and "to" parameters and grouped by the parameter
-   * "interval".
-   * @param ctx 
-   * @param params 
-   */
-  public async getTransfers(ctx: Context, params: StatsOptions): Promise<Stats> {
-    
   }
 
   

@@ -5,7 +5,7 @@ import { Currency } from "src/store/model";
 import { computed, MaybeRefOrGetter, ref, toRef, toValue, watch, watchEffect } from "vue";
 import { useStore } from "vuex";
 
-export type StatsValue = "amount" | "transactions" | "accounts"
+export type StatsValue = "amount" | "transfers" | "accounts"
 export type StatsInterval = "PT1H" | "P1D" | "P1W" | "P1M" | "P1Y"
 
 export interface CurrencyStatsOptions {

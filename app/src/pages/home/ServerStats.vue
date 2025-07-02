@@ -41,7 +41,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
-              value="transactions"
+              value="transfers"
               :title="t('monthlyTransactions')"
               :text="t('monthlyTransactionsText')"
               :period="30*24*60*60"
@@ -51,7 +51,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
-              value="transactions"
+              value="transfers"
               :title="t('yearlyTransactions')"
               :text="t('yearlyTransactionsText')"
               :period="365*24*60*60"

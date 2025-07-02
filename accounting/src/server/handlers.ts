@@ -15,7 +15,8 @@ export const asyncHandler = (fn: (req: Request, res: Response) => Promise<void>)
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       await fn(req, res)
-      next()
+      // Not calling next() here as the handler chain is expected to stop after 
+      // successfully executing the handler fn().
     } catch (err) {
       next(err)
     }
