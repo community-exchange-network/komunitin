@@ -1,4 +1,5 @@
-import { createHash, randomUUID } from 'crypto'
+import { createHash } from 'crypto'
+import { v4 as uuid } from "uuid"
 import { AbstractCurrencyController } from "../controller/abstract-currency-controller"
 import { Context } from "../utils/context"
 import { CreditCommonsNode, CreditCommonsTransaction, CreditCommonsEntry } from "../model/creditCommons"
@@ -169,6 +170,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       if (ledgerOf(transaction.entries[i].payer) === ledgerBase) {
         thisLocalParty = transaction.entries[i].payer.slice(ledgerBase.length)
         netGain -= transaction.entries[i].quant
+        logger.info(`This entry COSTS us ${transaction.entries[i].quant}`)
         metas.push(`-${transaction.entries[i].quant} (${transaction.entries[i].description})`)
       }
       if (ledgerOf(transaction.entries[i].payee) === ledgerBase) {
@@ -177,6 +179,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
         }
         thisLocalParty = transaction.entries[i].payee.slice(ledgerBase.length)
         netGain += transaction.entries[i].quant
+        logger.info(`This entry YIELDS us ${transaction.entries[i].quant}`)
         metas.push(`+${transaction.entries[i].quant} (${transaction.entries[i].description})`)
         froms.push(transaction.entries[i].payer)
       }
@@ -188,6 +191,8 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       }
       localParty = thisLocalParty
     }
+    logger.info(`Net gain is ${netGain}`)
+
     if (netGain <= 0 && outgoing === false) {
       throw badRequest('Net gain must be positive for incoming transaction')
     }
@@ -215,7 +220,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       id: transaction.uuid,
       state: 'committed',
       amount: this.currencyController.amountFromLedger(netGain.toString()),
-      meta: `From Credit Commons [${froms.join(', ')}]:` + metas.join(' '),
+      meta: { description: `From Credit Commons [${froms.join(', ')}]:` + metas.join(' ') },
       payer,
       payee,
     }
@@ -268,7 +273,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
   private async checkSenderBalance(transaction: CreditCommonsTransaction, remoteNode: CreditCommonsNode): Promise<InputTransfer> {
     return this.ccToLocal(transaction, remoteNode.ourNodePath, remoteNode.vostroId, true)
   }
-  private async makeRoutingDecision(transaction: CreditCommonsTransaction): Promise<CreditCommonsNode | null> {
+  private async makeRoutingDecision(transaction?: CreditCommonsTransaction): Promise<CreditCommonsNode | null> {
     return await this.db().creditCommonsNode.findFirst({})
   }
   private async makeRemoteCall(transaction: CreditCommonsTransaction, remoteNode: CreditCommonsNode): Promise<void> {
@@ -282,6 +287,8 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       }
     })
     if (response.status !== 201) {
+      logger.error(`CreditCommons transaction failed remotely. Response code: ${response.status}`)
+      logger.error(`Response text: ${await response.text()}`)
       throw noTrustPath('CreditCommons transaction failed remotely')
     }
   }
@@ -365,7 +372,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     const adresses = {
       komunitin: `${config.API_BASE_URL}/${account.currency.code}/accounts/${account.id}`
     } as AccountAddresses
-    const remoteNode = await this.makeRoutingDecision(undefined)
+    const remoteNode = await this.makeRoutingDecision()
     if (remoteNode) {
       adresses.creditCommons = `${remoteNode.ourNodePath}/${account.code}`
     }
@@ -376,6 +383,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
    * Right now only sending transfers to a Credit Commons payee is supported.
    */
   isCreditCommonsTransfer(transfer: Transfer|InputTransfer): boolean {
+    logger.debug('isCreditCommonsTransfer check', transfer.meta.creditCommons?.payeeAddress)
     return transfer.meta.creditCommons?.payeeAddress !== undefined
   }
 
@@ -419,11 +427,22 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     if (transfer.state === 'committed') {
       try {
         const amount = this.currencyController.amountToLedger(data.amount)
-        // TODO @michielbdejong Create the CreditCommonsTransaction object and call the remote node.
-        // This is similar to the `sendTransaction` method, but take in count that now we already have 
-        // the local transfer object so it is only missing the Credit Commons part. Note also that the
-        // `sendTransaction` related endpoint is no longer necessary, but I've not deleted it yet.
-        throw notImplemented('Still need to to finish implementing sending the Credit Commons transaction')
+        const transaction = {
+          version: 1,
+          uuid: uuid(),
+          state: 'V',
+          workflow: '|P-PC+CX+',
+          entries: [{
+            payee: ccPayeeAddress,
+            payer: `${remoteNode.ourNodePath}/${payer.code}`,
+            quant: parseFloat(amount),
+            description: data.meta.description,
+            metadata: {}
+          }],
+        }
+        await this.makeRemoteCall(transaction, remoteNode)
+        const newHash = makeHash(transaction, remoteNode.lastHash)
+        await this.updateNodeHash(remoteNode.peerNodePath, newHash)
       } catch (err) {
         // Should we revert the local transfer in case of CC error?
         // Reverting transfers is not implemented yet but it is planned. Of course it

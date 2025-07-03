@@ -103,80 +103,33 @@ cp .env.template .env
 ./start.sh --up --ices --dev --demo
 docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
 docker exec -it komunitin-cc-1 /bin/bash -c "vendor/bin/phpunit tests/SingleNodeTest.php"
-docker exec -it komunitin-cc-1 /bin/bash -c "cd automerge-basic; source ~/.bashrc; git pull; npm run build; npm start"
+docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/twig.cc-server.yml configs/host.docker.internal.yml"
+docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/node_name: twig/node_name: trunk/\" configs/host.docker.internal.yml"
+docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/request_timeout: 2/request_timeout: 20/\" configs/host.docker.internal.yml"
+docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/host.docker.internal.yml configs/localhost.yml"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET1', -1000000, +1000000, 'http://accounting:2025/NET1/cc');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET2', -1000000, +1000000, 'http://accounting:2025/NET2/cc');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET1', 0, 'trunk', 'NET1');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET2', 0, 'trunk', 'NET2');"
+docker exec -it komunitin-cc-1 mysql credcom_twig -e "select * from log;"
+docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/pathprefix/pathPrefix/\" vendor/credit-commons/cc-php-lib/src/Requester.php"
 ```
-You can also run that last one `-d` instead of `-it` if you don't want to keep it open.
-There will be a lot of `WD ces_komunitin: Event sent:` 401 errors and some `Could not connect to debugging client` errors which you can ignore, but if you see `DUPLICATE ENTRY` errors, checkout the [Reset](#reset) section below.
+
+### Sending a transaction from Komunitin
+Log in to https://localhost:2030 (tell your browser to accept the self-signed cert) as `euclides@komunitin.org` / `komunitin`, go to transactions -> receive -> QR, and generate a QR code for a value of more than 1 (to cover the transaction fee) but less than 19 (so that Noether's balance is enough). With your phone, make a photo of your laptop screen.
+Log out and log in as `noether@komunitin.org` / `komunitin`, go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
+Click 'Confirm', and the payment should go through, via CreditCommons.
 
 ### Connecting with docker exec
+You can interact with the various containers and databases through docker, here is a little cheat sheet with some oneliners that might be useful for that:
 ```sh
-docker exec -it komunitin-cc-1 /bin/bash -c "curl -i http://komunitin-accounting-1:2025/"
+docker ps
+docker exec -it komunitin-cc-1 mysql credcom_twig
+docker exec -it komunitin-cc-1 /bin/bash -c "curl -i http://accounting:2025/"
 docker exec -it komunitin-integralces-1 mysql -u integralces -pintegralces -h komunitin-db-integralces-1 integralces
 docker exec -it komunitin-db-accounting-1 psql postgresql://accounting:accounting@localhost:5432/accounting
 ```
 In psql, execute `SELECT set_config('app.bypass_rls', 'on', false);` to bypass Row Level Security, then `\d+` to see a list of tables, and e.g. `select * from "Transfer";` to see the contents of the Transfers table.
-
-### Making NET2 a Credit Commons node
-1. Open `psql` on `komunitin-db-accounting-1` (see [above](#connecting-with-docker-exec)) and find out the account Id of the ClearingCentralVostro account using the following query:
-```sql
-SELECT set_config('app.bypass_rls', 'on', false);
-SELECT "id" FROM "Account" WHERE "code"='NET20004';
-\q
-```
-And then with the value you found:
-```sh
-export VOSTRO=54c97d55-397d-49e1-9f54-47d1127323a7
-echo $VOSTRO
-```
-
-2. Get Fermat's bearer token. There are two ways to do that; method 1:
-```sh
-npm install -g json
-export TOKEN=`curl -s 'http://localhost:2029/oauth2/token' -H 'Content-Type: application/x-www-form-urlencoded' --data-raw 'username=fermat%40komunitin.org&password=komunitin&grant_type=password&scope=komunitin_social+komunitin_accounting+email+offline_access+openid+profile&client_id=komunitin-app' | json access_token`
-echo $TOKEN
-```
-Method 2: harvest it from your browser dev tools while visiting http://localhost:2030/ (log in with `fermat@komunitin.org` / `komunitin`).
-
-3. Using the `$VOSTRO` and `$TOKEN` env vars, you can graft the Komunitin node onto the CC tree (assuming [trunk runs on port 8080](https://github.com/tubsproject/reflector/blob/121d3c912414cfdb5b4421baef09ae3c8484058f/src/main.ts#L132)):
-```sh
-curl -i -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" -X POST -d"{\"data\":{\"attributes\":{\"peerNodePath\":\"trunk\",\"ourNodePath\":\"trunk/branch2\",\"url\":\"http://localhost:8080/\",\"lastHash\":\"trunk\",\"vostroId\":\"$VOSTRO\"},\"relationships\":{\"vostro\":{\"data\":{\"type\":\"accounts\",\"id\":\"$VOSTRO\"}}}}}" http://localhost:2025/NET2/cc/nodes
-```
-4. Give the Credit Commons Vostro account a healthy credit limit of 9,000 ECO:
-```sh
-curl -i -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" -X PATCH -d'{"data":{"attributes":{"creditLimit":9000000000}}}' http://localhost:2025/NET2/accounts/$VOSTRO
-```
-
-5. To test it, run:
-```sh
-docker exec -it komunitin-cc-1 /bin/bash -c "curl -i -H 'Content-Type: application/json' -H 'cc-node: trunk' -H 'last-hash: trunk' http://komunitin-accounting-1:2025/NET2/cc/"
-docker exec -it komunitin-cc-1 /bin/bash -c "sed -i -e 's/branch2\/bob/branch2\/NET20002/g' tests/MultiNodeTest.php"
-docker exec -it komunitin-cc-1 /bin/bash -c "vendor/bin/phpunit tests/MultiNodeTest.php"
-```
-This will make the Komunitin node act as `trunk/branch2` in the CreditCommons test tree. You should see some 'DROP USER failed' errors which you can ignore, followed by a phpunit text report with 8/8 tests passing.
-
-To get this working, depending on the state of https://gitlab.com/credit-commons/cc-php-lib/-/merge_requests/7, on komunitin-cc-1 you may need to:
-```sh
-cd vendor/credit-commons/cc-php-lib/
-git remote add me https://gitlab.com/michielbdejong/cc-php-lib
-git fetch me
-git config --global user.email "you@example.com"
-git config --global user.name "Your Name"
-git merge me/patch-1
-cd ../../..
-```
-
-You may also need to make sure you use the latest commit from [insert-my-node](https://gitlab.com/michielbdejong/cc-server/-/tree/insert-my-node?ref_type=heads) branch on Michiel's fork of cc-server, which puts the proxy into the path of the CC relays, and makes sure the Komunitin node plays the role of `trunk/branch2`, and which also includes the [increased timeouts](https://gitlab.com/michielbdejong/cc-server/-/commit/d5c3f53d6e97a523ce64b688d1961feca9e29611) since the default timeout of 2 seconds is very tight.
-
-You will see some errors scrolling by, and [this assertion](https://gitlab.com/credit-commons/cc-server/-/blob/5a680dfbe4b7aa7e3282ea0096cf48a49572503e/tests/MultiNodeTest.php#L188) will fail because the workflow that it tests is not supported in Komunitin.
-
-### Sending a transaction from Komunitin
-Make an API call to Komunitin that triggers a credcom transaction.
-
-FIXME: add entries, see `generateCcTransaction` in accounting/test/creditcommons/api.data.ts for an example
-
-```sh
-curl -i -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" -X POST -d"{\"data\":{\"attributes\":{\"uuid\":\"3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c\",\"state\":\"V\",\"workflow\":\"|P-PC+CX+\",\"entries\":[],\"version\":\"1\"},\"relationships\":{}}}}" http://localhost:2025/NET2/cc/send
-```
 
 ### Reset
 To  restart from scratch, do `docker compose down -v`. Make sure with `docker ps -a` and `docker volume ls` that all relevant containers are stopped and removed, and repeat if necessary. There might also be an unnamed volume that you need to remove. If see `DUPLICATE ENTRY` errors on the next run then you know it wasn't removed completely.
