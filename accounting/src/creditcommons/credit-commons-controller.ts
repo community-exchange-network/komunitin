@@ -440,13 +440,9 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
             metadata: {}
           }],
         }
-        console.log('making remote call', transaction, remoteNode)
         await this.makeRemoteCall(transaction, remoteNode)
-        console.log('calculating new hash')
         const newHash = makeHash(transaction, remoteNode.lastHash)
-        console.log('setting new hash', newHash)
         await this.updateNodeHash(remoteNode.peerNodePath, newHash)
-        console.log('done!')
       } catch (err) {
         // Should we revert the local transfer in case of CC error?
         // Reverting transfers is not implemented yet but it is planned. Of course it
