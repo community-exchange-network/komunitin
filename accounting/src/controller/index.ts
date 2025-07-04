@@ -20,9 +20,11 @@ export type ControllerEvents = {
  * Controller for operations not related to a particular currency.
  */
 export interface SharedController {
+  stats: StatsController
 
   getCurrencyController(code: string): Promise<CurrencyController>   
   
+
   createCurrency(ctx: Context, currency: CreateCurrency): Promise<Currency>
   getCurrencies(ctx: Context, params: CollectionOptions): Promise<Currency[]>
 
@@ -78,6 +80,7 @@ export interface TransferController {
 }
 
 export interface StatsController {
-  getVolume(ctx: Context, params: StatsOptions): Promise<Stats>
+  getAmount(ctx: Context, params: StatsOptions): Promise<Stats>
   getAccounts(ctx: Context, params: AccountStatsOptions): Promise<Stats>
+  getTransfers(ctx: Context, params: StatsOptions): Promise<Stats>
 }

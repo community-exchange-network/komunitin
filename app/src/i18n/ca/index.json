@@ -346,7 +346,11 @@
   "month": "Mes",
   "activeAccountsChart": "Comptes actius",
   "activeAccountsChartText": "Comptes amb almenys una transacció durant el període seleccionat",
-  
+  "monthlyTransactions": "Transaccions mensuals",
+  "monthlyTransactionsText": "Nombre de transaccions en l'últim mes",
+  "yearlyTransactions": "Transaccions anuals",
+  "yearlyTransactionsText": "Nombre de transaccions en l'últim any",
+  "serverStats": "Estadístiques del lloc",
 
   "ErrorAuthNoCredentials": "Email o contrasenya incorrectes",
   "ErrorInvalidPassword": "Contrasenya incorrecta",

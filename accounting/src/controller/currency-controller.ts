@@ -64,7 +64,7 @@ export class LedgerCurrencyController implements CurrencyController {
     this.accounts = new AccountController(this)
     this.transfers = new TransferController(this)
     this.externalResources = new ExternalResourceController(this)
-    this.stats = new StatsController(this)
+    this.stats = new StatsController(this.db)
   }
 
   /**

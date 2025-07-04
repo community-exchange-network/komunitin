@@ -7,7 +7,7 @@ import { initUpdateExternalOffers } from "src/ledger/update-external-offers"
 import { Context, systemContext } from "src/utils/context"
 import { badConfig, badRequest, internalError, notFound, notImplemented } from "src/utils/error"
 import TypedEmitter from "typed-emitter"
-import { SharedController as BaseController, ControllerEvents } from "."
+import { SharedController as BaseController, ControllerEvents, StatsController } from "."
 import { config } from "../config"
 import { Ledger, LedgerCurrencyConfig, LedgerCurrencyData, createStellarLedger } from "../ledger"
 import { friendbot } from "../ledger/stellar/friendbot"
@@ -24,6 +24,7 @@ import { Store } from "./store"
 import { sleep } from "src/utils/sleep"
 import { CollectionOptions, relatedCollectionParams } from "src/server/request"
 import { whereFilter } from "./query"
+import { StatsController as StatsControllerImpl } from "./stats-controller"
 
 
 const getMasterKey = async () => {
@@ -168,6 +169,8 @@ export class LedgerController implements BaseController {
   private sponsorKey: () => Promise<Keypair>
   private masterKey: () => Promise<KeyObject>
 
+  stats: StatsController
+
   constructor(ledger: Ledger, db: PrismaClient, masterKey: () => Promise<KeyObject>, sponsorKey: () => Promise<Keypair>) {
     this.ledger = ledger
     this._db = db
@@ -196,6 +199,8 @@ export class LedgerController implements BaseController {
     this.cronTask = cron.schedule("* * * * */5", () => {
       this.cron()
     })
+
+    this.stats = new StatsControllerImpl(this.privilegedDb())
   }
 
   public addListener<E extends keyof ControllerEvents>(event: E, listener: ControllerEvents[E]) {
@@ -449,5 +454,6 @@ export class LedgerController implements BaseController {
       logger.error(e, "Error running cron")
     }
   }
+
 }
 

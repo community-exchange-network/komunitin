@@ -188,6 +188,11 @@ model Transfer {
 
   @@id([tenantId, id])
   @@unique([tenantId, hash])
+  // Indexes for account transfers.
+  @@index([payerId])
+  @@index([payeeId])
+  // Indexes for computing stats.
+  @@index([tenantId, updated])
 }
 
 model EncryptedSecret {
