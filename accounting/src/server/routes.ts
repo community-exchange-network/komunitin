@@ -12,7 +12,7 @@ import { input } from './parse';
 import { accountStatsParams, collectionParams, statsParams } from './request';
 import { AccountSerializer, AccountSettingsSerializer, CurrencySerializer, CurrencySettingsSerializer, StatsSerializer, TransferSerializer, TrustlineSerializer } from './serialize';
 import { Validators } from './validation';
-import { middleware as cache } from 'apicache';
+import routeCache from 'route-cache'
 
 export function getRoutes(controller: SharedController) {
   const router = Router()
@@ -200,11 +200,15 @@ export function getRoutes(controller: SharedController) {
     })
   )
 
-  const successCache = (duration: string) => cache(duration, (req: Request, res: Response) => {
+  const successCache = (seconds: number) => routeCache.cacheSeconds(seconds, (req: Request, res: Response) => {
     // Cache only successful responses
-    return res.statusCode === 200
+    if (res.statusCode !== 200) {
+      return null
+    }
+    // Cache based on the request URL
+    return req.originalUrl || req.url
   })
-  const publicStatsCache = successCache('4 hours')
+  const publicStatsCache = successCache(4*60*60) // 4 hours
 
   router.get('/currencies/stats/amount', noAuth(), publicStatsCache, asyncHandler(async (req, res) => {
     const params = statsParams(req)
@@ -230,7 +234,7 @@ export function getRoutes(controller: SharedController) {
     res.status(200).json(result)
   }))
 
-  const currencyStatsCache = successCache('10 minutes')
+  const currencyStatsCache = successCache(10*60) // 10 minutes
 
   router.get('/:code/stats/amount', userAuth([Scope.Accounting, Scope.AccountingReadAll]), currencyStatsCache,
     currencyHandler(controller, async (currencyController, ctx, req) => {
