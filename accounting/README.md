@@ -84,17 +84,18 @@ In order to feature trade between communities, the following model is proposed:
   - The currency andministration may choose to trust another currency up to a limit. This means that the currency will accept the HOUR asset from the other currency as payment. This is reflected by creating a trustline to the external HOUR asset and a sell offer to convert the currency HOUR asset to the external HOUR asset.
   - Whenever an incoming external payment is received, the trader account creates or updates the sell offer to convert the current balance of external HOUR assets to local HOUR assets.
 
-## CC integration
+## Credit Commons protocol integration
+The [Credit Commons](https://creditcommons.net/) is a protocol for enabling transactions between different servers and sytems.
+
 ### Known issues
 Komunitin's Credit Commons API is a recent addition, it's not complete, and there are a few known issues:
 * The only [CC workflow](https://gitlab.com/credit-commons/cc-node/-/blob/0.9.x/doc/developers.md?ref_type=heads#workflow) that is currently supported is `_C-`, meaning the payer sends money and it completes immediately (just a POST, no PATCH).
 * In the future we also want to implement `_P+PC-` meaning the payee sends a payment request over Credit Commons with a POST, and the payer approves it with a PATCH.
-* It is also not possible yet to send transactions from the GUI, but you can trigger a credcom send from Komunitin via curl.
+* Transactions from the UI are only supported using the QR code workflow.
 * There is quite some manual setup required from currency admins.
 * This functionality has so far only been tested in testing and development environments, enabling it in production is not yet recommended.
 * The current implementation waits for Stellar to commit the transaction, which [may not be the best design](https://github.com/komunitin/komunitin/pull/367#discussion_r2032891494).
 * The 'last hash' value for authentication between Credit Commons neighbour nodes is not yet being updated as it should after each transaction, so only the first transaction will succeed correctly.
-* The display of Credit Commons transactions in the Komunitin GUI can still be improved a lot.
 
 ### Main setup
 To test the CC integration, you can go to the repo root, make sure you have https://github.com/michielbdejong/ices checked out next to it, and do:
