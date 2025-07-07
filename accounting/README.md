@@ -106,11 +106,12 @@ cp .env.template .env
 ```
 
 ### Sending a transaction from Komunitin
-1. Log in to https://localhost:2030 (tell your browser to accept the self-signed cert) as `euclides@komunitin.org` / `komunitin`
+1. Log in to https://localhost:2030 (notice it's https, not http, and tell your browser to accept the self-signed cert) as `euclides@komunitin.org` / `komunitin`
 2. Go to transactions -> receive -> QR, and generate a QR code for a value of more than 1 (to cover the transaction fee) but less than 19 (so that Noether's balance is enough).
-3. With your phone, make a photo of your laptop screen.
-4. Log out and log in as `noether@komunitin.org` / `komunitin`, go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
-5. Click 'Confirm', and the payment should go through, via Credit Commons.
+3. With your phone, make a photo of your laptop screen (no need to scan the QR code with your phone, just take a photo of it).
+4. Log out (top left dropdown)
+5. Log in as `noether@komunitin.org` / `komunitin`, go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
+6. Click 'Confirm', and the payment should go through, via Credit Commons.
 
 ### Connecting with docker exec
 You can interact with the various containers and databases through docker, here is a little cheat sheet with some oneliners that might be useful for that:
