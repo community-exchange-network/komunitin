@@ -413,5 +413,13 @@ export default {
         }
       }}
     })
+
+    server.get(`${urlAccounting}/:currency/cc/addresses/:id`, (schema: any, request: any) => {
+      const id = request.params.id
+      const currency = request.params.currency
+      return {
+        komunitin: `${urlAccounting}/${currency}/accounts/${id}`,
+      }
+    })
   }
 };
