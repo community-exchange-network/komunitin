@@ -29,13 +29,13 @@ describe('receive', async () => {
 
   it('Is not implemented yet if the transaction exists', async () => {
     const hashBefore = 'trunk'
-    const hashAfter = '3ced727f8f2df10189520c0dd78e0fad'
+    const hashAfter = 'trunk'
     const ccTransaction = generateCcTransaction('existing')
     await t.api.post(
       "/TEST/cc/transaction/relay",
       ccTransaction,
       { user: null, scopes: [], ccNode: 'trunk', lastHash: hashBefore },
-      201)
+      400)
     const result = await t.api.patch(`/TEST/cc/transaction/${ccTransaction.uuid}/C`, {}, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashAfter }, 500)
     assert.equal(result.text, '{"errors":["not implemented yet"]}')
   })
