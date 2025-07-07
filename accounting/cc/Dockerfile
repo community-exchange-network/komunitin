@@ -64,9 +64,11 @@ RUN rm -rf html
 RUN ln -s /workspaces/cc-server html
 WORKDIR /var/www/html
 RUN sed -i 's/pathprefix/pathPrefix/' vendor/credit-commons/cc-php-lib/src/Requester.php
-COPY cc.yml configs/cc.yml
 COPY init.sql init.sql
 # This will create the credcom_twig database:
 RUN service mariadb start && vendor/bin/phpunit tests/SingleNodeTest.php
+RUN cp configs/twig.cc-server.yml configs/cc.yml
+RUN sed -i 's/node_name: twig/node_name: trunk/' configs/cc.yml
+RUN sed -i 's/request_timeout: 2/request_timeout: 20/' configs/cc.yml
 RUN service mariadb start && cat init.sql | mysql credcom_twig
 EXPOSE 80
