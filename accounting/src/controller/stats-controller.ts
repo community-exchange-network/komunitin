@@ -1,9 +1,9 @@
 import { Context } from "src/utils/context";
-import { AbstractCurrencyController } from "./abstract-currency-controller"
-import { AccountStatsOptions, CollectionOptions, StatsOptions } from "src/server/request";
+import { AccountStatsOptions, StatsOptions } from "src/server/request";
 import { Stats, StatsInterval } from "src/model/stats";
 import { StatsController as IStatsController } from "src/controller";
 import { Prisma } from "@prisma/client";
+import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant";
 
 
 /**
@@ -18,9 +18,23 @@ import { Prisma } from "@prisma/client";
  *  - use more efficient SQL queries if possible
  *  - use caching
  */
-export class StatsController extends AbstractCurrencyController implements IStatsController {
+export class StatsController implements IStatsController {
 
-  private async getVolumeSingleValue(from: Date|undefined, to: Date|undefined) {
+  prismaClient: TenantPrismaClient | PrivilegedPrismaClient
+
+  /**
+   * The PrismaClient can be either a tenant client (for stats of a single currency)
+   * or a global client (for stats of all currencies). 
+   */
+  constructor(db: TenantPrismaClient | PrivilegedPrismaClient) {
+    this.prismaClient = db  
+  }
+
+  db() {
+    return this.prismaClient
+  }
+
+  private async getAmountSingleValue(from: Date|undefined, to: Date|undefined) {
     const value = await this.db().transfer.aggregate({
       _sum: {
         amount: true
@@ -95,7 +109,7 @@ export class StatsController extends AbstractCurrencyController implements IStat
     return newDate
   }
 
-  private async getVolumeValues(from: Date, to: Date, interval: StatsInterval): Promise<number[]> {
+  private async getAmountValues(from: Date, to: Date, interval: StatsInterval): Promise<number[]> {
     
     const sqlInterval = this.sqlInterval(interval)
     const sqlIntervals = this.intervalsSqlTemplate(from, to, interval)
@@ -171,14 +185,14 @@ export class StatsController extends AbstractCurrencyController implements IStat
    *   - "interval": string (one of "PT1H", "P1D", "P1W", "P1M", "P1Y" or undefined for single value)
    * @returns 
    */
-  public async getVolume(ctx: Context, params: StatsOptions): Promise<Stats> {
+  public async getAmount(ctx: Context, params: StatsOptions): Promise<Stats> {
     const { from, to, interval } = params
 
     const toDate = to ?? new Date()
 
     // No interval, so return single value.
     if (interval === undefined) {
-      const value = await this.getVolumeSingleValue(from, toDate)
+      const value = await this.getAmountSingleValue(from, toDate)
       return {
         from: from,
         to: toDate,
@@ -187,14 +201,75 @@ export class StatsController extends AbstractCurrencyController implements IStat
     } else {
       // If interval is provided, we need to have an explicit "from" date.
       const fromDate = from ?? this.truncateDate(await this.getFirstTransferDate(), interval)
-      const values = await this.getVolumeValues(fromDate, toDate, interval)
+      const values = await this.getAmountValues(fromDate, toDate, interval)
       
-      return ({
+      return {
         from: fromDate,
         to: toDate,
         interval: interval,
         values
-      })
+      }
+    }
+  }
+
+
+  private async getTransfersSingleValue(from: Date|undefined, to: Date|undefined) {
+    const value = await this.db().transfer.count({
+      where: {
+        updated: {
+          gte: from,
+          lt: to
+        },
+        state: "committed"
+      }
+    })
+    return value
+  }
+  private async getTransfersValues(from: Date, to: Date, interval: StatsInterval): Promise<number[]> {
+    const sqlInterval = this.sqlInterval(interval)
+    const sqlIntervals = this.intervalsSqlTemplate(from, to, interval)
+    const query = await this.db().$queryRaw`
+      ${sqlIntervals}
+      SELECT i."interval" AS "interval", COUNT(t."id") AS "count"
+      FROM "Intervals" i
+      LEFT JOIN "Transfer" t ON t."updated" >= i."interval" 
+        AND t."updated" < LEAST(i."interval" + ${sqlInterval}::interval, ${to}::timestamp) 
+        AND t."state" = 'committed'
+      GROUP BY i."interval"
+      ORDER BY i."interval"
+      ` as Array<{ interval: Date, count: number }>;
+    
+    return query.map(r => Number(r.count))
+  }
+  /**
+   * Return the number of transfers that have been committed in the period
+   * provided by the "from" and "to" parameters and grouped by the parameter
+   * "interval".
+   * @param ctx 
+   * @param params 
+   */
+  public async getTransfers(ctx: Context, params: StatsOptions): Promise<Stats> {
+    const { from, to, interval } = params
+    const toDate = to ?? new Date()
+
+    if (interval === undefined) {
+      // Single value: count all committed transfers in the period
+      const value = await this.getTransfersSingleValue(from, toDate)
+      return { 
+        from, 
+        to: toDate, 
+        values: [value]
+      }
+    } else {
+      const fromDate = from ?? this.truncateDate(await this.getFirstTransferDate(), interval)
+      const values = await this.getTransfersValues(fromDate, toDate, interval)
+      
+      return {
+        from: fromDate,
+        to: toDate,
+        interval: interval,
+        values
+      }
     }
   }
 

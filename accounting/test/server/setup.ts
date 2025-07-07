@@ -1,5 +1,5 @@
 import { before, after } from "node:test"
-import { TestApiClient, client } from "./net.client"
+import { AuthInfo, TestApiClient, client } from "./net.client"
 import { clearEvents, startServer, stopServer } from "./net.mock"
 import { clearDb } from "./db"
 import { closeApp, ExpressExtended, setupApp } from "../../src/server/app"
@@ -16,7 +16,8 @@ interface TestSetup {
   app: ExpressExtended,
   api: TestApiClient,
   createAccount: (user: string, code?: string, admin?: UserAuth) => Promise<any>,
-  payment: (payer: string, payee: string, amount: number, description: string, state: string, auth: any, httpStatus?: number) => Promise<any>,
+  payment: (payer: string, payee: string, amount: number, meta: string, state: string, auth: any, httpStatus?: number) => Promise<any>,
+  createCurrency: (settings: any, admin: AuthInfo) => Promise<any>,
 }
 
 export interface TestSetupWithCurrency extends TestSetup {
@@ -61,7 +62,13 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
 
     createCreditCommonsNeighbour: async (neighbour: CreditCommonsNode, admin = userAuth("0")) => {
       await test.api?.post('/TEST/cc/nodes', testCreditCommonsNeighbour(neighbour), admin)
-    }
+    },
+    
+    createCurrency: async (settings: any, admin: AuthInfo) => {
+      const response = await test.api?.post('/currencies', testCurrency(settings), admin)
+      return response.body.data
+    },
+
   }
 
   before(async () => {
@@ -78,8 +85,7 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
 
     if (createData) {
       // Create currency TEST
-      const currency = await test.api.post('/currencies', testCurrency({ settings: { defaultInitialCreditLimit } }), test.admin)
-      test.currency = currency.body.data
+      test.currency = await test.createCurrency({}, test.admin)
       // Create 3 accounts
       test.account0 = await test.createAccount(test.admin.user)
       test.account1 = await test.createAccount(test.user1.user)

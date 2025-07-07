@@ -190,6 +190,7 @@ export class TransferController  extends AbstractCurrencyController implements I
   public async saveTransferState(transfer: FullTransfer, state: TransferState) {
     if (transfer.state !== state) {
       transfer.state = state
+      
       await this.db().transfer.update({
         data: {
           state,

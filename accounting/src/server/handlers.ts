@@ -15,12 +15,12 @@ export const asyncHandler = (fn: (req: Request, res: Response) => Promise<void>)
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       await fn(req, res)
-      next()
     } catch (err) {
       next(err)
     }
   }
 }
+  
 
 export function currencyHandler<T extends Dictionary<any>>(controller: SharedController, fn: (currencyController: CurrencyController, context: Context, req: Request) => Promise<Partial<DataDocument<T>>>, status = 200) {
   return asyncHandler(async (req, res) => {

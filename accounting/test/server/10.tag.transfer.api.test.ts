@@ -7,7 +7,7 @@ import { setupServerTest } from './setup'
 describe('Preauthorized transfers with NFC tags', async () => {
   const t = setupServerTest()
 
-  it('Create account tags', async () => {
+  await it('Create account tags', async () => {
     // Allow account 1 to have tags
     await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
       data: {
@@ -41,7 +41,7 @@ describe('Preauthorized transfers with NFC tags', async () => {
 
   })
 
-  it('Update account tags (forbidden)', async () => {
+  await it('Update account tags (forbidden)', async () => {
     await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
       data: {
         attributes: {
@@ -55,7 +55,7 @@ describe('Preauthorized transfers with NFC tags', async () => {
     
   })
 
-  it('Get account tags', async () => {
+  await it('Get account tags', async () => {
     const response = await t.api.get(`/TEST/accounts/${t.account1.id}/settings`, t.user1)
 
     assert.equal(response.body.data.type, 'account-settings')
@@ -68,17 +68,17 @@ describe('Preauthorized transfers with NFC tags', async () => {
     assert.equal(response.body.data.attributes.tags[0].value, undefined)
   })
 
-  it('Get account tags (unauthorized)', async () => {
+  await it('Get account tags (unauthorized)', async () => {
     await t.api.get(`/TEST/accounts/${t.account1.id}/settings`, t.user2, 403)
   })
 
-  it('Get account by tag', async () => {
+  await it('Get account by tag', async () => {
     const response = await t.api.get(`/TEST/accounts?filter[tag]=tag-1-1234567890`, t.user2)
     assert.equal(response.body.data.length, 1)
     assert.equal(response.body.data[0].id, t.account1.id)
   })
 
-  it('Transfer with tag', async () => {
+  await it('Transfer with tag', async () => {
     // allow user2 to perform payment requests with tags.
     await t.api.patch(`/TEST/accounts/${t.account2.id}/settings`, {
       data: {
@@ -123,7 +123,7 @@ describe('Preauthorized transfers with NFC tags', async () => {
     
   })
 
-  it('Transfer with tag (invalid)', async () => {
+  await it('Transfer with tag (invalid)', async () => {
     await t.api.post(`/TEST/transfers`, {
       data: {
         attributes: {
