@@ -103,7 +103,6 @@ To test the CC integration, you can go to the repo root, make sure you have http
 ```sh
 cp .env.template .env
 ./start.sh --up --ices --dev --demo
-docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
 ```
 
 ### Sending a transaction from Komunitin

@@ -100,4 +100,7 @@ docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/dru
 ./accounting/cli/create_credit_commons_node.sh "riemann@komunitin.org" "komunitin" "NET1" "http://cc"
 ./accounting/cli/create_credit_commons_node.sh "fermat@komunitin.org" "komunitin" "NET2" "http://cc"
 
+# Start the database on the CC server
+docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
+
 fi
