@@ -301,7 +301,7 @@ describe("Transactions", () => {
   })
 
   it('Payment link', async () => {
-    await wrapper.vm.$router.push("/pay?t=http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a&m=Test%20QR%20link&a=135000")
+    await wrapper.vm.$router.push("/pay?c=http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a&m=Test%20QR%20link&a=135000")
     await waitFor(() => wrapper.text().includes("$-13.50"))
     expect(wrapper.text()).toContain("Test QR link")
     expect(wrapper.text()).toContain("GRP00004")
