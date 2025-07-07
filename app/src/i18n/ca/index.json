@@ -283,7 +283,7 @@
   "scanThisQR": "Llegeix aquest codi QR per a completar la transacció",
   "scanQRCode": "Llegeix el codi QR de la transacció",
   "nfcTags": "Etiquetes NFC",
-  "nfcTagsText": "Converteix qualsevol etiqueta NFT en un moneder digital associat al teu compte.",
+  "nfcTagsText": "Converteix qualsevol etiqueta NFC en un moneder digital associat al teu compte.",
   "deleteNFCTagConfirmation": "Segur que vols esborrar l'etiqueta NFC amb nom {name}?",
   "addTag": "Afegeix NFC",
   "editTag": "Edita NFC",
