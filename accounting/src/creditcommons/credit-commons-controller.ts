@@ -286,7 +286,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
         'last-hash': remoteNode.lastHash
       }
     })
-    if (response.status !== 201) {
+    if (response.status !== 201 && response.status !== 200) {
       logger.error(`CreditCommons transaction failed remotely. Response code: ${response.status}`)
       logger.error(`Response text: ${await response.text()}`)
       throw noTrustPath('CreditCommons transaction failed remotely')
