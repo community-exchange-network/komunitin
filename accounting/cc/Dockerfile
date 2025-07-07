@@ -63,4 +63,10 @@ WORKDIR /var/www
 RUN rm -rf html
 RUN ln -s /workspaces/cc-server html
 WORKDIR /var/www/html
+RUN sed -i 's/pathprefix/pathPrefix/' vendor/credit-commons/cc-php-lib/src/Requester.php
+COPY cc.yml configs/cc.yml
+COPY init.sql init.sql
+# This will create the credcom_twig database:
+RUN service mariadb start && vendor/bin/phpunit tests/SingleNodeTest.php
+RUN service mariadb start && cat init.sql | mysql credcom_twig
 EXPOSE 80

@@ -1,0 +1,67 @@
+---
+secret_key: my-secret-key
+db_creds:
+  server: 127.0.0.1
+  name: credcom_twig
+  user: credcom_twig
+  pass: yL7QQBkdaDs5ZmH1
+node_name: twig
+show_metadata: false
+allow_grafts: false
+trunkward:
+  acc_id: null
+  ancestors: [ ]
+  conversion_rate: 1
+  acc_ids: true
+  acc_summaries: true
+request_timeout: 2
+transactions:
+  default_limit_min: '-200 - (I/2)'
+  default_limit_max: 1000
+  validate_pending: true
+  zero_payments: true
+  currency_format: 0EUR
+  validated_window: 300
+workflows:
+  require_confirm: true
+  require_pending: true
+  VX: Cancel
+  VP: Veep
+  VC: Finalise
+  PC: Complete
+  PE: Cancel
+  CE: Erase
+forms:
+  bill:
+    title: Bill
+    description: >
+      You bill the counterparty and they
+      approve
+    workflow: |P+PC-PE0CE=
+    labels:
+      VP: Confirm
+      PC: Complete
+      PE: Cancel
+      CE: Erase
+      VX: Cancel
+  credit:
+    title: Credit
+    description: >
+      You credit the counterparty and they
+      approve
+    workflow: |P-PC+PE0CE=
+    labels:
+      VP: Confirm
+      PC: Complete
+      PE: Cancel
+      CE: Erase
+      VX: Cancel
+  admin:
+    title: Admin
+    description: >
+      admin creates a transaction between any
+      two parties with no approval required
+    workflow: _C0CE0
+    labels:
+      CE: Erase
+blogic_mod: \Examples\BlogicDemo

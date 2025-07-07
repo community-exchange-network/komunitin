@@ -104,17 +104,6 @@ To test the CC integration, you can go to the repo root, make sure you have http
 cp .env.template .env
 ./start.sh --up --ices --dev --demo
 docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
-docker exec -it komunitin-cc-1 /bin/bash -c "vendor/bin/phpunit tests/SingleNodeTest.php"
-docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/twig.cc-server.yml configs/cc.yml"
-docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/node_name: twig/node_name: trunk/\" configs/cc.yml"
-docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/request_timeout: 2/request_timeout: 20/\" configs/cc.yml"
-docker exec -it komunitin-cc-1 /bin/bash -c "cp configs/cc.yml configs/localhost.yml"
-docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET1', -1000000, +1000000, 'http://accounting:2025/NET1/cc');"
-docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into accounts (acc_id, min, max, url) values ('NET2', -1000000, +1000000, 'http://accounting:2025/NET2/cc');"
-docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET1', 0, 'trunk', 'NET1');"
-docker exec -it komunitin-cc-1 mysql credcom_twig -e "insert into hash_history (acc_id, txid, hash, source) values ('NET2', 0, 'trunk', 'NET2');"
-docker exec -it komunitin-cc-1 mysql credcom_twig -e "select * from log;"
-docker exec -it komunitin-cc-1 /bin/bash -c "sed -i \"s/pathprefix/pathPrefix/\" vendor/credit-commons/cc-php-lib/src/Requester.php"
 ```
 
 ### Sending a transaction from Komunitin
