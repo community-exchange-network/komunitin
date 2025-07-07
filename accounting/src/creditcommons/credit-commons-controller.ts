@@ -95,7 +95,7 @@ export interface CreditCommonsController {
     body: CCAccountHistory,
     trace: string
   }>
-  getAccountAdresses(ctx: Context, id: string): Promise<AccountAddresses>
+  getAccountAddresses(ctx: Context, id: string): Promise<AccountAddresses>
   isCreditCommonsTransfer(transfer: Transfer|InputTransfer): boolean
   createCreditCommonsTransfer(ctx: Context, transfer: InputTransfer): Promise<FullTransfer>
 }
@@ -367,7 +367,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       trace: responseTrace
     };
   }
-  async getAccountAdresses(ctx: Context, id: string): Promise<AccountAddresses> {
+  async getAccountAddresses(ctx: Context, id: string): Promise<AccountAddresses> {
     const account = await this.accounts().getAccount(ctx, id)
     const adresses = {
       komunitin: `${config.API_BASE_URL}/${account.currency.code}/accounts/${account.id}`

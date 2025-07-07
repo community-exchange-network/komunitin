@@ -131,13 +131,13 @@ export function getRoutes(controller: SharedController) {
   )
 
   /**
-   * 
-   * 
+   * Return the list of different payment protocols supported by the account. It always returns the
+   * "komunitin" entry and also the "creditCommons" entry if the currency supports it.
   */
   router.get('/:code/cc/addresses/:id', noAuth(), asyncHandler(async (req, res) => {
     const ctx = context(req)
     const currencyController = await controller.getCurrencyController(req.params.code)
-    const response = await currencyController.creditCommons.getAccountAdresses(ctx, req.params.id)
+    const response = await currencyController.creditCommons.getAccountAddresses(ctx, req.params.id)
     res.setHeader('Content-Type', 'application/json')
     res.status(200).json(response)
   }))
