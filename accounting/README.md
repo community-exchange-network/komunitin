@@ -92,10 +92,11 @@ Komunitin's Credit Commons API is a recent addition, it's not complete, and ther
 * The only [CC workflow](https://gitlab.com/credit-commons/cc-node/-/blob/0.9.x/doc/developers.md?ref_type=heads#workflow) that is currently supported is `_C-`, meaning the payer sends money and it completes immediately (just a POST, no PATCH).
 * In the future we also want to implement `_P+PC-` meaning the payee sends a payment request over Credit Commons with a POST, and the payer approves it with a PATCH.
 * Transactions from the UI are only supported using the QR code workflow.
+* [FIXME](https://github.com/community-exchange-network/komunitin/blob/0fb7c66bf16954b894e5d6e64712b31a15ef1f6c/app/src/pages/transactions/CreateTransactionSendQR.vue#L92) and even that will stop working!
 * There is quite some manual setup required from currency admins.
 * This functionality has so far only been tested in testing and development environments, enabling it in production is not yet recommended.
 * The current implementation waits for Stellar to commit the transaction, which [may not be the best design](https://github.com/komunitin/komunitin/pull/367#discussion_r2032891494).
-* The 'last hash' value for authentication between Credit Commons neighbour nodes is not yet being updated as it should after each transaction, so only the first transaction will succeed correctly.
+* When interpreting the amount from a payment request QR code, the GUI incorrectly assumes a 1:1 conversion rate from the receiver's currency to the sender's local currency.
 
 ### Main setup
 To test the CC integration, you can go to the repo root, make sure you have https://github.com/michielbdejong/ices checked out next to it, and do:
