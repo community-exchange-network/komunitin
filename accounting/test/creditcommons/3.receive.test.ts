@@ -24,8 +24,8 @@ describe('receive', async () => {
 
   it('Updates the balances and last-hash', async () => {
     const hashBefore = 'trunk'
-    const hashAfter = '15bfc7d0cff9160fe34cf541b7da56c3'
-    const ccTransaction = generateCcTransaction()
+    const hashAfter = '196bf56fdf9c2b747a20b8604b7b1f61'
+    const ccTransaction = generateCcTransaction('3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c', 'trunk/branch/twig/alice', false)
     // Check balances before
     t.account0 = (await t.api.get(`/TEST/accounts/${t.account0.id}`, t.admin)).body.data
     assert.equal(t.account0.attributes.balance, 0)
@@ -58,7 +58,7 @@ describe('receive', async () => {
       { user: null, scopes: [], ccNode: 'trunk', lastHash: hashBefore },
       201)
     assert.equal(JSON.stringify(response.body.data, null, 2), JSON.stringify(ccTransaction.entries, null, 2))
-    const expectedNetGain = (14 - 2 - 3 - 1) * 10000
+    const expectedNetGain = (.01) * 10000
     // Check balances after
     t.account0 = (await t.api.get(`/TEST/accounts/${t.account0.id}`, t.admin)).body.data
     assert.equal(t.account0.attributes.balance, -expectedNetGain)
