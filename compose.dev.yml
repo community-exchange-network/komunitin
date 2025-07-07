@@ -52,7 +52,7 @@ services:
     build:
       context: ./accounting/cc
     ports:
-      - "8080:80"
+      - "2024:80"
     extra_hosts:
       - "twig.cc-server:127.0.0.1"
       - "branch.cc-server:127.0.0.1"
