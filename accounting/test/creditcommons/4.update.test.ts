@@ -6,12 +6,6 @@ import { sleep } from "src/utils/sleep"
 import { generateCcTransaction } from "./api.data"
 
 describe('receive', async () => {
-  // copied from https://github.com/komunitin/komunitin/blob/273b3a136d9bc4a7f36ced9343a989eb6d15630e/accounting/test/server/9.multiple.transfer.api.test.ts#L13-L17
-  // Wait for other tests/requests to stop counting in Horizon rate limit.
-  const wait5secPromise = sleep(6000)
-  setConfig({
-    STELLAR_CHANNEL_ACCOUNTS_ENABLED: true
-  })
 
   // This calls /TEST/creditCommonsNodes and adds a trunkward neighbour 'trunk' with last-hash 'trunk':
   const t = setupServerTest(true, true, 100000)

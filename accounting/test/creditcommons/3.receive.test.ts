@@ -6,12 +6,6 @@ import { sleep } from "src/utils/sleep"
 import { generateCcTransaction } from "./api.data"
 
 describe('receive', async () => {
-  // copied from https://github.com/komunitin/komunitin/blob/273b3a136d9bc4a7f36ced9343a989eb6d15630e/accounting/test/server/9.multiple.transfer.api.test.ts#L13-L17
-  // Wait for other tests/requests to stop counting in Horizon rate limit.
-  const wait5secPromise = sleep(6000)
-  setConfig({
-    STELLAR_CHANNEL_ACCOUNTS_ENABLED: true
-  })
 
   // This calls /TEST/creditCommonsNodes and adds a trunkward neighbour 'trunk' with last-hash 'trunk':
   const t = setupServerTest(true, true, 100000)
@@ -66,9 +60,9 @@ describe('receive', async () => {
     assert.equal(t.account2.attributes.balance, expectedNetGain)
     const accountStatusAfter = await t.api.get(`/TEST/cc/account?acc_path=TEST0002`, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashAfter }, 200)
     assert.deepEqual(accountStatusAfter.body, {
-      balance: 8,
+      balance: 0.01,
       entries: 1,
-      gross_in: 8,
+      gross_in: 0.01,
       gross_out: 0,
       partners: 0,
       pending: 0,
@@ -79,12 +73,12 @@ describe('receive', async () => {
     assert.equal(transDates.length, 1)
     assert.deepEqual(accountHistoryAfter.body, {
       data: {
-        [transDates[0]]: 8
+        [transDates[0]]: 0.01
       },
       meta: {
         end: transDates[0],
-        max: 8,
-        min: 8,
+        max: 0.01,
+        min: 0.01,
         points: 0,
         start: transDates[0]
       }
