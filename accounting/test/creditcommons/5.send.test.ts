@@ -1,20 +1,12 @@
 import {describe, it} from "node:test"
 import assert from "node:assert"
 import { setupServerTest } from "../server/setup"
-import { setConfig, config } from "src/config"
+import { config } from "src/config"
 import { CreditCommonsNode } from "src/model/creditCommons"
 import { logger } from "src/utils/logger"
-import { sleep } from "src/utils/sleep"
 import { testCurrency, userAuth, testCreditCommonsNeighbour } from "../server/api.data"
-import { generateCcTransaction } from "./api.data"
 
 describe('send', async () => {
-  // copied from https://github.com/komunitin/komunitin/blob/273b3a136d9bc4a7f36ced9343a989eb6d15630e/accounting/test/server/9.multiple.transfer.api.test.ts#L13-L17
-  // Wait for other tests/requests to stop counting in Horizon rate limit.
-  const wait5secPromise = sleep(6000)
-  setConfig({
-    STELLAR_CHANNEL_ACCOUNTS_ENABLED: true
-  })
 
   // This calls /TEST/creditCommonsNodes and adds a trunkward neighbour 'trunk' with last-hash 'trunk':
   const t = setupServerTest(true, true, 100000)
@@ -27,7 +19,7 @@ describe('send', async () => {
   let eAccount1: any
   let eVostro: any
   
-  it('Allows trunk/EXTR0000 to  send to trunk/branch2/NET20002', async () => {
+  it('Allows trunk/EXTR0000 to  send to trunk/branch2/TEST0002', async () => {
     // Create secondary currency
     const response = await t.api.post('/currencies', testCurrency({
       code: "EXTR",
@@ -40,6 +32,7 @@ describe('send', async () => {
     // Create account in EXTR for user1
     eAccount1 = await t.createAccount(eUser1Auth.user, "EXTR", eAdminAuth)
     eVostro = await t.createAccount(eAdminAuth.user, "EXTR", eAdminAuth)
+
     const neighbour: CreditCommonsNode = {
       peerNodePath: 'trunk/branch2',
       ourNodePath: 'trunk',
@@ -50,11 +43,33 @@ describe('send', async () => {
     await t.api.post('/EXTR/cc/nodes', testCreditCommonsNeighbour(neighbour), eAdminAuth)
     assert.equal(eCurrency.attributes.code, 'EXTR')
     assert.equal(typeof eVostro.id, 'string')
-    const body = {
-      data: {
-        attributes: generateCcTransaction('3d8ebb9f-6a29-42cb-9d39-9ee0a6bf7f1c', `trunk/${eAccount1.attributes.code}`, false)
+
+    // Send a transaction:
+    const transfer = {
+      type: "transfers",
+      attributes: {
+        amount: 1000, //0.1 EXTR,
+        meta: {
+          description: "Test transfer from trunk/EXTR0000 to trunk/branch2/TEST0002",
+          creditCommons: {
+            payeeAddress: `trunk/branch2/TEST0002`
+          }
+        },
+        state: "committed"
+
+      },
+      relationships: {
+        payer: { data: { type: "accounts", id: eAccount1.id } },
       }
-    };
-    await t.api.post('/EXTR/cc/send', body, eUser1Auth)
+    }
+    const result = await t.api.post(`/EXTR/transfers`, { data: transfer }, eUser1Auth)
+    assert.equal(result.status, 201)
+    const body = result.body.data
+    assert.equal(body.attributes.amount, 1000)
+    assert.equal(body.attributes.meta.description, "Test transfer from trunk/EXTR0000 to trunk/branch2/TEST0002")
+    assert.equal(body.attributes.meta.creditCommons?.payeeAddress, "trunk/branch2/TEST0002")
+    assert.equal(body.relationships.payer.data.id, eAccount1.id)
+    assert.equal(body.relationships.payee.data.id, eVostro.id)
+
   })
 })
