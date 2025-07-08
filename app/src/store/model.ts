@@ -405,7 +405,8 @@ export type AnyJson = string | number | boolean | null | undefined | { [key: str
 export type TransferMeta = {
   description: string;
   creditCommons?: {
-    payeeAddress: string
+    payeeAddress?: string
+    payerAddress?: string;
   };
   [key: string]: AnyJson
 }

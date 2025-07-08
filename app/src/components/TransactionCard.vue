@@ -10,6 +10,7 @@
       </div>
       <account-header
         :account="transfer.payer"
+        :address="transfer.attributes.meta.creditCommons?.payerAddress"
       />
     </q-card-section>
     <q-separator />

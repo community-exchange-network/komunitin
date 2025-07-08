@@ -1,11 +1,11 @@
 <template>
   <account-header
     :account="otherAccount"
-    :address="transfer.attributes.meta.creditCommons?.payeeAddress"
+    :address="creditCommonsAddress"
     :clickable="!!transfer.id"
     class="transaction-item"
     :class="transfer.attributes.state"
-    :to="transfer.id ? `/groups/${code}/transactions/${transfer.id}` : null"
+    :to="transfer.id ? `/groups/${code}/transactions/${transfer.id}` : undefined"
   >
     <template
       v-if="$q.screen.lt.md" 
@@ -89,6 +89,11 @@ const otherAccount = computed<Account|undefined>(() => {
   // We can't directly compare object references because they're not the same.
   const other = props.account.id == props.transfer.relationships.payer.data.id ? payee : payer
   return other
+})
+
+const creditCommonsAddress = computed(() => {
+  const creditCommons = props.transfer.attributes.meta.creditCommons
+  return creditCommons?.payeeAddress || creditCommons?.payerAddress
 })
 
 const description = computed(() => props.transfer.attributes.meta.description || "")
