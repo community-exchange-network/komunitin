@@ -13,6 +13,7 @@
         <div class="row q-col-gutter-md items-stretch">
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
+              value="amount"
               class="full-height"
               icon="today"
               :title="t('dailyVolume')"
@@ -23,6 +24,7 @@
           </div>
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
+              value="amount"
               class="full-height"
               icon="calendar_month"
               :title="t('monthlyVolume')"
@@ -33,6 +35,7 @@
           </div>
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
+              value="amount"
               class="full-height"
               icon="sunny"
               :title="t('yearlyVolume')"
@@ -43,6 +46,7 @@
           </div>
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
+              value="amount"
               class="full-height"
               icon="all_inclusive"
               :currency="currency"

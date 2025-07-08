@@ -26,7 +26,7 @@ describe("Member", () => {
     // Click members link
     await wrapper.get("#my-member").trigger("click");
     await flushPromises();
-    expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57#profile");
+    expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57");
     // Wait for content.
     await wrapper.vm.$wait();
     const text = wrapper.text();
@@ -74,7 +74,7 @@ describe("Member", () => {
     const member = wrapper.getComponent(MemberList).findAllComponents(MemberHeader)[1];
     member.trigger("click");
     await wrapper.vm.$wait();
-    expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/ArnoldoErdman69#profile");
+    expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/ArnoldoErdman69");
     const text = wrapper.text();
     expect(text).toContain("Arnoldo");
     expect(text).toContain("GRP00001");

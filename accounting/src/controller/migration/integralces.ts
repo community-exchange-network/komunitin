@@ -2,7 +2,7 @@
 import { Context } from "src/utils/context";
 import { CurrencyController, SharedController } from "..";
 import { CreateMigration, Migration } from "./migration";
-import { Account, CreateCurrency, Currency, InputTransfer, Transfer, User } from "src/model";
+import { FullAccount, CreateCurrency, Currency, InputTransfer, FullTransfer, User } from "src/model";
 import { logger } from "src/utils/logger";
 import { fixUrl } from "src/utils/net";
 
@@ -115,7 +115,7 @@ async function migrateAccounts(ctx: Context, controller: CurrencyController, mig
 
   const membersUrl = `${socialBase}/${migration.code}/members`
   // TODO: pagination
-  const accounts = [] as Account[]
+  const accounts = [] as FullAccount[]
   const members = await get(membersUrl, migration.source.access_token)
   for (const member of members.data) {
     const accountId = member.relationships.account.data.id
@@ -151,13 +151,13 @@ async function migrateAccounts(ctx: Context, controller: CurrencyController, mig
   return accounts
 }
 
-async function migrateTransfers(ctx: Context, controller: CurrencyController, migration: CreateMigration, currency: Currency, accounts: Account[]) {
+async function migrateTransfers(ctx: Context, controller: CurrencyController, migration: CreateMigration, currency: Currency, accounts: FullAccount[]) {
   const base = accountingUrl(migration.source.url)
   const url = `${base}/${migration.code}/transfers`
   // TODO: pagination
   const doc = await get(url, migration.source.access_token)
   const transfers = doc.data
-  const migrated = [] as Transfer[]
+  const migrated = [] as FullTransfer[]
   for (const transfer of transfers) {
     const payer = accounts.find(a => a.id === transfer.relationships.payer.data.id)
     const payee = accounts.find(a => a.id === transfer.relationships.payee.data.id)

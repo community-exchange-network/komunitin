@@ -124,7 +124,7 @@ const transfer = computed({
 
 const payerAccountValue = ref(props.payerAccount)
 const payeeAccountValue = ref(props.payeeAccount)
-const concept = ref(props.modelValue?.attributes?.meta ?? "")
+const concept = ref(props.modelValue?.attributes?.meta?.description ?? "")
 const amount = ref<number|undefined>(props.modelValue?.attributes?.amount ? props.modelValue.attributes.amount / Math.pow(10, myCurrency.value.attributes.scale) : undefined)
 
 // Validation.
@@ -177,7 +177,9 @@ const onSubmit = () => {
     type: "transfers",
     attributes: {
       amount: transferAmount,
-      meta: concept.value,
+      meta: {
+        description: concept.value,
+      },
       state: "new",
       created: new Date().toUTCString(),
       updated: new Date().toUTCString(),

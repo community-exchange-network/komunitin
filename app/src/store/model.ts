@@ -390,6 +390,9 @@ export interface AccountSettings extends ResourceObject {
     
     // Tags
     tags?: AccountTag[] | null
+
+    // Privacy
+    hideBalance?: boolean | null
   }
   relationships: {
     account: RelatedResource
@@ -397,11 +400,17 @@ export interface AccountSettings extends ResourceObject {
 }
 
 export type TransferState = "new" | "pending" | "accepted" | "committed" | "rejected" | "failed" | "deleted"
+export type AnyJson = string | number | boolean | null | { [key: string]: AnyJson } | AnyJson[];
+
+export type TransferMeta = {
+  description: string;
+  [key: string]: AnyJson;
+};
 
 export interface Transfer extends ResourceObject {
   attributes: {
     amount: number,
-    meta: string,
+    meta: TransferMeta,
     state: TransferState;
     authorization?: {
       type: "tag",
@@ -523,6 +532,7 @@ export interface CurrencySettings extends ResourceObject {
     defaultAcceptExternalPaymentsAutomatically: boolean
     externalTraderCreditLimit: number
     externalTraderMaximumBalance: number | false
+    defaultHideBalance: boolean
   }
 }
 

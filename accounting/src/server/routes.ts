@@ -1,17 +1,18 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { checkExact, oneOf } from 'express-validator';
+import { CreateMigration } from 'src/controller/migration/migration';
 import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
+import { InputTrustline, UpdateTrustline } from 'src/model/trustline';
 import { context } from 'src/utils/context';
-import { SharedController, MigrationController } from '../controller';
-import { Scope, userAuth, noAuth, anyAuth, externalAuth } from './auth';
+import { badRequest } from 'src/utils/error';
+import { MigrationController, SharedController } from '../controller';
+import { anyAuth, externalAuth, noAuth, Scope, userAuth } from './auth';
 import { asyncHandler, currencyCollectionHandler, currencyHandler, currencyInputHandler, currencyInputHandlerMultiple, currencyResourceHandler } from './handlers';
 import { input } from './parse';
+import { accountStatsParams, collectionParams, statsParams } from './request';
 import { AccountSerializer, AccountSettingsSerializer, CurrencySerializer, CurrencySettingsSerializer, StatsSerializer, TransferSerializer, TrustlineSerializer } from './serialize';
 import { Validators } from './validation';
-import { InputTrustline, Trustline, UpdateTrustline } from 'src/model/trustline';
-import { badRequest } from 'src/utils/error';
-import { CreateMigration } from 'src/controller/migration/migration';
-import { accountStatsParams, collectionParams, statsParams } from './request';
+import routeCache from 'route-cache'
 
 export function getRoutes(controller: SharedController) {
   const router = Router()
@@ -94,7 +95,7 @@ export function getRoutes(controller: SharedController) {
 
   // Get account. No auth required to get an account having its id. We need that for
   // external transactions.
-  router.get('/:code/accounts/:id', noAuth(), 
+  router.get('/:code/accounts/:id', anyAuth(userAuth([Scope.Accounting, Scope.AccountingReadAll]), noAuth()), 
     currencyResourceHandler(controller, async (currencyController, ctx, id) => {
       return await currencyController.accounts.getAccount(ctx, id)
     }, AccountSerializer, {
@@ -199,7 +200,43 @@ export function getRoutes(controller: SharedController) {
     })
   )
 
-  router.get('/:code/stats/amount', userAuth([Scope.Accounting, Scope.AccountingReadAll]), 
+  const successCache = (seconds: number) => routeCache.cacheSeconds(seconds, (req: Request, res: Response) => {
+    // Cache only successful responses
+    if (res.statusCode !== 200) {
+      return null
+    }
+    // Cache based on the request URL
+    return req.originalUrl || req.url
+  })
+  const publicStatsCache = successCache(4*60*60) // 4 hours
+
+  router.get('/currencies/stats/amount', noAuth(), publicStatsCache, asyncHandler(async (req, res) => {
+    const params = statsParams(req)
+    const ctx = context(req)
+    const stats = await controller.stats.getAmount(ctx, params)
+    const result = await StatsSerializer.serialize(stats)
+    res.status(200).json(result)
+  }))
+
+  router.get('/currencies/stats/accounts', noAuth(), publicStatsCache, asyncHandler(async (req, res) => {
+    const params = accountStatsParams(req)
+    const ctx = context(req)
+    const stats = await controller.stats.getAccounts(ctx, params)
+    const result = await StatsSerializer.serialize(stats)
+    res.status(200).json(result)
+  }))
+  
+  router.get('/currencies/stats/transfers', noAuth(), publicStatsCache, asyncHandler(async (req, res) => {
+    const params = statsParams(req)
+    const ctx = context(req)
+    const stats = await controller.stats.getTransfers(ctx, params)
+    const result = await StatsSerializer.serialize(stats)
+    res.status(200).json(result)
+  }))
+
+  const currencyStatsCache = successCache(10*60) // 10 minutes
+
+  router.get('/:code/stats/amount', userAuth([Scope.Accounting, Scope.AccountingReadAll]), currencyStatsCache,
     currencyHandler(controller, async (currencyController, ctx, req) => {
       const params = statsParams(req)
       const stats = await currencyController.stats.getAmount(ctx, params)
@@ -207,7 +244,7 @@ export function getRoutes(controller: SharedController) {
     })
   )
 
-  router.get('/:code/stats/accounts', userAuth([Scope.Accounting, Scope.AccountingReadAll]),
+  router.get('/:code/stats/accounts', userAuth([Scope.Accounting, Scope.AccountingReadAll]), currencyStatsCache,
     currencyHandler(controller, async (currencyController, ctx, req) => {
       const params = accountStatsParams(req)
       const stats = await currencyController.stats.getAccounts(ctx, params)
@@ -215,6 +252,13 @@ export function getRoutes(controller: SharedController) {
     }
   ))
 
+  router.get('/:code/stats/transfers', userAuth([Scope.Accounting, Scope.AccountingReadAll]), currencyStatsCache,
+    currencyHandler(controller, async (currencyController, ctx, req) => {
+      const params = statsParams(req)
+      const stats = await currencyController.stats.getTransfers(ctx, params)
+      return StatsSerializer.serialize(stats)
+    })
+  )
 
   // Migrations (WIP)
   router.post('/migrations', userAuth(Scope.Accounting), checkExact(Validators.isCreateMigration()), asyncHandler(async (req, res) => {

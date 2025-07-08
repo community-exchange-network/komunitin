@@ -1,12 +1,12 @@
 # NFC payments
 
-NFC payments are a payment workflow using low-cost and read-only NFT tags. Each NFT tag contains an identifier that can be read using a NFC reader such as the ones found in current smartphones
+NFC payments are a payment workflow using low-cost and read-only NFC tags. Each NFC tag contains an identifier that can be read using a NFC reader such as the ones found in current smartphones
 
 The idea behind this method is to be able to link a NFC tag with a Komunitin account, so this account has this additional identifier. In fact several different tags can be linked to one account, but two accounts can't share a single tag.&#x20;
 
 #### Workflow
 
-The NFC payment workflow is, from the user point of view, not very different from the QR workflow. But is the destination account that actually submits a payment request to the server instead of the payer (that of course can't submit anything from their tag). Indeed, the destination account sets the transaction description and amount and reads the NFT tag from the payer. This NFC tag identifies the payer account and the destination sends a payment request to the payer account, adding the NFC tag identifier. The server will immediately authorize the transfer.
+The NFC payment workflow is, from the user point of view, not very different from the QR workflow. But is the destination account that actually submits a payment request to the server instead of the payer (that of course can't submit anything from their tag). Indeed, the destination account sets the transaction description and amount and reads the NFC tag from the payer. This NFC tag identifies the payer account and the destination sends a payment request to the payer account, adding the NFC tag identifier. The server will immediately authorize the transfer.
 
 #### Security
 

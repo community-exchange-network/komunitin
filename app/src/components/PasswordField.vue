@@ -5,7 +5,7 @@
     :type="isPwd ? 'password' : 'text'"
     :label="$t('password')"
     autocomplete="current-password"
-    maxlength="30"
+    maxlength="255"
     :rules="[v => (!!v && (v.length >= minLength)) || $t('invalidPassword')]"
     lazy-rules
   >

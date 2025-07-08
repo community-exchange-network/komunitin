@@ -15,7 +15,7 @@
     </q-card-section>
     <q-card-section class="q-pt-none">
       <h3 class="q-mt-none q-mb-xs">
-        {{ value }}
+        {{ amount }}
       </h3>
       <div 
         v-if="change"
@@ -34,12 +34,13 @@
   </q-card>
 </template>
 <script setup lang="ts">
-import { useCurrencyStatsFormattedValue  } from 'src/composables/currencyStats';
+import { StatsValue, useCurrencyStatsFormattedValue  } from 'src/composables/currencyStats';
 import { Currency } from 'src/store/model';
 import { computed } from 'vue';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps<{
+  value: StatsValue
   title: string
   icon: string
   currency?: Currency
@@ -52,11 +53,11 @@ const props = defineProps<{
 
 const options = computed(() => ({
   currency: props.currency,
-  value: "amount" as const,
+  value: props.value ?? "amount",
   from: props.period ? new Date(Date.now() - (props.period)*1000) : undefined,
   change: !!(props.period)
 }))
 
-const {value, change, sign} = useCurrencyStatsFormattedValue(options)
+const {value: amount, change, sign} = useCurrencyStatsFormattedValue(options)
 
 </script>

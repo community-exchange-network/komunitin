@@ -1,4 +1,4 @@
-import { describe, it } from "node:test"
+import { after, before, describe, it } from "node:test"
 import assert from "node:assert"
 
 import { setupServerTest } from './setup'
@@ -7,14 +7,20 @@ import { setConfig } from "src/config"
 import { logger } from "src/utils/logger"
 import { sleep } from "src/utils/sleep"
 
-logger.level = "debug"
-
 describe('Runs multiple transfers in parallel', async () => {
   // Wait for other tests/requests to stop counting in Horizon rate limit.
   const wait5secPromise = sleep(6000)
   setConfig({
     STELLAR_CHANNEL_ACCOUNTS_ENABLED: true
   })
+
+  before(async () => {
+    logger.level = "debug"
+  })
+  after(async () => {
+    logger.level = "info"
+  })
+
   const t = setupServerTest()
   it ('A few transfers at once', async() => {
     const d1 = testTransfer(t.account1.id, t.account2.id, 5, "Transfer 1", "committed")

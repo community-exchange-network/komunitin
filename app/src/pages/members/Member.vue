@@ -163,11 +163,10 @@ const router = useRouter()
 
 const tabs = ['profile', 'needs', 'offers', 'transactions']
 
-const hashTab = computed(() => route.hash.slice(1))
-
-if (!tabs.includes(hashTab.value)) {
-  router.replace({hash: '#profile'})
-}
+const hashTab = computed(() => {
+  const hash = route.hash.slice(1)
+  return tabs.includes(hash) ? hash : 'profile'
+})
 
 const onTabChange = (tab: string | number) => {  
   router.push({hash: `#${tab}`})

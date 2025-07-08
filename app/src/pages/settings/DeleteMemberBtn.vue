@@ -107,7 +107,9 @@ const deleteMember = async () => {
         attributes: {
           amount: Math.abs(balance),
           state: "committed",
-          meta: t('setZeroBalance')
+          meta: {
+            description: t('setZeroBalance')
+          }
         },
         relationships: transferAccountRelationships(payer, payee, currency)
       }

@@ -46,7 +46,10 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/set-password',
         name: 'SetPassword',
-        component: () => import('../pages/members/SetPassword.vue')
+        component: () => import('../pages/members/SetPassword.vue'),
+        meta: {
+          back: false
+        }
       },
       {
         path: '/groups',
@@ -57,7 +60,7 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
-        path: 'server-stats',
+        path: '/server-stats',
         name: 'ServerStats',
         component: () => import('../pages/home/ServerStats.vue'),
         meta: {
@@ -336,3 +339,16 @@ if (process.env.MODE !== 'ssr') {
 }
 
 export default routes;
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    /**
+     * If true, the route is public and does not require authentication.
+     */
+    public?: boolean;
+    /**
+     * If true, the next route does not allow going back to this route using the up app button.
+     */
+    back?: boolean;
+  }
+}

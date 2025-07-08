@@ -76,7 +76,7 @@ export async function seedAccounts(tenantId: string, n: number, start: Date, end
           create: {
             encryptedSecret: `account-secret-${i}`,
           }
-        }
+        },
       }
     })
   }
@@ -89,7 +89,7 @@ export async function seedAccounts(tenantId: string, n: number, start: Date, end
  * @param tenantId 
  * @param n 
  */
-export async function seedTransfers(tenantId: string, n: number, start: Date, end: Date) {
+export async function seedTransfers(tenantId: string, n: number, start: Date, end: Date, userId: string) {
   const client = tenantDb(new PrismaClient(), tenantId)
   await client.$connect()
   const r = pseudoRandomGenerator()
@@ -124,12 +124,14 @@ export async function seedTransfers(tenantId: string, n: number, start: Date, en
         amount,
         payerId: payer.id,
         payeeId: payee.id,
-        meta: text,
-        userId: "0",
+        meta: {
+          description: text,
+        },
+        userId,
         state: r(0, 10) > 0 ? "committed" : "rejected",
         created,
         updated: created,
-        hash: `hash-${i}`
+        hash: `hash-${i}`,
       }
     })
   }

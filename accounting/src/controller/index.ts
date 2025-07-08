@@ -1,6 +1,6 @@
 
 import { AccountStatsOptions, CollectionOptions, StatsOptions } from "../server/request"
-import { CreateCurrency, Currency, UpdateCurrency, Transfer, Account, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings } from "../model"
+import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, FullAccount, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer } from "../model"
 export { createController } from "./base-controller"
 import { Context } from "../utils/context"
 import TypedEmitter from "typed-emitter"
@@ -13,16 +13,18 @@ export type ControllerEvents = {
    * This event is emitted when a transfer is created, committed,
    * rejected, deleted, etc.
    */
-  transferStateChanged: (transfer: Transfer, controller: CurrencyController) => void
+  transferStateChanged: (transfer: FullTransfer, controller: CurrencyController) => void
 }
 
 /**
  * Controller for operations not related to a particular currency.
  */
 export interface SharedController {
+  stats: StatsController
 
   getCurrencyController(code: string): Promise<CurrencyController>   
   
+
   createCurrency(ctx: Context, currency: CreateCurrency): Promise<Currency>
   getCurrencies(ctx: Context, params: CollectionOptions): Promise<Currency[]>
 
@@ -56,12 +58,10 @@ export interface CurrencyController {
 }
 
 export interface AccountController {
-  createAccount(ctx: Context, account: InputAccount): Promise<Account>
+  createAccount(ctx: Context, account: InputAccount): Promise<FullAccount>
   getAccount(ctx: Context, id: string): Promise<Account>
-  getAccountByCode(ctx: Context, code: string): Promise<Account|undefined>
-  getAccountByKey(ctx: Context, key: string): Promise<Account|undefined>
   getAccounts(ctx: Context, params: CollectionOptions): Promise<Account[]>
-  updateAccount(ctx: Context, data: UpdateAccount): Promise<Account>;
+  updateAccount(ctx: Context, data: UpdateAccount): Promise<FullAccount>;
   deleteAccount(ctx: Context, id: string): Promise<void>;
 
   getAccountSettings(ctx: Context, id: string): Promise<AccountSettings>
@@ -70,16 +70,17 @@ export interface AccountController {
 }
 
 export interface TransferController {
-  createTransfer(ctx: Context, transfer: InputTransfer): Promise<Transfer>
-  createMultipleTransfers(ctx: Context, transfers: InputTransfer[]): Promise<Transfer[]>
+  createTransfer(ctx: Context, transfer: InputTransfer): Promise<FullTransfer>
+  createMultipleTransfers(ctx: Context, transfers: InputTransfer[]): Promise<FullTransfer[]>
   getTransfer(ctx: Context, id: string): Promise<Transfer>
-  getTransferByHash(ctx: Context, hash: string): Promise<Transfer>
+  //getFullTransferByHash(ctx: Context, hash: string): Promise<FullTransfer>
   getTransfers(ctx: Context, params: CollectionOptions): Promise<Transfer[]>
-  updateTransfer(ctx: Context, transfer: UpdateTransfer): Promise<Transfer>
+  updateTransfer(ctx: Context, transfer: UpdateTransfer): Promise<FullTransfer>
   deleteTransfer(ctx: Context, id: string): Promise<void>
 }
 
 export interface StatsController {
   getAmount(ctx: Context, params: StatsOptions): Promise<Stats>
   getAccounts(ctx: Context, params: AccountStatsOptions): Promise<Stats>
+  getTransfers(ctx: Context, params: StatsOptions): Promise<Stats>
 }

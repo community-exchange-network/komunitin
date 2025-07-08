@@ -1,7 +1,7 @@
 import { ExternalResource } from 'src/model/resource';
 import { Trustline } from 'src/model/trustline';
 import { Linker, Metaizer, Relator, Serializer, SerializerOptions } from 'ts-japi';
-import { Account, AccountSettings, Currency, CurrencySettings, Transfer, User } from '../model';
+import { FullAccount, AccountSettings, Currency, CurrencySettings, User, Account, Transfer } from '../model';
 import { config } from 'src/config';
 import { Stats } from 'src/model/stats';
 /*
@@ -46,7 +46,7 @@ export const CurrencySerializer = new Serializer<Currency>("currencies", {
     settings: new Relator<Currency,CurrencySettings>(async (currency) => {
       return currency.settings
     }, CurrencySettingsSerializer, { relatedName: "settings" }),
-    accounts: new Relator<Currency,Account>(async () => undefined, undefined as any, {
+    accounts: new Relator<Currency,FullAccount>(async () => undefined, undefined as any, {
       relatedName: "accounts",
       linkers: {
         related: new Linker((currency: Currency) => `${config.API_BASE_URL}/${currency.code}/accounts`)
@@ -139,7 +139,7 @@ class CustomTransferSerializer extends Serializer<Transfer> {
   }
 }
 
-export const ExternalAccountSerializer = externalResourceSerializer<Account>("accounts")
+export const ExternalAccountSerializer = externalResourceSerializer<FullAccount>("accounts")
 
 export const TransferSerializer = new CustomTransferSerializer("transfers", {
   version: null,
@@ -164,7 +164,7 @@ export const TransferSerializer = new CustomTransferSerializer("transfers", {
   linkers: {
     // note that both payer and payee are local in Transfer object.
     resource: new Linker((transfer: Transfer) => `${config.API_BASE_URL}/${transfer.payee.currency.code}/transfers/${transfer.id}`)
-  } 
+  }
 })
 
 

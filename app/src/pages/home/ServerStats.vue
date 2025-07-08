@@ -10,18 +10,6 @@
             <h2 class="q-mt-md q-mb-xs text-onsurface-m">{{t('nCommunities', nCommunities)}}</h2>
             <p class="text-subtitle1">{{t('nCommunitiesText')}}</p>
           </div>
-        
-          <div class="q-mt-md">
-            <q-btn
-              class="q-mb-md"
-              unelevated
-              :label="t('explore')"
-              color="primary"
-              text-color="onprimary"
-              to="/groups"
-              icon="explore"
-            />
-          </div>
         </div>
         <q-card 
           flat 
@@ -33,6 +21,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
+              value="accounts"
               :title="t('monthlyActiveAccounts')"
               :text="t('monthlyActiveAccountsText')"
               :period="30*24*60*60"
@@ -42,6 +31,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
+              value="accounts"
               :title="t('yearlyActiveAccounts')"
               :text="t('yearlyActiveAccountsText')"
               :period="365*24*60*60"
@@ -51,6 +41,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
+              value="transfers"
               :title="t('monthlyTransactions')"
               :text="t('monthlyTransactionsText')"
               :period="30*24*60*60"
@@ -60,6 +51,7 @@
           <div class="col-12 col-sm-6 col-lg-3">
             <stats-card
               class="full-height"
+              value="transfers"
               :title="t('yearlyTransactions')"
               :text="t('yearlyTransactionsText')"
               :period="365*24*60*60"

@@ -216,7 +216,7 @@ func buildMemberJoinedTemplateData(t *i18n.Translator, member *api.Member, accou
 			Subtext: t.T("memberJoinedSubtext"),
 		},
 		TemplateActionData: TemplateActionData{
-			ActionUrl:  config.KomunitinAppUrl + "login-mail?redirect=/groups/" + group.Code,
+			ActionUrl:  config.KomunitinAppUrl + "/login-mail?redirect=/groups/" + group.Code,
 			ActionText: t.T("signIn"),
 		},
 	}
@@ -235,7 +235,7 @@ func buildGroupActivatedTemplateData(t *i18n.Translator, group *api.Group) Email
 			Subtext: t.T("groupActivatedSubtext"),
 		},
 		TemplateActionData: TemplateActionData{
-			ActionUrl:  config.KomunitinAppUrl + "login-mail?redirect=/groups/" + group.Code,
+			ActionUrl:  config.KomunitinAppUrl + "/login-mail?redirect=/groups/" + group.Code,
 			ActionText: t.T("signIn"),
 		},
 	}

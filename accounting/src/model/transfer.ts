@@ -1,8 +1,10 @@
 import { AtLeast } from "src/utils/types"
-import { Account, AccountRecord, recordToAccount } from "./account"
+import { FullAccount, Account, AccountRecord, recordToAccount } from "./account"
 import { Transfer as TransferRecord, ExternalTransfer as ExternalTransferRecord } from "@prisma/client"
 import { Currency, User } from "."
 import { ExternalResource, ExternalResourceRecord, recordToExternalResource, RelatedResource } from "./resource"
+import { Prisma } from "@prisma/client";
+import { internalError } from "../utils/error"
 
 export { TransferRecord }
 
@@ -36,12 +38,25 @@ export type TransferAuthorization = {
   hash?: string
 }
 
-export interface Transfer {
+export type TransferMeta = {
+  description: string
+  [key: string]: any
+}
+
+/**
+ * Transfer object as returned by the API, with some fields omitted due to access permissions.
+ */
+export type Transfer = Omit<FullTransfer, "payer" | "payee"> & {payer: Account, payee: Account}
+
+/**
+ * This is the internal transfer object with all fields filled.
+ */
+export interface FullTransfer {
   id: string
 
   state: TransferState
   amount: number
-  meta: string
+  meta: TransferMeta
 
   hash?: string
 
@@ -50,28 +65,40 @@ export interface Transfer {
 
   authorization?: TransferAuthorization
   
-  payer: Account
-  payee: Account
+  payer: FullAccount
+  payee: FullAccount
 
-  externalPayer?: ExternalResource<Account>
-  externalPayee?: ExternalResource<Account>
+  externalPayer?: ExternalResource<FullAccount>
+  externalPayee?: ExternalResource<FullAccount>
 
   user: User
 }
 
-export type InputTransfer = AtLeast<Omit<Transfer, "created" | "updated" | "payer" | "payee">, "amount" | "meta" | "state"> & {payer: RelatedResource, payee: RelatedResource}
-export type UpdateTransfer = AtLeast<Omit<Transfer, "created" | "updated" | "payer" | "payee"> & {payer: RelatedResource, payee: RelatedResource}, "id">
+export type InputTransfer = AtLeast<Omit<FullTransfer, "created" | "updated" | "payer" | "payee">, "amount" | "meta" | "state"> & {payer: RelatedResource, payee: RelatedResource}
+export type UpdateTransfer = AtLeast<Omit<FullTransfer, "created" | "updated" | "payer" | "payee"> & {payer: RelatedResource, payee: RelatedResource}, "id">
 
+
+const metaJson = (meta: Prisma.JsonValue) : TransferMeta => {
+  if (typeof meta === "object" && !Array.isArray(meta) && meta && typeof meta.description === "string") {
+    return {
+      ...meta,
+      description: meta.description,
+    }
+  }
+  throw internalError("Invalid meta format from database", {
+    details: meta
+  })
+}
 export const recordToTransfer = (record: TransferRecord, accounts: {
-  payer: Account, 
-  payee: Account,
-  externalPayer?: ExternalResource<Account>,
-  externalPayee?: ExternalResource<Account>
-}): Transfer => ({
+  payer: FullAccount, 
+  payee: FullAccount,
+  externalPayer?: ExternalResource<FullAccount>,
+  externalPayee?: ExternalResource<FullAccount>
+}): FullTransfer => ({
   id: record.id,
   state: record.state as TransferState,
   amount: Number(record.amount),
-  meta: record.meta,
+  meta: metaJson(record.meta),
   hash: record.hash ?? undefined,
   authorization: record.authorization as TransferAuthorization ?? undefined,
   created: record.created,

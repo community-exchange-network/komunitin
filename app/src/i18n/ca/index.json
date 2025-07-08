@@ -283,7 +283,7 @@
   "scanThisQR": "Llegeix aquest codi QR per a completar la transacció",
   "scanQRCode": "Llegeix el codi QR de la transacció",
   "nfcTags": "Etiquetes NFC",
-  "nfcTagsText": "Converteix qualsevol etiqueta NFT en un moneder digital associat al teu compte.",
+  "nfcTagsText": "Converteix qualsevol etiqueta NFC en un moneder digital associat al teu compte.",
   "deleteNFCTagConfirmation": "Segur que vols esborrar l'etiqueta NFC amb nom {name}?",
   "addTag": "Afegeix NFC",
   "editTag": "Edita NFC",
@@ -346,7 +346,11 @@
   "month": "Mes",
   "activeAccountsChart": "Comptes actius",
   "activeAccountsChartText": "Comptes amb almenys una transacció durant el període seleccionat",
-  
+  "monthlyTransactions": "Transaccions mensuals",
+  "monthlyTransactionsText": "Nombre de transaccions en l'últim mes",
+  "yearlyTransactions": "Transaccions anuals",
+  "yearlyTransactionsText": "Nombre de transaccions en l'últim any",
+  "serverStats": "Estadístiques del lloc",
 
   "ErrorAuthNoCredentials": "Email o contrasenya incorrectes",
   "ErrorInvalidPassword": "Contrasenya incorrecta",

@@ -44,7 +44,7 @@ export default function formatCurrency(
   return formatCurrencyAmount(amount, currencyOptions, options)
 }
 
-export function formatGobalCurrency(
+export function formatGlobalCurrency(
   amount: number,
   options?: CurrencyFormat
 ): string {

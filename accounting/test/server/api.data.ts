@@ -46,11 +46,13 @@ export const testAccount = (userId: string) => ({
   included: [{ type: "users", id: userId }]
 })
 
-export const testTransfer = (payerId: string, payeeId: string, amount: number, meta: string, state: string) => ({
+export const testTransfer = (payerId: string, payeeId: string, amount: number, description: string, state: string) => ({
   data: {
     attributes: {
       amount,
-      meta,
+      meta: {
+        description
+      },
       state
     },
     relationships: {

@@ -1,14 +1,15 @@
-import { Account, AccountSettings, InputAccount, recordToAccount, Tag, UpdateAccount, userHasAccount } from "src/model";
-import { LedgerCurrencyController } from "./currency-controller";
-import { Context, systemContext } from "src/utils/context";
-import { AbstractCurrencyController } from "./abstract-currency-controller";
-import { badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error";
 import { AccountType } from "@prisma/client";
-import { WithRequired } from "src/utils/types";
-import { CollectionOptions } from "src/server/request";
-import { whereFilter } from "./query";
-import { deriveKey, exportKey } from "src/utils/crypto";
 import { AccountController as IAccountController } from "src/controller";
+import { Account, AccountSettings, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
+import { CollectionOptions } from "src/server/request";
+import { Context, systemContext } from "src/utils/context";
+import { deriveKey, exportKey } from "src/utils/crypto";
+import { badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error";
+import { WithRequired } from "src/utils/types";
+import { AbstractCurrencyController } from "./abstract-currency-controller";
+import { LedgerCurrencyController } from "./currency-controller";
+import { whereFilter } from "./query";
+
 
 export class AccountController extends AbstractCurrencyController implements IAccountController{
   constructor (readonly currencyController: LedgerCurrencyController) {
@@ -82,11 +83,11 @@ export class AccountController extends AbstractCurrencyController implements IAc
     return recordToAccount(record, this.currency())
   }
 
-  async updateAccount(ctx: Context, data: UpdateAccount): Promise<Account> {
+  async updateAccount(ctx: Context, data: UpdateAccount): Promise<FullAccount> {
     // Only the currency owner can update accounts.
     await this.users().checkAdmin(ctx)
 
-    const account = await this.getAccount(ctx, data.id)
+    const account = await this.getFullAccount(data.id)
     // code, creditLimit and maximumBalance can be updated
     if (data.code && data.code !== account.code) {
       await this.checkFreeCode(data.code)
@@ -97,6 +98,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
       await ledgerAccount.updateCredit(this.currencyController.amountToLedger(data.creditLimit), {
         sponsor: await this.keys().sponsorKey(),
         credit: data.creditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
+        issuer: data.creditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
         account: data.creditLimit < account.creditLimit ? await this.keys().adminKey() : undefined
       })
     }
@@ -120,29 +122,25 @@ export class AccountController extends AbstractCurrencyController implements IAc
     return recordToAccount(updated, this.currency())
   }
 
-  /**
-   * Implements {@link CurrencyController.getAccount}
-   */
-  async getAccount(ctx: Context, id: string): Promise<WithRequired<Account, "users">> {
-    const record = await this.db().account.findUnique({
-      where: { 
-        id,
-        status: "active",
-      },
-      include: { 
-        users: { include: { user: true } },
-        tags: true
+  filterAccount(user: User|undefined, account: FullAccount): Account {
+    // Check if the balance should be hidden.
+    const accountHideBalance = (account.settings.hideBalance ?? this.currency().settings.defaultHideBalance) ?? false
+    if (!user || (accountHideBalance && !this.users().isAdmin(user) && !userHasAccount(user, account))) {
+      // Hide balance for non-admin users.
+      return {
+        ...account,
+        balance: undefined,
+        creditLimit: undefined,
+        maximumBalance: undefined, 
       }
-    })
-    if (!record) {
-      throw notFound(`Account id ${id} not found in currency ${this.currency().code}`)
     }
-    return recordToAccount(record, this.currency()) as WithRequired<Account, "users">
+    return account
   }
 
-  async getAccountBy(ctx: Context, field: "code"|"keyId", value: string): Promise<Account | undefined> {
+  async getAccountBy(ctx: Context, field: "id"|"code"|"keyId", value: string): Promise<FullAccount | undefined> {
     const record = await this.db().account.findUnique({
       where: { 
+        id: field === "id" ? value : undefined,
         code: field === "code" ? value : undefined,
         keyId: field === "keyId" ? value : undefined,
         status: "active",
@@ -154,10 +152,38 @@ export class AccountController extends AbstractCurrencyController implements IAc
     return recordToAccount(record, this.currency())
   }
 
+  async getAccount(ctx: Context, id: string): Promise<Account> {
+    const account = await this.getFullAccount(id)
+    // Filter account for the current user.
+    const user = await this.users().getUser(ctx)
+    return this.filterAccount(user, account)
+  }
+
+  /**
+   * Returns a fully loaded account object for internal use.
+   */
+  async getFullAccount(id: string): Promise<WithRequired<FullAccount, "users">> {
+    const record = await this.db().account.findUnique({
+      where: { 
+        id,
+        status: "active",
+      },
+      include: { 
+        users: { include: { user: true } },
+        tags: true
+      }
+    })
+    
+    if (!record) {
+      throw notFound(`Account id ${id} not found in currency ${this.currency().code}`)
+    }
+    return recordToAccount(record, this.currency()) as WithRequired<FullAccount, "users">;
+  }
+
   /**
    * Implements {@link CurrencyController.getAccountByCode}
    */
-  async getAccountByCode(ctx: Context, code: string): Promise<Account|undefined> {
+  async getAccountByCode(ctx: Context, code: string): Promise<FullAccount|undefined> {
     // Anonymous users can access this endpoint.
     return this.getAccountBy(ctx, "code", code)
   }
@@ -165,12 +191,12 @@ export class AccountController extends AbstractCurrencyController implements IAc
   /**
    * Implements {@link CurrencyController.getAccountByKey}
    */
-  async getAccountByKey(ctx: Context, key: string): Promise<Account | undefined> {
+  async getAccountByKey(ctx: Context, key: string): Promise<FullAccount | undefined> {
     await this.users().checkUser(ctx)
     return this.getAccountBy(ctx, "keyId", key)
   }
 
-  async getAccountByTag(ctx: Context, tag: string, hashed = false): Promise<Account|undefined> {
+  async getAccountByTag(ctx: Context, tag: string, hashed = false): Promise<FullAccount|undefined> {
     const hash = hashed ? tag : await this.accountTagHash(tag)
     const record = await this.db().accountTag.findFirst({
       where: { hash },
@@ -216,19 +242,24 @@ export class AccountController extends AbstractCurrencyController implements IAc
         type: AccountType.user,
         ...filter,
       },
+      include: {
+        users: { include: { user: true } },
+      },
       orderBy: {
         [params.sort.field]: params.sort.order
       },
       skip: params.pagination.cursor,
       take: params.pagination.size,
     })
-
-    return records.map(r => recordToAccount(r, this.currency()))
+    const user = await this.users().getUser(ctx)
+    return records
+      .map(r => recordToAccount(r, this.currency()))
+      .map(account => this.filterAccount(user, account))
   }
 
   async deleteAccount(ctx: Context, id: string): Promise<void> {
     const user = await this.users().checkUser(ctx)
-    const account = await this.getAccount(ctx, id)
+    const account = await this.getFullAccount(id)
     if (!(this.users().isAdmin(user) || userHasAccount(user, account))) {
       throw forbidden("User is not allowed to delete this account")
     }
@@ -273,7 +304,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
    */
   public async getAccountSettings(ctx: Context, id: string): Promise<AccountSettings> {
     const user = await this.users().checkUser(ctx)
-    const account = await this.getAccount(ctx, id)
+    const account = await this.getFullAccount(id)
     if (!this.users().isAdmin(user) && !userHasAccount(user, account)) {
       throw forbidden("User is not allowed to access this account settings")
     }
@@ -285,7 +316,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
 
   public async updateAccountSettings(ctx: Context, settings: AccountSettings ): Promise<AccountSettings> {
     const user = await this.users().checkUser(ctx)
-    const account = await this.getAccount(ctx, settings.id as string)
+    const account = await this.getFullAccount(settings.id as string)
     if (!this.users().isAdmin(user) && !userHasAccount(user, account)) {
       throw forbidden("User is not allowed to update this account settings")
     }
@@ -353,7 +384,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
     
   }
 
-  async updateAccountTags(account: Account, tags: Tag[]) {
+  async updateAccountTags(account: FullAccount, tags: Tag[]) {
     // Check all tags have name and either value or id (it is ok to update the name of a tag without changing the vaue)
     if (tags.some(t => !t.name || (!t.value && !t.id))) {
       throw badRequest("Tag name and value are required")
@@ -394,7 +425,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
     ])
   }
 
-  async updateAccountBalance(account: Account): Promise<void> {
+  async updateAccountBalance(account: FullAccount): Promise<void> {
     const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
     account.balance = this.currencyController.amountFromLedger(ledgerAccount.balance())
       - account.creditLimit

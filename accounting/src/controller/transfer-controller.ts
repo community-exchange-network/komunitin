@@ -1,4 +1,4 @@
-import { Account, InputTransfer, recordToTransfer, recordToTransferWithAccounts, Transfer, TransferAuthorization, TransferState, UpdateTransfer, User, userHasAccount } from "src/model";
+import { FullAccount, InputTransfer, recordToTransfer, recordToTransferWithAccounts, FullTransfer, TransferAuthorization, TransferState, UpdateTransfer, User, userHasAccount, Transfer } from "src/model";
 import { badRequest, forbidden, notFound } from "src/utils/error";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
 
@@ -51,6 +51,15 @@ export class TransferController  extends AbstractCurrencyController implements I
         throw badRequest("Invalid authorization")
       }
     }
+    // Backwards compatibility for meta field.
+    if (typeof data.meta === "string") {
+      data.meta = {
+        description: data.meta
+      }
+    }
+    if (!data.meta || typeof data.meta !== "object" || typeof data.meta.description !== "string") {
+      throw badRequest("Transfer meta must be an object with a description string")
+    }
   }
 
   /**
@@ -58,8 +67,8 @@ export class TransferController  extends AbstractCurrencyController implements I
    */
   private async validateTransferAccounts(ctx: Context, user: User, data: InputTransfer)  {
     // Already throw exception if accounts not found.
-    const payer = await this.accounts().getAccount(ctx, data.payer.id)
-    const payee = await this.accounts().getAccount(ctx, data.payee.id)
+    const payer = await this.accounts().getFullAccount(data.payer.id)
+    const payee = await this.accounts().getFullAccount(data.payee.id)
 
     // Check that user is allowed to perform the transaction
     let allowed = false
@@ -101,7 +110,7 @@ export class TransferController  extends AbstractCurrencyController implements I
   /**
    * Implements CurrencyController.createTransfer()
    */
-  async createTransfer(ctx: Context, data: InputTransfer): Promise<Transfer> {
+  async createTransfer(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
     await this.validateInputTransfer(data)
 
     // If this is an external transfer, let the specialized controller handle it.
@@ -124,7 +133,7 @@ export class TransferController  extends AbstractCurrencyController implements I
   /**
    * Create the transaction in the DB with state "new".
    */
-  async createTransferRecord(data: InputTransfer, payer: Account, payee: Account, user: User) {
+  async createTransferRecord(data: InputTransfer, payer: FullAccount, payee: FullAccount, user: User) {
     const record = await this.db().transfer.create({
       data: {
         id: data.id,
@@ -148,7 +157,7 @@ export class TransferController  extends AbstractCurrencyController implements I
   /**
    * Throw exception if the transition is not allowed.
    */
-  public checkTransferTransition(transfer: Transfer, state: TransferState) {
+  public checkTransferTransition(transfer: FullTransfer, state: TransferState) {
     if (transfer.state == state) {
       return
     }
@@ -173,9 +182,10 @@ export class TransferController  extends AbstractCurrencyController implements I
   /**
    * Low level operation to update the state and hash DB fields of the transfer.
    */
-  public async saveTransferState(transfer: Transfer, state: TransferState) {
+  public async saveTransferState(transfer: FullTransfer, state: TransferState) {
     if (transfer.state !== state) {
       transfer.state = state
+      
       await this.db().transfer.update({
         data: {
           state,
@@ -204,7 +214,7 @@ export class TransferController  extends AbstractCurrencyController implements I
    * failed ?-> deleted
    * @returns 
    */
-  private async updateTransferState(transfer: Transfer, state: TransferState, user: User) {
+  private async updateTransferState(transfer: FullTransfer, state: TransferState, user: User) {
     // Allow identity transitions.
     if (transfer.state == state) {
       return
@@ -263,7 +273,7 @@ export class TransferController  extends AbstractCurrencyController implements I
     }
   }
 
-  private async submitPaymentRequestImmediately(transfer: Transfer) {
+  private async submitPaymentRequestImmediately(transfer: FullTransfer) {
     // Option 1: acceptPaymentsAutomatically
     if (transfer.payer.settings.acceptPaymentsAutomatically ?? this.currency().settings.defaultAcceptPaymentsAutomatically) {
       return true
@@ -284,7 +294,7 @@ export class TransferController  extends AbstractCurrencyController implements I
     }
   }
 
-  public async updateAccountBalances(transfer: Transfer) {
+  public async updateAccountBalances(transfer: FullTransfer) {
     return await Promise.all([
       this.accounts().updateAccountBalance(transfer.payer),
       this.accounts().updateAccountBalance(transfer.payee)
@@ -294,7 +304,7 @@ export class TransferController  extends AbstractCurrencyController implements I
   /**
    * Submit a transfer to the ledger. Both payer and payee must be local.
    */
-  private async submitTransfer(transfer: Transfer, admin = false) {
+  private async submitTransfer(transfer: FullTransfer, admin = false) {
     const ledgerPayer = await this.currencyController.ledger.getAccount(transfer.payer.key)
     const transaction = await ledgerPayer.pay({
       payeePublicKey: transfer.payee.key,
@@ -309,7 +319,7 @@ export class TransferController  extends AbstractCurrencyController implements I
     return transaction
   }
 
-  private async loadTransferWhere(ctx: Context, where: {id?: string, hash?: string}) {
+  private async loadTransferWhere(where: {id?: string, hash?: string}) {
     // We first get the transfer and later check if the user is allowed to access it.
     const record = await this.db().transfer.findUnique({
       where: {
@@ -342,7 +352,11 @@ export class TransferController  extends AbstractCurrencyController implements I
     }
 
     const transfer = recordToTransferWithAccounts(record, this.currency())
+    
+    return transfer
+  }
 
+  private async checkTransferAccess(ctx: Context, transfer: FullTransfer) {
     // Transfers can be accessed by admin and by involved parties.
     if (ctx.type === "external") {
       // External users have access to the transfers they are involved in.
@@ -355,25 +369,45 @@ export class TransferController  extends AbstractCurrencyController implements I
         throw forbidden("User is not allowed to access this transfer")
       }
     }
-    
-    return transfer
+  }
+
+  public async getTransfer(ctx: Context, id: string): Promise<Transfer> {
+    const transfer = await this.loadTransferWhere({id})
+    await this.checkTransferAccess(ctx, transfer)
+    const user = await this.users().getUser(ctx)
+    return this.filterTransfer(user, transfer)
+  }
+
+  filterTransfer(user: User | undefined, transfer: FullTransfer): Transfer {
+    const filteredTransfer: Transfer = {
+      ...transfer,
+      payer: this.accounts().filterAccount(user, transfer.payer),
+      payee: this.accounts().filterAccount(user, transfer.payee),
+    }
+    return filteredTransfer
   }
 
   /**
    * Implements getTransfer()
    */
-  public async getTransfer(ctx: Context, id: string): Promise<Transfer> {
-    return await this.loadTransferWhere(ctx, {id})
+  public async getFullTransfer(ctx: Context, id: string): Promise<FullTransfer> {
+    return await this.loadTransferWhere({id})
   }
 
   /**
    * Implements {@link CurrencyController.getTransferByHash}
    */
-  public async getTransferByHash(ctx: Context, hash: string): Promise<Transfer> {
+  /*public async getFullTransferByHash(ctx: Context, hash: string): Promise<FullTransfer> {
     return await this.loadTransferWhere(ctx, {hash})
-  }
+  }*/
 
   public async getTransfers(ctx: Context, params: CollectionOptions): Promise<Transfer[]> {
+    const transfers = await this.getFullTransfers(ctx, params)
+    const user = await this.users().getUser(ctx)
+    return transfers.map(t => this.filterTransfer(user, t))
+  }
+
+  public async getFullTransfers(ctx: Context, params: CollectionOptions): Promise<FullTransfer[]> {
     const user = await this.users().checkUser(ctx)
 
     const {account, ...filters} = params.filters
@@ -416,8 +450,12 @@ export class TransferController  extends AbstractCurrencyController implements I
       include: {
         ...include,
         // always include accounts.
-        payer: true,
-        payee: true,
+        payer: {
+          include: { users: { include: { user: true } } }
+        },
+        payee: {
+          include: { users: { include: { user: true } } }
+        },
         // and external transfer if it exists.
         externalTransfer: {
           include: {
@@ -430,7 +468,8 @@ export class TransferController  extends AbstractCurrencyController implements I
       take: params.pagination.size,
     }) 
 
-    const transfers = records.map(r => recordToTransferWithAccounts(r, this.currency()))
+    const transfers = records
+      .map(r => recordToTransferWithAccounts(r, this.currency()))
 
     return transfers
   }
@@ -439,8 +478,8 @@ export class TransferController  extends AbstractCurrencyController implements I
   /**
    * Implements {@link CurrencyController.updateTransfer}
    */
-  public async updateTransfer(ctx: Context, data: UpdateTransfer): Promise<Transfer> {
-    let transfer = await this.getTransfer(ctx, data.id)
+  public async updateTransfer(ctx: Context, data: UpdateTransfer): Promise<FullTransfer> {
+    let transfer = await this.getFullTransfer(ctx, data.id)
 
     if (this.externalTransfers.isExternalTransfer(transfer)) {
       return this.externalTransfers.updateExternalTransfer(ctx, data, transfer)
@@ -463,10 +502,10 @@ export class TransferController  extends AbstractCurrencyController implements I
           throw forbidden("User is not allowed to change payer")
         }
         // Throw if not found
-        transfer.payer = await this.accounts().getAccount(ctx, data.payer.id)
+        transfer.payer = await this.accounts().getFullAccount(data.payer.id)
       }
       if (data.payee !== undefined && data.payee.id !== transfer.payee.id) {
-        transfer.payee = await this.accounts().getAccount(ctx, data.payee.id)
+        transfer.payee = await this.accounts().getFullAccount(data.payee.id)
       }
       const record = await this.db().transfer.update({
         data: {
@@ -493,7 +532,7 @@ export class TransferController  extends AbstractCurrencyController implements I
 
   public async deleteTransfer(ctx: Context, id: string): Promise<void> {
     const user = await this.users().checkUser(ctx)
-    const transfer = await this.getTransfer(ctx, id)
+    const transfer = await this.getFullTransfer(ctx, id)
     await this.updateTransferState(transfer, "deleted", user)
   }
 
@@ -501,7 +540,7 @@ export class TransferController  extends AbstractCurrencyController implements I
     const N_PENDING_TRANSFERS = 100
     // Find the oldest N pending transfers (at most), if more than these are expired,
     // do them the next cron run.
-    const transfers = await this.getTransfers(ctx, {
+    const transfers = await this.getFullTransfers(ctx, {
       filters: {
         state: "pending",
       },
@@ -526,7 +565,7 @@ export class TransferController  extends AbstractCurrencyController implements I
     }
   }
 
-  async createMultipleTransfers(ctx: Context, transfers: InputTransfer[]): Promise<Transfer[]> {
+  async createMultipleTransfers(ctx: Context, transfers: InputTransfer[]): Promise<FullTransfer[]> {
     // Multiple transfers are only allowed for logged in users.
     await this.users().checkUser(ctx)
     // We trigger all transfers in parallel. The ledger driver will handle the
@@ -542,7 +581,7 @@ export class TransferController  extends AbstractCurrencyController implements I
       }
     }))
     // Return transfers that were successfully created.
-    return createdTransfers.filter(t => t.status === "fulfilled").map((t) => (t as PromiseFulfilledResult<Transfer>).value)
+    return createdTransfers.filter(t => t.status === "fulfilled").map((t) => (t as PromiseFulfilledResult<FullTransfer>).value)
   }
 
 }

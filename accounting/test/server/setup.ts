@@ -1,5 +1,5 @@
 import { before, after } from "node:test"
-import { TestApiClient, client } from "./net.client"
+import { AuthInfo, TestApiClient, client } from "./net.client"
 import { clearEvents, startServer, stopServer } from "./net.mock"
 import { clearDb } from "./db"
 import { createApp, closeApp, ExpressExtended, setupApp } from "../../src/server/app"
@@ -15,6 +15,7 @@ interface TestSetup {
   api: TestApiClient,
   createAccount: (user: string, code?: string, admin?: UserAuth) => Promise<any>,
   payment: (payer: string, payee: string, amount: number, meta: string, state: string, auth: any, httpStatus?: number) => Promise<any>,
+  createCurrency: (settings: any, admin: AuthInfo) => Promise<any>,
 }
 
 interface TestSetupWithCurrency extends TestSetup {
@@ -48,10 +49,16 @@ export function setupServerTest(createData: boolean = true): TestSetupWithCurren
       return response.body.data
     },
 
-    payment: async (payer: string, payee: string, amount: number, meta: string, state: string, auth: any, httpStatus = 201) => {
-      const response = await test.api?.post('/TEST/transfers', testTransfer(payer, payee, amount, meta, state), auth, httpStatus)
+    payment: async (payer: string, payee: string, amount: number, description: string, state: string, auth: any, httpStatus = 201) => {
+      const response = await test.api?.post('/TEST/transfers', testTransfer(payer, payee, amount, description, state), auth, httpStatus)
       return response.body.data
-    }
+    },
+
+    createCurrency: async (settings: any, admin: AuthInfo) => {
+      const response = await test.api?.post('/currencies', testCurrency(settings), admin)
+      return response.body.data
+    },
+
   }
 
   before(async () => {
@@ -68,8 +75,7 @@ export function setupServerTest(createData: boolean = true): TestSetupWithCurren
 
     if (createData) {
       // Create currency TEST
-      const currency = await test.api.post('/currencies', testCurrency(), test.admin)
-      test.currency = currency.body.data
+      test.currency = await test.createCurrency({}, test.admin)
       // Create 3 accounts
       test.account0 = await test.createAccount(test.admin.user)
       test.account1 = await test.createAccount(test.user1.user)
