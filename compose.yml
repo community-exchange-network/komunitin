@@ -56,7 +56,7 @@ services:
 
     volumes:
       - db-accounting:/var/lib/postgresql/data
-      - "./accounting/komunitin-project-backup-credentials.json:/opt/komunitin-project-backup-credentials.json"
+      - "./accounting/komunitin-project-backup-credentials.json:/opt/komunitin-project-backup-credentials.json:ro"
 
   accounting:
     build:
