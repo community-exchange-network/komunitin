@@ -4,7 +4,7 @@ import { AbstractCurrencyController } from "../controller/abstract-currency-cont
 import { Context } from "../utils/context"
 import { CreditCommonsNode, CreditCommonsTransaction, CreditCommonsEntry } from "../model/creditCommons"
 import { badRequest, notImplemented, unauthorized, noTrustPath, notFound } from "src/utils/error"
-import { FullTransfer, InputTransfer } from "src/model/transfer"
+import { FullTransfer, InputTransfer, TransferMeta } from "src/model/transfer"
 import { systemContext } from "src/utils/context"
 import { Transfer } from "src/model"
 import { logger } from "../utils/logger"
@@ -159,11 +159,11 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     return { message: 'Welcome to the Credit Commons federation protocol.' }
   }
   private async ccToLocal(transaction: CreditCommonsTransaction, ourNodePath: string, vostroId: string, outgoing: boolean): Promise<InputTransfer> {
+    // 1. Compute the overall result of the CC transaction, which will be 
+    // the amount of the local transfer. Also do some sanity checks.
     const ledgerBase = `${ourNodePath}/`
     let netGain = 0
     let localParty = null
-    let metas: string[] = []
-    let froms: string[] = []
     for (let i=0; i < transaction.entries.length; i++) {
       logger.info(`Checking entry ${transaction.entries[i].payer} -> ${transaction.entries[i].payee} on ${ledgerBase}`)
       let thisLocalParty;
@@ -171,7 +171,6 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
         thisLocalParty = transaction.entries[i].payer.slice(ledgerBase.length)
         netGain -= transaction.entries[i].quant
         logger.info(`This entry COSTS us ${transaction.entries[i].quant}`)
-        metas.push(`-${transaction.entries[i].quant} (${transaction.entries[i].description})`)
       }
       if (ledgerOf(transaction.entries[i].payee) === ledgerBase) {
         if (thisLocalParty) {
@@ -180,8 +179,6 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
         thisLocalParty = transaction.entries[i].payee.slice(ledgerBase.length)
         netGain += transaction.entries[i].quant
         logger.info(`This entry YIELDS us ${transaction.entries[i].quant}`)
-        metas.push(`+${transaction.entries[i].quant} (${transaction.entries[i].description})`)
-        froms.push(transaction.entries[i].payer)
       }
       if (!thisLocalParty) {
         throw badRequest('Payer and Payee cannot both be remote')
@@ -199,6 +196,30 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     if (netGain >= 0 && outgoing === true) {
       throw badRequest('Net gain must be negative for outgoing transaction')
     }
+
+    // 2. Compute the counterparty account address and description to show.
+    const mainEntry = transaction.entries.reduce((max, entry) => 
+      (entry.quant > max.quant) ? entry : max
+    )
+    const mainRemotePartyAddress = ledgerOf(mainEntry.payer) === ledgerBase
+      ? mainEntry.payee
+      : mainEntry.payer
+    const mainDescription = mainEntry.description || ""
+
+    // Build extra description from other entries.
+    const extraDescription = transaction.entries
+      .filter(e => e !== mainEntry)
+      .map(e => {
+        const components = (ledgerOf(e.payer) === ledgerBase)
+          ? [`-${e.quant}`, e.payee, e.description] // local payer
+          : [`+${e.quant}`, e.payer, e.description] // remote payer
+        return "(" + components.filter(c => c).join(' ') + ")" // the filter is just to ignore empty descriptions
+      }).join(', ')
+    
+    const description = mainDescription + (extraDescription ? `\n${extraDescription}` : '')
+
+    // 3. Create the local transfer object.
+
     // if recipientId is a code like NET20002
     // then payeeId is an account ID like
     // 2791faf5-4566-4da0-99f6-24c41041c50a
@@ -211,16 +232,28 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     }
     let payer = { id: vostroId, type: 'account' }
     let payee = { id: payeeId, type: 'account' }
+
+    const meta: TransferMeta = { 
+      description,
+      creditCommons: {
+        payerAddress: mainRemotePartyAddress
+      }
+    }
+    
     if (outgoing) {
       netGain = -netGain
       payer = { id: payeeId, type: 'account' }
       payee = { id: vostroId, type: 'account' }
+      meta.creditCommons = {
+        payeeAddress: mainRemotePartyAddress
+      }
     }
+
     return {
       id: transaction.uuid,
       state: 'committed',
       amount: this.currencyController.amountFromLedger(netGain.toString()),
-      meta: { description: `From Credit Commons [${froms.join(', ')}]:` + metas.join(' ') },
+      meta,
       payer,
       payee,
     }

@@ -43,6 +43,7 @@ export type TransferMeta = {
   description: string
   creditCommons?: {
     payeeAddress?: string
+    payerAddress?: string
   },
   [key: string]: anyJson
 }
