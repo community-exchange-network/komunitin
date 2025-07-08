@@ -7,6 +7,8 @@ import TypedEmitter from "typed-emitter"
 import { InputTrustline, Trustline, UpdateTrustline } from "src/model/trustline"
 import { Stats } from "src/model/stats"
 export { MigrationController } from './migration'
+import { CreditCommonsController } from "src/creditcommons/credit-commons-controller";
+
 
 export type ControllerEvents = {
   /**
@@ -40,6 +42,8 @@ export interface CurrencyController {
   // Child controllers
   accounts: AccountController
   transfers: TransferController
+  creditCommons: CreditCommonsController
+
   stats: StatsController
   
   // Currency

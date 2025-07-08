@@ -141,7 +141,12 @@ model Account {
 
   externalAccount Currency? @relation("externalAccount")
 
-  tags AccountTag[] @relation()
+  tags              AccountTag[]        @relation()
+
+  // Each CreditCommonsNode has a "vostro" Account
+  CreditCommonsNode CreditCommonsNode[]
+
+  @@unique([id, tenantId]) 
 }
 
 model AccountTag {
@@ -282,4 +287,18 @@ model Value {
   updated DateTime @updatedAt
 
   @@id([tenantId, key])
+}
+
+model CreditCommonsNode {
+  tenantId      String @default(dbgenerated("(current_setting('app.current_tenant_id'))::text")) @db.VarChar(31)
+  peerNodePath    String @db.VarChar(255)
+  ourNodePath String @db.VarChar(255)
+  lastHash      String @db.VarChar(255)
+  url           String @db.VarChar(255)
+
+  // Vostro account acts as a proxy representing this Credit Commons Node on our ledger
+  vostroId String
+  vostro   Account @relation(fields: [vostroId, tenantId], references: [id, tenantId])
+
+  @@id([tenantId, peerNodePath])
 }

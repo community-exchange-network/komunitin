@@ -153,7 +153,7 @@ export function getRoutes(controller: SharedController) {
     res.status(204).end()
   }))
 
-  router.get('/:code/transfers/:id', userAuth([Scope.Accounting, Scope.AccountingReadAll]), 
+  router.get('/:code/transfers/:id', userAuth([Scope.Accounting, Scope.AccountingReadAll]),
     currencyResourceHandler(controller, async (currencyController, ctx, id) => {
       return await currencyController.transfers.getTransfer(ctx, id)
     }, TransferSerializer, {
