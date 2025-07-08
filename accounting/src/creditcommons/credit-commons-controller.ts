@@ -81,7 +81,6 @@ export interface AccountAddresses {
 export interface CreditCommonsController {
   getWelcome(ctx: Context): Promise<{ message: string }>
   createNode(ctx: Context, data: CreditCommonsNode): Promise<CreditCommonsNode>
-  sendTransaction(ctx: Context, transaction: CreditCommonsTransaction): Promise<CreditCommonsTransaction>
   createTransaction(ctx: Context, transaction: CreditCommonsTransaction): Promise<{
     body: CCTransactionResponse,
     trace: string
@@ -303,9 +302,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       transfersOut: (transfers).filter(t => t.payer.id === accountId)
     }
   }
-  private async checkSenderBalance(transaction: CreditCommonsTransaction, remoteNode: CreditCommonsNode): Promise<InputTransfer> {
-    return this.ccToLocal(transaction, remoteNode.ourNodePath, remoteNode.vostroId, true)
-  }
+
   private async makeRoutingDecision(transaction?: CreditCommonsTransaction): Promise<CreditCommonsNode | null> {
     return await this.db().creditCommonsNode.findFirst({})
   }
@@ -324,19 +321,6 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       logger.error(`Response text: ${await response.text()}`)
       throw noTrustPath('CreditCommons transaction failed remotely')
     }
-  }
-  
-  async sendTransaction(ctx: Context, transaction: CreditCommonsTransaction): Promise<CreditCommonsTransaction> {
-    const remoteNode = await this.makeRoutingDecision(transaction)
-    if (!remoteNode) {
-      throw noTrustPath('CreditCommons transaction not routable')
-    }
-    const localTransfer = await this.checkSenderBalance(transaction, remoteNode)
-    await this.makeRemoteCall(transaction, remoteNode)
-    await this.transfers().createTransfer(systemContext(), localTransfer)
-    const newHash = makeHash(transaction, remoteNode.lastHash)
-    await this.updateNodeHash(remoteNode.peerNodePath, newHash)
-    return transaction
   }
 
   async getAccount(ctx: Context, accountId: string): Promise<{ body: CCAccountSummary, trace: string }> {

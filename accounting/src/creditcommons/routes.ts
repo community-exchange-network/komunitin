@@ -44,19 +44,6 @@ export function getRoutes(controller: SharedController) {
   )
 
   /**
-   * Send a Credit Commons transaction.
-   * This route is not part of the CC API, so it uses Komunitin's standard auth and error handling
-   */
-  router.post('/:code/cc/send',
-    userAuth(Scope.Accounting),
-    checkExact(CreditCommonsValidators.isTransaction()),
-    currencyInputHandler(controller, async (currencyController, ctx, data: CreditCommonsTransaction) => {
-      // setResponseTrace(req, res)
-      return await currencyController.creditCommons.sendTransaction(ctx, data)
-    }, CreditCommonsTransactionSerializer, 201)
-  )
-
-  /**
    * Retrieve a welcome message. Requires last-hash auth.
    */
   router.get('/:code/cc/',
