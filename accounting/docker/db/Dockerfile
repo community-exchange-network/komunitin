@@ -38,16 +38,13 @@ RUN chmod 0644 /etc/cron.d/wal-g
 COPY postgres.conf /etc/postgresql/postgresql.conf
 RUN chmod 0644 /etc/postgresql/postgresql.conf
 
-# Copy the entrypoint script
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Copy the recovery.conf file
+COPY recovery.conf /etc/postgresql/recovery.conf
+RUN chmod 0644 /etc/postgresql/recovery.conf
 
-# Copy the backup scripts
-COPY create_backup.sh /usr/local/bin/create_backup.sh
-RUN chmod +x /usr/local/bin/create_backup.sh
-
-COPY clean_backups.sh /usr/local/bin/clean_backups.sh
-RUN chmod +x /usr/local/bin/clean_backups.sh
+# Copy all scripts
+COPY *.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/*.sh
 
 # Set the entrypoint to the custom script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
