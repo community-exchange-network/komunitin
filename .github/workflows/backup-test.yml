@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Pull the accounting-db image from Docker Hub
-    - name: Pull accounting-db image
+    # Step 1: Pull the db-accounting image from Docker Hub
+    - name: Pull db-accounting image
       run: |
-        docker pull komunitin/komunitin-accounting-db:latest
+        docker pull komunitin/komunitin-db-accounting:latest
 
     - name: Restore database from lastest backup
       run: |
@@ -28,7 +28,7 @@ jobs:
         -v /tmp/google-service-account-key.json:/opt/google-service-account-key.json:ro \
         --user postgres \
         --entrypoint /bin/bash \
-        komunitin/komunitin-accounting-db:latest \
+        komunitin/komunitin-db-accounting:latest \
         /usr/local/bin/restore_backup.sh
 
     - name: Wait for the DB to start and restore.

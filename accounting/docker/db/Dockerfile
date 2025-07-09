@@ -15,7 +15,7 @@ RUN set -ex && \
     mv $WALG_EXE wal-g && \
     ./wal-g --version
 
-FROM postgres:16 AS komunitin-accounting-db
+FROM postgres:16 AS komunitin-db-accounting
 
 # Install cron
 RUN set -ex && \
