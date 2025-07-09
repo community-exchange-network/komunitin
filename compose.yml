@@ -36,7 +36,7 @@ services:
       MAILERSEND_API_KEY: ${MAILERSEND_API_KEY}
       SEND_MAILS: true
     volumes:
-      - "./notifications/komunitin-project-firebase-adminsdk.json:/opt/notifications/komunitin-project-firebase-adminsdk.json"
+      - "./notifications/komunitin-project-firebase-adminsdk.json:/opt/notifications/komunitin-project-firebase-adminsdk.json:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
