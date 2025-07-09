@@ -14,7 +14,7 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo "Example: restore_backup.sh \"2025-07-09 10:25:00\""
     echo "This script must be run as the postgres user and with the WAL-G environment variables set."
     echo "When running from docker compose:"
-    echo "  docker-compose run --user postgres --entrypoint /bin/bash accounting-db /usr/local/bin/restore_backup.sh [backup_name|timestamp]"
+    echo "  docker-compose run --user postgres --entrypoint /bin/bash db-accounting /usr/local/bin/restore_backup.sh [backup_name|timestamp]"
     exit 0
 fi
 
