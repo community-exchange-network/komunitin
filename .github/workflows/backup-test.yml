@@ -44,5 +44,5 @@ jobs:
           echo "ERROR: No recent transfers found in restored database"
           exit 1
         else
-          echo "SUCCESS: Database restoration verified with $count transfers in the last 24 hours"0
+          echo "SUCCESS: Database restoration verified with $count transfers in the last 24 hours"
         fi
