@@ -32,8 +32,7 @@ RUN chmod +x /docker-entrypoint-initdb.d/*.sh
 
 # Copy the cron job file
 COPY cron-wal-g /etc/cron.d/wal-g
-RUN chmod 0644 /etc/cron.d/wal-g && \
-    crontab /etc/cron.d/wal-g
+RUN chmod 0644 /etc/cron.d/wal-g
 
 # Copy the postgres.conf file
 COPY postgres.conf /etc/postgresql/postgresql.conf
@@ -42,6 +41,13 @@ RUN chmod 0644 /etc/postgresql/postgresql.conf
 # Copy the entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Copy the backup scripts
+COPY create_backup.sh /usr/local/bin/create_backup.sh
+RUN chmod +x /usr/local/bin/create_backup.sh
+
+COPY clean_backups.sh /usr/local/bin/clean_backups.sh
+RUN chmod +x /usr/local/bin/clean_backups.sh
 
 # Set the entrypoint to the custom script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
