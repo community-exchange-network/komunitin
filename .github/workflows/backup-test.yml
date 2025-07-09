@@ -17,7 +17,7 @@ jobs:
 
     - name: Restore database from lastest backup
       run: |
-        echo "${{ secrets.DB_TEST_GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/google-service-account-key.json
+        echo "${{ secrets.DB_TEST_GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY }}" > /tmp/google-service-account-key.json
         docker run -d \
         --name db-accounting \
         -e POSTGRES_USER=postgres \
