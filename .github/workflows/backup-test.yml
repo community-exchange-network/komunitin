@@ -1,12 +1,9 @@
 name: Test Backup with WAL-G
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *' # Runs daily at 3 AM UTC
+    - cron: '0 4 * * *' # Runs daily at 4 AM UTC
 
 jobs:
   test-backup:
@@ -18,27 +15,34 @@ jobs:
       run: |
         docker pull komunitin/komunitin-accounting-db:latest
 
-    # Step 2: Start the restore process
-    - name: Start restore process
+    - name: Restore database from lastest backup
       run: |
-        echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/service-account-key.json
-        docker run --name accounting-db -d \
+        echo "${{ secrets.DB_TEST_GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/google-service-account-key.json
+        docker run -d \
+        --name db-accounting \
         -e POSTGRES_USER=postgres \
         -e POSTGRES_PASSWORD=postgres \
-        -e WALG_GS_PREFIX=gs://komunitin-backup/db-accounting \
-        -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account-key.json \
-        -v /tmp/service-account-key.json:/tmp/service-account-key.json:ro \
+        -e WALG_GS_PREFIX=${{ secrets.DB_TEST_GOOGLE_CLOUD_STORAGE_BUCKET }}/db-accounting \
+        -e GOOGLE_APPLICATION_CREDENTIALS=/opt/google-service-account-key.json \
+        -e WALG_COMPRESSION_METHOD=zstd \
+        -v /tmp/google-service-account-key.json:/opt/google-service-account-key.json:ro \
+        --user postgres \
+        --entrypoint /bin/bash \
         komunitin/komunitin-accounting-db:latest \
-        bash -c "wal-g backup-fetch /var/lib/postgresql/data LATEST \
-        && touch /var/lib/postgresql/data/recovery.signal \
-        && postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+        /usr/local/bin/restore_backup.sh
 
-    # Step 3: Run the container
     - name: Wait for the DB to start and restore.
       run: |
-        sleep 20
+        sleep 30
 
     # Step 4: Check that it got restored
-    - name: Verify database restoration
+    - name: Verify database restoration  
       run: |
-        docker exec accounting-db psql -U accounting -c "\l"
+        echo "Checking for recent transfers in the restored database..."
+        count=$(docker exec db-accounting psql -U postgres -d accounting -t A1 -c "SELECT COUNT(*) FROM \"Transfer\" WHERE created > NOW() - INTERVAL '24 hours';")
+        if [ "$count" -eq 0 ]; then
+          echo "ERROR: No recent transfers found in restored database"
+          exit 1
+        else
+          echo "SUCCESS: Database restoration verified with $count transfers in the last 24 hours"0
+        fi
