@@ -34,9 +34,6 @@ services:
     volumes:
       - ./notifications:/opt/notifications
   
-  db-accounting:
-    environment:
-      - WALG_GS_PREFIX=""
   accounting:
     command: pnpm dev
     ports:
