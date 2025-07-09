@@ -33,6 +33,7 @@ services:
       - "40000:40000"
     volumes:
       - ./notifications:/opt/notifications
+  
   accounting:
     command: pnpm dev
     ports:

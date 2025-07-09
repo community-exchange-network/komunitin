@@ -101,14 +101,17 @@ jobs:
     - name: Run tests
       run: pnpm test
 
-    - name: Build docker image
-      run: docker build --tag komunitin/komunitin-accounting .
+    - name: Build docker images
+      run: |
+        docker build --tag komunitin/komunitin-accounting .
+        docker build --tag komunitin/komunitin-db-accounting ./docker/db
     
     - name: Publish to Docker Hub
       if: github.ref == 'refs/heads/master'
       run: |
         docker login -u komunitin -p ${{ secrets.DOCKER_PASS }}
         docker push komunitin/komunitin-accounting
+        docker push komunitin/komunitin-db-accounting
 
   update-demo:
     runs-on: ubuntu-latest

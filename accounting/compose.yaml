@@ -12,6 +12,13 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: accounting
       POSTGRES_APP_PASSWORD: accounting
+  # Backup configuration
+  #   WALG_GS_PREFIX: gs://dev-komunitin-backup/db-accounting
+  #   WALG_COMPRESSION_METHOD: zstd
+  #   GOOGLE_APPLICATION_CREDENTIALS: "/opt/komunitin-project-backup-credentials.json"
+  #
+  # volumes:
+  #   - "./komunitin-project-backup-credentials.json:/opt/komunitin-project-backup-credentials.json:ro"
   stellar:
     image: stellar/quickstart
     container_name: stellar

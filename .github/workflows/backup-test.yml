@@ -1,0 +1,48 @@
+name: Test Backup with WAL-G
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *' # Runs daily at 4 AM UTC
+
+jobs:
+  test-backup:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Pull the db-accounting image from Docker Hub
+    - name: Pull db-accounting image
+      run: |
+        docker pull komunitin/komunitin-db-accounting:latest
+
+    - name: Restore database from lastest backup
+      run: |
+        echo "${{ secrets.DB_TEST_GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY }}" > /tmp/google-service-account-key.json
+        docker run -d \
+        --name db-accounting \
+        -e POSTGRES_USER=postgres \
+        -e POSTGRES_PASSWORD=postgres \
+        -e WALG_GS_PREFIX=${{ secrets.DB_TEST_GOOGLE_CLOUD_STORAGE_BUCKET }}/db-accounting \
+        -e GOOGLE_APPLICATION_CREDENTIALS=/opt/google-service-account-key.json \
+        -e WALG_COMPRESSION_METHOD=zstd \
+        -v /tmp/google-service-account-key.json:/opt/google-service-account-key.json:ro \
+        --user postgres \
+        --entrypoint /bin/bash \
+        komunitin/komunitin-db-accounting:latest \
+        /usr/local/bin/restore_backup.sh
+
+    - name: Wait for the DB to start and restore.
+      run: |
+        sleep 30
+
+    # Step 4: Check that it got restored
+    - name: Verify database restoration  
+      run: |
+        echo "Checking for recent transfers in the restored database..."
+        count=$(docker exec db-accounting psql -U postgres -d accounting -t A1 -c "SELECT COUNT(*) FROM \"Transfer\" WHERE created > NOW() - INTERVAL '24 hours';")
+        if [ "$count" -eq 0 ]; then
+          echo "ERROR: No recent transfers found in restored database"
+          exit 1
+        else
+          echo "SUCCESS: Database restoration verified with $count transfers in the last 24 hours"
+        fi
