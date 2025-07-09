@@ -68,12 +68,13 @@ else
 fi
 
 # restore_command is already set in the recovery.conf
+cp /etc/postgresql/recovery.conf /etc/postgresql/current_recovery.conf
 
 if [ -n "$PITR_TARGET" ]; then
     echo "Setting up point-in-time recovery target: $PITR_TARGET"
     # set the recovery_target_timeline postgres conf var
-    echo "recovery_target_time = '$PITR_TARGET'" >> /etc/postgresql/recovery.conf
-    echo "recovery_target_action = 'promote'" >> /etc/postgresql/recovery.conf
+    echo "recovery_target_time = '$PITR_TARGET'" >> /etc/postgresql/current_recovery.conf
+    echo "recovery_target_action = 'promote'" >> /etc/postgresql/current_recovery.conf
 fi
 
 # Create the recovery.signal file
@@ -81,5 +82,5 @@ touch /var/lib/postgresql/data/recovery.signal
 
 # Start PostgreSQL process
 echo "Starting PostgreSQL..."
-exec docker-entrypoint.sh postgres -c config_file=/etc/postgresql/recovery.conf
+exec docker-entrypoint.sh postgres -c config_file=/etc/postgresql/current_recovery.conf
 
