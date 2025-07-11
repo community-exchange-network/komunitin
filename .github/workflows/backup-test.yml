@@ -34,6 +34,9 @@ jobs:
     - name: Wait for the DB to start and restore.
       run: |
         sleep 30
+    - name: Print docker logs
+      run: |
+        docker logs db-accounting
 
     # Step 4: Check that it got restored
     - name: Verify database restoration  
