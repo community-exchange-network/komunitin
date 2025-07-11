@@ -1,6 +1,6 @@
 import { register } from "register-service-worker";
 import { Notify } from "quasar";
-import semver from "semver";
+import { major, minor } from "semver";
 import { clearPersistedData } from "src/store/persist";
 import { i18n } from "src/boot/i18n";
 
