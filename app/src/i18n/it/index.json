@@ -323,6 +323,8 @@
   "yearlyTransactions": "Transazioni annuali",
   "yearlyTransactionsText": "Numero di transazioni nell'ultimo anno",
   "serverStats": "Statistiche del sito",
+  "appUpdateAvailable": "È disponibile un aggiornamento dell'app",
+  "update": "Aggiorna",
 
   "ErrorUnknown": "Errore: Sconosciuto",
   "ErrorIncorrectRequest": "Errore: Richiesta non corretta",
