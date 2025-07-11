@@ -64,15 +64,17 @@ register(process.env.SERVICE_WORKER_FILE as string, {
         const newVersion = event.data.version as string;
 
         if (process.env.DEV) {
+          // eslint-disable-next-line no-console
           console.log(`Update available. Current: ${CURRENT_VERSION}, New: ${newVersion}`);
         }
 
         // A breaking change is when the major or minor version changes.
-        const isBreaking = semver.major(newVersion) > semver.major(CURRENT_VERSION) ||
-                           semver.minor(newVersion) > semver.minor(CURRENT_VERSION);
+        const isBreaking = major(newVersion) > major(CURRENT_VERSION) ||
+                           minor(newVersion) > minor(CURRENT_VERSION);
 
         if (isBreaking) {
           if (process.env.DEV) {
+            // eslint-disable-next-line no-console
             console.log("Breaking change detected. Prompting user.");
           }
           Notify.create({
@@ -84,6 +86,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
                 color: 'white',
                 handler: async () => {
                   if (process.env.DEV) {
+                    // eslint-disable-next-line no-console
                     console.log("User accepted update. Clearing data and activating new service worker.");
                   }
                   
@@ -91,6 +94,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
                   try {
                     await clearPersistedData();
                   } catch (e) {
+                    // eslint-disable-next-line no-console
                     console.error('Failed to clear persisted data:', e);
                     // Optional: notify user that cleanup failed but proceed anyway.
                   }
@@ -109,6 +113,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
           });
         } else {
           if (process.env.DEV) {
+            // eslint-disable-next-line no-console
             console.log("Non-breaking change detected. New version will be active on next refresh.");
           }
           // For non-breaking changes, we do nothing. The new service worker
