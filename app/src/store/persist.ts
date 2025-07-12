@@ -9,6 +9,8 @@ import { toRaw } from "vue"
  */
 const EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30 // 30 days.
 
+const DATABASE_NAME = "komunitin"
+
 /**
  * Iterate over all values in the storage and call the async callback function for each one. This
  * function does not wait for each iteration step to complete before starting the next one.
@@ -38,17 +40,26 @@ const iterateAsync = async (storage: LocalForage, callback: (value: unknown, key
 }
 
 /**
+ * Removes all data from the persistent storage.
+ * @param name The unique key for this database.
+ */
+export async function clearPersistedData() {
+  const name = DATABASE_NAME
+  await localForage.dropInstance({ name });
+  await localForage.dropInstance({ name: name + "_timestamps" });
+}
+
+/**
  * Automatically update the state into persistent storage in every commit and restore the
  * state when executing this function at init.
  * 
  * In order for this plugin to properly work, the commit name must be the same as the state 
  * property, except for some special commits: addResources, addResource, removeResource and setPageIds.
  * 
- * @param name The unique key for this database.
  * @returns Vuex plugin.
  */
-export default function createPersistPlugin<T>(name: string) {
-  
+export default function createPersistPlugin<T>() {
+  const name = DATABASE_NAME
   // Storage for actual values.
   const storage = localForage.createInstance({name})
   // Storage for timestamps of update time for values with the same key.

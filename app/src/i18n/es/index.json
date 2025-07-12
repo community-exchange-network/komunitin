@@ -352,6 +352,8 @@
   "yearlyTransactions": "Transacciones anuales",
   "yearlyTransactionsText": "Número de transacciones en el último año",
   "serverStats": "Estadísticas del sitio",
+  "appUpdateAvailable": "Hay una nueva versión de la aplicación disponible",
+  "update": "Actualizar",
 
   "ErrorAuthNoCredentials": "Email o password incorrectos",
   "ErrorInvalidPassword": "Contraseña incorrecta",

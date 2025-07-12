@@ -358,6 +358,8 @@
   "yearlyTransactions": "Yearly transactions",
   "yearlyTransactionsText": "Number of transactions in the last year",
   "serverStats": "Site statistics",
+  "appUpdateAvailable": "A new version of the app is available",
+  "update": "Update",
 
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",

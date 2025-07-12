@@ -130,17 +130,17 @@ module.exports = configure(function(ctx) {
           .plugin('statoscope-webpack-plugin')
           .use(StatoscopeWebpackPlugin, [{saveReportTo: "statoscope-report-[name]-[hash].html"}])
 
-        
-        
-
       },
       // Pass the current .env file to the build process in dev mode,
       // but don't pass it in production mode.
-      env: ctx.dev ? environment : undefined
+      env: {
+        ... (ctx.dev ? environment : {}),
+        APP_VERSION: JSON.stringify(process.env.npm_package_version)
+      }
     },
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer
-    // Only define the dev server when on dev mode, since otherwise we don't need to configure 
+    // Only define the dev server when on dev mode, since otherwise we don't need to configure
     // local certificates.
     devServer: ctx.dev ? {
       host: "0.0.0.0",

@@ -1,5 +1,5 @@
 // Workbox
-import { precacheAndRoute } from 'workbox-precaching'
+import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
 import { CacheFirst } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
@@ -13,14 +13,25 @@ import firebaseConfig from '../src/plugins/FirebaseConfig'
 import store from "../src/store"
 import { notificationBuilder } from './notifications'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// This version will be replaced by DefinePlugin at build time
+const SW_VERSION = process.env.APP_VERSION
 
-(self as any).skipWaiting()
-clientsClaim()
+// Add a listener for messages from the client (register-service-worker.ts).
+self.addEventListener('message', (event: any) => {
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: SW_VERSION })
+  }
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    // This command makes the service worker to take control of the current pages.
+    (self as any).skipWaiting()
+  }
+})
 
 // Precache generated manifest file.
 precacheAndRoute((self as any).__WB_MANIFEST)
 
+clientsClaim()
+cleanupOutdatedCaches()
 
 // JS and CSS and assets should be already precached so we don't need to do any
 // runtime caching.

@@ -142,7 +142,7 @@ export default createStore({
   },
   // enable strict mode (adds overhead!) for dev mode only
   strict: process.env.DEV === "true",
-  plugins: [createPersistPlugin("komunitin")]
+  plugins: [createPersistPlugin()]
 });
 
 export const setAccountingApiUrl = (url: string) => {
