@@ -1,4 +1,4 @@
-name: Test Backup with WAL-G
+name: Test Backup
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ jobs:
 
     - name: Restore database from lastest backup
       run: |
-        echo "${{ secrets.DB_TEST_GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY }}" > /tmp/google-service-account-key.json
+        printf "%s" '${{ secrets.DB_TEST_GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY }}' > /tmp/google-service-account-key.json
         docker run -d \
         --name db-accounting \
         -e POSTGRES_USER=postgres \
@@ -34,6 +34,9 @@ jobs:
     - name: Wait for the DB to start and restore.
       run: |
         sleep 30
+    - name: Print docker logs
+      run: |
+        docker logs db-accounting
 
     # Step 4: Check that it got restored
     - name: Verify database restoration  
