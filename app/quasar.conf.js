@@ -6,6 +6,8 @@ const ESLintPlugin = require("eslint-webpack-plugin")
 const { IgnorePlugin } = require("webpack")
 const { config } = require("dotenv")
 
+const version = process.env.npm_package_version || "0.0.0"
+console.info("Komunitin version:", version)
 // This is for development purposes only. It will load the .env file and make it available
 // so the process.env.ENV_VAR will be replaced at build time. For production, the environment
 // variables should be set in the server environment and are replaced via a bash script at
@@ -135,7 +137,7 @@ module.exports = configure(function(ctx) {
       // but don't pass it in production mode.
       env: {
         ... (ctx.dev ? environment : {}),
-        APP_VERSION: JSON.stringify(process.env.npm_package_version)
+        APP_VERSION: version
       }
     },
 
