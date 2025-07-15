@@ -5,7 +5,7 @@ import { clearPersistedData } from "src/store/persist";
 import { i18n } from "src/boot/i18n";
 
 // This is the version of the currently running application, set in build time from package.json.
-const CURRENT_VERSION = process.env.APP_VERSION || "0.0.0";
+const CURRENT_VERSION = process.env.APP_VERSION as string;
 
 // The ready(), registered(), cached(), updatefound() and updated()
 // events passes a ServiceWorkerRegistration instance in their arguments.
@@ -17,6 +17,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
 
   // registrationOptions: { scope: "./" },
 
+  
   async ready(/* registration */) {
     if (process.env.DEV) {
       // eslint-disable-next-line no-console
@@ -72,7 +73,8 @@ register(process.env.SERVICE_WORKER_FILE as string, {
         const isBreaking = major(newVersion) > major(CURRENT_VERSION) ||
                            minor(newVersion) > minor(CURRENT_VERSION);
 
-        if (isBreaking) {
+
+        if (!isBreaking || isBreaking) {
           if (process.env.DEV) {
             // eslint-disable-next-line no-console
             console.log("Breaking change detected. Prompting user.");
@@ -80,6 +82,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
           Notify.create({
             message: i18n.global.t('appUpdateAvailable'),
             timeout: 0, // persistent
+            type: 'info',
             actions: [
               {
                 label: i18n.global.t('update'),

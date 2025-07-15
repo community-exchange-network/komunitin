@@ -14,7 +14,8 @@
           <div>
             {{ $t('account') }}
           </div>
-          <div v-if="showBalances" 
+          <div 
+            v-if="showBalances" 
             class="text-right"
           >
             {{ $t('balance') }}
@@ -93,5 +94,6 @@ const search = (query: string) => {
     memberItems.value.fetchResources(query);
   }
 }
+
 
 </script>
