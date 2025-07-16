@@ -9,14 +9,18 @@ describe('Preauthorized transfers with NFC tags', async () => {
 
   await it('Create account tags', async () => {
     // Allow account 1 to have tags
-    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
+    const adminResponse = await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
       data: {
         attributes: {
           allowTagPayments: true,
         }
       }
     }, t.admin)
+
+    assert.equal(adminResponse.body.data.type, 'account-settings')
+    assert.equal(adminResponse.body.data.attributes.allowTagPayments, true)
     
+    // Create tags for account 1
     const response = await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
       data: {
         attributes: {

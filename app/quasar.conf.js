@@ -6,6 +6,8 @@ const ESLintPlugin = require("eslint-webpack-plugin")
 const { IgnorePlugin } = require("webpack")
 const { config } = require("dotenv")
 
+const version = process.env.npm_package_version || "0.0.0"
+console.info("Komunitin version:", version)
 // This is for development purposes only. It will load the .env file and make it available
 // so the process.env.ENV_VAR will be replaced at build time. For production, the environment
 // variables should be set in the server environment and are replaced via a bash script at
@@ -130,17 +132,17 @@ module.exports = configure(function(ctx) {
           .plugin('statoscope-webpack-plugin')
           .use(StatoscopeWebpackPlugin, [{saveReportTo: "statoscope-report-[name]-[hash].html"}])
 
-        
-        
-
       },
       // Pass the current .env file to the build process in dev mode,
       // but don't pass it in production mode.
-      env: ctx.dev ? environment : undefined
+      env: {
+        ... (ctx.dev ? environment : {}),
+        APP_VERSION: version
+      }
     },
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer
-    // Only define the dev server when on dev mode, since otherwise we don't need to configure 
+    // Only define the dev server when on dev mode, since otherwise we don't need to configure
     // local certificates.
     devServer: ctx.dev ? {
       host: "0.0.0.0",
@@ -150,7 +152,10 @@ module.exports = configure(function(ctx) {
         key: fs.readFileSync("./tmp/certs/localhost-key.pem"),
         cert: fs.readFileSync("./tmp/certs/localhost.pem"),
         ca: fs.readFileSync(process.env.LOCAL_CA_ROOT)
-      }
+      },
+      // Disable auto updating when checking PWA update process.
+      // hot: false,
+      // liveReload: false
     } : {},
 
     // animations: 'all', // --- includes all animations

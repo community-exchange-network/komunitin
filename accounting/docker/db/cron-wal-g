@@ -1,0 +1,5 @@
+# Set cron job to create full backup every day at 2:02 AM
+2 2 * * * postgres /usr/local/bin/create_backup.sh >> /var/log/wal-g.log 2>&1
+# Set cron job to delete old backups every day at 3:03 AM
+3 3 * * * postgres /usr/local/bin/clean_backups.sh >> /var/log/wal-g.log 2>&1
+

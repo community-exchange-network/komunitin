@@ -2,7 +2,7 @@ services:
   app:
     build:
       target: komunitin-app-build
-    command: npm run dev  
+    command: npm run dev
     ports:
       - "2030:2030"
     volumes:
@@ -14,9 +14,11 @@ services:
       - ./app/src:/app/src
       - ./app/src-pwa:/app/src-pwa
       - ./app/test:/app/test
+      - ./app/quasar.conf.js:/app/quasar.conf.js
       - ./app/.env:/app/.env
       - ./app/package.json:/app/package.json
       - ./app/package-lock.json:/app/package-lock.json
+      
 
     environment:
       MOCK_ENABLE: ${KOMUNITIN_APP_MOCK}
@@ -33,6 +35,7 @@ services:
       - "40000:40000"
     volumes:
       - ./notifications:/opt/notifications
+  
   accounting:
     command: pnpm dev
     ports:

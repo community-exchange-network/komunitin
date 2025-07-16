@@ -283,7 +283,7 @@
   "scanThisQR": "Scan il QR code in app per eseguire la transazione",
   "scanQRCode": "Scan il QR code della transazione",
   "nfcTags": " Tag NFC",
-  "nfcTagsText": "Converti qualsiasi tag NFT in un portafoglio digitale collegato al tuo account.",
+  "nfcTagsText": "Converti qualsiasi tag NFC in un portafoglio digitale collegato al tuo account.",
   "deleteNFCTagConfirmation": "Sei sicuro di voler eliminare il tag NFC con nome {name}?",
   "addTag": "Aggiungi tag",
   "editTag": "Modifica tag",
@@ -323,6 +323,8 @@
   "yearlyTransactions": "Transazioni annuali",
   "yearlyTransactionsText": "Numero di transazioni nell'ultimo anno",
   "serverStats": "Statistiche del sito",
+  "appUpdateAvailable": "È disponibile un aggiornamento dell'app",
+  "update": "Aggiorna",
 
   "ErrorUnknown": "Errore: Sconosciuto",
   "ErrorIncorrectRequest": "Errore: Richiesta non corretta",

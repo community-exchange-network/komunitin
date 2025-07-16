@@ -33,7 +33,9 @@ const props = withDefaults(defineProps<{
   interactive?: boolean
 }>(), {
   interactive: true,
-  marker: undefined
+  marker: undefined,
+  zoom: undefined,
+  bounds: undefined,
 })
 
 const { url, zoom: defaultZoom, markerIcon } = useLeafletSettings()

@@ -95,4 +95,5 @@ const search = (query: string) => {
   }
 }
 
+
 </script>
