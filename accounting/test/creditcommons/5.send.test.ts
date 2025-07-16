@@ -44,6 +44,15 @@ describe('send', async () => {
     assert.equal(eCurrency.attributes.code, 'EXTR')
     assert.equal(typeof eVostro.id, 'string')
 
+    // Configure both currencies to enable Credit Commons payments:
+    const currencySettings = {
+      attributes: {
+        enableCreditCommonsPayments: true,
+      }
+    }
+    await t.api.patch(`/TEST/currency/settings`, { data: currencySettings }, t.admin)
+    await t.api.patch(`/EXTR/currency/settings`, { data: currencySettings }, eAdminAuth)
+
     // Send a transaction:
     const transfer = {
       type: "transfers",

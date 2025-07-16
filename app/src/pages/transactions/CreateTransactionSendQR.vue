@@ -28,7 +28,7 @@
 import { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "src/store/model"
 import { computed, Ref, ref, watch } from "vue"
 import { useStore } from "vuex"
-import { transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
+import { ExtendedAccountWithSettings, transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
 import { QrcodeStream } from "vue-qrcode-reader"
 import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue"
 import KError, { KErrorCode } from "src/KError"
@@ -36,6 +36,7 @@ import { LoadByUrlPayload } from "src/store/resources"
 import { loadExternalAccountRelationships, useFullTransferByResource } from "src/composables/fullTransfer"
 import { useI18n } from "vue-i18n"
 import { convertCurrency } from "src/plugins/FormatCurrency"
+import { useAccountSettings } from "../../composables/accountSettings"
 
 type DetectedCode = {
   format: "qr_code" | string,
@@ -53,7 +54,7 @@ const myCurrency = computed(() => store.getters.myAccount.currency)
 
 const state = ref<"scan" | "confirm">("scan")
 
-const payerAccount = useCreateTransferPayerAccount(props.code, props.memberCode, "send") as Ref<Account>
+const payerAccount = useCreateTransferPayerAccount(props.code, props.memberCode, "send") as Ref<ExtendedAccountWithSettings>
 const payeeAccount = ref<Account|undefined>()
 
 const transfer = ref<ExtendedTransfer>()
@@ -89,29 +90,41 @@ const onPaymentUrl = async (paymentUrl: string) => {
     }
     const addresses = await result.json()
 
-    // TODO: Remove this !addresses.creditCommons to give preference to Komunitin addresses.
-    if (!addresses.creditCommons && addresses.komunitin) {
+    if (addresses.komunitin) {
       await store.dispatch("accounts/load", {
         url: addresses.komunitin,
       } as LoadByUrlPayload)
-      
       payeeAccount.value = store.getters["accounts/current"]
+
       if (!payeeAccount.value) {
         throw new KError(KErrorCode.QRCodeError, "Payee account not found")
       }
+    }
 
-      if (payeeAccount.value.relationships.currency.data.id !== myCurrency.value.id) {
-        // Payee is external. Load currency.
-        // Note that the useFullTransferByResource already calls this function so probably there's a more 
-        // elegant way to accomplish the same with just one call.
+    const isLocalPayee = payeeAccount.value && payeeAccount.value.relationships.currency.data.id === myCurrency.value.id
+    // If this is a local transfer, then we're done. Otherwise, check the best way to build the 
+    // transfer depending on what our account and their account supports. Note that this could
+    // maybe be better done at the server side.
+    if (!isLocalPayee) {
+      // Check that the local account allows external payments.
+      const payerSettings = useAccountSettings(payerAccount)
+      if (!payerSettings.value?.allowExternalPayments) {
+        payeeAccount.value = undefined
+        throw new KError(KErrorCode.ExternalPaymentNotAllowed, "Your account does not allow external payments")
+      }
+
+      // Now choose whether to use Komunitin or Credit Commons.
+      const {enableExternalPayments, enableCreditCommonsPayments} = payerAccount.value.currency.settings.attributes
+      if (payeeAccount.value && enableExternalPayments) {
+        // Use komunitin external payment.
         await loadExternalAccountRelationships(payeeAccount.value, store)
         localAmount = convertCurrency(localAmount, (payeeAccount.value as ExtendedAccount).currency, myCurrency.value)
-      }
-    } else if (addresses.creditCommons) {
-      payeeAccount.value = undefined
-      // TODO: Quote the currency conversion rate. Assuming it is 1 to 1.
-      meta.creditCommons = {
-        payeeAddress: addresses.creditCommons
+      } else if (enableCreditCommonsPayments) {
+        payeeAccount.value = undefined
+        meta.creditCommons = {
+          payeeAddress: addresses.creditCommons
+        }
+        // TODO: Quote the currency conversion rate. Assuming it is 1 to 1.
       }
     }
     

@@ -43,6 +43,7 @@ export enum KErrorCode {
   QRCodeError = "QRCodeError",
   NFCReadError = "NFCReadError",
   NFCUnavailable = "NFCUnavailable",
+  ExternalPaymentNotAllowed = "ExternalPaymentNotAllowed",
   /**
    * This condition should not happen and it indicates a programming bug
    * that needs to be solved by the development team. Use it to assert complex

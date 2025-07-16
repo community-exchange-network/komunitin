@@ -121,6 +121,11 @@
       :hint="$t('enableExternalPaymentRequestsHint')"
     />
     <toggle-item
+      v-model="enableCreditCommonsPayments"
+      :label="$t('enableCreditCommonsPayments')"
+      :hint="$t('enableCreditCommonsPaymentsHint')"
+    />
+    <toggle-item
       v-model="allowAnonymousMemberList"
       :label="$t('allowAnonymousMemberList')"
       :hint="$t('allowAnonymousMemberListHint')"
@@ -290,8 +295,9 @@ const defaultInitialCreditLimit = ref(vals.defaultInitialCreditLimit ?? 0)
 const defaultInitialMaximumBalance = ref(vals.defaultInitialMaximumBalance ?? 0)
 const enableExternalPayments = ref(vals.enableExternalPayments ?? false)
 const enableExternalPaymentRequests = ref(vals.enableExternalPaymentRequests ?? false)
+const enableCreditCommonsPayments = ref(vals.enableCreditCommonsPayments ?? false)
 
-watchDebounced([accountSettings, defaultInitialCreditLimit, defaultInitialMaximumBalance, enableExternalPayments, enableExternalPaymentRequests], () => {
+watchDebounced([accountSettings, defaultInitialCreditLimit, defaultInitialMaximumBalance, enableExternalPayments, enableExternalPaymentRequests, enableCreditCommonsPayments], () => {
   lastCurrencySettingsUpdate.value = "settings"
 
   const accountDefaults = accountSettingsToCurrencySettingsAttributes(accountSettings.value)
@@ -302,6 +308,7 @@ watchDebounced([accountSettings, defaultInitialCreditLimit, defaultInitialMaximu
     defaultInitialMaximumBalance: defaultInitialMaximumBalance.value,
     enableExternalPayments: enableExternalPayments.value,
     enableExternalPaymentRequests: enableExternalPaymentRequests.value,
+    enableCreditCommonsPayments: enableCreditCommonsPayments.value,
   }
 
   emit('update:currency-settings', {
