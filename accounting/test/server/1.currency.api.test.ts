@@ -82,23 +82,23 @@ describe('Currencies endpoints', async () => {
     assert.equal(settings.attributes.defaultInitialCreditLimit, 0)
   })
 
-  it('repeated code', async () => badPost({code: "TES1"}))
-  it('incorrect code', async () => badPost({code: "EUR", rate: undefined}))
-  it('missing rate', async () => badPost({code: "ERRO", rate: undefined}))
-  it('incorrect div by zero rate', async () => badPost({code: "ERRO", rate: {n: 1, d: 0}}))
-  it('incorrect zero rate', async () => badPost({code: "ERRO", rate: {n: 0, d: 1}}))
-  it('incorrect negative rate', async () => badPost({code: "ERRO", rate: {n: -1, d: 1}}))
+  await it('repeated code', async () => badPost({code: "TES1"}))
+  await it('incorrect code', async () => badPost({code: "EUR", rate: undefined}))
+  await it('missing rate', async () => badPost({code: "ERRO", rate: undefined}))
+  await it('incorrect div by zero rate', async () => badPost({code: "ERRO", rate: {n: 1, d: 0}}))
+  await it('incorrect zero rate', async () => badPost({code: "ERRO", rate: {n: 0, d: 1}}))
+  await it('incorrect negative rate', async () => badPost({code: "ERRO", rate: {n: -1, d: 1}}))
   
   // Only logged in users with komunitin_accounting scope can create currencies.
-  it('unauthorized create', async () => {
+  await it('unauthorized create', async () => {
     await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), undefined, 401)
   })
-  it('missing scope create', async () => {
+  await it('missing scope create', async () => {
     await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), {user: "400", scopes: []}, 403)
   })
 
   // public endpoint
-  it('list currencies', async () => {
+  await it('list currencies', async () => {
     const response = await t.api.get('/currencies')
     assert(Array.isArray(response.body.data))
     assert.equal(response.body.data.length,2)
@@ -107,12 +107,12 @@ describe('Currencies endpoints', async () => {
   })
   
   // public endpoint
-  it('get currency', async () => {
+  await it('get currency', async () => {
     const response = await t.api.get('/TES1/currency')
     assert.equal(response.body.data.attributes.code, 'TES1')
   })
   
-  it('not found currency', async () => {
+  await it('not found currency', async () => {
     await t.api.get('/ERRO/currency', undefined, 404)
   })
 
@@ -126,7 +126,7 @@ describe('Currencies endpoints', async () => {
     assert.equal(response.body.data.attributes.name, 'Testy2')
     assert.equal(response.body.data.attributes.namePlural, 'Testies2')
   })
-  it('can update currency settings', async () => {
+  await it('can update currency settings', async () => {
     const response = await t.api.patch('/TES2/currency/settings', {data: {
       attributes: {
         defaultInitialCreditLimit: 2000
@@ -135,7 +135,7 @@ describe('Currencies endpoints', async () => {
     assert.equal(response.body.data.attributes.defaultInitialCreditLimit, 2000)
   })
   
-  it('can update all currency settings', async () => {
+  await it('can update all currency settings', async () => {
     const response = await t.api.patch('/TES2/currency/settings', {data: {
       attributes: {
         defaultInitialCreditLimit: 2500,
@@ -169,7 +169,7 @@ describe('Currencies endpoints', async () => {
 
   })
 
-  it.todo('can update external trader settings', async () => {
+  await it.todo('can update external trader settings', async () => {
     const response = await t.api.patch('/TES2/currency/settings', {data: {
       attributes: {
         externalTraderCreditLimit: 25000,
@@ -180,17 +180,17 @@ describe('Currencies endpoints', async () => {
     assert.equal(response.body.data.attributes.externalTraderMaximumBalance, 25000)
   })
 
-  it('currency code cant be updated', async () => {
+  await it('currency code cant be updated', async () => {
     await t.api.patch('/TES2/currency', {data: { attributes: { code: "ERRO" } }}, admin2, 400)
   })
-  it('curency id cant be updated', async () => {
+  await it('curency id cant be updated', async () => {
     await t.api.patch('/TES2/currency', {data: { id: "change-id" }}, admin2, 400)
   })
-  it('forbidden update', async () => {
+  await it('forbidden update', async () => {
     await t.api.patch('/TES2/currency', {data: { attributes: { name: "Error" } }}, admin1, 403)
     await t.api.patch('/TES2/currency/settings', {data: { attributes: { defaultInitialCreditLimit: 1234 } }}, admin1, 403)
   })
-  it('unauthenticated update', async () => {
+  await it('unauthenticated update', async () => {
     await t.api.patch('/TES2/currency', {data: { attributes: { name: "Error" } }}, undefined, 401)
     await t.api.patch('/TES2/currency/settings', {data: { attributes: { defaultInitialCreditLimit: 1234 } }}, undefined, 401)
   })
