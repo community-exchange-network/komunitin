@@ -96,11 +96,13 @@ docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/dru
 ./accounting/cli/trust.sh "riemann@komunitin.org" "komunitin" "NET1" "NET2" 100
 ./accounting/cli/trust.sh "fermat@komunitin.org" "komunitin" "NET2" "NET1" 1000
 
-# Create Credit commons node
-./accounting/cli/create_credit_commons_node.sh "riemann@komunitin.org" "komunitin" "NET1" "http://cc"
-./accounting/cli/create_credit_commons_node.sh "fermat@komunitin.org" "komunitin" "NET2" "http://cc"
+  if [ "$dev" = true]; then
+    # Create Credit commons node
+    ./accounting/cli/create_credit_commons_node.sh "riemann@komunitin.org" "komunitin" "NET1" "http://cc"
+    ./accounting/cli/create_credit_commons_node.sh "fermat@komunitin.org" "komunitin" "NET2" "http://cc"
 
-# Start the database on the CC server
-docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
+    # Start the database on the CC server
+    docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
+  fi
 
 fi
