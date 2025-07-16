@@ -69,11 +69,11 @@ function formatCurrencyAmount(amount: number, currencyOptions: {scale: number, d
   }
 
   let amountString = doDecimals
-  ? n(amount, {
-    minimumFractionDigits: currencyOptions.decimals,
-    maximumFractionDigits: currencyOptions.decimals,
-  })
-  : n(amount);
+    ? n(amount, {
+      minimumFractionDigits: currencyOptions.decimals,
+      maximumFractionDigits: currencyOptions.decimals,
+    })
+    : n(amount);
 
   if (doSymbol) {
     const sampleCurrency = n(1, {style: 'currency', currency: 'USD'})
