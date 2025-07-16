@@ -3,7 +3,7 @@ import { v4 as uuid } from "uuid"
 import { AbstractCurrencyController } from "../controller/abstract-currency-controller"
 import { Context } from "../utils/context"
 import { CreditCommonsNode, CreditCommonsTransaction, CreditCommonsEntry } from "../model/creditCommons"
-import { badRequest, notImplemented, unauthorized, noTrustPath, notFound } from "src/utils/error"
+import { badRequest, notImplemented, unauthorized, noTrustPath, notFound, forbidden } from "src/utils/error"
 import { FullTransfer, InputTransfer, TransferMeta } from "src/model/transfer"
 import { systemContext } from "src/utils/context"
 import { Transfer } from "src/model"
@@ -416,6 +416,11 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
   async createCreditCommonsTransfer(ctx: Context, data: InputTransfer): Promise<FullTransfer> {
     // Only users with accounts in this currency can create transfers.
     const user = await this.users().checkUser(ctx)
+
+    // Check currency settings.
+    if (!this.currency().settings.enableCreditCommonsPayments) {
+      throw forbidden('Credit Commons payments are not enabled for this currency.')
+    }
 
     // Get the destination address.
     const ccPayeeAddress = data.meta?.creditCommons?.payeeAddress

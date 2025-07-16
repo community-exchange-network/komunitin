@@ -67,14 +67,6 @@ export type CurrencySettings = {
    */
   defaultOnPaymentCreditLimit?: number
   /**
-   * Whether this currency supports external payments.
-   */
-  enableExternalPayments?: boolean
-  /**
-   * Whether this currency supports external payment requests.
-   */
-  enableExternalPaymentRequests?: boolean
-  /**
    * Users can make external payments by default.
    */
   defaultAllowExternalPayments?: boolean
@@ -86,6 +78,18 @@ export type CurrencySettings = {
    * Default accept external payments automatically
    */
   defaultAcceptExternalPaymentsAutomatically?: boolean
+  /**
+   * Whether this currency supports Komunitin external payments.
+   */
+  enableExternalPayments?: boolean
+  /**
+   * Whether this currency supports Komunitin external payment requests.
+   */
+  enableExternalPaymentRequests?: boolean
+  /**
+   * Whether this currency supports creating and receiving payments through Credit Commons protocol.
+   */
+  enableCreditCommonsPayments?: boolean
   /**
    * The credit limit in local currency that the external trader account will have.
    */
