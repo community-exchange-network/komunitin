@@ -92,8 +92,7 @@ Komunitin's Credit Commons API is a recent addition, it's not complete, and ther
 * The only [CC workflow](https://gitlab.com/credit-commons/cc-node/-/blob/0.9.x/doc/developers.md?ref_type=heads#workflow) that is currently supported is `_C-`, meaning the payer sends money and it completes immediately (just a POST, no PATCH).
 * In the future we also want to implement `_P+PC-` meaning the payee sends a payment request over Credit Commons with a POST, and the payer approves it with a PATCH.
 * Transactions from the UI are only supported using the QR code workflow.
-* [FIXME](https://github.com/community-exchange-network/komunitin/blob/0fb7c66bf16954b894e5d6e64712b31a15ef1f6c/app/src/pages/transactions/CreateTransactionSendQR.vue#L92) and even that will stop working!
-* There is quite some manual setup required from currency admins.
+* There is quite some manual setup required from currency admins to be done through direct API calls.
 * This functionality has so far only been tested in testing and development environments, enabling it in production is not yet recommended.
 * The current implementation waits for Stellar to commit the transaction, which [may not be the best design](https://github.com/komunitin/komunitin/pull/367#discussion_r2032891494).
 * When interpreting the amount from a payment request QR code, the GUI incorrectly assumes a 1:1 conversion rate from the receiver's currency to the sender's local currency.
@@ -106,12 +105,14 @@ cp .env.template .env
 ```
 
 ### Sending a transaction from Komunitin
-1. Log in to https://localhost:2030 (notice it's https, not http, and tell your browser to accept the self-signed cert) as `euclides@komunitin.org` / `komunitin`
-2. Go to transactions -> receive -> QR, and generate a QR code for a value of more than 1 (to cover the transaction fee) but less than 19 (so that Noether's balance is enough).
-3. With your phone, make a photo of your laptop screen (no need to scan the QR code with your phone, just take a photo of it).
-4. Log out (top left dropdown)
-5. Log in as `noether@komunitin.org` / `komunitin`, go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
-6. Click 'Confirm', and the payment should go through, via Credit Commons.
+1. Log in to https://localhost:2030 (notice it's https, not http, and tell your browser to accept the self-signed cert) as `fermat@komunitin.org` / `komunitin` (NET2 admin)
+2. Go to Group Settings -> External Payments, enable the "Enable Credit Commons payments" option and disable the "Enable External Payments" option.
+3. Log out (top left dropdown)
+4. Log in with `euclides@komunitin.org` / `komunitin` (NET1 user), go to transactions -> receive -> QR, and generate a QR code for a value of more than 1 (to cover the transaction fee) but less than 19 (so that Noether's balance is enough).
+5. With your phone, make a photo of your laptop screen (no need to scan the QR code with your phone, just take a photo of it).
+6. Log out (top left dropdown)
+7. Log in as `noether@komunitin.org` / `komunitin` (NET2 user), go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
+8. Click 'Confirm', and the payment should go through, via Credit Commons.
 
 ### Connecting with docker exec
 You can interact with the various containers and databases through docker, here is a little cheat sheet with some oneliners that might be useful for that:
