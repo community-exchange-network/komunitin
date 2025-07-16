@@ -1,7 +1,7 @@
 
 import { InvalidTokenError, auth as authJwt, scopeIncludesAny } from "express-oauth2-jwt-bearer"
 import { config } from "../config"
-import { NextFunction,Request, Response } from "express"
+import { NextFunction, Request, Response } from "express"
 import { fixUrl } from "src/utils/net"
 import { logger } from "src/utils/logger"
 import { unauthorized } from "src/utils/error"
@@ -86,10 +86,36 @@ export const anyAuth = (auth1: Middleware, auth2: Middleware) => {
 /**
  * Middleware that allows any request without authentication. 
  * 
- * It does nothig but it helps flag the routes that do not require authentication.
+ * It does nothing but it helps flag the routes that do not require authentication.
  * */
 export const noAuth = () => (req: Request, res: Response, next: NextFunction) => {
   next()
+}
+
+/**
+ * Check the cc-node and last-hash headers against the database, following
+ * https://credit-commons.gitlab.io/credit-commons-documentation/#core-concepts
+ * */
+export const lastHashAuth = () => (req: Request, res: Response, next: NextFunction) => {
+  const peerNodePath = req.header("cc-node")
+  if (!peerNodePath) {
+    return next(unauthorized("cc-node header is required."))
+  }
+  const lastHash = req.header("last-hash")
+  if (!lastHash) {
+    return next(unauthorized("last-hash header is required."))
+  }
+  // Using this auth object so the result is compatible with the other (JWT-based) authentication methods
+  req.auth = {
+    header: undefined as any,
+    token: undefined as any,
+    payload: {
+      type: 'last-hash',
+      peerNodePath,
+      lastHash,
+    }
+  }
+  return next()
 }
 
 const handleAuthRequest = (scopes: Scope|Scope[]|undefined, req: Request, res: Response, next: NextFunction) => {

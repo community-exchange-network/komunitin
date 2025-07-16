@@ -1,17 +1,17 @@
 import { MaybeRefOrGetter, toValue } from "@vueuse/core"
-import { Account, Currency, ExtendedAccount, RelatedResource } from "src/store/model"
+import { Account, AccountSettings, Currency, CurrencySettings, ExtendedAccount, RelatedResource } from "src/store/model"
 import { ref, watchEffect } from "vue"
 import { useStore } from "vuex"
+import { LoadByUrlPayload } from "../store/resources"
 
-export const useFullAccountByMemberCode = (groupCode: MaybeRefOrGetter<string>, memberCode: MaybeRefOrGetter<string|undefined>, options?: {
-  cache?: boolean
-}) => {
+export type ExtendedAccountWithSettings = ExtendedAccount & { settings: AccountSettings, currency: Currency & { settings: CurrencySettings } }
+
+const useFullAccountByMemberCode = (groupCode: MaybeRefOrGetter<string>, memberCode: MaybeRefOrGetter<string|undefined>) => {
+  
   const store = useStore()
+  const account = ref<ExtendedAccountWithSettings>()
 
-  const account = ref<ExtendedAccount>()
-  const ready = ref(false)
-
-  const fetchAccount = async () => {
+  watchEffect(async () => {
     const memberCodeStr = toValue(memberCode)
     const groupCodeStr = toValue(groupCode)
 
@@ -23,10 +23,7 @@ export const useFullAccountByMemberCode = (groupCode: MaybeRefOrGetter<string>, 
     const member = account.value = store.getters["members/find"]({code: memberCodeStr})
     if (member && member.group && member.account) {
       account.value = member.account
-      ready.value = true
-      return
-    }
-    if (!options?.cache || !member || !member.group || !member.account) {
+    } else if (!member || !member.group || !member.account) {
       // Load account from server
       await store.dispatch("members/load", {
         code: memberCodeStr,
@@ -34,36 +31,49 @@ export const useFullAccountByMemberCode = (groupCode: MaybeRefOrGetter<string>, 
         include: "account,group",
       })
       account.value = store.getters["members/find"]({code: memberCodeStr}).account
-      ready.value = true
     }
-  }
+    // Load account settings
+    if (account.value && !account.value.settings) {
+      await store.dispatch("account-settings/load", {
+        url: account.value.relationships.settings?.links.related
+      } as LoadByUrlPayload)
+    }
+    // We don't really need to fetch the currency and currency settings here because
+    // they are always the local currency which is already loaded.
 
-  watchEffect(fetchAccount)
+  })
 
-  return {
-    account,
-    ready
-  }
+  return account
 }
 
 const useCreateTransferAccount = (groupCode: string, memberCode: string|undefined, direction: "send"|"receive"|"transfer", checkDirection: "send"|"receive") => {
   if (direction === checkDirection) {
     if (memberCode) {
-      const {account} = useFullAccountByMemberCode(groupCode, memberCode, {cache: true})
+      const account = useFullAccountByMemberCode(groupCode, memberCode)
       return account
     } else {
       const store = useStore()
-      return ref<ExtendedAccount>(store.getters.myAccount)
+      return ref<ExtendedAccountWithSettings>(store.getters.myAccount)
     }
   } else {
-    return ref<ExtendedAccount>()
+    return ref<ExtendedAccountWithSettings>()
   }
 }
 
+/**
+ * Get the implicit payer account in a transfer operation. It returns an undefined reference if
+ * there is no such account. Specifically, if the direction is "receive" or "transfer", since there
+ * is no implicit payer (needs to be selected by the user), this function will return an undefined
+ * reference. If otherwise the direction is "send", it will return the account specified by the codes
+ * provided or the current user's account if no member code is provided.
+ */
 export const useCreateTransferPayerAccount = (groupCode: string, memberCode: string|undefined, direction: "send"|"receive"|"transfer") => {
   return useCreateTransferAccount(groupCode, memberCode, direction, "send")
 }
-
+/**
+ * Get the implicit payer account in a transfer operation.
+ * { @see useCreateTransferPayerAccount }
+ */
 export const useCreateTransferPayeeAccount = (groupCode: string, memberCode: string|undefined, direction: "send"|"receive"|"transfer") => {
   return useCreateTransferAccount(groupCode, memberCode, direction, "receive")
 }
@@ -86,6 +96,7 @@ export const transferAccountRelationships = (payer: Account|undefined, payee: Ac
   const relationships = {
     ...(payer ? { payer: accountRelationship(payer)} : {}),
     ...(payee ? { payee: accountRelationship(payee)} : {}),
+    
   }
   return relationships
 }

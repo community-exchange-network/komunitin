@@ -51,6 +51,16 @@ services:
       - ./accounting/package.json:/app/package.json
       - ./accounting/pnpm-lock.yaml:/app/pnpm-lock.yaml
 
+  cc:
+    build:
+      context: ./accounting/cc
+    ports:
+      - "2024:80"
+    extra_hosts:
+      - "twig.cc-server:127.0.0.1"
+      - "branch.cc-server:127.0.0.1"
+      - "trunk.cc-server:127.0.0.1"
+      - "branch2.cc-server:127.0.0.1"
 
   phpmyadmin:
     image: phpmyadmin

@@ -291,7 +291,7 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.text().includes("Scan the transfer QR code"))
     
     await (wrapper.getComponent(CreateTransactionSendQR) as any)
-      .vm.onDetect([{rawValue: "http://localhost:8080/pay?t=http://localhost:8080/accounting/GRP0/accounts/231baf7c-6231-46c1-9046-23da58abb09a&m=Test%20QR%20description&a=120000"}])
+      .vm.onDetect([{rawValue: "http://localhost:8080/pay?c=http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a&m=Test%20QR%20description&a=120000"}])
     await waitFor(() => wrapper.text().includes("$-12.00"))
     expect(wrapper.text()).toContain("Test QR description")
     expect(wrapper.text()).toContain("GRP00004")
@@ -301,7 +301,7 @@ describe("Transactions", () => {
   })
 
   it('Payment link', async () => {
-    await wrapper.vm.$router.push("/pay?t=http://localhost:8080/accounting/GRP0/accounts/231baf7c-6231-46c1-9046-23da58abb09a&m=Test%20QR%20link&a=135000")
+    await wrapper.vm.$router.push("/pay?c=http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a&m=Test%20QR%20link&a=135000")
     await waitFor(() => wrapper.text().includes("$-13.50"))
     expect(wrapper.text()).toContain("Test QR link")
     expect(wrapper.text()).toContain("GRP00004")

@@ -17,13 +17,20 @@ export function norl(url: string) {
   return norm
 }
 
-export type AuthInfo = {user: string|null, scopes: Scope[], audience?: string}
+export type AuthInfo = {user: string|null, scopes: Scope[], audience?: string, ccNode?: string, lastHash?: string}
 export function client(app: Express) {
   const completeRequest = async (req: Request, auth?: AuthInfo, status: number = 200) => {
     if (auth && typeof auth === "object") {
       const access = await token(auth.user, auth.scopes, auth.audience)
       req.set('Authorization', `Bearer ${access}`)
+      if (auth.ccNode) {
+        req.set('cc-node', auth.ccNode)
+      }
+      if (typeof auth.lastHash !== 'undefined') {
+        req.set('last-hash', auth.lastHash)
+      }
     }
+
     const response = (await req) as Response
     assert.equal(response.status, status, response.body.errors?.[0]?.detail ?? response.status)
     assert(response.header['content-type'].startsWith("application/vnd.api+json"), "Incorrect content type")

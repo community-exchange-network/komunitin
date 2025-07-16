@@ -400,12 +400,16 @@ export interface AccountSettings extends ResourceObject {
 }
 
 export type TransferState = "new" | "pending" | "accepted" | "committed" | "rejected" | "failed" | "deleted"
-export type AnyJson = string | number | boolean | null | { [key: string]: AnyJson } | AnyJson[];
+export type AnyJson = string | number | boolean | null | undefined | { [key: string]: AnyJson } | AnyJson[];
 
 export type TransferMeta = {
   description: string;
-  [key: string]: AnyJson;
-};
+  creditCommons?: {
+    payeeAddress?: string
+    payerAddress?: string;
+  };
+  [key: string]: AnyJson
+}
 
 export interface Transfer extends ResourceObject {
   attributes: {
@@ -525,11 +529,12 @@ export interface CurrencySettings extends ResourceObject {
     defaultAllowTagPaymentRequests: boolean;
     defaultAcceptPaymentsAfter: number | false
     defaultOnPaymentCreditLimit: number | false
-    enableExternalPayments: boolean
-    enableExternalPaymentRequests: boolean
     defaultAllowExternalPayments: boolean
     defaultAllowExternalPaymentRequests: boolean
     defaultAcceptExternalPaymentsAutomatically: boolean
+    enableExternalPayments: boolean
+    enableExternalPaymentRequests: boolean
+    enableCreditCommonsPayments: boolean
     externalTraderCreditLimit: number
     externalTraderMaximumBalance: number | false
     defaultHideBalance: boolean

@@ -98,7 +98,7 @@ export function currencyCollectionHandler<T extends Dictionary<any>>(controller:
   }, status)
 }
 
-type CurrencyInputHandler<T,D> = ((controller: CurrencyController, context: Context, data: D) => Promise<T>)
+export type CurrencyInputHandler<T,D> = ((controller: CurrencyController, context: Context, data: D) => Promise<T>)
 type CurrencyInputHandlerMultiple<T,D> = ((controller: CurrencyController, context: Context, data: D|D[]) => Promise<T|T[]>)
 /**
  * Helper for route handlers that require input data.

@@ -255,6 +255,7 @@ export class LedgerController implements BaseController {
 
       enableExternalPayments: true,
       enableExternalPaymentRequests: false,
+      enableCreditCommonsPayments: false,
       defaultAllowExternalPayments: true,
       defaultAllowExternalPaymentRequests: false,
       defaultAcceptExternalPaymentsAutomatically: false,

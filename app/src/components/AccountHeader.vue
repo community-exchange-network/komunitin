@@ -37,46 +37,85 @@ import { useStore } from "vuex"
 import { computed } from "vue"
 
 const props = defineProps<{
-  account: Account & { 
+  /**
+   * The account to show. If undefined, then you must pass an address.
+   */
+  account?: Account & { 
     member?: Member & {group?: Group},
     currency?: Currency & {group?: Group}
   },
+  /**
+   * In case of a credit commons account, the address to show.
+   * If this is defined, the `account` prop is ignored.
+   */
+  address?: string,
+  /**
+   * If defined, the link to navigate to when clicking on the item.
+   * If not defined, it will use the account's member url (if exists).
+   */
   to?: string
 }>()
 const store = useStore()
 const myGroup = computed<Group>(() => store.getters.myMember.group)
 
-const isLocal = computed(() => props.account.member?.group?.id == myGroup.value.id)
-const hasMember = computed(() => !!props.account.member)
+const isLocal = computed(() => props.account?.member?.group?.id == myGroup.value.id)
+
+const addressLeaf = computed(() => {
+  return props.address?.split("/").pop()
+})
 
 const link = computed(() => {
   if (props.to !== undefined) {
     return props.to
   } else if (isLocal.value) {
-    return `/groups/${myGroup.value.attributes.code}/members/${props.account.member?.attributes.code}`
+    return `/groups/${myGroup.value.attributes.code}/members/${props.account?.member?.attributes.code}`
   } else {
     return ""
   }
 })
 
-const avatarImage = computed(() => hasMember.value 
-  ? props.account.member?.attributes.image 
-  : props.account.currency?.group?.attributes.image
-)
+const avatarImage = computed(() => {
+  if (props.address) {
+    return undefined
+  } else if (props.account?.member) {
+    return props.account.member.attributes.image
+  } else if (props.account?.currency?.group) {
+    return props.account.currency.group.attributes.image
+  }
+  return undefined  
+})
 
-const avatarText = computed(() => hasMember.value 
-  ? props.account.member?.attributes.name 
-  : props.account.attributes.code
-)
+const avatarText = computed(() => { 
+  if (addressLeaf.value) {
+    return addressLeaf.value
+  } else if (props.account?.member) {
+    return props.account.member.attributes.name as string
+  } else if (props.account) {
+    return props.account.attributes.code
+  }
+  return ""
+})
 
-const primaryText = computed(() => hasMember.value 
-  ? props.account.member?.attributes.name 
-  : (props.account.currency?.group?.attributes.name ?? props.account.attributes.code)
-)
+const primaryText = computed(() => { 
+  if (addressLeaf.value) {
+    return addressLeaf.value
+  } else if (props.account?.member) {
+    return props.account.member.attributes.name as string
+  } else if (props.account?.currency?.group) {
+    return props.account.currency.group.attributes.name
+  } else if (props.account) {
+    return props.account.attributes.code
+  }
+  return ""
+})
 
-const secondaryText = computed(() => primaryText.value !== props.account.attributes.code
-  ? props.account.attributes.code
-  : ""
-)
+const secondaryText = computed(() => {
+  if (props.address) {
+    return props.address.split("/").slice(0, -1).join("/")
+  } else if (props.account && primaryText.value !== props.account.attributes.code) {
+    return props.account.attributes.code
+  }
+  return ""
+})
 
 </script>

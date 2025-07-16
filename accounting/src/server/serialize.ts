@@ -12,7 +12,7 @@ import { Stats } from 'src/model/stats';
 }
 
 */
-const projection = <T>(fields: (keyof T)[]) => {
+export const projection = <T>(fields: (keyof T)[]) => {
   return Object.fromEntries(fields.map(field => [field, 1]))
 }
 

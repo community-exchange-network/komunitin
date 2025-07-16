@@ -114,7 +114,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     if (externalPayee.resource.key !== ctx.accountKey) {
       throw forbidden(`The logged in external user key ${ctx.accountKey} does not match the payee key ${externalPayee.resource.key}`)
     }
-    // Create the transfer record with new state.
+    // Create the transfer record with state = "new".
     const transfer = await this.transfers().createTransferRecord(data, payer, this.currency().externalAccount, this.currency().admin)
     transfer.externalPayee = externalPayee
     

@@ -94,11 +94,12 @@ export default {
       defaultAllowTagPaymentRequests: true,
       defaultAcceptPaymentsAfter: 2*7*24*60*60,
       defaultOnPaymentCreditLimit: undefined,
-      enableExternalPayments: true,
-      enableExternalPaymentRequests: (i: number) => (i < 3),
       defaultAllowExternalPayments: true,
       defaultAllowExternalPaymentRequests: true,
       defaultAcceptExternalPaymentsAutomatically: false,
+      enableExternalPayments: true,
+      enableExternalPaymentRequests: (i: number) => (i < 3),
+      enableCreditCommonsPayments: false,
       externalTraderCreditLimit: 1000000,
       externalTraderMaximumBalance: 1000000
     }),
@@ -412,6 +413,14 @@ export default {
           values
         }
       }}
+    })
+
+    server.get(`${urlAccounting}/:currency/cc/addresses/:id`, (schema: any, request: any) => {
+      const id = request.params.id
+      const currency = request.params.currency
+      return {
+        komunitin: `${urlAccounting}/${currency}/accounts/${id}`,
+      }
     })
   }
 };

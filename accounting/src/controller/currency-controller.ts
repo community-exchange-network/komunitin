@@ -24,6 +24,7 @@ import { KeyController } from "./key-controller";
 import { TenantPrismaClient } from "./multitenant";
 import { whereFilter } from "./query";
 import { TransferController } from "./transfer-controller";
+import { CreditCommonsController, CreditCommonsControllerImpl } from "../creditcommons/credit-commons-controller";
 import { UserController } from "./user-controller";
 import { StatsController } from "./stats-controller";
 
@@ -51,6 +52,7 @@ export class LedgerCurrencyController implements CurrencyController {
   accounts: AccountController
   transfers: TransferController
   externalResources: ExternalResourceController
+  creditCommons: CreditCommonsController
   stats: StatsController
 
   constructor(model: Currency, ledger: LedgerCurrency, db: TenantPrismaClient, encryptionKey: () => Promise<KeyObject>, sponsorKey: () => Promise<Keypair>, emitter: TypedEmitter<ControllerEvents>) {
@@ -64,6 +66,7 @@ export class LedgerCurrencyController implements CurrencyController {
     this.accounts = new AccountController(this)
     this.transfers = new TransferController(this)
     this.externalResources = new ExternalResourceController(this)
+    this.creditCommons = new CreditCommonsControllerImpl(this)
     this.stats = new StatsController(this.db)
   }
 
