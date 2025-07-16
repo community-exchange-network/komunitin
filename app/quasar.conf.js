@@ -152,7 +152,10 @@ module.exports = configure(function(ctx) {
         key: fs.readFileSync("./tmp/certs/localhost-key.pem"),
         cert: fs.readFileSync("./tmp/certs/localhost.pem"),
         ca: fs.readFileSync(process.env.LOCAL_CA_ROOT)
-      }
+      },
+      // Disable auto updating when checking PWA update process.
+      // hot: false,
+      // liveReload: false
     } : {},
 
     // animations: 'all', // --- includes all animations

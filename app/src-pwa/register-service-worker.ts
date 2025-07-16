@@ -1,7 +1,6 @@
 import { register } from "register-service-worker";
 import { Notify } from "quasar";
 import { major, minor } from "semver";
-import { clearPersistedData } from "src/store/persist";
 import { i18n } from "src/boot/i18n";
 
 // This is the version of the currently running application, set in build time from package.json.
@@ -70,11 +69,10 @@ register(process.env.SERVICE_WORKER_FILE as string, {
         }
 
         // A breaking change is when the major or minor version changes.
-        const isBreaking = major(newVersion) > major(CURRENT_VERSION) ||
-                           minor(newVersion) > minor(CURRENT_VERSION);
+        const isBreaking = major(newVersion) != major(CURRENT_VERSION) ||
+                           minor(newVersion) != minor(CURRENT_VERSION);
 
-
-        if (!isBreaking || isBreaking) {
+        if (isBreaking) {
           if (process.env.DEV) {
             // eslint-disable-next-line no-console
             console.log("Breaking change detected. Prompting user.");
@@ -90,16 +88,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
                 handler: async () => {
                   if (process.env.DEV) {
                     // eslint-disable-next-line no-console
-                    console.log("User accepted update. Clearing data and activating new service worker.");
-                  }
-                  
-                  // Ensure data is cleared before we proceed.
-                  try {
-                    await clearPersistedData();
-                  } catch (e) {
-                    // eslint-disable-next-line no-console
-                    console.error('Failed to clear persisted data:', e);
-                    // Optional: notify user that cleanup failed but proceed anyway.
+                    console.log("User accepted update. Activating new service worker.");
                   }
 
                   reloadOnControllerChange = true;

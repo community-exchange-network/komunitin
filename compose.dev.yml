@@ -2,7 +2,7 @@ services:
   app:
     build:
       target: komunitin-app-build
-    command: npm run dev  
+    command: npm run dev
     ports:
       - "2030:2030"
     volumes:

@@ -3,6 +3,7 @@ import localForage from "localforage"
 import { ResourceObject } from "./model"
 import { cloneDeep, merge } from "lodash-es"
 import { toRaw } from "vue"
+import { major, minor } from "semver"
 
 /**
  * Time in milliseconds for the expiration of the cached values.
@@ -10,6 +11,8 @@ import { toRaw } from "vue"
 const EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30 // 30 days.
 
 const DATABASE_NAME = "komunitin"
+
+const CURRENT_VERSION = process.env.APP_VERSION as string
 
 /**
  * Iterate over all values in the storage and call the async callback function for each one. This
@@ -39,14 +42,9 @@ const iterateAsync = async (storage: LocalForage, callback: (value: unknown, key
   })
 }
 
-/**
- * Removes all data from the persistent storage.
- * @param name The unique key for this database.
- */
-export async function clearPersistedData() {
-  const name = DATABASE_NAME
-  await localForage.dropInstance({ name });
-  await localForage.dropInstance({ name: name + "_timestamps" });
+const isBreakingUpgrade = (version: string) => {
+  return (major(version) != major(CURRENT_VERSION) ||
+    minor(version) != minor(CURRENT_VERSION))
 }
 
 /**
@@ -65,6 +63,56 @@ export default function createPersistPlugin<T>() {
   // Storage for timestamps of update time for values with the same key.
   const timestamps = localForage.createInstance({name: name + "_timestamps"})
 
+  const setStateCache = async (key: string, value: unknown) => {
+    if (key.startsWith("_")) {
+      throw new Error("Cannot set a cache item starting with '_'.");
+    }
+    await storage.setItem(key, value)
+    // Set the timestamp after the value is saved so we never have an orphan timestamp.
+    await timestamps.setItem(key, Date.now())
+  }
+
+  const removeStateCache = async (key: string) => {
+    const timestamp = await timestamps.getItem<number>(key)
+    if (timestamp !== null) {
+      await timestamps.removeItem(key)
+    }
+    await storage.removeItem(key)
+  }
+
+  const setInternalItem = async (key: string, value: string) => {
+    await storage.setItem("_" + key, value)
+  }
+
+  const getInternalItem = async (key: string) => {
+    return await storage.getItem("_" + key) as string
+  }
+
+  const isInternalItem = (key: string) => {
+    return key.startsWith("_")
+  }
+
+  const isExpired = async (key: string) => {
+    const timestamp = await timestamps.getItem<number>(key)
+    return timestamp === null || timestamp + EXPIRATION_TIME < Date.now()
+  }
+
+  // Check if we need to clear the data due to potentially breaking upgrade.
+  const checkBreakingUpgrade = async () => {
+    const existingVersion = await getInternalItem("version") ?? "0.0.0"
+    if (isBreakingUpgrade(existingVersion)) {
+      if (process.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log(`Breaking upgrade detected from ${existingVersion} to ${CURRENT_VERSION}. Clearing persisted data.`);
+      }
+      // Clear all data in the storage.
+      await storage.clear();
+      await timestamps.clear();
+    }
+    // Set the current version in the storage.
+    await setInternalItem("version", CURRENT_VERSION);
+  }
+
   // Is this key a page ids value? /pages/key/index
   const isPage = (index: string[]) => index.length >= 3 && index[index.length-3] == 'pages'
 
@@ -82,35 +130,38 @@ export default function createPersistPlugin<T>() {
     return current
   }
 
-
   return (store: Store<T>) => {
     // Restore state
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const state: any = {}
-    const now = Date.now()
 
-    iterateAsync(storage, async (value, key) => {
-      const timestamp = await timestamps.getItem<number>(key)
-      if (timestamp === null || timestamp + EXPIRATION_TIME < now) {
-        if (timestamp !== null) {
-          await timestamps.removeItem(key)
+    const initialize = async () => {
+      await checkBreakingUpgrade()
+      await iterateAsync(storage, async (value, key) => {
+        if (!isInternalItem(key)) {
+          const expired = await isExpired(key)
+          if (expired) {
+            await removeStateCache(key)
+          } else {
+            // Set the value in the state.
+            const index = key.split('/');
+            if (isPage(index)) {
+              const current = buildState(state, index, [], index.length - 1)
+              current[parseInt(index[index.length - 1])] = value
+            } else {
+              buildState(state, index, value)
+            }
+          } 
         }
-        await storage.removeItem(key)
-      } else {
-        // Set the value in the state.
-        const index = key.split('/');
-        if (isPage(index)) {
-          const current = buildState(state, index, [], index.length - 1)
-          current[parseInt(index[index.length - 1])] = value
-        } else {
-          buildState(state, index, value)
-        }
-      }
-    }).then(() => {
+      })
       store.replaceState(merge(store.state, state))
-    })
-    
 
+    }
+
+    initialize().catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error("Error initializing persisted state:", error);
+    });
 
     // Subscribe to mutations
     store.subscribe(({type, payload}) => {
@@ -125,13 +176,14 @@ export default function createPersistPlugin<T>() {
       // storage methods are asynchronous but we don't wait for the result (or error).
       const save = (i: string[], item: unknown) => {
         const key = i.join('/')
-        storage.setItem(key, item).then(() => {
-          // We set the timestamp after the value is saved so we never have an orphan timestamp.
-          timestamps.setItem(key, Date.now())
-        })
+        setStateCache(key, item)
       }
 
-      const remove = (i: string[]) => storage.removeItem(i.join('/'))
+      const remove = (i: string[]) => {
+        const key = i.join('/')
+        removeStateCache(key)
+      }
+
       if (op == 'addResources') {
         const resources = value as ResourceObject[]
         resources.forEach(resource => save([...index, 'resources', resource.id], toRaw(resource)))
