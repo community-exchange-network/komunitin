@@ -529,11 +529,12 @@ export interface CurrencySettings extends ResourceObject {
     defaultAllowTagPaymentRequests: boolean;
     defaultAcceptPaymentsAfter: number | false
     defaultOnPaymentCreditLimit: number | false
-    enableExternalPayments: boolean
-    enableExternalPaymentRequests: boolean
     defaultAllowExternalPayments: boolean
     defaultAllowExternalPaymentRequests: boolean
     defaultAcceptExternalPaymentsAutomatically: boolean
+    enableExternalPayments: boolean
+    enableExternalPaymentRequests: boolean
+    enableCreditCommonsPayments: boolean
     externalTraderCreditLimit: number
     externalTraderMaximumBalance: number | false
     defaultHideBalance: boolean
