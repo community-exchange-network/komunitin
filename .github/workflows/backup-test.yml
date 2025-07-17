@@ -42,7 +42,7 @@ jobs:
     - name: Verify database restoration  
       run: |
         echo "Checking for recent transfers in the restored database..."
-        count=$(docker exec db-accounting psql -U postgres -d accounting -t A1 -c "SELECT COUNT(*) FROM \"Transfer\" WHERE created > NOW() - INTERVAL '24 hours';")
+        count=$(docker exec db-accounting psql -U postgres -d accounting -t -A -c "SELECT COUNT(*) FROM \"Transfer\" WHERE created > NOW() - INTERVAL '24 hours';")
         if [ "$count" -eq 0 ]; then
           echo "ERROR: No recent transfers found in restored database"
           exit 1
