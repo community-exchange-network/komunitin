@@ -96,7 +96,7 @@ import { transferAccountRelationships } from "src/composables/fullAccount"
 import formatCurrency, { convertCurrency } from "src/plugins/FormatCurrency"
 import { Account, Currency, CurrencySettings, Member, Transfer } from "src/store/model"
 import { v4 as uuid } from "uuid"
-import { computed, Ref, ref } from "vue"
+import { computed, ref } from "vue"
 import { useStore } from "vuex"
 
 const props = defineProps<{
@@ -124,7 +124,7 @@ const transfer = computed({
 
 const payerAccountValue = ref(props.payerAccount)
 const payeeAccountValue = ref(props.payeeAccount)
-const concept: Ref<string> = ref(props.modelValue?.attributes?.meta?.description ?? "")
+const concept = ref(transfer.value?.attributes?.meta?.description)
 const amount = ref<number|undefined>(props.modelValue?.attributes?.amount ? props.modelValue.attributes.amount / Math.pow(10, myCurrency.value.attributes.scale) : undefined)
 
 // Validation.
@@ -167,9 +167,7 @@ const onSubmit = () => {
     throw new KError(KErrorCode.ScriptError, "Amount must be defined before submit.")
   }
 
-  const transferAmount = amount.value * Math.pow(10, myCurrency.value.attributes.scale)
-
-  
+  const transferAmount = Math.round(amount.value * Math.pow(10, myCurrency.value.attributes.scale))
 
   // Build transfer object
   const value = {

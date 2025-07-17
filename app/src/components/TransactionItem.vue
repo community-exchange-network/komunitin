@@ -1,29 +1,30 @@
 <template>
-  <account-header
-    :account="otherAccount"
-    :address="creditCommonsAddress"
+  <q-item
+    :to="transfer.id ? `/groups/${code}/transactions/${transfer.id}` : undefined"
     :clickable="!!transfer.id"
     class="transaction-item"
     :class="transfer.attributes.state"
-    :to="transfer.id ? `/groups/${code}/transactions/${transfer.id}` : undefined"
   >
-    <template
-      v-if="$q.screen.lt.md" 
-      #caption
+    <account-item-content
+      :account="firstAccount"
+      :address="firstCreditCommonsAddress"
+      :caption="overrideCaption"
     >
-      {{ description }}
-    </template>
-    <template 
-      v-if="$q.screen.gt.sm" 
-      #extra
+    </account-item-content>
+    <account-item-content
+      v-if="bothAccounts"
+      :account="secondAccount"
+      :address="secondCreditCommonsAddress"
+    />
+    <q-item-section 
+      v-if="!q.screen.lt.sm" 
+      class="section-extra"
     >
-      <q-item-section class="section-extra">
-        <q-item-label lines="2">
-          {{ description }}
-        </q-item-label>
-      </q-item-section>
-    </template>
-    <template #side>
+      <q-item-label lines="2">
+        {{ description }}
+      </q-item-label>
+    </q-item-section>
+    <q-item-section side>
       <div class="column items-end section-right">
         <q-item-label
           caption
@@ -50,17 +51,19 @@
               : 'negative-amount'
           "
         >
-          {{ FormatCurrency(signedAmount, account.currency) }}
+          {{ FormatCurrency(signedAmount, currency) }}
         </div>
       </div>
-    </template>
-  </account-header>
+    </q-item-section>
+  </q-item>
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Account, Currency, ExtendedTransfer } from 'src/store/model';
 import FormatCurrency from "../plugins/FormatCurrency";
-import AccountHeader from "./AccountHeader.vue";
+import AccountItemContent from "./AccountItemContent.vue";
+import { useQuasar } from 'quasar';
+import { useStore } from 'vuex';
 
 const props = defineProps<{
   /**
@@ -72,31 +75,72 @@ const props = defineProps<{
    */
   code: string,
   /**
-   * The subject account
+   * Whether to include both accounts in the transaction item.
    */
-  account: Account & {currency: Currency}
+  bothAccounts?: boolean,
+  /**
+   * The subject account, if `bothAccounts` is not true.
+   */
+  account?: Account & {currency: Currency}
   
 }>()
 
+const q = useQuasar()
+const store = useStore()
+
+const currency = computed(() => store.getters.myCurrency)
+
+const isPayerSubject = computed(() => {
+  return props.transfer.relationships.payer.data.id === props.account?.id;
+})
+
 const signedAmount = computed<number>(() => {
-  const amount = props.transfer.attributes.amount
-  return (props.transfer.relationships.payer.data.id == props.account.id ? -1 : 1) * amount;
+  let amount = props.transfer.attributes.amount
+  if (!props.bothAccounts && isPayerSubject.value) {
+    amount = -amount
+  }
+  return amount
 })
 
-const otherAccount = computed<Account|undefined>(() => {
-  const payer = props.transfer.payer
-  const payee = props.transfer.payee
-  // We can't directly compare object references because they're not the same.
-  const other = props.account.id == props.transfer.relationships.payer.data.id ? payee : payer
-  return other
+const firstAccount = computed<Account|undefined>(() => {
+  if (props.bothAccounts) {
+    return props.transfer.payer
+  } else {
+    return isPayerSubject.value 
+      ? props.transfer.payee 
+      : props.transfer.payer
+  }
 })
 
-const creditCommonsAddress = computed(() => {
+const firstCreditCommonsAddress = computed(() => {
   const creditCommons = props.transfer.attributes.meta.creditCommons
-  return creditCommons?.payeeAddress || creditCommons?.payerAddress
+  if (props.bothAccounts) {
+    return creditCommons?.payerAddress
+  } else {
+    return isPayerSubject.value 
+      ? creditCommons?.payeeAddress 
+      : creditCommons?.payerAddress
+  }
 })
+
+const secondAccount = computed<Account|undefined>(() => {
+  return props.bothAccounts ? props.transfer.payee : undefined
+})
+const secondCreditCommonsAddress = computed(() => {
+  const creditCommons = props.transfer.attributes.meta.creditCommons
+  return props.bothAccounts ? creditCommons?.payeeAddress : undefined
+})
+
 
 const description = computed(() => props.transfer.attributes.meta.description || "")
+const overrideCaption = computed(() => {
+  if (!props.bothAccounts && q.screen.lt.sm) {
+    return description.value
+  } else {
+    return undefined
+  }
+})
+
 
 </script>
 <style lang="scss" scoped>
@@ -127,7 +171,15 @@ const description = computed(() => props.transfer.attributes.meta.description ||
       .section-right {
         width: 200px;
       }
-    }  
+    }
   }
+  @media (max-width: $breakpoint-xs-max) {
+    .transaction-item {
+      .section-right {
+        width: 100px;
+      }
+    }
+  }
+  
   
 </style>
