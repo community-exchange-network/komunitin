@@ -5,27 +5,29 @@
     class="transaction-item"
     :class="transfer.attributes.state"
   >
-    <account-item-content
-      :account="firstAccount"
-      :address="firstCreditCommonsAddress"
-      :caption="overrideCaption"
-    >
-    </account-item-content>
-    <account-item-content
-      v-if="bothAccounts"
-      :account="secondAccount"
-      :address="secondCreditCommonsAddress"
-    />
+    <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col-grow col-sm-4'" class="flex">
+      <account-item-content
+        :account="firstAccount"
+        :address="firstCreditCommonsAddress"
+        :caption="overrideCaption"
+      >
+      </account-item-content>
+    </div>
+    <div v-if="bothAccounts" class="col-4 col-sm-3 flex">
+      <account-item-content
+        :account="secondAccount"
+        :address="secondCreditCommonsAddress"
+      />
+    </div>
     <q-item-section 
-      v-if="!q.screen.lt.sm" 
-      class="section-extra"
+      class="gt-xs col-grow"
     >
       <q-item-label lines="2">
         {{ description }}
       </q-item-label>
     </q-item-section>
-    <q-item-section side>
-      <div class="column items-end section-right">
+    <q-item-section side top class="q-pr-none q-ml-auto">
+      <div class="column items-end text-right">
         <q-item-label
           caption
           class="col top-right-label"
@@ -141,7 +143,6 @@ const overrideCaption = computed(() => {
   }
 })
 
-
 </script>
 <style lang="scss" scoped>
   /*
@@ -163,23 +164,4 @@ const overrideCaption = computed(() => {
       color: $onsurface-d;
     }
   }
-  @media (min-width: $breakpoint-sm-min) {
-    .transaction-item {
-      .section-extra{
-        flex: 20000 1 0%;
-      }
-      .section-right {
-        width: 200px;
-      }
-    }
-  }
-  @media (max-width: $breakpoint-xs-max) {
-    .transaction-item {
-      .section-right {
-        width: 100px;
-      }
-    }
-  }
-  
-  
 </style>

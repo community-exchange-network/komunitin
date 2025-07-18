@@ -17,12 +17,10 @@
         v-if="slotProps.resources.length > 0"
         class="row text-overline text-uppercase text-onsurface-m q-px-md"
       >
-        <q-item-section avatar />
-        <q-item-section>{{ props.bothAccounts ? $t("payer") : $t("account") }}</q-item-section>
-        <q-item-section avatar style="margin-right:16px"/>
-        <q-item-section class="">{{ $t("payee") }}</q-item-section>
-        <q-item-section v-if="!q.screen.lt.sm" style="flex-grow: 20000;"/>
-        <q-item-section side class="text-right q-ml-md" :style="{ width: !q.screen.lt.sm ? '200px' : '100px'}">{{ $t("amount") }}</q-item-section>
+        <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col-grow col-sm-4'">{{ props.bothAccounts ? $t("payer") : $t("account") }}</div>
+        <div v-if="bothAccounts" class="col-4 col-sm-3">{{ $t("payee") }}</div>
+        <div class="gt-xs col-grow">{{ $t("description") }}</div>
+        <div side class="q-ml-auto">{{ $t("amount") }}</div>
       </div>
       
       <template 
@@ -47,10 +45,8 @@ import { computed, ref } from "vue"
 import ResourceCards from "../ResourceCards.vue";
 import TransactionItem from "src/components/TransactionItem.vue";
 import { useStore } from "vuex";
-
 import { ExtendedTransfer, Account, Currency } from "../../store/model";
 import { LoadListPayload } from "src/store/resources";
-import { useQuasar } from "quasar";
 
 const props = defineProps<{
   code: string,
@@ -67,7 +63,6 @@ const props = defineProps<{
 const resourceCards = ref<typeof ResourceCards>()
 
 const store = useStore()
-const q = useQuasar()
 
 const account = computed(() => props.member?.account);
 const filter = computed(() => account.value ? { account: account.value.id } : undefined)
