@@ -11,6 +11,7 @@
         :code="props.code"
         both-accounts
       />
+      <create-transaction-btn />
     </q-page>
   </q-page-container>
 </template>
@@ -18,6 +19,7 @@
 import { defineProps, ref } from "vue"
 import PageHeader from "../../layouts/PageHeader.vue"
 import TransactionItems from "../transactions/TransactionItems.vue"
+import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue"
 
 const props = defineProps<{
   code: string,
