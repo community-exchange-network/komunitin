@@ -96,6 +96,7 @@
   "transactionPayeeHint": "Venditore.",
   "description": "Descrizione",
   "transactionDescriptionHint": "Descrizione.",
+  "amount": "Totale",
   "amountIn": "Totale in {currency}",
   "transactionAmountHint": "Ammontare in Mano.",
   "charge": "Crea transazione",

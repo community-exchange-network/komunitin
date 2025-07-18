@@ -96,6 +96,7 @@
   "transactionPayeeHint": "El compte de la persona o entitat que rep el pagament.",
   "description": "Descripció",
   "transactionDescriptionHint": "Breu descripció del concepte de la venda. Per exemple '2kg de patates'.",
+  "amount": "Quantitat",
   "amountIn": "Quantitat en {currency}",
   "transactionAmountHint": "Quantitat de moneda a transferir",
   "charge": "Cobrar",
