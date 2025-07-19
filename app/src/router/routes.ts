@@ -319,6 +319,11 @@ const routes: RouteRecordRaw[] = [
           props: true,
           name: 'AdminEditSettings',
           component: () => import('../pages/settings/EditSettings.vue')
+        }, {
+          path: 'transactions',
+          props: true,
+          name: 'AdminTransactionList',
+          component: () => import('../pages/admin/Transactions.vue')
         }]
       }
     ]

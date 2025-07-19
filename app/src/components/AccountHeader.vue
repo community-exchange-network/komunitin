@@ -3,38 +3,18 @@
     :clickable="link != ''"
     :to="link"
   >
-    <q-item-section avatar>
-      <avatar
-        :img-src="avatarImage"
-        :text="avatarText"
-      />
-    </q-item-section>
-    <q-item-section>
-      <q-item-label
-        lines="1"
-        class="text-subtitle2 text-onsurface-m"
-      >
-        <slot name="text">
-          {{ primaryText }}
-        </slot>
-      </q-item-label>
-      <q-item-label caption>
-        <slot name="caption">
-          {{ secondaryText }}
-        </slot>
-      </q-item-label>
-    </q-item-section>
-    <slot name="extra" />
-    <q-item-section side>
-      <slot name="side" />
-    </q-item-section>
+    <account-item-content
+      :account="account"
+      :address="address"
+    />
   </q-item>
 </template>
 <script setup lang="ts">
-import { Account, Currency, Group, Member } from "src/store/model"
-import Avatar from "./Avatar.vue"
-import { useStore } from "vuex"
 import { computed } from "vue"
+import { useStore } from "vuex"
+import { Account, Currency, Group, Member } from "src/store/model"
+import AccountItemContent from "./AccountItemContent.vue"
+
 
 const props = defineProps<{
   /**
@@ -55,14 +35,11 @@ const props = defineProps<{
    */
   to?: string
 }>()
+
 const store = useStore()
 const myGroup = computed<Group>(() => store.getters.myMember.group)
 
 const isLocal = computed(() => props.account?.member?.group?.id == myGroup.value.id)
-
-const addressLeaf = computed(() => {
-  return props.address?.split("/").pop()
-})
 
 const link = computed(() => {
   if (props.to !== undefined) {
@@ -72,50 +49,6 @@ const link = computed(() => {
   } else {
     return ""
   }
-})
-
-const avatarImage = computed(() => {
-  if (props.address) {
-    return undefined
-  } else if (props.account?.member) {
-    return props.account.member.attributes.image
-  } else if (props.account?.currency?.group) {
-    return props.account.currency.group.attributes.image
-  }
-  return undefined  
-})
-
-const avatarText = computed(() => { 
-  if (addressLeaf.value) {
-    return addressLeaf.value
-  } else if (props.account?.member) {
-    return props.account.member.attributes.name as string
-  } else if (props.account) {
-    return props.account.attributes.code
-  }
-  return ""
-})
-
-const primaryText = computed(() => { 
-  if (addressLeaf.value) {
-    return addressLeaf.value
-  } else if (props.account?.member) {
-    return props.account.member.attributes.name as string
-  } else if (props.account?.currency?.group) {
-    return props.account.currency.group.attributes.name
-  } else if (props.account) {
-    return props.account.attributes.code
-  }
-  return ""
-})
-
-const secondaryText = computed(() => {
-  if (props.address) {
-    return props.address.split("/").slice(0, -1).join("/")
-  } else if (props.account && primaryText.value !== props.account.attributes.code) {
-    return props.account.attributes.code
-  }
-  return ""
 })
 
 </script>

@@ -405,24 +405,24 @@ export class AccountController extends AbstractCurrencyController implements IAc
     const updateTags = data.filter(t => t.id) // hash always undefined here 
 
     // Update tag records (delete + update + insert).
-    await this.db().$transaction([
-      // Delete ids not in the provided tags and also delete tags with
-      // same values as the provided ones.
-      this.db().accountTag.deleteMany({
+    await this.db().$transaction(async (t) => {
+      await t.accountTag.deleteMany({
         where: { 
           OR: [
             { id: { notIn: updateTags.map(t => t.id as string) }},
           ]
         }
-      }),
-      ...updateTags.map(t => this.db().accountTag.update({
-        where: { id: t.id as string },
-        data: { name: t.name }
-      })),
-      this.db().accountTag.createMany({
+      })
+      for (const tag of updateTags) {
+        await t.accountTag.update({
+          where: { id: tag.id as string },
+          data: { name: tag.name }
+        })
+      }
+      await t.accountTag.createMany({
         data: newTags as {hash: string, name: string, accountId: string}[]
       })
-    ])
+    })
   }
 
   async updateAccountBalance(account: FullAccount): Promise<void> {

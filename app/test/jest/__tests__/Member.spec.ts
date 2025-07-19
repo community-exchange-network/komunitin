@@ -8,7 +8,7 @@ import MemberList from "../../../src/pages/members/MemberList.vue";
 import MemberHeader from "../../../src/components/MemberHeader.vue";
 import TransactionItems from "../../../src/pages/transactions/TransactionItems.vue";
 import { seeds } from "src/server";
-import AccountHeader from "src/components/AccountHeader.vue";
+import TransactionItem from "../../../src/components/TransactionItem.vue";
 
 describe("Member", () => {
   let wrapper: VueWrapper;
@@ -106,7 +106,7 @@ describe("Member", () => {
     tabs[3].trigger("click");
     await wrapper.vm.$nextTick();
     await wrapper.vm.$wait();
-    const transactions = wrapper.getComponent(TransactionItems).findAllComponents(AccountHeader);
+    const transactions = wrapper.getComponent(TransactionItems).findAllComponents(TransactionItem);
     expect(transactions.length).toBe(7);
   });
 
