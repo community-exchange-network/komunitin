@@ -43,6 +43,7 @@
                 icon="how_to_reg"
                 :label="$t('accept')"
                 @click.stop="acceptMember(member)"
+                :loading="loadingAcceptMember"
               />
               <delete-member-btn
                 flat
@@ -469,19 +470,25 @@ const memberClick = (member: Member) => {
   }})
 }
 
+const loadingAcceptMember = ref(false)
 const acceptMember = async (member: Member & {group: Group}) => {
-  await store.dispatch('members/update', {
-    id: member.id,
-    group: member.group.attributes.code,
-    resource: {
-      type: "members",
-      attributes: {
-        state: "active"
+  try {
+    loadingAcceptMember.value = true
+    await store.dispatch('members/update', {
+      id: member.id,
+      group: member.group.attributes.code,
+      resource: {
+        type: "members",
+        attributes: {
+          state: "active"
+        }
       }
-    }
-  })
-  await loadPending()
-  await tableRef.value?.requestServerInteraction()
+    })
+    await loadPending()
+    await tableRef.value?.requestServerInteraction()
+  } finally {
+    loadingAcceptMember.value = false
+  }
 }
 
 
