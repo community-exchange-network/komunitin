@@ -43,8 +43,13 @@ const props = withDefaults(defineProps<{
   caption?: string | boolean | undefined,
 
 }>(), {
-  text: undefined,
+  // We need to explicitly set the default value for caption
+  // because otherwise Vue sets it to `false` if not defined.
   caption: undefined,
+  // And then we need to set the remaining defaults to avoid
+  // Vue warnings.
+  account: undefined,
+  address: undefined
 })
 
 const addressLeaf = computed(() => {
