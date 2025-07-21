@@ -25,7 +25,7 @@
             class="full-width q-my-lg"
             color="primary"
             type="submit"
-            :label="$t('saveProfile')"
+            :label="t('saveProfile')"
             unelevated
             :loading="loadingSaveMember"   
           />
@@ -36,14 +36,15 @@
           :code="code"
           :show-state="false"
           :model-value="currentOffer"
-          :submit-label="$t('submit')"
+          :submit-label="t('submit')"
           :loading="loadingSaveOffer"
+          :header="offerFormHeader"
           @submit="saveOffer"
         />
       </div>
       <div v-else-if="page=='complete'">
         <div class="text-h6">
-          {{ $t('signupComplete') }}
+          {{ t('signupComplete') }}
         </div>
         <div>
           <div class="float-left q-mr-md">
@@ -54,18 +55,18 @@
             />
           </div>
           <div class="text-body1 text-onsurface-m q-my-md">
-            {{ $t('signupCompleteText', {
+            {{ t('signupCompleteText', {
               group: group.attributes.name
             }) }}
           </div>
           <div class="text-body1 text-onsurface-m q-my-md">
-            {{ $t('signupCompleteText2') }}
+            {{ t('signupCompleteText2') }}
           </div>
           <div>
             <q-btn
               class="full-width q-my-lg"
               color="primary"
-              :label="$t('goToMyAccount')"
+              :label="t('goToMyAccount')"
               flat
               to="/"
             />
@@ -84,6 +85,7 @@ import { useStore } from "vuex"
 import { Contact, Member, Offer } from "src/store/model"
 import { DeepPartial } from "quasar"
 import { scroll } from "quasar";
+import { useI18n } from "vue-i18n"
 const { getScrollTarget } = scroll
 
 const props = defineProps<{
@@ -91,6 +93,7 @@ const props = defineProps<{
 }>()
 
 const store = useStore()
+const { t } = useI18n()
 // Loaded member & user objects
 const myMember = computed(() => store.getters.myMember)
 const myUser = computed(() => store.getters.myUser)
@@ -108,18 +111,33 @@ const member = ref<ExtendedMember>(myMember.value)
 const currentOffer = ref()
 const offers = ref<DeepPartial<Offer>[]>([])
 
-store.dispatch("members/load", {
-  id: myMember.value.id,
-  group: props.code,
-  include: "contacts,offers,offers.category"
-}).then(() => {
-  member.value = myMember.value
-  updateContacts(myMember.value.contacts)
-  offers.value = myMember.value.offers
-  if (offers.value.length > 0) {
-    currentOffer.value = offers.value[0] 
+const initializeMember = async () => {
+  await store.dispatch("members/load", {
+    id: myMember.value.id,
+    group: props.code,
+    include: "contacts"
+  })
+  // Using spread operator not to copy the proxy object
+  // but their values.
+  member.value = {
+    ...myMember.value
   }
-})
+  // Initialize contacts (not copied by the spread operator)
+  member.value.contacts = myMember.value.contacts || []
+}
+const initializeOffers = async () => {
+  await store.dispatch("offers/loadList", {
+    group: props.code,
+    filter: {
+      "member": myMember.value.id
+    },
+    include: "category"
+  })
+  offers.value = store.getters["offers/currentList"]
+}
+
+initializeMember()
+initializeOffers()
 
 const group = computed(() => store.getters["groups/current"])
 const settings = computed(() => group.value?.settings?.attributes)
@@ -155,6 +173,15 @@ const saveMember = async () => {
   }
 }
 
+const offerFormHeader = computed(() => {
+  const minOffers = settings.value?.minOffers ?? 0
+  return minOffers > 1 ? 
+    t("signupOffer", {
+      index: currentOfferIndex.value + 1,
+      total: minOffers
+    }) : t("enterOfferData")
+
+})
 const loadingSaveOffer = ref(false)
 const saveOffer = async (resource: DeepPartial<Offer>) => {
   loadingSaveOffer.value = true

@@ -1,9 +1,9 @@
 <template>
-  <q-form @submit="onSubmit">
+  <q-form @submit="onSubmit" ref="form">
     <div class="q-gutter-y-lg">
       <div>
         <div class="text-subtitle1">
-          {{ $t('enterOfferData') }}
+          {{ props.header ?? $t('enterOfferData') }}
         </div>
         <div class="text-onsurface-m">
           {{ $t('offerFormHelpText') }}
@@ -19,7 +19,7 @@
         :code="code"
         :label="$t('category')"
         :hint="$t('offerCategoryHint')"
-        required
+        :rules="[(v) => !!v || $t('categoryRequired')]"
       />
       <q-input
         v-model="title"
@@ -28,8 +28,7 @@
         :label="$t('title')"
         :hint="$t('offerTitleHint')"
         outlined
-        required
-        :rules="[() => !v$.title.$invalid || $t('offerTitleRequired')]"
+        :rules="[(v) => !!v || $t('offerTitleRequired')]"
       >
         <template #append>
           <q-icon name="lightbulb" />
@@ -43,9 +42,8 @@
         :hint="$t('offerDescriptionHint')" 
         outlined 
         autogrow 
-        required
         input-style="min-height: 100px;"
-        :rules="[() => !v$.description.$invalid || $t('offerDescriptionRequired')]"
+        :rules="[(v) => (!!v && v.length >= 10) || $t('offerDescriptionRequired')]"
       >
         <template #append>
           <q-icon name="notes" />
@@ -58,7 +56,7 @@
         :label="$t('price')"
         :hint="$t('offerPriceHint')"
         outlined
-        :rules="[() => !v$.price.$invalid || $t('offerPriceRequired')]"
+        :rules="[(v) => !!v || $t('offerPriceRequired')]"
       >
         <template #append>
           <span class="text-h6 text-onsurface-m">{{ currency.attributes.symbol }}</span>
@@ -83,22 +81,19 @@
         color="primary"
         unelevated
         class="full-width"
-        :disabled="v$.$invalid"
         :loading="loading"
       />
     </div>
   </q-form>
 </template>
 <script setup lang="ts">
-import { computed, ref } from "vue"
+import { computed, nextTick, ref, watch } from "vue"
 import DateField from "../../components/DateField.vue"
 import ImageField from "../../components/ImageField.vue"
 import SelectCategory from "../../components/SelectCategory.vue"
 import ToggleItem from "../../components/ToggleItem.vue"
 import { Category, Offer, OfferState } from "src/store/model"
-import useVuelidate from "@vuelidate/core"
-import { minLength, required } from "@vuelidate/validators"
-import { DeepPartial } from "quasar"
+import { type DeepPartial, type QForm } from "quasar"
 import { useStore } from "vuex"
 
 const props = defineProps<{
@@ -106,45 +101,54 @@ const props = defineProps<{
   modelValue?: DeepPartial<Offer> & {category: Category}
   showState?: boolean
   submitLabel?: string
+  header?: string
   loading?: boolean
 }>()
 const emit = defineEmits<{
   (e: "submit", value: DeepPartial<Offer>): void
 }>()
 
-const images = ref<string[]>(props.modelValue?.attributes?.images || [])
-const title = ref(props.modelValue?.attributes?.name || "")
-const description = ref(props.modelValue?.attributes?.content || "")
-const category = ref<Category|null>(props.modelValue?.category || null)
-const price = ref(props.modelValue?.attributes?.price || "")
+const form = ref<InstanceType<typeof QForm>>()
 
-let date: Date
-if (props.modelValue?.attributes?.expires) {
-  date = new Date(props.modelValue?.attributes?.expires)
-} else {
-  // Set expiry date in one year by default
-  date = new Date()
-  date.setFullYear(date.getFullYear() + 1)
-}
-const expiration = ref(date)
+const images = ref<string[]>([])
+const title = ref("")
+const description = ref("")
+const category = ref<Category|null>(null)
+const price = ref("")
+const expiration = ref<Date>(new Date())
 
 const state = ref<OfferState>(props.modelValue?.attributes?.state || "published")
 
-// Validation
-const rules = {
-  description: { required, minLength: minLength(10) },
-  category: { required },
-  expiration: { required },
-  title: { required },
-  price: { required }
-}
-const v$ = useVuelidate(rules, {images, description, category, expiration, title, price})
+watch([() => props.modelValue], async () => {
+  images.value = props.modelValue?.attributes?.images || []
+  title.value = props.modelValue?.attributes?.name || ""
+  description.value = props.modelValue?.attributes?.content || ""
+  category.value = props.modelValue?.category || null
+  price.value = props.modelValue?.attributes?.price || ""
+  
+  if (props.modelValue?.attributes?.expires) {
+    expiration.value = new Date(props.modelValue.attributes.expires)
+  } else {
+    // Set expiry date in one year by default
+    const date = new Date()
+    date.setFullYear(date.getFullYear() + 1)
+    expiration.value = date
+  }
+  
+  state.value = props.modelValue?.attributes?.state || "published"
+
+  nextTick(() => {
+    form.value?.resetValidation()
+  })
+
+}, { immediate: true })
+
 const store = useStore()
 
 const currency = computed(() => store.getters.myCurrency)
 
 const onSubmit = async () => {
-  const isFormCorrect = await v$.value.$validate()
+  const isFormCorrect = await form.value?.validate()
   if (isFormCorrect) {
     emit("submit", {
       ...props.modelValue,
