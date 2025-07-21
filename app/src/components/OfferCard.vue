@@ -4,7 +4,7 @@
     v-card-click-to="`/groups/${code}/offers/${offer.attributes.code}`"
     flat
     bordered
-    :class="{hidden, expired}"
+    :class="{isHidden, isExpired}"
   >
     <!-- Header -->
     <member-header :member="offer.member">
@@ -114,22 +114,22 @@ export default defineComponent({
 
     const price = computed(() => currency.value ? formatPrice(props.offer.attributes.price, currency.value) : '')
     const isMine = computed(() => props.offer.member.id === store.getters.myMember.id)
-    const hidden = computed(() => props.offer.attributes.state === "hidden")
+    const hidden = computed(() => props.offer.attributes.state === "hidden" || props.offer.member.attributes.state !== "active")
     const expired = computed(() => new Date(props.offer.attributes.expires) < new Date())
 
     return {
       price,
       isMine,
       md2txt,
-      hidden,
-      expired
+      isHidden: hidden,
+      isExpired: expired
     }
   }
 })
 
 </script>
 <style lang="scss" scoped>
-  .hidden, .expired {
+  .isHidden, .isExpired {
     opacity: 0.54;
   }
 </style>
