@@ -272,7 +272,7 @@ export interface Member extends ResourceObject {
     access: Access;
     name: string;
     type: "personal" | "business" | "public";
-    state: "pending" | "active" | "suspended" | "deleted";
+    state: "draft" | "pending" | "active" | "suspended" | "deleted";
     description: string;
     image: ImageObject;
     address: Address;

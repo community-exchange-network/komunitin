@@ -27,7 +27,7 @@
             type="submit"
             :label="$t('saveProfile')"
             unelevated
-            :loading="loadingSaveMember"     
+            :loading="loadingSaveMember"   
           />
         </q-form>
       </div>
@@ -35,10 +35,10 @@
         <offer-form 
           :code="code"
           :show-state="false"
-          :model-value="offer"
+          :model-value="currentOffer"
           :submit-label="$t('submit')"
           :loading="loadingSaveOffer"
-          @submit="createOffer"
+          @submit="saveOffer"
         />
       </div>
       <div v-else-if="page=='complete'">
@@ -101,14 +101,24 @@ store.dispatch("groups/load", {
   include: "settings"
 })
 // Load member
-const member = ref(myMember.value)
+type ExtendedMember = Member & { contacts: DeepPartial<Contact>[] }
+
+const member = ref<ExtendedMember>(myMember.value)
+
+const currentOffer = ref()
+const offers = ref<DeepPartial<Offer>[]>([])
+
 store.dispatch("members/load", {
   id: myMember.value.id,
   group: props.code,
-  include: "contacts"
+  include: "contacts,offers,offers.category"
 }).then(() => {
   member.value = myMember.value
   updateContacts(myMember.value.contacts)
+  offers.value = myMember.value.offers
+  if (offers.value.length > 0) {
+    currentOffer.value = offers.value[0] 
+  }
 })
 
 const group = computed(() => store.getters["groups/current"])
@@ -117,20 +127,12 @@ const settings = computed(() => group.value?.settings?.attributes)
 const loadingSaveMember = ref(false)
 
 const updateMember = (resource: DeepPartial<Member>) => {
-  member.value = {
-    ...(member.value),
-    attributes: resource.attributes
-  }
+  member.value.attributes = resource.attributes as Member["attributes"]
 }
 const updateContacts = (contacts: DeepPartial<Contact>[]) => {
-  member.value = {
-    ...(member.value),
-    contacts,
-    relationships: {
-      contacts: {
-        data: contacts.map(c => ({ type: "contacts", id: c.id }))
-      }
-    }
+  member.value.contacts = contacts
+  member.value.relationships.contacts = {
+    data: contacts.map(c => ({ type: "contacts", id: c.id as string }))
   }
 }
 const saveMember = async () => {
@@ -147,33 +149,66 @@ const saveMember = async () => {
       },
       included: member.value.contacts
     })
-    nextPage()
+    await nextPage()
   } finally {
     loadingSaveMember.value = false
   }
 }
 
-const offer = ref()
 const loadingSaveOffer = ref(false)
-const createOffer = async (resource: DeepPartial<Offer>) => {
+const saveOffer = async (resource: DeepPartial<Offer>) => {
   loadingSaveOffer.value = true
   try {
-    await store.dispatch("offers/create", {
-      group: props.code,
-      resource
-    })
-    nextPage()
+    if (!resource.id) {
+      await store.dispatch("offers/create", {
+        group: props.code,
+        resource
+      })
+      offers.value.push(store.getters["offers/current"])
+    } else {
+      await store.dispatch("offers/update", {
+        id: resource.id,
+        group: props.code,
+        resource
+      })
+      const index = offers.value.findIndex(o => o.id === resource.id)
+      offers.value[index] = store.getters["offers/current"]
+    }
+
+    await nextPage()
   } finally {
     loadingSaveOffer.value = false
   }
 }
 
-const nextPage = () => {
-  if (page.value === "profile" && settings.value?.minOffers > 0) {
+const apply = async () => {
+  await store.dispatch("members/update", {
+    id: myMember.value.id,
+    group: props.code,
+    resource: {
+      id: myMember.value.id,
+      type: "members",
+      attributes: {
+        state: "pending"
+      }
+    }
+  })
+}
+
+const currentOfferIndex = ref(-1)
+
+const nextPage = async () => {
+  const minOffers = settings.value?.minOffers ?? 0
+  currentOfferIndex.value += 1
+  if (currentOfferIndex.value < minOffers) {
+    currentOffer.value = offers.value[currentOfferIndex.value]
     page.value = "offer"
   } else {
+    await apply()
     page.value = "complete"
   }
+  
+  // Scroll to top
   const el = document.getElementById("page-signup") as Element
   getScrollTarget(el).scrollTo(0, 0)
 }
