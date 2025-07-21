@@ -11,6 +11,7 @@ import SelectGroupExpansion from "src/components/SelectGroupExpansion.vue";
 import GroupHeader from "src/components/GroupHeader.vue";
 import CreateTransactionSendQR from "src/pages/transactions/CreateTransactionSendQR.vue";
 import NfcTagScanner from "src/components/NfcTagScanner.vue";
+import TransactionItem from "../../../src/components/TransactionItem.vue";
 
 describe("Transactions", () => {
   let wrapper: VueWrapper;
@@ -36,7 +37,7 @@ describe("Transactions", () => {
     // Further wait to load members.
     await flushPromises();
     await wrapper.vm.$wait();
-    const transactions = wrapper.getComponent(TransactionList).findAllComponents(AccountHeader)
+    const transactions = wrapper.getComponent(TransactionList).findAllComponents(TransactionItem)
     expect(transactions.length).toBe(20);
     const first = transactions[3];
     expect(first.text()).toContain("Pending");
@@ -53,7 +54,7 @@ describe("Transactions", () => {
     wrapper.getComponent(PageHeader).vm.$emit("search", "object");
     await wrapper.vm.$wait();
     // Check result!
-    expect(wrapper.getComponent(TransactionList).findAllComponents(AccountHeader).length).toBe(2);
+    expect(wrapper.getComponent(TransactionList).findAllComponents(TransactionItem).length).toBe(2);
   });
   it("renders single transaction", async () => {
     await wrapper.vm.$router.push("/groups/GRP0/transactions/55fc265b-c391-4482-8d3c-096c7dc55aa9");

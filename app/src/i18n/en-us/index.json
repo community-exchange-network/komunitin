@@ -96,6 +96,7 @@
   "transactionPayeeHint": "El compte de la persona o entitat que rep el pagament.",
   "description": "Description",
   "transactionDescriptionHint": "Brief description of the concept of the sale, for example '2kg of potatoes'.",
+  "amount": "Amount",
   "amountIn": "Amount in {currency}",
   "transactionAmountHint": "Quantity of money to transfer.",
   "charge": "Charge",
