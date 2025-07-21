@@ -42,8 +42,8 @@
                 flat
                 icon="how_to_reg"
                 :label="$t('accept')"
-                @click.stop="acceptMember(member)"
                 :loading="loadingAcceptMember"
+                @click.stop="acceptMember(member)"
               />
               <delete-member-btn
                 flat
