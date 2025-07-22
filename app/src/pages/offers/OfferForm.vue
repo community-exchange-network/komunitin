@@ -137,9 +137,10 @@ watch([() => props.modelValue], async () => {
   
   state.value = props.modelValue?.attributes?.state || "published"
 
-  nextTick(() => {
-    form.value?.resetValidation()
-  })
+  // For some unknown reason the resetValidation needs to be called
+  // after changes by this watcher are applied.
+  await nextTick()
+  form.value?.resetValidation()
 
 }, { immediate: true })
 
