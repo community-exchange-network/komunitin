@@ -45,7 +45,7 @@ const needs = new Resources<Need, unknown>("needs", socialUrl);
 const categories = new Resources<Category, unknown>("categories", socialUrl);
 const users = new (class extends Resources<User, unknown> {
   collectionEndpoint = () => "/users";
-  resourceEndpoint = () => "/users/me";
+  resourceEndpoint = (id?: string) => id ? `/users/${id}` : "/users/me";
 })("users", socialUrl);
 
 const userSettings = new (class extends Resources<UserSettings, unknown> {
