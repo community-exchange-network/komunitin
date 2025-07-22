@@ -1,5 +1,5 @@
 <template>
-  <q-form @submit="onSubmit" ref="form">
+  <q-form ref="form" @submit="onSubmit">
     <div class="q-gutter-y-lg">
       <div>
         <div class="text-subtitle1">
