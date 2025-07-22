@@ -204,4 +204,18 @@ watch([contacts], () => {
   emit('update:contacts', contacts.value)
 })
 
+// One of the contacts is the user email, but it is not automatically updated in 
+// the UI when we change the user email. We manually patch that here purely on the
+// UI side.
+watch(email, (email, oldEmail) => {
+  if (email !== oldEmail) {
+    contacts.value = contacts.value.map(c => {
+      if (c.attributes.type === "email" && c.attributes.name === oldEmail) {
+        return {...c, attributes: {...c.attributes, name: email}}
+      }
+      return c
+    })
+  }
+})
+
 </script>

@@ -3,7 +3,7 @@
     :label="$t('changeEmail')"
     :text="$t('changeEmailText')"
     :valid="!v$.$invalid"
-    :submit="changePassword"
+    :submit="changeEmail"
   >
     <template #default>
       <password-field
@@ -62,7 +62,7 @@ const v$ = useVuelidate({
 
 const { t } = useI18n()
 
-const changePassword = async () => {
+const changeEmail = async () => {
   try {
     await store.dispatch("users/update", {
       id: props.user.id,
