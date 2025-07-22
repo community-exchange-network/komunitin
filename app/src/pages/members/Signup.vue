@@ -118,7 +118,8 @@ const createUser = async () => {
         type: "members",
         id: memberId,
         attributes: {
-          name: credentials.value.name
+          name: credentials.value.name,
+          state: "draft",
         },
         relationships: {
           group: {
