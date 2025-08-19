@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { checkExact, oneOf } from 'express-validator';
-import { CreateMigration } from 'src/controller/migration/migration';
+import { CreateMigration } from 'src/migration/migration';
 import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
 import { InputTrustline, UpdateTrustline } from 'src/model/trustline';
 import { context } from 'src/utils/context';
@@ -259,14 +259,6 @@ export function getRoutes(controller: SharedController) {
       return StatsSerializer.serialize(stats)
     })
   )
-
-  // Migrations (WIP)
-  router.post('/migrations', userAuth(Scope.Accounting), checkExact(Validators.isCreateMigration()), asyncHandler(async (req, res) => {
-    const data = input(req)
-    const migration = new MigrationController(controller)
-    const result = await migration.createMigration(context(req), data as CreateMigration)
-    res.status(201).json(result)
-  }))
 
   return router
 
