@@ -5,9 +5,9 @@ import { KeyObject } from "node:crypto"
 import { EventEmitter } from "node:events"
 import { initUpdateExternalOffers } from "src/ledger/update-external-offers"
 import { Context, systemContext } from "src/utils/context"
-import { badConfig, badRequest, internalError, notFound, notImplemented } from "src/utils/error"
+import { badConfig, badRequest, internalError, notFound, notImplemented, unauthorized } from "src/utils/error"
 import TypedEmitter from "typed-emitter"
-import { SharedController as BaseController, ControllerEvents, StatsController } from "."
+import { SharedController, ControllerEvents, StatsController } from "."
 import { config } from "../config"
 import { Ledger, LedgerCurrencyConfig, LedgerCurrencyData, createStellarLedger } from "../ledger"
 import { friendbot } from "../ledger/stellar/friendbot"
@@ -104,7 +104,7 @@ const waitForDb = async (db: PrismaClient): Promise<void> => {
   }
 }
 
-export async function createController(): Promise<BaseController> {
+export async function createController(): Promise<SharedController> {
   // Create DB client.
   const db = new PrismaClient()
   await waitForDb(db)
@@ -138,7 +138,7 @@ const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
   return {
     code: currency.code,
     rate: currency.rate,
-    externalTraderInitialCredit: amountToLedger(currency, currency.settings.externalTraderCreditLimit as number),
+    externalTraderInitialCredit: amountToLedger(currency, currency.settings.externalTraderCreditLimit ?? 0),
     externalTraderMaximumBalance: currency.settings.externalTraderMaximumBalance ? amountToLedger(currency, currency.settings.externalTraderMaximumBalance) : undefined
   }
 }
@@ -158,7 +158,7 @@ const currencyData = (currency: Currency): LedgerCurrencyData => {
 }
 
 
-export class LedgerController implements BaseController {
+export class LedgerController implements SharedController {
   
   ledger: Ledger
   private _db: PrismaClient
@@ -211,11 +211,11 @@ export class LedgerController implements BaseController {
     return this.emitter.removeListener(event, listener)
   }
 
-  privilegedDb(): PrivilegedPrismaClient {
+  public privilegedDb(): PrivilegedPrismaClient {
     return privilegedDb(this._db)
   }
 
-  tenantDb(tenantId: string) : TenantPrismaClient {
+  public tenantDb(tenantId: string) : TenantPrismaClient {
     return tenantDb(this._db, tenantId)
   }
 
@@ -224,10 +224,11 @@ export class LedgerController implements BaseController {
     if (await this.currencyExists(currency.code)) {
       throw badRequest(`Currency with code ${currency.code} already exists`)
     }
-    if (ctx.userId === undefined) {
-      // This should not happen as the middleware checks it.
-      throw internalError("User ID not provided in context")
+
+    if (ctx.type !== "user" && ctx.type !== "system") {
+      throw unauthorized("Required user or system credentials")
     }
+
     // Create and save a currency key that will be used to encrypt all other keys
     // related to this currency. This key itself is encrypted using the master key.
     const currencyKey = await randomKey()
@@ -236,7 +237,7 @@ export class LedgerController implements BaseController {
     // Default settings:
     const defaultSettings: CurrencySettings = {
       defaultInitialCreditLimit: 0,
-      defaultInitialMaximumBalance: undefined,
+      defaultInitialMaximumBalance: false,
       defaultAllowPayments: true,
       defaultAllowPaymentRequests: true,
       defaultAcceptPaymentsAutomatically: false,
@@ -251,7 +252,7 @@ export class LedgerController implements BaseController {
       defaultAllowTagPaymentRequests: false,
 
       defaultAcceptPaymentsAfter: 14*24*60*60, // 2 weeks,
-      defaultOnPaymentCreditLimit: undefined,
+      defaultOnPaymentCreditLimit: false,
 
       enableExternalPayments: true,
       enableExternalPaymentRequests: false,
@@ -261,7 +262,7 @@ export class LedgerController implements BaseController {
       defaultAcceptExternalPaymentsAutomatically: false,
       
       externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit,
-      externalTraderMaximumBalance: undefined,
+      externalTraderMaximumBalance: false,
     }
 
     // Merge default settings with provided settings, while deleting eventual extra fields.
@@ -276,13 +277,17 @@ export class LedgerController implements BaseController {
     const inputRecord = currencyToRecord(currency)
     const db = this.tenantDb(currency.code)
 
+    if (currency.admins && currency.admins.length > 1) {
+      throw notImplemented("Multiple admins not supported")
+    }
+
     // Use logged in user as admin if not provided.
     const admin = currency.admins && currency.admins.length > 0 
       ? currency.admins[0].id 
       : ctx.userId
     
-    if (currency.admins && currency.admins.length > 1) {
-      throw notImplemented("Multiple admins not supported")
+    if (!admin) {
+      throw badRequest("Admin user must be provided explicitly or as logged in user")
     }
 
     // Check that the user is not already being used in other tenant.
@@ -366,7 +371,7 @@ export class LedgerController implements BaseController {
 
   }
   /**
-   * Implements {@link BaseController.getCurrencies}
+   * Implements {@link SharedController.getCurrencies}
    */
   async getCurrencies(ctx: Context, params: CollectionOptions): Promise<Currency[]> {
     const filter = whereFilter(params.filters)

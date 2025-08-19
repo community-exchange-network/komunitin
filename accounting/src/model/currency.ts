@@ -21,7 +21,7 @@ export type CurrencySettings = {
    * The maximum balance that will have new accounts by default. Set
    * to undefined for no limit.
    */
-  defaultInitialMaximumBalance?: number
+  defaultInitialMaximumBalance?: number | false
   /**
    * Users can make payments by default.
    */
@@ -60,12 +60,12 @@ export type CurrencySettings = {
   /**
    * Number of seconds after which payments are accepted automatically
    */
-  defaultAcceptPaymentsAfter?: number
+  defaultAcceptPaymentsAfter?: number | false
   /**
    * If set, the dynamic on-payment credit limit scheme will be activated. Then, the
    * value of this field is the hard credit limit.
    */
-  defaultOnPaymentCreditLimit?: number
+  defaultOnPaymentCreditLimit?: number | false
   /**
    * Users can make external payments by default.
    */
@@ -97,7 +97,7 @@ export type CurrencySettings = {
   /**
    * The maximum balance in local currency that the external trader account may have.
    */
-  externalTraderMaximumBalance?: number
+  externalTraderMaximumBalance?: number | false
   /**
    * Whether to hide other's account balances by default.
    */
@@ -143,7 +143,10 @@ export interface Currency {
   admin: User
 }
 
-export type CreateCurrency = Omit<Optional<Currency & {admins?: User[]}, "id">, "status" | "created" | "updated" | "encryptionKey" | "keys" | "admin">
+export type CreateCurrency = Optional<
+  Pick<Currency, "id" | "code" | "name" | "namePlural" | "symbol" | "decimals" | "scale" | "rate"  | "created" | "updated">, 
+  "id" | "created" | "updated" > 
+  & { admins?: User[], settings: Partial<CurrencySettings> }
 export type UpdateCurrency = Partial<CreateCurrency>
 
 export function currencyToRecord(currency: CreateCurrency): Prisma.CurrencyCreateInput
@@ -162,7 +165,6 @@ export function currencyToRecord(currency: CreateCurrency | UpdateCurrency): Pri
     rateD: currency.rate?.d,
 
     settings: currency.settings,
-    state: currency.state,
   }
 }
 

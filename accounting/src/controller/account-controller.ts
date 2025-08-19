@@ -25,7 +25,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
     // Find next free account code.
     let code = account.code
     if (code) {
-      await this.checkFreeCode(account.code)
+      await this.checkFreeCode(code)
     } else {
       code = await this.getFreeCode()
     }
@@ -52,7 +52,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
         code,
         // Initialize ledger values with what we have just created.
         creditLimit,
-        maximumBalance,
+        maximumBalance: maximumBalance ? maximumBalance : null,
         balance: 0,
 
         // Initialize some account settings (others will be taken from currency settings if not set)

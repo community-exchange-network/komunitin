@@ -28,11 +28,11 @@ import { CreditCommonsController, CreditCommonsControllerImpl } from "../creditc
 import { UserController } from "./user-controller";
 import { StatsController } from "./stats-controller";
 
-export function amountToLedger(currency: AtLeast<Currency, "scale">, amount: number) {
+export function amountToLedger(currency: {scale: number}, amount: number) {
   return Big(amount).div(Big(10).pow(currency.scale)).toString()
 }
 
-export function amountFromLedger(currency: AtLeast<Currency, "scale">, amount: string) {
+export function amountFromLedger(currency: {scale: number}, amount: string) {
   return Big(amount).times(Big(10).pow(currency.scale)).toNumber()
 }
 
@@ -174,7 +174,7 @@ export class LedgerCurrencyController implements CurrencyController {
   }
 
   async cron(ctx: Context) {
-    if (this.model.settings.defaultAcceptPaymentsAfter !== undefined) {
+    if (this.model.settings.defaultAcceptPaymentsAfter) {
       await this.transfers.acceptPendingTransfers(ctx)
     }
   }

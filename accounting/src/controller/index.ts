@@ -8,6 +8,7 @@ import { InputTrustline, Trustline, UpdateTrustline } from "src/model/trustline"
 import { Stats } from "src/model/stats"
 export { MigrationController } from './migration'
 import { CreditCommonsController } from "src/creditcommons/credit-commons-controller";
+import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant"
 
 
 export type ControllerEvents = {
@@ -34,6 +35,9 @@ export interface SharedController {
   
   addListener: TypedEmitter<ControllerEvents>['addListener']
   removeListener: TypedEmitter<ControllerEvents>['removeListener']
+
+  tenantDb(code: string): TenantPrismaClient
+  privilegedDb(): PrivilegedPrismaClient
 }
 /**
  * Controller for operations related to a particular currency.

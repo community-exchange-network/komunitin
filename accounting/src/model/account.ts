@@ -1,4 +1,4 @@
-import { AtLeast, Optional } from 'src/utils/types'
+import { AtLeast, Optional, WithRequired } from 'src/utils/types'
 import { Currency } from './currency'
 import { Account as AccountRecord, User as UserRecord, AccountTag as AccountTagRecord, Prisma } from '@prisma/client'
 import { User } from './user'
@@ -130,8 +130,8 @@ export type AccountSettings = {
 }
 
 // No input needed for creating an account (beyond implicit currency)!
-export type InputAccount = Pick<FullAccount, "id" | "code" | "creditLimit" | "maximumBalance" | "settings" | "users">
-export type UpdateAccount = AtLeast<InputAccount, "id">
+export type InputAccount = Partial<Pick<FullAccount, "id" | "code" | "creditLimit" | "maximumBalance" | "users">>
+export type UpdateAccount = WithRequired<InputAccount, "id">
 
 export function accountToRecord(account: UpdateAccount): Prisma.AccountUpdateInput {
   const accountRecord: Prisma.AccountUpdateInput = {
@@ -139,11 +139,6 @@ export function accountToRecord(account: UpdateAccount): Prisma.AccountUpdateInp
     code: account.code,
     creditLimit: account.creditLimit,
     maximumBalance: account.maximumBalance ?? null,
-  }
-
-  if (account.settings) {
-    const {tags, ...settings} = account.settings
-    accountRecord.settings = settings
   }
 
   return accountRecord

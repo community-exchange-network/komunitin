@@ -636,7 +636,7 @@ export class StellarCurrency implements LedgerCurrency {
     }
   }
   /**
-   * Implements {@link LedgerCurrency.createAccount()}
+   * Implements {@link LedgerCurrency#createAccount()}
    */
   async createAccount(options: {
     initialCredit: string,
@@ -673,7 +673,7 @@ export class StellarCurrency implements LedgerCurrency {
     return {key: account}
   }
   /**
-   * Implements {@link LedgerCurrency.getAccount}. 
+   * Implements {@link LedgerCurrency#getAccount}. 
    * 
    * This function always makes a call to the ledger to get the latest information about the account.
    * 
