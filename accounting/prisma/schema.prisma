@@ -302,3 +302,26 @@ model CreditCommonsNode {
 
   @@id([tenantId, peerNodePath])
 }
+
+model Migration {
+  // Same as migration currency code
+  tenantId String @default(dbgenerated("(current_setting('app.current_tenant_id'))::text")) @db.VarChar(31)
+  // Migration id
+  id       String @id @default(uuid())
+  // Migration name
+  name String @db.VarChar(255)
+  // Migration currency code
+  code String @db.VarChar(255)
+  // Migration status: new, started, completed
+  status String @default("new") @db.VarChar(31)
+  // Migration kind: "intregralces-accounting" is the only kind for now.
+  kind String @db.VarChar(31)
+  // Migration data, depending on the kind.
+  data Json?
+  // Migration log, array of LogEntry objects.
+  log Json?
+
+  created DateTime @default(now())
+  updated DateTime @updatedAt
+
+}
