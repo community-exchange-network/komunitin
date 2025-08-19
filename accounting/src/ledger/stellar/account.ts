@@ -167,6 +167,9 @@ export class StellarAccount implements LedgerAccount {
     }
     const balance = this.stellarBalance(asset)
     if (!balance) {
+      if (asset.getIssuer() === this.accountId) {
+        return Number.MAX_SAFE_INTEGER.toString()
+      }
       throw internalError(`Unexpected account without ${asset.code} currency balance`)
     }
     return balance.balance
