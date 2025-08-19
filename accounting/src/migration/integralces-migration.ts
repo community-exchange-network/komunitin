@@ -1,0 +1,826 @@
+import { Keypair } from "@stellar/stellar-sdk";
+import { MigrationController } from "../controller";
+import { amountToLedger, LedgerCurrencyController } from "../controller/currency-controller";
+import { AccountSettings, FullAccount, TransferMeta, TransferStates } from "../model";
+import { systemContext } from "../utils/context";
+import { Migration, MigrationAccount, MigrationData, MigrationTransfer } from "./migration";
+
+const UNLIMITED_CREDIT_LIMIT = 10 ** 6
+
+interface ICESMigration extends Migration {
+  kind: "integralces-accounting";
+  data: MigrationData & {
+    source: {
+      url: string,
+      tokens: {
+        refreshToken?: string,
+        accessToken: string,
+        expiresAt: string
+      }
+    },
+    token: {
+      
+      expiresAt: string
+    },
+    step: string
+  } 
+}
+
+export class ICESMigrationController {
+
+  public steps = ["validate", "get-currency", "get-accounts", "get-transfers", "create-currency", "create-accounts", "create-transfers", "set-balances", "end"]
+
+  constructor(private readonly controller: MigrationController, private readonly migration: ICESMigration) {}
+
+  static isICESMigration(migration: Migration): migration is ICESMigration & { kind: "integralces-accounting" } {
+    return migration.kind === "integralces-accounting";
+  }
+
+  async log(message: string, data?: any) {
+    this.controller.addLogEntry(this.migration, "info", this.migration.data.step, message, data)
+  }
+
+  async warn(message: string, data?: any) {
+    this.controller.addLogEntry(this.migration, "warn", this.migration.data.step, message, data)
+  }
+
+  async play() {    
+    await this.controller.setMigrationStatus(this.migration.id, "started")
+    await this.log("Starting migration process")
+    const currentStep = this.migration.data.step || this.steps[0]
+    const index = this.steps.indexOf(currentStep)
+    if (index === -1) {
+      throw new Error(`Unknown migration step: ${currentStep}`)
+    }
+    try {
+      for (let i = index; i < this.steps.length; i++) {
+        const step = this.steps[i];
+        this.migration.data.step = step
+        await this.controller.updateMigrationData(this.migration.id, { step })
+        await this.log(`Starting migration step ${step}`)
+        await this.runStep(step)
+        await this.log(`Migration step ${step} completed`)
+      }
+
+      this.migration.status = "completed"
+      await this.controller.setMigrationStatus(this.migration.id, "completed")
+      await this.log("Migration process completed successfully")
+    
+    } catch (error) {
+      console.error(error)
+      
+      let message = "unknown error"
+      if (error instanceof Error) {
+        message = error.message
+      }
+      await this.controller.addLogEntry(this.migration, "error", this.migration.data.step, message, { error })
+      this.migration.status = "failed"
+      await this.controller.setMigrationStatus(this.migration.id, "failed")
+    }
+  }
+
+  private async runStep(step: string) {
+    switch (step) {
+      case "validate":
+        return await this.validate()
+      case "get-currency":
+        return await this.getCurrency()
+      case "get-accounts":
+        return await this.getAccounts()
+      case "get-transfers":
+        return await this.getTransfers()
+      case "create-currency":
+        return await this.createCurrency()
+      case "create-accounts":
+        return await this.createAccounts()
+      case "create-transfers":
+        return await this.createTransfers()
+      case "set-balances":
+        return await this.setBalances()
+      case "end":
+        await this.log("Migration process ended :)")
+        return
+      default:
+        throw new Error(`Unknown step ${step}`)  
+    }
+  }
+
+  private async getAccessToken() {
+    const tokens = this.migration.data.source.tokens;
+    if ((!tokens.accessToken || new Date(tokens.expiresAt) < new Date(Date.now() - 5 * 60 * 1000)) && tokens.refreshToken) {
+      const authUrl = `${this.migration.data.source.url}/oauth2/token`
+      const body = new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: tokens.refreshToken,
+        client_id: "komunitin-app",
+        scope: "komunitin_social komunitin_accounting",
+      });
+      const response = await fetch(authUrl, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: body.toString(),
+      })
+      const data = await response.json() as any
+      if (!response.ok) {
+        throw new Error(`Failed to get access token: ${data.error || "Unknown error"}`)
+      }
+
+      // Update the migration with the new access token, expiration and refresh token
+      this.migration.data.source.tokens = {
+        accessToken: data.access_token,
+        expiresAt: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+        refreshToken: data.refresh_token
+      }
+
+      await this.controller.updateMigrationData(this.migration.id, {
+        source: this.migration.data.source
+      })
+      
+      await this.log("Access token refreshed")
+    } else if (!tokens.refreshToken) {
+      throw new Error("Access token unavailable or expired, and no refresh token provided")
+    }
+    return this.migration.data.source.tokens.accessToken
+  }
+
+  private socialUrl = () => {
+    return `${this.migration.data.source.url}/ces/api/social`
+  }
+
+  private accountingUrl = () => {
+    return `${this.migration.data.source.url}/ces/api/accounting`
+  }
+
+  private async get(url: string) {
+    const token = await this.getAccessToken()
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    })
+    if (!response.ok) {
+      const errorDoc = await response.json() as any
+      const errors = errorDoc.errors || [] 
+      const errorObject = errors.length > 0 ? errors[0] : { title: "Unknown error", detail: "An unknown error occurred" }
+      throw new Error(`Failed to fetch from ${url}: ${errorObject.detail || errorObject.title}`, {
+        cause: errorObject
+      })
+    }
+    return await response.json() as any
+  }
+
+  private async validate() {
+    const response = await this.get(`${this.accountingUrl()}/${this.migration.code}/currency`)
+    if (!response.data || !response.data.attributes || !response.data.attributes.code) {
+      throw new Error("Invalid response from accounting service")
+    }
+    await this.log("Migration source and token validated successfully")
+  }
+
+  private async getCurrency() {
+    // Fetch currency object
+    const url = `${this.accountingUrl()}/${this.migration.code}/currency?include=settings`
+    const response = await this.get(url)
+    if (!response.data || !response.included) {
+      throw new Error("Invalid response from accounting service")
+    }
+    const currency = response.data
+    const settings = response.included.find((i: any) => i.type === 'currency-settings')
+    if (!settings) {
+      throw new Error("Currency settings not found in response")
+    }
+    
+    await this.log(`Currency ${currency.attributes.code} fetched successfully`, this.migration.data.currency)
+
+    // Fetch admin from social service
+    const groupUrl = `${this.socialUrl()}/${this.migration.code}`
+    const groupResponse = await this.get(groupUrl)
+    const admins = groupResponse.data.relationships.admins.data
+    if (!admins || admins.length === 0) {
+      throw new Error("No admins found for the group")
+    }
+    await this.log(`${admins.length} admins found for the group`)
+
+    this.migration.data.currency = {
+      id: currency.id,
+      ...currency.attributes,
+      settings: {
+        ...settings.attributes,
+      },
+      admins: admins.map((admin: any) => ({ id: admin.id }))
+    }
+  
+    await this.controller.updateMigrationData(this.migration.id, { currency: this.migration.data.currency })
+    await this.log(`Currency ${currency.attributes.code} fetched successfully`)
+  }
+
+  private async getAccounts() {
+    // fetch all accounts (including virtual and blocked/hidden/etc)
+    const accountsUrl = `${this.accountingUrl()}/${this.migration.code}/accounts`
+
+    const params = new URLSearchParams({
+      "filter[state]": "0,1,2,3,4",
+      "filter[kind]": "0,1,2,3,4,5",
+      "include": "settings",
+      "page[size]": "20"
+    })
+    const accounts: any[] = []
+    let response: any;
+    do {
+      params.set("page[after]", "" + accounts.length)
+      response = await this.get(`${accountsUrl}?${params.toString()}`)
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error("Invalid response from accounting service")
+      }
+      for (const accountData of response.data) {
+        const settingsData = response.included.find((i: any) => i.type === 'account-settings' && i.id === accountData.relationships.settings.data.id)
+        const account = {
+          id: accountData.id,
+          ...accountData.attributes,
+          settings: {
+            ...settingsData.attributes,
+          }
+        }
+        accounts.push(account)
+      }
+      await this.log(`Fetched ${accounts.length} accounts so far`)
+    } while (response.links && response.links.next !== null);
+
+    await this.log("Finished fetching accounts")
+    // fetch account users. In order to do this, we need to fetch the members of the group
+    // and then get the member users and relate them to the account.
+    const socialBase = this.socialUrl()
+    const membersUrl = `${socialBase}/${this.migration.code}/members`
+    
+    const membersParams = new URLSearchParams({
+      "page[size]": "20",
+      "filter[state]": "draft,pending,active,suspended,deleted"
+    })
+    let fetchedMembers = 0
+    let memberResponse: any;
+    do {
+      membersParams.set("page[after]", "" + fetchedMembers)
+      memberResponse = await this.get(`${membersUrl}?${membersParams.toString()}`)
+      if (!memberResponse.data || !Array.isArray(memberResponse.data)) {
+        throw new Error("Invalid response from social service")
+      }
+      for (const memberData of memberResponse.data) {
+        const accountId = memberData.relationships.account.data.id
+        const account = accounts.find(a => a.id === accountId)
+        if (!account) {
+          this.warn(`Member ${memberData.id} account not found, skipping`, { member: memberData })
+          continue
+        }
+        
+        account.member = {
+          id: memberData.id,
+          ...memberData.attributes
+        }
+
+        const userUrl = `${socialBase}/users?filter[members]=${memberData.id}`
+        const userResponse = await this.get(userUrl)
+        if (!userResponse.data || !Array.isArray(userResponse.data) || userResponse.data.length === 0) {
+          this.warn(`No users found for member ${memberData.id}, skipping`, { member: memberData })
+          continue
+        }
+        const users = userResponse.data.map((user: any) => ({id: user.id}))
+        account.users = users
+      }
+      fetchedMembers += memberResponse.data.length
+      await this.log(`Fetched ${fetchedMembers} members so far`)
+    } while (memberResponse.links && memberResponse.links.next !== null);
+
+    const accountsWithOneUser = accounts.filter(a => a.users && a.users.length === 1).length
+    const accountsWithMoreThanOneUser = accounts.filter(a => a.users && a.users.length > 1).length
+    const accountsWithoutUsers = accounts.filter(a => !a.users || a.users.length === 0).length
+
+    await this.log(`Finished fetching accounts. ${accounts.length} accounts found, ${accountsWithOneUser} with one user, ${accountsWithMoreThanOneUser} with more than one user, ${accountsWithoutUsers} without users.`)
+    
+    // Save accounts in migration data
+    this.migration.data.accounts = accounts
+    await this.controller.updateMigrationData(this.migration.id, { accounts: this.migration.data.accounts })
+  }
+
+  private async getTransfers() {
+    const url = this.accountingUrl() + `/${this.migration.code}/transfers`
+    const params = new URLSearchParams({
+      "page[size]": "20",
+      "include": "payer,payee"
+    })
+    let response: any;
+    const transfers: MigrationTransfer[] = []
+    do {
+      params.set("page[after]", "" + transfers.length)
+      response = await this.get(`${url}?${params.toString()}`)
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error("Invalid response from accounting service")
+      }
+      for (const transferData of response.data) {
+        const payerId = transferData.relationships.payer.data.id
+        const payeeId = transferData.relationships.payee.data.id
+        
+        const payer = response.included.find((i: any) => i.type === 'accounts' && i.id === payerId)
+        const payee = response.included.find((i: any) => i.type === 'accounts' && i.id === payeeId)
+
+        transfers.push({
+          id: transferData.id,
+          ...transferData.attributes,
+          payer: {
+            id: payerId,
+            code: payer.attributes.code,
+          },
+          payee: {
+            id: payeeId,
+            code: payee.attributes.code,
+          },
+          user: {
+            id: transferData.relationships.user.data.id,
+          }
+        })
+      }
+      await this.log(`Fetched ${transfers.length} transfers so far`)
+    } while (response.links && response.links.next !== null);
+
+    await this.log(`Finished fetching transfers.`);
+
+    // Save transfers in migration data
+    this.migration.data.transfers = transfers
+    await this.controller.updateMigrationData(this.migration.id, { transfers: this.migration.data.transfers })
+  }
+
+  private async createCurrency() {
+    if (!this.migration.data.currency) {
+      throw new Error("No currency data found in migration")
+    }
+    const currencyData = this.migration.data.currency;
+
+    // Fix unsupported unlimited credit limit
+    if (currencyData.settings.defaultInitialCreditLimit as any === false) {
+      currencyData.settings.defaultInitialCreditLimit = (10 ** currencyData.scale) * UNLIMITED_CREDIT_LIMIT
+    }
+
+    await this.controller.controller.createCurrency(systemContext(), currencyData)
+    await this.log(`Currency ${currencyData.code} created successfully in the ledger`)
+  }
+
+  private async createAccounts() {
+    const accounts = this.migration.data.accounts;
+    if (!accounts) {
+      throw new Error("No accounts data found in migration")
+    }
+    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as LedgerCurrencyController;
+    const currency = await currencyController.getCurrency(systemContext());
+    
+    const db = this.controller.controller.tenantDb(this.migration.code)  
+    const accountController = currencyController.accounts;
+
+    const createAccount = async (account: MigrationAccount) => {
+      if (!account.member) {
+        await this.warn(`Skipping account ${account.code} without member data`, { accountId: account.id });
+        return;
+      }
+      if (account.member.type === "virtual") {
+        await this.log(`Skipping virtual account ${account.code}`)
+        return;
+      }
+      
+      // Check if account already exists.
+      const existingAccount = await db.account.findUnique({
+        where: { id: account.id },
+        select: { id: true, code: true, status: true }
+      })
+
+      const setSettings = async (settings: Partial<AccountSettings>) => {
+        await accountController.updateAccountSettings(systemContext(), {
+          id: account.id,
+          ...settings
+        })
+      }
+
+      if (existingAccount) {
+        if (existingAccount.code === account.code) {
+          await this.warn(`Account ${account.code} already exists, skipping creation`, { accountId: account.id });
+          if (existingAccount.status === "active") {
+            await setSettings(account.settings)    
+            await this.log(`Existing account ${account.code} settings updated successfully`)
+          }
+        } else {
+          throw new Error(`Account ${account.code} already exists with different status or code: ${existingAccount.status} / ${existingAccount.code}`);
+        }
+      } else {
+        const maximumBalance = (account.maximumBalance === -1 || !account.maximumBalance) ? undefined : account.maximumBalance;
+        if (account.member.state === "active") { 
+          // Create account
+          const model = {
+            id: account.id,
+            code: account.code,
+            creditLimit: account.creditLimit === -1 ? undefined : account.creditLimit,
+            maximumBalance,
+            users: account.users
+          }
+          await accountController.createAccount(systemContext(), model)      
+          // Set settings
+          await setSettings(account.settings)
+          await this.log(`Active account ${account.code} created successfully in the ledger`)
+        } else if (account.member.state === "deleted") {
+          // We don't need to create this account in the ledger (and createAccount) does not allow to create 
+          // deleted accounts. But still there may be transfers related to it so we will add the record to the 
+          // DB directly.
+          
+          // Create a random key for the deleted account
+          const keyValue = Keypair.random()
+          const keyId = await currencyController.keys.storeKey(keyValue)
+          
+          await db.account.create({
+            data: {
+              tenantId: db.tenantId,
+              id: account.id,
+              code: account.code,
+              balance: 0,
+              creditLimit: account.creditLimit === -1 || account.creditLimit === undefined ? currency.settings.defaultInitialCreditLimit : account.creditLimit,
+              maximumBalance,
+              status: "deleted",
+              created: new Date(account.created),
+              updated: new Date(account.updated),
+              type: "user",
+              users: {
+                create: account.users.map(user => ({
+                  user: {
+                    connectOrCreate: {
+                      where: { 
+                        tenantId_id: {
+                          tenantId: db.tenantId,
+                          id: user.id
+                        } 
+                      },
+                      create: { id: user.id }
+                    }
+                  }
+                }))
+              },
+              currency: {
+                connect: { id: currency.id }
+              },
+              key: {
+                connect: { id: keyId }
+              },
+              settings: {
+
+              }
+            }
+          })
+          await this.log(`Deleted account ${account.code} created successfully in the DB`)
+        } else if (account.member.state === "suspended") {
+          throw new Error(`Suspended accounts are not supported yet: ${account.code}`);
+        } else {
+          await this.warn(`Skipping account ${account.code} with state ${account.member.state}.`);
+        }
+      }
+    }
+
+    // Ensure credit account has enough balance for creating all accounts.
+    // THis should not be required but actually is needed for parallel account creation
+    // and also saves us a few ledger ops.
+    const totalCredit = accounts.reduce((sum, account) => {
+      if (account.member?.state === "active") {
+        const creditLimit = account.creditLimit === -1 ? currency.settings.defaultInitialCreditLimit : account.creditLimit;
+        sum += creditLimit;
+      }
+      return sum;
+    }, 0)
+
+    const issuer = await currencyController.ledger.getAccount(currency.keys.issuer)
+    if (totalCredit > 0) {
+      await issuer.pay({
+        amount: currencyController.amountToLedger(totalCredit),
+        payeePublicKey: currency.keys.credit
+      }, {
+        account: await currencyController.keys.issuerKey(),
+        sponsor: await currencyController.keys.sponsorKey()
+      })
+    }
+
+    const CREATE_ACCOUNTS_BATCH_SIZE = 10
+    for (let i = 0; i < accounts.length; i += CREATE_ACCOUNTS_BATCH_SIZE) {
+      const batch = accounts.slice(i, i + CREATE_ACCOUNTS_BATCH_SIZE);
+      await this.log(`Sending batch of ${batch.length} accounts for creation`);
+      await Promise.all(batch.map(createAccount))
+    }
+    await this.log(`Finished creating ${accounts.length} accounts in the ledger`)
+  }
+  private async createTransfers() {
+    const transfers = this.migration.data.transfers;
+    if (!transfers) {
+      throw new Error("No transfers data found in migration")
+    }
+    const db = this.controller.controller.tenantDb(this.migration.code)
+    await this.log(`Creating ${transfers.length} transfers in the ledger...`)
+    
+    // We will log every 1, 10, 100 or 1000 transfers depending on the number of transfers.
+    const logEvery = 10 ** Math.min(Math.max(Math.floor(Math.log10(transfers.length) - 1), 0), 3)
+    let count = 0
+
+    const getDBAccount = async (id: string) => {
+      const account = await db.account.findUnique({
+        where: { id },
+        select: { id: true, code: true }
+      })
+      if (!account) {
+        throw new Error(`Account with id ${id} not found in the database`)
+      }
+      return account
+    }
+    const isLocalAccount = (account: {id: string, code: string}) => {
+      return account.code.match(`${this.migration.code}[0-9]{4}`) !== null;
+    }
+
+    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as LedgerCurrencyController;
+    const currency = await currencyController.getCurrency(systemContext());
+
+    for (const transfer of transfers) {
+      // Find payer and payee accounts to be sure they exist in our DB.
+      // Check if transfer already exists in the DB.
+      const existingTransfer = await db.transfer.findUnique({
+        where: { tenantId_id: { tenantId: db.tenantId, id: transfer.id } },
+        select: { id: true }
+      })
+
+      if (existingTransfer) {
+        await this.warn(`Transfer ${transfer.id} already exists, skipping creation`, { transferId: transfer.id });
+        continue;
+      }
+
+      // Use virtual account for external transfers.
+      const isLocalPayer = isLocalAccount(transfer.payer)
+      const isLocalPayee = isLocalAccount(transfer.payee)
+      if (!isLocalPayer && !isLocalPayee) {
+        await this.warn(`Skipping transfer ${transfer.id} with payer ${transfer.payer.code} and payee ${transfer.payee.code} not in local accounts`, { transfer });
+        continue; // Skip transfers with both payer and payee not in local accounts
+      }
+      const localPayer = isLocalPayer ? await getDBAccount(transfer.payer.id) : currency.externalAccount;
+      const localPayee = isLocalPayee ? await getDBAccount(transfer.payee.id) : currency.externalAccount;
+      const isExternal = !isLocalPayer || !isLocalPayee;
+
+      const meta = {
+        ...transfer.meta,
+        migration: {
+          id: this.migration.id,
+        },
+      } as TransferMeta
+      
+      if (!TransferStates.includes(transfer.state)) {
+        throw new Error(`Invalid transfer state "${transfer.state}" for transfer ${transfer.id}`);
+      }
+
+      // check if provided user exists, otherwise use the currency admin user
+      let userId = transfer.user.id;
+      const user = await db.user.findUnique({
+        where: { tenantId_id: { tenantId: db.tenantId, id: userId } },
+        select: { id: true }
+      })
+      if (!user) {
+        // Use the first admin user of the currency as the user for the transfer
+        userId = currency.admin.id
+      }
+      
+      await db.transfer.create({
+        data: {
+          id: transfer.id,
+          amount: transfer.amount,
+          state: transfer.state,
+          meta,
+          created: new Date(transfer.created),
+          updated: new Date(transfer.updated),
+          authorization: undefined,
+          payer: {
+            connect: { id: localPayer.id }
+          },
+          payee: {
+            connect: { id: localPayee.id }
+          },
+          user: {
+            connect: {
+              tenantId_id: {
+                tenantId: db.tenantId,
+                id: userId
+              }
+            }
+          }
+        }
+      })
+
+      if (isExternal) {
+        const isRegularExternalTransfer = (transfer: MigrationTransfer) => {
+          const isRegularExternalAccount = (account: {id: string, code: string}) => {
+            return !account.code.startsWith(`${this.migration.code}`) && account.code.match(/^[A-Z0-9]{4}[0-9]{4}$/) !== null;
+          }
+          return isLocalPayee && isRegularExternalAccount(transfer.payer) ||
+                 isLocalPayer && isRegularExternalAccount(transfer.payee) 
+        }
+        const getExternalAccount = async ({id, code}: {id: string, code: string}) => {
+          const currencyCode = code.substring(0, 4);
+          return await currencyController.externalResources.getExternalResource(systemContext(), {
+            type: "accounts",
+            id: id,
+            meta: {
+              external: true,
+              href: this.accountingUrl() + `/${currencyCode}/accounts/${id}`
+            }
+          })
+        }
+        try {
+          if (isRegularExternalTransfer(transfer)) {
+            // We can migrate this transfer as an external transfer.
+            const externalPayer = isLocalPayer ? undefined : await getExternalAccount(transfer.payer)
+            const externalPayee = isLocalPayee ? undefined : await getExternalAccount(transfer.payee)
+
+            await db.externalTransfer.create({
+              data: {
+                id: transfer.id,
+                externalPayerId: externalPayer?.id,
+                externalPayeeId: externalPayee?.id
+              }
+            })
+          } else if (meta.cenip) {
+            // This is a CENIP external transfer. The meta already contains the remote but we migrate it
+            // just as a local transfer with the external account.
+            await this.log(`Found CENIP external transfer ${transfer.id} with payer ${transfer.payer.code} and payee ${transfer.payee.code}`);
+          } else {
+            // This is an unexpected external transfer, we'll migrate it as a local transfer with external account.
+            await this.warn(`Unexpected external transfer ${transfer.id} with payer ${transfer.payer.code} and payee ${transfer.payee.code}, migrating as local transfer`, { transfer });
+          }
+        } catch (error) {
+          await db.transfer.delete({ where: { tenantId_id: { tenantId: db.tenantId, id: transfer.id }}})
+          throw error
+        }
+      }
+
+      if (count++ % logEvery === 0) {
+        await this.log(`Created ${count} transfers so far`)
+      }
+    }
+    await this.log(`Finished creating transfers with ${count} transfers in total`)
+  }
+
+  private async setBalances() {
+    const db = this.controller.controller.tenantDb(this.migration.code)
+    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as LedgerCurrencyController;
+    const currency = await currencyController.getCurrency(systemContext());
+    const ledger = currencyController.ledger;
+
+    const accountIds = await db.account.findMany({
+      where: {
+        tenantId: db.tenantId,
+        status: "active"
+      },
+      select: {
+        id: true,
+      }
+    })
+    const dbAccounts = await Promise.all(accountIds.map(aId => currencyController.accounts.getFullAccount(aId.id)))
+
+    const migrationAccount = (id: string) => this.migration.data.accounts?.find(a => a.id === id)
+
+    // order accounts by (expected) balance, ascending so the credit account 
+    // doesnt get out of balance.
+    const accounts = dbAccounts.filter(
+      (account) => {
+        if (migrationAccount(account.id) === undefined) {
+          this.warn(`Account ${account.code} not found in migration data, skipping balance setting`);
+          return false; // Skip accounts not in migration data
+        }
+        return true; // Keep accounts that are in migration data
+      }
+    )
+    
+    accounts.sort((a, b) => {
+      const migrationAccountA = migrationAccount(a.id)!;
+      const migrationAccountB = migrationAccount(b.id)!;
+      return migrationAccountA.balance - migrationAccountB.balance;
+    })
+
+    // This is a virtual account so taht all transfers get factored through this account.
+    const getMigrAccount = async () => {
+      let migrAccount = await currencyController.accounts.getAccountByCode(systemContext(), `${this.migration.code}MIGR`);
+      if (!migrAccount) {
+        migrAccount = await currencyController.accounts.createAccount(systemContext(), {
+          code: `${this.migration.code}MIGR`
+        });
+      }
+      return migrAccount
+    }
+    const migrAccount = await getMigrAccount();
+
+    this.controller.updateMigrationData(this.migration.id, {
+      migrationAccount: {
+        id: migrAccount.id,
+        code: migrAccount.code,
+        key: migrAccount.key,
+      }
+    })
+    
+    await this.log(`Setting balances for ${accounts.length} accounts...`)
+
+    const setAccountBalance = async (account: FullAccount) => {
+      const transfers = await db.transfer.findMany({
+        where: {
+          OR: [
+            { payerId: account.id },
+            { payeeId: account.id }
+          ],
+          state: "committed"
+        }
+      })
+
+      const balance = transfers.reduce((acc, transfer) => {
+        if (transfer.payerId === account.id) {
+          acc -= transfer.amount;
+        }
+        if (transfer.payeeId === account.id) {
+          acc += transfer.amount;
+        }
+        return acc;
+      }, 0n);
+      
+      // Check the computed balance agains the balance in the account migration.
+      const mAccount = migrationAccount(account.id);
+      if (mAccount !== undefined && (balance !== BigInt(mAccount.balance))) {
+        await this.warn(`Balance mismatch for account ${account.code}: computed ${balance}, expected ${mAccount.balance}`);
+      }
+      // Get balance of the account in the ledger.
+      const ledgerAccount = await ledger.getAccount(account.key);
+      if (!ledgerAccount) {
+        throw new Error(`Ledger account for ${account.code} not found`);
+      }
+      const ledgerBalance = currencyController.amountFromLedger(ledgerAccount.balance());
+      const difference = balance + BigInt(account.creditLimit) - BigInt(ledgerBalance);
+
+      if (difference === 0n) {
+        await this.log(`Account ${account.code} balance is already ${balance}, skipping`);
+        return;
+      } else {
+        const positive = difference > 0n;
+        const payer = positive ? migrAccount : account;
+        const payee = positive ? account : migrAccount;
+        
+        const ledgerPayer = await ledger.getAccount(payer.key);
+        const ledgerAmount = currencyController.amountToLedger((positive ? 1 : -1) * Number(difference));
+
+        const transfer = await ledgerPayer.pay({
+          amount: ledgerAmount.toString(),
+          payeePublicKey: payee.key,
+        }, {
+          account: await currencyController.keys.adminKey(),
+          sponsor: await currencyController.keys.sponsorKey()
+        })
+        await this.log(`Transfer of ${difference} created for account ${account.code} with balance ${balance}`, {
+          hash: transfer.hash,
+          account: account.code,
+          balance: balance.toString(),
+        });
+        await ledgerAccount.update()
+        const newBalance = BigInt(currencyController.amountFromLedger(ledgerAccount.balance())) - BigInt(account.creditLimit);
+        
+        if (newBalance !== balance) {
+          await this.warn(`Balance for account ${account.code} after transfer is ${newBalance}, expected ${balance}`);
+        }
+
+        // Update the account balance in the DB
+        await db.account.update({
+          where: { id: account.id },
+          data: {
+            balance: newBalance,
+            updated: new Date()
+          }
+        })
+        
+        account.balance = Number(newBalance); 
+        await this.log(`Account ${account.code} balance set to ${newBalance}`);
+      }
+    }
+    // Set balances in groups of 10.
+    const SET_BALANCE_BATCH_SIZE = 10;
+    for (let i = 0; i < accounts.length; i += SET_BALANCE_BATCH_SIZE) {
+      const batch = accounts.slice(i, i + SET_BALANCE_BATCH_SIZE);
+      await this.log(`Sending batch of ${batch.length} accounts for balance setting`);
+      await Promise.all(batch.map(setAccountBalance));
+    }
+    await this.log(`Finished setting balances for ${accounts.length} accounts`)
+
+    // Setting balance for the external account.
+    await setAccountBalance(currency.externalAccount)
+    await this.log(`External account balance set successfully to ${currency.externalAccount.balance}`)
+
+    // Check if the migration account has zero balance and delete it if so.
+    await currencyController.accounts.updateAccountBalance(migrAccount)
+    if (migrAccount.balance === 0) {
+      this.log(`Migration account ${migrAccount.code} has zero balance, deleting it`)
+      await currencyController.accounts.deleteAccount(systemContext(), migrAccount.id)
+      await this.log(`Migration account ${migrAccount.code} deleted successfully`)
+    } else {
+      await this.warn(`Migration account ${migrAccount.code} has non-zero balance ${migrAccount.balance} after migration, please check it manually`)
+    }
+  }
+}

@@ -1,1 +1,1 @@
-export { MigrationController } from './migration-controller'
+export { MigrationController } from '../../migration/migration-controller'
