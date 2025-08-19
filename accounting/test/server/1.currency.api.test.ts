@@ -139,7 +139,7 @@ describe('Currencies endpoints', async () => {
     const response = await t.api.patch('/TES2/currency/settings', {data: {
       attributes: {
         defaultInitialCreditLimit: 2500,
-        defaultInitialMaximumBalance: undefined,
+        defaultInitialMaximumBalance: false,
         defaultAllowPayments: true,
         defaultAllowPaymentRequests: true,
         defaultAcceptPaymentsAutomatically: false,
@@ -153,7 +153,7 @@ describe('Currencies endpoints', async () => {
         defaultAllowTagPayments: true,
         defaultAllowTagPaymentRequests: false,
         defaultAcceptPaymentsAfter: 60*60*24*7,
-        defaultOnPaymentCreditLimit: undefined,
+        defaultOnPaymentCreditLimit: false,
         enableExternalPayments: true,
         enableExternalPaymentRequests: true,
         defaultAllowExternalPayments: true,
