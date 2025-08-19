@@ -79,7 +79,7 @@ export default {
     }),
     currencySettings: Factory.extend({
       defaultInitialCreditLimit: 100000,
-      defaultInitialMaximumBalance: undefined,
+      defaultInitialMaximumBalance: false,
       defaultAllowPayments: true,
       defaultAllowPaymentRequests: true,
       defaultAcceptPaymentsAutomatically: true,
@@ -93,7 +93,7 @@ export default {
       defaultAllowTagPayments: true,
       defaultAllowTagPaymentRequests: true,
       defaultAcceptPaymentsAfter: 2*7*24*60*60,
-      defaultOnPaymentCreditLimit: undefined,
+      defaultOnPaymentCreditLimit: false,
       defaultAllowExternalPayments: true,
       defaultAllowExternalPaymentRequests: true,
       defaultAcceptExternalPaymentsAutomatically: false,
