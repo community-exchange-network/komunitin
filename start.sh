@@ -80,29 +80,29 @@ fi
 
 # Migrate ICES demo data to the accounting service
 
-if [ "$demo" = true ]; then
+#if [ "$demo" = true ]; then
 
 # Migrate NET1
-docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/drush_set_exchange_data.php --code=NET1 --registration_offers=1 --registration_wants=0
-./accounting/cli/migrate.sh "riemann@komunitin.org" "komunitin" "NET1"
-docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/drush_set_exchange_data.php --code=NET1 --registration_offers=1 --registration_wants=0 --komunitin_accounting=1 --komunitin_redirect=1 --komunitin_allow_anonymous_member_list=1
+#docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/drush_set_exchange_data.php --code=NET1 --registration_offers=1 --registration_wants=0
+#./accounting/cli/migrate.sh "riemann@komunitin.org" "komunitin" "NET1"
+#docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/drush_set_exchange_data.php --code=NET1 --registration_offers=1 --registration_wants=0 --komunitin_accounting=1 --komunitin_redirect=1 --komunitin_allow_anonymous_member_list=1
 
 # Migrate NET2
-docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/drush_set_exchange_data.php --code=NET2 --registration_offers=0 --registration_wants=0
-./accounting/cli/migrate.sh "fermat@komunitin.org" "komunitin" "NET2"
-docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/drush_set_exchange_data.php --code=NET2 --registration_offers=0 --registration_wants=0 --komunitin_accounting=1 --komunitin_redirect=1 --komunitin_allow_anonymous_member_list=1
+#docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/drush_set_exchange_data.php --code=NET2 --registration_offers=0 --registration_wants=0
+#./accounting/cli/migrate.sh "fermat@komunitin.org" "komunitin" "NET2"
+#docker compose exec integralces drush scr sites/all/modules/ices/ces_develop/drush_set_exchange_data.php --code=NET2 --registration_offers=0 --registration_wants=0 --komunitin_accounting=1 --komunitin_redirect=1 --komunitin_allow_anonymous_member_list=1
 
 # Configure mutual trust between NET1 and NET2
-./accounting/cli/trust.sh "riemann@komunitin.org" "komunitin" "NET1" "NET2" 100
-./accounting/cli/trust.sh "fermat@komunitin.org" "komunitin" "NET2" "NET1" 1000
+#./accounting/cli/trust.sh "riemann@komunitin.org" "komunitin" "NET1" "NET2" 100
+#./accounting/cli/trust.sh "fermat@komunitin.org" "komunitin" "NET2" "NET1" 1000
 
-  if [ "$dev" = true ]; then
+#  if [ "$dev" = true ]; then
     # Create Credit commons node
-    ./accounting/cli/create_credit_commons_node.sh "riemann@komunitin.org" "komunitin" "NET1" "http://cc"
-    ./accounting/cli/create_credit_commons_node.sh "fermat@komunitin.org" "komunitin" "NET2" "http://cc"
+#    ./accounting/cli/create_credit_commons_node.sh "riemann@komunitin.org" "komunitin" "NET1" "http://cc"
+#    ./accounting/cli/create_credit_commons_node.sh "fermat@komunitin.org" "komunitin" "NET2" "http://cc"
 
     # Start the database on the CC server
-    docker exec -it komunitin-cc-1 /bin/bash -c "service mariadb start"
-  fi
+#    docker compose exec cc service mariadb start
+#  fi
 
-fi
+#fi
