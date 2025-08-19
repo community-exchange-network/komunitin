@@ -1,6 +1,7 @@
 import express from "express"
 import { getRoutes } from "./routes"
 import { getRoutes as getCCRoutes } from "src/creditcommons/routes"
+import { getRoutes as getMigrationRoutes } from "src/migration/routes"
 import { SharedController, createController } from "../controller"
 import { errorHandler } from "./errors"
 import { httpLogger } from "../utils/logger"
@@ -47,14 +48,18 @@ export const setupApp = async (expressApp: express.Express) => {
     res.type('application/vnd.api+json')
     next()
   })
-  //logger
+
+  // Logger
   app.use(httpLogger)
 
-  // Routes
+  // Controller
   const controller = await createController()
   app.komunitin = { controller }
+  
+  // Routes
   app.use("/", getRoutes(controller))
   app.use("/", getCCRoutes(controller))
+  app.use("/", getMigrationRoutes(controller))
   
 
   // Error handlers
