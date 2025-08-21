@@ -10,8 +10,9 @@ import { setAccountingApiUrl } from ".";
 export const auth = new Auth()
 
 export interface LoginPayload {
-  email: string;
-  password: string;
+  email: string
+  password: string
+  superadmin?: boolean
 }
 
 export type AuthorizePayload = {
@@ -174,7 +175,7 @@ export default {
       context: ActionContext<UserState, never>,
       payload: LoginPayload
     ) => {
-      const tokens = await auth.login(payload.email, payload.password);
+      const tokens = await auth.login(payload);
       context.commit("tokens", tokens);
       await loadUser(context);
     },

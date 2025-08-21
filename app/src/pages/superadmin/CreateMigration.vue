@@ -1,5 +1,5 @@
 <template>
-  <page-header title="Migrations" back="/admin/migrations" />
+  <page-header title="Migrations" back="/superadmin/migrations" />
   <q-page-container>
     <q-page class="q-pa-md">
       <div class="text-overline text-uppercase q-mb-lg">

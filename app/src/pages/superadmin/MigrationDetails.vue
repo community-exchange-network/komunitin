@@ -1,5 +1,5 @@
 <template>
-  <page-header title="Migration details" back="/admin/migrations" />
+  <page-header title="Migration details" back="/superadmin/migrations" />
   <q-page-container>
     <q-page class="q-pa-md">
       <q-spinner v-if="loading" class="full-width flex-center" />
@@ -97,7 +97,7 @@
         <q-btn 
           label="Back to Migrations" 
           color="primary"
-          to="/admin/migrations"
+          to="/superadmin/migrations"
         />
       </div>
     </q-page>

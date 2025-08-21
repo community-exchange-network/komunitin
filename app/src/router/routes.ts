@@ -327,25 +327,25 @@ const routes: RouteRecordRaw[] = [
         }]
       },
       {
-        path: '/admin/migrations',
+        path: '/superadmin/migrations',
 
         children: [
           {
             path: '',
             name: 'MigrationList',
-            component: () => import('../pages/admin/MigrationList.vue'),
+            component: () => import('../pages/superadmin/MigrationList.vue'),
           },
           {
             path: ':id',
             props: true,
             name: 'MigrationDetails',
-            component: () => import('../pages/admin/MigrationDetails.vue'),
+            component: () => import('../pages/superadmin/MigrationDetails.vue'),
           },
           {
             path: 'new',
             props: true,
             name: 'CreateMigration',
-            component: () => import('../pages/admin/CreateMigration.vue'),
+            component: () => import('../pages/superadmin/CreateMigration.vue'),
           },
         ]
       },

@@ -75,6 +75,15 @@ const loginDisabled = computed(() => {
   return v$.value.$invalid;
 })
 
+const redirect = computed(() => {
+  // The boot handler will redirect logged in users from "/" to their group home.
+  return (typeof route.query.redirect == "string") ? route.query.redirect : "/";
+})
+
+const isSuperadmin = computed(() => {
+  return redirect.value.startsWith("/superadmin")
+})
+
 const submit = async () => {
   // Validate.
   v$.value.$touch();
@@ -87,7 +96,7 @@ const submit = async () => {
     $q.loading.show({
       delay: 200
     })
-    await store.dispatch("login", {email: email.value, password: pass.value});
+    await store.dispatch("login", {email: email.value, password: pass.value, superadmin: isSuperadmin.value});
   }
   finally {
     $q.loading.hide()
@@ -98,11 +107,7 @@ const submit = async () => {
     
     // If user came here due to a redirect when trying to access a protected route,
     // bring them to where they tried to go. 
-    const redirect = (typeof route.query.redirect == "string") 
-      ? route.query.redirect 
-      : "/"
-    // The boot handler will redirect logged in users from "/" to their group home.
-    router.push(redirect);
+    router.push(redirect.value);
   }
 }
 

@@ -78,19 +78,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
 import PageHeader from "../../layouts/PageHeader.vue"
 import DeleteBtn from "../../components/DeleteBtn.vue"
 import { useMigrations, getStatusColor, getStatusLabel, type Migration } from './migrations';
 
 // Composables
 const router = useRouter()
-const q = useQuasar()
 
 // Reactive data
-const deletingIds = ref<string[]>([])
 
 // Table columns definition
 const columns = computed(() => [
@@ -102,7 +99,7 @@ const columns = computed(() => [
   { name: 'actions', label: 'Actions', align: 'center' as const, field: 'actions', sortable: false, style: 'width: 80px;' }
 ])
 
-const {baseUrl, migrations, loading, refresh} = useMigrations()
+const {baseUrl, migrations, loading, refresh, deleteMigration} = useMigrations()
 
 // TODO: Remove that after development
 baseUrl.value = "http://localhost:2025"
@@ -110,32 +107,19 @@ baseUrl.value = "http://localhost:2025"
 // Methods
 
 const onRowClick = (evt: Event, row: Migration) => {
-  router.push(`/admin/migrations/${row.id}`)
+  router.push(`/superadmin/migrations/${row.id}`)
 }
 
 const createMigration = () => {
-  router.push('/admin/migrations/new')
+  router.push('/superadmin/migrations/new')
 }
 
+const deletingIds = ref<string[]>([])
 const confirmDelete = async (migration: Migration) => {
-  deletingIds.value.push(migration.id)
-
   try {
-    const response = await fetch(`${baseUrl.value}/migrations/${migration.id}`, {
-      method: 'DELETE'
-    })
-    
-    if (!response.ok) {
-      throw new Error('Failed to delete migration')
-    }
-
-    // Remove from local list
+    deletingIds.value.push(migration.id)
+    await deleteMigration(migration)
     migrations.value = migrations.value.filter(m => m.id !== migration.id)
-    q.notify({ 
-      type: 'positive', 
-      message: 'Migration deleted successfully', 
-      position: 'top' 
-    })
   } finally {
     deletingIds.value = deletingIds.value.filter(id => id !== migration.id)
   }

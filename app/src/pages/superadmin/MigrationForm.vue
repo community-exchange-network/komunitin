@@ -39,21 +39,18 @@
         v-model="accessToken"
         label="Access Token"
         outlined
-        disable
         class="q-mb-md col-6"
       />
       <q-input
         v-model="expiresAt"
         label="Expires At"
         outlined
-        disable
         class="q-mb-md col-6"
       />
       <q-input
         v-model="refreshToken"
         label="Refresh Token"
         outlined
-        disable
         class="q-mb-md col-6"
       />
     </template>
@@ -74,8 +71,7 @@ import { KOptions } from '../../boot/koptions';
 import { Group } from '../../store/model';
 import { useStore } from 'vuex';
 
-//const defaultSourceUrl = new URL(KOptions.url.accounting).origin;
-const defaultSourceUrl = "http://integralces:2029"
+const defaultSourceUrl = new URL(KOptions.url.social).origin;
 
 const model = defineModel<Partial<Migration> | undefined>()
 const store = useStore()
