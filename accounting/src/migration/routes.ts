@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { noAuth } from '../server/auth';
+import { noAuth, Scope, userAuth } from '../server/auth';
 import { asyncHandler } from '../server/handlers';
 import { SharedController } from '../controller';
 import { MigrationController } from "./migration-controller"
@@ -18,7 +18,7 @@ export function getRoutes(controller: SharedController) {
    * List migrations
    */
   router.get('/migrations',
-    noAuth(), //TODO
+    userAuth(Scope.Superadmin),
     asyncHandler(async (req, res) => {
       const migrations = await migrationController.getMigrations(context(req))
       const result = await MigrationSerializer.serialize(migrations)
@@ -30,7 +30,7 @@ export function getRoutes(controller: SharedController) {
    * Get a specific migration
    */
   router.get('/migrations/:id',
-    noAuth(), //TODO
+    userAuth(Scope.Superadmin),
     asyncHandler(async (req, res) => {
       const id = req.params.id;
       const migration = await migrationController.getMigration(context(req), id);
@@ -42,7 +42,9 @@ export function getRoutes(controller: SharedController) {
    * Stream migration logs (SSE)
    */
   router.get('/migrations/:id/logs/stream',
-    noAuth(), //TODO
+    // Public endpoint as that makes the client side easier (Browser EventSource does 
+    // not support custom headers), but we could adapt the client if necessary.
+    noAuth(),
     async (req, res) => {
       const id = req.params.id;
       
@@ -87,7 +89,7 @@ export function getRoutes(controller: SharedController) {
    * Create a migration
    */
   router.post('/migrations',
-    noAuth(), //TODO
+    userAuth(Scope.Superadmin),
     checkExact(isCreateMigration()),
     asyncHandler(async (req, res) => {
       const data = input<CreateMigration>(req)
@@ -104,7 +106,7 @@ export function getRoutes(controller: SharedController) {
    * Delete a migration
    */
   router.delete('/migrations/:id',
-    noAuth(), //TODO
+    userAuth(Scope.Superadmin),
     asyncHandler(async (req, res) => {
       const id = req.params.id;
       await migrationController.deleteMigration(context(req), id);
@@ -116,7 +118,7 @@ export function getRoutes(controller: SharedController) {
    * Execute a migration
   */
   router.post('/migrations/:id/play',
-    noAuth(), //TODO
+    userAuth(Scope.Superadmin),
     asyncHandler(async (req, res) => {
       const id = req.params.id;
       // Play the migration, but dont wait for it to finish
