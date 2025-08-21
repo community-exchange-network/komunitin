@@ -1,8 +1,9 @@
 import { Keypair } from "@stellar/stellar-sdk";
 import { MigrationController } from "../controller";
-import { amountToLedger, LedgerCurrencyController } from "../controller/currency-controller";
+import { LedgerCurrencyController } from "../controller/currency-controller";
 import { AccountSettings, FullAccount, TransferMeta, TransferStates } from "../model";
 import { systemContext } from "../utils/context";
+import { fixUrl } from "../utils/net";
 import { Migration, MigrationAccount, MigrationData, MigrationTransfer } from "./migration";
 
 const UNLIMITED_CREDIT_LIMIT = 10 ** 6
@@ -115,7 +116,7 @@ export class ICESMigrationController {
         client_id: "komunitin-app",
         scope: "komunitin_social komunitin_accounting",
       });
-      const response = await fetch(authUrl, {
+      const response = await fetch(fixUrl(authUrl), {
         method: "POST",
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -155,7 +156,7 @@ export class ICESMigrationController {
 
   private async get(url: string) {
     const token = await this.getAccessToken()
-    const response = await fetch(url, {
+    const response = await fetch(fixUrl(url), {
       headers: {
         'Authorization': `Bearer ${token}`,
       }
@@ -360,6 +361,12 @@ export class ICESMigrationController {
     if (currencyData.settings.defaultInitialCreditLimit as any === false) {
       currencyData.settings.defaultInitialCreditLimit = (10 ** currencyData.scale) * UNLIMITED_CREDIT_LIMIT
     }
+    
+    // Set a default external credit limit and maximum balance as this concept does not exists in integralces.
+    // Admins may need to change it later.
+    const oneThousandHours = (10 ** currencyData.scale) * Math.round(1000 * currencyData.rate.d / currencyData.rate.n)
+    currencyData.settings.externalTraderCreditLimit = oneThousandHours
+    currencyData.settings.externalTraderMaximumBalance = oneThousandHours
 
     await this.controller.controller.createCurrency(systemContext(), currencyData)
     await this.log(`Currency ${currencyData.code} created successfully in the ledger`)
