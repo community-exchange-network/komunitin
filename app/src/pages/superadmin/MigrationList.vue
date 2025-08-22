@@ -99,10 +99,9 @@ const columns = computed(() => [
   { name: 'actions', label: 'Actions', align: 'center' as const, field: 'actions', sortable: false, style: 'width: 80px;' }
 ])
 
-const {baseUrl, migrations, loading, refresh, deleteMigration} = useMigrations()
-
-// TODO: Remove that after development
-baseUrl.value = "http://localhost:2025"
+const {baseUrl, migrations, loading, refresh, deleteMigration} = useMigrations({
+  accountingBaseUrl: "http://localhost:2025"
+})
 
 // Methods
 

@@ -55,12 +55,16 @@ const useAuthFetch = () => {
 }
 
 
-export const useMigrations = (options: { immediate?: boolean } = { immediate: true }) => {
+export const useMigrations = (options: { immediate?: boolean, accountingBaseUrl?: string } = { immediate: true }) => {
   const q = useQuasar()
   const authFetch = useAuthFetch()
 
   const migrations = ref<Migration[]>([])
   const loading = ref(false)
+  if (options.accountingBaseUrl) {
+    baseUrl.value = options.accountingBaseUrl
+  }
+  
 
   const refresh = async () => {
     loading.value = true
