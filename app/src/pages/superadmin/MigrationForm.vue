@@ -34,6 +34,7 @@
         label="IntegralCES URL"
         outlined
         class="q-mb-md col-6"
+        @blur="fetchCurrencies"
       />
       <q-input
         v-model="accessToken"
@@ -106,11 +107,9 @@ const groups = ref<Group[]>([])
 
 const fetchCurrencies = async () => {
   
-  const socialUrl = KOptions.url.social
-
   const token = store.getters.accessToken
   
-  const response = await fetch(`${socialUrl}/groups`, {
+  const response = await fetch(`${sourceUrl.value}/ces/api/social/groups`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
