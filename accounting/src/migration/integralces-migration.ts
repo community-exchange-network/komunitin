@@ -1,5 +1,5 @@
 import { Keypair } from "@stellar/stellar-sdk";
-import { MigrationController } from "../controller";
+import { MigrationController } from "./migration-controller";
 import { LedgerCurrencyController } from "../controller/currency-controller";
 import { AccountSettings, FullAccount, TransferMeta, TransferStates } from "../model";
 import { systemContext } from "../utils/context";

@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { checkExact, oneOf } from 'express-validator';
-import { CreateMigration } from 'src/migration/migration';
 import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
 import { InputTrustline, UpdateTrustline } from 'src/model/trustline';
 import { context } from 'src/utils/context';
 import { badRequest } from 'src/utils/error';
-import { MigrationController, SharedController } from '../controller';
+import { SharedController } from '../controller';
 import { anyAuth, externalAuth, noAuth, Scope, userAuth } from './auth';
 import { asyncHandler, currencyCollectionHandler, currencyHandler, currencyInputHandler, currencyInputHandlerMultiple, currencyResourceHandler } from './handlers';
 import { input } from './parse';

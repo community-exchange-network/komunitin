@@ -6,7 +6,6 @@ import { Context } from "../utils/context"
 import TypedEmitter from "typed-emitter"
 import { InputTrustline, Trustline, UpdateTrustline } from "src/model/trustline"
 import { Stats } from "src/model/stats"
-export { MigrationController } from './migration'
 import { CreditCommonsController } from "src/creditcommons/credit-commons-controller";
 import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant"
 
