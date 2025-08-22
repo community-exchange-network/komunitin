@@ -1,6 +1,5 @@
 import { useQuasar } from 'quasar'
 import { MaybeRefOrGetter, ref, toValue, watchEffect } from 'vue'
-import { KOptions } from '../../boot/koptions'
 import { ErrorResponse, ResourceObject } from '../../store/model'
 import { useStore } from 'vuex'
 
@@ -32,7 +31,16 @@ export interface MigrationLogEntry {
   //data?: any // Optional additional data
 }
 
-const baseUrl = ref(KOptions.url.accounting)
+const getDefaultAccountingUrl = () => {
+  const currentLocation = window.location
+  if (currentLocation.hostname === 'localhost') {
+    return 'http://localhost:2025'
+  } else {
+    return `${currentLocation.protocol}//accounting.${currentLocation.host}`
+  }
+}
+
+const baseUrl = ref(getDefaultAccountingUrl())
 
 const useAuthFetch = () => { 
   const store = useStore()
@@ -55,16 +63,12 @@ const useAuthFetch = () => {
 }
 
 
-export const useMigrations = (options: { immediate?: boolean, accountingBaseUrl?: string } = { immediate: true }) => {
+export const useMigrations = (options: { immediate?: boolean} = { immediate: true }) => {
   const q = useQuasar()
   const authFetch = useAuthFetch()
 
   const migrations = ref<Migration[]>([])
   const loading = ref(false)
-  if (options.accountingBaseUrl) {
-    baseUrl.value = options.accountingBaseUrl
-  }
-  
 
   const refresh = async () => {
     loading.value = true

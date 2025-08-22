@@ -1,5 +1,5 @@
 <template>
-  <page-header title="Migrations" back="/" />
+  <page-header title="Migrations" />
   <q-page-container>
     <q-page class="q-pa-md">
       <div class="row justify-left items-center q-mb-md">
@@ -99,9 +99,9 @@ const columns = computed(() => [
   { name: 'actions', label: 'Actions', align: 'center' as const, field: 'actions', sortable: false, style: 'width: 80px;' }
 ])
 
-const {baseUrl, migrations, loading, refresh, deleteMigration} = useMigrations({
-  accountingBaseUrl: "http://localhost:2025"
-})
+
+
+const {baseUrl, migrations, loading, refresh, deleteMigration} = useMigrations()
 
 // Methods
 
