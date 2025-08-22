@@ -211,8 +211,8 @@ export const useMigration = (id: MaybeRefOrGetter<string>) => {
   }
 }
 
-export const getStatusColor = (state: string) => ({ new: 'blue', 'in-progress': 'orange', completed: 'green' }[state] ?? 'grey')
-export const getStatusLabel = (state: string) => ({ new: 'New', 'in-progress': 'In Progress', completed: 'Completed' }[state] ?? state)
+export const getStatusColor = (state: string) => ({ new: 'blue', 'started': 'orange', completed: 'green', failed: 'red' }[state] ?? 'grey')
+export const getStatusLabel = (state: string) => ({ new: 'New', 'started': 'In Progress', completed: 'Completed', failed: 'Failed' }[state] ?? state)
 
 
 export const checkFetchError = async (response: Response) => {

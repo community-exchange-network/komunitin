@@ -358,7 +358,7 @@ export class ICESMigrationController {
     const currencyData = this.migration.data.currency;
 
     // Fix unsupported unlimited credit limit
-    if (currencyData.settings.defaultInitialCreditLimit as any === false) {
+    if (currencyData.settings.defaultInitialCreditLimit as unknown === false) {
       currencyData.settings.defaultInitialCreditLimit = (10 ** currencyData.scale) * UNLIMITED_CREDIT_LIMIT
     }
     
