@@ -19,10 +19,6 @@ interface ICESMigration extends Migration {
         expiresAt: string
       }
     },
-    token: {
-      
-      expiresAt: string
-    },
     step: string
   } 
 }
@@ -108,11 +104,15 @@ export class ICESMigrationController {
 
   private async getAccessToken() {
     const tokens = this.migration.data.source.tokens;
-    if ((!tokens.accessToken || new Date(tokens.expiresAt) < new Date(Date.now() - 5 * 60 * 1000)) && tokens.refreshToken) {
+
+    const isAccessTokenValid = tokens.accessToken && new Date(tokens.expiresAt) > new Date();
+    const shouldRefresh = !!tokens.refreshToken && (!tokens.accessToken || new Date(tokens.expiresAt) < new Date(Date.now() - 5 * 60 * 1000));
+    
+    if (shouldRefresh) {
       const authUrl = `${this.migration.data.source.url}/oauth2/token`
       const body = new URLSearchParams({
         grant_type: "refresh_token",
-        refresh_token: tokens.refreshToken,
+        refresh_token: tokens.refreshToken as string,
         client_id: "komunitin-app",
         scope: "komunitin_social komunitin_accounting",
       });
@@ -140,7 +140,7 @@ export class ICESMigrationController {
       })
       
       await this.log("Access token refreshed")
-    } else if (!tokens.refreshToken) {
+    } else if (!isAccessTokenValid) {
       throw new Error("Access token unavailable or expired, and no refresh token provided")
     }
     return this.migration.data.source.tokens.accessToken
@@ -730,7 +730,7 @@ export class ICESMigrationController {
     
     await this.log(`Setting balances for ${accounts.length} accounts...`)
 
-    const setAccountBalance = async (account: FullAccount) => {
+    const setAccountBalance = async (account: FullAccount, keys: {account: Keypair, sponsor: Keypair}) => {
       const transfers = await db.transfer.findMany({
         where: {
           OR: [
@@ -778,10 +778,7 @@ export class ICESMigrationController {
         const transfer = await ledgerPayer.pay({
           amount: ledgerAmount.toString(),
           payeePublicKey: payee.key,
-        }, {
-          account: await currencyController.keys.adminKey(),
-          sponsor: await currencyController.keys.sponsorKey()
-        })
+        }, keys)
         await this.log(`Transfer of ${difference} created for account ${account.code} with balance ${balance}`, {
           hash: transfer.hash,
           account: account.code,
@@ -812,12 +809,18 @@ export class ICESMigrationController {
     for (let i = 0; i < accounts.length; i += SET_BALANCE_BATCH_SIZE) {
       const batch = accounts.slice(i, i + SET_BALANCE_BATCH_SIZE);
       await this.log(`Sending batch of ${batch.length} accounts for balance setting`);
-      await Promise.all(batch.map(setAccountBalance));
+      await Promise.all(batch.map(async (account) => setAccountBalance(account, {
+        account: await currencyController.keys.adminKey(),
+        sponsor: await currencyController.keys.sponsorKey()
+      })));
     }
     await this.log(`Finished setting balances for ${accounts.length} accounts`)
 
     // Setting balance for the external account.
-    await setAccountBalance(currency.externalAccount)
+    await setAccountBalance(currency.externalAccount, {
+      account: await currencyController.keys.externalTraderKey(),
+      sponsor: await currencyController.keys.sponsorKey()
+    })
     await this.log(`External account balance set successfully to ${currency.externalAccount.balance}`)
 
     // Check if the migration account has zero balance and delete it if so.

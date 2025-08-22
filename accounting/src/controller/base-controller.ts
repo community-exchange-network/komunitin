@@ -343,7 +343,8 @@ export class LedgerController implements SharedController {
         type: AccountType.virtual,
         status: "active",
         balance: 0,
-        creditLimit: 0,
+        maximumBalance: currency.settings.externalTraderMaximumBalance ? currency.settings.externalTraderMaximumBalance : null,
+        creditLimit: currency.settings.externalTraderCreditLimit ?? 0,
         key: { connect: { id: currencyKeyIds.externalTraderKeyId }},
         settings: {
           allowPayments: false,
