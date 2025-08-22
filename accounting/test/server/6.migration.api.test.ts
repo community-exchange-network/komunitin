@@ -1,4 +1,5 @@
 import { describe, it } from "node:test"
+import assert from "node:assert"
 import { setupServerTest } from "./setup"
 import { Scope } from "src/server/auth"
 import { fixUrl } from "src/utils/net"
@@ -8,15 +9,22 @@ import { fixUrl } from "src/utils/net"
  */
 describe.skip("Test migration from local IntegralCes instance", async () => {
   const t = setupServerTest(false)
-  const migration = (code: string, access_token?: string) => ({
+  const icesURL = "http://localhost:2029"
+  const migration = (code: string, accessToken: string) => ({
     data: {
       type: "migrations",
       attributes: {
         code,
-        source: {
-          platform: "integralces",
-          url: "http://localhost:2029",
-          access_token,
+        name: `IntegralCES ${code} migration`,
+        kind: "integralces-accounting",
+        data: {
+          source: {
+            url: icesURL,
+            tokens: {
+              accessToken,
+              expiresAt: new Date(Date.now() + 3600 * 1000).toISOString()
+            }
+          }
         }
       }
     }
@@ -33,7 +41,7 @@ describe.skip("Test migration from local IntegralCes instance", async () => {
         username,
         password,
         client_id: 'komunitin-app',
-        scope: 'openid email profile komunitin_social komunitin_accounting offline_access komunitin_social_read_all'
+        scope: 'openid email profile komunitin_social komunitin_accounting offline_access komunitin_social_read_all komunitin_superadmin'
       })
     })
 
@@ -43,18 +51,19 @@ describe.skip("Test migration from local IntegralCes instance", async () => {
 
   await it ('migrate local integralces NET1', async () => {
     // Get token
-    const mig = migration("NET1")
-    mig.data.attributes.source.access_token = await getToken(mig.data.attributes.source.url, "riemann@komunitin.org", "komunitin")
-    await t.api.post('/migrations', mig, {user: "12345", scopes: [Scope.Accounting]})
+    const accessToken = await getToken(icesURL, "admin", "replace-this-with-a-secure-password")
+    const mig = migration("NET1", accessToken)
+    const response = await t.api.post('/migrations', mig, {user: "12345", scopes: [Scope.Superadmin]})
+    const id = response.body.data.id
+    await t.api.post(`/migrations/${id}/play`, {user: "12345", scopes: [Scope.Superadmin]})
+    // wait until migration is complete
+    let completed
+    do {
+      const response = await t.api.get(`/migrations/${id}`, {user: "12345", scopes: [Scope.Superadmin]}, 200)
+      completed = response.body.data
+    } while (completed.attributes.status === 'started')
+    assert.equal(completed.attributes.status, 'completed')
+
   })
-
-  await it('migrate local integralces NET2', async () => {
-    // Get token
-    const mig = migration("NET2")
-    mig.data.attributes.source.access_token = await getToken(mig.data.attributes.source.url, "fermat@komunitin.org", "komunitin")
-    await t.api.post('/migrations', mig, {user: "67890", scopes: [Scope.Accounting]})
-  })
-
-
   
 })
