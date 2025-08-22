@@ -7,7 +7,7 @@
       active-class="bg-active"
     >
       <template #caption>
-        {{ myAccount.attributes.code }}
+        {{ myAccount?.attributes.code }}
       </template>
       <template #side>
         <q-btn

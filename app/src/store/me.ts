@@ -73,8 +73,8 @@ async function loadUser(
     // infrastructure like this, so this is a little hack that I hope won't make problems.
     const currencyCode = currencyUrl.split('/').slice(-2)[0];
 
-    // pending or deleted members don't have related account.
-    if (["active", "suspended"].includes(user.members[0].attributes.state)) {
+    // pending or deleted members don't have related account. Superadmins neither do.
+    if (["active", "suspended"].includes(user.members[0].attributes.state) && !getters.isSuperadmin) {
       const accountId = user.members[0].relationships.account.data.id
       await dispatch("accounts/load", {
         id: accountId, 
@@ -135,9 +135,8 @@ export default {
         : false
     },
     myCurrency: (state, getters) => {
-      return getters.isActive
-        ? getters.myAccount?.currency
-        : getters.myMember?.group?.currency
+      return getters.myAccount?.currency ??
+        getters.myMember?.group?.currency
     },
     accessToken: (state) => 
       state.tokens?.accessToken
@@ -158,6 +157,9 @@ export default {
         && !getters.isLegacyAccounting
         && getters.myCurrency.relationships.admins.data.some((r: { id: string }) => r.id === state.myUserId)
     },
+    isSuperadmin: (state) => {
+      return state.tokens?.scopes?.includes(Auth.SUPERADMIN_SCOPE)
+    }
     
   },
   mutations: {
