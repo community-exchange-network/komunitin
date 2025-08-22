@@ -10,6 +10,7 @@ import { verifyExternalToken } from "src/controller/external-jwt"
 export enum Scope {
   Accounting = "komunitin_accounting",
   AccountingReadAll = "komunitin_accounting_read_all",
+  Superadmin = "komunitin_superadmin",
 }
 
 const buildJwt = () => {

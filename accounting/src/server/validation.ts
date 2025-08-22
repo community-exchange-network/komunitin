@@ -1,28 +1,36 @@
 import { body } from "express-validator"
 
-export namespace Validators {
-  
-  const jsonApiAnyResource = (path: string) => [
-    body(`${path}.id`).optional().isString().notEmpty(),
-  ]
-  const jsonApiResource = (path: string, type: string) => [
-    ...jsonApiAnyResource(path),
-    body(`${path}.type`).optional().isString().equals(type),
-  ]
 
-  const jsonApiDoc = (type: string) => [
+const jsonApiAnyResource = (path: string) => [
+  body(`${path}.id`).optional().isString().notEmpty(),
+]
+const jsonApiResource = (path: string, type: string) => [
+  ...jsonApiAnyResource(path),
+  body(`${path}.type`).optional().isString().equals(type),
+]
+
+export const jsonApiDoc = (type: string) => [
     ...jsonApiResource("data", type),
     ...jsonApiAnyResource("included.*"),
   ]
 
-  const jsonApiDocArray = (type: string) => [
-    body("data").isArray(),
-    ...jsonApiResource("data.*", type),
-  ]
+export const jsonApiDocArray = (type: string) => [
+  body("data").isArray(),
+  ...jsonApiResource("data.*", type),
+]
+
+const isBooleanOrNull = (value: any) => {
+  return value === null || value === true || value === false
+}
+
+const isNonNegativeIntOrFalse = (value: any) => {
+  return value === false || (typeof value === "number" && Number.isInteger(value) && value >= 0)
+}
+export namespace Validators {
 
   const isUpdateCurrencySettingsAttributes = (path: string) => [
     body(`${path}.defaultInitialCreditLimit`).optional().isInt({min: 0}).default(0),
-    body(`${path}.defaultInitialMaximumBalance`).optional().isInt({min: 0}),
+    body(`${path}.defaultInitialMaximumBalance`).optional().custom(value => isNonNegativeIntOrFalse(value)),
     body(`${path}.defaultAllowPayments`).optional().isBoolean(),
     body(`${path}.defaultAllowPaymentRequests`).optional().isBoolean(),
     body(`${path}.defaultAcceptPaymentsAutomatically`).optional().isBoolean(),
@@ -35,8 +43,8 @@ export namespace Validators {
     body(`${path}.defaultAllowMultiplePaymentRequests`).optional().isBoolean(),
     body(`${path}.defaultAllowTagPayments`).optional().isBoolean(),
     body(`${path}.defaultAllowTagPaymentRequests`).optional().isBoolean(),
-    body(`${path}.defaultAcceptPaymentsAfter`).optional().isInt({min: 0}),
-    body(`${path}.defaultOnPaymentCreditLimit`).optional().isInt({min: 0}),
+    body(`${path}.defaultAcceptPaymentsAfter`).optional().custom(value => isNonNegativeIntOrFalse(value)),
+    body(`${path}.defaultOnPaymentCreditLimit`).optional().custom(value => isNonNegativeIntOrFalse(value)),
     body(`${path}.defaultAllowExternalPayments`).optional().isBoolean(),
     body(`${path}.defaultAllowExternalPaymentRequests`).optional().isBoolean(),
     body(`${path}.defaultAcceptExternalPaymentsAutomatically`).optional().isBoolean(),
@@ -44,7 +52,7 @@ export namespace Validators {
     body(`${path}.enableExternalPaymentRequests`).optional().isBoolean(),
     body(`${path}.enableCreditCommonsPayments`).optional().isBoolean(),
     body(`${path}.externalTraderCreditLimit`).optional().isInt({min: 0}),
-    body(`${path}.externalTraderMaximumBalance`).optional().isInt({min: 0}),
+    body(`${path}.externalTraderMaximumBalance`).optional().custom(value => isNonNegativeIntOrFalse(value)),
     body(`${path}.defaultHideBalance`).optional().isBoolean()
   ]
 
@@ -238,10 +246,6 @@ export namespace Validators {
     ...isUpdateTransferAttributes("data.attributes"),
     ...isUpdateTransferRelationships("data.relationships")
   ]
-
-  const isBooleanOrNull = (value: any) => {
-    return value === null || value === true || value === false
-  }
   const isUpdateAccountSettingsAttributes = (path: string) => [
     body(`${path}.allowPayments`).optional().custom(value => isBooleanOrNull(value)),
     body(`${path}.allowPaymentRequests`).optional().custom(value => isBooleanOrNull(value)),

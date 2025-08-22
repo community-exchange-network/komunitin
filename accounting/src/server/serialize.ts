@@ -1,9 +1,9 @@
+import { config } from 'src/config';
 import { ExternalResource } from 'src/model/resource';
+import { Stats } from 'src/model/stats';
 import { Trustline } from 'src/model/trustline';
 import { Linker, Metaizer, Relator, Serializer, SerializerOptions } from 'ts-japi';
-import { FullAccount, AccountSettings, Currency, CurrencySettings, User, Account, Transfer } from '../model';
-import { config } from 'src/config';
-import { Stats } from 'src/model/stats';
+import { Account, AccountSettings, Currency, CurrencySettings, FullAccount, Transfer, User } from '../model';
 /*
 // Patch BigInt prototype so it correclty serializes to JSON as a number.
 // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON#using_json_numbers
@@ -17,13 +17,16 @@ export const projection = <T>(fields: (keyof T)[]) => {
 }
 
 
+const externalResourceHref = <T>(externalResource: ExternalResource<T> | {id: string}) => {
+  return 'href' in externalResource ? externalResource.href : null
+}
 const externalResourceSerializer = <T>(type: string) => new Serializer<ExternalResource<T> | {id: string}>(type, {
   version: null,
   projection: undefined,
   metaizers: {
     resource: new Metaizer<[ExternalResource<T> | {id: string}]>((resource) => ({
       external: true,
-      href: "href" in resource ? resource.href : null
+      href: externalResourceHref(resource)
     }))
   }
 })

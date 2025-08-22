@@ -325,14 +325,39 @@ const routes: RouteRecordRaw[] = [
           name: 'AdminTransactionList',
           component: () => import('../pages/admin/Transactions.vue')
         }]
-      }
+      },
+      {
+        path: '/superadmin/migrations',
+
+        children: [
+          {
+            path: '',
+            name: 'MigrationList',
+            component: () => import('../pages/superadmin/MigrationList.vue'),
+          },
+          {
+            path: ':id',
+            props: true,
+            name: 'MigrationDetails',
+            component: () => import('../pages/superadmin/MigrationDetails.vue'),
+          },
+          {
+            path: 'new',
+            props: true,
+            name: 'CreateMigration',
+            component: () => import('../pages/superadmin/CreateMigration.vue'),
+          },
+        ]
+      },
     ]
   },
   {
     path: '/pay',
     component: () => import('../pages/transactions/Pay.vue'),
     name: 'Pay',
-  }
+  },
+
+  
 ];
 
 // Always leave this as last one

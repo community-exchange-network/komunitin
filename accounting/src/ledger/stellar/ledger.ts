@@ -367,7 +367,7 @@ export class StellarLedger implements Ledger {
     return this.server
   }
   /**
-   * Implements {@link Ledger.createCurrency}
+   * Implements {@link Ledger#createCurrency}
    */
   async createCurrency(config: LedgerCurrencyConfig, sponsor: Keypair): Promise<LedgerCurrencyKeys> {
     // Generate the keys.

@@ -16,7 +16,7 @@ export const initUpdateCreditOnPayment = (controller: SharedController) => {
     const ctx = systemContext()
     const currency = await currencyController.getCurrency(ctx)
     // Check if the currency supports this feature.
-    if (currency.settings.defaultOnPaymentCreditLimit === undefined ) {
+    if (!currency.settings.defaultOnPaymentCreditLimit) {
       return
     }
     // Do the job.

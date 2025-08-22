@@ -3,6 +3,7 @@ import { ExternalResource, ExternalResourceIdentifier, recordToExternalResource,
 import { Context } from "src/utils/context";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
 import { internalError } from "src/utils/error";
+import { fixUrl } from "../utils/net";
 
 
 export class ExternalResourceController extends AbstractCurrencyController {
@@ -50,7 +51,7 @@ export class ExternalResourceController extends AbstractCurrencyController {
 export async function fetchExternalResource<T extends Record<string, any>>(resourceId: ExternalResourceIdentifier): Promise<T> {
   // External resources may be from this server or from another server. We could directly 
   // get the internal ones from the DB, but if that works as well is just more symmetric.
-  const response = await fetch(resourceId.meta.href)
+  const response = await fetch(fixUrl(resourceId.meta.href))
   if (!response.ok) {
     throw internalError(`Failed to fetch external resource: ${response.statusText}`)
   }
