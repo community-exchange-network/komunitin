@@ -1,10 +1,12 @@
-import { Keypair } from "@stellar/stellar-sdk";
+import { Keypair, Operation } from "@stellar/stellar-sdk";
 import { MigrationController } from "./migration-controller";
 import { LedgerCurrencyController } from "../controller/currency-controller";
 import { AccountSettings, FullAccount, TransferMeta, TransferStates } from "../model";
 import { systemContext } from "../utils/context";
 import { fixUrl } from "../utils/net";
 import { Migration, MigrationAccount, MigrationData, MigrationTransfer } from "./migration";
+import { TenantPrismaClient } from "../controller/multitenant";
+import { StellarCurrency, StellarLedger } from "../ledger/stellar";
 
 const UNLIMITED_CREDIT_LIMIT = 10 ** 6
 
@@ -21,6 +23,33 @@ interface ICESMigration extends Migration {
     },
     step: string
   } 
+}
+
+/**
+ * Calls all promiseswith a concurrency limit.
+ */
+const promisePool = async <T, U>(
+  items: T[],
+  fn: (item: T) => Promise<U>,
+  concurrency = 10
+): Promise<U[]> => {
+  let index = 0
+  const results: U[] = new Array(items.length)
+  let stop = false
+  const worker = async (): Promise<void> => {
+    while (!stop && index < items.length) {
+      const currentIndex = index++
+      try {
+        results[currentIndex] = await fn(items[currentIndex])
+      } catch (error) {
+        stop = true;
+        throw error
+      }
+    }
+  }
+  
+  await Promise.all(Array(Math.min(concurrency, items.length)).fill(0).map(worker))
+  return results
 }
 
 export class ICESMigrationController {
@@ -41,7 +70,35 @@ export class ICESMigrationController {
     this.controller.addLogEntry(this.migration, "warn", this.migration.data.step, message, data)
   }
 
+  async beforeAll() {
+    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as LedgerCurrencyController;
+    const db = this.controller.controller.tenantDb(this.migration.code)
+    const accounts = await db.account.findMany({})
+    const data = []
+    for (const account of accounts) {
+      const computedBalance = await this.computeAccountBalance(db, account)
+      data.push({
+        code: account.code,
+        status: account.status,
+        balanceDb: Number(currencyController.amountToLedger(Number(account.balance))),
+        computedBalance: Number(currencyController.amountToLedger(Number(computedBalance))),
+        difference: Number(currencyController.amountToLedger(Number(account.balance - computedBalance)))
+      })
+    }
+    console.table(data)
+    const sums = data.reduce((acc, curr) => {
+      acc.balanceDb += curr.balanceDb
+      acc.computedBalance += curr.computedBalance
+      acc.difference += curr.difference
+      return acc
+    }, { balanceDb: 0, computedBalance: 0, difference: 0 })
+    console.table(sums)
+    //throw new Error("Aborting!")
+
+  }
+
   async play() {    
+    //await this.beforeAll()
     await this.controller.setMigrationStatus(this.migration.id, "started")
     await this.log("Starting migration process")
     const currentStep = this.migration.data.step || this.steps[0]
@@ -374,6 +431,7 @@ export class ICESMigrationController {
 
   private async createAccounts() {
     const accounts = this.migration.data.accounts;
+
     if (!accounts) {
       throw new Error("No accounts data found in migration")
     }
@@ -431,7 +489,11 @@ export class ICESMigrationController {
           // Set settings
           await setSettings(account.settings)
           await this.log(`Active account ${account.code} created successfully in the ledger`)
-        } else if (account.member.state === "deleted") {
+        } else if (account.member.state === "deleted" || account.member.state === "suspended") {
+          const balance = await this.computeAccountBalance(db, account)
+          if (Math.abs(Number(balance) / (10 ** (currency.scale - currency.decimals))) >= 0.5) {
+            throw new Error(`Deleted or suspended account with non-zero balance: ${account.code}. Not implemented yet!`);
+          }
           // We don't need to create this account in the ledger (and createAccount) does not allow to create 
           // deleted accounts. But still there may be transfers related to it so we will add the record to the 
           // DB directly.
@@ -479,8 +541,7 @@ export class ICESMigrationController {
             }
           })
           await this.log(`Deleted account ${account.code} created successfully in the DB`)
-        } else if (account.member.state === "suspended") {
-          throw new Error(`Suspended accounts are not supported yet: ${account.code}`);
+        
         } else {
           await this.warn(`Skipping account ${account.code} with state ${account.member.state}.`);
         }
@@ -499,22 +560,19 @@ export class ICESMigrationController {
     }, 0)
 
     const issuer = await currencyController.ledger.getAccount(currency.keys.issuer)
-    if (totalCredit > 0) {
+    const credit = await currencyController.ledger.getAccount(currency.keys.credit)
+    const creditDiff = totalCredit - currencyController.amountFromLedger(credit.balance());
+    if (creditDiff > 0) {
       await issuer.pay({
-        amount: currencyController.amountToLedger(totalCredit),
+        amount: currencyController.amountToLedger(creditDiff),
         payeePublicKey: currency.keys.credit
       }, {
         account: await currencyController.keys.issuerKey(),
         sponsor: await currencyController.keys.sponsorKey()
       })
     }
-
-    const CREATE_ACCOUNTS_BATCH_SIZE = 10
-    for (let i = 0; i < accounts.length; i += CREATE_ACCOUNTS_BATCH_SIZE) {
-      const batch = accounts.slice(i, i + CREATE_ACCOUNTS_BATCH_SIZE);
-      await this.log(`Sending batch of ${batch.length} accounts for creation`);
-      await Promise.all(batch.map(createAccount))
-    }
+    
+    await promisePool(accounts, createAccount, 5)
     await this.log(`Finished creating ${accounts.length} accounts in the ledger`)
   }
   private async createTransfers() {
@@ -528,6 +586,7 @@ export class ICESMigrationController {
     // We will log every 1, 10, 100 or 1000 transfers depending on the number of transfers.
     const logEvery = 10 ** Math.min(Math.max(Math.floor(Math.log10(transfers.length) - 1), 0), 3)
     let count = 0
+    let existing = 0
 
     const getDBAccount = async (id: string) => {
       const account = await db.account.findUnique({
@@ -555,7 +614,9 @@ export class ICESMigrationController {
       })
 
       if (existingTransfer) {
-        await this.warn(`Transfer ${transfer.id} already exists, skipping creation`, { transferId: transfer.id });
+        if (count++ % logEvery === 0) {
+          await this.log(`Skipped ${count} existing transfers so far`)
+        }
         continue;
       }
 
@@ -669,6 +730,31 @@ export class ICESMigrationController {
       }
     }
     await this.log(`Finished creating transfers with ${count} transfers in total`)
+    if (existing > 0) {
+      await this.warn(`Skipped a total of ${existing} existing transfers`)
+    }
+  }
+
+  private async computeAccountBalance(db: TenantPrismaClient, account: {id: string}) {
+    const transfers = await db.transfer.findMany({
+      where: {
+        OR: [
+          { payerId: account.id },
+          { payeeId: account.id }
+        ],
+        state: "committed"
+      }
+    })
+    const balance = transfers.reduce((acc, transfer) => {
+      if (transfer.payerId === account.id) {
+        acc -= transfer.amount;
+      }
+      if (transfer.payeeId === account.id) {
+        acc += transfer.amount;
+      }
+      return acc;
+    }, 0n);
+    return balance
   }
 
   private async setBalances() {
@@ -729,32 +815,24 @@ export class ICESMigrationController {
     })
     
     await this.log(`Setting balances for ${accounts.length} accounts...`)
-
+    let skipped = 0
     const setAccountBalance = async (account: FullAccount, keys: {account: Keypair, sponsor: Keypair}) => {
-      const transfers = await db.transfer.findMany({
-        where: {
-          OR: [
-            { payerId: account.id },
-            { payeeId: account.id }
-          ],
-          state: "committed"
-        }
-      })
+      const balance = await this.computeAccountBalance(db, account);
 
-      const balance = transfers.reduce((acc, transfer) => {
-        if (transfer.payerId === account.id) {
-          acc -= transfer.amount;
-        }
-        if (transfer.payeeId === account.id) {
-          acc += transfer.amount;
-        }
-        return acc;
-      }, 0n);
-      
       // Check the computed balance agains the balance in the account migration.
       const mAccount = migrationAccount(account.id);
       if (mAccount !== undefined && (balance !== BigInt(mAccount.balance))) {
         await this.warn(`Balance mismatch for account ${account.code}: computed ${balance}, expected ${mAccount.balance}`);
+      }
+      // It is possible in exceptional cases that the account does not have sufficient credit
+      // In this case we increase the account credit limit just to satisfy its balance.
+      if (balance < 0 && balance < -account.creditLimit) {
+        this.warn(`Account ${account.code} has negative balance ${balance} but credit limit ${account.creditLimit} is insufficient, increasing credit limit`);
+        account.creditLimit = Number(-balance);
+        await currencyController.accounts.updateAccount(systemContext(), {
+          id: account.id,
+          creditLimit: account.creditLimit
+        })
       }
       // Get balance of the account in the ledger.
       const ledgerAccount = await ledger.getAccount(account.key);
@@ -765,7 +843,7 @@ export class ICESMigrationController {
       const difference = balance + BigInt(account.creditLimit) - BigInt(ledgerBalance);
 
       if (difference === 0n) {
-        await this.log(`Account ${account.code} balance is already ${balance}, skipping`);
+        skipped++
         return;
       } else {
         const positive = difference > 0n;
@@ -804,27 +882,47 @@ export class ICESMigrationController {
         await this.log(`Account ${account.code} balance set to ${newBalance}`);
       }
     }
-    // Set balances in groups of 10.
-    const SET_BALANCE_BATCH_SIZE = 10;
-    for (let i = 0; i < accounts.length; i += SET_BALANCE_BATCH_SIZE) {
-      const batch = accounts.slice(i, i + SET_BALANCE_BATCH_SIZE);
-      await this.log(`Sending batch of ${batch.length} accounts for balance setting`);
-      await Promise.all(batch.map(async (account) => setAccountBalance(account, {
+    const externalBalance = await this.computeAccountBalance(db, currency.externalAccount)
+    const setExternalBalance = async () => {
+      if (externalBalance < 0) {
+        const stellar = currencyController.ledger as StellarCurrency
+        const remaining = currencyController.amountToLedger(
+          (currency.settings.externalTraderCreditLimit ?? 0) + Number(externalBalance)
+        )
+
+        await stellar.updateExternalOffer(stellar.asset(), {
+          sponsor: await currencyController.keys.sponsorKey(),
+          externalTrader: await currencyController.keys.externalTraderKey()
+        }, remaining)
+      }
+
+      await setAccountBalance(currency.externalAccount, {
+        account: await currencyController.keys.externalTraderKey(),
+        sponsor: await currencyController.keys.sponsorKey()
+      })
+      await this.log(`External account balance set successfully to ${externalBalance}`);
+    }
+
+    if (externalBalance < 0) {
+      await setExternalBalance()
+    }
+    
+    await promisePool(accounts, async (account) => setAccountBalance(account, {
         account: await currencyController.keys.adminKey(),
         sponsor: await currencyController.keys.sponsorKey()
-      })));
-    }
-    await this.log(`Finished setting balances for ${accounts.length} accounts`)
+    }), 5)
 
-    // Setting balance for the external account.
-    await setAccountBalance(currency.externalAccount, {
-      account: await currencyController.keys.externalTraderKey(),
-      sponsor: await currencyController.keys.sponsorKey()
-    })
-    await this.log(`External account balance set successfully to ${currency.externalAccount.balance}`)
+    if (externalBalance > 0) {
+      await setExternalBalance()
+    }
+    
+    await this.log(`Finished setting balances for ${accounts.length} accounts`)
+    await this.log(`Skipped ${skipped} accounts already ahving the right balance`)
+    
+    await currencyController.accounts.updateAccountBalance(migrAccount)
 
     // Check if the migration account has zero balance and delete it if so.
-    await currencyController.accounts.updateAccountBalance(migrAccount)
+    
     if (migrAccount.balance === 0) {
       this.log(`Migration account ${migrAccount.code} has zero balance, deleting it`)
       await currencyController.accounts.deleteAccount(systemContext(), migrAccount.id)

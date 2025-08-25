@@ -72,6 +72,11 @@
                 </div>
                 <div class="q-mt-xs">{{ entry.message }}</div>
               </div>
+              <q-card-section>
+                <q-spinner 
+                  v-if="migration.status === 'started'" 
+                />
+              </q-card-section>
             </div>
           </q-card-section>
         </q-card>

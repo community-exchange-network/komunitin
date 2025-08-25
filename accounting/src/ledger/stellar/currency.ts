@@ -220,7 +220,7 @@ export class StellarCurrency implements LedgerCurrency {
    * This function checks the offer from the external trader account that is selling the given asset
    * and updates this offer so the total offered equals the current balance.
    */
-  async updateExternalOffer(asset: Asset, keys: {sponsor: Keypair, externalTrader: Keypair})  {
+  async updateExternalOffer(asset: Asset, keys: {sponsor: Keypair, externalTrader: Keypair}, amount?: string)  {
     const offer = await this.fetchExternalOffer(asset, this.hour())
     const trader = await this.externalTraderAccount()
     const balance = trader.balance(asset)
@@ -230,7 +230,7 @@ export class StellarCurrency implements LedgerCurrency {
       source: this.data.externalTraderPublicKey,
       selling: asset,
       buying: this.hour(),
-      amount: balance.toString(),
+      amount: amount ?? balance.toString(),
       price: asset.equals(this.asset()) ? this.config.rate : "1"
     }
 
