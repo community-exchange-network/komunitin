@@ -122,7 +122,7 @@ const fetchCurrencies = async () => {
     groups.value = [...groups.value, ...data.data]
     url = data.links.next  
     
-  } while (url !== null)
+  } while (url != null)
   
   
   codes.value = groups.value.map((currency: Group) => ({
