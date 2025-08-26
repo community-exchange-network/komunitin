@@ -1,16 +1,17 @@
 import { Request } from 'express'
+import { Scope } from '../server/auth'
 
 export interface Context {
   /**
    * The context type
    */
-  type: "system" | "user" | "external" | "anonymous" | "last-hash"
+  type: "anonymous" | "user" | "external" | "last-hash" | "superadmin" | "system"
   /**
    * The user ID of the authenticated user.
    */
   userId?: string
   /**
-   * The account public key of the authenticated user.
+   * The account public key of the authenticated user (for external type).
    */
   accountKey?: string
   lastHashAuth?: {
@@ -22,6 +23,8 @@ export interface Context {
 
 export const context = (req: Request): Context => {
   const payload = req.auth?.payload
+  const scopes = (payload?.scope as string).split(" ") ?? []
+
   if (!payload) {
     return {
       type: "anonymous"
@@ -32,11 +35,6 @@ export const context = (req: Request): Context => {
       type: "external",
       accountKey: payload.sub
     }
-  } else if (typeof payload.sub === "string") {
-    return {
-      userId: payload.sub,
-      type: "user"
-    }
   } else if ("type" in payload && payload.type === "last-hash") {
     return {
       type: payload.type,
@@ -45,6 +43,15 @@ export const context = (req: Request): Context => {
         lastHash: payload.lastHash as string,
         requestTrace: payload.requestTrace as string
       },
+    }
+  } else if (scopes.includes(Scope.Superadmin)) {
+    return {
+      type: "superadmin",
+    }
+  } else if (typeof payload.sub === "string") {
+    return {
+      type: "user",
+      userId: payload.sub
     }
   // This case happens when the notifications service uses the service.
   } else if (payload.sub === null) {
