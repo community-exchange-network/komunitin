@@ -106,20 +106,25 @@ const codes = ref<{ label: string; value: string }[]>([])
 const groups = ref<Group[]>([])
 
 const fetchCurrencies = async () => {
-  
   const token = store.getters.accessToken
-  
-  const response = await fetch(`${sourceUrl.value}/ces/api/social/groups`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
+  let url = `${sourceUrl.value}/ces/api/social/groups`
+    do {
+      const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(`Failed to fetch migrations: ${error.message}`)
     }
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(`Failed to fetch migrations: ${error.message}`)
-  }
-  const data = await response.json()
-  groups.value = data.data as Group[]
+    const data = await response.json()
+    groups.value = [...groups.value, ...data.data]
+    url = data.links.next  
+    
+  } while (url !== null)
+  
+  
   codes.value = groups.value.map((currency: Group) => ({
     label: currency.attributes.code + ' (' + currency.attributes.name + ')',
     value: currency.attributes.code
