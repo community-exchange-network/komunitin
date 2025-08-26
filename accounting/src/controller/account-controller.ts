@@ -29,15 +29,17 @@ export class AccountController extends AbstractCurrencyController implements IAc
     } else {
       code = await this.getFreeCode()
     }
-    // get required keys from DB.
-    const keys = {
-      issuer: await this.keys().issuerKey(),
-      credit: this.currency().settings.defaultInitialCreditLimit > 0 ? await this.keys().creditKey() : undefined,
-      sponsor: await this.keys().sponsorKey()
-    }
     // Create account in ledger with default credit limit & max balance.
     const maximumBalance = account.maximumBalance ?? this.currency().settings.defaultInitialMaximumBalance
     const creditLimit = account.creditLimit ?? this.currency().settings.defaultInitialCreditLimit
+
+    // get required keys from DB.
+    const keys = {
+      issuer: await this.keys().issuerKey(),
+      credit: creditLimit > 0 ? await this.keys().creditKey() : undefined,
+      sponsor: await this.keys().sponsorKey()
+    }
+    
     const options = {
       initialCredit: this.currencyController.amountToLedger(creditLimit),
       maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance) : undefined
