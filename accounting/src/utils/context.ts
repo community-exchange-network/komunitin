@@ -23,7 +23,7 @@ export interface Context {
 
 export const context = (req: Request): Context => {
   const payload = req.auth?.payload
-  const scopes = (payload?.scope as string).split(" ") ?? []
+  const scopes = typeof payload?.scope === 'string' ? payload.scope.split(' ') : []
 
   if (!payload) {
     return {
