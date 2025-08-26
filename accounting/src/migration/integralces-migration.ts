@@ -325,7 +325,7 @@ export class ICESMigrationController {
         throw new Error("Invalid response from social service")
       }
       for (const memberData of memberResponse.data) {
-        const accountId = memberData.relationships.account.data.id
+        const accountId = memberData.relationships.account?.data?.id
         const account = accounts.find(a => a.id === accountId)
         if (!account) {
           this.warn(`Member ${memberData.id} account not found, skipping`, { member: memberData })
@@ -485,7 +485,15 @@ export class ICESMigrationController {
             maximumBalance,
             users: account.users
           }
-          await accountController.createAccount(systemContext(), model)      
+          await accountController.createAccount(systemContext(), model)
+          // Override created & updated dates.
+          await db.account.update({
+            where: { id: account.id },
+            data: {
+              created: new Date(account.created),
+              updated: new Date(account.updated)
+            }
+          })
           // Set settings
           await setSettings(account.settings)
           await this.log(`Active account ${account.code} created successfully in the ledger`)

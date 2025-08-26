@@ -28,15 +28,18 @@ export class StellarAccount implements LedgerAccount {
     if (this.loadPromise === undefined) {
       this.loadPromise = this.currency.ledger.loadAccount(this.accountId)
     }
-    const loaded = await this.loadPromise
-    this.loadPromise = undefined
-    // If we already have a loaded account, we update the sequence number of the new one
-    // just in case the current account increased the sequence number while we were loading
-    // the new one.
-    if (this.account !== undefined && this.account.sequenceNumber() > loaded.sequenceNumber()) {
-      loaded.sequence = this.account.sequenceNumber()
+    try {
+      const loaded = await this.loadPromise
+      // If we already have a loaded account, we update the sequence number of the new one
+      // just in case the current account increased the sequence number while we were loading
+      // the new one.
+      if (this.account !== undefined && this.account.sequenceNumber() > loaded.sequenceNumber()) {
+        loaded.sequence = this.account.sequenceNumber()
+      }
+      this.account = loaded
+    } finally {
+      this.loadPromise = undefined
     }
-    this.account = loaded
   }
 
   private stellarAccount() {

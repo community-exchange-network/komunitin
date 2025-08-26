@@ -35,7 +35,7 @@ export function getRoutes(controller: SharedController) {
    * This route is not part of the CC API, so it uses Komunitin's standard auth and error handling
    */
   router.post('/:code/cc/nodes',
-    userAuth(Scope.Accounting),
+    userAuth([Scope.Accounting, Scope.Superadmin]),
     checkExact(CreditCommonsValidators.isGraft()),
     currencyInputHandler(controller, async (currencyController, ctx, data: CreditCommonsNode) => {
       // setResponseTrace(req, res)

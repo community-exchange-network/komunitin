@@ -11,7 +11,7 @@ export class UserController extends AbstractCurrencyController {
   }
 
   async getUser(ctx: Context): Promise<User | undefined> {
-    if (ctx.type === "system") {
+    if (ctx.type === "system" || ctx.type === "superadmin") {
       return this.currency().admin
     }
     if (!ctx.userId) {
