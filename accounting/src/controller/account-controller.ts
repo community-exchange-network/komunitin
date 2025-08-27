@@ -1,4 +1,4 @@
-import { AccountType } from "@prisma/client";
+import { AccountType, Prisma } from "@prisma/client";
 import { AccountController as IAccountController } from "src/controller";
 import { Account, AccountSettings, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
 import { CollectionOptions } from "src/server/request";
@@ -108,16 +108,48 @@ export class AccountController extends AbstractCurrencyController implements IAc
     if (data.maximumBalance && data.maximumBalance !== account.maximumBalance) {
       throw notImplemented("Updating maximum balance not implemented yet")
     }
+    const updateData = {
+      code: data.code,
+      creditLimit: data.creditLimit,
+      maximumBalance: data.maximumBalance,
+    } as Prisma.AccountUpdateInput
+    
     if (data.users) {
-      throw notImplemented("Updating account users not implemented yet")
+      const newUserIds = data.users.map(u => u.id)
+      const currentUserIds = account.users?.map(u => u.id) || []
+
+      const usersToAdd = newUserIds.filter(id => !currentUserIds.includes(id))
+      const usersToRemove = currentUserIds.filter(id => !newUserIds.includes(id))
+
+      if (usersToAdd.length || usersToRemove.length) {
+        const userOperations = {} as Prisma.AccountUpdateInput['users']
+        if (usersToRemove.length) {
+          userOperations!.deleteMany = {
+            userId: { in: usersToRemove },
+            tenantId: this.db().tenantId
+          }
+        }
+        if (usersToAdd.length) {
+          userOperations!.create = usersToAdd.map(id => ({
+            user: {
+              connectOrCreate: {
+                where: {
+                  tenantId_id: {
+                    id,
+                    tenantId: this.db().tenantId
+                  }
+                },
+                create: { id }
+              }
+            }
+          }))
+        }
+        updateData.users = userOperations
+      }
     }
     // Update db.
     const updated = await this.db().account.update({
-      data: {
-        code: data.code,
-        creditLimit: data.creditLimit,
-        maximumBalance: data.maximumBalance,
-      },
+      data: updateData,
       where: {id: account.id},
     })
 
