@@ -439,7 +439,7 @@ export class TransferController  extends AbstractCurrencyController implements I
       where.meta = {
         path: ["description"],
         string_contains: search,
-        mode: "insensitive" 
+        mode: "insensitive"
         // This is only supported from prisma 6.4 onwards
       }
     }
