@@ -808,7 +808,7 @@ export class ICESMigrationController {
       if (!migrAccount) {
         migrAccount = await currencyController.accounts.createAccount(systemContext(), {
           code: `${this.migration.code}MIGR`
-        });
+        }) as FullAccount;
       }
       return migrAccount
     }

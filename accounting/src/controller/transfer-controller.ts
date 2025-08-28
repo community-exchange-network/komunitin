@@ -415,7 +415,7 @@ export class TransferController  extends AbstractCurrencyController implements I
   public async getFullTransfers(ctx: Context, params: CollectionOptions): Promise<FullTransfer[]> {
     const user = await this.users().checkUser(ctx)
 
-    const {account, ...filters} = params.filters
+    const {account, search, ...filters} = params.filters
     const where = whereFilter(filters)
     // Special account filter.
     if (account !== undefined) {
@@ -432,6 +432,15 @@ export class TransferController  extends AbstractCurrencyController implements I
           { payer: { users: { some : { user : { id: user.id } } } } },
           { payee: { users: { some : { user : { id: user.id } } } } },
         ]
+      }
+    }
+    // Add search filter if provided.
+    if (search) {
+      where.meta = {
+        path: ["description"],
+        string_contains: search,
+        mode: "insensitive"
+        // This is only supported from prisma 6.4 onwards
       }
     }
     // default state filter.
