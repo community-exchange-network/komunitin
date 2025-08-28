@@ -65,10 +65,10 @@ export interface CurrencyController {
 }
 
 export interface AccountController {
-  createAccount(ctx: Context, account: InputAccount): Promise<FullAccount>
+  createAccount(ctx: Context, account: InputAccount): Promise<Account>
   getAccount(ctx: Context, id: string): Promise<Account>
   getAccounts(ctx: Context, params: CollectionOptions): Promise<Account[]>
-  updateAccount(ctx: Context, data: UpdateAccount): Promise<FullAccount>;
+  updateAccount(ctx: Context, data: UpdateAccount): Promise<Account>;
   deleteAccount(ctx: Context, id: string): Promise<void>;
 
   getAccountSettings(ctx: Context, id: string): Promise<AccountSettings>

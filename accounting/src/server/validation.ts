@@ -135,7 +135,7 @@ export namespace Validators {
     ...isUpdateCurrencySettingsAttributes("data.attributes"),
   ]
 
-  const isUpdateAccountAttibutes = (path: string) => [
+  const isUpdateAccountAttributes = (path: string) => [
     body(`${path}.code`).optional(),
     body(`${path}.maximumBalance`).optional().isInt({min: 0}),
     body(`${path}.creditLimit`).optional().isInt({min: 0}),
@@ -144,12 +144,13 @@ export namespace Validators {
   export const isUpdateAccount = () => [
     ...jsonApiDoc("accounts"),
     body("data.id").optional().isUUID(), // id optional as currency is identified by route.
-    ...isUpdateAccountAttibutes("data.attributes")
+    ...isUpdateAccountAttributes("data.attributes"),
+    ...isCollectionRelationship("data", "users", "users")
   ]
 
   export const isCreateAccount = () => [
     ...jsonApiDoc("accounts"),
-    ...isUpdateAccountAttibutes("data.attributes"),
+    ...isUpdateAccountAttributes("data.attributes"),
     ...isCollectionRelationship("data", "users", "users"),
     ...isIncludedTypes(["users"]),
   ]

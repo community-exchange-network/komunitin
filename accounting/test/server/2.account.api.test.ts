@@ -191,11 +191,42 @@ describe('Accounts endpoints', async () => {
       data: {attributes: { creditLimit: 100000 }}
     }, user2, 403)
   })
+  
   it('user cannot delete other accounts', async () => {
     await t.api.delete(`/TEST/accounts/${account0.id}`, user2, 403)
   })
+  
   it('user can delete own account', async () => {
     await t.api.delete(`/TEST/accounts/${account1.id}`, user2)
   })
+
+  let account3: any;
+  const usersBody = (userIds: string[]) => ({data: {
+    relationships: { users: { data: userIds.map(id => ({type: "users", id})) }}
+  }})
+
+  
+  it('user cannot change account users', async() => {
+    // Create account first:
+    account3 = await t.createAccount(user2.user, "TEST", admin)
+    await t.api.patch(`/TEST/accounts/${account3.id}`, usersBody([user3.user]), user2, 403)
+  })
+  
+  it('admin can change user from account', async() => {
+    const response = await t.api.patch(`/TEST/accounts/${account3.id}`, usersBody([user3.user]), admin)
+    account3 = response.body.data
+    assert.equal(account3.relationships.users.data.length, 1)
+    assert.equal(account3.relationships.users.data[0].id, user3.user)
+  })
+
+  it('admin can add users to account', async() => {
+    const response = await t.api.patch(`/TEST/accounts/${account3.id}`, usersBody([user2.user, user3.user]), admin)
+    account3 = response.body.data
+    const users = account3.relationships.users.data.map((u: {id: string}) => u.id).sort()
+    assert.deepEqual(users, ['2', '3'])
+  })
+
+  
+  
 
 })
