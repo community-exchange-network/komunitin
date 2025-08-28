@@ -82,10 +82,10 @@ export class AccountController extends AbstractCurrencyController implements IAc
         }
       },
     })
-    return recordToAccount(record, this.currency())
+    return this.getAccount(ctx, record.id)
   }
 
-  async updateAccount(ctx: Context, data: UpdateAccount): Promise<FullAccount> {
+  async updateAccount(ctx: Context, data: UpdateAccount): Promise<Account> {
     // Only the currency owner can update accounts.
     await this.users().checkAdmin(ctx)
 
@@ -150,10 +150,11 @@ export class AccountController extends AbstractCurrencyController implements IAc
     // Update db.
     const updated = await this.db().account.update({
       data: updateData,
-      where: {id: account.id},
+      where: { id: account.id },
+      select: { id: true }
     })
 
-    return recordToAccount(updated, this.currency())
+    return this.getAccount(ctx, updated.id)
   }
 
   filterAccount(user: User|undefined, account: FullAccount): Account {

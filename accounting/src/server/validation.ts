@@ -144,7 +144,8 @@ export namespace Validators {
   export const isUpdateAccount = () => [
     ...jsonApiDoc("accounts"),
     body("data.id").optional().isUUID(), // id optional as currency is identified by route.
-    ...isUpdateAccountAttibutes("data.attributes")
+    ...isUpdateAccountAttibutes("data.attributes"),
+    ...isCollectionRelationship("data", "users", "users")
   ]
 
   export const isCreateAccount = () => [
