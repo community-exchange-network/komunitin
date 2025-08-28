@@ -209,4 +209,28 @@ describe('Transfer endpoints', async () => {
     assert.equal(response3.body.links.next, null)
 
   })
+
+  await it('admin can see all transfers', async () => {
+    const response = await t.api.get('/TEST/transfers', t.admin)
+    assert.equal(response.body.data.length, 8)
+  })
+
+  await it("admin can search transfers by description", async () => {
+    const response1 = await t.api.get('/TEST/transfers?filter[search]=step', t.admin)
+    assert.equal(response1.body.data.length, 1)
+    assert.equal(response1.body.data[0].attributes.meta.description, "Two-step transfer")
+
+    const response2 = await t.api.get('/TEST/transfers?filter[search]=funds', t.admin)
+    assert.equal(response2.body.data.length, 2)
+  })
+
+  await it('user can search transfers by description', async () => {
+    // case insensitive search
+    const response1 = await t.api.get('/TEST/transfers?filter[search]=two', t.user1)
+    assert.equal(response1.body.data.length, 1)
+    assert.equal(response1.body.data[0].attributes.meta.description, "Two-step transfer")
+
+    const response2 = await t.api.get('/TEST/transfers?filter[search]=transfer', t.user1)
+    assert.equal(response2.body.data.length, 6)
+  })
 })
