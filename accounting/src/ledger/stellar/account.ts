@@ -188,7 +188,7 @@ export class StellarAccount implements LedgerAccount {
   }
 
   /**
-   * Implements {@link LedgerAccount.delete }
+   * Implements {@link LedgerAccount#delete }
    */
   async delete(keys: {
     admin: Keypair,
