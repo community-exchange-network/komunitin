@@ -376,7 +376,7 @@ export class StellarLedger implements Ledger {
       credit: Keypair.random(),
       admin: Keypair.random(),
       externalIssuer: Keypair.random(),
-      externalTrader: Keypair.random()
+      externalTrader: Keypair.random(),
     }
 
     const data = {
@@ -384,7 +384,7 @@ export class StellarLedger implements Ledger {
       creditPublicKey: keys.credit.publicKey(),
       adminPublicKey: keys.admin.publicKey(),
       externalIssuerPublicKey: keys.externalIssuer.publicKey(),
-      externalTraderPublicKey: keys.externalTrader.publicKey()
+      externalTraderPublicKey: keys.externalTrader.publicKey(),
     }
 
     const currency = new StellarCurrency(this, config, data)
@@ -403,7 +403,7 @@ export class StellarLedger implements Ledger {
     return keys
   }
   /**
-   * Implements {@link Ledger.getCurrency}
+   * Implements {@link Ledger#getCurrency}
    */
   getCurrency(config: LedgerCurrencyConfig, data: LedgerCurrencyData, state?: LedgerCurrencyState): StellarCurrency {
     if (!this.currencies[data.issuerPublicKey]) {

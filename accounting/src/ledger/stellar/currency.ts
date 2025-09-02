@@ -1,12 +1,12 @@
-import { Asset, Operation, AuthRequiredFlag, AuthRevocableFlag, AuthClawbackEnabledFlag, AuthFlag, TransactionBuilder, Keypair, Horizon } from "@stellar/stellar-sdk"
-import { LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerExternalTransfer, LedgerTransfer, PathQuote } from "../ledger"
-import { StellarAccount } from "./account"
-import { StellarLedger } from "./ledger"
+import { Asset, AuthClawbackEnabledFlag, AuthFlag, AuthRequiredFlag, AuthRevocableFlag, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk"
+import { CallBuilder } from "@stellar/stellar-sdk/lib/horizon/call_builder"
 import Big from "big.js"
+import { badRequest, internalError, notFound } from "src/utils/error"
 import { logger } from "src/utils/logger"
 import { retry, sleep } from "src/utils/sleep"
-import { badRequest, internalError, notFound } from "src/utils/error"
-import { CallBuilder } from "@stellar/stellar-sdk/lib/horizon/call_builder"
+import { KeyPair, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerExternalTransfer, LedgerTransfer, PathQuote } from "../ledger"
+import { StellarAccount } from "./account"
+import { StellarLedger } from "./ledger"
 
 interface StreamData {
   started: boolean
@@ -71,6 +71,11 @@ export class StellarCurrency implements LedgerCurrency {
     if (this.config.code.match(/^[A-Z0-9]{4}$/) === null) {
       throw badRequest("Invalid currency code")
     }
+  }
+
+
+  setData(data: LedgerCurrencyData) {
+    this.data = data
   }
   
   private listenStream<T extends Horizon.HorizonApi.BaseResponse & {paging_token: string}>(name: StreamName , cursor: keyof LedgerCurrencyState, endpoint: CallBuilder<Horizon.ServerApi.CollectionPage<T>>, onMessage: (record: T) => Promise<void>) {
@@ -552,9 +557,8 @@ export class StellarCurrency implements LedgerCurrency {
 
   /**
    * Adds the necessary operations to t to create a new account with a trustline to this local currency 
-   * with limit config.maximumBalance and optionally an initial payment of config.initialCredit from 
-   * the credit account. Note that this transaction will need to be signed by the sponsor, the new account,
-   * the issuer and optionally the credit account if config.initialCredit > 0.
+   * with limit config.maximumBalance. Note that this transaction will need to be signed by the sponsor, the new account,
+   * the issuer.
    * 
    * You may want to call {@link addCreditTransaction} to give some credit to the account.
    * 
@@ -893,6 +897,34 @@ export class StellarCurrency implements LedgerCurrency {
       : pathPaymentToTransfer(payment as Horizon.HorizonApi.PathPaymentOperationResponse)
     
     return transfer
+  }
+
+  async enableAccount(options: { balance: string; credit: string; maximumBalance?: string }, keys: { account: KeyPair; issuer: KeyPair; disabledAccountsPool: KeyPair; sponsor: KeyPair;}): Promise<void> {
+    // (re-)create account.
+    const issuerAccount = await this.issuerAccount()
+    const builder = this.ledger.transactionBuilder(issuerAccount)
+    const accountKey = keys.account.publicKey()
+
+    this.createAccountTransaction(builder, {
+      publicKey: accountKey,
+      adminSigner: this.data.adminPublicKey,
+      maximumBalance: options.maximumBalance
+    })
+    const signers = [keys.account, keys.issuer, keys.sponsor]
+
+    const requiredBalance = Big(options.balance)
+    if (requiredBalance.gt(Big(0))) {
+      builder.addOperation(Operation.payment({
+        asset: this.asset(),
+        source: keys.disabledAccountsPool.publicKey(),
+        destination: accountKey,
+        amount: requiredBalance.toString()
+      }))
+      signers.push(keys.disabledAccountsPool)
+    }
+    
+    const response = await this.ledger.submitTransaction(builder, signers, keys.sponsor)
+    logger.info({hash: response.hash, account: accountKey}, `Enabled account ${accountKey} for currency ${this.config.code}.`)
   }
 
 }

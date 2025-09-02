@@ -134,8 +134,9 @@ export class StellarAccount implements LedgerAccount {
         }
         await this.currency.ledger.submitTransaction(builder, signers, keys.sponsor)
       }
+      return diff.toString()
     }
-    return amount
+    return "0"
   }
 
   maximumBalance() : string {
@@ -187,22 +188,21 @@ export class StellarAccount implements LedgerAccount {
       .map(b => ({asset: new Asset(b.asset_code, b.asset_issuer), balance: b.balance, limit: b.limit}))
   }
 
-  /**
-   * Implements {@link LedgerAccount#delete }
-   */
-  async delete(keys: {
-    admin: Keypair,
-    sponsor: Keypair
-  }) {
+  private async moveBalanceAndDelete(destination: string, keys: {admin: Keypair, sponsor: Keypair}) {
+    if (this.account === undefined) {
+      throw internalError("Account not found")
+    }
     const builder = this.currency.ledger.transactionBuilder(this)
-    const source = this.account?.accountId() as string
-    // Send all the balance to the credit account.
-    if (Big(this.balance()).gt(0)) {
+    const source = this.account.accountId()
+    const balance = this.balance()
+
+    if (Big(balance).gt(0)) {
+      // Send all the balance to the destination account
       builder.addOperation(Operation.payment({
         source,
-        destination: this.currency.data.creditPublicKey,
+        destination,
         asset: this.currency.asset(),
-        amount: this.balance()
+        amount: balance
       }))
     }
     // Remove the trustline.
@@ -216,11 +216,22 @@ export class StellarAccount implements LedgerAccount {
       source,
       destination: this.currency.ledger.sponsorPublicKey.publicKey()
     }))
-    await this.currency.ledger.submitTransaction(builder, [keys.admin], keys.sponsor)
     
-    logger.info(`Account ${this.account?.accountId()} deleted`)
-
+    const result = await this.currency.ledger.submitTransaction(builder, [keys.admin], keys.sponsor)
     this.account = undefined
+    
+    return result
+  }
+
+  /**
+   * Implements {@link LedgerAccount#delete }
+   */
+  async delete(keys: {
+    admin: Keypair,
+    sponsor: Keypair
+  }) {
+    await this.moveBalanceAndDelete(this.currency.data.creditPublicKey, keys)
+    logger.info(`Account ${this.account?.accountId()} deleted`)
   }
 
   /**
@@ -272,7 +283,7 @@ export class StellarAccount implements LedgerAccount {
   }
 
   /**
-   * Implements {@link LedgerAccount.externalPay}
+   * Implements {@link LedgerAccount#externalPay}
    */
   async externalPay(payment: { payeePublicKey: string, amount: string, path: PathQuote }, keys: { account: Keypair; sponsor: Keypair }) {
 
@@ -311,8 +322,26 @@ export class StellarAccount implements LedgerAccount {
     
     return transfer
   }
-    
 
-
+  /**
+   * Disable an active account. It wont be able to send or receive paymenbts until it is 
+   * enabled again.
+   * 
+   * The account is removed from the ledger, the ledger balance is moved to a central pool and
+   * the account balance is only saved in the local DB.
+   * 
+   * The caller should be sure that the currency already has a disabled accounts pool created.
+   */
+  async disable(keys: {admin: Keypair, sponsor: Keypair }) : Promise<void> {
+    if (this.account === undefined) {
+      throw internalError("Account not found")
+    }
+    if (!this.currency.data.disabledAccountsPoolPublicKey) {
+      throw internalError("Currency does not have a disabled accounts pool")
+    }
+    const accountId = this.account.accountId()
+    const response = await this.moveBalanceAndDelete(this.currency.data.disabledAccountsPoolPublicKey, keys)
+    logger.info({hash: response.hash, account: accountId},`Account ${accountId} disabled in currency ${this.currency.config.code}`)
+  }
 
 }
