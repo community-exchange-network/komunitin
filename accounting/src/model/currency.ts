@@ -130,6 +130,7 @@ export interface Currency {
     admin: string
     externalTrader: string
     externalIssuer: string
+    disabledAccountsPool?: string
   }
 
   externalAccount: FullAccount
@@ -187,7 +188,8 @@ export const recordToCurrency = (record: CurrencyRecord & {externalAccount?: Acc
       credit: record.creditKeyId as string,
       admin: record.adminKeyId as string,
       externalTrader: record.externalTraderKeyId as string,
-      externalIssuer: record.externalIssuerKeyId as string
+      externalIssuer: record.externalIssuerKeyId as string,
+      disabledAccountsPool: record.disabledAccountsPoolKeyId ?? undefined,
     },
     
     settings: {

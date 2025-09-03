@@ -84,7 +84,7 @@ export const AccountSettingsSerializer = new Serializer<AccountSettings>("accoun
 
 export const AccountSerializer = new Serializer<Account>("accounts", {
   version: null,
-  projection: projection<Account>(['code', 'balance', 'creditLimit', 
+  projection: projection<Account>(['code', 'status', 'balance', 'creditLimit', 
   'maximumBalance', 'key', 'created', 'updated']),
   relators: {
     currency: new Relator<Account,Currency>(async (account) => {
