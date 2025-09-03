@@ -1,56 +1,30 @@
 <template>
-  <q-btn
+  <confirm-btn
     icon="delete"
+    :label="t('delete')"
     round
     flat
-    v-bind="$attrs"
-    @click="confirm = true"
+    color="negative"
+    :btn-color="props.color"
   >
-    <q-dialog v-model="confirm">
-      <q-card class="q-pa-md">
-        <q-card-section class="row items-center">
-          <q-avatar
-            class="q-mr-md"
-            icon="delete"
-            color="negative"
-            text-color="white"
-          />
-          <div class="column">
-            <div>
-              <slot />
-            </div>
-            <div>
-              {{ $t('cantBeUndone') }}
-            </div>
-          </div>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn
-            v-close-popup
-            flat
-            :label="$t('cancel')"
-            color="onsurface-m"
-          />
-          <q-btn 
-            v-close-popup
-            unelevated
-            fill
-            :label="$t('delete')"
-            color="negative"
-            @click="emit('confirm')"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-  </q-btn>
+    <div class="column q-gutter-md">
+      <div>
+        <slot />
+      </div>
+      <div>
+        {{ t('cantBeUndone') }}
+      </div>
+    </div>
+  </confirm-btn>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import ConfirmBtn from './ConfirmBtn.vue';
 
-const confirm = ref(false)
+import { useI18n } from 'vue-i18n';
 
-const emit = defineEmits<{
-  (e: 'confirm'): void
+const props = defineProps<{
+  color?: string
 }>()
 
+const { t } = useI18n();
 </script>
