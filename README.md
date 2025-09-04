@@ -23,14 +23,16 @@ The Komunitin system is made of several microservices:
  - Social service: [TODO] The new decentralized backend for the social API.
 
 ## Development run with Docker
-In order to run the whole system with docker compose, you need the peer dependency IntegralCES. Clone it in the same parent folder as Komunitin.
+Before starting, be sure you have [docker](https://docs.docker.com/engine/install/) and the cli util [jq](https://jqlang.org/) installed. 
+
+You need the peer dependency IntegralCES. Clone it in the same parent folder as Komunitin.
 
 ```bash
 git clone https://github.com/komunitin/komunitin.git
 git clone https://git.drupalcode.org/project/ices.git
 ```
 
-Before running the system you need to setup some environment variables. You may use the `.env.template` file as a reference and create a new `.env` file with the correct values. Also, copy the file `komunitin-project-firebase-adminsdk.json` in the `notifications` folder with the firebase admin sdk credentials.
+Copy the `.env.template` to `.env`. That should be enough for quickly starting a dev environment, but you need to check all varaibles and copy the file `komunitin-project-firebase-adminsdk.json` in the `notifications` folder with the firebase admin sdk credentials to have everything working.
 
 Then you can run the start script with the options `--up` to start the containers, `--ices` to install the IntegralCES site, `--dev` to start the debuggers and other development utils and `--demo` to seed the system with demo data.
 
@@ -38,7 +40,7 @@ Then you can run the start script with the options `--up` to start the container
 ./start.sh --up --ices --dev --demo
 ```
 
-If you want just to start the containers in `dev` mode you can run:
+After installing for the first time, if you want just to start the containers in `dev` mode without re-installing you can run:
   
 ```bash
 docker compose -f compose.yml -f compose.dev.yml up -d
