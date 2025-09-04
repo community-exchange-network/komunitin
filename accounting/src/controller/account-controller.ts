@@ -1,6 +1,6 @@
 import { AccountType, Prisma } from "@prisma/client";
 import { AccountController as IAccountController } from "src/controller";
-import { Account, AccountSettings, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
+import { Account, AccountSettings, AccountStatus, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
 import { CollectionOptions } from "src/server/request";
 import { Context, systemContext } from "src/utils/context";
 import { deriveKey, exportKey } from "src/utils/crypto";
@@ -29,6 +29,10 @@ export class AccountController extends AbstractCurrencyController implements IAc
     } else {
       code = await this.getFreeCode()
     }
+
+    if (account.status && account.status !== AccountStatus.Active) {
+      throw badRequest(`Account status must be ${AccountStatus.Active} when creating an account`)
+    }
     // Create account in ledger with default credit limit & max balance.
     const maximumBalance = account.maximumBalance ?? this.currency().settings.defaultInitialMaximumBalance
     const creditLimit = account.creditLimit ?? this.currency().settings.defaultInitialCreditLimit
@@ -52,6 +56,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
       data: {
         id: account.id,
         code,
+        status: AccountStatus.Active,
         // Initialize ledger values with what we have just created.
         creditLimit,
         maximumBalance: maximumBalance ? maximumBalance : null,
@@ -86,10 +91,49 @@ export class AccountController extends AbstractCurrencyController implements IAc
   }
 
   async updateAccount(ctx: Context, data: UpdateAccount): Promise<Account> {
-    // Only the currency owner can update accounts.
-    await this.users().checkAdmin(ctx)
+    const account = await this.getFullAccount(data.id, false)
+    const user = await this.users().checkUser(ctx)
 
-    const account = await this.getFullAccount(data.id)
+    // Only admins or account owners can update accounts, and most operations 
+    // will require admin access.
+    if (!(this.users().isAdmin(user) || userHasAccount(user, account))) {
+      throw forbidden("User is not allowed to update this account")
+    }
+
+    if (data.status && data.status !== account.status) {
+      if (account.status === AccountStatus.Active && data.status === AccountStatus.Disabled) {
+        // Disable account.
+        // Ensure the currency has the disabled accounts pool created.
+        await this.currencyController.createDisabledAccountsPool()    
+        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+        await ledgerAccount.disable({
+          admin: await this.keys().adminKey(),
+          sponsor: await this.keys().sponsorKey()
+        })
+      } else if (account.status === AccountStatus.Disabled && data.status === AccountStatus.Active) {
+        // Enable account.
+        const ledgerBalance = this.currencyController.amountToLedger(account.balance + account.creditLimit)
+        const maximumBalance = account.maximumBalance ?? this.currency().settings.defaultInitialMaximumBalance
+
+        await this.currencyController.ledger.enableAccount({
+          balance: ledgerBalance,
+          credit: this.currencyController.amountToLedger(account.creditLimit),
+          maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance) : undefined,
+        }, {
+          account: await this.keys().retrieveKey(account.key),
+          issuer: await this.keys().issuerKey(),
+          disabledAccountsPool: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
+          sponsor: await this.keys().sponsorKey()
+        })
+      } else {
+        throw badRequest(`Invalid status change from ${account.status} to ${data.status}`)
+      }
+    }
+
+    if (data.code || data.creditLimit || data.maximumBalance || data.users) {
+      await this.users().checkAdmin(ctx)
+    }
+    
     // code, creditLimit and maximumBalance can be updated
     if (data.code && data.code !== account.code) {
       await this.checkFreeCode(data.code)
@@ -108,10 +152,12 @@ export class AccountController extends AbstractCurrencyController implements IAc
     if (data.maximumBalance && data.maximumBalance !== account.maximumBalance) {
       throw notImplemented("Updating maximum balance not implemented yet")
     }
+
     const updateData = {
       code: data.code,
       creditLimit: data.creditLimit,
       maximumBalance: data.maximumBalance,
+      status: data.status,
     } as Prisma.AccountUpdateInput
     
     if (data.users) {
@@ -188,7 +234,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
   }
 
   async getAccount(ctx: Context, id: string): Promise<Account> {
-    const account = await this.getFullAccount(id)
+    const account = await this.getFullAccount(id, false)
     // Filter account for the current user.
     const user = await this.users().getUser(ctx)
     return this.filterAccount(user, account)
@@ -196,12 +242,16 @@ export class AccountController extends AbstractCurrencyController implements IAc
 
   /**
    * Returns a fully loaded account object for internal use.
+   * 
+   * @param id Account id
+   * @param checkActive If true (default) and asking for a disabled account 
+   * it will throw a forbidden error
    */
-  async getFullAccount(id: string): Promise<WithRequired<FullAccount, "users">> {
+  async getFullAccount(id: string, checkActive: boolean = true): Promise<WithRequired<FullAccount, "users">> {
     const record = await this.db().account.findUnique({
       where: { 
         id,
-        status: "active",
+        status: { not: AccountStatus.Deleted }
       },
       include: { 
         users: { include: { user: true } },
@@ -212,6 +262,11 @@ export class AccountController extends AbstractCurrencyController implements IAc
     if (!record) {
       throw notFound(`Account id ${id} not found in currency ${this.currency().code}`)
     }
+
+    if (checkActive && record.status !== AccountStatus.Active) {
+      throw forbidden(`Account id ${id} is not active`)
+    }
+
     return recordToAccount(record, this.currency()) as WithRequired<FullAccount, "users">;
   }
 
@@ -294,7 +349,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
 
   async deleteAccount(ctx: Context, id: string): Promise<void> {
     const user = await this.users().checkUser(ctx)
-    const account = await this.getFullAccount(id)
+    const account = await this.getFullAccount(id, false)
     if (!(this.users().isAdmin(user) || userHasAccount(user, account))) {
       throw forbidden("User is not allowed to delete this account")
     }
@@ -339,7 +394,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
    */
   public async getAccountSettings(ctx: Context, id: string): Promise<AccountSettings> {
     const user = await this.users().checkUser(ctx)
-    const account = await this.getFullAccount(id)
+    const account = await this.getFullAccount(id, false)
     if (!this.users().isAdmin(user) && !userHasAccount(user, account)) {
       throw forbidden("User is not allowed to access this account settings")
     }
@@ -351,7 +406,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
 
   public async updateAccountSettings(ctx: Context, settings: AccountSettings ): Promise<AccountSettings> {
     const user = await this.users().checkUser(ctx)
-    const account = await this.getFullAccount(settings.id as string)
+    const account = await this.getFullAccount(settings.id as string, false)
     if (!this.users().isAdmin(user) && !userHasAccount(user, account)) {
       throw forbidden("User is not allowed to update this account settings")
     }

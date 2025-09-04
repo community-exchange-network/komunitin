@@ -139,6 +139,7 @@ export namespace Validators {
     body(`${path}.code`).optional(),
     body(`${path}.maximumBalance`).optional().isInt({min: 0}),
     body(`${path}.creditLimit`).optional().isInt({min: 0}),
+    body(`${path}.status`).optional().isIn(["active", "disabled"]),
   ]
 
   export const isUpdateAccount = () => [

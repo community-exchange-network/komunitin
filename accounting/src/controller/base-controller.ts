@@ -4,27 +4,27 @@ import cron from "node-cron"
 import { KeyObject } from "node:crypto"
 import { EventEmitter } from "node:events"
 import { initUpdateExternalOffers } from "src/ledger/update-external-offers"
+import { CollectionOptions, relatedCollectionParams } from "src/server/request"
 import { Context, systemContext } from "src/utils/context"
-import { badConfig, badRequest, internalError, notFound, notImplemented, unauthorized } from "src/utils/error"
+import { badConfig, badRequest, notFound, notImplemented, unauthorized } from "src/utils/error"
+import { sleep } from "src/utils/sleep"
 import TypedEmitter from "typed-emitter"
-import { SharedController, ControllerEvents, StatsController } from "."
+import { ControllerEvents, SharedController, StatsController } from "."
 import { config } from "../config"
-import { Ledger, LedgerCurrencyConfig, LedgerCurrencyData, createStellarLedger } from "../ledger"
+import { Ledger, createStellarLedger } from "../ledger"
 import { friendbot } from "../ledger/stellar/friendbot"
 import { CreateCurrency, Currency, CurrencySettings, currencyToRecord, recordToCurrency } from "../model/currency"
 import { decrypt, deriveKey, encrypt, exportKey, importKey, randomKey } from "../utils/crypto"
 import { logger } from "../utils/logger"
-import { LedgerCurrencyController, amountToLedger } from "./currency-controller"
+import { LedgerCurrencyController, currencyConfig, currencyData } from "./currency-controller"
 import { initUpdateCreditOnPayment } from "./features/credit-on-payment"
 import { initNotifications } from "./features/notificatons"
+import { storeCurrencyKey } from "./key-controller"
 import { initLedgerListener } from "./ledger-listener"
 import { PrivilegedPrismaClient, TenantPrismaClient, globalTenantDb, privilegedDb, tenantDb } from "./multitenant"
-import { storeCurrencyKey } from "./key-controller"
-import { Store } from "./store"
-import { sleep } from "src/utils/sleep"
-import { CollectionOptions, relatedCollectionParams } from "src/server/request"
 import { whereFilter } from "./query"
 import { StatsController as StatsControllerImpl } from "./stats-controller"
+import { Store } from "./store"
 
 
 const getMasterKey = async () => {
@@ -133,30 +133,6 @@ export async function createController(): Promise<SharedController> {
 
   return new LedgerController(ledger, db, masterKey, sponsorKey)
 }
-
-const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
-  return {
-    code: currency.code,
-    rate: currency.rate,
-    externalTraderInitialCredit: amountToLedger(currency, currency.settings.externalTraderCreditLimit ?? 0),
-    externalTraderMaximumBalance: currency.settings.externalTraderMaximumBalance ? amountToLedger(currency, currency.settings.externalTraderMaximumBalance) : undefined
-  }
-}
-
-const currencyData = (currency: Currency): LedgerCurrencyData => {
-  const keys = currency.keys
-  if (!keys) {
-    throw internalError("Missing keys in currency record")
-  }
-  return {
-    issuerPublicKey: keys.issuer,
-    creditPublicKey: keys.credit,
-    adminPublicKey: keys.admin,
-    externalIssuerPublicKey: keys.externalIssuer,
-    externalTraderPublicKey: keys.externalTrader
-  }
-}
-
 
 export class LedgerController implements SharedController {
   

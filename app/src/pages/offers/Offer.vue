@@ -11,12 +11,14 @@
           flat
           icon="edit"
           :to="`/groups/${code}/offers/${offerCode}/edit`"
+          :title="$t('editOffer')"
         />
         <delete-offer-btn 
           v-if="isMine"
           :code="code"
           :offer="offer"          
           :to="`/groups/${code}/offers`"
+          color="white"
         />
       </template>
     </page-header>

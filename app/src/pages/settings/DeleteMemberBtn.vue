@@ -1,7 +1,6 @@
 <template>
   <delete-btn
     outline
-    color="negative"
     icon="delete"
     :round="false"
     :flat="false"
@@ -11,11 +10,8 @@
   >
     <template #default>
       <div 
-        class="q-gutter-y-md q-my-lg"
+        class="q-gutter-y-md"
       >
-        <div class="text-h6">
-          {{ $t('deleteAccount') }}
-        </div>
         <member-header
           style="margin-left: -16px;"
           :member="props.member"

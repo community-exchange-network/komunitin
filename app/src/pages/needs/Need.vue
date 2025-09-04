@@ -11,12 +11,14 @@
           flat
           icon="edit"
           :to="`/groups/${code}/needs/${needCode}/edit`"
+          :title="$t('editNeed')"
         />
         <delete-need-btn 
           v-if="isMine"
           :code="code"
           :need="need"          
           :to="`/groups/${code}/needs`"
+          color="white"
         />
       </template>
     </page-header>

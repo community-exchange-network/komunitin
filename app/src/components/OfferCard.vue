@@ -55,6 +55,7 @@
         color="icon-dark"
         :to="`/groups/${code}/offers/${offer.attributes.code}/edit`"
         class="q-ml-none"
+        :title="$t('editOffer')"
       />
       <delete-offer-btn
         v-if="isMine"

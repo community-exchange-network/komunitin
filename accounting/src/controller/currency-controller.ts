@@ -5,18 +5,19 @@ import { externalResourceToIdentifier, recordToExternalResource } from "src/mode
 import { InputTrustline, Trustline, UpdateTrustline, recordToTrustline } from "src/model/trustline";
 import TypedEmitter from "typed-emitter";
 import { ControllerEvents, CurrencyController } from ".";
-import { LedgerCurrency, LedgerCurrencyState, LedgerTransfer } from "../ledger";
+import { LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerTransfer } from "../ledger";
 import {
   FullAccount,
   Currency,
   CurrencySettings,
   UpdateCurrency,
   currencyToRecord,
-  recordToCurrency
+  recordToCurrency,
+  CreateCurrency
 } from "../model";
 import { CollectionOptions } from "../server/request";
 import { Context, systemContext } from "../utils/context";
-import { badRequest, notFound, notImplemented } from "../utils/error";
+import { badRequest, internalError, notFound, notImplemented } from "../utils/error";
 import { AtLeast } from "../utils/types";
 import { AccountController } from "./account-controller";
 import { ExternalResourceController } from "./external-resource-controller";
@@ -40,7 +41,32 @@ export function convertAmount(amount: number, from: AtLeast<Currency, "rate">, t
   return amount * from.rate.n / from.rate.d * to.rate.d / to.rate.n
 }
 
+export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
+  return {
+    code: currency.code,
+    rate: currency.rate,
+    externalTraderInitialCredit: amountToLedger(currency, currency.settings.externalTraderCreditLimit ?? 0),
+    externalTraderMaximumBalance: currency.settings.externalTraderMaximumBalance ? amountToLedger(currency, currency.settings.externalTraderMaximumBalance) : undefined
+  }
+}
+
+export const currencyData = (currency: Currency): LedgerCurrencyData => {
+  const keys = currency.keys
+  if (!keys) {
+    throw internalError("Missing keys in currency record")
+  }
+  return {
+    issuerPublicKey: keys.issuer,
+    creditPublicKey: keys.credit,
+    adminPublicKey: keys.admin,
+    externalIssuerPublicKey: keys.externalIssuer,
+    externalTraderPublicKey: keys.externalTrader,
+    disabledAccountsPoolPublicKey: keys.disabledAccountsPool
+  }
+}
+
 export class LedgerCurrencyController implements CurrencyController {
+  
   model: Currency
   ledger: LedgerCurrency
   db: TenantPrismaClient
@@ -312,5 +338,39 @@ export class LedgerCurrencyController implements CurrencyController {
     await this.accounts.updateAccountBalance(payerAccount as FullAccount)
     const payeeAccount = this.model.externalAccount
     await this.accounts.updateAccountBalance(payeeAccount)
+  }
+
+  /**
+   * Creates a special ledger account for storing the balance of disabled accounts.
+   * 
+   * Does nothing if the disabled accounts pool is already created.
+   */
+  async createDisabledAccountsPool() {
+    if (this.model.keys.disabledAccountsPool) {
+      // Already created
+      return
+    }
+    const account = await this.ledger.createAccount({
+      initialCredit: "0"
+    }, {
+      sponsor: await this.keys.sponsorKey(),
+      issuer: await this.keys.issuerKey()
+    })
+
+    // Create key object
+    const key = await this.keys.storeKey(account.key)
+
+    // Save relation in Currency object
+    await this.db.currency.update({
+      where: {
+        id: this.model.id
+      },
+      data: {
+        disabledAccountsPoolKeyId: key
+      }
+    })
+    this.model.keys.disabledAccountsPool = key
+    this.ledger.setData(currencyData(this.model))
+    
   }
 }

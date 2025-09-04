@@ -70,6 +70,7 @@
         color="icon-dark"
         :to="`/groups/${code}/needs/${need.attributes.code}/edit`"
         class="q-ml-none"
+        :title="$t('editNeed')"
       />
       <delete-need-btn
         v-if="isMine"
