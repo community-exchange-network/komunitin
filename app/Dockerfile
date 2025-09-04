@@ -31,9 +31,6 @@ RUN npm install -g @quasar/cli
 # Install dependencies.
 RUN npm install
 
-# Rebuild node-sass.
-RUN npm rebuild node-sass
-
 # Copy sources 
 COPY . .
 
