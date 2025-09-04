@@ -14,8 +14,8 @@
           color="icon-dark"
           flat
           round
-          @click="refresh"
           class="q-ml-sm"
+          @click="refresh"
         />
       </div>
         
