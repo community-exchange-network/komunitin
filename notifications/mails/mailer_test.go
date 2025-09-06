@@ -48,7 +48,9 @@ func TestTransferMessage(t *testing.T) {
 		Id:     "1",
 		Amount: 100,
 		State:  "committed",
-		Meta:   "Test transaction",
+		Meta: map[string]any{
+			"description": "Test transaction",
+		},
 		Payer: &api.Account{
 			Code: "001",
 		},

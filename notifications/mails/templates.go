@@ -148,7 +148,7 @@ func buildCommonTransferTemplateData(t *i18n.Translator, payer *api.Member, paye
 			State:          t.T(transfer.State),
 			Group:          transfer.Currency.Code,
 			Time:           t.Dt(transfer.Created),
-			Description:    transfer.Meta,
+			Description:    transfer.Meta["description"].(string),
 		},
 		TemplateActionData: TemplateActionData{
 			ActionUrl:  config.KomunitinAppUrl + "/groups/" + transfer.Currency.Code + "/transactions/" + transfer.Id,

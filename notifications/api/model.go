@@ -44,15 +44,15 @@ type UserSettings struct {
 }
 
 type Transfer struct {
-	Id       string    `jsonapi:"primary,transfers"`
-	Amount   int       `jsonapi:"attr,amount"`
-	Meta     string    `jsonapi:"attr,meta"`
-	State    string    `jsonapi:"attr,state"`
-	Created  time.Time `jsonapi:"attr,created,iso8601"`
-	Updated  time.Time `jsonapi:"attr,updated,iso8601"`
-	Payer    *Account  `jsonapi:"relation,payer"`
-	Payee    *Account  `jsonapi:"relation,payee"`
-	Currency *Currency `jsonapi:"relation,currency"`
+	Id       string         `jsonapi:"primary,transfers"`
+	Amount   int            `jsonapi:"attr,amount"`
+	Meta     map[string]any `jsonapi:"attr,meta"`
+	State    string         `jsonapi:"attr,state"`
+	Created  time.Time      `jsonapi:"attr,created,iso8601"`
+	Updated  time.Time      `jsonapi:"attr,updated,iso8601"`
+	Payer    *Account       `jsonapi:"relation,payer"`
+	Payee    *Account       `jsonapi:"relation,payee"`
+	Currency *Currency      `jsonapi:"relation,currency"`
 }
 
 type Account struct {
