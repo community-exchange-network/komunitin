@@ -22,6 +22,17 @@ ACCESS_TOKEN=$(./access.sh $USERNAME $PASSWORD $ICES_URL komunitin_superadmin)
 
 echo "Migrating group $GROUP from $ICES_URL to $KOMUNITIN_ACCOUNTING_URL..."
 
+# Function to get ISO 8601 date one hour from now
+get_future_date() {
+    if date -v1H >/dev/null 2>&1; then
+        # macOS
+        date -v+1H -u +"%Y-%m-%dT%H:%M:%SZ"
+    else
+        # Linux and others
+        date -u -d '+1 hour' +'%Y-%m-%dT%H:%M:%SZ'
+    fi
+}
+
 JSON_DATA=$(cat <<EOF
 {
   "data": {
@@ -35,7 +46,7 @@ JSON_DATA=$(cat <<EOF
           "url": "$ICES_URL",
           "tokens": {
             "accessToken": "$ACCESS_TOKEN",
-            "expiresAt": "$(date -u -d '+1 hour' +'%Y-%m-%dT%H:%M:%SZ')"
+            "expiresAt": "$(get_future_date)"
           }
         }      
       }
