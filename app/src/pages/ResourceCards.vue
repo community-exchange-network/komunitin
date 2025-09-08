@@ -18,8 +18,8 @@
             <!-- this v-if is superfluous, since when this slot is rendered, card is always defined.
             But setting it prevents an unexpected exception in vue-test-utils -->
             <component
-              :is="card"
-              v-if="card"
+              :is="components[card]"
+              v-if="card && components[card]"
               :[propName]="resource"
               :code="code"
             />
@@ -43,181 +43,137 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
+import { type Component, computed, ref, watch } from "vue";
 import Empty from "../components/Empty.vue";
-import { ResourceObject } from "../store/model";
-import { ResourcesState } from "../store/resources"
 import NeedCard from "../components/NeedCard.vue";
 import OfferCard from "../components/OfferCard.vue";
-import GroupCard from "../components/GroupCard.vue"
-/**
- * Generic resource card list.
- */
-export default defineComponent({
-  name: "ResourceCards",
-  components: {
-    Empty,
-    NeedCard,
-    OfferCard,
-    GroupCard
-  },
-  props: {
-    /**
-     * The group code
-     */
-    code: {
-      type: String,
-      required: true
-    },
-    /**
-     * The item Vue Component Name
-     */
-    card: {
-      type: String,
-      required: false,
-      default: null,
-    },
-    /**
-     * The name of the property that should be send 
-     * to the item Vue components.
-     */
-    propName: {
-      type: String,
-      required: false,
-      default: ""
-    },
-    /**
-     * The name of the vuex resources module.
-     */
-    moduleName: {
-      type: String,
-      required: true,
-    },
-    /**
-     * The include parameter string when fetching resources.
-     */
-    include: {
-      type: String,
-      required: false,
-      default: ""
-    },
-    /**
-     * The sort parameter string when fetching resources.
-     */
-    sort: {
-      type: String,
-      required: false,
-      default: ""
-    },
-    /**
-     * Filter object. Each pair `key => value` will be added as a
-     * query parameter `filter[key]=value`.
-     */
-    filter: {
-      type: Object,
-      required: false,
-      default: () => ({})
-    },
-    /**
-     * Search query
-     */
-    query: {
-      type: String,
-      required: false,
-      default: ""
-    },
-    /**
-     * Cache time in milliseconds.
-     */
-    cache: {
-      type: Number,
-      required: false,
-      default: undefined
-    }
-  },
-  emits: ['page-loaded'],
-  data() {
-    return {
-      ready: false
-    };
-  },
-  computed: {
-    storeState(): ResourcesState<ResourceObject> {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (this.$store.state as any)[this.moduleName]
-    },
-    location(): [number, number] | undefined {
-      return this.$store.state.me.location;
-    },
-    isEmpty() : boolean {
-      return this.resources.length === 0;
-    },
-    resources() : ResourceObject[] {
-      const resources = []
-      const state = this.storeState;
-      if (state.currentPage !== null) {
-        for (let i = 0; i <= state.currentPage; i++) {
-          const page = this.$store.getters[this.moduleName + '/page'](i)
-          if (page) {
-            resources.push(...page)
-          }
-        }
+import GroupCard from "../components/GroupCard.vue";
+import { ResourceObject } from "../store/model";
+import { ResourcesState } from "../store/resources"
+import { useStore } from "vuex";
+
+const props = withDefaults(defineProps<{
+  /**
+   * The group code
+   */
+  code: string,
+  /**
+   * The item Vue Component Name
+   */
+  card?: string | null,
+  /**
+   * The name of the property that should be send 
+   * to the item Vue components.
+   */
+  propName?: string,
+  /**
+   * The name of the vuex resources module.
+   */
+  moduleName: string,
+  /**
+   * The include parameter string when fetching resources.
+   */
+  include?: string,
+  /**
+   * The sort parameter string when fetching resources.
+   */
+  sort?: string,
+  /**
+   * Filter object. Each pair `key => value` will be added as a
+   * query parameter `filter[key]=value`.
+   */
+  filter?: Record<string, string | number>,
+  /**
+   * Search query
+   */
+  query?: string,
+  /**
+   * Cache time in milliseconds.
+   */
+  cache?: number | undefined
+}>(), {
+  card: null,
+  propName: "",
+  include: "",
+  sort: "",
+  filter: () => ({}),
+  query: "",
+  cache: undefined
+});
+
+const emit = defineEmits<{
+  (e: 'page-loaded', page: number): void
+}>()
+
+// Register components for dynamic usage
+const components: Record<string, Component> = {
+  NeedCard,
+  OfferCard,
+  GroupCard
+}
+
+const store = useStore()
+const ready = ref(false)
+
+const location = computed(() => store.state.me.location)
+const state = computed(() => store.state[props.moduleName] as ResourcesState<ResourceObject>)
+const resources = computed(() => {
+  const resources = []
+  if (state.value.currentPage !== null) {
+    for (let i = 0; i <= state.value.currentPage; i++) {
+      const page = store.getters[`${props.moduleName}/page`](i)
+      if (page) {
+        resources.push(...page)
       }
-      
-      return resources
-    },
-    /**
-     * Return true if still don't have any content and we're waiting for data do be fetched.
-     * Return false if we already have some data, even if is from cache and being revalidated.
-     */
-    isLoading() : boolean {
-      const state = this.storeState
-      return (!this.ready || state.currentPage === null || state.currentPage === 0 && state.next === undefined && this.isEmpty)
-    }
-  },
-  // Note that even if this is marked async, Vue does not wait for the
-  // promise to be resolved to continue the rendering. It is done just
-  // to be able to fetch resources after locate.
-  created: async function() {
-    this.fetchResources(this.query)
-    // Set the current page to 0 etc in fetchResources before enabling scroll load.
-    this.ready = true
-    // Refresh results if search query change.
-    this.$watch(() => this.query, (newQuery: string) => this.fetchResources(newQuery))
-    // Refresh results if code changes.
-    this.$watch(() => this.code, () => this.fetchResources(this.query))
-  },
-  methods: {
-    /**
-     * Load groups ordered by location, if available. Optionally filter them by a search
-     */
-    async fetchResources(search?: string) {
-      await this.$store.dispatch(this.moduleName + "/loadList", {
-        location: this.location,
-        search,
-        include: this.include,
-        group: this.code,
-        filter: this.filter,
-        sort: this.sort,
-        cache: this.cache
-      });
-      this.$emit("page-loaded", 0);
-    },
-    /**
-     * Implementation of the QInfiniteScroll load callback.
-     */
-    async loadNext(index: number, done: (stop?: boolean) => void) {
-      if (this.$store.getters[this.moduleName + "/hasNext"]) {
-        await this.$store.dispatch(this.moduleName + "/loadNext", {
-          cache: this.cache
-        });
-        this.$emit("page-loaded", this.storeState.currentPage);
-      }
-      // Stop loading if there is no next page. Note that we're not
-      // stopping the infinite scrolling if hasNext returns undefined.
-      done(this.$store.getters[this.moduleName + "/hasNext"] === false);
     }
   }
-});
+  return resources
+})
+const isEmpty = computed(() => resources.value.length === 0)
+const isLoading = computed(() => {
+  return (!ready.value || state.value.currentPage === null || (state.value.currentPage === 0 && state.value.next === undefined && isEmpty.value))
+})
+
+const fetchResources = async (search?: string) => {
+  await store.dispatch(props.moduleName + "/loadList", {
+    location: location.value,
+    search,
+    include: props.include,
+    group: props.code,
+    filter: props.filter,
+    sort: props.sort,
+    cache: props.cache
+  });
+  emit("page-loaded", 0);
+}
+
+const loadNext = async (index: number, done: (stop?: boolean) => void) => {
+  if (store.getters[props.moduleName + "/hasNext"]) {
+    await store.dispatch(props.moduleName + "/loadNext", {
+      cache: props.cache
+    });
+    emit("page-loaded", state.value.currentPage as number);
+  }
+  // Stop loading if there is no next page. Note that we're not
+  // stopping the infinite scrolling if hasNext returns undefined.
+  done(store.getters[props.moduleName + "/hasNext"] === false);
+}
+
+// Refetch resources when any prop changes
+watch(() => [props.query, props.code, props.filter, props.include, props.sort], () => {
+  fetchResources(props.query)
+})
+
+const init = async () => {
+  await fetchResources(props.query)
+  ready.value = true
+}
+
+init()
+
+defineExpose({
+  fetchResources,
+  loadNext
+})
 </script>
