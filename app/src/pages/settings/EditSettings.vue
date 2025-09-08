@@ -110,6 +110,15 @@
       </div>
       <div class="q-mt-lg">
         <div class="text-overline text-uppercase text-onsurface-m text-bold">
+          {{ $t('accountStatus') }}
+        </div>
+        <member-status-field 
+          v-if="member"
+          :member="member"
+        />
+      </div>
+      <div class="q-mt-lg">
+        <div class="text-overline text-uppercase text-onsurface-m text-bold">
           {{ $t('deleteAccount') }}
         </div>
         <div class="text-body2 text-onsurface-m q-mb-sm">
@@ -142,6 +151,7 @@ import NfcTagsList from '../../components/NfcTagsList.vue';
 import AccountHeader from 'src/components/AccountHeader.vue';
 import AccountSettingsFields from './AccountSettingsFields.vue';
 import DeleteMemberBtn from './DeleteMemberBtn.vue';
+import MemberStatusField from './MemberStatusField.vue';
 
 import langs, {LangName, normalizeLocale} from "../../i18n";
 import { AccountSettings, MailingFrequency, AccountTag, UserSettings, Member, Account, Group, Currency, CurrencySettings } from '../../store/model';

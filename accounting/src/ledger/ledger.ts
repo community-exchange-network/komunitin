@@ -66,18 +66,37 @@ export type LedgerCurrencyKeys = {
   credit: KeyPair, 
   admin: KeyPair,
   externalIssuer: KeyPair,
-  externalTrader: KeyPair
+  externalTrader: KeyPair,
 }
 
 /**
  * The public data generated when a currency is created.
  */
 export type LedgerCurrencyData = {
+  /**
+   * Issuer account
+   */
   issuerPublicKey: string
+  /**
+   * Credit account
+   */
   creditPublicKey: string
+  /**
+   * Admin account
+   */
   adminPublicKey: string
+  /**
+   * Hour issuer account
+   */
   externalIssuerPublicKey: string
+  /**
+   * External trader account
+   */
   externalTraderPublicKey: string
+  /**
+   * Balance pool for disabled accounts.
+   */
+  disabledAccountsPoolPublicKey?: string
 }
 
 /**
@@ -182,6 +201,10 @@ export interface Ledger {
  */
 export interface LedgerCurrency {
   /**
+   * Update the currency data.
+   */
+  setData(data: LedgerCurrencyData): void
+  /**
    * Get the local currency asset.
    */
   asset(): LedgerAsset
@@ -204,6 +227,22 @@ export interface LedgerCurrency {
    * @param publicKey 
    */
   getAccount(publicKey: string): Promise<LedgerAccount>
+
+  /**
+   * Enable a disabled account.
+   * 
+   * Specifically, creates the account in the ledger with the provided options.
+   */
+  enableAccount(options: {
+    balance: string,
+    credit: string,
+    maximumBalance?: string
+  }, keys: {
+    account: KeyPair,
+    issuer: KeyPair,
+    disabledAccountsPool: KeyPair,
+    sponsor: KeyPair
+  }) : Promise<void>
 
   /**
    * Create/update a trust line from this currency to the specified other currency.
@@ -329,6 +368,15 @@ export interface LedgerAccount {
     account?: KeyPair,
     issuer?: KeyPair
   }): Promise<string>
+
+  /**
+   * Disable an active account. It wont be able to send or receive payments until it is 
+   * enabled again.
+   * 
+   * The account is removed from the ledger, the ledger balance is moved to a central pool and
+   * the account balance is only saved in the local DB.
+   */
+  disable(keys: {admin: KeyPair, sponsor: KeyPair}) : Promise<void>
 
 }
 

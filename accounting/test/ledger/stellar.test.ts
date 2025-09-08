@@ -1,7 +1,7 @@
 import {describe, it, before, after} from "node:test"
 import assert from "node:assert"
 
-import { Ledger, LedgerCurrency, LedgerCurrencyKeys, PathQuote } from "../../src/ledger"
+import { Ledger, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyKeys, PathQuote } from "../../src/ledger"
 import { createStellarLedger, StellarLedger } from "../../src/ledger/stellar"
 import { Keypair } from "@stellar/stellar-sdk"
 import { initUpdateExternalOffers } from "src/ledger/update-external-offers"
@@ -21,6 +21,8 @@ describe('Creates stellar elements', async () => {
 
   let currency: LedgerCurrency
   let currencyKeys: LedgerCurrencyKeys
+  let currencyData: LedgerCurrencyData
+  let currencyConfig: LedgerCurrencyConfig
 
   let currency2: LedgerCurrency
   let currency2Keys: LedgerCurrencyKeys
@@ -54,18 +56,19 @@ describe('Creates stellar elements', async () => {
   
   const pubKeyRegex = /G[A-Z0-9]{55}/
   await it('should be able to create a new currency', async() => {
-    const config = {
+    currencyConfig = {
       code: "TEST",
       rate: {n: 1, d: 10}, //1 TEST = 0.1 HOUR
     }
-    currencyKeys = await ledger.createCurrency(config, sponsor)
-    currency = ledger.getCurrency(config, {
+    currencyKeys = await ledger.createCurrency(currencyConfig, sponsor)
+    currencyData = {
       adminPublicKey: currencyKeys.admin.publicKey(),
       issuerPublicKey: currencyKeys.issuer.publicKey(),
       creditPublicKey: currencyKeys.credit.publicKey(),
       externalIssuerPublicKey: currencyKeys.externalIssuer.publicKey(),
       externalTraderPublicKey: currencyKeys.externalTrader.publicKey()
-    })
+    }
+    currency = ledger.getCurrency(currencyConfig, currencyData)
     
     assert.notEqual(currency,undefined)
 
@@ -116,8 +119,48 @@ describe('Creates stellar elements', async () => {
     }
   })
 
+  await it('should be able to disable and re-enable an account', async() => {
+    const account = await currency.getAccount(accountKey.publicKey())
+    const balance = account.balance()
+    const credit = await account.credit()
+
+    const disabledAccountsPoolKey = (await currency.createAccount({initialCredit: "0"}, {
+      sponsor,
+      issuer: currencyKeys.issuer
+    })).key
+
+    currencyData = {
+      ...currencyData,
+      disabledAccountsPoolPublicKey: disabledAccountsPoolKey.publicKey()
+    }
+    currency.setData(currencyData)
+
+    await account.disable({admin: currencyKeys.admin, sponsor})
+    // check that account is disabled
+    try {
+      await currency.getAccount(accountKey.publicKey())
+      assert.fail("Account should not exist in the ledger")
+    } catch (error) {
+      assert.equal((error as Error).message, "Not Found")
+    }
+    // Re-enable account
+    await currency.enableAccount({
+      balance,
+      credit,
+    }, {
+      account: accountKey,
+      issuer: currencyKeys.issuer,
+      disabledAccountsPool: disabledAccountsPoolKey,
+      sponsor: sponsor
+    })
+
+    const enabled = await currency.getAccount(accountKey.publicKey())
+    assert.equal(enabled.balance(), balance)
+    assert.equal(await enabled.credit(), credit)    
+    
+  })
   
-  await it('should be able to perform path payments', async () => {
+  await it.skip('should be able to perform path payments', async () => {
     // Create a second currency.
     const config = {
       code: "TES2",

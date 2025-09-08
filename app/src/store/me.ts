@@ -112,8 +112,8 @@ export default {
     isLoggedIn: state =>
       state.myUserId !== undefined &&
       auth.isAuthorized(state.tokens),
-    isActive: (state, getters) =>
-      getters.myMember?.attributes.state === "active",
+    isComplete: (state, getters) =>
+      ["active", "disabled", "suspended"].includes(getters.myMember?.attributes.state),
     isSubscribed: state =>
       state.subscription !== undefined,
     myUser: (state, getters, rootState, rootGetters) => {
@@ -130,7 +130,7 @@ export default {
       return undefined;
     },
     myAccount: (state, getters) => {
-      return getters.isActive 
+      return getters.isComplete 
         ? getters.myMember?.account 
         : false
     },

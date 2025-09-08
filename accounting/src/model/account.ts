@@ -7,6 +7,7 @@ export { AccountRecord }
 
 export enum AccountStatus {
   Active = "active",
+  Disabled = "disabled",
   Deleted = "deleted",
 }
 
@@ -130,7 +131,7 @@ export type AccountSettings = {
 }
 
 // No input needed for creating an account (beyond implicit currency)!
-export type InputAccount = Partial<Pick<FullAccount, "id" | "code" | "creditLimit" | "maximumBalance" | "users">>
+export type InputAccount = Partial<Pick<FullAccount, "id" | "code" | "status" | "creditLimit" | "maximumBalance" | "users">>
 export type UpdateAccount = WithRequired<InputAccount, "id">
 
 export function accountToRecord(account: UpdateAccount): Prisma.AccountUpdateInput {

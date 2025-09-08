@@ -57,7 +57,6 @@ model Currency {
   // This object contains cursors for keeping track of the point
   // until this currency has been updated from the ledger.
   state Json?
-  //externalTradesStreamCursor String  @db.VarChar(255) @default("0")
 
   created DateTime @default(now())
   updated DateTime @updatedAt
@@ -66,11 +65,12 @@ model Currency {
   encryptionKeyId String @unique @db.VarChar(255)
 
   // Currency keys
-  issuerKeyId         String? @unique @db.VarChar(255)
-  creditKeyId         String? @unique @db.VarChar(255)
-  adminKeyId          String? @unique @db.VarChar(255)
-  externalIssuerKeyId String? @unique @db.VarChar(255)
-  externalTraderKeyId String? @unique @db.VarChar(255)
+  issuerKeyId               String? @unique @db.VarChar(255)
+  creditKeyId               String? @unique @db.VarChar(255)
+  adminKeyId                String? @unique @db.VarChar(255)
+  externalIssuerKeyId       String? @unique @db.VarChar(255)
+  externalTraderKeyId       String? @unique @db.VarChar(255)
+  disabledAccountsPoolKeyId String? @unique @db.VarChar(255)
 
   // Currency admin user.
   adminId String
@@ -80,12 +80,13 @@ model Currency {
   externalAccountId String?  @unique
   externalAccount   Account? @relation("externalAccount", fields: [externalAccountId], references: [id])
 
-  encryptionKey     EncryptedSecret? @relation("encryption", fields: [encryptionKeyId], references: [id])
-  issuerKey         EncryptedSecret? @relation("issuer", fields: [issuerKeyId], references: [id])
-  creditKey         EncryptedSecret? @relation("credit", fields: [creditKeyId], references: [id])
-  adminKey          EncryptedSecret? @relation("admin", fields: [adminKeyId], references: [id])
-  externalIssuerKey EncryptedSecret? @relation("externalIssuer", fields: [externalIssuerKeyId], references: [id])
-  externalTraderKey EncryptedSecret? @relation("externalTrader", fields: [externalTraderKeyId], references: [id])
+  encryptionKey           EncryptedSecret? @relation("encryption", fields: [encryptionKeyId], references: [id])
+  issuerKey               EncryptedSecret? @relation("issuer", fields: [issuerKeyId], references: [id])
+  creditKey               EncryptedSecret? @relation("credit", fields: [creditKeyId], references: [id])
+  adminKey                EncryptedSecret? @relation("admin", fields: [adminKeyId], references: [id])
+  externalIssuerKey       EncryptedSecret? @relation("externalIssuer", fields: [externalIssuerKeyId], references: [id])
+  externalTraderKey       EncryptedSecret? @relation("externalTrader", fields: [externalTraderKeyId], references: [id])
+  disabledAccountsPoolKey EncryptedSecret? @relation("disabledAccountsPool", fields: [disabledAccountsPoolKeyId], references: [id])
 
   accounts Account[] @relation()
 
@@ -141,12 +142,12 @@ model Account {
 
   externalAccount Currency? @relation("externalAccount")
 
-  tags              AccountTag[]        @relation()
+  tags AccountTag[] @relation()
 
   // Each CreditCommonsNode has a "vostro" Account
   CreditCommonsNode CreditCommonsNode[]
 
-  @@unique([id, tenantId]) 
+  @@unique([id, tenantId])
 }
 
 model AccountTag {
@@ -211,13 +212,14 @@ model EncryptedSecret {
   accessed  DateTime @default(now())
 
   // These are required by prisma, but we don't use them
-  account                Account?  @relation
-  encryptionCurrency     Currency? @relation("encryption")
-  issuerCurrency         Currency? @relation("issuer")
-  creditCurrency         Currency? @relation("credit")
-  adminCurrency          Currency? @relation("admin")
-  externalIssuerCurrency Currency? @relation("externalIssuer")
-  externalTraderCurrency Currency? @relation("externalTrader")
+  account                 Account?  @relation
+  encryptionCurrency      Currency? @relation("encryption")
+  issuerCurrency          Currency? @relation("issuer")
+  creditCurrency          Currency? @relation("credit")
+  adminCurrency           Currency? @relation("admin")
+  externalIssuerCurrency  Currency? @relation("externalIssuer")
+  externalTraderCurrency  Currency? @relation("externalTrader")
+  disabledAccountsPoolKey Currency? @relation("disabledAccountsPool")
 }
 
 model Trustline {
@@ -290,11 +292,11 @@ model Value {
 }
 
 model CreditCommonsNode {
-  tenantId      String @default(dbgenerated("(current_setting('app.current_tenant_id'))::text")) @db.VarChar(31)
-  peerNodePath    String @db.VarChar(255)
-  ourNodePath String @db.VarChar(255)
-  lastHash      String @db.VarChar(255)
-  url           String @db.VarChar(255)
+  tenantId     String @default(dbgenerated("(current_setting('app.current_tenant_id'))::text")) @db.VarChar(31)
+  peerNodePath String @db.VarChar(255)
+  ourNodePath  String @db.VarChar(255)
+  lastHash     String @db.VarChar(255)
+  url          String @db.VarChar(255)
 
   // Vostro account acts as a proxy representing this Credit Commons Node on our ledger
   vostroId String
@@ -309,19 +311,18 @@ model Migration {
   // Migration id
   id       String @id @default(uuid())
   // Migration name
-  name String @db.VarChar(255)
+  name     String @db.VarChar(255)
   // Migration currency code
-  code String @db.VarChar(255)
+  code     String @db.VarChar(255)
   // Migration status: new, started, completed
-  status String @default("new") @db.VarChar(31)
+  status   String @default("new") @db.VarChar(31)
   // Migration kind: "intregralces-accounting" is the only kind for now.
-  kind String @db.VarChar(31)
+  kind     String @db.VarChar(31)
   // Migration data, depending on the kind.
-  data Json?
+  data     Json?
   // Migration log, array of LogEntry objects.
-  log Json?
+  log      Json?
 
   created DateTime @default(now())
   updated DateTime @updatedAt
-
 }

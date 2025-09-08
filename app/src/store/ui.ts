@@ -20,8 +20,8 @@ export default {
   }),
   getters: {
     drawerExists: (state, getters, rootState, rootGetters) =>
-      // Show menu only for logged in and active users.
-      rootGetters["isActive"]
+      // Don't show the drawer for draft/pending users.
+      rootGetters.isComplete
   },
   mutations: {
     drawerPersistent: (state, value: boolean) =>

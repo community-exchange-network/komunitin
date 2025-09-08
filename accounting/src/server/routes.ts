@@ -86,7 +86,7 @@ export function getRoutes(controller: SharedController) {
     currencyCollectionHandler(controller, async (currencyController, ctx, params) => {
       return await currencyController.accounts.getAccounts(ctx, params)
     }, AccountSerializer, {
-      filter: ["id", "code", "tag"],
+      filter: ["id", "code", "tag", "status"],
       sort: ["code", "balance", "creditLimit", "maximumBalance", "created", "updated"],
       include: ["currency", "settings"]
     })
