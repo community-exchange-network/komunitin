@@ -443,8 +443,12 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         pageSize,
       })
       const loadedMembers = store.getters['members/currentList']
+      // Build a lookup map from account ID to member for efficient access
+      const memberByAccountId = new Map(
+        loadedMembers.map((m: Member) => [m.relationships.account.data.id, m])
+      );
       members.value = loadedAccounts.map((account: Account) => {
-        return loadedMembers.find((m: Member) => m.relationships.account.data.id === account.id)
+        return memberByAccountId.get(account.id);
       }).filter(Boolean)
 
     }
