@@ -108,8 +108,8 @@ const groups = ref<Group[]>([])
 const fetchCurrencies = async () => {
   const token = store.getters.accessToken
   let url = `${sourceUrl.value}/ces/api/social/groups`
-    do {
-      const response = await fetch(url, {
+  do {
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
