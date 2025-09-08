@@ -14,10 +14,11 @@
       >
         <q-btn
           id="request-payment"
+          :disable="isDisabled"
           class="full-width"
           fab
           icon="arrow_downward"
-          color="primary"
+          :color="color"
           :label="$t('receive')"
           :to="`/groups/${myMember.group.attributes.code}/members/${myMember.attributes.code}/transactions/receive`"
         />
@@ -28,10 +29,11 @@
       >
         <q-btn
           id="make-payment"
+          :disable="isDisabled"
           class="full-width"
           fab
           icon="arrow_upward"
-          color="primary"
+          :color="color"
           :label="$t('send')"
           :to="`/groups/${myMember.group.attributes.code}/members/${myMember.attributes.code}/transactions/send`"
         />
@@ -42,10 +44,11 @@
       >
         <q-btn
           id="make-transfer"
+          :disable="isDisabled"
           class="full-width"
           fab
           icon="arrow_forward"
-          color="primary"
+          :color="color"
           :label="$t('move')"
           :to="`/groups/${myMember.group.attributes.code}/members/${myMember.attributes.code}/transactions/transfer`"
         />
@@ -75,7 +78,11 @@ const showRequestPayment = computed(
 const showTransfer = computed(
   () => store.getters.isAdmin
 )
+const isDisabled = computed(
+  () => myMember.value?.attributes.state !== 'active'
+)
 
+const color = computed(() => isDisabled.value ? 'grey' : 'primary')
 </script>
 <style lang="scss">
 .btn-col {
