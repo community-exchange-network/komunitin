@@ -73,6 +73,7 @@
         :loading="loading"
         :fullscreen="isFullscreen"
         flat
+        :binary-state-sort="true"
         @request="load"
         @row-click="(_, row) => memberClick(row)"
       >
@@ -343,7 +344,7 @@ type Pagination = {
   descending: boolean
   page: number
   rowsPerPage: number
-  rowsNumber: number
+  rowsNumber?: number
 }
 
 const pagination = ref({
@@ -441,7 +442,11 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         },
         pageSize,
       })
-      members.value = store.getters['members/currentList']
+      const loadedMembers = store.getters['members/currentList']
+      members.value = loadedAccounts.map((account: Account) => {
+        return loadedMembers.find((m: Member) => m.relationships.account.data.id === account.id)
+      }).filter(Boolean)
+
     }
     // Update the pagination object
     pagination.value = {
