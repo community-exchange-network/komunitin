@@ -324,7 +324,7 @@ export class StellarAccount implements LedgerAccount {
   }
 
   /**
-   * Disable an active account. It wont be able to send or receive paymenbts until it is 
+   * Disable an active account. It wont be able to send or receive payments until it is 
    * enabled again.
    * 
    * The account is removed from the ledger, the ledger balance is moved to a central pool and

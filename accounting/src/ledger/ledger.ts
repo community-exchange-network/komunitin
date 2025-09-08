@@ -86,7 +86,7 @@ export type LedgerCurrencyData = {
    */
   adminPublicKey: string
   /**
-   * Hour issuer accout
+   * Hour issuer account
    */
   externalIssuerPublicKey: string
   /**
@@ -370,7 +370,7 @@ export interface LedgerAccount {
   }): Promise<string>
 
   /**
-   * Disable an active account. It wont be able to send or receive paymenbts until it is 
+   * Disable an active account. It wont be able to send or receive payments until it is 
    * enabled again.
    * 
    * The account is removed from the ledger, the ledger balance is moved to a central pool and
