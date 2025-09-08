@@ -2,7 +2,7 @@
   <div v-if="!isLoading">
     <page-header 
       :title="member.attributes.name"
-      :back="isActive ? `/groups/${code}/members` : ''"
+      :back="isComplete ? `/groups/${code}/members` : ''"
     >
       <template #buttons>
         <contact-button
@@ -39,7 +39,7 @@
           to="/settings"
         />
         <q-btn
-          v-if="isMe && !isActive"
+          v-if="isMe && !isComplete"
           icon="logout"
           flat
           round
@@ -139,16 +139,16 @@ const props = defineProps<{
 const store = useStore()
 
 const myMember = computed(() => store.getters.myMember)
-const isActive = computed(() => store.getters.isActive)
+const isComplete = computed(() => store.getters.isComplete)
 
 const fetched = ref(false)
-const isLoading = computed(() => !(fetched.value || member.value && member.value.contacts !== null && (!isActive.value || member.value.account !== null)))
+const isLoading = computed(() => !(fetched.value || member.value && member.value.contacts !== null && (!isComplete.value || member.value.account !== null)))
 
 const fetchData = async (memberCode: string) => {
   await store.dispatch("members/load", {
     id: memberCode,
     group: props.code,
-    include: "contacts,offers,needs" + (isActive.value ? ",account" : "")
+    include: "contacts,offers,needs" + (isComplete.value ? ",account" : "")
   });
   fetched.value = true;
 }

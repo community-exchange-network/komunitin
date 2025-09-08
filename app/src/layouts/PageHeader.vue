@@ -99,7 +99,7 @@
         <!-- slot for right buttons -->
         <slot name="buttons" >
           <q-btn
-            v-if="!isActive"
+            v-if="!isComplete"
             icon="logout"
             flat
             round
@@ -216,7 +216,7 @@ const goUp = () => {
   }
 }
 
-const isActive = computed(() => store.getters.isActive)
+const isComplete = computed(() => store.getters.isComplete)
 const logout = async () => {
   await store.dispatch("logout")
   await router.push("/")
