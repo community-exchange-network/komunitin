@@ -1,11 +1,11 @@
 <template>
   <q-btn
-    @click="confirm = true"
     :icon="props.icon"
     :color="props.btnColor ?? props.color"
     :round="props.round"
     :label="hasButtonLabel ? props.label : undefined"
     :title="props.label"
+    @click="confirm = true"
   >
     <q-dialog v-model="confirm">
       <q-card class="q-pa-md">
