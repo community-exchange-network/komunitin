@@ -14,23 +14,29 @@ export default boot(({ router, store }) => {
       }
       // User is logged in.
       if (to.path == "/" || to.path.startsWith("/login")) {
+        
         if (to.query.redirect) {
           return to.query.redirect as string;
-        } else if (store.getters.isActive) {
-          // Redirect to member's dashboard. But since dashboard is still not developed, redirect to needs page.
-          return `/groups/${store.getters.myMember.group.attributes.code}/needs`;
-        } else {
-          // Redirect inactive users to their own profile page.
-          const myMember = store.getters.myMember;
-          if (myMember) {
-            return `/groups/${myMember.group.attributes.code}/members/${myMember.attributes.code}`
-          } else {
-            // This is the case for users who have requested a new group and are pending acceptance.
-            return "/groups";
-          }
+        }
+        const myMember = store.getters.myMember;
+        const state = myMember?.attributes.state;
+        const groupCode = myMember?.group.attributes.code;
+        
+        if (state === "active") {
+          // Redirect active members to member's feed. But since feed is still not developed, redirect to needs page.
+          return `/groups/${groupCode}/needs`;
+        } else if (state === "draft") {
+          // Redirect "draft" members to signup page.
+          return `/groups/${groupCode}/signup-member`;
+        } else if (["pending", "disabled", "suspended"].includes(state)) {
+          // Redirect not enabled users to their own profile page.
+          return `/groups/${groupCode}/members/${myMember.attributes.code}`
+        } else if (state === undefined) {
+          // This is the case for users who have requested a new group and are pending acceptance.
+          return "/groups";
         }
       }
-      // Block inactive users to all but settings and profile pages.
+      
       return true
     } catch {
       // User is not logged in. If user is trying to access a private node, bring them to login page
