@@ -164,6 +164,16 @@
             />
           </q-td>
         </template>
+        <template #body-cell-state="scope">
+          <q-td 
+            :props="scope"
+          >
+            <member-status-chip 
+              :status="scope.row.attributes.state" 
+              size="sm"
+            />
+          </q-td>
+        </template>
         <template #body-cell-actions="scope">
           <q-td 
             :props="scope"
@@ -198,6 +208,7 @@ import PageHeader from 'src/layouts/PageHeader.vue';
 import Avatar from 'src/components/Avatar.vue';
 import MemberHeader from 'src/components/MemberHeader.vue';
 import DeleteMemberBtn from 'src/pages/settings/DeleteMemberBtn.vue';
+import MemberStatusChip from '../../components/MemberStatusChip.vue';
 import { Account, AccountSettings, CurrencySettings, Group, Member } from 'src/store/model';
 import { LoadListPayload } from 'src/store/resources';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -387,7 +398,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         await store.dispatch('members/loadList', {
           group,
           filter: {
-            state: ["active", "suspended"]
+            state: ["active", "disabled", "suspended"]
           },
           sort,
           search: scope.filter ? scope.filter : undefined,
@@ -419,6 +430,9 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         await store.dispatch('accounts/loadList', {
           group,
           sort,
+          filter: {
+            status: ["active", "disabled"]
+          },
           include: 'settings',
           pageSize
         } as LoadListPayload)
@@ -437,7 +451,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         group: props.code,
         filter: {
           account: loadedAccounts.map((account: Account) => account.id),
-          state: ["active", "suspended"]
+          state: ["active", "disabled", "suspended"]
         },
         pageSize,
       })

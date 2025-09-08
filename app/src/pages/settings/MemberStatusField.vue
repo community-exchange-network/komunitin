@@ -4,26 +4,14 @@
       {{ t('accountStatusText') }}  
     </div>
     <div>
-      <q-input
-        :model-value="statusLabel"
-        outlined
+      <q-field
+        :model-value="currentStatus"
         :label="t('accountStatus')"
+        outlined
         readonly        
       >
-        <template #prepend>
-          <q-icon
-            v-if="isActive"
-            name="visibility"
-            color="primary"
-          />
-          <q-icon
-            v-if="isDisabled"
-            name="visibility_off"
-            color="icon-dark"
-          />
-
-        </template>
-      </q-input>
+        <member-status-chip :status="currentStatus" />
+      </q-field>
     </div>
     <div class="row justify-end">
       <confirm-btn
@@ -32,8 +20,8 @@
         color="icon-dark"
         icon="visibility_off"
         outline
-        @confirm="disableAccount"
         :loading="disableAccountLoading"
+        @confirm="disableAccount"
       >
         {{ t('disableAccountConfirmText') }}
       </confirm-btn>
@@ -43,8 +31,8 @@
         color="primary"
         icon="visibility"
         outline
-        @confirm="enableAccount"
         :loading="enableAccountLoading"
+        @confirm="enableAccount"
       >
         {{ t('enableAccountConfirmText') }}
       </confirm-btn>
@@ -54,30 +42,21 @@
 <script lang="ts" setup>
 
 import ConfirmBtn from '../../components/ConfirmBtn.vue';
+import MemberStatusChip from '../../components/MemberStatusChip.vue';
 
 import { computed, Ref, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
-import { Account, Group, Member } from '../../store/model';
+import { Account, Currency, Group, Member } from '../../store/model';
 
 const props = defineProps<{
-  member: Member & { account: Account, group: Group }
+  member: Member & { account: Account, group: Group & { currency: Currency }}
 }>();
 
-const isActive = computed(() => props.member.attributes.state === 'active');
-const isDisabled = computed(() => props.member.attributes.state === 'disabled');
-
-const statusLabel = computed(() => {
-  switch (props.member.attributes.state) {
-    case 'active':
-      return t('active');
-    case 'disabled':
-      return t('disabled');
-    default:
-      return props.member.attributes.state;
-  }
-})
+const currentStatus = ref(props.member.attributes.state)
+const isActive = computed(() => currentStatus.value === 'active');
+const isDisabled = computed(() => currentStatus.value === 'disabled');
 
 const store = useStore()
 const q = useQuasar()
@@ -87,6 +66,7 @@ const setMemberStatus = async (status: "active" | "disabled", loadingRef: Ref<bo
     loadingRef.value = true
     await store.dispatch('accounts/update', {
       id: props.member.account.id,
+      group: props.member.group.currency.attributes.code,
       resource: {
         type: "accounts",
         attributes: {
@@ -104,8 +84,9 @@ const setMemberStatus = async (status: "active" | "disabled", loadingRef: Ref<bo
         }
       }
     })
+    currentStatus.value = status
     q.notify({
-      message: t('accountStatusUpdated', { status: statusLabel.value }),
+      message: t('accountStatusUpdated'),
       color: "positive"
     })
   } finally {
