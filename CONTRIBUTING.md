@@ -36,6 +36,23 @@ To contribute code, please follow these steps:
 
 5.  Submit a pull request with your changes to the `master` branch.
 
+## Contributing Translations
+
+Language files are located in several places in the repository, specifically:
+
+1. `/app/src/i18n/[LANGUAGE_CODE]/index.json`: Strings in the app facing regular users.
+2. `/app/src/i18n/[LANGUAGE_CODE]/admin.json`: Strings in the admin interface.
+3. `/app/src-pwa/i18n/[LANGUAGE_CODE].json`: Strings for push messages.
+4. `/notifications/i18n/messages/[LANGUAGE_CODE].json`: Strings for email notifications.
+
+In order to add or change translations in an existing language, just modify the relevant files. 
+
+To add a new language, additionally to adding the files and folders:
+1. Add the new language entry to the langs record in `/app/src/i18n/index.ts`.
+2. Import the new language and add it to the languages array in `/app/src-pwa/i18n/index.ts`.
+
+Once you have made your changes, please follow the steps for contributing code above.
+
 ## Community Note
 
 Komunitin is a community-maintained project, and there is no company behind it. Please understand that it may take us some time to respond to your inquiries or review your contributions.
