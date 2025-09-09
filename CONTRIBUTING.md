@@ -45,7 +45,7 @@ Language files are located in several places in the repository, specifically:
 3. `/app/src-pwa/i18n/[LANGUAGE_CODE].json`: Strings for push messages.
 4. `/notifications/i18n/messages/[LANGUAGE_CODE].json`: Strings for email notifications.
 
-In order to add or change translations in an existing language, just modify the relevant files. 
+In order to add or change translations in an existing language, just modify the relevant files.
 
 To add a new language, additionally to adding the files and folders:
 1. Add the new language entry to the langs record in `/app/src/i18n/index.ts`.
