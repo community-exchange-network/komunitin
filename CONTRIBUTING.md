@@ -47,7 +47,7 @@ Language files are located in several places in the repository, specifically:
 
 In order to add or change translations in an existing language, just modify the relevant files.
 
-To add a new language, additionally to adding the files and folders:
+To add a new language, in addition to adding the files and folders:
 1. Add the new language entry to the langs record in `/app/src/i18n/index.ts`.
 2. Import the new language and add it to the languages array in `/app/src-pwa/i18n/index.ts`.
 
