@@ -210,6 +210,27 @@ describe('Transfer endpoints', async () => {
 
   })
 
+  await it('filter by date', async () => {
+    // assuming previous transfers were created in quick succession, we can use their created dates to filter
+    const allResponse = await t.api.get('/TEST/transfers?sort=updated', t.user1)
+    const allTransfers = allResponse.body.data
+    assert(allTransfers.length == 8)
+    const fromDate = allTransfers[2].attributes.updated
+    const toDate = allTransfers[5].attributes.updated
+    
+    const response = await t.api.get(`/TEST/transfers?filter[from]=${fromDate}&filter[to]=${toDate}&sort=updated`, t.user1)
+    const transfers = response.body.data
+    assert.equal(transfers.length, 4)
+    assert.equal(transfers[0].id, allTransfers[2].id)
+    assert.equal(transfers[3].id, allTransfers[5].id)
+  })
+
+  await it('filter by account', async () => {
+    const response1 = await t.api.get(`/TEST/transfers?filter[account]=${t.account2.id}`, t.user1)
+    assert.equal(response1.body.data.length, 7)
+  })
+
+
   await it('admin can see all transfers', async () => {
     const response = await t.api.get('/TEST/transfers', t.admin)
     assert.equal(response.body.data.length, 8)

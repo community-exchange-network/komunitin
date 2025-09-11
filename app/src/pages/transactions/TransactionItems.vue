@@ -7,6 +7,7 @@
     include="payer,payee,payee.currency"
     sort="-updated"
     :filter="filter"
+    :query="query"
     @page-loaded="fetchMembers"
   >
     <q-list
@@ -58,6 +59,18 @@ const props = defineProps<{
    * The member whose transactions are being displayed (if bothAccounts is not true).
    */
   member?: { account: Account & { currency: Currency } }
+  /**
+   * The search query to filter transactions.
+   */
+  query?: string,
+  /**
+   * If provided, only transactions updated on or after this date are shown.
+   */
+  from?: Date | null,
+  /**
+   * If provided, only transactions updated before this date are shown.
+   */
+  to?: Date | null
 }>()
 
 const resourceCards = ref<typeof ResourceCards>()
@@ -65,7 +78,13 @@ const resourceCards = ref<typeof ResourceCards>()
 const store = useStore()
 
 const account = computed(() => props.member?.account);
-const filter = computed(() => account.value ? { account: account.value.id } : undefined)
+const filter = computed(() => {
+  return {
+    ...(account.value ? { account: account.value.id } : {}),
+    ...(props.from ? { "from": props.from.toISOString() } : {}),
+    ...(props.to ? { "to": props.to.toISOString() } : {}),
+  }
+})
 
 const transferLoaded = ref<Record<string, boolean>>({})
 

@@ -191,6 +191,7 @@ const showBalance = computed(() => props.balance && myAccount.value && offset.va
 const clearSearchText = () => {
   searchText.value = ""
   emit('search-input', "")
+  onSearch()
 }
 
 const scrollHandler = (details: { position: { top: number; }; }) => {

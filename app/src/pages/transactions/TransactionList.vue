@@ -3,19 +3,51 @@
     <page-header
       :title="$t('transactions')" 
       search 
-      balance
-      @search="search" 
-    />
+      :balance="props.headerBalance"
+      @search="query = $event" 
+    >
+      <template #buttons>
+        <q-btn
+          flat
+          round
+          :icon="filterDrawer ? 'filter_list_off' : 'filter_list'"
+          :title="filterDrawer ? $t('hideFilters') : $t('showFilters')"
+          @click="filterDrawer = !filterDrawer"
+        />
+      </template>
+    </page-header>
     <q-page-container>
       <q-page>
         <transaction-items
-          ref="transactionItems"
           :code="props.code"
-          :member="myMember" 
+          :member="myMember"
+          :from="startDate"
+          :to="toDate"
+          :query="query"
+          :both-accounts="props.bothAccounts"
         />
         <create-transaction-btn />
       </q-page>
     </q-page-container>
+    <q-drawer 
+      v-model="filterDrawer"
+      side="right" 
+      bordered
+      show-if-above
+    >
+      <div class="q-pa-md column q-gutter-md">
+        <div class="text-h6 text-onsurface-m">{{ $t("filters") }}</div>
+        <date-field
+          v-model="startDate"
+          :label="$t('startDate')"
+        />
+        <date-field
+          v-model="endDate"
+          :label="$t('endDate')"
+        />
+      </div>
+      <q-separator />
+    </q-drawer>
   </div>
 </template>
 <script setup lang="ts">
@@ -25,16 +57,30 @@ import { useStore } from "vuex";
 import PageHeader from "../../layouts/PageHeader.vue";
 import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue";
 import TransactionItems from "./TransactionItems.vue";
+import DateField from "../../components/DateField.vue";
 
 const props = defineProps<{
   code: string,
+  headerBalance?: boolean
+  bothAccounts?: boolean
+  onlyMine?: boolean
 }>()
 const store = useStore()
-const myMember = computed(() => store.getters.myMember);
-const transactionItems = ref<InstanceType<typeof TransactionItems>>()
+const myMember = computed(() => props.onlyMine ? store.getters.myMember : undefined);
 
-const search = (query: string) => {
-  transactionItems.value?.fetchResources(query);
-}
+const query = ref("");
+const filterDrawer = ref(false);
+const startDate = ref<Date | null>(null);
+const endDate = ref<Date | null>(null);
+
+// Adjust endDate to include the whole day
+const toDate = computed(() => {
+  if (endDate.value) {
+    const d = new Date(endDate.value);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }
+  return null;
+});
 
 </script>
