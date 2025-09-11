@@ -161,8 +161,13 @@ const loadNext = async (index: number, done: (stop?: boolean) => void) => {
 }
 
 // Refetch resources when any prop changes
-watch(() => [props.query, props.code, props.filter, props.include, props.sort], () => {
+watch([() => [props.query, props.code, props.include, props.sort]], () => {
   fetchResources(props.query)
+})
+watch(() => props.filter, (newFilter, oldFilter) => {
+  if (JSON.stringify(newFilter) !== JSON.stringify(oldFilter)) {
+    fetchResources(props.query)
+  }
 })
 
 const init = async () => {
