@@ -7,6 +7,7 @@
     include="payer,payee,payee.currency"
     sort="-updated"
     :filter="filter"
+    :query="query"
     @page-loaded="fetchMembers"
   >
     <q-list

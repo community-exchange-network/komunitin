@@ -132,7 +132,7 @@ const routes: RouteRecordRaw[] = [
         path: '/groups/:code/members/:memberCode/transactions',
         props: true,
         name: 'TransactionList',
-        component: () => import('../pages/transactions/TransactionList.vue')
+        component: () => import('../pages/transactions/Transactions.vue')
       },
       {
         path: '/groups/:code/members/:memberCode/transactions/send',

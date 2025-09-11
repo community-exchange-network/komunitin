@@ -3,6 +3,7 @@
     :code="props.code"
     header-balance
     :both-accounts="false"
+    only-mine
   />
 </template>
 <script setup lang="ts">
