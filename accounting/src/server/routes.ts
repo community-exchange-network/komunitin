@@ -164,7 +164,7 @@ export function getRoutes(controller: SharedController) {
     currencyCollectionHandler(controller, async (currencyController, ctx, params) => {
       return await currencyController.transfers.getTransfers(ctx, params)
     }, TransferSerializer, {
-      filter: ["payer", "payee", "account", "search"],
+      filter: ["payer", "payee", "account", "search", "from", "to"],
       sort: ["created", "updated"],
       include: ["payer", "payee", "currency"]
     })

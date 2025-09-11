@@ -415,7 +415,7 @@ export class TransferController  extends AbstractCurrencyController implements I
   public async getFullTransfers(ctx: Context, params: CollectionOptions): Promise<FullTransfer[]> {
     const user = await this.users().checkUser(ctx)
 
-    const {account, search, ...filters} = params.filters
+    const {account, from, to, search, ...filters} = params.filters
     const where = whereFilter(filters)
     // Special account filter.
     if (account !== undefined) {
@@ -423,6 +423,16 @@ export class TransferController  extends AbstractCurrencyController implements I
         { payer: { id: account } },
         { payee: { id: account } }
       ]
+    }
+    // Date range filter on updated field.
+    if (from || to) {
+      where.updated = {}
+      if (from && typeof from === "string") {
+        where.updated.gte = new Date(from)
+      }
+      if (to && typeof to === "string") {
+        where.updated.lt = new Date(to)
+      }
     }
     
     // Regular users can only see transfers where they are involved.
