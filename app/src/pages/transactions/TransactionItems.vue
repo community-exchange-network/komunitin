@@ -63,15 +63,13 @@ const props = defineProps<{
    */
   query?: string,
   /**
-   * The start date to filter transactions.
    * If provided, only transactions updated on or after this date are shown.
    */
-  startDate?: Date | null,
+  from?: Date | null,
   /**
-   * The end date to filter transactions.
-   * If provided, only transactions updated on or before this date are shown.
+   * If provided, only transactions updated before this date are shown.
    */
-  endDate?: Date | null
+  to?: Date | null
 }>()
 
 const resourceCards = ref<typeof ResourceCards>()
@@ -82,8 +80,8 @@ const account = computed(() => props.member?.account);
 const filter = computed(() => {
   return {
     ...(account.value ? { account: account.value.id } : {}),
-    ...(props.startDate ? { "from": props.startDate.toISOString() } : {}),
-    ...(props.endDate ? { "to": props.endDate.toISOString() } : {}),
+    ...(props.from ? { "from": props.from.toISOString() } : {}),
+    ...(props.to ? { "to": props.to.toISOString() } : {}),
   }
 })
 

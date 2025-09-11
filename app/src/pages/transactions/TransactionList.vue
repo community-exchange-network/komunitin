@@ -21,8 +21,8 @@
         <transaction-items
           :code="props.code"
           :member="myMember"
-          :start-date="startDate"
-          :end-date="endDate"
+          :from="startDate"
+          :to="toDate"
           :query="query"
         />
         <create-transaction-btn />
@@ -68,5 +68,15 @@ const query = ref("");
 const filterDrawer = ref(false);
 const startDate = ref<Date | null>(null);
 const endDate = ref<Date | null>(null);
+
+// Adjust endDate to include the whole day
+const toDate = computed(() => {
+  if (endDate.value) {
+    const d = new Date(endDate.value);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }
+  return null;
+});
 
 </script>
