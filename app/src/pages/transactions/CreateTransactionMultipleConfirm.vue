@@ -45,12 +45,13 @@ import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { notifyTransactionStateMultiple } from 'src/plugins/NotifyTransactionState';
 import { useRouter } from 'vue-router';
+import KError, { KErrorCode } from '../../KError';
 
 const props = defineProps<{
   code: string
   rows: TransferRow[],
-  payerAccount: ExtendedAccount,
-  payeeAccount: ExtendedAccount
+  payerAccount?: ExtendedAccount,
+  payeeAccount?: ExtendedAccount
 }>()
 
 const emit = defineEmits<{
@@ -68,6 +69,9 @@ watch(() => props.rows, () => {
   transfers.value = props.rows.map(row => {
     const payer = row.payer ?? props.payerAccount
     const payee = row.payee ?? props.payeeAccount
+    if (!payer || !payee) {
+      throw new KError(KErrorCode.ScriptError, "Payer or payee account not set")
+    }
     return {
       type: "transfers",
       attributes: {
