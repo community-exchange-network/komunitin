@@ -3,7 +3,7 @@
     <page-header
       :title="$t('transactions')" 
       search 
-      balance
+      :balance="props.headerBalance"
       @search="query = $event" 
     >
       <template #buttons>
@@ -24,6 +24,7 @@
           :from="startDate"
           :to="toDate"
           :query="query"
+          :both-accounts="props.bothAccounts"
         />
         <create-transaction-btn />
       </q-page>
@@ -60,9 +61,12 @@ import DateField from "../../components/DateField.vue";
 
 const props = defineProps<{
   code: string,
+  headerBalance?: boolean
+  bothAccounts?: boolean
+  onlyMine?: boolean
 }>()
 const store = useStore()
-const myMember = computed(() => store.getters.myMember);
+const myMember = computed(() => props.onlyMine ? store.getters.myMember : undefined);
 
 const query = ref("");
 const filterDrawer = ref(false);
