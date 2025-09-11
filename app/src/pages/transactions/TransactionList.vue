@@ -4,7 +4,7 @@
       :title="$t('transactions')" 
       search 
       balance
-      @search="search" 
+      @search="query = $event" 
     >
       <template #buttons>
         <q-btn
@@ -19,9 +19,11 @@
     <q-page-container>
       <q-page>
         <transaction-items
-          ref="transactionItems"
           :code="props.code"
-          :member="myMember" 
+          :member="myMember"
+          :start-date="startDate"
+          :end-date="endDate"
+          :query="query"
         />
         <create-transaction-btn />
       </q-page>
@@ -61,12 +63,8 @@ const props = defineProps<{
 }>()
 const store = useStore()
 const myMember = computed(() => store.getters.myMember);
-const transactionItems = ref<InstanceType<typeof TransactionItems>>()
 
-const search = (query: string) => {
-  transactionItems.value?.fetchResources(query);
-}
-
+const query = ref("");
 const filterDrawer = ref(false);
 const startDate = ref<Date | null>(null);
 const endDate = ref<Date | null>(null);

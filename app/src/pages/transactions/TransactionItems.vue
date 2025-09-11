@@ -58,6 +58,20 @@ const props = defineProps<{
    * The member whose transactions are being displayed (if bothAccounts is not true).
    */
   member?: { account: Account & { currency: Currency } }
+  /**
+   * The search query to filter transactions.
+   */
+  query?: string,
+  /**
+   * The start date to filter transactions.
+   * If provided, only transactions updated on or after this date are shown.
+   */
+  startDate?: Date | null,
+  /**
+   * The end date to filter transactions.
+   * If provided, only transactions updated on or before this date are shown.
+   */
+  endDate?: Date | null
 }>()
 
 const resourceCards = ref<typeof ResourceCards>()
@@ -65,7 +79,13 @@ const resourceCards = ref<typeof ResourceCards>()
 const store = useStore()
 
 const account = computed(() => props.member?.account);
-const filter = computed(() => account.value ? { account: account.value.id } : undefined)
+const filter = computed(() => {
+  return {
+    ...(account.value ? { account: account.value.id } : {}),
+    ...(props.startDate ? { "from": props.startDate.toISOString() } : {}),
+    ...(props.endDate ? { "to": props.endDate.toISOString() } : {}),
+  }
+})
 
 const transferLoaded = ref<Record<string, boolean>>({})
 
