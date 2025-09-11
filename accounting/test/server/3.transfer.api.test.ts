@@ -220,9 +220,9 @@ describe('Transfer endpoints', async () => {
     
     const response = await t.api.get(`/TEST/transfers?filter[from]=${fromDate}&filter[to]=${toDate}&sort=updated`, t.user1)
     const transfers = response.body.data
-    assert.equal(transfers.length, 3)
+    assert.equal(transfers.length, 4)
     assert.equal(transfers[0].id, allTransfers[2].id)
-    assert.equal(transfers[2].id, allTransfers[4].id)
+    assert.equal(transfers[3].id, allTransfers[5].id)
   })
 
   await it('filter by account', async () => {

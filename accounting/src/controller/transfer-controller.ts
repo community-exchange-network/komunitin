@@ -431,7 +431,7 @@ export class TransferController  extends AbstractCurrencyController implements I
         where.updated.gte = new Date(from)
       }
       if (to && typeof to === "string") {
-        where.updated.lt = new Date(to)
+        where.updated.lte = new Date(to)
       }
     }
     
