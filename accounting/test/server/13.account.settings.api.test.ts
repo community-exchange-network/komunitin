@@ -83,4 +83,37 @@ describe('Account settings', async () => {
     doesNotHaveBalance(payee2) // account1 balance is hidden
 
   })
+
+  it('admin can change all account settings', async () => {
+    const settings = {
+      allowPayments: true,
+      allowPaymentRequests: true,
+      allowSimplePayments: true,
+      allowSimplePaymentRequests: true,
+      allowQrPayments: true,
+      allowQrPaymentRequests: true,
+      allowMultiplePayments: true,
+      allowMultiplePaymentRequests: true,
+      allowTagPayments: true,
+      allowTagPaymentRequests: true,
+      acceptPaymentsAutomatically: true,
+      acceptPaymentsWhitelist: [],
+      allowExternalPayments: false,
+      allowExternalPaymentRequests: false,
+      acceptExternalPaymentsAutomatically: false,
+      hideBalance: false,
+      tags: []
+    }
+    const response = await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
+      data: {
+        attributes: settings
+      }
+    }, t.admin)
+    assert.equal(response.status, 200)
+    assert.deepEqual(response.body.data.attributes, settings)
+
+    const getResponse = await t.api.get(`/TEST/accounts/${t.account1.id}/settings`, t.admin)
+    assert.equal(getResponse.status, 200)
+    assert.deepEqual(getResponse.body.data.attributes, settings)
+  })
 })
