@@ -6,7 +6,7 @@ import { DataDocument, Dictionary, Linker, Paginator, Serializer } from "ts-japi
 import { input, Resource } from "./parse"
 import { config } from "src/config"
 import { badRequest } from "src/utils/error"
-
+import { format as formatcsv } from "@fast-csv/format"
 
 /**
  * Helper for general async route handlers
@@ -78,7 +78,7 @@ export function currencyResourceHandler<T extends Dictionary<any>>(controller: S
   }, status)
 }
 
-type CurrencyCollectionHandler<T> = (controller: CurrencyController, context: Context, params: CollectionOptions) => Promise<T|T[]>
+type CurrencyCollectionHandler<T> = (controller: CurrencyController, context: Context, params: CollectionOptions) => Promise<T[]>
 /**
  * Helper for route handlers that return a collection of resources within a currency.
  */
@@ -120,4 +120,60 @@ export function currencyInputHandlerMultiple<T extends Dictionary<any>, D extend
     const resource = await fn(currencyController, ctx, data)
     return serializer.serialize(resource)
   }, status)
+}
+
+/**
+ * Helper for route handlers that exports a collection of resources within a currency as CSV.
+ */
+export function currencyCollectionCsvHandler<T>(controller: SharedController, fn: CurrencyCollectionHandler<T>, paramOptions: CollectionParamsOptions, csvMapper: (item: T) => Record<string, string|number|boolean|null>, status = 200) {
+  return asyncHandler(async (req, res) => {
+    const ctx = context(req)
+    const currencyController = await controller.getCurrencyController(req.params.code)
+    const params = collectionParams(req, paramOptions)
+
+    const csvfields = Array.isArray(req.query.csvfields) 
+      ? req.query.csvfields as string[] 
+      : (typeof req.query.csvfields === "string" 
+        ? req.query.csvfields.split(",") 
+        : null
+      ) 
+    
+    // build filename
+    const route = req.path.split("/").pop() as string
+    const filters = Object.entries(params.filters).map(([key, value]) => `${key}-${value}`).join("_")
+    const base = route.endsWith(".csv") ? route.slice(0, -4) : route
+    const filename = `${base}${filters}.csv`
+
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.setHeader('Content-Type', 'text/csv')
+
+    // Create the CSV stream
+    const stream = formatcsv({headers: true})
+    stream.pipe(res)
+
+    // Fetch data in batches and write to the CSV stream
+    const BATCH_SIZE = 200
+    params.pagination = { size: BATCH_SIZE, cursor: 0}
+    let hasMore = true
+
+    while (hasMore) {
+      const data = await fn(currencyController, ctx, params)
+      data.forEach(item => {
+        const record = csvMapper(item)
+        if (csvfields) {
+          const filtered = Object.fromEntries(
+            csvfields.filter(field => field in record) // Discard invalid fields
+            .map(field => [field, record[field]])
+          )
+          stream.write(filtered)
+        } else {
+          stream.write(record)
+        }
+      })
+      hasMore = data.length === BATCH_SIZE
+      params.pagination.cursor += BATCH_SIZE
+    }
+    stream.end()
+  })
+
 }

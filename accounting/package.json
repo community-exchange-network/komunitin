@@ -15,6 +15,7 @@
 		"test": "pnpm test-unit && pnpm test-ledger && pnpm test-server"
 	},
 	"dependencies": {
+		"@fast-csv/format": "^5.0.5",
 		"@prisma/client": "^6.15.0",
 		"@stellar/stellar-sdk": "^11.3.0",
 		"big.js": "^6.2.2",

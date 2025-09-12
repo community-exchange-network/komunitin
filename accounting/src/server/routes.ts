@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { checkExact, oneOf } from 'express-validator';
-import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
+import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, Transfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
 import { InputTrustline, UpdateTrustline } from 'src/model/trustline';
 import { context } from 'src/utils/context';
 import { badRequest } from 'src/utils/error';
 import { SharedController } from '../controller';
 import { anyAuth, externalAuth, noAuth, Scope, userAuth } from './auth';
-import { asyncHandler, currencyCollectionHandler, currencyHandler, currencyInputHandler, currencyInputHandlerMultiple, currencyResourceHandler } from './handlers';
+import { asyncHandler, currencyCollectionCsvHandler, currencyCollectionHandler, currencyHandler, currencyInputHandler, currencyInputHandlerMultiple, currencyResourceHandler } from './handlers';
 import { input } from './parse';
 import { accountStatsParams, collectionParams, statsParams } from './request';
 import { AccountSerializer, AccountSettingsSerializer, CurrencySerializer, CurrencySettingsSerializer, StatsSerializer, TransferSerializer, TrustlineSerializer } from './serialize';
@@ -167,6 +167,33 @@ export function getRoutes(controller: SharedController) {
       filter: ["payer", "payee", "account", "search", "from", "to"],
       sort: ["created", "updated"],
       include: ["payer", "payee", "currency"]
+    })
+  )
+
+  router.get('/:code/transfers.csv', userAuth([Scope.Accounting, Scope.Superadmin]),
+    currencyCollectionCsvHandler(controller, async (currencyController, ctx, params) => {
+      return await currencyController.transfers.getTransfers(ctx, params)
+    }, {
+      filter: ["payer", "payee", "account", "search", "from", "to"],
+      sort: ["created", "updated"]
+    }, (transfer: Transfer) => {
+      const payer = transfer.externalPayer ? transfer.externalPayer.resource : transfer.payer
+      const payee = transfer.externalPayee ? transfer.externalPayee.resource : transfer.payee
+      return {
+        'id': transfer.id,
+        'created': transfer.created.toISOString(),
+        'updated': transfer.updated.toISOString(),
+        'state': transfer.state,
+        'amount': transfer.amount.toString(),
+        'description': transfer.meta.description || '',
+        'hash': transfer.hash || '',
+        'authorization': transfer.authorization?.type || '',
+        'payer.id': payer.id,
+        'payer.code': payer.code,
+        'payee.id': payee.id,
+        'payee.code': payee.code,
+        'user.id': transfer.user.id
+      }
     })
   )
 
