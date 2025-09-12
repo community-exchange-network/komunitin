@@ -78,8 +78,6 @@ export const AccountSettingsSerializer = new Serializer<AccountSettings>("accoun
     'allowQrPaymentRequests',
     'allowMultiplePayments',
     'allowMultiplePaymentRequests',
-    'allowPayments',
-    'allowPaymentRequests',
     'allowTagPayments',
     'allowTagPaymentRequests',
 
