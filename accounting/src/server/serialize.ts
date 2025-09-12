@@ -70,14 +70,27 @@ export const CurrencySerializer = new Serializer<Currency>("currencies", {
 export const AccountSettingsSerializer = new Serializer<AccountSettings>("account-settings", {
   version: null,
   projection: projection<AccountSettings>([
-    'acceptPaymentsAutomatically', 
-    'acceptPaymentsWhitelist', 
-    'acceptPaymentsAfter', 
-    'onPaymentCreditLimit',
     'allowPayments',
     'allowPaymentRequests',
+    'allowSimplePayments',
+    'allowSimplePaymentRequests',
+    'allowQrPayments',
+    'allowQrPaymentRequests',
+    'allowMultiplePayments',
+    'allowMultiplePaymentRequests',
     'allowTagPayments',
     'allowTagPaymentRequests',
+
+    'acceptPaymentsAutomatically', 
+    'acceptPaymentsAfter',
+    'acceptPaymentsWhitelist',
+    'onPaymentCreditLimit',
+
+    'allowExternalPayments',
+    'allowExternalPaymentRequests',
+    'acceptExternalPaymentsAutomatically',
+    'hideBalance',
+    
     'tags',
   ]),
 })
