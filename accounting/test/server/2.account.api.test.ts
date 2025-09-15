@@ -237,11 +237,4 @@ describe('Accounts endpoints', async () => {
     assert.deepEqual(users, ['2', '3'])
   })
 
-    
-
-
-
-  
-  
-
 })
