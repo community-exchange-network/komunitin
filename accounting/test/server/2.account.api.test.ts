@@ -191,6 +191,17 @@ describe('Accounts endpoints', async () => {
       data: {attributes: { creditLimit: 100000 }}
     }, user2, 403)
   })
+
+  it('admin can download CSV', async() => {
+    const response = await t.api.get(`/TEST/accounts.csv`, admin, 200, 'text/csv')
+    assert.equal(response.headers['content-disposition'], 'attachment; filename="accounts.csv"')
+    const lines = response.text.split('\n').filter(line => line.trim().length > 0).map(line => line.split(','))
+    assert.deepEqual(lines[0], ['id', 'created', 'updated', 'code', 'status', 'balance', 'creditLimit', 'maximumBalance', 'key', 'user.id'])
+    assert.equal(lines.length, 4) // header + 3 accounts
+    assert.equal(lines[1][3], 'TEST0001')
+    assert.equal(lines[2][3], 'TEST1000')
+    assert.equal(lines[3][3], 'TEST2000')
+  })
   
   it('user cannot delete other accounts', async () => {
     await t.api.delete(`/TEST/accounts/${account0.id}`, user2, 403)
@@ -225,6 +236,10 @@ describe('Accounts endpoints', async () => {
     const users = account3.relationships.users.data.map((u: {id: string}) => u.id).sort()
     assert.deepEqual(users, ['2', '3'])
   })
+
+    
+
+
 
   
   
