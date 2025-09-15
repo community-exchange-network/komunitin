@@ -19,7 +19,7 @@ export function norl(url: string) {
 
 export type AuthInfo = {user: string|null, scopes: Scope[], audience?: string, ccNode?: string, lastHash?: string}
 export function client(app: Express) {
-  const completeRequest = async (req: Request, auth?: AuthInfo, status: number = 200) => {
+  const completeRequest = async (req: Request, auth: AuthInfo | undefined, status: number, contentType: string) => {
     if (auth && typeof auth === "object") {
       const access = await token(auth.user, auth.scopes, auth.audience)
       req.set('Authorization', `Bearer ${access}`)
@@ -33,7 +33,7 @@ export function client(app: Express) {
 
     const response = (await req) as Response
     assert.equal(response.status, status, response.body.errors?.[0]?.detail ?? response.status)
-    assert(response.header['content-type'].startsWith("application/vnd.api+json"), "Incorrect content type")
+    assert(response.header['content-type'].startsWith(contentType), "Incorrect content type")
     return response
   }
 
@@ -41,26 +41,28 @@ export function client(app: Express) {
     return req.send(data).set('Content-Type', 'application/vnd.api+json')
   }
 
+  const API_CONTENT_TYPE = "application/vnd.api+json"
+
   return {
-    get: async (path: string, auth?: AuthInfo, status: number = 200) => {
+    get: async (path: string, auth?: AuthInfo, status: number = 200, contentType: string = API_CONTENT_TYPE) => {
       return await completeRequest(
         request(app).get(path), 
-        auth, status)
+        auth, status, contentType)
     },
-    post: async (path: string, data: any, auth?: AuthInfo, status: number = 201) => {
+    post: async (path: string, data: any, auth?: AuthInfo, status: number = 201, contentType: string = API_CONTENT_TYPE) => {
       return await completeRequest(
         sendData(request(app).post(path), data),
-        auth, status)
+        auth, status, contentType)
     },
-    patch: async (path: string, data: any, auth?: AuthInfo, status: number = 200) => {
+    patch: async (path: string, data: any, auth?: AuthInfo, status: number = 200, contentType: string = API_CONTENT_TYPE) => {
       return await completeRequest(
         sendData(request(app).patch(path), data),
-        auth, status)
+        auth, status, contentType)
     },
-    delete: async (path: string, auth?: AuthInfo, status: number = 204) => {
+    delete: async (path: string, auth?: AuthInfo, status: number = 204, contentType: string = API_CONTENT_TYPE) => {
       return await completeRequest(
         request(app).delete(path),
-        auth, status)
+        auth, status, contentType)
     }
   }
 }

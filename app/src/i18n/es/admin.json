@@ -103,5 +103,6 @@
   "noAccountRequests": "No hay solicitudes de cuenta pendientes.",
   "privacy": "Privacidad",
   "hideBalance": "Ocultar saldo",
-  "hideBalanceHint": "Oculta el saldo y los límites de la cuenta a otros usuarios."
+  "hideBalanceHint": "Oculta el saldo y los límites de la cuenta a otros usuarios.",
+  "downloadCSV": "Descargar CSV"
 }
