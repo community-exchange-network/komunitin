@@ -140,12 +140,13 @@ export function currencyCollectionCsvHandler<T>(controller: SharedController, fn
     
     // build filename
     const route = req.path.split("/").pop() as string
-    const filters = Object.entries(params.filters).map(([key, value]) => `${key}-${value}`).join("_")
     const base = route.endsWith(".csv") ? route.slice(0, -4) : route
-    const filename = `${base}${filters}.csv`
+    const filters = Object.entries(params.filters).map(([key, value]) => `${key}-${value}`).join("_")
+    const suffix = filters ? `_${filters}` : ""
+    const filename = `${base}${suffix}.csv`
 
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-    res.setHeader('Content-Type', 'text/csv')
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
 
     // Create the CSV stream
     const stream = formatcsv({headers: true})

@@ -34,7 +34,8 @@ export const setupApp = async (expressApp: express.Express) => {
   // Add CORS so this API can be called from any domain.
   app.use(cors({
     origin: true,
-    credentials: true
+    credentials: true,
+    exposedHeaders: ['Content-Disposition']
   }))
 
   // Express middlewares
