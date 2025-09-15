@@ -103,5 +103,6 @@
   "noAccountRequests": "Nessuna richiesta di account in sospeso.",
   "privacy": "Privacy",
   "hideBalance": "Nascondi Saldo",
-  "hideBalanceHint": "Nascondi il saldo e i limiti dell'account agli altri utenti."
+  "hideBalanceHint": "Nascondi il saldo e i limiti dell'account agli altri utenti.",
+  "downloadCSV": "Scarica CSV"
 }

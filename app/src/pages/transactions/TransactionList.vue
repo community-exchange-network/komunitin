@@ -40,13 +40,26 @@
         <date-field
           v-model="startDate"
           :label="$t('startDate')"
+          clearable
         />
         <date-field
           v-model="endDate"
           :label="$t('endDate')"
+          clearable
         />
       </div>
       <q-separator />
+      <div 
+        v-if="store.getters.isAdmin"
+        class="q-pa-md"
+      >
+        <q-btn
+          color="primary"
+          :label="$t('downloadCSV')"
+          flat
+          @click="download"
+        />
+      </div>
     </q-drawer>
   </div>
 </template>
@@ -58,6 +71,7 @@ import PageHeader from "../../layouts/PageHeader.vue";
 import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue";
 import TransactionItems from "./TransactionItems.vue";
 import DateField from "../../components/DateField.vue";
+import { useTransfersCsv } from "../../composables/downloadCsv";
 
 const props = defineProps<{
   code: string,
@@ -82,5 +96,11 @@ const toDate = computed(() => {
   }
   return null;
 });
+
+const {download} = useTransfersCsv({
+  code: props.code,
+  from: startDate,
+  to: toDate
+})
 
 </script>
