@@ -1,7 +1,7 @@
 <template>
   <div class="q-gutter-y-md">
     <div class="text-body2 text-onsurface-m">
-      {{ t('accountStatusText') }}  
+      {{ current.text.value }}
     </div>
     <div>
       <q-field
@@ -13,12 +13,23 @@
         <member-status-chip :status="currentStatus" />
       </q-field>
     </div>
-    <div class="row justify-end">
+    <div class="row justify-end q-gutter-md q-mt-none">
       <confirm-btn
-        v-if="isActive"
+        v-if="show.enable"
+        :label="t('enableAccount')"
+        :color="active.color.value"
+        :icon="active.icon.value"
+        outline
+        :loading="enableAccountLoading"
+        @confirm="enableAccount"
+      >
+        {{ t('enableAccountConfirmText') }}
+      </confirm-btn>
+      <confirm-btn
+        v-if="show.disable"
         :label="t('disableAccount')"
-        color="icon-dark"
-        icon="visibility_off"
+        :color="disabled.color.value"
+        :icon="disabled.icon.value"
         outline
         :loading="disableAccountLoading"
         @confirm="disableAccount"
@@ -26,15 +37,15 @@
         {{ t('disableAccountConfirmText') }}
       </confirm-btn>
       <confirm-btn
-        v-if="isDisabled"
-        :label="t('enableAccount')"
-        color="primary"
-        icon="visibility"
+        v-if="show.suspend"
+        :label="t('suspendAccount')"
+        :color="suspended.color.value"
+        :icon="suspended.icon.value"
         outline
-        :loading="enableAccountLoading"
-        @confirm="enableAccount"
+        :loading="suspendAccountLoading"
+        @confirm="suspendAccount"
       >
-        {{ t('enableAccountConfirmText') }}
+        {{ t('suspendAccountConfirmText') }}
       </confirm-btn>
     </div>
   </div>
@@ -49,19 +60,35 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
 import { Account, Currency, Group, Member } from '../../store/model';
+import { useAccountStatus } from '../../composables/accountStatus';
 
 const props = defineProps<{
   member: Member & { account: Account, group: Group & { currency: Currency }}
 }>();
 
-const currentStatus = ref(props.member.attributes.state)
-const isActive = computed(() => currentStatus.value === 'active');
-const isDisabled = computed(() => currentStatus.value === 'disabled');
-
 const store = useStore()
+const currentStatus = ref(props.member.attributes.state)
+
+const active = useAccountStatus('active')
+const disabled = useAccountStatus('disabled')
+const suspended = useAccountStatus('suspended')
+
+const current = useAccountStatus(() => currentStatus.value)
+
+const show = computed(() => {
+  const status = currentStatus.value
+  const isAdmin = store.getters.isAdmin
+  return {
+    enable: (status === 'disabled' || (status === 'suspended' && isAdmin)),
+    disable: (status === 'active' || (status === 'suspended' && isAdmin)),
+    suspend: (isAdmin && (status === 'active' || status === 'disabled'))
+  }
+})
+
+
 const q = useQuasar()
 
-const setMemberStatus = async (status: "active" | "disabled", loadingRef: Ref<boolean>) => {
+const setMemberStatus = async (status: "active" | "disabled" | "suspended", loadingRef: Ref<boolean>) => {
   try {
     loadingRef.value = true
     await store.dispatch('accounts/update', {
@@ -96,9 +123,12 @@ const setMemberStatus = async (status: "active" | "disabled", loadingRef: Ref<bo
 
 const disableAccountLoading = ref(false)
 const enableAccountLoading = ref(false)
+const suspendAccountLoading = ref(false)
 
 const disableAccount = () => setMemberStatus("disabled", disableAccountLoading)
 const enableAccount = () => setMemberStatus("active", enableAccountLoading)
+const suspendAccount = () => setMemberStatus("suspended", suspendAccountLoading)
 
 const { t } = useI18n();
+
 </script>

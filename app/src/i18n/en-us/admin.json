@@ -104,5 +104,7 @@
   "privacy": "Privacy",
   "hideBalance": "Hide Balance",
   "hideBalanceHint": "Hide the account balance and limits from other users.",
-  "downloadCSV": "Download CSV"
+  "downloadCSV": "Download CSV",
+  "suspendAccount": "Suspend Account",
+  "suspendAccountConfirmText": "Are you sure you want to suspend this account? The account won't be able to make or receive transactions until re-enabled by an admin."
 }
