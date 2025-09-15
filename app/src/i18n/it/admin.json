@@ -104,5 +104,7 @@
   "privacy": "Privacy",
   "hideBalance": "Nascondi Saldo",
   "hideBalanceHint": "Nascondi il saldo e i limiti dell'account agli altri utenti.",
-  "downloadCSV": "Scarica CSV"
+  "downloadCSV": "Scarica CSV",
+  "suspendAccount": "Sospendi account",
+  "suspendAccountConfirmText": "Sei sicuro di voler sospendere questo account? L'account non potrà effettuare o ricevere transazioni finché non verrà riattivato da un amministratore."
 }

@@ -94,15 +94,22 @@ export class AccountController extends AbstractCurrencyController implements IAc
     const account = await this.getFullAccount(data.id, false)
     const user = await this.users().checkUser(ctx)
 
-    // Only admins or account owners can update accounts, and most operations 
-    // will require admin access.
-    if (!(this.users().isAdmin(user) || userHasAccount(user, account))) {
+    // Only admins or account owners can update accounts.
+    // Users can't update own accounts if suspended or deleted.
+    if (!(this.users().isAdmin(user) || 
+      (userHasAccount(user, account) && ![AccountStatus.Suspended, AccountStatus.Deleted].includes(account.status))
+    )) {
       throw forbidden("User is not allowed to update this account")
     }
 
     if (data.status && data.status !== account.status) {
-      if (account.status === AccountStatus.Active && data.status === AccountStatus.Disabled) {
+      const isDisabledOrSuspended = (status: AccountStatus) => [AccountStatus.Disabled, AccountStatus.Suspended].includes(status)
+
+      if (account.status === AccountStatus.Active && isDisabledOrSuspended(data.status)) {
         // Disable account.
+        if (data.status === AccountStatus.Suspended && !this.users().isAdmin(user)) {
+          throw forbidden("Only admins can suspend accounts")
+        }
         // Ensure the currency has the disabled accounts pool created.
         await this.currencyController.createDisabledAccountsPool()    
         const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
@@ -110,8 +117,8 @@ export class AccountController extends AbstractCurrencyController implements IAc
           admin: await this.keys().adminKey(),
           sponsor: await this.keys().sponsorKey()
         })
-      } else if (account.status === AccountStatus.Disabled && data.status === AccountStatus.Active) {
-        // Enable account.
+      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status) && data.status === AccountStatus.Active) {
+        // Don't need to check admin access again, since only admins can update suspended accounts.
         const ledgerBalance = this.currencyController.amountToLedger(account.balance + account.creditLimit)
         const maximumBalance = account.maximumBalance ?? this.currency().settings.defaultInitialMaximumBalance
 
@@ -125,6 +132,12 @@ export class AccountController extends AbstractCurrencyController implements IAc
           disabledAccountsPool: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
           sponsor: await this.keys().sponsorKey()
         })
+      } else if (account.status === AccountStatus.Disabled && data.status === AccountStatus.Suspended) {
+        if (!this.users().isAdmin(user)) {
+          throw forbidden("Only admins can suspend accounts")
+        }
+      } else if (account.status === AccountStatus.Suspended && data.status === AccountStatus.Disabled) {
+        // Don't need to check admin access again, since only admins can update suspended accounts.
       } else {
         throw badRequest(`Invalid status change from ${account.status} to ${data.status}`)
       }

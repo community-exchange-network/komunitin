@@ -8,6 +8,7 @@ export { AccountRecord }
 export enum AccountStatus {
   Active = "active",
   Disabled = "disabled",
+  Suspended = "suspended",
   Deleted = "deleted",
 }
 

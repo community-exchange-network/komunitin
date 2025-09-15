@@ -443,7 +443,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
           group,
           sort,
           filter: {
-            status: ["active", "disabled"]
+            status: ["active", "disabled", "suspended"]
           },
           include: 'settings',
           pageSize

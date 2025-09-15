@@ -263,6 +263,8 @@ export interface Address {
   addressCountry: string;
 }
 
+export type MemberState = "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted"
+
 /**
  * Member interface.
  */
@@ -272,7 +274,7 @@ export interface Member extends ResourceObject {
     access: Access;
     name: string;
     type: "personal" | "business" | "public";
-    state: "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted";
+    state: MemberState;
     description: string;
     image: ImageObject;
     address: Address;

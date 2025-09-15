@@ -104,5 +104,7 @@
   "privacy": "Privacitat",
   "hideBalance": "Amagar saldo",
   "hideBalanceHint": "Amaga el saldo i els límits del compte als altres usuaris.",
-  "downloadCSV": "Descarregar CSV"
+  "downloadCSV": "Descarregar CSV",
+  "suspendAccount": "Suspendre compte",
+  "suspendAccountConfirmText": "Segur que vols suspendre aquest compte? El compte no podrà fer ni rebre transaccions fins que un administrador el reactivi."
 }
