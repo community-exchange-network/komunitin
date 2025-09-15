@@ -254,4 +254,39 @@ describe('Transfer endpoints', async () => {
     const response2 = await t.api.get('/TEST/transfers?filter[search]=transfer', t.user1)
     assert.equal(response2.body.data.length, 6)
   })
+
+  await it('can download transfers as CSV', async () => {
+    const response = await t.api.get('/TEST/transfers.csv', t.admin, 200, 'text/csv')
+    // Check headers
+    assert.equal(response.headers['content-type'], 'text/csv; charset=utf-8')
+    assert.equal(response.headers['content-disposition'], 'attachment; filename="transfers.csv"')
+    const lines = response.text.split('\n').filter(line => line.trim().length > 0).map(line => line.split(','))
+    assert.equal(lines.length, 9)
+    assert.deepEqual(lines[0], ['id','created','updated','state','amount','description','hash','authorization','payer.id','payer.code','payee.id','payee.code','user.id'])
+    const first = lines[1]
+    assert.equal(first[3], 'committed')
+    assert.equal(first[4], '100')
+    assert.equal(first[5], 'User transfer')
+    assert.equal(first[8], t.account1.id)
+    assert.equal(first[9], t.account1.attributes.code)
+    assert.equal(first[10], t.account2.id)
+    assert.equal(first[11], t.account2.attributes.code)
+    assert.equal(first[12], t.user1.user)
+
+    // Filtered transfers
+    const update2nd = new Date(lines[2][2]).toISOString()
+    
+    const response2 = await t.api.get(`/TEST/transfers.csv?filter[account]=${t.account2.id}&filter[from]=${update2nd}&csvfields=payer.code,payee.code,amount`, t.admin, 200, 'text/csv')
+    
+    const lines2 = response2.text.split('\n').filter(line => line.trim().length > 0).map(line => line.split(','))
+    // header + 8 transfers - first one filtered out by date - one filtered by account = header + 6 transfers
+    assert.equal(lines2.length, 7)
+    assert.deepEqual(lines2[0], ['payer.code','payee.code','amount'])
+    const first2 = lines2[1]
+    assert.equal(first2[0], t.account1.attributes.code)
+    assert.equal(first2[1], t.account2.attributes.code)
+    assert.equal(first2[2], '40')
+    
+  })
+    
 })
