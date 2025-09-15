@@ -15,11 +15,11 @@
           @click="filterDrawer = !filterDrawer"
         />
         <q-btn
+          v-if="store.getters.isAdmin"  
           flat
           round
           icon="download"
           :title="$t('downloadCSV')"
-          v-if="store.getters.isAdmin"
           @click="download"
         />
       </template>

@@ -46,12 +46,12 @@ export async function downloadFile(url: string, token: string, defaultName = "do
 }
 
 export const useTransfersCsv = (opts: {
-    code: MaybeRefOrGetter<string>,
-    from?: MaybeRefOrGetter<Date | null>,
-    to?: MaybeRefOrGetter<Date | null>,
-    query?: MaybeRefOrGetter<string | null>,
-    account?: MaybeRefOrGetter<string | null>
-  }) => {
+  code: MaybeRefOrGetter<string>,
+  from?: MaybeRefOrGetter<Date | null>,
+  to?: MaybeRefOrGetter<Date | null>,
+  query?: MaybeRefOrGetter<string | null>,
+  account?: MaybeRefOrGetter<string | null>
+}) => {
   const store = useStore()
 
   const download = async () => {
