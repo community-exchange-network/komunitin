@@ -109,8 +109,6 @@ describe('Account status', async () => {
   })
 
   it('suspended account is not listed to other users', async () => {
-    
-    // and it's not listed to other users
     const response = await t.api.get(`/TEST/accounts`, t.user2)
     const accounts = response.body.data as any[]
     accounts.forEach(a => {
@@ -119,7 +117,7 @@ describe('Account status', async () => {
   })
 
   it('admin can re-enable or disable suspended account', async () => {
-    // but admin can convert to disabled
+    // admin can convert to disabled
     let response = await t.api.patch(
       `/TEST/accounts/${t.account1.id}`,
       { data: { attributes: { status: 'disabled' } } },

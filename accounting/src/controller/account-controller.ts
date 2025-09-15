@@ -101,7 +101,6 @@ export class AccountController extends AbstractCurrencyController implements IAc
     )) {
       throw forbidden("User is not allowed to update this account")
     }
-    
 
     if (data.status && data.status !== account.status) {
       const isDisabledOrSuspended = (status: AccountStatus) => [AccountStatus.Disabled, AccountStatus.Suspended].includes(status)
