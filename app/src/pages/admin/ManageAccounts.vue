@@ -1,7 +1,17 @@
 <template>
   <page-header
     :title="$t('manageAccounts')"   
-  />
+  >
+    <template #buttons>
+      <q-btn
+        flat
+        round
+        icon="download"
+        :title="$t('downloadCSV')"
+        @click="download"
+      />
+    </template>
+  </page-header>
   <q-page-container class="row justify-start">
     <q-page 
       padding 
@@ -217,6 +227,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import formatCurrency from 'src/plugins/FormatCurrency';
 import { useRouter } from 'vue-router';
+import { useAccountsCsv } from '../../composables/downloadCsv';
 
 const props = defineProps<{
   code: string
@@ -513,6 +524,10 @@ const acceptMember = async (member: Member & {group: Group}) => {
     loadingAcceptMember.value = false
   }
 }
+
+const {download} = useAccountsCsv({
+  code: props.code
+})
 
 
 </script>
