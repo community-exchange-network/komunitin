@@ -76,3 +76,19 @@ export const useTransfersCsv = (opts: {
 
   return { download }
 }
+
+export const useAccountsCsv = (opts: {
+  code: MaybeRefOrGetter<string>
+}) => {
+  const store = useStore()
+
+  const download = async () => {
+    const base = KOptions.url.accounting
+    const code = toValue(opts.code)
+    const url = `${base}/${code}/accounts.csv`
+    const token = store.getters.accessToken
+    await downloadFile(url, token, "accounts.csv")
+  }
+
+  return { download }
+}

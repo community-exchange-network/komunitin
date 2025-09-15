@@ -92,6 +92,28 @@ export function getRoutes(controller: SharedController) {
     })
   )
 
+  // Download accounts as CSV
+  router.get('/:code/accounts.csv', userAuth([Scope.Accounting, Scope.Superadmin]),
+    currencyCollectionCsvHandler(controller, async (currencyController, ctx, params) => {
+      return await currencyController.accounts.getAccounts(ctx, params)
+    }, {
+      filter: ["status"],
+      sort: ["code", "balance", "creditLimit", "maximumBalance", "created", "updated"],
+    }, (account) => ({
+      'id': account.id,
+      'created': account.created.toISOString(),
+      'updated': account.updated.toISOString(),
+      'code': account.code,
+      'status': account.status,
+      'balance': account.balance ?? '',
+      'creditLimit': account.creditLimit?.toString() ?? '',
+      'maximumBalance': account.maximumBalance?.toString() ?? '',
+      'key': account.key,
+      'user.id': account.users && account.users.length > 0 ? account.users[0].id : '',
+    })
+    )
+  )
+
   // Get account. No auth required to get an account having its id. We need that for
   // external transactions.
   router.get('/:code/accounts/:id', anyAuth(userAuth([Scope.Accounting, Scope.AccountingReadAll, Scope.Superadmin]), noAuth()), 

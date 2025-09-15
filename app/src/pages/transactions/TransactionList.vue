@@ -14,6 +14,14 @@
           :title="filterDrawer ? $t('hideFilters') : $t('showFilters')"
           @click="filterDrawer = !filterDrawer"
         />
+        <q-btn
+          flat
+          round
+          icon="download"
+          :title="$t('downloadCSV')"
+          v-if="store.getters.isAdmin"
+          @click="download"
+        />
       </template>
     </page-header>
     <q-page-container>
@@ -47,19 +55,7 @@
           :label="$t('endDate')"
           clearable
         />
-      </div>
-      <q-separator />
-      <div 
-        v-if="store.getters.isAdmin"
-        class="q-pa-md"
-      >
-        <q-btn
-          color="primary"
-          :label="$t('downloadCSV')"
-          flat
-          @click="download"
-        />
-      </div>
+      </div>      
     </q-drawer>
   </div>
 </template>
