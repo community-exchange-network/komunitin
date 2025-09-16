@@ -2,7 +2,7 @@
   <div class="q-mt-xl row justify-center">
     <q-spinner
       size="42px"
-      color="icon-dark" 
+      color="icon-dark"
     />
   </div>
 </template>
