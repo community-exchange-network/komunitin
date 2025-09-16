@@ -355,6 +355,17 @@ const routes: RouteRecordRaw[] = [
     path: '/pay',
     component: () => import('../pages/transactions/Pay.vue'),
     name: 'Pay',
+    meta: {
+      back: false
+    }
+  },
+  {
+    path: '/nfc',
+    component: () => import('../pages/transactions/Nfc.vue'),
+    name: 'Nfc',
+    meta: {
+      back: false
+    }
   },
 
   
