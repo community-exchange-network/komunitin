@@ -17,7 +17,8 @@ export interface Migration {
         accessToken: string
         expiresAt: string
       }
-    }
+    },
+    test?: boolean
   }
   created: string
   updated: string

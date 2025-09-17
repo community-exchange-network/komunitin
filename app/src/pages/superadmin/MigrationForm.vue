@@ -28,6 +28,14 @@
       :rules="[val => !!val || 'Kind is required']"
       class="q-mb-md"
     />
+    <q-toggle
+      v-model="test"
+      label="Test Mode"
+      hint="If enabled, the migration will not change the source system"
+      outlined
+      class="q-mb-md"
+    />
+
     <template v-if="kind === 'integralces-accounting'">
       <q-input
         v-model="sourceUrl"
@@ -80,6 +88,7 @@ const store = useStore()
 const code = ref(model.value?.code ?? '')
 const name = ref(model.value?.name ?? '')
 const kind = ref(model.value?.kind ?? 'integralces-accounting')
+const test = ref(model.value?.data?.test ?? true)
 
 const sourceUrl = ref(model.value?.data?.source.url ?? defaultSourceUrl)
 
@@ -152,7 +161,8 @@ const onSubmit = () => {
           accessToken: accessToken.value,
           expiresAt: expiresAt.value
         }
-      }
+      },
+      test: test.value
     }  
   }
   emit('submit')

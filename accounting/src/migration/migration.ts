@@ -16,7 +16,8 @@ export const migrationStatuses = ["new", "started", "completed", "failed"] as co
 export type MigrationStatus = typeof migrationStatuses[number]
 
 type AccountMember = {
-  state: "draft" | "pending" | "active" | "suspended" | "deleted"
+  id: string,
+  state: "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted"
   type: "personal" | "business" | "public" | "virtual"
 }
 export type MigrationCurrency = Pick<Currency, "id" | "code" | "name" | "namePlural" | "symbol" | "decimals" | "scale" | "rate" | "created" | "updated"> 
@@ -35,6 +36,7 @@ export interface MigrationData {
     code: string,
     key: string,
   }
+  test?: boolean,
 }
 
 export type CreateMigration = Pick<Migration, "code" | "name" | "kind" | "data">
