@@ -1,12 +1,12 @@
-import { Keypair, Operation } from "@stellar/stellar-sdk";
-import { MigrationController } from "./migration-controller";
+import { Keypair } from "@stellar/stellar-sdk";
 import { LedgerCurrencyController } from "../controller/currency-controller";
-import { AccountSettings, FullAccount, TransferMeta, TransferStates } from "../model";
+import { TenantPrismaClient } from "../controller/multitenant";
+import { StellarCurrency } from "../ledger/stellar";
+import { AccountStatus, FullAccount, recordToAccount, TransferMeta, TransferStates } from "../model";
 import { systemContext } from "../utils/context";
 import { fixUrl } from "../utils/net";
-import { Migration, MigrationAccount, MigrationData, MigrationTransfer } from "./migration";
-import { TenantPrismaClient } from "../controller/multitenant";
-import { StellarCurrency, StellarLedger } from "../ledger/stellar";
+import { Migration, MigrationAccount, MigrationData, MigrationLogEntry, MigrationTransfer } from "./migration";
+import { MigrationController } from "./migration-controller";
 
 const UNLIMITED_CREDIT_LIMIT = 10 ** 6
 
@@ -54,7 +54,11 @@ const promisePool = async <T, U>(
 
 export class ICESMigrationController {
 
-  public steps = ["validate", "get-currency", "get-accounts", "get-transfers", "create-currency", "create-accounts", "create-transfers", "set-balances", "end"]
+  public steps = ["validate", "get-currency", "get-accounts", "get-transfers", 
+    "disable-inactive-accounts", "create-currency", "create-accounts", 
+    "create-transfers", "set-balances", "set-disabled-members", "end"]
+
+  public omitStepsInTestMode = ["set-disabled-members"]
 
   constructor(private readonly controller: MigrationController, private readonly migration: ICESMigration) {}
 
@@ -111,6 +115,10 @@ export class ICESMigrationController {
         const step = this.steps[i];
         this.migration.data.step = step
         await this.controller.updateMigrationData(this.migration.id, { step })
+        if (this.migration.data.test && this.omitStepsInTestMode.includes(step)) {
+          await this.log(`Skipping step ${step} in test mode`)
+          continue
+        } 
         await this.log(`Starting migration step ${step}`)
         await this.runStep(step)
         await this.log(`Migration step ${step} completed`)
@@ -143,6 +151,8 @@ export class ICESMigrationController {
         return await this.getAccounts()
       case "get-transfers":
         return await this.getTransfers()
+      case "disable-inactive-accounts":
+        return await this.disableInactiveAccounts()
       case "create-currency":
         return await this.createCurrency()
       case "create-accounts":
@@ -151,6 +161,8 @@ export class ICESMigrationController {
         return await this.createTransfers()
       case "set-balances":
         return await this.setBalances()
+      case "set-disabled-members":
+        return await this.setDisabledMembers()
       case "end":
         await this.log("Migration process ended :)")
         return
@@ -212,17 +224,28 @@ export class ICESMigrationController {
   }
 
   private async get(url: string) {
+    return await this.fetch("GET", url)
+  }
+
+  private async patch(url: string, data: any) {
+    return await this.fetch("PATCH", url, data)
+  }
+
+  private async fetch(method: string, url: string, data?: any) {
     const token = await this.getAccessToken()
     const response = await fetch(fixUrl(url), {
+      method,
       headers: {
         'Authorization': `Bearer ${token}`,
-      }
+        ...(data ? { 'Content-Type': 'application/json' } : {})
+      },
+      body: data ? JSON.stringify(data) : undefined,
     })
     if (!response.ok) {
       const errorDoc = await response.json() as any
-      const errors = errorDoc.errors || [] 
+      const errors = errorDoc.errors || []
       const errorObject = errors.length > 0 ? errors[0] : { title: "Unknown error", detail: "An unknown error occurred" }
-      throw new Error(`Failed to fetch from ${url}: ${errorObject.detail || errorObject.title}`, {
+      throw new Error(`Failed to ${method} to ${url}: ${errorObject.detail || errorObject.title}`, {
         cause: errorObject
       })
     }
@@ -279,7 +302,7 @@ export class ICESMigrationController {
     const accountsUrl = `${this.accountingUrl()}/${this.migration.code}/accounts`
 
     const params = new URLSearchParams({
-      "filter[state]": "0,1,2,3,4",
+      "filter[state]": "0,1,2,3,4,5",
       "filter[kind]": "0,1,2,3,4,5",
       "include": "settings",
       "page[size]": "20"
@@ -314,7 +337,7 @@ export class ICESMigrationController {
     
     const membersParams = new URLSearchParams({
       "page[size]": "20",
-      "filter[state]": "draft,pending,active,suspended,deleted"
+      "filter[state]": "draft,pending,active,disabled,suspended,deleted"
     })
     let fetchedMembers = 0
     let memberResponse: any;
@@ -328,7 +351,11 @@ export class ICESMigrationController {
         const accountId = memberData.relationships.account?.data?.id
         const account = accounts.find(a => a.id === accountId)
         if (!account) {
-          this.warn(`Member ${memberData.id} account not found, skipping`, { member: memberData })
+          if (["pending", "draft"].includes(memberData.attributes.state)) {
+            this.log(`Member ${memberData.attributes.code} is in state ${memberData.attributes.state}, skipping`)
+          } else {
+            this.warn(`Member ${memberData.attributes.code} account not found, skipping`, { member: memberData })
+          }
           continue
         }
         
@@ -441,10 +468,58 @@ export class ICESMigrationController {
     const db = this.controller.controller.tenantDb(this.migration.code)  
     const accountController = currencyController.accounts;
 
+    const isLedgerAccount = (account: MigrationAccount) => {
+      const status = account.member?.state
+      return status === AccountStatus.Active 
+        || status === AccountStatus.Disabled
+        || status === AccountStatus.Suspended
+    }
+
+    const isDeletedAccount = (account: MigrationAccount) => {
+      const status = account.member?.state
+      return status === AccountStatus.Deleted
+    }
+
+    // Ensure credit account has enough balance for creating all accounts.
+    // THis should not be required but actually is needed for parallel account creation
+    // and also saves us a few ledger ops.
+    const totalCredit = accounts.reduce((sum, account) => {
+      if (isLedgerAccount(account)) {
+        const creditLimit = account.creditLimit === -1 ? currency.settings.defaultInitialCreditLimit : account.creditLimit;
+        sum += creditLimit;
+      }
+      return sum;
+    }, 0)
+
+    const issuer = await currencyController.ledger.getAccount(currency.keys.issuer)
+    const credit = await currencyController.ledger.getAccount(currency.keys.credit)
+    const creditDiff = totalCredit - currencyController.amountFromLedger(credit.balance());
+    if (creditDiff > 0) {
+      await issuer.pay({
+        amount: currencyController.amountToLedger(creditDiff),
+        payeePublicKey: currency.keys.credit
+      }, {
+        account: await currencyController.keys.issuerKey(),
+        sponsor: await currencyController.keys.sponsorKey()
+      })
+    }
+
     const createAccount = async (account: MigrationAccount) => {
       if (!account.member) {
-        await this.warn(`Skipping account ${account.code} without member data`, { accountId: account.id });
-        return;
+        // Check if the account has any transfers.
+        const hasTransfers = this.migration.data.transfers?.some(t => t.payer.id === account.id || t.payee.id === account.id)
+        if (hasTransfers) {
+          // Treating as deleted account.
+          account.member = {
+            id: "",
+            state: AccountStatus.Deleted,
+            type: "personal",
+          }
+          await this.log(`Account ${account.code} has transfers but no member data, treating as deleted`, { accountId: account.id });
+        } else {
+          await this.warn(`Skipping account ${account.code} without member data nor transfers`, { accountId: account.id });
+          return;
+        }
       }
       if (account.member.type === "virtual") {
         await this.log(`Skipping virtual account ${account.code}`)
@@ -452,32 +527,17 @@ export class ICESMigrationController {
       }
       
       // Check if account already exists.
-      const existingAccount = await db.account.findUnique({
+      let existingAccount = await db.account.findUnique({
         where: { id: account.id },
         select: { id: true, code: true, status: true }
       })
-
-      const setSettings = async (settings: Partial<AccountSettings>) => {
-        await accountController.updateAccountSettings(systemContext(), {
-          id: account.id,
-          ...settings
-        })
-      }
-
-      if (existingAccount) {
-        if (existingAccount.code === account.code) {
-          await this.warn(`Account ${account.code} already exists, skipping creation`, { accountId: account.id });
-          if (existingAccount.status === "active") {
-            await setSettings(account.settings)    
-            await this.log(`Existing account ${account.code} settings updated successfully`)
-          }
-        } else {
-          throw new Error(`Account ${account.code} already exists with different status or code: ${existingAccount.status} / ${existingAccount.code}`);
-        }
-      } else {
+      
+      if (!existingAccount) {
+        // Create account.
         const maximumBalance = (account.maximumBalance === -1 || !account.maximumBalance) ? undefined : account.maximumBalance;
-        if (account.member.state === "active") { 
-          // Create account
+
+        if (isLedgerAccount(account)) {
+          // This is the case where the account really needs to be created in the ledger.
           const model = {
             id: account.id,
             code: account.code,
@@ -494,23 +554,16 @@ export class ICESMigrationController {
               updated: new Date(account.updated)
             }
           })
-          // Set settings
-          await setSettings(account.settings)
-          await this.log(`Active account ${account.code} created successfully in the ledger`)
-        } else if (account.member.state === "deleted" || account.member.state === "suspended") {
-          const balance = await this.computeAccountBalance(db, account)
-          if (Math.abs(Number(balance) / (10 ** (currency.scale - currency.decimals))) >= 0.5) {
-            throw new Error(`Deleted or suspended account with non-zero balance: ${account.code}. Not implemented yet!`);
-          }
-          // We don't need to create this account in the ledger (and createAccount) does not allow to create 
-          // deleted accounts. But still there may be transfers related to it so we will add the record to the 
-          // DB directly.
+          existingAccount = await accountController.getFullAccount(account.id, false)
+          await this.log(`Account ${account.code} created in the ledger`)
+        } else if (isDeletedAccount(account)) {
+          // This is the case of a deleted account (or suspended with zero balance, in which case we migrate as deleted).
           
           // Create a random key for the deleted account
           const keyValue = Keypair.random()
           const keyId = await currencyController.keys.storeKey(keyValue)
           
-          await db.account.create({
+          const record = await db.account.create({
             data: {
               tenantId: db.tenantId,
               id: account.id,
@@ -518,12 +571,12 @@ export class ICESMigrationController {
               balance: 0,
               creditLimit: account.creditLimit === -1 || account.creditLimit === undefined ? currency.settings.defaultInitialCreditLimit : account.creditLimit,
               maximumBalance,
-              status: "deleted",
+              status: AccountStatus.Deleted,
               created: new Date(account.created),
               updated: new Date(account.updated),
               type: "user",
               users: {
-                create: account.users.map(user => ({
+                create: account.users?.map(user => ({
                   user: {
                     connectOrCreate: {
                       where: { 
@@ -543,46 +596,43 @@ export class ICESMigrationController {
               key: {
                 connect: { id: keyId }
               },
-              settings: {
-
-              }
+              settings: account.settings
             }
           })
-          await this.log(`Deleted account ${account.code} created successfully in the DB`)
-        
+          existingAccount = recordToAccount(record, currency)
+          await this.log(`Deleted account ${account.code} created in the DB`)
+          
         } else {
           await this.warn(`Skipping account ${account.code} with state ${account.member.state}.`);
         }
       }
-    }
 
-    // Ensure credit account has enough balance for creating all accounts.
-    // THis should not be required but actually is needed for parallel account creation
-    // and also saves us a few ledger ops.
-    const totalCredit = accounts.reduce((sum, account) => {
-      if (account.member?.state === "active") {
-        const creditLimit = account.creditLimit === -1 ? currency.settings.defaultInitialCreditLimit : account.creditLimit;
-        sum += creditLimit;
+      // Now the account exists (or is skipped). Check if we need to update the settings and the state.
+      if (existingAccount) {
+        // Set account settings
+        const status = account.member?.state as AccountStatus
+        if (existingAccount.status === "active") {  
+          await accountController.updateAccountSettings(systemContext(), {
+            id: account.id,
+            ...account.settings
+          })
+        }
+        // Update account status if needed
+        if (existingAccount.status === "active"  && (["disabled", "suspended"].includes(status))) {
+          // Disable or suspend account
+          await accountController.updateAccount(systemContext(), {
+            id: account.id,
+            status: status
+          })
+          await this.log(`Account ${account.code} status changed to ${status}`)
+        }
       }
-      return sum;
-    }, 0)
-
-    const issuer = await currencyController.ledger.getAccount(currency.keys.issuer)
-    const credit = await currencyController.ledger.getAccount(currency.keys.credit)
-    const creditDiff = totalCredit - currencyController.amountFromLedger(credit.balance());
-    if (creditDiff > 0) {
-      await issuer.pay({
-        amount: currencyController.amountToLedger(creditDiff),
-        payeePublicKey: currency.keys.credit
-      }, {
-        account: await currencyController.keys.issuerKey(),
-        sponsor: await currencyController.keys.sponsorKey()
-      })
     }
-    
+
     await promisePool(accounts, createAccount, 5)
     await this.log(`Finished creating ${accounts.length} accounts in the ledger`)
   }
+
   private async createTransfers() {
     const transfers = this.migration.data.transfers;
     if (!transfers) {
@@ -774,13 +824,15 @@ export class ICESMigrationController {
     const accountIds = await db.account.findMany({
       where: {
         tenantId: db.tenantId,
-        status: "active"
+        status: { in: ["active", "suspended", "disabled"] }
       },
       select: {
         id: true,
       }
     })
-    const dbAccounts = await Promise.all(accountIds.map(aId => currencyController.accounts.getFullAccount(aId.id)))
+    const dbAccounts = await Promise.all(accountIds.map(
+      aId => currencyController.accounts.getFullAccount(aId.id, false)
+    ))
 
     const migrationAccount = (id: string) => this.migration.data.accounts?.find(a => a.id === id)
 
@@ -823,9 +875,19 @@ export class ICESMigrationController {
     })
     
     await this.log(`Setting balances for ${accounts.length} accounts...`)
+    
+    const logs = (await db.migration.findUnique({
+      select: { log: true },
+      where: { id: this.migration.id }
+    }))?.log as MigrationLogEntry[] | undefined
+
+    if (!logs) {
+      throw new Error("Migration not found")
+    }
+
     let skipped = 0
     const setAccountBalance = async (account: FullAccount, keys: {account: Keypair, sponsor: Keypair}) => {
-      const balance = await this.computeAccountBalance(db, account);
+      let balance = await this.computeAccountBalance(db, account);
 
       // Check the computed balance agains the balance in the account migration.
       const mAccount = migrationAccount(account.id);
@@ -842,53 +904,82 @@ export class ICESMigrationController {
           creditLimit: account.creditLimit
         })
       }
-      // Get balance of the account in the ledger.
-      const ledgerAccount = await ledger.getAccount(account.key);
-      if (!ledgerAccount) {
-        throw new Error(`Ledger account for ${account.code} not found`);
-      }
-      const ledgerBalance = currencyController.amountFromLedger(ledgerAccount.balance());
-      const difference = balance + BigInt(account.creditLimit) - BigInt(ledgerBalance);
+      let accountKey
+      let difference
+      if (account.status === "active") {
+        accountKey = account.key;
+        // The ledgerBalance should be = creditLimit, but we recompute it just in case and for idempotency.
+        const ledgerAccount = await ledger.getAccount(account.key);
+        if (!ledgerAccount) {
+          throw new Error(`Ledger account for ${account.code} not found`);
+        }
+        const ledgerBalance = currencyController.amountFromLedger(ledgerAccount.balance());
+        difference = balance + BigInt(account.creditLimit) - BigInt(ledgerBalance);
 
+      } else if (account.status === "suspended" || account.status === "disabled") {
+        // In this case we should move the balance to the pool account. In this case we can't
+        // use the ledger balance for idempotency so we check the logs instead.
+        const alreadySet = logs.some(log => log.step === "set-balances" && log.message.startsWith(`Account ${account.code} balance set to`))
+        if (alreadySet) {
+          skipped++
+          return;
+        } else {
+          if (!currency.keys.disabledAccountsPool) {
+            throw new Error("Disabled accounts pool account not configured in currency")
+          }
+          // Use the pool account instead of the account.
+          accountKey = currency.keys.disabledAccountsPool;
+          difference = balance
+        }
+      } else {
+        throw new Error(`Cannot set balance for account ${account.code} with status ${account.status}`);
+      }
+      
       if (difference === 0n) {
         skipped++
         return;
       } else {
         const positive = difference > 0n;
-        const payer = positive ? migrAccount : account;
-        const payee = positive ? account : migrAccount;
+        const payerKey = positive ? migrAccount.key : accountKey
+        const payeeKey = positive ? accountKey : migrAccount.key;
         
-        const ledgerPayer = await ledger.getAccount(payer.key);
+        const ledgerPayer = await ledger.getAccount(payerKey);
         const ledgerAmount = currencyController.amountToLedger((positive ? 1 : -1) * Number(difference));
 
         const transfer = await ledgerPayer.pay({
           amount: ledgerAmount.toString(),
-          payeePublicKey: payee.key,
+          payeePublicKey: payeeKey,
         }, keys)
         await this.log(`Transfer of ${difference} created for account ${account.code} with balance ${balance}`, {
           hash: transfer.hash,
           account: account.code,
           balance: balance.toString(),
         });
-        await ledgerAccount.update()
+      }
+
+      // Double check the balance after the transfer
+      if (account.status === "active") {
+        const ledgerAccount = await ledger.getAccount(account.key);
         const newBalance = BigInt(currencyController.amountFromLedger(ledgerAccount.balance())) - BigInt(account.creditLimit);
         
         if (newBalance !== balance) {
           await this.warn(`Balance for account ${account.code} after transfer is ${newBalance}, expected ${balance}`);
+          balance = newBalance
         }
-
-        // Update the account balance in the DB
-        await db.account.update({
-          where: { id: account.id },
-          data: {
-            balance: newBalance,
-            updated: new Date()
-          }
-        })
-        
-        account.balance = Number(newBalance); 
-        await this.log(`Account ${account.code} balance set to ${newBalance}`);
       }
+
+      // Finally update the account balance in the DB
+      await db.account.update({
+        where: { id: account.id },
+        data: {
+          balance: balance,
+          updated: new Date()
+        }
+      })
+      
+      account.balance = Number(balance); 
+      await this.log(`Account ${account.code} balance set to ${balance} (${account.status}).`);
+      
     }
     const externalBalance = await this.computeAccountBalance(db, currency.externalAccount)
     const setExternalBalance = async () => {
@@ -938,5 +1029,62 @@ export class ICESMigrationController {
     } else {
       await this.warn(`Migration account ${migrAccount.code} has non-zero balance ${migrAccount.balance} after migration, please check it manually`)
     }
+  }
+  private async disableInactiveAccounts() {
+    const accounts = this.migration.data.accounts
+    const transfers = this.migration.data.transfers
+    if (!accounts || !transfers) {
+      throw new Error("No accounts or transfers data found in migration")
+    }
+    let disabled = 0
+    for (const account of accounts) {
+      if (account.member?.state === AccountStatus.Active) {
+        const created = new Date(account.created)
+        const lastestActivityDate = transfers.filter(t => t.payer.id === account.id || t.payee.id === account.id)
+          .reduce((latest, t) => {
+            const tDate = new Date(t.updated)
+            return tDate > latest ? tDate : latest
+          }, created)
+        const twentyTwenty = new Date("2020-01-01T00:00:00Z")
+        if (lastestActivityDate < twentyTwenty) {
+          // Set account state to disabled.
+          account.member.state = AccountStatus.Disabled
+          disabled++
+        }
+      }
+    }
+    this.controller.updateMigrationData(this.migration.id, { accounts })
+    await this.log(`Disabled ${disabled} inactive accounts (no activity since 2020)`)
+  }
+  private async setDisabledMembers() {
+    // Call integralces instance to set the accounts with status = disabled to disabled members.
+    const disabledAccounts = this.migration.data.accounts?.filter(a => a.member && a.member.state === AccountStatus.Disabled)
+    if (!disabledAccounts || disabledAccounts.length === 0) {
+      await this.log("No disabled accounts found, skipping setting disabled members")
+      return;
+    }
+    this.log(`Setting ${disabledAccounts.length} disabled members in social service...`)
+    const socialBase = this.socialUrl()
+    let updated = 0
+    for (const account of disabledAccounts) {
+      if (!account.member) {
+        continue;
+      }
+      const memberUrl = `${socialBase}/${this.migration.code}/members/${account.member.id}`
+      try {
+        await this.patch(memberUrl, { data: {
+          id: account.member.id,
+          type: "members",
+          attributes: {
+            state: "disabled" 
+          }
+        }})
+        updated++
+      } catch (error) {
+        await this.warn(`Failed to set member ${account.code} to disabled`, { error })
+      }
+    }
+    await this.log(`Finished setting disabled members, ${updated} members updated successfully`)
+
   }
 }
