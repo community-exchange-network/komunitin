@@ -130,9 +130,14 @@
       to="/groups"
     />
     <menu-item
-      icon="info"
-      :title="$t('komunitinProject')"
-      href="https://github.com/komunitin/komunitin"
+    icon="info"
+    :title="$t('komunitinProject')"
+    href="https://github.com/komunitin/komunitin"
+    />
+    <menu-item
+      icon="feedback"
+      :title="$t('feedback')"
+      href="https://foo.bar"
     />
   </q-list>
 </template>
