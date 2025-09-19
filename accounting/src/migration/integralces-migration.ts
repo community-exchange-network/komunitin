@@ -1041,13 +1041,13 @@ export class ICESMigrationController {
     for (const account of accounts) {
       if (account.member?.state === AccountStatus.Active) {
         const created = new Date(account.created)
-        const lastestActivityDate = transfers.filter(t => t.payer.id === account.id || t.payee.id === account.id)
+        const latestActivityDate = transfers.filter(t => t.payer.id === account.id || t.payee.id === account.id)
           .reduce((latest, t) => {
             const tDate = new Date(t.updated)
             return tDate > latest ? tDate : latest
           }, created)
         const twentyTwenty = new Date("2020-01-01T00:00:00Z")
-        if (lastestActivityDate < twentyTwenty) {
+        if (latestActivityDate < twentyTwenty) {
           // Set account state to disabled.
           account.member.state = AccountStatus.Disabled
           disabled++
