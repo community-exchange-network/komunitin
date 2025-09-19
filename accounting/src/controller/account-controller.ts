@@ -366,15 +366,34 @@ export class AccountController extends AbstractCurrencyController implements IAc
     if (!(this.users().isAdmin(user) || userHasAccount(user, account))) {
       throw forbidden("User is not allowed to delete this account")
     }
-    const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+    if (account.status === AccountStatus.Deleted) {
+      throw badRequest("Account is already deleted")
+    }
     if (account.balance != 0) {
       throw badRequest("Account balance must be zero to delete account")
     }
-    // Delete account in ledger
-    await ledgerAccount.delete({
-      sponsor: await this.keys().sponsorKey(),
-      admin: await this.keys().adminKey()
-    })
+
+    if (account.status === AccountStatus.Active) {
+      const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+      // Delete account in ledger
+      await ledgerAccount.delete({
+        sponsor: await this.keys().sponsorKey(),
+        admin: await this.keys().adminKey()
+      })
+
+    } else if (account.status === AccountStatus.Suspended || account.status === AccountStatus.Disabled) {
+      // in this case there is no account in the ledger, but the pool has the balance for the 
+      // credit limit of the disabled account (since we've already check it has balance = 0).
+      const pool = await this.currencyController.ledger.getAccount(this.currency().keys.disabledAccountsPool!)
+      await pool.pay({
+        payeePublicKey: this.currency().keys.credit,
+        amount: this.currencyController.amountToLedger(account.creditLimit),
+      }, {
+        account: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
+        sponsor: await this.keys().sponsorKey(),
+      })
+    }
+
     // Soft delete account in DB
     await this.db().account.update({
       data: { status: "deleted" },

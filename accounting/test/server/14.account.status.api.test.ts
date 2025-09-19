@@ -145,4 +145,34 @@ describe('Account status', async () => {
     await t.payment(t.account2.id, t.account1.id, 10, "Test payment to re-enabled account", "committed", t.user2)
     await t.payment(t.account1.id, t.account2.id, 10, "Test payment from re-enabled account", "committed", t.user1)
   })
+
+  it('disabled account can be deleted by user', async () => {
+    // Account 1 should have 0 balance, since in each test we do +10 and -10
+    let response = await t.api.get(`/TEST/accounts/${t.account1.id}`, t.user1)
+    assert.equal(response.body.data.attributes.balance, 0)
+
+    // disable account
+    response = await t.api.patch(
+      `/TEST/accounts/${t.account1.id}`,
+      { data: { attributes: { status: 'disabled' } } },
+      t.user1
+    )
+    assert.equal(response.body.data.attributes.status, 'disabled')
+
+    // delete account
+    await t.api.delete(
+      `/TEST/accounts/${t.account1.id}`,
+      t.user1,
+      204
+    )
+
+    // check account is gone
+    await t.api.get(`/TEST/accounts/${t.account1.id}`, t.user1, 404)
+    response = await t.api.get(`/TEST/accounts`, t.user1)
+    const accounts = response.body.data as any[]
+    accounts.forEach(a => {
+      assert.notEqual(a.id, t.account1.id)
+    })
+
+  })
 })
