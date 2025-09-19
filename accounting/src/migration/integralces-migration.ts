@@ -481,7 +481,7 @@ export class ICESMigrationController {
     }
 
     // Ensure credit account has enough balance for creating all accounts.
-    // THis should not be required but actually is needed for parallel account creation
+    // This should not be required but actually is needed for parallel account creation
     // and also saves us a few ledger ops.
     const totalCredit = accounts.reduce((sum, account) => {
       if (isLedgerAccount(account)) {
