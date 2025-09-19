@@ -697,7 +697,8 @@ export class ICESMigrationController {
       } as TransferMeta
       
       if (!TransferStates.includes(transfer.state)) {
-        throw new Error(`Invalid transfer state "${transfer.state}" for transfer ${transfer.id}`);
+        this.warn(`Transfer ${transfer.id} has unknown state ${transfer.state}, setting to failed`, { transfer });
+        transfer.state = "failed" // Fallback to failed if state is unknown. 
       }
 
       // check if provided user exists, otherwise use the currency admin user
