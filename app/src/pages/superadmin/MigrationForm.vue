@@ -140,12 +140,16 @@ const fetchCurrencies = async () => {
   }))
 }
 
-watch(code, (newCode: string) => {
-  const newName = groups.value.find(group => group.attributes.code === newCode)?.attributes.name
-  if (newName) {
-    name.value = newName
+const setName = () => {
+  const groupName = groups.value.find(group => group.attributes.code === code.value)?.attributes.name
+  const isTest = test.value ? ' (Test)' : ''
+  if (groupName) {
+    name.value = `${groupName}${isTest}`
   }
-})
+}
+
+watch(code, setName)
+watch(test, setName)
 
 const onSubmit = () => {
   model.value = {
