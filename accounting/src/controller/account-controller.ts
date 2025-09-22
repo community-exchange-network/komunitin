@@ -44,11 +44,11 @@ export class AccountController extends AbstractCurrencyController implements IAc
       sponsor: await this.keys().sponsorKey()
     }
     
-    const options = {
+    const ledgerOptions = {
       initialCredit: this.currencyController.amountToLedger(creditLimit),
-      maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance) : undefined
+      maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance + creditLimit) : undefined
     }
-    const {key} = await this.currencyController.ledger.createAccount(options, keys)
+    const {key} = await this.currencyController.ledger.createAccount(ledgerOptions, keys)
     // Store key
     const keyId = await this.keys().storeKey(key)
     // Store account in DB
