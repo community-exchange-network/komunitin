@@ -169,4 +169,43 @@ describe('Preauthorized transfers with NFC tags', async () => {
     }, t.user1, 403)
 
   })
+
+  it('Tags persist after updating account settings', async () => {
+    // Update some other account setting
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
+      data: {
+        attributes: {
+          allowTagPayments: false,
+        }
+      }
+    }, t.admin)
+
+    // Tags should still be there
+    const response = await t.api.get(`/TEST/accounts/${t.account1.id}/settings`, t.user1)
+    assert.equal(response.body.data.attributes.allowTagPayments, false)
+    assert.equal(response.body.data.attributes.tags.length, 2)
+    assert.equal(response.body.data.attributes.tags[0].name, 'Tag 1')
+    assert.equal(response.body.data.attributes.tags[1].name, 'Tag 2')
+  })
+
+  it ('Tags persist after updating other accounts tags', async () => {
+    // Update account 2 tags
+    await t.api.patch(`/TEST/accounts/${t.account2.id}/settings`, {
+      data: {
+        attributes: {
+          tags: [{
+            name: "Tag A",
+            value: "tag-A-1234567890",
+          }]
+        }
+      }
+    }, t.user2)
+
+    // Account 1 tags should still be there
+    const response = await t.api.get(`/TEST/accounts/${t.account1.id}/settings`, t.user1)
+    assert.equal(response.body.data.attributes.allowTagPayments, false)
+    assert.equal(response.body.data.attributes.tags.length, 2)
+    assert.equal(response.body.data.attributes.tags[0].name, 'Tag 1')
+    assert.equal(response.body.data.attributes.tags[1].name, 'Tag 2')
+  })
 })
