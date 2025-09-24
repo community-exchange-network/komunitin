@@ -511,19 +511,20 @@ export class AccountController extends AbstractCurrencyController implements IAc
     await this.db().$transaction(async (t) => {
       await t.accountTag.deleteMany({
         where: { 
-          OR: [
-            { id: { notIn: updateTags.map(t => t.id as string) }},
-          ]
+          id: { 
+            notIn: updateTags.map(t => t.id)
+          },
+          accountId: account.id
         }
       })
       for (const tag of updateTags) {
         await t.accountTag.update({
-          where: { id: tag.id as string },
+          where: { id: tag.id },
           data: { name: tag.name }
         })
       }
       await t.accountTag.createMany({
-        data: newTags as {hash: string, name: string, accountId: string}[]
+        data: newTags
       })
     })
   }
