@@ -29,11 +29,13 @@
 import KError, { KErrorCode } from "src/KError";
 import { ref, computed, onBeforeMount } from "vue";
 import { useStore } from "vuex";
+import { useUIStore } from "src/stores/ui";
 
 const ready = ref(false)
 
 const store = useStore()
-const dismissed = computed(() => store.state.ui.locationBannerDismissed)
+const uiStore = useUIStore()
+const dismissed = computed(() => uiStore.locationBannerDismissed)
 
 const permission = ref<"granted" | "denied" | "prompt" | undefined>(undefined)
 
@@ -45,7 +47,7 @@ const isDenied = computed(() => permission.value == 'denied')
 const show = computed(() => ready.value && !dismissed.value && !isAuthorized.value && !(permission.value === undefined && store.state.location !== undefined))
 
 
-const dismiss = () => store.commit("locationBannerDismissed", true)
+const dismiss = () => uiStore.locationBannerDismissed = true
 
 const enable = async () => {
   try {

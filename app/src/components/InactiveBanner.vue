@@ -22,12 +22,14 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
 import { useAccountStatus } from "../composables/accountStatus";
+import { useUIStore } from "src/stores/ui";
 
 const store = useStore()
+const uiStore = useUIStore()
 const route = useRoute()
 
-const dismissed = computed(() => store.state.ui.inactiveBannerDismissed)
-const dismissInactive = () => store.commit("inactiveBannerDismissed", true)
+const dismissed = computed(() => uiStore.inactiveBannerDismissed)
+const dismissInactive = () => uiStore.inactiveBannerDismissed = true
 const isSignupMemberPage = computed(() => route.name === "SignupMember")
 
 const state = computed(() => store.getters.myMember?.attributes.state)

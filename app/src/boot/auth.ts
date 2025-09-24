@@ -1,7 +1,7 @@
 import { boot } from "quasar/wrappers";
+import store from "src/store";
 
-
-export default boot(({ router, store }) => {
+export default boot(({ router }) => {
   // Prevent access to paths that need authorization.
   router.beforeEach(async (to) => {
     try {

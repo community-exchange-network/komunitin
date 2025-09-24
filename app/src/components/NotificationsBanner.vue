@@ -33,6 +33,7 @@ import { onMessage } from "firebase/messaging"
 import { notifications } from "../plugins/Notifications"
 import { notificationBuilder } from "../../src-pwa/notifications"
 import { useRouter } from "vue-router";
+import { useUIStore } from "src/stores/ui";
 
 
 const {t} = useI18n()
@@ -40,7 +41,8 @@ const {t} = useI18n()
 const ready = ref(false);
 
 const store = useStore()
-const dismissed = computed(() => store.state.ui.notificationsBannerDismissed)
+const uiStore = useUIStore()
+const dismissed = computed(() => uiStore.notificationsBannerDismissed)
 const isLoggedIn = computed(() => store.getters.isLoggedIn)
 const hasMember = computed(() => !!store.getters.myMember)
 const isCompatible = computed(() => (window && 'Notification' in window))
@@ -59,7 +61,7 @@ const router = useRouter()
 
 const show = computed(() => ready.value && isLoggedIn.value && hasMember.value && !isAuthorized.value && !dismissed.value)
 
-const dismiss = () => store.commit("notificationsBannerDismissed", true)
+const dismiss = () => uiStore.notificationsBannerDismissed = true
 const subscribe = async () => {
   permission.value = await Notification.requestPermission()
   if (permission.value == 'granted') {

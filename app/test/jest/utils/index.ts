@@ -119,7 +119,7 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
 
   // Set the router mode to "history", as we have in our Quasar config file.
   process.env.VUE_ROUTER_MODE = "history";
-  const router = createRouter({store});
+  const router = createRouter();
 
   const mountOptions: any = {
     global: {
@@ -147,7 +147,7 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   for (const boot of boots) {
     await boot({
       app, router, store, urlPath: "", publicPath: "", redirect
-    });
+    } as any);
   }
 
   // Mock $q.notify since it throws an errors in testing environment if we use the actual module.

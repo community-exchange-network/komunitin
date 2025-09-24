@@ -30,6 +30,7 @@ module.exports = configure(function(ctx) {
       "i18n",
       "auth",
       "gtm",
+      "pinia-tmp",
       ...(environment.MOCK_ENABLE === "true" ? ["mirage"]: [])
     ],
 

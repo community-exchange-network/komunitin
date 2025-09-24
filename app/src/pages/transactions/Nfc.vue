@@ -11,14 +11,16 @@
 
 import { useRouter } from 'vue-router'
 import { useStore } from "vuex"
+import { useUIStore } from "src/stores/ui"
 
 const router = useRouter()
 const store = useStore()
+const uiStore = useUIStore()
 
 const myMember = store.getters.myMember
 
 // Hide navigation drawer
-store.commit('drawerState', false)
+uiStore.drawerState = false
 
 router.push({
   name: 'CreateTransactionReceiveNFC',

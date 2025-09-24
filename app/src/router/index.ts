@@ -1,6 +1,6 @@
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory, Router } from 'vue-router'
 import routes from "./routes";
-import { Store } from 'vuex';
+import { useUIStore } from 'src/stores/ui';
 /*
  * If not building with SSR mode, you can
  * directly export the Router instantiation;
@@ -10,7 +10,7 @@ import { Store } from 'vuex';
  * with the Router instance.
  */
 
-export default function( { store } : {store: Store<unknown>} ): Router {
+export default function( /*{ store } : {store: Store<unknown>}*/ ): Router {
   const createHistory = process.env.SERVER
     ? createMemoryHistory
     : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
@@ -25,16 +25,17 @@ export default function( { store } : {store: Store<unknown>} ): Router {
     history: createHistory(process.env.VUE_ROUTER_BASE)
   });
 
+  
 
-
-  store.commit("previousRoute", undefined)
+  //uiStore.previousRoute = undefined
   let first = true;
   
   router.afterEach((to, from, failure) => {
     if (!failure) {
       // there is a first call to this guard at the first page that we want to ignore.
       if(!first) {
-        store.commit("previousRoute", from.meta.back === false ? undefined : from.fullPath)
+        const uiStore = useUIStore()
+        uiStore.previousRoute = from.meta.back === false ? undefined : from.fullPath
       } else {
         first = false
       }

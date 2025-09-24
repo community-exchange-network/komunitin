@@ -34,17 +34,17 @@
  * using the PageHeader component.
  */
 import MenuDrawer from "../components/MenuDrawer.vue";
-import { useStore } from "vuex";
 import { computed } from "vue"
+import { useUIStore } from "src/stores/ui";
 
-const store = useStore()
+const uiStore = useUIStore()
 
-const drawerExists = computed(() => store.getters.drawerExists)
+const drawerExists = computed(() => uiStore.drawerExists)
 const drawerState = computed({
-  get: () => store.state.ui.drawerState,
-  set: (val) => store.commit('drawerState', val)
+  get: () => uiStore.drawerState,
+  set: (val) => uiStore.drawerState = val
 })
-const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
+const drawerChange = (state: boolean) => uiStore.drawerPersistent = state
 
 </script>
 <style lang="scss" scoped>

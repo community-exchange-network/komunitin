@@ -28,7 +28,7 @@
           round
           icon="menu"
           :aria-label="$t('menu')"
-          @click="$store.dispatch('toogleDrawer')"
+          @click="uiStore.toggleDrawer()"
         />
       </div>
       <div
@@ -132,6 +132,7 @@ import { useStore } from "vuex"
 import { useRouter } from "vue-router"
 import FormatCurrency from "../plugins/FormatCurrency";
 import Banner from "./Banner.vue";
+import { useUIStore } from "src/stores/ui";
 
 const props = withDefaults(defineProps<{
   title?: string;
@@ -151,6 +152,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useStore()
+const uiStore = useUIStore()
 
 const searchActive = ref(false)
 const searchText = ref("")
@@ -165,7 +167,7 @@ const showBack = computed(() => props.back != "" || !store.getters.drawerExists)
 /**
  * Show the menu button.
  */
-const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
+const showMenu = computed(() => !showBack.value && !uiStore.drawerPersistent)
 /**
  * Show no button
  */
@@ -210,7 +212,7 @@ const onSearch = () => {
 const router = useRouter()
 
 const goUp = () => {
-  if (store.state.ui.previousRoute !== undefined) {
+  if (uiStore.previousRoute !== undefined) {
     router.back()
   } else {
     router.push(props.back)
