@@ -26,6 +26,21 @@
             </div>
 
             <div class="q-mb-md">
+              <div class="text-caption text-grey-6">Test Mode</div>
+              <q-chip
+                :color="migration.data?.test ? 'orange' : 'green'"
+                text-color="white"
+                :label="migration.data?.test ? 'Test' : 'Production'"
+                size="sm"
+              />
+            </div>
+
+            <div class="q-mb-md">
+              <div class="text-caption text-grey-6">Current Step</div>
+              <div class="text-weight-medium">{{ migration.data?.step || 'Not started' }}</div>
+            </div>
+
+            <div class="q-mb-md">
               <div class="text-caption text-grey-6">Status</div>
               <q-chip
                 :color="getStatusColor(migration.status)" 

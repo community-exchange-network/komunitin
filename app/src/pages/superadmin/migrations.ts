@@ -208,27 +208,31 @@ export const useMigration = (id: MaybeRefOrGetter<string>) => {
     await fetchMigration(migrationId)
   }
 
-  const update = async (data: Partial<Migration>) => {
+  const update = async (updated: Partial<Migration>) => {
     if (!migration.value) {
       throw new Error('No migration loaded')
     }
-    if (data.id && data.id !== migration.value.id) {
+    if (updated.id && updated.id !== migration.value.id) {
       throw new Error('Cannot change migration id')
     }
-    if (data.code && data.code !== migration.value.code) {
+    if (updated.code && updated.code !== migration.value.code) {
       throw new Error('Cannot change migration code')
     }
-    if (data.kind && data.kind !== migration.value.kind) {
+    if (updated.kind && updated.kind !== migration.value.kind) {
       throw new Error('Cannot change migration kind')
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const {id, ...attributes} = data
+    const {id, data, name, code } = updated
     const body = {
       data: {
         type: "migrations",
         id: migration.value.id,
-        attributes
+        attributes: {
+          name,
+          code,
+          data,
+        }
       }
     }
     await authFetch(`${baseUrl.value}/migrations/${migration.value.id}`, {
