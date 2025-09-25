@@ -7,7 +7,7 @@
     >
       <q-layout
         id="layout"
-        view="LHH LpR LfR"
+        view="LHH LpR LFR"
         container
       >
         <q-drawer
