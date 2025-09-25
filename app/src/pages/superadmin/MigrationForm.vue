@@ -38,6 +38,12 @@
 
     <template v-if="kind === 'integralces-accounting'">
       <q-input
+        v-model="step"
+        label="Step"
+        outlined
+        class="q-mb-md col-6"
+      />
+      <q-input
         v-model="sourceUrl"
         label="IntegralCES URL"
         outlined
@@ -66,10 +72,10 @@
 
     <q-btn
       type="submit"
-      label="Create Migration"
+      label="Submit"
       color="primary"
       unelevated
-      class="full-width"
+      
     />
   </q-form>
 </template>
@@ -82,13 +88,14 @@ import { useStore } from 'vuex';
 
 const defaultSourceUrl = new URL(KOptions.url.social).origin;
 
-const model = defineModel<Partial<Migration> | undefined>()
+const model = defineModel<Partial<Migration> | undefined | null>()
 const store = useStore()
 
 const code = ref(model.value?.code ?? '')
 const name = ref(model.value?.name ?? '')
 const kind = ref(model.value?.kind ?? 'integralces-accounting')
 const test = ref(model.value?.data?.test ?? true)
+const step = ref(model.value?.data?.step ?? '')
 
 const sourceUrl = ref(model.value?.data?.source.url ?? defaultSourceUrl)
 
@@ -98,9 +105,11 @@ const expiresAt = ref(model.value?.data?.source.tokens.expiresAt ?? '')
 
 const refreshTokens = async () => {
   await store.dispatch('authorize', { force: true })
-  refreshToken.value = store.state.tokens.refreshToken
-  accessToken.value = store.state.tokens.accessToken
-  expiresAt.value = store.state.tokens.accessTokenExpire.toISOString()
+  if (accessToken.value === '') {
+    refreshToken.value = store.state.tokens.refreshToken
+    accessToken.value = store.state.tokens.accessToken
+    expiresAt.value = store.state.tokens.accessTokenExpire.toISOString()
+  }
 }
 
 if (accessToken.value === '') {
@@ -151,6 +160,21 @@ const setName = () => {
 watch(code, setName)
 watch(test, setName)
 
+// Update refs when model.value changes
+watch(model, (newModel) => {
+  if (newModel) {
+    code.value = newModel.code ?? ''
+    name.value = newModel.name ?? ''
+    kind.value = newModel.kind ?? 'integralces-accounting'
+    test.value = newModel.data?.test ?? true
+    step.value = newModel.data?.step ?? ''
+    sourceUrl.value = newModel.data?.source.url ?? defaultSourceUrl
+    refreshToken.value = newModel.data?.source.tokens.refreshToken ?? ''
+    accessToken.value = newModel.data?.source.tokens.accessToken ?? ''
+    expiresAt.value = newModel.data?.source.tokens.expiresAt ?? ''
+  }
+}, { deep: true })
+
 const onSubmit = () => {
   model.value = {
     ...model.value,
@@ -166,7 +190,8 @@ const onSubmit = () => {
           expiresAt: expiresAt.value
         }
       },
-      test: test.value
+      test: test.value,
+      step: step.value
     }  
   }
   emit('submit')

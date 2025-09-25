@@ -45,6 +45,14 @@
               <div>{{ formatDate(migration.updated) }}</div>
             </div>
           </q-card-section>
+          <q-card-actions>
+            <q-btn
+              label="Edit"
+              color="primary"
+              flat
+              @click="editMigration"
+            />
+          </q-card-actions>
         </q-card>
 
         <!-- Migration Log Card -->
@@ -112,6 +120,7 @@
 import { onUnmounted } from 'vue';
 import PageHeader from '../../layouts/PageHeader.vue';
 import { getStatusColor, getStatusLabel, useMigration } from './migrations';
+import { useRouter } from 'vue-router';
 
 const props = defineProps<{
   id: string
@@ -135,5 +144,11 @@ const getLogLevelColor = (level: string) => {
 onUnmounted(() => {
   cleanup()
 })
+
+const router = useRouter()
+
+const editMigration = () => {
+  router.push({ name: 'EditMigration', params: { id: props.id } })
+}
 
 </script>
