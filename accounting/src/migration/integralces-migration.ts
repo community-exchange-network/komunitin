@@ -502,8 +502,10 @@ export class ICESMigrationController {
         this.warn(`Account ${account.code} has negative balance ${balance} but credit limit ${definedCreditLimit} is insufficient, increasing credit limit`, { accountId: account.id });
         account.creditLimit = Number(-balance);
       }
-      const definedMaximumBalance = (account.maximumBalance === -1 || !account.maximumBalance ) ? currency.settings.defaultInitialMaximumBalance : undefined;
-      if (definedMaximumBalance && balance > definedMaximumBalance) {
+      const definedMaximumBalance = (account.maximumBalance && account.maximumBalance > 0) ? account.maximumBalance 
+        : (account.maximumBalance === undefined ? (currency.settings.defaultInitialMaximumBalance ?? false) : false)
+
+      if (definedMaximumBalance !== false && balance > definedMaximumBalance) {
         this.warn(`Account ${account.code} has positive balance ${balance} but maximum balance ${definedMaximumBalance} is insufficient, increasing maximum balance`, { accountId: account.id });
         account.maximumBalance = Number(balance);
       }
@@ -563,7 +565,8 @@ export class ICESMigrationController {
       
       if (!existingAccount) {
         // Create account.
-        const maximumBalance = (account.maximumBalance === -1 || !account.maximumBalance) ? undefined : account.maximumBalance;
+        const maximumBalance = (account.maximumBalance && account.maximumBalance > 0) 
+          ? account.maximumBalance : (account.maximumBalance === undefined ? undefined : 0)
 
         if (isLedgerAccount(account)) {
           // This is the case where the account really needs to be created in the ledger.
@@ -970,15 +973,20 @@ export class ICESMigrationController {
         const ledgerPayer = await ledger.getAccount(payerKey);
         const ledgerAmount = currencyController.amountToLedger((positive ? 1 : -1) * Number(difference));
 
-        const transfer = await ledgerPayer.pay({
-          amount: ledgerAmount.toString(),
-          payeePublicKey: payeeKey,
-        }, keys)
-        await this.log(`Transfer of ${difference} created for account ${account.code} with balance ${balance}`, {
-          hash: transfer.hash,
-          account: account.code,
-          balance: balance.toString(),
-        });
+        try {
+          const transfer = await ledgerPayer.pay({
+            amount: ledgerAmount.toString(),
+            payeePublicKey: payeeKey,
+          }, keys)
+
+          await this.log(`Transfer of ${difference} created for account ${account.code} with balance ${balance}`, {
+            hash: transfer.hash,
+            account: account.code,
+            balance: balance.toString(),
+          });
+        } catch (error) {
+          throw new Error(`Transfer of ${difference} for account ${account.code} failed`, { cause: error });
+        }
       }
 
       // Double check the balance after the transfer
