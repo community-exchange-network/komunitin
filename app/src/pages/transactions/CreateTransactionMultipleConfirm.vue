@@ -79,8 +79,8 @@ watch(() => props.rows, () => {
         meta: {
           description: row.description,
         },
-        created: new Date().toUTCString(),
-        updated: new Date().toUTCString(),
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
         state: "new"
       },
       relationships: {
