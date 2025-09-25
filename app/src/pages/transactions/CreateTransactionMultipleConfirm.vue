@@ -62,7 +62,7 @@ const store = useStore()
 const myAccount = computed(() => store.getters.myAccount)
 const myCurrency = computed<Currency>(() => myAccount.value.currency)
 
-const transferAmount = (amount: number) => amount * (10 ** myCurrency.value.attributes.scale)
+const transferAmount = (amount: number) => Math.round(amount * (10 ** myCurrency.value.attributes.scale))
 
 const transfers = ref<ExtendedTransfer[]>([])
 watch(() => props.rows, () => {
