@@ -24,9 +24,9 @@
         <q-footer class="lt-md">
           <q-toolbar>
             <q-tabs breakpoint="1024" class="full-width">
-              <q-route-tab :to="{ name: 'Group', params: { code: groupCode }}" name="home" icon="home" label="Home" />
-              <q-route-tab :to="{ name: 'TransactionList', params: { code: groupCode, memberCode: myMember.attributes.code}}" name="account" icon="account_balance_wallet" label="Account" />
-              <q-route-tab :to="{ name: 'MemberList', params: { code: groupCode }}" name="group" icon="diversity_3" label="Group" />
+              <q-route-tab :to="{ name: 'Group', params: { code: groupCode }}" name="home" icon="home" :label="t('home')" />
+              <q-route-tab :to="{ name: 'TransactionList', params: { code: groupCode, memberCode: myMember.attributes.code}}" name="account" icon="account_balance_wallet" :label="t('account')" />
+              <q-route-tab :to="{ name: 'MemberList', params: { code: groupCode }}" name="group" icon="diversity_3" :label="t('group')" />
             </q-tabs>
           </q-toolbar>
         </q-footer>
@@ -44,9 +44,11 @@
  */
 import MenuDrawer from "../components/MenuDrawer.vue";
 import { useStore } from "vuex";
-import { computed } from "vue"
+import { computed } from "vue";
+import { useI18n } from 'vue-i18n';
 
 const store = useStore()
+const { t } = useI18n();
 
 const drawerExists = computed(() => store.getters.drawerExists)
 const drawerState = computed({
