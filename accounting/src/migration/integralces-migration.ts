@@ -7,6 +7,7 @@ import { systemContext } from "../utils/context";
 import { fixUrl } from "../utils/net";
 import { Migration, MigrationAccount, MigrationData, MigrationLogEntry, MigrationTransfer } from "./migration";
 import { MigrationController } from "./migration-controller";
+import { KError, KErrorCode } from "../utils/error";
 
 const UNLIMITED_CREDIT_LIMIT = 10 ** 6
 
@@ -21,7 +22,6 @@ interface ICESMigration extends Migration {
         expiresAt: string
       }
     },
-    step: string
   } 
 }
 
@@ -42,8 +42,21 @@ const promisePool = async <T, U>(
       try {
         results[currentIndex] = await fn(items[currentIndex])
       } catch (error) {
-        stop = true;
-        throw error
+        if (error instanceof KError && error.code === KErrorCode.TransactionError
+          && error.details?.inner === "tx_bad_seq"
+        ) {
+          // Retry once after a delay
+          try {
+            await new Promise(resolve => setTimeout(resolve, 1000)) // wait a second before retrying
+            results[currentIndex] = await fn(items[currentIndex])
+          } catch (error) {
+            stop = true;
+            throw error
+          }
+        } else {
+          stop = true;
+          throw error
+        }
       }
     }
   }
@@ -175,7 +188,7 @@ export class ICESMigrationController {
     const tokens = this.migration.data.source.tokens;
 
     const isAccessTokenValid = tokens.accessToken && new Date(tokens.expiresAt) > new Date();
-    const shouldRefresh = !!tokens.refreshToken && (!tokens.accessToken || new Date(tokens.expiresAt) < new Date(Date.now() - 5 * 60 * 1000));
+    const shouldRefresh = tokens.refreshToken && (!tokens.accessToken || new Date(tokens.expiresAt) < new Date(Date.now() + 5 * 60 * 1000));
     
     if (shouldRefresh) {
       const authUrl = `${this.migration.data.source.url}/oauth2/token`
@@ -478,6 +491,22 @@ export class ICESMigrationController {
     const isDeletedAccount = (account: MigrationAccount) => {
       const status = account.member?.state
       return status === AccountStatus.Deleted
+    }
+
+    // Fix account credit limits. In exceptional cases, the account balance may be less than the credit limit or more than the maximum balance.
+    for (const account of accounts) {
+      const definedCreditLimit = account.creditLimit === -1 ? currency.settings.defaultInitialCreditLimit : account.creditLimit;
+      // Using the returned balance since we can't compute it here without all transfers.
+      const balance = account.balance
+      if (balance < 0 && balance < -definedCreditLimit) {
+        this.warn(`Account ${account.code} has negative balance ${balance} but credit limit ${definedCreditLimit} is insufficient, increasing credit limit`, { accountId: account.id });
+        account.creditLimit = Number(-balance);
+      }
+      const definedMaximumBalance = (account.maximumBalance === -1 || !account.maximumBalance ) ? currency.settings.defaultInitialMaximumBalance : undefined;
+      if (definedMaximumBalance && balance > definedMaximumBalance) {
+        this.warn(`Account ${account.code} has positive balance ${balance} but maximum balance ${definedMaximumBalance} is insufficient, increasing maximum balance`, { accountId: account.id });
+        account.maximumBalance = Number(balance);
+      }
     }
 
     // Ensure credit account has enough balance for creating all accounts.
@@ -855,12 +884,15 @@ export class ICESMigrationController {
       return migrationAccountA.balance - migrationAccountB.balance;
     })
 
+    const migrationAccountCode = `${this.migration.code}MIGRA`
+
     // This is a virtual account so taht all transfers get factored through this account.
     const getMigrAccount = async () => {
-      let migrAccount = await currencyController.accounts.getAccountByCode(systemContext(), `${this.migration.code}MIGR`);
+      let migrAccount = await currencyController.accounts.getAccountByCode(systemContext(), migrationAccountCode);
       if (!migrAccount) {
         migrAccount = await currencyController.accounts.createAccount(systemContext(), {
-          code: `${this.migration.code}MIGR`
+          code: migrationAccountCode,
+          maximumBalance: 0
         }) as FullAccount;
       }
       return migrAccount
@@ -895,16 +927,7 @@ export class ICESMigrationController {
       if (mAccount !== undefined && (balance !== BigInt(mAccount.balance))) {
         await this.warn(`Balance mismatch for account ${account.code}: computed ${balance}, expected ${mAccount.balance}`);
       }
-      // It is possible in exceptional cases that the account does not have sufficient credit
-      // In this case we increase the account credit limit just to satisfy its balance.
-      if (balance < 0 && balance < -account.creditLimit) {
-        this.warn(`Account ${account.code} has negative balance ${balance} but credit limit ${account.creditLimit} is insufficient, increasing credit limit`);
-        account.creditLimit = Number(-balance);
-        await currencyController.accounts.updateAccount(systemContext(), {
-          id: account.id,
-          creditLimit: account.creditLimit
-        })
-      }
+
       let accountKey
       let difference
       if (account.status === "active") {

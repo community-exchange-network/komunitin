@@ -1,6 +1,6 @@
 import { Context } from "src/utils/context"
 import { SharedController } from "../controller"
-import { ApiMigration, CreateMigration, MigrationLogEntry, Migration, MigrationStatus } from "./migration"
+import { ApiMigration, CreateMigration, MigrationLogEntry, Migration, MigrationStatus, UpdateMigration } from "./migration"
 import { notFound } from "../utils/error"
 import { EventEmitter } from "events"
 import TypedEmitter from "typed-emitter"
@@ -38,6 +38,9 @@ export class MigrationController {
     const db = this.controller.privilegedDb()
     const migration = await db.migration.findUnique({
       where: { id },
+      omit: {
+        log: true
+      }
     })
 
     if (!migration) {
@@ -48,7 +51,17 @@ export class MigrationController {
   }
 
   async getMigration(ctx: Context, id: string): Promise<ApiMigration> {
-     return await this.getFullMigration(id) as ApiMigration
+    // Return only the main fields and a few fields from data.
+    const { data, ...migration } = await this.getFullMigration(id)
+    const { step, test, source } = data || {}
+    return {
+      ...migration,
+      data: {
+        step,
+        test,
+        source
+      }
+    }
   }
   
   async createMigration(ctx: Context, migration: CreateMigration): Promise<ApiMigration> {
@@ -67,10 +80,43 @@ export class MigrationController {
       }
     })
 
-    // Add initial log entry
-    await this.addLogEntry(migrationRecord, "info", "create", "Migration record created")
+    const response = await this.getMigration(ctx, migrationRecord.id)
 
-    return migrationRecord
+    // Add initial log entry
+    await this.addLogEntry(response, "info", "create", "Migration record created")
+
+    return response
+  }
+
+  async updateMigration(ctx: Context, migration: UpdateMigration): Promise<ApiMigration> {
+    if (!migration.id) {
+      throw new Error("Migration id is required for update")
+    }
+    const db = this.controller.tenantDb(migration.code)
+    const existingMigration = await db.migration.findUnique({
+      where: { id: migration.id }
+    })
+
+    if (!existingMigration) {
+      throw notFound(`Migration with id ${migration.id} not found`)
+    }
+
+    await db.migration.update({
+      where: { id: migration.id },
+      data: {
+        name: migration.name,
+      }
+    })
+
+    if (migration.data) {
+      await this.updateMigrationData(migration.id, migration.data)
+    }
+
+    const response = await this.getMigration(ctx, migration.id)
+
+    await this.addLogEntry(response, "info", "update", "Migration record updated")
+
+    return response    
   }
 
   async getMigrationLogs(ctx: Context, id: string): Promise<MigrationLogEntry[]> {

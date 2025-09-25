@@ -6,7 +6,7 @@ import { MigrationController } from "./migration-controller"
 import { MigrationSerializer } from './serialize';
 import { context } from '../utils/context';
 import { input } from '../server/parse';
-import { CreateMigration, migrationStatuses, migrationKinds } from './migration';
+import { CreateMigration, migrationStatuses, migrationKinds, Migration, UpdateMigration } from './migration';
 import { jsonApiDoc } from '../server/validation';
 import { body, checkExact } from 'express-validator';
 
@@ -99,6 +99,25 @@ export function getRoutes(controller: SharedController) {
       const migration = await migrationController.createMigration(context(req), data)
       const result = await MigrationSerializer.serialize(migration)
       res.status(201).json(result)
+    })
+  );
+
+  /**
+   * Update a migration
+   */
+  router.patch('/migrations/:id',
+    userAuth(Scope.Superadmin),
+    checkExact([isCreateMigration()]),
+    asyncHandler(async (req, res) => {
+      const id = req.params.id;
+      const data = input<UpdateMigration>(req)
+      if (Array.isArray(data)) {
+        throw new Error("Expected a single migration object, got an array")
+      }
+      data.id = id
+      const migration = await migrationController.updateMigration(context(req), data)
+      const result = await MigrationSerializer.serialize(migration)
+      res.status(200).json(result)
     })
   );
 

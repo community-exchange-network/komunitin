@@ -35,16 +35,19 @@ export interface MigrationData {
     id: string,
     code: string,
     key: string,
-  }
+  },
+  source?: any,
   test?: boolean,
+  step: string
 }
 
 export type CreateMigration = Pick<Migration, "code" | "name" | "kind" | "data">
+export type UpdateMigration = CreateMigration & { id: string }
 
 export type Migration = Omit<MigrationRecord, "data" | "log"> & {
   data: MigrationData,
   log: MigrationLogEntry[],
 }
 
-export type ApiMigration = Omit<Migration, "data" | "log">
+export type ApiMigration = Omit<Migration, "data" | "log"> & { data?: Pick<MigrationData, "step" | "test" | "source"> | null}
 
