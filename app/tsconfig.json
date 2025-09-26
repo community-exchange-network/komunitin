@@ -2,6 +2,7 @@
   "extends": "@quasar/app-webpack/tsconfig-preset",
   "compilerOptions": {
     "baseUrl": ".",
+    "lib": ["es2020", "dom", "dom.iterable"],
     "types": ["node", "jest", "resize-observer-browser"],
     "allowSyntheticDefaultImports": true,
     "typeRoots": ["./node_modules/@types", "./src/types"]
