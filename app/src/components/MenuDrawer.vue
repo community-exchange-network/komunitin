@@ -130,9 +130,15 @@
       to="/groups"
     />
     <menu-item
-      icon="info"
-      :title="$t('komunitinProject')"
-      href="https://github.com/komunitin/komunitin"
+    icon="info"
+    :title="$t('komunitinProject')"
+    href="https://github.com/komunitin/komunitin"
+    />
+    <menu-item 
+      v-if="feedbackURL"
+      icon="feedback"
+      :title="$t('feedback')"
+      :href="feedbackURL"
     />
   </q-list>
 </template>
@@ -146,6 +152,7 @@ import GroupHeader from "./GroupHeader.vue";
 import { useRoute, useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 
+const feedbackURL = process.env.FEEDBACK_URL;
 const store = useStore()
 const route = useRoute()
 const router = useRouter()
