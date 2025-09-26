@@ -47,7 +47,7 @@ import { computed, onMounted, Ref, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { DeepPartial } from 'quasar';
 import { Category, Currency, CurrencySettings, GroupSettings, ResourceIdentifierObject, ResourceObject, Trustline } from 'src/store/model';
-import { CreatePayload, DeletePayload, UpdatePayload } from 'src/store/resources';
+import { CreatePayload, DeletePayload, UpdatePayload } from 'src/store/action-payloads';
 import { ExtendedTrustline } from './TrustlinesField.vue';
 
 const props = defineProps<{

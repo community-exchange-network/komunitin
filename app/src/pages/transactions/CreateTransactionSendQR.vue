@@ -32,7 +32,7 @@ import { ExtendedAccountWithSettings, transferAccountRelationships, useCreateTra
 import { QrcodeStream } from "vue-qrcode-reader"
 import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue"
 import KError, { KErrorCode } from "src/KError"
-import { LoadByUrlPayload } from "src/store/resources"
+import { LoadByUrlPayload } from "src/store/action-payloads"
 import { loadExternalAccountRelationships, useFullTransferByResource } from "src/composables/fullTransfer"
 import { useI18n } from "vue-i18n"
 import { convertCurrency } from "src/plugins/FormatCurrency"

@@ -1,5 +1,5 @@
 import { Account, Currency, ExtendedTransfer, Member } from 'src/store/model'
-import { LoadPayload } from 'src/store/resources'
+import { LoadPayload } from 'src/store/action-payloads'
 import { watch, Ref, computed, ref } from 'vue'
 import { Store, useStore } from 'vuex'
 

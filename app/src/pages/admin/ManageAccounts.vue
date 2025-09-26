@@ -221,7 +221,7 @@ import MemberHeader from 'src/components/MemberHeader.vue';
 import DeleteMemberBtn from 'src/pages/settings/DeleteMemberBtn.vue';
 import MemberStatusChip from '../../components/MemberStatusChip.vue';
 import { Account, AccountSettings, CurrencySettings, Group, Member } from 'src/store/model';
-import { LoadListPayload } from 'src/store/resources';
+import { LoadListPayload } from 'src/store/action-payloads';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';

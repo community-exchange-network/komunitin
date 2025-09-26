@@ -47,7 +47,7 @@ import ResourceCards from "../ResourceCards.vue";
 import TransactionItem from "src/components/TransactionItem.vue";
 import { useStore } from "vuex";
 import { ExtendedTransfer, Account, Currency } from "../../store/model";
-import { LoadListPayload } from "src/store/resources";
+import { LoadListPayload } from "src/store/action-payloads";
 
 const props = defineProps<{
   code: string,

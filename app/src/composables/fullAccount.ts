@@ -2,7 +2,7 @@ import { MaybeRefOrGetter, toValue } from "@vueuse/core"
 import { Account, AccountSettings, Currency, CurrencySettings, ExtendedAccount, RelatedResource } from "src/store/model"
 import { ref, watchEffect } from "vue"
 import { useStore } from "vuex"
-import { LoadByUrlPayload } from "../store/resources"
+import { LoadByUrlPayload } from "../store/action-payloads"
 
 export type ExtendedAccountWithSettings = ExtendedAccount & { settings: AccountSettings, currency: Currency & { settings: CurrencySettings } }
 

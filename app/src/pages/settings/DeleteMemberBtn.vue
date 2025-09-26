@@ -55,7 +55,7 @@ import { useI18n } from "vue-i18n";
 
 import { Account, Currency, Group, Member } from "src/store/model";
 import { transferAccountRelationships } from "src/composables/fullAccount";
-import { DeletePayload } from "src/store/resources";
+import { DeletePayload } from "src/store/action-payloads";
 import { useRouter } from "vue-router";
 
 

@@ -48,7 +48,7 @@ import {Transfer, TransferState} from "../../store/model"
 import { useI18n } from "vue-i18n"
 
 import TransactionCard from "../../components/TransactionCard.vue"
-import { UpdatePayload } from "../../store/resources"
+import { UpdatePayload } from "../../store/action-payloads"
 import {notifyTransactionState} from "../../plugins/NotifyTransactionState"
 import { useFullTransferById } from "src/composables/fullTransfer"
 
