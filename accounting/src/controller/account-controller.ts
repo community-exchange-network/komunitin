@@ -44,11 +44,11 @@ export class AccountController extends AbstractCurrencyController implements IAc
       sponsor: await this.keys().sponsorKey()
     }
     
-    const options = {
+    const ledgerOptions = {
       initialCredit: this.currencyController.amountToLedger(creditLimit),
-      maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance) : undefined
+      maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance + creditLimit) : undefined
     }
-    const {key} = await this.currencyController.ledger.createAccount(options, keys)
+    const {key} = await this.currencyController.ledger.createAccount(ledgerOptions, keys)
     // Store key
     const keyId = await this.keys().storeKey(key)
     // Store account in DB
@@ -153,13 +153,17 @@ export class AccountController extends AbstractCurrencyController implements IAc
     }
     // Update credit limit
     if (data.creditLimit && data.creditLimit !== account.creditLimit) {
-      const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-      await ledgerAccount.updateCredit(this.currencyController.amountToLedger(data.creditLimit), {
-        sponsor: await this.keys().sponsorKey(),
-        credit: data.creditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
-        issuer: data.creditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
-        account: data.creditLimit < account.creditLimit ? await this.keys().adminKey() : undefined
-      })
+      if (account.status === AccountStatus.Active) {
+        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+        await ledgerAccount.updateCredit(this.currencyController.amountToLedger(data.creditLimit), {
+          sponsor: await this.keys().sponsorKey(),
+          credit: data.creditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
+          issuer: data.creditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
+          account: data.creditLimit < account.creditLimit ? await this.keys().adminKey() : undefined
+        })
+      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
+        throw badRequest("Cannot update credit limit of disabled or suspended accounts. Enable the account first.")
+      }
     }
     // Update maximum balance
     if (data.maximumBalance && data.maximumBalance !== account.maximumBalance) {
@@ -284,7 +288,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
   }
 
   /**
-   * Implements {@link CurrencyController.getAccountByCode}
+   * Implements {@link CurrencyController#getAccountByCode}
    */
   async getAccountByCode(ctx: Context, code: string): Promise<FullAccount|undefined> {
     // Anonymous users can access this endpoint.
@@ -366,15 +370,34 @@ export class AccountController extends AbstractCurrencyController implements IAc
     if (!(this.users().isAdmin(user) || userHasAccount(user, account))) {
       throw forbidden("User is not allowed to delete this account")
     }
-    const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+    if (account.status === AccountStatus.Deleted) {
+      throw badRequest("Account is already deleted")
+    }
     if (account.balance != 0) {
       throw badRequest("Account balance must be zero to delete account")
     }
-    // Delete account in ledger
-    await ledgerAccount.delete({
-      sponsor: await this.keys().sponsorKey(),
-      admin: await this.keys().adminKey()
-    })
+
+    if (account.status === AccountStatus.Active) {
+      const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+      // Delete account in ledger
+      await ledgerAccount.delete({
+        sponsor: await this.keys().sponsorKey(),
+        admin: await this.keys().adminKey()
+      })
+
+    } else if (account.status === AccountStatus.Suspended || account.status === AccountStatus.Disabled) {
+      // in this case there is no account in the ledger, but the pool has the balance for the 
+      // credit limit of the disabled account (since we've already check it has balance = 0).
+      const pool = await this.currencyController.ledger.getAccount(this.currency().keys.disabledAccountsPool!)
+      await pool.pay({
+        payeePublicKey: this.currency().keys.credit,
+        amount: this.currencyController.amountToLedger(account.creditLimit),
+      }, {
+        account: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
+        sponsor: await this.keys().sponsorKey(),
+      })
+    }
+
     // Soft delete account in DB
     await this.db().account.update({
       data: { status: "deleted" },

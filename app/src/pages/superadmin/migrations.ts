@@ -17,7 +17,9 @@ export interface Migration {
         accessToken: string
         expiresAt: string
       }
-    }
+    },
+    test?: boolean
+    step?: string
   }
   created: string
   updated: string
@@ -52,7 +54,7 @@ const useAuthFetch = () => {
         'Authorization': `Bearer ${store.getters.accessToken}`
       }
     })
-    checkFetchError(response)
+    await checkFetchError(response)
     try {
       return await response.json()
     } catch {
@@ -100,7 +102,7 @@ export const useMigrations = (options: { immediate?: boolean} = { immediate: tru
     const result = await authFetch(`${baseUrl.value}/migrations`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/vnd.api+json',
       },
       body: JSON.stringify(data)
     });
@@ -206,10 +208,51 @@ export const useMigration = (id: MaybeRefOrGetter<string>) => {
     await fetchMigration(migrationId)
   }
 
+  const update = async (updated: Partial<Migration>) => {
+    if (!migration.value) {
+      throw new Error('No migration loaded')
+    }
+    if (updated.id && updated.id !== migration.value.id) {
+      throw new Error('Cannot change migration id')
+    }
+    if (updated.code && updated.code !== migration.value.code) {
+      throw new Error('Cannot change migration code')
+    }
+    if (updated.kind && updated.kind !== migration.value.kind) {
+      throw new Error('Cannot change migration kind')
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const {id, data, name, code } = updated
+    const body = {
+      data: {
+        type: "migrations",
+        id: migration.value.id,
+        attributes: {
+          name,
+          code,
+          data,
+        }
+      }
+    }
+    await authFetch(`${baseUrl.value}/migrations/${migration.value.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/vnd.api+json',
+      },
+      body: JSON.stringify(body)
+    });
+
+    q.notify({ type: 'positive', message: `Migration ${migration.value.code} updated`, position: 'top' })
+    return migration.value.id
+
+  }
+
   return {
     migration,
     log,
     loading,
+    update,
     play,
     cleanup
   }

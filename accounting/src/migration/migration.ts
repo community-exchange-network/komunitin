@@ -16,7 +16,8 @@ export const migrationStatuses = ["new", "started", "completed", "failed"] as co
 export type MigrationStatus = typeof migrationStatuses[number]
 
 type AccountMember = {
-  state: "draft" | "pending" | "active" | "suspended" | "deleted"
+  id: string,
+  state: "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted"
   type: "personal" | "business" | "public" | "virtual"
 }
 export type MigrationCurrency = Pick<Currency, "id" | "code" | "name" | "namePlural" | "symbol" | "decimals" | "scale" | "rate" | "created" | "updated"> 
@@ -34,15 +35,19 @@ export interface MigrationData {
     id: string,
     code: string,
     key: string,
-  }
+  },
+  source?: any,
+  test?: boolean,
+  step: string
 }
 
 export type CreateMigration = Pick<Migration, "code" | "name" | "kind" | "data">
+export type UpdateMigration = CreateMigration & { id: string }
 
 export type Migration = Omit<MigrationRecord, "data" | "log"> & {
   data: MigrationData,
   log: MigrationLogEntry[],
 }
 
-export type ApiMigration = Omit<Migration, "data" | "log">
+export type ApiMigration = Omit<Migration, "data" | "log"> & { data?: Pick<MigrationData, "step" | "test" | "source"> | null}
 

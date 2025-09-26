@@ -26,6 +26,21 @@
             </div>
 
             <div class="q-mb-md">
+              <div class="text-caption text-grey-6">Test Mode</div>
+              <q-chip
+                :color="migration.data?.test ? 'orange' : 'green'"
+                text-color="white"
+                :label="migration.data?.test ? 'Test' : 'Production'"
+                size="sm"
+              />
+            </div>
+
+            <div class="q-mb-md">
+              <div class="text-caption text-grey-6">Current Step</div>
+              <div class="text-weight-medium">{{ migration.data?.step || 'Not started' }}</div>
+            </div>
+
+            <div class="q-mb-md">
               <div class="text-caption text-grey-6">Status</div>
               <q-chip
                 :color="getStatusColor(migration.status)" 
@@ -45,6 +60,14 @@
               <div>{{ formatDate(migration.updated) }}</div>
             </div>
           </q-card-section>
+          <q-card-actions>
+            <q-btn
+              label="Edit"
+              color="primary"
+              flat
+              @click="editMigration"
+            />
+          </q-card-actions>
         </q-card>
 
         <!-- Migration Log Card -->
@@ -112,6 +135,7 @@
 import { onUnmounted } from 'vue';
 import PageHeader from '../../layouts/PageHeader.vue';
 import { getStatusColor, getStatusLabel, useMigration } from './migrations';
+import { useRouter } from 'vue-router';
 
 const props = defineProps<{
   id: string
@@ -135,5 +159,11 @@ const getLogLevelColor = (level: string) => {
 onUnmounted(() => {
   cleanup()
 })
+
+const router = useRouter()
+
+const editMigration = () => {
+  router.push({ name: 'EditMigration', params: { id: props.id } })
+}
 
 </script>
