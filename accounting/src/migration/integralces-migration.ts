@@ -42,18 +42,11 @@ const promisePool = async <T, U>(
       try {
         results[currentIndex] = await fn(items[currentIndex])
       } catch (error) {
-        if (error instanceof KError && error.code === KErrorCode.TransactionError
-          && error.details?.inner === "tx_bad_seq"
-        ) {
-          // Retry once after a delay
-          try {
-            await new Promise(resolve => setTimeout(resolve, 1000)) // wait a second before retrying
-            results[currentIndex] = await fn(items[currentIndex])
-          } catch (error) {
-            stop = true;
-            throw error
-          }
-        } else {
+        // Retry once after a delay
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1000)) // wait a second before retrying
+          results[currentIndex] = await fn(items[currentIndex])
+        } catch (error) {
           stop = true;
           throw error
         }
@@ -985,7 +978,12 @@ export class ICESMigrationController {
             balance: balance.toString(),
           });
         } catch (error) {
-          throw new Error(`Transfer of ${difference} for account ${account.code} failed`, { cause: error });
+          if (error instanceof Error) {
+            error.message = `Transfer of ${difference} for account ${account.code} failed: ${error.message}`;
+          } else {
+            error = new Error(`Transfer of ${difference} for account ${account.code} failed`, { cause: error });
+          }
+          throw error
         }
       }
 
