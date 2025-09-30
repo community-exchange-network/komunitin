@@ -134,6 +134,7 @@ export class StellarAccount implements LedgerAccount {
         }
         await this.currency.ledger.submitTransaction(builder, signers, keys.sponsor)
       }
+      logger.info(`Account ${this.accountId} credit updated from ${currentCredit} to ${amount}`)
       return diff.toString()
     }
     return "0"
@@ -146,6 +147,22 @@ export class StellarAccount implements LedgerAccount {
       throw internalError(`Unexpected account without ${asset.code} currency balance`)
     }
     return balance.limit
+  }
+
+  /**
+   * Implements {@link LedgerAccount#updateMaximumBalance }
+   */
+  async updateMaximumBalance(amount: string|undefined, keys: {account: Keypair, sponsor: Keypair}): Promise<void> {
+    if (amount === undefined || amount !== this.maximumBalance()) {
+      const builder = this.currency.ledger.transactionBuilder(this)
+      builder.addOperation(Operation.changeTrust({
+        asset: this.currency.asset(),
+        limit: amount,
+      }))
+      // Note that it is not necessary to authorize the trustline change with the issuer key.
+      await this.currency.ledger.submitTransaction(builder, [keys.account], keys.sponsor)
+      logger.info(`Account ${this.accountId} maximum balance updated to ${amount}`)
+    }
   }
 
   private stellarBalance(asset: Asset) {

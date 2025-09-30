@@ -154,16 +154,26 @@ export class AccountController extends AbstractCurrencyController implements IAc
     // Update credit limit
     if (data.creditLimit && data.creditLimit !== account.creditLimit) {
       const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-      await ledgerAccount.updateCredit(this.currencyController.amountToLedger(data.creditLimit), {
+      const ledgerCreditLimit = this.currencyController.amountToLedger(data.creditLimit)
+      await ledgerAccount.updateCredit(ledgerCreditLimit, {
         sponsor: await this.keys().sponsorKey(),
         credit: data.creditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
         issuer: data.creditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
         account: data.creditLimit < account.creditLimit ? await this.keys().adminKey() : undefined
       })
+      account.creditLimit = data.creditLimit
     }
     // Update maximum balance
-    if (data.maximumBalance && data.maximumBalance !== account.maximumBalance) {
-      throw notImplemented("Updating maximum balance not implemented yet")
+    if (data.maximumBalance !== undefined && data.maximumBalance !== account.maximumBalance) {
+      const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+      const ledgerMaximumBalance = data.maximumBalance 
+        ? this.currencyController.amountToLedger(data.maximumBalance + account.creditLimit)
+        : undefined // no limit
+        
+      await ledgerAccount.updateMaximumBalance(ledgerMaximumBalance, {
+        sponsor: await this.keys().sponsorKey(),
+        account: await this.keys().adminKey()
+      })
     }
 
     const updateData = {

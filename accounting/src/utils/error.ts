@@ -11,6 +11,7 @@ export enum KErrorCode {
   TransactionError = "TransactionError",
   InsufficientBalance = "InsufficientBalance",
   NoTrustPath = "NoTrustPath",
+  InsufficientMaximumBalance = "InsufficientMaximumBalance",
 }
 
 const errorDefinitions: Record<KErrorCode, [number, string]> = {
@@ -24,6 +25,7 @@ const errorDefinitions: Record<KErrorCode, [number, string]> = {
   [KErrorCode.Unauthorized]: [401, "Unauthorized"],
   [KErrorCode.Forbidden]: [403, "Forbidden"],
   [KErrorCode.InsufficientBalance]: [400, "Insufficient Balance"],
+  [KErrorCode.InsufficientMaximumBalance]: [400, "Insufficient Maximum Balance"],
   [KErrorCode.NoTrustPath]: [400, "No trust path between currencies"],
 } as const
 
@@ -64,4 +66,5 @@ export const fieldValidationError = (message: string, options?: KErrorOptions) =
 export const unauthorized = (message: string, options?: KErrorOptions) => new KError(KErrorCode.Unauthorized, message, options)
 export const forbidden = (message: string, options?: KErrorOptions) => new KError(KErrorCode.Forbidden, message, options)
 export const insufficientBalance = (message: string, options?: KErrorOptions) => new KError(KErrorCode.InsufficientBalance, message, options)
+export const insufficientMaximumBalance = (message: string, options?: KErrorOptions) => new KError(KErrorCode.InsufficientMaximumBalance, message, options)
 export const noTrustPath = (message: string, options?: KErrorOptions) => new KError(KErrorCode.NoTrustPath, message, options)
