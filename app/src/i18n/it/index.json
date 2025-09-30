@@ -363,6 +363,7 @@
   "ErrorAuthNoCredentials": "Email o password errate",
   "ErrorInvalidPassword": "La password non è corretta",
   "ErrorInsufficientBalance": "Credito insufficiente",
+  "ErrorInsufficientMaximumBalance": "Il saldo massimo del venditore è insufficiente",
   "ErrorNoTrustPath": "La transazione non è riuscita perché non esiste un percorso di scambio tra le due valute",
   "ErrorTransactionError": "La transazione non è andata a buon fine",
   "ErrorInvalidTransfersCSVFileLineColumn": "Errore durante l'analisi del file CSV nella riga {line} colonna {column}",

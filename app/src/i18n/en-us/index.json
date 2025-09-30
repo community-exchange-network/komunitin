@@ -404,6 +404,7 @@
   "ErrorAuthNoCredentials": "Incorrect email or password",
   "ErrorInvalidPassword": "The password is not correct",
   "ErrorInsufficientBalance": "Insufficient balance",
+  "ErrorInsufficientMaximumBalance": "The payee's maximum balance is insufficient",
   "ErrorNoTrustPath": "Transaction failed because there is no exchange path between the two currencies",
   "ErrorTransactionError": "Transaction failed",
   "ErrorInvalidTransfersCSVFileLineColumn": "Error parsing the CSV file in line {line} column {column}",
