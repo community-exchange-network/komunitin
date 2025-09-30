@@ -74,33 +74,36 @@
         <q-card flat bordered>
           <q-card-section>
             <div class="text-overline text-uppercase q-mb-md">Migration Log</div>
-            <div v-if="log.length === 0" class="text-grey text-center q-pa-md">
+            <div v-if="!loading && log.length === 0" class="text-grey text-center q-pa-md">
               No log entries yet
             </div>
-            <div v-else class="q-gutter-sm">
-              <div 
-                v-for="entry in log" 
-                :key="`${entry.time}-${entry.message}`"
-                class="q-pa-sm"
-              >
-                <div class="row items-center q-gutter-sm">
-                  <q-chip 
-                    :color="getLogLevelColor(entry.level)"
-                    text-color="white"
-                    size="sm"
-                    :label="entry.level.toUpperCase()"
-                  />
-                  <span class="text-caption text-grey">{{ formatDate(entry.time) }}</span>
-                  <span class="text-caption text-grey">{{ entry.step }}</span>
-                </div>
-                <div class="q-mt-xs">{{ entry.message }}</div>
-              </div>
-              <q-card-section>
-                <q-spinner 
-                  v-if="migration.status === 'started'" 
-                />
-              </q-card-section>
-            </div>
+            <q-virtual-scroll
+              ref="scroll"
+              :items="items"
+              style="max-height: 600px;"
+            >
+              <template #default="{ item, index }">
+                <q-item :key="index" class="block">
+                  <div class="row items-center q-gutter-sm">
+                    <q-chip 
+                      :color="getLogLevelColor(item.level)"
+                      text-color="white"
+                      size="sm"
+                      :label="item.level.toUpperCase()"
+                    />
+                    <span class="text-caption text-grey">{{ formatDate(item.time) }}</span>
+                    <span class="text-caption text-grey">{{ item.step }}</span>
+                  </div>
+                  <div class="q-mt-xs">{{ item.message }}</div>
+                </q-item>
+            </template>
+            <template #after>
+              <q-spinner 
+                v-if="migration.status === 'started'" 
+                class="q-mx-auto"
+              />
+            </template>
+          </q-virtual-scroll>
           </q-card-section>
         </q-card>
         <div class="row justify-center">
@@ -132,16 +135,18 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { onUnmounted } from 'vue';
+import { onUnmounted, ref, watch } from 'vue';
 import PageHeader from '../../layouts/PageHeader.vue';
 import { getStatusColor, getStatusLabel, useMigration } from './migrations';
 import { useRouter } from 'vue-router';
+import { QVirtualScroll } from 'quasar';
 
 const props = defineProps<{
   id: string
 }>()
 
 const { migration, log, loading, play, cleanup } = useMigration(() => props.id)
+const items = log.value
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleString()
@@ -165,5 +170,13 @@ const router = useRouter()
 const editMigration = () => {
   router.push({ name: 'EditMigration', params: { id: props.id } })
 }
+
+const scroll = ref<QVirtualScroll>()
+
+
+watch(() => log.value.length, async (length) => {
+  items.push(...(log.value.slice(items.length, length)))
+  scroll.value?.refresh(length - 1)
+})
 
 </script>
