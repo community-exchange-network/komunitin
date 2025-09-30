@@ -189,7 +189,6 @@
           :hint="$t('maximumBalanceHint')"
           hide-bottom-space
           outlined
-          disable
           @update:model-value="updateModelValue"
         />
       </template>

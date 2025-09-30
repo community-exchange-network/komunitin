@@ -370,6 +370,14 @@ export interface LedgerAccount {
   }): Promise<string>
 
   /**
+   * Update the maximum allowed balance for this account.
+   * 
+   * @param amount The new maximum balance, including credit.
+   * 
+  */
+  updateMaximumBalance(amount: string|undefined, keys: {account: KeyPair, sponsor: KeyPair}): Promise<void>
+
+  /**
    * Disable an active account. It wont be able to send or receive payments until it is 
    * enabled again.
    * 
