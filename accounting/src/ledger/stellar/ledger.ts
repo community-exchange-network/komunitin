@@ -7,7 +7,7 @@ import Big from "big.js"
 import { logger } from "../../utils/logger"
 import TypedEmitter from "typed-emitter"
 import {EventEmitter} from "node:events"
-import { KError, transactionError, internalError, notImplemented } from "../../utils/error"
+import { KError, transactionError, internalError, notImplemented, insufficientMaximumBalance, insufficientBalance } from "../../utils/error"
 import { rateLimitRunner } from "src/utils/ratelimit"
 
 export type StellarLedgerConfig = {
@@ -433,7 +433,16 @@ export class StellarLedger implements Ledger {
           operations?: string[];
           inner_transaction?: string;
         };
-        return transactionError(msg, {details: {operations, results: result.operations, result: result.transaction, inner: result.inner_transaction}, cause: error})
+        const details = {operations, results: result.operations, result: result.transaction, inner: result.inner_transaction}
+        const options = {details, cause: error}
+
+        if (result.operations?.includes("op_line_full")) {
+          return insufficientMaximumBalance("Insufficient maximum balance", options)
+        } else if (result.operations?.includes("op_underfunded")) {
+          return insufficientBalance("Insufficient balance", options)
+        }
+        
+        return transactionError(msg, options)
       } else {
         // Other Horizon error
         return transactionError(msg, {details: {operations, data}, cause: error})

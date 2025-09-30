@@ -166,8 +166,20 @@ export class AccountController extends AbstractCurrencyController implements IAc
       }
     }
     // Update maximum balance
-    if (data.maximumBalance && data.maximumBalance !== account.maximumBalance) {
-      throw notImplemented("Updating maximum balance not implemented yet")
+    if (data.maximumBalance !== undefined && data.maximumBalance !== account.maximumBalance) {
+      if (account.status === AccountStatus.Active) {
+        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+        const ledgerMaximumBalance = data.maximumBalance 
+          ? this.currencyController.amountToLedger(data.maximumBalance + account.creditLimit)
+          : undefined // no limit
+          
+        await ledgerAccount.updateMaximumBalance(ledgerMaximumBalance, {
+          sponsor: await this.keys().sponsorKey(),
+          account: await this.keys().adminKey()
+        })
+      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
+        throw badRequest("Cannot update maximum balance of disabled or suspended accounts. Enable the account first.")
+      }
     }
 
     const updateData = {
@@ -534,19 +546,20 @@ export class AccountController extends AbstractCurrencyController implements IAc
     await this.db().$transaction(async (t) => {
       await t.accountTag.deleteMany({
         where: { 
-          OR: [
-            { id: { notIn: updateTags.map(t => t.id as string) }},
-          ]
+          id: { 
+            notIn: updateTags.map(t => t.id)
+          },
+          accountId: account.id
         }
       })
       for (const tag of updateTags) {
         await t.accountTag.update({
-          where: { id: tag.id as string },
+          where: { id: tag.id },
           data: { name: tag.name }
         })
       }
       await t.accountTag.createMany({
-        data: newTags as {hash: string, name: string, accountId: string}[]
+        data: newTags
       })
     })
   }

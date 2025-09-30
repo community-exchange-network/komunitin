@@ -372,6 +372,7 @@
   "ErrorAuthNoCredentials": "Email o contrasenya incorrectes",
   "ErrorInvalidPassword": "Contrasenya incorrecta",
   "ErrorInsufficientBalance": "Saldo insuficient",
+  "ErrorInsufficientMaximumBalance": "El balanç màxim del cobrador és insuficient",
   "ErrorNoTrustPath": "La transacció ha fallat perquè no hi ha cap camí d'intercanvi entre les dues monedes",
   "ErrorTransactionError": "La transacció ha fallat",
   "ErrorInvalidTransfersCSVFileLineColumn": "Error llegint el fitxer CSV a la línia {line} columna {column}",

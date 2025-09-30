@@ -10,6 +10,7 @@ export enum KErrorCode {
   // Accounting service error codes.
   TransactionError = "TransactionError",
   InsufficientBalance = "InsufficientBalance",
+  InsufficientMaximumBalance = "InsufficientMaximumBalance",
   NoTrustPath = "NoTrustPath",
 
   // Social service error codes.

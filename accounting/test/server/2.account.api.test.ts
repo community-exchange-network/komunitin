@@ -175,12 +175,18 @@ describe('Accounts endpoints', async () => {
       data: { attributes: { code: 'TEST0001'} }
     }, admin, 400)
   })
-  it.todo('admin updates maximum balance', async () => {
-    const response = await t.api.patch(`/TEST/accounts/${account0.id}`, {
-      data: {attributes: { maximumBalance: 10000 }}
+  it('admin updates maximum balance', async () => {
+    const response = await t.api.patch(`/TEST/accounts/${account1.id}`, {
+      data: { attributes: { maximumBalance: 100000 } }
     }, admin)
-    assert.equal(response.body.data.attributes.maximumBalance, 10000)
+    assert.equal(response.body.data.attributes.maximumBalance, 100000)
   })
+  it('user cannot update maximum balance', async() => {
+    await t.api.patch(`/TEST/accounts/${account1.id}`, {
+      data: {attributes: { maximumBalance: 200000 }}
+    }, user2, 403)
+  })
+    
   it('admin cannot update balance', async () => {
     await t.api.patch(`/TEST/accounts/${account0.id}`, {
       data: {attributes: { balance: 100 }}

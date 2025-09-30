@@ -62,7 +62,7 @@ const store = useStore()
 const myAccount = computed(() => store.getters.myAccount)
 const myCurrency = computed<Currency>(() => myAccount.value.currency)
 
-const transferAmount = (amount: number) => amount * (10 ** myCurrency.value.attributes.scale)
+const transferAmount = (amount: number) => Math.round(amount * (10 ** myCurrency.value.attributes.scale))
 
 const transfers = ref<ExtendedTransfer[]>([])
 watch(() => props.rows, () => {
@@ -79,8 +79,8 @@ watch(() => props.rows, () => {
         meta: {
           description: row.description,
         },
-        created: new Date().toUTCString(),
-        updated: new Date().toUTCString(),
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
         state: "new"
       },
       relationships: {

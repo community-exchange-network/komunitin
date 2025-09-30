@@ -179,8 +179,8 @@ const onSubmit = () => {
         description: concept.value,
       },
       state: "new",
-      created: new Date().toUTCString(),
-      updated: new Date().toUTCString(),
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
     },
     relationships: transferAccountRelationships(payerAccountValue.value, payeeAccountValue.value, myCurrency.value),
   };
