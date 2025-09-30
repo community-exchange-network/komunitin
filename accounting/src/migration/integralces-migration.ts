@@ -1023,10 +1023,22 @@ export class ICESMigrationController {
           sponsor: await currencyController.keys.sponsorKey(),
           externalTrader: await currencyController.keys.externalTraderKey()
         }, remaining)
+      } else {
+        if (currency.externalAccount.maximumBalance && externalBalance > currency.externalAccount.maximumBalance) {
+          await this.warn(`External account balance ${externalBalance} exceeds maximum balance ${currency.externalAccount.maximumBalance}, setting to maximum balance`);
+          await currencyController.accounts.updateAccount(systemContext(), {
+            id: currency.externalAccount.id,
+            maximumBalance: Number(externalBalance)
+          })
+        }
       }
 
+      const key = externalBalance > 0 
+        ? await currencyController.keys.adminKey() 
+        : await currencyController.keys.externalTraderKey()
+
       await setAccountBalance(currency.externalAccount, {
-        account: await currencyController.keys.externalTraderKey(),
+        account: key,
         sponsor: await currencyController.keys.sponsorKey()
       })
       await this.log(`External account balance set successfully to ${externalBalance}`);
