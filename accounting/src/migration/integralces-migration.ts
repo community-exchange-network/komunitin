@@ -1026,9 +1026,9 @@ export class ICESMigrationController {
       } else {
         if (currency.externalAccount.maximumBalance && externalBalance > currency.externalAccount.maximumBalance) {
           await this.warn(`External account balance ${externalBalance} exceeds maximum balance ${currency.externalAccount.maximumBalance}, setting to maximum balance`);
-          await currencyController.accounts.updateAccount(systemContext(), {
-            id: currency.externalAccount.id,
-            maximumBalance: Number(externalBalance)
+          await currencyController.updateCurrencySettings(systemContext(), {
+            id: currency.id,
+            externalTraderMaximumBalance: currency.externalAccount.maximumBalance
           })
         }
       }
