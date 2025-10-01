@@ -1,6 +1,6 @@
 
 import { AccountStatsOptions, CollectionOptions, StatsOptions } from "../server/request"
-import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, FullAccount, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer } from "../model"
+import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, FullAccount, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer, UpdateCurrencySettings } from "../model"
 export { createController } from "./base-controller"
 import { Context } from "../utils/context"
 import TypedEmitter from "typed-emitter"
@@ -55,7 +55,7 @@ export interface CurrencyController {
 
   // Currency settings
   getCurrencySettings(ctx: Context): Promise<CurrencySettings>
-  updateCurrencySettings(ctx: Context, settings: CurrencySettings): Promise<CurrencySettings>
+  updateCurrencySettings(ctx: Context, settings: UpdateCurrencySettings): Promise<CurrencySettings>
 
   // Trustlines
   getTrustline(ctx: Context, id: string): Promise<Trustline>

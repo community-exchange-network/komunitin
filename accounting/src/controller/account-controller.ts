@@ -175,7 +175,9 @@ export class AccountController extends AbstractCurrencyController implements IAc
           
         await ledgerAccount.updateMaximumBalance(ledgerMaximumBalance, {
           sponsor: await this.keys().sponsorKey(),
-          account: await this.keys().adminKey()
+          // Note that we can't sign with the admin key because this logic is used also for the
+          // external trader account, which does not have the admin key as signer.
+          account: await this.keys().retrieveKey(account.key)
         })
       } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
         throw badRequest("Cannot update maximum balance of disabled or suspended accounts. Enable the account first.")
@@ -539,15 +541,18 @@ export class AccountController extends AbstractCurrencyController implements IAc
       accountId: account.id
     })))
 
-    const newTags = data.filter(t => !t.id) // hash always defined here
-    const updateTags = data.filter(t => t.id) // hash always undefined here 
+    type TagWithHash = { hash: string, name: string, accountId: string }
+    type TagWithId = { id: string, name: string, accountId: string }
+
+    const newTags = data.filter(t => !t.id) as TagWithHash[]
+    const updateTags = data.filter(t => t.id) as TagWithId[]
 
     // Update tag records (delete + update + insert).
     await this.db().$transaction(async (t) => {
       await t.accountTag.deleteMany({
         where: { 
           id: { 
-            notIn: updateTags.map(t => t.id)
+            notIn: updateTags.map(t => t.id as string)
           },
           accountId: account.id
         }
@@ -559,7 +564,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
         })
       }
       await t.accountTag.createMany({
-        data: newTags
+        data: newTags,
       })
     })
   }
