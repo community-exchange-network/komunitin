@@ -24,8 +24,8 @@ export default boot(({ router }) => {
         const groupCode = myMember?.group.attributes.code;
         
         if (state === "active") {
-          // Redirect active members to member's feed. But since feed is still not developed, redirect to needs page.
-          return `/groups/${groupCode}/needs`;
+          // Redirect active members to member's feed on the homepage.
+          return '/home'
         } else if (state === "draft") {
           // Redirect "draft" members to signup page.
           return `/groups/${groupCode}/signup-member`;
