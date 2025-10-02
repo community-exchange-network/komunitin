@@ -70,7 +70,7 @@ const props = withDefaults(defineProps<{
   /**
    * The name of the vuex resources module.
    */
-  moduleName: string,
+  moduleName: string | string[],
   /**
    * The include parameter string when fetching resources.
    */
@@ -115,49 +115,69 @@ const components: Record<string, Component> = {
 
 const store = useStore()
 const ready = ref(false)
-
 const location = computed(() => store.state.me.location)
-const state = computed(() => store.state[props.moduleName] as ResourcesState<ResourceObject>)
-const resources = computed(() => {
-  const resources = []
-  if (state.value.currentPage !== null) {
-    for (let i = 0; i <= state.value.currentPage; i++) {
-      const page = store.getters[`${props.moduleName}/page`](i)
+const moduleNames = computed(() =>
+  Array.isArray(props.moduleName) ? props.moduleName : [props.moduleName]
+);
+
+// Helper to get resources for a module
+function getModuleResources(moduleName: string) {
+  const state = store.state[moduleName] as ResourcesState<ResourceObject>;
+  const resources: ResourceObject[] = [];
+  if (state?.currentPage !== null) {
+    for (let i = 0; i <= state.currentPage; i++) {
+      const page = store.getters[`${moduleName}/page`](i);
       if (page) {
-        resources.push(...page)
+        resources.push(...page);
       }
     }
   }
-  return resources
-})
-const isEmpty = computed(() => resources.value.length === 0)
-const isLoading = computed(() => {
-  return (!ready.value || state.value.currentPage === null || (state.value.currentPage === 0 && state.value.next === undefined && isEmpty.value))
-})
+  return resources;
+}
 
-const fetchResources = async (search?: string) => {
-  await store.dispatch(props.moduleName + "/loadList", {
-    location: location.value,
-    search,
-    include: props.include,
-    group: props.code,
-    filter: props.filter,
-    sort: props.sort,
-    cache: props.cache
+// Merge resources from all modules
+const resources = computed(() => {
+  return moduleNames.value.flatMap(getModuleResources);
+});
+
+const isEmpty = computed(() => resources.value.length === 0);
+const isLoading = computed(() => {
+  // Consider loading if any module is loading
+  return !ready.value || moduleNames.value.some(moduleName => {
+    const state = store.state[moduleName] as ResourcesState<ResourceObject>;
+    return state?.currentPage === null || (state?.currentPage === 0 && state?.next === undefined && isEmpty.value);
   });
+});
+
+// Fetch resources for all modules
+const fetchResources = async (search?: string) => {
+  await Promise.all(moduleNames.value.map(moduleName =>
+    store.dispatch(moduleName + "/loadList", {
+      location: location.value,
+      search,
+      include: props.include,
+      group: props.code,
+      filter: props.filter,
+      sort: props.sort,
+      cache: props.cache
+    })
+  ));
   emit("page-loaded", 0);
 }
 
+// Load next page for all modules
 const loadNext = async (index: number, done: (stop?: boolean) => void) => {
-  if (store.getters[props.moduleName + "/hasNext"]) {
-    await store.dispatch(props.moduleName + "/loadNext", {
-      cache: props.cache
-    });
-    emit("page-loaded", state.value.currentPage);
-  }
-  // Stop loading if there is no next page. Note that we're not
-  // stopping the infinite scrolling if hasNext returns undefined.
-  done(store.getters[props.moduleName + "/hasNext"] === false);
+  await Promise.all(moduleNames.value.map(async moduleName => {
+    if (store.getters[moduleName + "/hasNext"]) {
+      await store.dispatch(moduleName + "/loadNext", {
+        cache: props.cache
+      });
+      const state = store.state[moduleName] as ResourcesState<ResourceObject>;
+      emit("page-loaded", state.value.currentPage);
+    }
+  }));
+  // Stop loading if all modules have no next page
+  done(moduleNames.value.every(moduleName => store.getters[moduleName + "/hasNext"] === false));
 }
 
 // Refetch resources when any prop changes
