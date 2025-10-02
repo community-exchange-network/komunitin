@@ -1,42 +1,27 @@
 <template>
-<h1>HOME</h1>
-  <!-- <resource-card-list
-    :card="card"
-    :code="code"
-    :title="$t('home')"
-    prop-name="need"
-    module-name="needs"
-    include="category,member,member.contacts"
-  >
-    <template #after>
-      <floating-btn
-        :label="$t('createNeed')"
-        icon="add"
-        color="kred"
-        :to="`/groups/${code}/needs/new`"
+  <page-header :title="$t('home')" />
+  <q-page-container>
+    <q-page>
+      <resource-cards
+        :code="code"
+        :module-name="['offers', 'needs']"
+        card="OfferCard" 
+        prop-name="offer"
       />
-    </template>
-  </resource-card-list> -->
+      <slot name="after" />
+    </q-page>
+  </q-page-container>
 </template>
-<script lang="ts">
-import { defineComponent } from "vue";
-// import ResourceCardList from "../ResourceCardList.vue";
-import NeedCard from "../../components/NeedCard.vue";
-// import FloatingBtn from "../../components/FloatingBtn.vue";
 
-export default defineComponent({
-  components: {
-    // ResourceCardList,
-    // FloatingBtn
-  },
-  props: {
-    // code: {
-    //   type: String,
-    //   required: true
-    // }
-  },
-  data: () => ({
-    card: NeedCard.name
-  })
-});
+<script lang="ts" setup>
+import PageHeader from '../../layouts/PageHeader.vue';
+import ResourceCards from '../ResourceCards.vue';
+import { useStore } from 'vuex';
+import { computed } from 'vue';
+
+const store = useStore();
+
+const myMember = computed(() => store.getters.myMember)
+const code = computed(() => myMember?.value.group.attributes.code)
+
 </script>
