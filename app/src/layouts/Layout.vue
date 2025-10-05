@@ -7,7 +7,7 @@
     >
       <q-layout
         id="layout"
-        view="LHH LpR LfR"
+        view="LHH LpR LFR"
         container
       >
         <q-drawer
@@ -21,6 +21,15 @@
           <menu-drawer />
         </q-drawer>
         <router-view />
+        <q-footer class="lt-md">
+          <q-toolbar>
+            <q-tabs breakpoint="1024" class="full-width">
+              <q-route-tab :to="{ name: 'Group', params: { code: groupCode }}" name="home" icon="home" :label="t('home')" />
+              <q-route-tab :to="{ name: 'TransactionList', params: { code: groupCode, memberCode: myMember.attributes.code}}" name="account" icon="account_balance_wallet" :label="t('account')" />
+              <q-route-tab :to="{ name: 'MemberList', params: { code: groupCode }}" name="group" icon="diversity_3" :label="t('group')" />
+            </q-tabs>
+          </q-toolbar>
+        </q-footer>
       </q-layout>
     </div>
   </div>
@@ -35,9 +44,11 @@
  */
 import MenuDrawer from "../components/MenuDrawer.vue";
 import { useStore } from "vuex";
-import { computed } from "vue"
+import { computed } from "vue";
+import { useI18n } from 'vue-i18n';
 
 const store = useStore()
+const { t } = useI18n();
 
 const drawerExists = computed(() => store.getters.drawerExists)
 const drawerState = computed({
@@ -45,6 +56,9 @@ const drawerState = computed({
   set: (val) => store.commit('drawerState', val)
 })
 const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
+
+const myMember = computed(() => store.getters.myMember)
+const groupCode = computed(() => myMember?.value.group.attributes.code)
 
 </script>
 <style lang="scss" scoped>
