@@ -5,7 +5,7 @@
     class="transaction-item"
     :class="transfer.attributes.state"
   >
-    <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col-grow col-sm-4'" class="flex">
+    <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col-grow col-sm-4'" class="flex" style="min-width: 0;">
       <account-item-content
         :account="firstAccount"
         :address="firstCreditCommonsAddress"
@@ -13,7 +13,7 @@
       >
       </account-item-content>
     </div>
-    <div v-if="bothAccounts" class="col-4 col-sm-3 flex">
+    <div v-if="bothAccounts" class="col-4 col-sm-3 flex" style="min-width: 0;">
       <account-item-content
         :account="secondAccount"
         :address="secondCreditCommonsAddress"
