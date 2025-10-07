@@ -1,18 +1,18 @@
-const fs = require('fs-extra')
-let extend = undefined
-
-/**
- * The .babelrc file has been created to assist Jest for transpiling.
- * You should keep your application's babel rules in this file.
- */
-
-if (fs.existsSync('./.babelrc')) {
-  extend = './.babelrc'
-}
-
-module.exports = {
+export default {
   presets: [
-    '@quasar/babel-preset-app'
+    ['@babel/preset-env', { 
+      targets: { node: 'current' },
+      modules: 'auto'
+    }],
   ],
-  extends: extend
-}
+  env: {
+    test: {
+      presets: [
+        ['@babel/preset-env', { 
+          targets: { node: 'current' },
+          modules: 'commonjs'
+        }],
+      ],
+    },
+  },
+};

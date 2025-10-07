@@ -4,5 +4,7 @@
     "types": ["node", "jest", "resize-observer-browser"],
     "allowSyntheticDefaultImports": true,
     "typeRoots": ["./node_modules/@types", "./src/types"],
+    "isolatedModules": true
   },
+  "include": ["src/**/*", "src-pwa/**/*", "test/**/*", "quasar.config.ts"]
 }

@@ -15,6 +15,8 @@ console.log(`App version: ${version}`)
 //console.log(process.env)
 
 export default defineConfig((ctx) => {
+  const isPwa = "pwa" in ctx.mode && ctx.mode.pwa
+  const isSpa = "spa" in ctx.mode && ctx.mode.spa
   return {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
@@ -101,7 +103,7 @@ export default defineConfig((ctx) => {
     // local certificates.
     devServer: ctx.dev ? {
       host: "0.0.0.0",
-      port: ctx.mode.pwa ? 2030 : (ctx.mode.spa ? 2031 : 2032),
+      port: isPwa ? 2030 : (isSpa ? 2031 : 2032),
       open: true,
       https: {
         key: fs.readFileSync("./tmp/certs/localhost-key.pem"),

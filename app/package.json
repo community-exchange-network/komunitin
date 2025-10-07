@@ -49,6 +49,8 @@
     "vuex": "^4.1.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
     "@electron/typescript-definitions": "^8.9.6",
     "@eslint/js": "^9.13.0",
     "@quasar/app-vite": "^2.0.0",

@@ -119,7 +119,7 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
 
   // Set the router mode to "history", as we have in our Quasar config file.
   process.env.VUE_ROUTER_MODE = "history";
-  const router = createRouter({store});
+  const router = createRouter();
 
   const mountOptions: any = {
     global: {
@@ -146,7 +146,7 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   const redirect = (url:RouteLocationRaw) => {window.location.href = url.toString()};
   for (const boot of boots) {
     await boot({
-      app, router, store, urlPath: "", publicPath: "", redirect
+      app, router, urlPath: "", publicPath: "", redirect
     });
   }
 
