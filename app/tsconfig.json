@@ -1,10 +1,8 @@
 {
-  "extends": "@quasar/app-webpack/tsconfig-preset",
+  "extends": "./.quasar/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "types": ["node", "jest", "resize-observer-browser"],
     "allowSyntheticDefaultImports": true,
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./node_modules/@types", "./src/types"],
   },
-  "include": ["src/**/*", "src-pwa/**/*", "test/**/*"]
 }

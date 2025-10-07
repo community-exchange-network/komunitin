@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= htmlWebpackPlugin.options.productName %></title>
+    <title><%= productName %></title>
 
     <meta charset="utf-8" />
     <meta
       name="description"
-      content="<%= htmlWebpackPlugin.options.productDescription %>"
+      content="<%= productDescription %>"
     />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
@@ -37,7 +37,6 @@
     <link rel="icon" type="image/ico" href="favicon.ico" />
   </head>
   <body>
-    <!-- DO NOT touch the following DIV -->
-    <div id="q-app"></div>
+    <!-- quasar:entry-point -->
   </body>
 </html>

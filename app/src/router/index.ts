@@ -1,6 +1,6 @@
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory, Router } from 'vue-router'
 import routes from "./routes";
-import { Store } from 'vuex';
+import store from 'src/store';
 /*
  * If not building with SSR mode, you can
  * directly export the Router instantiation;
@@ -10,7 +10,7 @@ import { Store } from 'vuex';
  * with the Router instance.
  */
 
-export default function( { store } : {store: Store<unknown>} ): Router {
+export default function( ): Router {
   const createHistory = process.env.SERVER
     ? createMemoryHistory
     : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
