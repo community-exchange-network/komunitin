@@ -27,7 +27,7 @@ export interface FullAccount {
 
   balance: number,
   creditLimit: number,
-  maximumBalance?: number,
+  maximumBalance?: number | false,
 
   users?: User[]
   currency: Currency
@@ -140,7 +140,7 @@ export function accountToRecord(account: UpdateAccount): Prisma.AccountUpdateInp
     id: account.id,
     code: account.code,
     creditLimit: account.creditLimit,
-    maximumBalance: account.maximumBalance ?? null,
+    maximumBalance: account.maximumBalance ? account.maximumBalance : null,
   }
 
   return accountRecord

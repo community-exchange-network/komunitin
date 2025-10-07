@@ -10,6 +10,7 @@ import {
   FullAccount,
   Currency,
   CurrencySettings,
+  UpdateCurrencySettings,
   UpdateCurrency,
   currencyToRecord,
   recordToCurrency,
@@ -149,9 +150,9 @@ export class LedgerCurrencyController implements CurrencyController {
     return this.model.settings
   }
   /**
-   * Implements {@link CurrencyController.updateCurrencySettings}
+   * Implements {@link CurrencyController#updateCurrencySettings}
    */
-  public async updateCurrencySettings(ctx: Context, settings: CurrencySettings) {
+  public async updateCurrencySettings(ctx: Context, settings: UpdateCurrencySettings) {
     await this.users.checkAdmin(ctx)
     const {id, ...settingsFields} = settings
     // Merge the settings since the DB is a JSON field.
@@ -165,7 +166,10 @@ export class LedgerCurrencyController implements CurrencyController {
     }
 
     if (updatedSettings.externalTraderMaximumBalance !== this.model.settings.externalTraderMaximumBalance) {
-      throw notImplemented("Change the external trader maximum balance not implemented yet")
+      await this.accounts.updateAccount(systemContext(), {
+        id: this.model.externalAccount.id,
+        maximumBalance: updatedSettings.externalTraderMaximumBalance
+      })
     }
     
     const record = await this.db.currency.update({

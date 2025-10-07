@@ -1,6 +1,6 @@
 
 import { LedgerCurrencyState } from "../ledger";
-import { Optional, Rate } from "../utils/types";
+import { AtLeast, Optional, Rate } from "../utils/types";
 import { Currency as CurrencyRecord, Prisma } from "@prisma/client"
 import { User } from "./user";
 import { FullAccount, AccountRecord, recordToAccount } from "./account";
@@ -93,7 +93,7 @@ export type CurrencySettings = {
   /**
    * The credit limit in local currency that the external trader account will have.
    */
-  externalTraderCreditLimit?: number
+  externalTraderCreditLimit: number
   /**
    * The maximum balance in local currency that the external trader account may have.
    */
@@ -103,6 +103,8 @@ export type CurrencySettings = {
    */
   defaultHideBalance?: boolean
 }
+
+export type UpdateCurrencySettings = AtLeast<CurrencySettings, "id">
 
 export type CurrencyStatus = "new" | "active"
 

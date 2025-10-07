@@ -237,7 +237,7 @@ export class LedgerController implements SharedController {
       defaultAllowExternalPaymentRequests: false,
       defaultAcceptExternalPaymentsAutomatically: false,
       
-      externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit,
+      externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit ?? 0,
       externalTraderMaximumBalance: false,
     }
 
