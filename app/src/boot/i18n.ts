@@ -7,7 +7,7 @@ import LocalStorage from "../plugins/LocalStorage";
 import { formatRelative, Locale } from "date-fns";
 import { ref, watch } from "vue";
 import { useStore } from "vuex";
-import store from "src/store";
+import { useMeStore } from "../stores/me";
 
 declare module "vue" {
   interface ComponentCustomProperties {
@@ -121,7 +121,7 @@ export function useLocale() {
 
 
 // Default export for Quasar boot files.
-export default boot(async ({ app }) => {
+export default boot(async ({ app, store }) => {
   // Install 'vue-i18n' plugin.
   app.use(i18n);
 
@@ -129,20 +129,23 @@ export default boot(async ({ app }) => {
   app.config.globalProperties.$formatDate = (date: string) =>
     formatRelative(new Date(date), new Date(), { locale: dateLocale })
 
-  // Initially set the current locale.ç
+  // Initially set the current locale.
   const lang = await getCurrentLocale(Quasar)
-  await setCurrentLocale(Quasar, lang, store.getters.isAdmin)
+  const { isAdmin } = useMeStore(store)
+  await setCurrentLocale(Quasar, lang, isAdmin)
 
   // Change the current locale to the user defined settings. Note that we do it that way so the
   // store does not depend on the i18n infrastructure and therefore it can be used in the service
   // worker.
+  /*
+  TODO: Migrate this to Pinia
   store.watch((_, getters) => {
-    return [getters.myUser?.settings?.attributes.language, getters.isAdmin]
+    return [user?.settings.attributes.language, isAdmin]
   }, ([language, isAdmin]) => {
     if (language && (isAdmin || language !== globalLocale)) {
       setLocale(language, isAdmin)
     }
-  })
+  })*/
 
 
 });

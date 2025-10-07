@@ -14,7 +14,8 @@ export interface TokenService {
 }
 
 export interface AuthService extends TokenService {
-  isLoggedIn(): Promise<boolean>
+  isAuthorized(): boolean
+  authorize(params?: {force?: boolean}): Promise<void>
   login(params: {email: string, password: string, superadmin?: boolean}): Promise<void>
   loginWithCode(params: {code: string}): Promise<void>
   logout(): Promise<void>
@@ -200,9 +201,19 @@ export class AuthServiceImpl implements AuthService {
     });
   }
 
-  public async isLoggedIn(): Promise<boolean> {
-    const data = await this.getData();
-    return data !== null && data.accessTokenExpire > new Date();
+  public isAuthorized(): boolean {
+    return this.data !== null && this.data.accessTokenExpire > new Date();
   }
 
+  public async authorize(params?: {force?: boolean}): Promise<void> {
+    // Get stored data first so isAuthorized has the latest info.
+    const data = await this.getData();
+    if (data === null) {
+      throw new KError(KErrorCode.AuthNoCredentials, "No stored credentials.");
+    }
+    if (this.isAuthorized() && !params?.force) {
+      return;
+    }
+    await this.refreshToken();
+  }
 }

@@ -10,7 +10,6 @@ import { onBackgroundMessage, getMessaging } from "firebase/messaging/sw"
 import { initializeApp } from 'firebase/app'
 import firebaseConfig from '../src/plugins/FirebaseConfig'
 // Komunitin
-import store from "../src/store"
 import { notificationBuilder } from './notifications'
 
 // This version will be replaced by DefinePlugin at build time
@@ -63,7 +62,7 @@ registerRoute(
 const app = initializeApp(firebaseConfig)
 //Note that this getMessaging is not the same as the one in src/plugins/Notifications.ts
 const messaging = getMessaging(app)
-const notification = notificationBuilder(store)
+const notification = notificationBuilder()
 
 // Push Message handler. 
 onBackgroundMessage(messaging, async (payload) => {

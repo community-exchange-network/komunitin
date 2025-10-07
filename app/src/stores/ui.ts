@@ -1,23 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-export interface UIState {
-  drawerPersistent: boolean
-  drawerState: boolean
-  notificationsBannerDismissed: boolean
-  locationBannerDismissed: boolean
-  inactiveBannerDismissed: boolean
-  previousRoute: string | undefined
-  loggingOut: boolean
-}
-
 export const useUIStore = defineStore('ui', () => {
   // State
   const drawerPersistent = ref(true)
   const drawerState = ref(true)
+  
   const notificationsBannerDismissed = ref(false)
   const locationBannerDismissed = ref(false)
   const inactiveBannerDismissed = ref(false)
+
   const previousRoute = ref<string | undefined>(undefined)
   const loggingOut = ref(false)
 
@@ -49,7 +41,7 @@ export const useUIStore = defineStore('ui', () => {
     // Getters
     drawerExists,
     
-    // Actions (only for non-trivial logic)
+    // Actions
     toggleDrawer
   }
 })

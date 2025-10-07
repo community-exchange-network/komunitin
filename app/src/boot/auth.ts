@@ -1,25 +1,26 @@
 import { boot } from "quasar/wrappers";
-import store from "src/store";
+import { useMeStore } from "../stores/me";
 
-export default boot(({ router }) => {
+export default boot(({ router, store }) => {
   // Prevent access to paths that need authorization.
   router.beforeEach(async (to) => {
+    const meStore = useMeStore(store)
     try {
       if (to.query.token) {
         // Login with url token.
-        await store.dispatch("authorizeWithCode", {code: to.query.token});
+        await meStore.authorizeWithCode({code: to.query.token as string});
       } else {
         // Login with stored credentials
-        await store.dispatch("authorize");
+        await meStore.authorize()
       }
       // User is logged in.
-      if (to.path == "/" || to.path.startsWith("/login")) {
+      if (to.path === "/" || to.path.startsWith("/login")) {
         
         if (to.query.redirect) {
           return to.query.redirect as string;
         }
-        const myMember = store.getters.myMember;
-        const state = myMember?.attributes.state;
+        const myMember = meStore.member;
+        const state = myMember?.attributes.state ?? "";
         const groupCode = myMember?.group.attributes.code;
         
         if (state === "active") {
@@ -30,7 +31,7 @@ export default boot(({ router }) => {
           return `/groups/${groupCode}/signup-member`;
         } else if (["pending", "disabled", "suspended"].includes(state)) {
           // Redirect not enabled users to their own profile page.
-          return `/groups/${groupCode}/members/${myMember.attributes.code}`
+          return `/groups/${groupCode}/members/${myMember!.attributes.code}`
         } else if (state === undefined) {
           // This is the case for users who have requested a new group and are pending acceptance.
           return "/groups";

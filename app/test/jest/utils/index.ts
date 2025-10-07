@@ -1,8 +1,8 @@
 import { defineComponent } from 'vue';
 import { flushPromises, mount, MountingOptions, VueWrapper } from "@vue/test-utils";
 
-import store from 'src/store/index';
 import createRouter from 'src/router/index';
+import createStore from 'src/stores/index';
 
 import {Quasar, LocalStorage, Notify, Loading} from "quasar";
 import * as quasar from "quasar"
@@ -121,6 +121,8 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   process.env.VUE_ROUTER_MODE = "history";
   const router = createRouter();
 
+  const store = createStore({})
+  
   const mountOptions: any = {
     global: {
       plugins: [store, router, quasarPlugin],

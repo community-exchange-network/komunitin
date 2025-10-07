@@ -207,7 +207,7 @@ func handleResponses(ctx context.Context, store *store.Store, responses []*messa
 		} else {
 			// Log error
 			log.Printf("Error sending notification to member %s: %v\n", sub.Member.Id, r.Error)
-			if messaging.IsRegistrationTokenNotRegistered(r.Error) {
+			if messaging.IsUnregistered(r.Error) {
 				store.Delete(ctx, "subscriptions", sub.Id)
 				log.Printf("Subscription deleted for member %s.\n", sub.Member.Id)
 			}

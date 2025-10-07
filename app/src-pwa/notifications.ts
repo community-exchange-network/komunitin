@@ -1,15 +1,14 @@
-import { Store } from 'vuex'
-import { translator } from './i18n'
+//import { translator } from './i18n'
 import { MessagePayload } from 'firebase/messaging/sw'
-
+/*
 function truncate(text: string, length: number) {
   return (text.length <= length) ? text : text.slice(0, length - 2) + '...'
-}
+}*/
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function notificationBuilder(store: Store<any>) {
+export function notificationBuilder() {
   return async (payload: MessagePayload) => {
-    if (payload.data) {
+    /*if (payload.data) {
       const {t,c} = await translator()
       // Get event name.
       const event = payload.data.event
@@ -179,6 +178,8 @@ export function notificationBuilder(store: Store<any>) {
     } else {
       throw new Error("Unexpected push message: " + JSON.stringify(payload))
     }
+    */
+    throw new Error("Push notifications are not implemented yet")
   }
 }
 

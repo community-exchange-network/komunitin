@@ -19,7 +19,7 @@ interface FetchByCodeOptions extends BaseFetchOptions {
   group: string
 }
 
-interface FetchByGroupOptions extends BaseFetchOptions {
+export interface FetchByGroupOptions extends BaseFetchOptions {
   group: string;
   search?: string;
   location?: [number, number];
@@ -62,10 +62,36 @@ export interface ResourceService<T extends ResourceObject> {
   update(opts: UpdateResourceOptions<T>): Promise<FetchResourceResult<T>>
   delete(opts: DeleteResourceOptions): Promise<void>
 }
+
+export interface ResourceServiceConfig {
+  baseUrl: string,
+  type: string,
+  authService: TokenService,
+  endpoints?: {
+    /**
+     * Endpoint for the collection of resources of this type. Override if
+     * your resource doesn't follow the standard `/{groupCode}/{type}`.
+     *
+     * @param group The code of the group
+     */
+    collection: (group: string) => string,
+    /**
+     * Endpoint for a single resource of this type. Override if
+     * your resource doesn't follow the standard:`
+     * ```
+     *  collection(group)/{id}.
+     * ```
+     *
+     * @param id The id of the resource
+     * @param group The code of the group
+     */
+    resource: (group: string, id: string) => string
+  }
+}
 export class ResourceServiceImpl<T extends ResourceObject> implements ResourceService<T> {
 
   private static readonly API_MIME = "application/vnd.api+json";
-  private readonly baseUrl: string
+  private baseUrl: string
   private readonly type: string
   private readonly endpoints: {
     collection: (group: string) => string,
@@ -73,31 +99,7 @@ export class ResourceServiceImpl<T extends ResourceObject> implements ResourceSe
   }
   private readonly authService: TokenService
 
-  constructor(config: {
-    baseUrl: string,
-    type: string,
-    authService: TokenService,
-    endpoints?: {
-      /**
-       * Endpoint for the collection of resources of this type. Override if
-       * your resource doesn't follow the standard `/{groupCode}/{type}`.
-       *
-       * @param group The code of the group
-       */
-      collection: (group: string) => string,
-      /**
-       * Endpoint for a single resource of this type. Override if
-       * your resource doesn't follow the standard:`
-       * ```
-       *  collection(group)/{id}.
-       * ```
-       *
-       * @param id The id of the resource
-       * @param group The code of the group
-       */
-      resource: (group: string, id: string) => string
-    }
-  }) {
+  constructor(config: ResourceServiceConfig) {
     this.baseUrl = config.baseUrl;
     this.type = config.type;
     this.endpoints = config.endpoints || {
@@ -107,12 +109,16 @@ export class ResourceServiceImpl<T extends ResourceObject> implements ResourceSe
     this.authService = config.authService;
   }
 
+  public setBaseUrl(url: string) {
+    this.baseUrl = url
+  }
+
   private absoluteUrl(url: string) {
     return url.startsWith("http") ? url : this.baseUrl + url;
   }
 
   private resourceUrl(payload: GetResourceOptions) {
-        let url: string
+    let url: string
     let params: URLSearchParams;
 
     if ("url" in payload) {
@@ -303,7 +309,7 @@ export class ResourceServiceImpl<T extends ResourceObject> implements ResourceSe
     return params.toString()
   }
 
-  public async list(opts: GetCollectionOptions): Promise<FetchCollectionResult<T>> {
+  private collectionUrl(opts: GetCollectionOptions) {
     let url
     if ("url" in opts) {
       url = this.absoluteUrl(opts.url);
@@ -314,6 +320,11 @@ export class ResourceServiceImpl<T extends ResourceObject> implements ResourceSe
         url += "?" + query
       }
     }
+    return url
+  }
+
+  public async list(opts: GetCollectionOptions): Promise<FetchCollectionResult<T>> {
+    const url = this.collectionUrl(opts);
     const data = await this.request(url);
     const resources: T[] = Array.isArray(data.data) ? data.data : []
     const included = await this.handleIncluded(data.included);

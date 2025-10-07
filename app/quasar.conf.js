@@ -28,9 +28,9 @@ module.exports = configure(function(ctx) {
     boot: [
       "errors",
       "i18n",
+      "services",
       "auth",
       "gtm",
-      "pinia-tmp",
       ...(environment.MOCK_ENABLE === "true" ? ["mirage"]: [])
     ],
 

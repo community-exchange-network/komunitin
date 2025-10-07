@@ -2265,6 +2265,25 @@
         ]
       }
     },
+    "/{code}/accounts.csv": {
+      "get": {
+        "summary": "/{code}/accounts.csv",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
     "/{code}/accounts/{id}": {
       "get": {
         "summary": "/{code}/accounts/{id}",
@@ -4411,6 +4430,25 @@
         ]
       }
     },
+    "/{code}/transfers.csv": {
+      "get": {
+        "summary": "/{code}/transfers.csv",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "transfers"
+        ]
+      }
+    },
     "/{code}/trustlines": {
       "post": {
         "summary": "/{code}/trustlines",
@@ -4968,6 +5006,323 @@
         ]
       }
     },
+    "/currencies/stats/amount": {
+      "get": {
+        "summary": "/currencies/stats/amount",
+        "responses": {},
+        "tags": [
+          "currencies"
+        ]
+      }
+    },
+    "/currencies/stats/accounts": {
+      "get": {
+        "summary": "/currencies/stats/accounts",
+        "responses": {},
+        "tags": [
+          "currencies",
+          "accounts"
+        ]
+      }
+    },
+    "/currencies/stats/transfers": {
+      "get": {
+        "summary": "/currencies/stats/transfers",
+        "responses": {},
+        "tags": [
+          "currencies",
+          "transfers"
+        ]
+      }
+    },
+    "/{code}/stats/amount": {
+      "get": {
+        "summary": "/{code}/stats/amount",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/{code}/stats/accounts": {
+      "get": {
+        "summary": "/{code}/stats/accounts",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/{code}/stats/transfers": {
+      "get": {
+        "summary": "/{code}/stats/transfers",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "transfers"
+        ]
+      }
+    },
+    "/{code}/cc/nodes": {
+      "post": {
+        "summary": "/{code}/cc/nodes",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/{code}/cc/": {
+      "get": {
+        "summary": "/{code}/cc/",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/{code}/cc/transaction/relay": {
+      "post": {
+        "summary": "/{code}/cc/transaction/relay",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/{code}/cc/transaction/{transId}/{newState}": {
+      "patch": {
+        "summary": "/{code}/cc/transaction/{transId}/{newState}",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newState",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/{code}/cc/account": {
+      "get": {
+        "summary": "/{code}/cc/account",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/{code}/cc/account/history": {
+      "get": {
+        "summary": "/{code}/cc/account/history",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/{code}/cc/addresses/{id}": {
+      "get": {
+        "summary": "/{code}/cc/addresses/{id}",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": []
+      }
+    },
+    "/migrations": {
+      "get": {
+        "summary": "/migrations",
+        "responses": {},
+        "tags": [
+          "migrations"
+        ]
+      },
+      "post": {
+        "summary": "/migrations",
+        "responses": {},
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/migrations/{id}": {
+      "get": {
+        "summary": "/migrations/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "migrations"
+        ]
+      },
+      "delete": {
+        "summary": "/migrations/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/migrations/{id}/logs/stream": {
+      "get": {
+        "summary": "/migrations/{id}/logs/stream",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/migrations/{id}/play": {
+      "post": {
+        "summary": "/migrations/{id}/play",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
     "/{code}/stats/volume": {
       "get": {
         "summary": "/{code}/stats/volume",
@@ -5095,15 +5450,6 @@
           {
             "authorization": []
           }
-        ]
-      }
-    },
-    "/migrations": {
-      "post": {
-        "summary": "/migrations",
-        "responses": {},
-        "tags": [
-          "migrations"
         ]
       }
     },
@@ -5347,107 +5693,6 @@
             "authorization": []
           }
         ]
-      }
-    },
-    "/{code}/cc/": {
-      "get": {
-        "summary": "/{code}/cc/",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {},
-        "tags": []
-      }
-    },
-    "/{code}/cc/transaction/relay": {
-      "post": {
-        "summary": "/{code}/cc/transaction/relay",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {},
-        "tags": []
-      }
-    },
-    "/{code}/cc/transaction/{transId}/{newState}": {
-      "patch": {
-        "summary": "/{code}/cc/transaction/{transId}/{newState}",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "transId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "newState",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {},
-        "tags": []
-      }
-    },
-    "/{code}/cc/account": {
-      "get": {
-        "summary": "/{code}/cc/account",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {},
-        "tags": []
-      }
-    },
-    "/{code}/cc/account/history": {
-      "get": {
-        "summary": "/{code}/cc/account/history",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {},
-        "tags": []
       }
     },
     "/cc/transaction": {
