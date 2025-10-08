@@ -5,6 +5,12 @@ import { quasarPlugin } from "../../../test/jest/utils/quasar-plugin";
 // Install quasar plugin.
 config.global.plugins.unshift(quasarPlugin);
 
+jest.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: jest.fn((key: string) => key),
+  }),
+}));
+    
 describe("SocialNetworkList", () => {
   const contacts = [
     { type: "phone", name: "+34 666 77 88 99" },
@@ -33,15 +39,13 @@ describe("SocialNetworkList", () => {
     await wrapper.vm.$nextTick();
     expect(window.open).toHaveBeenCalledWith(url, "_blank");
   }
+  
+  afterAll(() => {
+    jest.resetModules();
+  });
 
   // Montamos el componente con los props necesarios antes de cada test.
   beforeEach(async () => {
-    jest.doMock("vue-i18n", () => ({
-      useI18n: () => ({
-        t: (key: string) => key,
-      }),
-    }));
-
     const { default: SocialNetworkList } = await import("../SocialNetworkList.vue");
 
     contact = mount(SocialNetworkList, {
@@ -59,10 +63,6 @@ describe("SocialNetworkList", () => {
         url: "https://example.com"
       },
     });
-  });
-
-  afterEach(() => {
-    jest.resetModules();
   });
 
   it("Contact html generated", async () => {
