@@ -127,7 +127,7 @@ const getNetworkIdLabel = (key: string) => {
   }
 }
 
-const newContactType = ref<string>()
+const newContactType = ref()
 const newContactName = ref<string>()
 const newContactOptions = computed(() => getContactNetworkKeys().map((key) => ({
   label: getNetworkLabel(key),
