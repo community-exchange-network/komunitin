@@ -77,21 +77,9 @@ export default defineConfig((ctx) => {
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-build
     build: {
-      transpile: false,
-      scopeHoisting: true,
       vueRouterMode: "history", // available values: 'hash', 'history'
-      showProgress: true,
-      gzip: false,
-      analyze: false,
-      sourceMap: true,
-      // Options below are automatically set depending on the env, set them if you want to override
-      // preloadChunks: false,
-      // extractCSS: false,
-
-     
-      // Create complete source maps to enable debugging from VSCode.
-      // https://quasar.dev/start/vs-code-configuration#Debugging-a-Quasar-project-in-VS-Code
-      devtool: "source-map",
+      analyze: true,
+      sourcemap: true,      
       env: {
         ...(ctx.dev ? process.env : {}),
         APP_VERSION: version

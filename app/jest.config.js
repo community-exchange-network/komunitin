@@ -1,4 +1,4 @@
-const esModules = ['quasar', 'quasar/lang', 'lodash-es', 'leaflet', 'markdown-to-txt', '@vue', 'uuid'].join('|');
+const esModules = ['quasar', 'quasar/lang', 'lodash-es', 'leaflet', '@vue', 'uuid'].join('|');
 
 export default {
   preset: 'ts-jest',
