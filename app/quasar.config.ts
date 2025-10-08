@@ -124,7 +124,7 @@ export default defineConfig((ctx) => {
 
     // https://quasar.dev/quasar-cli/developing-pwa/configuring-pwa
     pwa: {
-      workboxMode: 'InjectManifest',//"InjectManifest", // 'GenerateSW' or 'InjectManifest'
+      workboxMode: 'InjectManifest', // 'GenerateSW' or 'InjectManifest'
       
     },
   };
