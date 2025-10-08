@@ -5,7 +5,7 @@ import { Model, belongsTo, hasMany, Server, Factory, Response } from "miragejs";
 import faker from "faker";
 import { filter } from "./ServerUtils"
 
-import { ContactNetworks } from "../components/SocialNetworks";
+import { getContactNetworkKeys } from "../utils/social-networks";
 import { KOptions } from "../boot/koptions";
 import ApiSerializer from "./ApiSerializer";
 import { inflections } from "inflected"
@@ -14,7 +14,7 @@ import { inflections } from "inflected"
 const urlSocial = KOptions.url.social;
 const urlAccounting = KOptions.url.accounting;
 
-const contactTypes = Object.keys(ContactNetworks);
+const contactTypes = getContactNetworkKeys();
 
 inflections("en", function (inflect) {
   inflect.irregular("userSettings", "userSettings")
