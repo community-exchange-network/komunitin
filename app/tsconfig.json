@@ -3,8 +3,11 @@
   "compilerOptions": {
     "types": ["node", "jest", "resize-observer-browser"],
     "allowSyntheticDefaultImports": true,
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    // The "./node_modules/@quasar/app-vite/node_modules" is needed in order to
+    // resolve the "vite/client" types defined in .quasar/quasar.d.ts. For sure
+    // I'm not expected to add this here, but I've not found any other way to
+    // make it work. This is required to import assets like png images.
+    "typeRoots": ["./node_modules/@types", "./src/types", "./node_modules/@quasar/app-vite/node_modules"],
     "isolatedModules": true
   },
-  "include": ["src/**/*", "src-pwa/**/*", "test/**/*", "quasar.config.ts"]
 }
