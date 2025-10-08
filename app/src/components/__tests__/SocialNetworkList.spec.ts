@@ -1,14 +1,24 @@
 import { mount, VueWrapper } from "@vue/test-utils";
-import SocialNetworkList from "../SocialNetworkList.vue";
-import { Contact } from "src/store/model";
 import { config } from '@vue/test-utils';
-import { quasarPlugin } from "app/test/jest/utils";
+import { quasarPlugin } from "../../../test/jest/utils/quasar-plugin";
 
 // Install quasar plugin.
 config.global.plugins.unshift(quasarPlugin);
 
 describe("SocialNetworkList", () => {
-  let contacts: Partial<Contact>[];
+  const contacts = [
+    { type: "phone", name: "+34 666 77 88 99" },
+    { type: "email", name: "exhange@easterisland.com" },
+    { type: "whatsapp", name: "+34 666 66 66 66" },
+    { type: "telegram", name: "@example" },
+    { type: "unkonwn", name: "unknown" }
+  ].map(obj => ({
+    attributes: {
+      ...obj,
+      created: new Date().toJSON(),
+      updated: new Date().toJSON()
+    }
+  } as any));
 
   let contact: VueWrapper;
   let share: VueWrapper;
@@ -25,39 +35,23 @@ describe("SocialNetworkList", () => {
   }
 
   // Montamos el componente con los props necesarios antes de cada test.
-  beforeEach(() => {
-    contacts = [
-      { type: "phone", name: "+34 666 77 88 99" },
-      { type: "email", name: "exhange@easterisland.com" },
-      { type: "whatsapp", name: "+34 666 66 66 66" },
-      { type: "telegram", name: "@example" },
-      { type: "unkonwn", name: "unknown" }
-    ].map(obj => ({
-      attributes: {
-        ...obj,
-        created: new Date().toJSON(),
-        updated: new Date().toJSON()
-      }
+  beforeEach(async () => {
+    jest.doMock("vue-i18n", () => ({
+      useI18n: () => ({
+        t: (key: string) => key,
+      }),
     }));
 
+    const { default: SocialNetworkList } = await import("../SocialNetworkList.vue");
+
     contact = mount(SocialNetworkList, {
-      global: {
-        mocks: {
-          $t: (x: never) => x,
-        },
-      },
       props: {
-        contacts,
+        contacts: contacts,
         type: "contact"
       }
     });
 
     share = mount(SocialNetworkList, {
-      global: {
-        mocks: {
-          $t: (x: never) => x,
-        }
-      },
       props: {
         type: "share",
         title: "Title",
@@ -65,6 +59,10 @@ describe("SocialNetworkList", () => {
         url: "https://example.com"
       },
     });
+  });
+
+  afterEach(() => {
+    jest.resetModules();
   });
 
   it("Contact html generated", async () => {

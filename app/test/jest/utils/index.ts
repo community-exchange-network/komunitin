@@ -1,11 +1,10 @@
 import { defineComponent } from 'vue';
 import { flushPromises, mount, MountingOptions, VueWrapper } from "@vue/test-utils";
-
+import { Notify, LocalStorage } from "quasar";
+import { quasarPlugin, qComponents } from "./quasar-plugin";
 import store from 'src/store/index';
 import createRouter from 'src/router/index';
 
-import {Quasar, LocalStorage, Notify, Loading} from "quasar";
-import * as quasar from "quasar"
 
 // Boot files.
 import bootErrors from '../../../src/boot/errors';
@@ -82,31 +81,7 @@ Object.defineProperty(HTMLDivElement.prototype, "scrollHeight", {configurable: t
 Object.defineProperty(SVGSVGElement.prototype, "pauseAnimations", {value: jest.fn()});
 Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", {value: jest.fn()});
 
-// Get an object containing all Quasar Vue components.
-const qComponents = Object.keys(quasar).reduce((object, key) => {
-  const val = quasar[key as keyof typeof quasar] as any;
-  if (val && val.name && val.name.startsWith("Q") && val.setup) {
-    object[key] = val
-  }
-  return object
-}, {} as any);
 
-// Get an object containing all Quasar Vue directives.
-const qDirectives = Object.keys(quasar).reduce((object, key) => {
-  const val = quasar[key as keyof typeof quasar] as any;
-  if (val && val.name && !val.name.startsWith("Q") && 
-    ['created', 'beforeMount', 'mounted', 'beforeUpdate', 'updated', 'beforeUnmount', 'unmounted'].some(m => m in val)) {
-    object[key] = val
-  }
-  return object
-}, {} as any);
-
-
-export const quasarPlugin = [Quasar, {
-  plugins: [LocalStorage, Loading],
-  components: qComponents,
-  directives: qDirectives
-}] as [typeof Quasar, any];
 
 export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & {login?: true}): Promise<VueWrapper> {
   LocalStorage.clear();

@@ -120,10 +120,10 @@ const getNetworkIdLabel = (key: string) => {
   const network = getNetwork(key)
   if (!network) {
     return key
-  } else if (network.translateIdLabel) {
-    return t(network.idLabel)
+  } else if (network.idLabel) {
+    return network.translateIdLabel ? t(network.idLabel) : network.idLabel
   } else {
-    return network.idLabel
+    return network.translateLabel ? t(network.label) : network.label
   }
 }
 

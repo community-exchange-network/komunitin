@@ -46,10 +46,9 @@ const props = withDefaults(defineProps<{
 });
 
 const contact = (network: string) => {
-  const net = this.dataNetworks[network];
   const url = props.type == "contact"
-    ? getContactUrl(net, net.name ?? "")
-    : getShareUrl(net, props.url, props.title, props.text);
+    ? getContactUrl(network, contactName(network) ?? "")
+    : getShareUrl(network, props.url, props.title, props.text);
   window.open(url, "_blank");
 }
 
