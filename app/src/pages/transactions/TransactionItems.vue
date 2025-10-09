@@ -1,5 +1,5 @@
 <template>
-  <resource-cards
+  <ResourceCards
     ref="resourceCards"
     v-slot="slotProps"
     :code="code"
@@ -39,11 +39,11 @@
       </template>
       <q-separator />
     </q-list>
-  </resource-cards>
+  </ResourceCards>
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import type ResourceCards from "../ResourceCards.vue";
+import ResourceCards from "../ResourceCards.vue";
 import TransactionItem from "src/components/TransactionItem.vue";
 import { useStore } from "vuex";
 import type { ExtendedTransfer, Account, Currency } from "../../store/model";
