@@ -10,8 +10,8 @@
     "dev": "quasar dev -m pwa",
     "build": "quasar build -m pwa",
     "test": "./node_modules/jest/bin/jest.js .",
-    "lint": "eslint",
-    "lint-fix": "eslint --fix",
+    "lint": "eslint -c --max-warnings 0 \"./src*/**/*.{ts,js,mjs,cjs,vue}\"",
+    "lint-fix": "eslint --fix \"./src*/**/*.{ts,js,mjs,cjs,vue}\"",
     "testAll": "tsc -p tsconfig.json --noEmit && npm run test && npm run lint"
   },
   "dependencies": {

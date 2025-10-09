@@ -88,8 +88,9 @@ export default defineConfig((ctx) => {
       vitePlugins: [
         [vitePluginChecker, {
           eslint: {
-            lintCommand: 'eslint -c ./eslint.config.js "./src*/**/*.{ts,js,mjs,cjs,vue}"',
-            useFlatConfig: true
+            lintCommand: 'eslint "./src*/**/*.{ts,js,mjs,cjs,vue}"',
+            useFlatConfig: true,
+            watchPath: ['./src', './src-pwa']
           }
         }, {server: false}]
       ]
