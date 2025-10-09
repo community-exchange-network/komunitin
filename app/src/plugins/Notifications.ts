@@ -1,9 +1,11 @@
-import { FirebaseApp, initializeApp } from "firebase/app";
-import { getMessaging, getToken, Messaging } from "firebase/messaging"
+import type { FirebaseApp} from "firebase/app";
+import { initializeApp } from "firebase/app";
+import type { Messaging } from "firebase/messaging";
+import { getMessaging, getToken } from "firebase/messaging"
 import { KOptions } from "../boot/koptions"
-import {UserSettings} from "../store/model"
+import type {UserSettings} from "../store/model"
 
-import { Member, NotificationsSubscription, User } from "src/store/model";
+import type { Member, NotificationsSubscription, User } from "src/store/model";
 import KError, { KErrorCode } from "src/KError";
 
 import firebaseConfig from "./FirebaseConfig";

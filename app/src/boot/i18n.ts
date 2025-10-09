@@ -1,10 +1,13 @@
 import { boot } from "quasar/wrappers";
 import { createI18n } from "vue-i18n";
 import DefaultMessages from "src/i18n/en-us/index.json";
-import langs, {LangName, DEFAULT_LANG, normalizeLocale} from "src/i18n";
-import { useQuasar, Quasar, QSingletonGlobals, QVueGlobals } from "quasar";
+import type {LangName} from "src/i18n";
+import langs, { DEFAULT_LANG, normalizeLocale} from "src/i18n";
+import type { QSingletonGlobals, QVueGlobals } from "quasar";
+import { useQuasar, Quasar } from "quasar";
 import LocalStorage from "../plugins/LocalStorage";
-import { formatRelative, Locale } from "date-fns";
+import type { Locale } from "date-fns";
+import { formatRelative } from "date-fns";
 import { ref, watch } from "vue";
 import { useStore } from "vuex";
 import store from "src/store";

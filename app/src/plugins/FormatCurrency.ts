@@ -1,4 +1,4 @@
-import { Currency } from "src/store/model";
+import type { Currency } from "src/store/model";
 import { i18n } from "../boot/i18n";
 
 export interface CurrencyFormat {

@@ -1,6 +1,6 @@
 import "../index";
 import { KOptions } from "../../boot/koptions";
-import { ResourceObject } from "src/store/model";
+import type { ResourceObject } from "src/store/model";
 import { seeds } from "../index";
 
 const urlSocial = KOptions.url.social;

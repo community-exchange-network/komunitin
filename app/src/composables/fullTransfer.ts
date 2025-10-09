@@ -1,7 +1,9 @@
-import { Account, Currency, ExtendedTransfer, Member } from 'src/store/model'
-import { LoadPayload } from 'src/store/resources'
-import { watch, Ref, computed, ref } from 'vue'
-import { Store, useStore } from 'vuex'
+import type { Account, Currency, ExtendedTransfer, Member } from 'src/store/model'
+import type { LoadPayload } from 'src/store/resources'
+import type { Ref} from 'vue';
+import { watch, computed, ref } from 'vue'
+import type { Store} from 'vuex';
+import { useStore } from 'vuex'
 
 
 /**

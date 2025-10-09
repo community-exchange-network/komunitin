@@ -116,11 +116,11 @@ import GroupHeader from 'src/components/GroupHeader.vue';
 import SelectGroup from 'src/components/SelectGroup.vue';
 import AmountInput from 'src/components/AmountInput.vue';
 import FormatCurrency from 'src/plugins/FormatCurrency';
-import { Currency, Group, Trustline } from 'src/store/model';
+import type { Currency, Group, Trustline } from 'src/store/model';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import { DeepPartial } from 'quasar';
+import type { DeepPartial } from 'quasar';
 
 type ExtendedGroup = Group & {
   currency: Currency

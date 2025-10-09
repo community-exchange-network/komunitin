@@ -108,10 +108,10 @@
 <script setup lang="ts">
 import CategoryAvatar from 'src/components/CategoryAvatar.vue';
 import DeleteBtn from 'src/components/DeleteBtn.vue';
-import { Category } from 'src/store/model';
+import type { Category } from 'src/store/model';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { DeepPartial } from 'quasar';
+import type { DeepPartial } from 'quasar';
 import AsyncIconPicker from './AsyncIconPicker.vue';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

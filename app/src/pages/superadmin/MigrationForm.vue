@@ -83,7 +83,7 @@
 import { ref, watch } from 'vue';
 import type { Migration } from './migrations'
 import { KOptions } from '../../boot/koptions';
-import { Group } from '../../store/model';
+import type { Group } from '../../store/model';
 import { useStore } from 'vuex';
 
 const defaultSourceUrl = new URL(KOptions.url.social).origin;

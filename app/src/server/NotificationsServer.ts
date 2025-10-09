@@ -1,4 +1,5 @@
-import { Server, Response } from "miragejs";
+import type { Server} from "miragejs";
+import { Response } from "miragejs";
 import { KOptions } from "../boot/koptions";
 
 /**

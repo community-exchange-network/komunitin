@@ -1,6 +1,7 @@
 // Mirage typings are not perfect and sometimes we must use any.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Model, Factory, Server, ModelInstance, Response, belongsTo, hasMany, Collection } from "miragejs";
+import type { Server, ModelInstance} from "miragejs";
+import { Model, Factory, Response, belongsTo, hasMany, Collection } from "miragejs";
 import faker from "faker";
 import { KOptions } from "../boot/koptions";
 import ApiSerializer from "./ApiSerializer";
@@ -118,7 +119,7 @@ export default {
       created: (i: number) => faker.date.recent(i % 5).toJSON(),
       updated: (i: number) => faker.date.recent(i % 5).toJSON(),
       expires() {
-        return (this as any).state == "pending" ? faker.date.future().toJSON() : undefined;
+        return (this).state == "pending" ? faker.date.future().toJSON() : undefined;
       }
     }),
     accountSettings: Factory.extend({

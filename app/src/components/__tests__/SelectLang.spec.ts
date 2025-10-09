@@ -1,6 +1,7 @@
 
 import SelectLang from "../SelectLang.vue";
-import { VueWrapper, flushPromises } from "@vue/test-utils"
+import type { VueWrapper} from "@vue/test-utils";
+import { flushPromises } from "@vue/test-utils"
 import { mountComponent } from "../../../test/jest/utils";
 
 /**

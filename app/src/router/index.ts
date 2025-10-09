@@ -1,4 +1,5 @@
-import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory, Router } from 'vue-router'
+import type { Router } from 'vue-router';
+import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
 import routes from "./routes";
 import store from 'src/store';
 /*

@@ -118,7 +118,7 @@ import ShareButton from "../../components/ShareButton.vue";
 import SimpleMap from "../../components/SimpleMap.vue";
 import DeleteNeedBtn from "../../components/DeleteNeedBtn.vue";
 
-import { Need, Member, Category, Contact } from "../../store/model";
+import type { Need, Member, Category, Contact } from "../../store/model";
 
 
 export default defineComponent({

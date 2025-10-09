@@ -67,14 +67,12 @@ const messaging = getMessaging(app)
 const notification = notificationBuilder(store)
 
 // Push Message handler. 
-onBackgroundMessage(messaging, async (payload) => {
-  try {
-    const {title, options} = await notification(payload)
-    return (self as any).registration.showNotification(title, options)
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(error)
-  }
+onBackgroundMessage(messaging, (payload) => {
+  notification(payload).then(({title, options}) =>
+    (self as any).registration.showNotification(title, options)
+  ).catch((error) => {
+    console.error("Error showing notification", error)
+  })
 })
 
 self.addEventListener('notificationclick', function(event: any) {

@@ -1,8 +1,8 @@
 <template>
-  <inactive-banner
+  <InactiveBanner
     ref="inactiveBanner"
   />
-  <notifications-banner
+  <NotificationsBanner
     v-if="!(inactiveBanner?.show)"
     ref="notificationsBanner"
   />

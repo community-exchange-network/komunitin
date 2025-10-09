@@ -37,7 +37,7 @@ export interface ImageFile {
  * @param url URL of the image
  */
 export const imageFile = (url: string) => {
-  const filename = (url: string) => url.split("/").pop() as string
+  const filename = (url: string) => url.split("/").pop()
   return {
     name: filename(url),
     __key: url,

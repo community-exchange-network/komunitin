@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {Quasar, LocalStorage, Loading} from "quasar";
 import * as quasar from "quasar"
 

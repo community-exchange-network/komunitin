@@ -93,7 +93,7 @@ export class Auth {
   public async authorize(tokens?: AuthData, force = false): Promise<AuthData> {
     // 1. Maybe we're already authorized.
     if (!force && this.isAuthorized(tokens)) {
-      return tokens as AuthData
+      return tokens
     }
     // 2. Maybe we can use the refresh token.
     if (tokens != undefined) {

@@ -43,11 +43,11 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import ResourceCards from "../ResourceCards.vue";
+import type ResourceCards from "../ResourceCards.vue";
 import TransactionItem from "src/components/TransactionItem.vue";
 import { useStore } from "vuex";
-import { ExtendedTransfer, Account, Currency } from "../../store/model";
-import { LoadListPayload } from "src/store/resources";
+import type { ExtendedTransfer, Account, Currency } from "../../store/model";
+import type { LoadListPayload } from "src/store/resources";
 
 const props = defineProps<{
   code: string,

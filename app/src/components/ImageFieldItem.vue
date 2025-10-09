@@ -34,7 +34,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ImageFile } from '../composables/uploader';
+import type { ImageFile } from '../composables/uploader';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps<{

@@ -1,4 +1,5 @@
-import { MaybeRefOrGetter, toValue } from "@vueuse/shared"
+import type { MaybeRefOrGetter} from "@vueuse/shared";
+import { toValue } from "@vueuse/shared"
 import { KOptions } from "../boot/koptions"
 import { useStore } from "vuex"
 import { checkFetchResponse } from "../KError"

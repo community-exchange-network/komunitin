@@ -1,4 +1,4 @@
-import { Module, ActionContext } from "vuex";
+import type { Module, ActionContext } from "vuex";
 export interface UIState {
   drawerPersistent: boolean;
   drawerState: boolean;

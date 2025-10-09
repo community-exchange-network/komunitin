@@ -141,7 +141,8 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { computed, Ref, ref, watch, watchEffect } from 'vue';
+import type { Ref} from 'vue';
+import { computed, ref, watch, watchEffect } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import PageHeader from '../../layouts/PageHeader.vue';
@@ -153,9 +154,10 @@ import AccountSettingsFields from './AccountSettingsFields.vue';
 import DeleteMemberBtn from './DeleteMemberBtn.vue';
 import MemberStatusField from './MemberStatusField.vue';
 
-import langs, {LangName, normalizeLocale} from "../../i18n";
-import { AccountSettings, MailingFrequency, AccountTag, UserSettings, Member, Account, Group, Currency, CurrencySettings } from '../../store/model';
-import { DeepPartial } from 'quasar';
+import type {LangName} from "../../i18n";
+import langs, { normalizeLocale} from "../../i18n";
+import type { AccountSettings, MailingFrequency, AccountTag, UserSettings, Member, Account, Group, Currency, CurrencySettings } from '../../store/model';
+import type { DeepPartial } from 'quasar';
 import { useLocale } from "../../boot/i18n"
 import { watchDebounced } from "@vueuse/shared";
 import { useI18n } from 'vue-i18n';

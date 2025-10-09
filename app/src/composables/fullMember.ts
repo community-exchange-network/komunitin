@@ -1,5 +1,6 @@
-import { MaybeRefOrGetter, toValue } from "@vueuse/shared";
-import { Member, User, UserSettings } from "src/store/model";
+import type { MaybeRefOrGetter} from "@vueuse/shared";
+import { toValue } from "@vueuse/shared";
+import type { Member, User, UserSettings } from "src/store/model";
 import { ref, watch } from "vue";
 import { useStore } from "vuex";
 

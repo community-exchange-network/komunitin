@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue"
 import { parseAmount } from "src/plugins/FormatCurrency"
-import { Currency } from "src/store/model"
+import type { Currency } from "src/store/model"
 
 const props = defineProps<{
   modelValue: number|undefined,

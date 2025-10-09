@@ -8,7 +8,7 @@
 </template>
 <script setup lang="ts">
 import { useAccountStatus } from '../composables/accountStatus';
-import { MemberState } from '../store/model';
+import type { MemberState } from '../store/model';
 
 
 const props = defineProps<{

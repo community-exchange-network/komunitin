@@ -31,9 +31,9 @@ import KError, { KErrorCode } from 'src/KError';
 import DialogFormBtn from 'src/components/DialogFormBtn.vue';
 import { readCSV } from 'src/plugins/Files';
 import { normalizeAccountCode, parseAmount } from 'src/plugins/FormatCurrency';
-import { TransferRow } from "./CreateTransactionMultiple.vue";
+import type { TransferRow } from "./CreateTransactionMultiple.vue";
 import { useStore } from "vuex";
-import { ExtendedAccount } from "src/store/model";
+import type { ExtendedAccount } from "src/store/model";
 
 const props = defineProps<{
   code: string,
@@ -134,7 +134,7 @@ const importFile = async () => {
   fileErrorMessage.value = ""
   try {
     // Import button is disabled if file is not defined
-    const content = await readCSV(file.value as File)
+    const content = await readCSV(file.value)
     const rows = await parseTransfersFile(content)
     // Update table
     emit("import", rows)

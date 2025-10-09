@@ -92,7 +92,7 @@ import DateField from "../../components/DateField.vue"
 import ImageField from "../../components/ImageField.vue"
 import SelectCategory from "../../components/SelectCategory.vue"
 import ToggleItem from "../../components/ToggleItem.vue"
-import { Category, Offer, OfferState } from "src/store/model"
+import type { Category, Offer, OfferState } from "src/store/model"
 import { type DeepPartial, type QForm } from "quasar"
 import { useStore } from "vuex"
 
@@ -166,7 +166,7 @@ const onSubmit = async () => {
       relationships: {
         ...props.modelValue?.relationships,
          
-        category: { data: { type: "categories", id: category.value!.id } },
+        category: { data: { type: "categories", id: category.value.id } },
         member: { data: { type: "members", id: store.getters.myMember.id} }
       }
     })

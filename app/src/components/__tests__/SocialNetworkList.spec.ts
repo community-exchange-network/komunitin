@@ -1,4 +1,5 @@
-import { mount, VueWrapper } from "@vue/test-utils";
+import type { VueWrapper } from "@vue/test-utils";
+import { mount } from "@vue/test-utils";
 import { config } from '@vue/test-utils';
 import { quasarPlugin } from "../../../test/jest/utils/quasar-plugin";
 
@@ -24,6 +25,8 @@ describe("SocialNetworkList", () => {
       created: new Date().toJSON(),
       updated: new Date().toJSON()
     }
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any));
 
   let contact: VueWrapper;

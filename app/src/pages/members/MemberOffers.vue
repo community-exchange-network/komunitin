@@ -12,7 +12,7 @@
 import { computed } from "vue"
 import ResourceCards from "../ResourceCards.vue";
 import OfferCard from "../../components/OfferCard.vue";
-import { Member } from "../../store/model";
+import type { Member } from "../../store/model";
 import { useStore } from "vuex";
 
 const props = defineProps<{

@@ -26,7 +26,7 @@
 </template>
 <script setup lang="ts">
 
-import { Contact } from "../store/model"
+import type { Contact } from "../store/model"
 import { getNetworkIcon, getContactUrl, getShareUrl, getShareNetworkKeys, getContactNetworkKeys, getNetwork } from "../utils/social-networks"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
@@ -54,7 +54,7 @@ const contact = (network: string) => {
 
 const contactName = (network: string): string => {
   if (props.type === "contact") {
-    const contact = (props.contacts as Contact[]).find(c => c.attributes.type === network);
+    const contact = (props.contacts).find(c => c.attributes.type === network);
     return contact ? contact.attributes.name : "";
   }
   return "";

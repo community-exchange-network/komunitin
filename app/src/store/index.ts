@@ -1,7 +1,9 @@
-import { createStore, Store } from "vuex";
-import { Resources, ResourcesState } from "./resources";
+import type { Store } from "vuex";
+import { createStore } from "vuex";
+import type { ResourcesState } from "./resources";
+import { Resources } from "./resources";
 import { KOptions } from "src/boot/koptions";
-import {
+import type {
   User,
   UserSettings,
   Group,
@@ -19,8 +21,10 @@ import {
   Trustline
 } from "src/store/model";
 // Import logged-in user module
-import me, { UserState } from "./me";
-import ui, { UIState } from "./ui";
+import type { UserState } from "./me";
+import me from "./me";
+import type { UIState } from "./ui";
+import ui from "./ui";
 import createPersistPlugin from "./persist";
 import KError, { KErrorCode } from "src/KError";
 

@@ -138,9 +138,9 @@
 import { computed, ref, watch } from 'vue'
 import SelectAccount from 'src/components/SelectAccount.vue'
 import CreateTransactionLoadFileBtn from "./CreateTransactionLoadFileBtn.vue"
-import { TransferRow } from './CreateTransactionMultiple.vue'
+import type { TransferRow } from './CreateTransactionMultiple.vue'
 import { useI18n } from 'vue-i18n'
-import { Currency, CurrencySettings, ExtendedAccount } from 'src/store/model'
+import type { Currency, CurrencySettings, ExtendedAccount } from 'src/store/model'
 import { useStore } from 'vuex'
 
 const props = defineProps<{
@@ -159,7 +159,7 @@ const emit = defineEmits<{
 
 const model = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value as TransferRow[])
+  set: (value) => emit('update:modelValue', value)
 })
 
 const store = useStore()

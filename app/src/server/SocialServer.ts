@@ -1,7 +1,8 @@
 // Mirage typings are not perfect and sometimes we must use any.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Model, belongsTo, hasMany, Server, Factory, Response } from "miragejs";
+import type { Server} from "miragejs";
+import { Model, belongsTo, hasMany, Factory, Response } from "miragejs";
 import faker from "faker";
 import { filter } from "./ServerUtils"
 
@@ -93,12 +94,6 @@ function fakePrice(i:number): string {
   }
 }
 
-interface Association {
-  type: string;
-  name: string;
-  modelName: string;
-}
-
 /**
  * Object containing the properties to create a MirageJS server that mocks the
  * Komunitin Social API.
@@ -109,8 +104,8 @@ export default {
     group: ApiSerializer.extend({
       links(group: any) {
         const links = {} as { [key: string]: { related: string } };
-        (Object.values(group.associations) as Association[]).forEach(
-          association => {
+        (Object.values(group.associations)).forEach(
+          (association: any) => {
             links[association.name] = {
               related: ((association.name == "currency") ? urlAccounting : urlSocial) + "/" + group.code + "/" + association.name
             };
@@ -293,7 +288,7 @@ export default {
     }),
     member: Factory.extend({
       code() {
-        return faker.internet.userName((this as any).name);
+        return faker.internet.userName((this).name);
       },
       access: "public",
       state: "active",
@@ -321,7 +316,7 @@ export default {
     offer: Factory.extend({
       name: () => faker.commerce.product(),
       code(i: number) {
-        return faker.helpers.slugify((this as any).name) + i;
+        return faker.helpers.slugify((this).name) + i;
       },
       content: () => fakeMarkdown(faker.random.number({ min: 1, max: 3 })),
       price: () => fakePrice(faker.random.number({min: 1, max:1000})),
@@ -339,7 +334,7 @@ export default {
     need: Factory.extend({
       content: () => fakeMarkdown(faker.random.number({min: 1, max: 2})),
       code() {
-        return faker.helpers.slugify((this as any).content.substr(0, 10));
+        return faker.helpers.slugify((this).content.substr(0, 10));
       },
       images: (i: number) => Array.from(
         // Often it's empty.
@@ -687,9 +682,9 @@ export default {
       const userSettings = schema.userSettings.create(userSettingsData.attributes)
       const user = schema.users.create({...body.data.attributes, members: [member], settings: userSettings})
       
-      // eslint-disable-next-line no-console
+       
       console.info("New user created! Follow this URL to contine the signup process:")
-      // eslint-disable-next-line no-console
+       
       console.info(`https://localhost:2030/groups/${group.code}/signup-member?token=empty_user`)
 
       return user

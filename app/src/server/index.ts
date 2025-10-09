@@ -1,6 +1,7 @@
 // Mirage typings are not perfect and sometimes we must use any.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Registry, Server } from "miragejs";
+import type { Registry} from "miragejs";
+import { Server } from "miragejs";
 import { KOptions } from "src/boot/koptions";
 
 import SocialServer from "./SocialServer";
@@ -8,12 +9,12 @@ import AuthServer from "./AuthServer";
 import UUIDIndetityManager from "./UUIDManager";
 import AccountingServer from "./AccountingServer";
 import NotificationsServer from "./NotificationsServer";
-import { AnyFactories, AnyModels } from "miragejs/-types";
+import type { AnyFactories, AnyModels } from "miragejs/-types";
 
 // Ensure boolean.
 const mirageDevEnvironment = process.env.MOCK_ENVIRONMENT == "development";
 
-// eslint-disable-next-line no-console
+ 
 console.debug(`Mocking server responses with MirageJS, mode ${process.env.MOCK_ENVIRONMENT}.`);
 
 const server = new Server({

@@ -107,7 +107,7 @@ import AccountLimits from "./AccountLimits.vue";
 import Avatar from "src/components/Avatar.vue";
 import FitText from "src/components/FitText.vue";
 
-import { Member } from "../../store/model";
+import type { Member } from "../../store/model";
 import FormatCurrency from "../../plugins/FormatCurrency"
 
 export default defineComponent({

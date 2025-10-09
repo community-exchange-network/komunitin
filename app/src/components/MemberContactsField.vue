@@ -77,8 +77,8 @@
 import { computed, ref } from "vue"
 import { getNetworkIcon, getContactUrl, getNetwork, getContactNetworkKeys } from "../utils/social-networks"
 import { useI18n } from "vue-i18n"
-import { Contact } from "../store/model"
-import { DeepPartial } from "quasar"
+import type { Contact } from "../store/model"
+import type { DeepPartial } from "quasar"
 import { v4 as uuid } from "uuid"
 import DialogFormBtn from "./DialogFormBtn.vue"
 
