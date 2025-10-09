@@ -1,6 +1,7 @@
 // Configuration for your app
 import { defineConfig } from "#q-app/wrappers"
 import fs from "fs"
+import vitePluginChecker from 'vite-plugin-checker'
 
 // Quasar loads .env files, but they are not available in quasar.config.ts. They are only
 // available in the app code. So we need to load them ourselves here. Also, we pass the 
@@ -84,6 +85,14 @@ export default defineConfig((ctx) => {
         ...(ctx.dev ? process.env : {}),
         APP_VERSION: version
       },
+      vitePlugins: [
+        [vitePluginChecker, {
+          eslint: {
+            lintCommand: 'eslint -c ./eslint.config.js "./src*/**/*.{ts,js,mjs,cjs,vue}"',
+            useFlatConfig: true
+          }
+        }, {server: false}]
+      ]
     },
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer
