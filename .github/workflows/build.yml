@@ -124,15 +124,12 @@ jobs:
       with:
         key: ${{ secrets.TEST_DEPLOY_SSH_PRIVATE_KEY }} 
         known_hosts: 'will-be-set-now'
-    
-    - name: Add remote server to Known Hosts.
-      run: ssh-keyscan -H demo.komunitin.org >> ~/.ssh/known_hosts
-
     - name: Deploy demo.komunitin.org
       if: github.ref == 'refs/heads/master'
 # This ssh options keep the connection alive for 15 minutes even if there is no activity
 # due to long compilation times.
       run: > 
+        ssh-keyscan -H demo.komunitin.org >> ~/.ssh/known_hosts &&
         ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@demo.komunitin.org 
         "cd /opt/demo.komunitin.org
         && cd ices && git pull && cd ..
@@ -142,6 +139,7 @@ jobs:
     - name: Deploy preview.komunitin.org
       if: github.event_name == 'pull_request'
       run: > 
+        ssh-keyscan -H preview.komunitin.org >> ~/.ssh/known_hosts &&
         ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@preview.komunitin.org
         "cd /opt/preview.komunitin.org
         && cd ices && git pull && cd ..
