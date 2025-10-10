@@ -38,7 +38,7 @@ function getBoolean(key: string, buildTimeValue: string | boolean): boolean {
 
 function getString(key: string, buildTimeValue: string | boolean): string {
   const value = getValue(key, buildTimeValue);
-  return typeof value === 'string' ? value : String(value);
+  return value !== undefined ? String(value) : ""
 }
 
 export const config = {
