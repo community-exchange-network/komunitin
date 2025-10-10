@@ -1,4 +1,4 @@
-import { KOptions } from "../boot/koptions";
+import { config } from "src/utils/config";
 import KError, { KErrorCode } from "src/KError";
 //https://quasar.dev/quasar-plugins/web-storage
 
@@ -46,9 +46,9 @@ export class Auth {
   private readonly clientId: string;
 
   constructor() {
-    this.tokenEndpoint = KOptions.url.auth + "/token";
-    this.resetPasswordEndpoint = KOptions.url.auth + "/reset-password"
-    this.clientId = KOptions.oauth.clientid
+    this.tokenEndpoint = config.AUTH_URL + "/token";
+    this.resetPasswordEndpoint = config.AUTH_URL + "/reset-password"
+    this.clientId = config.OAUTH_CLIENTID
   }
 
   /**
@@ -163,7 +163,7 @@ export class Auth {
     params.append("client_id", this.clientId)
     params.append("group", code)
 
-    const response = await fetch(KOptions.url.auth + "/resend-validation", {
+    const response = await fetch(config.AUTH_URL + "/resend-validation", {
       method: "POST",
       body: params,
       headers: { "Content-Type": "application/x-www-form-urlencoded" }

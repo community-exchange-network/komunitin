@@ -3,13 +3,13 @@
 import type { Server, ModelInstance} from "miragejs";
 import { Model, Factory, Response, belongsTo, hasMany, Collection } from "miragejs";
 import faker from "faker";
-import { KOptions } from "../boot/koptions";
+import { config } from "src/utils/config";
 import ApiSerializer from "./ApiSerializer";
 import { filter, sort, search } from "./ServerUtils";
 import { inflections } from "inflected"
 import { v4 as uuid } from "uuid";
 
-const urlAccounting = KOptions.url.accounting;
+const urlAccounting = config.ACCOUNTING_URL;
 inflections("en", function (inflect) {
   inflect.irregular("accountSettings", "accountSettings")
   inflect.irregular("currencySettings", "currencySettings")

@@ -1,7 +1,7 @@
 // Mirage typings are not perfect and sometimes we must use any.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { KOptions } from "../boot/koptions";
+import { config } from "src/utils/config";
 import type { TokenResponse } from "../plugins/Auth";
 import type { Server} from "miragejs";
 import { Response } from "miragejs";
@@ -23,7 +23,7 @@ export default {
   routes(server: Server) {
     // OAuth2 token
     server.post(
-      KOptions.url.auth + "/token",
+      config.AUTH_URL + "/token",
       (schema: any, request) => {
         const params = new URLSearchParams(request.requestBody);
         const param = params.get("code") || params.get("refresh_token") || params.get("username") || "test_user";

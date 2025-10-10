@@ -99,7 +99,7 @@ export default function createPersistPlugin<T>() {
 
   // Check if we need to clear the data due to potentially breaking upgrade.
   const checkBreakingUpgrade = async () => {
-    const existingVersion = await getInternalItem("version") ?? "0.0.0"
+    const existingVersion = await getInternalItem("version") as string ?? "0.0.0"
     if (isBreakingUpgrade(existingVersion)) {
       if (process.env.DEV) {
          

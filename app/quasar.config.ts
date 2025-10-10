@@ -12,7 +12,7 @@ import { config } from "dotenv"
 config()
 
 const version = process.env.npm_package_version || "0.0.0"
-console.log(`App version: ${version}`)
+console.log(`Komunitin app version: ${version}`)
 //console.log(process.env)
 
 export default defineConfig((ctx) => {
@@ -82,7 +82,6 @@ export default defineConfig((ctx) => {
       analyze: true,
       sourcemap: true,      
       env: {
-        ...(ctx.dev ? process.env : {}),
         APP_VERSION: version
       },
       vitePlugins: [
@@ -95,6 +94,11 @@ export default defineConfig((ctx) => {
         }, {server: false}]
       ]
     },
+
+    htmlVariables: {
+      configStamp: Date.now()
+    },
+
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer
     // Only define the dev server when on dev mode, since otherwise we don't need to configure

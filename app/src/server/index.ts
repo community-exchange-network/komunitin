@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Registry} from "miragejs";
 import { Server } from "miragejs";
-import { KOptions } from "src/boot/koptions";
+import { config } from "src/utils/config";
 
 import SocialServer from "./SocialServer";
 import AuthServer from "./AuthServer";
@@ -12,16 +12,16 @@ import NotificationsServer from "./NotificationsServer";
 import type { AnyFactories, AnyModels } from "miragejs/-types";
 
 // Ensure boolean.
-const mirageDevEnvironment = process.env.MOCK_ENVIRONMENT == "development";
+const mirageDevEnvironment = config.MOCK_ENVIRONMENT == "development";
 
  
-console.debug(`Mocking server responses with MirageJS, mode ${process.env.MOCK_ENVIRONMENT}.`);
+console.debug(`Mocking server responses with MirageJS, mode ${config.MOCK_ENVIRONMENT}.`);
 
 const server = new Server({
   timing : mirageDevEnvironment ? 200 : 0,
   //logging: mirageDevEnvironment,
   logging: true,
-  environment: process.env.MOCK_ENVIRONMENT,
+  environment: config.MOCK_ENVIRONMENT,
   serializers: {
     ...SocialServer.serializers,
     ...AccountingServer.serializers
@@ -41,25 +41,25 @@ const server = new Server({
     _createAllData(server)
   },
   routes() {
-    if (process.env.MOCK_AUTH == "true") {
+    if (config.MOCK_AUTH) {
       AuthServer.routes(this);
     } else {
-      this.passthrough(KOptions.url.auth + "/**");
+      this.passthrough(config.AUTH_URL + "/**");
     }
-    if (process.env.MOCK_SOCIAL == "true") {
+    if (config.MOCK_SOCIAL) {
       SocialServer.routes(this);
     } else {
-      this.passthrough(KOptions.url.social + "/**");
+      this.passthrough(config.SOCIAL_URL + "/**");
     }
-    if (process.env.MOCK_ACCOUNTING == "true") {
+    if (config.MOCK_ACCOUNTING) {
       AccountingServer.routes(this);
     } else {
-      this.passthrough(KOptions.url.accounting + "/**");
+      this.passthrough(config.ACCOUNTING_URL + "/**");
     }
-    if (process.env.MOCK_NOTIFICATIONS == "true") {
+    if (config.MOCK_NOTIFICATIONS) {
       NotificationsServer.routes(this);
     } else {
-      this.passthrough(KOptions.url.notifications + "/**");
+      this.passthrough(config.NOTIFICATIONS_URL + "/**");
     }
 
     this.passthrough("/service-worker.js");

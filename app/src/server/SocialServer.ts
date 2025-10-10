@@ -7,13 +7,13 @@ import faker from "faker";
 import { filter } from "./ServerUtils"
 
 import { getContactNetworkKeys } from "../utils/social-networks";
-import { KOptions } from "../boot/koptions";
+import { config } from "src/utils/config";
 import ApiSerializer from "./ApiSerializer";
 import { inflections } from "inflected"
 
 
-const urlSocial = KOptions.url.social;
-const urlAccounting = KOptions.url.accounting;
+const urlSocial = config.SOCIAL_URL;
+const urlAccounting = config.ACCOUNTING_URL;
 
 const contactTypes = getContactNetworkKeys();
 
