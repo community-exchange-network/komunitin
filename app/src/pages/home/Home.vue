@@ -5,8 +5,6 @@
       <resource-cards
         :code="code"
         :module-name="['offers', 'needs']"
-        card="OfferCard" 
-        prop-name="offer"
       />
       <slot name="after" />
     </q-page>
