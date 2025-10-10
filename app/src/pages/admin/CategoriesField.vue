@@ -89,7 +89,7 @@
         <div class="text-onsurface-m">
           {{ $t('categoryIcon') }}
         </div>
-        <async-icon-picker
+        <AsyncIconPicker
           v-model="icon"
         />        
       </q-card-section>
@@ -109,10 +109,9 @@
 import CategoryAvatar from 'src/components/CategoryAvatar.vue';
 import DeleteBtn from 'src/components/DeleteBtn.vue';
 import type { Category } from 'src/store/model';
-import { computed, ref } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { DeepPartial } from 'quasar';
-import AsyncIconPicker from './AsyncIconPicker.vue';
+import { QSpinner, type DeepPartial } from 'quasar';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps<{
@@ -185,5 +184,11 @@ const saveCategory = () => {
   showDialog.value = false
 }
 
+const AsyncIconPicker = defineAsyncComponent({
+  loader: () => import('./IconPicker.vue'),
+  loadingComponent: QSpinner,
+  delay: 100,
+  timeout: 10000
+})
+
 </script>
-<style src="@quasar/quasar-ui-qiconpicker/dist/index.css"></style>
