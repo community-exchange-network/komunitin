@@ -146,7 +146,7 @@ jobs:
         ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@preview.komunitin.org
         "cd /opt/preview.komunitin.org
         && cd ices && git pull && cd ..
-        && cd komunitin && git fetch origin && git checkout origin/${{ github.head_ref }} && git pull origin ${{ github.head_ref }}
+        && cd komunitin && git fetch origin && git checkout origin/${{ github.head_ref }}
         && docker compose down -v --remove-orphans
         && ./start.sh --up --ices --demo --public"
     
