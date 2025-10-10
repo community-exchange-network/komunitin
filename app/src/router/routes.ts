@@ -34,6 +34,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../layouts/Layout.vue'),
     children: [
       {
+        path: '/home',
+        name: 'Home',
+        component: () => import('../pages/home/Home.vue'),
+      },
+      {
         path: '/settings',
         name: 'Settings',
         component: () => import('../pages/settings/EditSettings.vue')
