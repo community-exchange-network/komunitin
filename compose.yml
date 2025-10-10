@@ -3,6 +3,8 @@ services:
     build:
       context: ./app
     restart: unless-stopped
+    ports:
+      - "2030:80"
     environment:
       OAUTH_CLIENTID: komunitin-app
       MOCK_ENABLE: false
