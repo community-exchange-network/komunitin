@@ -2,6 +2,7 @@ import { register } from "register-service-worker";
 import { Notify } from "quasar";
 import { major, minor } from "semver";
 import { i18n } from "src/boot/i18n";
+import { config } from "src/utils/config";
 
 // This is the version of the currently running application, set in build time from package.json.
 const CURRENT_VERSION = process.env.APP_VERSION;
@@ -17,9 +18,10 @@ register(process.env.SERVICE_WORKER_FILE, {
   // registrationOptions: { scope: "./" },
 
   
-  ready(/* registration */) {
+  ready(registration) {
+    // Send config to the service worker.
+    registration.active?.postMessage({ type: 'SET_CONFIG', config })       
     if (process.env.DEV) {
-       
       console.log("App is being served from cache by a service worker.");
     }
   },

@@ -11,8 +11,9 @@ import { onBackgroundMessage, getMessaging } from "firebase/messaging/sw"
 import { initializeApp } from 'firebase/app'
 import firebaseConfig from '../src/plugins/FirebaseConfig'
 // Komunitin
-import store from "../src/store"
 import { notificationBuilder } from './notifications'
+import { setConfig } from "src/utils/config"
+import type { Store } from 'vuex/types/index.js'
 
 // This version will be replaced by DefinePlugin at build time
 const SW_VERSION = process.env.APP_VERSION
@@ -26,6 +27,13 @@ self.addEventListener('message', (event: any) => {
     // This command makes the service worker to take control of the current pages.
     (self as any).skipWaiting()
   }
+  if (event.data && event.data.type === 'SET_CONFIG') {
+    setConfig(event.data.config)
+    if (process.env.DEV) {
+      console.log("Service worker config set:", event.data.config)
+    }
+  }
+
 })
 
 // Precache generated manifest file.
@@ -64,7 +72,21 @@ registerRoute(
 const app = initializeApp(firebaseConfig)
 //Note that this getMessaging is not the same as the one in src/plugins/Notifications.ts
 const messaging = getMessaging(app)
-const notification = notificationBuilder(store)
+
+// We load the store dynamically in order to allow the config
+// to be sent from the main thread to the SW before the store is loaded.
+const loadStore = async () : Promise<Store<any>> => {
+  const module = await import("../src/store")
+  return module.default
+}
+let notificationBuilderInstance = null
+const notification = async (payload: any) => {
+  if (notificationBuilder === null) {
+    const store = await loadStore()
+    notificationBuilderInstance = notificationBuilder(store)
+  }
+  return notificationBuilderInstance(payload)
+}
 
 // Push Message handler. 
 onBackgroundMessage(messaging, (payload) => {

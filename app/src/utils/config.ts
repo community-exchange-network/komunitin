@@ -40,6 +40,12 @@ function getString(key: string, buildTimeValue: string | boolean): string {
   const value = getValue(key, buildTimeValue);
   return value !== undefined ? String(value) : ""
 }
+// Ensure process.env is defined to avoid errors when no build-time config
+// is provided.
+let process
+// eslint-disable-next-line prefer-const
+process = process || {};
+process.env = process.env || {};
 
 export const config = {
   OAUTH_CLIENTID: getString('OAUTH_CLIENTID', process.env.OAUTH_CLIENTID),
@@ -58,3 +64,7 @@ export const config = {
   GTAG_ID: getString('GTAG_ID', process.env.GTAG_ID),
   FEEDBACK_URL: getString('FEEDBACK_URL', process.env.FEEDBACK_URL)
 };
+
+export function setConfig(newConfig: Record<string, string>) {
+  Object.assign(config, newConfig);
+}
