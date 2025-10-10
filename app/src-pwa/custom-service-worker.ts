@@ -81,7 +81,7 @@ const loadStore = async () : Promise<Store<any>> => {
 }
 let notificationBuilderInstance = null
 const notification = async (payload: any) => {
-  if (notificationBuilder === null) {
+  if (notificationBuilderInstance === null) {
     const store = await loadStore()
     notificationBuilderInstance = notificationBuilder(store)
   }
