@@ -64,6 +64,8 @@ onMounted(() => {
 const IconPicker = defineAsyncComponent(async () => {
   // Run code after next paint.
   await new Promise(resolve => setTimeout(resolve, 10))
+  // Preload icons as @quasar/quasar-ui-qiconpicker uses require() which is not supported by Vite.
+  await import('@quasar/quasar-ui-qiconpicker/dist/icon-set/material-icons.umd.js')
   const { QIconPicker } = await import('@quasar/quasar-ui-qiconpicker')
   return QIconPicker
 })
