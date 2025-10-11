@@ -35,6 +35,7 @@ func main() {
 		"https://demo.integralces.net",
 		"https://demo.komunitin.org",
 		"https://test.komunitin.org",
+		"https://preview.komunitin.org",
 		"https://komunitin.org",
 	})
 
