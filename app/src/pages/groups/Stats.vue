@@ -84,7 +84,7 @@
 <script setup lang="ts">
 import { useStore } from 'vuex'
 import { computed, watch } from 'vue'
-import { Currency, Group } from 'src/store/model'
+import type { Currency, Group } from 'src/store/model'
 import { useI18n } from 'vue-i18n'
 
 import GroupHeader from 'src/components/GroupHeader.vue';

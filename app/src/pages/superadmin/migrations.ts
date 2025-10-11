@@ -1,6 +1,7 @@
 import { useQuasar } from 'quasar'
-import { MaybeRefOrGetter, ref, toValue, watchEffect } from 'vue'
-import { ErrorResponse, ResourceObject } from '../../store/model'
+import type { MaybeRefOrGetter} from 'vue';
+import { ref, toValue, watchEffect } from 'vue'
+import type { ErrorResponse, ResourceObject } from '../../store/model'
 import { useStore } from 'vuex'
 
 export interface Migration {

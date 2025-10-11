@@ -1,5 +1,6 @@
-import { computed, MaybeRefOrGetter, toValue } from "vue"
-import { MemberState } from "../store/model"
+import type { MaybeRefOrGetter} from "vue";
+import { computed, toValue } from "vue"
+import type { MemberState } from "../store/model"
 import { useI18n } from "vue-i18n"
 
 export const useAccountStatus = (status: MaybeRefOrGetter<MemberState>) => {

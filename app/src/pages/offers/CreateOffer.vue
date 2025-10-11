@@ -22,10 +22,10 @@
 <script setup lang="ts">
 import PageHeader from "../../layouts/PageHeader.vue"
 import OfferForm from "./OfferForm.vue"
-import { Category, Offer } from "src/store/model"
+import type { Category, Offer } from "src/store/model"
 import { useStore } from "vuex"
 import { useRouter } from "vue-router"
-import { DeepPartial } from "quasar"
+import type { DeepPartial } from "quasar"
 import { ref } from "vue"
 
  

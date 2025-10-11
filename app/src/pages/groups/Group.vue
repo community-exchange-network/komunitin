@@ -159,7 +159,7 @@ import SimpleMap from "../../components/SimpleMap.vue";
 import SocialNetworkList from "../../components/SocialNetworkList.vue";
 import FloatingBtn from "../../components/FloatingBtn.vue";
 
-import { Group, Contact, Category, Currency } from "../../store/model";
+import type { Group, Contact, Category, Currency } from "../../store/model";
 
 /**
  * Page for Group details.

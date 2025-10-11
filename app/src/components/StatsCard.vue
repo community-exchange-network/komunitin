@@ -34,11 +34,12 @@
   </q-card>
 </template>
 <script setup lang="ts">
-import { StatsValue, useCurrencyStatsFormattedValue  } from 'src/composables/currencyStats';
-import { Currency } from 'src/store/model';
+import type { StatsValue} from 'src/composables/currencyStats';
+import { useCurrencyStatsFormattedValue  } from 'src/composables/currencyStats';
+import type { Currency } from 'src/store/model';
 import { computed } from 'vue';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const props = defineProps<{
   value: StatsValue
   title: string

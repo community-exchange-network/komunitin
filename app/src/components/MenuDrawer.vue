@@ -151,8 +151,9 @@ import MenuItem from "./MenuItem.vue";
 import GroupHeader from "./GroupHeader.vue";
 import { useRoute, useRouter } from "vue-router";
 import { useQuasar } from "quasar";
+import { config } from "src/utils/config";
 
-const feedbackURL = process.env.FEEDBACK_URL;
+const feedbackURL = config.FEEDBACK_URL;
 const store = useStore()
 const route = useRoute()
 const router = useRouter()

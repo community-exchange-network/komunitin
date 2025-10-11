@@ -44,7 +44,7 @@
 <script setup lang="ts">
 import { useMyAccountSettings } from 'src/composables/accountSettings';
 import PageHeader from 'src/layouts/PageHeader.vue';
-import { Member } from 'src/store/model';
+import type { Member } from 'src/store/model';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

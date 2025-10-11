@@ -20,7 +20,7 @@
   </q-item-section>
 </template>
 <script setup lang="ts">
-import { Account, Currency, Group, Member } from "src/store/model"
+import type { Account, Currency, Group, Member } from "src/store/model"
 import Avatar from "./Avatar.vue"
 import { computed } from "vue"
 
@@ -71,7 +71,7 @@ const avatarText = computed(() => {
   if (addressLeaf.value) {
     return addressLeaf.value
   } else if (props.account?.member) {
-    return props.account.member.attributes.name as string
+    return props.account.member.attributes.name
   } else if (props.account) {
     return props.account.attributes.code
   }
@@ -82,7 +82,7 @@ const primaryText = computed(() => {
   if (addressLeaf.value) {
     return addressLeaf.value
   } else if (props.account?.member) {
-    return props.account.member.attributes.name as string
+    return props.account.member.attributes.name
   } else if (props.account?.currency?.group) {
     return props.account.currency.group.attributes.name
   } else if (props.account) {

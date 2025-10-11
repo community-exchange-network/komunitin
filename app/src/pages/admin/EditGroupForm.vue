@@ -113,8 +113,9 @@ import { ref, watch } from "vue"
 import AvatarField from "src/components/AvatarField.vue"
 import LocationPicker from "src/components/LocationPicker.vue"
 import CountryChooser from "src/components/CountryChooser.vue"
-import MemberContactsField, { PartialContact } from "src/components/MemberContactsField.vue"
-import { Currency, Group } from "src/store/model"
+import type { PartialContact } from "src/components/MemberContactsField.vue";
+import MemberContactsField from "src/components/MemberContactsField.vue"
+import type { Currency, Group } from "src/store/model"
 import { watchDebounced } from "@vueuse/shared"
 import { useStore } from "vuex"
 

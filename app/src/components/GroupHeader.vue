@@ -26,7 +26,7 @@
   </q-item>
 </template>
 <script setup lang="ts">
-import { Group } from 'src/store/model';
+import type { Group } from 'src/store/model';
 import Avatar from './Avatar.vue'
 
 defineProps<{

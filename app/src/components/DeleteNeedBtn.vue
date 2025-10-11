@@ -13,11 +13,12 @@
   </delete-btn>
 </template>
 <script setup lang="ts">
-import { DeepPartial, useQuasar } from "quasar"
+import type { DeepPartial} from "quasar";
+import { useQuasar } from "quasar"
 import { computed } from "vue"
 import { useStore } from "vuex"
 import { useI18n } from "vue-i18n"
-import { Need } from "src/store/model"
+import type { Need } from "src/store/model"
 import { truncate}  from "../plugins/Clamp"
 import DeleteBtn from "./DeleteBtn.vue"
 import { useRouter } from "vue-router"

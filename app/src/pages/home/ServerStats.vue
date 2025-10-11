@@ -71,7 +71,7 @@ import GroupsMap from "src/components/GroupsMap.vue";
 import StatsCard from "src/components/StatsCard.vue";
 
 import { computed } from "vue";
-import { Group } from "src/store/model";
+import type { Group } from "src/store/model";
 import { useStore } from "vuex";
 
 const { t } = useI18n()

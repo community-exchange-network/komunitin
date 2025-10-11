@@ -43,12 +43,13 @@ import PageHeader from 'src/layouts/PageHeader.vue';
 import EditGroupSettingsForm from './EditGroupSettingsForm.vue';
 import SaveChanges from 'src/components/SaveChanges.vue';
 
-import { computed, onMounted, Ref, ref, watch } from 'vue';
+import type { Ref} from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
-import { DeepPartial } from 'quasar';
-import { Category, Currency, CurrencySettings, GroupSettings, ResourceIdentifierObject, ResourceObject, Trustline } from 'src/store/model';
-import { CreatePayload, DeletePayload, UpdatePayload } from 'src/store/resources';
-import { ExtendedTrustline } from './TrustlinesField.vue';
+import type { DeepPartial } from 'quasar';
+import type { Category, Currency, CurrencySettings, GroupSettings, ResourceIdentifierObject, ResourceObject, Trustline } from 'src/store/model';
+import type { CreatePayload, DeletePayload, UpdatePayload } from 'src/store/resources';
+import type { ExtendedTrustline } from './TrustlinesField.vue';
 
 const props = defineProps<{
   code: string
@@ -134,7 +135,7 @@ const updateGroupSettings = async (settings: DeepPartial<GroupSettings> & Resour
 
 const updateCategory = async (category: DeepPartial<Category> & ResourceIdentifierObject) => {
   await updateResource('categories/update', {
-    id: category.id as string,
+    id: category.id,
     group: props.code,
     resource: category
   }, updatingCategory)
@@ -156,7 +157,7 @@ const createCategory = async (category: DeepPartial<Category>) => {
 
 const deleteCategory = async (category: DeepPartial<Category>) => {
   await updateResource('categories/delete', {
-    id: category.id as string,
+    id: category.id,
     group: props.code
   }, updatingCategory)
   // update categories list
@@ -192,7 +193,7 @@ const updateCurrencySettings = async (settings: DeepPartial<CurrencySettings> & 
 
 const updateTrustline = async (trustline: DeepPartial<Trustline> & ResourceIdentifierObject) => {
   await updateResource('trustlines/update', {
-    id: trustline.id as string,
+    id: trustline.id,
     group: props.code,
     resource: {
       attributes: {

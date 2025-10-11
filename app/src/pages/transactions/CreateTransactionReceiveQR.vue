@@ -53,7 +53,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Currency, ExtendedTransfer, Account } from "src/store/model";
+import type { Currency, ExtendedTransfer, Account } from "src/store/model";
 import { computed, ref } from "vue"
 import { useStore } from "vuex";
 import CreateTransactionSingleForm from "./CreateTransactionSingleForm.vue";

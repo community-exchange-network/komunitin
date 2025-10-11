@@ -1,11 +1,9 @@
-const esModules = ['quasar', 'quasar/lang', 'lodash-es', 'leaflet/dist/leaflet-src.esm', 'markdown-to-txt'].join('|');
+const esModules = ['quasar', 'quasar/lang', 'lodash-es', 'leaflet', '@vue', 'uuid'].join('|');
 
-module.exports = {
+export default {
+  preset: 'ts-jest',
   globals: {
     __DEV__: true,
-    'vue-jest': {
-      pug: { doctype: 'html' },
-    }
   },
   testEnvironment: 'jsdom',
   setupFiles: [
@@ -56,22 +54,17 @@ module.exports = {
   },
   transform: {
     '.*\\.vue$': '@vue/vue3-jest',
-    // See https://jestjs.io/docs/en/configuration.html#transformignorepatterns-array-string
-    '.*\\.js$': 'babel-jest',
+    '.*\\.(js|mjs)$': 'babel-jest',
     '.+\\.(css|styl|less|sass|scss|svg|png|jpg|ttf|woff|woff2)$': 'jest-transform-stub',
-    '^.+\\.tsx?$': ['ts-jest', 
-      // Remove if using `const enums`
-      // See https://huafu.github.io/ts-jest/user/config/isolatedModules#example
-      {
-        isolatedModules: true,
-      }],
+    '^.+\\.tsx?$': 'ts-jest',
   },
-  transformIgnorePatterns: [`node_modules/(?!(${esModules}))`],
+  transformIgnorePatterns: [
+    `node_modules/(?!(${esModules}))`
+  ],
 
   moduleDirectories: [
     '<rootDir>/node_modules',
   ],
-  //preset: 'ts-jest/presets/js-with-babel',
   testEnvironmentOptions: {
     customExportConditions: ["node", "node-addons"],
   },

@@ -13,11 +13,12 @@
   </delete-btn>
 </template>
 <script setup lang="ts">
-import { DeepPartial, useQuasar } from "quasar"
+import type { DeepPartial} from "quasar";
+import { useQuasar } from "quasar"
 import { computed } from "vue"
 import { useStore } from "vuex"
 import { useI18n } from "vue-i18n"
-import { Offer } from "src/store/model"
+import type { Offer } from "src/store/model"
 import DeleteBtn from "./DeleteBtn.vue"
 import { useRouter } from "vue-router"
 
@@ -47,6 +48,6 @@ const deleteOffer = async () => {
     router.push(props.to)
   }
 }
-const name = computed(() => props.offer.attributes?.name as string)
+const name = computed(() => props.offer.attributes?.name)
 
 </script>

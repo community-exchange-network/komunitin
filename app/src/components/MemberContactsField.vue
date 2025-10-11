@@ -75,10 +75,10 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { getNetworkIcon, ContactNetworks, getContactUrl } from "./SocialNetworks"
+import { getNetworkIcon, getContactUrl, getNetwork, getContactNetworkKeys } from "../utils/social-networks"
 import { useI18n } from "vue-i18n"
-import { Contact } from "../store/model"
-import { DeepPartial } from "quasar"
+import type { Contact } from "../store/model"
+import type { DeepPartial } from "quasar"
 import { v4 as uuid } from "uuid"
 import DialogFormBtn from "./DialogFormBtn.vue"
 
@@ -106,35 +106,38 @@ const contacts = computed({
 const { t } = useI18n()
 
 const getNetworkLabel = (key: string) => {
-  if (!(key in ContactNetworks)) {
+  const network = getNetwork(key)
+  if (!network) {
     return key
-  } else if (ContactNetworks[key].translateLabel) {
-    return t(ContactNetworks[key].label)
+  } else if (network.translateLabel) {
+    return t(network.label)
   } else {
-    return ContactNetworks[key].label
+    return network.label
   }
 }
 
 const getNetworkIdLabel = (key: string) => {
-  if (!(key in ContactNetworks)) {
+  const network = getNetwork(key)
+  if (!network) {
     return key
-  } else if (ContactNetworks[key].translateIdLabel) {
-    return t(ContactNetworks[key].idLabel)
+  } else if (network.idLabel) {
+    return network.translateIdLabel ? t(network.idLabel) : network.idLabel
   } else {
-    return ContactNetworks[key].idLabel
+    return network.translateLabel ? t(network.label) : network.label
   }
 }
 
 const newContactType = ref()
 const newContactName = ref<string>()
-const newContactOptions = computed(() => Object.keys(ContactNetworks).map((key) => ({
+const newContactOptions = computed(() => getContactNetworkKeys().map((key) => ({
   label: getNetworkLabel(key),
   value: key,
   disable: contacts.value.some(contact => contact.attributes?.type === key)
 })))
+
 const testNewContact = () => {
   if (newContactType.value && newContactName.value) {
-    const url = getContactUrl(ContactNetworks[newContactType.value.value], newContactName.value)
+    const url = getContactUrl(newContactType.value.value, newContactName.value)
     window.open(url, '_blank')
   }
 }

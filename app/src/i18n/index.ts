@@ -5,8 +5,8 @@
  * and we anynchronously load them in i18n boot file.
  */
 
-import { Locale } from "date-fns"
-import { QuasarLanguage } from "quasar"
+import type { Locale } from "date-fns"
+import type { QuasarLanguage } from "quasar"
 
 export interface LocaleDefinition {
   label: string,

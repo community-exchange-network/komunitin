@@ -1,4 +1,4 @@
-import { ComponentPublicInstance } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
 
 import KError, { KErrorCode } from '../KError';
 import { Notify } from 'quasar'
@@ -58,9 +58,9 @@ function logError(error: KError) {
       msg += "\n" + "Error while serializing debug info."
     }
   }
-  // eslint-disable-next-line no-console
+   
   console.error(msg);
-  // eslint-disable-next-line no-console
+   
   console.error(error);
 }
 
@@ -68,7 +68,7 @@ function logError(error: KError) {
  * Log error produced while trying to handle the error. 
  */
 function logErrorHandling(error: Error) {
-  // eslint-disable-next-line no-console
+   
   console.error(`[${KErrorCode.ErrorHandling}] Error while handling another error: ${error.message}`);
 }
 
@@ -107,7 +107,7 @@ if (window !== undefined) {
     if (event.message.includes("ResizeObserver loop") || event.message == "Script error.") {
       // TODO: Maybe remove this warning in production.
       if (process.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.warn(event.message);
       }
       return;

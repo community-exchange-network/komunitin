@@ -67,10 +67,10 @@ import DateField from "../../components/DateField.vue"
 import ImageField from "../../components/ImageField.vue"
 import SelectCategory from "../../components/SelectCategory.vue"
 import ToggleItem from "../../components/ToggleItem.vue"
-import { Category, Need, NeedState } from "src/store/model"
+import type { Category, Need, NeedState } from "src/store/model"
 import useVuelidate from "@vuelidate/core"
 import { minLength, required } from "@vuelidate/validators"
-import { DeepPartial } from "quasar"
+import type { DeepPartial } from "quasar"
 import { useStore } from "vuex"
 
 const props = defineProps<{
@@ -124,7 +124,7 @@ const onSubmit = async () => {
       relationships: {
         ...props.modelValue?.relationships,
          
-        category: { data: { type: "categories", id: category.value!.id } },
+        category: { data: { type: "categories", id: category.value.id } },
         member: { data: { type: "members", id: store.getters.myMember.id} }
       }
     })

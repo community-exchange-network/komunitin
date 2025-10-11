@@ -31,10 +31,11 @@
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 import { useStore } from "vuex"
-import { DeepPartial, useQuasar } from "quasar"
+import type { DeepPartial} from "quasar";
+import { useQuasar } from "quasar"
 import TransactionCard from '../../components/TransactionCard.vue'
 import {notifyTransactionState} from "../../plugins/NotifyTransactionState"
-import { Transfer } from "src/store/model"
+import type { Transfer } from "src/store/model"
 import KError, { KErrorCode } from "src/KError"
 import { onMounted } from "vue"
 

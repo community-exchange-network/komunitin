@@ -17,7 +17,6 @@ export async function translator() {
   // Get language from LocalStorage. That must be set since it is saved in the app boot.
   let lang = await LocalStorage.getItem("lang")
   if (lang === null) {
-    // eslint-disable-next-line no-console
     console.error("Language not set.")
     lang = "en"
   }

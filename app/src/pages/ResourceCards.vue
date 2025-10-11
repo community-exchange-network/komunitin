@@ -49,8 +49,8 @@ import Empty from "../components/Empty.vue";
 import NeedCard from "../components/NeedCard.vue";
 import OfferCard from "../components/OfferCard.vue";
 import GroupCard from "../components/GroupCard.vue";
-import { ResourceObject } from "../store/model";
-import { ResourcesState } from "../store/resources"
+import type { ResourceObject } from "../store/model";
+import type { ResourcesState } from "../store/resources"
 import { useStore } from "vuex";
 
 const props = withDefaults(defineProps<{
@@ -153,7 +153,7 @@ const loadNext = async (index: number, done: (stop?: boolean) => void) => {
     await store.dispatch(props.moduleName + "/loadNext", {
       cache: props.cache
     });
-    emit("page-loaded", state.value.currentPage as number);
+    emit("page-loaded", state.value.currentPage);
   }
   // Stop loading if there is no next page. Note that we're not
   // stopping the infinite scrolling if hasNext returns undefined.

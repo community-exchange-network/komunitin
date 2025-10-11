@@ -1,6 +1,7 @@
-import { computed, MaybeRefOrGetter, toValue } from "vue";
+import type { MaybeRefOrGetter} from "vue";
+import { computed, toValue } from "vue";
 import { useStore } from "vuex";
-import { CurrencySettings } from "../store/model";
+import type { CurrencySettings } from "../store/model";
 
 /**
  * Return the currency settings for a given currency code, or the current account's 

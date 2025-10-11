@@ -1,8 +1,9 @@
-import { MaybeRefOrGetter, toValue } from "@vueuse/core"
-import { Account, AccountSettings, Currency, CurrencySettings, ExtendedAccount, RelatedResource } from "src/store/model"
+import type { MaybeRefOrGetter} from "@vueuse/core";
+import { toValue } from "@vueuse/core"
+import type { Account, AccountSettings, Currency, CurrencySettings, ExtendedAccount, RelatedResource } from "src/store/model"
 import { ref, watchEffect } from "vue"
 import { useStore } from "vuex"
-import { LoadByUrlPayload } from "../store/resources"
+import type { LoadByUrlPayload } from "../store/resources"
 
 export type ExtendedAccountWithSettings = ExtendedAccount & { settings: AccountSettings, currency: Currency & { settings: CurrencySettings } }
 
@@ -11,6 +12,7 @@ const useFullAccountByMemberCode = (groupCode: MaybeRefOrGetter<string>, memberC
   const store = useStore()
   const account = ref<ExtendedAccountWithSettings>()
 
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   watchEffect(async () => {
     const memberCodeStr = toValue(memberCode)
     const groupCodeStr = toValue(groupCode)

@@ -27,11 +27,11 @@
 <script setup lang="ts">
 import {computed, ref, watchEffect } from "vue"
 import { useStore } from "vuex"
-import { Account, Currency, Member, Transfer } from "../../store/model"
+import type { Account, Currency, Member, Transfer } from "../../store/model"
 import { useI18n } from "vue-i18n"
 import CreateTransactionSingleForm from "./CreateTransactionSingleForm.vue"
 import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue"
-import { DeepPartial } from "quasar"
+import type { DeepPartial } from "quasar"
 import { useCreateTransferPayeeAccount, useCreateTransferPayerAccount } from "src/composables/fullAccount"
 
 const props = defineProps<{

@@ -1,5 +1,5 @@
 import clamp from 'clamp-js';
-import { DirectiveBinding } from 'vue';
+import type { DirectiveBinding } from 'vue';
 
 // Directive v-clamp to be declared in directives element property.
 export default function(el: HTMLElement, binding: DirectiveBinding<number> ) {

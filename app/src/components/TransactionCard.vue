@@ -69,7 +69,7 @@ import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
 import AccountHeader from "./AccountHeader.vue"
 import FormatCurrency, { convertCurrency } from "../plugins/FormatCurrency"
-import { Currency, ExtendedTransfer, Group } from "src/store/model";
+import type { Currency, ExtendedTransfer, Group } from "src/store/model";
 
 const props = defineProps<{
   transfer: ExtendedTransfer

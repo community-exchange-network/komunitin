@@ -1,4 +1,4 @@
-import { ErrorResponse } from "./store/model";
+import type { ErrorResponse } from "./store/model";
 
 export enum KErrorCode {
   // Shared server errors codes.
@@ -75,11 +75,9 @@ export async function checkFetchResponse(response: Response) {
  */
 export default class KError extends Error {
   code: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  debugInfo: any;
+  debugInfo: unknown;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(code = KErrorCode.Unknown, message = "", cause?: Error, debugInfo?: any) {
+  constructor(code = KErrorCode.Unknown, message = "", cause?: Error, debugInfo?: unknown) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore-next-line
     super(message, { cause });
@@ -97,8 +95,7 @@ export default class KError extends Error {
   * Get a KError from a fetch error.
   * @param error The error.
   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public static getKError(error: any): KError {
+  public static getKError(error: unknown): KError {
     if (error instanceof KError) {
       return error;
     } else if (error instanceof Error) {

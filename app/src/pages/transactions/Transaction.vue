@@ -44,11 +44,11 @@ import { computed } from "vue"
 import { useQuasar } from "quasar"
 import { useStore } from "vuex"
 import PageHeader from "../../layouts/PageHeader.vue"
-import {Transfer, TransferState} from "../../store/model"
+import type {Transfer, TransferState} from "../../store/model"
 import { useI18n } from "vue-i18n"
 
 import TransactionCard from "../../components/TransactionCard.vue"
-import { UpdatePayload } from "../../store/resources"
+import type { UpdatePayload } from "../../store/resources"
 import {notifyTransactionState} from "../../plugins/NotifyTransactionState"
 import { useFullTransferById } from "src/composables/fullTransfer"
 

@@ -136,14 +136,15 @@
 import AvatarField from "../../components/AvatarField.vue"
 import LocationPicker from "../../components/LocationPicker.vue"
 import CountryChooser from "../../components/CountryChooser.vue"
-import MemberContactsField, {PartialContact} from "../../components/MemberContactsField.vue"
+import type {PartialContact} from "../../components/MemberContactsField.vue";
+import MemberContactsField from "../../components/MemberContactsField.vue"
 import ChangePasswordBtn from "./ChangePasswordBtn.vue"
 import ChangeEmailBtn from "./ChangeEmailBtn.vue"
 
 import { computed, ref, watch } from "vue";
 import { watchDebounced } from "@vueuse/shared"
 
-import { Member, User, Group } from '../../store/model';
+import type { Member, User, Group } from '../../store/model';
 
 const props = defineProps<{
   member: Member & {group: Group}

@@ -28,7 +28,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Fn, useTimeoutFn } from '@vueuse/shared'
+import type { Fn} from '@vueuse/shared';
+import { useTimeoutFn } from '@vueuse/shared'
 import { useTimestamp } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'

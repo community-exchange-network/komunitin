@@ -25,7 +25,7 @@
   </dialog-form-btn>
 </template>
 <script setup lang="ts">
-import { User, Group } from '../../store/model';
+import type { User, Group } from '../../store/model';
 import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import useVuelidate from "@vuelidate/core"

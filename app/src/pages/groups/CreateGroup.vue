@@ -60,7 +60,7 @@ import { useStore } from "vuex";
 import EditGroupForm from "src/pages/admin/EditGroupForm.vue"
 import PageHeader from "src/layouts/PageHeader.vue";
 import { ref } from "vue";
-import { Currency, Group } from "src/store/model";
+import type { Currency, Group } from "src/store/model";
 import { v4 as uuid } from "uuid";
 import type { PartialContact } from "src/components/MemberContactsField.vue";
 

@@ -195,9 +195,9 @@ import AmountInput from 'src/components/AmountInput.vue';
 import TrustlinesField from './TrustlinesField.vue';
 import CategoriesField from './CategoriesField.vue';
 import AccountSettingsFields from 'src/pages/settings/AccountSettingsFields.vue';
-import { Group, GroupSettings, Currency, CurrencySettings, Trustline, Category, AccountSettings } from 'src/store/model';
+import type { Group, GroupSettings, Currency, CurrencySettings, Trustline, Category, AccountSettings } from 'src/store/model';
 import { watchDebounced } from '@vueuse/shared';
-import { DeepPartial } from 'quasar';
+import type { DeepPartial } from 'quasar';
 import { accountSettingsToCurrencySettingsAttributes, currencySettingsToAccountSettingsAttributes } from 'src/composables/accountSettings';
 
 export type ExtendedGroup = Group & {

@@ -55,10 +55,11 @@ export default defineComponent({
 })
 </script>
 <script setup lang="ts">
-import { Currency, CurrencySettings, Group } from "src/store/model";
+import type { Currency, CurrencySettings, Group } from "src/store/model";
 import ResourceCards from "../pages/ResourceCards.vue";
 import GroupHeader from "./GroupHeader.vue";
-import { computed, ref, Ref } from "vue";
+import type { Ref } from "vue";
+import { computed, ref } from "vue";
 
 const props = defineProps<{
   modelValue: Group,

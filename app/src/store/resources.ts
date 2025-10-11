@@ -1,8 +1,8 @@
 import KError, { checkFetchResponse, KErrorCode } from "src/KError";
-import { Module, ActionContext } from "vuex";
+import type { Module, ActionContext } from "vuex";
 import { cloneDeep } from "lodash-es";
 
-import {
+import type {
   CollectionResponseInclude,
   ResourceIdentifierObject,
   ResourceObject,
@@ -517,7 +517,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
               get: function() {
                 const items = (value.data as ResourceIdentifierObject[]).map(
                   resourceId =>
-                    rootGetters[resourceId.type + "/one"](resourceId.id) as ResourceObject | null
+                    rootGetters[resourceId.type + "/one"](resourceId.id)
                 );
                 // Return either all or no objects.
                 return items.includes(null) ? null : items;
@@ -605,7 +605,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       // we return the last one. This may help in cases where this function is used
       // to find inverse one-to-one relationships that just changed, because the Object.values()
       // order is the insertion order so we'll get the most updated object.
-      return targets.length > 0 ? this.relatedGetters(rootGetters, targets.pop() as T) : null;
+      return targets.length > 0 ? this.relatedGetters(rootGetters, targets.pop()) : null;
     },
 
     /**
@@ -779,11 +779,11 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     const adjacentUrl = new URL(this.absoluteUrl(currentUrl))
 
     const cursor = adjacentUrl.searchParams.has("page[after]") 
-      ? parseInt(adjacentUrl.searchParams.get("page[after]") as string)
+      ? parseInt(adjacentUrl.searchParams.get("page[after]"))
       : 0
 
     const size = adjacentUrl.searchParams.has("page[size]")
-      ? parseInt(adjacentUrl.searchParams.get("page[size]") as string)
+      ? parseInt(adjacentUrl.searchParams.get("page[size]"))
       : DEFAULT_PAGE_SIZE
 
     const newCursor = cursor + pageOffset * size
@@ -1204,7 +1204,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
           // From the altered page onwards, shift one id to the left.
           if (afterDelete) {
             if (i < pages.length - 1 && pages[i+1].length > 0) {
-              pages[i].push(pages[i+1].shift() as string)
+              pages[i].push(pages[i+1].shift())
             }
             context.commit("setPageIds", {key, page: i, ids: pages[i]})
           }

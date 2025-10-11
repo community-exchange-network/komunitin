@@ -1,9 +1,10 @@
-import { Module, ActionContext } from "vuex";
-import { Auth, AuthData } from "../plugins/Auth";
+import type { Module, ActionContext } from "vuex";
+import type { AuthData } from "../plugins/Auth";
+import { Auth } from "../plugins/Auth";
 import KError, { KErrorCode } from "src/KError";
 import { notifications } from "src/plugins/Notifications";
 import locate from "src/plugins/Location";
-import {Member, NotificationsSubscription, UserSettings} from "./model"
+import type {Member, NotificationsSubscription, UserSettings} from "./model"
 import { setAccountingApiUrl } from ".";
 
 // Exported just for testing purposes.

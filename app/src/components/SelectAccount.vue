@@ -56,7 +56,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { Account, Currency, Group, Member } from 'src/store/model';
+import type { Account, Currency, Group, Member } from 'src/store/model';
 import AccountHeader from './AccountHeader.vue';
 import SelectGroupExpansion from './SelectGroupExpansion.vue';
 import { useStore } from 'vuex'

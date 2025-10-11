@@ -5,6 +5,7 @@ node_modules
 # Quasar core related directories
 .quasar
 /dist
+/quasar.config.*.temporary.compiled*
 
 # Cordova related directories and files
 /src-cordova/node_modules
@@ -34,14 +35,12 @@ yarn-error.log*
 
 # Environment files
 .env
-.env.local
+.env.local*
 
 
 # Test reports
 /test/jest/coverage
 src/debug.log
-notifications/__debug_bin
-notifications/komunitin-project-firebase-adminsdk.json
 tmp
 
 # Bundle reports

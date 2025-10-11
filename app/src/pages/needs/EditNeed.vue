@@ -25,8 +25,8 @@ import { ref } from 'vue';
 import PageHeader from "../../layouts/PageHeader.vue"
 import NeedForm from "./NeedForm.vue"
 import { useStore } from 'vuex';
-import { Need, Category } from '../../store/model';
-import { DeepPartial } from 'quasar';
+import type { Need, Category } from '../../store/model';
+import type { DeepPartial } from 'quasar';
 import { useRouter } from 'vue-router';
 
 const props = defineProps<{

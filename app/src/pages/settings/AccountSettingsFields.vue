@@ -238,7 +238,7 @@ import ToggleItem from "src/components/ToggleItem.vue"
 import AmountInput from "src/components/AmountInput.vue"
 import InputUpdate from "src/components/InputUpdate.vue"
 
-import { AccountSettings, Currency } from "src/store/model"
+import type { AccountSettings, Currency } from "src/store/model"
 import { ref, watch, computed } from "vue"
 import { useStore } from "vuex"
 

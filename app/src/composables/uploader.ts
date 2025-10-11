@@ -1,4 +1,4 @@
-import { KOptions } from "../boot/koptions"
+import { config } from "src/utils/config"
 import { useStore } from "vuex"
 
 /**
@@ -10,7 +10,7 @@ export const useUploaderSettings = () => {
   // I'd prefer just "file" but Drupal backend requires it to be file[something],
   // and the aesthetics of a good name does not pay for the work today ;)
   const fieldName = "files[file]"
-  const url = KOptions.url.files
+  const url = config.FILES_URL
 
   const headers = () => {
     const token = store.getters.accessToken
@@ -37,7 +37,7 @@ export interface ImageFile {
  * @param url URL of the image
  */
 export const imageFile = (url: string) => {
-  const filename = (url: string) => url.split("/").pop() as string
+  const filename = (url: string) => url.split("/").pop()
   return {
     name: filename(url),
     __key: url,

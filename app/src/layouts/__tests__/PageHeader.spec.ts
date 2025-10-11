@@ -1,6 +1,8 @@
  
-import { config, mount, VueWrapper } from "@vue/test-utils";
-import { createStore, Store } from "vuex";
+import type { VueWrapper } from "@vue/test-utils";
+import { config, mount } from "@vue/test-utils";
+import type { Store } from "vuex";
+import { createStore } from "vuex";
 
 import {
   QBanner,
@@ -154,14 +156,14 @@ describe("PageHeader", () => {
     // henve expecting here directly the set value instead of undefined.
     expect(pageHeader.emitted("search-input")).toBeTruthy();
     expect(
-      (pageHeader.emitted("search-input") as string[][])[0]
+      (pageHeader.emitted("search-input"))[0]
     ).toEqual(["a"]);
     // Search on enter.
     expect(pageHeader.emitted("search")).toBeUndefined();
     input.trigger("keyup.enter");
     await wrapper.vm.$nextTick();
     expect(pageHeader.emitted("search")).toBeTruthy();
-    expect((pageHeader.emitted("search") as Array<Array<string>>)[0]).toEqual([
+    expect((pageHeader.emitted("search"))[0]).toEqual([
       "a"
     ]);
     // Clear
@@ -171,7 +173,7 @@ describe("PageHeader", () => {
       .trigger("click");
     await wrapper.vm.$nextTick();
     expect(
-      (pageHeader.emitted("search-input") as string[][])[1]
+      (pageHeader.emitted("search-input"))[1]
     ).toEqual([""]);
   });
   it("shows the balance", async () => {

@@ -37,9 +37,9 @@
 </template>
 <script setup lang="ts">
 import { useStore } from 'vuex';
-import { TransferRow } from './CreateTransactionMultiple.vue';
+import type { TransferRow } from './CreateTransactionMultiple.vue';
 import { computed, ref, watch } from 'vue';
-import { Currency, ExtendedAccount, ExtendedTransfer, Transfer, TransferState } from 'src/store/model';
+import type { Currency, ExtendedAccount, ExtendedTransfer, Transfer, TransferState } from 'src/store/model';
 import TransactionItem from 'src/components/TransactionItem.vue';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';

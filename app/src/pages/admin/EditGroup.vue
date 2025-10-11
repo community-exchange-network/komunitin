@@ -38,8 +38,8 @@ import EditGroupForm from "./EditGroupForm.vue"
 import PageHeader from "src/layouts/PageHeader.vue";
 import SaveChanges from "src/components/SaveChanges.vue";
 import { computed, ref, watch } from "vue";
-import { Currency, Group } from "src/store/model";
-import { PartialContact } from "src/components/MemberContactsField.vue";
+import type { Currency, Group } from "src/store/model";
+import type { PartialContact } from "src/components/MemberContactsField.vue";
 
 const store = useStore()
 const props = defineProps<{

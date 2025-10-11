@@ -1,7 +1,9 @@
-import { createStore, Store } from "vuex";
-import { Resources, ResourcesState } from "./resources";
-import { KOptions } from "src/boot/koptions";
-import {
+import type { Store } from "vuex";
+import { createStore } from "vuex";
+import type { ResourcesState } from "./resources";
+import { Resources } from "./resources";
+import { config } from "src/utils/config";
+import type {
   User,
   UserSettings,
   Group,
@@ -19,13 +21,15 @@ import {
   Trustline
 } from "src/store/model";
 // Import logged-in user module
-import me, { UserState } from "./me";
-import ui, { UIState } from "./ui";
+import type { UserState } from "./me";
+import me from "./me";
+import type { UIState } from "./ui";
+import ui from "./ui";
 import createPersistPlugin from "./persist";
 import KError, { KErrorCode } from "src/KError";
 
 // Build modules for Social API:
-const socialUrl = KOptions.url.social;
+const socialUrl = config.SOCIAL_URL;
 // `groups` resource does not follow the general pattern for endpoints.
 const groups = new (class extends Resources<Group, unknown> {
   collectionEndpoint = () => "/groups";
@@ -54,7 +58,7 @@ const userSettings = new (class extends Resources<UserSettings, unknown> {
 })("user-settings", socialUrl);
 
 // Build modules for Accounting API:
-const accountingUrl = KOptions.url.accounting;
+const accountingUrl = config.ACCOUNTING_URL;
 // Build modules for Accounting API:
 // `currencies` resource does not follow the general pattern for endpoints.
 const currencies = new (class extends Resources<Currency, unknown> {
@@ -147,7 +151,7 @@ export default createStore({
 
 export const setAccountingApiUrl = (url: string) => {
   // Update the global config object
-  KOptions.url.accounting = url;
+  config.ACCOUNTING_URL = url;
 
   // Update the base urls of the resource modules
   currencies.setBaseUrl(url);

@@ -1,10 +1,10 @@
 import "../index";
-import { KOptions } from "../../boot/koptions";
-import { ResourceObject } from "src/store/model";
+import { config } from "src/utils/config";
+import type { ResourceObject } from "src/store/model";
 import { seeds } from "../index";
 
-const urlSocial = KOptions.url.social;
-const urlAccounting = KOptions.url.accounting;
+const urlSocial = config.SOCIAL_URL;
+const urlAccounting = config.ACCOUNTING_URL;
 
 describe("MirageJS Server", () => {
   beforeAll(async () => {

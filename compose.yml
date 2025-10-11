@@ -3,6 +3,8 @@ services:
     build:
       context: ./app
     restart: unless-stopped
+    ports:
+      - "2030:80"
     environment:
       OAUTH_CLIENTID: komunitin-app
       MOCK_ENABLE: false
@@ -25,6 +27,8 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    ports:
+      - "2028:2028"
     environment:
       KOMUNITIN_ACCOUNTING_URL: http://accounting:2025
       KOMUNITIN_SOCIAL_URL: http://integralces:2029/ces/api/social

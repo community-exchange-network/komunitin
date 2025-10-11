@@ -82,11 +82,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Migration } from './migrations'
-import { KOptions } from '../../boot/koptions';
-import { Group } from '../../store/model';
+import { config } from 'src/utils/config';
+import type { Group } from '../../store/model';
 import { useStore } from 'vuex';
 
-const defaultSourceUrl = new URL(KOptions.url.social).origin;
+const defaultSourceUrl = new URL(config.SOCIAL_URL).origin;
 
 const model = defineModel<Partial<Migration> | undefined | null>()
 const store = useStore()
