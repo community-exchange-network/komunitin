@@ -5,7 +5,7 @@
       :text="avatarText" 
     />
   </q-item-section>
-  <q-item-section>
+  <q-item-section style="min-width: 0;">
     <q-item-label  
       lines="1" 
       class="text-subtitle2 text-onsurface-m"
@@ -14,6 +14,7 @@
     </q-item-label>
     <q-item-label 
       caption
+      lines="1"
     >
       {{ secondaryText }}
     </q-item-label>
