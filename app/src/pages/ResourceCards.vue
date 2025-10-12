@@ -45,13 +45,14 @@
 
 <script setup lang="ts">
 import { type Component, computed, ref, watch, useAttrs } from "vue";
+import { useStore } from "vuex";
 import Empty from "../components/Empty.vue";
 import NeedCard from "../components/NeedCard.vue";
 import OfferCard from "../components/OfferCard.vue";
 import GroupCard from "../components/GroupCard.vue";
-import type { ResourceObject } from "../store/model";
-import type { ResourcesState } from "../store/resources"
-import { useStore } from "vuex";
+import { ResourceObject } from "../store/model";
+import { ResourcesState } from "../store/resources"
+import { useResources } from 'src/composables/useResources';
 
 const props = withDefaults(defineProps<{
   /**
@@ -70,7 +71,7 @@ const props = withDefaults(defineProps<{
   /**
    * The name of the vuex resources module.
    */
-  moduleName: string | string[],
+  moduleName: string,
   /**
    * The include parameter string when fetching resources.
    */
@@ -119,45 +120,28 @@ const attrs = useAttrs()
 const location = computed(() => store.state.me.location)
 
 // If props.moduleName is already an array, just return it, otherwise wrap it in an array
-const moduleNames = computed(() =>
-  Array.isArray(props.moduleName) ? props.moduleName : [props.moduleName]
-);
+// const moduleNames = computed(() =>
+//   Array.isArray(props.moduleName) ? props.moduleName : [props.moduleName]
+// );
 
-// Helper to get resources for a module
-function getModuleResources(moduleName: string) {
-  const state = store.state[moduleName] as ResourcesState<ResourceObject>;
-  const resources: ResourceObject[] = [];
-  if (state?.currentPage !== null) {
-    for (let i = 0; i <= state.currentPage; i++) {
-      const page = store.getters[`${moduleName}/page`](i);
-      if (page) {
-        resources.push(...page);
-      }
-    }
-  }
-  return resources;
-}
 
-// Merge resources from all modules
-const resources = computed(() => {
-  return moduleNames.value.flatMap(getModuleResources);
-});
+const { resources, loadNext } = useResources(props.moduleName)
 
 type ResourceComponent = {
   componentName: string | undefined,
   propName: string,
 }
 const cardResourceMap: Record<string, ResourceComponent> = {
-  offers: {componentName: OfferCard.name, propName: 'offer'},
-  needs: {componentName: NeedCard.name, propName: 'need'},
-  groups: {componentName: GroupCard.name, propName: 'group'},
+  offers: { componentName: OfferCard.name, propName: 'offer' },
+  needs: { componentName: NeedCard.name, propName: 'need' },
+  groups: { componentName: GroupCard.name, propName: 'group' },
 }
 // Return props.card if set, otherwise return the card belonging to the resource type
-const cardComponent = (resource:ResourceObject) => props.card ?? cardResourceMap[resource.type]?.componentName;
+const cardComponent = (resource: ResourceObject) => props.card ?? cardResourceMap[resource.type]?.componentName;
 
 // Return props.propName if set, otherwise return the propName belonging to the resource type
-const cardPropName = (resource:ResourceObject) => 'propName' in attrs ? props.propName : cardResourceMap[resource.type]?.propName;
-const getCardProps = (resource:ResourceObject) => {
+const cardPropName = (resource: ResourceObject) => 'propName' in attrs ? props.propName : cardResourceMap[resource.type]?.propName;
+const getCardProps = (resource: ResourceObject) => {
   const propName = cardPropName(resource);
   return {
     [propName]: resource
@@ -166,42 +150,22 @@ const getCardProps = (resource:ResourceObject) => {
 
 const isEmpty = computed(() => resources.value.length === 0);
 const isLoading = computed(() => {
-  // Consider loading if any module is loading
-  return !ready.value || moduleNames.value.some(moduleName => {
-    const state = store.state[moduleName] as ResourcesState<ResourceObject>;
-    return state?.currentPage === null || (state?.currentPage === 0 && state?.next === undefined && isEmpty.value);
-  });
+  const state = store.state[props.moduleName] as ResourcesState<ResourceObject>;
+  return !ready.value || state?.currentPage === null || (state?.currentPage === 0 && state?.next === undefined && isEmpty.value);
 });
 
 // Fetch resources for all modules
 const fetchResources = async (search?: string) => {
-  await Promise.all(moduleNames.value.map(moduleName =>
-    store.dispatch(moduleName + "/loadList", {
-      location: location.value,
-      search,
-      include: props.include,
-      group: props.code,
-      filter: props.filter,
-      sort: props.sort,
-      cache: props.cache
-    })
-  ));
+  await store.dispatch(props.moduleName + "/loadList", {
+    location: location.value,
+    search,
+    include: props.include,
+    group: props.code,
+    filter: props.filter,
+    sort: props.sort,
+    cache: props.cache
+  });
   emit("page-loaded", 0);
-}
-
-// Load next page for all modules
-const loadNext = async (index: number, done: (stop?: boolean) => void) => {
-  await Promise.all(moduleNames.value.map(async moduleName => {
-    if (store.getters[moduleName + "/hasNext"]) {
-      await store.dispatch(moduleName + "/loadNext", {
-        cache: props.cache
-      });
-      const state = store.state[moduleName] as ResourcesState<ResourceObject>;
-      emit("page-loaded", state.value.currentPage);
-    }
-  }));
-  // Stop loading if all modules have no next page
-  done(moduleNames.value.every(moduleName => store.getters[moduleName + "/hasNext"] === false));
 }
 
 // Refetch resources when any prop changes

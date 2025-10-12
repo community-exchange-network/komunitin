@@ -4,7 +4,7 @@
     <q-page>
       <resource-cards
         :code="code"
-        :module-name="['offers', 'needs']"
+        module-name="offers"
       />
       <slot name="after" />
     </q-page>
