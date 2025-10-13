@@ -1,9 +1,10 @@
 // Mirage typings are not perfect and sometimes we must use any.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { KOptions } from "../boot/koptions";
-import { TokenResponse } from "../plugins/Auth";
-import { Server, Response } from "miragejs";
+import { config } from "src/utils/config";
+import type { TokenResponse } from "../plugins/Auth";
+import type { Server} from "miragejs";
+import { Response } from "miragejs";
 
 export function mockToken(scope: string, emptyUser = false): TokenResponse {
   return {
@@ -22,11 +23,11 @@ export default {
   routes(server: Server) {
     // OAuth2 token
     server.post(
-      KOptions.url.auth + "/token",
+      config.AUTH_URL + "/token",
       (schema: any, request) => {
         const params = new URLSearchParams(request.requestBody);
         const param = params.get("code") || params.get("refresh_token") || params.get("username") || "test_user";
-        const data = mockToken(params.get("scope") as string, param === "empty_user");
+        const data = mockToken(params.get("scope"), param === "empty_user");
         return new Response(200, {}, data);
       }
     );

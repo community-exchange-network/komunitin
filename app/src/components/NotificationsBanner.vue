@@ -79,14 +79,16 @@ onBeforeMount(async () => {
   // Notifications plugin file because we need to access the full UI including the 
   // store and router.
   const notification  = notificationBuilder(store)
-  onMessage(notifications.getMessaging(), async (payload) => {
-    const {title, options} = await notification(payload)
-    const noti = new Notification(title, options)
-    
-    noti.addEventListener('click', function() {
-      if (noti.data.url) {
-        router.push(noti.data.url)
-      }
+  onMessage(notifications.getMessaging(), (payload) => {
+    notification(payload).then(({title, options}) => {
+      const noti = new Notification(title, options)
+      noti.addEventListener('click', function() {
+        if (noti.data.url) {
+          router.push(noti.data.url)
+        }
+      })
+    }).catch((err) => {
+      console.error("Error showing notification", err)
     })
   })
 

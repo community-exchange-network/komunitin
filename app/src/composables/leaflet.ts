@@ -1,12 +1,15 @@
 import { icon } from "leaflet/dist/leaflet-src.esm"
 
+
+import iconUrl from "../assets/icons/marker.png"
+import shadowUrl from "../assets/icons/marker-shadow.png"
+
+
 export const useLeafletSettings = () => {
   return {
     markerIcon: icon({
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      iconUrl: require("../assets/icons/marker.png"),
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      shadowUrl: require("../assets/icons/marker-shadow.png"),
+      iconUrl,
+      shadowUrl,
       iconSize: [25, 41],
       iconAnchor: [13, 41]
     }),

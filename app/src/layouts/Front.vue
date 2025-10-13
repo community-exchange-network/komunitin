@@ -103,7 +103,7 @@ export default defineComponent({
 <style lang="scss" scoped>
 // Set the background image for home page
 .home {
-  background: $outside url('~assets/home_background-700.jpg') center
+  background: $outside url('assets/home_background-700.jpg') center
     no-repeat fixed;
   background-size: cover;
 }

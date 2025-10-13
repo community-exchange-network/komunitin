@@ -1,5 +1,6 @@
-import { MaybeRefOrGetter, toValue } from "@vueuse/shared"
-import { KOptions } from "../boot/koptions"
+import type { MaybeRefOrGetter} from "@vueuse/shared";
+import { toValue } from "@vueuse/shared"
+import { config } from "src/utils/config"
 import { useStore } from "vuex"
 import { checkFetchResponse } from "../KError"
 
@@ -55,7 +56,7 @@ export const useTransfersCsv = (opts: {
   const store = useStore()
 
   const download = async () => {
-    const base = KOptions.url.accounting
+    const base = config.ACCOUNTING_URL
     const params = new URLSearchParams()
 
     const code = toValue(opts.code)
@@ -83,7 +84,7 @@ export const useAccountsCsv = (opts: {
   const store = useStore()
 
   const download = async () => {
-    const base = KOptions.url.accounting
+    const base = config.ACCOUNTING_URL
     const code = toValue(opts.code)
     const url = `${base}/${code}/accounts.csv`
     const token = store.getters.accessToken

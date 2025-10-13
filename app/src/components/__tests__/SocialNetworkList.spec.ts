@@ -1,14 +1,33 @@
-import { mount, VueWrapper } from "@vue/test-utils";
-import SocialNetworkList from "../SocialNetworkList.vue";
-import { Contact } from "src/store/model";
+import type { VueWrapper } from "@vue/test-utils";
+import { mount } from "@vue/test-utils";
 import { config } from '@vue/test-utils';
-import { quasarPlugin } from "app/test/jest/utils";
+import { quasarPlugin } from "../../../test/jest/utils/quasar-plugin";
 
 // Install quasar plugin.
 config.global.plugins.unshift(quasarPlugin);
 
+jest.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: jest.fn((key: string) => key),
+  }),
+}));
+    
 describe("SocialNetworkList", () => {
-  let contacts: Partial<Contact>[];
+  const contacts = [
+    { type: "phone", name: "+34 666 77 88 99" },
+    { type: "email", name: "exhange@easterisland.com" },
+    { type: "whatsapp", name: "+34 666 66 66 66" },
+    { type: "telegram", name: "@example" },
+    { type: "unkonwn", name: "unknown" }
+  ].map(obj => ({
+    attributes: {
+      ...obj,
+      created: new Date().toJSON(),
+      updated: new Date().toJSON()
+    }
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any));
 
   let contact: VueWrapper;
   let share: VueWrapper;
@@ -23,41 +42,23 @@ describe("SocialNetworkList", () => {
     await wrapper.vm.$nextTick();
     expect(window.open).toHaveBeenCalledWith(url, "_blank");
   }
+  
+  afterAll(() => {
+    jest.resetModules();
+  });
 
   // Montamos el componente con los props necesarios antes de cada test.
-  beforeEach(() => {
-    contacts = [
-      { type: "phone", name: "+34 666 77 88 99" },
-      { type: "email", name: "exhange@easterisland.com" },
-      { type: "whatsapp", name: "+34 666 66 66 66" },
-      { type: "telegram", name: "@example" },
-      { type: "unkonwn", name: "unknown" }
-    ].map(obj => ({
-      attributes: {
-        ...obj,
-        created: new Date().toJSON(),
-        updated: new Date().toJSON()
-      }
-    }));
+  beforeEach(async () => {
+    const { default: SocialNetworkList } = await import("../SocialNetworkList.vue");
 
     contact = mount(SocialNetworkList, {
-      global: {
-        mocks: {
-          $t: (x: never) => x,
-        },
-      },
       props: {
-        contacts,
+        contacts: contacts,
         type: "contact"
       }
     });
 
     share = mount(SocialNetworkList, {
-      global: {
-        mocks: {
-          $t: (x: never) => x,
-        }
-      },
       props: {
         type: "share",
         title: "Title",

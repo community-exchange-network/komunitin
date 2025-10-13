@@ -25,7 +25,7 @@
 import SimpleMap from "./SimpleMap.vue";
 import { LMarker, LPopup } from "@vue-leaflet/vue-leaflet";
 import { computed, } from "vue";
-import { Group } from "src/store/model";
+import type { Group } from "src/store/model";
 import type { LatLngBounds } from "leaflet";
 import { latLngBounds } from "leaflet/dist/leaflet-src.esm";
 

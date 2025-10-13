@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import CreateTransactionMultipleForm from './CreateTransactionMultipleForm.vue'
 import CreateTransactionMultipleConfirm from './CreateTransactionMultipleConfirm.vue'
-import { ExtendedAccount } from 'src/store/model';
+import type { ExtendedAccount } from 'src/store/model';
 import { computed, ref } from 'vue';
 import { useCreateTransferPayeeAccount, useCreateTransferPayerAccount } from 'src/composables/fullAccount';
 

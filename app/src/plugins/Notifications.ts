@@ -1,9 +1,11 @@
-import { FirebaseApp, initializeApp } from "firebase/app";
-import { getMessaging, getToken, Messaging } from "firebase/messaging"
-import { KOptions } from "../boot/koptions"
-import {UserSettings} from "../store/model"
+import type { FirebaseApp} from "firebase/app";
+import { initializeApp } from "firebase/app";
+import type { Messaging } from "firebase/messaging";
+import { getMessaging, getToken } from "firebase/messaging"
+import { config } from "src/utils/config"
+import type {UserSettings} from "../store/model"
 
-import { Member, NotificationsSubscription, User } from "src/store/model";
+import type { Member, NotificationsSubscription, User } from "src/store/model";
 import KError, { KErrorCode } from "src/KError";
 
 import firebaseConfig from "./FirebaseConfig";
@@ -33,7 +35,7 @@ class Notifications {
   public async subscribe(user: User, member: Member, settings: SubscriptionSettings, accessToken: string): Promise<NotificationsSubscription> {
     // Initialize Firebase
     const messaging = this.getMessaging();
-    const vapidKey = process.env.PUSH_SERVER_KEY;
+    const vapidKey = config.PUSH_SERVER_KEY;
     const serviceWorkerRegistration = await window.navigator.serviceWorker.getRegistration()
     try {
       // Get registration token. Initially this makes a network call, once retrieved
@@ -74,7 +76,7 @@ class Notifications {
         }
       }
       // Send token to the server.
-      const response = await fetch(KOptions.url.notifications + '/subscriptions', {
+      const response = await fetch(config.NOTIFICATIONS_URL + '/subscriptions', {
         method: 'POST',
         body: JSON.stringify(message),
         headers: {
@@ -97,7 +99,7 @@ class Notifications {
    * Unsubscribe the current device, user and member from push notifications.
    */
   public async unsubscribe(subscription: NotificationsSubscription, accessToken: string): Promise<void> {
-    await fetch(KOptions.url.notifications + '/subscriptions/' + subscription.id, {
+    await fetch(config.NOTIFICATIONS_URL + '/subscriptions/' + subscription.id, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${accessToken}`

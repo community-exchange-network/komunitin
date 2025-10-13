@@ -1,14 +1,15 @@
 // Mirage typings are not perfect and sometimes we must use any.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Model, Factory, Server, ModelInstance, Response, belongsTo, hasMany, Collection } from "miragejs";
+import type { Server, ModelInstance} from "miragejs";
+import { Model, Factory, Response, belongsTo, hasMany, Collection } from "miragejs";
 import faker from "faker";
-import { KOptions } from "../boot/koptions";
+import { config } from "src/utils/config";
 import ApiSerializer from "./ApiSerializer";
 import { filter, sort, search } from "./ServerUtils";
 import { inflections } from "inflected"
 import { v4 as uuid } from "uuid";
 
-const urlAccounting = KOptions.url.accounting;
+const urlAccounting = config.ACCOUNTING_URL;
 inflections("en", function (inflect) {
   inflect.irregular("accountSettings", "accountSettings")
   inflect.irregular("currencySettings", "currencySettings")
@@ -118,7 +119,7 @@ export default {
       created: (i: number) => faker.date.recent(i % 5).toJSON(),
       updated: (i: number) => faker.date.recent(i % 5).toJSON(),
       expires() {
-        return (this as any).state == "pending" ? faker.date.future().toJSON() : undefined;
+        return this.state == "pending" ? faker.date.future().toJSON() : undefined;
       }
     }),
     accountSettings: Factory.extend({

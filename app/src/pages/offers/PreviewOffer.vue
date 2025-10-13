@@ -19,7 +19,7 @@ import { useQuasar } from 'quasar';
 import FloatingBtn from '../../components/FloatingBtn.vue'
 import { useI18n } from 'vue-i18n'
 import OfferPage from './Offer.vue'
-import { Offer } from '../../store/model'
+import type { Offer } from '../../store/model'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { computed } from 'vue';

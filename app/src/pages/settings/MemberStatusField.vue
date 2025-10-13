@@ -55,11 +55,12 @@
 import ConfirmBtn from '../../components/ConfirmBtn.vue';
 import MemberStatusChip from '../../components/MemberStatusChip.vue';
 
-import { computed, Ref, ref } from 'vue';
+import type { Ref} from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
-import { Account, Currency, Group, Member } from '../../store/model';
+import type { Account, Currency, Group, Member } from '../../store/model';
 import { useAccountStatus } from '../../composables/accountStatus';
 
 const props = defineProps<{

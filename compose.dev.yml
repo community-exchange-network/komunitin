@@ -3,8 +3,8 @@ services:
     build:
       target: komunitin-app-build
     command: npm run dev
-    ports:
-      - "2030:2030"
+    ports: !override
+      - 2030:2030
     volumes:
     # Can't use the whole app folder because it contains node_modules and dist and
     # since the volume is mounted after the image is built, the node_modules and dist
@@ -14,8 +14,7 @@ services:
       - ./app/src:/app/src
       - ./app/src-pwa:/app/src-pwa
       - ./app/test:/app/test
-      - ./app/quasar.conf.js:/app/quasar.conf.js
-      - ./app/.env:/app/.env
+      - ./app/quasar.config.ts:/app/quasar.config.ts
       - ./app/package.json:/app/package.json
       - ./app/package-lock.json:/app/package-lock.json
       

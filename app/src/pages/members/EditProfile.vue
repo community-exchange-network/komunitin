@@ -32,9 +32,9 @@ import SaveChanges from "../../components/SaveChanges.vue"
 
 import { useStore } from "vuex"
 import { computed, ref } from "vue"
-import { DeepPartial } from "quasar"
+import type { DeepPartial } from "quasar"
 
-import { Contact, Group, Member } from "../../store/model"
+import type { Contact, Group, Member } from "../../store/model"
 import { useFullMemberByCode } from "src/composables/fullMember"
 
 const props = defineProps<{

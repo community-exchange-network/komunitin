@@ -7,7 +7,8 @@
   />
 </template>
 <script setup lang="ts">
-import { registerLocale, getNames, LocaleData } from 'i18n-iso-countries';
+import type { LocaleData } from 'i18n-iso-countries';
+import { registerLocale, getNames } from 'i18n-iso-countries';
 import { useLocale } from '../boot/i18n';
 import { getLocaleDefinition } from '../i18n';
 import { computed, onMounted, ref } from 'vue';

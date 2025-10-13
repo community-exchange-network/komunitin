@@ -8,7 +8,7 @@
   />
 </template>
 <script setup lang="ts">
-import { Category } from "src/store/model";
+import type { Category } from "src/store/model";
 import { computed, watch } from "vue"
 import { useStore } from "vuex";
 

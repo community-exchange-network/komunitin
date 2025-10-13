@@ -61,7 +61,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Account, Currency, ExtendedTransfer } from 'src/store/model';
+import type { Account, Currency, ExtendedTransfer } from 'src/store/model';
 import FormatCurrency from "../plugins/FormatCurrency";
 import AccountItemContent from "./AccountItemContent.vue";
 import { useQuasar } from 'quasar';

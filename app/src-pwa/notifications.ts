@@ -1,6 +1,6 @@
-import { Store } from 'vuex'
+import type { Store } from 'vuex'
 import { translator } from './i18n'
-import { MessagePayload } from 'firebase/messaging/sw'
+import type { MessagePayload } from 'firebase/messaging/sw'
 
 function truncate(text: string, length: number) {
   return (text.length <= length) ? text : text.slice(0, length - 2) + '...'

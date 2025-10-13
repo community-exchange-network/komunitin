@@ -1,8 +1,9 @@
-import { KOptions } from "src/boot/koptions";
+import { config } from "src/utils/config";
 import { checkFetchResponse } from "src/KError";
 import formatCurrency, { formatGlobalCurrency } from "src/plugins/FormatCurrency";
-import { Currency } from "src/store/model";
-import { computed, MaybeRefOrGetter, ref, toRef, toValue, watch, watchEffect } from "vue";
+import type { Currency } from "src/store/model";
+import type { MaybeRefOrGetter} from "vue";
+import { computed, ref, toRef, toValue, watch, watchEffect } from "vue";
 import { useStore } from "vuex";
 
 export type StatsValue = "amount" | "transfers" | "accounts"
@@ -46,7 +47,7 @@ async function getCurrencyStats(options: Omit<CurrencyStatsOptions, "change">, a
   let url: string
   if (currency == undefined) {
     // Server stats, using the default configured accounting URL.
-    const baseUrl = KOptions.url.accounting
+    const baseUrl = config.ACCOUNTING_URL
     url = `${baseUrl}/currencies/stats/${value}`
   } else {
     // Currency stats, using the currency URL.

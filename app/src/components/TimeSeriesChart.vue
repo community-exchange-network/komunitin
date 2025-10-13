@@ -13,8 +13,9 @@ import type { ChartData, ChartOptions } from 'chart.js'
 import { Line as LineChart } from 'vue-chartjs'
 import "chartjs-adapter-date-fns" //overrides default date adapter as a side effect
 
-import { previousDate, roundDate, StatsInterval } from 'src/composables/currencyStats'
-import { Currency } from 'src/store/model'
+import type { StatsInterval } from 'src/composables/currencyStats';
+import { previousDate, roundDate } from 'src/composables/currencyStats'
+import type { Currency } from 'src/store/model'
 import { getDateLocale } from "../boot/i18n"
 import formatCurrency from 'src/plugins/FormatCurrency'
 
@@ -109,7 +110,7 @@ const options = computed<ChartOptions<"line">>(() => ({
       beginAtZero: true,
       ticks: {
         callback: props.isCurrency && props.currency ? (value: string|number) => {
-          return formatCurrency(value as number, props.currency!, {decimals: false})
+          return formatCurrency(value as number, props.currency, {decimals: false})
         } : undefined,
         padding: 10
       },
@@ -129,7 +130,7 @@ const options = computed<ChartOptions<"line">>(() => ({
     tooltip: {
       callbacks: {
         label: (props.isCurrency && props.currency) ? (context) => {
-          return formatCurrency(context.parsed.y, props.currency!)
+          return formatCurrency(context.parsed.y, props.currency)
         } : undefined,
       }
     }

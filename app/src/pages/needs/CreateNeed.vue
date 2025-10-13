@@ -21,10 +21,10 @@
 <script setup lang="ts">
 import PageHeader from "../../layouts/PageHeader.vue"
 import NeedForm from "./NeedForm.vue"
-import { Category, Need } from "src/store/model"
+import type { Category, Need } from "src/store/model"
 import { useStore } from "vuex"
 import { useRouter } from "vue-router"
-import { DeepPartial } from "quasar"
+import type { DeepPartial } from "quasar"
 import { ref } from "vue"
 
  

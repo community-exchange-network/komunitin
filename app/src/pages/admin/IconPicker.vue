@@ -10,35 +10,24 @@
         <q-icon name="search" />
       </template>
     </q-input>
-    <icon-picker
-      v-if="!init"
+    <q-icon-picker
       v-model="icon"
       class="q-mt-md text-onsurface-m"
       size="lg"
-      icon-set="material-icons"
+      :icons="icons"
       tooltips
       style="height: 220px;"
       :filter="iconFilter"
     />
-    <q-space 
-      v-else
-      class="q-mt-md"
-      style="height: 220px;"
-    />
-    <q-inner-loading
-      :showing="init"
-      :label="$t('loadingIcons')"
-      size="xl"
-    />
   </div>
 </template>
-<script async setup lang="ts">
+<script setup lang="ts">
 /**
  * QIconPicker is a Quasar extension component that allows the user to select an icon from a list of icons. 
- * This component is a wrapper around QIconPicker so it shows a loading spinner while the icons 
- * are being loaded.
  */
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { icons } from '@quasar/quasar-ui-qiconpicker/dist/icon-set/material-icons.umd.js'
+import { QIconPicker } from '@quasar/quasar-ui-qiconpicker';
 
 const props = defineProps<{
   modelValue?: string
@@ -53,18 +42,6 @@ const icon = computed({
 })
 
 const iconFilter = ref('')
-const init = ref(true)
-onMounted(() => {
-  // Run code after next paint.
-  setTimeout(() => {
-    init.value = false
-  }, 10)
-})
 
-const IconPicker = defineAsyncComponent(async () => {
-  // Run code after next paint.
-  await new Promise(resolve => setTimeout(resolve, 10))
-  const { QIconPicker } = await import('@quasar/quasar-ui-qiconpicker')
-  return QIconPicker
-})
 </script>
+<style src="@quasar/quasar-ui-qiconpicker/dist/index.css"></style>

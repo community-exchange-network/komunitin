@@ -89,12 +89,12 @@
 <script setup lang="ts">
 import { useVuelidate } from "@vuelidate/core"
 import { minValue, numeric, required } from "@vuelidate/validators"
-import { DeepPartial } from "quasar"
+import type { DeepPartial } from "quasar"
 import KError, { KErrorCode } from "src/KError"
 import SelectAccount from "src/components/SelectAccount.vue"
 import { transferAccountRelationships } from "src/composables/fullAccount"
 import formatCurrency, { convertCurrency } from "src/plugins/FormatCurrency"
-import { Account, Currency, CurrencySettings, Member, Transfer } from "src/store/model"
+import type { Account, Currency, CurrencySettings, Member, Transfer } from "src/store/model"
 import { v4 as uuid } from "uuid"
 import { computed, ref } from "vue"
 import { useStore } from "vuex"
@@ -119,7 +119,7 @@ const myCurrency = computed<Currency & {settings: CurrencySettings}>(() => store
 
 const transfer = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value as DeepPartial<Transfer>)
+  set: (value) => emit('update:modelValue', value)
 })
 
 const payerAccountValue = ref(props.payerAccount)

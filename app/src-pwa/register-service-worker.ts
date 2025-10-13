@@ -2,14 +2,15 @@ import { register } from "register-service-worker";
 import { Notify } from "quasar";
 import { major, minor } from "semver";
 import { i18n } from "src/boot/i18n";
+import { config } from "src/utils/config";
 
 // This is the version of the currently running application, set in build time from package.json.
-const CURRENT_VERSION = process.env.APP_VERSION as string;
+const CURRENT_VERSION = process.env.APP_VERSION;
 
 // The ready(), registered(), cached(), updatefound() and updated()
 // events passes a ServiceWorkerRegistration instance in their arguments.
 // ServiceWorkerRegistration: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration
-register(process.env.SERVICE_WORKER_FILE as string, {
+register(process.env.SERVICE_WORKER_FILE, {
   // The registrationOptions object will be passed as the second argument
   // to ServiceWorkerContainer.register()
   // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register#Parameter
@@ -17,37 +18,38 @@ register(process.env.SERVICE_WORKER_FILE as string, {
   // registrationOptions: { scope: "./" },
 
   
-  async ready(/* registration */) {
+  ready(registration) {
+    // Send config to the service worker.
+    registration.active?.postMessage({ type: 'SET_CONFIG', config })       
     if (process.env.DEV) {
-      // eslint-disable-next-line no-console
       console.log("App is being served from cache by a service worker.");
     }
   },
 
   registered(/* registration */) {
     if (process.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log("Service worker has been registered.");
     }
   },
 
   cached(/* registration */) {
     if (process.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log("Content has been cached for offline use.");
     }
   },
 
   updatefound(/* registration */) {
     if (process.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log("New content is downloading.");
     }
   },
 
   updated(registration) {
     if (process.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log("New content is available; please inspect.");
     }
     // A new service worker has been downloaded and is waiting.
@@ -64,7 +66,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
         const newVersion = event.data.version as string;
 
         if (process.env.DEV) {
-          // eslint-disable-next-line no-console
+           
           console.log(`Update available. Current: ${CURRENT_VERSION}, New: ${newVersion}`);
         }
 
@@ -74,7 +76,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
 
         if (isBreaking) {
           if (process.env.DEV) {
-            // eslint-disable-next-line no-console
+             
             console.log("Breaking change detected. Prompting user.");
           }
           Notify.create({
@@ -85,9 +87,8 @@ register(process.env.SERVICE_WORKER_FILE as string, {
               {
                 label: i18n.global.t('update'),
                 color: 'white',
-                handler: async () => {
+                handler: () => {
                   if (process.env.DEV) {
-                    // eslint-disable-next-line no-console
                     console.log("User accepted update. Activating new service worker.");
                   }
 
@@ -105,7 +106,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
           });
         } else {
           if (process.env.DEV) {
-            // eslint-disable-next-line no-console
+             
             console.log("Non-breaking change detected. New version will be active on next refresh.");
           }
           // For non-breaking changes, we do nothing. The new service worker
@@ -121,7 +122,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
 
   offline() {
     if (process.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log(
         "No internet connection found. App is running in offline mode."
       );
@@ -130,7 +131,7 @@ register(process.env.SERVICE_WORKER_FILE as string, {
 
   error(err) {
     if (process.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.error("Error during service worker registration:", err);
     }
   }
@@ -144,13 +145,13 @@ navigator.serviceWorker.addEventListener('controllerchange', () => {
   // Only reload if the controller change was triggered by our update button.
   if (reloadOnControllerChange) {
     if (process.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log('Controller changed after user update. Reloading the page.');
     }
     window.location.reload();
   } else {
     if (process.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log('Controller changed naturally. No reload needed.');
     }
   }

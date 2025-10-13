@@ -68,7 +68,7 @@
 </template>
 <script setup lang="ts">
 import { transferAccountRelationships, useCreateTransferPayeeAccount } from 'src/composables/fullAccount';
-import { Currency, ExtendedTransfer } from 'src/store/model';
+import type { Currency, ExtendedTransfer } from 'src/store/model';
 import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import FormatCurrency from 'src/plugins/FormatCurrency';

@@ -25,14 +25,16 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "src/store/model"
-import { computed, Ref, ref, watch } from "vue"
+import type { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "src/store/model"
+import type { Ref} from "vue";
+import { computed, ref, watch } from "vue"
 import { useStore } from "vuex"
-import { ExtendedAccountWithSettings, transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
+import type { ExtendedAccountWithSettings} from "src/composables/fullAccount";
+import { transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
 import { QrcodeStream } from "vue-qrcode-reader"
 import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue"
 import KError, { KErrorCode } from "src/KError"
-import { LoadByUrlPayload } from "src/store/resources"
+import type { LoadByUrlPayload } from "src/store/resources"
 import { loadExternalAccountRelationships, useFullTransferByResource } from "src/composables/fullTransfer"
 import { useI18n } from "vue-i18n"
 import { convertCurrency } from "src/plugins/FormatCurrency"

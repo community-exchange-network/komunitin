@@ -1,6 +1,6 @@
-import { Store } from "vuex"
+import type { Store } from "vuex"
 import localForage from "localforage"
-import { ResourceObject } from "./model"
+import type { ResourceObject } from "./model"
 import { cloneDeep, merge } from "lodash-es"
 import { toRaw } from "vue"
 import { major, minor } from "semver"
@@ -12,7 +12,7 @@ const EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30 // 30 days.
 
 const DATABASE_NAME = "komunitin"
 
-const CURRENT_VERSION = process.env.APP_VERSION as string
+const CURRENT_VERSION = process.env.APP_VERSION
 
 /**
  * Iterate over all values in the storage and call the async callback function for each one. This
@@ -85,7 +85,7 @@ export default function createPersistPlugin<T>() {
   }
 
   const getInternalItem = async (key: string) => {
-    return await storage.getItem("_" + key) as string
+    return await storage.getItem("_" + key)
   }
 
   const isInternalItem = (key: string) => {
@@ -99,10 +99,10 @@ export default function createPersistPlugin<T>() {
 
   // Check if we need to clear the data due to potentially breaking upgrade.
   const checkBreakingUpgrade = async () => {
-    const existingVersion = await getInternalItem("version") ?? "0.0.0"
+    const existingVersion = (await getInternalItem("version") ?? "0.0.0") as string
     if (isBreakingUpgrade(existingVersion)) {
       if (process.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.log(`Breaking upgrade detected from ${existingVersion} to ${CURRENT_VERSION}. Clearing persisted data.`);
       }
       // Clear all data in the storage.
@@ -159,7 +159,7 @@ export default function createPersistPlugin<T>() {
     }
 
     initialize().catch((error) => {
-      // eslint-disable-next-line no-console
+       
       console.error("Error initializing persisted state:", error);
     });
 

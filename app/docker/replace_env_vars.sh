@@ -1,28 +1,27 @@
 #!/bin/sh
 
-# Find all files in the directory and run the replace_env_vars function on each
-find "/usr/share/nginx/html" -type f -exec sh -c '
-  replace_env_vars() {
-    file=$1
-    # Get all unique environment variables in the form of process.env.VARIABLE
-    env_vars=$(grep -o "process\\.env\\.[a-zA-Z_][a-zA-Z0-9_]*" "$file" | sort -u)
-    
-    for var in $env_vars; do
-      # Extract the variable name (e.g., API_URL from process.env.API_URL)
-      var_name=$(echo "$var" | awk -F"." "{print \$3}")
-      # Get the value of the environment variable
-      var_value=$(printenv "$var_name")
-      # If the environment variable is set, replace it in the file
-      if [ -n "$var_value" ]; then
-        # Replace the occurrence with the value in double quotes
-        sed -i "s|$var|\"$var_value\"|g" "$file"
-      else
-        echo "Warning: Environment variable $var_name is not set or is empty. Replacing by empty string."
-        sed -i "s|$var|\"\"|g" "$file"
-      fi
-    done
-  }
-  replace_env_vars "$0"
-' {} \;
+# Generate config.js from config.template.js with environment variable substitution
+echo "Generating runtime configuration..."
 
-echo "Replacement completed."
+# Check if template exists
+if [ ! -f "/usr/share/nginx/html/config.template.js" ]; then
+  echo "Error: config.template.js not found!"
+  exit 1
+fi
+
+# Use envsubst to replace environment variables in the template
+envsubst < /usr/share/nginx/html/config.template.js > /usr/share/nginx/html/config.js
+
+# Verify the config was generated
+if [ -f "/usr/share/nginx/html/config.js" ]; then
+  echo "Runtime configuration generated successfully at /usr/share/nginx/html/config.js"
+  
+  # Show a preview of the generated config (first few lines)
+  echo "Configuration first lines:"
+  head -5 /usr/share/nginx/html/config.js
+else
+  echo "Error: Failed to generate config.js"
+  exit 1
+fi
+
+echo "Configuration replacement completed."
