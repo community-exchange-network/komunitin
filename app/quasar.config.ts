@@ -11,8 +11,8 @@ import vitePluginChecker from 'vite-plugin-checker'
 import { config } from "dotenv"
 config()
 
-const version = process.env.npm_package_version || "0.0.0"
-console.log(`Komunitin app version: ${version}`)
+const APP_VERSION = process.env.npm_package_version || "0.0.0"
+console.log(`Komunitin app version: ${APP_VERSION}`)
 //console.log(process.env)
 
 export default defineConfig((ctx) => {
@@ -82,7 +82,11 @@ export default defineConfig((ctx) => {
       analyze: true,
       sourcemap: true,      
       env: {
-        APP_VERSION: version
+        // Although quasar reads .env file, it does not pass the runtime environment variables.
+        // In production this values will be overridden at runtime by the config.js file created
+        // by the docker entrypoint script.
+        ...process.env,
+        APP_VERSION,
       },
       vitePlugins: [
         [vitePluginChecker, {
