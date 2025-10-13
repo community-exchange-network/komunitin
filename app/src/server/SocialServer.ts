@@ -288,7 +288,7 @@ export default {
     }),
     member: Factory.extend({
       code() {
-        return faker.internet.userName((this).name);
+        return faker.internet.userName(this.name);
       },
       access: "public",
       state: "active",
@@ -316,7 +316,7 @@ export default {
     offer: Factory.extend({
       name: () => faker.commerce.product(),
       code(i: number) {
-        return faker.helpers.slugify((this).name) + i;
+        return faker.helpers.slugify(this.name) + i;
       },
       content: () => fakeMarkdown(faker.random.number({ min: 1, max: 3 })),
       price: () => fakePrice(faker.random.number({min: 1, max:1000})),
@@ -334,7 +334,7 @@ export default {
     need: Factory.extend({
       content: () => fakeMarkdown(faker.random.number({min: 1, max: 2})),
       code() {
-        return faker.helpers.slugify((this).content.substr(0, 10));
+        return faker.helpers.slugify(this.content.substr(0, 10));
       },
       images: (i: number) => Array.from(
         // Often it's empty.

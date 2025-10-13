@@ -119,7 +119,7 @@ export default {
       created: (i: number) => faker.date.recent(i % 5).toJSON(),
       updated: (i: number) => faker.date.recent(i % 5).toJSON(),
       expires() {
-        return (this).state == "pending" ? faker.date.future().toJSON() : undefined;
+        return this.state == "pending" ? faker.date.future().toJSON() : undefined;
       }
     }),
     accountSettings: Factory.extend({
