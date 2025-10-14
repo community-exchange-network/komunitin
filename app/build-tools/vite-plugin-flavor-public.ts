@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { Plugin } from "vite"
+import { type Plugin } from "vite"
 
 
 interface FlavorPublicOptions {
@@ -27,7 +27,7 @@ export function vitePluginFlavorPublic(options: FlavorPublicOptions): Plugin {
     configResolved(config) {
       destDir = config.build.outDir
     },
-    buildStart(options) {
+    buildStart() {
       copyFlavorPublicFiles()
     },
     configureServer(server) {
