@@ -4,6 +4,7 @@ import fs from "fs"
 import vitePluginChecker from 'vite-plugin-checker'
 import { vitePluginFlavorPublic } from './build-tools/vite-plugin-flavor-public'
 import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets'
+import { vitePluginFlavorOverrideSass } from './build-tools/vite-plugin-flavor-override'
 
 // Quasar loads .env files, but they are not available in quasar.config.ts. They are only
 // available in the app code. So we need to load them ourselves here. Also, we pass the 
@@ -23,6 +24,7 @@ console.log(`App flavor: ${FLAVOR}`)
 export default defineConfig((ctx) => {
   const isPwa = "pwa" in ctx.mode && ctx.mode.pwa
   const isSpa = "spa" in ctx.mode && ctx.mode.spa
+
   return {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
@@ -37,7 +39,9 @@ export default defineConfig((ctx) => {
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
-    css: ["app.sass"],
+    css: [
+      "app.sass",
+    ],
 
     vendor: {
       remove: ['@quasar/quasar-ui-qiconpicker']
@@ -83,6 +87,7 @@ export default defineConfig((ctx) => {
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-build
     build: {
+      
       vueRouterMode: "history", // available values: 'hash', 'history'
       analyze: true,
       sourcemap: true,      
@@ -105,6 +110,9 @@ export default defineConfig((ctx) => {
           flavor: FLAVOR
         }],
         [vitePluginFlavorAssets, {
+          flavor: FLAVOR
+        }],
+        [vitePluginFlavorOverrideSass, {
           flavor: FLAVOR
         }]
       ]
