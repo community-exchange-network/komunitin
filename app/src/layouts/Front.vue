@@ -2,6 +2,7 @@
   <q-layout
     view="hhh lpr fff"
     class="home column justify-start items-center"
+    :style="`background-image: url(${bgImage});`"
   >
     <q-header class="bg-transparent">
       <q-toolbar>
@@ -67,43 +68,24 @@
   </q-layout>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
+import { computed } from 'vue';
 import FitText from '../components/FitText.vue';
 import selectLang from '../components/SelectLang.vue';
+import bgImage from 'assets/home_background-700.jpg';
+import { useRoute, useRouter } from 'vue-router';
 
-/**
- * Layout base con menú lateral.
- */
-export default defineComponent({
-  name: 'Front',
-  components: {
-    selectLang,
-    FitText
-  },
-  data() {
-    return {
-      tab: 'languages',
-      // Current language.
-      locale: this.$i18n.locale
-    };
-  },
-  computed: {
-    showBackButton(): boolean {
-      return (this.$route.path !== "/");
-    }
-  },
-  methods: {
-    goBack() {
-      this.$router.back();
-    }
-  }
-});
+const route = useRoute();
+const router = useRouter();
+
+const showBackButton = computed(() => route.path !== '/');
+const goBack = () => { router.back(); };
+    
 </script>
 <style lang="scss" scoped>
 // Set the background image for home page
 .home {
-  background: $outside url('assets/home_background-700.jpg') center
+  background: $outside center
     no-repeat fixed;
   background-size: cover;
 }
