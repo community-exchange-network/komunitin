@@ -6,6 +6,7 @@ services:
     ports:
       - "2030:80"
     environment:
+      FLAVOR: ${KOMUNITIN_FLAVOR}
       OAUTH_CLIENTID: komunitin-app
       MOCK_ENABLE: false
       AUTH_URL: ${ICES_URL}/oauth2
@@ -16,6 +17,7 @@ services:
       FEEDBACK_URL: ${KOMUNITIN_FEEDBACK_URL}
       PUSH_SERVER_KEY: ${PUSH_SERVER_KEY}
       GTAG_ID: ${GTAG_ID}
+      
 
   redis:
     image: redis:7
