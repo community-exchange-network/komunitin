@@ -1,5 +1,5 @@
 import fs, { existsSync } from 'fs'
-import {join, sep} from 'path'
+import {join} from 'path'
 import { type Plugin } from "vite"
 
 

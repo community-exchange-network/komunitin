@@ -1,5 +1,5 @@
 import { existsSync } from "fs"
-import path, { dirname, resolve, sep } from "path"
+import { dirname, resolve, sep } from "path"
 import { type Plugin } from "vite"
 
 interface FlavorAssetsOptions {
