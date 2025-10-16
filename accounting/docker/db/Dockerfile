@@ -4,7 +4,7 @@ WORKDIR /app
 
 ARG UBUNTU_VERSION=22.04 \
     WALG_VERSION=3.0.7
-ARG TARGETOS TARGETARCH TARGETPLATFORM BUILDPLATFORM
+ARG TARGETARCH
 
 ENV WALG_EXE=wal-g-pg-ubuntu-$UBUNTU_VERSION-$TARGETARCH
 
@@ -12,20 +12,10 @@ ENV WALG_EXE=wal-g-pg-ubuntu-$UBUNTU_VERSION-$TARGETARCH
 RUN set -ex && \
     apt update -q && \
     apt install -yq --no-install-recommends ca-certificates curl && \
-    ARCH="$TARGETARCH" && \
-    ALT_ARCH="$TARGETARCH" && \
-    if [ "$ARCH" = "arm64" ]; then ALT_ARCH="aarch64"; fi && \
-    URL1="https://github.com/wal-g/wal-g/releases/download/v$WALG_VERSION/wal-g-pg-ubuntu-$UBUNTU_VERSION-$ARCH.tar.gz" && \
-    URL2="https://github.com/wal-g/wal-g/releases/download/v$WALG_VERSION/wal-g-pg-ubuntu-$UBUNTU_VERSION-$ALT_ARCH.tar.gz" && \
-    if curl -fILs "$URL1" > /dev/null; then \
-      curl -fLs "$URL1" -o wal-g.tar.gz && WALG_TAR=wal-g-pg-ubuntu-$UBUNTU_VERSION-$ARCH; \
-    elif curl -fILs "$URL2" > /dev/null; then \
-      curl -fLs "$URL2" -o wal-g.tar.gz && WALG_TAR=wal-g-pg-ubuntu-$UBUNTU_VERSION-$ALT_ARCH; \
-    else \
-      echo "No wal-g binary found for $UBUNTU_VERSION [$ARCH|$ALT_ARCH] at $URL1 or $URL2" >&2; exit 1; \
-    fi && \
+    if [ "$TARGETARCH" = "arm64" ]; then  ARCH="aarch64"; else ARCH="$TARGETARCH"; fi && \
+    curl -fLs https://github.com/wal-g/wal-g/releases/download/v$WALG_VERSION/wal-g-pg-ubuntu-$UBUNTU_VERSION-$ARCH.tar.gz -o wal-g.tar.gz && \
     tar -xzf wal-g.tar.gz && \
-    mv "$WALG_TAR" wal-g
+    mv wal-g-pg-ubuntu-$UBUNTU_VERSION-$ARCH wal-g
 
 FROM postgres:16 AS komunitin-db-accounting
 
