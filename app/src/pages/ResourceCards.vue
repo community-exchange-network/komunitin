@@ -18,9 +18,9 @@
             <!-- this v-if is superfluous, since when this slot is rendered, card is always defined.
             But setting it prevents an unexpected exception in vue-test-utils -->
             <component
-              :is="components[card]"
-              v-if="card && components[card]"
-              :[propName]="resource"
+              :is="components[cardComponent(resource)]"
+              v-if="cardComponent(resource) && components[cardComponent(resource)]"
+              v-bind="getCardProps(resource)"
               :code="code"
             />
           </div>
@@ -44,14 +44,15 @@
 </template>
 
 <script setup lang="ts">
-import { type Component, computed, ref, watch } from "vue";
+import { type Component, computed, ref, watch, useAttrs } from "vue";
+import { useStore } from "vuex";
 import Empty from "../components/Empty.vue";
 import NeedCard from "../components/NeedCard.vue";
 import OfferCard from "../components/OfferCard.vue";
 import GroupCard from "../components/GroupCard.vue";
-import type { ResourceObject } from "../store/model";
-import type { ResourcesState } from "../store/resources"
-import { useStore } from "vuex";
+import { ResourceObject } from "../store/model";
+import { ResourcesState } from "../store/resources"
+import { useResources } from 'src/composables/useResources';
 
 const props = withDefaults(defineProps<{
   /**
@@ -115,26 +116,45 @@ const components: Record<string, Component> = {
 
 const store = useStore()
 const ready = ref(false)
-
+const attrs = useAttrs()
 const location = computed(() => store.state.me.location)
-const state = computed(() => store.state[props.moduleName] as ResourcesState<ResourceObject>)
-const resources = computed(() => {
-  const resources = []
-  if (state.value.currentPage !== null) {
-    for (let i = 0; i <= state.value.currentPage; i++) {
-      const page = store.getters[`${props.moduleName}/page`](i)
-      if (page) {
-        resources.push(...page)
-      }
-    }
-  }
-  return resources
-})
-const isEmpty = computed(() => resources.value.length === 0)
-const isLoading = computed(() => {
-  return (!ready.value || state.value.currentPage === null || (state.value.currentPage === 0 && state.value.next === undefined && isEmpty.value))
-})
 
+// If props.moduleName is already an array, just return it, otherwise wrap it in an array
+// const moduleNames = computed(() =>
+//   Array.isArray(props.moduleName) ? props.moduleName : [props.moduleName]
+// );
+
+
+const { resources, loadNext } = useResources(props.moduleName)
+
+type ResourceComponent = {
+  componentName: string | undefined,
+  propName: string,
+}
+const cardResourceMap: Record<string, ResourceComponent> = {
+  offers: { componentName: OfferCard.name, propName: 'offer' },
+  needs: { componentName: NeedCard.name, propName: 'need' },
+  groups: { componentName: GroupCard.name, propName: 'group' },
+}
+// Return props.card if set, otherwise return the card belonging to the resource type
+const cardComponent = (resource: ResourceObject) => props.card ?? cardResourceMap[resource.type]?.componentName;
+
+// Return props.propName if set, otherwise return the propName belonging to the resource type
+const cardPropName = (resource: ResourceObject) => 'propName' in attrs ? props.propName : cardResourceMap[resource.type]?.propName;
+const getCardProps = (resource: ResourceObject) => {
+  const propName = cardPropName(resource);
+  return {
+    [propName]: resource
+  };
+};
+
+const isEmpty = computed(() => resources.value.length === 0);
+const isLoading = computed(() => {
+  const state = store.state[props.moduleName] as ResourcesState<ResourceObject>;
+  return !ready.value || state?.currentPage === null || (state?.currentPage === 0 && state?.next === undefined && isEmpty.value);
+});
+
+// Fetch resources for all modules
 const fetchResources = async (search?: string) => {
   await store.dispatch(props.moduleName + "/loadList", {
     location: location.value,
@@ -146,18 +166,6 @@ const fetchResources = async (search?: string) => {
     cache: props.cache
   });
   emit("page-loaded", 0);
-}
-
-const loadNext = async (index: number, done: (stop?: boolean) => void) => {
-  if (store.getters[props.moduleName + "/hasNext"]) {
-    await store.dispatch(props.moduleName + "/loadNext", {
-      cache: props.cache
-    });
-    emit("page-loaded", state.value.currentPage);
-  }
-  // Stop loading if there is no next page. Note that we're not
-  // stopping the infinite scrolling if hasNext returns undefined.
-  done(store.getters[props.moduleName + "/hasNext"] === false);
 }
 
 // Refetch resources when any prop changes
