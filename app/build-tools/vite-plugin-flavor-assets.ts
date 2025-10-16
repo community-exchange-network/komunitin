@@ -1,5 +1,5 @@
 import { existsSync } from "fs"
-import { resolve } from "path"
+import path, { dirname, resolve, sep } from "path"
 import { type Plugin } from "vite"
 
 interface FlavorAssetsOptions {
@@ -11,9 +11,12 @@ export const vitePluginFlavorAssets = (options: FlavorAssetsOptions): Plugin => 
     enforce: 'pre',
     
     resolveId(id, importer) {
-      if (id.indexOf("/assets/") !== -1) {
-        const absolutePath = resolve(importer ?? process.cwd(), id)
-        const flavourAbsolutePath = absolutePath.replace("/assets/", `/assets/flavors/${options.flavor}/`)
+      // id never just starts with assets/ because assets/* are aliased to src/assets/*
+      if (id.includes("/assets/")) {
+        const basePath = importer ? dirname(importer) : process.cwd()
+        const absolutePath = resolve(basePath, id)
+
+        const flavourAbsolutePath = absolutePath.replace(`${sep}assets${sep}`, `${sep}assets${sep}flavors${sep}${options.flavor}${sep}`)
         if (existsSync(flavourAbsolutePath)) {
           //console.log(`✓ Found flavor-specific asset: ${flavourAbsolutePath}`)
           return flavourAbsolutePath
