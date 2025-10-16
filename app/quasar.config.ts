@@ -4,7 +4,7 @@ import fs from "fs"
 import vitePluginChecker from 'vite-plugin-checker'
 import { vitePluginFlavorPublic } from './build-tools/vite-plugin-flavor-public'
 import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets'
-import { vitePluginFlavorOverrideSass } from './build-tools/vite-plugin-flavor-override'
+import { vitePluginFlavorOverrideSassVariables } from './build-tools/vite-plugin-flavor-override-sass-variables'
 
 // Quasar loads .env files, but they are not available in quasar.config.ts. They are only
 // available in the app code. So we need to load them ourselves here. Also, we pass the 
@@ -112,7 +112,7 @@ export default defineConfig((ctx) => {
         [vitePluginFlavorAssets, {
           flavor: FLAVOR
         }],
-        [vitePluginFlavorOverrideSass, {
+        [vitePluginFlavorOverrideSassVariables, {
           flavor: FLAVOR
         }]
       ]

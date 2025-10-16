@@ -58,7 +58,7 @@ Komunitin supports different "flavors" to customize the application. The flavor 
 
 1. **Assets**: You can customize bundled assets including logos and imagery by placing them in the `assets/flavors/[FLAVOR_NAME]/` directory.
 2. **Public files**: You can customize public files including `favicon.ico` by placing them in the `public/flavors/[FLAVOR_NAME]/` directory.
-3. **Styles**: You can customize styles by modifying the `app/src/css/flavors/override.sass`. Here you can override quasar variables that will be available in every component.
+3. **Styles**: You can customize styles by modifying the `app/src/css/flavors/override.variables.sass`. Here you can override quasar variables that will be available in every component.
 
 ## Community Note
 
