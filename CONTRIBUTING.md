@@ -56,9 +56,11 @@ Once you have made your changes, please follow the steps for contributing code a
 ## Contributing Flavors
 Komunitin supports different "flavors" to customize the application. The flavor is set using the `KOMUNITIN_FLAVOR` environment variable (in the main `.env` file) or using the `FLAVOR` environment variable in the ap folder.
 
-1. **Assets**: You can customize bundled assets including logos and imagery by placing them in the `assets/flavors/[FLAVOR_NAME]/` directory.
-2. **Public files**: You can customize public files including `favicon.ico` by placing them in the `public/flavors/[FLAVOR_NAME]/` directory.
-3. **Styles**: You can customize styles by modifying the `app/src/css/flavors/override.variables.sass`. Here you can override quasar variables that will be available in every component.
+1. **Environment variables**: You can edit the flavor-specific environment variable files named `.env.flavor.[FLAVOR_NAME]` in the `app/` directory.
+2. **Assets**: You can customize bundled assets including logos and imagery by placing them in the `assets/flavors/[FLAVOR_NAME]/` directory.
+3. **Public files**: You can customize public files including `favicon.ico` by placing them in the `public/flavors/[FLAVOR_NAME]/` directory.
+4. **Styles**: You can customize styles by modifying the `app/src/css/flavors/override.variables.sass`. Here you can override quasar variables that will be available in every component.
+
 
 ## Community Note
 
