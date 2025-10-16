@@ -48,7 +48,6 @@ services:
   db-accounting:
     build:
       context: ./accounting/docker/db
-    platform: linux/amd64
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
