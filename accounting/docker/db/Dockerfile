@@ -4,16 +4,18 @@ WORKDIR /app
 
 ARG UBUNTU_VERSION=22.04 \
     WALG_VERSION=3.0.7
+ARG TARGETARCH
 
-ENV WALG_EXE=wal-g-pg-ubuntu-$UBUNTU_VERSION-amd64
+ENV WALG_EXE=wal-g-pg-ubuntu-$UBUNTU_VERSION-$TARGETARCH
+
 
 RUN set -ex && \
     apt update -q && \
     apt install -yq --no-install-recommends ca-certificates curl && \
-    curl -fLs "https://github.com/wal-g/wal-g/releases/download/v$WALG_VERSION/$WALG_EXE.tar.gz" -o wal-g.tar.gz && \
+    if [ "$TARGETARCH" = "arm64" ]; then  ARCH="aarch64"; else ARCH="$TARGETARCH"; fi && \
+    curl -fLs https://github.com/wal-g/wal-g/releases/download/v$WALG_VERSION/wal-g-pg-ubuntu-$UBUNTU_VERSION-$ARCH.tar.gz -o wal-g.tar.gz && \
     tar -xzf wal-g.tar.gz && \
-    mv $WALG_EXE wal-g && \
-    ./wal-g --version
+    mv wal-g-pg-ubuntu-$UBUNTU_VERSION-$ARCH wal-g
 
 FROM postgres:16 AS komunitin-db-accounting
 
