@@ -1,4 +1,4 @@
-import { existsSync, watch, cpSync } from "fs"
+import { existsSync, watch, cpSync, writeFileSync } from "fs"
 import { resolve } from "path"
 import { type Plugin } from "vite"
 
@@ -15,6 +15,8 @@ export const vitePluginFlavorOverrideSass = (options: FlavorOverrideOptions): Pl
       cpSync(sourcePath, destPath, {force: true})
       console.log(`✓ Copied flavor override: ${sourcePath} → ${destPath}`)
     } else {
+      // Create an empty override.sass as a safe fallback  
+      writeFileSync(destPath, '')
       console.warn(`⚠ Flavor override file not found: ${sourcePath}`)
     }
   }
