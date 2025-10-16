@@ -1,5 +1,5 @@
-import fs from 'fs'
-import path from 'path'
+import fs, { existsSync } from 'fs'
+import {join, sep} from 'path'
 import { type Plugin } from "vite"
 
 
@@ -12,14 +12,17 @@ export function vitePluginFlavorPublic(options: FlavorPublicOptions): Plugin {
   let destDir = 'dist'
 
   const copyFlavorPublicFiles = () => {
-    const flavorDir = path.join('public', 'flavors', flavor)
-    // Copy flavor assets to public root
-    console.log(`📁 Copying ${flavor} public files`)
-    fs.cpSync(flavorDir, destDir, { recursive: true, force: true })
-    
+    const flavorDir = join('public', 'flavors', flavor)
+    if (existsSync(flavorDir)) {
+      // Copy flavor assets to public root
+      console.log(`📁 Copying ${flavor} public files`)
+      fs.cpSync(flavorDir, destDir, { recursive: true, force: true })
+    } else {
+      console.warn(`⚠ Flavor public directory not found`)
+    }
     // Remove flavors directory
-    console.log(`🗑️  Removing unnecessary flavor files`)
-    fs.rmSync(path.join(destDir, 'flavors'), { recursive: true, force: true })
+    console.log(`🗑️ Removing unnecessary flavor files`)
+    fs.rmSync(join(destDir, 'flavors'), { recursive: true, force: true })
   }
 
   return {
@@ -27,13 +30,18 @@ export function vitePluginFlavorPublic(options: FlavorPublicOptions): Plugin {
     configResolved(config) {
       destDir = config.build.outDir
     },
-    buildStart() {
+    writeBundle() {
       copyFlavorPublicFiles()
     },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (fs.existsSync(path.join('public', 'flavors', flavor, req.url || ''))) {
-          req.url = `/${req.url}`.replace(`/${req.url}`, `/flavors/${flavor}/${req.url}`)
+        if (!req.url) {
+          return next()
+        }
+        const [pathname] = req.url.split('?')
+        if (fs.existsSync(join('public', 'flavors', flavor, pathname))) {
+          // Rewrite request to serve flavor-specific file
+          req.url = `/flavors/${flavor}/${pathname}`
         }
         next()
       })
