@@ -54,16 +54,16 @@ To add a new language, in addition to adding the files and folders:
 Once you have made your changes, please follow the steps for contributing code above.
 
 ## Contributing Flavors
-Komunitin supports different "flavors" to customize the application. The flavor is set using the `KOMUNITIN_FLAVOR` environment variable (in the main `.env` file) or using the `FLAVOR` environment variable in the ap folder.
+Komunitin supports different "flavors" to customize the application. The flavor is set using the `KOMUNITIN_FLAVOR` environment variable (in the main `.env` file) or using the `FLAVOR` environment variable in the app folder.
 
 1. **Environment variables**: You can edit the flavor-specific environment variable files named `.env.flavor.[FLAVOR_NAME]` in the `app/` directory.
 2. **Assets**: You can customize bundled assets including logos and imagery by placing them in the `assets/flavors/[FLAVOR_NAME]/` directory.
 3. **Public files**: You can customize public files including `favicon.ico` by placing them in the `public/flavors/[FLAVOR_NAME]/` directory.
 4. **Styles**: You can customize styles by modifying the `app/src/css/flavors/override.variables.sass`. Here you can override quasar variables that will be available in every component.
-
+5. **Language strings**: You can override language strings by placing JSON files in the `app/src/i18n/flavors/[FLAVOR_NAME]/[LANGUAGE_CODE]/` directory. The files should have the same names as the base language files (e.g., `index.json`, `admin.json`). The flavor-specific strings will override the base strings when the specified flavor is active.
 
 ## Community Note
 
-Komunitin is a community-maintained project, and there is no company behind it. Please understand that it may take us some time to respond to your inquiries or review your contributions.
+Komunitin is a community-maintained project, and there is no company behind it. Please understand that it may take us some time to respond to your inquiries or review your pull requests.
 
 ❤️ Thanks for your contribution! ❤️
