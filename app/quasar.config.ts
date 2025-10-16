@@ -12,6 +12,7 @@ import { vitePluginFlavorOverrideSassVariables } from './build-tools/vite-plugin
 // Quasar converts "true" to true and this is not consistent with runtime replacement.
 // See issue https://github.com/quasarframework/quasar/issues/17917
 import { config } from "dotenv"
+import { vitePluginFlavorOverrideI18n } from "./build-tools/vite-plugin-flavor-override-i18n"
 config()
 
 const APP_VERSION = process.env.npm_package_version || "0.0.0"
@@ -119,6 +120,9 @@ export default defineConfig((ctx) => {
           flavor: FLAVOR
         }],
         [vitePluginFlavorOverrideSassVariables, {
+          flavor: FLAVOR
+        }],
+        [vitePluginFlavorOverrideI18n, {
           flavor: FLAVOR
         }]
       ]
