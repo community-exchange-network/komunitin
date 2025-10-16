@@ -1,6 +1,6 @@
 // Configuration for your app
 import { defineConfig } from "#q-app/wrappers"
-import fs from "fs"
+import { existsSync, readFileSync } from "fs"
 import vitePluginChecker from 'vite-plugin-checker'
 import { vitePluginFlavorPublic } from './build-tools/vite-plugin-flavor-public'
 import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets'
@@ -16,6 +16,12 @@ config()
 
 const APP_VERSION = process.env.npm_package_version || "0.0.0"
 const FLAVOR = process.env.FLAVOR || "komunitin"
+
+if (existsSync(`.env.flavor.${FLAVOR}`)) {
+  config({ path: `.env.flavor.${FLAVOR}` })
+} else {
+  console.warn(`⚠ Flavor-specific .env file not found: .env.flavor.${FLAVOR}`)
+}
 
 console.log(`App version: ${APP_VERSION}`)
 console.log(`App flavor: ${FLAVOR}`)
@@ -119,7 +125,9 @@ export default defineConfig((ctx) => {
     },
 
     htmlVariables: {
-      configStamp: Date.now()
+      configStamp: Date.now(),
+      productName: process.env.PRODUCT_NAME,
+      productDescription: process.env.PRODUCT_DESCRIPTION
     },
 
 
@@ -131,9 +139,9 @@ export default defineConfig((ctx) => {
       port: isPwa ? 2030 : (isSpa ? 2031 : 2032),
       open: true,
       https: {
-        key: fs.readFileSync("./tmp/certs/localhost-key.pem"),
-        cert: fs.readFileSync("./tmp/certs/localhost.pem"),
-        ca: fs.readFileSync(process.env.LOCAL_CA_ROOT ?? "~/.local/share/mkcert/rootCA.pem")
+        key: readFileSync("./tmp/certs/localhost-key.pem"),
+        cert: readFileSync("./tmp/certs/localhost.pem"),
+        ca: readFileSync(process.env.LOCAL_CA_ROOT ?? "~/.local/share/mkcert/rootCA.pem")
       },
       // Disable auto updating when checking PWA update process.
       // hot: false,
