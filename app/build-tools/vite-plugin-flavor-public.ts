@@ -18,7 +18,7 @@ export function vitePluginFlavorPublic(options: FlavorPublicOptions): Plugin {
       console.log(`📁 Copying ${flavor} public files`)
       cpSync(flavorDir, destDir, { recursive: true, force: true })
     } else {
-      console.warn(`⚠ Flavor public directory not found`)
+      console.warn(`⚠ Flavor public directory ${flavorDir} not found`)
     }
     // Remove flavors directory
     console.log(`🗑️ Removing unnecessary flavor files`)
