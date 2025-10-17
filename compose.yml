@@ -2,6 +2,8 @@ services:
   app:
     build:
       context: ./app
+      args:
+        FLAVOR: ${KOMUNITIN_FLAVOR}
     restart: unless-stopped
     ports:
       - "2030:80"
@@ -16,6 +18,7 @@ services:
       FEEDBACK_URL: ${KOMUNITIN_FEEDBACK_URL}
       PUSH_SERVER_KEY: ${PUSH_SERVER_KEY}
       GTAG_ID: ${GTAG_ID}
+      
 
   redis:
     image: redis:7
