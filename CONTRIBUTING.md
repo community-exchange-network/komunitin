@@ -59,7 +59,7 @@ Komunitin supports different "flavors" to customize the application. The flavor 
 1. **Environment variables**: You can edit the flavor-specific environment variable files named `.env.flavor.[FLAVOR_NAME]` in the `app/` directory.
 2. **Assets**: You can customize bundled assets including logos and imagery by placing them in the `assets/flavors/[FLAVOR_NAME]/` directory.
 3. **Public files**: You can customize public files including `favicon.ico` by placing them in the `public/flavors/[FLAVOR_NAME]/` directory.
-4. **Styles**: You can customize styles by modifying the `app/src/css/flavors/override.variables.sass`. Here you can override quasar variables that will be available in every component.
+4. **Styles**: You can customize styles by modifying the `app/src/css/flavors/[FLAVOR_NAME]/override.variables.sass`. This file lets you override Quasar variables for your flavor, and it is automatically copied to `src/css/override.variables.sass` by the build plugin.
 5. **Language strings**: You can override language strings by placing JSON files in the `app/src/i18n/flavors/[FLAVOR_NAME]/[LANGUAGE_CODE]/` directory. The files should have the same names as the base language files (e.g., `index.json`, `admin.json`). The flavor-specific strings will override the base strings when the specified flavor is active.
 
 ## Community Note
