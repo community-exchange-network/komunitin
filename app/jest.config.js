@@ -41,6 +41,7 @@ export default {
     'cjs'
   ],
   moduleNameMapper: {
+    '.*\\.(css|styl|less|sass|scss|svg|png|jpg|ttf|woff|woff2)$': '<rootDir>/__mocks__/mock.css',
     '^quasar$': 'quasar/dist/quasar.client.js',
     '^~/(.*)$': '<rootDir>/$1',
     '^src/(.*)$': '<rootDir>/src/$1',
@@ -50,7 +51,6 @@ export default {
     '^pages/(.*)$': '<rootDir>/src/pages/$1',
     '^assets/(.*)$': '<rootDir>/src/assets/$1',
     '^boot/(.*)$': '<rootDir>/src/boot/$1',
-    '.*css$': '<rootDir>/__mocks__/mock.css',
   },
   transform: {
     '.*\\.vue$': '@vue/vue3-jest',

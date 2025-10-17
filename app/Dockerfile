@@ -7,6 +7,9 @@
 
 
 FROM node:20 AS komunitin-app-build
+
+ARG FLAVOR=komunitin 
+
 WORKDIR /app
 
 # Install mkcert
@@ -33,6 +36,9 @@ RUN npm install
 
 # Copy sources 
 COPY . .
+
+# Set the FLAVOR build argument
+ENV FLAVOR=${FLAVOR}
 
 # Build App using the quasar CLI app.
 RUN npm run build
