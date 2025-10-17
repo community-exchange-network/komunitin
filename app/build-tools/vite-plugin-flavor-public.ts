@@ -1,4 +1,4 @@
-import fs, { existsSync } from 'fs'
+import { cpSync, rmSync, existsSync } from 'fs'
 import {join} from 'path'
 import { type Plugin } from "vite"
 
@@ -16,13 +16,13 @@ export function vitePluginFlavorPublic(options: FlavorPublicOptions): Plugin {
     if (existsSync(flavorDir)) {
       // Copy flavor assets to public root
       console.log(`📁 Copying ${flavor} public files`)
-      fs.cpSync(flavorDir, destDir, { recursive: true, force: true })
+      cpSync(flavorDir, destDir, { recursive: true, force: true })
     } else {
       console.warn(`⚠ Flavor public directory not found`)
     }
     // Remove flavors directory
     console.log(`🗑️ Removing unnecessary flavor files`)
-    fs.rmSync(join(destDir, 'flavors'), { recursive: true, force: true })
+    rmSync(join(destDir, 'flavors'), { recursive: true, force: true })
   }
 
   return {
@@ -39,7 +39,7 @@ export function vitePluginFlavorPublic(options: FlavorPublicOptions): Plugin {
           return next()
         }
         const [pathname] = req.url.split('?')
-        if (fs.existsSync(join('public', 'flavors', flavor, pathname))) {
+        if (existsSync(join('public', 'flavors', flavor, pathname))) {
           // Rewrite request to serve flavor-specific file
           req.url = `/flavors/${flavor}/${pathname}`
         }
