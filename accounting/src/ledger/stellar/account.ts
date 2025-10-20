@@ -1,4 +1,4 @@
-import { Asset, Horizon, Keypair, Operation } from "@stellar/stellar-sdk"
+import { Asset, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk"
 import { LedgerAccount, LedgerTransfer, PathQuote } from "../ledger"
 import { StellarCurrency } from "./currency"
 import {Big} from "big.js"
@@ -205,27 +205,26 @@ export class StellarAccount implements LedgerAccount {
       .map(b => ({asset: new Asset(b.asset_code, b.asset_issuer), balance: b.balance, limit: b.limit}))
   }
 
-  private async moveBalanceAndDelete(destination: string, keys: {admin: Keypair, sponsor: Keypair}) {
+  moveBalanceAndDeleteTransaction(builder: TransactionBuilder, destination: string, asset: Asset = this.currency.asset()) {
     if (this.account === undefined) {
       throw internalError("Account not found")
     }
-    const builder = this.currency.ledger.transactionBuilder(this)
     const source = this.account.accountId()
-    const balance = this.balance()
+    const balance = this.balance(asset)
 
     if (Big(balance).gt(0)) {
       // Send all the balance to the destination account
       builder.addOperation(Operation.payment({
         source,
         destination,
-        asset: this.currency.asset(),
+        asset,
         amount: balance
       }))
     }
     // Remove the trustline.
     builder.addOperation(Operation.changeTrust({
       source,
-      asset: this.currency.asset(),
+      asset,
       limit: "0"
     }))
     // Delete the account.
@@ -233,7 +232,13 @@ export class StellarAccount implements LedgerAccount {
       source,
       destination: this.currency.ledger.sponsorPublicKey.publicKey()
     }))
-    
+
+  }
+
+  private async moveBalanceAndDelete(destination: string, keys: {admin: Keypair, sponsor: Keypair}) {
+    const builder = this.currency.ledger.transactionBuilder(this)
+    this.moveBalanceAndDeleteTransaction(builder, destination)
+
     const result = await this.currency.ledger.submitTransaction(builder, [keys.admin], keys.sponsor)
     this.account = undefined
     

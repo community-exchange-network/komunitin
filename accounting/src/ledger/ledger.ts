@@ -296,6 +296,42 @@ export interface LedgerCurrency {
    * @param hash The transaction hash.
    */
   getTransfer(hash: string): Promise<LedgerTransfer|LedgerExternalTransfer>
+
+  /** 
+   * Disable the currency. This operation removes the currency from the ledger saving resources.
+   * 
+   * - Removes all currency accounts (credit, admin, pool, issuer) from the ledger
+   * - If there are trustlines from other currencies to our external asset:
+   *  - Move all external assets to the external issuer.
+   *  - Remove the external trader
+   * - Otherwise remove the external accounts from the ledger as well 
+   * 
+   * Before calling this method:
+   * 
+   *  - You must disable (or suspend, delete) all accounts in the currency before disabling the 
+   * currency itself.
+   */
+  disable(keys: {
+    sponsor: KeyPair, 
+    issuer: KeyPair
+    credit: KeyPair, 
+    admin: KeyPair, 
+    externalIssuer: KeyPair, 
+    externalTrader: KeyPair, 
+  }): Promise<void>
+
+  /*
+   * Create all necessary infrastructure in the ledger to enable this currency.
+   */
+  enable(keys: {
+    sponsor: KeyPair
+    issuer: KeyPair,
+    credit: KeyPair,
+    admin: KeyPair,
+    externalIssuer: KeyPair,
+    externalTrader: KeyPair
+  }): Promise<void>
+
 }
 
 export interface PathQuote {

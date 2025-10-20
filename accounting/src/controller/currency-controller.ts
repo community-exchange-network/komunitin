@@ -14,7 +14,8 @@ import {
   UpdateCurrency,
   currencyToRecord,
   recordToCurrency,
-  CreateCurrency
+  CreateCurrency,
+  AccountStatus
 } from "../model";
 import { CollectionOptions } from "../server/request";
 import { Context, systemContext } from "../utils/context";
@@ -122,6 +123,18 @@ export class LedgerCurrencyController implements CurrencyController {
     
     if (currency.rate && (currency.rate.n !== this.model.rate.n || currency.rate.d !== this.model.rate.d)) {
       throw notImplemented("Change the currency rate not implemented yet")
+    }
+
+    if (currency.status && currency.status !== this.model.status) {
+      if (this.model.status === "active" && currency.status === "disabled") {
+        // Disabling currency
+        this.disableCurrency(ctx)
+      } else if (this.model.status === "disabled" && currency.status === "active") {
+        // Enabling currency
+        this.enableCurrency(ctx)
+      } else if (this.model.status !== currency.status) {
+        throw badRequest(`Can't change currency status from ${this.model.status} to ${currency.status}`)
+      }
     }
 
     const data = currencyToRecord(currency)
@@ -250,18 +263,23 @@ export class LedgerCurrencyController implements CurrencyController {
     if (!existing) {
       throw notFound(`Trustline ${data.id} not found`)
     }
+    
     const externalIdentifier = externalResourceToIdentifier(existing.trusted)
     const trustedExternalResource = await this.externalResources.getExternalResource<Currency>(ctx, externalIdentifier)
     const trustedCurrency = trustedExternalResource.resource
-    // Update the trustline in the ledger
-    await this.ledger.trustCurrency({
-      trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
-      limit: this.amountToLedger(data.limit)
-    }, {
-      sponsor: await this.keys.sponsorKey(),
-      externalTrader: await this.keys.externalTraderKey(),
-      externalIssuer: await this.keys.externalIssuerKey()
-    })
+
+    if (data.limit && data.limit !== existing.limit) {      
+      // Update the trustline in the ledger
+      await this.ledger.trustCurrency({
+        trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
+        limit: this.amountToLedger(data.limit)
+      }, {
+        sponsor: await this.keys.sponsorKey(),
+        externalTrader: await this.keys.externalTraderKey(),
+        externalIssuer: await this.keys.externalIssuerKey()
+      })
+    }
+    
     // Update the trustline in the DB
     const record = await this.db.trustline.update({
       data: {
@@ -376,5 +394,66 @@ export class LedgerCurrencyController implements CurrencyController {
     this.model.keys.disabledAccountsPool = key
     this.ledger.setData(currencyData(this.model))
     
+  }
+
+  async disableCurrency(ctx: Context) {
+    // 1. Disable all active accounts.
+    const accounts = await this.db.account.findMany({
+      where: {
+        currencyId: this.model.id,
+        status: "active"
+      }
+    })
+    for (const account of accounts) {
+      await this.accounts.updateAccount(ctx, {
+        id: account.id,
+        status: AccountStatus.Disabled
+      })
+    }
+
+    // 2. Disable currency in ledger.    
+    await this.ledger.disable({
+      sponsor: await this.keys.sponsorKey(),
+      issuer: await this.keys.issuerKey(),
+      admin: await this.keys.adminKey(),
+      credit: await this.keys.creditKey(),
+      externalIssuer: await this.keys.externalIssuerKey(),
+      externalTrader: await this.keys.externalTraderKey()
+    })
+  }
+
+  async enableCurrency(ctx: Context) {
+    // 1. Enable currency in ledger.
+    await this.ledger.enable({
+      sponsor: await this.keys.sponsorKey(),
+      issuer: await this.keys.issuerKey(),
+      admin: await this.keys.adminKey(),
+      credit: await this.keys.creditKey(),
+      externalIssuer: await this.keys.externalIssuerKey(),
+      externalTrader: await this.keys.externalTraderKey()
+    })
+    // 2. Reset all trustlines
+    const trustlines = await this.db.trustline.findMany({
+      where: {
+        currencyId: this.model.id
+      },
+      include: {
+        trusted: true
+      }
+    })
+    for (const tl of trustlines) {
+      const trustedCurrency = recordToExternalResource<Currency>(tl.trusted).resource
+      const issuer = trustedCurrency.keys?.externalIssuer
+      if (issuer) {
+        await this.ledger.trustCurrency({
+          trustedPublicKey: issuer,
+          limit: this.amountToLedger(Number(tl.limit))
+        }, {
+          sponsor: await this.keys.sponsorKey(),
+          externalTrader: await this.keys.externalTraderKey(),
+          externalIssuer: await this.keys.externalIssuerKey()
+        })
+      }
+    }
   }
 }
