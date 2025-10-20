@@ -128,10 +128,10 @@ export class LedgerCurrencyController implements CurrencyController {
     if (currency.status && currency.status !== this.model.status) {
       if (this.model.status === "active" && currency.status === "disabled") {
         // Disabling currency
-        this.disableCurrency(ctx)
+        await this.disableCurrency(ctx)
       } else if (this.model.status === "disabled" && currency.status === "active") {
         // Enabling currency
-        this.enableCurrency(ctx)
+        await this.enableCurrency(ctx)
       } else if (this.model.status !== currency.status) {
         throw badRequest(`Can't change currency status from ${this.model.status} to ${currency.status}`)
       }
@@ -401,6 +401,7 @@ export class LedgerCurrencyController implements CurrencyController {
     const accounts = await this.db.account.findMany({
       where: {
         currencyId: this.model.id,
+        type: "user",
         status: "active"
       }
     })

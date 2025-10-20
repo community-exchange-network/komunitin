@@ -158,6 +158,7 @@ export function currencyToRecord(currency: CreateCurrency | UpdateCurrency): Pri
   return {
     id: currency.id,
     code: currency.code,
+    status: currency.status,
 
     name: currency.name,
     namePlural: currency.namePlural,

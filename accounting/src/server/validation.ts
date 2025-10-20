@@ -58,6 +58,7 @@ export namespace Validators {
 
   const isUpdateCurrencyAttributes = (path: string) => [
     body(`${path}.code`).optional().isString().trim().matches(/^[A-Z0-9]{4}$/), // code optional as provided in path.
+    body(`${path}.status`).optional().isIn(['active', 'disabled']),
     body(`${path}.name`).optional().isString().trim().notEmpty(),
     body(`${path}.namePlural`).optional().isString().trim().notEmpty(),
     body(`${path}.symbol`).optional().isString().trim().isLength({max: 3, min: 1}),

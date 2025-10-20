@@ -1042,7 +1042,7 @@ export class StellarCurrency implements LedgerCurrency {
     // We do it in separate transactions to avoid hitting total operation limit per transaction.
     const externalTraderAccount = await this.externalTraderAccount()
     const trustlines = externalTraderAccount.balances().filter(
-      (b) => b.asset.equals(this.hour()) === false && b.asset.equals(this.asset()) === false
+      (b) => !b.asset.equals(this.hour()) && !b.asset.equals(this.asset())
     )
     for (const trustline of trustlines) {
       await this.disableTrustline({
@@ -1098,14 +1098,14 @@ export class StellarCurrency implements LedgerCurrency {
     }))
 
     // Delete external trader
-    externalTraderAccount.moveBalanceAndDeleteTransaction(builder, this.data.creditPublicKey)
+    externalTraderAccount.moveBalanceAndDeleteTransaction(builder, this.data.issuerPublicKey)
     signers.push(keys.externalTrader)
 
     // Delete disabled accounts pool.
     if (this.data.disabledAccountsPoolPublicKey) {
       const pool = await this.getAccount(this.data.disabledAccountsPoolPublicKey)
-      pool.moveBalanceAndDeleteTransaction(builder, this.data.creditPublicKey)
-      signers.push(keys.admin)
+      pool.moveBalanceAndDeleteTransaction(builder, this.data.issuerPublicKey)
+      // admin is signer of disabled accounts pool and will be added later anyway.
     }
     
     const deleteAccountTransaction = (accountKey: string) => {
@@ -1120,10 +1120,11 @@ export class StellarCurrency implements LedgerCurrency {
     const externalIssuerBalances = externalIssuer.balances()
     let keepExternalIssuer = true
     if (externalIssuerBalances.length  === 0) {
-      const externalTrustlines = await this.ledger.callServer((server) =>
-        server.accounts().forAsset(this.hour()).limit(1).call()
+      const externalTrustlinesResult = await this.ledger.callServer((server) =>
+        server.accounts().forAsset(this.hour()).limit(2).call()
       )
-      if (externalTrustlines.records.length === 0) {
+      const externalTrustlines = externalTrustlinesResult.records.filter(a => a.account_id !== this.data.externalTraderPublicKey)
+      if (externalTrustlines.length === 0) {
         keepExternalIssuer = false
         deleteAccountTransaction(this.data.externalIssuerPublicKey)
         signers.push(keys.externalIssuer)
@@ -1132,10 +1133,10 @@ export class StellarCurrency implements LedgerCurrency {
 
     // Delete admin account
     const adminAccount = await this.getAccount(this.data.adminPublicKey)
-    adminAccount.moveBalanceAndDeleteTransaction(builder, this.data.creditPublicKey)
+    adminAccount.moveBalanceAndDeleteTransaction(builder, this.data.issuerPublicKey)
     signers.push(keys.admin)
 
-    // Delete credit account
+    // Delete credit account.
     const creditAccount = await this.creditAccount()
     creditAccount.moveBalanceAndDeleteTransaction(builder, this.data.issuerPublicKey)
     signers.push(keys.credit)

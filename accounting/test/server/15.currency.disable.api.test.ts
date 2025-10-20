@@ -14,7 +14,7 @@ describe('Currency disable', async () => {
 
   it('non-admin cannot disable currency', async () => {
     await t.api.patch(
-      `/TEST/currency/${t.currency.id}`, 
+      `/TEST/currency`, 
       { data: { attributes: { status: 'disabled' } } },
       t.user1,
       403
@@ -23,7 +23,7 @@ describe('Currency disable', async () => {
 
   it('admin can disable own currency', async () => {
     const response = await t.api.patch(
-      `/TEST/currency/${t.currency.id}`, 
+      `/TEST/currency`, 
       { data: { attributes: { status: 'disabled' } } },
       t.admin
     )
@@ -48,7 +48,7 @@ describe('Currency disable', async () => {
 
   it('disabled currency can be re-enabled by admin', async () => {
     const response = await t.api.patch(
-      `/TEST/currency/${t.currency.id}`,
+      `/TEST/currency`,
       { data: { attributes: { status: 'active' } } },
       t.admin
     )
