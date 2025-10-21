@@ -2,7 +2,6 @@ import { describe, it } from "node:test"
 import assert from "node:assert"
 
 import { setupServerTest } from './setup'
-import { randomUUID } from "node:crypto"
 
 describe('Currency disable', async () => {
   const t = setupServerTest()
@@ -46,6 +45,28 @@ describe('Currency disable', async () => {
     await t.createAccount("noway", t.currency.code, undefined, 403)
   })
 
+  it('accounts are disabled in disabled currency', async () => {
+    const response = await t.api.get(`/TEST/accounts`, t.user1)
+    for (const account of response.body.data) {
+      assert.equal(account.attributes.status, 'disabled')
+    }
+  })
+
+  it('and cannot be re-enabled', async () => {
+    const response = await t.api.patch(
+      `/TEST/accounts/${t.account1.id}`, 
+      { data: { attributes: { status: 'active' } } },
+      t.admin,
+      403
+    )
+    assert.equal(response.body.errors[0].code, 'InactiveCurrency')
+  })
+
+  it('but can still get currency info', async () => {
+    const response = await t.api.get(`/TEST/currency`, t.user1)
+    assert.equal(response.body.data.attributes.code, 'TEST')
+  })
+
   it('disabled currency can be re-enabled by admin', async () => {
     const response = await t.api.patch(
       `/TEST/currency`,
@@ -59,6 +80,19 @@ describe('Currency disable', async () => {
     const response = await t.api.get(`/currencies`)
     const codes = response.body.data.map((c: any) => c.attributes.code)
     assert.ok(codes.includes('TEST'))
+  })
+  it('accounts can be re-enabled after currency is re-enabled', async () => {
+    const response = await t.api.patch(
+      `/TEST/accounts/${t.account1.id}`, 
+      { data: { attributes: { status: 'active' } } },
+      t.admin
+    )
+    assert.equal(response.body.data.attributes.status, 'active')
+    await t.api.patch(
+      `/TEST/accounts/${t.account2.id}`, 
+      { data: { attributes: { status: 'active' } } },
+      t.admin
+    )
   })
   
   it('can operate again with re-enabled currency', async () => {

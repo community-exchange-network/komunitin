@@ -51,13 +51,13 @@ export function getRoutes(controller: SharedController) {
     return await currencyController.getCurrency(ctx)
   }, CurrencySerializer, {
     include: ["settings"]
-  }))
+  }, {checkActive: false}))
 
   // Update currency
   router.patch('/:code/currency', userAuth([Scope.Accounting, Scope.Superadmin]), checkExact(Validators.isUpdateCurrency()), 
     currencyInputHandler(controller, async (currencyController, ctx, data: UpdateCurrency) => {
       return await currencyController.updateCurrency(ctx, data)
-    }, CurrencySerializer)
+    }, CurrencySerializer, {checkActive: false})
   )
 
   // Get currency settings
@@ -78,7 +78,7 @@ export function getRoutes(controller: SharedController) {
   router.post('/:code/accounts', userAuth([Scope.Accounting, Scope.Superadmin]), checkExact(Validators.isCreateAccount()), 
     currencyInputHandler(controller, async (currencyController, ctx, data: InputAccount) => {
       return await currencyController.accounts.createAccount(ctx, data)
-    }, AccountSerializer, 201)
+    }, AccountSerializer, {status: 201})
   )
 
   // List accounts
@@ -89,7 +89,7 @@ export function getRoutes(controller: SharedController) {
       filter: ["id", "code", "tag", "status"],
       sort: ["code", "balance", "creditLimit", "maximumBalance", "created", "updated"],
       include: ["currency", "settings"]
-    })
+    }, {checkActive: false})
   )
 
   // Download accounts as CSV
@@ -110,8 +110,7 @@ export function getRoutes(controller: SharedController) {
       'maximumBalance': account.maximumBalance?.toString() ?? '',
       'key': account.key,
       'user.id': account.users && account.users.length > 0 ? account.users[0].id : '',
-    })
-    )
+    }), {checkActive: false})
   )
 
   // Get account. No auth required to get an account having its id. We need that for
@@ -121,7 +120,7 @@ export function getRoutes(controller: SharedController) {
       return await currencyController.accounts.getAccount(ctx, id)
     }, AccountSerializer, {
       include: ["currency", "settings", "currency.settings"]
-    })
+    }, {checkActive: false})
   )
 
   // Update account
@@ -135,7 +134,7 @@ export function getRoutes(controller: SharedController) {
   router.get('/:code/accounts/:id/settings', userAuth([Scope.Accounting, Scope.AccountingReadAll, Scope.Superadmin]),
     currencyResourceHandler(controller, async (currencyController, ctx, id) => {
       return await currencyController.accounts.getAccountSettings(ctx, id)
-    }, AccountSettingsSerializer, {})
+    }, AccountSettingsSerializer, {}, {checkActive: false})
   )
 
   // Update account settings
@@ -159,7 +158,7 @@ export function getRoutes(controller: SharedController) {
       } else {
         return await currencyController.transfers.createTransfer(ctx, data)
       }
-    }, TransferSerializer, 201)
+    }, TransferSerializer, {status: 201})
   )
 
   router.patch('/:code/transfers/:id', anyAuth(userAuth([Scope.Accounting, Scope.Superadmin]), externalAuth()), checkExact(Validators.isUpdateTransfer()),
@@ -179,7 +178,7 @@ export function getRoutes(controller: SharedController) {
       return await currencyController.transfers.getTransfer(ctx, id)
     }, TransferSerializer, {
       include: ["payer", "payee", "currency"]
-    })
+    }, {checkActive: false})
   )
 
   router.get('/:code/transfers', userAuth([Scope.Accounting, Scope.AccountingReadAll, Scope.Superadmin]),
@@ -189,7 +188,7 @@ export function getRoutes(controller: SharedController) {
       filter: ["payer", "payee", "account", "search", "from", "to"],
       sort: ["created", "updated"],
       include: ["payer", "payee", "currency"]
-    })
+    }, {checkActive: false})
   )
 
   router.get('/:code/transfers.csv', userAuth([Scope.Accounting, Scope.Superadmin]),
@@ -216,13 +215,13 @@ export function getRoutes(controller: SharedController) {
         'payee.code': payee.code,
         'user.id': transfer.user.id
       }
-    })
+    }, {checkActive: false})
   )
 
   router.post('/:code/trustlines', userAuth([Scope.Accounting, Scope.Superadmin]), checkExact(Validators.isCreateTrustline()),
     currencyInputHandler(controller, async (currencyController, ctx, data: InputTrustline) => {
       return await currencyController.createTrustline(ctx, data)
-    }, TrustlineSerializer, 201)
+    }, TrustlineSerializer, {status: 201, checkActive: false})
   )
 
   router.get('/:code/trustlines/:id', userAuth([Scope.Accounting, Scope.AccountingReadAll, Scope.Superadmin]),
@@ -230,7 +229,7 @@ export function getRoutes(controller: SharedController) {
       return await currencyController.getTrustline(ctx, id)
     }, TrustlineSerializer, {
       include: ["currency", "trusted"]
-    })
+    }, {checkActive: false})
   )
 
   router.patch('/:code/trustlines/:id', userAuth([Scope.Accounting, Scope.Superadmin]), checkExact(Validators.isUpdateTrustline()),
@@ -245,7 +244,7 @@ export function getRoutes(controller: SharedController) {
     }, TrustlineSerializer, {
       sort: ["created", "updated"],
       include: ["currency", "trusted"]
-    })
+    }, {checkActive: false})
   )
 
   const successCache = (seconds: number) => routeCache.cacheSeconds(seconds, (req: Request, res: Response) => {
@@ -289,7 +288,7 @@ export function getRoutes(controller: SharedController) {
       const params = statsParams(req)
       const stats = await currencyController.stats.getAmount(ctx, params)
       return StatsSerializer.serialize(stats)
-    })
+    }, {checkActive: false})
   )
 
   router.get('/:code/stats/accounts', userAuth([Scope.Accounting, Scope.AccountingReadAll, Scope.Superadmin]), currencyStatsCache,
@@ -297,7 +296,7 @@ export function getRoutes(controller: SharedController) {
       const params = accountStatsParams(req)
       const stats = await currencyController.stats.getAccounts(ctx, params)
       return StatsSerializer.serialize(stats)
-    })
+    }, {checkActive: false})
   )
 
   router.get('/:code/stats/transfers', userAuth([Scope.Accounting, Scope.AccountingReadAll, Scope.Superadmin]), currencyStatsCache,
@@ -305,7 +304,7 @@ export function getRoutes(controller: SharedController) {
       const params = statsParams(req)
       const stats = await currencyController.stats.getTransfers(ctx, params)
       return StatsSerializer.serialize(stats)
-    })
+    }, {checkActive: false})
   )
 
   return router

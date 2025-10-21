@@ -220,13 +220,23 @@ export interface LedgerCurrency {
     sponsor: KeyPair
     issuer: KeyPair,
     credit?: KeyPair,
+    account?: KeyPair // Optional account keypair to use instead of generating a new one.
   }): Promise<{key: KeyPair}>
 
   /**
    * Get a loaded and updated account object.
+   * 
+   * @throws error if the account does not exist.
    * @param publicKey 
    */
   getAccount(publicKey: string): Promise<LedgerAccount>
+
+  /**
+   * Same as getAccount but returns null instead of throwing error if the account does not exist.
+   * 
+   * @param publicKey 
+   */
+  findAccount(publicKey: string): Promise<LedgerAccount|null>
 
   /**
    * Enable a disabled account.

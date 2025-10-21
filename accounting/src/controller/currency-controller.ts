@@ -19,7 +19,7 @@ import {
 } from "../model";
 import { CollectionOptions } from "../server/request";
 import { Context, systemContext } from "../utils/context";
-import { badRequest, internalError, notFound, notImplemented } from "../utils/error";
+import { badRequest, inactiveCurrency, internalError, notFound, notImplemented } from "../utils/error";
 import { AtLeast } from "../utils/types";
 import { AccountController } from "./account-controller";
 import { ExternalResourceController } from "./external-resource-controller";
@@ -122,6 +122,9 @@ export class LedgerCurrencyController implements CurrencyController {
     }
     
     if (currency.rate && (currency.rate.n !== this.model.rate.n || currency.rate.d !== this.model.rate.d)) {
+      if (this.model.status !== "active") {
+        throw inactiveCurrency(`Cannot change rate of inactive currency ${this.model.code}`)
+      }
       throw notImplemented("Change the currency rate not implemented yet")
     }
 
@@ -368,31 +371,40 @@ export class LedgerCurrencyController implements CurrencyController {
    * Does nothing if the disabled accounts pool is already created.
    */
   async createDisabledAccountsPool() {
+    let key : Keypair|undefined = undefined
     if (this.model.keys.disabledAccountsPool) {
-      // Already created
-      return
+      const poolAccount = await this.ledger.findAccount(this.model.keys.disabledAccountsPool)
+      if (poolAccount !== null) {
+        // Account already exists
+        return
+      } else {
+        key = await this.keys.retrieveKey(this.model.keys.disabledAccountsPool)
+      }
     }
     const account = await this.ledger.createAccount({
       initialCredit: "0"
     }, {
       sponsor: await this.keys.sponsorKey(),
-      issuer: await this.keys.issuerKey()
+      issuer: await this.keys.issuerKey(),
+      account: key
     })
 
     // Create key object
-    const key = await this.keys.storeKey(account.key)
+    if (key === undefined) {
+      const keyId = await this.keys.storeKey(account.key)
+      this.model.keys.disabledAccountsPool = keyId
+      // Save relation in Currency object
+      await this.db.currency.update({
+        where: {
+          id: this.model.id
+        },
+        data: {
+          disabledAccountsPoolKeyId: keyId
+        }
+      })
 
-    // Save relation in Currency object
-    await this.db.currency.update({
-      where: {
-        id: this.model.id
-      },
-      data: {
-        disabledAccountsPoolKeyId: key
-      }
-    })
-    this.model.keys.disabledAccountsPool = key
-    this.ledger.setData(currencyData(this.model))
+      this.ledger.setData(currencyData(this.model))
+    }
     
   }
 
@@ -455,6 +467,32 @@ export class LedgerCurrencyController implements CurrencyController {
           externalIssuer: await this.keys.externalIssuerKey()
         })
       }
+    }
+
+    // 3. Create and fund disabled accounts pool
+    await this.createDisabledAccountsPool()
+    // Compute the total balance of disabled accounts
+    const disabledAccounts = await this.db.account.findMany({
+      where: {
+        currencyId: this.model.id,
+        status: "disabled"
+      }
+    })
+    let totalDisabledBalance = Big(0)
+    for (const account of disabledAccounts) {
+      totalDisabledBalance = totalDisabledBalance.plus(Big(account.balance.toString()))
+      totalDisabledBalance = totalDisabledBalance.plus(Big(account.creditLimit.toString()))
+    }
+    if (totalDisabledBalance.gt(0)) {
+      // Fund the disabled accounts pool
+      const issuerAccount = await this.ledger.getAccount(this.model.keys.issuer)
+      await issuerAccount.pay({
+        payeePublicKey: this.model.keys.disabledAccountsPool as string,
+        amount: this.amountToLedger(totalDisabledBalance.toNumber())
+      }, {
+        sponsor: await this.keys.sponsorKey(),
+        account: await this.keys.issuerKey()
+      })
     }
   }
 }

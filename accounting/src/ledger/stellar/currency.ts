@@ -662,6 +662,7 @@ export class StellarCurrency implements LedgerCurrency {
     sponsor: Keypair
     issuer: Keypair,
     credit?: Keypair, // Only if defaultInitialCredit > 0
+    account?: Keypair, // Optional account keypair to use instead of generating a new one.
   }): Promise<{key: Keypair}> {
     if (keys.credit && Big(options.initialCredit).eq(0)) {
       throw internalError("Credit key not allowed if initialCredit is 0")
@@ -670,7 +671,7 @@ export class StellarCurrency implements LedgerCurrency {
       throw internalError("Credit key required if initialCredit is positive")
     }
     // Create keypair.
-    const account = Keypair.random()
+    const account = keys.account ?? Keypair.random()
     const issuerAccount = await this.issuerAccount()
     const builder = this.ledger.transactionBuilder(issuerAccount)
 
@@ -681,9 +682,13 @@ export class StellarCurrency implements LedgerCurrency {
     })
     const creditAccount = await this.creditAccount()
     this.addCreditTransaction(builder, account.publicKey(), options.initialCredit, creditAccount.balance())
-    // array of keys discarding undefineds.
-    const givenKeys = Object.values(keys).filter(Boolean)
-    await this.ledger.submitTransaction(builder, [...givenKeys, account], keys.sponsor)
+    
+    const signers = [keys.sponsor, keys.issuer, account]
+    if (keys.credit) {
+      signers.push(keys.credit)
+    }
+
+    await this.ledger.submitTransaction(builder, signers, keys.sponsor)
 
     logger.info({publicKey: account.publicKey()}, `Created new account for currency ${this.config.code}`)
 

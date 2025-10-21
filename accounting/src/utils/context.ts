@@ -68,3 +68,7 @@ export const systemContext = (): Context => {
     type: "system",
   }
 }
+
+export const isSuperadmin = (ctx: Context): boolean => {
+  return ctx.type === "superadmin"
+}
