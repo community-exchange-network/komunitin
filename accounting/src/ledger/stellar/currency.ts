@@ -310,7 +310,7 @@ export class StellarCurrency implements LedgerCurrency {
    * @param keys 
    */
   async enable(keys: {
-    sponsor: Keypair // For paying the fee, for sponsoring reserves and as sourcve account for the transaction.
+    sponsor: Keypair // For paying the fee, for sponsoring reserves and as source account for the transaction.
     issuer: Keypair,  // 
     credit: Keypair,
     admin: Keypair,
