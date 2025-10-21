@@ -29,7 +29,7 @@ describe('Currency disable', async () => {
     assert.equal(response.body.data.attributes.status, 'disabled')
   })
 
-  it('currency don\'t appear in currency list', async () => {
+  it('currency doesn\'t appear in currency list', async () => {
     const response = await t.api.get(`/currencies`)
     const codes = response.body.data.map((c: any) => c.attributes.code)
     assert.ok(!codes.includes('TEST'))
