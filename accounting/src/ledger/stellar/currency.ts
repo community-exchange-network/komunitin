@@ -1153,7 +1153,7 @@ export class StellarCurrency implements LedgerCurrency {
     await this.ledger.submitTransaction(builder, signers, keys.sponsor)
     logger.info(`Disabled currency ${this.config.code}.`)
     if (keepExternalIssuer) {
-      logger.info(`External issuer for currency ${this.config.code} was not deleted because it has existing incomming trustlines or external balances.`)
+      logger.info(`External issuer for currency ${this.config.code} was not deleted because it has existing incoming trustlines or external balances.`)
     }
   }
 
