@@ -88,7 +88,7 @@ interface Row {
   name: string;
   status: string;
   created: string;
-  members: number;
+  members: number|string;
 }
 
 const rows = computed<Row[]>(() => groups.value.map((g: Group) => ({
