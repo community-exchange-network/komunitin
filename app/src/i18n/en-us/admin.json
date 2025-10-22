@@ -106,5 +106,15 @@
   "hideBalanceHint": "Hide the account balance and limits from other users.",
   "downloadCSV": "Download CSV",
   "suspendAccount": "Suspend Account",
-  "suspendAccountConfirmText": "Are you sure you want to suspend this account? The account won't be able to make or receive transactions until re-enabled by an admin."
+  "suspendAccountConfirmText": "Are you sure you want to suspend this account? The account won't be able to make or receive transactions until re-enabled by an admin.",
+  "groupStatusPendingText": "The group is currently pending approval by the site admin.",
+  "groupStatusActiveText": "The group is active.",
+  "groupStatusDisabledText": "The group is disabled. Members are not able to log in or make transactions.",
+  "disableGroupConfirmText": "Are you sure you want to disable the group {name} with code {code}? This action will disable all {members} members and remove all related accounts from the ledger. You can re-enable the group later, but all accounts will also need to be re-enabled. Only proceed if your project is finished and you want to prevent any further activity.",
+  "enableGroupConfirmText": "Are you sure you want to enable the group {name} with code {code}? This action will restore the group and trustlines but does not automatically re-enable members or accounts. You will need to re-enable them manually.",
+  "enableGroup": "Enable Group",
+  "disableGroup": "Disable Group",
+  "groupStatus": "Group Status",
+  "groupStatusText": "Danger zone."
+
 }

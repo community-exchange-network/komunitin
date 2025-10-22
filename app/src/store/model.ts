@@ -193,6 +193,7 @@ export interface Group extends ResourceObject {
   attributes: {
     code: string;
     name: string;
+    status: "pending" | "active" | "disabled"
     description: string;
     image: ImageObject;
     website: string;
