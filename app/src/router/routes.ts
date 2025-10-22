@@ -322,33 +322,39 @@ const routes: RouteRecordRaw[] = [
         }]
       },
       {
-        path: '/superadmin/migrations',
-
-        children: [
-          {
-            path: '',
-            name: 'MigrationList',
-            component: () => import('../pages/superadmin/MigrationList.vue'),
-          },
-          {
-            path: ':id',
-            props: true,
-            name: 'MigrationDetails',
-            component: () => import('../pages/superadmin/MigrationDetails.vue'),
-          },
-          {
-            path: 'new',
-            props: true,
-            name: 'CreateMigration',
-            component: () => import('../pages/superadmin/CreateMigration.vue'),
-          },
-          {
-            path: ':id/edit',
-            props: true,
-            name: 'EditMigration',
-            component: () => import('../pages/superadmin/EditMigration.vue'),
-          }
-        ]
+        path: '/superadmin',
+        children: [{
+          path: 'groups',
+          name: 'ManageGroups',
+          component: () => import('../pages/superadmin/ManageGroups.vue'),
+        },{
+          path: 'migrations',
+          children: [
+            {
+              path: '',
+              name: 'MigrationList',
+              component: () => import('../pages/superadmin/MigrationList.vue'),
+            },
+            {
+              path: ':id',
+              props: true,
+              name: 'MigrationDetails',
+              component: () => import('../pages/superadmin/MigrationDetails.vue'),
+            },
+            {
+              path: 'new',
+              props: true,
+              name: 'CreateMigration',
+              component: () => import('../pages/superadmin/CreateMigration.vue'),
+            },
+            {
+              path: ':id/edit',
+              props: true,
+              name: 'EditMigration',
+              component: () => import('../pages/superadmin/EditMigration.vue'),
+            }
+          ]
+        }]
       },
     ]
   },

@@ -38,7 +38,7 @@
         class="full-width text-onsurface"
         @row-click="onRowClick"
       >
-        <!-- State column template -->
+        <!-- Status column template -->
         <template #body-cell-status="props">
           <q-td :props="props">
             <q-chip

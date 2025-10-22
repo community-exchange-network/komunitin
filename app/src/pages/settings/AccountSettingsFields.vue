@@ -280,7 +280,7 @@ const limitsSettings = [
 ]
 
 const store = useStore()
-const isAdmin = computed(() => store.getters.isAdmin)
+const isAdmin = computed(() => store.getters.isAdmin || store.getters.isSuperadmin)
 
 const show = (key: string) => {
   if (limitsSettings.includes(key) && !props.limits) {
