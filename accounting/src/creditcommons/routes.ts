@@ -40,7 +40,7 @@ export function getRoutes(controller: SharedController) {
     currencyInputHandler(controller, async (currencyController, ctx, data: CreditCommonsNode) => {
       // setResponseTrace(req, res)
       return await currencyController.creditCommons.createNode(ctx, data)
-    }, CreditCommonsNodeSerializer, 201)
+    }, CreditCommonsNodeSerializer, {status: 201}),
   )
 
   /**

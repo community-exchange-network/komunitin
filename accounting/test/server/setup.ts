@@ -15,7 +15,7 @@ type UserAuth = ReturnType<typeof userAuth>
 interface TestSetup {
   app: ExpressExtended,
   api: TestApiClient,
-  createAccount: (user: string, code?: string, admin?: UserAuth) => Promise<any>,
+  createAccount: (user: string, code?: string, admin?: UserAuth, status?: number) => Promise<any>,
   payment: (payer: string, payee: string, amount: number, meta: string, state: string, auth: any, httpStatus?: number) => Promise<any>,
   createCurrency: (settings: any, admin: AuthInfo) => Promise<any>,
 }
@@ -50,8 +50,8 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
     account2: undefined as any,
     ccNeighbour: { peerNodePath: 'trunk', ourNodePath: 'trunk/branch2', lastHash: 'trunk', url: `${config.API_BASE_URL}/EXTR/cc/`, vostroId: '' },
 
-    createAccount: async (user: string, code = "TEST", admin = userAuth("0")) => {
-      const response = await test.api?.post(`/${code}/accounts`, testAccount(user), admin)
+    createAccount: async (user: string, code = "TEST", admin = userAuth("0"), status?: number) => {
+      const response = await test.api?.post(`/${code}/accounts`, testAccount(user), admin, status)
       return response.body.data
     },
 

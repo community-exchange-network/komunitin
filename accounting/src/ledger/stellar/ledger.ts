@@ -290,6 +290,11 @@ export class StellarLedger implements Ledger {
     return false
   }
 
+  public isNotFoundError(error: any): boolean {
+    // Not found error from Horizon
+    return (error.response && error.response.status == 404)
+  }
+
   /**
    * Submit a transaction with exponential backoff network retry, starting at 200 ms 
    * by default.
@@ -389,7 +394,7 @@ export class StellarLedger implements Ledger {
 
     const currency = new StellarCurrency(this, config, data)
     
-    await currency.install({
+    await currency.enable({
       sponsor,
       admin: keys.admin,
       credit: keys.credit,
