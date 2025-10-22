@@ -5,8 +5,8 @@ import { KeyObject } from "node:crypto"
 import { EventEmitter } from "node:events"
 import { initUpdateExternalOffers } from "src/ledger/update-external-offers"
 import { CollectionOptions, relatedCollectionParams } from "src/server/request"
-import { Context, systemContext } from "src/utils/context"
-import { badConfig, badRequest, notFound, notImplemented, unauthorized } from "src/utils/error"
+import { Context, isSuperadmin, systemContext } from "src/utils/context"
+import { badConfig, badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error"
 import { sleep } from "src/utils/sleep"
 import TypedEmitter from "typed-emitter"
 import { ControllerEvents, SharedController, StatsController } from "."
@@ -351,9 +351,14 @@ export class LedgerController implements SharedController {
    * Implements {@link SharedController.getCurrencies}
    */
   async getCurrencies(ctx: Context, params: CollectionOptions): Promise<Currency[]> {
+    if ("status" in params.filters && params.filters.status !== "active" && !isSuperadmin(ctx)) {
+      throw forbidden("Only superadmins can filter by status")
+    }
     const filter = whereFilter(params.filters)
+    
     const records = await this.privilegedDb().currency.findMany({
       where: {
+        status: "active",
         ...filter
       },
       orderBy: {

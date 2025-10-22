@@ -106,7 +106,7 @@ export type CurrencySettings = {
 
 export type UpdateCurrencySettings = AtLeast<CurrencySettings, "id">
 
-export type CurrencyStatus = "new" | "active"
+export type CurrencyStatus = "new" | "active" | "disabled"
 
 /**
  * Currency model
@@ -147,7 +147,7 @@ export interface Currency {
 }
 
 export type CreateCurrency = Optional<
-  Pick<Currency, "id" | "code" | "name" | "namePlural" | "symbol" | "decimals" | "scale" | "rate"  | "created" | "updated">, 
+  Pick<Currency, "id" | "code" | "status" | "name" | "namePlural" | "symbol" | "decimals" | "scale" | "rate"  | "created" | "updated">, 
   "id" | "created" | "updated" > 
   & { admins?: User[], settings: Partial<CurrencySettings> }
 export type UpdateCurrency = Partial<CreateCurrency>
@@ -158,6 +158,7 @@ export function currencyToRecord(currency: CreateCurrency | UpdateCurrency): Pri
   return {
     id: currency.id,
     code: currency.code,
+    status: currency.status,
 
     name: currency.name,
     namePlural: currency.namePlural,

@@ -7,6 +7,14 @@ describe('grafting', async () => {
   // This sets up the server with the TEST currency but doesn't add a trunkward neighbour:
   const t = setupServerTest(true)
 
+  const testNodeData = () => testCreditCommonsNeighbour({
+    peerNodePath: 'trunk',
+    ourNodePath: 'trunk/branch2',
+    lastHash: 'asdf',
+    url: 'http://branch2.example.com',
+    vostroId: t.account0.id
+  })
+
   it('is required', async () => {
     const response = await t.api.get(
       "/TEST/cc/",
@@ -18,13 +26,7 @@ describe('grafting', async () => {
   it('requires authn', async () => {
     const response = await t.api.post(
       "/TEST/cc/nodes",
-      testCreditCommonsNeighbour({
-        peerNodePath: 'trunk',
-        ourNodePath: 'trunk/branch2',
-        lastHash: 'asdf',
-        url: 'http://branch2.example.com',
-        vostroId: t.account0.id
-      }),
+      testNodeData(),
       { user: null, scopes: [], ccNode: 'trunk', lastHash: 'asdf' },
       403)
     // note that this error will come from a CC admin route:
@@ -33,13 +35,7 @@ describe('grafting', async () => {
   it('requires admin', async () => {
     const response = await t.api.post(
       "/TEST/cc/nodes",
-      testCreditCommonsNeighbour({
-        peerNodePath: 'trunk',
-        ourNodePath: 'trunk/branch2',
-        lastHash: 'asdf',
-        url: 'http://branch2.example.com',
-        vostroId: t.account0.id
-      }),
+      testNodeData(),
       userAuth("1"),
       403)
     assert.equal(response.text, '{"errors":[{"status":"403","code":"Forbidden","title":"Forbidden","detail":"Only the currency owner can perform this operation"}]}')
@@ -47,13 +43,7 @@ describe('grafting', async () => {
   it('can be done', async () => {
     const response = await t.api.post(
       "/TEST/cc/nodes",
-      testCreditCommonsNeighbour({
-        peerNodePath: 'trunk',
-        ourNodePath: 'trunk/branch2',
-        lastHash: 'asdf',
-        url: 'http://branch2.example.com',
-        vostroId: t.account0.id
-      }),
+      testNodeData(),
       userAuth("0"),
       201)
     assert.equal(response.text, `{"data":{"type":"creditCommonsNodes","attributes":{"peerNodePath":"trunk","lastHash":"asdf","vostroId":"${t.account0.id}"}}}`)
