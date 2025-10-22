@@ -321,7 +321,7 @@ export class StellarCurrency implements LedgerCurrency {
 
     this.installCurrencyTransaction(builder)
     // Issuer account may exist already if the currency was previously disabled.
-    const existingIssuer = await this.findAccount(this.data.issuerPublicKey)
+    const existingIssuer = await this.findAccount(this.data.externalIssuerPublicKey)
     if (existingIssuer === null) {
       this.installExternalIssuer(builder)
     }
