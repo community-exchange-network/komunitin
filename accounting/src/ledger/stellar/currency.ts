@@ -318,18 +318,20 @@ export class StellarCurrency implements LedgerCurrency {
     externalTrader: Keypair
   }) {
     const builder = this.ledger.sponsorTransactionBuilder()
-
-    this.installCurrencyTransaction(builder)
+    const signers = new Set<string>()
+    this.installCurrencyTransaction(builder, signers)
     // Issuer account may exist already if the currency was previously disabled.
     const existingIssuer = await this.findAccount(this.data.externalIssuerPublicKey)
     if (existingIssuer === null) {
-      this.installExternalIssuer(builder)
+      this.installExternalIssuer(builder, signers)
     }
-    this.installExternalTrader(builder)
+    this.installExternalTrader(builder, signers)
 
-    const signers = Object.values(keys)
+    // Compute signers array.
+    const keyMap = Object.fromEntries(Object.values(keys).map(kp => [kp.publicKey(), kp]))
+    const keyPairs = Array.from(signers).map((pk) => keyMap[pk])
 
-    await this.ledger.submitTransaction(builder, signers, keys.sponsor)
+    await this.ledger.submitTransaction(builder, keyPairs, keys.sponsor)
   }
 
 
@@ -338,7 +340,7 @@ export class StellarCurrency implements LedgerCurrency {
    * Only the local model is created.
    * @param keys 
    */
-  private installCurrencyTransaction(builder: TransactionBuilder) {
+  private installCurrencyTransaction(builder: TransactionBuilder, signers: Set<string>) {
     const sponsorPublicKey = this.ledger.sponsorPublicKey.publicKey()
     builder
       // 1. Issuer.
@@ -363,7 +365,8 @@ export class StellarCurrency implements LedgerCurrency {
       .addOperation(Operation.endSponsoringFutureReserves({
         source: this.data.issuerPublicKey
       }))
-      
+    signers.add(sponsorPublicKey)
+    signers.add(this.data.issuerPublicKey)
     // 2. Credit account.
     this.createAccountTransaction(builder, {
       publicKey: this.data.creditPublicKey,
@@ -376,12 +379,14 @@ export class StellarCurrency implements LedgerCurrency {
       asset: this.asset(),
       amount: this.creditAccountStartingBalance()
     }))
+    signers.add(this.data.creditPublicKey)
 
     // 3. Admin account
     this.createAccountTransaction(builder, {
       publicKey: this.data.adminPublicKey,
       maximumBalance: undefined
     })
+    signers.add(this.data.adminPublicKey)
     
   }
   /**
@@ -390,9 +395,8 @@ export class StellarCurrency implements LedgerCurrency {
    * 
    * @param builder 
    */
-  installExternalIssuer(builder: TransactionBuilder) {
+  installExternalIssuer(builder: TransactionBuilder, signers: Set<string>) {
     const sponsorPublicKey = this.ledger.sponsorPublicKey.publicKey()
-    
     // 1. Create external issuer.
     // Not using the createAccountTransaction because this account does not have local currency.
     builder.addOperation(Operation.beginSponsoringFutureReserves({
@@ -413,13 +417,15 @@ export class StellarCurrency implements LedgerCurrency {
     .addOperation(Operation.endSponsoringFutureReserves({
       source: this.data.externalIssuerPublicKey
     }))
+    signers.add(sponsorPublicKey)
+    signers.add(this.data.externalIssuerPublicKey)
   }
 
   /**
    * Creates the external trader account. This account is used for external trading.
    * @param builder
    */
-  installExternalTrader(builder: TransactionBuilder) {
+  installExternalTrader(builder: TransactionBuilder, signers: Set<string>) {
     const sponsorPublicKey = this.ledger.sponsorPublicKey.publicKey()
 
     // Create external trader with local currency balance.
@@ -427,8 +433,13 @@ export class StellarCurrency implements LedgerCurrency {
       publicKey: this.data.externalTraderPublicKey,
       maximumBalance: this.config.externalTraderMaximumBalance
     })
+    signers.add(sponsorPublicKey)
+    signers.add(this.data.issuerPublicKey)
+    signers.add(this.data.externalTraderPublicKey)
+
     if (this.config.externalTraderInitialCredit) {
       this.addCreditTransaction(builder, this.data.externalTraderPublicKey, this.config.externalTraderInitialCredit,this.creditAccountStartingBalance())
+      signers.add(this.data.creditPublicKey)
     }
 
     // Add additional properties to external trader.
@@ -450,6 +461,7 @@ export class StellarCurrency implements LedgerCurrency {
         asset: this.hour(),
         amount: hoursBalance
       }))
+      signers.add(this.data.externalIssuerPublicKey)
     }
     // 2.3 Add passive sell offer for incomming payments (hour => asset).
     if (this.config.externalTraderInitialCredit && Big(this.config.externalTraderInitialCredit).gt(0)) {
