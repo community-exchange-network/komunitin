@@ -168,8 +168,7 @@
           :currency="currency"
           :label="$t('externalTraderMaximumBalance')"
           :hint="$t('externalTraderMaximumBalanceHint')"
-          outlined
-          disable
+          outlined          
           @update:model-value="updateModelValue"
         />
       </template>
