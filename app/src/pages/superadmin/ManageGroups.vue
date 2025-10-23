@@ -104,7 +104,11 @@ const loading = ref(false)
 const loadGroups = async () => {
   try {
     loading.value = true
-    await store.dispatch('groups/loadList', {})
+    await store.dispatch('groups/loadList', {
+      filter: {
+        status: ["pending", "active", "disabled"]
+      }
+    })
     loading.value = false
     while (store.getters['groups/hasNext']) {
       await store.dispatch('groups/loadNext')
