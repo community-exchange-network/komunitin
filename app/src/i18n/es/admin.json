@@ -115,5 +115,6 @@
   "enableGroup": "Activar grupo",
   "disableGroup": "Desactivar grupo",
   "groupStatus": "Estado del grupo",
-  "groupStatusText": "Zona de peligro."
+  "groupStatusText": "Zona de peligro.",
+  "groupStatusUpdated": "Estado del grupo actualizado correctamente."
 }
