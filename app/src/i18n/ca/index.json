@@ -233,6 +233,7 @@
   "activeAccountText": "El teu compte pot operar amb normalitat.",
   "disabledAccountText": "El teu compte està desactivat. Ves a la teva configuració per a reactivar-lo abans de poder fer transaccions.",
   "suspendedAccountText": "El teu compte ha estat suspès. Contacta amb els administradors del grup per a reactivar-lo.",
+  "groupDisabledText": "El teu grup està desactivat i ja no pots operar. Contacta amb els administradors del grup per a més informació.",
   "saveProfile": "Desa perfil",
   "submit": "Envia",
   "resendEmail": "Reenvia email",

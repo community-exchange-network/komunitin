@@ -75,7 +75,7 @@ async function loadUser(
     const currencyCode = currencyUrl.split('/').slice(-2)[0];
 
     // pending or deleted members don't have related account. Superadmins neither do.
-    if (["active", "suspended"].includes(user.members[0].attributes.state) && !getters.isSuperadmin) {
+    if (["active", "disabled", "suspended"].includes(user.members[0].attributes.state) && !getters.isSuperadmin) {
       const accountId = user.members[0].relationships.account.data.id
       await dispatch("accounts/load", {
         id: accountId, 

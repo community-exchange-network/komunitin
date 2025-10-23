@@ -106,5 +106,15 @@
   "hideBalanceHint": "Amaga el saldo i els límits del compte als altres usuaris.",
   "downloadCSV": "Descarregar CSV",
   "suspendAccount": "Suspendre compte",
-  "suspendAccountConfirmText": "Segur que vols suspendre aquest compte? El compte no podrà fer ni rebre transaccions fins que un administrador el reactivi."
+  "suspendAccountConfirmText": "Segur que vols suspendre aquest compte? El compte no podrà fer ni rebre transaccions fins que un administrador el reactivi.",
+  "groupStatusPendingText": "El grup està pendent d'aprovació per l'administrador del lloc.",
+  "groupStatusActiveText": "El grup està actiu.",
+  "groupStatusDisabledText": "El grup està desactivat. Els membres no poden iniciar sessió ni fer transaccions.",
+  "disableGroupConfirmText": "Esteu segur que voleu desactivar el grup {name} amb codi {code}? Aquesta acció desactivarà tots els {members} membres i eliminarà tots els comptes relacionats del llibre major. Podeu tornar a activar el grup més endavant, però també haureu de tornar a activar tots els comptes. Només continueu si el vostre projecte ha finalitzat i voleu evitar qualsevol activitat futura.",
+  "enableGroupConfirmText": "Esteu segur que voleu activar el grup {name} amb codi {code}? Aquesta acció restaurarà el grup i les línies de confiança, però no tornarà a activar automàticament els membres ni els comptes. Haureu de tornar-los a activar manualment.",
+  "enableGroup": "Activar grup",
+  "disableGroup": "Desactivar grup",
+  "groupStatus": "Estat del grup",
+  "groupStatusText": "Zona de perill.",
+  "groupStatusUpdated": "Estat del grup actualitzat correctament."
 }

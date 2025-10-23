@@ -106,5 +106,15 @@
   "hideBalanceHint": "Oculta el saldo y los límites de la cuenta a otros usuarios.",
   "downloadCSV": "Descargar CSV",
   "suspendAccount": "Suspender cuenta",
-  "suspendAccountConfirmText": "¿Estás seguro de que deseas suspender esta cuenta? La cuenta no podrá realizar ni recibir transacciones hasta que un administrador la reactive."
+  "suspendAccountConfirmText": "¿Estás seguro de que deseas suspender esta cuenta? La cuenta no podrá realizar ni recibir transacciones hasta que un administrador la reactive.",
+  "groupStatusPendingText": "El grupo está pendiente de aprobación por el administrador del sitio.",
+  "groupStatusActiveText": "El grupo está activo.",
+  "groupStatusDisabledText": "El grupo está desactivado. Los miembros no pueden iniciar sesión ni realizar transacciones.",
+  "disableGroupConfirmText": "¿Está seguro de que desea desactivar el grupo {name} con código {code}? Esta acción desactivará a los {members} miembros y eliminará todas las cuentas relacionadas del libro mayor. Puede volver a activar el grupo más adelante, pero también tendrá que volver a activar todas las cuentas. Continúe solo si su proyecto ha finalizado y desea evitar cualquier actividad futura.",
+  "enableGroupConfirmText": "¿Está seguro de que desea activar el grupo {name} con código {code}? Esta acción restaurará el grupo y las líneas de confianza, pero no volverá a activar automáticamente a los miembros ni las cuentas. Tendrá que volver a activarlos manualmente.",
+  "enableGroup": "Activar grupo",
+  "disableGroup": "Desactivar grupo",
+  "groupStatus": "Estado del grupo",
+  "groupStatusText": "Zona de peligro.",
+  "groupStatusUpdated": "Estado del grupo actualizado correctamente."
 }

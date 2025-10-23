@@ -79,7 +79,7 @@ const showTransfer = computed(
   () => store.getters.isAdmin
 )
 const isDisabled = computed(
-  () => myMember.value?.attributes.state !== 'active'
+  () => myMember.value?.attributes.state !== 'active' || myMember.value?.group.attributes.status !== 'active'
 )
 
 const color = computed(() => isDisabled.value ? 'grey' : 'primary')

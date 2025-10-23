@@ -445,7 +445,10 @@ export class ICESMigrationController {
     if (!this.migration.data.currency) {
       throw new Error("No currency data found in migration")
     }
-    const currencyData = this.migration.data.currency;
+    const currencyData = {
+      ...this.migration.data.currency,
+      status: "active" as const,
+    }
 
     // Fix unsupported unlimited credit limit
     if (currencyData.settings.defaultInitialCreditLimit as unknown === false) {
