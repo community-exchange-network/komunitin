@@ -233,6 +233,7 @@
   "activeAccountText": "Il tuo account può operare normalmente.",
   "disabledAccountText": "Il tuo account è disabilitato. Vai alle impostazioni per riattivarlo prima di poter effettuare transazioni.",
   "suspendedAccountText": "Il tuo account è stato sospeso. Contatta gli amministratori del gruppo per riattivarlo.",
+  "groupDisabledText": "Il tuo gruppo è disabilitato e non puoi più operare. Contatta gli amministratori del gruppo per maggiori informazioni.",
   "saveProfile": "Salva profilo",
   "submit": "Invia",
   "resendEmail": "Reinvia email",
