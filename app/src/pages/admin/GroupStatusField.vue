@@ -14,6 +14,7 @@
     outline
     :label="t('disableGroup')"
     color="negative"
+    :loading="loading"
     @confirm="disable"
   >
     {{ t('disableGroupConfirmText', { 
@@ -28,6 +29,7 @@
     icon="check_circle"
     :label="t('enableGroup')"
     color="positive"
+    :loading="loading"
     @confirm="enable"
   >
     {{ t('enableGroupConfirmText', { 
