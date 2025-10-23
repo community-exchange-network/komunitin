@@ -44,11 +44,16 @@ export function convertAmount(amount: number, from: AtLeast<Currency, "rate">, t
 }
 
 export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
+  const externalTraderInitialCredit = amountToLedger(currency, currency.settings.externalTraderCreditLimit ?? 0)
+  const externalTraderMaximumBalance = currency.settings.externalTraderMaximumBalance
+    ? amountToLedger(currency, currency.settings.externalTraderMaximumBalance + (currency.settings.externalTraderCreditLimit ?? 0))
+    : undefined
+  
   return {
     code: currency.code,
     rate: currency.rate,
-    externalTraderInitialCredit: amountToLedger(currency, currency.settings.externalTraderCreditLimit ?? 0),
-    externalTraderMaximumBalance: currency.settings.externalTraderMaximumBalance ? amountToLedger(currency, currency.settings.externalTraderMaximumBalance) : undefined
+    externalTraderInitialCredit,
+    externalTraderMaximumBalance
   }
 }
 
