@@ -333,6 +333,8 @@ export interface Currency extends ResourceObject {
   };
 }
 
+export type AccountStatus = "active" | "disabled" | "suspended" | "deleted"
+
 /**
  * Account model
  * 
@@ -342,7 +344,7 @@ export interface Account extends ResourceObject {
   attributes: {
     code: string;
     balance: number;
-    //locked: 0,
+    status: AccountStatus
     creditLimit: number;
     maximumBalance: number | false;
     //capabilities: ["pay", "charge"],
