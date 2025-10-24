@@ -69,9 +69,12 @@ const fetchAccountByCode = async (code: string) => {
 }
 
 const parseTransfersFile = async (content: string[][]) : Promise<TransferRow[]> => {
+  let line = 0
+  let column = 1
+  try {
   const headers = content[0]
   if (headers.length !== 4) {
-    throw new KError(KErrorCode.InvalidTransfersCSVFile, "File must have 4 columns", {line: 1, column: 1})
+    throw new KError(KErrorCode.InvalidTransfersCSVFile)
   }
   // Check if the first row contains headers or actual data, by checking if the
   // last cell of the first row is a number.
@@ -81,40 +84,44 @@ const parseTransfersFile = async (content: string[][]) : Promise<TransferRow[]> 
   }
   const parsed = []
   // Parse the rest of the rows
-  let index = 1
+  line++
   for (const row of content) {
+    column = 1
     if (row.length !== 4) {
-      throw new KError(KErrorCode.InvalidTransfersCSVFile, "All rows must have 4 columns", {line: index, column: 1})
+      throw new KError(KErrorCode.InvalidTransfersCSVFile)
     }
 
     // Check payer
     const payer = await fetchAccountByCode(row[0])
     if (!payer) {
-      throw new KError(KErrorCode.InvalidTransfersCSVFile, "Account not found", {line: index, column: 1})
+      throw new KError(KErrorCode.AccountNotFound)
     }
     if (props.direction === "send" && payer.attributes.code !== props.payerAccount?.attributes.code) {
-      throw new KError(KErrorCode.InvalidTransfersCSVFile, "Payer is not the logged in account", {line: index, column: 1})
+      throw new KError(KErrorCode.AccountIsNotYours)
     }
     
     // Check payee
+    column = 2
     const payee = await fetchAccountByCode(row[1])
     if (!payee) {
-      throw new KError(KErrorCode.InvalidTransfersCSVFile, "Account not found", {line: index, column: 2})
+      throw new KError(KErrorCode.AccountNotFound)
     }
     if (props.direction === "receive" && payee.attributes.code !== props.payeeAccount?.attributes.code) {
-      throw new KError(KErrorCode.InvalidTransfersCSVFile, "Payee is not the logged in account", {line: index, column: 2})
+      throw new KError(KErrorCode.AccountIsNotYours)
     }
 
     // Check description
+    column = 3
     const description = row[2]
     if (description === "") {
-      throw new KError(KErrorCode.InvalidTransfersCSVFile, "Description is empty", {line: index, column: 3})
+      throw new KError(KErrorCode.DescriptionRequired)
     }
 
     // Check amount
+    column = 4
     const amount = parseAmount(row[3], myCurrency.value, {scale: false})
     if (amount === false) {
-      throw new KError(KErrorCode.InvalidTransfersCSVFile, "Invalid amount", {line: index, column: 4})
+      throw new KError(KErrorCode.InvalidAmount)
     }
 
     parsed.push({
@@ -124,9 +131,12 @@ const parseTransfersFile = async (content: string[][]) : Promise<TransferRow[]> 
       amount
     })
 
-    index++
+    line++
   }
   return parsed
+  } catch (error) {
+    throw new KError(KErrorCode.InvalidTransfersCSVFile, "Error parsing transfers file", error, {line, column})
+  }
 }
 
 const importFile = async () => {
@@ -139,10 +149,14 @@ const importFile = async () => {
     // Update table
     emit("import", rows)
   } catch (error) {
-    if (error instanceof KError && error.code === KErrorCode.InvalidTransfersCSVFile) {
-      fileErrorMessage.value = t("ErrorInvalidTransfersCSVFileLineColumn", {line: error.debugInfo.line, column: error.debugInfo.column})  
+    if (error instanceof KError && error.code === KErrorCode.InvalidTransfersCSVFile && error.debugInfo) {
+      const debugInfo = error.debugInfo as {line: number, column: number}
+      fileErrorMessage.value = t("ErrorInvalidTransfersCSVFileLineColumn", {line: debugInfo.line, column: debugInfo.column})  
     } else {
       fileErrorMessage.value = t("ErrorInvalidTransfersCSVFile")
+    }
+    if (error.cause instanceof KError) {
+      fileErrorMessage.value += ". " + t(error.cause.getTranslationKey())
     }
     // Rethrow anyway to prevent the dialog from closing.
     throw error

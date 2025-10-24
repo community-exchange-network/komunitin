@@ -101,8 +101,6 @@
   "amountIn": "Totale in {currency}",
   "transactionAmountHint": "Ammontare in Mano.",
   "charge": "Crea transazione",
-  "descriptionRequired" : "La descrizione della transazione è obbligatoria.",
-  "invalidAmount" : "Totale non valido. Inserire totale corretto.",
   "payerRequired": "Scegli acquirtente",
   "payeeRequired": "Scegli venditore",
   "sucessfulLogin": "Log in effettuato con successo {name}!",
@@ -375,5 +373,9 @@
   "ErrorCamNotReadable": "Impossibile leggere la fotocamera. Forse è utilizzata da un'altra app.",
   "ErrorCamUnknown": "Errore sconosciuto della fotocamera.",
   "ErrorNFCUnavailable": "Web NFC non è disponibile nel tuo sistema. Attualmente è supportato solo Chrome in Android.",
-  "ErrorNFCReadError": "Errore nella lettura del tag NFC."
+  "ErrorNFCReadError": "Errore nella lettura del tag NFC.",
+  "ErrorAccountNotFound": "Account non trovato",
+  "ErrorAccountIsNotYours": "L'account specificato non è il tuo account attivo corrente.",
+  "ErrorDescriptionRequired" : "La descrizione della transazione è obbligatoria.",
+  "ErrorInvalidAmount" : "Totale non valido. Inserire totale corretto."
 }
