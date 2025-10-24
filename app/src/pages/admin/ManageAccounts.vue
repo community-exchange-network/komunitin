@@ -293,7 +293,7 @@ const settingsKeys = [
 const columns = [
   {name: 'image', field: (m: ExtendedMember) => m.attributes.image, label: '', align: 'center', required: true},
   {name: 'code', field: (m: ExtendedMember) => m.account.attributes.code, label: t('account'), align: 'left', required: true, sortable: true},  
-  {name: 'name', field: (m: ExtendedMember) => m.attributes.name, label: t('name'), align: 'left', required: true, sortable: true},
+  {name: 'name', field: (m: ExtendedMember) => m.attributes.name, label: t('name'), align: 'left', required: true, sortable: true, style: 'max-width: 200px;', classes: 'ellipsis'},
   {name: 'state', field: (m: ExtendedMember) => m.attributes.state, label: t('state'), align: 'left'},
   {name: 'balance', field: (m: ExtendedMember) => m.account.attributes.balance, label: t('balance'), align: 'right', sortable: true, format: formatAmount},
   // Account limits

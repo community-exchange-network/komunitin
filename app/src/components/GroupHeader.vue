@@ -9,9 +9,12 @@
       />
     </q-item-section>
     <q-item-section>
-      <div class="text-subtitle2">
+      <q-item-label 
+        class="text-subtitle2" 
+        lines="1"
+      >
         {{ group.attributes.name }}
-      </div>
+      </q-item-label>
       <q-item-label caption>
         {{
           group.attributes.code
@@ -19,8 +22,7 @@
       </q-item-label>
     </q-item-section>
     <slot name="extra" />
-    <q-item-section side>
-      <!-- No content by default on the side slot -->
+    <q-item-section v-if="$slots.side" side>
       <slot name="side" />
     </q-item-section>
   </q-item>

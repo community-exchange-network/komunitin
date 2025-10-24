@@ -14,6 +14,7 @@
     </q-item-label>
     <q-item-label 
       caption
+      lines="1"
     >
       {{ secondaryText }}
     </q-item-label>
