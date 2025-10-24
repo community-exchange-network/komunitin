@@ -101,8 +101,6 @@
   "amountIn": "Amount in {currency}",
   "transactionAmountHint": "Quantity of money to transfer.",
   "charge": "Charge",
-  "descriptionRequired" : "Transaction description is required.",
-  "invalidAmount" : "Invalid amount. Enter a positive number.",
   "payerRequired": "Choose the payer member",
   "payeeRequired": "Choose the payee member",
   "sucessfulLogin": "Sucessfully logged in as {name}!",
@@ -416,6 +414,10 @@
   "ErrorCamNotReadable": "Could not read camera. Maybe it is being used by another app.",
   "ErrorCamUnknown": "Unknown camera error.",
   "ErrorNFCUnavailable": "Web NFC is not available in your system. Currently only Chrome in Android is supported.",
-  "ErrorNFCReadError": "Error reading the NFC tag."
+  "ErrorNFCReadError": "Error reading the NFC tag.",
+  "ErrorAccountNotFound": "Account not found",
+  "ErrorAccountIsNotYours": "The specified account is not your current active account.",
+  "ErrorInvalidAmount": "Invalid amount. Enter a positive number.",
+  "ErrorDescriptionRequired": "Transaction description is required."
   
 }

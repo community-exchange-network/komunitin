@@ -101,8 +101,6 @@
   "amountIn": "Cantidad en {currency}",
   "transactionAmountHint": "Cantidad de moneda a transferir",
   "charge": "Cobrar",
-  "descriptionRequired" : "Entra una descripción de la transacción.",
-  "invalidAmount" : "Cantidad inválida. Entra un número positivo.",
   "payerRequired": "Escoge la cuenta pagadora.",
   "payeeRequired": "Escoge la cuenta destino.",
   "sucessfulLogin": "Sessión iniciada como {name}!",
@@ -385,5 +383,9 @@
   "ErrorCamNotReadable": "No se puede leer la cámara. Quizás está siendo utilizada por otra app.",
   "ErrorCamUnknown": "Error de cámara desconocido.",
   "ErrorNFCUnavailable": "Tu sistema no es compatible con NFC. Actualmente sólo es posible con Chrome en Android",
-  "ErrorNFCReadError": "Error leyendo la etiqueta NFC."
+  "ErrorNFCReadError": "Error leyendo la etiqueta NFC.",
+  "ErrorAccountNotFound": "No se ha encontrado la cuenta",
+  "ErrorAccountIsNotYours": "La cuenta especificada no es tu cuenta activa actual.",
+  "ErrorDescriptionRequired" : "Entra una descripción de la transacción.",
+  "ErrorInvalidAmount" : "Cantidad inválida. Entra un número positivo."
 }

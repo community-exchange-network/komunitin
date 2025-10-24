@@ -43,7 +43,7 @@
         outlined 
         autogrow 
         required
-        :rules="[() => !v$.concept.$invalid || $t('descriptionRequired')]"
+        :rules="[() => !v$.concept.$invalid || $t('ErrorDescriptionRequired')]"
       >
         <template #append>
           <q-icon name="notes" />
@@ -57,7 +57,7 @@
         outlined
         required
         :rules="[
-          () => !v$.amount.$invalid || $t('invalidAmount'),
+          () => !v$.amount.$invalid || $t('ErrorInvalidAmount'),
         ]"
       >
         <template #append>
