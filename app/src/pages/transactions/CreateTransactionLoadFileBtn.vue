@@ -69,7 +69,7 @@ const fetchAccountByCode = async (code: string) => {
 }
 
 const parseTransfersFile = async (content: string[][]) : Promise<TransferRow[]> => {
-  let line = 0
+  let line = 1
   let column = 1
   try {
   const headers = content[0]
@@ -81,10 +81,10 @@ const parseTransfersFile = async (content: string[][]) : Promise<TransferRow[]> 
   const lastHeader = headers[headers.length - 1]
   if (parseAmount(lastHeader, myCurrency.value) === false) {
     content.shift()
+    line++
   }
   const parsed = []
   // Parse the rest of the rows
-  line++
   for (const row of content) {
     column = 1
     if (row.length !== 4) {
@@ -155,7 +155,7 @@ const importFile = async () => {
     } else {
       fileErrorMessage.value = t("ErrorInvalidTransfersCSVFile")
     }
-    if (error.cause instanceof KError) {
+    if (error?.cause instanceof KError) {
       fileErrorMessage.value += ". " + t(error.cause.getTranslationKey())
     }
     // Rethrow anyway to prevent the dialog from closing.
