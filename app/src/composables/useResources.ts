@@ -1,4 +1,4 @@
-import { LoadListPayload } from "src/store/resources";
+import { type LoadListPayload } from "src/store/resources";
 import { computed } from "vue";
 import { useStore } from "vuex";
 

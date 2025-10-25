@@ -5,6 +5,9 @@
       <resource-cards
         :code="code"
         module-name="offers"
+        prop-name="offer"
+        :card="card"
+        include="category,member,member.group,member.group.currency,member.account"
       />
       <slot name="after" />
     </q-page>
@@ -12,14 +15,18 @@
 </template>
 
 <script lang="ts" setup>
-import PageHeader from '../../layouts/PageHeader.vue';
-import ResourceCards from '../ResourceCards.vue';
 import { useStore } from 'vuex';
 import { computed } from 'vue';
+import PageHeader from '../../layouts/PageHeader.vue';
+import ResourceCards from '../ResourceCards.vue';
+import OfferCard from "../../components/OfferCard.vue";
+
 
 const store = useStore();
 
 const myMember = computed(() => store.getters.myMember)
 const code = computed(() => myMember?.value.group.attributes.code)
+
+const card = OfferCard.name;
 
 </script>
