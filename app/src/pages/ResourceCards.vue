@@ -52,7 +52,7 @@ import OfferCard from "../components/OfferCard.vue";
 import GroupCard from "../components/GroupCard.vue";
 import { type ResourceObject } from "../store/model";
 import { type ResourcesState } from "../store/resources"
-import { useResources } from "../composables/useResources";
+import { useMergedResources } from "../composables/useMergedResources";
 
 const props = withDefaults(defineProps<{
   /**
@@ -71,7 +71,7 @@ const props = withDefaults(defineProps<{
   /**
    * The name of the vuex resources module.
    */
-  moduleName: string,
+  moduleName: string | string[],
   /**
    * The include parameter string when fetching resources.
    */
@@ -120,12 +120,9 @@ const attrs = useAttrs()
 const location = computed(() => store.state.me.location)
 
 // If props.moduleName is already an array, just return it, otherwise wrap it in an array
-// const moduleNames = computed(() =>
-//   Array.isArray(props.moduleName) ? props.moduleName : [props.moduleName]
-// );
+const moduleNames = Array.isArray(props.moduleName) ? props.moduleName : [props.moduleName];
 
-
-const { resources, hasNext, loadNext, fetchResources } = useResources(props.moduleName, {
+const { resources, hasNext, loadNext, fetchResources } = useMergedResources(moduleNames, {
   search: props.query,
   location: location.value,
   include: props.include,

@@ -1,5 +1,6 @@
-import { computed, Ref } from "vue";
-import { LoadListPayload } from "../store/resources";
+import type { Ref } from "vue";
+import { computed } from "vue";
+import type { LoadListPayload } from "../store/resources";
 import { useResources } from "./useResources";
 
 export const useMergedResources = (
@@ -7,20 +8,25 @@ export const useMergedResources = (
   options: LoadListPayload
 ) => {
   // Call useResources for each type.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const typeResources: Ref<any[]>[] = [];
   const typeLoadNexts: (() => Promise<void>)[] = [];
   const typeHasNexts: Ref<boolean>[] = [];
+  const typeFetchResources: ((search?: string) => Promise<void>)[] = [];
 
   for (const type of types) {
-    const { resources, loadNext, hasNext } = useResources(type, options);
+    const { resources, loadNext, hasNext, fetchResources } = useResources(type, options);
     typeResources.push(resources);
     typeLoadNexts.push(loadNext);
     typeHasNexts.push(hasNext);
+    typeFetchResources.push(fetchResources);
   }
 
+  console.log({typeResources});
   // Merge resources in a single resources array.
   const resources = computed(() => {
     const indexs = new Array(types.length).fill(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const merged: any[] = [];
 
     const canContinue = () => {
@@ -67,5 +73,13 @@ export const useMergedResources = (
     await Promise.all(loadNextPromises);
   };
 
-  return { resources, hasNext, loadNext };
+  const fetchResources = async (search?: string) => {
+    // Call fetchResources for each type.
+    const fetchPromises = typeFetchResources.map((fetchResources) =>
+      fetchResources(search)
+    );
+    await Promise.all(fetchPromises);
+  };
+
+  return { resources, hasNext, loadNext, fetchResources };
 };
