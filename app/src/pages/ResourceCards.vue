@@ -2,7 +2,7 @@
   <div>
     <q-infinite-scroll
       v-if="!isLoading"
-      @load="loadNext"
+      @load="loadNextResources"
     >
       <empty v-if="isEmpty" />
       <slot
@@ -125,7 +125,25 @@ const location = computed(() => store.state.me.location)
 // );
 
 
-const { resources, loadNext } = useResources(props.moduleName)
+const { resources, hasNext, loadNext, fetchResources } = useResources(props.moduleName, {
+  search: props.query,
+  location: location.value,
+  include: props.include,
+  group: props.code,
+  filter: props.filter,
+  sort: props.sort,
+  cache: props.cache
+});
+
+const loadNextResources = async (index: number, done: (stop?: boolean) => void) => {
+  if (hasNext.value) {
+      await loadNext();
+      // emit("page-loaded", state.value.currentPage as number);
+    }
+    // Stop loading if there is no next page. Note that we're not
+    // stopping the infinite scrolling if hasNext returns undcefined.
+    done(hasNext.value === false);
+}
 
 type ResourceComponent = {
   componentName: string | undefined,
@@ -154,20 +172,6 @@ const isLoading = computed(() => {
   return !ready.value || state?.currentPage === null || (state?.currentPage === 0 && state?.next === undefined && isEmpty.value);
 });
 
-// Fetch resources for all modules
-const fetchResources = async (search?: string) => {
-  await store.dispatch(props.moduleName + "/loadList", {
-    location: location.value,
-    search,
-    include: props.include,
-    group: props.code,
-    filter: props.filter,
-    sort: props.sort,
-    cache: props.cache
-  });
-  emit("page-loaded", 0);
-}
-
 // Refetch resources when any prop changes
 watch([() => [props.query, props.code, props.include, props.sort]], () => {
   fetchResources(props.query)
@@ -179,7 +183,8 @@ watch(() => props.filter, (newFilter, oldFilter) => {
 })
 
 const init = async () => {
-  await fetchResources(props.query)
+  await fetchResources(props.query);
+  emit("page-loaded", 0);
   ready.value = true
 }
 

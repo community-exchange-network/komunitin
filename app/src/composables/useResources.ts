@@ -1,4 +1,4 @@
-import { type LoadListPayload } from "src/store/resources";
+import { type LoadListPayload } from "../store/resources";
 import { computed } from "vue";
 import { useStore } from "vuex";
 
@@ -9,7 +9,13 @@ export const useResources = (type: string, options?: LoadListPayload) => {
     await store.dispatch(`${type}/loadNext`, options);
   };
   const hasNext = computed(() => store.getters[`${type}/hasNext`]);
-  return { resources, loadNext, hasNext };
+  const fetchResources = async (search?: string) => {
+    await store.dispatch(type + "/loadList", {
+      search,
+      ...options,
+    });
+  };
+  return { resources, loadNext, hasNext, fetchResources };
 };
 
 // export const useResources = (
