@@ -50,9 +50,9 @@ import Empty from "../components/Empty.vue";
 import NeedCard from "../components/NeedCard.vue";
 import OfferCard from "../components/OfferCard.vue";
 import GroupCard from "../components/GroupCard.vue";
-import { ResourceObject } from "../store/model";
-import { ResourcesState } from "../store/resources"
-import { useResources } from 'src/composables/useResources';
+import { type ResourceObject } from "../store/model";
+import { type ResourcesState } from "../store/resources"
+import { useResources } from "../composables/useResources";
 
 const props = withDefaults(defineProps<{
   /**
