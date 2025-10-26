@@ -5,7 +5,7 @@
       <resource-cards
         :code="code"
         :module-name="['offers', 'needs']"
-        include="category,member,member.group,member.group.currency,member.account"
+        include="category,member,member.group,member.group.currency,member.account,member.contacts"
         sort="-updated"
       />
       <slot name="after" />

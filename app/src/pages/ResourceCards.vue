@@ -18,9 +18,19 @@
             <!-- this v-if is superfluous, since when this slot is rendered, card is always defined.
             But setting it prevents an unexpected exception in vue-test-utils -->
             <component
-              :is="components[cardComponent(resource)]"
-              v-if="cardComponent(resource) && components[cardComponent(resource)]"
-              v-bind="getCardProps(resource)"
+              :is="components[card]"
+              v-if="card && propName && components[card]"
+              :[propName]="resource"
+              :code="code"
+            />
+            <OfferCard
+              v-else-if="resource.type === 'offers'"
+              :offer="resource"
+              :code="code"
+            />
+            <NeedCard
+              v-else-if="resource.type === 'needs'"
+              :need="resource"
               :code="code"
             />
           </div>
@@ -44,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { type Component, computed, ref, watch, useAttrs } from "vue";
+import { type Component, computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 import Empty from "../components/Empty.vue";
 import NeedCard from "../components/NeedCard.vue";
@@ -67,7 +77,7 @@ const props = withDefaults(defineProps<{
    * The name of the property that should be send 
    * to the item Vue components.
    */
-  propName?: string,
+  propName?: string | null,
   /**
    * The name of the vuex resources module.
    */
@@ -116,7 +126,6 @@ const components: Record<string, Component> = {
 
 const store = useStore()
 const ready = ref(false)
-const attrs = useAttrs()
 const location = computed(() => store.state.me.location)
 
 // If props.moduleName is already an array, just return it, otherwise wrap it in an array
@@ -141,27 +150,6 @@ const loadNextResources = async (index: number, done: (stop?: boolean) => void) 
     // stopping the infinite scrolling if hasNext returns undcefined.
     done(hasNext.value === false);
 }
-
-type ResourceComponent = {
-  componentName: string | undefined,
-  propName: string,
-}
-const cardResourceMap: Record<string, ResourceComponent> = {
-  offers: { componentName: OfferCard.name, propName: 'offer' },
-  needs: { componentName: NeedCard.name, propName: 'need' },
-  groups: { componentName: GroupCard.name, propName: 'group' },
-}
-// Return props.card if set, otherwise return the card belonging to the resource type
-const cardComponent = (resource: ResourceObject) => props.card ?? cardResourceMap[resource.type]?.componentName;
-
-// Return props.propName if set, otherwise return the propName belonging to the resource type
-const cardPropName = (resource: ResourceObject) => 'propName' in attrs ? props.propName : cardResourceMap[resource.type]?.propName;
-const getCardProps = (resource: ResourceObject) => {
-  const propName = cardPropName(resource);
-  return {
-    [propName]: resource
-  };
-};
 
 const isEmpty = computed(() => resources.value.length === 0);
 const isLoading = computed(() => {
