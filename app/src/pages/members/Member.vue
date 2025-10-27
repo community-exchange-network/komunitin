@@ -43,7 +43,7 @@
           icon="logout"
           flat
           round
-          @click="logout"
+          to="/logout"
         />
       </template>
     </page-header>
@@ -173,10 +173,5 @@ const hashTab = computed(() => {
 
 const onTabChange = (tab: string | number) => {  
   router.push({hash: `#${tab}`})
-}
-
-const logout = async () => {
-  await store.dispatch("logout")
-  await router.push("/")
 }
 </script>

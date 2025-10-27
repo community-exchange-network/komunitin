@@ -103,7 +103,7 @@
             icon="logout"
             flat
             round
-            @click="logout"
+            to="/logout"
           />
         </slot>
         <q-scroll-observer
@@ -218,10 +218,7 @@ const goUp = () => {
 }
 
 const isComplete = computed(() => store.getters.isComplete)
-const logout = async () => {
-  await store.dispatch("logout")
-  await router.push("/")
-}
+
 </script>
 <style lang="scss" scoped>
 // Toolbar has a default padding of 12px. That's ok when there's a button,

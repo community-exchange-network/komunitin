@@ -368,7 +368,10 @@
   "disableAccountConfirmText": "¿Seguro que quieres desactivar tu cuenta? Tu cuenta y todos tus datos se ocultarán y no podrás hacer ni recibir transacciones hasta que la vuelvas a activar.",
   "enableAccount": "Reactivar cuenta",
   "enableAccountConfirmText": "Tu cuenta y tus datos serán visibles de nuevo y podrás hacer y recibir transacciones.",
+
   "accountStatusUpdated": "Estado de la cuenta actualizado con éxito.",
+  "loggingOut": "Cerrando sesión...",
+  "loggedOut": "Has cerrado la sesión y no recibirás más notificaciones hasta que vuelvas a iniciar sesión.",
 
   "ErrorAuthNoCredentials": "Email o password incorrectos",
   "ErrorInvalidPassword": "Contraseña incorrecta",
