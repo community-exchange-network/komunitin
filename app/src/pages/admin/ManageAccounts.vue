@@ -248,7 +248,6 @@ store.dispatch('groups/load', {
 
 const currency = computed(() => store.getters['currencies/current'])
 const currencySettings = computed(() => currency.value?.settings)
-//const group = computed(() => store.getters['groups/current'])
 
 const formatAmount = (amount: number) => amount === undefined ? "" : formatCurrency(amount, currency.value)
 
