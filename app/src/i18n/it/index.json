@@ -357,6 +357,9 @@
   "ErrorVueWarning": "Avviso VUE",
   "ErrorIncorrectCredentials": "Errore: email o password errate",
   "ErrorNotImplemented": "Errore: non implementato",
+
+  "loggingOut": "Disconnessione in corso...",
+  "loggedOut": "Sei stato disconnesso e non riceverai ulteriori notifiche finché non effettuerai nuovamente l'accesso.",
   "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
   "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",
   

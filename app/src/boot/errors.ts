@@ -29,7 +29,7 @@ function showError(error: KError) {
   const showOnceErrors = [KErrorCode.VueWarning,
     KErrorCode.Unknown, KErrorCode.UnknownVueError, KErrorCode.UnknownScript, 
     KErrorCode.ErrorHandling, KErrorCode.NotificationsPermissionDenied, 
-    KErrorCode.ScriptError, KErrorCode.UserLoggingOut
+    KErrorCode.ScriptError
   ]
   if (!showOnceErrors.includes(error.code as KErrorCode) || lastError[error.code] === undefined || Date.now() - lastError[error.code] > 1000*60*5) {
     lastError[error.code] = Date.now()
