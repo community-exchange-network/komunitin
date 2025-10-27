@@ -23,7 +23,7 @@
         {{ description }}
       </q-item-label>
     </q-item-section>
-    <q-item-section side top class="q-pr-none q-ml-auto col-auto">
+    <q-item-section side top class="q-pr-none q-ml-auto">
       <div class="column items-end text-right">
         <q-item-label
           caption
