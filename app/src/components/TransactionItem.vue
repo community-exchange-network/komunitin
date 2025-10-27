@@ -5,13 +5,12 @@
     class="transaction-item"
     :class="transfer.attributes.state"
   >
-    <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col-grow col-sm-4'" class="flex">
+    <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col col-sm-4'" class="flex">
       <account-item-content
         :account="firstAccount"
         :address="firstCreditCommonsAddress"
         :caption="overrideCaption"
-      >
-      </account-item-content>
+      />
     </div>
     <div v-if="bothAccounts" class="col-4 col-sm-3 flex">
       <account-item-content
@@ -19,9 +18,7 @@
         :address="secondCreditCommonsAddress"
       />
     </div>
-    <q-item-section 
-      class="gt-xs col-grow"
-    >
+    <q-item-section class="gt-xs col q-pl-md">
       <q-item-label lines="2">
         {{ description }}
       </q-item-label>
