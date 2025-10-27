@@ -79,7 +79,7 @@
         :columns="columns"
         :rows="members"
         :visible-columns="visibleColumns"
-        :rows-per-page-options="[10,25,50,100,200]"
+        :rows-per-page-options="[2,10,25,50,100,200]"
         :loading="loading"
         :fullscreen="isFullscreen"
         flat
@@ -159,7 +159,7 @@
             flat
             dense
             round
-            :disable="scope.isLastPage"
+            :disable="!hasNext"
             @click="scope.nextPage"
           />
         </template>
@@ -222,7 +222,7 @@ import DeleteMemberBtn from 'src/pages/settings/DeleteMemberBtn.vue';
 import MemberStatusChip from '../../components/MemberStatusChip.vue';
 import type { Account, AccountSettings, CurrencySettings, Group, Member } from 'src/store/model';
 import type { LoadListPayload } from 'src/store/resources';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import formatCurrency from 'src/plugins/FormatCurrency';
@@ -248,7 +248,7 @@ store.dispatch('groups/load', {
 
 const currency = computed(() => store.getters['currencies/current'])
 const currencySettings = computed(() => currency.value?.settings)
-const group = computed(() => store.getters['groups/current'])
+//const group = computed(() => store.getters['groups/current'])
 
 const formatAmount = (amount: number) => amount === undefined ? "" : formatCurrency(amount, currency.value)
 
@@ -373,21 +373,16 @@ const pagination = ref({
   sortBy: 'code',
   descending: false,
   page: 1,
-  rowsPerPage: 25,
-  rowsNumber: 0
+  rowsPerPage: 2,
+  rowsNumber: undefined
 })
-
-watch(group, () => {
-  if (group.value) {
-    pagination.value.rowsNumber = group.value.relationships.members.meta.count
-  }
-}, {immediate: true})
 
 const filter = ref('')
 
 const loading = ref(true)
 //const accounts = ref([])
 const members = ref([])
+const hasNext = ref(false)
 
 const load = async (scope: {pagination: Pagination, filter?: string}) => {  
   loading.value = true
@@ -425,6 +420,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
       } else {
         throw new Error("Invalid page")
       }
+      hasNext.value = store.getters['members/hasNext']
       const loadedMembers = store.getters['members/page'](page - 1)
       // Load accounts related to fetched members
       await store.dispatch('accounts/loadList', {
@@ -457,6 +453,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
       } else {
         throw new Error("Invalid page")
       }
+      hasNext.value = store.getters['accounts/hasNext']
       // Load members related to fetched accounts
       const loadedAccounts = store.getters['accounts/page'](page - 1)
       await store.dispatch("members/loadList", {
@@ -477,13 +474,19 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
       }).filter(Boolean)
 
     }
+
+    // The server does not provide total number of items, so we just set it to N+1 if
+    // hasNext is true, where N is the number of loaded items.
+    const rowsNumber = (page - 1) * rowsPerPage + members.value.length + (hasNext.value ? 1 : 0) 
+    
     // Update the pagination object
     pagination.value = {
       ...pagination.value,
       sortBy,
       descending,
       page,
-      rowsPerPage
+      rowsPerPage,
+      rowsNumber
     }
   } finally {
     loading.value = false
