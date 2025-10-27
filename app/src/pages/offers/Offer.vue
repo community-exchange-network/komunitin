@@ -80,7 +80,7 @@
                 color="primary"
                 :label="$t('share')"
                 :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
-                :text="offer.attributes.name"
+                :text="`${offer.attributes.name}\n${offer.attributes.content}`"
               />
               <contact-button
                 unelevated

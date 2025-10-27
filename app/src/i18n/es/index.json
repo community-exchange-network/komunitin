@@ -63,7 +63,7 @@
   "profile": "Perfil",
   "bio": "Bio",
   "location": "Ubicación",
-  "shareMember":"Fíjate en la cuenta de {member}\n{bio}",
+  "shareMember":"Fíjate en la cuenta de {member}",
   "updatedAt": "Actualizado {date}",
   "expiresAt": "Expira {date}",
   "price": "Precio",

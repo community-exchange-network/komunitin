@@ -63,7 +63,7 @@
   "profile": "Perfil",
   "bio": "Bio",
   "location": "Ubicació",
-  "shareMember":"Fixa't en el compte de {member}\n{bio}",
+  "shareMember":"Fixa't en el compte de {member}",
   "updatedAt": "Actualitzat {date}",
   "expiresAt": "Expira {date}",
   "price": "Preu",

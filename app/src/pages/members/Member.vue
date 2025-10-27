@@ -16,13 +16,8 @@
           icon="share"
           flat
           round
-          :text="
-            $t('shareMember', {
-              member: member.attributes.name,
-              bio: member.attributes.description
-            })
-          "
-          :title="member.attributes.name"
+          :title="$t('shareMember', { member: member.attributes.name })"
+          :text="member.attributes.bio"
         />
         <q-btn
           v-if="canEdit"

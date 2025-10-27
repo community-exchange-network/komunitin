@@ -63,7 +63,7 @@
   "profile": "Profile",
   "bio": "Bio",
   "location": "Location",
-  "shareMember":"Check {member}\n{bio}",
+  "shareMember":"Check {member}",
   "updatedAt": "Updated {date}",
   "expiresAt": "Expires {date}",
   "price": "Price",

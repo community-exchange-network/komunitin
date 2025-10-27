@@ -134,10 +134,7 @@ export default defineComponent({
       return this.need.attributes.images.length > 0;
     },
     url(): string {
-      const base = window?.location.origin ?? "";
-      return (
-        base + this.$router.resolve("needs/" + this.need.attributes.code).href
-      );
+      return `${window?.location.origin ?? ''}/groups/${this.code}/needs/${this.need.attributes.code}`
     },
     canEdit(): boolean {
       return this.need.member?.id == this.$store.getters.myMember?.id || this.$store.getters.isAdmin;

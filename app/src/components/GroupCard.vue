@@ -13,8 +13,8 @@
           flat
           round
           color="icon-dark"
-          :text="$t('checkTheExchangeCommunityGroup', { group: group.attributes.name })"
-          :title="group.attributes.name"
+          :title="$t('checkTheExchangeCommunityGroup', { group: group.attributes.name })"
+          :text="group.attributes.description"
           :url="url"
         />
       </template>
