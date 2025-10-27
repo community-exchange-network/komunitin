@@ -44,11 +44,11 @@
       </div>
     </q-card-section>
     <q-card-section 
-      v-if="isMine"
+      v-if="canEdit"
       class="row justify-end items-center"
     >
       <q-btn
-        v-if="isMine"
+        v-if="canEdit"
         icon="edit"
         flat
         round
@@ -58,7 +58,7 @@
         :title="$t('editOffer')"
       />
       <delete-offer-btn
-        v-if="isMine"
+        v-if="canEdit"
         :code="code"
         :offer="offer"
         color="icon-dark"
@@ -67,7 +67,6 @@
     </q-card-section>
   </q-card>
 </template>
-
 <script lang="ts">
 import { computed, defineComponent, ref, watch } from "vue";
 
@@ -114,13 +113,16 @@ export default defineComponent({
     watch(() => group.value.currency, (value) => currency.value = value)
 
     const price = computed(() => currency.value ? formatPrice(props.offer.attributes.price, currency.value) : '')
-    const isMine = computed(() => props.offer.member.id === store.getters.myMember.id)
+    const canEdit = computed(() => 
+      props.offer.member.id === store.getters.myMember.id
+      || store.getters.isAdmin
+    )
     const hidden = computed(() => props.offer.attributes.state === "hidden" || props.offer.member.attributes.state !== "active")
     const expired = computed(() => new Date(props.offer.attributes.expires) < new Date())
 
     return {
       price,
-      isMine,
+      canEdit,
       md2txt,
       isHidden: hidden,
       isExpired: expired
