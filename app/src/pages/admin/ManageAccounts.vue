@@ -79,7 +79,7 @@
         :columns="columns"
         :rows="members"
         :visible-columns="visibleColumns"
-        :rows-per-page-options="[2,10,25,50,100,200]"
+        :rows-per-page-options="[10,25,50,100,200]"
         :loading="loading"
         :fullscreen="isFullscreen"
         flat
@@ -372,7 +372,7 @@ const pagination = ref({
   sortBy: 'code',
   descending: false,
   page: 1,
-  rowsPerPage: 2,
+  rowsPerPage: 25,
   rowsNumber: undefined
 })
 
@@ -395,6 +395,10 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
   const sort = sortBy ? (descending ? "-" : "") + sortField : undefined
   const group = props.code
   const pageSize = rowsPerPage
+
+  // Explicit allow disabled & suspended members/accounts
+  const memberStatuses = ["active", "disabled", "suspended"]
+  const accountStatuses = ["active", "disabled", "suspended"]
   
   try {
     // Since data is splitted in two APIs, we need to call first the one that sorts the data.
@@ -404,7 +408,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         await store.dispatch('members/loadList', {
           group,
           filter: {
-            state: ["active", "disabled", "suspended"]
+            state: memberStatuses
           },
           sort,
           search: scope.filter ? scope.filter : undefined,
@@ -426,7 +430,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         group,
         filter: {
           id: loadedMembers.map((member: Member) => member.relationships.account.data.id),
-          status: ["active", "disabled", "suspended"]
+          status: accountStatuses
         },
         pageSize,
         include: 'settings',
@@ -439,7 +443,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
           group,
           sort,
           filter: {
-            status: ["active", "disabled", "suspended"]
+            status: accountStatuses
           },
           include: 'settings',
           pageSize
@@ -460,7 +464,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         group: props.code,
         filter: {
           account: loadedAccounts.map((account: Account) => account.id),
-          state: ["active", "disabled", "suspended"]
+          state: memberStatuses
         },
         pageSize,
       })
