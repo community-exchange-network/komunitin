@@ -426,7 +426,8 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
       await store.dispatch('accounts/loadList', {
         group,
         filter: {
-          id: loadedMembers.map((member: Member) => member.relationships.account.data.id)
+          id: loadedMembers.map((member: Member) => member.relationships.account.data.id),
+          status: ["active", "disabled", "suspended"]
         },
         pageSize,
         include: 'settings',
