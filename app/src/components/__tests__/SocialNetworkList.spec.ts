@@ -91,7 +91,7 @@ describe("SocialNetworkList", () => {
       "twitter",
       "https://twitter.com/intent/tweet?url=" +
         encodeURIComponent("https://example.com") +
-        "&text=Title"
+        "&text=Title%0AText"
     );
   });
 });
