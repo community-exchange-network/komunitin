@@ -37,7 +37,7 @@
                 id="user-menu-logout"
                 icon="logout"
                 :title="$t('logout')"
-                @click="logout"
+                to="/logout"
               />
             </q-list>
           </q-menu>
@@ -149,15 +149,12 @@ import { useStore } from "vuex";
 import MemberHeader from "./MemberHeader.vue";
 import MenuItem from "./MenuItem.vue";
 import GroupHeader from "./GroupHeader.vue";
-import { useRoute, useRouter } from "vue-router";
-import { useQuasar } from "quasar";
+import { useRoute } from "vue-router";
 import { config } from "src/utils/config";
 
 const feedbackURL = config.FEEDBACK_URL;
 const store = useStore()
 const route = useRoute()
-const router = useRouter()
-const $q = useQuasar()
 
 const myMember = computed(() => store.getters.myMember)
 const myAccount = computed(() => store.getters.myAccount)
@@ -166,11 +163,6 @@ const isAdmin = computed(() => store.getters.isAdmin)
 const isLegacyAccounting = computed(() => store.getters.isLegacyAccounting)
 
 const groupActive = computed(() => (route.fullPath ==`/groups/${myMember.value.group.attributes.code}`))
-const logout = async () => {
-  await store.dispatch("logout")
-  await router.push("/")
-  $q.notify({ type: "positive", message: "Successfully logged out!" })
-}
 </script>
 
 <style lang="scss" scoped>

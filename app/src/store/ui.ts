@@ -16,7 +16,6 @@ export default {
     locationBannerDismissed: false,
     inactiveBannerDismissed: false,
     previousRoute: undefined,
-    loggingOut: false
   }),
   getters: {
     drawerExists: (state, getters, rootState, rootGetters) =>
