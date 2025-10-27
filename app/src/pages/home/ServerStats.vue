@@ -97,6 +97,6 @@ const fetchAllGroups = async () => {
 fetchAllGroups()
 
 const groups = computed<Group[]>(() => store.getters["groups/currentList"])
-const nCommunities = computed<number>(() => groups.value?.length ?? 0)
+const nCommunities = computed(() => groups.value?.length ?? '?')
 
 </script>
