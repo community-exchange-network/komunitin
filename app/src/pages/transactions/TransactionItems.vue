@@ -18,9 +18,9 @@
         v-if="slotProps.resources.length > 0"
         class="row text-overline text-uppercase text-onsurface-d q-px-md q-pb-xs"
       >
-        <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col-grow col-sm-4'">{{ props.bothAccounts ? $t("payer") : $t("account") }}</div>
+        <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col col-sm-4'">{{ props.bothAccounts ? $t("payer") : $t("account") }}</div>
         <div v-if="bothAccounts" class="col-4 col-sm-3">{{ $t("payee") }}</div>
-        <div class="gt-xs col-grow">{{ $t("description") }}</div>
+        <div class="gt-xs q-pl-md">{{ $t("description") }}</div>
         <div side class="q-ml-auto">{{ $t("amount") }}</div>
       </div>
       
