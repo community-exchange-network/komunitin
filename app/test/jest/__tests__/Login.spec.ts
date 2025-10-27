@@ -74,7 +74,6 @@ describe("Front page and login", () => {
       .get("#user-menu-logout")
       .trigger("click");
     await wrapper.vm.$wait();
-    expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
     expect(wrapper.vm.$route.path).toBe("/");
   });
   

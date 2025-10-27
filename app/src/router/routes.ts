@@ -21,6 +21,11 @@ const routes: RouteRecordRaw[] = [
         path: '/forgot-password',
         name: 'ForgotPassword',
         component: () => import('../pages/home/ForgotPassword.vue')
+      },
+      {
+        path: '/logout',
+        name: 'Logout',
+        component: () => import('../pages/home/Logout.vue')
       }
     ]
   },

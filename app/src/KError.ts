@@ -56,7 +56,6 @@ export enum KErrorCode {
    * conditions.
    */
   ScriptError = "ScriptError",
-  UserLoggingOut = "UserLoggingOut",
 }
 
 /**
