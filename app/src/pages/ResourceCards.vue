@@ -14,21 +14,21 @@
             v-for="resource of resources"
             :key="resource.id"
             class="col-12 col-sm-6 col-md-4"
-          >
-            <!-- this v-if is superfluous, since when this slot is rendered, card is always defined.
-            But setting it prevents an unexpected exception in vue-test-utils -->
+            >
+            <!-- if card and propName props are defined, render the dynamic component -->
             <component
-              :is="components[card]"
-              v-if="card && propName && components[card]"
-              :[propName]="resource"
-              :code="code"
+            :is="components[card]"
+            v-if="card && propName && components[card]"
+            :[propName]="resource"
+            :code="code"
             />
+            <!-- else render the appropriate card component, based on resource type -->
             <OfferCard
               v-else-if="resource.type === 'offers'"
               :offer="resource"
               :code="code"
-            />
-            <NeedCard
+              />
+              <NeedCard
               v-else-if="resource.type === 'needs'"
               :need="resource"
               :code="code"
