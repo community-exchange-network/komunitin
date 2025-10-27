@@ -26,6 +26,7 @@
               :text="t('monthlyActiveAccountsText')"
               :period="30*24*60*60"
               icon="group"
+              :parameters="{minTransactions: 1}"
             />
           </div>
           <div class="col-12 col-sm-6 col-lg-3">
@@ -36,6 +37,7 @@
               :text="t('yearlyActiveAccountsText')"
               :period="365*24*60*60"
               icon="group"
+              :parameters="{minTransactions: 1}"
             />
           </div>
           <div class="col-12 col-sm-6 col-lg-3">
