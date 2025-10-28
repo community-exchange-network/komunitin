@@ -132,8 +132,7 @@ const deleteMember = async () => {
 
     // 4. Logout (definitely)
     if (!isAdmin.value) {
-      await store.dispatch("logout")
-      await router.push("/")
+      await router.push("/logout")
     } else {
       emit("delete")
     }

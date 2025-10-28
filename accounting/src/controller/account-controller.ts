@@ -355,12 +355,20 @@ export class AccountController extends AbstractCurrencyController implements IAc
     }
     
     const filter = whereFilter(params.filters)
+
+    // Default to active user accounts if no explicit filter is defined.
+    if (!filter.id && !filter.code && !filter.tag) {
+      if (!filter.status) {
+        filter.status = AccountStatus.Active
+      }
+      if (!filter.type) {
+        filter.type = AccountType.user
+      }
+    }
     
     const records = await this.db().account.findMany({
       where: {
         currencyId: this.currency().id,
-        status: "active",
-        type: AccountType.user,
         ...filter,
       },
       include: {

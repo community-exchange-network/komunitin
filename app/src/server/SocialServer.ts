@@ -264,6 +264,7 @@ export default {
     group: Factory.extend({
       code: (i: number) => `GRP${i}`,
       name: (i: number) => `Group ${i}`,
+      status: "active",
       description: () => fakeMarkdown(4),
       image: (i: number) => (i % 2 == 0) ? fakeImage(`group${i}`) : null,
       website: () => faker.internet.url(),

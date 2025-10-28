@@ -185,10 +185,11 @@ watch([contacts], () => {
 })
 
 watchDebounced([currencyName, currencyNamePlural, currencySymbol, decimals], () => {
+  const { rate, scale, code } = props.currency.attributes
   emit('update:currency', {
     ...props.currency,
     attributes: {
-      ...props.currency.attributes,
+      ...{rate, scale, code },
       name: currencyName.value,
       namePlural: currencyNamePlural.value,
       symbol: currencySymbol.value,

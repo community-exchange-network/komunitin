@@ -168,8 +168,7 @@
           :currency="currency"
           :label="$t('externalTraderMaximumBalance')"
           :hint="$t('externalTraderMaximumBalanceHint')"
-          outlined
-          disable
+          outlined          
           @update:model-value="updateModelValue"
         />
       </template>
@@ -185,7 +184,21 @@
       @update:trustline="$emit('update:trustline', $event)"
       @create:trustline="$emit('create:trustline', $event)"
     />
+    <q-separator class="q-mt-xl" />
+    <div class="q-mt-lg">
+      <div class="text-subtitle1">
+        {{ $t('groupStatus') }}
+      </div>
+      <div class="text-onsurface-m">
+        {{ $t('groupStatusText') }}
+      </div>
+    </div>
+    <group-status-field 
+      :group="props.group"
+    />
+    <q-separator class="q-mt-xl" />
   </div>
+
 </template>
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
@@ -195,19 +208,15 @@ import AmountInput from 'src/components/AmountInput.vue';
 import TrustlinesField from './TrustlinesField.vue';
 import CategoriesField from './CategoriesField.vue';
 import AccountSettingsFields from 'src/pages/settings/AccountSettingsFields.vue';
+import GroupStatusField from './GroupStatusField.vue';
 import type { Group, GroupSettings, Currency, CurrencySettings, Trustline, Category, AccountSettings } from 'src/store/model';
 import { watchDebounced } from '@vueuse/shared';
 import type { DeepPartial } from 'quasar';
 import { accountSettingsToCurrencySettingsAttributes, currencySettingsToAccountSettingsAttributes } from 'src/composables/accountSettings';
 
-export type ExtendedGroup = Group & {
-  settings: GroupSettings,
-  currency: Currency & {
-    settings: CurrencySettings,
-    trustlines: Trustline[]
-  }
-}
+
 const props = defineProps<{
+  group: Group,
   groupSettings: GroupSettings,
   categories: Category[],
   currency: Currency,

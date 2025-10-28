@@ -10,6 +10,7 @@
       <edit-group-settings-form 
         v-if="ready"
 
+        :group="group"
         :group-settings="groupSettings"
         :categories="categories"
         :currency="currency"

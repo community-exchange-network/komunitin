@@ -134,13 +134,14 @@ export default boot(async ({ app }) => {
 
   // Initially set the current locale.ç
   const lang = await getCurrentLocale(Quasar)
-  await setCurrentLocale(Quasar, lang, store.getters.isAdmin)
+  const isAdmin = store.getters.isAdmin || store.getters.isSuperadmin
+  await setCurrentLocale(Quasar, lang, isAdmin)
 
   // Change the current locale to the user defined settings. Note that we do it that way so the
   // store does not depend on the i18n infrastructure and therefore it can be used in the service
   // worker.
   store.watch((_, getters) => {
-    return [getters.myUser?.settings?.attributes.language, getters.isAdmin]
+    return [getters.myUser?.settings?.attributes.language, getters.isAdmin || getters.isSuperadmin]
   }, ([language, isAdmin]) => {
     if (language && (isAdmin || language !== globalLocale)) {
       setLocale(language, isAdmin)

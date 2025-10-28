@@ -16,34 +16,29 @@
           icon="share"
           flat
           round
-          :text="
-            $t('shareMember', {
-              member: member.attributes.name,
-              bio: member.attributes.description
-            })
-          "
-          :title="member.attributes.name"
+          :title="$t('shareMember', { member: member.attributes.name })"
+          :text="member.attributes.bio"
         />
         <q-btn
-          v-if="isMe"
+          v-if="canEdit"
           icon="edit"
           flat
           round
-          to="/profile"
+          :to="editProfileUrl"
         />
         <q-btn
-          v-if="isMe"
+          v-if="canEdit"
           icon="settings"
           flat
           round
-          to="/settings"
+          :to="settingsUrl"
         />
         <q-btn
           v-if="isMe && !isComplete"
           icon="logout"
           flat
           round
-          @click="logout"
+          to="/logout"
         />
       </template>
     </page-header>
@@ -156,6 +151,9 @@ watch(() => props.memberCode, (code) => fetchData(code), {immediate: true})
 
 const member = computed(() => fetched.value ? store.getters['members/current'] : undefined)
 const isMe = computed(() => member.value && myMember.value && member.value.id == myMember.value.id)
+const canEdit = computed(() => isMe.value || store.getters.isAdmin)
+const editProfileUrl = computed(() => isMe.value ? "/profile" : `/groups/${props.code}/admin/members/${props.memberCode}/profile`)
+const settingsUrl = computed(() => isMe.value ? "/settings" : `/groups/${props.code}/admin/members/${props.memberCode}/settings`)
 
 // Tab and hash navigation.
 const route = useRoute()
@@ -170,10 +168,5 @@ const hashTab = computed(() => {
 
 const onTabChange = (tab: string | number) => {  
   router.push({hash: `#${tab}`})
-}
-
-const logout = async () => {
-  await store.dispatch("logout")
-  await router.push("/")
 }
 </script>

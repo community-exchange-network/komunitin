@@ -44,26 +44,26 @@ const networks: { [key: string]: SocialNetworkEntry } = {
   },
   email: {
     contact: "mailto:{name}",
-    share: "mailto:?subject={title}&body={text}",
+    share: "mailto:?subject={title}&body={text}%0A{url}",
     label: "email",
     translateLabel: true
   },
   telegram: {
     contact: "https://t.me/{name}",
-    share: "https://t.me/share/url?url={url}&text={text}",
+    share: "https://t.me/share/url?url={url}&text={title}%0A{text}",
     label: "Telegram",
     idLabel: "username",
     translateIdLabel: true
   },
   whatsapp: {
     contact: "https://api.whatsapp.com/send?phone={name}",
-    share: "https://api.whatsapp.com/send?text={text}",
+    share: "https://api.whatsapp.com/send?text={title}%0A{text}%0A{url}",
     label: "WhatsApp",
     idLabel: "phone",
     translateIdLabel: true
   },
   twitter: {
-    share: "https://twitter.com/intent/tweet?url={url}&text={title}",
+    share: "https://twitter.com/intent/tweet?url={url}&text={title}%0A{text}",
     label: "Twitter"
   },
   facebook: {

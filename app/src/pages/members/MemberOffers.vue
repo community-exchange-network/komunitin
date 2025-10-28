@@ -20,11 +20,11 @@ const props = defineProps<{
   member: Member
 }>()
 const store = useStore()
-const isMe = computed(() => props.member && props.member.id == store.getters.myMember.id)
+const canEdit = computed(() => props.member?.id == store.getters.myMember.id || store.getters.isAdmin)
 const card = OfferCard.name
 const filter = computed(() => ({
   member: props.member.id,
-  expired: 'false' + (isMe.value ? ',true' : ''),
-  state: 'published' + (isMe.value ? ',hidden' : '')
+  expired: 'false' + (canEdit.value ? ',true' : ''),
+  state: 'published' + (canEdit.value ? ',hidden' : '')
 }))
 </script>

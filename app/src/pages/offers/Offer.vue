@@ -6,7 +6,7 @@
     >
       <template #buttons>
         <q-btn
-          v-if="isMine"
+          v-if="canEdit"
           round
           flat
           icon="edit"
@@ -14,7 +14,7 @@
           :title="$t('editOffer')"
         />
         <delete-offer-btn 
-          v-if="isMine"
+          v-if="canEdit"
           :code="code"
           :offer="offer"          
           :to="`/groups/${code}/offers`"
@@ -80,7 +80,7 @@
                 color="primary"
                 :label="$t('share')"
                 :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
-                :text="offer.attributes.name"
+                :text="`${offer.attributes.name}\n${offer.attributes.content}`"
               />
               <contact-button
                 unelevated
@@ -149,8 +149,8 @@ const isLoading = computed(() => {
 const price = computed(() => {
   return formatPrice(offer.value.attributes.price, offer.value.member.group.currency)
 })
-const isMine = computed(() => {
-  return offer.value && offer.value.member && offer.value.member.id == store.getters.myMember.id
+const canEdit = computed(() => {
+  return offer.value?.member?.id == store.getters.myMember.id || store.getters.isAdmin
 })
 const fetchData = async(offerCode: string) => {
   await store.dispatch("offers/load", {

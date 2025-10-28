@@ -6,7 +6,7 @@
     >
       <template #buttons>
         <q-btn
-          v-if="isMine"
+          v-if="canEdit"
           round
           flat
           icon="edit"
@@ -14,7 +14,7 @@
           :title="$t('editNeed')"
         />
         <delete-need-btn 
-          v-if="isMine"
+          v-if="canEdit"
           :code="code"
           :need="need"          
           :to="`/groups/${code}/needs`"
@@ -164,8 +164,8 @@ export default defineComponent({
       // trigger due to the structure of relatinship links of resource objects.
       return !(this.need && this.need.member && this.need.member.contacts && this.need.category) && (this.ready || !this.ready)
     },
-    isMine(): boolean {
-      return this.need && this.need.member && this.need.member.id === this.$store.getters.myMember.id
+    canEdit(): boolean {
+      return this.need?.member?.id === this.$store.getters.myMember.id || this.$store.getters.isAdmin
     }
     
   },

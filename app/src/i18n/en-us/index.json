@@ -63,7 +63,7 @@
   "profile": "Profile",
   "bio": "Bio",
   "location": "Location",
-  "shareMember":"Check {member}\n{bio}",
+  "shareMember":"Check {member}",
   "updatedAt": "Updated {date}",
   "expiresAt": "Expires {date}",
   "price": "Price",
@@ -101,8 +101,6 @@
   "amountIn": "Amount in {currency}",
   "transactionAmountHint": "Quantity of money to transfer.",
   "charge": "Charge",
-  "descriptionRequired" : "Transaction description is required.",
-  "invalidAmount" : "Invalid amount. Enter a positive number.",
   "payerRequired": "Choose the payer member",
   "payeeRequired": "Choose the payee member",
   "sucessfulLogin": "Sucessfully logged in as {name}!",
@@ -233,6 +231,7 @@
   "activeAccountText": "Your account can operate normally.",
   "disabledAccountText": "Your account is disabled. Go to your settings to re-enable it before you can make transactions",
   "suspendedAccountText": "Your account has been suspended. Contact the group administrators to re-enable it.",
+  "groupDisabledText": "Your group is disabled and you can't operate anymore. Contact the group administrators for more information.",
   "saveProfile": "Save profile",
   "submit": "Submit",
   "resendEmail": "Resend email",
@@ -382,7 +381,9 @@
   "showFilters": "Show filters",
   "hideFilters": "Hide filters",
   "close": "Close",
-
+  "loggingOut": "Logging out...",
+  "loggedOut": "You have been logged out and you won't receive any further notifications until you log in again.",
+  
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",
   "ErrorServerNoResponse": "Error: Server do not respond",
@@ -415,5 +416,10 @@
   "ErrorCamNotReadable": "Could not read camera. Maybe it is being used by another app.",
   "ErrorCamUnknown": "Unknown camera error.",
   "ErrorNFCUnavailable": "Web NFC is not available in your system. Currently only Chrome in Android is supported.",
-  "ErrorNFCReadError": "Error reading the NFC tag."
+  "ErrorNFCReadError": "Error reading the NFC tag.",
+  "ErrorAccountNotFound": "Account not found",
+  "ErrorAccountIsNotYours": "The specified account is not your current active account.",
+  "ErrorInvalidAmount": "Invalid amount. Enter a positive number.",
+  "ErrorDescriptionRequired": "Transaction description is required."
+  
 }

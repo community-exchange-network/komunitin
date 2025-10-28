@@ -63,7 +63,7 @@
         :text="need.attributes.content"
       />
       <q-btn
-        v-if="isMine"
+        v-if="canEdit"
         icon="edit"
         flat
         round
@@ -73,7 +73,7 @@
         :title="$t('editNeed')"
       />
       <delete-need-btn
-        v-if="isMine"
+        v-if="canEdit"
         :code="code"
         :need="need"
         color="icon-dark"
@@ -134,13 +134,10 @@ export default defineComponent({
       return this.need.attributes.images.length > 0;
     },
     url(): string {
-      const base = window?.location.origin ?? "";
-      return (
-        base + this.$router.resolve("needs/" + this.need.attributes.code).href
-      );
+      return `${window?.location.origin ?? ''}/groups/${this.code}/needs/${this.need.attributes.code}`
     },
-    isMine(): boolean {
-      return this.need.member?.id == this.$store.getters.myMember?.id
+    canEdit(): boolean {
+      return this.need.member?.id == this.$store.getters.myMember?.id || this.$store.getters.isAdmin;
     },
     hidden(): boolean {
       return this.need.attributes.state == "hidden"

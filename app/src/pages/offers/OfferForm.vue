@@ -148,6 +148,8 @@ const store = useStore()
 
 const currency = computed(() => store.getters.myCurrency)
 
+const memberId = computed(() => props.modelValue?.relationships?.member?.data.id || store.getters.myMember.id)
+
 const onSubmit = async () => {
   const isFormCorrect = await form.value?.validate()
   if (isFormCorrect) {
@@ -167,7 +169,7 @@ const onSubmit = async () => {
         ...props.modelValue?.relationships,
          
         category: { data: { type: "categories", id: category.value.id } },
-        member: { data: { type: "members", id: store.getters.myMember.id} }
+        member: { data: { type: "members", id: memberId.value } }
       }
     })
   }

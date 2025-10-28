@@ -106,6 +106,7 @@ export default {
     }),
     account: Factory.extend({
       code: (i: number) => `account-${i}`,
+      status: "active",
       balance: () => faker.random.number({ max: 10000000, min: -5000000, precision: 100 }),
       creditLimit: 1000000,
       maximumBalance: 5000000

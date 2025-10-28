@@ -22,7 +22,7 @@
           :hint="$t('transactionDescriptionHint')" 
           outlined
           required
-          :rules="[() => (description !== '') || $t('descriptionRequired')]"
+          :rules="[() => (description !== '') || $t('ErrorDescriptionRequired')]"
         />
       </div>
       <div>
@@ -92,7 +92,7 @@
                 v-model="slot.row.description"
                 :name="`description[${slot.rowIndex}]`"
                 borderless
-                :rules="[() => emptyRow(slot.row) || checkDescription(slot.row) || $t('descriptionRequired')]"
+                :rules="[() => emptyRow(slot.row) || checkDescription(slot.row) || $t('ErrorDescriptionRequired')]"
                 hide-bottom-space
               />
             </q-td>
@@ -106,7 +106,7 @@
                 :name="`amount[${slot.rowIndex}]`"
                 input-class="text-right"
                 borderless
-                :rules="[() => emptyRow(slot.row) || checkAmount(slot.row) || $t('invalidAmount')]"
+                :rules="[() => emptyRow(slot.row) || checkAmount(slot.row) || $t('ErrorInvalidAmount')]"
                 hide-bottom-space
               />
             </q-td>

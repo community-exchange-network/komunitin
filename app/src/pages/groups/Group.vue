@@ -17,12 +17,8 @@
           icon="share"
           flat
           round
-          :text="
-            $t('checkTheExchangeCommunityGroup', {
-              group: group.attributes.name
-            })
-          "
-          :title="group.attributes.name"
+          :title="$t('checkTheExchangeCommunityGroup', {group: group.attributes.name})"
+          :text="group.attributes.description"
         />
       </template>
     </page-header>

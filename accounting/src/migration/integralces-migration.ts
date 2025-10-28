@@ -445,7 +445,10 @@ export class ICESMigrationController {
     if (!this.migration.data.currency) {
       throw new Error("No currency data found in migration")
     }
-    const currencyData = this.migration.data.currency;
+    const currencyData = {
+      ...this.migration.data.currency,
+      status: "active" as const,
+    }
 
     // Fix unsupported unlimited credit limit
     if (currencyData.settings.defaultInitialCreditLimit as unknown === false) {
@@ -1028,7 +1031,7 @@ export class ICESMigrationController {
           await this.warn(`External account balance ${externalBalance} exceeds maximum balance ${currency.externalAccount.maximumBalance}, setting to maximum balance`);
           await currencyController.updateCurrencySettings(systemContext(), {
             id: currency.id,
-            externalTraderMaximumBalance: currency.externalAccount.maximumBalance
+            externalTraderMaximumBalance: Number(externalBalance)
           })
         }
       }

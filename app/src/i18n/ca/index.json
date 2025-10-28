@@ -63,7 +63,7 @@
   "profile": "Perfil",
   "bio": "Bio",
   "location": "Ubicació",
-  "shareMember":"Fixa't en el compte de {member}\n{bio}",
+  "shareMember":"Fixa't en el compte de {member}",
   "updatedAt": "Actualitzat {date}",
   "expiresAt": "Expira {date}",
   "price": "Preu",
@@ -101,8 +101,6 @@
   "amountIn": "Quantitat en {currency}",
   "transactionAmountHint": "Quantitat de moneda a transferir",
   "charge": "Cobrar",
-  "descriptionRequired" : "Entra una descripció de la transacció.",
-  "invalidAmount" : "Quantitat invàlida. Entra un número positiu.",
   "payerRequired": "Escull el compte pagador",
   "payeeRequired": "Escull el compte destí",
   "sucessfulLogin": "Sessió iniciada com a {name}!",
@@ -233,6 +231,7 @@
   "activeAccountText": "El teu compte pot operar amb normalitat.",
   "disabledAccountText": "El teu compte està desactivat. Ves a la teva configuració per a reactivar-lo abans de poder fer transaccions.",
   "suspendedAccountText": "El teu compte ha estat suspès. Contacta amb els administradors del grup per a reactivar-lo.",
+  "groupDisabledText": "El teu grup està desactivat i ja no pots operar. Contacta amb els administradors del grup per a més informació.",
   "saveProfile": "Desa perfil",
   "submit": "Envia",
   "resendEmail": "Reenvia email",
@@ -368,7 +367,10 @@
   "disableAccountConfirmText": "Estàs segur que vols desactivar el teu compte? El teu compte i totes les teves dades estaran ocults i no podràs fer ni rebre transaccions fins que el tornis a habilitar.",
   "enableAccount": "Habilitar compte",
   "enableAccountConfirmText": "El teu compte i les teves dades tornaran a ser visibles i podràs fer i rebre transaccions.",
+
   "accountStatusUpdated": "Estat del compte actualitzat correctament.",
+  "loggingOut": "Tancant sessió...",
+  "loggedOut": "Has tancat la sessió i no rebràs més notificacions fins que tornis a iniciar sessió.",
 
   "ErrorAuthNoCredentials": "Email o contrasenya incorrectes",
   "ErrorInvalidPassword": "Contrasenya incorrecta",
@@ -383,5 +385,9 @@
   "ErrorCamNotReadable": "No es pot llegir la càmera. Pot ser que estigui ocupada.",
   "ErrorCamUnknown": "Error desconegut de la càmera.",
   "ErrorNFCUnavailable": "El teu sistema no és compatible amb Web NFC. Actualment només és possible amb Chrome en Android.",
-  "ErrorNFCReadError": "Error llegint l'etiqueta NFC."
+  "ErrorNFCReadError": "Error llegint l'etiqueta NFC.",
+  "ErrorAccountNotFound": "No s'ha trobat el compte",
+  "ErrorAccountIsNotYours": "El compte especificat no és el teu compte actiu actual.",
+  "ErrorDescriptionRequired" : "Entra una descripció de la transacció.",
+  "ErrorInvalidAmount" : "Quantitat invàlida. Entra un número positiu."
 }

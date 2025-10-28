@@ -11,11 +11,12 @@
       <q-card>
         <q-card-section>
           <div class="text-h6">
-            {{ $t('share') }}
+            {{ t('share') }}
           </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
           <social-network-list
+            type="share"
             :url="pageurl"
             :title="title"
             :text="text"
@@ -25,62 +26,47 @@
     </q-dialog>
   </q-btn>
 </template>
-<script lang="ts">
-
-import { defineComponent } from "vue";
-
+<script setup lang="ts">
+import { computed, ref } from 'vue';
 import SocialNetworkList from './SocialNetworkList.vue';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
+
+const props = defineProps<{
+  url?: string,
+  title: string,
+  text: string
+}>()
+
+const dialog = ref(false);
 // Is this browser compatible with share API?
 // Experimental API `share` is not (yet) included in Navigator interface.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const navigatorShare = (typeof ((navigator as any)?.share) !== 'undefined');
-
-export default defineComponent({
-  name: 'ShareButton',
-  components: {SocialNetworkList},
-  props: {
-    url : {
-      type: String,
-      default: ''
-    },
-    title: {
-      type: String,
-      default: ''
-    },
-    text: {
-      type: String,
-      default: ''
-    }
-  },
-  data: function() {
-    return {
-      // Wheter to show the share dialog.
-      dialog: false,
-    };
-  },
-  computed: {
-    navigatorShare: () => navigatorShare,
-    pageurl(): string {
-      return this.url || window.location.href
-    }
-  },
-  methods: {
-    // Main share button click handler.
-    share() {
-      if (navigatorShare) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (navigator as any).share({
-          title: this.title,
-          text: this.text,
-          url: this.pageurl
-        });
-      }
-      else {
-        // display fallback dialog.
-        this.dialog = true;
-      }
-    }
-  }
+const pageurl = computed(() => {
+  return props.url || window.location.href;
 });
+
+const shorten = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength - 3) + '...';
+}
+
+const share = () => {
+  if (navigatorShare) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigator as any).share({
+      title: props.title,
+      text: shorten(props.text, 200),
+      url: pageurl.value
+    });
+  }
+  else {
+    // display fallback dialog.
+    dialog.value = true;
+  }
+}
 </script>

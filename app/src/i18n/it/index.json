@@ -63,7 +63,7 @@
   "profile": "Profilo",
   "bio": "Bio",
   "location": "Località",
-  "shareMember":"Check {member}\n{bio}",
+  "shareMember":"Check {member}",
   "updatedAt": "Aggiornato {date}",
   "expiresAt": "Scade {date}",
   "price": "Prezzo",
@@ -101,8 +101,6 @@
   "amountIn": "Totale in {currency}",
   "transactionAmountHint": "Ammontare in Mano.",
   "charge": "Crea transazione",
-  "descriptionRequired" : "La descrizione della transazione è obbligatoria.",
-  "invalidAmount" : "Totale non valido. Inserire totale corretto.",
   "payerRequired": "Scegli acquirtente",
   "payeeRequired": "Scegli venditore",
   "sucessfulLogin": "Log in effettuato con successo {name}!",
@@ -233,6 +231,7 @@
   "activeAccountText": "Il tuo account può operare normalmente.",
   "disabledAccountText": "Il tuo account è disabilitato. Vai alle impostazioni per riattivarlo prima di poter effettuare transazioni.",
   "suspendedAccountText": "Il tuo account è stato sospeso. Contatta gli amministratori del gruppo per riattivarlo.",
+  "groupDisabledText": "Il tuo gruppo è disabilitato e non puoi più operare. Contatta gli amministratori del gruppo per maggiori informazioni.",
   "saveProfile": "Salva profilo",
   "submit": "Invia",
   "resendEmail": "Reinvia email",
@@ -358,6 +357,9 @@
   "ErrorVueWarning": "Avviso VUE",
   "ErrorIncorrectCredentials": "Errore: email o password errate",
   "ErrorNotImplemented": "Errore: non implementato",
+
+  "loggingOut": "Disconnessione in corso...",
+  "loggedOut": "Sei stato disconnesso e non riceverai ulteriori notifiche finché non effettuerai nuovamente l'accesso.",
   "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
   "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",
   
@@ -374,5 +376,9 @@
   "ErrorCamNotReadable": "Impossibile leggere la fotocamera. Forse è utilizzata da un'altra app.",
   "ErrorCamUnknown": "Errore sconosciuto della fotocamera.",
   "ErrorNFCUnavailable": "Web NFC non è disponibile nel tuo sistema. Attualmente è supportato solo Chrome in Android.",
-  "ErrorNFCReadError": "Errore nella lettura del tag NFC."
+  "ErrorNFCReadError": "Errore nella lettura del tag NFC.",
+  "ErrorAccountNotFound": "Account non trovato",
+  "ErrorAccountIsNotYours": "L'account specificato non è il tuo account attivo corrente.",
+  "ErrorDescriptionRequired" : "La descrizione della transazione è obbligatoria.",
+  "ErrorInvalidAmount" : "Totale non valido. Inserire totale corretto."
 }

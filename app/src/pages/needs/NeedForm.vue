@@ -62,7 +62,7 @@
   </q-form>
 </template>
 <script setup lang="ts">
-import { ref } from "vue"
+import { computed, ref } from "vue"
 import DateField from "../../components/DateField.vue"
 import ImageField from "../../components/ImageField.vue"
 import SelectCategory from "../../components/SelectCategory.vue"
@@ -107,6 +107,7 @@ const rules = {
 }
 const v$ = useVuelidate(rules, {images, description, category, expiration})
 const store = useStore()
+const memberId = computed(() => props.modelValue?.relationships?.member?.data.id || store.getters.myMember.id)
 
 const onSubmit = async () => {
   const isFormCorrect = await v$.value.$validate()
@@ -125,7 +126,7 @@ const onSubmit = async () => {
         ...props.modelValue?.relationships,
          
         category: { data: { type: "categories", id: category.value.id } },
-        member: { data: { type: "members", id: store.getters.myMember.id} }
+        member: { data: { type: "members", id: memberId.value } }
       }
     })
   }
