@@ -50,13 +50,16 @@ const props = defineProps<{
    * */  
   period?: number
   text: string
+  // Extra parameters to pass to the stats composable
+  parameters?: Record<string, string|number>
 }>()
 
 const options = computed(() => ({
   currency: props.currency,
   value: props.value ?? "amount",
   from: props.period ? new Date(Date.now() - (props.period)*1000) : undefined,
-  change: !!(props.period)
+  change: !!(props.period),
+  parameters: props.parameters
 }))
 
 const {value: amount, change, sign} = useCurrencyStatsFormattedValue(options)
