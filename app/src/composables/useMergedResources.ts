@@ -1,119 +1,118 @@
 import type { Ref } from "vue";
-import { computed } from "vue";
-import type { LoadListPayload } from "../store/resources";
+import { ref, computed, watchEffect } from "vue";
+import { DEFAULT_PAGE_SIZE, type LoadListPayload } from "../store/resources";
 import { useResources } from "./useResources";
+import { type ResourceObject } from "../store/model";
 
 export const useMergedResources = (
   types: string[],
   options: LoadListPayload
 ) => {
   // Call useResources for each type.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const typeResources: Ref<any[]>[] = [];
+  const typeResources: Ref<ResourceObject[]>[] = [];
   const typeLoadNexts: (() => Promise<void>)[] = [];
   const typeHasNexts: Ref<boolean>[] = [];
-  const typeFetchResources: ((search?: string) => Promise<void>)[] = [];
-
+  const typeLoads: ((search?: string) => Promise<void>)[] = [];
+  
   for (const type of types) {
-    const { resources, loadNext, hasNext, fetchResources } = useResources(type, options);
+    const { resources, loadNext, hasNext, load } = useResources(type, options);
     typeResources.push(resources);
     typeLoadNexts.push(loadNext);
     typeHasNexts.push(hasNext);
-    typeFetchResources.push(fetchResources);
+    typeLoads.push(load);
   }
 
-  // Merge resources in a single resources array.
-  const resources = computed(() => {
-    const indexs = new Array(types.length).fill(0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const merged: any[] = [];
+  // Determine sort field and order
+  const sortField = options.sort?.startsWith("-") 
+    ? options.sort.substring(1) 
+    : (options.sort || "");
+  const isDescending = options.sort?.startsWith("-") || false;
 
-    // Determine sort field and order
-    const sortField = options.sort?.startsWith("-") 
-      ? options.sort.substring(1) 
-      : (options.sort || "");
-    const isDescending = options.sort?.startsWith("-") || false;
+  // This indexs array has an entry for each type. Each entry indicates the
+  // index of the next item to be taken from that type's resources array.
+  const indexs = new Array(types.length).fill(0);
+  const resources = ref<ResourceObject[]>([]);
 
-    const canContinue = () => {
-      // Check if there's at least one non-exhausted array with data
-      // We can only continue if there are actually items available to merge
-      // (not based on hasNext, as that would cause items to appear out of order)
-      return indexs.some((index, i) => 
-        index < typeResources[i].value.length
-      );
-    };
-    const next = () => {
-      // Find the next type index by skipping exhausted arrays
-      // and finding the one with the lower (or higher for descending) order field
-      const availableTypeIndices = indexs
-        .map((index, i) => i)
-        .filter(i => indexs[i] < typeResources[i].value.length);
-      
-      if (availableTypeIndices.length === 0) {
-        // This shouldn't happen if canContinue is correct, but handle it gracefully
-        return null;
-      }
-
-      const nextTypeIndex = availableTypeIndices.reduce((bestIndex, currentIndex) => {
-        const currentResource = typeResources[currentIndex].value[indexs[currentIndex]];
-        const bestResource = typeResources[bestIndex].value[indexs[bestIndex]];
-        
-        // Access the sort field from attributes
-        const currentValue = currentResource.attributes?.[sortField] ?? 
-          (currentResource as Record<string, unknown>)[sortField];
-        const bestValue = bestResource.attributes?.[sortField] ?? 
-          (bestResource as Record<string, unknown>)[sortField];
-        
-        if (isDescending) {
-          // For descending, we want the higher value (most recent)
-          return currentValue > bestValue ? currentIndex : bestIndex;
+  // This function checks if there are more items to merge without fetching
+  // new pages. The condition is that, for all types:
+  // - It has remaining items loaded (so we know the optimum next)
+  // - OR it has hasNext to false (so we know there won't be more items)
+  // Saying it differently, we can't continue if, for any type, we have
+  // exhausted the loaded items and there are potentially more items to load 
+  // because in this case the next optimum item could be in the next page.
+  const canContinue = () => {
+    // using hasNext === false because hasNext can be undefined if not known.
+    const isPendingPage = indexs.some((index, i) => {
+      return index >= typeResources[i].value.length && typeHasNexts[i].value !== false;
+    })
+    const isFinished = indexs.every((index, i) => {
+      return index >= typeResources[i].value.length && (typeHasNexts[i].value === false);
+    });
+    return !isPendingPage && !isFinished;
+  }
+  
+  // Select the next item in the merged array, knowing that canContinue() is true
+  // and therefore the next item is among the currently loaded items.
+  const next = () => {
+    let bestIndex = -1
+    for (let i = 0; i < types.length; i++) {
+      // discard exhausted types
+      if (indexs[i] < typeResources[i].value.length) {
+        if (bestIndex === -1) {
+          // choose the first non-exhausted type as best candidate
+          bestIndex = i;
         } else {
-          // For ascending, we want the lower value
-          return currentValue < bestValue ? currentIndex : bestIndex;
+          // change best candidate if current type has a better item based on sort field
+          const best = typeResources[bestIndex].value[indexs[bestIndex]];
+          const bestValue = best.attributes?.[sortField];
+          const candidate = typeResources[i].value[indexs[i]];
+          const candidateValue = candidate.attributes?.[sortField];
+          if ((isDescending && candidateValue > bestValue)
+            || (!isDescending && candidateValue < bestValue)) {
+            bestIndex = i;
+          }
         }
-      });
-      
-      const nextResource =
-        typeResources[nextTypeIndex].value[indexs[nextTypeIndex]];
-      indexs[nextTypeIndex]++;
-      return nextResource;
-    };
-
-    while (canContinue()) {
-      const resource = next();
-      if (resource !== null) {
-        merged.push(resource);
-      } else {
-        // No more resources available right now
-        break;
       }
     }
-    return merged;
-  });
+    // increment the index for the selected type and return the item
+    const selectedIndex = indexs[bestIndex];
+    indexs[bestIndex]++;
+    return typeResources[bestIndex].value[selectedIndex];
+  };
 
-  const hasNext = computed(() => {
-    return typeHasNexts.some((hasNext) => hasNext.value);
+  // Merge resources in a single resources array.
+  watchEffect(() => {
+    while (canContinue()) {
+      resources.value.push(next())
+    }
   });
 
   const loadNext = async () => {
-    // Call loadNext for each type that has hasNext true.
-    const loadNextPromises = typeHasNexts.map((hasNext, i) => {
-      if (hasNext.value) {
-        return typeLoadNexts[i]();
-      } else {
-        return Promise.resolve();
+    // Call loadNext for each type that has hasNext true and has less than DEFAULT_PAGE_SIZE
+    // loaded items still not merged.
+    const promises = []
+    for (let i = 0; i < types.length; i++) {
+      if (typeHasNexts[i].value && (typeResources[i].value.length - indexs[i] < DEFAULT_PAGE_SIZE) ) {
+        promises.push(typeLoadNexts[i]());
       }
-    });
-    await Promise.all(loadNextPromises);
+    }
+    await Promise.all(promises);
   };
 
-  const fetchResources = async (search?: string) => {
-    // Call fetchResources for each type.
-    const fetchPromises = typeFetchResources.map((fetchResources) =>
-      fetchResources(search)
-    );
-    await Promise.all(fetchPromises);
+  const hasNext = computed(() => {
+    return typeHasNexts.some((hasNext) => hasNext.value) ? true 
+    : (typeHasNexts.some((hasNext) => hasNext.value === undefined) ? undefined : false);
+  });
+
+  const load = async (search?: string) => {
+    // Call load for each type.
+    indexs.fill(0);
+    resources.value = [];
+    const promises = typeLoads.map((load) => load(search));
+    await Promise.all(promises);
   };
 
-  return { resources, hasNext, loadNext, fetchResources };
+  // We don't need to call load() initially because useResources already does it.
+
+  return { resources, hasNext, loadNext, load };
 };

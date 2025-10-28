@@ -2,20 +2,24 @@ import { type LoadListPayload } from "../store/resources";
 import { computed } from "vue";
 import { useStore } from "vuex";
 
-export const useResources = (type: string, options?: LoadListPayload) => {
+export const useResources = (type: string, options: LoadListPayload) => {
   const store = useStore();
-  const resources = computed(() => store.getters[`${type}/currentList`]);
+  const resources = computed(() => store.getters[`${type}/currentList`] ?? []);
+  const load = async (search?: string) => {
+    await store.dispatch(type + "/loadList", {
+      ...options,
+      ...(search ? { search } : {}),
+    });
+  };
   const loadNext = async () => {
     await store.dispatch(`${type}/loadNext`, options);
   };
   const hasNext = computed(() => store.getters[`${type}/hasNext`]);
-  const fetchResources = async (search?: string) => {
-    await store.dispatch(type + "/loadList", {
-      search,
-      ...options,
-    });
-  };
-  return { resources, loadNext, hasNext, fetchResources };
+
+  // initially load the first page
+  load();
+  
+  return { resources, loadNext, hasNext, load };
 };
 
 // export const useResources = (
