@@ -26,7 +26,7 @@
           ref="memberItems"
           v-slot="slotProps"
           :code="code"
-          module-name="members"
+          type="members"
           include="contacts,account"
         >
           <q-list
@@ -87,12 +87,10 @@ const showBalances = computed(() =>
   || store.getters.isAdmin
 );
 
-const memberItems = ref<InstanceType<typeof ResourceCards> | null>(null);
+const memberItems = ref<InstanceType<typeof ResourceCards>>();
 
 const search = (query: string) => {
-  if (memberItems.value) {
-    memberItems.value.fetchResources(query);
-  }
+  memberItems.value?.load(query);
 }
 
 

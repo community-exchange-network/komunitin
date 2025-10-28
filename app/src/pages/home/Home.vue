@@ -4,7 +4,7 @@
     <q-page>
       <resource-cards
         :code="code"
-        :module-name="['offers', 'needs']"
+        :type="['offers', 'needs']"
         include="category,member,member.group,member.group.currency,member.account,member.contacts"
         sort="-updated"
       />
