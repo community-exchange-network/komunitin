@@ -1,25 +1,28 @@
 import type { Ref } from "vue";
 import { ref, computed, watchEffect } from "vue";
 import { DEFAULT_PAGE_SIZE, type LoadListPayload } from "../store/resources";
-import { useResources } from "./useResources";
+import { useResources, type UseResourcesConfig } from "./useResources";
 import { type ResourceObject } from "../store/model";
 
 export const useMergedResources = (
   types: string[],
-  options: LoadListPayload
+  options: LoadListPayload,
+  config?: UseResourcesConfig
 ) => {
   // Call useResources for each type.
   const typeResources: Ref<ResourceObject[]>[] = [];
   const typeLoadNexts: (() => Promise<void>)[] = [];
   const typeHasNexts: Ref<boolean>[] = [];
+  const typeLoadings: Ref<boolean>[] = [];
   const typeLoads: ((search?: string) => Promise<void>)[] = [];
   
   for (const type of types) {
-    const { resources, loadNext, hasNext, load } = useResources(type, options);
+    const { resources, loadNext, hasNext, load, loading } = useResources(type, options, config);
     typeResources.push(resources);
     typeLoadNexts.push(loadNext);
     typeHasNexts.push(hasNext);
     typeLoads.push(load);
+    typeLoadings.push(loading);
   }
 
   // Determine sort field and order
@@ -112,7 +115,12 @@ export const useMergedResources = (
     await Promise.all(promises);
   };
 
-  // We don't need to call load() initially because useResources already does it.
+  const loading = computed(() => {
+    return typeLoadings.some((loading) => loading.value);
+  })
 
-  return { resources, hasNext, loadNext, load };
+  // We don't need to call load() initially because useResources already does it 
+  // (if config.immediate != false).
+
+  return { resources, hasNext, loadNext, load, loading };
 };

@@ -107,7 +107,7 @@ const currentPage = ref(0)
 // If props.moduleName is already an array, just return it, otherwise wrap it in an array
 const types = Array.isArray(props.type) ? props.type : [props.type];
 
-const { resources, hasNext, loadNext, load } =  useMergedResources(types, {
+const { resources, hasNext, loadNext, load, loading } =  useMergedResources(types, {
   search: props.query,
   location: location.value,
   include: props.include,
@@ -115,18 +115,11 @@ const { resources, hasNext, loadNext, load } =  useMergedResources(types, {
   filter: props.filter,
   sort: props.sort,
   cache: props.cache
-});
-
-const loading = ref(false)
+}, { immediate: false });
 
 const loadNextResources = async (index: number, done: (stop?: boolean) => void) => {
-  if (hasNext.value) {
-    try {
-      loading.value = true;
-      await loadNext();
-    } finally {
-      loading.value = false;
-    }
+  if (hasNext.value && !loading.value) {
+    await loadNext();
     currentPage.value += 1;
     emit("page-loaded", currentPage.value);
   }
@@ -138,12 +131,7 @@ const loadNextResources = async (index: number, done: (stop?: boolean) => void) 
 const isEmpty = computed(() => resources.value.length === 0 && !loading.value && hasNext.value === false);
 
 const loadResources = async () => {
-  loading.value = true;
-  try {
-    await load(props.query);
-  } finally {
-    loading.value = false;
-  }
+  await load(props.query);
   currentPage.value = 0;
   emit("page-loaded", currentPage.value);
 }
@@ -155,8 +143,13 @@ watch(() => props.filter, (newFilter, oldFilter) => {
   }
 })
 
+const init = async () => {
+  await loadResources();
+}
+init()
+
 defineExpose({
-  load,
-  loadNext
+  // Load method is called when searching or filtering
+  load: loadResources
 })
 </script>
