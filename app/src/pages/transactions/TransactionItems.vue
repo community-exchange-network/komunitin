@@ -1,6 +1,5 @@
 <template>
   <ResourceCards
-    ref="resourceCards"
     v-slot="slotProps"
     :code="code"
     type="transfers"
@@ -72,8 +71,6 @@ const props = defineProps<{
    */
   to?: Date | null
 }>()
-
-const resourceCards = ref<InstanceType<typeof ResourceCards>>() 
 
 const store = useStore()
 
