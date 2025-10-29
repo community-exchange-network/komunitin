@@ -148,8 +148,4 @@ const init = async () => {
 }
 init()
 
-defineExpose({
-  // Load method is called when searching or filtering
-  load: loadResources
-})
 </script>

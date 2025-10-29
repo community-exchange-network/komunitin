@@ -7,7 +7,7 @@
     include="payer,payee,payee.currency"
     sort="-updated"
     :filter="filter"
-    :query="query"
+    :query="props.query"
     @page-loaded="fetchMembers"
   >
     <q-list
@@ -126,13 +126,5 @@ const loadedTransfers = (transfers: ResourceObject[]): ExtendedTransfer[] => {
     (transfer.payee?.member || transfer.relationships.payee.data.meta?.external && transfer.payee)
   ))
 }
-
-const fetchResources = (search: string): void => {
-  resourceCards.value?.load(search);
-}
-
-defineExpose({
-  fetchResources
-})
 
 </script>

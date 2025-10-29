@@ -4,7 +4,7 @@
       search
       :title="$t('members')"
       balance
-      @search="search"
+      @search="query = $event"
     />
     <q-page-container>
       <q-page>
@@ -23,11 +23,11 @@
         </div>
           
         <resource-cards
-          ref="memberItems"
           v-slot="slotProps"
           :code="code"
           type="members"
           include="contacts,account"
+          :query="query"
         >
           <q-list
             v-if="slotProps.resources"
@@ -87,11 +87,7 @@ const showBalances = computed(() =>
   || store.getters.isAdmin
 );
 
-const memberItems = ref<InstanceType<typeof ResourceCards>>();
-
-const search = (query: string) => {
-  memberItems.value?.load(query);
-}
+const query = ref("");
 
 
 </script>

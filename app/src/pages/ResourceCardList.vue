@@ -4,15 +4,15 @@
       search
       :title="title"
       balance
-      @search="load"
+      @search="query = $event"
     />
     <q-page-container>
       <q-page>
         <ResourceCards
-          ref="resourceCards"
           :code="props.code"
           :type="props.type"
           :include="props.include"
+          :query="query"
         />
         <slot name="after" />
       </q-page>
@@ -31,9 +31,6 @@ const props = defineProps<{
   include?: string
 }>()
 
-const resourceCards = ref<InstanceType<typeof ResourceCards>>()
-const load = (query: string) => {
-  resourceCards.value?.load(query)
-}
+const query = ref("");
 
 </script>
