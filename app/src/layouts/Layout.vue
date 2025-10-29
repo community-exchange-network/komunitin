@@ -21,7 +21,7 @@
           <menu-drawer />
         </q-drawer>
         <router-view />
-        <q-footer class="lt-md">
+        <q-footer class="lt-md" v-if="myMember">
           <q-toolbar>
             <q-tabs breakpoint="1024" class="full-width">
               <q-route-tab :to="{ name: 'Home' }" name="home" icon="home" :label="t('home')" />
@@ -58,7 +58,7 @@ const drawerState = computed({
 const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
 
 const myMember = computed(() => store.getters.myMember)
-const groupCode = computed(() => myMember?.value.group.attributes.code)
+const groupCode = computed(() => myMember.value?.group.attributes.code)
 
 </script>
 <style lang="scss" scoped>
