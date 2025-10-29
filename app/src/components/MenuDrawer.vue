@@ -121,7 +121,7 @@
         :to="`/groups/${groupCode}/admin/transactions`"
       />
     </template>
-    <template v-if="isSuperAdmin">
+    <template v-if="isSuperadmin">
       <q-separator />
       <div class="text-overline text-onsurface-d q-pl-md q-pt-md text-uppercase">
         {{ $t('administration') }}
@@ -177,7 +177,7 @@ const myAccount = computed(() => store.getters.myAccount)
 const groupCode = computed(() => myMember?.value.group.attributes.code)
 
 const isAdmin = computed(() => store.getters.isAdmin)
-const isSuperAdmin = computed(() => store.getters.isSuperAdmin)
+const isSuperadmin = computed(() => store.getters.isSuperadmin)
 
 const isLegacyAccounting = computed(() => store.getters.isLegacyAccounting)
 

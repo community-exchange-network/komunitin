@@ -111,7 +111,7 @@ const loadGroups = async () => {
     })
     loading.value = false
     while (store.getters['groups/hasNext']) {
-      await store.dispatch('groups/loadNext')
+      await store.dispatch('groups/loadNext', {})
     }
   } finally {
     loading.value = false
