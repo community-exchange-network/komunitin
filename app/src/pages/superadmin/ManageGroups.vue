@@ -43,6 +43,27 @@
               round
               @click="settings(props.row)"
             />
+            <q-btn
+              icon="manage_accounts"
+              color="icon-dark"
+              flat
+              round
+              :to="`/groups/${props.row.code}/admin/accounts`"
+            />
+            <q-btn
+              icon="list_alt"
+              color="icon-dark"
+              flat
+              round
+              :to="`/groups/${props.row.code}/admin/transactions`"
+            />
+            <q-btn
+              icon="insert_chart"
+              color="icon-dark"
+              flat
+              round
+              :to="`/groups/${props.row.code}/stats`"
+            />
           </q-td>
         </template>
       </q-table>
