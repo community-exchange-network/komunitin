@@ -24,10 +24,10 @@ describe("Needs", () => {
   afterAll(() => wrapper.unmount());
 
   it("Loads needs and searches", async () => {
-    await wrapper.vm.$router.push("/login");
     // Wait for login redirect
-    await flushPromises();
-    expect(wrapper.vm.$route.path).toBe("/groups/GRP0/needs");
+    await wrapper.vm.$wait();
+    await wrapper.vm.$router.push("/groups/GRP0/needs");
+    await wrapper.vm.$nextTick();
     expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
     // Load.
     await wrapper.vm.$wait();

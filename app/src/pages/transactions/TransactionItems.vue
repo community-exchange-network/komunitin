@@ -1,13 +1,12 @@
 <template>
   <ResourceCards
-    ref="resourceCards"
     v-slot="slotProps"
     :code="code"
-    module-name="transfers"
+    type="transfers"
     include="payer,payee,payee.currency"
     sort="-updated"
     :filter="filter"
-    :query="query"
+    :query="props.query"
     @page-loaded="fetchMembers"
   >
     <q-list
@@ -46,7 +45,7 @@ import { computed, ref } from "vue"
 import ResourceCards from "../ResourceCards.vue";
 import TransactionItem from "src/components/TransactionItem.vue";
 import { useStore } from "vuex";
-import type { ExtendedTransfer, Account, Currency } from "../../store/model";
+import type { ExtendedTransfer, Account, Currency, ResourceObject } from "../../store/model";
 import type { LoadListPayload } from "src/store/resources";
 
 const props = defineProps<{
@@ -72,8 +71,6 @@ const props = defineProps<{
    */
   to?: Date | null
 }>()
-
-const resourceCards = ref<typeof ResourceCards>()
 
 const store = useStore()
 
@@ -119,20 +116,12 @@ const fetchMembers = async (page: number) => {
  * reactive library. This function, instead, uses the plain dictionary this.transferLoaded
  * which does have the reactive properties.
  */
-const loadedTransfers = (transfers: ExtendedTransfer[]): ExtendedTransfer[] => {
-  return transfers.filter(transfer => transferLoaded.value[transfer.id] || (
+const loadedTransfers = (transfers: ResourceObject[]): ExtendedTransfer[] => {
+  return (transfers as ExtendedTransfer[]).filter(transfer => transferLoaded.value[transfer.id] || (
     (transfer.payer?.member || transfer.relationships.payer.data.meta?.external && transfer.payer) 
     && 
     (transfer.payee?.member || transfer.relationships.payee.data.meta?.external && transfer.payee)
   ))
 }
-
-const fetchResources = (search: string): void => {
-  resourceCards.value?.fetchResources(search);
-}
-
-defineExpose({
-  fetchResources
-})
 
 </script>

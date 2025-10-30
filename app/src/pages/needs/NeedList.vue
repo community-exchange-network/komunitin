@@ -3,8 +3,7 @@
     :card="card"
     :code="code"
     :title="$t('needs')"
-    prop-name="need"
-    module-name="needs"
+    type="needs"
     include="category,member,member.contacts"
   >
     <template #after>

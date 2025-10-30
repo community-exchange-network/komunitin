@@ -3,8 +3,7 @@
     :card="card"
     code=""
     :title="$t('groupsNearYou')"
-    prop-name="group"
-    module-name="groups"
+    type="groups"
     include="contacts"
   />
 </template>

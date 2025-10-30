@@ -21,10 +21,10 @@
           <menu-drawer />
         </q-drawer>
         <router-view />
-        <q-footer class="lt-md">
+        <q-footer class="lt-md" v-if="myMember">
           <q-toolbar>
             <q-tabs breakpoint="1024" class="full-width">
-              <q-route-tab :to="{ name: 'Group', params: { code: groupCode }}" name="home" icon="home" :label="t('home')" />
+              <q-route-tab :to="{ name: 'Home' }" name="home" icon="home" :label="t('home')" />
               <q-route-tab :to="{ name: 'TransactionList', params: { code: groupCode, memberCode: myMember.attributes.code}}" name="account" icon="account_balance_wallet" :label="t('account')" />
               <q-route-tab :to="{ name: 'MemberList', params: { code: groupCode }}" name="group" icon="diversity_3" :label="t('group')" />
             </q-tabs>
@@ -58,7 +58,7 @@ const drawerState = computed({
 const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
 
 const myMember = computed(() => store.getters.myMember)
-const groupCode = computed(() => myMember?.value.group.attributes.code)
+const groupCode = computed(() => myMember.value?.group.attributes.code)
 
 </script>
 <style lang="scss" scoped>

@@ -2,8 +2,7 @@
   <resource-cards
     :card="card"
     :code="groupCode"
-    prop-name="offer"
-    module-name="offers"
+    type="offers"
     include="category"
     :filter="filter"
   />

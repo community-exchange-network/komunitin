@@ -20,7 +20,7 @@ describe("logged in", () => {
     router.push("/login")
     await flushPromises()
     await wrapper.vm.$wait()
-    expect(wrapper.vm.$route.path).toBe("/groups/GRP0/needs");
+    expect(wrapper.vm.$route.path).toBe("/home");
     
     const text = wrapper.text();
     // Member name

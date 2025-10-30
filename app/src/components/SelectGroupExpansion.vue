@@ -23,7 +23,7 @@
         <resource-cards
           v-slot="slotProps"
           code=""
-          module-name="groups"
+          type="groups"
           :cache="1000*60*5"
           @page-loaded="onPageLoaded"
         >

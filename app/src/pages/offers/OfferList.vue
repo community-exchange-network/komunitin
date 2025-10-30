@@ -1,10 +1,8 @@
 <template>
   <resource-card-list
-    :card="card"
     :code="code"
     :title="$t('offers')"
-    prop-name="offer"
-    module-name="offers"
+    type="offers"
     include="category,member,member.group,member.group.currency,member.account"
   >
     <template #after>
