@@ -10,8 +10,9 @@
         :rows="rows" :columns="columns" :loading="loading"
         row-key="id" flat
         class="full-width text-onsurface"
+        :binary-state-sort="true"
         :pagination="{
-          sortBy: 'code',
+          sortBy: 'status',
           rowsPerPage: 20,
         }"
       >
@@ -78,10 +79,19 @@ import { useRouter } from 'vue-router';
 
 import PageHeader from '../../layouts/PageHeader.vue';
 
+const compareStatus = (a: string, b: string) => {
+  const order = {
+    'pending': 0,
+    'active': 1,
+    'disabled': 2,
+  }
+  return (order[a] ?? 99) - (order[b] ?? 99)
+}
+
 const columns = [
   { name: 'code', label: 'Code', field: 'code', sortable: true, style: 'width: 100px; font-family: monospace; font-weight: bold;' },
   { name: 'name', label: 'Name', field: 'name', sortable: true },
-  { name: 'status', label: 'Status', field: 'status', sortable: true },
+  { name: 'status', label: 'Status', field: 'status', sortable: true, sort: compareStatus },
   { name: 'created', label: 'Created', field: 'created', sortable: true },
   { name: 'members', label: 'Members', field: 'members', sortable: true },
   { name: 'actions', label: 'Actions', field: 'actions', sortable: false },
@@ -93,7 +103,7 @@ const statusColor = (status: string) => {
       return 'green'
     case 'disabled':
       return 'red'
-    case 'new':
+    case 'pending':
       return 'blue'
     default:
       return 'grey'
