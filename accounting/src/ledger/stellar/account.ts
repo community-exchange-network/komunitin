@@ -84,10 +84,13 @@ export class StellarAccount implements LedgerAccount {
    */
   async credit(): Promise<string> {
     const transfers = await this.transfers()
-    return transfers
+    const positive = transfers
       .filter(t => t.payer == this.currency.data.creditPublicKey)
       .reduce((amount, transfer) => Big(transfer.amount).add(amount), Big(0))
-      .toString()
+    const negative = transfers
+      .filter(t => t.payee == this.currency.data.creditPublicKey)
+      .reduce((amount, transfer) => Big(transfer.amount).add(amount), Big(0))
+    return positive.sub(negative).toString()
   }
 
   /**
