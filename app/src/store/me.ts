@@ -156,7 +156,7 @@ export default {
     isAdmin: (state, getters) => {
       return state.myUserId !== undefined 
         && !getters.isLegacyAccounting
-        && getters.myCurrency.relationships.admins.data.some((r: { id: string }) => r.id === state.myUserId)
+        && getters.myCurrency?.relationships.admins.data.some((r: { id: string }) => r.id === state.myUserId)
     },
     isSuperadmin: (state) => {
       return state.tokens?.scopes?.includes(Auth.SUPERADMIN_SCOPE)
