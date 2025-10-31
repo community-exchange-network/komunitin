@@ -160,7 +160,6 @@ const myAccount = computed(() => store.getters.myAccount)
 const groupCode = computed(() => myMember?.value.group.attributes.code)
 
 const isAdmin = computed(() => store.getters.isAdmin)
-const isSuperadmin = computed(() => store.getters.isSuperadmin)
 
 const isLegacyAccounting = computed(() => store.getters.isLegacyAccounting)
 
