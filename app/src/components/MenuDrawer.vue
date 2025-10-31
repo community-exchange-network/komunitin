@@ -121,23 +121,6 @@
         :to="`/groups/${groupCode}/admin/transactions`"
       />
     </template>
-    <template v-if="isSuperadmin">
-      <q-separator />
-      <div class="text-overline text-onsurface-d q-pl-md q-pt-md text-uppercase">
-        {{ $t('administration') }}
-      </div>
-      <menu-item
-        icon="supervisor_account"
-        title="Manage Groups"
-        to="/superadmin/groups"
-      />
-      <menu-item
-        icon="sync_alt"
-        title="Migrations"
-        to="/superadmin/migrations"
-      />
-    </template>
-
     <q-separator />
 
     <menu-item
