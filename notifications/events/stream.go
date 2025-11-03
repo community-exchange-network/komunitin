@@ -43,6 +43,7 @@ const (
 	OfferExpired      = "OfferExpired"
 	MemberJoined      = "MemberJoined"
 	MemberRequested   = "MemberRequested"
+	GroupRequested    = "GroupRequested"
 	GroupActivated    = "GroupActivated"
 )
 

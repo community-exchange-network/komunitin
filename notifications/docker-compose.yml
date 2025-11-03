@@ -22,6 +22,8 @@ services:
       - NOTIFICATIONS_EVENTS_USERNAME=integralces
       - NOTIFICATIONS_EVENTS_PASSWORD=komunitin
       - MAILERSEND_API_KEY=${MAILERSEND_API_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - APP_EMAIL=${APP_EMAIL}
       - SEND_MAILS=true
     volumes:
       - "./komunitin-project-firebase-adminsdk.json:/opt/notifications/komunitin-project-firebase-adminsdk.json"
@@ -47,6 +49,8 @@ services:
       - NOTIFICATIONS_EVENTS_USERNAME=integralces
       - NOTIFICATIONS_EVENTS_PASSWORD=komunitin
       - MAILERSEND_API_KEY=${MAILERSEND_API_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - APP_EMAIL=${APP_EMAIL}
       - SEND_MAILS=true
     profiles:
       - "dev"
