@@ -37,34 +37,55 @@
               round
               @click="edit(props.row)"
             />
-            <q-btn
-              icon="settings"
-              color="icon-dark"
-              flat
-              round
-              @click="settings(props.row)"
-            />
-            <q-btn
-              icon="manage_accounts"
-              color="icon-dark"
-              flat
-              round
-              :to="`/groups/${props.row.code}/admin/accounts`"
-            />
-            <q-btn
-              icon="list_alt"
-              color="icon-dark"
-              flat
-              round
-              :to="`/groups/${props.row.code}/admin/transactions`"
-            />
-            <q-btn
-              icon="insert_chart"
-              color="icon-dark"
-              flat
-              round
-              :to="`/groups/${props.row.code}/stats`"
-            />
+            <template v-if="props.row.status !== 'pending'">
+              <q-btn
+                icon="settings"
+                color="icon-dark"
+                flat
+                round
+                @click="settings(props.row)"
+              />
+              <q-btn
+                icon="manage_accounts"
+                color="icon-dark"
+                flat
+                round
+                :to="`/groups/${props.row.code}/admin/accounts`"
+              />
+              <q-btn
+                icon="list_alt"
+                color="icon-dark"
+                flat
+                round
+                :to="`/groups/${props.row.code}/admin/transactions`"
+              />
+              <q-btn
+                icon="insert_chart"
+                color="icon-dark"
+                flat
+                round
+                :to="`/groups/${props.row.code}/stats`"
+              />
+            </template>
+            <template v-else>
+              <confirm-btn
+                icon="check_circle"
+                color="green"
+                btn-color="icon-dark"
+                flat
+                round
+                label="Activate Group"
+                @confirm="activateGroup(props.row.code)"
+              >
+                Are you sure you want to activate group {{props.row.name}}?
+              </confirm-btn>
+              <delete-btn
+                color="icon-dark"
+                @confirm="deleteGroup(props.row.code)"
+              >
+                Are you sure you want to delete group {{props.row.name}}?
+              </delete-btn>
+            </template>
           </q-td>
         </template>
       </q-table>
@@ -78,6 +99,9 @@ import type { Group } from '../../store/model';
 import { useRouter } from 'vue-router';
 
 import PageHeader from '../../layouts/PageHeader.vue';
+import DeleteBtn from '../../components/DeleteBtn.vue';
+import ConfirmBtn from '../../components/ConfirmBtn.vue';
+import { useQuasar } from 'quasar';
 
 const compareStatus = (a: string, b: string) => {
   const order = {
@@ -89,12 +113,12 @@ const compareStatus = (a: string, b: string) => {
 }
 
 const columns = [
-  { name: 'code', label: 'Code', field: 'code', sortable: true, style: 'width: 100px; font-family: monospace; font-weight: bold;' },
-  { name: 'name', label: 'Name', field: 'name', sortable: true },
-  { name: 'status', label: 'Status', field: 'status', sortable: true, sort: compareStatus },
-  { name: 'created', label: 'Created', field: 'created', sortable: true },
-  { name: 'members', label: 'Members', field: 'members', sortable: true },
-  { name: 'actions', label: 'Actions', field: 'actions', sortable: false },
+  { name: 'code', label: 'Code', field: 'code', align: "left", sortable: true, classes: 'text-overline text-uppercase' },
+  { name: 'name', label: 'Name', field: 'name', align: "left", sortable: true },
+  { name: 'status', label: 'Status', field: 'status', align: "left", sortable: true, sort: compareStatus },
+  { name: 'created', label: 'Created', field: 'created', align: "left", sortable: true },
+  { name: 'members', label: 'Members', field: 'members', align: "left", sortable: true },
+  { name: 'actions', label: 'Actions', field: 'actions', align: "left", sortable: false },
 ]
 
 const statusColor = (status: string) => {
@@ -160,5 +184,37 @@ const edit = (row: Row) => {
 
 // initialize
 loadGroups()
+
+const quasar = useQuasar()
+
+const activateGroup = async (code: string) => {
+  quasar.loading.show({
+    message: 'Activating group...'
+  })
+  try {
+    await store.dispatch('groups/update', {
+      id: code,
+      group: code,
+      resource: {
+        attributes: {
+          status: 'active'
+        }
+      }
+    })
+    await loadGroups()
+    quasar.notify({
+      type: 'positive',
+      message: 'Group activated successfully'
+    })
+  } finally {
+    quasar.loading.hide()
+  }
+}
+const deleteGroup = async (code: string) => {
+  await store.dispatch('groups/delete', {
+    id: code
+  })
+  await loadGroups()
+}
 
 </script>
