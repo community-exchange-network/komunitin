@@ -9,6 +9,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 
 	"github.com/komunitin/komunitin/notifications/api"
 	"github.com/komunitin/komunitin/notifications/config"
@@ -92,6 +94,8 @@ func handleEvent(ctx context.Context, event *events.Event) error {
 		return handleMemberRequested(ctx, event)
 	case events.GroupActivated:
 		return handleGroupActivated(ctx, event)
+	case events.GroupRequested:
+		return handleGroupRequested(ctx, event)
 	}
 	return nil
 }
@@ -292,9 +296,27 @@ func handleGroupActivated(ctx context.Context, event *events.Event) error {
 	return err
 }
 
+func handleGroupRequested(ctx context.Context, event *events.Event) error {
+	group, err := api.GetGroup(ctx, event.Code)
+	if err != nil {
+		return err
+	}
+	t, err := i18n.NewTranslator("en")
+	if err != nil {
+		return err
+	}
+	templateData := buildGroupRequestedTemplateData(t, group)
+	recipient := parseEmailAddress(config.AdminEmail)
+	message, err := buildTextMessage(t, templateData)
+	if err != nil {
+		return err
+	}
+
+	return sendEmail(ctx, message, recipient.Name, recipient.Email)
+}
+
 func sendEmail(ctx context.Context, message *Email, name string, email string) error {
-	message.From.Name = "Komunitin"
-	message.From.Email = "noreply@komunitin.org"
+	message.From = parseEmailAddress(config.AppEmail)
 
 	message.AddRecipient(name, email)
 	return mailSender.SendMail(ctx, *message)
@@ -355,4 +377,24 @@ func sendGroupActivatedEmail(ctx context.Context, admin *api.User, group *api.Gr
 	}
 
 	return sendEmail(ctx, message, "", admin.Email)
+}
+
+func parseEmailAddress(address string) Recipient {
+	// Regular expression to match "Name <email@domain.com>" format
+	re := regexp.MustCompile(`^(.+?)\s*<(.+?)>$`)
+	matches := re.FindStringSubmatch(strings.TrimSpace(address))
+
+	if len(matches) == 3 {
+		// Format: "Name <email>"
+		return Recipient{
+			Name:  strings.TrimSpace(matches[1]),
+			Email: strings.TrimSpace(matches[2]),
+		}
+	}
+
+	// Format: just "email" without name
+	return Recipient{
+		Name:  "",
+		Email: strings.TrimSpace(address),
+	}
 }
