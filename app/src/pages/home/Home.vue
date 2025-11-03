@@ -2,6 +2,7 @@
   <page-header
       search
       :title="$t('home')"
+      balance
       @search="query = $event"
     />
   <q-page-container>
