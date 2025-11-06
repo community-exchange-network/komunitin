@@ -27,6 +27,7 @@
 
     <!-- Need text -->
     <q-card-section>
+      <span class="uppercase text-onsurface-m text-overline">{{$t('need')}}</span>
       <div
         v-clamp="hasImages ? 3 : 13"
         class="text-body2 text-justify text-onsurface-m"

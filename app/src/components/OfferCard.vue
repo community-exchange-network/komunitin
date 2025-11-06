@@ -27,6 +27,7 @@
 
     <!-- offer title and description -->
     <q-card-section>
+      <span class="uppercase text-onsurface-m text-overline">{{$t('offer')}}</span>
       <div class="text-h6">
         {{ offer.attributes.name }}
       </div>
@@ -69,7 +70,6 @@
 </template>
 <script lang="ts">
 import { computed, defineComponent, ref, watch } from "vue";
-
 import cardClickTo from "../plugins/CardClickTo";
 import clamp from "../plugins/Clamp";
 import md2txt from "../plugins/Md2txt";
@@ -108,26 +108,26 @@ export default defineComponent({
   setup(props) {
     const store = useStore()
     const group = computed(() => props.offer.member.group)
-
+    
     const currency = ref(group.value.currency)
     watch(() => group.value.currency, (value) => currency.value = value)
-
+    
     const price = computed(() => currency.value ? formatPrice(props.offer.attributes.price, currency.value) : '')
     const canEdit = computed(() => 
-      props.offer.member.id === store.getters.myMember.id
-      || store.getters.isAdmin
-    )
-    const hidden = computed(() => props.offer.attributes.state === "hidden" || props.offer.member.attributes.state !== "active")
-    const expired = computed(() => new Date(props.offer.attributes.expires) < new Date())
-
-    return {
-      price,
-      canEdit,
-      md2txt,
-      isHidden: hidden,
-      isExpired: expired
-    }
+    props.offer.member.id === store.getters.myMember.id
+    || store.getters.isAdmin
+  )
+  const hidden = computed(() => props.offer.attributes.state === "hidden" || props.offer.member.attributes.state !== "active")
+  const expired = computed(() => new Date(props.offer.attributes.expires) < new Date())
+  
+  return {
+    price,
+    canEdit,
+    md2txt,
+    isHidden: hidden,
+    isExpired: expired
   }
+}
 })
 
 </script>
