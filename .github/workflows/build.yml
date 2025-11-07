@@ -146,4 +146,12 @@ jobs:
         && cd komunitin && git fetch origin && git checkout origin/${{ github.head_ref }}
         && docker compose down -v --remove-orphans
         && ./start.sh --up --ices --demo --public"
-    
+    - name: Deploy staging.komunitin.org
+      if: github.ref == 'refs/heads/master'
+      run: > 
+        ssh-keyscan -H staging.komunitin.org >> ~/.ssh/known_hosts &&
+        ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@staging.komunitin.org
+        "cd /opt/staging.komunitin.org
+        && cd ices && git pull && cd ..
+        && cd komunitin && git pull
+        && ./start.sh --up --public"
