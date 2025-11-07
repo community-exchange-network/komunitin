@@ -5,11 +5,11 @@ services:
       - "80"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.app.loadbalancer.server.port=80"
-      - "traefik.http.routers.app.rule=Host(`${KOMUNITIN_DOMAIN}`)"
-      - "traefik.http.routers.app.entrypoints=websec"
-      - "traefik.http.routers.app.tls=true"
-      - "traefik.http.routers.app.tls.certresolver=myresolver"
+      - "traefik.http.services.app-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=80"
+      - "traefik.http.routers.app-${COMPOSE_PROJECT_NAME}.rule=Host(`${KOMUNITIN_DOMAIN}`)"
+      - "traefik.http.routers.app-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
+      - "traefik.http.routers.app-${COMPOSE_PROJECT_NAME}.tls=true"
+      - "traefik.http.routers.app-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
     networks:
       - proxy
   
@@ -19,11 +19,11 @@ services:
       - "2028"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.notifications.loadbalancer.server.port=2028"
-      - "traefik.http.routers.notifications.rule=Host(`notifications.${KOMUNITIN_DOMAIN}`)"
-      - "traefik.http.routers.notifications.entrypoints=websec"
-      - "traefik.http.routers.notifications.tls=true"
-      - "traefik.http.routers.notifications.tls.certresolver=myresolver"
+      - "traefik.http.services.notifications-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=2028"
+      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.rule=Host(`notifications.${KOMUNITIN_DOMAIN}`)"
+      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
+      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.tls=true"
+      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
     networks:
       - proxy
   
@@ -33,11 +33,11 @@ services:
       - "2025"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.accounting.loadbalancer.server.port=2025"
-      - "traefik.http.routers.accounting.rule=Host(`accounting.${KOMUNITIN_DOMAIN}`)"
-      - "traefik.http.routers.accounting.entrypoints=websec"
-      - "traefik.http.routers.accounting.tls=true"
-      - "traefik.http.routers.accounting.tls.certresolver=myresolver"
+      - "traefik.http.services.accounting-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=2025"
+      - "traefik.http.routers.accounting-${COMPOSE_PROJECT_NAME}.rule=Host(`accounting.${KOMUNITIN_DOMAIN}`)"
+      - "traefik.http.routers.accounting-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
+      - "traefik.http.routers.accounting-${COMPOSE_PROJECT_NAME}.tls=true"
+      - "traefik.http.routers.accounting-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
     networks:
       - proxy
   
@@ -47,11 +47,11 @@ services:
       - "2029"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.integralces.loadbalancer.server.port=2029"
-      - "traefik.http.routers.integralces.rule=Host(`integralces.${KOMUNITIN_DOMAIN}`)"
-      - "traefik.http.routers.integralces.entrypoints=websec"
-      - "traefik.http.routers.integralces.tls=true"
-      - "traefik.http.routers.integralces.tls.certresolver=myresolver"
+      - "traefik.http.services.integralces-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=2029"
+      - "traefik.http.routers.integralces-${COMPOSE_PROJECT_NAME}.rule=Host(`integralces.${KOMUNITIN_DOMAIN}`)"
+      - "traefik.http.routers.integralces-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
+      - "traefik.http.routers.integralces-${COMPOSE_PROJECT_NAME}.tls=true"
+      - "traefik.http.routers.integralces-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
     networks:
       - proxy
 
