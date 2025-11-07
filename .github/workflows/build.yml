@@ -145,6 +145,5 @@ jobs:
         && cd ices && git pull && cd ..
         && cd komunitin && git fetch origin && git checkout origin/${{ github.head_ref }}
         && docker compose down -v --remove-orphans
-        && docker compose -f compose.proxy.yml up -d
         && ./start.sh --up --ices --demo --public"
     
