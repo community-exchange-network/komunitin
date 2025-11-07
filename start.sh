@@ -57,15 +57,19 @@ sleep 10
 
 fi
 
+# Install Accounting service
 if [ "$demo" = true  ]; then
-  # Install Accounting service
   docker compose exec accounting pnpm prisma migrate reset --force
+  sleep 2
+else
+  docker compose exec accounting pnpm prisma migrate deploy
   sleep 2
 fi
 
 # Install IntegralCES
 
 if [ "$ices" = true ]; then
+  echo "Installing IntegralCES"
   export BASE_URL=$ICES_URL
   ices_args=()
   [ "$dev" = true ] && ices_args+=("--dev")
@@ -76,6 +80,9 @@ if [ "$ices" = true ]; then
   docker compose exec integralces drush vset ces_komunitin_accounting_url $KOMUNITIN_ACCOUNTING_URL
   docker compose exec integralces drush vset ces_komunitin_accounting_url_internal http://accounting:2025
   docker compose exec integralces drush vset ces_komunitin_notifications_url_internal http://notifications:2028
+else
+  echo "Updating IntegralCES"
+  docker compose exec integralces drush updatedb -y
 fi
 
 # Migrate ICES demo data to the accounting service
