@@ -1,20 +1,22 @@
 <template>
   <q-page-sticky
-    position="bottom"
-    :offset="[0, 24]"
+    :position="q.screen.gt.sm ? 'bottom' : 'bottom-right'"
+    :offset="q.screen.gt.sm ? [24,24]: [16,16]"
   >
     <q-btn 
       v-bind="$attrs" 
+      no-caps
       fab
     />
   </q-page-sticky>
 </template>
-<script lang="ts">
-import { defineComponent } from "vue"
+<script setup lang="ts">
+import { useQuasar } from 'quasar'
 
-export default defineComponent({
-  name: "FloatingBtn",
+defineOptions({
   inheritAttrs: false,
 })
+
+const q = useQuasar();
 
 </script>
