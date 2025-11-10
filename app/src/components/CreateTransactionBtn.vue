@@ -1,13 +1,23 @@
 <template>
-  <floating-btn-menu 
+  <floating-btn-menu
+    v-if="actions.length > 1" 
     :actions="actions"
     color="primary"
     :label="t('createTransaction')"
     :disable="isDisabled"
   />
+  <floating-btn
+    v-else-if="actions.length == 1"
+    color="primary"
+    :icon="actions[0].icon"
+    :label="actions[0].label"
+    :to="actions[0].to"
+    :disable="actions[0].disable"
+  />
 </template>
 <script lang="ts" setup>
 import FloatingBtnMenu, { type FABAction } from './FloatingBtnMenu.vue'
+import FloatingBtn from './FloatingBtn.vue'
 import { useMyAccountSettings } from 'src/composables/accountSettings'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
