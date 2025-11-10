@@ -90,6 +90,7 @@
   "deniedLocationText": "Aques dispositiu bloqueja l'accés a la teva localització pel que Komunitin no pot ordenar els recursos per proximitat. Pots solucionar-ho des de la configuració del teu navegador.",
   "enableLocation": "Activa la localizació",
   "dismiss": "Ignora",
+  "create": "Crea",
   "createTransaction": "Crear transacció",
   "enterTransactionData": "Entra les dades de la transacció",
   "selectPayer": "Escull el pagador o pagadora",

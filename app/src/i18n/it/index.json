@@ -90,6 +90,7 @@
   "enableLocation": "Abilita posizione",
   "enableNotifications": "Abilita notifiche",
   "dismiss": "Disattiva",
+  "create": "Crea",
   "createTransaction": "Crea transazione",
   "enterTransactionData": "Inserisci i dati della transazione",
   "selectPayer": "Seleziona acquirente",
