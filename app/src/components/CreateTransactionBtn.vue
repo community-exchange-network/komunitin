@@ -1,67 +1,20 @@
 <template>
-  <q-page-sticky
-    :expand="true"
-    position="bottom"
-    :offset="[0, 24]"
-    class="row justify-center"
-  >
-    <div 
-      class="row items-stretch q-col-gutter-md justify-center"
-    >
-      <div
-        v-if="showRequestPayment"
-        class="btn-col"
-      >
-        <q-btn
-          id="request-payment"
-          :disable="isDisabled"
-          class="full-width"
-          fab
-          icon="arrow_downward"
-          :color="color"
-          :label="$t('receive')"
-          :to="`/groups/${myMember.group.attributes.code}/members/${myMember.attributes.code}/transactions/receive`"
-        />
-      </div>
-      <div
-        v-if="showMakePayment"
-        class="btn-col"
-      >
-        <q-btn
-          id="make-payment"
-          :disable="isDisabled"
-          class="full-width"
-          fab
-          icon="arrow_upward"
-          :color="color"
-          :label="$t('send')"
-          :to="`/groups/${myMember.group.attributes.code}/members/${myMember.attributes.code}/transactions/send`"
-        />
-      </div>
-      <div
-        v-if="showTransfer"
-        class="btn-col"
-      >
-        <q-btn
-          id="make-transfer"
-          :disable="isDisabled"
-          class="full-width"
-          fab
-          icon="arrow_forward"
-          :color="color"
-          :label="$t('move')"
-          :to="`/groups/${myMember.group.attributes.code}/members/${myMember.attributes.code}/transactions/transfer`"
-        />
-      </div>
-    </div>
-  </q-page-sticky>
+  <floating-btn-menu 
+    :actions="actions"
+    color="primary"
+    :label="t('createTransaction')"
+    :disable="isDisabled"
+  />
 </template>
 <script lang="ts" setup>
+import FloatingBtnMenu, { type FABAction } from './FloatingBtnMenu.vue'
 import { useMyAccountSettings } from 'src/composables/accountSettings'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
+import { useI18n } from 'vue-i18n'
 
 const store = useStore()
+const { t } = useI18n()
 
 const myMember = computed(() => store.getters.myMember)
 const settings = useMyAccountSettings()
@@ -82,18 +35,41 @@ const isDisabled = computed(
   () => myMember.value?.attributes.state !== 'active' || myMember.value?.group.attributes.status !== 'active'
 )
 
-const color = computed(() => isDisabled.value ? 'grey' : 'primary')
+
+const actions = computed<FABAction[]>(() => {
+  const acts = []
+  if (showMakePayment.value) {
+    acts.push({
+      label: t('send'),
+      icon: 'arrow_upward',
+      color: 'surface',
+      textColor: 'primary',
+      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/send`,
+      disable: isDisabled.value
+    })
+  }
+  if (showRequestPayment.value) {
+    acts.push({
+      label: t('receive'),
+      icon: 'arrow_downward',
+      color: 'surface',
+      textColor: 'primary',
+      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/receive`,
+      disable: isDisabled.value
+    })
+  }
+  if (showTransfer.value) {
+    acts.push({
+      label: t('move'),
+      icon: 'arrow_forward',
+      color: 'surface',
+      textColor: 'primary',
+      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/transfer`,
+      disable: isDisabled.value
+    })
+  }
+  return acts
+})
 </script>
-<style lang="scss">
-.btn-col {
-  min-width: 150px;
-}
-</style>
-<style lang="scss">
-/* Fix issue with quasar default CSS*/
-.q-btn--fab i.q-icon {
-  margin: 0;
-  margin-right: 12px;
-}
-</style>
+
 
