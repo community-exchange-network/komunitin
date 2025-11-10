@@ -129,7 +129,7 @@
 
 import { ref, computed, type MaybeRef, toValue } from "vue";
 import { useStore } from "vuex"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import FormatCurrency from "../plugins/FormatCurrency";
 import Banner from "./Banner.vue";
 
@@ -158,10 +158,12 @@ const scrollOffset = ref(0)
 const offset = ref(0)
 
 const myAccount = computed(() => store.getters.myAccount)
+
+const route = useRoute()
 /**
  * Show the back button.
  */
-const showBack = computed(() => props.back != "" || !store.getters.drawerExists)
+const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExists)
 /**
  * Show the menu button.
  */
@@ -228,8 +230,10 @@ const router = useRouter()
 const goUp = () => {
   if (store.state.ui.previousRoute !== undefined) {
     router.back()
-  } else {
+  } else if (props.back){
     router.push(props.back)
+  } else {
+    router.push('/')
   }
 }
 
