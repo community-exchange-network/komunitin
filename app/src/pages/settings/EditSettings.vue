@@ -173,7 +173,7 @@ const props = defineProps<{
 const store = useStore()
 const router = useRouter()
 
-const isAdmin = computed(() => store.getters.isAdmin)
+const isAdmin = computed(() => store.getters.isAdmin || store.getters.isSuperadmin)
 
 // Load member & user.
 const {user, member} = useFullMemberByCode(() => props.code, () => props.memberCode)

@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "description": "Open System for Exchange Communities",
   "productName": "Komunitin",
-  "author": "komunitin <komunitinbox@gmail.com>",
+  "author": "Komunitin Team <info@komunitin.org>",
   "private": true,
   "type": "module",
   "scripts": {

@@ -8,7 +8,7 @@ Want to be aware of the main news around Komunitin? Subscribe to the newsletter 
 
 ### Email
 
-Send us a mail to [komunitinbox@gmail.com](mailto:komunitinbox@gmail.com).
+Send us a mail to [info@komunitin.org](mailto:info@komunitin.org).
 
 ###
 
