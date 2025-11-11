@@ -328,7 +328,12 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/superadmin',
-        children: [{
+        children: [
+        {
+          path: '',
+          redirect: '/superadmin/groups',
+        },
+        {
           path: 'groups',
           name: 'ManageGroups',
           component: () => import('../pages/superadmin/ManageGroups.vue'),

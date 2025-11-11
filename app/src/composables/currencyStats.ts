@@ -57,8 +57,20 @@ async function getCurrencyStats(options: Omit<CurrencyStatsOptions, "change">, a
 
   // Build the query
   const query = new URLSearchParams()
-  if (from) query.set("from", from.toISOString())
-  if (to) query.set("to", to.toISOString())
+  
+  if (from) {
+    const queryFrom = new Date(from)
+    queryFrom.setUTCMinutes(0, 0, 0)
+    query.set("from", queryFrom.toISOString())
+  }
+  if (to) {
+    const queryTo = new Date(to)
+    if (to.getUTCMinutes() !== 0) {
+      queryTo.setUTCMinutes(0, 0, 0)
+      queryTo.setUTCHours(queryTo.getUTCHours() + 1)
+    }
+    query.set("to", queryTo.toISOString())
+  }
   if (interval) query.set("interval", interval)
 
   if (parameters) {
@@ -103,10 +115,11 @@ export function useCurrencyStats(options: MaybeRefOrGetter<CurrencyStatsOptions>
         throw new Error("Cannot compute previous data without a start date")
       }
       const newFrom = new Date(from.getTime() - ((to?.getTime() ?? Date.now()) - from.getTime()))
+      const newTo = new Date(from)
       result.value.previous = await getCurrencyStats({
         ...statsOptions,
         from: newFrom,
-        to: from
+        to: newTo
       }, accessToken)
     }
 
@@ -176,22 +189,22 @@ export const roundDate = (input: Date, interval: CurrencyStatsOptions['interval'
   const date = new Date(input)
   switch (interval) {
     case 'PT1H':
-      date.setMinutes(0, 0, 0)
+      date.setUTCMinutes(0, 0, 0)
       break
     case 'P1D':
-      date.setHours(0, 0, 0, 0)
+      date.setUTCHours(0, 0, 0, 0)
       break
     case 'P1W':
-      date.setHours(0, 0, 0, 0)
-      date.setDate(date.getDate() - date.getDay())
+      date.setUTCHours(0, 0, 0, 0)
+      date.setUTCDate(date.getUTCDate() - date.getUTCDay())
       break
     case 'P1M':
-      date.setHours(0, 0, 0, 0)
-      date.setDate(1)
+      date.setUTCHours(0, 0, 0, 0)
+      date.setUTCDate(1)
       break
     case 'P1Y':
-      date.setHours(0, 0, 0, 0)
-      date.setMonth(0, 1)
+      date.setUTCHours(0, 0, 0, 0)
+      date.setUTCMonth(0, 1)
       break
   }
   return date

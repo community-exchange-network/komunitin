@@ -151,7 +151,7 @@ watch(() => props.memberCode, (code) => fetchData(code), {immediate: true})
 
 const member = computed(() => fetched.value ? store.getters['members/current'] : undefined)
 const isMe = computed(() => member.value && myMember.value && member.value.id == myMember.value.id)
-const canEdit = computed(() => isMe.value || store.getters.isAdmin)
+const canEdit = computed(() => isMe.value || store.getters.isAdmin || store.getters.isSuperadmin)
 const editProfileUrl = computed(() => isMe.value ? "/profile" : `/groups/${props.code}/admin/members/${props.memberCode}/profile`)
 const settingsUrl = computed(() => isMe.value ? "/settings" : `/groups/${props.code}/admin/members/${props.memberCode}/settings`)
 

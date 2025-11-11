@@ -121,7 +121,6 @@
         :to="`/groups/${groupCode}/admin/transactions`"
       />
     </template>
-
     <q-separator />
 
     <menu-item
@@ -159,7 +158,9 @@ const route = useRoute()
 const myMember = computed(() => store.getters.myMember)
 const myAccount = computed(() => store.getters.myAccount)
 const groupCode = computed(() => myMember?.value.group.attributes.code)
+
 const isAdmin = computed(() => store.getters.isAdmin)
+
 const isLegacyAccounting = computed(() => store.getters.isLegacyAccounting)
 
 const groupActive = computed(() => (route.fullPath ==`/groups/${myMember.value.group.attributes.code}`))

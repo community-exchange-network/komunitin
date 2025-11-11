@@ -17,9 +17,9 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
 
   watch([() => toValue(groupCode), () => toValue(memberCode), () => (store.getters.myMember as Member)], async ([groupCodeStr, memberCodeStr, myMember]) => {
     // Wait for initialization
-    if (!myMember) return
+    if (!store.getters.myUser) return
 
-    if (groupCodeStr && memberCodeStr && memberCodeStr !== myMember.attributes.code) {
+    if (groupCodeStr && memberCodeStr && memberCodeStr !== myMember?.attributes.code) {
       // Load member from server
       await store.dispatch("members/load", {
         code: memberCodeStr,
