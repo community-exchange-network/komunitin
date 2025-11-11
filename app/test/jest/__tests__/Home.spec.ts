@@ -77,4 +77,15 @@ describe("Home", () => {
     expect(wrapper.findAllComponents(OfferCard).length).toBe(20);
     expect(wrapper.findAllComponents(NeedCard).length).toBe(1);
   });
+  
+  it('displays FAB', async () => {
+    const fab = wrapper.get('.q-fab');
+    expect(fab.text().includes('Create')).toBe(true);
+    await fab.trigger('click');
+    const actions = fab.findAll('.q-btn')
+    const offerBtn = actions.find(action => action.text().includes('Create offer'));
+    const needBtn = actions.find(action => action.text().includes('Create need'));
+    expect(offerBtn).toBeDefined();
+    expect(needBtn).toBeDefined();
+  })
 });
