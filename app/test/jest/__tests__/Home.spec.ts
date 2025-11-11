@@ -80,7 +80,7 @@ describe("Home", () => {
   
   it('displays FAB', async () => {
     const fab = wrapper.get('.q-fab');
-    expect(fab.text().includes('Create'))
+    expect(fab.text().includes('Create')).toBe(true);
     await fab.trigger('click');
     const actions = fab.findAll('.q-btn')
     const offerBtn = actions.find(action => action.text().includes('Create offer'));

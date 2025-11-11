@@ -12,7 +12,6 @@ import GroupHeader from "src/components/GroupHeader.vue";
 import CreateTransactionSendQR from "src/pages/transactions/CreateTransactionSendQR.vue";
 import NfcTagScanner from "src/components/NfcTagScanner.vue";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
-import CreateTransactionBtn from "../../../src/components/CreateTransactionBtn.vue";
 
 describe("Transactions", () => {
   let wrapper: VueWrapper;
@@ -80,8 +79,8 @@ describe("Transactions", () => {
 
     // Click "receive" in fab menu
     await wrapper.get(".q-fab").trigger("click");
-    const receiveBtn = wrapper.findAllComponents(QFabAction).filter(action => action.text().includes("Receive"))[0]; 
-    expect(receiveBtn.props().to).toBe("/groups/GRP0/members/EmilianoLemke57/transactions/receive")
+    const receiveBtn = wrapper.findAllComponents(QFabAction).filter(action => action.text().includes("Receive"))[0];
+    expect(receiveBtn.props().to).toBe("/groups/GRP0/members/EmilianoLemke57/transactions/receive");
 
     await receiveBtn.trigger("click");
     // For some reason the router link does not work in tests, so we directly

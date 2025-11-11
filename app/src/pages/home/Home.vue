@@ -39,7 +39,7 @@ const myMember = computed(() => store.getters.myMember)
 const code = computed(() => myMember?.value.group.attributes.code)
 
 const { t } = useI18n()
-const actions: FABAction[] = [{
+const actions = computed<FABAction[]>(() => [{
   label: t('createNeed'),
   icon: 'loyalty',
   color: 'kred',
@@ -49,6 +49,6 @@ const actions: FABAction[] = [{
   icon: 'local_offer',
   color: 'kblue',
   to: `/groups/${code.value}/offers/new`
-}]
+}])
 
 </script>
