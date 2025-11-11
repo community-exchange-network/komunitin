@@ -34,7 +34,7 @@
   "signIn": "Sign in",
   "groupActivatedSubject": "Your community {{.GroupName}} has been activated",
   "groupActivatedText": "Congratulations! Your community {{.GroupName}} has been activated.",
-  "groupActivatedSubtext": "You can now sign in and configure the community and currency settings, including allowed transfer methods, credit limits, categories for offers and needs, and more. After that you can invite members and start trading. Your administrator user comes with the first account. We recommend to keep this acount for administrative tasks and not for real trading. If you have any questions, please contact the team. Good luck making your community grow!",
+  "groupActivatedSubtext": "You can now sign in and configure the community and currency settings, including allowed transfer methods, credit limits, categories for offers and needs, and more. After that you can invite members and start trading. Your administrator user comes with the first account. We recommend to keep this account for administrative tasks and not for real trading. If you have any questions, please contact the team. Good luck making your community grow!",
   "groupRequestedSubject": "New community requested",
   "groupRequestedText": "A new community has just been requested: {{.GroupName}}.",
   "groupRequestedSubtext": "Please review the request and activate or delete the community as soon as possible.",
