@@ -27,7 +27,7 @@
 
     <!-- offer title and description -->
     <q-card-section>
-      <span class="uppercase text-onsurface-m text-overline">{{$t('offer')}}</span>
+      <span class="text-uppercase text-onsurface-m text-overline">{{$t('offer')}}</span>
       <div class="text-h6">
         {{ offer.attributes.name }}
       </div>
