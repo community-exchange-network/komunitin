@@ -18,7 +18,8 @@
           :width="256"
           @on-layout="drawerChange"
         >
-          <menu-drawer />
+          <menu-drawer v-if="!isSuperadmin"/>
+          <superadmin-menu-drawer v-else/>
         </q-drawer>
         <router-view />
         <q-footer class="lt-md" v-if="myMember">
@@ -43,22 +44,30 @@
  * using the PageHeader component.
  */
 import MenuDrawer from "../components/MenuDrawer.vue";
+//import SuperadminMenuDrawer from "../pages/superadmin/MenuDrawer.vue";
 import { useStore } from "vuex";
-import { computed } from "vue";
+
 import { useI18n } from 'vue-i18n';
+import { computed, defineAsyncComponent } from "vue"
 
 const store = useStore()
 const { t } = useI18n();
 
-const drawerExists = computed(() => store.getters.drawerExists)
+const isSuperadmin = computed(() => store.getters.isSuperadmin)
+
+const drawerExists = computed(() => store.getters.drawerExists || isSuperadmin.value)
+
 const drawerState = computed({
   get: () => store.state.ui.drawerState,
   set: (val) => store.commit('drawerState', val)
 })
+
 const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
 
 const myMember = computed(() => store.getters.myMember)
 const groupCode = computed(() => myMember.value?.group.attributes.code)
+// Lazy load the superadmin menu drawer in order to not load it for regular users.
+const SuperadminMenuDrawer = defineAsyncComponent(() => import("../pages/superadmin/MenuDrawer.vue"))
 
 </script>
 <style lang="scss" scoped>

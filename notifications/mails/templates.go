@@ -244,3 +244,21 @@ func buildGroupActivatedTemplateData(t *i18n.Translator, group *api.Group) Email
 
 	return templateData
 }
+
+func buildGroupRequestedTemplateData(t *i18n.Translator, group *api.Group) EmailTextData {
+	templateData := EmailTextData{
+		TemplateMainData: buildTemplateMainData(t),
+		TemplateTextData: TemplateTextData{
+			Text:    t.Td("groupRequestedText", map[string]string{"GroupName": group.Name}),
+			Subtext: t.T("groupRequestedSubtext"),
+		},
+		TemplateActionData: TemplateActionData{
+			ActionUrl:  config.KomunitinAppUrl + "/superadmin/groups",
+			ActionText: t.T("reviewRequests"),
+		},
+	}
+	templateData.Subject = t.Td("groupRequestedSubject", map[string]string{"GroupName": group.Name})
+	templateData.Greeting = t.T("helloAdmin")
+
+	return templateData
+}
