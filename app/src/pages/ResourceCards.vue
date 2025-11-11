@@ -124,8 +124,8 @@ const loadNextResources = async (index: number, done: (stop?: boolean) => void) 
     emit("page-loaded", currentPage.value);
   }
   // Stop loading if there is no next page. Note that we're not
-  // stopping the infinite scrolling if hasNext returns undcefined.
-  done(!hasNext.value);
+  // stopping the infinite scrolling if hasNext returns undefined.
+  done(hasNext.value === false);
 }
 
 const isEmpty = computed(() => resources.value.length === 0 && !loading.value && hasNext.value === false);
