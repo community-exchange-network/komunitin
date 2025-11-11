@@ -82,7 +82,7 @@
   "feedback": "Feedback",
   "komunitinProject": "Komunitin project",
   "nothingHere": "There's nothing here... Yet!",
-  "enableNotificationsText": "Enable notifications to be aware of movements in your account and important news in your group. You can configure or disable them later.",
+  "enableNotificationsText": "Enable notifications to be aware of movements in your account and important news in your community. You can configure or disable them later.",
   "deniedNotificationsText": "This device blocks our notifications. You may allow notifications from Komunitin in your browser settings.",
   "incompatibleNotificationsText": "This device doesn't support web push notifications. If you're on Safari you may update to version 16.4.",
   "enableLocationText": "Let Komunitin know your location so it can sort group resources based on proximity.",
