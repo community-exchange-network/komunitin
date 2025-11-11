@@ -53,8 +53,6 @@
     to="/home" 
     />
     
-    <q-separator />
-    
     <menu-item 
       id="menu-transactions" 
       icon="account_balance_wallet"
