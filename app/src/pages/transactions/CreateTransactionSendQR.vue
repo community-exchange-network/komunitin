@@ -36,7 +36,6 @@ import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue
 import KError, { KErrorCode } from "src/KError"
 import type { LoadByUrlPayload } from "src/store/resources"
 import { loadExternalAccountRelationships, useFullTransferByResource } from "src/composables/fullTransfer"
-import { useI18n } from "vue-i18n"
 import { convertCurrency } from "src/plugins/FormatCurrency"
 import { useAccountSettings } from "../../composables/accountSettings"
 
@@ -61,9 +60,6 @@ const payeeAccount = ref<Account|undefined>()
 
 const transfer = ref<ExtendedTransfer>()
 useFullTransferByResource(transfer)
-
-const errorMessage = ref<string>()
-const { t } = useI18n()
 
 const parsePaymentUrl = (paymentUrl: string) => {
   const url = new URL(paymentUrl)
@@ -148,9 +144,8 @@ const onPaymentUrl = async (paymentUrl: string) => {
     state.value = "confirm"
     
   } catch (error) {
-    errorMessage.value = t('qrInvalidError')
     if (error instanceof KError) {
-      throw new KError(KErrorCode.QRCodeError, error.message, error)  
+      throw error  
     } else {
       throw new KError(KErrorCode.QRCodeError, "Error parsing QR code", error)
     }
@@ -166,22 +161,18 @@ const onDetect = async (detectedCodes: DetectedCode[]) => {
 const onError = (error: Error) => {
   if (error.name === 'NotAllowedError') {
     // user denied camera access permission
-    errorMessage.value = t('ErrorCamNotAllowed')
-    throw new KError(KErrorCode.QRCodeError, errorMessage.value)
+    throw new KError(KErrorCode.CamNotAllowed, error.message, error)
   } else if (error.name === 'NotFoundError') {
     // no suitable camera device installed
-    errorMessage.value = t('ErrorCamNotFound')
-    throw new KError(KErrorCode.QRCodeError, errorMessage.value)
+    throw new KError(KErrorCode.CamNotFound, error.message, error)
   } else if (error.name === 'NotReadableError') {
     // maybe camera is already in use
-    errorMessage.value = t('ErrorCamNotReadable')
-    throw new KError(KErrorCode.QRCodeError, errorMessage.value)
+    throw new KError(KErrorCode.CamNotReadable, error.message, error)
   } else {
     // did you request the front camera although there is none?
     // browser seems to be lacking features
     // page is not served over HTTPS (or localhost)
-    errorMessage.value = t('ErrorCamUnknown')
-    throw new KError(KErrorCode.QRCodeError, errorMessage.value)
+    throw new KError(KErrorCode.CamUnknown, error.message, error)
   }
 }
 
