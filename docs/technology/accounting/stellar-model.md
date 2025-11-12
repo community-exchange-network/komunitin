@@ -8,25 +8,25 @@ This blockchain is ruled by the US-based non-proft The Stellar Foundation, aimin
 
 ## The model
 
-See the [monetary model](../../overview/monetary-model.md) page for an overview of the monetary scheme we're modeling.
+See the [currency model](../../features/accounting/currency-model-overview.md) page for an overview of the currency scheme we're modeling.
 
 Every account and every transaction is recorded in the stellar network. And every community currency is a different Stellar asset. So Komunitin transactions are faithfully represented in the Stellar blockchain.
 
-### Local payments
+### Local transfers
 
 * Each community has an issuer account and its own local asset in Stellar.
 * The asset is freezable and trustlines authorizable.
 * Each community has an administrator account in Stellar.
-* Each user maps to an account in Stellar. The user account has two signers, the user’s key and the administrator’s key. The user key is enough for payments, but the administrator is required for higher threshold operations.
+* Each user maps to an account in Stellar. The user account has two signers, the user's key and the administrator's key. The user key is enough for transfers, but the administrator is required for higher threshold operations.
 * Each user account has a trustline with the local asset. The value of this trustline is the positive maximum defined for this currency or particular account, if any.
-* The available credit for each user account (negative maximum) is modeled by “initial” payment(s) from the issuer account. The service will subtract these initial payments to the Stellar user balance to get the (eventually negative) user balance shown in the Komunitin app.
+* The available credit for each user account (negative maximum) is modeled by "initial" transfer(s) from the issuer account. The service will subtract these initial transfers from the Stellar user balance to get the (eventually negative) user balance shown in the Komunitin app.
 
-### External payments
+### External transfers
 
 * Each community has an external account.
 * The external account has a trustline and a balance of the local asset.
 * The external account is an issuer of the HOUR asset (each community issues their own HOUR asset).
-* External accounts from other groups can define trustlines to this HOUR asset. And this external account can define trustlines to other external account’s HOUR assets.&#x20;
+* External accounts from other communities can define trustlines to this HOUR asset. And this external account can define trustlines to other external account's HOUR assets.&#x20;
 * External accounts define passive sell offers exchanging their issued HOURs by their local currency, in the two directions.
 * External accounts define 1:1 passive sell offers selling their issued HOURs by the other trusted HOURs.
 * External accounts define 1:1 (active) sell offers selling external HOURs by their own HOURs. These clear the balance of trade.
