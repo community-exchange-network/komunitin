@@ -12,7 +12,7 @@ func TestEnglish(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if en.T("transactionDetails") != "Transaction details" {
+	if en.T("transactionDetails") != "Transfer details" {
 		t.Error("transactionDetails translation failed")
 	}
 	if en.Td("hello", map[string]string{"Name": "John"}) != "Hello John," {

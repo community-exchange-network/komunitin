@@ -82,8 +82,8 @@ func TestTransferMessage(t *testing.T) {
 	}
 	msg := (mailSender.(*MailSenderMock)).SentEmails[0]
 
-	if msg.Subject != "Payment sent" {
-		t.Errorf("Expected 'Payment sent', got '%s'", msg.Subject)
+	if msg.Subject != "Transfer sent" {
+		t.Errorf("Expected 'Transfer sent', got '%s'", msg.Subject)
 	}
 	if !strings.Contains(msg.BodyHtml, "#1.00") {
 		t.Errorf("Expected '#1.00', got '%s'", msg.BodyHtml)
@@ -91,14 +91,14 @@ func TestTransferMessage(t *testing.T) {
 	if !strings.Contains(msg.BodyHtml, "Hello Payer,") {
 		t.Errorf("Expected 'Hello Payer,', got '%s'", msg.BodyHtml)
 	}
-	if !strings.Contains(msg.BodyHtml, "View transaction") {
-		t.Errorf("Expected 'View transaction', got '%s'", msg.BodyHtml)
+	if !strings.Contains(msg.BodyHtml, "View transfer") {
+		t.Errorf("Expected 'View transfer', got '%s'", msg.BodyHtml)
 	}
 	if !strings.Contains(msg.BodyHtml, "Test transaction") {
 		t.Errorf("Expected 'Test transaction', got '%s'", msg.BodyHtml)
 	}
-	if !strings.Contains(msg.BodyHtml, "You have paid #1.00 to Payee.") {
-		t.Errorf("Expected 'You have paid #1.00 to Payee.', got '%s'", msg.BodyHtml)
+	if !strings.Contains(msg.BodyHtml, "You have sent #1.00 to Payee.") {
+		t.Errorf("Expected 'You have sent #1.00 to Payee.', got '%s'", msg.BodyHtml)
 	}
 
 	if !strings.Contains(msg.BodyText, "#1.00") {
@@ -107,8 +107,8 @@ func TestTransferMessage(t *testing.T) {
 	if !strings.Contains(msg.BodyText, "Hello Payer,") {
 		t.Errorf("Expected 'Hello Payer,', got '%s'", msg.BodyText)
 	}
-	if !strings.Contains(msg.BodyText, "You have paid #1.00 to Payee.") {
-		t.Errorf("Expected 'You have paid #1.00 to Payee.', got '%s'", msg.BodyText)
+	if !strings.Contains(msg.BodyText, "You have sent #1.00 to Payee.") {
+		t.Errorf("Expected 'You have sent #1.00 to Payee.', got '%s'", msg.BodyText)
 	}
 
 	// Test other lang
