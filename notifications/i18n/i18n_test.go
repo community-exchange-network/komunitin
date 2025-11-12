@@ -35,7 +35,7 @@ func TestSpanish(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if es.T("transactionDetails") != "Detalles de la transacción" {
+	if es.T("transactionDetails") != "Detalles del movimiento" {
 		t.Error("transactionDetails translation failed")
 	}
 	if es.Td("hello", map[string]string{"Name": "Juan"}) != "Hola Juan," {
