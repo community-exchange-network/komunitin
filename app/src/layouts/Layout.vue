@@ -7,7 +7,7 @@
     >
       <q-layout
         id="layout"
-        view="LHH LpR LfR"
+        view="LHH LpR LFR"
         container
       >
         <q-drawer
@@ -22,6 +22,21 @@
           <superadmin-menu-drawer v-else/>
         </q-drawer>
         <router-view />
+        <q-footer class="lt-md" v-if="myMember && isRootPage">
+          <q-toolbar>
+            <q-tabs 
+              breakpoint="1024" 
+              class="full-width"
+              switch-indicator
+              narrow-indicator
+              no-caps
+            >
+              <q-route-tab :to="{ name: 'Home' }" name="home" icon="home" :label="t('home')" />
+              <q-route-tab :to="{ name: 'TransactionList', params: { code: groupCode, memberCode: myMember.attributes.code}}" name="account" icon="account_balance_wallet" :label="t('transactions')" />
+              <q-route-tab :to="{ name: 'MemberList', params: { code: groupCode }}" name="group" icon="people" :label="t('members')" />
+            </q-tabs>
+          </q-toolbar>
+        </q-footer>
       </q-layout>
     </div>
   </div>
@@ -37,9 +52,13 @@
 import MenuDrawer from "../components/MenuDrawer.vue";
 //import SuperadminMenuDrawer from "../pages/superadmin/MenuDrawer.vue";
 import { useStore } from "vuex";
+
+import { useI18n } from 'vue-i18n';
+import { useRoute } from "vue-router";
 import { computed, defineAsyncComponent } from "vue"
 
 const store = useStore()
+const { t } = useI18n();
 
 const isSuperadmin = computed(() => store.getters.isSuperadmin)
 
@@ -52,8 +71,13 @@ const drawerState = computed({
 
 const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
 
+const myMember = computed(() => store.getters.myMember)
+const groupCode = computed(() => myMember.value?.group.attributes.code)
 // Lazy load the superadmin menu drawer in order to not load it for regular users.
 const SuperadminMenuDrawer = defineAsyncComponent(() => import("../pages/superadmin/MenuDrawer.vue"))
+
+const route = useRoute()
+const isRootPage = computed(() => route.meta.rootPage === true)
 
 </script>
 <style lang="scss" scoped>
@@ -77,4 +101,5 @@ const SuperadminMenuDrawer = defineAsyncComponent(() => import("../pages/superad
     @include wrap-main-container(1024px);
   }
 }
+
 </style>

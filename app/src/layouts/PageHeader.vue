@@ -107,7 +107,7 @@
           />
         </slot>
         <q-scroll-observer
-          v-if="balance"
+          v-if="requireBalance"
           @scroll="scrollHandler"
         />
       </q-toolbar>
@@ -127,9 +127,9 @@
  * depending on the page content.
  */
 
-import { ref, computed } from "vue";
+import { ref, computed, type MaybeRef, toValue } from "vue";
 import { useStore } from "vuex"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import FormatCurrency from "../plugins/FormatCurrency";
 import Banner from "./Banner.vue";
 
@@ -158,10 +158,12 @@ const scrollOffset = ref(0)
 const offset = ref(0)
 
 const myAccount = computed(() => store.getters.myAccount)
+
+const route = useRoute()
 /**
  * Show the back button.
  */
-const showBack = computed(() => props.back != "" || !store.getters.drawerExists)
+const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExists)
 /**
  * Show the menu button.
  */
@@ -170,33 +172,49 @@ const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersist
  * Show no button
  */
 const noButton = computed(() => !showBack.value && !showMenu.value)
+
 /**
- * Constant value for the thin header height.
- */
+  * Constant value for the thin header height.
+  */
 const headerHeight = 64
-/**
- * Constant value for the toolbar height.
- */
-const toolbarHeight = 50
-/**
- * Constant value for the height of the balance section.
- */
-const balanceHeight = 70
-const prominentHeight = 2 * toolbarHeight + balanceHeight
-const originalHeight = computed(() => props.balance && myAccount.value ? prominentHeight : headerHeight)
-const computedHeight = computed(() => originalHeight.value - offset.value)
-const balanceScaleFactor = computed(() => Math.max(0, 1 - offset.value / balanceHeight))
-const showBalance = computed(() => props.balance && myAccount.value && offset.value < balanceHeight)
+let computedHeight: MaybeRef<number> = headerHeight
+let requireBalance: MaybeRef<boolean> = false
+let showBalance: MaybeRef<boolean> = false
+let balanceScaleFactor: MaybeRef<number> = 0
+let scrollHandler: (details: {position: {top: number}}) => void | undefined = undefined
+
+// This code is stripped out if the feature is disabled
+if (process.env.FEAT_HEADER_BALANCE === 'true') {
+  /**
+   * Constant value for the toolbar height.
+   */
+  const toolbarHeight = 50
+  /**
+   * Constant value for the height of the balance section.
+   */
+  const balanceHeight = 70
+
+  const prominentHeight = 2 * toolbarHeight + balanceHeight
+  
+  requireBalance = computed(() => props.balance && !!myAccount.value)  
+
+  const originalHeight = computed(() => toValue(requireBalance) ? prominentHeight : headerHeight)
+
+  computedHeight = computed(() => originalHeight.value - offset.value)
+  balanceScaleFactor = computed(() => Math.max(0, 1 - offset.value / balanceHeight))
+  showBalance = computed(() => toValue(requireBalance) && offset.value < balanceHeight)
+  
+  scrollHandler = (details: { position: { top: number; }; }) => {
+    offset.value = Math.min(details.position.top, originalHeight.value - headerHeight)
+    scrollOffset.value = details.position.top
+  }
+}
+
 
 const clearSearchText = () => {
   searchText.value = ""
   emit('search-input', "")
   onSearch()
-}
-
-const scrollHandler = (details: { position: { top: number; }; }) => {
-  offset.value = Math.min(details.position.top, originalHeight.value - headerHeight)
-  scrollOffset.value = details.position.top
 }
 
 const onUpdateSearchText = () => {
@@ -212,8 +230,10 @@ const router = useRouter()
 const goUp = () => {
   if (store.state.ui.previousRoute !== undefined) {
     router.back()
-  } else {
+  } else if (props.back){
     router.push(props.back)
+  } else {
+    router.push('/')
   }
 }
 
