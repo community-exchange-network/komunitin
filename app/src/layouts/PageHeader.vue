@@ -7,11 +7,10 @@
       :style="`height: ${computedHeight}px;`"
     >
       <div
-        class="flex q-py-xs"
-        :class="[noButton ? '' : 'q-pl-sm q-pr-xs']"
-        style="height: 50px;"
+        class="flex q-pt-sm q-pb-xs justify-between items-center"
+        :class="[noButton ? '' : 'q-pl-sm q-pr-md']"
       >
-        <!-- render back button, menu button or none -->
+        <!-- render back button, menu button, profile button or none -->
         <q-btn
           v-if="showBack"
           id="back"
@@ -29,6 +28,16 @@
           icon="menu"
           :aria-label="$t('menu')"
           @click="$store.dispatch('toogleDrawer')"
+        />
+        <q-btn
+          v-if="showProfile"
+          id="profile"
+          flat
+          round
+          size="lg"
+          padding="none"
+          icon="account_circle"
+          :aria-label="$t('profile')"
         />
       </div>
       <div
@@ -138,11 +147,13 @@ const props = withDefaults(defineProps<{
   search?: boolean;
   balance?: boolean;
   back?: string;
+  profile?: boolean;
 }>(), {
   title: "",
   search: false,
   balance: false,
-  back: ""
+  back: "",
+  profile: false,
 })
 
 const emit = defineEmits<{
@@ -168,10 +179,13 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
  * Show the menu button.
  */
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
+
+const showProfile = props.profile;
 /**
  * Show no button
  */
-const noButton = computed(() => !showBack.value && !showMenu.value)
+const noButton = computed(() => !showBack.value && !showMenu.value && !showProfile)
+
 
 /**
   * Constant value for the thin header height.
