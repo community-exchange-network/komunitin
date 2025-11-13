@@ -82,8 +82,8 @@ func TestTransferMessage(t *testing.T) {
 	}
 	msg := (mailSender.(*MailSenderMock)).SentEmails[0]
 
-	if msg.Subject != "Transfer sent" {
-		t.Errorf("Expected 'Transfer sent', got '%s'", msg.Subject)
+	if msg.Subject != "You sent #1.00" {
+		t.Errorf("Expected 'You sent #1.00', got '%s'", msg.Subject)
 	}
 	if !strings.Contains(msg.BodyHtml, "#1.00") {
 		t.Errorf("Expected '#1.00', got '%s'", msg.BodyHtml)
@@ -119,14 +119,14 @@ func TestTransferMessage(t *testing.T) {
 	}
 	msg = (mailSender.(*MailSenderMock)).SentEmails[1]
 
-	if msg.Subject != "Pago enviado" {
-		t.Errorf("Expected 'Pago enviado', got '%s'", msg.Subject)
+	if msg.Subject != "Has enviado 1,00#" {
+		t.Errorf("Expected 'Has enviado 1,00#', got '%s'", msg.Subject)
 	}
-	if !strings.Contains(msg.BodyHtml, "Has pagado 1,00# a Payee.") {
-		t.Errorf("Expected 'Has pagado 1,00# a Payee.', got '%s'", msg.BodyHtml)
+	if !strings.Contains(msg.BodyHtml, "Has enviado 1,00# a Payee.") {
+		t.Errorf("Expected 'Has enviado 1,00# a Payee.', got '%s'", msg.BodyHtml)
 	}
-	if !strings.Contains(msg.BodyText, "Has pagado 1,00# a Payee.") {
-		t.Errorf("Expected 'Has pagado 1,00# a Payee.', got '%s'", msg.BodyText)
+	if !strings.Contains(msg.BodyText, "Has enviado 1,00# a Payee.") {
+		t.Errorf("Expected 'Has enviado 1,00# a Payee.', got '%s'", msg.BodyText)
 	}
 }
 
