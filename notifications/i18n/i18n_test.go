@@ -58,7 +58,7 @@ func TestCatalan(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if cat.T("transactionDetails") != "Detalls de la transacció" {
+	if cat.T("transactionDetails") != "Detalls del moviment" {
 		t.Error("transactionDetails translation failed")
 	}
 	if cat.Td("hello", map[string]string{"Name": "Joan"}) != "Hola Joan," {
