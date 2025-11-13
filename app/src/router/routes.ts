@@ -34,6 +34,14 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../layouts/Layout.vue'),
     children: [
       {
+        path: '/home',
+        name: 'Home',
+        component: () => import('../pages/home/Home.vue'),
+        meta: {
+          rootPage: true
+        }
+      },
+      {
         path: '/settings',
         name: 'Settings',
         component: () => import('../pages/settings/EditSettings.vue')
@@ -56,7 +64,8 @@ const routes: RouteRecordRaw[] = [
         name: 'GroupList',
         component: () => import('../pages/groups/GroupList.vue'),
         meta: {
-          public: true
+          public: true,
+          rootPage: true
         }
       },
       {
@@ -64,7 +73,8 @@ const routes: RouteRecordRaw[] = [
         name: 'ServerStats',
         component: () => import('../pages/home/ServerStats.vue'),
         meta: {
-          public: true
+          public: true,
+          rootPage: true
         }
       },
       {
@@ -86,7 +96,8 @@ const routes: RouteRecordRaw[] = [
         name: 'Group',
         component: () => import('../pages/groups/Group.vue'),
         meta: {
-          public: true
+          public: true,
+          rootPage: true
         }
       },
       {
@@ -108,19 +119,28 @@ const routes: RouteRecordRaw[] = [
         path: '/groups/:code/offers',
         props: true,
         name: 'OfferList',
-        component: () => import('../pages/offers/OfferList.vue')
+        component: () => import('../pages/offers/OfferList.vue'),
+        meta: {
+          rootPage: true
+        }
       },
       {
         path: '/groups/:code/needs',
         props: true,
         name: 'NeedList',
-        component: () => import('../pages/needs/NeedList.vue')
+        component: () => import('../pages/needs/NeedList.vue'),
+        meta: {
+          rootPage: true
+        }
       },
       {
         path: '/groups/:code/members',
         props: true,
         name: 'MemberList',
-        component: () => import('../pages/members/MemberList.vue')
+        component: () => import('../pages/members/MemberList.vue'),
+        meta: {
+          rootPage: true
+        }
       },
       {
         path: '/groups/:code/members/:memberCode',
@@ -132,7 +152,10 @@ const routes: RouteRecordRaw[] = [
         path: '/groups/:code/members/:memberCode/transactions',
         props: true,
         name: 'TransactionList',
-        component: () => import('../pages/transactions/Transactions.vue')
+        component: () => import('../pages/transactions/Transactions.vue'),
+        meta: {
+          rootPage: true
+        }
       },
       {
         path: '/groups/:code/members/:memberCode/transactions/send',
@@ -290,7 +313,10 @@ const routes: RouteRecordRaw[] = [
         path: '/groups/:code/stats',
         props: true,
         name: 'Stats',
-        component: () => import('../pages/groups/Stats.vue')
+        component: () => import('../pages/groups/Stats.vue'),
+        meta: {
+          rootPage: true
+        }
       },
       {
         path: '/groups/:code/admin',
@@ -309,6 +335,9 @@ const routes: RouteRecordRaw[] = [
           props: true,
           name: 'ManageAccounts',
           component: () => import('../pages/admin/ManageAccounts.vue'),
+          meta: {
+            rootPage: true
+          }
         }, {
           path: 'members/:memberCode/profile',
           props: true,
@@ -323,7 +352,10 @@ const routes: RouteRecordRaw[] = [
           path: 'transactions',
           props: true,
           name: 'AdminTransactionList',
-          component: () => import('../pages/admin/Transactions.vue')
+          component: () => import('../pages/admin/Transactions.vue'),
+          meta: {
+            rootPage: true
+          }
         }]
       },
       {
@@ -344,6 +376,9 @@ const routes: RouteRecordRaw[] = [
               path: '',
               name: 'MigrationList',
               component: () => import('../pages/superadmin/MigrationList.vue'),
+              meta: {
+                rootPage: true
+              }
             },
             {
               path: ':id',

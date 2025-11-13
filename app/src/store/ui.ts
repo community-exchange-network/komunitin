@@ -11,7 +11,7 @@ export interface UIState {
 export default {
   state: () => ({
     drawerPersistent: true,
-    drawerState: true,
+    drawerState: false,
     notificationsBannerDismissed: false,
     locationBannerDismissed: false,
     inactiveBannerDismissed: false,
