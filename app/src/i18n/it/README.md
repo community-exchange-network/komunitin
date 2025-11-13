@@ -4,13 +4,13 @@ Utilizziamo una terminologia coerente in tutta l'applicazione per garantire chia
 
 1.  **Essere intuitive** - Facili da comprendere per gli utenti
 2.  **Evitare il gergo finanziario** - Non usare "denaro", "pagamento", "pagare", "pagante", "beneficiario"
-3.  **Usare la metafora "inviare gettoni"** - Inquadrare le interazioni come invio/ricezione, ma senza usare la parola "gettone"
+3.  **Usare la metafora "inviare *tokens*"** - Inquadrare le interazioni come invio/ricezione, ma senza usare la parola *token*.
 
 ## Termini Principali
 
 | Termine | Definizione | Note d'Uso |
 | :--- | :--- | :--- |
-| **Comunità** | La rete di scambio locale all'interno dell'app | Usare al posto di "valuta" quando ci si riferisce al gruppo stesso. Prima era "gruppo" |
+| **Comunità** | La rete di scambio locale all'interno dell'app | Usare al posto di "valuta" quando ci si riferisce al gruppo stesso. Prima era "Rete" |
 | **Valuta** | Il gettone usato da una comunità | Usare solo quando ci si riferisce esplicitamente al gettone |
 | **Membro** | Un utente/partecipante nell'app | Ha nome, profilo, avatar. Usare al posto di "conto" quando ci si riferisce alla persona |
 | **Conto** | Il portafoglio di un membro | Contiene il saldo e lo storico dei movimenti |
@@ -19,9 +19,9 @@ Utilizziamo una terminologia coerente in tutta l'applicazione per garantire chia
 | **Inviare** | Avviare un movimento dal mio conto | |
 | **Ricevere** | Avviare un movimento verso il mio conto | |
 | **Spostare** | Avviare un movimento tra altri conti | Azione riservata agli amministratori |
-| **Da / Origine** | Origine di un movimento | Usare "Da" nelle etichette, "origine" in testi più lunghi. Prima era "pagante" |
-| **A / Destinazione** | Destinazione di un movimento | Usare "A" nelle etichette, "destinazione" in testi più lunghi. Prima era "beneficiario" |
-| **Importo** | Quantità di valuta in un movimento | |
+| **Da / Origine** | Origine di un movimento | Usare "Da" nelle etichette, "origine" in testi più lunghi. Prima era "Acquirente" |
+| **A / Destinazione** | Destinazione di un movimento | Usare "A" nelle etichette, "destinazione" in testi più lunghi. Prima era "Venditore" |
+| **Importo** | Quantità di valuta in un movimento | Prima era "Totale" |
 | **Offerta** | Un bene o servizio che un membro fornisce | |
-| **Bisogno** | Un bene o servizio che un membro cerca | |
-| **Valore** | Prezzo di un'offerta o bisogno | Prima era "prezzo" |
+| **Necessità** | Un bene o servizio che un membro cerca | |
+| **Valore** | Prezzo di un'offerta o bisogno | Prima era "Prezzo" |
