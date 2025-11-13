@@ -35,7 +35,11 @@ config.global.plugins.unshift([i18n])
 jest.mock("../../plugins/Notifications")
 jest.mock("@firebase/messaging");
 jest.mock('vue-router', () => ({
-  useRoute: jest.fn(),
+  useRoute: jest.fn(() => ({
+    meta: {
+      rootPage: true
+    }
+  })),
   useRouter: jest.fn(() => ({
     push: jest.fn()
   }))

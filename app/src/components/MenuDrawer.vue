@@ -46,8 +46,13 @@
     </member-header>
 
     <q-separator />
-
-    <!--menu-item icon="home" :title="$t('home')"  /-->
+    
+    <menu-item 
+    icon="home" 
+    :title="$t('home')" 
+    to="/home" 
+    />
+    
     <menu-item 
       id="menu-transactions" 
       icon="account_balance_wallet"
