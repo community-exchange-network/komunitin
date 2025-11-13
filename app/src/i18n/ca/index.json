@@ -94,6 +94,7 @@
   "selectPayer": "Escull l'origen",
   "transactionPayerHint": "El compte d'origen del moviment.",
   "transactionPayeeHint": "El compte de destinació del moviment.",
+  "create": "Crea",
   "description": "Descripció",
   "transactionDescriptionHint": "Breu descripció del concepte de l'intercanvi. Per exemple '2kg de patates'.",
   "amount": "Quantitat",

@@ -59,7 +59,7 @@ describe("Front page and login", () => {
     wrapper.get("button[type='submit']").trigger("click");
     await wrapper.vm.$wait()
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(true);
-    expect(wrapper.vm.$route.path).toBe("/groups/GRP0/needs");
+    expect(wrapper.vm.$route.path).toBe("/home");
     // Click the account switcher
     wrapper
       .get("#my-member")

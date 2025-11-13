@@ -1,27 +1,23 @@
 <template>
   <div>
     <q-infinite-scroll
-      v-if="!isLoading"
-      @load="loadNext"
+      @load="loadNextResources"
     >
       <empty v-if="isEmpty" />
-      <slot
-        v-else
-        :resources="resources"
-      >
+      <slot v-else :resources="resources">
         <div class="q-pa-md row q-col-gutter-md">
           <div
             v-for="resource of resources"
             :key="resource.id"
             class="col-12 col-sm-6 col-md-4"
           >
-            <!-- this v-if is superfluous, since when this slot is rendered, card is always defined.
-            But setting it prevents an unexpected exception in vue-test-utils -->
+            <!-- if card and propName props are defined, render the dynamic component -->
             <component
-              :is="components[card]"
-              v-if="card && components[card]"
-              :[propName]="resource"
-              :code="code"
+              :is="components[resource.type].component"
+              v-bind="{
+                [components[resource.type].propName]: resource, 
+                code
+              }"
             />
           </div>
         </div>
@@ -37,40 +33,30 @@
       </template>
     </q-infinite-scroll>
     <q-inner-loading
-      :showing="isLoading"
+      :showing="loading"
       color="icon-dark"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { type Component, computed, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { useStore } from "vuex";
 import Empty from "../components/Empty.vue";
 import NeedCard from "../components/NeedCard.vue";
 import OfferCard from "../components/OfferCard.vue";
 import GroupCard from "../components/GroupCard.vue";
-import type { ResourceObject } from "../store/model";
-import type { ResourcesState } from "../store/resources"
-import { useStore } from "vuex";
+import { useMergedResources } from "../composables/useMergedResources";
 
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   /**
    * The group code
    */
   code: string,
   /**
-   * The item Vue Component Name
-   */
-  card?: string | null,
-  /**
-   * The name of the property that should be send 
-   * to the item Vue components.
-   */
-  propName?: string,
-  /**
    * The name of the vuex resources module.
    */
-  moduleName: string,
+  type: string | string[],
   /**
    * The include parameter string when fetching resources.
    */
@@ -83,7 +69,7 @@ const props = withDefaults(defineProps<{
    * Filter object. Each pair `key => value` will be added as a
    * query parameter `filter[key]=value`.
    */
-  filter?: Record<string, string | number>,
+  filter?: Record<string, string | string[]>,
   /**
    * Search query
    */
@@ -92,93 +78,74 @@ const props = withDefaults(defineProps<{
    * Cache time in milliseconds.
    */
   cache?: number | undefined
-}>(), {
-  card: null,
-  propName: "",
-  include: "",
-  sort: "",
-  filter: () => ({}),
-  query: "",
-  cache: undefined
-});
+}>();
 
 const emit = defineEmits<{
   (e: 'page-loaded', page: number): void
 }>()
 
 // Register components for dynamic usage
-const components: Record<string, Component> = {
-  NeedCard,
-  OfferCard,
-  GroupCard
+const components = {
+  "needs": {
+    component: NeedCard,
+    propName: "need"
+  },
+  "offers": {
+    component: OfferCard,
+    propName: "offer"
+  },
+  "groups": {
+    component: GroupCard,
+    propName: "group"
+  }
 }
 
 const store = useStore()
-const ready = ref(false)
-
 const location = computed(() => store.state.me.location)
-const state = computed(() => store.state[props.moduleName] as ResourcesState<ResourceObject>)
-const resources = computed(() => {
-  const resources = []
-  if (state.value.currentPage !== null) {
-    for (let i = 0; i <= state.value.currentPage; i++) {
-      const page = store.getters[`${props.moduleName}/page`](i)
-      if (page) {
-        resources.push(...page)
-      }
-    }
-  }
-  return resources
-})
-const isEmpty = computed(() => resources.value.length === 0)
-const isLoading = computed(() => {
-  return (!ready.value || state.value.currentPage === null || (state.value.currentPage === 0 && state.value.next === undefined && isEmpty.value))
-})
+const currentPage = ref(0)
 
-const fetchResources = async (search?: string) => {
-  await store.dispatch(props.moduleName + "/loadList", {
-    location: location.value,
-    search,
-    include: props.include,
-    group: props.code,
-    filter: props.filter,
-    sort: props.sort,
-    cache: props.cache
-  });
-  emit("page-loaded", 0);
-}
+// If props.moduleName is already an array, just return it, otherwise wrap it in an array
+const types = Array.isArray(props.type) ? props.type : [props.type];
 
-const loadNext = async (index: number, done: (stop?: boolean) => void) => {
-  if (store.getters[props.moduleName + "/hasNext"]) {
-    await store.dispatch(props.moduleName + "/loadNext", {
-      cache: props.cache
-    });
-    emit("page-loaded", state.value.currentPage);
+const { resources, hasNext, loadNext, load, loading } =  useMergedResources(types, {
+  search: props.query,
+  location: location.value,
+  include: props.include,
+  group: props.code,
+  filter: props.filter,
+  sort: props.sort,
+  cache: props.cache
+}, { immediate: false });
+
+const loadNextResources = async (index: number, done: (stop?: boolean) => void) => {
+  if (hasNext.value && !loading.value) {
+    await loadNext();
+    currentPage.value += 1;
+    emit("page-loaded", currentPage.value);
   }
   // Stop loading if there is no next page. Note that we're not
   // stopping the infinite scrolling if hasNext returns undefined.
-  done(store.getters[props.moduleName + "/hasNext"] === false);
+  done(hasNext.value === false);
 }
 
+const isEmpty = computed(() => resources.value.length === 0 && !loading.value && hasNext.value === false);
+
+const loadResources = async () => {
+  await load(props.query);
+  currentPage.value = 0;
+  emit("page-loaded", currentPage.value);
+}
 // Refetch resources when any prop changes
-watch([() => [props.query, props.code, props.include, props.sort]], () => {
-  fetchResources(props.query)
-})
+watch([() => [props.query, props.code, props.include, props.sort]], loadResources)
 watch(() => props.filter, (newFilter, oldFilter) => {
   if (JSON.stringify(newFilter) !== JSON.stringify(oldFilter)) {
-    fetchResources(props.query)
+    loadResources();
   }
 })
 
 const init = async () => {
-  await fetchResources(props.query)
-  ready.value = true
+  await loadResources();
 }
-
 init()
 
-defineExpose({
-  fetchResources,
-  loadNext
-})
 </script>

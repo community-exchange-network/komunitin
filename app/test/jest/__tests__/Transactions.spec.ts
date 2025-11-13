@@ -6,7 +6,7 @@ import AccountHeader from "src/components/AccountHeader.vue";
 import SelectAccount from "src/components/SelectAccount.vue";
 import PageHeader from "src/layouts/PageHeader.vue";
 import { seeds } from "src/server";
-import { QList, QMenu } from "quasar";
+import { QFabAction, QList, QMenu } from "quasar";
 import SelectGroupExpansion from "src/components/SelectGroupExpansion.vue";
 import GroupHeader from "src/components/GroupHeader.vue";
 import CreateTransactionSendQR from "src/pages/transactions/CreateTransactionSendQR.vue";
@@ -76,10 +76,20 @@ describe("Transactions", () => {
     // Click transactions link
     await wrapper.get("#menu-transactions").trigger("click");
     await flushPromises();
-    await wrapper.get("#request-payment").trigger("click");
-    await flushPromises();
+
+    // Click "receive" in fab menu
+    await wrapper.get(".q-fab").trigger("click");
+    const receiveBtn = wrapper.findAllComponents(QFabAction).filter(action => action.text().includes("Receive"))[0];
+    expect(receiveBtn.props().to).toBe("/groups/GRP0/members/EmilianoLemke57/transactions/receive");
+
+    await receiveBtn.trigger("click");
+    // For some reason the router link does not work in tests, so we directly
+    // push the route here. Indeed, the href attribute is missing in the rendered
+    // html when testing.
+    await wrapper.vm.$router.push(receiveBtn.props().to)
     expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57/transactions/receive");
     await wrapper.vm.$wait()
+
     await wrapper.getComponent(SelectAccount).get('input').trigger("click");
     await wrapper.vm.$wait()
 

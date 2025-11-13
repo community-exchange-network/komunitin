@@ -2,8 +2,7 @@
   <resource-cards
     :card="card"
     :code="groupCode"
-    prop-name="need"
-    module-name="needs"
+    type="needs"
     include="category"
     :filter="filter"
   />

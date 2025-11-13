@@ -94,6 +94,7 @@
   "selectPayer": "Seleziona origine",
   "transactionPayerHint": "La conta di origine del movimento.",
   "transactionPayeeHint": "La conta di destinazione del movimento.",
+  "create": "Crea",
   "description": "Descrizione",
   "transactionDescriptionHint": "Breve descrizione del concetto dello scambio. Per esempio '2kg di patate'.",
   "amount": "Importo",
