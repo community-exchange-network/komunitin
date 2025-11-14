@@ -27,10 +27,11 @@ Accounts have a set of settings defining some behavior and what is allowed to do
 
 Users can send to other accounts of the same currency. There are several methods for making transfers and they can be enabled or disabled by configuration:
 
-* **Simple send**. A user can see the list of community members and choose the destination account. Then enter the amount and a description, and submit.
-* **Simple receive**. The initiating user is now the destination rather than the source. They go to the app, choose the source from the members list, set a description and amount and request the transfer. Generally, the source will receive a notification and an email asking for their approval. When the source approves the transfer, the destination will receive a notification as well.\
-  Users can have a whitelist of accounts that will get their requests automatically accepted, and can even configure their account so that it automatically accepts all transfer requests.
-* **Multiple transfers.** The app provides an interface for entering a batch of transfers and executing them all at once. This is just a convenient productivity interface for use cases when tens of transfers need to be entered. This option is available either for sending or for receiving.
+* **Simple Send**. A user can see the list of community members and choose the destination account. Then enter the amount and a description, and submit.
+* **Simple Receive**. The initiating user is now the destination rather than the source. They go to the app, choose the source from the members list, set a description and amount and request the transfer. Generally, the source will receive a notification and an email asking for their approval. When the source approves the transfer, the destination will receive a notification as well.\
+Users can have a whitelist of accounts that will get their requests automatically accepted, and can even configure their account so that it automatically accepts all transfer requests.
+
+* **Multiple Send / Multiple Receive**. The app provides an interface for entering a batch of transfers and executing them all at once. This is just a convenient productivity interface for use cases when tens of transfers need to be entered. This option is available either for sending or for receiving.
 * **Upload file**. An alternative way to enter multiple transfers is importing a CSV (Comma Separated Values) file with the transfers. The user may use any spreadsheet program to comfortably create the file. The format is simple: exactly 4 columns with Source, Destination, Description and Amount. External transfers are not supported.
 * **QR code**. This is a method that allows the requester to enter the Description and the Amount of a transfer and build a QR code. This QR code can be then scanned by the source to finish the transfer.
 * **NFC tag**. This feature allows for transfers with a workflow similar to contactless cards (the technology is different though). Users can link one or several existing NFC tags to their account. Then the receiver can initiate the transfer by adding a description and an amount and showing their NFC reader to the source. The source brings their NFC tag close to the destination reader to complete the transfer. Currently NFC tag transfers only work in Android devices.
@@ -41,17 +42,21 @@ Note that all these transfer methods are configurable and can be enabled at curr
 
 Beyond the code, and the credit and maximum limits accounts have some additional settings governing their behavior. All this settings can be set account by account and they have a default value for all accounts in a currency.
 
-* **Allow sending**. Allow this account to send to other accounts.
-* **Allow receiving**. Allow this account to request transfers from other accounts.
-* **Accept transfers automatically**. Transfer requests from users in the community are accepted by default, without the need of manual acceptance. This feature may look dangerous since it allows unsupervised charges from anyone in the community, but it has proved useful for small trustful communities since it simplifies the transfer request workflow.
-* **Account whitelist**. It is a list of accounts. Transfer requests from the whitelist are automatically accepted.
-* **Transfers timeout**. After a transfer request is done, it may be set to be automatically accepted after some time, eg 15 days.
-* **Allow external sending**. Allow this account to send to accounts in other currencies.
-* **Allow external receiving**. Allow this account to request transfers from accounts in other currencies.
-* **Allow tag sending**. Allow this account to link NFC tags to their account and authorize transfers through these linked tags.
-* **Allow tag receiving**. Allow this account to request transfers authorized with NFC tags. To perform NFC tag transfers, the source needs to have "Allow tag sending" and the destination needs to have "Allow tag receiving".
-* **Accept external transfers automatically**. Extend the accept transfers automatically to transfer requests from accounts from other currencies as well.
-* **On-transfer credit limit update**. This setting enables a dynamic scheme for account credit limits. Concretely, the account credit limit is updated automatically every time this account receives a transfer so the account credit limit equals the total sum of transfers received by this account. The credit limit thus gradually grows with currency up to a configurable hard limit.
+* **Send**. Allow this account to send to other accounts.
+* **Receive**. Allow this account to request transfers from other accounts.
+* **Simple Send**. Allow sending transfers by choosing the destination from a list.
+* **Simple Receive**. Allow requesting transfers by choosing the source from a list.
+* **Send by QR**. Allow sending transfers by scanning a QR code.
+* **Receive by QR**. Allow receiving transfers by showing a QR code.
+* **Send by NFC**. Allow this account to link NFC tags and authorize transfers through these linked tags.
+* **Receive by NFC**. Allow this account to request transfers authorized with NFC tags. To perform NFC tag transfers, the source needs to have "Send by NFC" and the destination needs to have "Receive by NFC".
+* **Multiple Send**. Allow sending a batch of transfers at once.
+* **Multiple Receive**. Allow requesting a batch of transfers at once.
+* **Accept transfers after 2 weeks**. Automatically accept all pending transfer requests after 2 weeks of inactivity.
+* **Credit by transfers**. This setting enables a dynamic scheme for account credit limits. The account credit limit is updated automatically every time this account receives a transfer so the credit limit equals the total sum of transfers received by this account. The credit limit thus gradually grows with currency up to a configurable hard limit.
+* **External Send**. Allow this account to send and receive transfers from accounts in other currencies.
+* **External Receive**. Allow this account to request and receive transfer requests from accounts in other currencies.
+* **Hide Balance**. Hide the account balance and limits from other users.
 
 While this set of settings already provides a great level of flexibility, the project is set to provide more configurable features as they are requested by partner communities.
 
@@ -59,11 +64,15 @@ While this set of settings already provides a great level of flexibility, the pr
 
 Beyond the basic currency properties (name, code, symbol, scale, decimals), currencies have some additional settings.&#x20;
 
-* **Initial credit limit**. The credit limit for the new accounts. Changing this setting does not affect existing accounts.
-* **Enable external transfers**. Whether this currency supports transfers to other currencies (both incoming and outgoing).
-* **Enable external transfer requests**. Whether this currency supports transfer requests from other currencies (both incoming and outgoing).
-* **Default account settings**. Currency have a set of account settings by default: allow sending, allow receiving requests, accept transfers automatically, whitelist, etc. \
-  For example, if a community wants regular accounts to be just able to send and some special accounts to be able to both send and request transfers, they can set the allow sending to true and allow receiving requests to false at currency level and then overwrite the allow receiving requests setting for the special accounts.
+* **Initial Credit**. The maximum negative balance that an account can have after signing up. Changing this value does not affect existing accounts.
+* **Maximum Balance**. The maximum positive balance that an account can have after signing up. Leave to 0 for unlimited.
+* **Enable External Send**. Enable the Komunitin protocol to send and receive transfers to accounts in other currencies.
+* **Enable External Receive**. Enable the Komunitin protocol to request and receive requests of transfers from accounts in other currencies.
+* **Enable Credit Commons (Experimental)**. Enable the Credit Commons protocol to send and receive transfers to accounts in other currencies. Not recommended for production use yet.
+* **Maximum Trade Surplus**. The maximum amount all other communities combined can owe to your community.
+* **Maximum Trade Deficit**. The maximum amount your community can owe to all other communities combined.
+* **Default account settings**. Currencies have a set of account settings by default: Send, Receive, Simple Send, Simple Receive, Send by QR, Receive by QR, Send by NFC, Receive by NFC, Multiple Send, Multiple Receive, Accept transfers after 2 weeks, Credit by transfers, External Send, External Receive, and Hide Balance. \
+For example, if a community wants regular accounts to be just able to send and some special accounts to be able to both send and request transfers, they can set Send to true and Receive to false at currency level and then overwrite the Receive setting for the special accounts.
 
 
 
