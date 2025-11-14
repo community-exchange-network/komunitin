@@ -104,7 +104,7 @@ services:
       MYSQL_RANDOM_ROOT_PASSWORD: yes
       MYSQL_DATABASE: integralces
       MYSQL_USER: integralces
-      MYSQL_PASSWORD: integralces
+      MYSQL_PASSWORD: ${ICES_MYSQL_PASSWORD:-integralces}
     volumes:
       - db-integralces:/var/lib/mysql
 
