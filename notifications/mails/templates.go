@@ -164,11 +164,11 @@ func buildTransferTemplateData(t *i18n.Translator, payer *api.Member, payee *api
 	case paymentSent:
 		templateData.Payment = true
 		templateData.Text = t.Td("paymentSentText", map[string]string{"Amount": templateData.Amount, "PayeeName": payee.Name})
-		templateData.Subject = t.T("paymentSentSubject")
+		templateData.Subject = t.Td("paymentSentSubject", map[string]string{"Amount": templateData.Amount})
 	case paymentReceived:
 		templateData.Payment = false
 		templateData.Text = t.Td("paymentReceivedText", map[string]string{"Amount": templateData.Amount, "PayerName": payer.Name})
-		templateData.Subject = t.T("paymentReceivedSubject")
+		templateData.Subject = t.Td("paymentReceivedSubject", map[string]string{"Amount": templateData.Amount})
 	case paymentRejected:
 		templateData.Payment = false
 		templateData.Text = t.Td("paymentRejectedText", map[string]string{"Amount": templateData.Amount, "PayerName": payer.Name})

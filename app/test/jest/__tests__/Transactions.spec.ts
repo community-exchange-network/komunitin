@@ -284,7 +284,7 @@ describe("Transactions", () => {
 
   it('Generate transfer QR', async () => {
     await wrapper.vm.$router.push("/groups/GRP0/members/EmilianoLemke57/transactions/receive/qr")
-    await waitFor(() => wrapper.text().includes("build the transaction QR code"))
+    await waitFor(() => wrapper.text().includes("build the transfer QR code"))
     expect(wrapper.get("button[type='submit']").attributes("disabled")).toBeDefined()
     await wrapper.get("[name='description']").setValue("Test QR description")
     await wrapper.get("[name='amount']").setValue("12")

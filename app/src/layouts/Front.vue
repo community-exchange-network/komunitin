@@ -60,9 +60,9 @@
       <q-btn
         flat
         type="a"
-        href="https://docs.komunitin.org/project/new-currency"
+        href="https://docs.komunitin.org/project/new-community"
         target="__blank"
-        :label="$t('newCurrency')"
+        :label="$t('newGroup')"
       />
     </q-footer>
   </q-layout>

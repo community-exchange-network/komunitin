@@ -17,7 +17,7 @@
           flat
           round
           :title="$t('shareMember', { member: member.attributes.name })"
-          :text="member.attributes.description"
+          :text="member.attributes.description ?? ''"
         />
         <q-btn
           v-if="canEdit"

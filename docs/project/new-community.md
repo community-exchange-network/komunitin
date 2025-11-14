@@ -1,6 +1,6 @@
-# New currency
+# New community
 
-To open a new local currency on komunitin.org, please read carefully and follow the instructions below.
+To open a new community with its own currency on komunitin.org, please read carefully and follow the instructions below.
 
 ## Do you really want to open a new community?
 
@@ -18,13 +18,13 @@ If your network is already running on another system, maybe we can automatically
 
 ## Apply
 
-To register a new community in the system, you need to fill out a form. Note the Code field (four uppercase letters), which will be the identifier of your network and the four letters that all account numbers will start with. Choose carefully the name of the currency and the symbol as well.&#x20;
+To register a new community in the system, you need to fill out a form. Note the Code field (four uppercase letters), which will be the identifier of your network and the four letters that all account numbers will start with. Choose carefully the name of the currency and the symbol as well.
 
 After the community is approved you'll access the administrative interface and you'll be able to tune the settings.
 
 Go to the following link to apply for a new currency:
 
-{% embed url="https://komunitin.org/signup-community" %}
+{% embed url="https://komunitin.org/signup-group" %}
 
 
 

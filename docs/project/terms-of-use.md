@@ -16,6 +16,12 @@ The service is available to all collectives that use community currencies for so
 
 For other uses of the service, please contact us.
 
+## Legal nature of community currencies
+
+Community currencies managed through this service are units of measure used to record contributions and exchanges between members within their respective communities. These currencies have no intrinsic monetary value and are not redeemable for fiat national currency, legal tender, or any other form of economic value. Users acknowledge that participation in these exchange systems is voluntary and that the currencies used have no financial value.
+
+However, users must understand that while the community currencies themselves have no monetary value, the actual economic activities, goods, and services exchanged through this system may be subject to applicable local, national, and international laws and regulations. This includes, but is not limited to, tax obligations, licensing requirements, and other legal responsibilities that may apply to the provision of goods or services. Each user is solely responsible for understanding and complying with all applicable laws and regulations in their jurisdiction and we encourage communities to facilitate compliance. Komunitin provides only the technical infrastructure for recording exchanges and assume no responsibility for users' legal compliance.
+
 ## Shared maintenance
 
 The maintenance costs of komunitin.org are divided into:
@@ -25,13 +31,13 @@ The maintenance costs of komunitin.org are divided into:
 * Software maintenance (bug fixes, adaptation to new library versions).
 * Software and service improvement (development of new features and enhancement of existing ones).
 
-The maintenance of the service at komunitin.org is equitably covered by the various networks that use it. The contribution for maintaining the service will not be made individually, but rather each group will contribute collectively. Obviously, the different collectives will obtain these resources in the way they find most convenient.
+The maintenance of the service at komunitin.org is equitably covered by the various networks that use it. The contribution for maintaining the service will not be made individually, but rather each community will contribute collectively. Obviously, the different collectives will obtain these resources in the way they find most convenient.
 
 The contribution may be made using your own community currency, provided you have external payments enabled.
 
-### **Amount of Contribution per Exchange Network**
+### Amount of Contribution per Exchange Network
 
-We calculate the contribution corresponding to each network based on the group's size. Many different parameters can be used to measure the size of the group. For simplicity and to avoid penalizing more active groups and users, we will simply use the number of accounts per group.
+We calculate the contribution corresponding to each network based on the community's size. Many different parameters can be used to measure the size of the community. For simplicity and to avoid penalizing more active communities and users, we will simply use the number of accounts per community.
 
 The contribution will specifically be 0.1 HOUR per account per year. A network with 100 accounts will need to contribute 10 HOUR annually to the project.
 
@@ -41,6 +47,6 @@ This figure is a minimum that we hope will help covering maintenance costs initi
 
 ## Organization and Decision-Making
 
-The organisational structure is currently very small and simple. There is a Telegram group with all currency administrators at komunitin.org where we can discuss any issue. For the technical discussions (including bug reports, improvement requests, etc) there is the issue queue at Github project.
+The organisational structure is currently very small and simple. There is a Telegram community with all currency administrators at komunitin.org where we can discuss any issue. For the technical discussions (including bug reports, improvement requests, etc) there is the issue queue at Github project.
 
 Decisions are made currently by the development team, but the team is open to improve the structure as the project grows so all the community has voice and vote.

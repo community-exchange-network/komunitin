@@ -4,7 +4,7 @@ The app sends notifications to members using two channels: email and push notifi
 
 #### My account
 
-Each time a relevant even happens related to a user's account, an email and/or a push notification (depending on their preferences) is sent to the user. From the accounting features, this includes new received payments, new committed payment requests (if set to accept them automatically) and approval or rejection of payment requests. From the social features, this includes the expiration of a user's offer or need.
+Each time a relevant event happens related to a user's account, an email and/or a push notification (depending on their preferences) is sent to the user. From the accounting features, this includes new received transfers, new committed transfer requests (if set to accept them automatically) and approval or rejection of transfer requests. From the social features, this includes the expiration of a user's offer or need.
 
 #### Members, offers, needs
 

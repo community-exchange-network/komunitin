@@ -12,7 +12,7 @@ func TestEnglish(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if en.T("transactionDetails") != "Transaction details" {
+	if en.T("transactionDetails") != "Transfer details" {
 		t.Error("transactionDetails translation failed")
 	}
 	if en.Td("hello", map[string]string{"Name": "John"}) != "Hello John," {
@@ -35,7 +35,7 @@ func TestSpanish(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if es.T("transactionDetails") != "Detalles de la transacción" {
+	if es.T("transactionDetails") != "Detalles del movimiento" {
 		t.Error("transactionDetails translation failed")
 	}
 	if es.Td("hello", map[string]string{"Name": "Juan"}) != "Hola Juan," {
@@ -58,7 +58,7 @@ func TestCatalan(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if cat.T("transactionDetails") != "Detalls de la transacció" {
+	if cat.T("transactionDetails") != "Detalls del moviment" {
 		t.Error("transactionDetails translation failed")
 	}
 	if cat.Td("hello", map[string]string{"Name": "Joan"}) != "Hola Joan," {

@@ -49,6 +49,10 @@ export enum KErrorCode {
   DescriptionRequired = "DescriptionRequired",
   AccountNotFound = "AccountNotFound",
   AccountIsNotYours = "AccountIsNotYours",
+  CamNotAllowed = "CamNotAllowed",
+  CamNotFound = "CamNotFound",
+  CamNotReadable = "CamNotReadable",
+  CamUnknown = "CamUnknown",
 
   /**
    * This condition should not happen and it indicates a programming bug
