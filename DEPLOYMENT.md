@@ -25,6 +25,7 @@ git clone https://github.com/community-exchange-network/komunitin.git
 git clone https://git.drupalcode.org/project/ices.git
 ```
 ## Configuration
+ - Change directory to the komunitin folder.
  - Copy the file `.env.public.template` to `.env` and edit all the variables to match your setup.
  - Copy your Firebase service account credentials file to `notifications/komunitin-project-firebase-adminsdk.json` for push notifications through Firebase Cloud Messaging.
  - Copy your Firebase service account credentials file to `accounting/komunitin-project-backup-credentials.json` for accounting backups to Google Cloud Storage.
