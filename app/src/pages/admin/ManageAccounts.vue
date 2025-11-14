@@ -1,6 +1,6 @@
 <template>
   <page-header
-    :title="$t('manageAccounts')"   
+    :title="$t('manageMembers')"   
   >
     <template #buttons>
       <q-btn
@@ -18,14 +18,14 @@
       class="q-pa-lg"
     > 
       <div class="text-onsurface-m">
-        {{ $t('manageAccountsText') }}
+        {{ $t('manageMembersText') }}
       </div>
 
       <div class="text-overline text-uppercase text-onsurface-m q-pt-lg q-pb-sm">
-        {{ $t('accountRequests') }}
+        {{ $t('memberRequests') }}
       </div>
       <div v-if="!loadingPending && pending.length === 0" class="text-onsurface-m q-mt-md">
-        {{ $t('noAccountRequests') }}
+        {{ $t('noMemberRequests') }}
       </div>
       <q-list
         v-if="!loadingPending && pending.length > 0"

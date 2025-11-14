@@ -117,7 +117,7 @@
       />
       <menu-item
         icon="manage_accounts"
-        :title="$t('accounts')"
+        :title="$t('manageMembers')"
         :to="`/groups/${groupCode}/admin/accounts`"
       />
       <menu-item
