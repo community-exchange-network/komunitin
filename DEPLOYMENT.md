@@ -5,6 +5,7 @@ This file describes how to deploy Komunitin in a production environment.
 To deploy Komunitin in production you need a linux server with:
  - Docker and Docker Compose installed.
  - Git installed.
+ - [`jq`](https://jqlang.org/) CLI util installed.
 
 There are no specified minimum hardware requirements, but a minimal VPS server has proven to work as a starting point (eg: 1CPU, 2GB RAM, 20GB HDD).
 
