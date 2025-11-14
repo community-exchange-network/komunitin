@@ -83,8 +83,9 @@
 import { ref, watch } from 'vue';
 import type { Migration } from './migrations'
 import { config } from 'src/utils/config';
-import type { Group } from '../../store/model';
+import type { CollectionResponse, Group } from '../../store/model';
 import { useStore } from 'vuex';
+import { useApiFetch } from '../../composables/useApiFetch';
 
 const defaultSourceUrl = new URL(config.SOCIAL_URL).origin;
 
@@ -123,25 +124,15 @@ const emit = defineEmits<{
 const codes = ref<{ label: string; value: string }[]>([])
 const groups = ref<Group[]>([])
 
+const apiFetch = useApiFetch<Group>()
+
 const fetchCurrencies = async () => {
-  const token = store.getters.accessToken
   let url = `${sourceUrl.value}/ces/api/social/groups`
   do {
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`Failed to fetch migrations: ${error.message}`)
-    }
-    const data = await response.json()
+    const data = await apiFetch(url) as CollectionResponse<Group>
     groups.value = [...groups.value, ...data.data]
     url = data.links.next  
-    
   } while (url != null)
-  
   
   codes.value = groups.value.map((currency: Group) => ({
     label: currency.attributes.code + ' (' + currency.attributes.name + ')',
