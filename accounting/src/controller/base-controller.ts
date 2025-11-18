@@ -9,21 +9,21 @@ import { Context, isSuperadmin, systemContext } from "src/utils/context"
 import { badConfig, badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error"
 import { sleep } from "src/utils/sleep"
 import TypedEmitter from "typed-emitter"
-import { ControllerEvents, SharedController, StatsController } from "."
+import { ControllerEvents, BaseController, StatsController } from "."
 import { config } from "../config"
 import { Ledger, createStellarLedger } from "../ledger"
 import { friendbot } from "../ledger/stellar/friendbot"
 import { CreateCurrency, Currency, CurrencySettings, currencyToRecord, recordToCurrency } from "../model/currency"
 import { decrypt, deriveKey, encrypt, exportKey, importKey, randomKey } from "../utils/crypto"
 import { logger } from "../utils/logger"
-import { LedgerCurrencyController, currencyConfig, currencyData } from "./currency-controller"
+import { CurrencyControllerImpl, currencyConfig, currencyData } from "./currency-controller"
 import { initUpdateCreditOnPayment } from "./features/credit-on-payment"
 import { initNotifications } from "./features/notificatons"
 import { storeCurrencyKey } from "./key-controller"
 import { initLedgerListener } from "./ledger-listener"
 import { PrivilegedPrismaClient, TenantPrismaClient, globalTenantDb, privilegedDb, tenantDb } from "./multitenant"
 import { whereFilter } from "./query"
-import { StatsController as StatsControllerImpl } from "./stats-controller"
+import { StatsControllerImpl as StatsControllerImpl } from "./stats-controller"
 import { Store } from "./store"
 
 
@@ -104,7 +104,7 @@ const waitForDb = async (db: PrismaClient): Promise<void> => {
   }
 }
 
-export async function createController(): Promise<SharedController> {
+export async function createController(): Promise<BaseController> {
   // Create DB client.
   const db = new PrismaClient()
   await waitForDb(db)
@@ -131,10 +131,10 @@ export async function createController(): Promise<SharedController> {
     channelAccountSecretKeys
   }, sponsor)
 
-  return new LedgerController(ledger, db, masterKey, sponsorKey)
+  return new BaseControllerImpl(ledger, db, masterKey, sponsorKey)
 }
 
-export class LedgerController implements SharedController {
+export class BaseControllerImpl implements BaseController {
   
   ledger: Ledger
   private _db: PrismaClient
@@ -348,7 +348,7 @@ export class LedgerController implements SharedController {
 
   }
   /**
-   * Implements {@link SharedController.getCurrencies}
+   * Implements {@link BaseController.getCurrencies}
    */
   async getCurrencies(ctx: Context, params: CollectionOptions): Promise<Currency[]> {
     if ("status" in params.filters && params.filters.status !== "active" && !isSuperadmin(ctx)) {
@@ -420,12 +420,12 @@ export class LedgerController implements SharedController {
     await this._db.$disconnect()
   }
 
-  async getCurrencyController(code: string): Promise<LedgerCurrencyController> {
+  async getCurrencyController(code: string): Promise<CurrencyControllerImpl> {
     const currency = await this.loadCurrency(code)
     const ledgerCurrency = this.ledger.getCurrency(currencyConfig(currency), currencyData(currency), currency.state)
     const db = this.tenantDb(code)
     const encryptionKey = () => this.retrieveKey(code, currency.encryptionKey)
-    return new LedgerCurrencyController(currency, ledgerCurrency, db, encryptionKey, this.sponsorKey, this.emitter)
+    return new CurrencyControllerImpl(currency, ledgerCurrency, db, encryptionKey, this.sponsorKey, this.emitter)
   }
 
   async cron() {

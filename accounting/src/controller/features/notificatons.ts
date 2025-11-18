@@ -1,4 +1,4 @@
-import { CurrencyController, SharedController } from "..";
+import { CurrencyController, BaseController } from "..";
 import { systemContext } from "src/utils/context";
 import { config } from "src/config";
 import { FullTransfer, User } from "src/model";
@@ -57,7 +57,7 @@ const sendEvent = async (event: Event) => {
 /**
  * Send events to the notifications service when a transfer changes state.
  */
-export const initNotifications = (controller: SharedController) => {
+export const initNotifications = (controller: BaseController) => {
   // These are the states that we want to notify
   const notifiedStates = {
     committed: EventName.TransferCommitted,

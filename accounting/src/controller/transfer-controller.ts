@@ -5,15 +5,15 @@ import { AbstractCurrencyController } from "./abstract-currency-controller";
 import { CollectionOptions } from "src/server/request";
 import { Context, systemContext } from "src/utils/context";
 import { logger } from "src/utils/logger";
-import { LedgerCurrencyController } from "./currency-controller";
+import { CurrencyControllerImpl } from "./currency-controller";
 import { ExternalTransferController } from "./external-transfer-controller";
 import { includeRelations, whereFilter } from "./query";
-import { TransferController as ITransferController } from "src/controller";
+import { TransferController } from "src/controller";
 
-export class TransferController  extends AbstractCurrencyController implements ITransferController {
+export class TransferControllerImpl  extends AbstractCurrencyController implements TransferController {
   private externalTransfers: ExternalTransferController
 
-  constructor(currencyController: LedgerCurrencyController) {
+  constructor(currencyController: CurrencyControllerImpl) {
     super(currencyController)
     this.externalTransfers = new ExternalTransferController(currencyController)
   }

@@ -21,7 +21,7 @@ export type ControllerEvents = {
 /**
  * Controller for operations not related to a particular currency.
  */
-export interface SharedController {
+export interface BaseController {
   stats: StatsController
 
   getCurrencyController(code: string): Promise<CurrencyController>   

@@ -1,5 +1,5 @@
 import { AccountType, Prisma } from "@prisma/client";
-import { AccountController as IAccountController } from "src/controller";
+import { AccountController } from "src/controller";
 import { Account, AccountSettings, AccountStatus, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
 import { CollectionOptions } from "src/server/request";
 import { Context, systemContext } from "src/utils/context";
@@ -7,12 +7,12 @@ import { deriveKey, exportKey } from "src/utils/crypto";
 import { badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error";
 import { WithRequired } from "src/utils/types";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
-import { LedgerCurrencyController } from "./currency-controller";
+import { CurrencyControllerImpl } from "./currency-controller";
 import { whereFilter } from "./query";
 
 
-export class AccountController extends AbstractCurrencyController implements IAccountController{
-  constructor (readonly currencyController: LedgerCurrencyController) {
+export class AccountControllerImpl extends AbstractCurrencyController implements AccountController{
+  constructor (readonly currencyController: CurrencyControllerImpl) {
     super(currencyController)
   }
 

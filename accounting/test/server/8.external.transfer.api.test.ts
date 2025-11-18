@@ -4,7 +4,7 @@ import assert from "node:assert"
 import { testCurrency, testTransfer, userAuth } from "./api.data"
 import { config } from "src/config"
 import { logger } from "src/utils/logger"
-import { LedgerCurrencyController } from "src/controller/currency-controller"
+import { CurrencyControllerImpl } from "src/controller/currency-controller"
 import { clearEvents, getEvents } from "./net.mock"
 import { waitFor } from "./utils"
 import { EventName } from "src/controller/features/notificatons"
@@ -120,7 +120,7 @@ describe("External transfers", async () => {
   await it('successful external payment', async () => {
     // 100 TEST = 10 HOUR = 20 EXTR
     // just wait for the path to be available in the ledger.
-    const controller = await t.app.komunitin.controller.getCurrencyController("TEST") as LedgerCurrencyController
+    const controller = await t.app.komunitin.controller.getCurrencyController("TEST") as CurrencyControllerImpl
     await controller.ledger.quotePath({
       destCode: "EXTR",
       destIssuer: eCurrency.attributes.keys.issuer,

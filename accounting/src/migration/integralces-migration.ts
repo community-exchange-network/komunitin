@@ -1,5 +1,5 @@
 import { Keypair } from "@stellar/stellar-sdk";
-import { LedgerCurrencyController } from "../controller/currency-controller";
+import { CurrencyControllerImpl } from "../controller/currency-controller";
 import { TenantPrismaClient } from "../controller/multitenant";
 import { StellarCurrency } from "../ledger/stellar";
 import { AccountStatus, FullAccount, recordToAccount, TransferMeta, TransferStates } from "../model";
@@ -81,7 +81,7 @@ export class ICESMigrationController {
   }
 
   async beforeAll() {
-    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as LedgerCurrencyController;
+    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as CurrencyControllerImpl;
     const db = this.controller.controller.tenantDb(this.migration.code)
     const accounts = await db.account.findMany({})
     const data = []
@@ -471,7 +471,7 @@ export class ICESMigrationController {
     if (!accounts) {
       throw new Error("No accounts data found in migration")
     }
-    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as LedgerCurrencyController;
+    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as CurrencyControllerImpl;
     const currency = await currencyController.getCurrency(systemContext());
     
     const db = this.controller.controller.tenantDb(this.migration.code)  
@@ -688,7 +688,7 @@ export class ICESMigrationController {
       return account.code.match(`${this.migration.code}[0-9]{4}`) !== null;
     }
 
-    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as LedgerCurrencyController;
+    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as CurrencyControllerImpl;
     const currency = await currencyController.getCurrency(systemContext());
 
     for (const transfer of transfers) {
@@ -846,7 +846,7 @@ export class ICESMigrationController {
 
   private async setBalances() {
     const db = this.controller.controller.tenantDb(this.migration.code)
-    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as LedgerCurrencyController;
+    const currencyController = await this.controller.controller.getCurrencyController(this.migration.code) as CurrencyControllerImpl;
     const currency = await currencyController.getCurrency(systemContext());
     const ledger = currencyController.ledger;
 

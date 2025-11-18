@@ -1,10 +1,10 @@
-import { LedgerCurrencyController } from "./currency-controller";
+import { CurrencyControllerImpl } from "./currency-controller";
 
 /**
  * Provide some handy tools for controllers in a currency.
  */
 export class AbstractCurrencyController {
-  constructor(readonly currencyController: LedgerCurrencyController) {}
+  constructor(readonly currencyController: CurrencyControllerImpl) {}
 
   currency() {
     return this.currencyController.model

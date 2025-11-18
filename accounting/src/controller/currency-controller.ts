@@ -21,15 +21,15 @@ import { CollectionOptions } from "../server/request";
 import { Context, systemContext } from "../utils/context";
 import { badRequest, inactiveCurrency, internalError, notFound, notImplemented } from "../utils/error";
 import { AtLeast } from "../utils/types";
-import { AccountController } from "./account-controller";
+import { AccountControllerImpl } from "./account-controller";
 import { ExternalResourceController } from "./external-resource-controller";
 import { KeyController } from "./key-controller";
 import { TenantPrismaClient } from "./multitenant";
 import { whereFilter } from "./query";
-import { TransferController } from "./transfer-controller";
+import { TransferControllerImpl } from "./transfer-controller";
 import { CreditCommonsController, CreditCommonsControllerImpl } from "../creditcommons/credit-commons-controller";
 import { UserController } from "./user-controller";
-import { StatsController } from "./stats-controller";
+import { StatsControllerImpl } from "./stats-controller";
 
 export function amountToLedger(currency: {scale: number}, amount: number) {
   return Big(amount).div(Big(10).pow(currency.scale)).toString()
@@ -72,7 +72,7 @@ export const currencyData = (currency: Currency): LedgerCurrencyData => {
   }
 }
 
-export class LedgerCurrencyController implements CurrencyController {
+export class CurrencyControllerImpl implements CurrencyController {
   
   model: Currency
   ledger: LedgerCurrency
@@ -82,11 +82,11 @@ export class LedgerCurrencyController implements CurrencyController {
   // Controllers
   users: UserController
   keys: KeyController
-  accounts: AccountController
-  transfers: TransferController
+  accounts: AccountControllerImpl
+  transfers: TransferControllerImpl
   externalResources: ExternalResourceController
   creditCommons: CreditCommonsController
-  stats: StatsController
+  stats: StatsControllerImpl
 
   constructor(model: Currency, ledger: LedgerCurrency, db: TenantPrismaClient, encryptionKey: () => Promise<KeyObject>, sponsorKey: () => Promise<Keypair>, emitter: TypedEmitter<ControllerEvents>) {
     this.db = db
@@ -96,11 +96,11 @@ export class LedgerCurrencyController implements CurrencyController {
 
     this.users = new UserController(this)
     this.keys = new KeyController(this, sponsorKey, encryptionKey)
-    this.accounts = new AccountController(this)
-    this.transfers = new TransferController(this)
+    this.accounts = new AccountControllerImpl(this)
+    this.transfers = new TransferControllerImpl(this)
     this.externalResources = new ExternalResourceController(this)
     this.creditCommons = new CreditCommonsControllerImpl(this)
-    this.stats = new StatsController(this.db)
+    this.stats = new StatsControllerImpl(this.db)
   }
 
   /**

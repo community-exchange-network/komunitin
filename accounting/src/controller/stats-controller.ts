@@ -1,7 +1,7 @@
 import { Context } from "src/utils/context";
 import { AccountStatsOptions, StatsOptions } from "src/server/request";
 import { Stats, StatsInterval } from "src/model/stats";
-import { StatsController as IStatsController } from "src/controller";
+import { StatsController } from "src/controller";
 import { Prisma } from "@prisma/client";
 import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant";
 
@@ -18,7 +18,7 @@ import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant";
  *  - use more efficient SQL queries if possible
  *  - use caching
  */
-export class StatsController implements IStatsController {
+export class StatsControllerImpl implements StatsController {
 
   prismaClient: TenantPrismaClient | PrivilegedPrismaClient
 

@@ -4,7 +4,7 @@ import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputT
 import { InputTrustline, UpdateTrustline } from 'src/model/trustline';
 import { context } from 'src/utils/context';
 import { badRequest } from 'src/utils/error';
-import { SharedController } from '../controller';
+import { BaseController } from '../controller';
 import { anyAuth, externalAuth, noAuth, Scope, userAuth } from './auth';
 import { asyncHandler, currencyCollectionCsvHandler, currencyCollectionHandler, currencyHandler, currencyInputHandler, currencyInputHandlerMultiple, currencyResourceHandler } from './handlers';
 import { input } from './parse';
@@ -13,7 +13,7 @@ import { AccountSerializer, AccountSettingsSerializer, CurrencySerializer, Curre
 import { Validators } from './validation';
 import routeCache from 'route-cache'
 
-export function getRoutes(controller: SharedController) {
+export function getRoutes(controller: BaseController) {
   const router = Router()
 
   router.get('/', noAuth(), asyncHandler(async (req, res) => {

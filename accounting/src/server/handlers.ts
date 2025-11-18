@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express"
-import { CurrencyController, SharedController } from "src/controller"
+import { CurrencyController, BaseController } from "src/controller"
 import { CollectionOptions, CollectionParamsOptions, ResourceOptions, ResourceParamsOptions, StatsOptions, accountStatsParams, collectionParams, resourceParams, statsParams } from "./request"
 import { Context, context } from "src/utils/context"
 import { DataDocument, Dictionary, Linker, Paginator, Serializer } from "ts-japi"
@@ -33,7 +33,7 @@ export type CurrencyHandlerOptions = {
   checkActive?: boolean
 }
 
-export function currencyHandler<T extends Dictionary<any>>(controller: SharedController, fn: (currencyController: CurrencyController, context: Context, req: Request) => Promise<Partial<DataDocument<T>>>, options: CurrencyHandlerOptions = {}) {
+export function currencyHandler<T extends Dictionary<any>>(controller: BaseController, fn: (currencyController: CurrencyController, context: Context, req: Request) => Promise<Partial<DataDocument<T>>>, options: CurrencyHandlerOptions = {}) {
   const status = options.status ?? 200
   const checkActive = options.checkActive ?? true
   return asyncHandler(async (req, res) => {
@@ -78,7 +78,7 @@ type CurrencyResourceHandler<T> = (controller: CurrencyController, context: Cont
 /**
  * Helper for route handlers that return a single resource within a currency.
  */
-export function currencyResourceHandler<T extends Dictionary<any>>(controller: SharedController, fn: CurrencyResourceHandler<T>, serializer: Serializer<T>, paramOptions: ResourceParamsOptions, options: CurrencyHandlerOptions = {}) {
+export function currencyResourceHandler<T extends Dictionary<any>>(controller: BaseController, fn: CurrencyResourceHandler<T>, serializer: Serializer<T>, paramOptions: ResourceParamsOptions, options: CurrencyHandlerOptions = {}) {
   return currencyHandler(controller, async (currencyController, ctx, req) => {
     const params = resourceParams(req, paramOptions)
     const resource = await fn(currencyController, ctx, req.params.id, params)
@@ -98,7 +98,7 @@ type CurrencyCollectionHandler<T> = (controller: CurrencyController, context: Co
 /**
  * Helper for route handlers that return a collection of resources within a currency.
  */
-export function currencyCollectionHandler<T extends Dictionary<any>>(controller: SharedController, fn: CurrencyCollectionHandler<T>, serializer: Serializer<T>, paramOptions: CollectionParamsOptions, options: CurrencyHandlerOptions = {}) {
+export function currencyCollectionHandler<T extends Dictionary<any>>(controller: BaseController, fn: CurrencyCollectionHandler<T>, serializer: Serializer<T>, paramOptions: CollectionParamsOptions, options: CurrencyHandlerOptions = {}) {
   return currencyHandler(controller, async (currencyController, ctx, req) => {
     const params = collectionParams(req, paramOptions)
     const resource = await fn(currencyController, ctx, params)
@@ -119,7 +119,7 @@ type CurrencyInputHandlerMultiple<T,D> = ((controller: CurrencyController, conte
 /**
  * Helper for route handlers that require input data.
  */
-export function currencyInputHandler<T extends Dictionary<any>, D extends Resource>(controller: SharedController, fn: CurrencyInputHandler<T,D>, serializer: Serializer<T>, options: CurrencyHandlerOptions = {}) {
+export function currencyInputHandler<T extends Dictionary<any>, D extends Resource>(controller: BaseController, fn: CurrencyInputHandler<T,D>, serializer: Serializer<T>, options: CurrencyHandlerOptions = {}) {
   return currencyHandler(controller, async (currencyController, ctx, req) => {
     const data = input<D>(req)
     if (Array.isArray(data)) {
@@ -130,7 +130,7 @@ export function currencyInputHandler<T extends Dictionary<any>, D extends Resour
   }, options)
 }
 
-export function currencyInputHandlerMultiple<T extends Dictionary<any>, D extends Resource>(controller: SharedController, fn: CurrencyInputHandlerMultiple<T,D>, serializer: Serializer<T>, options: CurrencyHandlerOptions = {}) {
+export function currencyInputHandlerMultiple<T extends Dictionary<any>, D extends Resource>(controller: BaseController, fn: CurrencyInputHandlerMultiple<T,D>, serializer: Serializer<T>, options: CurrencyHandlerOptions = {}) {
   return currencyHandler(controller, async (currencyController, ctx, req) => {
     const data = input<D>(req)
     const resource = await fn(currencyController, ctx, data)
@@ -141,7 +141,7 @@ export function currencyInputHandlerMultiple<T extends Dictionary<any>, D extend
 /**
  * Helper for route handlers that exports a collection of resources within a currency as CSV.
  */
-export function currencyCollectionCsvHandler<T>(controller: SharedController, fn: CurrencyCollectionHandler<T>, paramOptions: CollectionParamsOptions, csvMapper: (item: T) => Record<string, string|number|boolean|null>, options: CurrencyHandlerOptions = {}) {
+export function currencyCollectionCsvHandler<T>(controller: BaseController, fn: CurrencyCollectionHandler<T>, paramOptions: CollectionParamsOptions, csvMapper: (item: T) => Record<string, string|number|boolean|null>, options: CurrencyHandlerOptions = {}) {
   const status = options.status ?? 200
   const checkActive = options.checkActive ?? true
   return asyncHandler(async (req, res) => {

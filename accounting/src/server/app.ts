@@ -2,14 +2,14 @@ import express from "express"
 import { getRoutes } from "./routes"
 import { getRoutes as getCCRoutes } from "src/creditcommons/routes"
 import { getRoutes as getMigrationRoutes } from "src/migration/routes"
-import { SharedController, createController } from "../controller"
+import { BaseController, createController } from "../controller"
 import { errorHandler } from "./errors"
 import { httpLogger } from "../utils/logger"
 import qs from "qs"
 import helmet from "helmet"
 import cors from "cors"
 
-export type ExpressExtended = express.Express & { komunitin: { controller: SharedController } }
+export type ExpressExtended = express.Express & { komunitin: { controller: BaseController } }
 
 export async function createApp() : Promise<ExpressExtended> {
   const app = express()

@@ -1,5 +1,5 @@
 import { Context } from "src/utils/context"
-import { SharedController } from "../controller"
+import { BaseController } from "../controller"
 import { ApiMigration, CreateMigration, MigrationLogEntry, Migration, MigrationStatus, UpdateMigration } from "./migration"
 import { notFound } from "../utils/error"
 import { EventEmitter } from "events"
@@ -13,7 +13,7 @@ type MigrationControllerEvents = {
 export class MigrationController {
   private logEmitter: TypedEmitter<MigrationControllerEvents>
   
-  constructor(readonly controller: SharedController) {
+  constructor(readonly controller: BaseController) {
     this.logEmitter = new EventEmitter() as TypedEmitter<MigrationControllerEvents>
   }
 
