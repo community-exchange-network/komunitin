@@ -4,7 +4,7 @@ import type { KeyObject } from "node:crypto";
 import { externalResourceToIdentifier, recordToExternalResource } from "src/model/resource";
 import { InputTrustline, Trustline, UpdateTrustline, recordToTrustline } from "src/model/trustline";
 import TypedEmitter from "typed-emitter";
-import { ControllerEvents, CurrencyController } from ".";
+import { CurrencyPublicService, ServiceEvents } from ".";
 import { LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerTransfer } from "../ledger";
 import {
   FullAccount,
@@ -72,12 +72,12 @@ export const currencyData = (currency: Currency): LedgerCurrencyData => {
   }
 }
 
-export class CurrencyControllerImpl implements CurrencyController {
+export class CurrencyControllerImpl implements CurrencyPublicService {
   
   model: Currency
   ledger: LedgerCurrency
   db: TenantPrismaClient
-  emitter: TypedEmitter<ControllerEvents>
+  emitter: TypedEmitter<ServiceEvents>
 
   // Controllers
   users: UserController
@@ -88,7 +88,7 @@ export class CurrencyControllerImpl implements CurrencyController {
   creditCommons: CreditCommonsController
   stats: StatsControllerImpl
 
-  constructor(model: Currency, ledger: LedgerCurrency, db: TenantPrismaClient, encryptionKey: () => Promise<KeyObject>, sponsorKey: () => Promise<Keypair>, emitter: TypedEmitter<ControllerEvents>) {
+  constructor(model: Currency, ledger: LedgerCurrency, db: TenantPrismaClient, encryptionKey: () => Promise<KeyObject>, sponsorKey: () => Promise<Keypair>, emitter: TypedEmitter<ServiceEvents>) {
     this.db = db
     this.model = model
     this.ledger = ledger

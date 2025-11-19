@@ -1,10 +1,10 @@
 import { Context } from "src/utils/context"
-import { BaseController } from "../controller"
 import { ApiMigration, CreateMigration, MigrationLogEntry, Migration, MigrationStatus, UpdateMigration } from "./migration"
 import { notFound } from "../utils/error"
 import { EventEmitter } from "events"
 import TypedEmitter from "typed-emitter"
 import { ICESMigrationController } from "./integralces-migration"
+import { BaseService } from "../controller"
 
 type MigrationControllerEvents = {
   logUpdate: (migrationId: string, log: MigrationLogEntry) => void
@@ -13,7 +13,7 @@ type MigrationControllerEvents = {
 export class MigrationController {
   private logEmitter: TypedEmitter<MigrationControllerEvents>
   
-  constructor(readonly controller: BaseController) {
+  constructor(readonly controller: BaseService) {
     this.logEmitter = new EventEmitter() as TypedEmitter<MigrationControllerEvents>
   }
 

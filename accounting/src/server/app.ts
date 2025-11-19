@@ -2,14 +2,16 @@ import express from "express"
 import { getRoutes } from "./routes"
 import { getRoutes as getCCRoutes } from "src/creditcommons/routes"
 import { getRoutes as getMigrationRoutes } from "src/migration/routes"
-import { BaseController, createController } from "../controller"
 import { errorHandler } from "./errors"
 import { httpLogger } from "../utils/logger"
 import qs from "qs"
 import helmet from "helmet"
 import cors from "cors"
+import { createBaseService } from "../controller/base-service-builder"
+import { BaseService } from "../controller"
 
-export type ExpressExtended = express.Express & { komunitin: { controller: BaseController } }
+
+export type ExpressExtended = express.Express & { komunitin: { service: BaseService } }
 
 export async function createApp() : Promise<ExpressExtended> {
   const app = express()
@@ -54,13 +56,13 @@ export const setupApp = async (expressApp: express.Express) => {
   app.use(httpLogger)
 
   // Controller
-  const controller = await createController()
-  app.komunitin = { controller }
+  const service = await createBaseService()
+  app.komunitin = { service }
   
   // Routes
-  app.use("/", getRoutes(controller))
-  app.use("/", getCCRoutes(controller))
-  app.use("/", getMigrationRoutes(controller))
+  app.use("/", getRoutes(service))
+  app.use("/", getCCRoutes(service))
+  app.use("/", getMigrationRoutes(service))
   
 
   // Error handlers
@@ -70,7 +72,7 @@ export const setupApp = async (expressApp: express.Express) => {
 }
 
 export const closeApp = async (app: ExpressExtended) => {
-  await app.komunitin.controller.stop()
+  await app.komunitin.service.stop()
 }
 
 
