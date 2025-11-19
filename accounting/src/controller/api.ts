@@ -1,11 +1,14 @@
 
 import { AccountStatsOptions, CollectionOptions, StatsOptions } from "../server/request"
-import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer, UpdateCurrencySettings, FullAccount } from "../model"
+import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer, UpdateCurrencySettings, FullAccount, User } from "../model"
 import { Context } from "../utils/context"
 import { InputTrustline, Trustline, UpdateTrustline } from "src/model/trustline"
 import { Stats } from "src/model/stats"
 import TypedEmitter from "typed-emitter"
 import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant"
+import { UserController } from "./user-controller"
+import { KeyController } from "./key-controller"
+import { ExternalResourceController } from "./external-resource-controller"
 
 /**
  * Controller for operations not related to a particular currency.
@@ -60,7 +63,12 @@ export interface CurrencyPublicService {
 }
 
 export interface CurrencyService extends CurrencyPublicService {
+  model: Currency
+  db: TenantPrismaClient
+  users: UserController
+  keys: KeyController
   accounts: AccountsService
+  externalResources: ExternalResourceController
 }
 
 /**

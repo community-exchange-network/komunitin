@@ -6,7 +6,7 @@ import { input, Resource } from "./parse"
 import { config } from "src/config"
 import { badRequest, inactiveCurrency } from "src/utils/error"
 import { format as formatcsv } from "@fast-csv/format"
-import { BaseService, CurrencyPublicService } from "../controller"
+import { BaseService, CurrencyService } from "../controller"
 
 /**
  * Helper for general async route handlers
@@ -21,7 +21,7 @@ export const asyncHandler = (fn: (req: Request, res: Response) => Promise<void>)
   }
 }
 
-async function checkActiveCurrency(ctx: Context, currencyController: CurrencyPublicService) {
+async function checkActiveCurrency(ctx: Context, currencyController: CurrencyService) {
   const currency = await currencyController.getCurrency(ctx)
   if (currency.status !== "active") {
     throw inactiveCurrency(`Currency ${currency.code} is not active`)
@@ -33,7 +33,7 @@ export type CurrencyHandlerOptions = {
   checkActive?: boolean
 }
 
-export function currencyHandler<T extends Dictionary<any>>(controller: BaseService, fn: (currencyController: CurrencyPublicService, context: Context, req: Request) => Promise<Partial<DataDocument<T>>>, options: CurrencyHandlerOptions = {}) {
+export function currencyHandler<T extends Dictionary<any>>(controller: BaseService, fn: (currencyController: CurrencyService, context: Context, req: Request) => Promise<Partial<DataDocument<T>>>, options: CurrencyHandlerOptions = {}) {
   const status = options.status ?? 200
   const checkActive = options.checkActive ?? true
   return asyncHandler(async (req, res) => {
@@ -74,7 +74,7 @@ function paginatorHelper<T>(data: T[]|T, params: CollectionOptions, req: Request
 }
 
 
-type CurrencyResourceHandler<T> = (controller: CurrencyPublicService, context: Context, id: string, params: ResourceOptions) => Promise<T>
+type CurrencyResourceHandler<T> = (controller: CurrencyService, context: Context, id: string, params: ResourceOptions) => Promise<T>
 /**
  * Helper for route handlers that return a single resource within a currency.
  */
@@ -94,7 +94,7 @@ export function currencyResourceHandler<T extends Dictionary<any>>(controller: B
   }, options)
 }
 
-type CurrencyCollectionHandler<T> = (controller: CurrencyPublicService, context: Context, params: CollectionOptions) => Promise<T[]>
+type CurrencyCollectionHandler<T> = (controller: CurrencyService, context: Context, params: CollectionOptions) => Promise<T[]>
 /**
  * Helper for route handlers that return a collection of resources within a currency.
  */
@@ -114,8 +114,8 @@ export function currencyCollectionHandler<T extends Dictionary<any>>(controller:
   }, options)
 }
 
-export type CurrencyInputHandler<T,D> = ((controller: CurrencyPublicService, context: Context, data: D, params: Record<string, string> ) => Promise<T>)
-type CurrencyInputHandlerMultiple<T,D> = ((controller: CurrencyPublicService, context: Context, data: D|D[]) => Promise<T|T[]>)
+export type CurrencyInputHandler<T,D> = ((controller: CurrencyService, context: Context, data: D, params: Record<string, string> ) => Promise<T>)
+type CurrencyInputHandlerMultiple<T,D> = ((controller: CurrencyService, context: Context, data: D|D[]) => Promise<T|T[]>)
 /**
  * Helper for route handlers that require input data.
  */
