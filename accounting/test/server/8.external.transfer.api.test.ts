@@ -120,7 +120,7 @@ describe("External transfers", async () => {
   await it('successful external payment', async () => {
     // 100 TEST = 10 HOUR = 20 EXTR
     // just wait for the path to be available in the ledger.
-    const controller = await t.app.komunitin.controller.getCurrencyController("TEST") as CurrencyControllerImpl
+    const controller = await t.app.komunitin.service.getCurrencyController("TEST") as CurrencyControllerImpl
     await controller.ledger.quotePath({
       destCode: "EXTR",
       destIssuer: eCurrency.attributes.keys.issuer,

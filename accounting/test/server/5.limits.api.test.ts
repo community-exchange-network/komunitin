@@ -95,7 +95,7 @@ describe("OnPayment credit limit", async () => {
     assert.equal(transfer.attributes.state, "pending")
     // wait 1 second and run cron
     await sleep(1000)
-    await (t.app.komunitin.controller as BaseControllerImpl).cron()
+    await (t.app.komunitin.service as BaseControllerImpl).cron()
     // check transfer has been committed.
     const updated = await t.api.get(`/TEST/transfers/${transfer.id}`, t.user2)
     assert.equal(updated.body.data.attributes.state, "committed")
