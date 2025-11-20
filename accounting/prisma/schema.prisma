@@ -27,6 +27,8 @@ model User {
   currency  Currency[]    @relation()
   // Transfer users
   transfers Transfer[]    @relation()
+  // Topup users
+  topups    Topup[]      @relation()
 
   // Same user could log in to different tenants.
   @@id([tenantId, id])
@@ -146,8 +148,10 @@ model Account {
 
   // Each CreditCommonsNode has a "vostro" Account
   CreditCommonsNode CreditCommonsNode[]
+  topups Topup[]
 
   @@unique([id, tenantId])
+  
 }
 
 model AccountTag {
@@ -191,6 +195,7 @@ model Transfer {
   updated DateTime @updatedAt
 
   externalTransfer ExternalTransfer? @relation()
+  topup            Topup?           @relation()
 
   @@id([tenantId, id])
   @@unique([tenantId, hash])
@@ -325,4 +330,35 @@ model Migration {
 
   created DateTime @default(now())
   updated DateTime @updatedAt
+}
+
+model Topup {
+  tenantId String @default(dbgenerated("(current_setting('app.current_tenant_id'))::text")) @db.VarChar(31)
+  id       String @id @default(uuid())
+
+  status String @default("new") @db.VarChar(31)
+
+  // Actual amount deposited by the user in smallest currency unit (e.g. 1234 for €12.34)
+  depositAmount BigInt
+  depositCurrency String @db.VarChar(31)
+
+  // Amount to be received using currency's scale.
+  receiveAmount BigInt
+
+  paymentProvider String @db.VarChar(255)
+  paymentData    Json?
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [tenantId, userId], references: [tenantId, id])
+
+  transferId String?
+  transfer   Transfer? @relation(fields: [tenantId, transferId], references: [tenantId, id])
+
+  created DateTime @default(now())
+  updated DateTime @updatedAt
+
+  @@unique([tenantId, transferId])
 }
