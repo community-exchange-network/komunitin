@@ -2,14 +2,9 @@
   <q-header>
     <div
       id="header"
-      class="bg-primary items-center no-wrap"
-      :class="showBalance ? '' : 'flex'"
+      class="bg-primary flex fit row wrap justify-between items-center q-pt-sm q-pb-xs q-pl-sm q-pr-md"
       :style="`height: ${computedHeight}px;`"
     >
-      <div
-        class="flex q-pt-sm q-pb-xs justify-between items-center"
-        :class="[noButton ? '' : 'q-pl-sm q-pr-md']"
-      >
         <!-- render back button, menu button, profile button or none -->
         <q-btn
           v-if="showBack"
@@ -32,17 +27,17 @@
         <q-btn
           v-if="showProfile"
           id="profile"
+          class="q-ml-auto"
+          :class="!showBalance ? 'order-last' : ''"
           flat
           round
-          size="lg"
-          padding="none"
           icon="account_circle"
           :aria-label="$t('profile')"
         />
-      </div>
       <div
         v-if="showBalance"
         class="col self-center column items-center"
+        style="min-width: 100%; max-width: 100%;"
       > 
         <div 
           class="text-body2 text-onprimary-m"
@@ -64,8 +59,7 @@
       </div>
       <q-toolbar
         class="no-wrap"
-        :class="((noButton || showBalance) ? 'no-button ' : '') + (showBalance ? '' : 'col-grow q-pl-none')"
-        style="max-width: none; flex: 1 1 0%"
+        style="max-width: none; flex: 1 1 0%;"
       >
         <q-toolbar-title v-if="!searchActive">
           {{ title }}
@@ -114,6 +108,16 @@
             round
             to="/logout"
           />
+          <!-- <q-btn
+            v-if="showProfile && !showBalance"
+            id="profile"
+            flat
+            round
+            size="lg"
+            padding="none"
+            icon="account_circle"
+            :aria-label="$t('profile')"
+        /> -->
         </slot>
         <q-scroll-observer
           v-if="requireBalance"
@@ -184,7 +188,7 @@ const showProfile = props.profile;
 /**
  * Show no button
  */
-const noButton = computed(() => !showBack.value && !showMenu.value && !showProfile)
+// const noButton = computed(() => !showBack.value && !showMenu.value && !showProfile)
 
 
 /**
