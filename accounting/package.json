@@ -8,8 +8,9 @@
 		"build": "esbuild src/index.ts --bundle --sourcemap --platform=node --outdir=bundle",
 		"start": "node --enable-source-maps bundle/index.js",
 		"dev": "tsx --inspect=0.0.0.0:9229 --watch src/index.ts | pino-pretty",
+		"reset-db": "prisma migrate reset --force",
 		"test-ledger": "tsx --test test/ledger/*.ts",
-		"test-server": "prisma migrate reset --force && tsx --test --test-concurrency=1 test/server/*.test.ts && tsx --test --test-concurrency=1 test/creditcommons/*.test.ts",
+		"test-server": "pnpm reset-db && tsx --test --test-concurrency=1 test/server/*.test.ts && tsx --test --test-concurrency=1 test/creditcommons/*.test.ts",
 		"test-unit": "tsx --test test/unit/*.ts",
 		"test-one": "tsx --test --test-concurrency=1",
 		"test": "pnpm test-unit && pnpm test-ledger && pnpm test-server"
