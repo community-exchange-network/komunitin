@@ -1,5 +1,5 @@
 import { AccountType, Prisma } from "@prisma/client";
-import { AccountController } from "src/controller";
+
 import { Account, AccountSettings, AccountStatus, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
 import { CollectionOptions } from "src/server/request";
 import { Context, systemContext } from "src/utils/context";
@@ -9,9 +9,10 @@ import { WithRequired } from "src/utils/types";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
 import { CurrencyControllerImpl } from "./currency-controller";
 import { whereFilter } from "./query";
+import { AccountsService } from "./api";
 
 
-export class AccountControllerImpl extends AbstractCurrencyController implements AccountController{
+export class AccountControllerImpl extends AbstractCurrencyController implements AccountsService {
   constructor (readonly currencyController: CurrencyControllerImpl) {
     super(currencyController)
   }
