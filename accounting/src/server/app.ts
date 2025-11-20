@@ -2,6 +2,7 @@ import express from "express"
 import { getRoutes } from "./routes"
 import { getRoutes as getCCRoutes } from "src/creditcommons/routes"
 import { getRoutes as getMigrationRoutes } from "src/migration/routes"
+import { getRoutes as getTopupRoutes } from "src/topup/routes"
 import { errorHandler } from "./errors"
 import { httpLogger } from "../utils/logger"
 import qs from "qs"
@@ -63,6 +64,7 @@ export const setupApp = async (expressApp: express.Express) => {
   app.use("/", getRoutes(service))
   app.use("/", getCCRoutes(service))
   app.use("/", getMigrationRoutes(service))
+  app.use("/", getTopupRoutes(service))
   
 
   // Error handlers
