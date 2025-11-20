@@ -5,15 +5,12 @@ import {
   QInnerLoading,
   QToolbarTitle,
   QInfiniteScroll,
-  QSelect,
-  QItem,
 } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
-import ApiSerializer from "src/server/ApiSerializer";
 import { seeds } from "src/server";
-import SelectCategory from "src/components/SelectCategory.vue";
 import NeedCard from "src/components/NeedCard.vue";
+import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
 
 describe("Home", () => {
   let wrapper: VueWrapper;
@@ -87,5 +84,16 @@ describe("Home", () => {
     const needBtn = actions.find(action => action.text().includes('Create need'));
     expect(offerBtn).toBeDefined();
     expect(needBtn).toBeDefined();
+  })
+
+  it('displays Profile button and menu', async () => {
+    const profileButton = wrapper.findComponent(ProfileBtnMenu);
+    expect(profileButton.isVisible()).toBe(true);
+    await profileButton.trigger('click');
+
+    // TODO: figure out how to find element (menu) that is rendered in portal
+    // const profileMenu = wrapper.get('.q-menu');
+    // expect(profileMenu.isVisible()).toBe(true);
+    // expect(profileMenu.text()).toContain('Emiliano Lemke');
   })
 });
