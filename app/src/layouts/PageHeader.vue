@@ -2,8 +2,8 @@
   <q-header>
     <div
       id="header"
-      class="bg-primary flex fit row wrap justify-between items-center q-pt-sm q-pb-xs q-pl-sm q-pr-md"
-      :style="`height: ${computedHeight}px;`"
+      class="bg-primary flex fit row wrap justify-between items-center q-pt-sm q-pb-xs q-px-md"
+      :style="`height: ${computedHeight}px; ${showBalance ? '' : 'padding-top:4px;'}`"
     >
         <!-- render back button, menu button, profile button or none -->
         <q-btn
@@ -59,7 +59,8 @@
       </div>
       <q-toolbar
         class="no-wrap"
-        style="max-width: none; flex: 1 1 0%;"
+        style="max-width: none; flex: 1 1 0%; padding-right: 0;"
+        :style="showBalance ? '' : 'padding-left:0;'"
       >
         <q-toolbar-title v-if="!searchActive">
           {{ title }}
