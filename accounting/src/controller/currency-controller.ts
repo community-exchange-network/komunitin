@@ -4,7 +4,7 @@ import type { KeyObject } from "node:crypto";
 import { externalResourceToIdentifier, recordToExternalResource } from "src/model/resource";
 import { InputTrustline, Trustline, UpdateTrustline, recordToTrustline } from "src/model/trustline";
 import TypedEmitter from "typed-emitter";
-import { CurrencyPublicService, ServiceEvents } from ".";
+import { CurrencyPublicService, CurrencyService, ServiceEvents } from ".";
 import { LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerTransfer } from "../ledger";
 import {
   FullAccount,
@@ -72,7 +72,7 @@ export const currencyData = (currency: Currency): LedgerCurrencyData => {
   }
 }
 
-export class CurrencyControllerImpl implements CurrencyPublicService {
+export class CurrencyControllerImpl implements CurrencyService {
   
   model: Currency
   ledger: LedgerCurrency
@@ -104,14 +104,14 @@ export class CurrencyControllerImpl implements CurrencyPublicService {
   }
 
   /**
-   * Implements {@link CurrencyController.getCurrency}
+   * Implements {@link CurrencyPublicService.getCurrency}
    */
   public async getCurrency(_ctx: Context): Promise<Currency> {
     return this.model
   }
 
   /**
-   * Implements {@link CurrencyController.updateCurrency}
+   * Implements {@link CurrencyPublicService.updateCurrency}
    */
   async updateCurrency(ctx: Context, currency: UpdateCurrency) {
     await this.users.checkAdmin(ctx)
@@ -163,17 +163,17 @@ export class CurrencyControllerImpl implements CurrencyPublicService {
     return this.model
   }
   /**
-   * Implements {@link CurrencyController.getCurrencySettings}
+   * Implements {@link CurrencyPublicService.getCurrencySettings}
    */
-  public async getCurrencySettings(ctx: Context) {
+  public async getCurrencySettings<T extends CurrencySettings>(ctx: Context) {
     // Maybe we could relax that and allow public access to *read* currency settings.
     await this.users.checkUser(ctx)
-    return this.model.settings
+    return this.model.settings as T
   }
   /**
-   * Implements {@link CurrencyController#updateCurrencySettings}
+   * Implements {@link CurrencyPublicService#updateCurrencySettings}
    */
-  public async updateCurrencySettings(ctx: Context, settings: UpdateCurrencySettings) {
+  public async updateCurrencySettings<T extends CurrencySettings>(ctx: Context, settings: AtLeast<T,"id">): Promise<T> {
     await this.users.checkAdmin(ctx)
     const {id, ...settingsFields} = settings
     // Merge the settings since the DB is a JSON field.
@@ -205,7 +205,7 @@ export class CurrencyControllerImpl implements CurrencyPublicService {
       }
     })
     this.model = recordToCurrency(record)
-    return this.model.settings
+    return this.model.settings as T
   }
 
   async updateState(state: LedgerCurrencyState) {

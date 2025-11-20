@@ -178,6 +178,6 @@ export const recordToAccount = (record: AccountRecordComplete, currency: Currenc
   }
 }
 
-export const userHasAccount = (user: User, account: FullAccount): boolean | undefined => {
+export const userHasAccount = (user: User, account: Account): boolean | undefined => {
   return account.users?.some(u => u.id === user.id)
 }

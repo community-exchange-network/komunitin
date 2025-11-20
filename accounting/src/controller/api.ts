@@ -9,6 +9,7 @@ import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant"
 import { UserController } from "./user-controller"
 import { KeyController } from "./key-controller"
 import { ExternalResourceController } from "./external-resource-controller"
+import { AtLeast } from "../utils/types"
 
 /**
  * Controller for operations not related to a particular currency.
@@ -69,6 +70,10 @@ export interface CurrencyService extends CurrencyPublicService {
   keys: KeyController
   accounts: AccountsService
   externalResources: ExternalResourceController
+
+  // Allow other modules to save additional settings on the currency settings
+  getCurrencySettings<T extends CurrencySettings>(ctx: Context): Promise<T>
+  updateCurrencySettings<T extends CurrencySettings>(ctx: Context, settings: AtLeast<T,"id">): Promise<T>
 }
 
 /**

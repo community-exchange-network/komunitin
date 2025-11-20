@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { checkExact, oneOf } from 'express-validator';
-import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, Transfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
+import { AccountSettings, CreateCurrency, InputAccount, InputTransfer, Transfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
 import { InputTrustline, UpdateTrustline } from 'src/model/trustline';
 import { context } from 'src/utils/context';
 import { badRequest } from 'src/utils/error';
@@ -69,7 +69,7 @@ export function getRoutes(controller: BaseService) {
 
   // Update currency settings
   router.patch('/:code/currency/settings', userAuth([Scope.Accounting, Scope.Superadmin]), checkExact(Validators.isUpdateCurrencySettings()),
-    currencyInputHandler(controller, async (currencyController, ctx, data: CurrencySettings) => {
+    currencyInputHandler(controller, async (currencyController, ctx, data) => {
       return await currencyController.updateCurrencySettings(ctx, data)
     }, CurrencySettingsSerializer)
   )
