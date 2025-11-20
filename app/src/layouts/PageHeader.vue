@@ -2,7 +2,7 @@
   <q-header>
     <div
       id="header"
-      class="bg-primary flex fit row wrap justify-between items-center q-pt-sm q-pb-xs q-px-md"
+      class="bg-primary flex row wrap justify-between items-center q-pt-sm q-pb-xs q-px-md"
       :style="`height: ${computedHeight}px; ${showBalance ? '' : 'padding-top:4px;'}`"
     >
         <!-- render back button, menu button, profile button or none -->
@@ -24,15 +24,11 @@
           :aria-label="$t('menu')"
           @click="$store.dispatch('toogleDrawer')"
         />
-        <q-btn
+        <profile-btn-menu
           v-if="showProfile"
           id="profile"
           class="q-ml-auto"
           :class="!showBalance ? 'order-last' : ''"
-          flat
-          round
-          icon="account_circle"
-          :aria-label="$t('profile')"
         />
       <div
         v-if="showBalance"
@@ -60,7 +56,7 @@
       <q-toolbar
         class="no-wrap"
         style="max-width: none; flex: 1 1 0%; padding-right: 0;"
-        :style="showBalance ? '' : 'padding-left:0;'"
+        :style="showBalance ? 'padding-left:18px;' : 'padding-left:0;'"
       >
         <q-toolbar-title v-if="!searchActive">
           {{ title }}
@@ -109,16 +105,6 @@
             round
             to="/logout"
           />
-          <!-- <q-btn
-            v-if="showProfile && !showBalance"
-            id="profile"
-            flat
-            round
-            size="lg"
-            padding="none"
-            icon="account_circle"
-            :aria-label="$t('profile')"
-        /> -->
         </slot>
         <q-scroll-observer
           v-if="requireBalance"
@@ -137,6 +123,7 @@
  *  - If balance prop is set to true, shows a section with the logged in account 
  * balance. This section shrinks on scroll.
  *  - If search prop is set to true, provides a search box that emits the `search` event.
+ *  - If profile prop is set to true, shows a profile button and menu.
  *  - Provides a slot #buttons to be able to customize the right toolbar buttons 
  * depending on the page content.
  */
@@ -146,6 +133,7 @@ import { useStore } from "vuex"
 import { useRoute, useRouter } from "vue-router"
 import FormatCurrency from "../plugins/FormatCurrency";
 import Banner from "./Banner.vue";
+import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
 
 const props = withDefaults(defineProps<{
   title?: string;
@@ -174,6 +162,7 @@ const scrollOffset = ref(0)
 const offset = ref(0)
 
 const myAccount = computed(() => store.getters.myAccount)
+
 
 const route = useRoute()
 /**
