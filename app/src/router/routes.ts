@@ -2,6 +2,7 @@ import type { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
   {
+    name: 'FrontLayout',
     path: '/',
     component: () => import('../layouts/Front.vue'),
     meta: {
@@ -30,6 +31,7 @@ const routes: RouteRecordRaw[] = [
     ]
   },
   {
+    name: 'MainLayout',
     path: '/',
     component: () => import('../layouts/Layout.vue'),
     children: [
@@ -419,9 +421,21 @@ const routes: RouteRecordRaw[] = [
       back: false
     }
   },
-
-  
 ];
+
+if (process.env.FEAT_TOPUP === 'true') {
+  routes.find(route => route.name === 'MainLayout')?.children?.push({
+    path: '/groups/:code/members/:memberCode/topup',
+    props: true,
+    name: 'CreateTopup',
+    component: () => import('../features/topup/CreateTopup.vue'),
+  }, {
+    path: '/groups/:code/members/:memberCode/topup/:id',
+    props: true,
+    name: 'TopupDetails',
+    component: () => import('../features/topup/TopupDetails.vue'),
+  })
+}
 
 // Always leave this as last one
 if (process.env.MODE !== 'ssr') {
