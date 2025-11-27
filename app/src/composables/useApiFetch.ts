@@ -2,8 +2,6 @@ import { useStore } from "vuex"
 import {type ResourceObject, type SuccessfulResponse } from "../store/model"
 import KError, { checkFetchResponse } from "../KError"
 
-
-
 type FetchOptions = Omit<RequestInit, "body"> & {
   body?: Record<string, unknown> | unknown[]
 }
@@ -53,7 +51,7 @@ export const request = async <T extends ResourceObject> (url: string, options: F
  * "services" layer for API calls, to be used also by the store and
  * therefore it duplicates similar code within the store.
  */
-export const useApiFetch = <T>() => { 
+export const useApiFetch = <T extends ResourceObject>() => { 
   const store = useStore()
   const authService: AuthService = {
     accessToken: () => store.getters.accessToken,
