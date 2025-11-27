@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client"
 import { logger } from "../utils/logger"
 import { sleep } from "../utils/sleep"
-import { globalTenantDb } from "./multitenant"
+import { globalTenantDb, waitForDb } from "./multitenant"
 import { Store } from "./store"
 import { badConfig } from "../utils/error"
 import { config } from "../config"
@@ -12,17 +12,6 @@ import { KeyObject } from "node:crypto"
 import { createStellarLedger } from "../ledger"
 import { BaseControllerImpl } from "./base-controller"
 import { BaseService } from "./api"
-
-const waitForDb = async (db: PrismaClient): Promise<void> => {
-  try {
-    // Do a simple query to check if the DB is ready.
-    await db.value.findFirst()
-  } catch (error) {
-    logger.info(`Waiting for DB...`)
-    await sleep(1000)
-    return waitForDb(db)
-  }
-}
 
 const getSponsorAccount = async (store: Store) => {
   const SPONSOR_STORE_KEY = "sponsor_key"
