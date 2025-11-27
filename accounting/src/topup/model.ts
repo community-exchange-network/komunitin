@@ -4,7 +4,15 @@ import { Topup as TopupRecord } from "@prisma/client"
 import { Rate } from "../utils/types"
 
 export type DepositCurrency = "EUR"
-export type TopupStatus = "new" | "pending" | "completed" | "failed" | "canceled"
+export type TopupStatus = 
+    "new"                // Topup created in database, not yet contacted payment provider
+  | "pending"            // Payment link created at payment provider, waiting for user to pay
+  | "payment_completed"  // Payment received at payment provider
+  | "payment_failed"     // Payment failed at payment provider
+  | "transfer_completed" // Transfer committed to credit the account
+  | "transfer_failed"    // Transfer to credit the account failed
+  | "canceling"          // Topup being cancelled by user or system (before payment)
+  | "canceled"           // Topup cancelled (and payment link also cancelled if applicable)
 export type TopupPaymentProvider = "mollie"
 
 export interface Topup {
@@ -44,6 +52,10 @@ export interface MolliePaymentData {
 export type InputTopupSettings = Partial<TopupSettings>
 
 export interface TopupSettings {
+  /**
+   * Same id as the currency.
+   */
+  id: string
   /**
    * Whether topups are enabled for this currency.
    */
