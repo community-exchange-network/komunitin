@@ -5,6 +5,7 @@ import { Context } from "../utils/context";
 import { forbidden, notFound } from "../utils/error";
 import { InputTopupSettings, recordToTopup, AccountTopupSettings, TopupSettings, type DepositCurrency, type InputTopup, type Topup } from "./model";
 import { rate } from "../utils/rate";
+import { nullToPrismaDBNull } from "../controller/multitenant";
 
 export interface TopupService {
   /**
@@ -48,6 +49,7 @@ export class TopupController extends AbstractCurrencyController implements Topup
   private defaultTopupSettings() : TopupSettings {
     const currency = this.currency()
     return {
+      id: currency.id,
       enabled: false,
       defaultAllowTopup: false,
       depositCurrency: "EUR",
@@ -206,5 +208,35 @@ export class TopupController extends AbstractCurrencyController implements Topup
     const transfer = record.transferId ? await this.transfers().getTransfer(ctx, record.transferId) : null
 
     return recordToTopup(record, account, transfer, user)
+  }
+
+  async updateTopup(ctx: Context, data: Partial<Topup> & { id: string }): Promise<Topup> {
+
+    const update = async (topup: Topup, data: Partial<Topup>) => {
+      const record = await this.db().topup.update({
+        where: { id: topup.id },
+        data: nullToPrismaDBNull(data)
+      })
+      return recordToTopup(record, topup.account, topup.transfer, topup.user)
+    }
+    
+    const user = await this.users().checkUser(ctx)
+    // Only topup owner can update the topup
+    const topup = await this.getTopup(ctx, data.id)
+    if (topup.user.id !== user.id) {
+      throw forbidden("Only the topup owner can update it")
+    }
+    if (topup.status === "new" && data.status === "canceled") {
+      // Allow canceling a new topup
+      await update(topup, { status: "canceled" })
+    }
+    else if (topup.status === "new" && data.status === "pending") {
+      const paymentData = await this.createPayment(topup)
+      await update(topup, { status: "pending", paymentData })
+    }
+  }
+
+  async createPayment(topup: Topup): Promise<MolliePaymentData> {
+    
   }
 }
