@@ -46,8 +46,8 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
     }
     
     const ledgerOptions = {
-      initialCredit: this.currencyController.amountToLedger(creditLimit),
-      maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance + creditLimit) : undefined
+      initialCredit: this.currencyController.toStringAmount(creditLimit),
+      maximumBalance: maximumBalance ? this.currencyController.toStringAmount(maximumBalance + creditLimit) : undefined
     }
     const {key} = await this.currencyController.ledger.createAccount(ledgerOptions, keys)
     // Store key
@@ -57,6 +57,7 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       data: {
         id: account.id,
         code,
+        type: account.type ?? AccountType.user,
         status: AccountStatus.Active,
         // Initialize ledger values with what we have just created.
         creditLimit,
@@ -120,13 +121,13 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
         })
       } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status) && data.status === AccountStatus.Active) {
         // Don't need to check admin access again, since only admins can update suspended accounts.
-        const ledgerBalance = this.currencyController.amountToLedger(account.balance + account.creditLimit)
+        const ledgerBalance = this.currencyController.toStringAmount(account.balance + account.creditLimit)
         const maximumBalance = account.maximumBalance ?? this.currency().settings.defaultInitialMaximumBalance
 
         await this.currencyController.ledger.enableAccount({
           balance: ledgerBalance,
-          credit: this.currencyController.amountToLedger(account.creditLimit),
-          maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance) : undefined,
+          credit: this.currencyController.toStringAmount(account.creditLimit),
+          maximumBalance: maximumBalance ? this.currencyController.toStringAmount(maximumBalance) : undefined,
         }, {
           account: await this.keys().retrieveKey(account.key),
           issuer: await this.keys().issuerKey(),
@@ -156,7 +157,7 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
     if (data.creditLimit && data.creditLimit !== account.creditLimit) {
       if (account.status === AccountStatus.Active) {
         const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-        await ledgerAccount.updateCredit(this.currencyController.amountToLedger(data.creditLimit), {
+        await ledgerAccount.updateCredit(this.currencyController.toStringAmount(data.creditLimit), {
           sponsor: await this.keys().sponsorKey(),
           credit: data.creditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
           issuer: data.creditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
@@ -171,7 +172,7 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       if (account.status === AccountStatus.Active) {
         const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
         const ledgerMaximumBalance = data.maximumBalance 
-          ? this.currencyController.amountToLedger(data.maximumBalance + account.creditLimit)
+          ? this.currencyController.toStringAmount(data.maximumBalance + account.creditLimit)
           : undefined // no limit
           
         await ledgerAccount.updateMaximumBalance(ledgerMaximumBalance, {
@@ -414,7 +415,7 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       const pool = await this.currencyController.ledger.getAccount(this.currency().keys.disabledAccountsPool!)
       await pool.pay({
         payeePublicKey: this.currency().keys.credit,
-        amount: this.currencyController.amountToLedger(account.creditLimit),
+        amount: this.currencyController.toStringAmount(account.creditLimit),
       }, {
         account: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
         sponsor: await this.keys().sponsorKey(),
@@ -580,7 +581,7 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
 
   async updateAccountBalance(account: FullAccount): Promise<void> {
     const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-    account.balance = this.currencyController.amountFromLedger(ledgerAccount.balance())
+    account.balance = this.currencyController.toIntegerAmount(ledgerAccount.balance())
       - account.creditLimit
     await this.db().account.update({
       data: { balance: account.balance },

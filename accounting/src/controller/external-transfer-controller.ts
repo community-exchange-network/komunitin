@@ -5,7 +5,7 @@ import { Context } from "src/utils/context";
 import { badRequest, forbidden, internalError, noTrustPath } from "src/utils/error";
 import { ExternalResource, ExternalResourceIdentifier } from "src/model/resource";
 import { WithRequired } from "src/utils/types";
-import { amountToLedger, convertAmount } from "./currency-controller";
+import { toStringAmount, convertAmount } from "./currency-controller";
 import { TransferSerializer } from "src/server/serialize";
 import { createExternalToken } from "./external-jwt";
 import { config } from "src/config";
@@ -223,7 +223,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     }
 
     // Compute the amount from the ledger data.
-    data.amount = this.currencyController.amountFromLedger(ledgerTransfer.amount)
+    data.amount = this.currencyController.toIntegerAmount(ledgerTransfer.amount)
 
     // All checks ok, so create the transfer record (in "new" state).
     const transfer = await this.transfers().createTransferRecord(data, this.currency().externalAccount, payee, this.currency().admin)
@@ -346,7 +346,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
         throw badRequest("The payer or payee do not match the ledger transfer data.")
       }
       // Update transfer amount from ledger
-      const amount = this.currencyController.amountFromLedger(ledgerTransfer.amount)
+      const amount = this.currencyController.toIntegerAmount(ledgerTransfer.amount)
       if (data.amount !== transfer.amount) {
         transfer.amount = amount
         this.db().transfer.update({
@@ -442,7 +442,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
 
     // Convert the amount to the payee (remote) currency.
     const payeeAmount = convertAmount(transfer.amount, this.currency(), externalCurrency.resource)
-    const payeeAmountLedger = amountToLedger(externalCurrency.resource, payeeAmount)
+    const payeeAmountLedger = toStringAmount(externalCurrency.resource, payeeAmount)
     
     const path = await this.currencyController.ledger.quotePath({
       destCode: externalCurrency.resource.code,

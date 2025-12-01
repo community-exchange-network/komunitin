@@ -74,6 +74,20 @@ export interface CurrencyService extends CurrencyPublicService {
   // Allow other modules to save additional settings on the currency settings
   getCurrencySettings<T extends CurrencySettings>(ctx: Context): Promise<T>
   updateCurrencySettings<T extends CurrencySettings>(ctx: Context, settings: AtLeast<T,"id">): Promise<T>
+
+  /**
+   * Convert an amount between its integer representation (scaled by currency's scale)
+   * and its string representation (with decimal point).
+   * @param amount 
+   */
+  toStringAmount(amount: number): string
+  
+  /**
+   * Convert an amount between its string representation (with decimal point)
+   * and its integer representation (scaled by currency's scale).
+   * @param amount 
+   */
+  toIntegerAmount(amount: string): number
 }
 
 /**

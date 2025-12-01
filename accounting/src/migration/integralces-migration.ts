@@ -90,9 +90,9 @@ export class ICESMigrationController {
       data.push({
         code: account.code,
         status: account.status,
-        balanceDb: Number(currencyController.amountToLedger(Number(account.balance))),
-        computedBalance: Number(currencyController.amountToLedger(Number(computedBalance))),
-        difference: Number(currencyController.amountToLedger(Number(account.balance - computedBalance)))
+        balanceDb: Number(currencyController.toStringAmount(Number(account.balance))),
+        computedBalance: Number(currencyController.toStringAmount(Number(computedBalance))),
+        difference: Number(currencyController.toStringAmount(Number(account.balance - computedBalance)))
       })
     }
     console.table(data)
@@ -520,10 +520,10 @@ export class ICESMigrationController {
 
     const issuer = await currencyController.ledger.getAccount(currency.keys.issuer)
     const credit = await currencyController.ledger.getAccount(currency.keys.credit)
-    const creditDiff = totalCredit - currencyController.amountFromLedger(credit.balance());
+    const creditDiff = totalCredit - currencyController.toIntegerAmount(credit.balance());
     if (creditDiff > 0) {
       await issuer.pay({
-        amount: currencyController.amountToLedger(creditDiff),
+        amount: currencyController.toStringAmount(creditDiff),
         payeePublicKey: currency.keys.credit
       }, {
         account: await currencyController.keys.issuerKey(),
@@ -936,7 +936,7 @@ export class ICESMigrationController {
         if (!ledgerAccount) {
           throw new Error(`Ledger account for ${account.code} not found`);
         }
-        const ledgerBalance = currencyController.amountFromLedger(ledgerAccount.balance());
+        const ledgerBalance = currencyController.toIntegerAmount(ledgerAccount.balance());
         difference = balance + BigInt(account.creditLimit) - BigInt(ledgerBalance);
 
       } else if (account.status === "suspended" || account.status === "disabled") {
@@ -967,7 +967,7 @@ export class ICESMigrationController {
         const payeeKey = positive ? accountKey : migrAccount.key;
         
         const ledgerPayer = await ledger.getAccount(payerKey);
-        const ledgerAmount = currencyController.amountToLedger((positive ? 1 : -1) * Number(difference));
+        const ledgerAmount = currencyController.toStringAmount((positive ? 1 : -1) * Number(difference));
 
         try {
           const transfer = await ledgerPayer.pay({
@@ -993,7 +993,7 @@ export class ICESMigrationController {
       // Double check the balance after the transfer
       if (account.status === "active") {
         const ledgerAccount = await ledger.getAccount(account.key);
-        const newBalance = BigInt(currencyController.amountFromLedger(ledgerAccount.balance())) - BigInt(account.creditLimit);
+        const newBalance = BigInt(currencyController.toIntegerAmount(ledgerAccount.balance())) - BigInt(account.creditLimit);
         
         if (newBalance !== balance) {
           await this.warn(`Balance for account ${account.code} after transfer is ${newBalance}, expected ${balance}`);
@@ -1018,7 +1018,7 @@ export class ICESMigrationController {
     const setExternalBalance = async () => {
       if (externalBalance < 0) {
         const stellar = currencyController.ledger as StellarCurrency
-        const remaining = currencyController.amountToLedger(
+        const remaining = currencyController.toStringAmount(
           (currency.settings.externalTraderCreditLimit ?? 0) + Number(externalBalance)
         )
 

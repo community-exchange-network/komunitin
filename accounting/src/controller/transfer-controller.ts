@@ -313,7 +313,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
     const ledgerPayer = await this.currencyController.ledger.getAccount(transfer.payer.key)
     const transaction = await ledgerPayer.pay({
       payeePublicKey: transfer.payee.key,
-      amount: this.currencyController.amountToLedger(transfer.amount),
+      amount: this.currencyController.toStringAmount(transfer.amount),
     }, {
       sponsor: await this.keys().sponsorKey(),
       account: await (admin ? this.keys().adminKey() : this.keys().retrieveKey(transfer.payer.key))
@@ -605,7 +605,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
         const transfer = await this.createTransfer(ctx, data)
         return transfer
       } catch (e) {
-        // Log errors without waiting for all tasks to fisish.
+        // Log errors without waiting for all tasks to finish.
         logger.error(e)
         throw e
       }

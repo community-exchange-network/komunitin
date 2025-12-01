@@ -31,11 +31,11 @@ import { CreditCommonsController, CreditCommonsControllerImpl } from "../creditc
 import { UserController } from "./user-controller";
 import { StatsControllerImpl } from "./stats-controller";
 
-export function amountToLedger(currency: {scale: number}, amount: number) {
+export function toStringAmount(currency: {scale: number}, amount: number) {
   return Big(amount).div(Big(10).pow(currency.scale)).toString()
 }
 
-export function amountFromLedger(currency: {scale: number}, amount: string) {
+export function toIntegerAmount(currency: {scale: number}, amount: string) {
   return Big(amount).times(Big(10).pow(currency.scale)).toNumber()
 }
 
@@ -44,9 +44,9 @@ export function convertAmount(amount: number, from: AtLeast<Currency, "rate">, t
 }
 
 export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
-  const externalTraderInitialCredit = amountToLedger(currency, currency.settings.externalTraderCreditLimit ?? 0)
+  const externalTraderInitialCredit = toStringAmount(currency, currency.settings.externalTraderCreditLimit ?? 0)
   const externalTraderMaximumBalance = currency.settings.externalTraderMaximumBalance
-    ? amountToLedger(currency, currency.settings.externalTraderMaximumBalance + (currency.settings.externalTraderCreditLimit ?? 0))
+    ? toStringAmount(currency, currency.settings.externalTraderMaximumBalance + (currency.settings.externalTraderCreditLimit ?? 0))
     : undefined
   
   return {
@@ -216,12 +216,12 @@ export class CurrencyControllerImpl implements CurrencyService {
     this.model.state = state
   }
 
-  public amountToLedger(amount: number) {
-    return amountToLedger(this.model, amount)
+  public toStringAmount(amount: number) {
+    return toStringAmount(this.model, amount)
   }
 
-  public amountFromLedger(amount: string) {
-    return amountFromLedger(this.model, amount)
+  public toIntegerAmount(amount: string) {
+    return toIntegerAmount(this.model, amount)
   }
 
   async cron(ctx: Context) {
@@ -240,7 +240,7 @@ export class CurrencyControllerImpl implements CurrencyService {
     // Create the trustline in the ledger.
     await this.ledger.trustCurrency({
       trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
-      limit: this.amountToLedger(data.limit)
+      limit: this.toStringAmount(data.limit)
     }, {
       sponsor: await this.keys.sponsorKey(),
       externalTrader: await this.keys.externalTraderKey(),
@@ -280,7 +280,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       // Update the trustline in the ledger
       await this.ledger.trustCurrency({
         trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
-        limit: this.amountToLedger(data.limit)
+        limit: this.toStringAmount(data.limit)
       }, {
         sponsor: await this.keys.sponsorKey(),
         externalTrader: await this.keys.externalTraderKey(),
@@ -465,7 +465,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       if (issuer) {
         await this.ledger.trustCurrency({
           trustedPublicKey: issuer,
-          limit: this.amountToLedger(Number(tl.limit))
+          limit: this.toStringAmount(Number(tl.limit))
         }, {
           sponsor: await this.keys.sponsorKey(),
           externalTrader: await this.keys.externalTraderKey(),
@@ -493,7 +493,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       const issuerAccount = await this.ledger.getAccount(this.model.keys.issuer)
       await issuerAccount.pay({
         payeePublicKey: this.model.keys.disabledAccountsPool as string,
-        amount: this.amountToLedger(totalDisabledBalance.toNumber())
+        amount: this.toStringAmount(totalDisabledBalance.toNumber())
       }, {
         sponsor: await this.keys.sponsorKey(),
         account: await this.keys.issuerKey()
