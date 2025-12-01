@@ -89,7 +89,7 @@ if (process.env.FEAT_TOPUP === 'true') {
     setAction(showTopup.value, {
       label: t('topup'),
       icon: 'add',
-      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/topup`,
+      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/topup`,
     })
   }, {immediate: true})
 }

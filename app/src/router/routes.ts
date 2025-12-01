@@ -430,7 +430,7 @@ if (process.env.FEAT_TOPUP === 'true') {
     name: 'CreateTopup',
     component: () => import('../features/topup/CreateTopup.vue'),
   }, {
-    path: '/groups/:code/members/:memberCode/topup/:id',
+    path: '/groups/:code/topups/:id',
     props: true,
     name: 'TopupDetails',
     component: () => import('../features/topup/TopupDetails.vue'),
