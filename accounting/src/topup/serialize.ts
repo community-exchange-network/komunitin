@@ -5,7 +5,7 @@ import { Account, Transfer, User } from "../model";
 
 export const TopupSerializer = new Serializer<Topup>("topups", {
   version: null,
-  projection: projection<Topup>(['status', 'depositAmount', 'depositCurrency', 'receiveAmount', 'paymentProvider', 'created', 'updated']),
+  projection: projection<Topup>(['status', 'depositAmount', 'depositCurrency', 'receiveAmount', 'paymentProvider', 'paymentData', 'meta', 'created', 'updated']),
   relators: {
     account: new Relator<Topup, Account>(async (topup) => {
       return topup.account

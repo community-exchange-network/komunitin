@@ -1,7 +1,8 @@
 import { FullAccount, User, FullTransfer, Account, Transfer } from "../model"
 import { RelatedResource } from "../model/resource"
 import { Topup as TopupRecord } from "@prisma/client"
-import { Rate } from "../utils/types"
+import { AtLeast, Rate } from "../utils/types"
+import { PaymentStatus } from "@mollie/api-client"
 
 export type DepositCurrency = "EUR"
 export type TopupStatus = 
@@ -14,6 +15,10 @@ export type TopupStatus =
   | "canceling"          // Topup being cancelled by user or system (before payment)
   | "canceled"           // Topup cancelled (and payment link also cancelled if applicable)
 export type TopupPaymentProvider = "mollie"
+
+export type TopupMeta = {
+  description?: string
+}
 
 export interface Topup {
   id: string
@@ -33,6 +38,7 @@ export interface Topup {
 
   paymentProvider: TopupPaymentProvider
   paymentData: MolliePaymentData | null
+  meta: TopupMeta | null
 
   account: Account
   transfer: Transfer | null
@@ -42,11 +48,13 @@ export interface Topup {
   updated: Date
 }
 
-export type InputTopup = Pick<Topup, "depositAmount" | "depositCurrency" > & { "account" : RelatedResource }
+export type InputTopup = AtLeast<Topup, "depositAmount" | "depositCurrency" | "meta"> & { "account" : RelatedResource }
+export type UpdateTopup = AtLeast<Topup, "id" | "status" | "depositAmount" | "depositCurrency" | "meta"> & { "account" : RelatedResource }
 
 export interface MolliePaymentData {
   paymentId: string
   checkoutUrl: string
+  status: PaymentStatus
 }
 
 export type InputTopupSettings = Partial<TopupSettings>
@@ -90,7 +98,11 @@ export interface TopupSettings {
   /**
    * Maximum topup amount in smallest currency unit, or false for no limit.
    */
-  maxAmount: number | false  
+  maxAmount: number | false
+  /**
+   * Source account id to use for topup transfers.
+   */
+  sourceAccountId: string | null
 }
 
 export interface AccountTopupSettings {
@@ -113,6 +125,7 @@ export const recordToTopup = (record: TopupRecord, account: Account, transfer: T
     receiveAmount: Number(record.receiveAmount),
     paymentProvider: record.paymentProvider as TopupPaymentProvider,
     paymentData: record.paymentData as unknown as MolliePaymentData ?? null,
+    meta: record.meta as TopupMeta ?? null,
     account,
     transfer,
     user,

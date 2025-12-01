@@ -1,10 +1,10 @@
-import { Router, ErrorRequestHandler } from 'express'
+import { Router, ErrorRequestHandler, urlencoded } from 'express'
 import { Scope, userAuth } from '../server/auth'
 import { checkExact } from 'express-validator'
 import { TopupValidators } from './validation'
-import { currencyInputHandler, currencyResourceHandler } from '../server/handlers'
+import { asyncHandler, currencyInputHandler, currencyResourceHandler } from '../server/handlers'
 import { TopupAccountSettingsSerializer, TopupSerializer, TopupSettingsSerializer } from './serialize'
-import { AccountTopupSettings, InputTopup, InputTopupSettings } from './model'
+import { AccountTopupSettings, InputTopup, InputTopupSettings, UpdateTopup } from './model'
 import { TopupController } from './controller'
 import { BaseService, CurrencyService } from '../controller'
 
@@ -32,6 +32,27 @@ export function getRoutes(controller: BaseService) {
       return topups.getTopup(context, id)
     }, TopupSerializer, {
       include: ['user', 'account', 'transfer']
+    })
+  )
+
+  router.patch('/:code/topups/:id',
+    userAuth([Scope.Accounting, Scope.Superadmin]),
+    checkExact(TopupValidators.isUpdateTopup()),
+    currencyInputHandler(controller, async (currencyController, context, data: UpdateTopup) => { 
+      const topups = createTopupService(currencyController)
+      const topup = await topups.updateTopup(context, data)
+      return topup
+    }, TopupSerializer, {})
+  )
+
+  router.post('/:code/topups/:id/hooks/mollie',
+    // No auth, this is called by Mollie
+    urlencoded({ extended: true }),
+    asyncHandler(async (req, res) => {
+      const currencyController = await controller.getCurrencyController(req.params.code)
+      const topups = createTopupService(currencyController)
+      const result = await topups.handleMollieWebhook(req.params.id, req.body)
+      res.status(200).json(result)
     })
   )
 
