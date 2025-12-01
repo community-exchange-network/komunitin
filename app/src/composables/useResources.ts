@@ -1,6 +1,8 @@
 import { type LoadByIdPayload, type LoadListPayload } from "../store/resources";
 import { computed, ref } from "vue";
 import { useStore } from "vuex";
+import type { ResourceObject } from "../store/model";
+import { type DeepPartial } from "quasar";
 
 export interface UseResourcesConfig {
   /**
@@ -43,9 +45,9 @@ export const useResources = (type: string, options: LoadListPayload, config?: Us
   return { resources, loadNext, hasNext, load, loading };
 };
 
-export const useResource = (type: string, options: LoadByIdPayload, config?: UseResourcesConfig) => {
+export const useResource = <T extends ResourceObject = ResourceObject>(type: string, options: LoadByIdPayload, config?: UseResourcesConfig) => {
   const store = useStore()
-  const resource = computed(() => store.getters[`${type}/one`](options.id))
+  const resource = computed<T>(() => store.getters[`${type}/one`](options.id))
   const loading = ref(false)
   const load = async () => {
     loading.value = true
@@ -56,11 +58,24 @@ export const useResource = (type: string, options: LoadByIdPayload, config?: Use
     }
   }
 
+  const update = async (data: DeepPartial<T>) => {
+    loading.value = true
+    try {
+      await store.dispatch(type + '/update', {
+        id: options.id,
+        group: options.group,
+        resource: data
+      })
+    } finally {
+      loading.value = false
+    }
+  }
+
   // initially load the resource
   if (config?.immediate ?? true) {
     load()
   }
 
-  return { resource, load, loading }
+  return { resource, load, update, loading }
 
 }
