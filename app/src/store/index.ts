@@ -27,7 +27,7 @@ import type { UIState } from "./ui";
 import ui from "./ui";
 import createPersistPlugin from "./persist";
 import KError, { KErrorCode } from "src/KError";
-import {type AccountTopupSettings, type TopupSettings } from "../features/topup/model";
+import type { Topup, AccountTopupSettings, TopupSettings } from "../features/topup/model";
 
 // Build modules for Social API:
 const socialUrl = config.SOCIAL_URL;
@@ -146,6 +146,8 @@ if (process.env.FEAT_TOPUP === "true") {
     collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "Account topup settings cannot be listed");}
     resourceEndpoint = (id: string, groupCode: string) => `/${groupCode}/accounts/${id}/topup-settings`;
   })("account-topup-settings", accountingUrl);
+
+  modules["topups"] = new Resources<Topup, unknown>("topups", accountingUrl);
 }
 
 /*

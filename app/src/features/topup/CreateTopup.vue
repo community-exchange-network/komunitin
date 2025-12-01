@@ -15,11 +15,11 @@
               ref="amountRef"
               v-model="amountToDepositInput"
               :label="t('topupAmountToDeposit')"
-              :hint="t('topupAmountToDepositHint')"
+              :hint="t('topupAmountToDepositHint', {currency: settings.depositCurrency})"
               outlined
               required
               :rules="[
-                () => amountToDeposit !== undefined || t('topupErrorInvalidAmount'),
+                () => amountToDeposit !== undefined || t('ErrorInvalidAmount'),
                 () => amountToDeposit >= minAmount || t('topupErrorMinAmount', {amount: minAmount / 100}),
                 () => maxAmount === false || amountToDeposit <= maxAmount || t('topupErrorMaxAmount', {amount: maxAmount / 100})
               ]"
@@ -29,9 +29,9 @@
               </template>
             </q-input>
             <q-input
-              :model-value="formatCurrency(amountToReceive, myCurrency)"
+              :model-value="formatCurrency(amountToReceive, myCurrency, {symbol: false})"
               :label="t('topupAmountToReceive')"
-              :hint="t('topupAmountToReceiveHint')"
+              :hint="t('topupAmountToReceiveHint', {currency: myCurrency.attributes.namePlural})"
               outlined
               readonly
             >
@@ -48,8 +48,12 @@
             />
           </div>
           <div v-if="step === 'disclaimer'" class="q-gutter-y-lg column">
-            <div class="text-subtitle1">{{ t('topupDisclaimerHeaader') }}</div>
-            <div class="text-onsurface-m" v-html="md2html(t('topupDisclaimerText'))" />
+            <div class="text-subtitle1">{{ t('topupDisclaimerHeader') }}</div>
+            <div class="text-onsurface-m" v-html="md2html(t('topupDisclaimerText',{
+              group: myGroup.attributes.name,
+              communityCurrency: myCurrency.attributes.namePlural,
+              depositCurrency: settings.depositCurrency
+            }))" />
             <div class="row q-gutter-sm">
               <q-btn
                 class="col"
@@ -71,28 +75,7 @@
           <div v-if="step === 'confirmation'" class="q-gutter-y-lg column">
             <div class="text-subtitle1">{{ t('topupCheckoutHeader') }}</div>
             <div class="text-onsurface-m">{{ t('topupCheckoutText') }}</div>
-            <q-card flat bordered class="q-pa-md">
-              <div class="q-gutter-y-md">
-                <div class="row items-center justify-between">
-                  <span class="text-body2 text-onsurface-m">{{ t('topupAmountToDeposit') }}</span>
-                  <span class="text-h6 text-weight-medium text-onsurface">
-                    {{ (amountToDeposit / 100).toLocaleString(locale, {
-                      style: 'currency',
-                      currency: settings.depositCurrency,
-                      currencyDisplay: 'symbol'
-                    }) }}
-                  </span>
-                </div>
-                <q-separator />
-                <div class="row items-center justify-between">
-                  <span class="text-body2 text-onsurface-m">{{ t('topupAmountToReceive') }}</span>
-                  <span class="text-h6 text-weight-medium text-primary">
-                    {{ formatCurrency(amountToReceive, myCurrency) }}
-                  </span>
-                </div>
-              </div>
-            </q-card>
-            
+            <topup-card :topup="topup" :account="myAccount" />
             <div class="row q-gutter-sm">
               <q-btn
                 :label="t('back')"
@@ -122,14 +105,13 @@ import { useI18n } from 'vue-i18n'
 import { useStore } from "vuex"
 import formatCurrency from '../../plugins/FormatCurrency';
 import { computed, ref } from 'vue';
-import { useTopup, useTopupSettings } from './useTopup';
+import { useCreateTopup, useTopupSettings } from './useTopup';
 
 import PageHeader from '../../layouts/PageHeader.vue';
 import { QInput } from 'quasar';
 import KError, { KErrorCode } from '../../KError';
-import { useLocale } from '../../boot/i18n';
 import md2html from '../../plugins/Md2html';
-import { useRouter } from 'vue-router';
+import TopupCard from './TopupCard.vue';
 
 const { t } = useI18n()
 const store = useStore()
@@ -141,6 +123,7 @@ defineProps<{
 
 const myAccount = computed(() => store.getters.myAccount)
 const myCurrency = computed(() => myAccount.value.currency)
+const myGroup = computed(() => store.getters.myMember?.group)
 
 const step = ref('form')
 
@@ -155,7 +138,7 @@ const amountToDeposit = computed(() => {
   }
 })
 
-const {create, cancel, start, amountToReceive, isLoading, topup} = useTopup({
+const {create, cancel, start, amountToReceive, isLoading, topup} = useCreateTopup({
   account: myAccount,
   amountToDeposit,
 })
@@ -164,39 +147,37 @@ const settings = useTopupSettings(myAccount)
 const minAmount = settings.value.minAmount
 const maxAmount = settings.value.maxAmount === false ? false : settings.value.maxAmount
 
-const router = useRouter()
-
 const checkout = async () => {
   // 1. create the topup
   await create()
   // 2. check that topup receive amount is the same as expected
   if (topup.value.attributes.receiveAmount < amountToReceive.value) {
     await cancel()
-    throw KError.getKError(KErrorCode.UnknownScript)
+    throw new KError(KErrorCode.UnknownScript)
   }
   // 3. create payment link
   await start()
   // 4. check that we have a checkout URL
   if (!topup.value.attributes.paymentData.checkoutUrl) {
-    throw KError.getKError(KErrorCode.UnknownServer)
+    throw new KError(KErrorCode.UnknownServer)
   }
   // redirect to the payment URL
   const redirectUrl = topup.value.attributes.paymentData.checkoutUrl
-  router.push(redirectUrl)
+  window.location.href = redirectUrl
+  
   // after payment is completed, the payment provider will redirect back to our app
   // to /topup
 }
 
 const amountRef = ref<InstanceType<typeof QInput>>()
 
-const locale = useLocale()
-
 const next = () => {
   switch (step.value) {
     case 'form':
+      amountRef.value.validate()
       if (amountRef.value.hasError) {
         amountRef.value.focus()
-        throw KError.getKError(KErrorCode.InvalidAmount)
+        throw new KError(KErrorCode.InvalidAmount)
       } else {
         step.value = 'disclaimer'
         break
