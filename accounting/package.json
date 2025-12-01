@@ -17,6 +17,7 @@
 	},
 	"dependencies": {
 		"@fast-csv/format": "^5.0.5",
+		"@mollie/api-client": "^4.3.3",
 		"@prisma/client": "^6.15.0",
 		"@stellar/stellar-sdk": "^11.3.0",
 		"big.js": "^6.2.2",
