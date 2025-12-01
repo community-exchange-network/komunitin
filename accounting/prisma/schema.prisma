@@ -345,6 +345,8 @@ model Topup {
   // Amount to be received using currency's scale.
   receiveAmount BigInt
 
+  meta Json?
+
   paymentProvider String @db.VarChar(255)
   paymentData    Json?
 

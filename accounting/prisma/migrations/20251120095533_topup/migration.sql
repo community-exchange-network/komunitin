@@ -6,6 +6,7 @@ CREATE TABLE "public"."Topup" (
     "depositAmount" BIGINT NOT NULL,
     "depositCurrency" VARCHAR(31) NOT NULL,
     "receiveAmount" BIGINT NOT NULL,
+    "meta" JSONB,
     "paymentProvider" VARCHAR(255) NOT NULL,
     "paymentData" JSONB,
     "accountId" TEXT NOT NULL,
