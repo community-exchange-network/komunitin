@@ -1,6 +1,5 @@
 import { boot } from "quasar/wrappers";
 import { createI18n } from "vue-i18n";
-import DefaultMessages from "src/i18n/en-us/index.json";
 import type {LangName} from "src/i18n";
 import langs, { DEFAULT_LANG, normalizeLocale} from "src/i18n";
 import type { QSingletonGlobals, QVueGlobals } from "quasar";
@@ -27,11 +26,7 @@ const LOCALE_KEY = "lang";
  * Export vue-i18 instance for use outside components.
  */
 export const i18n = createI18n({
-  locale: DEFAULT_LANG,
-  fallbackLocale: DEFAULT_LANG,
-  messages: {
-    [DEFAULT_LANG as string]: DefaultMessages
-  },
+  locale: undefined,
   legacy: false
 });
 
@@ -79,7 +74,15 @@ async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: strin
     const definition = langs[locale]
     if (i18n.global.locale.value !== locale) {
       const messages = await definition.loadMessages();
+      // Load core user messages
       i18n.global.setLocaleMessage(locale, messages);
+      // Load feature messages
+      if (definition.features) {
+        for (const featureName in definition.features) {
+          const featureMessages = await definition.features[featureName]();
+          i18n.global.mergeLocaleMessage(locale, featureMessages);
+        }
+      }
       i18n.global.locale.value = locale;
     }
     if (admin) {
