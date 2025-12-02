@@ -206,7 +206,6 @@ export default {
         group.update({ currency });
         // currency settings
         server.create("currencySettings", {currency});
-        server.create("topupSettings", {currency});
       });
     // Create an account with settings for each member
     server.schema.members
@@ -240,7 +239,6 @@ export default {
     // Generate account settings.
     server.schema.accounts.all().models.forEach((account: any) => {
       server.create("accountSettings", {account});
-      server.create("accountTopupSettings", {account});
     })
     // Generate some accounts for GRP2.
     server.createList("account", 5, {
@@ -287,6 +285,14 @@ export default {
     // set an account to zero balance to test deleting
     server.schema.accounts.all().models[15].update({balance: 0});
 
+    // Add topup resources.
+    server.schema.currencies.all().models.forEach((currency: any) =>
+      server.create("topupSettings", {currency})
+    );
+    server.schema.accounts.all().models.forEach((account: any) => 
+      server.create("accountTopupSettings", {account})
+    );
+    
   },
   routes(server: Server) {
     // Single currency
