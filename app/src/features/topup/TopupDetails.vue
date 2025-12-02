@@ -47,7 +47,7 @@ import TopupCard from './TopupCard.vue';
 import { useI18n } from 'vue-i18n';
 import { useTopup } from './useTopup';
 import { useStore } from 'vuex';
-import { computed } from 'vue';
+import { computed, onBeforeUnmount } from 'vue';
 
 const props = defineProps<{
   code: string,
@@ -72,6 +72,10 @@ const intervalId = setInterval(() => {
     clearInterval(intervalId)
   }
 }, 1000)
+
+onBeforeUnmount(() => {
+  clearInterval(intervalId)
+})
 
 const { t } = useI18n()
 </script>
