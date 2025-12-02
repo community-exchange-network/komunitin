@@ -51,7 +51,7 @@ const router = useRouter()
 const onSubmit = async (resource: DeepPartial<Need>) => {
   await store.dispatch("needs/update", {
     group: props.code,
-    id: resource.attributes?.code,
+    id: resource.id,
     resource
   })
   const need = store.getters["needs/current"]

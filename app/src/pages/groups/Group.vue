@@ -243,7 +243,7 @@ export default defineComponent({
     // Group info.
     async fetchGroup(code: string) {
       return this.$store.dispatch("groups/load", {
-        id: code,
+        group: code,
         include: "currency,contacts,categories"
       });
     },

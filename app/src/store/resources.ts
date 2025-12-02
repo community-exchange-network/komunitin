@@ -312,10 +312,10 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
    *  collectionEndpoint(groupCode)/{id}.
    * ```
    *
-   * @param code The code of the resource
    * @param groupCode The code of the group
+   * @param id The id of the resource
    */
-  protected resourceEndpoint(id: string, groupCode: string) {
+  protected resourceEndpoint(groupCode: string, id: string) {
     return this.collectionEndpoint(groupCode) + `/${id}`;
   }
 
@@ -1001,7 +1001,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
         url = this.collectionEndpoint(payload.group)
         params.set("filter[code]", payload.code)
       } else {
-        url = this.resourceEndpoint(payload.id, payload.group)
+        url = this.resourceEndpoint(payload.group, payload.id)
       }
     }
     
@@ -1139,7 +1139,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     context: ActionContext<ResourcesState<T>, S>,
     payload: UpdatePayload<T>
   ) {
-    const url = this.resourceEndpoint(payload.id, payload.group);
+    const url = this.resourceEndpoint(payload.group, payload.id);
     const body = {data: payload.resource, ...{included: payload.included}};
     try {
       const data = await this.request(context, url, "patch", body) 
@@ -1164,7 +1164,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       ?? context.getters.find({code: payload.id})
     
     const id = resource.id
-    const url = this.resourceEndpoint(payload.id, payload.group)
+    const url = this.resourceEndpoint(payload.group, payload.id)
     try {
       await this.request(context, url, "delete")
       // Remove from current pointer.
