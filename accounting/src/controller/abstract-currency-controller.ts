@@ -1,6 +1,4 @@
 import { CurrencyService } from "./api";
-import { CurrencyControllerImpl } from "./currency-controller";
-
 /**
  * Provide some handy tools for controllers in a currency.
  */

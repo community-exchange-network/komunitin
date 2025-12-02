@@ -144,8 +144,8 @@ const {create, cancel, start, amountToReceive, isLoading, topup} = useCreateTopu
 })
 
 const settings = useTopupSettings(myAccount)
-const minAmount = settings.value.minAmount
-const maxAmount = settings.value.maxAmount === false ? false : settings.value.maxAmount
+const minAmount = computed(() => settings.value?.minAmount ?? 0)
+const maxAmount = computed(() => (settings.value?.maxAmount === false ? false : settings.value?.maxAmount) ?? false)
 
 const checkout = async () => {
   // 1. create the topup
@@ -158,7 +158,7 @@ const checkout = async () => {
   // 3. create payment link
   await start()
   // 4. check that we have a checkout URL
-  if (!topup.value.attributes.paymentData.checkoutUrl) {
+  if (!topup.value.attributes.paymentData?.checkoutUrl) {
     throw new KError(KErrorCode.UnknownServer)
   }
   // redirect to the payment URL

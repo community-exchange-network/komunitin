@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client"
 import { logger } from "../utils/logger"
-import { sleep } from "../utils/sleep"
 import { globalTenantDb, waitForDb } from "./multitenant"
 import { Store } from "./store"
 import { badConfig } from "../utils/error"

@@ -1,4 +1,4 @@
-import { FullAccount, User, FullTransfer, Account, Transfer } from "../model"
+import { User, Account, Transfer } from "../model"
 import { RelatedResource } from "../model/resource"
 import { Topup as TopupRecord } from "@prisma/client"
 import { AtLeast, Rate } from "../utils/types"

@@ -20,8 +20,7 @@ import { initLedgerListener } from "./ledger-listener"
 import { PrivilegedPrismaClient, TenantPrismaClient, privilegedDb, tenantDb } from "./multitenant"
 import { whereFilter } from "./query"
 import { StatsControllerImpl as StatsControllerImpl } from "./stats-controller"
-import { FullTransfer } from "../model"
-import { BasePublicService, CurrencyPublicService, ServiceEvents } from "./api"
+import { BasePublicService, ServiceEvents } from "./api"
 
 export class BaseControllerImpl implements BasePublicService {
   

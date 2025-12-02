@@ -1,6 +1,6 @@
 
 import { AccountStatsOptions, CollectionOptions, StatsOptions } from "../server/request"
-import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer, UpdateCurrencySettings, FullAccount, User } from "../model"
+import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer, UpdateCurrencySettings, FullAccount } from "../model"
 import { Context } from "../utils/context"
 import { InputTrustline, Trustline, UpdateTrustline } from "src/model/trustline"
 import { Stats } from "src/model/stats"

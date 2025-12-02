@@ -1,7 +1,7 @@
-import { Currency, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { AbstractCurrencyController } from "../controller/abstract-currency-controller";
-import { AccountSettings, CurrencySettings, FullTransfer, Transfer, userHasAccount } from "../model";
-import { context, Context, systemContext } from "../utils/context";
+import { AccountSettings, CurrencySettings, userHasAccount } from "../model";
+import { Context, systemContext } from "../utils/context";
 import { badRequest, forbidden, internalError, notFound } from "../utils/error";
 import { InputTopupSettings, recordToTopup, AccountTopupSettings, TopupSettings, type DepositCurrency, type InputTopup, type Topup, MolliePaymentData, UpdateTopup, TopupStatus } from "./model";
 import { rate } from "../utils/rate";
