@@ -54,7 +54,7 @@ export const useCreateTopup = (options: { account: MaybeRef<AccountWithSettingsA
   const isLoading = ref(false)
 
   // Check if topup is available
-  const isAvailable = computed(() => settings.value.allowTopup === true)
+  const isAvailable = computed(() => settings.value?.allowTopup === true)
 
   const amountToReceive = computed(() => {
     if (!isAvailable.value) {
