@@ -11,8 +11,9 @@
   "topupErrorMaxAmount": "The maximum amount to deposit is { amount }.",
   "topupFormHeader": "Setup Your Top Up",
   "topupFormText": "Please enter the amount you wish to deposit.",
-  "topupDisclaimerHeader": "Top Up Terms",
-  "topupDisclaimerText": "By proceeding, you acknowledge that you are making a **voluntary contribution** to _{ group }_.\n\nThe balance credited in _{ communityCurrency }_ **cannot be exchanged back for { depositCurrency }** or claimed as a refund.\n",
+  "topupNext": "Next",
+  "topupDisclaimerHeader": "Conditions for the contribution in {depositCurrency} in exchange for mutual credit units ({receiveCurrency})",
+  "topupDisclaimerText": "By making the financial contribution to {group}, the user declares to have read and accepted the following conditions:\n\n**1. Nature of the operation**\n\nThe contribution in {depositCurrency} is voluntary and is made with the aim of contributing to the proper functioning of {group}.\nThe member's balance will be increased in mutual credit units ({receiveCurrency}), according to the ratio {rateDescription}. This ratio may be modified in the future.\n\n**2. Non-convertible equivalence**\n\nMutual credit units **do not represent money**, nor any financial asset, nor any right of convertibility.\nIn no case shall the user have the right to:\n - Receive reimbursement in {depositCurrency} of the recorded units.\n - Demand compensation in kind, products or services.\n\n**3. Function of mutual credit**\n\nThe {receiveCurrency} units serve exclusively to account for exchanges of products and services between members of {group}, within its internal mutual credit system. They have no legal value nor can they be used outside this framework.\n\n**4. User responsibilities**\n\nBy performing the operation, the user confirms that:\n\n - They understand the functioning of the exchange and mutual credit system.\n - They accept the non-monetary, non-convertible and community nature of the {receiveCurrency} units.",
   "topupAcceptDisclaimer": "Accept",
   "topupCheckoutHeader": "Complete Your Top Up",
   "topupCheckoutText": "Please review the details of your top up below. You will be redirected to the payment provider.",
@@ -32,6 +33,6 @@
   "topupStatusCanceled": "Canceled",
   "topupStatusCanceling": "Canceling",
   "topupRetry": "Retry Top Up",
-  "goToTransfer": "Go to Transfer",
+  "topupGoToTransfer": "Go to Transfer",
   "topupShowPaymentDetails": "Details"
 }

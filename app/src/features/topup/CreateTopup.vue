@@ -40,7 +40,7 @@
               </template>
             </q-input>
             <q-btn
-              :label="t('next')"
+              :label="t('topupNext')"
               type="submit"
               color="primary"
               unelevated
@@ -48,11 +48,15 @@
             />
           </div>
           <div v-if="step === 'disclaimer'" class="q-gutter-y-lg column">
-            <div class="text-subtitle1">{{ t('topupDisclaimerHeader') }}</div>
+            <div class="text-subtitle1">{{ t('topupDisclaimerHeader', {
+              depositCurrency: settings.depositCurrency,
+              receiveCurrency: myCurrency.attributes.namePlural
+            }) }}</div>
             <div class="text-onsurface-m" v-html="md2html(t('topupDisclaimerText',{
               group: myGroup.attributes.name,
-              communityCurrency: myCurrency.attributes.namePlural,
-              depositCurrency: settings.depositCurrency
+              receiveCurrency: myCurrency.attributes.namePlural,
+              depositCurrency: settings.depositCurrency,
+              rateDescription
             }))" />
             <div class="row q-gutter-sm">
               <q-btn
@@ -112,6 +116,7 @@ import { QInput } from 'quasar';
 import KError, { KErrorCode } from '../../KError';
 import md2html from '../../plugins/Md2html';
 import TopupCard from './TopupCard.vue';
+import { useLocale } from '../../boot/i18n';
 
 const { t } = useI18n()
 const store = useStore()
@@ -142,10 +147,26 @@ const {create, cancel, start, amountToReceive, isLoading, topup} = useCreateTopu
   account: myAccount,
   amountToDeposit,
 })
-
+const locale = useLocale()
 const settings = useTopupSettings(myAccount)
 const minAmount = computed(() => settings.value?.minAmount ?? 0)
 const maxAmount = computed(() => (settings.value?.maxAmount === false ? false : settings.value?.maxAmount) ?? false)
+const rateDescription = computed(() => {
+  if (settings.value && myCurrency.value) {
+    const rate = settings.value.rate
+    const scale = myCurrency.value.attributes.scale
+    const ratePerUnit = (rate.d * 10 ** scale) / (rate.n * 100)
+    const lhs = formatCurrency(1, myCurrency.value, {scale: false})
+    const rhs = ratePerUnit.toLocaleString(locale.value, {
+      style: 'currency',
+      currency: settings.value.depositCurrency,
+      currencyDisplay: 'symbol'
+    })
+    return `${lhs} = ${rhs}`
+  } else {
+    return ''
+  }
+})
 
 const checkout = async () => {
   // 1. create the topup

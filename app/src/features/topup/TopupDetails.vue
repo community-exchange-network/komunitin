@@ -33,7 +33,7 @@
             class="col"
             color="primary"
             unelevated
-            :label="t('goToTransfer')"
+            :label="t('topupGoToTransfer')"
             :to="`/groups/${code}/transactions/${topup.relationships.transfer.data.id}`"
           />
         </div>
