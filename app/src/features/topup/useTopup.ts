@@ -102,12 +102,22 @@ export const useCreateTopup = (options: { account: MaybeRef<AccountWithSettingsA
       const baseUrl = config.ACCOUNTING_URL
       const code = currency.value.attributes.code
       
-      
+      const atts = topup.value.attributes
       // create the topup resource
       const result = await apiFetch(`${baseUrl}/${code}/topups`, {
         method: 'POST',
         body: {
-          data: topup.value
+          data: {
+            type: 'topups',
+            attributes: {
+              depositAmount: atts.depositAmount,
+              depositCurrency: atts.depositCurrency,
+              receiveAmount: atts.receiveAmount,
+              status: atts.status,
+              meta: atts.meta,
+            },
+            relationships: topup.value.relationships
+          }
         }
       })
       
