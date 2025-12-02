@@ -351,7 +351,7 @@ model Topup {
   paymentData    Json?
 
   accountId String
-  account   Account @relation(fields: [accountId], references: [id])
+  account   Account @relation(fields: [tenantId, accountId], references: [tenantId, id])
 
   userId String
   user   User   @relation(fields: [tenantId, userId], references: [tenantId, id])

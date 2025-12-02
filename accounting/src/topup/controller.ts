@@ -10,7 +10,6 @@ import createMollieClient, { Payment } from '@mollie/api-client';
 import { config } from "../config";
 import { logger } from "../utils/logger";
 import { Rate } from "../utils/types";
-import { PaymentData } from "@mollie/api-client/dist/types/data/payments/data";
 
 export interface TopupService {
   /**
@@ -345,7 +344,7 @@ export class TopupController extends AbstractCurrencyController implements Topup
     const paymentAmount = payment.amount.value ? Math.round(parseFloat(payment.amount.value) * 100) : 0
     
     if (paymentAmount !== topup.depositAmount) {
-      logger.error(`Mollie webhook received for topup ${topup.id} with amount ${paymentAmount} different than expected ${topup.depositAmount}. Updating to the new amount.`);1
+      logger.error(`Mollie webhook received for topup ${topup.id} with amount ${paymentAmount} different than expected ${topup.depositAmount}. Updating to the new amount.`);
       updateData.depositAmount = paymentAmount
       const settings = await this.getCurrencyTopupSettings(systemContext())
       updateData.receiveAmount = this.computeReceiveAmount(paymentAmount, settings.rate)
@@ -490,7 +489,7 @@ export class TopupController extends AbstractCurrencyController implements Topup
       } else if (topup.transfer.state === "new") {
         // Process the transfer
         topup.transfer = await this.transfers().updateTransfer(systemContext(), {
-          id: topup.  transfer.id,
+          id: topup.transfer.id,
           state: "committed"
         })
       }

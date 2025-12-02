@@ -22,7 +22,7 @@ CREATE TABLE "public"."Topup" (
 CREATE UNIQUE INDEX "Topup_tenantId_transferId_key" ON "public"."Topup"("tenantId", "transferId");
 
 -- AddForeignKey
-ALTER TABLE "public"."Topup" ADD CONSTRAINT "Topup_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "public"."Account"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Topup" ADD CONSTRAINT "Topup_tenantId_accountId_fkey" FOREIGN KEY ("tenantId", "accountId") REFERENCES "public"."Account"("tenantId", "id") ON DELETE RESTRICT ON UPDATE CASCADE;  
 
 -- AddForeignKey
 ALTER TABLE "public"."Topup" ADD CONSTRAINT "Topup_tenantId_userId_fkey" FOREIGN KEY ("tenantId", "userId") REFERENCES "public"."User"("tenantId", "id") ON DELETE RESTRICT ON UPDATE CASCADE;
