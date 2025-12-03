@@ -119,13 +119,13 @@ export class AccountController extends AbstractCurrencyController implements IAc
         })
       } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status) && data.status === AccountStatus.Active) {
         // Don't need to check admin access again, since only admins can update suspended accounts.
-        const ledgerBalance = this.currencyController.amountToLedger(account.balance + account.creditLimit)
-        const maximumBalance = account.maximumBalance ?? this.currency().settings.defaultInitialMaximumBalance
-
+        
         await this.currencyController.ledger.enableAccount({
-          balance: ledgerBalance,
+          balance: this.currencyController.amountToLedger(account.balance + account.creditLimit),
           credit: this.currencyController.amountToLedger(account.creditLimit),
-          maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance) : undefined,
+          maximumBalance: account.maximumBalance 
+            ? this.currencyController.amountToLedger(account.maximumBalance + account.creditLimit) 
+            : undefined,
         }, {
           account: await this.keys().retrieveKey(account.key),
           issuer: await this.keys().issuerKey(),
