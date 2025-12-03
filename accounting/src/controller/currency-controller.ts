@@ -183,7 +183,16 @@ export class LedgerCurrencyController implements CurrencyController {
     }
     // Check if we need to update the ledger.
     if (updatedSettings.externalTraderCreditLimit !== this.model.settings.externalTraderCreditLimit) {
-      throw notImplemented("Change the external trader credit limit not implemented yet")
+      // 1. Increase account credit limit
+      await this.accounts.updateAccount(systemContext(), {
+        id: this.model.externalAccount.id,
+        creditLimit: updatedSettings.externalTraderCreditLimit ?? 0
+      })
+      // 2. Update the external offer
+      await this.ledger.updateExternalOffer(this.ledger.asset(), {
+        sponsor: await this.keys.sponsorKey(),
+        externalTrader: await this.keys.externalTraderKey()
+      })
     }
 
     if (updatedSettings.externalTraderMaximumBalance !== this.model.settings.externalTraderMaximumBalance) {

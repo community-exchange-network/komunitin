@@ -292,5 +292,15 @@ describe("External transfers", async () => {
 
   })
 
+  it("can update external credit limit", async () => {
+    // TODO: implement test
+  })
+
+  it("can update external maximum balance", async () => {
+    // TODO: implement test
+  })
+
+  
+
 
 })
