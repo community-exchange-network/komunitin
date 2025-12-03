@@ -1,12 +1,12 @@
-import KError, { KErrorCode } from "src/KError";
-import type { Module, ActionContext } from "vuex";
 import { cloneDeep } from "lodash-es";
+import KError, { KErrorCode } from "src/KError";
+import type { ActionContext, Module } from "vuex";
 
 import type {
   CollectionResponseInclude,
+  ExternalResourceObject,
   ResourceIdentifierObject,
-  ResourceObject,
-  ExternalResourceObject
+  ResourceObject
 } from "src/store/model";
 import { type AuthService, request } from "../composables/useApiFetch";
 
@@ -978,7 +978,9 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     } else {
       // and sometimes payload contains the code attribute which can 
       // be used to find the resource as well.
-      const code = (payload as LoadByCodePayload).code ?? (payload as LoadByIdPayload).id
+      const groupCodeTypes = ["currencies", "currency-settings", "groups", "group-settings"]
+      const code = groupCodeTypes.includes(this.type) ? payload.group : (payload as LoadByCodePayload).code
+
       const cached = context.getters['find']({ code })
       if (cached) {
         id = cached.id

@@ -38,7 +38,7 @@ const offer = ref<Offer & {category: Category} | null>(null)
 
 const fetchData = async () => {
   await store.dispatch("offers/load", {
-    id: props.offerCode,
+    code: props.offerCode,
     group: props.code,
     include: "category"
   })

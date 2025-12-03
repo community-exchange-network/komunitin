@@ -38,7 +38,7 @@ const need = ref<Need & {category: Category} |null>(null)
 
 const fetchData = async () => {
   await store.dispatch("needs/load", {
-    id: props.needCode,
+    code: props.needCode,
     group: props.code,
     include: "category"
   })

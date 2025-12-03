@@ -41,7 +41,7 @@ const publish = async (offer: Offer) => {
   offer.attributes.state = 'published'
 
   await store.dispatch('offers/update', {
-    id: props.offerCode,
+    id: offer.id,
     group: props.code,
     resource: offer
   })
