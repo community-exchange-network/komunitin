@@ -4,7 +4,7 @@ import { Account, AccountSettings, AccountStatus, FullAccount, InputAccount, rec
 import { CollectionOptions } from "src/server/request";
 import { Context, systemContext } from "src/utils/context";
 import { deriveKey, exportKey } from "src/utils/crypto";
-import { badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error";
+import { badRequest, forbidden, notFound, unauthorized } from "src/utils/error";
 import { WithRequired } from "src/utils/types";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
 import { CurrencyControllerImpl } from "./currency-controller";
@@ -121,13 +121,13 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
         })
       } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status) && data.status === AccountStatus.Active) {
         // Don't need to check admin access again, since only admins can update suspended accounts.
-        const ledgerBalance = this.currencyController.toStringAmount(account.balance + account.creditLimit)
-        const maximumBalance = account.maximumBalance ?? this.currency().settings.defaultInitialMaximumBalance
-
+        
         await this.currencyController.ledger.enableAccount({
-          balance: ledgerBalance,
+          balance: this.currencyController.toStringAmount(account.balance + account.creditLimit),
           credit: this.currencyController.toStringAmount(account.creditLimit),
-          maximumBalance: maximumBalance ? this.currencyController.toStringAmount(maximumBalance) : undefined,
+          maximumBalance: account.maximumBalance 
+            ? this.currencyController.toStringAmount(account.maximumBalance + account.creditLimit) 
+            : undefined,
         }, {
           account: await this.keys().retrieveKey(account.key),
           issuer: await this.keys().issuerKey(),
