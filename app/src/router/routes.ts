@@ -323,6 +323,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/groups/:code/admin',
+        name: 'GroupAdmin',
         children: [{
           path: 'edit',
           props: true,
@@ -425,7 +426,8 @@ const routes: RouteRecordRaw[] = [
 ];
 
 if (process.env.FEAT_TOPUP === 'true') {
-  routes.find(route => route.name === 'MainLayout')?.children?.push({
+  const mainLayout = routes.find(route => route.name === 'MainLayout');
+  mainLayout?.children?.push({
     path: '/groups/:code/members/:memberCode/topup',
     props: true,
     name: 'CreateTopup',
@@ -436,6 +438,14 @@ if (process.env.FEAT_TOPUP === 'true') {
     name: 'TopupDetails',
     component: () => import('../features/topup/TopupDetails.vue'),
   })
+
+  const adminRoute = mainLayout?.children?.find(route => route.name === 'GroupAdmin');
+  adminRoute?.children?.push({
+    path: 'topup-settings',
+    props: true,
+    name: 'TopupSettings',
+    component: () => import('../features/topup/TopupSettings.vue'),
+  });
 }
 
 // Always leave this as last one

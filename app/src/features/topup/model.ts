@@ -46,6 +46,7 @@ export interface TopupSettings extends ResourceObject {
     paymentProvider: string,
     minAmount: number,
     maxAmount: number | false,
+    sourceAccountId: string | null
   }
 }
 

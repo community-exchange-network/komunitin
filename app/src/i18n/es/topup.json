@@ -34,5 +34,20 @@
   "topupStatusCanceling": "Cancelando",
   "topupRetry": "Reintentar recarga",
   "topupGoToTransfer": "Ir al movimiento",
-  "topupShowPaymentDetails": "Detalles"
+  "topupShowPaymentDetails": "Detalles",
+
+  "topupSettings": "Configuración de recargas",
+  "topupSettingsText": "Configura cómo los usuarios pueden recargar sus cuentas utilizando métodos de pago externos.",
+  "topupEnable": "Habilitar recargas",
+  "topupEnableHint": "Permite a los usuarios recargar sus cuentas. Esta funcionalidad debe ser habilitada por un superadministrador.",
+  "topupDefaultAllowTopup": "Permitir recarga por defecto",
+  "topupDefaultAllowTopupHint": "Permite a todas las cuentas recargar por defecto. Si se desactiva, debes habilitarlo para cada cuenta individualmente.",
+  "topupDepositCurrency": "Moneda de depósito",
+  "topupRate": "Tasa de conversión",
+  "topupRateHint": "Establece la tasa como una fracción n/d. Por ejemplo, si 8 {receiveCurrency} = 15 {depositCurrency}, ponlo a 8/15.",
+  "topupMinAmount": "Cantidad mínima",
+  "topupMinAmountHint": "Cantidad mínima permitida para una sola recarga.",
+  "topupMaxAmount": "Cantidad máxima",
+  "topupMaxAmountHint": "Cantidad máxima permitida para una sola recarga.",
+  "topupSourceAccount": "Cuenta de origen"
 }

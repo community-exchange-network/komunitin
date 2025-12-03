@@ -34,5 +34,20 @@
   "topupStatusCanceling": "Cancel·lant",
   "topupRetry": "Reintentar recàrrega",
   "topupGoToTransfer": "Anar al moviment",
-  "topupShowPaymentDetails": "Detalls"
+  "topupShowPaymentDetails": "Detalls",
+
+  "topupSettings": "Configuració de recàrregues",
+  "topupSettingsText": "Configura com els usuaris poden recarregar els seus comptes utilitzant mètodes de pagament externs.",
+  "topupEnable": "Habilitar recàrregues",
+  "topupEnableHint": "Permet als usuaris recarregar els seus comptes. Aquesta funcionalitat ha de ser habilitada per un superadministrador.",
+  "topupDefaultAllowTopup": "Permetre recàrrega per defecte",
+  "topupDefaultAllowTopupHint": "Permet a tots els comptes recarregar per defecte. Si es desactiva, has d'habilitar-ho per a cada compte individualment.",
+  "topupDepositCurrency": "Moneda de dipòsit",
+  "topupRate": "Taxa de conversió",
+  "topupRateHint": "Estableix la taxa com una fracció n/d. Per exemple, si 8 {receiveCurrency} = 15 {depositCurrency}, posa-ho a 8/15.",
+  "topupMinAmount": "Quantitat mínima",
+  "topupMinAmountHint": "Quantitat mínima permesa per a una sola recàrrega.",
+  "topupMaxAmount": "Quantitat màxima",
+  "topupMaxAmountHint": "Quantitat màxima permesa per a una sola recàrrega.",
+  "topupSourceAccount": "Compte d'origen"
 }

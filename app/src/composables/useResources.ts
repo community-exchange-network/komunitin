@@ -1,8 +1,9 @@
 import { type LoadByIdPayload, type LoadListPayload } from "../store/resources";
-import { computed, ref } from "vue";
+import { watch, computed, type MaybeRefOrGetter, ref, toValue } from "vue";
 import { useStore } from "vuex";
 import type { ResourceObject } from "../store/model";
 import { type DeepPartial } from "quasar";
+
 
 export interface UseResourcesConfig {
   /**
@@ -45,14 +46,38 @@ export const useResources = (type: string, options: LoadListPayload, config?: Us
   return { resources, loadNext, hasNext, load, loading };
 };
 
-export const useResource = <T extends ResourceObject = ResourceObject>(type: string, options: LoadByIdPayload, config?: UseResourcesConfig) => {
+export type UseResourceOptions = Omit<LoadByIdPayload, 'id'> & {
+  // Use undefined for loading resources without id: currency, currency settings, group etc.
+  // Use null for not loading any resource.
+  id: MaybeRefOrGetter<string> | undefined | null;
+}
+  
+
+export const useResource = <T extends ResourceObject = ResourceObject>(type: string, options: UseResourceOptions, config?: UseResourcesConfig) => {
   const store = useStore()
-  const resource = computed<T>(() => store.getters[`${type}/one`](options.id))
+  
+  const id = ref<string>(toValue(options.id))
+  const resource = computed<T>(() => id.value ? store.getters[`${type}/one`](id.value) : null)
+
   const loading = ref(false)
+
   const load = async () => {
+    if (id.value === null) {
+      return
+    }
     loading.value = true
     try {
-      await store.dispatch(type + '/load', options)
+      await store.dispatch(type + '/load', {
+        ...options,
+        id: id.value
+      })
+
+      // Update id in case it was not set initially
+      const fetched = store.getters[`${type}/current`]
+      if (fetched) {
+        id.value = fetched.id
+      }
+      
     } finally {
       loading.value = false
     }
@@ -62,7 +87,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     loading.value = true
     try {
       await store.dispatch(type + '/update', {
-        id: options.id,
+        id: id.value,
         group: options.group,
         resource: data
       })
@@ -71,10 +96,11 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     }
   }
 
-  // initially load the resource
-  if (config?.immediate ?? true) {
+  // load resource initially and when id changes
+  watch(() => toValue(options.id), () => {
+    id.value = toValue(options.id)
     load()
-  }
+  }, { immediate: config?.immediate ?? true })
 
   return { resource, load, update, loading }
 

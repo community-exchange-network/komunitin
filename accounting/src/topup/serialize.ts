@@ -21,7 +21,7 @@ export const TopupSerializer = new Serializer<Topup>("topups", {
 
 export const TopupSettingsSerializer = new Serializer<TopupSettings>("topup-settings", {
   version: null,
-  projection: projection<TopupSettings>(['enabled', 'defaultAllowTopup', 'depositCurrency', 'rate', 'minAmount', 'maxAmount', 'paymentProvider']),
+  projection: projection<TopupSettings>(['enabled', 'defaultAllowTopup', 'depositCurrency', 'rate', 'minAmount', 'maxAmount', 'paymentProvider', 'sourceAccountId']),
   relators: {}
 })
 

@@ -34,5 +34,20 @@
   "topupStatusCanceling": "Canceling",
   "topupRetry": "Retry Top Up",
   "topupGoToTransfer": "Go to Transfer",
-  "topupShowPaymentDetails": "Details"
+  "topupShowPaymentDetails": "Details",
+
+  "topupSettings": "Top Up Settings",
+  "topupSettingsText": "Configure how users can top up their accounts using external payment methods.",
+  "topupEnable": "Enable Top Ups",
+  "topupEnableHint": "Allow users to top up their accounts. This feature must be enabled by a superadmin.",
+  "topupDefaultAllowTopup": "Allow Top Up by Default",
+  "topupDefaultAllowTopupHint": "Allow all accounts to top up by default. If disabled, you must enable it for each account individually.",
+  "topupDepositCurrency": "Deposit Currency",
+  "topupRate": "Conversion Rate",
+  "topupRateHint": "Set the rate as a fraction n/d. For example, if 8 {receiveCurrency} = 15 {depositCurrency}, set it to 8/15.",
+  "topupMinAmount": "Minimum Amount",
+  "topupMinAmountHint": "Minimum amount allowed for a single top up.",
+  "topupMaxAmount": "Maximum Amount",
+  "topupMaxAmountHint": "Maximum amount allowed for a single top up.",
+  "topupSourceAccount": "Source Account"
 }

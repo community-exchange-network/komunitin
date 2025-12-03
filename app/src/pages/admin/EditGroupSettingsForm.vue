@@ -98,7 +98,7 @@
       :currency="currency"
       :limits="false"
     />
-    <q-separator />
+    <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
       <div class="text-subtitle1">
         {{ $t('externalPayments') }}
@@ -184,6 +184,27 @@
       @update:trustline="$emit('update:trustline', $event)"
       @create:trustline="$emit('create:trustline', $event)"
     />
+    <template v-if="featTopup">
+      <q-separator class="q-mt-xl" />
+      
+      <q-item
+        class="q-pl-none"
+        clickable
+        :to="{ name: 'TopupSettings', params: { code: group.attributes.code } }"
+      >
+        <q-item-section>
+          <q-item-label>{{ $t('topupSettings') }}</q-item-label>
+          <q-item-label caption>{{ $t('topupSettingsText') }}</q-item-label>
+        </q-item-section>
+        <q-item-section side>
+          <q-icon name="chevron_right" />
+        </q-item-section>
+      </q-item>
+      
+    </template>
+    
+
+
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
       <div class="text-subtitle1">
@@ -357,6 +378,7 @@ watch(externalTraderMaximumBalance, (value) => {
   })
 })
 const externalTraderMaximumBalanceLoading = computed(() => lastCurrencySettingsUpdate.value === "externalTraderMaximumBalance" && props.updatingCurrencySettings)
+const featTopup = process.env.FEAT_TOPUP === 'true'
 
 </script>
 <style lang="scss" scoped>

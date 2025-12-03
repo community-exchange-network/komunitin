@@ -286,9 +286,15 @@ export default {
     server.schema.accounts.all().models[15].update({balance: 0});
 
     // Add topup resources.
-    server.schema.currencies.all().models.forEach((currency: any) =>
-      server.create("topupSettings", {currency})
-    );
+    server.schema.currencies.all().models.forEach((currency: any) => {
+      const topupSettings = server.create("topupSettings", {currency})
+      const sourceAccount = server.schema.accounts.findBy({code: `${currency.code}0000`});
+      if (sourceAccount) {
+        topupSettings.update({
+          sourceAccountId: sourceAccount.id
+        })
+      }
+    });
     server.schema.accounts.all().models.forEach((account: any) => 
       server.create("accountTopupSettings", {account})
     );

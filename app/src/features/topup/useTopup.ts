@@ -61,7 +61,7 @@ export const useCreateTopup = (options: { account: MaybeRef<AccountWithSettingsA
       return 0
     }
     const rate = settings.value.rate
-    const received = toValue(options.amountToDeposit) * rate.n / rate.d
+    const received = Math.floor(toValue(options.amountToDeposit) * rate.n / rate.d)
     return received
   })
 
