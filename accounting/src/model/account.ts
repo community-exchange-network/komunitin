@@ -1,6 +1,6 @@
-import { AtLeast, Optional, WithRequired } from 'src/utils/types'
+import { Optional, WithRequired } from 'src/utils/types'
 import { Currency } from './currency'
-import { Account as AccountRecord, User as UserRecord, AccountTag as AccountTagRecord, Prisma, AccountType } from '@prisma/client'
+import { Account as AccountRecord, User as UserRecord, AccountTag as AccountTagRecord, Prisma, AccountType as PrismaAccountType } from '@prisma/client'
 import { User } from './user'
 
 export { AccountRecord }
@@ -12,7 +12,7 @@ export enum AccountStatus {
   Deleted = "deleted",
 }
 
-export type AccountType = AccountType
+export type AccountType = PrismaAccountType
 
 
 // Accounts, as returned by the API, do not need to have all fields filled. 
