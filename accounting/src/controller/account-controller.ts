@@ -151,27 +151,14 @@ export class AccountController extends AbstractCurrencyController implements IAc
     if (data.code && data.code !== account.code) {
       await this.checkFreeCode(data.code)
     }
-    // Update credit limit
-    if (data.creditLimit && data.creditLimit !== account.creditLimit) {
+    // Update maximum balance, either on maximum balance or credit limit change.
+    const newMaxBalance = data.maximumBalance !== undefined ? data.maximumBalance : account.maximumBalance
+    const newCreditLimit = data.creditLimit !== undefined ? data.creditLimit : account.creditLimit
+    if ((newMaxBalance !== account.maximumBalance) || (newMaxBalance && newCreditLimit !== account.creditLimit)) {
       if (account.status === AccountStatus.Active) {
         const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-
-        await ledgerAccount.updateCredit(this.currencyController.amountToLedger(data.creditLimit), {
-          sponsor: await this.keys().sponsorKey(),
-          credit: data.creditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
-          issuer: data.creditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
-          account: data.creditLimit < account.creditLimit ? await this.keys().retrieveKey(account.key) : undefined
-        })
-      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
-        throw badRequest("Cannot update credit limit of disabled or suspended accounts. Enable the account first.")
-      }
-    }
-    // Update maximum balance
-    if (data.maximumBalance !== undefined && data.maximumBalance !== account.maximumBalance) {
-      if (account.status === AccountStatus.Active) {
-        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-        const ledgerMaximumBalance = data.maximumBalance 
-          ? this.currencyController.amountToLedger(data.maximumBalance + account.creditLimit)
+        const ledgerMaximumBalance = newMaxBalance 
+          ? this.currencyController.amountToLedger(newMaxBalance + newCreditLimit)
           : undefined // no limit
           
         await ledgerAccount.updateMaximumBalance(ledgerMaximumBalance, {
@@ -182,6 +169,22 @@ export class AccountController extends AbstractCurrencyController implements IAc
         })
       } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
         throw badRequest("Cannot update maximum balance of disabled or suspended accounts. Enable the account first.")
+      }
+    }
+
+    // Update credit limit
+    if (newCreditLimit !== account.creditLimit) {
+      if (account.status === AccountStatus.Active) {
+        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+
+        await ledgerAccount.updateCredit(this.currencyController.amountToLedger(newCreditLimit), {
+          sponsor: await this.keys().sponsorKey(),
+          credit: newCreditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
+          issuer: newCreditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
+          account: newCreditLimit < account.creditLimit ? await this.keys().retrieveKey(account.key) : undefined
+        })
+      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
+        throw badRequest("Cannot update credit limit of disabled or suspended accounts. Enable the account first.")
       }
     }
 
