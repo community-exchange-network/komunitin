@@ -17,6 +17,16 @@
           :member="myMember" 
           :to="`/groups/${groupCode}/members/${myMember.attributes.code}`"
           active-class="bg-active"
+          />
+        <menu-item
+          icon="loyalty"
+          :title="$t('myNeeds')"
+          :to="`/groups/${groupCode}/members/${myMember.attributes.code}#needs`"
+        />
+        <menu-item
+          icon="local_offer"
+          :title="$t('myOffers')"
+          :to="`/groups/${groupCode}/members/${myMember.attributes.code}#offers`"
         />
         <menu-item
           icon="edit"
