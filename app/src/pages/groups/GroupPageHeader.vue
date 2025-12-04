@@ -36,22 +36,49 @@
         </div>
       </div>
     </div>
+    <template #fixed>
+      <q-tabs
+        :model-value="props.tab"
+        active-bg-color="active"
+        active-color="primary"
+        class="bg-surface text-onsurface-m full-width"
+        align="justify"
+        @update:model-value="tabChange"
+      >
+        <q-tab
+          name="overview"
+          icon="account_circle"
+          :label="$t('profile')"
+        />
+        <q-tab
+          name="foo"
+          icon="account_circle"
+          :label="$t('foo')"
+        />
+      </q-tabs>
+    </template>
   </collapsible-header>
 </template>
 <script lang="ts" setup>
 
 import { defineProps } from 'vue';
 import Avatar from 'src/components/Avatar.vue';
+import FitText from 'src/components/FitText.vue';
 import type { Group } from 'src/store/model';
 import CollapsibleHeader from "../../layouts/CollapsibleHeader.vue";
 
 const props = defineProps<{
   group: Group,
+  tab: string,
 }>();
 
-// const emit = defineEmits<{
-//   (e: 'tab-change', value: string): void
-// }>()
+const emit = defineEmits<{
+  (e: 'tab-change', value: string): void
+}>();
+
+const tabChange = (value: string) => {
+  emit('tab-change', value);
+};
 </script>
 
 <style lang="scss" scoped>

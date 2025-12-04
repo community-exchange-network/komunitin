@@ -34,9 +34,8 @@
           v-if="group"
           :group="group"
           :tab="'overview'"
+          @tab-change="onTabChange"
         />
-        
-        
       </q-page>
     </q-page-container>
   </div>
@@ -44,7 +43,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-
+import { useRouter } from "vue-router";
 import md2html from "../../plugins/Md2html";
 
 import PageHeader from "../../layouts/PageHeader.vue";
@@ -73,12 +72,14 @@ export default defineComponent({
   },
   setup() {
     const ready = ref(false)
+    const router = useRouter();
     return {
       link(link: string): string {
         return link.replace(/(https|http):\/\//, "");
       },
       md2html,
-      ready
+      ready,
+      router
     }
   },
   data() {
@@ -117,8 +118,13 @@ export default defineComponent({
     },
     isLoading(): boolean {
       return !(this.ready || this.currency && this.group && this.group.contacts && this.group.categories);
-    }
-  },
+    },
+    hashTab(): string {
+      const hash = this.route.hash.slice(1)
+      const tabs = ['overview', 'offers', 'needs', 'members', 'statistics']
+      return tabs.includes(hash) ? hash : 'overview'
+    },
+  }, 
   created() {
     // If I just call the fetch functions in created or mounted hook, then navigation from
     // `/groups/GRP1` to `/groups/GRP2` doesn't trigger the action since the
@@ -159,6 +165,9 @@ export default defineComponent({
         items.push(this.$t("andMoreCategories").toString());
       }
       return items;
+    },
+    onTabChange(tab: string | number) {  
+      this.router.push({hash: `#${tab}`})
     }
   }
 });
