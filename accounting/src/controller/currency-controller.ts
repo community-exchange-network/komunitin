@@ -182,11 +182,39 @@ export class LedgerCurrencyController implements CurrencyController {
       ...settingsFields
     }
     // Check if we need to update the ledger.
-    if (updatedSettings.externalTraderCreditLimit !== this.model.settings.externalTraderCreditLimit) {
-      throw notImplemented("Change the external trader credit limit not implemented yet")
+    const newCreditLimit = updatedSettings.externalTraderCreditLimit
+    const oldCreditLimit = this.model.settings.externalTraderCreditLimit
+    if (newCreditLimit !== undefined && newCreditLimit !== oldCreditLimit) {
+      if (newCreditLimit < oldCreditLimit) {
+        if (this.model.externalAccount.balance < -newCreditLimit) {
+          throw badRequest(`Cannot reduce credit limit to ${newCreditLimit} because the external account balance is ${this.model.externalAccount.balance}`)
+        }
+        await this.ledger.updateExternalOffer(this.ledger.asset(), {
+          sponsor: await this.keys.sponsorKey(),
+          externalTrader: await this.keys.externalTraderKey()
+        }, this.amountToLedger(this.model.externalAccount.balance + newCreditLimit))
+      }
+
+      // Change account credit limit
+      await this.accounts.updateAccount(systemContext(), {
+        id: this.model.externalAccount.id,
+        creditLimit: updatedSettings.externalTraderCreditLimit ?? 0
+      })
+
+      if (newCreditLimit > oldCreditLimit) {
+        await this.ledger.updateExternalOffer(this.ledger.asset(), {
+          sponsor: await this.keys.sponsorKey(),
+          externalTrader: await this.keys.externalTraderKey()
+        })
+      }
     }
 
-    if (updatedSettings.externalTraderMaximumBalance !== this.model.settings.externalTraderMaximumBalance) {
+    const newMaxBalance = updatedSettings.externalTraderMaximumBalance
+    const oldMaxBalance = this.model.settings.externalTraderMaximumBalance ?? false
+
+    if (newMaxBalance !== undefined && newMaxBalance !== oldMaxBalance) {
+      // TODO: We should also update the offer in the ledger HOUR => asset offer
+      // and HOUR balance in the ledger.
       await this.accounts.updateAccount(systemContext(), {
         id: this.model.externalAccount.id,
         maximumBalance: updatedSettings.externalTraderMaximumBalance
