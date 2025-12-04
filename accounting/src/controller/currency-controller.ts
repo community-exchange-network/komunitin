@@ -192,7 +192,7 @@ export class CurrencyControllerImpl implements CurrencyService {
         await this.ledger.updateExternalOffer(this.ledger.asset(), {
           sponsor: await this.keys.sponsorKey(),
           externalTrader: await this.keys.externalTraderKey()
-        }, this.amountToLedger(this.model.externalAccount.balance + newCreditLimit))
+        }, this.toStringAmount(this.model.externalAccount.balance + newCreditLimit))
       }
 
       // Change account credit limit
