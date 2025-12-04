@@ -80,6 +80,7 @@
   "payee": "A",
   "feedback": "Opina",
   "komunitinProject": "Projecte Komunitin",
+  "about": "Sobre nosaltres",
   "nothingHere": "Aquí no hi ha res... Encara!",
   "enableNotificationsText": "Activa les notificacions per estar al corrent dels moviments del teu compte i altres notícies importants de la teva comunitat. Pots configurar-les o desactivar-les quan vulguis.",
   "deniedNotificationsText": "Aquest dispositiu bloqueja les nostres notificacions. Pots solucionar-ho permetent les notificacions de Komunitin a la configuració del teu navegador.",
