@@ -30,112 +30,13 @@
           color="icon-dark"
         />
         <!-- Group view -->
-
-        <div
+        <group-page-header
           v-if="group"
-          class="row q-col-gutter-md"
-        >
-          <!-- image -->
-          <div class="col-12 col-sm-6 col-md-4">
-            <q-img :src="group.attributes.image" />
-          </div>
-          <!-- description -->
-          <div class="col-12 col-sm-6 col-md-8">
-            <div class="text-h6">
-              {{ group.attributes.code }}
-            </div>
-            <!-- eslint-disable vue/no-v-html -->
-            <div
-              class="text-onsurface-m"
-              v-html="md2html(group.attributes.description)"
-            />
-            <!-- eslint-enable vue/no-v-html -->
-            <q-separator spaced />
-            <div class="k-inset-actions-md">
-              <q-btn
-                type="a"
-                flat
-                no-caps
-                :href="group.attributes.website"
-                target="_blank"
-                icon="link"
-                :label="link(group.attributes.website)"
-                color="onsurface-m"
-              />
-            </div>
-          </div>
-          <!-- explore -->
-          <div class="col-12 col-sm-6 relative-position">
-            <group-stats
-              :title="$t('offers')"
-              icon="local_offer"
-              :content="group.relationships.offers.meta.count"
-              :href="code + '/offers'"
-              :items="offersItems"
-            />
-          </div>
-
-          <div class="col-12 col-sm-6 relative-position">
-            <group-stats
-              :title="$t('needs')"
-              icon="loyalty"
-              :content="group.relationships.needs.meta.count"
-              :href="code + '/needs'"
-              :items="needsItems"
-            />
-          </div>
-
-          <div class="col-12 col-sm-6 relative-position">
-            <!-- Not providing member types for the moment, as the Social Api does not give it -->
-            <group-stats
-              :title="$t('members')"
-              icon="account_circle"
-              :content="group.relationships.members.meta.count"
-              :href="code + '/members'"
-              :items="[]"
-            />
-          </div>
-
-          <div class="col-12 col-sm-6 relative-position">
-            <group-stats
-              v-if="currency"
-              :title="$t('currency')"
-              icon="monetization_on"
-              :content="currency.attributes.symbol"
-              :href="code + '/stats'"
-              :items="currencyItems"
-            />
-          </div>
-          <div class="col-12 col-sm-6 col-lg-8">
-            <q-card
-              square
-              flat
-            >
-              <simple-map
-                class="simple-map"
-                :center="center"
-                :marker="marker"
-              />
-              <q-card-section class="group-footer-card text-onsurface-m">
-                <q-icon name="place" />
-                {{ group.attributes.location.name }}
-              </q-card-section>
-            </q-card>
-          </div>
-          <div class="col-12 col-sm-6 col-lg-4 relative-position">
-            <social-network-list
-              type="contact"
-              :contacts="group.contacts"
-            />
-          </div>
-          <floating-btn
-            v-if="!isLoggedIn"
-            :label="$t('signUp')"
-            icon="add"
-            color="primary"
-            :to="`/groups/${group.attributes.code}/signup`"
-          />
-        </div>
+          :group="group"
+          :tab="'overview'"
+        />
+        
+        
       </q-page>
     </q-page-container>
   </div>
@@ -148,13 +49,9 @@ import md2html from "../../plugins/Md2html";
 
 import PageHeader from "../../layouts/PageHeader.vue";
 
+import GroupPageHeader from './GroupPageHeader.vue';
 import ContactButton from "../../components/ContactButton.vue";
-import GroupStats from "../../components/GroupStats.vue";
 import ShareButton from "../../components/ShareButton.vue";
-import SimpleMap from "../../components/SimpleMap.vue";
-import SocialNetworkList from "../../components/SocialNetworkList.vue";
-import FloatingBtn from "../../components/FloatingBtn.vue";
-
 import type { Group, Contact, Category, Currency } from "../../store/model";
 
 /**
@@ -163,13 +60,10 @@ import type { Group, Contact, Category, Currency } from "../../store/model";
 export default defineComponent({
   name: "Group",
   components: {
-    SimpleMap,
     ShareButton,
     ContactButton,
-    GroupStats,
-    SocialNetworkList,
     PageHeader,
-    FloatingBtn
+    GroupPageHeader
   },
   props: {
     code: {
