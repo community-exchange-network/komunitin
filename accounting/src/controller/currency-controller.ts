@@ -202,7 +202,6 @@ export class LedgerCurrencyController implements CurrencyController {
       })
 
       if (newCreditLimit > oldCreditLimit) {
-        // 2. Update the external offer
         await this.ledger.updateExternalOffer(this.ledger.asset(), {
           sponsor: await this.keys.sponsorKey(),
           externalTrader: await this.keys.externalTraderKey()

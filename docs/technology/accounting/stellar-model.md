@@ -23,9 +23,9 @@ Every account and every transaction is recorded in the stellar network. And ever
 
 ### External transfers
 
-* Each community has an *external issuer* account. and an *external trader* account in Stellar. 
+* Each community has an *external issuer* account and an *external trader* account in Stellar. 
 * The external issuer issues the HOUR asset, so each community issues their own HOUR asset.
-* The external trader proxy all external transfers.
+* The external trader proxies all external transfers.
 * External trader has a trustline and balance with the local currency asset as well as with the HOUR asset.
 * External trader may have trustlines and balances with other external assets.
 * External trader from other communities can define trustlines to this HOUR asset.

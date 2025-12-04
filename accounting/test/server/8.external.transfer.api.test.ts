@@ -108,7 +108,6 @@ describe("External transfers", async () => {
 
     assert.equal(eTrustline.relationships.trusted.data.id, t.currency.id)
     assert.strictEqual(eTrustline.relationships.trusted.data.meta.external, true)
-    
   })
   
   await it('get trustline', async () => {
@@ -338,12 +337,8 @@ describe("External transfers", async () => {
   })
 
   it("can update external maximum balance", async () => {
-    // Check external account status
-    const externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
-    //const balance = externalAccount.attributes.balance
-    
     // 1K HOUR in TEST. We have to set this value because otherwise the existing sell offer will
-    // prevent reducing further the trustline limit. TOOD: fix that!
+    // prevent reducing further the trustline limit. TODO: fix that!
     const newMaxBalance = 1000 * (t.currency.attributes.rate.d / t.currency.attributes.rate.n) * 10 ** t.currency.attributes.scale
 
     // Update maximum balance
