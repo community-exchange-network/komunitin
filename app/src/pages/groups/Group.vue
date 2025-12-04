@@ -36,6 +36,23 @@
           :tab="'overview'"
           @tab-change="onTabChange"
         />
+        <q-tab-panels
+          :model-value="hashTab"  
+          @update:model-value="onTabChange"
+        >
+          <q-tab-panel
+            name="overview"
+            keep-alive
+          >
+            <p>overview</p>
+          </q-tab-panel>
+          <q-tab-panel
+            name="members"
+            keep-alive
+          >
+            <p>members</p>
+          </q-tab-panel>
+        </q-tab-panels>
       </q-page>
     </q-page-container>
   </div>
@@ -43,7 +60,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import md2html from "../../plugins/Md2html";
 
 import PageHeader from "../../layouts/PageHeader.vue";
@@ -72,6 +89,7 @@ export default defineComponent({
   },
   setup() {
     const ready = ref(false)
+    const route = useRoute();
     const router = useRouter();
     return {
       link(link: string): string {
@@ -79,6 +97,7 @@ export default defineComponent({
       },
       md2html,
       ready,
+      route,
       router
     }
   },

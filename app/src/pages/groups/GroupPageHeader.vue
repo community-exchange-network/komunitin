@@ -51,9 +51,9 @@
           :label="$t('profile')"
         />
         <q-tab
-          name="foo"
+          name="members"
           icon="account_circle"
-          :label="$t('foo')"
+          :label="$t('members')"
         />
       </q-tabs>
     </template>
