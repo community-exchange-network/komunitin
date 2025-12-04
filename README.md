@@ -9,7 +9,7 @@ Komunitin is an app featuring a local community currency wallet and a marketplac
 ## Demo
 Quickly check Komunitin in action at [demo.komunitin.org](https://demo.komunitin.org).
 
-You can find the credentials at the docs page [https://docs.komunitin.org/overview/demo](https://docs.komunitin.org/overview/demo).
+You can find the credentials at the docs page [docs.komunitin.org/readme/demo](https://docs.komunitin.org/readme/demo).
 
 ## System structure
 The Komunitin system is made of several microservices:

@@ -243,4 +243,32 @@ describe('Accounts endpoints', async () => {
     assert.deepEqual(users, ['2', '3'])
   })
 
+  it('change credit limit beyond maximum balance', async () => {
+    // Create account with credit limit 5000 and maximum balance 5000
+    let response = await t.api.post('/TEST/accounts', {
+      data: {
+        attributes: {
+          creditLimit: 5000,
+          maximumBalance: 5000
+        }
+      }
+    }, admin)
+    const account = response.body.data
+    assert.equal(account.attributes.creditLimit, 5000)
+    assert.equal(account.attributes.maximumBalance, 5000)
+
+    // Update credit limit to 20000
+    response = await t.api.patch(`/TEST/accounts/${account.id}`, {
+      data: {
+        attributes: {
+          creditLimit: 20000
+        }
+      }
+    }, admin)
+    const updatedAccount = response.body.data
+    assert.equal(updatedAccount.attributes.creditLimit, 20000)
+    assert.equal(updatedAccount.attributes.maximumBalance, 5000)
+
+  })
+
 })

@@ -153,7 +153,6 @@
           :label="$t('externalTraderCreditLimit')"
           :hint="$t('externalTraderCreditLimitHint')"
           outlined
-          disable
           @update:model-value="updateModelValue"
         />
       </template>

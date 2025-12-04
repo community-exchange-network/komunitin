@@ -296,8 +296,9 @@ export interface LedgerCurrency {
    * 
    * @param externalHour 
    * @param keys 
+   * @param amount Optional amount to sell. If not provided, the maximum possible amount (ie, the balance) is used.
    */
-  updateExternalOffer(sellingAsset: LedgerAsset, keys: { sponsor: KeyPair; externalTrader: KeyPair }): Promise<void>
+  updateExternalOffer(sellingAsset: LedgerAsset, keys: { sponsor: KeyPair; externalTrader: KeyPair }, amount?: string): Promise<void>
 
 
   /**
