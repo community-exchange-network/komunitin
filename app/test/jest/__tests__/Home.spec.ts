@@ -13,6 +13,7 @@ import { seeds } from "src/server";
 import NeedCard from "src/components/NeedCard.vue";
 import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
 import MemberHeader from 'src/components/MemberHeader.vue';
+import MenuItem from 'src/components/MenuItem.vue';
 
 describe("Home", () => {
   let wrapper: VueWrapper;
@@ -98,5 +99,13 @@ describe("Home", () => {
     const profileMenu = wrapper.getComponent(QMenu)
     expect(profileMenu.isVisible()).toBe(true);
     expect(profileMenu.getComponent(MemberHeader).text()).toContain('Emiliano Lemke');
+    
+    const myOffersBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My offers'));
+    const myNeedsBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My needs'));
+    const logOutBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Log out'));
+
+    expect(myOffersBtn).toBeDefined();
+    expect(myNeedsBtn).toBeDefined();
+    expect(logOutBtn).toBeDefined();
   })
 });
