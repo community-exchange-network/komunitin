@@ -49,7 +49,7 @@
 
         <menu-item
           icon="info"
-          :title="$t('komunitinProject')"
+          :title="$t('about')"
           href="https://github.com/komunitin/komunitin"
           />
         <menu-item 
