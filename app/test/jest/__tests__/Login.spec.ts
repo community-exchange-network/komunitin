@@ -7,7 +7,8 @@ import { mountComponent } from "../utils";
 import MenuDrawer from "../../../src/components/MenuDrawer.vue";
 import { seeds } from "src/server";
 import MemberHeader from "src/components/MemberHeader.vue";
-import { QList } from "quasar";
+import { QList, QMenu } from "quasar";
+import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
 
 describe("Front page and login", () => {
   let wrapper: VueWrapper;
@@ -60,16 +61,12 @@ describe("Front page and login", () => {
     await wrapper.vm.$wait()
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(true);
     expect(wrapper.vm.$route.path).toBe("/home");
-    // Click the account switcher
-    wrapper
-      .get("#my-member")
-      .get("button")
-      .trigger("click");
+    // Open profile menu
+    await wrapper.findComponent(ProfileBtnMenu).trigger('click');
     await wrapper.vm.$nextTick();
     // Click logout (be careful with teleports when finding the element)
     wrapper
-      .getComponent(MenuDrawer)
-      .getComponent(MemberHeader)
+      .getComponent(QMenu)
       .getComponent(QList)
       .get("#user-menu-logout")
       .trigger("click");
