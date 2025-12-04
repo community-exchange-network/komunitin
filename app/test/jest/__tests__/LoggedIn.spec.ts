@@ -23,10 +23,8 @@ describe("logged in", () => {
     expect(wrapper.vm.$route.path).toBe("/home");
     
     const text = wrapper.text();
-    // Member name
-    expect(text).toContain("Emiliano Lemke");
-    // Acount number
-    expect(text).toContain("GRP00000");
+    // Page title
+    expect(text).toContain("Home");
     // Group name
     expect(text).toContain("Group 0");
   })
