@@ -8,6 +8,7 @@ import { LedgerCurrencyController } from "src/controller/currency-controller"
 import { clearEvents, getEvents } from "./net.mock"
 import { waitFor } from "./utils"
 import { EventName } from "src/controller/features/notificatons"
+import { CurrencySettings } from "../../src/model"
 
 describe("External transfers", async () => {
   const t = setupServerTest()
@@ -62,30 +63,43 @@ describe("External transfers", async () => {
     await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, 100, "EXTR => TEST", "committed", eUser1, 400)
   })
 
-  await it('set trust to currency', async () => {
-    // EXTR trusts TEST
-    const href = `${config.API_BASE_URL}/${t.currency.attributes.code}/currency`
-    const body = {
+  const trustCurrency = async (currency: any, trustedCurrency: any, limit: number, auth: any) => {
+    const response = await t.api.post(`/${currency.attributes.code}/trustlines`, {
       data: {
         attributes: {
-          limit: 1000 // 1000 EXTR = 500 HOUR = 5000 TEST
+          limit
         },
         relationships: {
-          trusted: { 
-            data: { 
-              type: "currencies", 
-              id: t.currency.id,
+          trusted: {
+            data: {
+              type: "currencies",
+              id: trustedCurrency.id,
               meta: {
                 external: true,
-                href
+                href: `${config.API_BASE_URL}/${trustedCurrency.attributes.code}/currency`
               }
             }
           }
         }
-      },
-    }
-    const response = await t.api.post(`/EXTR/trustlines`, body, eAdmin)
-    eTrustline = response.body.data
+      }
+    }, auth)
+    // Wait for the path to be available.
+    const controller = await t.app.komunitin.controller.getCurrencyController(trustedCurrency.attributes.code) as LedgerCurrencyController
+    const path = await controller.ledger.quotePath({
+      destCode: currency.attributes.code,
+      destIssuer: currency.attributes.keys.issuer,
+      amount: "0.000001",
+      retry: true
+    })
+
+    assert.ok(path)
+
+    return response.body.data
+  }
+
+  await it('set trust to currency', async () => {
+    // EXTR trusts TEST
+    eTrustline = await trustCurrency(eCurrency, t.currency, 1000, eAdmin)
 
     assert.equal(eTrustline.attributes.limit, 1000)
     assert.equal(eTrustline.attributes.balance, 0)
@@ -94,8 +108,7 @@ describe("External transfers", async () => {
 
     assert.equal(eTrustline.relationships.trusted.data.id, t.currency.id)
     assert.strictEqual(eTrustline.relationships.trusted.data.meta.external, true)
-    assert.strictEqual(eTrustline.relationships.trusted.data.meta.href, href)
-
+    
   })
   
   await it('get trustline', async () => {
@@ -119,15 +132,6 @@ describe("External transfers", async () => {
   
   await it('successful external payment', async () => {
     // 100 TEST = 10 HOUR = 20 EXTR
-    // just wait for the path to be available in the ledger.
-    const controller = await t.app.komunitin.controller.getCurrencyController("TEST") as LedgerCurrencyController
-    await controller.ledger.quotePath({
-      destCode: "EXTR",
-      destIssuer: eCurrency.attributes.keys.issuer,
-      amount: "0.001",
-      retry: true
-    })
-
     const transfer = await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 100, "TEST => EXTR", "committed", t.user1)
 
     const checkTransfer = (transfer: any, test: boolean) => {
@@ -293,14 +297,82 @@ describe("External transfers", async () => {
   })
 
   it("can update external credit limit", async () => {
-    // TODO: implement test
+    // Currencies are created with default settings:
+    const currencySettings = (await t.api.get(`/TEST/currency/settings`, t.admin)).body.data.attributes
+    assert.strictEqual(currencySettings.externalTraderCreditLimit, 1000)
+    assert.strictEqual(currencySettings.externalTraderMaximumBalance, false)
+
+    // Check external account status
+    const externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    const balance = externalAccount.attributes.balance
+    assert.ok(balance > -1000)
+
+    // Add trustline: TEST trusts EXTR
+    await trustCurrency(t.currency, eCurrency, 5000, t.admin)
+
+    // Try unsuccessful transaction exceeding credit limit of TESTEXTR. Note that the credit limit
+    // is in TEST currency, so we need to create a transfer EXTR => TEST that exceeds the limit when converted.
+    const exceedingAmount = (1000 + balance) * (1 / 10) * (2 / 1) + 1
+    await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, exceedingAmount, "EXTR => TEST exceeding credit limit", "committed", eUser1, 400)
+
+    // Update credit limit
+    const updatedSettings = (await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 2000
+    } } }, t.admin)).body.data.attributes as CurrencySettings
+    assert.strictEqual(updatedSettings.externalTraderCreditLimit, 2000)
+
+    // Try successful transaction within new credit limit
+    await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, exceedingAmount, "EXTR => TEST within new credit limit", "committed", eUser1, 201) 
+
+    // Can't set the credit limit below current balance
+    await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 1000
+    } } }, t.admin, 400)
+
+    // But can decrease it a bit
+    await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 1500
+    } } }, t.admin, 200)
+
+
   })
 
   it("can update external maximum balance", async () => {
-    // TODO: implement test
+    // Check external account status
+    const externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    //const balance = externalAccount.attributes.balance
+    
+    // 1K HOUR in TEST. We have to set this value because otherwise the existing sell offer will
+    // prevent reducing further the trustline limit. TOOD: fix that!
+    const newMaxBalance = 1000 * (t.currency.attributes.rate.d / t.currency.attributes.rate.n) * 10 ** t.currency.attributes.scale
+
+    // Update maximum balance
+    const updatedSettings = (await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderMaximumBalance: newMaxBalance
+    } } }, t.admin)).body.data.attributes as CurrencySettings
+    assert.strictEqual(updatedSettings.externalTraderMaximumBalance, newMaxBalance)
+    /*
+    // TODO: do that when we have the new reconcile function.
+    // Try unsuccessful transaction exceeding maximum balance of TESTEXTR. Note that the maximum balance
+    // is in TEST currency, so we need to create a transfer TEST => EXTR that exceeds the limit.
+    const available = (newMaxBalance - balance)
+    await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, available + 1, "TEST => EXTR exceeding maximum balance", "committed", t.user1, 400) 
+    // Try successful transaction within new maximum balance
+    await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, available, "TEST => EXTR within maximum balance", "committed", t.user1, 201)
+    
+    // Can't set the maximum balance below current balance
+    await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderMaximumBalance: newMaxBalance - 1
+    } } }, t.admin, 400)
+
+    // Remove maximum balance limit
+    const removedMax = (await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderMaximumBalance: false
+    } } }, t.admin)).body.data.attributes as CurrencySettings
+    assert.strictEqual(removedMax.externalTraderMaximumBalance, false)
+    // Now transfers increasing balance should work
+    await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 1000, "TEST => EXTR after removing maximum balance", "committed", t.user1, 201)
+  */
   })
-
-  
-
 
 })

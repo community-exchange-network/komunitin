@@ -155,11 +155,12 @@ export class AccountController extends AbstractCurrencyController implements IAc
     if (data.creditLimit && data.creditLimit !== account.creditLimit) {
       if (account.status === AccountStatus.Active) {
         const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+
         await ledgerAccount.updateCredit(this.currencyController.amountToLedger(data.creditLimit), {
           sponsor: await this.keys().sponsorKey(),
           credit: data.creditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
           issuer: data.creditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
-          account: data.creditLimit < account.creditLimit ? await this.keys().adminKey() : undefined
+          account: data.creditLimit < account.creditLimit ? await this.keys().retrieveKey(account.key) : undefined
         })
       } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
         throw badRequest("Cannot update credit limit of disabled or suspended accounts. Enable the account first.")

@@ -23,16 +23,16 @@ Every account and every transaction is recorded in the stellar network. And ever
 
 ### External transfers
 
-* Each community has an external account.
-* The external account has a trustline and a balance of the local asset.
-* The external account is an issuer of the HOUR asset (each community issues their own HOUR asset).
-* External accounts from other communities can define trustlines to this HOUR asset. And this external account can define trustlines to other external account's HOUR assets.&#x20;
-* External accounts define passive sell offers exchanging their issued HOURs by their local currency, in the two directions.
-* External accounts define 1:1 passive sell offers selling their issued HOURs by the other trusted HOURs.
-* External accounts define 1:1 (active) sell offers selling external HOURs by their own HOURs. These clear the balance of trade.
-
-
-
-
+* Each community has an *external issuer* account. and an *external trader* account in Stellar. 
+* The external issuer issues the HOUR asset, so each community issues their own HOUR asset.
+* The external trader proxy all external transfers.
+* External trader has a trustline and balance with the local currency asset as well as with the HOUR asset.
+* External trader may have trustlines and balances with other external assets.
+* External trader from other communities can define trustlines to this HOUR asset.
+* External accounts define passive sell offers exchanging their issued HOURs by their local currency, in the two directions, following the conversion rate defined by the community.
+* External accounts define 1:1 passive sell offers selling their issued HOURs by the trusted HOURs.
+* External accounts define 1:1 (active) sell offers selling external HOURs in their balance by their own HOURs. These clear the balance of trade.
+* Trustlines to external communities may be disabled. In this case the existing balance of external HOUR, if any, is moved to the external issuer account just in case we want to enable it again in the future.
+* External trader has a credit limit and maximum balance on the local currency asset, defined by the community settings.
 
 <figure><img src="https://lh7-rt.googleusercontent.com/docsz/AD_4nXfk6Q_RYUghJkMVusudYpv9Qg-cpDPYtrW6NQm77gtK-jeT9qQMMVJD3c-vyuupUhn-rO5E6fBL8XbpLiPz_L4q1t0r_QWcgPL-wfpCguoyNParVEX78VU4WWnZE_uYGjna71S766Jq9PWZZvGqsHbG4vND?key=bHIg-rgBbd-jpdUzkKPJrw" alt=""><figcaption></figcaption></figure>
