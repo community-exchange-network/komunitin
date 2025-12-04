@@ -73,7 +73,7 @@
       outlined
       required
       :rules="[(val: string) => /^\d+(\/\d+)?$/.test(val) || t('topupRateInvalid')]"
-      hide-bottom-spacerequired
+      hide-bottom-space
     >
       <template #append>
         {{currency.attributes.symbol}} / {{ depositCurrency }}
