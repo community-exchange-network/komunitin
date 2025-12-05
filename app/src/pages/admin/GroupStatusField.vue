@@ -73,7 +73,6 @@ const setGroupStatus = async (status: 'active' | 'disabled') => {
     loading.value = true
     // Applying changes to currency first since it is more likely to fail
     await store.dispatch('currencies/update', {
-      id: props.group.attributes.code,
       group: props.group.attributes.code,
       resource: {
         type: 'currencies',
@@ -83,7 +82,6 @@ const setGroupStatus = async (status: 'active' | 'disabled') => {
       }
     })
     await store.dispatch('groups/update', {
-      id: props.group.attributes.code,
       group: props.group.attributes.code,
       resource: {
         type: 'groups',

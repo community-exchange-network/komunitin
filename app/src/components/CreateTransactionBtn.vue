@@ -19,9 +19,11 @@
 import FloatingBtnMenu, { type FABAction } from './FloatingBtnMenu.vue'
 import FloatingBtn from './FloatingBtn.vue'
 import { useMyAccountSettings } from 'src/composables/accountSettings'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
+import { ref } from 'vue'
+import { useTopupSettings } from '../features/topup/useTopup'
 
 const store = useStore()
 const { t } = useI18n()
@@ -41,45 +43,56 @@ const showRequestPayment = computed(
 const showTransfer = computed(
   () => store.getters.isAdmin
 )
+
 const isDisabled = computed(
   () => myMember.value?.attributes.state !== 'active' || myMember.value?.group.attributes.status !== 'active'
 )
 
+const actions = ref<FABAction[]>([])
 
-const actions = computed<FABAction[]>(() => {
-  const acts = []
-  if (showMakePayment.value) {
-    acts.push({
-      label: t('send'),
-      icon: 'arrow_upward',
+function setAction(enable: boolean, action: Pick<FABAction, 'label' | 'icon' | 'to'>) {
+  actions.value = actions.value.filter(a => a.label !== action.label)
+  if (enable) {
+    actions.value.push({
+      ...action,
       color: 'surface',
       textColor: 'primary',
-      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/send`,
       disable: isDisabled.value
     })
   }
-  if (showRequestPayment.value) {
-    acts.push({
-      label: t('receive'),
-      icon: 'arrow_downward',
-      color: 'surface',
-      textColor: 'primary',
-      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/receive`,
-      disable: isDisabled.value
+}
+
+watch([showMakePayment, showRequestPayment, showTransfer, myMember],() => {
+  setAction(showMakePayment.value, {
+    label: t('send'),
+    icon: 'arrow_upward',
+    to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/send`,
+  })
+  setAction(showRequestPayment.value, {
+    label: t('receive'),
+    icon: 'arrow_downward',
+    to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/receive`,
+  })
+  setAction(showTransfer.value, {
+    label: t('move'),
+    icon: 'arrow_forward',
+    to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/transfer`,
+  })
+}, {immediate: true})
+
+if (process.env.FEAT_TOPUP === 'true') {
+  const topupSettings = useTopupSettings()
+  const showTopup = computed(
+    () => topupSettings.value?.allowTopup
+  )
+  watch([showTopup, myMember], () => {
+    setAction(showTopup.value, {
+      label: t('topup'),
+      icon: 'add',
+      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/topup`,
     })
-  }
-  if (showTransfer.value) {
-    acts.push({
-      label: t('move'),
-      icon: 'arrow_forward',
-      color: 'surface',
-      textColor: 'primary',
-      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/transfer`,
-      disable: isDisabled.value
-    })
-  }
-  return acts
-})
+  }, {immediate: true})
+}
 </script>
 
 

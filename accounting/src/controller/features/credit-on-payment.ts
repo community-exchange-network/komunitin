@@ -1,13 +1,13 @@
 import { FullTransfer } from "src/model";
 import { systemContext } from "src/utils/context";
-import { CurrencyController, SharedController } from "..";
+import { CurrencyController, BaseController } from "..";
 
 /**
  * Add support for updating the credit limit of an account when a payment is received,
  * based on the defaultOnPaymentCreditLimit setting of the currency and onPaymentCreditLimit
  * setting of the account.
  */
-export const initUpdateCreditOnPayment = (controller: SharedController) => {
+export const initUpdateCreditOnPayment = (controller: BaseController) => {
   const onTransferUpdated = async (transfer: FullTransfer, currencyController: CurrencyController) => {
     // Only handle committed transfers.
     if (transfer.state !== "committed") {

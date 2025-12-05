@@ -76,12 +76,12 @@ const loadTrustlines = async () => {
 const load = async () => {
   await Promise.all([
     store.dispatch('groups/load', {
-      id: props.code,
+      group: props.code,
       include: 'settings'
     }),
     loadCategories(),
     store.dispatch('currencies/load', {
-      id: props.code,
+      group: props.code,
       include: "settings"
     }),
     loadTrustlines()
@@ -128,7 +128,6 @@ const updateResource = async <T extends ResourceObject>(action: string, payload:
 
 const updateGroupSettings = async (settings: DeepPartial<GroupSettings> & ResourceIdentifierObject) => {
   await updateResource<GroupSettings>('group-settings/update', {
-    id: props.code,
     group: props.code,
     resource: settings
   }, updatingGroupSettings)
@@ -172,7 +171,6 @@ const deleteCategory = async (category: DeepPartial<Category>) => {
 
 const updateCurrency = async (currency: DeepPartial<Currency> & ResourceIdentifierObject) =>  {
   await updateResource('currencies/update', {
-    id: props.code,
     group: props.code,
     resource: {
       id: currency.id,
@@ -186,7 +184,6 @@ const updateCurrency = async (currency: DeepPartial<Currency> & ResourceIdentifi
 
 const updateCurrencySettings = async (settings: DeepPartial<CurrencySettings> & ResourceIdentifierObject) => {
   await updateResource('currency-settings/update', {
-    id: props.code,
     group: props.code,
     resource: settings
   }, updatingCurrencySettings)

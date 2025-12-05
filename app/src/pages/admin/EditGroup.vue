@@ -48,7 +48,7 @@ const props = defineProps<{
 
 watch(() => props.code, async (code) => {
   await store.dispatch("groups/load", {
-    id: code,
+    group: code,
     include: "currency,contacts"
   })
 }, { immediate: true })
@@ -59,7 +59,6 @@ const changes = ref<typeof SaveChanges>()
 const saveGroup = (group: Group) => {
   changes.value?.save(async () => {
     return await store.dispatch("groups/update", {
-      id: props.code,
       group: group.attributes.code,
       resource: {
         attributes: {
@@ -72,7 +71,7 @@ const saveGroup = (group: Group) => {
 const saveContacts = (contacts: PartialContact[]) => {
   changes.value?.save(async () => {
     return await store.dispatch("groups/update", {
-      id: props.code,
+      group: props.code,
       resource: {
         relationships: {
           contacts: {
@@ -87,7 +86,7 @@ const saveContacts = (contacts: PartialContact[]) => {
 const saveCurrency = (currency: Currency) => {
   changes.value?.save(async () => {
     return await store.dispatch("currencies/update", {
-      id: props.code,
+      group: props.code,
       resource: {
         attributes: {
           ...currency.attributes

@@ -9,6 +9,7 @@ import { testAccount, testCurrency, testTransfer, testCreditCommonsNeighbour, us
 import express from "express"
 import expressOasGenerator from "express-oas-generator"
 import { expressOasGeneratorOptions } from "./openapi.generator.options"
+import { Scope } from "../../src/server/auth"
 
 type UserAuth = ReturnType<typeof userAuth>
 
@@ -21,6 +22,7 @@ interface TestSetup {
 }
 
 export interface TestSetupWithCurrency extends TestSetup {
+  superadmin: UserAuth,
   admin: UserAuth,
   user1: UserAuth,
   user2: UserAuth,
@@ -40,6 +42,7 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
   const test = {
     app: undefined as any as ExpressExtended,
     api: undefined as any as TestApiClient,
+    superadmin: userAuth("superadmin", [Scope.Superadmin, Scope.Accounting]),
     admin: userAuth("0"),
     user1: userAuth("1"),
     user2: userAuth("2"),

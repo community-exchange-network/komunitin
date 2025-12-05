@@ -200,7 +200,7 @@ export default defineComponent({
       return this.$store.getters["groups/current"];
     },
     currency(): Currency {
-      return this.group.currency;
+      return this.group?.currency;
     },
     own(): boolean {
       return this.group && this.$store.getters["myMember"] && this.group.id == this.$store.getters["myMember"].group.id
@@ -243,7 +243,7 @@ export default defineComponent({
     // Group info.
     async fetchGroup(code: string) {
       return this.$store.dispatch("groups/load", {
-        id: code,
+        group: code,
         include: "currency,contacts,categories"
       });
     },

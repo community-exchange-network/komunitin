@@ -38,7 +38,7 @@ const need = ref<Need & {category: Category} |null>(null)
 
 const fetchData = async () => {
   await store.dispatch("needs/load", {
-    id: props.needCode,
+    code: props.needCode,
     group: props.code,
     include: "category"
   })
@@ -51,7 +51,7 @@ const router = useRouter()
 const onSubmit = async (resource: DeepPartial<Need>) => {
   await store.dispatch("needs/update", {
     group: props.code,
-    id: resource.attributes?.code,
+    id: resource.id,
     resource
   })
   const need = store.getters["needs/current"]

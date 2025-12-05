@@ -95,6 +95,7 @@
   "transactionPayerHint": "Scegli il conto da cui verrà trasferito l'importo.",
   "transactionPayeeHint": "Scegli il conto che riceverà il trasferimento.",
   "create": "Crea",
+  "backToTransfers": "Torna ai movimenti",
   "description": "Descrizione",
   "transactionDescriptionHint": "Breve descrizione del concetto dello scambio. Per esempio '2kg di patate'.",
   "amount": "Importo",

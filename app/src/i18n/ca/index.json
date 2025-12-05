@@ -95,6 +95,7 @@
   "transactionPayerHint": "Tria el compte des d'on es transferirà la quantitat.",
   "transactionPayeeHint": "Tria el compte que rebrà la transferència.",
   "create": "Crea",
+  "backToTransfers": "Torna a moviments",
   "description": "Descripció",
   "transactionDescriptionHint": "Breu descripció del concepte de l'intercanvi. Per exemple '2kg de patates'.",
   "amount": "Quantitat",

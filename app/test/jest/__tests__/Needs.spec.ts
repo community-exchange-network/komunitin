@@ -76,12 +76,11 @@ describe("Needs", () => {
     expect(wrapper.vm.$route.path).toBe("/groups/GRP0/needs/I-really-n/preview");
     expect(wrapper.text()).toContain("Updated today");
     expect(wrapper.text()).toContain("Games");
-
     await wrapper.get(".q-btn--fab").trigger("click");
-    await waitFor(() => wrapper.text().includes("I really need this test to pass."))
-
-    expect(wrapper.vm.$route.path).toBe("/groups/GRP0/members/EmilianoLemke57");
+    
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/members/EmilianoLemke57");
     expect(wrapper.vm.$route.hash).toBe("#needs");
+    await waitFor(() => wrapper.text().includes("I really need this test to pass."));
   });
 
   it ("Updates a need", async () => {
