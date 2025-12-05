@@ -101,7 +101,7 @@ export class TopupController extends AbstractCurrencyController implements Topup
     if (updatedSettings.maxAmount !== false && updatedSettings.maxAmount < updatedSettings.minAmount) {
       throw badRequest("maxAmount must be false or greater than minAmount")
     }
-    if (updatedSettings.enabled) {
+    if (updatedSettings.enabled && !topupSettings.enabled) {
       // require superadmin access to enable topups
       if (ctx.type !== "superadmin") {
         throw forbidden("Only superadmin users can enable topups")
@@ -255,7 +255,7 @@ export class TopupController extends AbstractCurrencyController implements Topup
       throw notFound("Topup not found")
     }
     const account = await this.accounts().getAccount(ctx, record.accountId)
-    if (!userHasAccount(user, account)) {
+    if (!userHasAccount(user, account) && !this.users().isAdmin(user)) {
       throw forbidden("Access denied")
     }
     const transfer = record.transferId ? await this.transfers().getTransfer(ctx, record.transferId) : null

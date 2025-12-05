@@ -1,10 +1,26 @@
-import { describe, it } from "node:test"
+import { describe, it, before } from "node:test"
 import assert from "node:assert"
 
 import { setupServerTest } from '../server/setup'
+import { waitFor } from "../server/utils"
+import { mockMollie } from "./mollie.mock"
 
 describe('Topup API', async () => {
   const t = setupServerTest()
+  
+  before(() => {
+    mockMollie(t.app)
+  })
+    
+  const topupSettings = {
+    enabled: true,
+    defaultAllowTopup: true,
+    depositCurrency: 'EUR',
+    rate: { n: 100, d: 1 },  // 1=1
+    minAmount: 1000, // 10 €
+    maxAmount: 30000, // 300 €
+    paymentProvider: 'mollie'
+  }
 
   it('topups are disabled by default', async () => {
     await t.api.post('/TEST/topups', {
@@ -22,20 +38,20 @@ describe('Topup API', async () => {
     }, t.user1, 403)
   })
 
-  it('admin can enable topups', async () => {
+  it('admin cannot enable topups', async () => {
+    await t.api.patch('/TEST/currency/topup-settings', {
+      data: {
+        attributes: topupSettings
+      }
+    }, t.admin, 403)
+  })
+
+  it('superadmin can enable topups', async () => {
     const response = await t.api.patch('/TEST/currency/topup-settings', {
       data: {
-        attributes: {
-          enabled: true,
-          defaultAllowTopup: true,
-          depositCurrency: 'EUR',
-          rate: { n: 100, d: 1 },  // 1=1
-          minAmount: 1000, // 10 €
-          maxAmount: 30000, // 300 €
-          paymentProvider: 'mollie'
-        }
+        attributes: topupSettings
       }
-    }, t.admin)
+    }, t.superadmin)
     assert.equal(response.status, 200)
     assert.equal(response.body.data.attributes.enabled, true)
   })
@@ -318,5 +334,57 @@ describe('Topup API', async () => {
     }, t.user1)
 
     assert.equal(response.status, 201)
+  })
+
+  it('execute topup', async () => {
+    const createResponse = await t.api.post('/TEST/topups', {
+      data: {
+        attributes: {
+          depositAmount: 5000,
+          depositCurrency: 'EUR'
+        },
+        relationships: {
+          account: {
+            data: { type: 'accounts', id: t.account1.id }
+          }
+        }
+      }
+    }, t.user1)
+
+    const topupId = createResponse.body.data.id
+
+    const triggerResponse = await t.api.patch(`/TEST/topups/${topupId}`, {
+      data: {
+        attributes: {
+          status: 'pending'
+        }
+      }
+    }, t.user1)
+    assert.equal(triggerResponse.status, 200)
+    const checkoutUrl = triggerResponse.body.data.attributes.paymentData.checkoutUrl
+    assert.ok(checkoutUrl)
+
+    // Simulate user completing payment by visiting checkout URL
+    const res = await fetch(checkoutUrl) // this is a mocked URL handled by mollie mock
+    assert.equal(res.status, 200)
+    const resHtml = await res.text()
+    assert.ok(resHtml.includes('Mock Mollie Checkout Page'))
+
+    // Now check the new topup status
+    let topupResponse = await t.api.get(`/TEST/topups/${topupId}`, t.user1)
+    assert.equal(topupResponse.status, 200)
+    assert.equal(topupResponse.body.data.attributes.paymentData.status, 'paid')
+    // Wait for transfer to be processed
+    await waitFor(async () => {
+      topupResponse = await t.api.get(`/TEST/topups/${topupId}`, t.user1)
+      return topupResponse.body.data.attributes.status === 'transfer_completed'
+    })
+
+    // Check transfer created
+    const transferId = topupResponse.body.data.relationships.transfer.data.id
+    const transferResponse = await t.api.get(`/TEST/transfers/${transferId}`, t.user1)
+    assert.equal(transferResponse.status, 200)
+    assert.equal(transferResponse.body.data.attributes.amount, Math.floor(500000*15/11))
+    assert.equal(transferResponse.body.data.attributes.state, 'committed')
   })
 })
