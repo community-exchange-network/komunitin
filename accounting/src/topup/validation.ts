@@ -31,7 +31,8 @@ export namespace TopupValidators {
     body(`${path}.rate.d`).optional().isInt({min: 1}),
     body(`${path}.paymentProvider`).optional().isString().isLength({min: 3}),
     body(`${path}.minAmount`).optional().isInt({min: 0}),
-    body(`${path}.maxAmount`).optional().custom(isNonNegativeIntOrFalse)
+    body(`${path}.maxAmount`).optional().custom(isNonNegativeIntOrFalse),
+    body(`${path}.mollieApiKey`).optional().isString()
   ]
   
   export const isUpdateTopupSettings = () => [

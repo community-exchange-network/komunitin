@@ -98,11 +98,16 @@ export interface TopupSettings {
   /**
    * Maximum topup amount in smallest currency unit, or false for no limit.
    */
-  maxAmount: number | false
+  maxAmount: number | false,
   /**
-   * Source account id to use for topup transfers.
+   * Source account id for the topup.
    */
   sourceAccountId: string | null
+
+  /**
+   * Mollie API Key
+   */
+  mollieApiKey?: string
 }
 
 export interface AccountTopupSettings {

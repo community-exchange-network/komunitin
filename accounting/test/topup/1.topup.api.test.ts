@@ -19,7 +19,8 @@ describe('Topup API', async () => {
     rate: { n: 100, d: 1 },  // 1=1
     minAmount: 1000, // 10 €
     maxAmount: 30000, // 300 €
-    paymentProvider: 'mollie'
+    paymentProvider: 'mollie',
+    mollieApiKey: 'test_key_from_settings'
   }
 
   it('topups are disabled by default', async () => {
@@ -54,6 +55,7 @@ describe('Topup API', async () => {
     }, t.superadmin)
     assert.equal(response.status, 200)
     assert.equal(response.body.data.attributes.enabled, true)
+    assert.equal(response.body.data.attributes.mollieApiKey, undefined)
   })
 
   it('user can create a topup for their own account', async () => {

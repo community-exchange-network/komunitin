@@ -6,7 +6,7 @@ import { badRequest, forbidden, internalError, notFound } from "../utils/error";
 import { InputTopupSettings, recordToTopup, AccountTopupSettings, TopupSettings, type DepositCurrency, type InputTopup, type Topup, MolliePaymentData, UpdateTopup, TopupStatus } from "./model";
 import { rate } from "../utils/rate";
 import { nullToPrismaDBNull } from "../controller/multitenant";
-import createMollieClient, { Payment } from '@mollie/api-client';
+import createMollieClient, { type Payment, type MollieClient } from '@mollie/api-client';
 import { config } from "../config";
 import { logger } from "../utils/logger";
 import { Rate } from "../utils/types";
@@ -118,6 +118,15 @@ export class TopupController extends AbstractCurrencyController implements Topup
     if (updatedSettings.sourceAccountId) {
       // Validate that source account exists and is active
       await this.currencyController.accounts.getFullAccount(updatedSettings.sourceAccountId)
+    }
+    if (updatedSettings.mollieApiKey) {
+      // Validate mollie api key by creating a client and testing a simple call
+      try {
+        const mollieClient = createMollieClient({ apiKey: updatedSettings.mollieApiKey });
+        await mollieClient.methods.list()
+      } catch (e) {
+        throw badRequest("Invalid Mollie API Key")
+      }
     }
 
     await this.currencyController.updateCurrencySettings<CurrencySettingsWithTopup>(ctx, {
@@ -314,11 +323,23 @@ export class TopupController extends AbstractCurrencyController implements Topup
     }
   }
 
-  async createPayment(topup: Topup): Promise<void> {
-    if (!config.MOLLIE_API_KEY) {
-      throw internalError("MOLLIE_API_KEY is not set" );
+  private mollieClient: MollieClient | null = null
+
+  async getMollieClient(): Promise<MollieClient> {
+    if (!this.mollieClient) {
+      const settings = await this.getCurrencyTopupSettings(systemContext())
+      const apiKey = settings.mollieApiKey
+      if (!apiKey) {
+        throw internalError("Mollie API Key setting is not set" );
+      }
+      this.mollieClient = createMollieClient({ apiKey });
+
     }
-    const mollieClient = createMollieClient({ apiKey: config.MOLLIE_API_KEY });
+    return this.mollieClient
+  }
+
+  async createPayment(topup: Topup): Promise<void> {
+    const mollieClient = await this.getMollieClient()
     const payment = await mollieClient.payments.create({
       amount: {
         value: (topup.depositAmount / 100).toFixed(2),
@@ -399,11 +420,7 @@ export class TopupController extends AbstractCurrencyController implements Topup
       return { status: "payment_not_found" }
     }
      
-    if (!config.MOLLIE_API_KEY) {
-      throw internalError("MOLLIE_API_KEY is not set" );
-    }
-    const mollieClient = createMollieClient({ apiKey: config.MOLLIE_API_KEY });
-    
+    const mollieClient = await this.getMollieClient()
     // If that throws for any reason, we let it propagate to return a 500 to Mollie so it retries.
     const payment = await mollieClient.payments.get(data.id)
 

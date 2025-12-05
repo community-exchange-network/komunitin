@@ -22,7 +22,8 @@ const loadConfig = () => {
     NOTIFICATIONS_API_USERNAME: process.env.NOTIFICATIONS_API_USERNAME || "accounting",
     DOCKER: process.env.DOCKER === "true" || false,
     APP_URL: process.env.APP_URL || "https://komunitin.org",
-    WEBHOOKS_BASE_URL: process.env.WEBHOOKS_BASE_URL || process.env.API_BASE_URL || "https://accounting.komunitin.org",
+    //WEBHOOKS_BASE_URL: process.env.WEBHOOKS_BASE_URL || process.env.API_BASE_URL || "https://accounting.komunitin.org",
+    WEBHOOKS_BASE_URL: "https://0inurhsr6ey1.share.zrok.io",
     
     // SECRETS
     // TODO: Using environment variables for secrets is a reasonable practice but not a 
@@ -31,14 +32,12 @@ const loadConfig = () => {
     MASTER_PASSWORD: process.env.MASTER_PASSWORD || undefined,
     NEW_MASTER_PASSWORD: process.env.NEW_MASTER_PASSWORD || undefined,
     NOTIFICATIONS_API_PASSWORD: process.env.NOTIFICATIONS_API_PASSWORD || undefined,
-    MOLLIE_API_KEY: process.env.MOLLIE_API_KEY || undefined,
   }
   // Remove secrets from the process.env so other libraries don't use/leak them.
   delete process.env.SPONSOR_PRIVATE_KEY
   delete process.env.MASTER_ENCRYPTION_KEY
   delete process.env.NEW_MASTER_ENCRYPTION_KEY
   delete process.env.NOTIFICATIONS_API_PASSWORD
-  delete process.env.MOLLIE_API_KEY
 
   // Validate some config
   if (!["testnet", "local", "public"].includes(config.STELLAR_NETWORK)) {

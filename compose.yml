@@ -95,7 +95,6 @@ services:
       NOTIFICATIONS_API_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
       SPONSOR_PRIVATE_KEY: ${KOMUNITIN_ACCOUNTING_SPONSOR_PRIVATE_KEY}
       DOCKER: true
-      MOLLIE_API_KEY: ${MOLLIE_API_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

@@ -103,6 +103,14 @@
         {{ depositCurrency }}
       </template>
     </q-input>
+
+    <q-input
+      v-model="mollieApiKey"
+      :label="t('topupMollieApiKey')"
+      :hint="t('topupMollieApiKeyHint')"
+      outlined
+      type="password"
+    />
       
 
   </div>
@@ -189,17 +197,23 @@ const maxAmountInput = computed({
   }
 })
 
-watchDebounced([enabled, defaultAllowTopup, rateInput, minAmount, maxAmount], () => {
-  emit('update:topup-settings', {
-    id: props.topupSettings.id,
-    type: "topup-settings",
-    attributes: {
+const mollieApiKey = ref('')
+
+watchDebounced([enabled, defaultAllowTopup, rateInput, minAmount, maxAmount, mollieApiKey], () => {
+  const attributes: Partial<TopupSettings["attributes"]> = {
       enabled: enabled.value,
       defaultAllowTopup: defaultAllowTopup.value,
       rate: rate.value,
       minAmount: minAmount.value,
       maxAmount: maxAmount.value,
-    }
+  }
+  if (mollieApiKey.value) {
+    attributes.mollieApiKey = mollieApiKey.value
+  }
+  emit('update:topup-settings', {
+    id: props.topupSettings.id,
+    type: "topup-settings",
+    attributes
   } as DeepPartial<TopupSettings>)
 })
 

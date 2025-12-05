@@ -49,5 +49,7 @@
   "topupMinAmountHint": "Quantitat mínima permesa per a una sola recàrrega.",
   "topupMaxAmount": "Quantitat màxima",
   "topupMaxAmountHint": "Quantitat màxima permesa per a una sola recàrrega.",
+  "topupMollieApiKey": "Clau API de Mollie",
+  "topupMollieApiKeyHint": "Introdueix la clau API de Mollie. Deixa-ho buit per mantenir l'actual.",
   "topupSourceAccount": "Compte d'origen"
 }

@@ -47,6 +47,7 @@ export interface TopupSettings extends ResourceObject {
     minAmount: number,
     maxAmount: number | false,
     sourceAccountId: string | null
+    mollieApiKey?: string
   }
 }
 
