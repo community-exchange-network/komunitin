@@ -48,7 +48,7 @@ export const mockMollie = (app: Express) => {
       }
       payment.status = 'paid'
       // Call the webhook URL to notify payment success
-      const webhookPath = payment.webhookUrl.replace(config.API_BASE_URL, '')
+      const webhookPath = payment.webhookUrl.replace(config.WEBHOOKS_BASE_URL, '')
       const body = "id=" + encodeURIComponent(payment.id)
       const response = await request(app).post(webhookPath).send(body).set('Content-Type', 'application/x-www-form-urlencoded')
       assert.equal(response.status, 200)
@@ -56,6 +56,51 @@ export const mockMollie = (app: Express) => {
         <div>Mock Mollie Checkout Page</div>
         <a href="${payment.redirectUrl}">Paid</a>
         </body></html>`)
+    }),
+    http.get(`${MOLLIE_API_URL}/methods`, () => {
+      const methods = {
+        "count": 1,
+        "_embedded": {
+          "methods": [
+            {
+              "resource": "method",
+              "id": "creditcard",
+              "description": "Credit card",
+              "minimumAmount": {
+                "value": "0.01",
+                "currency": "EUR"
+              },
+              "maximumAmount": {
+                "value": "2000.00",
+                "currency": "EUR"
+              },
+              "image": {
+                "size1x": "https://mollie.com/external/icons/payment-methods/creditcard.png",
+                "size2x": "https://mollie.com/external/icons/payment-methods/creditcard%402x.png",
+                "svg": "https://mollie.com/external/icons/payment-methods/creditcard.svg"
+              },
+              "status": "activated",
+              "_links": {
+                "self": {
+                  "href": "...",
+                  "type": "application/hal+json"
+                }
+              }
+            }
+          ]
+        },
+        "_links": {
+          "self": {
+            "href": "...",
+            "type": "application/hal+json"
+          },
+          "documentation": {
+            "href": "...",
+            "type": "text/html"
+          }
+        }
+      }
+      return HttpResponse.json(methods, { status: 200 })
     })
   )
 }
