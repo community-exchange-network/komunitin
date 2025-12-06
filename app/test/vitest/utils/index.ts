@@ -176,6 +176,7 @@ export const waitFor = async (fn: () => any, expected: any = true, timeout = 100
   while (Date.now() - start < timeout) {
     if (fn() === expected) {
       expect(fn()).toBe(expected);
+      return;
     }
     await new Promise(r => setTimeout(r, 50));
   }

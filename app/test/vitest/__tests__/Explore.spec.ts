@@ -1,7 +1,4 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-/**
- * @jest-environment jsdom
- */
 import { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent } from "../utils";
