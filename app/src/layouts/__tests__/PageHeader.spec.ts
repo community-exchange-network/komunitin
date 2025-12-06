@@ -1,6 +1,7 @@
- 
+import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import type { VueWrapper } from "@vue/test-utils";
-import { config, mount } from "@vue/test-utils";
+import { mount } from "@vue/test-utils";
 import type { Store } from "vuex";
 import { createStore } from "vuex";
 
@@ -13,35 +14,29 @@ import {
   QLayout,
   QScrollObserver,
   QToolbar,
-  QToolbarTitle,
-  Quasar
+  QToolbarTitle
 } from "quasar";
 import PageHeader from "../PageHeader.vue";
 import { createI18n } from "vue-i18n";
 import { defineComponent } from "vue";
 
 // Install quasar.
-config.global.plugins.unshift([Quasar, {
+installQuasarPlugin({
   components: {
     QHeader, QBtn, QToolbar, QToolbarTitle, QInput, QIcon, QScrollObserver, QBanner
   }
-}]);
-// Install i18n.
-const i18n = createI18n({
-  legacy: false
-})
-config.global.plugins.unshift([i18n])
+});
 
-jest.mock("../../plugins/Notifications")
-jest.mock("@firebase/messaging");
-jest.mock('vue-router', () => ({
-  useRoute: jest.fn(() => ({
+vi.mock("../../plugins/Notifications")
+vi.mock("@firebase/messaging");
+vi.mock('vue-router', () => ({
+  useRoute: vi.fn(() => ({
     meta: {
       rootPage: true
     }
   })),
-  useRouter: jest.fn(() => ({
-    push: jest.fn()
+  useRouter: vi.fn(() => ({
+    push: vi.fn()
   }))
 }))
 
@@ -49,9 +44,14 @@ describe("PageHeader", () => {
   let wrapper: VueWrapper;
   let toogleDrawer: () => void;
   let store : Store<unknown>;
+  
+  // Install i18n.
+  const i18n = createI18n({
+    legacy: false
+  })
 
   beforeEach(() => {
-    toogleDrawer = jest.fn();
+    toogleDrawer = vi.fn();
     store = createStore({
       state: () => ({
         ui: {
@@ -90,7 +90,7 @@ describe("PageHeader", () => {
           $t: (key: string) => key,
           $n: (n: number) => n + '',
         },
-        plugins: [store]
+        plugins: [store, i18n]
       },
       components: {
         PageHeader,

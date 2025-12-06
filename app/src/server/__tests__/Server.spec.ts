@@ -1,3 +1,4 @@
+import { describe, expect, it, beforeAll } from 'vitest';
 import "../index";
 import { config } from "src/utils/config";
 import type { ResourceObject } from "src/store/model";
