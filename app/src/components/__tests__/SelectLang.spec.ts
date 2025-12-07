@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import SelectLang from "../SelectLang.vue";
 import type { VueWrapper} from "@vue/test-utils";
-import { flushPromises } from "@vue/test-utils"
 import { mountComponent } from "../../../test/vitest/utils";
 
 /**

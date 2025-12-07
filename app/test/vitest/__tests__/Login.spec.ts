@@ -66,13 +66,14 @@ describe("Front page and login", () => {
       .trigger("click");
     await wrapper.vm.$nextTick();
     // Click logout (be careful with teleports when finding the element)
+    const { waitFor } = await import("../utils");
     wrapper
       .getComponent(MenuDrawer)
       .getComponent(MemberHeader)
       .getComponent(QList)
       .get("#user-menu-logout")
       .trigger("click");
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.vm.$route.path, "/");
     expect(wrapper.vm.$route.path).toBe("/");
   });
   

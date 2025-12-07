@@ -61,11 +61,11 @@ describe("Needs", () => {
 
     const select = wrapper.getComponent(SelectCategory).getComponent(QSelect)
     await select.trigger("click");
-    await waitFor(() => select.findAllComponents(QItem).length > 0)
+    await waitFor(() => select.findAllComponents(QItem).length > 0, true, 2000)
 
     const menu = select.findAllComponents(QItem);
     await menu[1].trigger("click");
-    waitFor(() => select.text().includes("Games"))
+    await waitFor(() => select.text().includes("Games"))
 
     await wrapper.get("[name='description']").setValue("I really need this test to pass.")
 
