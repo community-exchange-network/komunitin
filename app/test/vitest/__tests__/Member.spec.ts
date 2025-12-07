@@ -24,10 +24,10 @@ describe("Member", () => {
   it("Navigation to my account", async () => {
     await wrapper.vm.$router.push("/groups/GRP0/needs")
     // Wait for the login redirect.
-    await flushPromises();
+    await wrapper.vm.$wait();
     // Click members link
     await wrapper.get("#my-member").trigger("click");
-    await flushPromises();
+    await wrapper.vm.$wait();
     expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57");
     // Wait for content.
     await wrapper.vm.$wait();

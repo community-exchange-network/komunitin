@@ -29,7 +29,7 @@ describe("Front page and login", () => {
     await wrapper.get("#login").trigger("click");
     // Vue needs an additional nextTick()'s to render the content
     // got through router.
-    await flushPromises()
+    await wrapper.vm.$wait();
     expect(wrapper.vm.$route.path).toBe("/login-mail");
     // Click back
     expect(wrapper.get("#back").isVisible()).toBe(true);
@@ -44,7 +44,7 @@ describe("Front page and login", () => {
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
     // Go to login with mail page.
     wrapper.vm.$router.push("/login-mail");
-    await flushPromises()
+    await wrapper.vm.$wait();
     // Button is disabled since form is empty.
     expect(wrapper.get("button[type='submit']").attributes("disabled"))
       .toBeDefined();
