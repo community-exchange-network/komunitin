@@ -10,8 +10,9 @@ import { QList } from "quasar";
 describe("Front page and login", () => {
   let wrapper: VueWrapper;
   beforeAll(async () => {
-    wrapper = await mountComponent(App);
     seeds();
+    wrapper = await mountComponent(App);
+    await wrapper.vm.$wait();
   });
   afterAll(() => wrapper.unmount());
 

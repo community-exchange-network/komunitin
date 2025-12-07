@@ -8,8 +8,9 @@ describe("Explore groups", () => {
   let wrapper: VueWrapper;
   beforeAll(async() => {
     // Load data in mocking server.
-    wrapper = await mountComponent(App);
     seeds();
+    wrapper = await mountComponent(App);
+    await wrapper.vm.$wait();
   });
 
   afterAll(() => wrapper.unmount());

@@ -28,7 +28,7 @@ describe("SelectLang", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (wrapper.vm as any).changeLanguage("ca");
     
-    await flushPromises();
+    await wrapper.vm.$wait();
     // Check language changed on i18n plugin.
     expect(wrapper.vm.$i18n.locale).toBe("ca");
     // Check language changed on quasar.

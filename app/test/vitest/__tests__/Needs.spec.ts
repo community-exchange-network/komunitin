@@ -17,6 +17,7 @@ describe("Needs", () => {
   beforeAll(async () => {
     seeds();
     wrapper = await mountComponent(App, { login: true });
+    await wrapper.vm.$wait();
   });
   afterAll(() => wrapper.unmount());
 
