@@ -27,7 +27,7 @@ export type KeyPair = StellarKeyPair
 export type LedgerCurrencyConfig = {
   /** 
    * The 4 letter currency code.
-   * */ 
+   * */
   code: string,
   /**
    * The rate of the currency in HOURs, as a fraction with numerator and denominator.
@@ -62,8 +62,8 @@ export type LedgerCurrencyConfig = {
  * The keys needed to manage a currency.
  */
 export type LedgerCurrencyKeys = {
-  issuer: KeyPair, 
-  credit: KeyPair, 
+  issuer: KeyPair,
+  credit: KeyPair,
   admin: KeyPair,
   externalIssuer: KeyPair,
   externalTrader: KeyPair,
@@ -115,7 +115,7 @@ export type LedgerEvents = {
    * Called after a local payment is made.
    * */
   transfer: (currency: LedgerCurrency, transfer: LedgerTransfer) => Promise<void>
-  
+
   /**
    * Called when a new external payment is received.
    */
@@ -138,11 +138,11 @@ export type LedgerEvents = {
    * Called after uptating an offer from the external trader account.
    */
   externalOfferUpdated: (currency: LedgerCurrency, offer: {
-      selling: LedgerAsset
-      buying: LedgerAsset
-      amount: string
-      created: boolean
-    }) => Promise<void>
+    selling: LedgerAsset
+    buying: LedgerAsset
+    amount: string
+    created: boolean
+  }) => Promise<void>
 
   /**
    * Called when the currency state is updated and the state should be 
@@ -153,7 +153,7 @@ export type LedgerEvents = {
    * and restarts we can continue from where we left.
    */
   stateUpdated: (currency: LedgerCurrency, state: LedgerCurrencyState) => Promise<void>
-  
+
   /**
    * Called if there is an error in the event handlers.
    * @param error 
@@ -221,7 +221,7 @@ export interface LedgerCurrency {
     issuer: KeyPair,
     credit?: KeyPair,
     account?: KeyPair // Optional account keypair to use instead of generating a new one.
-  }): Promise<{key: KeyPair}>
+  }): Promise<{ key: KeyPair }>
 
   /**
    * Get a loaded and updated account object.
@@ -236,7 +236,7 @@ export interface LedgerCurrency {
    * 
    * @param publicKey 
    */
-  findAccount(publicKey: string): Promise<LedgerAccount|null>
+  findAccount(publicKey: string): Promise<LedgerAccount | null>
 
   /**
    * Enable a disabled account.
@@ -252,7 +252,7 @@ export interface LedgerCurrency {
     issuer: KeyPair,
     disabledAccountsPool: KeyPair,
     sponsor: KeyPair
-  }) : Promise<void>
+  }): Promise<void>
 
   /**
    * Create/update a trust line from this currency to the specified other currency.
@@ -286,7 +286,7 @@ export interface LedgerCurrency {
    * 
    * @returns false if there is no path, or a quote with the source and destination amounts.
    */
-  quotePath(data: {destCode: string, destIssuer: string, amount: string, retry?: boolean}): Promise<false | PathQuote>
+  quotePath(data: { destCode: string, destIssuer: string, amount: string, retry?: boolean }): Promise<false | PathQuote>
 
   /**
    * Updates the trade offer selling an asset by this currency defined hours. This method needs to
@@ -306,7 +306,7 @@ export interface LedgerCurrency {
    * 
    * @param hash The transaction hash.
    */
-  getTransfer(hash: string): Promise<LedgerTransfer|LedgerExternalTransfer>
+  getTransfer(hash: string): Promise<LedgerTransfer | LedgerExternalTransfer>
 
   /** 
    * Disable the currency. This operation removes the currency from the ledger saving resources.
@@ -323,12 +323,12 @@ export interface LedgerCurrency {
    * currency itself.
    */
   disable(keys: {
-    sponsor: KeyPair, 
+    sponsor: KeyPair,
     issuer: KeyPair
-    credit: KeyPair, 
-    admin: KeyPair, 
-    externalIssuer: KeyPair, 
-    externalTrader: KeyPair, 
+    credit: KeyPair,
+    admin: KeyPair,
+    externalIssuer: KeyPair,
+    externalTrader: KeyPair,
   }): Promise<void>
 
   /*
@@ -362,7 +362,7 @@ export interface LedgerAccount {
    * @param payment The payment details: destination and amount
    * @param keys The account entry can be either the master key or the admin key for administered accounts.
    */
-  pay(payment: {payeePublicKey: string, amount: string}, keys: {account: KeyPair, sponsor: KeyPair}): Promise<LedgerTransfer>
+  pay(payment: { payeePublicKey: string, amount: string }, keys: { account: KeyPair, sponsor: KeyPair }): Promise<LedgerTransfer>
 
   /**
    * Perform a payment to an account on a different currency.
@@ -371,7 +371,7 @@ export interface LedgerAccount {
    *   payeePublicKey: The public key of the payee account.
    *   externalIssuerPublicKey: The public key of the issuer of the payee currency.
    */
-  externalPay(payment: {payeePublicKey: string, amount: string, path: PathQuote}, keys: {account: KeyPair, sponsor: KeyPair}): Promise<LedgerExternalTransfer>
+  externalPay(payment: { payeePublicKey: string, amount: string, path: PathQuote }, keys: { account: KeyPair, sponsor: KeyPair }): Promise<LedgerExternalTransfer>
 
   /**
    * Permanently delete the account from the ledger.
@@ -379,7 +379,7 @@ export interface LedgerAccount {
    * This function returns existing balance to the credit account.
    * @param keys The admin key is required because this is a high threshold operation.
    */
-  delete(keys: {admin: KeyPair, sponsor: KeyPair}): Promise<void>
+  delete(keys: { admin: KeyPair, sponsor: KeyPair }): Promise<void>
 
   /**
    * Get the balance of the account in the community currency.
@@ -422,7 +422,7 @@ export interface LedgerAccount {
    * @param amount The new maximum balance, including credit.
    * 
   */
-  updateMaximumBalance(amount: string|undefined, keys: {account: KeyPair, sponsor: KeyPair}): Promise<void>
+  updateMaximumBalance(amount: string | undefined, keys: { account: KeyPair, sponsor: KeyPair }): Promise<void>
 
   /**
    * Disable an active account. It wont be able to send or receive payments until it is 
@@ -431,7 +431,7 @@ export interface LedgerAccount {
    * The account is removed from the ledger, the ledger balance is moved to a central pool and
    * the account balance is only saved in the local DB.
    */
-  disable(keys: {admin: KeyPair, sponsor: KeyPair}) : Promise<void>
+  disable(keys: { admin: KeyPair, sponsor: KeyPair }): Promise<void>
 
 }
 
