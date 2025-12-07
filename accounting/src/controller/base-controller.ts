@@ -30,7 +30,7 @@ import { Store } from "./store"
 const getMasterKey = async () => {
   const masterPassword = config.MASTER_PASSWORD
   let masterKeyObject: KeyObject
-  if (!masterPassword) { 
+  if (!masterPassword) {
     throw badConfig("MASTER_PASSWORD must be provided")
   }
   if (masterPassword.length < 16) {
@@ -112,7 +112,7 @@ export async function createController(): Promise<SharedController> {
   // Create global key-value store.
   const globalDb = globalTenantDb(db)
   const store = new Store(globalDb)
-  
+
   // Master symmetric key for encrypting secrets.
   const masterKey = await getMasterKey()
 
@@ -135,7 +135,7 @@ export async function createController(): Promise<SharedController> {
 }
 
 export class LedgerController implements SharedController {
-  
+
   ledger: Ledger
   private _db: PrismaClient
   private cronTask: cron.ScheduledTask
@@ -162,7 +162,7 @@ export class LedgerController implements SharedController {
         const controller = await this.getCurrencyController(code)
         return controller.keys.externalTraderKey()
       })
-    
+
     initLedgerListener(this)
 
     // Feature: update credit limit on received payments (for enabled currencies and accounts)
@@ -191,7 +191,7 @@ export class LedgerController implements SharedController {
     return privilegedDb(this._db)
   }
 
-  public tenantDb(tenantId: string) : TenantPrismaClient {
+  public tenantDb(tenantId: string): TenantPrismaClient {
     return tenantDb(this._db, tenantId)
   }
 
@@ -209,7 +209,7 @@ export class LedgerController implements SharedController {
     // related to this currency. This key itself is encrypted using the master key.
     const currencyKey = await randomKey()
     const encryptedCurrencyKey = await this.storeKey(currency.code, currencyKey)
-    
+
     // Default settings:
     const defaultSettings: CurrencySettings = {
       defaultInitialCreditLimit: 0,
@@ -227,7 +227,7 @@ export class LedgerController implements SharedController {
       defaultAllowTagPayments: true,
       defaultAllowTagPaymentRequests: false,
 
-      defaultAcceptPaymentsAfter: 14*24*60*60, // 2 weeks,
+      defaultAcceptPaymentsAfter: 14 * 24 * 60 * 60, // 2 weeks,
       defaultOnPaymentCreditLimit: false,
 
       enableExternalPayments: true,
@@ -236,7 +236,7 @@ export class LedgerController implements SharedController {
       defaultAllowExternalPayments: true,
       defaultAllowExternalPaymentRequests: false,
       defaultAcceptExternalPaymentsAutomatically: false,
-      
+
       externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit ?? 0,
       externalTraderMaximumBalance: false,
     }
@@ -258,23 +258,23 @@ export class LedgerController implements SharedController {
     }
 
     // Use logged in user as admin if not provided.
-    const admin = currency.admins && currency.admins.length > 0 
-      ? currency.admins[0].id 
+    const admin = currency.admins && currency.admins.length > 0
+      ? currency.admins[0].id
       : ctx.userId
-    
+
     if (!admin) {
       throw badRequest("Admin user must be provided explicitly or as logged in user")
     }
 
     // Check that the user is not already being used in other tenant.
-    const user = await this.privilegedDb().user.findFirst({where: { id: admin }})
+    const user = await this.privilegedDb().user.findFirst({ where: { id: admin } })
     if (user) {
       throw badRequest(`User ${admin} is already being used in another tenant`)
     }
 
     // Create the currency on the ledger.
     const keys = await this.ledger.createCurrency(
-      currencyConfig(currency), 
+      currencyConfig(currency),
       await this.sponsorKey()
     )
 
@@ -290,7 +290,7 @@ export class LedgerController implements SharedController {
         },
         admin: {
           connectOrCreate: {
-            where: { 
+            where: {
               tenantId_id: {
                 id: admin,
                 tenantId: db.tenantId
@@ -301,7 +301,7 @@ export class LedgerController implements SharedController {
         }
       },
     })
-    
+
     // Store the keys into the DB, encrypted using the currency key.
     const storeKey = (key: Keypair) => storeCurrencyKey(key, db, async () => currencyKey)
     const currencyKeyIds = {
@@ -321,12 +321,12 @@ export class LedgerController implements SharedController {
         balance: 0,
         maximumBalance: currency.settings.externalTraderMaximumBalance ? currency.settings.externalTraderMaximumBalance : null,
         creditLimit: currency.settings.externalTraderCreditLimit ?? 0,
-        key: { connect: { id: currencyKeyIds.externalTraderKeyId }},
+        key: { connect: { id: currencyKeyIds.externalTraderKeyId } },
         settings: {
           allowPayments: false,
           allowPaymentRequests: false
         },
-        currency: { connect: { id: record.id }},
+        currency: { connect: { id: record.id } },
         // no users for virtual account.
       }
     })
@@ -355,7 +355,7 @@ export class LedgerController implements SharedController {
       throw forbidden("Only superadmins can filter by status")
     }
     const filter = whereFilter(params.filters)
-    
+
     const records = await this.privilegedDb().currency.findMany({
       where: {
         status: "active",

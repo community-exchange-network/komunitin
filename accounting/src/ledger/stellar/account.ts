@@ -1,7 +1,7 @@
 import { Asset, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk"
 import { LedgerAccount, LedgerTransfer, PathQuote } from "../ledger"
 import { StellarCurrency } from "./currency"
-import {Big} from "big.js"
+import { Big } from "big.js"
 import { logger } from "../../utils/logger"
 import { internalError, insufficientBalance } from "../../utils/error"
 
@@ -48,7 +48,7 @@ export class StellarAccount implements LedgerAccount {
     }
     return this.account
   }
-  
+
   /**
    * Return all payments made from/to this account with the local asset.
    */
@@ -60,19 +60,19 @@ export class StellarAccount implements LedgerAccount {
     })
     do {
       transfers
-      .push(...result.records
-      .filter((r) => r.type === "payment")
-      .filter(r => (r.asset_type === "credit_alphanum4" || r.asset_type === "credit_alphanum12"))
-      .filter(r => r.asset_code === localAsset.code && r.asset_issuer === localAsset.issuer)
-      .map((r) => ({
-        amount: r.amount,
-        asset: new Asset(r.asset_code as string, r.asset_issuer),
-        payer: r.from,
-        payee: r.to,
-        hash: r.transaction_hash
-      })))
+        .push(...result.records
+          .filter((r) => r.type === "payment")
+          .filter(r => (r.asset_type === "credit_alphanum4" || r.asset_type === "credit_alphanum12"))
+          .filter(r => r.asset_code === localAsset.code && r.asset_issuer === localAsset.issuer)
+          .map((r) => ({
+            amount: r.amount,
+            asset: new Asset(r.asset_code as string, r.asset_issuer),
+            payer: r.from,
+            payee: r.to,
+            hash: r.transaction_hash
+          })))
       result = await result.next()
-    } while(result.records.length > 0);
+    } while (result.records.length > 0);
 
     return transfers;
   }
@@ -121,16 +121,16 @@ export class StellarAccount implements LedgerAccount {
           throw internalError("Required credit key when increasing the credit")
         }
         const creditAccount = await this.currency.creditAccount()
-        const builder = this.currency.ledger.transactionBuilder(creditAccount )
+        const builder = this.currency.ledger.transactionBuilder(creditAccount)
 
-        const {issuer} = this.currency.addCreditTransaction(
-          builder, 
-          this.account?.accountId() as string, 
+        const { issuer } = this.currency.addCreditTransaction(
+          builder,
+          this.account?.accountId() as string,
           diff.toString(),
           creditAccount.balance()
         )
         const signers = [keys.credit]
-        if (issuer && keys.issuer) { 
+        if (issuer && keys.issuer) {
           signers.push(keys.issuer)
         } else if (issuer) {
           throw internalError("Required issuer key when updating credit balance")
@@ -143,7 +143,7 @@ export class StellarAccount implements LedgerAccount {
     return "0"
   }
 
-  maximumBalance() : string {
+  maximumBalance(): string {
     const asset = this.currency.asset()
     const balance = this.stellarBalance(asset)
     if (!balance) {
@@ -155,7 +155,7 @@ export class StellarAccount implements LedgerAccount {
   /**
    * Implements {@link LedgerAccount#updateMaximumBalance }
    */
-  async updateMaximumBalance(amount: string|undefined, keys: {account: Keypair, sponsor: Keypair}): Promise<void> {
+  async updateMaximumBalance(amount: string | undefined, keys: { account: Keypair, sponsor: Keypair }): Promise<void> {
     if (amount === undefined || amount !== this.maximumBalance()) {
       const builder = this.currency.ledger.transactionBuilder(this)
       builder.addOperation(Operation.changeTrust({
@@ -172,11 +172,11 @@ export class StellarAccount implements LedgerAccount {
     if (this.account === undefined) {
       throw internalError("Account not found")
     }
-    
+
     const balance = this.account.balances.find((b) => {
       if (b.asset_type == asset.getAssetType()) {
         const balance = b as Horizon.HorizonApi.BalanceLineAsset
-        return (balance.asset_issuer == asset.issuer && balance.asset_code == asset.code) 
+        return (balance.asset_issuer == asset.issuer && balance.asset_code == asset.code)
       }
       return false
     })
@@ -205,7 +205,7 @@ export class StellarAccount implements LedgerAccount {
     }
     return (this.account.balances as Horizon.HorizonApi.BalanceLineAsset[])
       .filter(b => b.asset_type == "credit_alphanum4" || b.asset_type == "credit_alphanum12")
-      .map(b => ({asset: new Asset(b.asset_code, b.asset_issuer), balance: b.balance, limit: b.limit}))
+      .map(b => ({ asset: new Asset(b.asset_code, b.asset_issuer), balance: b.balance, limit: b.limit }))
   }
 
   moveBalanceAndDeleteTransaction(builder: TransactionBuilder, destination: string, asset: Asset = this.currency.asset()) {
@@ -238,13 +238,13 @@ export class StellarAccount implements LedgerAccount {
 
   }
 
-  private async moveBalanceAndDelete(destination: string, keys: {admin: Keypair, sponsor: Keypair}) {
+  private async moveBalanceAndDelete(destination: string, keys: { admin: Keypair, sponsor: Keypair }) {
     const builder = this.currency.ledger.transactionBuilder(this)
     this.moveBalanceAndDeleteTransaction(builder, destination)
 
     const result = await this.currency.ledger.submitTransaction(builder, [keys.admin], keys.sponsor)
     this.account = undefined
-    
+
     return result
   }
 
@@ -277,7 +277,7 @@ export class StellarAccount implements LedgerAccount {
     }))
     logger.debug(`Submitting payment of ${payment.amount} with sequence ${this.account?.sequenceNumber()}`)
     const transaction = await this.currency.ledger.submitTransaction(builder, [keys.account], keys.sponsor)
-    
+
     const transfer = {
       amount: payment.amount,
       asset: this.currency.asset(),
@@ -285,13 +285,13 @@ export class StellarAccount implements LedgerAccount {
       payee: payment.payeePublicKey,
       hash: transaction.hash
     }
-    
+
     // This should be done as a reaction to a stream listener on horizon server, but we don't have
     // any means to efficiently listen all payments in a currency right now. Maybe having our own
     // filtered Horizon server could do the job, or using stellar.expert or another API.
     this.currency.ledger.emitter.emit("transfer", this.currency, transfer)
-    
-    logger.info({hash: transaction.hash}, `Account ${this.account?.accountId()} paid ${payment.amount} to ${payment.payeePublicKey}`)
+
+    logger.info({ hash: transaction.hash }, `Account ${this.account?.accountId()} paid ${payment.amount} to ${payment.payeePublicKey}`)
 
     return transfer
   }
@@ -343,8 +343,8 @@ export class StellarAccount implements LedgerAccount {
       sourceAmount: payment.path.sourceAmount
     }
 
-    logger.info({hash: transaction.hash}, `Account ${this.account?.accountId()} paid ${payment.amount} ${payment.path.destAsset.code} to ${payment.payeePublicKey} through path`)
-    
+    logger.info({ hash: transaction.hash }, `Account ${this.account?.accountId()} paid ${payment.amount} ${payment.path.destAsset.code} to ${payment.payeePublicKey} through path`)
+
     return transfer
   }
 
@@ -357,7 +357,7 @@ export class StellarAccount implements LedgerAccount {
    * 
    * The caller should be sure that the currency already has a disabled accounts pool created.
    */
-  async disable(keys: {admin: Keypair, sponsor: Keypair }) : Promise<void> {
+  async disable(keys: { admin: Keypair, sponsor: Keypair }): Promise<void> {
     if (this.account === undefined) {
       throw internalError("Account not found")
     }
@@ -366,7 +366,7 @@ export class StellarAccount implements LedgerAccount {
     }
     const accountId = this.account.accountId()
     const response = await this.moveBalanceAndDelete(this.currency.data.disabledAccountsPoolPublicKey, keys)
-    logger.info({hash: response.hash, account: accountId},`Account ${accountId} disabled in currency ${this.currency.config.code}`)
+    logger.info({ hash: response.hash, account: accountId }, `Account ${accountId} disabled in currency ${this.currency.config.code}`)
   }
 
 }
