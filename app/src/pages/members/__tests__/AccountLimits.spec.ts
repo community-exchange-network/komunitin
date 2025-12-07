@@ -1,20 +1,21 @@
+import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-vitest';
+import { describe, expect, it } from 'vitest';
 import { shallowMount } from "@vue/test-utils";
 import AccountLimits from "../AccountLimits.vue";
-import {QSeparator, Quasar} from 'quasar'
-import { config } from '@vue/test-utils';
+import {QSeparator} from 'quasar'
 import { createI18n } from "vue-i18n";
 
 // Install quasar (only with 1 component).
-config.global.plugins.unshift([Quasar, {
+installQuasarPlugin({
   components: {
     QSeparator
   }
-}]);
+});
+
 // Install i18n.
 const i18n = createI18n({
   legacy: false
 })
-config.global.plugins.unshift([i18n])
 
 describe('AccountLimits.vue', () => {
   const mocks = {
@@ -42,7 +43,8 @@ describe('AccountLimits.vue', () => {
         account
       },
       global: {
-        mocks
+        mocks,
+        plugins: [i18n]
       }
     });
     expect(wrapper.text()).toBe("minAmount %-50");
@@ -61,7 +63,8 @@ describe('AccountLimits.vue', () => {
         account
       },
       global: {
-        mocks
+        mocks,
+        plugins: [i18n]
       },
     });
     expect(wrapper.text()).toBe("maxAmount %50");
@@ -80,7 +83,8 @@ describe('AccountLimits.vue', () => {
         account
       },
       global: {
-        mocks
+        mocks,
+        plugins: [i18n]
       }
     });
     expect(wrapper.text()).toContain("minAmount %-60");

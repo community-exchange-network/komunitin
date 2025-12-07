@@ -1,14 +1,14 @@
+import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-vitest';
+import { describe, expect, it, beforeEach, afterAll, vi } from 'vitest';
 import type { VueWrapper } from "@vue/test-utils";
 import { mount } from "@vue/test-utils";
-import { config } from '@vue/test-utils';
-import { quasarPlugin } from "../../../test/jest/utils/quasar-plugin";
 
 // Install quasar plugin.
-config.global.plugins.unshift(quasarPlugin);
+installQuasarPlugin();
 
-jest.mock("vue-i18n", () => ({
+vi.mock("vue-i18n", () => ({
   useI18n: () => ({
-    t: jest.fn((key: string) => key),
+    t: vi.fn((key: string) => key),
   }),
 }));
     
@@ -35,7 +35,7 @@ describe("SocialNetworkList", () => {
   async function checkClick(wrapper: VueWrapper, ref: string, url: string) {
     // Mock window.open function.
     // delete window.open;
-    window.open = jest.fn();
+    window.open = vi.fn();
     // Click
     wrapper.findComponent({ ref: ref }).trigger("click");
     // Wait for event to be handled.
@@ -44,7 +44,7 @@ describe("SocialNetworkList", () => {
   }
   
   afterAll(() => {
-    jest.resetModules();
+    vi.resetModules();
   });
 
   // Montamos el componente con los props necesarios antes de cada test.

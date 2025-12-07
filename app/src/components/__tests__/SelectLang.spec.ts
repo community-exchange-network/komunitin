@@ -1,8 +1,7 @@
-
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import SelectLang from "../SelectLang.vue";
 import type { VueWrapper} from "@vue/test-utils";
-import { flushPromises } from "@vue/test-utils"
-import { mountComponent } from "../../../test/jest/utils";
+import { mountComponent } from "../../../test/vitest/utils";
 
 /**
  * This test uses the global Vue variable in order to properly interact 
@@ -28,7 +27,7 @@ describe("SelectLang", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (wrapper.vm as any).changeLanguage("ca");
     
-    await flushPromises();
+    await wrapper.vm.$wait();
     // Check language changed on i18n plugin.
     expect(wrapper.vm.$i18n.locale).toBe("ca");
     // Check language changed on quasar.

@@ -1,3 +1,4 @@
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { flushPromises, VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent } from "../utils";
@@ -16,16 +17,17 @@ describe("Member", () => {
   beforeAll(async () => {
     seeds();
     wrapper = await mountComponent(App, { login: true });
+    await wrapper.vm.$wait();
   });
   afterAll(() => wrapper.unmount());
 
   it("Navigation to my account", async () => {
     await wrapper.vm.$router.push("/groups/GRP0/needs")
     // Wait for the login redirect.
-    await flushPromises();
+    await wrapper.vm.$wait();
     // Click members link
     await wrapper.get("#my-member").trigger("click");
-    await flushPromises();
+    await wrapper.vm.$wait();
     expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57");
     // Wait for content.
     await wrapper.vm.$wait();

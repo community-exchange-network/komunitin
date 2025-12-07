@@ -1,7 +1,4 @@
- 
-/**
- * @jest-environment jsdom
- */
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { flushPromises, VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
@@ -20,6 +17,7 @@ describe("Needs", () => {
   beforeAll(async () => {
     seeds();
     wrapper = await mountComponent(App, { login: true });
+    await wrapper.vm.$wait();
   });
   afterAll(() => wrapper.unmount());
 
@@ -63,11 +61,13 @@ describe("Needs", () => {
 
     const select = wrapper.getComponent(SelectCategory).getComponent(QSelect)
     await select.trigger("click");
-    await waitFor(() => select.findAllComponents(QItem).length > 0)
+    await wrapper.vm.$wait();
+    // Wait for menu items to appear - sometimes takes longer for Quasar menu
+    await waitFor(() => select.findAllComponents(QItem).length > 0, true, 2000)
 
     const menu = select.findAllComponents(QItem);
     await menu[1].trigger("click");
-    waitFor(() => select.text().includes("Games"))
+    await waitFor(() => select.text().includes("Games"))
 
     await wrapper.get("[name='description']").setValue("I really need this test to pass.")
 

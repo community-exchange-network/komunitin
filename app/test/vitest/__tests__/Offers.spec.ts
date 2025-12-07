@@ -1,3 +1,4 @@
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
  
 import { VueWrapper, flushPromises } from "@vue/test-utils";
 import App from "../../../src/App.vue";

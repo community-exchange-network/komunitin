@@ -1,3 +1,4 @@
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { flushPromises, VueWrapper } from "@vue/test-utils";
 import App from "src/App.vue";
 import { mountComponent, waitFor } from "../utils";
@@ -19,7 +20,7 @@ describe("Transactions", () => {
   beforeAll(async () => {  
     seeds();
     wrapper = await mountComponent(App, { login: true });
-    
+    await wrapper.vm.$wait();
   });
   afterAll(() => {
     wrapper.unmount();
@@ -29,10 +30,10 @@ describe("Transactions", () => {
   it("Loads and searches tansactions", async () => {
     await wrapper.vm.$router.push("/login");
     // Wait for login redirect
-    await flushPromises();
+    await wrapper.vm.$wait();
     // Click transactions link
     await wrapper.get("#menu-transactions").trigger("click");
-    await flushPromises();
+    await wrapper.vm.$wait();
     expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57/transactions");
     // Further wait to load members.
     await flushPromises();
@@ -277,6 +278,9 @@ describe("Transactions", () => {
     await wrapper.get("button[name='confirm']").trigger("click")
     
     await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members/EmilianoLemke57/transactions")
+    
+    // Wait for the new transactions to load
+    await waitFor(() => wrapper.text().includes("Test multi 1"))
 
     expect(wrapper.text()).toContain(`Test multi 1`)
     expect(wrapper.text()).toContain(`Test multi 4`)
@@ -293,6 +297,7 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.text().includes("$12.00"))
     expect(wrapper.text()).toContain("$12.00")
     expect(wrapper.text()).toContain("Test QR description")
+    // Wait for QR image to appear - should be fast since mock returns immediately
     await waitFor(() => wrapper.find(".q-img img").exists())
     expect(wrapper.get(".q-img img").attributes("src")).toContain("data:image/png;base64")
   })

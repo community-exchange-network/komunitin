@@ -1,3 +1,4 @@
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { VueWrapper, flushPromises } from "@vue/test-utils";
 import { seeds } from "src/server";
 import { mountComponent, waitFor } from "../utils";
@@ -6,22 +7,27 @@ import GroupCard from "../../../src/components/GroupCard.vue";
 import { QBtn, QDialog, QInput, QItem, QSelect } from "quasar";
 import CountryChooser from "src/components/CountryChooser.vue";
 
-// mock quasar.scroll.
-jest.mock("quasar", () => ({
-  ...jest.requireActual("quasar"),
-  scroll: {
-    getScrollTarget: jest.fn(() => ({
-      scrollTo: jest.fn()
-    })),
-  }
-}))
+import { vi } from 'vitest';
 
-// With jest, the default import of "i18n-iso-countries" does not behave well and
+// mock quasar.scroll.
+vi.mock("quasar", async () => {
+  const actual = await vi.importActual("quasar");
+  return {
+    ...actual,
+    scroll: {
+      getScrollTarget: vi.fn(() => ({
+        scrollTo: vi.fn()
+      })),
+    }
+  }
+})
+
+// With vitest, the default import of "i18n-iso-countries" does not behave well and
 // thats why we need to mock it. An alternative is to add "i18n-iso-countries" to
-// list of ES modules in jest.config.
-jest.mock("i18n-iso-countries", () => ({
-  registerLocale: jest.fn(),
-  getNames: jest.fn(() => ({
+// list of ES modules in vitest.config.
+vi.mock("i18n-iso-countries", () => ({
+  registerLocale: vi.fn(),
+  getNames: vi.fn(() => ({
     'IT': 'Italy',
     'ES': 'Spain',
     'GR': 'Greece',

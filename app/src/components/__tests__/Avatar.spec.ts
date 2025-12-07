@@ -1,21 +1,18 @@
+import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-vitest';
 import { mount } from "@vue/test-utils";
+import { describe, expect, it } from 'vitest';
 import Avatar from "../Avatar.vue";
-import {QAvatar, Quasar} from "quasar";
+import {QAvatar} from "quasar";
+
+installQuasarPlugin({ components: { QAvatar } });
 
 describe("SimpleMap", () => {  
-   
-  const quasarPlugin = [Quasar, {
-    components: { QAvatar }
-  }] as [typeof Quasar, unknown]
 
   it("Renders image", async () => {
     const wrapper = mount(Avatar, {
       props: {
         imgSrc: "https://path_to_image.com",
         text: "anything"
-      },
-      global: {
-        plugins: [quasarPlugin]
       }
     });
     expect(wrapper.html()).toContain("<img src=\"https://path_to_image.com\"");
@@ -25,9 +22,6 @@ describe("SimpleMap", () => {
     const wrapper = mount(Avatar, {
       propsData: {
         text: "anything"
-      },
-      global: {
-        plugins: [quasarPlugin]
       }
     });
     expect(wrapper.html()).not.toContain("<img");

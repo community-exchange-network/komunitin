@@ -4,6 +4,7 @@ import { Notify, LocalStorage } from "quasar";
 import { quasarPlugin, qComponents } from "./quasar-plugin";
 import store from 'src/store/index';
 import createRouter from 'src/router/index';
+import { vi } from 'vitest';
 
 
 // Boot files.
@@ -17,11 +18,11 @@ import { mockToken } from 'src/server/AuthServer';
 import { RouteLocationRaw } from 'vue-router';
 
 // Mock window.scrollTo so it doesn't throw a "Not Implemented" error (by jsdom lib).
-window.scrollTo = jest.fn();
+window.scrollTo = vi.fn();
 
 // Mock navigator.geolocation
 const mockGeolocation = {
-  getCurrentPosition: jest.fn().mockImplementation(success =>
+  getCurrentPosition: vi.fn().mockImplementation(success =>
     Promise.resolve(
       success({
         coords: {
@@ -43,43 +44,63 @@ Object.defineProperty(global.navigator, 'geolocation', {value: mockGeolocation})
 
 // Mock Notification.
 class MockNotification {
-  public static requestPermission = jest.fn().mockImplementation((success) => Promise.resolve(success(false)));
+  public static requestPermission = vi.fn().mockImplementation((success) => Promise.resolve(success(false)));
   public static permission = "default";
 
   constructor(public title: string, public options?: NotificationOptions) {};
-  public addEventListener = jest.fn();
+  public addEventListener = vi.fn();
 }
 
 Object.defineProperty(global, 'Notification', {value: MockNotification})
-jest.mock("../../../src/plugins/Notifications");
-jest.mock("firebase/messaging");
+vi.mock("../../../src/plugins/Notifications");
+// Mock firebase messaging completely to avoid errors
+vi.mock("firebase/messaging", () => {
+  const mockMessaging = {
+    onMessageHandler: null,
+    onBackgroundMessageHandler: null
+  };
+  
+  return {
+    getMessaging: vi.fn(() => mockMessaging),
+    getToken: vi.fn(() => Promise.resolve("mock-token")),
+    onMessage: vi.fn((messaging, callback) => {
+      // Mock implementation that properly sets up the handler
+      if (messaging) {
+        messaging.onMessageHandler = callback;
+      }
+      return () => {}; // Return unsubscribe function
+    })
+  };
+});
 
-jest.mock("qrcode", () => ({
-  toCanvas: jest.fn(),
-  toDataURL: jest.fn().mockImplementation(() => Promise.resolve("data:image/png;base64,"))
+vi.mock("qrcode", () => ({
+  default: {
+    toCanvas: vi.fn(),
+    toDataURL: vi.fn().mockImplementation(() => Promise.resolve("data:image/png;base64,"))
+  }
 }));
-jest.mock("vue-qrcode-reader", () => ({
-  QrcodeStream: jest.fn(),
+vi.mock("vue-qrcode-reader", () => ({
+  QrcodeStream: vi.fn(),
 }))
-jest.mock("@vue-leaflet/vue-leaflet", () => ({
-  LMap: jest.fn(),
-  LTileLayer: jest.fn(),
-  LMarker: jest.fn(),
+vi.mock("@vue-leaflet/vue-leaflet", () => ({
+  LMap: vi.fn(),
+  LTileLayer: vi.fn(),
+  LMarker: vi.fn(),
 }))
 
 
 // Mock Web NFC api
 class MockNDEFReader {
   constructor() {}
-  public scan = jest.fn(() => new Promise(() => {}));
-  public addEventListener = jest.fn();  
+  public scan = vi.fn(() => new Promise(() => {}));
+  public addEventListener = vi.fn();  
 }
 Object.defineProperty(global, "NDEFReader", {value: MockNDEFReader});
 
 // Set a value on scrollHeight property so QInfiniteScrolling doesn't load all resources.
 Object.defineProperty(HTMLDivElement.prototype, "scrollHeight", {configurable: true, value: 1500});
-Object.defineProperty(SVGSVGElement.prototype, "pauseAnimations", {value: jest.fn()});
-Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", {value: jest.fn()});
+Object.defineProperty(SVGSVGElement.prototype, "pauseAnimations", {value: vi.fn()});
+Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", {value: vi.fn()});
 
 
 
@@ -126,8 +147,8 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   }
 
   // Mock $q.notify since it throws an errors in testing environment if we use the actual module.
-  wrapper.vm.$q.notify = jest.fn();
-  Notify.create = jest.fn();
+  wrapper.vm.$q.notify = vi.fn();
+  Notify.create = vi.fn();
 
   // Add more testing features to Vue.
   app.config.globalProperties.$nextTicks = async function() {
@@ -175,6 +196,7 @@ export const waitFor = async (fn: () => any, expected: any = true, timeout = 100
   while (Date.now() - start < timeout) {
     if (fn() === expected) {
       expect(fn()).toBe(expected);
+      return;
     }
     await new Promise(r => setTimeout(r, 50));
   }
