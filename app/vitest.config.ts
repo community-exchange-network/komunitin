@@ -2,6 +2,11 @@ import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import { quasar, transformAssetUrls } from '@quasar/vite-plugin';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets';
+import { vitePluginFlavorPublic } from './build-tools/vite-plugin-flavor-public';
+import { vitePluginFlavorOverrideSassVariables } from './build-tools/vite-plugin-flavor-override-sass-variables';
+
+const FLAVOR = process.env.FLAVOR || "komunitin";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -29,6 +34,15 @@ export default defineConfig({
     }),
     quasar({
       sassVariables: 'src/css/quasar-variables.sass',
+    }),
+    vitePluginFlavorPublic({
+      flavor: FLAVOR
+    }),
+    vitePluginFlavorAssets({
+      flavor: FLAVOR
+    }),
+    vitePluginFlavorOverrideSassVariables({
+      flavor: FLAVOR
     }),
     tsconfigPaths(),
   ],
