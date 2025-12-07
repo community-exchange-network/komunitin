@@ -53,7 +53,27 @@ class MockNotification {
 
 Object.defineProperty(global, 'Notification', {value: MockNotification})
 vi.mock("../../../src/plugins/Notifications");
-vi.mock("firebase/messaging");
+// Mock firebase messaging completely to avoid errors
+vi.mock("firebase/messaging", () => {
+  const mockMessaging = {
+    _delegate: {
+      onMessageHandler: null,
+      onBackgroundMessageHandler: null
+    }
+  };
+  
+  return {
+    getMessaging: vi.fn(() => mockMessaging),
+    getToken: vi.fn(() => Promise.resolve("mock-token")),
+    onMessage: vi.fn((messaging, callback) => {
+      // Mock implementation that properly sets up the handler
+      if (messaging && messaging._delegate) {
+        messaging._delegate.onMessageHandler = callback;
+      }
+      return () => {}; // Return unsubscribe function
+    })
+  };
+});
 
 vi.mock("qrcode", () => ({
   default: {

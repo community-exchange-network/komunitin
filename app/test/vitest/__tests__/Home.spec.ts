@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { VueWrapper, flushPromises } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent } from "../utils";
+import { mountComponent, waitFor } from "../utils";
 import {
   QInnerLoading,
   QToolbarTitle,
@@ -26,22 +26,23 @@ describe("Home", () => {
   afterAll(() => wrapper.unmount());
 
   it("redirects to home after login", async () => {
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.vm.$route.path === "/home");
     // Navigate to login page, to trigger redirect to home (when logged in)
     // (Redirect after 'manual' login is already tested in Login.spec.ts)
     await wrapper.vm.$router.push("/login");
-    await wrapper.vm.$nextTick();
+    await waitFor(() => wrapper.vm.$route.path, "/home");
     expect(wrapper.vm.$route.path).toBe("/home");
     expect(wrapper.findComponent(QToolbarTitle).text()).toBe("Home");
   });
 
   it("loads offers and needs", async () => {
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.vm.$route.path === "/home");
     await wrapper.vm.$router.push("/home");
-    await wrapper.vm.$nextTick();
+    await waitFor(() => wrapper.vm.$route.path, "/home");
 
-    // Wait for initial load
-    await wrapper.vm.$wait();
+    // Wait for offers and needs to load
+    await waitFor(() => wrapper.vm.$store.getters["offers/currentList"].length > 0);
+    await waitFor(() => wrapper.vm.$store.getters["needs/currentList"].length > 0);
 
     // Check if offers and needs are loaded
     expect(
@@ -62,7 +63,7 @@ describe("Home", () => {
 
     // trigger infinite-scroll
     (wrapper.findComponent(QInfiniteScroll).vm as QInfiniteScroll).trigger();
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.findAllComponents(".q-card").length > 21);
     expect(wrapper.findAllComponents(".q-card").length).toBeGreaterThan(21);
   });
 
@@ -72,7 +73,8 @@ describe("Home", () => {
     expect(wrapper.findAllComponents(OfferCard).length).toBe(0);
     expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
     
-    await wrapper.vm.$wait();
+    // Wait for search results to load
+    await waitFor(() => wrapper.findAllComponents(OfferCard).length >= 20);
 
     // found 20 offers and 1 need
     expect(wrapper.findAllComponents(OfferCard).length).toBe(20);
