@@ -56,8 +56,10 @@ vi.mock("../../../src/plugins/Notifications");
 vi.mock("firebase/messaging");
 
 vi.mock("qrcode", () => ({
-  toCanvas: vi.fn(),
-  toDataURL: vi.fn().mockImplementation(() => Promise.resolve("data:image/png;base64,"))
+  default: {
+    toCanvas: vi.fn(),
+    toDataURL: vi.fn().mockImplementation(() => Promise.resolve("data:image/png;base64,"))
+  }
 }));
 vi.mock("vue-qrcode-reader", () => ({
   QrcodeStream: vi.fn(),

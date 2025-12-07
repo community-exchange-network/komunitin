@@ -61,8 +61,9 @@ describe("Needs", () => {
 
     const select = wrapper.getComponent(SelectCategory).getComponent(QSelect)
     await select.trigger("click");
-    await flushPromises();
-    await waitFor(() => select.findAllComponents(QItem).length > 0)
+    await wrapper.vm.$wait();
+    // Wait for menu items to appear - sometimes takes longer for Quasar menu
+    await waitFor(() => select.findAllComponents(QItem).length > 0, true, 2000)
 
     const menu = select.findAllComponents(QItem);
     await menu[1].trigger("click");
