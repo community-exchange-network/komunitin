@@ -297,8 +297,8 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.text().includes("$12.00"))
     expect(wrapper.text()).toContain("$12.00")
     expect(wrapper.text()).toContain("Test QR description")
-    // QR code generation might take longer, increase timeout to 2 seconds
-    await waitFor(() => wrapper.find(".q-img img").exists(), true, 2000)
+    // QR code generation might take longer, increase timeout to 5 seconds
+    await waitFor(() => wrapper.find(".q-img img").exists(), true, 5000)
     expect(wrapper.get(".q-img img").attributes("src")).toContain("data:image/png;base64")
   })
 

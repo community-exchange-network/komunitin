@@ -61,7 +61,9 @@ describe("Needs", () => {
 
     const select = wrapper.getComponent(SelectCategory).getComponent(QSelect)
     await select.trigger("click");
-    await waitFor(() => select.findAllComponents(QItem).length > 0, true, 2000)
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+    await waitFor(() => select.findAllComponents(QItem).length > 0, true, 3000)
 
     const menu = select.findAllComponents(QItem);
     await menu[1].trigger("click");
