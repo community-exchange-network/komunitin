@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { flushPromises, VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent } from "../utils";
+import { mountComponent, waitFor } from "../utils";
 import MenuDrawer from "../../../src/components/MenuDrawer.vue";
 import { seeds } from "src/server";
 import MemberHeader from "src/components/MemberHeader.vue";
@@ -12,7 +12,8 @@ describe("Front page and login", () => {
   beforeAll(async () => {
     seeds();
     wrapper = await mountComponent(App);
-    await wrapper.vm.$wait();
+    // Wait for front page to load
+    await waitFor(() => wrapper.find("#login").exists());
   });
   afterAll(() => wrapper.unmount());
 
@@ -27,16 +28,15 @@ describe("Front page and login", () => {
     expect(wrapper.find("#back").isVisible()).toBe(false);
     // Click login button.
     await wrapper.get("#login").trigger("click");
-    // Vue needs an additional nextTick()'s to render the content
-    // got through router.
-    await wrapper.vm.$wait();
+    // Wait for navigation to login page
+    await waitFor(() => wrapper.vm.$route.path, "/login-mail");
     expect(wrapper.vm.$route.path).toBe("/login-mail");
     // Click back
     expect(wrapper.get("#back").isVisible()).toBe(true);
     // Click back again
     expect(wrapper.get("#back").isVisible()).toBe(true);
     wrapper.get("#back").trigger("click");
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.vm.$route.path, "/");
     expect(wrapper.vm.$route.path).toBe("/");
   });
 
@@ -44,7 +44,7 @@ describe("Front page and login", () => {
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
     // Go to login with mail page.
     wrapper.vm.$router.push("/login-mail");
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.vm.$route.path, "/login-mail");
     // Button is disabled since form is empty.
     expect(wrapper.get("button[type='submit']").attributes("disabled"))
       .toBeDefined();
@@ -56,7 +56,7 @@ describe("Front page and login", () => {
       wrapper.get("button[type='submit']").attributes("disabled")
     ).toBeUndefined();
     wrapper.get("button[type='submit']").trigger("click");
-    await wrapper.vm.$wait()
+    await waitFor(() => wrapper.vm.$route.path, "/home");
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(true);
     expect(wrapper.vm.$route.path).toBe("/home");
     // Click the account switcher
@@ -66,7 +66,6 @@ describe("Front page and login", () => {
       .trigger("click");
     await wrapper.vm.$nextTick();
     // Click logout (be careful with teleports when finding the element)
-    const { waitFor } = await import("../utils");
     wrapper
       .getComponent(MenuDrawer)
       .getComponent(MemberHeader)

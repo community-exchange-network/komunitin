@@ -8,9 +8,11 @@ describe("Explore groups", () => {
   let wrapper: VueWrapper;
   beforeAll(async() => {
     // Load data in mocking server.
+    const { waitFor } = await import("../utils");
     seeds();
     wrapper = await mountComponent(App);
-    await wrapper.vm.$wait();
+    // Wait for the app to load - check if explore button exists
+    await waitFor(() => wrapper.find("#explore").exists());
   });
 
   afterAll(() => wrapper.unmount());
