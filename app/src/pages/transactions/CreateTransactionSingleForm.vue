@@ -124,7 +124,11 @@ const transfer = computed({
 
 const payerAccountValue = ref(props.payerAccount)
 const payeeAccountValue = ref(props.payeeAccount)
-const concept = ref(transfer.value?.attributes?.meta?.description)
+
+// casting to any since otherwise TS complains about infinite type recursion
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const concept = ref((transfer.value as any)?.attributes?.meta?.description || '')
+
 const amount = ref<number|undefined>(props.modelValue?.attributes?.amount ? props.modelValue.attributes.amount / Math.pow(10, myCurrency.value.attributes.scale) : undefined)
 
 // Validation.

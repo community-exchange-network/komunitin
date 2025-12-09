@@ -15,6 +15,7 @@ export interface LocaleDefinition {
   loadQuasar: () => Promise<QuasarLanguage>,
   loadDateFNS: () => Promise<Locale>,
   loadCountries: () => Promise<never>
+  features?: Record<string, () => Promise<never>>
 }
 
 const langs = {
@@ -50,6 +51,20 @@ const langs = {
     loadDateFNS: async () => (await import("date-fns/locale/it")).it,
     loadCountries: async () => (await import("i18n-iso-countries/langs/it.json")).default
   } as LocaleDefinition,
+}
+
+if (process.env.FEAT_TOPUP === 'true') {
+  langs["en-us"].features = {
+    topup: async () => (await import("src/i18n/en-us/topup.json")).default as never
+  }
+  /*
+  langs["ca"].features = {
+    topup: async () => (await import("src/i18n/ca/topup.json")).default as never
+  }
+  langs["es"].features = {
+    topup: async () => (await import("src/i18n/es/topup.json")).default as never
+  }
+  */
 }
 
 export type LangName = keyof typeof langs

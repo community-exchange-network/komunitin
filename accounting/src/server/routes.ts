@@ -1,10 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { checkExact, oneOf } from 'express-validator';
-import { AccountSettings, CreateCurrency, CurrencySettings, InputAccount, InputTransfer, Transfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
+import { AccountSettings, CreateCurrency, InputAccount, InputTransfer, Transfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
 import { InputTrustline, UpdateTrustline } from 'src/model/trustline';
 import { context } from 'src/utils/context';
 import { badRequest } from 'src/utils/error';
-import { SharedController } from '../controller';
 import { anyAuth, externalAuth, noAuth, Scope, userAuth } from './auth';
 import { asyncHandler, currencyCollectionCsvHandler, currencyCollectionHandler, currencyHandler, currencyInputHandler, currencyInputHandlerMultiple, currencyResourceHandler } from './handlers';
 import { input } from './parse';
@@ -12,8 +11,9 @@ import { accountStatsParams, collectionParams, statsParams } from './request';
 import { AccountSerializer, AccountSettingsSerializer, CurrencySerializer, CurrencySettingsSerializer, StatsSerializer, TransferSerializer, TrustlineSerializer } from './serialize';
 import { Validators } from './validation';
 import routeCache from 'route-cache'
+import { BaseService } from '../controller';
 
-export function getRoutes(controller: SharedController) {
+export function getRoutes(controller: BaseService) {
   const router = Router()
 
   router.get('/', noAuth(), asyncHandler(async (req, res) => {
@@ -69,7 +69,7 @@ export function getRoutes(controller: SharedController) {
 
   // Update currency settings
   router.patch('/:code/currency/settings', userAuth([Scope.Accounting, Scope.Superadmin]), checkExact(Validators.isUpdateCurrencySettings()),
-    currencyInputHandler(controller, async (currencyController, ctx, data: CurrencySettings) => {
+    currencyInputHandler(controller, async (currencyController, ctx, data) => {
       return await currencyController.updateCurrencySettings(ctx, data)
     }, CurrencySettingsSerializer)
   )

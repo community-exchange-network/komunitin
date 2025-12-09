@@ -1,5 +1,5 @@
 import {config} from "../../src/config"
-import {http, HttpResponse} from "msw"
+import {http, HttpResponse, RequestHandler} from "msw"
 import { jwks } from "./auth.mock"
 import { setupServer, SetupServerApi } from 'msw/node'
 import { logger } from "src/utils/logger"
@@ -72,6 +72,10 @@ export const startServer = (app: Express) => {
   const handlers = getHandlers(app)
   server = setupServer(...handlers)
   server.listen({ onUnhandledRequest: "bypass" })
+}
+
+export const addHandlers = (...handlers: RequestHandler[]) => {
+  server.use(...handlers)
 }
 
 export const stopServer = () => {

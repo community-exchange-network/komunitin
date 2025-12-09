@@ -193,7 +193,6 @@ const activateGroup = async (code: string) => {
   })
   try {
     await store.dispatch('groups/update', {
-      id: code,
       group: code,
       resource: {
         attributes: {
@@ -212,7 +211,7 @@ const activateGroup = async (code: string) => {
 }
 const deleteGroup = async (code: string) => {
   await store.dispatch('groups/delete', {
-    id: code
+    group: code
   })
   await loadGroups()
 }

@@ -2,6 +2,7 @@
   <q-item
     tag="label"
     style="padding-left: 12px; padding-right: 12px;"
+    :disable="disable"
   >
     <q-item-section>
       <q-item-label>
@@ -21,6 +22,7 @@
         :false-value="falseValue"
         :toggle-indeterminate="toggleIndeterminate"
         :indeterminate-value="null"
+        :disable="disable"
       />
     </q-item-section>
   </q-item>
@@ -37,6 +39,7 @@ const props = withDefaults(defineProps<{
   falseValue?: boolean | string | number
   defaultValue?: boolean | string | number
   toggleIndeterminate?: boolean
+  disable?: boolean
 }>(), {
   trueValue: true,
   falseValue: false,
@@ -44,6 +47,7 @@ const props = withDefaults(defineProps<{
   hint: undefined,
   defaultValue: undefined,
   toggleIndeterminate: false,
+  disable: false,
 })
 
 const emit = defineEmits<{

@@ -85,7 +85,7 @@ async function loadUser(
     } else {
     // otherwise get currency at least.
       await dispatch("currencies/load", {
-        id: currencyCode,
+        group: currencyCode,
         include: "settings"
       });
     }

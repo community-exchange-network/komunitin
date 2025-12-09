@@ -91,6 +91,7 @@
   "enableLocation": "Activa la localización",
   "dismiss": "Ignora",
   "create": "Crear",
+  "backToTransfers": "Volver a movimientos",
   "createTransaction": "Nuevo movimiento",
   "enterTransactionData": "Entra los datos del movimiento",
   "selectPayer": "De",

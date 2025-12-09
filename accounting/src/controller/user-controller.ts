@@ -1,12 +1,12 @@
 import { User } from "src/model"
 import { Context } from "src/utils/context"
-import { LedgerCurrencyController } from "./currency-controller"
+import { CurrencyControllerImpl } from "./currency-controller"
 import { forbidden } from "src/utils/error"
 import { AbstractCurrencyController } from "./abstract-currency-controller"
 
 export class UserController extends AbstractCurrencyController {
 
-  constructor(readonly currencyController: LedgerCurrencyController) {
+  constructor(readonly currencyController: CurrencyControllerImpl) {
     super(currencyController)
   }
 
