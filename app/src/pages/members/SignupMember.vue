@@ -100,7 +100,7 @@ const myUser = computed(() => store.getters.myUser)
 
 // Fetch group
 store.dispatch("groups/load", {
-  id: props.code,
+  group: props.code,
   include: "settings"
 })
 // Load member

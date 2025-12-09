@@ -2,6 +2,7 @@ import type { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
   {
+    name: 'FrontLayout',
     path: '/',
     component: () => import('../layouts/Front.vue'),
     meta: {
@@ -10,6 +11,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
+        name: 'Login',
         component: () => import('../pages/home/Login.vue')
       },
       {
@@ -30,6 +32,7 @@ const routes: RouteRecordRaw[] = [
     ]
   },
   {
+    name: 'MainLayout',
     path: '/',
     component: () => import('../layouts/Layout.vue'),
     children: [
@@ -320,6 +323,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/groups/:code/admin',
+        name: 'GroupAdmin',
         children: [{
           path: 'edit',
           props: true,
@@ -419,9 +423,30 @@ const routes: RouteRecordRaw[] = [
       back: false
     }
   },
-
-  
 ];
+
+if (process.env.FEAT_TOPUP === 'true') {
+  const mainLayout = routes.find(route => route.name === 'MainLayout');
+  mainLayout?.children?.push({
+    path: '/groups/:code/members/:memberCode/topup',
+    props: true,
+    name: 'CreateTopup',
+    component: () => import('../features/topup/CreateTopup.vue'),
+  }, {
+    path: '/groups/:code/topups/:id',
+    props: true,
+    name: 'TopupDetails',
+    component: () => import('../features/topup/TopupDetails.vue'),
+  })
+
+  const adminRoute = mainLayout?.children?.find(route => route.name === 'GroupAdmin');
+  adminRoute?.children?.push({
+    path: 'topup-settings',
+    props: true,
+    name: 'TopupSettings',
+    component: () => import('../features/topup/TopupSettings.vue'),
+  });
+}
 
 // Always leave this as last one
 if (process.env.MODE !== 'ssr') {

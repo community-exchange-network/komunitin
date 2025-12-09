@@ -101,7 +101,7 @@ const { t } = useI18n()
 // Fetch data
 watch(() => props.code, async () => {
   await store.dispatch("groups/load", {
-    id: props.code,
+    group: props.code,
     include: "currency",
     cache: 5*60*1000
   })

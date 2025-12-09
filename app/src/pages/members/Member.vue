@@ -141,7 +141,7 @@ const isLoading = computed(() => !(fetched.value || member.value && member.value
 
 const fetchData = async (memberCode: string) => {
   await store.dispatch("members/load", {
-    id: memberCode,
+    code: memberCode,
     group: props.code,
     include: "contacts,offers,needs" + (isComplete.value ? ",account" : "")
   });

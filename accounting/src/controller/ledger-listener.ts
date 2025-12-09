@@ -1,6 +1,6 @@
-import { LedgerController } from "./base-controller"
+import { BaseControllerImpl } from "./base-controller"
 
-export const initLedgerListener = (ledgerController: LedgerController) => {
+export const initLedgerListener = (ledgerController: BaseControllerImpl) => {
   const ledger = ledgerController.ledger
   // Save the state of the currency in the DB when it changes.
   ledger.addListener("stateUpdated", async (ledgerCurrency, state) => {

@@ -17,10 +17,13 @@ const loadConfig = () => {
     AUTH_JWKS_URL: process.env.AUTH_JWKS_URL || "https://komunitin.org/.well-known/jwks.json",
     AUTH_JWT_ISSUER: process.env.AUTH_JWT_ISSUER || "https://komunitin.org",
     AUTH_JWT_AUDIENCE: process.env.AUTH_JWT_AUDIENCE?.split(',') || ['komunitin-app', 'komunitin-notifications'],
-    API_BASE_URL: process.env.API_BASE_URL || "https://komunitin.org/accounting",
+    API_BASE_URL: process.env.API_BASE_URL || "https://accounting.komunitin.org",
     NOTIFICATIONS_API_URL: process.env.NOTIFICATIONS_API_URL || "https://notifications.komunitin.org",
     NOTIFICATIONS_API_USERNAME: process.env.NOTIFICATIONS_API_USERNAME || "accounting",
     DOCKER: process.env.DOCKER === "true" || false,
+    APP_URL: process.env.APP_URL || "https://komunitin.org",
+    //WEBHOOKS_BASE_URL: process.env.WEBHOOKS_BASE_URL || process.env.API_BASE_URL || "https://accounting.komunitin.org",
+    WEBHOOKS_BASE_URL: "https://0inurhsr6ey1.share.zrok.io",
     
     // SECRETS
     // TODO: Using environment variables for secrets is a reasonable practice but not a 

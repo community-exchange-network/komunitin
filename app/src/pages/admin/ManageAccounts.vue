@@ -238,11 +238,11 @@ const store = useStore()
 
 // Load group and currency.
 store.dispatch('currencies/load', {
-  id: props.code,
+  group: props.code,
   include: 'settings'
 })
 store.dispatch('groups/load', {
-  id: props.code,
+  group: props.code,
   include: 'settings'
 })
 

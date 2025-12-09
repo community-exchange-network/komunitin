@@ -384,6 +384,7 @@
   "loggingOut": "Logging out...",
   "loggedOut": "You have been logged out and you won't receive any further notifications until you log in again.",
   "create": "Create",
+  "backToTransfers": "Back to transfers",
   
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",

@@ -251,7 +251,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     return {
       id: transaction.uuid,
       state: 'committed',
-      amount: this.currencyController.amountFromLedger(netGain.toString()),
+      amount: this.currencyController.toIntegerAmount(netGain.toString()),
       meta,
       payer,
       payee,
@@ -343,11 +343,11 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
 
         trades: transfersIn.length, // FIXME: Can we remember this?
         entries: transfersIn.length,
-        gross_in: parseFloat(this.currencyController.amountToLedger(grossIn)),
-        gross_out: parseFloat(this.currencyController.amountToLedger(grossOut)),
+        gross_in: parseFloat(this.currencyController.toStringAmount(grossIn)),
+        gross_out: parseFloat(this.currencyController.toStringAmount(grossOut)),
         partners: 0, // ?
         pending: 0,
-        balance: parseFloat(this.currencyController.amountToLedger(balance))
+        balance: parseFloat(this.currencyController.toStringAmount(balance))
       },
       trace: responseTrace
     }
@@ -363,7 +363,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     let end = new Date('0000')
 
     transfers.forEach((t: Transfer) => {
-      const amount = parseFloat(this.currencyController.amountToLedger(t.amount))
+      const amount = parseFloat(this.currencyController.toStringAmount(t.amount))
       data[formatDateTime(t.created)] = amount
       if (amount < min) { min = amount }
       if (amount > max) { max = amount }
@@ -448,7 +448,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     // 2. Send the Credit Commons transaction if the local part was successful.
     if (transfer.state === 'committed') {
       try {
-        const amount = this.currencyController.amountToLedger(data.amount)
+        const amount = this.currencyController.toStringAmount(data.amount)
         const transaction = {
           version: 1,
           uuid: uuid(),
