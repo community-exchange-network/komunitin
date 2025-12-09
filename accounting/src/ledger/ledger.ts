@@ -292,7 +292,7 @@ export interface LedgerCurrency {
    * Updates the trade offer selling an asset by this currency defined hours. This method needs to
    * be called when the balance of external hours (after incomming payments using hour offers) or 
    * local currency (after outgoing external payments) increases for the trader account. 
-   * See {@link LedgerCurrencyListener.onIncommingHourTrade}
+   * See {@link LedgerCurrencyListener#onIncommingHourTrade}
    * 
    * @param externalHour 
    * @param keys 

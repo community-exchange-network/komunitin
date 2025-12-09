@@ -48,7 +48,7 @@ export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig =
   const externalTraderMaximumBalance = currency.settings.externalTraderMaximumBalance
     ? amountToLedger(currency, currency.settings.externalTraderMaximumBalance + (currency.settings.externalTraderCreditLimit ?? 0))
     : undefined
-  
+
   return {
     code: currency.code,
     rate: currency.rate,
@@ -73,7 +73,7 @@ export const currencyData = (currency: Currency): LedgerCurrencyData => {
 }
 
 export class LedgerCurrencyController implements CurrencyController {
-  
+
   model: Currency
   ledger: LedgerCurrency
   db: TenantPrismaClient
@@ -125,7 +125,7 @@ export class LedgerCurrencyController implements CurrencyController {
     if (currency.settings) {
       throw badRequest("Can't change the currency settings through currency update")
     }
-    
+
     if (currency.rate && (currency.rate.n !== this.model.rate.n || currency.rate.d !== this.model.rate.d)) {
       if (this.model.status !== "active") {
         throw inactiveCurrency(`Cannot change rate of inactive currency ${this.model.code}`)
@@ -175,7 +175,7 @@ export class LedgerCurrencyController implements CurrencyController {
    */
   public async updateCurrencySettings(ctx: Context, settings: UpdateCurrencySettings) {
     await this.users.checkAdmin(ctx)
-    const {id, ...settingsFields} = settings
+    const { id, ...settingsFields } = settings
     // Merge the settings since the DB is a JSON field.
     const updatedSettings = {
       ...this.model.settings,
@@ -220,7 +220,7 @@ export class LedgerCurrencyController implements CurrencyController {
         maximumBalance: updatedSettings.externalTraderMaximumBalance
       })
     }
-    
+
     const record = await this.db.currency.update({
       data: {
         settings: updatedSettings
@@ -281,10 +281,14 @@ export class LedgerCurrencyController implements CurrencyController {
         limit: data.limit,
         balance: 0,
 
-        trusted: { connect: { tenantId_id: {
-          tenantId: this.db.tenantId,
-          id: trustedExternalResource.id
-        } } },
+        trusted: {
+          connect: {
+            tenantId_id: {
+              tenantId: this.db.tenantId,
+              id: trustedExternalResource.id
+            }
+          }
+        },
         currency: { connect: { id: this.model.id } }
       }
     })
@@ -299,12 +303,12 @@ export class LedgerCurrencyController implements CurrencyController {
     if (!existing) {
       throw notFound(`Trustline ${data.id} not found`)
     }
-    
+
     const externalIdentifier = externalResourceToIdentifier(existing.trusted)
     const trustedExternalResource = await this.externalResources.getExternalResource<Currency>(ctx, externalIdentifier)
     const trustedCurrency = trustedExternalResource.resource
 
-    if (data.limit && data.limit !== existing.limit) {      
+    if (data.limit && data.limit !== existing.limit) {
       // Update the trustline in the ledger
       await this.ledger.trustCurrency({
         trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
@@ -315,7 +319,7 @@ export class LedgerCurrencyController implements CurrencyController {
         externalIssuer: await this.keys.externalIssuerKey()
       })
     }
-    
+
     // Update the trustline in the DB
     const record = await this.db.trustline.update({
       data: {
@@ -347,7 +351,7 @@ export class LedgerCurrencyController implements CurrencyController {
       skip: params.pagination.cursor,
       take: params.pagination.size,
     })
-    
+
     return records.map(r => recordToTrustline(r, recordToExternalResource<Currency>(r.trusted), this.model))
   }
 
@@ -373,7 +377,7 @@ export class LedgerCurrencyController implements CurrencyController {
    * To be called after a local transfer is committed to the ledger.
   */
   async handleTransferEvent(ledgerTransfer: LedgerTransfer) {
-    const payerAccount =  await this.accounts.getAccountByKey(systemContext(), ledgerTransfer.payer)
+    const payerAccount = await this.accounts.getAccountByKey(systemContext(), ledgerTransfer.payer)
     if (payerAccount) {
       // The payer may not be found if it is one of the system accounts such as the credit account.
       await this.accounts.updateAccountBalance(payerAccount)
@@ -404,7 +408,7 @@ export class LedgerCurrencyController implements CurrencyController {
    * Does nothing if the disabled accounts pool is already created.
    */
   async createDisabledAccountsPool() {
-    let key : Keypair|undefined = undefined
+    let key: Keypair | undefined = undefined
     if (this.model.keys.disabledAccountsPool) {
       const poolAccount = await this.ledger.findAccount(this.model.keys.disabledAccountsPool)
       if (poolAccount !== null) {
@@ -438,7 +442,7 @@ export class LedgerCurrencyController implements CurrencyController {
 
       this.ledger.setData(currencyData(this.model))
     }
-    
+
   }
 
   async disableCurrency(ctx: Context) {
