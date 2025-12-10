@@ -184,40 +184,26 @@ export class LedgerCurrencyController implements CurrencyController {
     // Check if we need to update the ledger.
     const newCreditLimit = updatedSettings.externalTraderCreditLimit
     const oldCreditLimit = this.model.settings.externalTraderCreditLimit
-    if (newCreditLimit !== undefined && newCreditLimit !== oldCreditLimit) {
-      if (newCreditLimit < oldCreditLimit) {
-        if (this.model.externalAccount.balance < -newCreditLimit) {
-          throw badRequest(`Cannot reduce credit limit to ${newCreditLimit} because the external account balance is ${this.model.externalAccount.balance}`)
-        }
-        await this.ledger.updateExternalOffer(this.ledger.asset(), {
-          sponsor: await this.keys.sponsorKey(),
-          externalTrader: await this.keys.externalTraderKey()
-        }, this.amountToLedger(this.model.externalAccount.balance + newCreditLimit))
-      }
-
-      // Change account credit limit
-      await this.accounts.updateAccount(systemContext(), {
-        id: this.model.externalAccount.id,
-        creditLimit: updatedSettings.externalTraderCreditLimit ?? 0
-      })
-
-      if (newCreditLimit > oldCreditLimit) {
-        await this.ledger.updateExternalOffer(this.ledger.asset(), {
-          sponsor: await this.keys.sponsorKey(),
-          externalTrader: await this.keys.externalTraderKey()
-        })
-      }
-    }
 
     const newMaxBalance = updatedSettings.externalTraderMaximumBalance
     const oldMaxBalance = this.model.settings.externalTraderMaximumBalance ?? false
 
-    if (newMaxBalance !== undefined && newMaxBalance !== oldMaxBalance) {
-      // TODO: We should also update the offer in the ledger HOUR => asset offer
-      // and HOUR balance in the ledger.
-      await this.accounts.updateAccount(systemContext(), {
-        id: this.model.externalAccount.id,
-        maximumBalance: updatedSettings.externalTraderMaximumBalance
+    if (newCreditLimit !== undefined && newCreditLimit !== oldCreditLimit
+      || newMaxBalance !== undefined && newMaxBalance !== oldMaxBalance
+    ) {
+      this.model.settings.externalTraderCreditLimit = newCreditLimit
+      this.model.settings.externalTraderMaximumBalance = newMaxBalance
+      this.ledger.setConfig(currencyConfig(this.model))
+      await this.reconcileExternalTrader()
+      // update external trader account db record
+      await this.db.account.update({
+        data: {
+          creditLimit: newCreditLimit,
+          maximumBalance: newMaxBalance === false ? null : newMaxBalance
+        },
+        where: {
+          id: this.model.externalAccount.id
+        }
       })
     }
 
@@ -531,5 +517,35 @@ export class LedgerCurrencyController implements CurrencyController {
         account: await this.keys.issuerKey()
       })
     }
+  }
+
+  private async reconcileExternalTrader() {
+    // Get trustlines
+    const records = await this.db.trustline.findMany({
+      where: {
+        currencyId: this.model.id
+      },
+      include: {
+        trusted: true
+      }
+    })
+    const lines = await Promise.all(records.map(async record => {
+      const externalIdentifier = externalResourceToIdentifier(recordToExternalResource<Currency>(record.trusted))
+      const trustedExternalResource = await this.externalResources.getExternalResource<Currency>(systemContext(), externalIdentifier)
+      const trustedCurrency = trustedExternalResource.resource
+      return {
+        trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
+        limit: this.amountToLedger(Number(record.limit))
+      }
+    }))
+    
+    // Delegate to ledger layer
+    await this.ledger.reconcileExternalTrader(lines, {
+      sponsor: await this.keys.sponsorKey(),
+      externalTrader: await this.keys.externalTraderKey(),
+      externalIssuer: await this.keys.externalIssuerKey(),
+      credit: await this.keys.creditKey()
+    })
+
   }
 }
