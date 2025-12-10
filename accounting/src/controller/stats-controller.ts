@@ -310,7 +310,7 @@ export class StatsControllerImpl implements StatsPublicService {
           LEFT JOIN "Transfer" t ON (t."payerId" = a."id" OR t."payeeId" = a."id") 
             AND t."updated" >= ${fromDate} AND t."updated" < ${toDate} 
             AND t."state" = 'committed'
-          WHERE a."type" <> 'virtual'
+          WHERE a."kind" <> 'virtual'
             AND a."created" < ${toDate} AND NOT (a."status" = 'deleted' AND a."updated" < ${fromDate})
           GROUP BY a."id"
         `
@@ -325,7 +325,7 @@ export class StatsControllerImpl implements StatsPublicService {
           LEFT JOIN "Transfer" t ON (t."payerId" = a."id" OR t."payeeId" = a."id") 
             AND t."updated" >= ${fromDate} AND t."updated" < ${toDate} 
             AND t."state" = 'committed'
-          WHERE a."type" <> 'virtual' 
+          WHERE a."kind" <> 'virtual' 
             AND a."created" < ${toDate} AND NOT (a."status" = 'deleted' AND a."updated" < ${fromDate})
           GROUP BY a."id"
           HAVING COUNT(t."id") >= ${min} AND COUNT(t."id") <= ${max}
@@ -360,7 +360,7 @@ export class StatsControllerImpl implements StatsPublicService {
           SELECT i."interval" AS "interval", a."id" AS "account"
           FROM "Intervals" i
           LEFT JOIN "Account" a ON
-            a."type" <> 'virtual' AND
+            a."kind" <> 'virtual' AND
             a."created" < LEAST(i."interval" + ${sqlInterval}::interval, ${toDate}) AND
             NOT (a."status" = 'deleted' AND a."updated" < i."interval")
           LEFT JOIN "Transfer" t ON (t."payerId" = a."id" OR t."payeeId" = a."id")

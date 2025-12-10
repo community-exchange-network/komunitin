@@ -8,9 +8,9 @@ import { logger } from "src/utils/logger";
 import { CurrencyControllerImpl } from "./currency-controller";
 import { ExternalTransferController } from "./external-transfer-controller";
 import { includeRelations, whereFilter } from "./query";
-import { TransferController } from "src/controller";
+import { TransfersPublicService } from "src/controller";
 
-export class TransferControllerImpl  extends AbstractCurrencyController implements TransferController {
+export class TransferControllerImpl  extends AbstractCurrencyController implements TransfersPublicService {
   private externalTransfers: ExternalTransferController
 
   constructor(currencyController: CurrencyControllerImpl) {
@@ -300,7 +300,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
   }
 
   public async updateAccountBalances(transfer: FullTransfer) {
-    return await Promise.all([
+    await Promise.all([
       this.accounts().updateAccountBalance(transfer.payer),
       this.accounts().updateAccountBalance(transfer.payee)
     ])

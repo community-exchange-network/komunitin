@@ -1,3 +1,4 @@
+import { AccountKind } from "@prisma/client";
 import { Keypair } from "@stellar/stellar-sdk";
 import { CurrencyControllerImpl } from "../controller/currency-controller";
 import { TenantPrismaClient } from "../controller/multitenant";
@@ -7,7 +8,6 @@ import { systemContext } from "../utils/context";
 import { fixUrl } from "../utils/net";
 import { Migration, MigrationAccount, MigrationData, MigrationLogEntry, MigrationTransfer } from "./migration";
 import { MigrationController } from "./migration-controller";
-import { KError, KErrorCode } from "../utils/error";
 
 const UNLIMITED_CREDIT_LIMIT = 10 ** 6
 
@@ -602,7 +602,7 @@ export class ICESMigrationController {
               status: AccountStatus.Deleted,
               created: new Date(account.created),
               updated: new Date(account.updated),
-              type: "user",
+              kind: AccountKind.user,
               users: {
                 create: account.users?.map(user => ({
                   user: {

@@ -280,7 +280,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     throw notImplemented('not implemented yet')
   }
   private async accountCodeToAccountId(accountCode: string): Promise<string | undefined> {
-    const account = await this.accounts().getAccountBy(systemContext(), "code", accountCode)
+    const account = await this.accounts().getAccountByCode(systemContext(), accountCode)
     return account?.id
   }
   private async getTransactions(accountCode: string): Promise<{ transfersIn: Transfer[], transfersOut: Transfer[] }> {

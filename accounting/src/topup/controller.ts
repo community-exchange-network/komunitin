@@ -111,7 +111,7 @@ export class TopupController extends AbstractCurrencyController implements Topup
       // Create a new source account.
       const sourceAccount = await this.accounts().createAccount(ctx, {
         code: this.currency().code + "TOPUP",
-        type: "virtual"
+        kind: "virtual"
       })
       updatedSettings.sourceAccountId = sourceAccount.id
     }

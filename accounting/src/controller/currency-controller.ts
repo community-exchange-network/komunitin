@@ -446,7 +446,7 @@ export class CurrencyControllerImpl implements CurrencyService {
     const accounts = await this.db.account.findMany({
       where: {
         currencyId: this.model.id,
-        type: "user",
+        kind: "user",
         status: "active"
       }
     })
