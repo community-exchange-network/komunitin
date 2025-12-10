@@ -1,4 +1,4 @@
-import { AccountType, PrismaClient } from "@prisma/client"
+import { AccountKind, PrismaClient } from "@prisma/client"
 import { Keypair } from "@stellar/stellar-sdk"
 import cron from "node-cron"
 import { KeyObject } from "node:crypto"
@@ -8,10 +8,11 @@ import { CollectionOptions, relatedCollectionParams } from "src/server/request"
 import { Context, isSuperadmin, systemContext } from "src/utils/context"
 import { badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error"
 import TypedEmitter from "typed-emitter"
-import { Ledger,  } from "../ledger"
+import { Ledger } from "../ledger"
 import { CreateCurrency, Currency, CurrencySettings, currencyToRecord, recordToCurrency } from "../model/currency"
 import { decrypt, encrypt, exportKey, importKey, randomKey } from "../utils/crypto"
 import { logger } from "../utils/logger"
+import { BasePublicService, ServiceEvents } from "./api"
 import { CurrencyControllerImpl, currencyConfig, currencyData } from "./currency-controller"
 import { initUpdateCreditOnPayment } from "./features/credit-on-payment"
 import { initNotifications } from "./features/notificatons"
@@ -19,8 +20,7 @@ import { storeCurrencyKey } from "./key-controller"
 import { initLedgerListener } from "./ledger-listener"
 import { PrivilegedPrismaClient, TenantPrismaClient, privilegedDb, tenantDb } from "./multitenant"
 import { whereFilter } from "./query"
-import { StatsControllerImpl as StatsControllerImpl } from "./stats-controller"
-import { BasePublicService, ServiceEvents } from "./api"
+import { StatsControllerImpl } from "./stats-controller"
 
 export class BaseControllerImpl implements BasePublicService {
   
@@ -204,7 +204,7 @@ export class BaseControllerImpl implements BasePublicService {
     const externalAccountRecord = await db.account.create({
       data: {
         code: `${inputRecord.code}EXTR`,
-        type: AccountType.virtual,
+        kind: AccountKind.virtual,
         status: "active",
         balance: 0,
         maximumBalance: currency.settings.externalTraderMaximumBalance ? currency.settings.externalTraderMaximumBalance : null,

@@ -1,4 +1,4 @@
-import { AccountType, Prisma } from "@prisma/client";
+import { AccountKind, Prisma } from "@prisma/client";
 
 import { Account, AccountSettings, AccountStatus, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
 import { CollectionOptions } from "src/server/request";
@@ -7,9 +7,9 @@ import { deriveKey, exportKey } from "src/utils/crypto";
 import { badRequest, forbidden, notFound, unauthorized } from "src/utils/error";
 import { WithRequired } from "src/utils/types";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
+import { AccountsService } from "./api";
 import { CurrencyControllerImpl } from "./currency-controller";
 import { whereFilter } from "./query";
-import { AccountsService } from "./api";
 
 
 export class AccountControllerImpl extends AbstractCurrencyController implements AccountsService {
@@ -57,7 +57,7 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       data: {
         id: account.id,
         code,
-        type: account.type ?? AccountType.user,
+        kind: account.kind ?? AccountKind.user,
         status: AccountStatus.Active,
         // Initialize ledger values with what we have just created.
         creditLimit,
@@ -367,8 +367,8 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       if (!filter.status) {
         filter.status = AccountStatus.Active
       }
-      if (!filter.type) {
-        filter.type = AccountType.user
+      if (!filter.kind) {
+        filter.kind = AccountKind.user
       }
     }
     

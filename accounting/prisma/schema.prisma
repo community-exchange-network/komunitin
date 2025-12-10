@@ -95,7 +95,7 @@ model Currency {
   trustlines Trustline[] @relation()
 }
 
-enum AccountType {
+enum AccountKind {
   user
   virtual
 }
@@ -118,7 +118,7 @@ model Account {
   code     String @unique @db.VarChar(255)
 
   status String      @default("active") @db.VarChar(31)
-  type   AccountType @default(user)
+  kind   AccountKind @default(user)
 
   keyId      String @unique @db.VarChar(255)
   currencyId String
