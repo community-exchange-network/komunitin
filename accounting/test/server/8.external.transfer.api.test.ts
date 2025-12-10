@@ -337,17 +337,19 @@ describe("External transfers", async () => {
   })
 
   it("can update external maximum balance", async () => {
-    // 1K HOUR in TEST. We have to set this value because otherwise the existing sell offer will
-    // prevent reducing further the trustline limit. TODO: fix that!
-    const newMaxBalance = 1000 * (t.currency.attributes.rate.d / t.currency.attributes.rate.n) * 10 ** t.currency.attributes.scale
+    
+    const externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    const balance = externalAccount.attributes.balance
+
+    // decrease maximum balance to current balance + 100 or 0 if balance is negative
+    const newMaxBalance = Math.max(balance + 100, 0)
 
     // Update maximum balance
     const updatedSettings = (await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
       externalTraderMaximumBalance: newMaxBalance
     } } }, t.admin)).body.data.attributes as CurrencySettings
     assert.strictEqual(updatedSettings.externalTraderMaximumBalance, newMaxBalance)
-    /*
-    // TODO: do that when we have the new reconcile function.
+    
     // Try unsuccessful transaction exceeding maximum balance of TESTEXTR. Note that the maximum balance
     // is in TEST currency, so we need to create a transfer TEST => EXTR that exceeds the limit.
     const available = (newMaxBalance - balance)
@@ -367,7 +369,6 @@ describe("External transfers", async () => {
     assert.strictEqual(removedMax.externalTraderMaximumBalance, false)
     // Now transfers increasing balance should work
     await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 1000, "TEST => EXTR after removing maximum balance", "committed", t.user1, 201)
-  */
   })
 
 })
