@@ -205,6 +205,10 @@ export interface LedgerCurrency {
    */
   setData(data: LedgerCurrencyData): void
   /**
+   * Update the currency config.
+   */
+  setConfig(config: LedgerCurrencyConfig): void
+  /**
    * Get the local currency asset.
    */
   asset(): LedgerAsset
@@ -299,7 +303,32 @@ export interface LedgerCurrency {
    * @param amount Optional amount to sell. If not provided, the maximum possible amount (ie, the balance) is used.
    */
   updateExternalOffer(sellingAsset: LedgerAsset, keys: { sponsor: KeyPair; externalTrader: KeyPair }, amount?: string): Promise<void>
-
+  /**
+   * Reconcile the external trader state in the ledger.
+   * 
+   * This includes:
+   * - Create the trustline for local HOUR.
+   * - Update the balance and trustline limit for the local asset.
+   * - Update the passive sell offers HOUR <-> local asset to match the new balance and trustline limit.
+   * - Update the trustlines for all trusted external currencies.
+   * - Update the passive sell offers from trusted external currencies to local HOUR.
+   * - Update the active sell offers from external HOUR balances to local HOUR.
+   * - Update the local HOUR balance to exactly match the sell offer obligations.
+   * 
+   * All updates are done in a single transaction.
+   * 
+   * @param keys 
+   */
+  reconcileExternalTrader(lines: {
+    trustedPublicKey: string;
+    limit: string
+  }[],
+    keys: {
+      sponsor: KeyPair,
+      externalTrader: KeyPair,
+      externalIssuer: KeyPair,
+      credit: KeyPair
+    }): Promise<void>
 
   /**
    * Fetches a transaction from the ledger and returns the transfer information associated to it.

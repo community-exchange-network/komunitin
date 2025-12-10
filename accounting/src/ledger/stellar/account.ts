@@ -122,20 +122,19 @@ export class StellarAccount implements LedgerAccount {
         }
         const creditAccount = await this.currency.creditAccount()
         const builder = this.currency.ledger.transactionBuilder(creditAccount)
+        const signers: Set<string> = new Set()
+        signers.add(keys.credit.publicKey())
 
-        const { issuer } = this.currency.addCreditTransaction(
+        this.currency.addCreditTransaction(
           builder,
           this.account?.accountId() as string,
           diff.toString(),
-          creditAccount.balance()
+          creditAccount.balance(),
+          signers
         )
-        const signers = [keys.credit]
-        if (issuer && keys.issuer) {
-          signers.push(keys.issuer)
-        } else if (issuer) {
-          throw internalError("Required issuer key when updating credit balance")
-        }
-        await this.currency.ledger.submitTransaction(builder, signers, keys.sponsor)
+
+        const keyPairs = this.currency.signerKeys(keys, signers)
+        await this.currency.ledger.submitTransaction(builder, keyPairs, keys.sponsor)
       }
       logger.info(`Account ${this.accountId} credit updated from ${currentCredit} to ${amount}`)
       return diff.toString()
