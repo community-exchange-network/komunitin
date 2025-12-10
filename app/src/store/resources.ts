@@ -1,13 +1,14 @@
-import KError, { checkFetchResponse, KErrorCode } from "src/KError";
-import type { Module, ActionContext } from "vuex";
 import { cloneDeep } from "lodash-es";
+import KError, { KErrorCode } from "src/KError";
+import type { ActionContext, Module } from "vuex";
 
 import type {
   CollectionResponseInclude,
+  ExternalResourceObject,
   ResourceIdentifierObject,
-  ResourceObject,
-  ExternalResourceObject
+  ResourceObject
 } from "src/store/model";
+import { type AuthService, request } from "../composables/useApiFetch";
 
 export const DEFAULT_PAGE_SIZE = 20
 
@@ -311,10 +312,10 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
    *  collectionEndpoint(groupCode)/{id}.
    * ```
    *
-   * @param code The code of the resource
    * @param groupCode The code of the group
+   * @param id The id of the resource
    */
-  protected resourceEndpoint(id: string, groupCode: string) {
+  protected resourceEndpoint(groupCode: string, id: string) {
     return this.collectionEndpoint(groupCode) + `/${id}`;
   }
 
@@ -343,44 +344,23 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     return url.startsWith("http") ? url : this.baseUrl + url;
   }
 
-  private async request(context: ActionContext<ResourcesState<T>, S>, url: string, method?: "get"|"post"|"patch"|"delete", data?: object) {
-    if (method == undefined) {
-      method = "get";
-    }
+  private async request(context: ActionContext<ResourcesState<T>, S>, url: string, method?: "get"|"post"|"patch"|"delete", data?: Record<string, unknown> | unknown[]) {
     // Resolve URL. Usually we're given relative urls except for the case when retreiving
     // the next page of a list, where we're given the absolute url directly from the API.
     url = this.absoluteUrl(url)
 
-    const request = async () => fetch(url, {
-      method: method?.toUpperCase() ?? "GET",
-      body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
-      headers: {
-        Accept: "application/vnd.api+json",
-        "Content-Type": "application/vnd.api+json",
-        Authorization: `Bearer ${context.rootGetters['accessToken']}`
-      }
-    })
-    
-    try {
-      let response = await request()
-      if (!response.ok && response.status == 401) {
-        // Unauthorized. Refresh token and retry
-        await context.dispatch("authorize", {force: true}, {root: true})
-        response = await request()
-      }
-      await checkFetchResponse(response)
-      // No content
-      if (response.status == 204) {
-        return null
-      } else {
-        const json = await response.json()
-        return json
-      }
-    } catch (error) {
-      throw KError.getKError(error);
+    const auth: AuthService = {
+      accessToken: () => context.rootGetters['accessToken'],
+      refresh: () => context.dispatch("authorize", { force: true }, { root: true })
     }
-    
+
+    const options = {
+      method: method?.toUpperCase() ?? "GET",
+      body: data ?? undefined,
+    }
+
+    return request<T>(url, options, auth)
+
   }
 
   /**
@@ -897,7 +877,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     // Revalidate the data by doing the request.
     // Call API
     try {
-      const data = await this.request(context, url);
+      const data = await this.request(context, url) as CollectionResponseInclude<T, ResourceObject>
       await this.handleCollectionResponse(
         data,
         context,
@@ -959,7 +939,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       }
       
       // Perform the request.
-      const data = await this.request(context, url);
+      const data = await this.request(context, url) as CollectionResponseInclude<T, ResourceObject>
       await this.handleCollectionResponse(
         data,
         context,
@@ -998,7 +978,9 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     } else {
       // and sometimes payload contains the code attribute which can 
       // be used to find the resource as well.
-      const code = (payload as LoadByCodePayload).code ?? (payload as LoadByIdPayload).id
+      const groupCodeTypes = ["currencies", "currency-settings", "groups", "group-settings"]
+      const code = groupCodeTypes.includes(this.type) ? payload.group : (payload as LoadByCodePayload).code
+
       const cached = context.getters['find']({ code })
       if (cached) {
         id = cached.id
@@ -1021,7 +1003,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
         url = this.collectionEndpoint(payload.group)
         params.set("filter[code]", payload.code)
       } else {
-        url = this.resourceEndpoint(payload.id, payload.group)
+        url = this.resourceEndpoint(payload.group, payload.id)
       }
     }
     
@@ -1095,10 +1077,10 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       const data = await this.request(context, url);
       const resource = (Array.isArray(data.data) && data.data.length == 1) 
         ? data.data[0] 
-        : data.data
+        : data.data as T
       // Commit mutation(s).
       this.setCurrent(context, resource)
-      if (data.included) {
+      if ('included' in data) {
         await this.handleIncluded(
           data.included,
           context
@@ -1120,7 +1102,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     const body = {data: payload.resource, ...{included: payload.included}};
     try {
       const data = await this.request(context, url, "post", body)
-      const resource = data.data
+      const resource = data.data as T
       this.setCurrent(context, resource)
     } catch (error) {
       throw KError.getKError(error);
@@ -1140,7 +1122,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     const body = {data: resources};
     try {
       const data = await this.request(context, url, "post", body)
-      const resources = data.data
+      const resources = data.data as T[]
       // Update the current list of resources. Use a special Key for this list.
       const queryKey = "createList"
       this.setPageResources(context, queryKey, 0, resources)
@@ -1159,11 +1141,11 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     context: ActionContext<ResourcesState<T>, S>,
     payload: UpdatePayload<T>
   ) {
-    const url = this.resourceEndpoint(payload.id, payload.group);
+    const url = this.resourceEndpoint(payload.group, payload.id);
     const body = {data: payload.resource, ...{included: payload.included}};
     try {
       const data = await this.request(context, url, "patch", body) 
-      const resource = data.data
+      const resource = data.data as T
       this.setCurrent(context, resource)
     } catch (error) {
       throw KError.getKError(error);
@@ -1184,7 +1166,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       ?? context.getters.find({code: payload.id})
     
     const id = resource.id
-    const url = this.resourceEndpoint(payload.id, payload.group)
+    const url = this.resourceEndpoint(payload.group, payload.id)
     try {
       await this.request(context, url, "delete")
       // Remove from current pointer.

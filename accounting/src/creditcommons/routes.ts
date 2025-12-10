@@ -1,7 +1,7 @@
 import { Router, ErrorRequestHandler } from 'express'
 import { checkExact } from 'express-validator'
 import { CreditCommonsNode, CreditCommonsTransaction } from 'src/model'
-import { SharedController } from 'src/controller'
+import { BaseService } from 'src/controller'
 import { Scope, userAuth, lastHashAuth, noAuth } from 'src/server/auth'
 import { currencyInputHandler, currencyResourceHandler, asyncHandler} from 'src/server/handlers'
 import { context } from 'src/utils/context'
@@ -27,7 +27,7 @@ export const ccErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
  * 
  * @param controller 
  */
-export function getRoutes(controller: SharedController) {
+export function getRoutes(controller: BaseService) {
   const router = Router()
 
   /**

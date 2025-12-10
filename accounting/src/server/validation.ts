@@ -19,11 +19,16 @@ export const jsonApiDocArray = (type: string) => [
   ...jsonApiResource("data.*", type),
 ]
 
-const isBooleanOrNull = (value: any) => {
+export const isResourceId = (path: string, type: string) => [
+  body(`${path}.data.id`).isUUID(),
+  body(`${path}.data.type`).equals(type),
+]
+
+export const isBooleanOrNull = (value: any) => {
   return value === null || value === true || value === false
 }
 
-const isNonNegativeIntOrFalse = (value: any) => {
+export const isNonNegativeIntOrFalse = (value: any) => {
   return value === false || (typeof value === "number" && Number.isInteger(value) && value >= 0)
 }
 export namespace Validators {
@@ -169,11 +174,6 @@ export namespace Validators {
     }),
     body(`${path}.created`).optional(),
     body(`${path}.updated`).optional(),
-  ]
-
-  const isResourceId = (path: string, type: string) => [
-    body(`${path}.data.id`).isUUID(),
-    body(`${path}.data.type`).equals(type),
   ]
 
   const isOptionalResourceId = (path: string, type: string) => [

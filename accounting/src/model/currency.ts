@@ -102,6 +102,7 @@ export type CurrencySettings = {
    * Whether to hide other's account balances by default.
    */
   defaultHideBalance?: boolean
+  
 }
 
 export type UpdateCurrencySettings = AtLeast<CurrencySettings, "id">

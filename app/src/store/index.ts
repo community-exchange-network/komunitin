@@ -27,18 +27,19 @@ import type { UIState } from "./ui";
 import ui from "./ui";
 import createPersistPlugin from "./persist";
 import KError, { KErrorCode } from "src/KError";
+import type { Topup, AccountTopupSettings, TopupSettings } from "../features/topup/model";
 
 // Build modules for Social API:
 const socialUrl = config.SOCIAL_URL;
 // `groups` resource does not follow the general pattern for endpoints.
 const groups = new (class extends Resources<Group, unknown> {
   collectionEndpoint = () => "/groups";
-  resourceEndpoint = (code: string) => `/${code}`;
+  resourceEndpoint = (groupCode: string) => `/${groupCode}`;
 })("groups", socialUrl);
 
 const groupSettings = new (class extends Resources<GroupSettings, unknown> {
   collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "Group settings cannot be listed");};
-  resourceEndpoint = (code: string) => `/${code}/settings`;
+  resourceEndpoint = (groupCode: string) => `/${groupCode}/settings`;
 })("group-settings", socialUrl)
 
 const contacts = new Resources<Contact, unknown>("contacts", socialUrl);
@@ -49,12 +50,12 @@ const needs = new Resources<Need, unknown>("needs", socialUrl);
 const categories = new Resources<Category, unknown>("categories", socialUrl);
 const users = new (class extends Resources<User, unknown> {
   collectionEndpoint = () => "/users";
-  resourceEndpoint = (id?: string) => id ? `/users/${id}` : "/users/me";
+  resourceEndpoint = (groupCode: string, id?: string) => id ? `/users/${id}` : "/users/me";
 })("users", socialUrl);
 
 const userSettings = new (class extends Resources<UserSettings, unknown> {
   collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "User settings cannot be listed");};
-  resourceEndpoint = (id: string) => `/users/${id}/settings`;
+  resourceEndpoint = (groupCode: string, id: string) => `/users/${id}/settings`;
 })("user-settings", socialUrl);
 
 // Build modules for Accounting API:
@@ -63,7 +64,7 @@ const accountingUrl = config.ACCOUNTING_URL;
 // `currencies` resource does not follow the general pattern for endpoints.
 const currencies = new (class extends Resources<Currency, unknown> {
   collectionEndpoint = () => "/currencies";
-  resourceEndpoint = (code: string) => `/${code}/currency`;
+  resourceEndpoint = (groupCode: string) => `/${groupCode}/currency`;
   /**
    * Defines the inverse of the external relation group -> currency, so 
    * actions to currencies module can be called with include=group.
@@ -78,7 +79,7 @@ const currencies = new (class extends Resources<Currency, unknown> {
 
 const currencySettings = new (class extends Resources<CurrencySettings, unknown> {
   collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "Currency settings cannot be listed");};
-  resourceEndpoint = (code: string) => `/${code}/currency/settings`;
+  resourceEndpoint = (groupCode: string) => `/${groupCode}/currency/settings`;
 })("currency-settings", accountingUrl)
 
 const accounts = new (class extends Resources<Account, unknown> {
@@ -96,24 +97,14 @@ const accounts = new (class extends Resources<Account, unknown> {
 
 const accountSettings = new (class extends Resources<AccountSettings, unknown> {
   collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "Account settings cannot be listed");};
-  resourceEndpoint = (id: string, groupCode: string) => `/${groupCode}/accounts/${id}/settings`;
+  resourceEndpoint = (groupCode: string, id: string) => `/${groupCode}/accounts/${id}/settings`;
 })("account-settings", accountingUrl)
 
 const transfers = new Resources<Transfer, unknown>("transfers", accountingUrl);
 
 const trustlines = new Resources<Trustline, unknown>("trustlines", accountingUrl);
 
-/*
- * If not building with SSR mode, you can
- * directly export the Store instantiation;
- *
- * The function below can be async too; either use
- * async/await or return a Promise which resolves
- * with the Store instance.
- */
-
-export default createStore({
-  modules: {
+const modules = {
     // Logged-in user module
     me,
     // User interface module.
@@ -143,7 +134,33 @@ export default createStore({
     "account-settings": accountSettings,
     transfers,
     trustlines
-  },
+  }
+
+if (process.env.FEAT_TOPUP === "true") {
+  modules["topup-settings"] = new (class extends Resources<TopupSettings, unknown> {
+    collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "Topup settings cannot be listed");}
+    resourceEndpoint = (groupCode: string) => `/${groupCode}/currency/topup-settings`;
+  })("topup-settings", accountingUrl);
+  
+  modules["account-topup-settings"] = new (class extends Resources<AccountTopupSettings, unknown> {
+    collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "Account topup settings cannot be listed");}
+    resourceEndpoint = (groupCode: string, id: string) => `/${groupCode}/accounts/${id}/topup-settings`;
+  })("account-topup-settings", accountingUrl);
+
+  modules["topups"] = new Resources<Topup, unknown>("topups", accountingUrl);
+}
+
+/*
+ * If not building with SSR mode, you can
+ * directly export the Store instantiation;
+ *
+ * The function below can be async too; either use
+ * async/await or return a Promise which resolves
+ * with the Store instance.
+ */
+
+export default createStore({
+  modules,
   // enable strict mode (adds overhead!) for dev mode only
   strict: process.env.DEV === "true",
   plugins: [createPersistPlugin()]

@@ -4,7 +4,7 @@ import type { KeyObject } from "node:crypto";
 import { externalResourceToIdentifier, recordToExternalResource } from "src/model/resource";
 import { InputTrustline, Trustline, UpdateTrustline, recordToTrustline } from "src/model/trustline";
 import TypedEmitter from "typed-emitter";
-import { ControllerEvents, CurrencyController } from ".";
+import { CurrencyPublicService, CurrencyService, ServiceEvents } from ".";
 import { LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerTransfer } from "../ledger";
 import {
   FullAccount,
@@ -21,21 +21,21 @@ import { CollectionOptions } from "../server/request";
 import { Context, systemContext } from "../utils/context";
 import { badRequest, inactiveCurrency, internalError, notFound, notImplemented } from "../utils/error";
 import { AtLeast } from "../utils/types";
-import { AccountController } from "./account-controller";
+import { AccountControllerImpl } from "./account-controller";
 import { ExternalResourceController } from "./external-resource-controller";
 import { KeyController } from "./key-controller";
 import { TenantPrismaClient } from "./multitenant";
 import { whereFilter } from "./query";
-import { TransferController } from "./transfer-controller";
+import { TransferControllerImpl } from "./transfer-controller";
 import { CreditCommonsController, CreditCommonsControllerImpl } from "../creditcommons/credit-commons-controller";
 import { UserController } from "./user-controller";
-import { StatsController } from "./stats-controller";
+import { StatsControllerImpl } from "./stats-controller";
 
-export function amountToLedger(currency: {scale: number}, amount: number) {
+export function toStringAmount(currency: {scale: number}, amount: number) {
   return Big(amount).div(Big(10).pow(currency.scale)).toString()
 }
 
-export function amountFromLedger(currency: {scale: number}, amount: string) {
+export function toIntegerAmount(currency: {scale: number}, amount: string) {
   return Big(amount).times(Big(10).pow(currency.scale)).toNumber()
 }
 
@@ -44,9 +44,9 @@ export function convertAmount(amount: number, from: AtLeast<Currency, "rate">, t
 }
 
 export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
-  const externalTraderInitialCredit = amountToLedger(currency, currency.settings.externalTraderCreditLimit ?? 0)
+  const externalTraderInitialCredit = toStringAmount(currency, currency.settings.externalTraderCreditLimit ?? 0)
   const externalTraderMaximumBalance = currency.settings.externalTraderMaximumBalance
-    ? amountToLedger(currency, currency.settings.externalTraderMaximumBalance + (currency.settings.externalTraderCreditLimit ?? 0))
+    ? toStringAmount(currency, currency.settings.externalTraderMaximumBalance + (currency.settings.externalTraderCreditLimit ?? 0))
     : undefined
 
   return {
@@ -72,23 +72,23 @@ export const currencyData = (currency: Currency): LedgerCurrencyData => {
   }
 }
 
-export class LedgerCurrencyController implements CurrencyController {
-
+export class CurrencyControllerImpl implements CurrencyService {
+  
   model: Currency
   ledger: LedgerCurrency
   db: TenantPrismaClient
-  emitter: TypedEmitter<ControllerEvents>
+  emitter: TypedEmitter<ServiceEvents>
 
   // Controllers
   users: UserController
   keys: KeyController
-  accounts: AccountController
-  transfers: TransferController
+  accounts: AccountControllerImpl
+  transfers: TransferControllerImpl
   externalResources: ExternalResourceController
   creditCommons: CreditCommonsController
-  stats: StatsController
+  stats: StatsControllerImpl
 
-  constructor(model: Currency, ledger: LedgerCurrency, db: TenantPrismaClient, encryptionKey: () => Promise<KeyObject>, sponsorKey: () => Promise<Keypair>, emitter: TypedEmitter<ControllerEvents>) {
+  constructor(model: Currency, ledger: LedgerCurrency, db: TenantPrismaClient, encryptionKey: () => Promise<KeyObject>, sponsorKey: () => Promise<Keypair>, emitter: TypedEmitter<ServiceEvents>) {
     this.db = db
     this.model = model
     this.ledger = ledger
@@ -96,22 +96,22 @@ export class LedgerCurrencyController implements CurrencyController {
 
     this.users = new UserController(this)
     this.keys = new KeyController(this, sponsorKey, encryptionKey)
-    this.accounts = new AccountController(this)
-    this.transfers = new TransferController(this)
+    this.accounts = new AccountControllerImpl(this)
+    this.transfers = new TransferControllerImpl(this)
     this.externalResources = new ExternalResourceController(this)
     this.creditCommons = new CreditCommonsControllerImpl(this)
-    this.stats = new StatsController(this.db)
+    this.stats = new StatsControllerImpl(this.db)
   }
 
   /**
-   * Implements {@link CurrencyController.getCurrency}
+   * Implements {@link CurrencyPublicService.getCurrency}
    */
   public async getCurrency(_ctx: Context): Promise<Currency> {
     return this.model
   }
 
   /**
-   * Implements {@link CurrencyController.updateCurrency}
+   * Implements {@link CurrencyPublicService.updateCurrency}
    */
   async updateCurrency(ctx: Context, currency: UpdateCurrency) {
     await this.users.checkAdmin(ctx)
@@ -163,17 +163,17 @@ export class LedgerCurrencyController implements CurrencyController {
     return this.model
   }
   /**
-   * Implements {@link CurrencyController.getCurrencySettings}
+   * Implements {@link CurrencyPublicService.getCurrencySettings}
    */
-  public async getCurrencySettings(ctx: Context) {
+  public async getCurrencySettings<T extends CurrencySettings>(ctx: Context) {
     // Maybe we could relax that and allow public access to *read* currency settings.
     await this.users.checkUser(ctx)
-    return this.model.settings
+    return this.model.settings as T
   }
   /**
-   * Implements {@link CurrencyController#updateCurrencySettings}
+   * Implements {@link CurrencyPublicService#updateCurrencySettings}
    */
-  public async updateCurrencySettings(ctx: Context, settings: UpdateCurrencySettings) {
+  public async updateCurrencySettings<T extends CurrencySettings>(ctx: Context, settings: AtLeast<T,"id">): Promise<T> {
     await this.users.checkAdmin(ctx)
     const { id, ...settingsFields } = settings
     // Merge the settings since the DB is a JSON field.
@@ -219,7 +219,7 @@ export class LedgerCurrencyController implements CurrencyController {
       }
     })
     this.model = recordToCurrency(record)
-    return this.model.settings
+    return this.model.settings as T
   }
 
   async updateState(state: LedgerCurrencyState) {
@@ -230,12 +230,12 @@ export class LedgerCurrencyController implements CurrencyController {
     this.model.state = state
   }
 
-  public amountToLedger(amount: number) {
-    return amountToLedger(this.model, amount)
+  public toStringAmount(amount: number) {
+    return toStringAmount(this.model, amount)
   }
 
-  public amountFromLedger(amount: string) {
-    return amountFromLedger(this.model, amount)
+  public toIntegerAmount(amount: string) {
+    return toIntegerAmount(this.model, amount)
   }
 
   async cron(ctx: Context) {
@@ -254,7 +254,7 @@ export class LedgerCurrencyController implements CurrencyController {
     // Create the trustline in the ledger.
     await this.ledger.trustCurrency({
       trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
-      limit: this.amountToLedger(data.limit)
+      limit: this.toStringAmount(data.limit)
     }, {
       sponsor: await this.keys.sponsorKey(),
       externalTrader: await this.keys.externalTraderKey(),
@@ -298,7 +298,7 @@ export class LedgerCurrencyController implements CurrencyController {
       // Update the trustline in the ledger
       await this.ledger.trustCurrency({
         trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
-        limit: this.amountToLedger(data.limit)
+        limit: this.toStringAmount(data.limit)
       }, {
         sponsor: await this.keys.sponsorKey(),
         externalTrader: await this.keys.externalTraderKey(),
@@ -436,7 +436,7 @@ export class LedgerCurrencyController implements CurrencyController {
     const accounts = await this.db.account.findMany({
       where: {
         currencyId: this.model.id,
-        type: "user",
+        kind: "user",
         status: "active"
       }
     })
@@ -483,7 +483,7 @@ export class LedgerCurrencyController implements CurrencyController {
       if (issuer) {
         await this.ledger.trustCurrency({
           trustedPublicKey: issuer,
-          limit: this.amountToLedger(Number(tl.limit))
+          limit: this.toStringAmount(Number(tl.limit))
         }, {
           sponsor: await this.keys.sponsorKey(),
           externalTrader: await this.keys.externalTraderKey(),
@@ -511,7 +511,7 @@ export class LedgerCurrencyController implements CurrencyController {
       const issuerAccount = await this.ledger.getAccount(this.model.keys.issuer)
       await issuerAccount.pay({
         payeePublicKey: this.model.keys.disabledAccountsPool as string,
-        amount: this.amountToLedger(totalDisabledBalance.toNumber())
+        amount: this.toStringAmount(totalDisabledBalance.toNumber())
       }, {
         sponsor: await this.keys.sponsorKey(),
         account: await this.keys.issuerKey()
@@ -535,7 +535,7 @@ export class LedgerCurrencyController implements CurrencyController {
       const trustedCurrency = trustedExternalResource.resource
       return {
         trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
-        limit: this.amountToLedger(Number(record.limit))
+        limit: this.toStringAmount(Number(record.limit))
       }
     }))
     

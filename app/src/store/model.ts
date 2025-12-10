@@ -31,8 +31,7 @@ export interface ErrorObject {
   title: string;
 }
 
-export type Response<T extends ResourceObject, I extends ResourceObject> =
-  | ErrorResponse
+export type SuccessfulResponse<T extends ResourceObject, I extends ResourceObject> =
   | ResourceResponse<T>
   | CollectionResponse<T>
   | ResourceResponseInclude<T, I>

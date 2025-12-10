@@ -154,7 +154,7 @@ const canEdit = computed(() => {
 })
 const fetchData = async(offerCode: string) => {
   await store.dispatch("offers/load", {
-    id: offerCode,
+    code: offerCode,
     group: props.code,
     include: "category,member,member.contacts,member.group,member.group.currency"
   });
