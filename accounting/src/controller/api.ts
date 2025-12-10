@@ -1,6 +1,6 @@
 
 import { AccountStatsOptions, CollectionOptions, StatsOptions } from "../server/request"
-import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer, UpdateCurrencySettings, FullAccount } from "../model"
+import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer, UpdateCurrencySettings, FullAccount, User, TransferState } from "../model"
 import { Context } from "../utils/context"
 import { InputTrustline, Trustline, UpdateTrustline } from "src/model/trustline"
 import { Stats } from "src/model/stats"
@@ -10,6 +10,8 @@ import { UserController } from "./user-controller"
 import { KeyController } from "./key-controller"
 import { ExternalResourceController } from "./external-resource-controller"
 import { AtLeast } from "../utils/types"
+import { CreditCommonsController } from "../creditcommons/credit-commons-controller"
+import { LedgerCurrency } from "../ledger"
 
 /**
  * Controller for operations not related to a particular currency.
@@ -69,7 +71,12 @@ export interface CurrencyService extends CurrencyPublicService {
   users: UserController
   keys: KeyController
   accounts: AccountsService
+  transfers: TransfersService
   externalResources: ExternalResourceController
+  creditCommons: CreditCommonsController
+
+  emitter: TypedEmitter<ServiceEvents>
+  ledger: LedgerCurrency
 
   // Allow other modules to save additional settings on the currency settings
   getCurrencySettings<T extends CurrencySettings>(ctx: Context): Promise<T>
@@ -111,7 +118,12 @@ export interface AccountsPublicService {
  * Internal controller for account-related operations.
  */
 export interface AccountsService extends AccountsPublicService {
+  filterAccount(user: User|undefined, account: FullAccount): Account
+  accountTagHash(value: string): Promise<string>
+  updateAccountBalance(account: FullAccount): Promise<void>
   getFullAccount(id: string, checkActive?: boolean): Promise<FullAccount>
+  getAccountByTag(ctx: Context, tag: string, hashed?: boolean): Promise<FullAccount|undefined>
+  getAccountByCode(ctx: Context, code: string): Promise<FullAccount|undefined>
 }
 
 /**
@@ -124,6 +136,14 @@ export interface TransfersPublicService {
   getTransfers(ctx: Context, params: CollectionOptions): Promise<Transfer[]>
   updateTransfer(ctx: Context, transfer: UpdateTransfer): Promise<FullTransfer>
   deleteTransfer(ctx: Context, id: string): Promise<void>
+}
+
+export interface TransfersService extends TransfersPublicService {
+  createTransferRecord(data: InputTransfer, payer: FullAccount, payee: FullAccount, user: User): Promise<FullTransfer>
+  updateAccountBalances(transfer: FullTransfer): Promise<void>
+  updateTransferState(transfer: FullTransfer, state: TransferState, user: User): Promise<void>
+  saveTransferState(transfer: FullTransfer, state: TransferState): Promise<void>
+  checkTransferTransition(transfer: FullTransfer, state: TransferState): void
 }
 
 /**

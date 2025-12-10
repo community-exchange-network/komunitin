@@ -1,4 +1,4 @@
-import { CurrencyController, BaseController } from "..";
+import { CurrencyPublicService, BaseService } from "..";
 import { systemContext } from "src/utils/context";
 import { config } from "src/config";
 import { FullTransfer, User } from "src/model";
@@ -57,7 +57,7 @@ const sendEvent = async (event: Event) => {
 /**
  * Send events to the notifications service when a transfer changes state.
  */
-export const initNotifications = (controller: BaseController) => {
+export const initNotifications = (controller: BaseService) => {
   // These are the states that we want to notify
   const notifiedStates = {
     committed: EventName.TransferCommitted,
@@ -65,7 +65,7 @@ export const initNotifications = (controller: BaseController) => {
     rejected: EventName.TransferRejected
   }
 
-  const onTransferChanged = async (transfer: FullTransfer, currencyController: CurrencyController) => {
+  const onTransferChanged = async (transfer: FullTransfer, currencyController: CurrencyPublicService) => {
     const state = transfer.state
     if (state in notifiedStates) {
       const ctx = systemContext()
