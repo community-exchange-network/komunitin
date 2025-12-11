@@ -7,13 +7,6 @@
     to="/home" 
     />
     
-    <menu-item 
-      id="menu-transactions" 
-      icon="account_balance_wallet"
-      :title="$t('transactions')" 
-      :to="`/groups/${groupCode}/members/${myMember.attributes.code}/transactions`"
-    />
-
     <q-separator />
 
     <!-- Group -->
@@ -52,6 +45,15 @@
       icon="insert_chart"
       :title="$t('statistics')"
       :to="`/groups/${groupCode}/stats`"
+    />
+
+    <q-separator />
+    
+    <menu-item 
+      id="menu-transactions" 
+      icon="account_balance_wallet"
+      :title="$t('transactions')" 
+      :to="`/groups/${groupCode}/members/${myMember.attributes.code}/transactions`"
     />
 
     <template v-if="isAdmin">
