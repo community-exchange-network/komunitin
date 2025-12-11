@@ -1,12 +1,18 @@
 <template>
   <q-btn
-    flat
+    outline 
     round
-    icon="account_circle"
+    size="sm"
     :aria-label="$t('profile')"
     @click.stop
   >
-  <q-menu
+    <avatar
+      size="sm"
+      :img-src="myMember.attributes.image"
+      :text="myMember.attributes.name"
+    />
+
+    <q-menu
       auto-close
       anchor="bottom right"
       self="top right"
@@ -67,6 +73,7 @@ import { computed } from 'vue';
 import { useStore } from 'vuex';
 import { config } from 'src/utils/config';
 
+import Avatar from "./Avatar.vue";
 import MemberHeader from '../components/MemberHeader.vue';
 import MenuItem from '../components/MenuItem.vue';
 
