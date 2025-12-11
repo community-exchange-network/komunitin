@@ -4,6 +4,7 @@
       search
       :title="$t('members')"
       balance
+      profile
       @search="query = $event"
     />
     <q-page-container>
