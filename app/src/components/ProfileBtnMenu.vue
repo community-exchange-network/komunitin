@@ -1,29 +1,48 @@
 <template>
   <q-btn
-    outline 
+    flat 
     round
-    size="sm"
+    size="md"
     :aria-label="$t('profile')"
     @click.stop
   >
     <avatar
-      size="sm"
+      size="md"
       :img-src="myMember.attributes.image"
       :text="myMember.attributes.name"
     />
 
     <q-menu
+      fit
       auto-close
       anchor="bottom right"
       self="top right"
+      max-height="none"
     >
-      <q-list>
-        <member-header
-          id="my-member" 
-          :member="myMember" 
-          :to="`/groups/${groupCode}/members/${myMember.attributes.code}`"
-          active-class="bg-active"
+      <q-list style="min-width: 250px;">
+
+        <!-- Profile details -->
+        <div class="column items-center q-pa-md" @click.stop>
+          <avatar
+            size="xl"
+            :img-src="myMember.attributes.image"
+            :text="myMember.attributes.name"
           />
+          <span class="text-center text-subtitle1 q-mt-md">
+            {{ myMember.attributes.name }}
+          </span>
+          <span class="text-center text-caption text-secondary">
+            {{ account }}
+          </span>
+        </div>
+
+        <q-separator />
+
+        <menu-item
+          icon="account_circle"
+          :title="$t('myProfile')"
+          :to="`/groups/${groupCode}/members/${myMember.attributes.code}`"
+        />
         <menu-item
           icon="loyalty"
           :title="$t('myNeeds')"
@@ -74,13 +93,13 @@ import { useStore } from 'vuex';
 import { config } from 'src/utils/config';
 
 import Avatar from "./Avatar.vue";
-import MemberHeader from '../components/MemberHeader.vue';
 import MenuItem from '../components/MenuItem.vue';
 
 const store = useStore();
 
 const myMember = computed(() => store.getters.myMember);
 const groupCode = computed(() => myMember?.value.group.attributes.code);
+const account = computed(() => myMember?.value.account.attributes.code || '')
 
 const feedbackURL = config.FEEDBACK_URL;
 
