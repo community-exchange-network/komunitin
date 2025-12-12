@@ -417,11 +417,11 @@ describe("External transfers", async () => {
 
     // TEST trusts EXTR
     const tTrustline = await trustCurrency(t.currency, eCurrency, 5000, t.admin)
-    
+    assert.equal(tTrustline.attributes.limit, 5000)
+    assert.equal(tTrustline.attributes.balance, 0)
+
     // The amount is constrained by the TEST's external trader local balance 
     // of 1500 + credit limit of 1000 = 2500 TEST, not by the trustline limit of 5000 TEST.
-    assert.equal(tTrustline.attributes.limit, 5000)
-    assert.equal(tTrustline.attributes.balance, 0) 
     await waitForPath(eCurrency, t.currency, 2500)
     
     // Try successful transaction within credit limit
@@ -438,6 +438,13 @@ describe("External transfers", async () => {
     } } }, t.admin)).body.data.attributes as CurrencySettings
     assert.strictEqual(updatedSettings.externalTraderCreditLimit, 2000)
 
+    // Check external account status
+    externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(externalAccount.attributes.balance, -500) // Balance hasn't changed
+    assert.equal(externalAccount.attributes.creditLimit, 2000)
+
+    // Now we should be able to transfer up to 1500 TEST (balance -500 + credit limit 2000)
+    await waitForPath(eCurrency, t.currency, 1500)
     // Try successful transaction within new credit limit
     await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, 120, "120 EXTR => 600 TEST within new credit limit", "committed", eUser1)
     // Check external account status
