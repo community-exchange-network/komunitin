@@ -155,3 +155,16 @@ jobs:
         && cd ices && git pull && cd ..
         && cd komunitin && git pull
         && ./start.sh --up --public"
+    - name: Deploy ces2demo.community-exchange.org
+      if: github.ref == 'refs/heads/master'
+      run: > 
+        ssh-keyscan -H demo2.community-exchange.org >> ~/.ssh/known_hosts &&
+        ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 ces@demo2.community-exchange.org 
+        "cd /opt/ces2demo.community-exchange.org/komunitin
+        && git fetch origin
+        && git checkout master
+        && git pull origin master
+        && docker-compose -f compose.yml -f docker-compose.test.yml stop app
+        && docker-compose -f compose.yml -f docker-compose.test.yml rm -f app
+        && docker-compose -f compose.yml -f docker-compose.test.yml build --no-cache app
+        && docker-compose -f compose.yml -f docker-compose.test.yml up -d app"
