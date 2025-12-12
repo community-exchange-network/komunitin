@@ -155,6 +155,11 @@ jobs:
         && cd ices && git pull && cd ..
         && cd komunitin && git pull
         && ./start.sh --up --public"
+    - name: Install SSH Key for ces2demo
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.CES2DEMO_SSH_PRIVATE_KEY }}
+        known_hosts: 'will-be-set-now'
     - name: Deploy ces2demo.community-exchange.org
       if: github.ref == 'refs/heads/master'
       run: > 
