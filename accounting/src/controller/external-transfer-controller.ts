@@ -452,7 +452,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
 
     // There is no trust path between these two accounts. The transfer is not possible.
     if (!path) {
-      throw noTrustPath(`No trust path between currencies ${this.currency().code} and ${externalCurrency.resource.code}`)
+      throw noTrustPath(`No trust path from currency ${this.currency().code} to ${externalCurrency.resource.code}`)
     }
     // There is a trust path! Submit the transaction.
 

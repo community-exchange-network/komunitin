@@ -249,6 +249,7 @@ export class CurrencyControllerImpl implements CurrencyService {
     await this.users.checkAdmin(ctx)
 
     const trustedExternalResource = await this.externalResources.getExternalResource<Currency>(ctx, data.trusted)
+    /*
     const trustedCurrency = trustedExternalResource.resource
 
     // Create the trustline in the ledger.
@@ -260,6 +261,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       externalTrader: await this.keys.externalTraderKey(),
       externalIssuer: await this.keys.externalIssuerKey()
     })
+    */
 
     // Store trustline in DB with 0 initial balance
     const record = await this.db.trustline.create({
@@ -278,6 +280,13 @@ export class CurrencyControllerImpl implements CurrencyService {
         currency: { connect: { id: this.model.id } }
       }
     })
+    try {
+      await this.reconcileExternalTrader()
+    } catch (e) {
+      // Rollback trustline creation
+      await this.db.trustline.delete({ where: { id: record.id } })
+      throw e
+    }
     const trustline = recordToTrustline(record, trustedExternalResource, this.model)
     return trustline
   }
@@ -519,7 +528,7 @@ export class CurrencyControllerImpl implements CurrencyService {
     }
   }
 
-  private async reconcileExternalTrader() {
+  async reconcileExternalTrader() {
     // Get trustlines
     const records = await this.db.trustline.findMany({
       where: {

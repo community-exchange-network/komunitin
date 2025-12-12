@@ -321,7 +321,7 @@ export interface LedgerCurrency {
    */
   reconcileExternalTrader(lines: {
     trustedPublicKey: string;
-    limit: string
+    limit: string // in local currency units
   }[],
     keys: {
       sponsor: KeyPair,
