@@ -176,14 +176,18 @@ describe('Creates stellar elements', async () => {
       externalTraderPublicKey: currency2Keys.externalTrader.publicKey()
     })
 
-    await assert.doesNotReject(currency2.trustCurrency({
-      trustedPublicKey: currencyKeys.externalIssuer.publicKey(),
-      limit: "10" // 5 hours
-    }, {
-      sponsor,
-      externalTrader: currency2Keys.externalTrader,
-      externalIssuer: currency2Keys.externalIssuer
-    }))
+    await assert.doesNotReject(
+      currency2.reconcileExternalState([{
+        limit: "10",
+        trustedPublicKey: currencyKeys.externalIssuer.publicKey()
+      }], {
+        sponsor,
+        externalTrader: currency2Keys.externalTrader,
+        externalIssuer: currency2Keys.externalIssuer,
+        credit: currency2Keys.credit
+      })
+    )
+    
     // Create account from currency 2
     const { key: key2 } = await currency2.createAccount({
       initialCredit: "1000"

@@ -48,7 +48,7 @@ describe("External transfers", async () => {
   const reconcileExternalState = async (code: string) => {
     const service = t.app.komunitin.service as BaseControllerImpl
     const currency = await service.getCurrencyController(code)
-    await currency.reconcileExternalTrader()
+    await currency.reconcileExternalState()
   }
   
   before(async () => {
