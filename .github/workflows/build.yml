@@ -164,7 +164,7 @@ jobs:
       if: github.ref == 'refs/heads/master'
       run: > 
         ssh-keyscan -H demo2.community-exchange.org >> ~/.ssh/known_hosts &&
-        ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 ces@demo2.community-exchange.org 
+        ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@demo2.community-exchange.org 
         "cd /opt/ces2demo.community-exchange.org/komunitin
         && git fetch origin
         && git checkout master
