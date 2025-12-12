@@ -1,5 +1,5 @@
 import { Asset, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk"
-import { LedgerAccount, LedgerTransfer, PathQuote } from "../ledger"
+import { LedgerAccount, LedgerExternalTransfer, LedgerTransfer, PathQuote } from "../ledger"
 import { StellarCurrency } from "./currency"
 import { Big } from "big.js"
 import { logger } from "../../utils/logger"
@@ -309,7 +309,7 @@ export class StellarAccount implements LedgerAccount {
   /**
    * Implements {@link LedgerAccount#externalPay}
    */
-  async externalPay(payment: { payeePublicKey: string, amount: string, path: PathQuote }, keys: { account: Keypair; sponsor: Keypair }) {
+  async externalPay(payment: { payeePublicKey: string, amount: string, path: PathQuote }, keys: { account: Keypair; sponsor: Keypair }): Promise<LedgerExternalTransfer> {
 
     if (Big(this.balance()).lt(payment.path.sourceAmount)) {
       throw insufficientBalance("Insufficient balance")

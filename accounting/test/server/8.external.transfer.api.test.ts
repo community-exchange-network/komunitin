@@ -45,29 +45,6 @@ describe("External transfers", async () => {
     return response.ok ? response.body.data : response.body
   }
 
-  /*const waitForExternalOfferUpdate = async (currencyCode: string, selling: LedgerAsset, amount: number, timeout = 100000) => {
-    const eq = (a: LedgerAsset, b: LedgerAsset) => {
-      return a.code === b.code && a.issuer === b.issuer
-    }
-    const service = t.app.komunitin.service as BaseControllerImpl
-    return new Promise<number>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        service.ledger.removeListener("externalOfferUpdated", listener)
-        reject(new Error("Timeout waiting for external offer update"))
-      }, timeout)
-      const listener = async (currency: LedgerCurrency, offer: any) => {
-        if (currency.asset().code === currencyCode && eq(offer.selling, selling) && parseFloat(offer.amount) >= amount) {
-          
-          clearTimeout(timer)
-          service.ledger.removeListener("externalOfferUpdated", listener)
-
-          resolve(Number(offer.amount))
-        }
-      }
-      service.ledger.addListener("externalOfferUpdated", listener)
-    })
-  }*/
-
   const reconcileExternalState = async (code: string) => {
     const service = t.app.komunitin.service as BaseControllerImpl
     const currency = await service.getCurrencyController(code)
@@ -125,7 +102,7 @@ describe("External transfers", async () => {
   }
 
   /**
-   * amount in destination currency
+   * amount in source currency
    */
   const waitForPath = async (fromCurrency: any, toCurrency: any, amount: number) => {
     const controller = await t.app.komunitin.service.getCurrencyController(fromCurrency.attributes.code) as CurrencyControllerImpl
@@ -461,6 +438,46 @@ describe("External transfers", async () => {
     await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
       externalTraderCreditLimit: 1500
     } } }, t.admin, 200)
+
+  })
+
+  it('can update currency conversion rate', async () => {
+    // Make ample room for transfers
+    await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 100000,
+      externalTraderMaximumBalance: 200000
+    } } }, t.admin)
+    await t.api.patch(`/EXTR/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 100000,
+      externalTraderMaximumBalance: 200000
+    } } }, eAdmin)
+    let externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(externalAccount.attributes.creditLimit, 100000)
+    assert.equal(externalAccount.attributes.maximumBalance, 200000)
+
+    // Update conversion rate for TEST from 1/10 to 2/13
+    const updatedCurrency = (await t.api.patch(`/TEST/currency`, { data: { attributes: {
+      rate: { n: 2, d: 13 }
+    } } }, t.admin)).body.data
+    assert.equal(updatedCurrency.attributes.rate.n, 2)
+    assert.equal(updatedCurrency.attributes.rate.d, 13)
+
+    // Now 1000 TEST = 307 EXTR
+    const transfer = await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 1000, "1000 TEST => 307 EXTR after rate update", "committed", t.user1)
+    assert.equal(transfer.attributes.amount, 1000)
+    // Check trasnfer from EXTR point of view
+    const eTransfer = (await t.api.get(`/EXTR/transfers/${transfer.id}`, eUser1)).body.data
+    assert.equal(eTransfer.attributes.amount, 307) // Rounded down
+
+    // And the other way around
+    /*
+    
+    const transfer2 = await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, 100, "100 EXTR => 325 TEST after rate update", "committed", eUser1)
+    assert.equal(transfer2.attributes.amount, 100)
+    // Check transfer from TEST point of view
+    const tTransfer2 = (await t.api.get(`/TEST/transfers/${transfer2.id}`, t.user1)).body.data
+    assert.equal(tTransfer2.attributes.amount, 325) // Exact
+    */
 
   })
 })

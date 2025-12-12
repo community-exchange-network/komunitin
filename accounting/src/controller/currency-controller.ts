@@ -32,15 +32,11 @@ import { UserController } from "./user-controller";
 import { StatsControllerImpl } from "./stats-controller";
 
 export function toStringAmount(currency: {scale: number}, amount: number) {
-  return Big(amount).div(Big(10).pow(currency.scale)).toString()
+  return Big(amount).div(Big(10).pow(currency.scale)).toFixed(7, Big.roundDown)
 }
 
 export function toIntegerAmount(currency: {scale: number}, amount: string) {
-  return Big(amount).times(Big(10).pow(currency.scale)).toNumber()
-}
-
-export function convertAmount(amount: number, from: AtLeast<Currency, "rate">, to: AtLeast<Currency,"rate">) {
-  return amount * from.rate.n / from.rate.d * to.rate.d / to.rate.n
+  return Big(amount).times(Big(10).pow(currency.scale)).round(0, Big.roundDown).toNumber()
 }
 
 export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
@@ -130,7 +126,14 @@ export class CurrencyControllerImpl implements CurrencyService {
       if (this.model.status !== "active") {
         throw inactiveCurrency(`Cannot change rate of inactive currency ${this.model.code}`)
       }
-      throw notImplemented("Change the currency rate not implemented yet")
+      if (currency.rate.n <= 0 || currency.rate.d <= 0) {
+        throw badRequest("Invalid currency rate")
+      }
+      this.ledger.setConfig(currencyConfig({
+        ...this.model,
+        rate: currency.rate
+      }))
+      await this.reconcileExternalTrader()
     }
 
     if (currency.status && currency.status !== this.model.status) {

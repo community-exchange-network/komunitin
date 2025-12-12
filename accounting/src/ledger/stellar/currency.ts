@@ -752,7 +752,7 @@ export class StellarCurrency implements LedgerCurrency {
    * @returns The amount in hours.
    */
   fromLocalToHour(amountInLocal: string): string {
-    return Big(amountInLocal).times(this.config.rate.n).div(this.config.rate.d).toFixed(7)
+    return Big(amountInLocal).times(this.config.rate.n).div(this.config.rate.d).toFixed(7, Big.roundDown)
   }
 
   /**
@@ -901,7 +901,7 @@ export class StellarCurrency implements LedgerCurrency {
   }
 
   /**
-   * Implements {@link LedgerCurrency.quotePath}, adding additional asset properties to the result.
+   * Implements {@link LedgerCurrency#quotePath}, adding additional asset properties to the result.
    */
   async quotePath(data: { destCode: string, destIssuer: string, amount: string, retry?: boolean }): Promise<false | PathQuote> {
     const destAsset = new Asset(data.destCode, data.destIssuer)
@@ -1366,7 +1366,7 @@ export class StellarCurrency implements LedgerCurrency {
       const targetBuyingOffer = {
         buying: asset,
         selling: hour,
-        amount: Big(limit).minus(balance).times(rate.n).div(rate.d).toFixed(7),
+        amount: Big(limit).minus(balance).times(rate.n).div(rate.d).toFixed(7, Big.roundDown), // amount in selling asset
         price: { n: rate.d, d: rate.n }
       }
       
@@ -1374,7 +1374,7 @@ export class StellarCurrency implements LedgerCurrency {
       // the asset trustline size and balance.
       
       const existingSellingOfferAmount = Big(existingSellingOffer?.amount ?? 0)
-      const existingBuyingOfferAmount = Big(existingBuyingOffer?.amount ?? 0).times(this.config.rate.d).div(this.config.rate.n)
+      const existingBuyingOfferAmount = Big(existingBuyingOffer?.amount ?? 0).times(rate.d).div(rate.n)
       const targetSellingOfferAmount = Big(balance)
       const targetBuyingOfferAmount = Big(limit).minus(balance)
 
