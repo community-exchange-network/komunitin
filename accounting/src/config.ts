@@ -22,8 +22,7 @@ const loadConfig = () => {
     NOTIFICATIONS_API_USERNAME: process.env.NOTIFICATIONS_API_USERNAME || "accounting",
     DOCKER: process.env.DOCKER === "true" || false,
     APP_URL: process.env.APP_URL || "https://komunitin.org",
-    //WEBHOOKS_BASE_URL: process.env.WEBHOOKS_BASE_URL || process.env.API_BASE_URL || "https://accounting.komunitin.org",
-    WEBHOOKS_BASE_URL: "https://0inurhsr6ey1.share.zrok.io",
+    WEBHOOKS_BASE_URL: process.env.WEBHOOKS_BASE_URL || process.env.API_BASE_URL || "https://accounting.komunitin.org",
     
     // SECRETS
     // TODO: Using environment variables for secrets is a reasonable practice but not a 
