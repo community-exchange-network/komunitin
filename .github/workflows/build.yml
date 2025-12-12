@@ -160,6 +160,7 @@ jobs:
       with:
         key: ${{ secrets.CES2DEMO_SSH_PRIVATE_KEY }}
         known_hosts: 'will-be-set-now'
+        if_key_exists: replace
     - name: Deploy ces2demo.community-exchange.org
       if: github.ref == 'refs/heads/master'
       run: > 
