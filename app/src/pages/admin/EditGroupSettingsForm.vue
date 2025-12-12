@@ -140,7 +140,6 @@
       :rules="[(val: string) => val.match(/^\d+(\/\d+)?$/) || $t('invalidCurrencyValue')]"
       hide-bottom-space
       :loading="currencyValueLoading"
-      disable
     />
     <input-update
       v-model="externalTraderCreditLimit"

@@ -1,12 +1,11 @@
-import {config} from "../../src/config"
-import {http, HttpResponse, RequestHandler} from "msw"
-import { jwks } from "./auth.mock"
+import { Express } from "express"
+import { http, HttpResponse, passthrough, RequestHandler } from "msw"
 import { setupServer, SetupServerApi } from 'msw/node'
 import { logger } from "src/utils/logger"
 import request from "supertest"
-import { Express } from "express"
 import TestAgent from "supertest/lib/agent"
-
+import { config } from "../../src/config"
+import { jwks } from "./auth.mock"
 
 const events: any[] = []
 
@@ -35,7 +34,7 @@ const pipeRequest = async (info: any, app: any, method: (r: TestAgent, path: str
 }
 
 const getHandlers = (app: Express) => [
-  
+
   // Mock the JWKS endpoint from Auth Server
   http.get(config.AUTH_JWKS_URL, () => {
     return HttpResponse.json(jwks())
@@ -63,7 +62,11 @@ const getHandlers = (app: Express) => [
 
   http.patch(`${config.API_BASE_URL}/*`, async (info) => {
     return pipeRequest(info, app, (r, path) => r.patch(path))
-  })
+  }),
+
+  http.all(`${config.STELLAR_HORIZON_URL}/*`, async () => {
+    return passthrough()
+  }),
 ]
 
 let server: SetupServerApi;

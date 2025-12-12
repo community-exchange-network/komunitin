@@ -32,15 +32,11 @@ import { UserController } from "./user-controller";
 import { StatsControllerImpl } from "./stats-controller";
 
 export function toStringAmount(currency: {scale: number}, amount: number) {
-  return Big(amount).div(Big(10).pow(currency.scale)).toString()
+  return Big(amount).div(Big(10).pow(currency.scale)).toFixed(7, Big.roundDown)
 }
 
 export function toIntegerAmount(currency: {scale: number}, amount: string) {
-  return Big(amount).times(Big(10).pow(currency.scale)).toNumber()
-}
-
-export function convertAmount(amount: number, from: AtLeast<Currency, "rate">, to: AtLeast<Currency,"rate">) {
-  return amount * from.rate.n / from.rate.d * to.rate.d / to.rate.n
+  return Big(amount).times(Big(10).pow(currency.scale)).round(0, Big.roundDown).toNumber()
 }
 
 export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
@@ -48,7 +44,7 @@ export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig =
   const externalTraderMaximumBalance = currency.settings.externalTraderMaximumBalance
     ? toStringAmount(currency, currency.settings.externalTraderMaximumBalance + (currency.settings.externalTraderCreditLimit ?? 0))
     : undefined
-  
+
   return {
     code: currency.code,
     rate: currency.rate,
@@ -125,12 +121,19 @@ export class CurrencyControllerImpl implements CurrencyService {
     if (currency.settings) {
       throw badRequest("Can't change the currency settings through currency update")
     }
-    
+
     if (currency.rate && (currency.rate.n !== this.model.rate.n || currency.rate.d !== this.model.rate.d)) {
       if (this.model.status !== "active") {
         throw inactiveCurrency(`Cannot change rate of inactive currency ${this.model.code}`)
       }
-      throw notImplemented("Change the currency rate not implemented yet")
+      if (currency.rate.n <= 0 || currency.rate.d <= 0) {
+        throw badRequest("Invalid currency rate")
+      }
+      this.ledger.setConfig(currencyConfig({
+        ...this.model,
+        rate: currency.rate
+      }))
+      await this.reconcileExternalState()
     }
 
     if (currency.status && currency.status !== this.model.status) {
@@ -175,7 +178,7 @@ export class CurrencyControllerImpl implements CurrencyService {
    */
   public async updateCurrencySettings<T extends CurrencySettings>(ctx: Context, settings: AtLeast<T,"id">): Promise<T> {
     await this.users.checkAdmin(ctx)
-    const {id, ...settingsFields} = settings
+    const { id, ...settingsFields } = settings
     // Merge the settings since the DB is a JSON field.
     const updatedSettings = {
       ...this.model.settings,
@@ -184,43 +187,29 @@ export class CurrencyControllerImpl implements CurrencyService {
     // Check if we need to update the ledger.
     const newCreditLimit = updatedSettings.externalTraderCreditLimit
     const oldCreditLimit = this.model.settings.externalTraderCreditLimit
-    if (newCreditLimit !== undefined && newCreditLimit !== oldCreditLimit) {
-      if (newCreditLimit < oldCreditLimit) {
-        if (this.model.externalAccount.balance < -newCreditLimit) {
-          throw badRequest(`Cannot reduce credit limit to ${newCreditLimit} because the external account balance is ${this.model.externalAccount.balance}`)
-        }
-        await this.ledger.updateExternalOffer(this.ledger.asset(), {
-          sponsor: await this.keys.sponsorKey(),
-          externalTrader: await this.keys.externalTraderKey()
-        }, this.toStringAmount(this.model.externalAccount.balance + newCreditLimit))
-      }
-
-      // Change account credit limit
-      await this.accounts.updateAccount(systemContext(), {
-        id: this.model.externalAccount.id,
-        creditLimit: updatedSettings.externalTraderCreditLimit ?? 0
-      })
-
-      if (newCreditLimit > oldCreditLimit) {
-        await this.ledger.updateExternalOffer(this.ledger.asset(), {
-          sponsor: await this.keys.sponsorKey(),
-          externalTrader: await this.keys.externalTraderKey()
-        })
-      }
-    }
 
     const newMaxBalance = updatedSettings.externalTraderMaximumBalance
     const oldMaxBalance = this.model.settings.externalTraderMaximumBalance ?? false
 
-    if (newMaxBalance !== undefined && newMaxBalance !== oldMaxBalance) {
-      // TODO: We should also update the offer in the ledger HOUR => asset offer
-      // and HOUR balance in the ledger.
-      await this.accounts.updateAccount(systemContext(), {
-        id: this.model.externalAccount.id,
-        maximumBalance: updatedSettings.externalTraderMaximumBalance
+    if (newCreditLimit !== undefined && newCreditLimit !== oldCreditLimit
+      || newMaxBalance !== undefined && newMaxBalance !== oldMaxBalance
+    ) {
+      this.model.settings.externalTraderCreditLimit = newCreditLimit
+      this.model.settings.externalTraderMaximumBalance = newMaxBalance
+      this.ledger.setConfig(currencyConfig(this.model))
+      await this.reconcileExternalState()
+      // update external trader account db record
+      await this.db.account.update({
+        data: {
+          creditLimit: newCreditLimit,
+          maximumBalance: newMaxBalance === false ? null : newMaxBalance
+        },
+        where: {
+          id: this.model.externalAccount.id
+        }
       })
     }
-    
+
     const record = await this.db.currency.update({
       data: {
         settings: updatedSettings
@@ -263,17 +252,6 @@ export class CurrencyControllerImpl implements CurrencyService {
     await this.users.checkAdmin(ctx)
 
     const trustedExternalResource = await this.externalResources.getExternalResource<Currency>(ctx, data.trusted)
-    const trustedCurrency = trustedExternalResource.resource
-
-    // Create the trustline in the ledger.
-    await this.ledger.trustCurrency({
-      trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
-      limit: this.toStringAmount(data.limit)
-    }, {
-      sponsor: await this.keys.sponsorKey(),
-      externalTrader: await this.keys.externalTraderKey(),
-      externalIssuer: await this.keys.externalIssuerKey()
-    })
 
     // Store trustline in DB with 0 initial balance
     const record = await this.db.trustline.create({
@@ -281,13 +259,24 @@ export class CurrencyControllerImpl implements CurrencyService {
         limit: data.limit,
         balance: 0,
 
-        trusted: { connect: { tenantId_id: {
-          tenantId: this.db.tenantId,
-          id: trustedExternalResource.id
-        } } },
+        trusted: {
+          connect: {
+            tenantId_id: {
+              tenantId: this.db.tenantId,
+              id: trustedExternalResource.id
+            }
+          }
+        },
         currency: { connect: { id: this.model.id } }
       }
     })
+    try {
+      await this.reconcileExternalState()
+    } catch (e) {
+      // Rollback trustline creation
+      await this.db.trustline.delete({ where: { id: record.id } })
+      throw e
+    }
     const trustline = recordToTrustline(record, trustedExternalResource, this.model)
     return trustline
   }
@@ -299,33 +288,21 @@ export class CurrencyControllerImpl implements CurrencyService {
     if (!existing) {
       throw notFound(`Trustline ${data.id} not found`)
     }
-    
-    const externalIdentifier = externalResourceToIdentifier(existing.trusted)
-    const trustedExternalResource = await this.externalResources.getExternalResource<Currency>(ctx, externalIdentifier)
-    const trustedCurrency = trustedExternalResource.resource
-
-    if (data.limit && data.limit !== existing.limit) {      
-      // Update the trustline in the ledger
-      await this.ledger.trustCurrency({
-        trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
-        limit: this.toStringAmount(data.limit)
-      }, {
-        sponsor: await this.keys.sponsorKey(),
-        externalTrader: await this.keys.externalTraderKey(),
-        externalIssuer: await this.keys.externalIssuerKey()
+    if (data.limit && data.limit !== existing.limit) {
+      // Update the trustline in the DB
+      const record = await this.db.trustline.update({
+        data: {
+          limit: data.limit
+        },
+        where: {
+          id: data.id
+        }
       })
+      // Update the trustline in the ledger
+      await this.reconcileExternalState() 
+      existing.limit = Number(record.limit)
     }
-    
-    // Update the trustline in the DB
-    const record = await this.db.trustline.update({
-      data: {
-        limit: data.limit
-      },
-      where: {
-        id: data.id
-      }
-    })
-    return recordToTrustline(record, trustedExternalResource, this.model)
+    return existing
   }
 
   async getTrustlines(ctx: Context, params: CollectionOptions): Promise<Trustline[]> {
@@ -347,7 +324,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       skip: params.pagination.cursor,
       take: params.pagination.size,
     })
-    
+
     return records.map(r => recordToTrustline(r, recordToExternalResource<Currency>(r.trusted), this.model))
   }
 
@@ -373,7 +350,7 @@ export class CurrencyControllerImpl implements CurrencyService {
    * To be called after a local transfer is committed to the ledger.
   */
   async handleTransferEvent(ledgerTransfer: LedgerTransfer) {
-    const payerAccount =  await this.accounts.getAccountByKey(systemContext(), ledgerTransfer.payer)
+    const payerAccount = await this.accounts.getAccountByKey(systemContext(), ledgerTransfer.payer)
     if (payerAccount) {
       // The payer may not be found if it is one of the system accounts such as the credit account.
       await this.accounts.updateAccountBalance(payerAccount)
@@ -404,7 +381,7 @@ export class CurrencyControllerImpl implements CurrencyService {
    * Does nothing if the disabled accounts pool is already created.
    */
   async createDisabledAccountsPool() {
-    let key : Keypair|undefined = undefined
+    let key: Keypair | undefined = undefined
     if (this.model.keys.disabledAccountsPool) {
       const poolAccount = await this.ledger.findAccount(this.model.keys.disabledAccountsPool)
       if (poolAccount !== null) {
@@ -438,7 +415,7 @@ export class CurrencyControllerImpl implements CurrencyService {
 
       this.ledger.setData(currencyData(this.model))
     }
-    
+
   }
 
   async disableCurrency(ctx: Context) {
@@ -479,28 +456,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       externalTrader: await this.keys.externalTraderKey()
     })
     // 2. Reset all trustlines
-    const trustlines = await this.db.trustline.findMany({
-      where: {
-        currencyId: this.model.id
-      },
-      include: {
-        trusted: true
-      }
-    })
-    for (const tl of trustlines) {
-      const trustedCurrency = recordToExternalResource<Currency>(tl.trusted).resource
-      const issuer = trustedCurrency.keys?.externalIssuer
-      if (issuer) {
-        await this.ledger.trustCurrency({
-          trustedPublicKey: issuer,
-          limit: this.toStringAmount(Number(tl.limit))
-        }, {
-          sponsor: await this.keys.sponsorKey(),
-          externalTrader: await this.keys.externalTraderKey(),
-          externalIssuer: await this.keys.externalIssuerKey()
-        })
-      }
-    }
+    this.reconcileExternalState()
 
     // 3. Create and fund disabled accounts pool
     await this.createDisabledAccountsPool()
@@ -527,5 +483,35 @@ export class CurrencyControllerImpl implements CurrencyService {
         account: await this.keys.issuerKey()
       })
     }
+  }
+
+  async reconcileExternalState() {
+    // Get trustlines
+    const records = await this.db.trustline.findMany({
+      where: {
+        currencyId: this.model.id
+      },
+      include: {
+        trusted: true
+      }
+    })
+    const lines = await Promise.all(records.map(async record => {
+      const externalIdentifier = externalResourceToIdentifier(recordToExternalResource<Currency>(record.trusted))
+      const trustedExternalResource = await this.externalResources.getExternalResource<Currency>(systemContext(), externalIdentifier)
+      const trustedCurrency = trustedExternalResource.resource
+      return {
+        trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
+        limit: this.toStringAmount(Number(record.limit))
+      }
+    }))
+    
+    // Delegate to ledger layer
+    await this.ledger.reconcileExternalState(lines, {
+      sponsor: await this.keys.sponsorKey(),
+      externalTrader: await this.keys.externalTraderKey(),
+      externalIssuer: await this.keys.externalIssuerKey(),
+      credit: await this.keys.creditKey()
+    })
+
   }
 }
