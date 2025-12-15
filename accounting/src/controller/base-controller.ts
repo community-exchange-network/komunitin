@@ -13,7 +13,7 @@ import { CreateCurrency, Currency, CurrencySettings, currencyToRecord, recordToC
 import { decrypt, encrypt, exportKey, importKey, randomKey } from "../utils/crypto"
 import { logger } from "../utils/logger"
 import { BasePublicService, ServiceEvents } from "./api"
-import { currencyConfig, currencyData, CurrencyControllerImpl } from "./currency-controller"
+import { currencyConfig, currencyData, CurrencyControllerImpl, defaultCurrencySettings } from "./currency-controller"
 import { initUpdateCreditOnPayment } from "./features/credit-on-payment"
 import { initNotifications } from "./features/notificatons"
 import { storeCurrencyKey } from "./key-controller"
@@ -99,35 +99,7 @@ export class BaseControllerImpl implements BasePublicService {
     const encryptedCurrencyKey = await this.storeKey(currency.code, currencyKey)
 
     // Default settings:
-    const defaultSettings: CurrencySettings = {
-      defaultInitialCreditLimit: 0,
-      defaultInitialMaximumBalance: false,
-      defaultAllowPayments: true,
-      defaultAllowPaymentRequests: true,
-      defaultAcceptPaymentsAutomatically: false,
-      defaultAcceptPaymentsWhitelist: [],
-      defaultAllowSimplePayments: true,
-      defaultAllowSimplePaymentRequests: true,
-      defaultAllowQrPayments: true,
-      defaultAllowQrPaymentRequests: true,
-      defaultAllowMultiplePayments: true,
-      defaultAllowMultiplePaymentRequests: true,
-      defaultAllowTagPayments: true,
-      defaultAllowTagPaymentRequests: false,
-
-      defaultAcceptPaymentsAfter: 14 * 24 * 60 * 60, // 2 weeks,
-      defaultOnPaymentCreditLimit: false,
-
-      enableExternalPayments: true,
-      enableExternalPaymentRequests: false,
-      enableCreditCommonsPayments: false,
-      defaultAllowExternalPayments: true,
-      defaultAllowExternalPaymentRequests: false,
-      defaultAcceptExternalPaymentsAutomatically: false,
-
-      externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit ?? 0,
-      externalTraderMaximumBalance: false,
-    }
+    const defaultSettings: CurrencySettings = defaultCurrencySettings(currency)
 
     // Merge default settings with provided settings, while deleting eventual extra fields.
     const settings = {} as Record<string, any>

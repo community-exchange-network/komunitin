@@ -39,11 +39,46 @@ export function toIntegerAmount(currency: {scale: number}, amount: string) {
   return Big(amount).times(Big(10).pow(currency.scale)).round(0, Big.roundDown).toNumber()
 }
 
+export const defaultCurrencySettings = (currency: CreateCurrency) => ({
+  defaultInitialCreditLimit: 0,
+  defaultInitialMaximumBalance: false,
+  defaultAllowPayments: true,
+  defaultAllowPaymentRequests: true,
+  defaultAcceptPaymentsAutomatically: false,
+  defaultAcceptPaymentsWhitelist: [],
+  defaultAllowSimplePayments: true,
+  defaultAllowSimplePaymentRequests: true,
+  defaultAllowQrPayments: true,
+  defaultAllowQrPaymentRequests: true,
+  defaultAllowMultiplePayments: true,
+  defaultAllowMultiplePaymentRequests: true,
+  defaultAllowTagPayments: true,
+  defaultAllowTagPaymentRequests: false,
+
+  defaultAcceptPaymentsAfter: 14 * 24 * 60 * 60, // 2 weeks,
+  defaultOnPaymentCreditLimit: false,
+
+  enableExternalPayments: true,
+  enableExternalPaymentRequests: false,
+  enableCreditCommonsPayments: false,
+  defaultAllowExternalPayments: true,
+  defaultAllowExternalPaymentRequests: false,
+  defaultAcceptExternalPaymentsAutomatically: false,
+
+  externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit ?? 0,
+  externalTraderMaximumBalance: 1000 * 10 ** currency.scale * currency.rate.d / currency.rate.n // Default to 1000 hours in local currency.
+})
+
 export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
-  const externalTraderInitialCredit = toStringAmount(currency, currency.settings.externalTraderCreditLimit ?? 0)
-  const externalTraderMaximumBalance = currency.settings.externalTraderMaximumBalance
-    ? toStringAmount(currency, currency.settings.externalTraderMaximumBalance + (currency.settings.externalTraderCreditLimit ?? 0))
-    : undefined
+  const defaultSettings = defaultCurrencySettings(currency)
+  // Compute external trader initial credit and maximum balance
+  const externalTraderInitialCreditSetting = currency.settings.externalTraderCreditLimit ?? defaultSettings.externalTraderCreditLimit
+  const externalTraderInitialCredit = toStringAmount(currency, externalTraderInitialCreditSetting)
+  
+  const externalTraderMaximumBalanceSetting = currency.settings.externalTraderMaximumBalance !== undefined && currency.settings.externalTraderMaximumBalance !== false 
+    ? currency.settings.externalTraderMaximumBalance
+    : defaultSettings.externalTraderMaximumBalance
+  const externalTraderMaximumBalance = toStringAmount(currency, externalTraderMaximumBalanceSetting + externalTraderInitialCreditSetting)
 
   return {
     code: currency.code,

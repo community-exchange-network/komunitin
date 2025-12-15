@@ -35,11 +35,6 @@ const paymentToTransfer = (payment: Omit<Horizon.HorizonApi.PaymentOperationResp
 
 export class StellarCurrency implements LedgerCurrency {
   static GLOBAL_ASSET_CODE = "HOUR"
-  /**
-   * In case there is no defined maximum balance for the external trader account,
-   * this is the default for the initial balance in hours for this account.
-   */
-  static DEFAULT_EXTERNAL_TRADER_INITIAL_CREDIT = "1000"
 
   ledger: StellarLedger
   config: LedgerCurrencyConfig
@@ -514,53 +509,11 @@ export class StellarCurrency implements LedgerCurrency {
 
   }
 
-  /**
-   * Ensures that the external trader account has sufficient hours, and transfers more from
-   * the external issuer if needed.
-   * 
-   * This function assures that the current balance of the external trader is not less than
-   * the starting balance. This starting balance is computed as follows:
-   *  - If externalTraderMaximumBalance is defined, it is the difference between this value and
-   *   the externalTraderInitialCredit expressed in hours. Since hours are needed in exchange
-   *   for local currency.
-   * - If externalTraderMaximumBalance is not defined, the starting balance is just the 
-   *   constant {@link StellarCurrency.DEFAULT_EXTERNAL_TRADER_INITIAL_CREDIT}.
-   */
-  public async fundExternalTrader(keys: {
-    sponsor: Keypair,
-    externalIssuer: Keypair,
-  }) {
-
-    const starting = this.externalTraderStartingHoursBalance()
-
-    const trader = await this.externalTraderAccount()
-    const balance = Big(trader.balance())
-
-    if (balance.lt(starting)) {
-      const amount = Big(starting).minus(balance).toString()
-      const external = await this.externalIssuerAccount()
-      const builder = this.ledger.transactionBuilder(external)
-        .addOperation(Operation.payment({
-          source: this.data.externalIssuerPublicKey,
-          destination: this.data.externalTraderPublicKey,
-          asset: this.hour(),
-          amount
-        }))
-      return await this.ledger.submitTransaction(builder, [keys.externalIssuer], keys.sponsor)
-    }
-    return false
-  }
-
   private externalTraderStartingHoursBalance(): string {
-    // TODO: take in count trusted currencies.
-    if (this.config.externalTraderMaximumBalance) {
-      return this.fromLocalToHour(
-        Big(this.config.externalTraderMaximumBalance)
-          .minus(this.config.externalTraderInitialCredit ?? 0)
-          .toString())
-    } else {
-      return StellarCurrency.DEFAULT_EXTERNAL_TRADER_INITIAL_CREDIT
-    }
+    return this.fromLocalToHour(Big(this.config.externalTraderMaximumBalance)
+      .minus(this.config.externalTraderInitialCredit)
+      .toString()
+    )
   }
 
   /**
@@ -1117,8 +1070,9 @@ export class StellarCurrency implements LedgerCurrency {
     // Compute the total hour balance required to back all offers.
     const localAssetInitialCredit = Big(this.config.externalTraderInitialCredit ?? 0)
     const existingLocalAssetInitialCredit = Big(await account.credit())
-    const localAssetMaximumBalance = Big(this.config.externalTraderMaximumBalance ?? this.fromHourToLocal(StellarCurrency.DEFAULT_EXTERNAL_TRADER_INITIAL_CREDIT))
-    const existingLocalAssetBalance = Big(account.balance(this.asset()))
+    const localAssetMaximumBalance = Big(this.config.externalTraderMaximumBalance)
+    const localAssetTrustline = findTrustline(this.asset())
+    const existingLocalAssetBalance = Big(localAssetTrustline?.balance ?? 0)
     const localAssetBalance = existingLocalAssetBalance.plus(localAssetInitialCredit).minus(existingLocalAssetInitialCredit)
     // Sanity check: local asset balance must be positive.
     if (localAssetBalance.lt(0)) {
@@ -1133,7 +1087,8 @@ export class StellarCurrency implements LedgerCurrency {
       return total.plus(limit).minus(trustline?.balance ?? 0)
     }, hourBalanceForLocalAsset)
 
-    const existingHourBalance = Big(account.balance(this.hour()))
+    const localHourTrustline = findTrustline(this.hour())
+    const existingHourBalance = Big(localHourTrustline?.balance ?? 0)
 
     const builder = this.ledger.transactionBuilder(account, { sequential: true })
     const signers = new Set<string>()
@@ -1296,7 +1251,9 @@ export class StellarCurrency implements LedgerCurrency {
         updateTrustline(builder, {asset, limit: targetLimit.toString()}, signers)
       }
     }
-    
+    /**
+     * Update the relationship with the local asset, including adjusting the initial credit.
+     */
     const updateLocalRelationship = async () => {
       const adjustBalance = async (builder: TransactionBuilder, signers: Set<string>) => {
         if (localAssetInitialCredit.gt(existingLocalAssetInitialCredit)) {
@@ -1328,7 +1285,8 @@ export class StellarCurrency implements LedgerCurrency {
     }
     
     /**
-     * Update the relationship with the given external asset.
+     * Update the relationship with the given external HOUR asset, including moving the eventual balance from
+     * the external issuer.
      */
     const updateExternalRelationship = async (builder: TransactionBuilder, asset: Asset, limit: string, signers: Set<string>) => {
       const existingTrustline = findTrustline(asset)
@@ -1439,7 +1397,7 @@ export class StellarCurrency implements LedgerCurrency {
     // 1. Remove existing offers and trustlines that are not in the desired lines, and move their 
     // balances to external issuer.
     const toDisable = trustlines.filter((balance) => {
-      !this.hour().equals(balance.asset)
+      return !this.hour().equals(balance.asset)
       && !this.asset().equals(balance.asset)
       && !lines.some(b => b.trustedPublicKey === balance.asset.issuer && balance.asset.code === StellarCurrency.GLOBAL_ASSET_CODE)
     })

@@ -40,11 +40,8 @@ export type LedgerCurrencyConfig = {
    * This is the global trade balance limit for incomming transactions. Or 
    * in other words, it is the total amount of the local currency that can
    * be created by external payments.
-   * 
-   * Defaults to 0, meaning that we need outgoing payments (to other currencies) 
-   * before we can have incoming transfers (from other currencies).
    */
-  externalTraderInitialCredit?: string
+  externalTraderInitialCredit: string
   /**
    * The maximum balance in local currency for the external trader account.
    * 
@@ -52,10 +49,8 @@ export type LedgerCurrencyConfig = {
    * trade balance limit for outgoing payments. Or in other words, it is the
    * total amount of the local currency that can be destroyed by external
    * payments.
-   * 
-   * Defaults to infinity, meaning that there is no limit to outgoing payments.
    */
-  externalTraderMaximumBalance?: string
+  externalTraderMaximumBalance: string
 }
 
 /**
