@@ -5,31 +5,31 @@ import { externalResourceToIdentifier, recordToExternalResource } from "src/mode
 import { InputTrustline, Trustline, UpdateTrustline, recordToTrustline } from "src/model/trustline";
 import TypedEmitter from "typed-emitter";
 import { CurrencyPublicService, CurrencyService, ServiceEvents } from ".";
+import { CreditCommonsController, CreditCommonsControllerImpl } from "../creditcommons/credit-commons-controller";
 import { LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerTransfer } from "../ledger";
 import {
-  FullAccount,
+  AccountStatus,
+  CreateCurrency,
   Currency,
   CurrencySettings,
-  UpdateCurrencySettings,
+  FullAccount,
   UpdateCurrency,
   currencyToRecord,
-  recordToCurrency,
-  CreateCurrency,
-  AccountStatus
+  recordToCurrency
 } from "../model";
 import { CollectionOptions } from "../server/request";
 import { Context, systemContext } from "../utils/context";
-import { badRequest, inactiveCurrency, internalError, notFound, notImplemented } from "../utils/error";
+import { badRequest, inactiveCurrency, internalError, notFound } from "../utils/error";
+import { logger } from "../utils/logger";
 import { AtLeast } from "../utils/types";
 import { AccountControllerImpl } from "./account-controller";
 import { ExternalResourceController } from "./external-resource-controller";
 import { KeyController } from "./key-controller";
 import { TenantPrismaClient } from "./multitenant";
 import { whereFilter } from "./query";
-import { TransferControllerImpl } from "./transfer-controller";
-import { CreditCommonsController, CreditCommonsControllerImpl } from "../creditcommons/credit-commons-controller";
-import { UserController } from "./user-controller";
 import { StatsControllerImpl } from "./stats-controller";
+import { TransferControllerImpl } from "./transfer-controller";
+import { UserController } from "./user-controller";
 
 export function toStringAmount(currency: {scale: number}, amount: number) {
   return Big(amount).div(Big(10).pow(currency.scale)).toFixed(7, Big.roundDown)
@@ -535,7 +535,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       const trustedExternalResource = await this.externalResources.getExternalResource<Currency>(systemContext(), externalIdentifier)
       const trustedCurrency = trustedExternalResource.resource
       return {
-        trustedPublicKey: trustedCurrency.keys?.externalIssuer as string,
+        externalIssuerKey: trustedCurrency.keys?.externalIssuer as string,
         limit: this.toStringAmount(Number(record.limit))
       }
     }))
@@ -547,6 +547,36 @@ export class CurrencyControllerImpl implements CurrencyService {
       externalIssuer: await this.keys.externalIssuerKey(),
       credit: await this.keys.creditKey()
     })
+
+    // Now get the updated trustline balances from the ledger and update the DB
+    const externalBalances = await this.ledger.getExternalBalances()
+    for (const item of externalBalances) {
+      const balance = this.toIntegerAmount(item.balance)
+      // Find the corresponding DB record
+      const record = records.find(r => {
+        const trustedExternalResource = recordToExternalResource<Currency>(r.trusted)
+        const trustedCurrency = trustedExternalResource.resource
+        return trustedCurrency.keys?.externalIssuer === item.externalIssuerKey
+      })
+      if (record && Number(record.balance) !== balance) {
+        await this.db.trustline.update({
+          data: {
+            balance
+          },
+          where: {
+            id: record.id
+          }
+        })
+      } else {
+        // TODO: find the external currency somehow and create a trustline record with limit 0. 
+        // This is not trivial since we don't have a mapping from externalIssuerPublicKey to currency and
+        // it may belong to a different server. We can use the home_domain entry of the external issuer 
+        // account, then find the associated accounting url, then find the currency.
+        logger.info(`Could not find trustline record for external issuer ${item.externalIssuerKey}`)
+      }
+    }
+      
+
 
   }
 }

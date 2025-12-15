@@ -195,7 +195,8 @@ describe("External transfers", async () => {
 
   })
 
-  await it.todo("trustline balance", async () => {
+  await it("trustline balance", async () => {
+    await reconcileExternalState("EXTR")
     const trustline = (await t.api.get(`/EXTR/trustlines/${eTrustline.id}`, eUser1)).body.data
     assert.equal(trustline.attributes.balance, 20)
   })

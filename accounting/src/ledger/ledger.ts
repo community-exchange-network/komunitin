@@ -191,6 +191,25 @@ export interface Ledger {
   stop(): void
 }
 
+export interface ExternalBalance {
+  externalIssuerKey: string,
+  balance: string,
+  local?: {
+    balance: string,
+    limit: string,
+  },
+  external?: {
+    balance: string,
+    limit: string,
+  }
+}
+
+export interface ExternalTrustline {
+  externalIssuerKey: string,
+  limit: string, // in local currency units
+}
+
+
 /**
  * A Currency in a ledger.
  */
@@ -292,10 +311,7 @@ export interface LedgerCurrency {
    * 
    * @param keys 
    */
-  reconcileExternalState(lines: {
-    trustedPublicKey: string;
-    limit: string // in local currency units
-  }[],
+  reconcileExternalState(lines: ExternalTrustline[],
     keys: {
       sponsor: KeyPair,
       externalTrader: KeyPair,
@@ -303,6 +319,14 @@ export interface LedgerCurrency {
       credit: KeyPair
     }): Promise<void>
 
+  /**
+   * Returns the outgoing trustlines from this currency to other currencies as well as the
+   * incoming trustlines from other currencies to this currency.
+   * 
+   * For each trustline, the external issuer public key, the total balance (outgoing - incoming)
+   * and the local and external limits are returned.
+   */
+  getExternalBalances(): Promise<ExternalBalance[]>
   /**
    * Fetches a transaction from the ledger and returns the transfer information associated to it.
    * 

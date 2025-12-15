@@ -183,7 +183,7 @@ describe('Creates stellar elements', async () => {
     await assert.doesNotReject(
       currency2.reconcileExternalState([{
         limit: "10",
-        trustedPublicKey: currencyKeys.externalIssuer.publicKey()
+        externalIssuerKey: currencyKeys.externalIssuer.publicKey()
       }], {
         sponsor,
         externalTrader: currency2Keys.externalTrader,

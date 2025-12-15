@@ -6,9 +6,10 @@ import { badRequest, internalError, notFound } from "src/utils/error"
 import { logger } from "src/utils/logger"
 import { retry, sleep } from "src/utils/sleep"
 import { Rate } from "../../utils/types"
-import { KeyPair, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerExternalTransfer, LedgerTransfer, PathQuote } from "../ledger"
+import { ExternalBalance, ExternalTrustline, KeyPair, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerExternalTransfer, LedgerTransfer, PathQuote } from "../ledger"
 import { StellarAccount } from "./account"
 import { StellarLedger } from "./ledger"
+import { HorizonApi } from "@stellar/stellar-sdk/lib/horizon"
 
 interface StreamData {
   started: boolean
@@ -1044,10 +1045,7 @@ export class StellarCurrency implements LedgerCurrency {
   /**
    * Implements {@link LedgerCurrency#reconcileExternalState}
    */
-  async reconcileExternalState(lines: {
-    trustedPublicKey: string;
-    limit: string;
-  }[], keys: { sponsor: Keypair, credit: KeyPair, issuer: KeyPair, externalTrader: Keypair, externalIssuer: Keypair }) {
+  async reconcileExternalState(lines: ExternalTrustline[], keys: { sponsor: Keypair, credit: KeyPair, issuer: KeyPair, externalTrader: Keypair, externalIssuer: Keypair }) {
     logger.debug(`Reconciling external state for currency ${this.config.code}`)
     
     const account = await this.externalTraderAccount()
@@ -1081,7 +1079,7 @@ export class StellarCurrency implements LedgerCurrency {
     // The available room in local asset trustline, converted to hours.
     const hourBalanceForLocalAsset = Big(this.fromLocalToHour(localAssetMaximumBalance.minus(localAssetBalance).toString()))
     const totalHourBalance = lines.reduce((total, line) => {
-      const asset = new Asset(StellarCurrency.GLOBAL_ASSET_CODE, line.trustedPublicKey)
+      const asset = new Asset(StellarCurrency.GLOBAL_ASSET_CODE, line.externalIssuerKey)
       const trustline = findTrustline(asset)
       const limit = this.fromLocalToHour(line.limit)
       return total.plus(limit).minus(trustline?.balance ?? 0)
@@ -1399,7 +1397,7 @@ export class StellarCurrency implements LedgerCurrency {
     const toDisable = trustlines.filter((balance) => {
       return !this.hour().equals(balance.asset)
       && !this.asset().equals(balance.asset)
-      && !lines.some(b => b.trustedPublicKey === balance.asset.issuer && balance.asset.code === StellarCurrency.GLOBAL_ASSET_CODE)
+      && !lines.some(b => b.externalIssuerKey === balance.asset.issuer && balance.asset.code === StellarCurrency.GLOBAL_ASSET_CODE)
     })
     for (const balance of toDisable) {
       disableRelationship(builder, balance.asset, signers)
@@ -1425,7 +1423,7 @@ export class StellarCurrency implements LedgerCurrency {
 
     // 5. Handle all external currencies.
     for (const line of lines) {
-      const externalAsset = new Asset(StellarCurrency.GLOBAL_ASSET_CODE, line.trustedPublicKey)
+      const externalAsset = new Asset(StellarCurrency.GLOBAL_ASSET_CODE, line.externalIssuerKey)
       const limit = this.fromLocalToHour(line.limit)
       await updateExternalRelationship(builder, externalAsset, limit, signers)
     }
@@ -1445,6 +1443,55 @@ export class StellarCurrency implements LedgerCurrency {
 
     await this.ledger.submitTransaction(builder, this.signerKeys(keys, signers), keys.sponsor)
     await this.logExternalState()
+  }
+
+  async getExternalBalances(): Promise<ExternalBalance[]> {
+    const balances = new Map<string, ExternalBalance>()
+    const hour = this.hour()
+
+    // 1. Compute local balances held in external trader account.
+    const account = await this.externalTraderAccount()
+    for (const balance of account.balances()) {
+      if (!hour.equals(balance.asset) && !this.asset().equals(balance.asset)) {
+        const amount = this.fromHourToLocal(balance.balance)
+        balances.set(balance.asset.issuer!, {
+          externalIssuerKey: balance.asset.issuer!,
+          local: {
+            balance: amount,
+            limit: this.fromHourToLocal(balance.limit)
+          },
+          balance: amount,
+        })
+      }
+    }
+
+    // 2. Compute external balances held in other accounts.
+    const accounts = await this.ledger.callServer((server) => server.accounts().forAsset(hour).limit(200).call())
+    for (const acc of accounts.records) {
+      if (acc.account_id === this.data.externalTraderPublicKey) continue
+
+      const b = acc.balances.find((b) =>
+        (b.asset_type === 'credit_alphanum4' || b.asset_type === 'credit_alphanum12') &&
+        b.asset_code === hour.code &&
+        b.asset_issuer === hour.issuer
+      ) as HorizonApi.BalanceLineAsset | undefined
+
+      if (b) {
+        const amount = this.fromHourToLocal(b.balance)
+        const entry = balances.get(acc.account_id) ?? {
+          externalIssuerKey: acc.account_id,
+          balance: '0'
+        }
+
+        entry.external = {
+          balance: amount,
+          limit: this.fromHourToLocal(b.limit)
+        }
+        entry.balance = Big(entry.balance).minus(amount).toString()
+        balances.set(acc.account_id, entry)
+      }
+    }
+    return Array.from(balances.values())
   }
 
 }
