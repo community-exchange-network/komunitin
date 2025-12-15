@@ -132,7 +132,7 @@ describe("External transfers", async () => {
     assert.strictEqual(eTrustline.relationships.trusted.data.meta.external, true)
   })
   
-  await it('get trustline', async () => {1
+  await it('get trustline', async () => {
     const trustline = (await t.api.get(`/EXTR/trustlines/${eTrustline.id}`, eUser1)).body.data
 
     assert.equal(trustline.id, eTrustline.id)
@@ -324,7 +324,7 @@ describe("External transfers", async () => {
 
   it("can trade without trust if in surplus", async () => {
     // The system listens to a stellar stream of external trades to update the external trader sell offers.
-    // HOwever I'm not able to make it work in the test environment, so we manually trigger the reconciliation here.
+    // However I'm not able to make it work in the test environment, so we manually trigger the reconciliation here.
     await reconcileExternalState("EXTR")
     await reconcileExternalState("TEST")
 
@@ -365,7 +365,7 @@ describe("External transfers", async () => {
       externalTraderMaximumBalance: newMaxBalance - 100
     } } }, t.admin, 400)
 
-    // But can increse it
+    // But can increase it
     const updatedMaxBalance = (await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
       externalTraderMaximumBalance: 10000
     } } }, t.admin)).body.data.attributes as CurrencySettings
@@ -465,7 +465,7 @@ describe("External transfers", async () => {
     // Now 1000 TEST = 307 EXTR
     const transfer = await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 1000, "1000 TEST => 307 EXTR after rate update", "committed", t.user1)
     assert.equal(transfer.attributes.amount, 1000)
-    // Check trasnfer from EXTR point of view
+    // Check transfer from EXTR point of view
     const eTransfer = (await t.api.get(`/EXTR/transfers/${transfer.id}`, eUser1)).body.data
     assert.equal(eTransfer.attributes.amount, 307) // Rounded down
 
