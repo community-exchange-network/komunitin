@@ -196,7 +196,7 @@ describe("External transfers", async () => {
   await it("trustline balance", async () => {
     await reconcileExternalState("EXTR", eAdmin)
     const trustline = (await t.api.get(`/EXTR/trustlines/${eTrustline.id}`, eUser1)).body.data
-    assert.equal(trustline.attributes.balance, 20)
+    assert.equal(trustline.attributes.balance, -20)
   })
 
   await it('successful external payment request (immediate)', async () => {
