@@ -9,10 +9,13 @@ import { filter, sort, search } from "./ServerUtils";
 import { inflections } from "inflected"
 import { v4 as uuid } from "uuid";
 
+
 const urlAccounting = config.ACCOUNTING_URL;
 inflections("en", function (inflect) {
   inflect.irregular("accountSettings", "accountSettings")
   inflect.irregular("currencySettings", "currencySettings")
+  inflect.irregular("topupSettings", "topupSettings")
+  inflect.irregular("accountTopupSettings", "accountTopupSettings")
 })
 
 export default {
@@ -36,12 +39,22 @@ export default {
     trustline: ApiSerializer.extend({
       selfLink: (model: any) => `${urlAccounting}/${model.currency.code}/trustlines/${model.id}`
     }),
+    topupSettings: ApiSerializer.extend({
+      selfLink: (model: any) => `${urlAccounting}/${model.currency.code}/currency/topup-settings`
+    }),
+    accountTopupSettings: ApiSerializer.extend({
+      selfLink: (model: any) => `${urlAccounting}/${model.account.currency.code}/accounts/${model.account.id}/topup-settings`
+    }),
+    topups: ApiSerializer.extend({
+      selfLink: (model: any) => `${urlAccounting}/${model.account.currency.code}/topups/${model.id}`
+    }),
   },
   models: {
     currency: Model.extend({
       settings: belongsTo("currencySettings"),
       admins: hasMany("user"),
       trustlines: hasMany({inverse: "currency"}),
+      topupSettings: belongsTo("topupSettings"),
     }),
     currencySettings: Model.extend({
       currency: belongsTo(),
@@ -50,6 +63,7 @@ export default {
       currency: belongsTo(),
       settings: belongsTo("accountSettings"),
       transfers: hasMany(),
+      topupSettings: belongsTo("accountTopupSettings"),
     }),
     transfer: Model.extend({
       payer: belongsTo("account", {inverse: null}),
@@ -63,6 +77,16 @@ export default {
       currency: belongsTo("currency", {inverse: "trustlines"}),
       trusted: belongsTo("currency", {inverse: null}) //should be external resource
     }),
+    topupSettings: Model.extend({
+      currency: belongsTo("currency"),
+    }),
+    accountTopupSettings: Model.extend({
+      account: belongsTo("account"),
+    }),
+    topup: Model.extend({
+      account: belongsTo("account"),
+      transfer: belongsTo("transfer")
+    })
   },
   factories: {
     currency: Factory.extend({
@@ -139,7 +163,34 @@ export default {
       limit: 100000,
       created: new Date().toJSON(),
       updated: new Date().toJSON(),
-    })
+    }),
+    topupSettings: Factory.extend({
+      enabled: false,
+      defaultAllowTopup: false,
+      depositCurrency: "EUR",
+      paymentProvider: "mollie",
+      rate: {n: 1, d: 100},
+      minAmount: 100,
+      maxAmount: 100000,
+    }),
+    accountTopupSettings: Factory.extend({
+      allowTopup: false,
+    }),
+    topup: Factory.extend({
+      depositAmount: 200,
+      depositCurrency: "EUR",
+      receiveAmount: 20000,
+      status: "transfer_completed",
+      meta: { description: "Mock topup" },
+      paymentProvider: "mollie",
+      paymentData: {
+        paymentId: uuid(),
+        checkoutUrl: "https://example.com/checkout/" + uuid(),
+        status: "paid"
+      },
+      created: new Date().toJSON(),
+      updated: new Date().toJSON(),
+    }),
   },
   /**
    * Needs to be called after SocialServer.seeds.
@@ -234,6 +285,20 @@ export default {
     // set an account to zero balance to test deleting
     server.schema.accounts.all().models[15].update({balance: 0});
 
+    // Add topup resources.
+    server.schema.currencies.all().models.forEach((currency: any) => {
+      const topupSettings = server.create("topupSettings", {currency})
+      const sourceAccount = server.schema.accounts.findBy({code: `${currency.code}0000`});
+      if (sourceAccount) {
+        topupSettings.update({
+          sourceAccountId: sourceAccount.id
+        })
+      }
+    });
+    server.schema.accounts.all().models.forEach((account: any) => 
+      server.create("accountTopupSettings", {account})
+    );
+    
   },
   routes(server: Server) {
     // Single currency
@@ -424,5 +489,16 @@ export default {
         komunitin: `${urlAccounting}/${currency}/accounts/${id}`,
       }
     })
+
+    server.get(`${urlAccounting}/:currency/currency/topup-settings`, (schema: any, request: any) => {
+      const currency = schema.currencies.findBy({code: request.params.currency});
+      return currency.topupSettings
+    });
+
+    server.get(`${urlAccounting}/:currency/accounts/:id/topup-settings`, (schema: any, request: any) => {
+      const currency = schema.currencies.findBy({code: request.params.currency});
+      const account = schema.accounts.findBy({id: request.params.id, currencyId: currency.id});
+      return account.topupSettings;
+    });
   }
 };

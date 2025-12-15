@@ -1,18 +1,18 @@
 import { Router } from 'express';
 import { noAuth, Scope, userAuth } from '../server/auth';
 import { asyncHandler } from '../server/handlers';
-import { SharedController } from '../controller';
+import { BaseService } from '../controller';
 import { MigrationController } from "./migration-controller"
 import { MigrationSerializer } from './serialize';
 import { context } from '../utils/context';
 import { input } from '../server/parse';
-import { CreateMigration, migrationStatuses, migrationKinds, Migration, UpdateMigration } from './migration';
+import { CreateMigration, migrationStatuses, migrationKinds, UpdateMigration } from './migration';
 import { jsonApiDoc } from '../server/validation';
 import { body, checkExact } from 'express-validator';
 
-export function getRoutes(controller: SharedController) {
+export function getRoutes(controller: BaseService) {
   const migrationController = new MigrationController(controller)
-  const router = Router(); 
+  const router = Router()
 
   /**
    * List migrations

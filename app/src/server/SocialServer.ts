@@ -530,14 +530,12 @@ export default {
 
     // Single member.
     server.get(urlSocial + "/:code/members/:member", (schema: any, request: any) => {
-      return schema.members.findBy({ id: request.params.member })
-      || schema.members.findBy({ code: request.params.member })
-      || new Response(404);
+      return schema.members.find(request.params.member)
     });
 
     // Edit member profile
     server.patch(urlSocial + "/:code/members/:member", (schema: any, request: any) => {
-      const member = schema.members.findBy({ id: request.params.member })
+      const member = schema.members.find(request.params.member)
       const body = JSON.parse(request.requestBody);
       member.update(body.data.attributes);
       return member;
@@ -558,7 +556,7 @@ export default {
 
     // Single offer.
     server.get(urlSocial + "/:code/offers/:offer", (schema: any, request: any) => {
-      return schema.offers.findBy({ code: request.params.offer });
+      return schema.offers.find(request.params.offer);
     });
 
     // Create offer
@@ -580,7 +578,7 @@ export default {
     // Update offer
     server.patch(urlSocial + "/:code/offers/:offer", (schema: any, request: any) => {
       const body = JSON.parse(request.requestBody);
-      const offer = schema.offers.findBy({ code: request.params.offer });
+      const offer = schema.offers.find(request.params.offer);
       offer.update({
         ...body.data.attributes,
         updated: new Date().toJSON(),
@@ -590,14 +588,14 @@ export default {
 
     // Delete offer
     server.delete(urlSocial + "/:code/offers/:offer", (schema: any, request: any) => {
-      const offer = schema.offers.findBy({ code: request.params.offer });
+      const offer = schema.offers.find(request.params.offer);
       offer.destroy();
       return undefined as any
     })
 
     // Single need
     server.get(urlSocial + "/:code/needs/:need", (schema: any, request: any) => {
-      return schema.needs.findBy({ code: request.params.need });
+      return schema.needs.find(request.params.need);
     });
 
     // Create need
@@ -619,7 +617,7 @@ export default {
     // Update need
     server.patch(urlSocial + "/:code/needs/:need", (schema: any, request: any) => {
       const body = JSON.parse(request.requestBody);
-      const need = schema.needs.findBy({ code: request.params.need });
+      const need = schema.needs.find(request.params.need);
       need.update({
         ...body.data.attributes,
         updated: new Date().toJSON(),
@@ -629,7 +627,7 @@ export default {
 
     // Delete need
     server.delete(urlSocial + "/:code/needs/:need", (schema: any, request: any) => {
-      const need = schema.needs.findBy({ code: request.params.need });
+      const need = schema.needs.find(request.params.need);
       need.destroy();
       return undefined as any
     })

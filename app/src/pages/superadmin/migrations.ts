@@ -1,8 +1,8 @@
 import { useQuasar } from 'quasar'
 import type { MaybeRefOrGetter} from 'vue';
 import { ref, toValue, watchEffect } from 'vue'
-import type { ErrorResponse, ResourceObject } from '../../store/model'
-import { useStore } from 'vuex'
+import type { CollectionResponse, ResourceObject, ResourceResponse } from '../../store/model'
+import { useApiFetch } from '../../composables/useApiFetch';
 
 export interface Migration {
   id: string
@@ -26,6 +26,10 @@ export interface Migration {
   updated: string
 }
 
+type MigrationResource = ResourceObject & {
+  attributes: Omit<Migration, "id">
+}
+
 export interface MigrationLogEntry {
   time: string, // ISO 8601 format
   level: "info" | "warn" | "error",
@@ -45,30 +49,12 @@ const getDefaultAccountingUrl = () => {
 
 const baseUrl = ref(getDefaultAccountingUrl())
 
-const useAuthFetch = () => { 
-  const store = useStore()
-  return async (url: string, options: RequestInit = {}) => {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...options.headers,
-        'Authorization': `Bearer ${store.getters.accessToken}`
-      }
-    })
-    await checkFetchError(response)
-    try {
-      return await response.json()
-    } catch {
-      // Empty or invalid json response.
-      return null
-    }
-  }
-}
+
 
 
 export const useMigrations = (options: { immediate?: boolean} = { immediate: true }) => {
   const q = useQuasar()
-  const authFetch = useAuthFetch()
+  const apiFetch = useApiFetch<MigrationResource>()
 
   const migrations = ref<Migration[]>([])
   const loading = ref(false)
@@ -76,16 +62,15 @@ export const useMigrations = (options: { immediate?: boolean} = { immediate: tru
   const refresh = async () => {
     loading.value = true
     try {
-      const data = await authFetch(`${baseUrl.value}/migrations`)
+      const data = await apiFetch(`${baseUrl.value}/migrations`) as CollectionResponse<MigrationResource>
       
-      migrations.value = data.data.map((m: ResourceObject) => {
+      migrations.value = data.data.map((m: MigrationResource) => {
         return {
           id: m.id,
           ...m.attributes,
         } as Migration
       })
-    } catch {
-      q.notify({ type: 'negative', message: 'Error loading migration data', position: 'top' })
+
     } finally {
       loading.value = false
     }
@@ -100,13 +85,10 @@ export const useMigrations = (options: { immediate?: boolean} = { immediate: tru
         }
       }
     }
-    const result = await authFetch(`${baseUrl.value}/migrations`, {
+    const result = await apiFetch(`${baseUrl.value}/migrations`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/vnd.api+json',
-      },
-      body: JSON.stringify(data)
-    });
+      body: data
+    }) as ResourceResponse<MigrationResource>
 
     // Redirect to the migration page.
     const migrationId = result.data.id
@@ -117,7 +99,7 @@ export const useMigrations = (options: { immediate?: boolean} = { immediate: tru
   }
 
   const deleteMigration = async (migration: Migration) => {
-    await authFetch(`${baseUrl.value}/migrations/${migration.id}`, {
+    await apiFetch(`${baseUrl.value}/migrations/${migration.id}`, {
       method: 'DELETE'
     });
     q.notify({ type: 'positive', message: `Migration ${migration.code} deleted`, position: 'top' })
@@ -146,12 +128,12 @@ export const useMigration = (id: MaybeRefOrGetter<string>) => {
 
 
   let eventSource: EventSource | null = null
-  const authFetch = useAuthFetch()
+  const apiFetch = useApiFetch<MigrationResource>()
 
   const fetchMigration = async (id: string) => {
     loading.value = true
     try {
-      const data = await authFetch(`${baseUrl.value}/migrations/${id}`)
+      const data = await apiFetch(`${baseUrl.value}/migrations/${id}`) as ResourceResponse<MigrationResource>
       
       migration.value = {
         id: data.data.id,
@@ -202,7 +184,7 @@ export const useMigration = (id: MaybeRefOrGetter<string>) => {
 
   const play = async () => {
     const migrationId = toValue(id)
-    await authFetch(`${baseUrl.value}/migrations/${migrationId}/play`, {
+    await apiFetch(`${baseUrl.value}/migrations/${migrationId}/play`, {
       method: 'POST'
     })
     q.notify({ type: 'positive', message: `Migration ${migration.value?.code} started`, position: 'top' })
@@ -236,12 +218,9 @@ export const useMigration = (id: MaybeRefOrGetter<string>) => {
         }
       }
     }
-    await authFetch(`${baseUrl.value}/migrations/${migration.value.id}`, {
+    await apiFetch(`${baseUrl.value}/migrations/${migration.value.id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/vnd.api+json',
-      },
-      body: JSON.stringify(body)
+      body
     });
 
     q.notify({ type: 'positive', message: `Migration ${migration.value.code} updated`, position: 'top' })
@@ -259,16 +238,7 @@ export const useMigration = (id: MaybeRefOrGetter<string>) => {
   }
 }
 
-export const getStatusColor = (state: string) => ({ new: 'blue', 'started': 'orange', completed: 'green', failed: 'red' }[state] ?? 'grey')
-export const getStatusLabel = (state: string) => ({ new: 'New', 'started': 'In Progress', completed: 'Completed', failed: 'Failed' }[state] ?? state)
-
-
-export const checkFetchError = async (response: Response) => {
-  if (!response.ok) {
-    const errorData = await response.json() as ErrorResponse
-    const errors = errorData.errors || []
-    const details = errors.map((e) => e.title).join(', ')
-
-    throw new Error(`Failed to fetch from "${response.url}".\nDetails: ${details}`)
-  }
-}
+export const getStatusColor = (state: string) => 
+  ({ new: 'blue', 'started': 'orange', completed: 'green', failed: 'red' }[state] ?? 'grey')
+export const getStatusLabel = (state: string) => 
+  ({ new: 'New', 'started': 'In Progress', completed: 'Completed', failed: 'Failed' }[state] ?? state)

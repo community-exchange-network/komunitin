@@ -1,4 +1,4 @@
-import { AccountType, PrismaClient } from "@prisma/client"
+import { AccountKind, PrismaClient } from "@prisma/client"
 import { Keypair } from "@stellar/stellar-sdk"
 import cron from "node-cron"
 import { KeyObject } from "node:crypto"
@@ -6,153 +6,41 @@ import { EventEmitter } from "node:events"
 import { initUpdateExternalOffers } from "src/ledger/update-external-offers"
 import { CollectionOptions, relatedCollectionParams } from "src/server/request"
 import { Context, isSuperadmin, systemContext } from "src/utils/context"
-import { badConfig, badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error"
-import { sleep } from "src/utils/sleep"
+import { badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error"
 import TypedEmitter from "typed-emitter"
-import { ControllerEvents, SharedController, StatsController } from "."
-import { config } from "../config"
-import { Ledger, createStellarLedger } from "../ledger"
-import { friendbot } from "../ledger/stellar/friendbot"
+import { Ledger } from "../ledger"
 import { CreateCurrency, Currency, CurrencySettings, currencyToRecord, recordToCurrency } from "../model/currency"
-import { decrypt, deriveKey, encrypt, exportKey, importKey, randomKey } from "../utils/crypto"
+import { decrypt, encrypt, exportKey, importKey, randomKey } from "../utils/crypto"
 import { logger } from "../utils/logger"
-import { LedgerCurrencyController, currencyConfig, currencyData } from "./currency-controller"
+import { BasePublicService, ServiceEvents } from "./api"
+import { CurrencyControllerImpl, currencyConfig, currencyData } from "./currency-controller"
 import { initUpdateCreditOnPayment } from "./features/credit-on-payment"
 import { initNotifications } from "./features/notificatons"
 import { storeCurrencyKey } from "./key-controller"
 import { initLedgerListener } from "./ledger-listener"
-import { PrivilegedPrismaClient, TenantPrismaClient, globalTenantDb, privilegedDb, tenantDb } from "./multitenant"
+import { PrivilegedPrismaClient, TenantPrismaClient, privilegedDb, tenantDb } from "./multitenant"
 import { whereFilter } from "./query"
-import { StatsController as StatsControllerImpl } from "./stats-controller"
-import { Store } from "./store"
+import { StatsControllerImpl } from "./stats-controller"
 
-
-const getMasterKey = async () => {
-  const masterPassword = config.MASTER_PASSWORD
-  let masterKeyObject: KeyObject
-  if (!masterPassword) { 
-    throw badConfig("MASTER_PASSWORD must be provided")
-  }
-  if (masterPassword.length < 16) {
-    throw badConfig("MASTER_PASSWORD must be at least 16 characters long")
-  }
-  if (!config.MASTER_PASSWORD_SALT || config.MASTER_PASSWORD_SALT.length < 16) {
-    throw badConfig("MASTER_PASSWORD_SALT must be provided and at least 16 characters long")
-  }
-  const salt = config.MASTER_PASSWORD_SALT || "komunitin.org"
-  masterKeyObject = await deriveKey(masterPassword, salt)
-
-  return async () => masterKeyObject
-}
-
-const getSponsorAccount = async (store: Store) => {
-  const SPONSOR_STORE_KEY = "sponsor_key"
-  let sponsor: Keypair | undefined
-  if (config.SPONSOR_PRIVATE_KEY) {
-    sponsor = Keypair.fromSecret(config.SPONSOR_PRIVATE_KEY)
-  }
-  // Handy helper for dev/test environments.
-  else if (["testnet", "local"].includes(config.STELLAR_NETWORK) && config.STELLAR_FRIENDBOT_URL) {
-    const sponsorSecret = await store.get<string>(SPONSOR_STORE_KEY)
-    if (sponsorSecret) {
-      sponsor = Keypair.fromSecret(sponsorSecret)
-      logger.info(`Sponsor account loaded from DB.`)
-    } else {
-      // Create a new random sponsor account with friendbot.
-      sponsor = Keypair.random()
-      await friendbot(config.STELLAR_FRIENDBOT_URL, sponsor.publicKey())
-      await store.set(SPONSOR_STORE_KEY, sponsor.secret())
-      logger.info(`Random sponsor account created with friendbot and saved.`)
-    }
-  } else {
-    throw badConfig("Either SPONSOR_PRIVATE_KEY or STELLAR_FRIENDBOT_URL must be provided")
-  }
-  const sponsorKey = async () => sponsor
-  return sponsorKey
-}
-
-const getChannelAccountKeys = async (store: Store) => {
-  const CHANNEL_STORE_KEY = "channel_accounts"
-  const CHANNEL_ACCOUNTS_NUMBER = 10
-  if (config.STELLAR_CHANNEL_ACCOUNTS_ENABLED) {
-    const channelAccountKeys = await store.get<string[]>(CHANNEL_STORE_KEY) ?? []
-    let save = false
-    while (channelAccountKeys.length < CHANNEL_ACCOUNTS_NUMBER) {
-      save = true
-      const key = Keypair.random()
-      channelAccountKeys.push(key.secret())
-    }
-
-    if (save) {
-      await store.set(CHANNEL_STORE_KEY, channelAccountKeys)
-    }
-
-    return channelAccountKeys
-  } else {
-    return undefined
-  }
-}
-
-const waitForDb = async (db: PrismaClient): Promise<void> => {
-  try {
-    // Do a simple query to check if the DB is ready.
-    await db.value.findFirst()
-  } catch (error) {
-    logger.info(`Waiting for DB...`)
-    await sleep(1000)
-    return waitForDb(db)
-  }
-}
-
-export async function createController(): Promise<SharedController> {
-  // Create DB client.
-  const db = new PrismaClient()
-  await waitForDb(db)
-
-  // Create global key-value store.
-  const globalDb = globalTenantDb(db)
-  const store = new Store(globalDb)
-  
-  // Master symmetric key for encrypting secrets.
-  const masterKey = await getMasterKey()
-
-  // Sponsor account
-  const sponsorKey = await getSponsorAccount(store)
-  const sponsor = await sponsorKey()
-
-  // Create/retrieve channel accounts for parallel transactions.
-  const channelAccountSecretKeys = await getChannelAccountKeys(store)
-
-  const ledger = await createStellarLedger({
-    server: config.STELLAR_HORIZON_URL,
-    network: config.STELLAR_NETWORK,
-    sponsorPublicKey: sponsor.publicKey(),
-    domain: config.DOMAIN,
-    channelAccountSecretKeys
-  }, sponsor)
-
-  return new LedgerController(ledger, db, masterKey, sponsorKey)
-}
-
-export class LedgerController implements SharedController {
+export class BaseControllerImpl implements BasePublicService {
   
   ledger: Ledger
   private _db: PrismaClient
   private cronTask: cron.ScheduledTask
 
-  emitter: TypedEmitter<ControllerEvents>
+  emitter: TypedEmitter<ServiceEvents>
 
   private sponsorKey: () => Promise<Keypair>
   private masterKey: () => Promise<KeyObject>
 
-  stats: StatsController
+  stats: StatsControllerImpl
 
   constructor(ledger: Ledger, db: PrismaClient, masterKey: () => Promise<KeyObject>, sponsorKey: () => Promise<Keypair>) {
     this.ledger = ledger
     this._db = db
     this.sponsorKey = sponsorKey
     this.masterKey = masterKey
-    this.emitter = new EventEmitter() as TypedEmitter<ControllerEvents>
+    this.emitter = new EventEmitter() as TypedEmitter<ServiceEvents>
 
     // External trade sync
     initUpdateExternalOffers(ledger,
@@ -179,11 +67,11 @@ export class LedgerController implements SharedController {
     this.stats = new StatsControllerImpl(this.privilegedDb())
   }
 
-  public addListener<E extends keyof ControllerEvents>(event: E, listener: ControllerEvents[E]) {
+  public addListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]) {
     return this.emitter.addListener(event, listener)
   }
 
-  public removeListener<E extends keyof ControllerEvents>(event: E, listener: ControllerEvents[E]) {
+  public removeListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]) {
     return this.emitter.removeListener(event, listener)
   }
 
@@ -316,7 +204,7 @@ export class LedgerController implements SharedController {
     const externalAccountRecord = await db.account.create({
       data: {
         code: `${inputRecord.code}EXTR`,
-        type: AccountType.virtual,
+        kind: AccountKind.virtual,
         status: "active",
         balance: 0,
         maximumBalance: currency.settings.externalTraderMaximumBalance ? currency.settings.externalTraderMaximumBalance : null,
@@ -348,7 +236,7 @@ export class LedgerController implements SharedController {
 
   }
   /**
-   * Implements {@link SharedController.getCurrencies}
+   * Implements {@link BaseController.getCurrencies}
    */
   async getCurrencies(ctx: Context, params: CollectionOptions): Promise<Currency[]> {
     if ("status" in params.filters && params.filters.status !== "active" && !isSuperadmin(ctx)) {
@@ -420,12 +308,12 @@ export class LedgerController implements SharedController {
     await this._db.$disconnect()
   }
 
-  async getCurrencyController(code: string): Promise<LedgerCurrencyController> {
+  async getCurrencyController(code: string): Promise<CurrencyControllerImpl> {
     const currency = await this.loadCurrency(code)
     const ledgerCurrency = this.ledger.getCurrency(currencyConfig(currency), currencyData(currency), currency.state)
     const db = this.tenantDb(code)
     const encryptionKey = () => this.retrieveKey(code, currency.encryptionKey)
-    return new LedgerCurrencyController(currency, ledgerCurrency, db, encryptionKey, this.sponsorKey, this.emitter)
+    return new CurrencyControllerImpl(currency, ledgerCurrency, db, encryptionKey, this.sponsorKey, this.emitter)
   }
 
   async cron() {
