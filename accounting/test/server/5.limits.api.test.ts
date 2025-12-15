@@ -2,7 +2,7 @@ import { describe, it } from "node:test"
 import assert from "node:assert"
 import { setupServerTest } from "./setup"
 import { waitFor } from "./utils"
-import { LedgerController } from "src/controller/base-controller"
+import { BaseControllerImpl } from "src/controller/base-controller"
 import { sleep } from "src/utils/sleep"
 
 describe("OnPayment credit limit", async () => {
@@ -95,7 +95,7 @@ describe("OnPayment credit limit", async () => {
     assert.equal(transfer.attributes.state, "pending")
     // wait 1 second and run cron
     await sleep(1000)
-    await (t.app.komunitin.controller as LedgerController).cron()
+    await (t.app.komunitin.service as BaseControllerImpl).cron()
     // check transfer has been committed.
     const updated = await t.api.get(`/TEST/transfers/${transfer.id}`, t.user2)
     assert.equal(updated.body.data.attributes.state, "committed")

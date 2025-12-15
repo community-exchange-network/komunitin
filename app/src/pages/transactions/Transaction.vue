@@ -1,7 +1,7 @@
 <template>
   <div>
     <page-header 
-      :title="$t('transaction')"
+      :title="t('transaction')"
       :back="`/groups/${code}/members/${myMember?.attributes.code}/transactions`"
       balance
     />
@@ -18,14 +18,14 @@
             <q-separator />
             <q-card-actions class="justify-end">
               <q-btn 
-                :label="$t('reject')"
+                :label="t('reject')"
                 color="primary"
                 flat
                 padding="xs lg"
                 @click="updateTransactionState('rejected')"
               />
               <q-btn
-                :label="$t('accept')"
+                :label="t('accept')"
                 type="submit"
                 color="primary"
                 padding="xs lg"
@@ -35,6 +35,15 @@
             </q-card-actions>  
           </div>
         </transaction-card>
+        <div class="q-mt-lg flex justify-center">
+          <q-btn
+            class="col"
+            :label="t('backToTransfers')"
+            :to="`/groups/${code}/members/${myMember?.attributes.code}/transactions`"
+            color="primary"
+            flat
+          />
+        </div>
       </q-page>
     </q-page-container>
   </div>

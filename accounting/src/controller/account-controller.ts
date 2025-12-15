@@ -1,18 +1,19 @@
-import { AccountType, Prisma } from "@prisma/client";
-import { AccountController as IAccountController } from "src/controller";
+import { AccountKind, Prisma } from "@prisma/client";
+
 import { Account, AccountSettings, AccountStatus, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
 import { CollectionOptions } from "src/server/request";
 import { Context, systemContext } from "src/utils/context";
 import { deriveKey, exportKey } from "src/utils/crypto";
-import { badRequest, forbidden, notFound, notImplemented, unauthorized } from "src/utils/error";
+import { badRequest, forbidden, notFound, unauthorized } from "src/utils/error";
 import { WithRequired } from "src/utils/types";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
-import { LedgerCurrencyController } from "./currency-controller";
+import { AccountsService } from "./api";
+import { CurrencyControllerImpl } from "./currency-controller";
 import { whereFilter } from "./query";
 
 
-export class AccountController extends AbstractCurrencyController implements IAccountController{
-  constructor (readonly currencyController: LedgerCurrencyController) {
+export class AccountControllerImpl extends AbstractCurrencyController implements AccountsService {
+  constructor (readonly currencyController: CurrencyControllerImpl) {
     super(currencyController)
   }
 
@@ -45,8 +46,8 @@ export class AccountController extends AbstractCurrencyController implements IAc
     }
     
     const ledgerOptions = {
-      initialCredit: this.currencyController.amountToLedger(creditLimit),
-      maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance + creditLimit) : undefined
+      initialCredit: this.currencyController.toStringAmount(creditLimit),
+      maximumBalance: maximumBalance ? this.currencyController.toStringAmount(maximumBalance + creditLimit) : undefined
     }
     const {key} = await this.currencyController.ledger.createAccount(ledgerOptions, keys)
     // Store key
@@ -56,6 +57,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
       data: {
         id: account.id,
         code,
+        kind: account.kind ?? AccountKind.user,
         status: AccountStatus.Active,
         // Initialize ledger values with what we have just created.
         creditLimit,
@@ -119,13 +121,13 @@ export class AccountController extends AbstractCurrencyController implements IAc
         })
       } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status) && data.status === AccountStatus.Active) {
         // Don't need to check admin access again, since only admins can update suspended accounts.
-        const ledgerBalance = this.currencyController.amountToLedger(account.balance + account.creditLimit)
-        const maximumBalance = account.maximumBalance ?? this.currency().settings.defaultInitialMaximumBalance
-
+        
         await this.currencyController.ledger.enableAccount({
-          balance: ledgerBalance,
-          credit: this.currencyController.amountToLedger(account.creditLimit),
-          maximumBalance: maximumBalance ? this.currencyController.amountToLedger(maximumBalance) : undefined,
+          balance: this.currencyController.toStringAmount(account.balance + account.creditLimit),
+          credit: this.currencyController.toStringAmount(account.creditLimit),
+          maximumBalance: account.maximumBalance 
+            ? this.currencyController.toStringAmount(account.maximumBalance + account.creditLimit) 
+            : undefined,
         }, {
           account: await this.keys().retrieveKey(account.key),
           issuer: await this.keys().issuerKey(),
@@ -151,26 +153,14 @@ export class AccountController extends AbstractCurrencyController implements IAc
     if (data.code && data.code !== account.code) {
       await this.checkFreeCode(data.code)
     }
-    // Update credit limit
-    if (data.creditLimit && data.creditLimit !== account.creditLimit) {
+    // Update maximum balance, either on maximum balance or credit limit change.
+    const newMaxBalance = data.maximumBalance !== undefined ? data.maximumBalance : account.maximumBalance
+    const newCreditLimit = data.creditLimit !== undefined ? data.creditLimit : account.creditLimit
+    if ((newMaxBalance !== account.maximumBalance) || (newMaxBalance && newCreditLimit !== account.creditLimit)) {
       if (account.status === AccountStatus.Active) {
         const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-        await ledgerAccount.updateCredit(this.currencyController.amountToLedger(data.creditLimit), {
-          sponsor: await this.keys().sponsorKey(),
-          credit: data.creditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
-          issuer: data.creditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
-          account: data.creditLimit < account.creditLimit ? await this.keys().adminKey() : undefined
-        })
-      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
-        throw badRequest("Cannot update credit limit of disabled or suspended accounts. Enable the account first.")
-      }
-    }
-    // Update maximum balance
-    if (data.maximumBalance !== undefined && data.maximumBalance !== account.maximumBalance) {
-      if (account.status === AccountStatus.Active) {
-        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-        const ledgerMaximumBalance = data.maximumBalance 
-          ? this.currencyController.amountToLedger(data.maximumBalance + account.creditLimit)
+        const ledgerMaximumBalance = newMaxBalance 
+          ? this.currencyController.toStringAmount(newMaxBalance + newCreditLimit)
           : undefined // no limit
           
         await ledgerAccount.updateMaximumBalance(ledgerMaximumBalance, {
@@ -181,6 +171,22 @@ export class AccountController extends AbstractCurrencyController implements IAc
         })
       } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
         throw badRequest("Cannot update maximum balance of disabled or suspended accounts. Enable the account first.")
+      }
+    }
+
+    // Update credit limit
+    if (newCreditLimit !== account.creditLimit) {
+      if (account.status === AccountStatus.Active) {
+        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+
+        await ledgerAccount.updateCredit(this.currencyController.toStringAmount(newCreditLimit), {
+          sponsor: await this.keys().sponsorKey(),
+          credit: newCreditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
+          issuer: newCreditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
+          account: newCreditLimit < account.creditLimit ? await this.keys().retrieveKey(account.key) : undefined
+        })
+      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
+        throw badRequest("Cannot update credit limit of disabled or suspended accounts. Enable the account first.")
       }
     }
 
@@ -361,8 +367,8 @@ export class AccountController extends AbstractCurrencyController implements IAc
       if (!filter.status) {
         filter.status = AccountStatus.Active
       }
-      if (!filter.type) {
-        filter.type = AccountType.user
+      if (!filter.kind) {
+        filter.kind = AccountKind.user
       }
     }
     
@@ -413,7 +419,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
       const pool = await this.currencyController.ledger.getAccount(this.currency().keys.disabledAccountsPool!)
       await pool.pay({
         payeePublicKey: this.currency().keys.credit,
-        amount: this.currencyController.amountToLedger(account.creditLimit),
+        amount: this.currencyController.toStringAmount(account.creditLimit),
       }, {
         account: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
         sponsor: await this.keys().sponsorKey(),
@@ -579,7 +585,7 @@ export class AccountController extends AbstractCurrencyController implements IAc
 
   async updateAccountBalance(account: FullAccount): Promise<void> {
     const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-    account.balance = this.currencyController.amountFromLedger(ledgerAccount.balance())
+    account.balance = this.currencyController.toIntegerAmount(ledgerAccount.balance())
       - account.creditLimit
     await this.db().account.update({
       data: { balance: account.balance },

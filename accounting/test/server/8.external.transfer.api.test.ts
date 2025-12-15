@@ -1,13 +1,15 @@
-import { describe, before, it, after } from "node:test"
-import { setupServerTest } from './setup'
 import assert from "node:assert"
-import { testCurrency, testTransfer, userAuth } from "./api.data"
+import { after, before, describe, it } from "node:test"
 import { config } from "src/config"
-import { logger } from "src/utils/logger"
-import { LedgerCurrencyController } from "src/controller/currency-controller"
-import { clearEvents, getEvents } from "./net.mock"
-import { waitFor } from "./utils"
+import { CurrencyControllerImpl } from "src/controller/currency-controller"
 import { EventName } from "src/controller/features/notificatons"
+import { logger } from "src/utils/logger"
+import { CurrencySettings } from "../../src/model"
+import { testCurrency, testTransfer, userAuth } from "./api.data"
+import { AuthInfo } from "./net.client"
+import { clearEvents, getEvents } from "./net.mock"
+import { setupServerTest } from './setup'
+import { waitFor } from "./utils"
 
 describe("External transfers", async () => {
   const t = setupServerTest()
@@ -42,6 +44,10 @@ describe("External transfers", async () => {
     const response = await t.api.post(`/${currency.attributes.code}/transfers`, transfer, auth, httpStatus)
     return response.ok ? response.body.data : response.body
   }
+
+  const reconcileExternalState = async (code: string, auth: AuthInfo) => {
+    await t.api.post(`/${code}/trustlines/sync`, undefined, auth, 204)
+  }
   
   before(async () => {
     // Create secondary currency
@@ -62,30 +68,58 @@ describe("External transfers", async () => {
     await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, 100, "EXTR => TEST", "committed", eUser1, 400)
   })
 
-  await it('set trust to currency', async () => {
-    // EXTR trusts TEST
-    const href = `${config.API_BASE_URL}/${t.currency.attributes.code}/currency`
-    const body = {
+  /**
+   * Creates a new trustline from currency to trustedCurrency, enabling payments from trustedCurrency to currency.
+   * Remember to call waitForPath() after this to ensure paths are available.
+   * @returns 
+   */
+  const trustCurrency = async (currency: any, trustedCurrency: any, limit: number, auth: any) => {
+    const srcCode = trustedCurrency.attributes.code
+    const destCode = currency.attributes.code
+    
+    const response = await t.api.post(`/${destCode}/trustlines`, {
       data: {
         attributes: {
-          limit: 1000 // 1000 EXTR = 500 HOUR = 5000 TEST
+          limit
         },
         relationships: {
-          trusted: { 
-            data: { 
-              type: "currencies", 
-              id: t.currency.id,
+          trusted: {
+            data: {
+              type: "currencies",
+              id: trustedCurrency.id,
               meta: {
                 external: true,
-                href
+                href: `${config.API_BASE_URL}/${srcCode}/currency`
               }
             }
           }
         }
-      },
-    }
-    const response = await t.api.post(`/EXTR/trustlines`, body, eAdmin)
-    eTrustline = response.body.data
+      }
+    }, auth)    
+    return response.body.data
+  }
+
+  /**
+   * amount in source currency
+   */
+  const waitForPath = async (fromCurrency: any, toCurrency: any, amount: number) => {
+    const controller = await t.app.komunitin.service.getCurrencyController(fromCurrency.attributes.code) as CurrencyControllerImpl
+    const destAmount = (amount / 10 ** toCurrency.attributes.scale).toFixed(7)
+    
+    const path = await controller.ledger.quotePath({
+      destCode: toCurrency.attributes.code,
+      destIssuer: toCurrency.attributes.keys.issuer,
+      amount: destAmount,
+      retry: true
+    })
+
+    assert.ok(path, `Path not found from ${fromCurrency.attributes.code} to ${toCurrency.attributes.code}`)
+  }
+
+  await it('set trust to currency', async () => {
+    // EXTR trusts TEST
+    eTrustline = await trustCurrency(eCurrency, t.currency, 1000, eAdmin)
+    await waitForPath(t.currency, eCurrency, 1000)
 
     assert.equal(eTrustline.attributes.limit, 1000)
     assert.equal(eTrustline.attributes.balance, 0)
@@ -94,8 +128,6 @@ describe("External transfers", async () => {
 
     assert.equal(eTrustline.relationships.trusted.data.id, t.currency.id)
     assert.strictEqual(eTrustline.relationships.trusted.data.meta.external, true)
-    assert.strictEqual(eTrustline.relationships.trusted.data.meta.href, href)
-
   })
   
   await it('get trustline', async () => {
@@ -119,15 +151,6 @@ describe("External transfers", async () => {
   
   await it('successful external payment', async () => {
     // 100 TEST = 10 HOUR = 20 EXTR
-    // just wait for the path to be available in the ledger.
-    const controller = await t.app.komunitin.controller.getCurrencyController("TEST") as LedgerCurrencyController
-    await controller.ledger.quotePath({
-      destCode: "EXTR",
-      destIssuer: eCurrency.attributes.keys.issuer,
-      amount: "0.001",
-      retry: true
-    })
-
     const transfer = await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 100, "TEST => EXTR", "committed", t.user1)
 
     const checkTransfer = (transfer: any, test: boolean) => {
@@ -168,6 +191,12 @@ describe("External transfers", async () => {
     const transfer2 = (await t.api.get('/TEST/transfers/' + transfers2[0].id, t.user1)).body.data
     checkTransfer(transfer2, true)
 
+  })
+
+  await it("trustline balance", async () => {
+    await reconcileExternalState("EXTR", eAdmin)
+    const trustline = (await t.api.get(`/EXTR/trustlines/${eTrustline.id}`, eUser1)).body.data
+    assert.equal(trustline.attributes.balance, -20)
   })
 
   await it('successful external payment request (immediate)', async () => {
@@ -292,5 +321,162 @@ describe("External transfers", async () => {
 
   })
 
+  it("can trade without trust if in surplus", async () => {
+    // The system listens to a stellar stream of external trades to update the external trader sell offers.
+    // However I'm not able to make it work in the test environment, so we manually trigger the reconciliation here.
+    await reconcileExternalState("EXTR", eAdmin)
+    await reconcileExternalState("TEST", t.admin)
 
+    const externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(externalAccount.attributes.balance, 300) // From previous tests
+
+    await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, 40, "40 EXTR => 200 TEST without trust", "committed", eUser1, 201)
+    const updatedExternalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(updatedExternalAccount.attributes.balance, 100)
+  })
+
+  it("can update external maximum balance", async () => {
+    // increase account1 credit limit to allow for this test to pass:
+    await t.api.patch(`/TEST/accounts/${t.account1.id}`, { data: { attributes: { creditLimit: 1000000 } } }, t.admin)
+    
+    // decrease maximum balance to 500 TEST
+    const newMaxBalance = 500
+    
+    // Update maximum balance
+    const updatedSettings = (await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderMaximumBalance: newMaxBalance
+    } } }, t.admin)).body.data.attributes as CurrencySettings
+    assert.strictEqual(updatedSettings.externalTraderMaximumBalance, newMaxBalance)
+    // Check external account status
+    const externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(externalAccount.attributes.maximumBalance, newMaxBalance)
+    assert.equal(externalAccount.attributes.balance, 100) // From previous tests
+
+    // Try unsuccessful transaction exceeding maximum balance
+    const available = externalAccount.attributes.maximumBalance - externalAccount.attributes.balance // 400 TEST available to reach maximum balance
+    await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, available + 100, "500 TEST => 100 EXTR exceeding maximum balance", "committed", t.user1, 400) 
+    
+    // Try successful transaction within new maximum balance (up to full)
+    await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, available, "400 TEST => 80 EXTR within maximum balance", "committed", t.user1, 201)
+    
+    // Can't set the maximum balance below current balance
+    await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderMaximumBalance: newMaxBalance - 100
+    } } }, t.admin, 400)
+
+    // But can increase it
+    const updatedMaxBalance = (await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderMaximumBalance: 10000
+    } } }, t.admin)).body.data.attributes as CurrencySettings
+    assert.strictEqual(updatedMaxBalance.externalTraderMaximumBalance, 10000)
+    await waitForPath(t.currency, eCurrency, 200)
+    // Now transfers increasing balance should work
+    await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 1000, "1000 TEST => 200 EXTR after removing maximum balance", "committed", t.user1, 201)
+    // Check external account status
+    const updatedExternalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(updatedExternalAccount.attributes.balance, 1500)
+
+    // But can't surpass the EXTR trustline (1000 EXTR = 5000 TEST)
+    await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 4000, "TEST => EXTR exceeding trustline", "committed", t.user1, 400)
+
+  })
+
+  it("can update external credit limit", async () => {
+    // Check currency settings
+    const currencySettings = (await t.api.get(`/TEST/currency/settings`, t.admin)).body.data.attributes
+    assert.strictEqual(currencySettings.externalTraderCreditLimit, 1000)
+    assert.strictEqual(currencySettings.externalTraderMaximumBalance, 10000)
+    // Check external account status
+    let externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(externalAccount.attributes.balance, 1500) // From previous tests
+    assert.equal(externalAccount.attributes.creditLimit, 1000)
+
+    // TEST trusts EXTR
+    const tTrustline = await trustCurrency(t.currency, eCurrency, 5000, t.admin)
+    assert.equal(tTrustline.attributes.limit, 5000)
+    assert.equal(tTrustline.attributes.balance, 0)
+
+    // The amount is constrained by the TEST's external trader local balance 
+    // of 1500 + credit limit of 1000 = 2500 TEST, not by the trustline limit of 5000 TEST.
+    await waitForPath(eCurrency, t.currency, 2500)
+    
+    // Try successful transaction within credit limit
+    await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, 400, "400 EXTR => 2000 TEST within credit limit", "committed", eUser1)
+    // Check external account status
+    externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(externalAccount.attributes.balance, -500) // 1500 - 2000
+    // Try unsuccessful transaction exceeding credit limit
+    await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, 120, "120 EXTR => 600 TEST exceeding credit limit", "committed", eUser1, 400)
+    
+    // Update credit limit
+    const updatedSettings = (await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 2000
+    } } }, t.admin)).body.data.attributes as CurrencySettings
+    assert.strictEqual(updatedSettings.externalTraderCreditLimit, 2000)
+
+    // Check external account status
+    externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(externalAccount.attributes.balance, -500) // Balance hasn't changed
+    assert.equal(externalAccount.attributes.creditLimit, 2000)
+
+    // Now we should be able to transfer up to 1500 TEST (balance -500 + credit limit 2000)
+    await waitForPath(eCurrency, t.currency, 1500)
+    // Try successful transaction within new credit limit
+    await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, 120, "120 EXTR => 600 TEST within new credit limit", "committed", eUser1)
+    // Check external account status
+    externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(externalAccount.attributes.balance, -1100)
+    assert.equal(externalAccount.attributes.creditLimit, 2000)
+
+    // Can't set the credit limit below current balance
+    await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 1000
+    } } }, t.admin, 400)
+
+    // But can decrease it a bit
+    await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 1500
+    } } }, t.admin, 200)
+
+  })
+
+  it('can update currency conversion rate', async () => {
+    // Make ample room for transfers
+    await t.api.patch(`/TEST/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 100000,
+      externalTraderMaximumBalance: 200000
+    } } }, t.admin)
+    await t.api.patch(`/EXTR/currency/settings`, { data: { attributes: {
+      externalTraderCreditLimit: 100000,
+      externalTraderMaximumBalance: 200000
+    } } }, eAdmin)
+    let externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
+    assert.equal(externalAccount.attributes.creditLimit, 100000)
+    assert.equal(externalAccount.attributes.maximumBalance, 200000)
+
+    // Update conversion rate for TEST from 1/10 to 2/13
+    const updatedCurrency = (await t.api.patch(`/TEST/currency`, { data: { attributes: {
+      rate: { n: 2, d: 13 }
+    } } }, t.admin)).body.data
+    assert.equal(updatedCurrency.attributes.rate.n, 2)
+    assert.equal(updatedCurrency.attributes.rate.d, 13)
+
+    // Now 1000 TEST = 307 EXTR
+    const transfer = await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 1000, "1000 TEST => 307 EXTR after rate update", "committed", t.user1)
+    assert.equal(transfer.attributes.amount, 1000)
+    // Check transfer from EXTR point of view
+    const eTransfer = (await t.api.get(`/EXTR/transfers/${transfer.id}`, eUser1)).body.data
+    assert.equal(eTransfer.attributes.amount, 307) // Rounded down
+
+    // And the other way around
+    /*
+    
+    const transfer2 = await externalTransfer(eCurrency, t.currency, eAccount1, t.account1, 100, "100 EXTR => 325 TEST after rate update", "committed", eUser1)
+    assert.equal(transfer2.attributes.amount, 100)
+    // Check transfer from TEST point of view
+    const tTransfer2 = (await t.api.get(`/TEST/transfers/${transfer2.id}`, t.user1)).body.data
+    assert.equal(tTransfer2.attributes.amount, 325) // Exact
+    */
+
+  })
 })

@@ -5,15 +5,15 @@ import { AbstractCurrencyController } from "./abstract-currency-controller";
 import { CollectionOptions } from "src/server/request";
 import { Context, systemContext } from "src/utils/context";
 import { logger } from "src/utils/logger";
-import { LedgerCurrencyController } from "./currency-controller";
+import { CurrencyControllerImpl } from "./currency-controller";
 import { ExternalTransferController } from "./external-transfer-controller";
 import { includeRelations, whereFilter } from "./query";
-import { TransferController as ITransferController } from "src/controller";
+import { TransfersPublicService } from "src/controller";
 
-export class TransferController  extends AbstractCurrencyController implements ITransferController {
+export class TransferControllerImpl  extends AbstractCurrencyController implements TransfersPublicService {
   private externalTransfers: ExternalTransferController
 
-  constructor(currencyController: LedgerCurrencyController) {
+  constructor(currencyController: CurrencyControllerImpl) {
     super(currencyController)
     this.externalTransfers = new ExternalTransferController(currencyController)
   }
@@ -300,7 +300,7 @@ export class TransferController  extends AbstractCurrencyController implements I
   }
 
   public async updateAccountBalances(transfer: FullTransfer) {
-    return await Promise.all([
+    await Promise.all([
       this.accounts().updateAccountBalance(transfer.payer),
       this.accounts().updateAccountBalance(transfer.payee)
     ])
@@ -313,7 +313,7 @@ export class TransferController  extends AbstractCurrencyController implements I
     const ledgerPayer = await this.currencyController.ledger.getAccount(transfer.payer.key)
     const transaction = await ledgerPayer.pay({
       payeePublicKey: transfer.payee.key,
-      amount: this.currencyController.amountToLedger(transfer.amount),
+      amount: this.currencyController.toStringAmount(transfer.amount),
     }, {
       sponsor: await this.keys().sponsorKey(),
       account: await (admin ? this.keys().adminKey() : this.keys().retrieveKey(transfer.payer.key))
@@ -605,7 +605,7 @@ export class TransferController  extends AbstractCurrencyController implements I
         const transfer = await this.createTransfer(ctx, data)
         return transfer
       } catch (e) {
-        // Log errors without waiting for all tasks to fisish.
+        // Log errors without waiting for all tasks to finish.
         logger.error(e)
         throw e
       }

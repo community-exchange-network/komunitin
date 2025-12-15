@@ -98,7 +98,7 @@
       :currency="currency"
       :limits="false"
     />
-    <q-separator />
+    <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
       <div class="text-subtitle1">
         {{ $t('externalPayments') }}
@@ -140,7 +140,6 @@
       :rules="[(val: string) => val.match(/^\d+(\/\d+)?$/) || $t('invalidCurrencyValue')]"
       hide-bottom-space
       :loading="currencyValueLoading"
-      disable
     />
     <input-update
       v-model="externalTraderCreditLimit"
@@ -153,7 +152,6 @@
           :label="$t('externalTraderCreditLimit')"
           :hint="$t('externalTraderCreditLimitHint')"
           outlined
-          disable
           @update:model-value="updateModelValue"
         />
       </template>
@@ -183,7 +181,29 @@
       :trustlines="trustlines"
       @update:trustline="$emit('update:trustline', $event)"
       @create:trustline="$emit('create:trustline', $event)"
+      @sync:trustlines="$emit('sync:trustlines')"
     />
+    <template v-if="featTopup">
+      <q-separator class="q-mt-xl" />
+      
+      <q-item
+        class="q-pl-none"
+        clickable
+        :to="{ name: 'TopupSettings', params: { code: group.attributes.code } }"
+      >
+        <q-item-section>
+          <q-item-label>{{ $t('topupSettings') }}</q-item-label>
+          <q-item-label caption>{{ $t('topupSettingsText') }}</q-item-label>
+        </q-item-section>
+        <q-item-section side>
+          <q-icon name="chevron_right" />
+        </q-item-section>
+      </q-item>
+      
+    </template>
+    
+
+
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
       <div class="text-subtitle1">
@@ -241,6 +261,7 @@ const emit = defineEmits<{
   (e: 'update:currency-settings', value: DeepPartial<CurrencySettings>): void
   (e: 'update:trustline', value: DeepPartial<Trustline>): void
   (e: 'create:trustline', value: DeepPartial<Trustline>): void
+  (e: 'sync:trustlines'): void
   (e: 'update:category', value: DeepPartial<Category>): void
   (e: 'create:category', value: DeepPartial<Category>): void
   (e: 'delete:category', value: DeepPartial<Category>): void
@@ -357,6 +378,7 @@ watch(externalTraderMaximumBalance, (value) => {
   })
 })
 const externalTraderMaximumBalanceLoading = computed(() => lastCurrencySettingsUpdate.value === "externalTraderMaximumBalance" && props.updatingCurrencySettings)
+const featTopup = process.env.FEAT_TOPUP === 'true'
 
 </script>
 <style lang="scss" scoped>

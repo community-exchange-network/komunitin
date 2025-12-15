@@ -22,7 +22,7 @@ describe("MirageJS Server", () => {
   });
 
   it("includes account external resource", async() => {
-    const response = await fetch(`${urlSocial}/GRP0/members/EmilianoLemke57?include=account`);
+    const response = await fetch(`${urlSocial}/GRP0/members?filter[code]=EmilianoLemke57&include=account`);
     const data = await response.json();
     const account = data.included.find((resource: ResourceObject) => resource.type == "accounts");
     expect(account.meta.external).toBe(true);

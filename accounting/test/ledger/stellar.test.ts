@@ -1,4 +1,4 @@
-import {describe, it, before, after} from "node:test"
+import { describe, it, before, after } from "node:test"
 import assert from "node:assert"
 
 import { Ledger, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyKeys, PathQuote } from "../../src/ledger"
@@ -27,7 +27,7 @@ describe('Creates stellar elements', async () => {
   let currency2: LedgerCurrency
   let currency2Keys: LedgerCurrencyKeys
 
-  before(async() => {
+  before(async () => {
     logger.level = "debug"
     // Create and fund a sponsor account.
     sponsor = Keypair.random()
@@ -42,7 +42,7 @@ describe('Creates stellar elements', async () => {
     }, sponsor)
 
     // Needed for external trade.
-    initUpdateExternalOffers(ledger, async() => sponsor, async(currency) => {
+    initUpdateExternalOffers(ledger, async () => sponsor, async (currency) => {
       // Get the privatey keys for the external trader accounts.
       return currency.asset().code == "TEST" ? currencyKeys.externalTrader : currency2Keys.externalTrader
     })
@@ -53,12 +53,15 @@ describe('Creates stellar elements', async () => {
     ledger.stop()
     logger.level = "info"
   })
-  
+
   const pubKeyRegex = /G[A-Z0-9]{55}/
-  await it('should be able to create a new currency', async() => {
+  await it('should be able to create a new currency', async () => {
     currencyConfig = {
       code: "TEST",
-      rate: {n: 1, d: 10}, //1 TEST = 0.1 HOUR
+      rate: { n: 1, d: 10 }, //1 TEST = 0.1 HOUR
+      externalTraderInitialCredit: "1000",
+      externalTraderMaximumBalance: "5000"
+      
     }
     currencyKeys = await ledger.createCurrency(currencyConfig, sponsor)
     currencyData = {
@@ -69,11 +72,11 @@ describe('Creates stellar elements', async () => {
       externalTraderPublicKey: currencyKeys.externalTrader.publicKey()
     }
     currency = ledger.getCurrency(currencyConfig, currencyData)
-    
-    assert.notEqual(currency,undefined)
 
-    assert.match(currencyKeys.issuer.publicKey(),pubKeyRegex)
-    assert.match(currencyKeys.credit.publicKey(),pubKeyRegex)
+    assert.notEqual(currency, undefined)
+
+    assert.match(currencyKeys.issuer.publicKey(), pubKeyRegex)
+    assert.match(currencyKeys.credit.publicKey(), pubKeyRegex)
     assert.match(currencyKeys.admin.publicKey(), pubKeyRegex)
     assert.match(currencyKeys.externalIssuer.publicKey(), pubKeyRegex)
     assert.match(currencyKeys.externalTrader.publicKey(), pubKeyRegex)
@@ -92,25 +95,25 @@ describe('Creates stellar elements', async () => {
     assert.notEqual(accountKey, undefined)
     assert.match(accountKey.publicKey(), pubKeyRegex)
     const account = await currency.getAccount(accountKey.publicKey())
-    assert.equal(account.balance(),"1000.0000000")
+    assert.equal(account.balance(), "1000.0000000")
   })
 
   let account2Key: Keypair
-  await it('should be able to pay from one account to another', async() => {
+  await it('should be able to pay from one account to another', async () => {
     account2Key = (await currency.createAccount({
       initialCredit: "1000"
-    }, {sponsor, issuer: currencyKeys.issuer, credit: currencyKeys.credit})).key
+    }, { sponsor, issuer: currencyKeys.issuer, credit: currencyKeys.credit })).key
     const account = await currency.getAccount(accountKey.publicKey())
-    await account.pay({payeePublicKey: account2Key.publicKey(), amount: "100"}, {account: accountKey, sponsor})
+    await account.pay({ payeePublicKey: account2Key.publicKey(), amount: "100" }, { account: accountKey, sponsor })
     await account.update()
-    assert.equal(account.balance(),"900.0000000")
+    assert.equal(account.balance(), "900.0000000")
     const account2 = await currency.getAccount(account2Key.publicKey())
-    assert.equal(account2.balance(),"1100.0000000")
+    assert.equal(account2.balance(), "1100.0000000")
   })
 
-  await it('should be able to delete an account', async() => {
+  await it('should be able to delete an account', async () => {
     const account2 = await currency.getAccount(account2Key.publicKey())
-    await account2.delete({admin: currencyKeys.admin, sponsor})
+    await account2.delete({ admin: currencyKeys.admin, sponsor })
     try {
       account2.balance()
       assert.fail("Account should have been deleted")
@@ -119,12 +122,12 @@ describe('Creates stellar elements', async () => {
     }
   })
 
-  await it('should be able to disable and re-enable an account', async() => {
+  await it('should be able to disable and re-enable an account', async () => {
     const account = await currency.getAccount(accountKey.publicKey())
     const balance = account.balance()
     const credit = await account.credit()
 
-    const disabledAccountsPoolKey = (await currency.createAccount({initialCredit: "0"}, {
+    const disabledAccountsPoolKey = (await currency.createAccount({ initialCredit: "0" }, {
       sponsor,
       issuer: currencyKeys.issuer
     })).key
@@ -135,7 +138,7 @@ describe('Creates stellar elements', async () => {
     }
     currency.setData(currencyData)
 
-    await account.disable({admin: currencyKeys.admin, sponsor})
+    await account.disable({ admin: currencyKeys.admin, sponsor })
     // check that account is disabled
     try {
       await currency.getAccount(accountKey.publicKey())
@@ -156,17 +159,18 @@ describe('Creates stellar elements', async () => {
 
     const enabled = await currency.getAccount(accountKey.publicKey())
     assert.equal(enabled.balance(), balance)
-    assert.equal(await enabled.credit(), credit)    
-    
+    assert.equal(await enabled.credit(), credit)
+
   })
-  
+
   await it.skip('should be able to perform path payments', async () => {
     // Create a second currency.
     const config = {
       code: "TES2",
-      rate: {n: 1, d: 2}, // 1TES2 = 0.5 HOUR
-      externalTraderInitialCredit: "1000"
-    } 
+      rate: { n: 1, d: 2 }, // 1TES2 = 0.5 HOUR
+      externalTraderInitialCredit: "1000",
+      externalTraderMaximumBalance: "5000"
+    }
     currency2Keys = await ledger.createCurrency(config, sponsor)
     currency2 = ledger.getCurrency(config, {
       adminPublicKey: currency2Keys.admin.publicKey(),
@@ -175,17 +179,21 @@ describe('Creates stellar elements', async () => {
       externalIssuerPublicKey: currency2Keys.externalIssuer.publicKey(),
       externalTraderPublicKey: currency2Keys.externalTrader.publicKey()
     })
+
+    await assert.doesNotReject(
+      currency2.reconcileExternalState([{
+        limit: "10",
+        externalIssuerKey: currencyKeys.externalIssuer.publicKey()
+      }], {
+        sponsor,
+        externalTrader: currency2Keys.externalTrader,
+        externalIssuer: currency2Keys.externalIssuer,
+        credit: currency2Keys.credit
+      })
+    )
     
-    await assert.doesNotReject(currency2.trustCurrency({
-      trustedPublicKey: currencyKeys.externalIssuer.publicKey(),
-      limit: "10" // 5 hours
-    }, {
-      sponsor,
-      externalTrader: currency2Keys.externalTrader,
-      externalIssuer: currency2Keys.externalIssuer
-    }))
     // Create account from currency 2
-    const {key: key2} = await currency2.createAccount({
+    const { key: key2 } = await currency2.createAccount({
       initialCredit: "1000"
     }, {
       sponsor,
@@ -193,7 +201,7 @@ describe('Creates stellar elements', async () => {
       credit: currency2Keys.credit
     })
     // Create account from currency 1
-    const {key: key1} = await currency.createAccount({
+    const { key: key1 } = await currency.createAccount({
       initialCredit: "1000"
     }, {
       sponsor,
@@ -229,9 +237,9 @@ describe('Creates stellar elements', async () => {
       sponsor
     }))
     await account1.update()
-    assert.equal(account1.balance(),"975.0000000")
+    assert.equal(account1.balance(), "975.0000000")
     const account2 = await currency2.getAccount(key2.publicKey())
-    assert.equal(account2.balance(),"1005.0000000")
+    assert.equal(account2.balance(), "1005.0000000")
 
     // Now the currency 2 has a surplus of 1.5 hours, so they can buy to currency 
     // 1 members even if currency 1 has not trusted currency 2. We need to wait,
@@ -258,9 +266,9 @@ describe('Creates stellar elements', async () => {
             sponsor
           }))
           await account1.update()
-          assert.equal(account1.balance(),"980.0000000")
+          assert.equal(account1.balance(), "980.0000000")
           await account2.update()
-          assert.equal(account2.balance(),"1004.0000000")
+          assert.equal(account2.balance(), "1004.0000000")
           resolve()
         } catch (error) {
           reject(error)
@@ -268,6 +276,6 @@ describe('Creates stellar elements', async () => {
       }
       ledger.addListener("externalOfferUpdated", fn)
     })
-    await assert.doesNotReject(promise) 
+    await assert.doesNotReject(promise)
   })
 })

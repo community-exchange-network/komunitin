@@ -1,6 +1,6 @@
-import { AtLeast, Optional, WithRequired } from 'src/utils/types'
+import { Account as AccountRecord, AccountTag as AccountTagRecord, Prisma, AccountKind as PrismaAccountKind, User as UserRecord } from '@prisma/client'
+import { Optional, WithRequired } from 'src/utils/types'
 import { Currency } from './currency'
-import { Account as AccountRecord, User as UserRecord, AccountTag as AccountTagRecord, Prisma } from '@prisma/client'
 import { User } from './user'
 
 export { AccountRecord }
@@ -12,6 +12,8 @@ export enum AccountStatus {
   Deleted = "deleted",
 }
 
+export type AccountKind = PrismaAccountKind
+
 
 // Accounts, as returned by the API, do not need to have all fields filled. 
 // That depends on the permissions of the caller.
@@ -21,6 +23,7 @@ export interface FullAccount {
   code: string, // e.g. NET20002
   key: string // e.g. GDFBLI4HMOJGYJEZRKKI2LZ3MMD4KP5QAZJ2VALERKBWHO5OXBOUDD42
   status: AccountStatus
+  kind: AccountKind
 
   created: Date
   updated: Date
@@ -132,7 +135,7 @@ export type AccountSettings = {
 }
 
 // No input needed for creating an account (beyond implicit currency)!
-export type InputAccount = Partial<Pick<FullAccount, "id" | "code" | "status" | "creditLimit" | "maximumBalance" | "users">>
+export type InputAccount = Partial<Pick<FullAccount, "id" | "code" | "status" | "creditLimit" | "maximumBalance" | "users" | "kind">>
 export type UpdateAccount = WithRequired<InputAccount, "id">
 
 export function accountToRecord(account: UpdateAccount): Prisma.AccountUpdateInput {
@@ -141,6 +144,7 @@ export function accountToRecord(account: UpdateAccount): Prisma.AccountUpdateInp
     code: account.code,
     creditLimit: account.creditLimit,
     maximumBalance: account.maximumBalance ? account.maximumBalance : null,
+    kind: account.kind,
   }
 
   return accountRecord
@@ -160,6 +164,7 @@ export const recordToAccount = (record: AccountRecordComplete, currency: Currenc
     status: record.status as AccountStatus,
     code: record.code,
     key: record.keyId,
+    kind: record.kind,
     // Ledger cache
     balance: Number(record.balance),
     creditLimit: Number(record.creditLimit),
@@ -178,6 +183,6 @@ export const recordToAccount = (record: AccountRecordComplete, currency: Currenc
   }
 }
 
-export const userHasAccount = (user: User, account: FullAccount): boolean | undefined => {
+export const userHasAccount = (user: User, account: Account): boolean | undefined => {
   return account.users?.some(u => u.id === user.id)
 }

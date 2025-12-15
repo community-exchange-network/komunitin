@@ -18,7 +18,7 @@ password: komunitin
 
 **NET2 - regular user**\
 email: noether@komunitin.org\
-password: koumunitin
+password: komunitin
 
 The demo instance is automatically deployed with the lastest code in the main branch. It may occasionally be down or corrupted due to maintenance, testing or users changing passwords and/or config settings from the admin user. It is regularly reset with fresh data.
 

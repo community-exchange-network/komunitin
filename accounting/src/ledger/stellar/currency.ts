@@ -1,19 +1,22 @@
 import { Asset, AuthClawbackEnabledFlag, AuthFlag, AuthRequiredFlag, AuthRevocableFlag, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk"
 import { CallBuilder } from "@stellar/stellar-sdk/lib/horizon/call_builder"
+import { OfferAsset } from "@stellar/stellar-sdk/lib/horizon/types/offer"
 import Big from "big.js"
 import { badRequest, internalError, notFound } from "src/utils/error"
 import { logger } from "src/utils/logger"
 import { retry, sleep } from "src/utils/sleep"
-import { KeyPair, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerExternalTransfer, LedgerTransfer, PathQuote } from "../ledger"
+import { Rate } from "../../utils/types"
+import { ExternalBalance, ExternalTrustline, KeyPair, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyState, LedgerExternalTransfer, LedgerTransfer, PathQuote } from "../ledger"
 import { StellarAccount } from "./account"
-import { StellarLedger, StellarTransactionBuilder } from "./ledger"
+import { StellarLedger } from "./ledger"
+import { HorizonApi } from "@stellar/stellar-sdk/lib/horizon"
 
 interface StreamData {
   started: boolean
   listen?: () => void
   close?: () => void
 }
-const STREAM_NAMES = [ "externalTrades" ] as const
+const STREAM_NAMES = ["externalTrades"] as const
 type StreamName = typeof STREAM_NAMES[number]
 
 const pathPaymentToTransfer = (pathPayment: Horizon.HorizonApi.PathPaymentOperationResponse): LedgerExternalTransfer => ({
@@ -31,13 +34,11 @@ const paymentToTransfer = (payment: Omit<Horizon.HorizonApi.PaymentOperationResp
   hash: payment.transaction_hash
 })
 
+// This is the actual value that the Stellar SDK sets for a trustline with undefined limit.
+const UNDEFINED_TRUSTLINE_LIMIT = Big('9223372036854775807').div(10**7)
+
 export class StellarCurrency implements LedgerCurrency {
   static GLOBAL_ASSET_CODE = "HOUR"
-  /**
-   * In case there is no defined maximum balance for the external trader account,
-   * this is the default for the initial balance in hours for this account.
-   */
-  static DEFAULT_EXTERNAL_TRADER_INITIAL_CREDIT = "1000"
 
   ledger: StellarLedger
   config: LedgerCurrencyConfig
@@ -62,10 +63,10 @@ export class StellarCurrency implements LedgerCurrency {
 
     this.config = config
     this.data = data
-    this.state = state ?? {externalTradesStreamCursor: "0"}
+    this.state = state ?? { externalTradesStreamCursor: "0" }
     this.accounts = {}
-    
-    this.streams = Object.fromEntries(STREAM_NAMES.map((name) => [name, {started: false}])) as Record<StreamName, StreamData>
+
+    this.streams = Object.fromEntries(STREAM_NAMES.map((name) => [name, { started: false }])) as Record<StreamName, StreamData>
 
     // Input checking.
     if (this.config.code.match(/^[A-Z0-9]{4}$/) === null) {
@@ -77,10 +78,13 @@ export class StellarCurrency implements LedgerCurrency {
   setData(data: LedgerCurrencyData) {
     this.data = data
   }
-  
-  private listenStream<T extends Horizon.HorizonApi.BaseResponse & {paging_token: string}>(name: StreamName , cursor: keyof LedgerCurrencyState, endpoint: CallBuilder<Horizon.ServerApi.CollectionPage<T>>, onMessage: (record: T) => Promise<void>) {
+  setConfig(config: LedgerCurrencyConfig) {
+    this.config = config
+  }
+
+  private listenStream<T extends Horizon.HorizonApi.BaseResponse & { paging_token: string }>(name: StreamName, cursor: keyof LedgerCurrencyState, endpoint: CallBuilder<Horizon.ServerApi.CollectionPage<T>>, onMessage: (record: T) => Promise<void>) {
     const separationAttempt = 5000
-    
+
     const stream = this.streams[name]
     stream.started = true
 
@@ -93,16 +97,16 @@ export class StellarCurrency implements LedgerCurrency {
           // Looks like there is a bug in typings, as the records received when steraming are not
           // of type collection but single resources.
           const record = page as unknown as T
-          logger.debug({page}, `Received Horizon stream event.`)
+          logger.debug({ page }, `Received Horizon stream event.`)
           onMessage(record)
-          .catch((error) => {
-            this.ledger.emitter.emit("error", error)
-          })
-          .finally(() => {
-            // Update cursor in db.
-            this.state[cursor] = record.paging_token
-            this.ledger.emitter.emit("stateUpdated", this, this.state)
-          })
+            .catch((error) => {
+              this.ledger.emitter.emit("error", error)
+            })
+            .finally(() => {
+              // Update cursor in db.
+              this.state[cursor] = record.paging_token
+              this.ledger.emitter.emit("stateUpdated", this, this.state)
+            })
         },
         onerror: (error: any) => {
           // "throw" error
@@ -117,14 +121,14 @@ export class StellarCurrency implements LedgerCurrency {
             this.ledger.emitter.emit("error", error)
           })
         },
-        reconnectTimeout: 5*60*1000 // 5 min
+        reconnectTimeout: 5 * 60 * 1000 // 5 min
       })
     }
 
     stream.listen()
   }
-  start() {  
-    this.listenStream("externalTrades", "externalTradesStreamCursor", 
+  start() {
+    this.listenStream("externalTrades", "externalTradesStreamCursor",
       this.ledger.getServerWithoutRateProtection().trades().forAccount(this.data.externalTraderPublicKey),
       (trade) => this.handleExternalTradeEvent(trade)
     )
@@ -152,11 +156,11 @@ export class StellarCurrency implements LedgerCurrency {
     // - Hx is the external Hour
     // - Ht is the local Hour
     // - Lt is the local currency
-    
+
     // We want to catch the Hx => Ht (selling local hours by external hours)
     // trade if it is done by this external trader.
     if (trade.base_asset_type == "native" || trade.counter_asset_type == "native") {
-      throw internalError("Unexpected trade with native token", {details: trade})
+      throw internalError("Unexpected trade with native token", { details: trade })
     }
     const base = new Asset(trade.base_asset_code as string, trade.base_asset_issuer)
     const counter = new Asset(trade.counter_asset_code as string, trade.counter_asset_issuer)
@@ -199,7 +203,7 @@ export class StellarCurrency implements LedgerCurrency {
         this.ledger.emitter.emit("incommingTransfer", this, await tradeToTransfer(trade))
       }
     } else {
-      throw internalError("Unexpected trade", {details: trade})
+      throw internalError("Unexpected trade", { details: trade })
     }
   }
 
@@ -221,47 +225,64 @@ export class StellarCurrency implements LedgerCurrency {
     }
   }
 
+  private async fetchExternalOffers() {
+    const offers = await this.ledger.callServer((server) =>
+      server.offers()
+        .seller(this.data.externalTraderPublicKey)
+        .limit(200).call()
+    )
+    return offers.records
+  }
+
   /**
    * This function checks the offer from the external trader account that is selling the given asset
    * and updates this offer so the total offered equals the current balance.
    */
-  async updateExternalOffer(asset: Asset, keys: {sponsor: Keypair, externalTrader: Keypair}, amount?: string)  {
+  async updateExternalOffer(asset: Asset, keys: { sponsor: Keypair, externalTrader: Keypair }, amount?: string) {
     const offer = await this.fetchExternalOffer(asset, this.hour())
     const trader = await this.externalTraderAccount()
     const balance = trader.balance(asset)
+    
+    const existingOfferAmount = offer ? offer.amount : "0"
+    const newOfferAmount = amount ?? balance
+
+    if (Big(existingOfferAmount).eq(Big(newOfferAmount))) {
+      logger.debug({ asset }, `External offer selling ${asset.code} for currency ${this.config.code} is already up to date.`)
+      return
+    }
 
     const builder = this.ledger.transactionBuilder(trader)
     const sellOfferOptions = {
       source: this.data.externalTraderPublicKey,
       selling: asset,
       buying: this.hour(),
-      amount: amount ?? balance.toString(),
+      amount: newOfferAmount,
       price: asset.equals(this.asset()) ? this.config.rate : "1"
     }
-
+    const signers = [keys.externalTrader]
     if (offer) {
       // Offer already exists, just update it.
       builder.addOperation(Operation.manageSellOffer({
         ...sellOfferOptions,
         offerId: offer.id
       }))
-      await this.ledger.submitTransaction(builder, [keys.externalTrader], keys.sponsor)
-      logger.info({asset}, `Updated external ${asset.code} offer for currency ${this.config.code}`)
+      
     } else {
       // Create new offer.
       builder.addOperation(Operation.beginSponsoringFutureReserves({
         source: keys.sponsor.publicKey(),
         sponsoredId: this.data.externalTraderPublicKey
       }))
-      .addOperation(Operation.createPassiveSellOffer(sellOfferOptions))
-      .addOperation(Operation.endSponsoringFutureReserves({
-        source: this.data.externalTraderPublicKey
-      }))
+        .addOperation(Operation.createPassiveSellOffer(sellOfferOptions))
+        .addOperation(Operation.endSponsoringFutureReserves({
+          source: this.data.externalTraderPublicKey
+        }))
 
-      await this.ledger.submitTransaction(builder, [keys.sponsor, keys.externalTrader], keys.sponsor)
-      logger.info({asset}, `Created external ${asset.code} offer for currency ${this.config.code}`)
+      signers.push(keys.sponsor)
     }
-    this.ledger.emitter.emit("externalOfferUpdated", this, {...sellOfferOptions, created: !offer})
+    await this.ledger.submitTransaction(builder, signers, keys.sponsor)
+    logger.info({ asset }, `Updated external offer selling ${asset.code} for currency ${this.config.code}`)
+    this.ledger.emitter.emit("externalOfferUpdated", this, { ...sellOfferOptions, created: !offer })
   }
 
   /**
@@ -305,6 +326,16 @@ export class StellarCurrency implements LedgerCurrency {
   }
 
   /**
+   * Compute the keypairs required to sign a transaction given the available keys and
+   * the set of signers needed.
+   */
+  signerKeys(keys: Record<string, Keypair>, signers: Set<string>): Keypair[] {
+    const keyMap = Object.fromEntries(Object.values(keys).filter(Boolean).map(kp => [kp.publicKey(), kp]))
+    const keyPairs = Array.from(signers).map((pk) => keyMap[pk])
+    return keyPairs
+  }
+
+  /**
    * Create the necessary accounts and trustlines for the currency in the Stellar network, including
    * the infrastructure for external trading.
    * @param keys 
@@ -327,11 +358,9 @@ export class StellarCurrency implements LedgerCurrency {
     }
     this.installExternalTrader(builder, signers)
 
-    // Compute signers array.
-    const keyMap = Object.fromEntries(Object.values(keys).map(kp => [kp.publicKey(), kp]))
-    const keyPairs = Array.from(signers).map((pk) => keyMap[pk])
-
+    const keyPairs = this.signerKeys(keys, signers)
     await this.ledger.submitTransaction(builder, keyPairs, keys.sponsor)
+    
   }
 
 
@@ -371,7 +400,7 @@ export class StellarCurrency implements LedgerCurrency {
     this.createAccountTransaction(builder, {
       publicKey: this.data.creditPublicKey,
       maximumBalance: undefined
-    })
+    }, signers)
     // 2.1 Initially fund credit account
     builder.addOperation(Operation.payment({
       source: this.data.issuerPublicKey,
@@ -385,9 +414,8 @@ export class StellarCurrency implements LedgerCurrency {
     this.createAccountTransaction(builder, {
       publicKey: this.data.adminPublicKey,
       maximumBalance: undefined
-    })
-    signers.add(this.data.adminPublicKey)
-    
+    }, signers)
+
   }
   /**
    * Creates the external issuer account. This account issues the global HOUR asset
@@ -403,20 +431,20 @@ export class StellarCurrency implements LedgerCurrency {
       source: sponsorPublicKey,
       sponsoredId: this.data.externalIssuerPublicKey
     }))
-    // 1.1 Create account
-    .addOperation(Operation.createAccount({
-      source: this.data.issuerPublicKey,
-      destination: this.data.externalIssuerPublicKey,
-      startingBalance: "0"
-    }))
-    // 1.2. Set homeDomain
-    .addOperation(Operation.setOptions({
-      source: this.data.externalIssuerPublicKey,
-      homeDomain: this.ledger.domain,
-    }))
-    .addOperation(Operation.endSponsoringFutureReserves({
-      source: this.data.externalIssuerPublicKey
-    }))
+      // 1.1 Create account
+      .addOperation(Operation.createAccount({
+        source: this.data.issuerPublicKey,
+        destination: this.data.externalIssuerPublicKey,
+        startingBalance: "0"
+      }))
+      // 1.2. Set homeDomain
+      .addOperation(Operation.setOptions({
+        source: this.data.externalIssuerPublicKey,
+        homeDomain: this.ledger.domain,
+      }))
+      .addOperation(Operation.endSponsoringFutureReserves({
+        source: this.data.externalIssuerPublicKey
+      }))
     signers.add(sponsorPublicKey)
     signers.add(this.data.externalIssuerPublicKey)
   }
@@ -432,14 +460,10 @@ export class StellarCurrency implements LedgerCurrency {
     this.createAccountTransaction(builder, {
       publicKey: this.data.externalTraderPublicKey,
       maximumBalance: this.config.externalTraderMaximumBalance
-    })
-    signers.add(sponsorPublicKey)
-    signers.add(this.data.issuerPublicKey)
-    signers.add(this.data.externalTraderPublicKey)
-
+    }, signers)
+    
     if (this.config.externalTraderInitialCredit) {
-      this.addCreditTransaction(builder, this.data.externalTraderPublicKey, this.config.externalTraderInitialCredit,this.creditAccountStartingBalance())
-      signers.add(this.data.creditPublicKey)
+      this.addCreditTransaction(builder, this.data.externalTraderPublicKey, this.config.externalTraderInitialCredit, this.creditAccountStartingBalance(), signers)
     }
 
     // Add additional properties to external trader.
@@ -447,11 +471,11 @@ export class StellarCurrency implements LedgerCurrency {
       source: sponsorPublicKey,
       sponsoredId: this.data.externalTraderPublicKey
     }))
-    // 2.1 Create unlimited trustline to hours.
-    .addOperation(Operation.changeTrust({
-      source: this.data.externalTraderPublicKey,
-      asset: this.hour(),
-    }))
+      // 2.1 Create unlimited trustline to hours.
+      .addOperation(Operation.changeTrust({
+        source: this.data.externalTraderPublicKey,
+        asset: this.hour(),
+      }))
     // 2.2 Add initial hours balance to external trader.
     const hoursBalance = this.externalTraderStartingHoursBalance()
     if (Big(hoursBalance).gt(0)) {
@@ -480,7 +504,7 @@ export class StellarCurrency implements LedgerCurrency {
         selling: this.hour(),
         buying: this.asset(),
         amount: hoursBalance,
-        price: {n: this.config.rate.d, d: this.config.rate.n}
+        price: { n: this.config.rate.d, d: this.config.rate.n }
       }))
     }
     builder.addOperation(Operation.endSponsoringFutureReserves({
@@ -489,53 +513,11 @@ export class StellarCurrency implements LedgerCurrency {
 
   }
 
-  /**
-   * Ensures that the external trader account has sufficient hours, and transfers more from
-   * the external issuer if needed.
-   * 
-   * This function assures that the current balance of the external trader is not less than
-   * the starting balance. This starting balance is computed as follows:
-   *  - If externalTraderMaximumBalance is defined, it is the difference between this value and
-   *   the externalTraderInitialCredit expressed in hours. Since hours are needed in exchange
-   *   for local currency.
-   * - If externalTraderMaximumBalance is not defined, the starting balance is just the 
-   *   constant {@link StellarCurrency.DEFAULT_EXTERNAL_TRADER_INITIAL_CREDIT}.
-   */
-  public async fundExternalTrader(keys: {
-    sponsor: Keypair,
-    externalIssuer: Keypair,
-  }) {
-    
-    const starting = this.externalTraderStartingHoursBalance()
-
-    const trader = await this.externalTraderAccount()
-    const balance = Big(trader.balance())
-    
-    if (balance.lt(starting)) {
-      const amount = Big(starting).minus(balance).toString()
-      const external = await this.externalIssuerAccount()
-      const builder = this.ledger.transactionBuilder(external)
-        .addOperation(Operation.payment({
-          source: this.data.externalIssuerPublicKey,
-          destination: this.data.externalTraderPublicKey,
-          asset: this.hour(),
-          amount
-        }))
-      return await this.ledger.submitTransaction(builder, [keys.externalIssuer], keys.sponsor)
-    }
-    return false
-  }
-
   private externalTraderStartingHoursBalance(): string {
-    // TODO: take in count trusted currencies.
-    if (this.config.externalTraderMaximumBalance) {
-      return this.fromLocalToHour(
-        Big(this.config.externalTraderMaximumBalance)
-        .minus(this.config.externalTraderInitialCredit ?? 0)
-        .toString())
-    } else {
-      return StellarCurrency.DEFAULT_EXTERNAL_TRADER_INITIAL_CREDIT
-    }
+    return this.fromLocalToHour(Big(this.config.externalTraderMaximumBalance)
+      .minus(this.config.externalTraderInitialCredit)
+      .toString()
+    )
   }
 
   /**
@@ -547,7 +529,7 @@ export class StellarCurrency implements LedgerCurrency {
    * @param minAmount 
    * @returns 
    */
-  fundCreditAccountTransaction(builder: TransactionBuilder, creditAccountBalance: string, minAmount: string|undefined): {issuer: boolean} {
+  fundCreditAccountTransaction(builder: TransactionBuilder, creditAccountBalance: string, minAmount: string | undefined, signers: Set<string>) {
     const balance = Big(creditAccountBalance)
 
     // If minAmount is not defined, we use the default starting balance.
@@ -567,10 +549,9 @@ export class StellarCurrency implements LedgerCurrency {
         asset: this.asset(),
         amount
       }))
+      signers.add(this.data.issuerPublicKey)
       logger.info(`Funding the credit account with ${asset.code} ${amount}`)
-      return {issuer: true}
     }
-    return {issuer: false}
   }
 
   // Return the balance that the credit account should have so it can continue its operation for 
@@ -590,8 +571,7 @@ export class StellarCurrency implements LedgerCurrency {
    * @param t The transaction builder.
    * @param config Account parameters.
    */
-  private createAccountTransaction(t: TransactionBuilder, config: {publicKey: string, maximumBalance?: string, adminSigner?: string}) {
-    const sponsorPublicKey = this.ledger.sponsorPublicKey.publicKey()
+  private createAccountTransaction(t: TransactionBuilder, config: { publicKey: string, maximumBalance?: string, adminSigner?: string }, signers: Set<string>) {    const sponsorPublicKey = this.ledger.sponsorPublicKey.publicKey()
     const asset = this.asset()
 
     t.addOperation(Operation.beginSponsoringFutureReserves({
@@ -618,6 +598,9 @@ export class StellarCurrency implements LedgerCurrency {
           authorized: true,
         }
       }))
+    signers.add(sponsorPublicKey)
+    signers.add(this.data.issuerPublicKey)
+    signers.add(config.publicKey)
     // Add the admin as a signer, and set the account thresholds so that both the account key
     // and the admin key can sign payments, but only the admin can perform administrative 
     // operations such as change the signers or delete the account.
@@ -629,13 +612,13 @@ export class StellarCurrency implements LedgerCurrency {
           weight: 2
         }
       }))
-      .addOperation(Operation.setOptions({
-        source: config.publicKey,
-        masterWeight: 1,
-        lowThreshold: 1,
-        medThreshold: 1,
-        highThreshold: 2
-      }))
+        .addOperation(Operation.setOptions({
+          source: config.publicKey,
+          masterWeight: 1,
+          lowThreshold: 1,
+          medThreshold: 1,
+          highThreshold: 2
+        }))
     }
 
     t.addOperation(Operation.endSponsoringFutureReserves({
@@ -643,10 +626,10 @@ export class StellarCurrency implements LedgerCurrency {
     }))
   }
 
-  addCreditTransaction(t: TransactionBuilder, publicKey: string, credit: string, creditAccountBalance: string): {issuer: boolean, credit: boolean} {
+  addCreditTransaction(t: TransactionBuilder, publicKey: string, credit: string, creditAccountBalance: string, signers: Set<string>) {
     if (Big(credit).gt(0)) {
-      const {issuer} = this.fundCreditAccountTransaction(t, creditAccountBalance, credit)
-      
+      this.fundCreditAccountTransaction(t, creditAccountBalance, credit, signers)
+
       const asset = this.asset()
       t.addOperation(Operation.payment({
         source: this.data.creditPublicKey,
@@ -654,14 +637,7 @@ export class StellarCurrency implements LedgerCurrency {
         asset,
         amount: credit
       }))
-      return {
-        issuer,
-        credit: true
-      }
-    }
-    return {
-      issuer: false,
-      credit: false
+      signers.add(this.data.creditPublicKey)
     }
   }
   /**
@@ -675,7 +651,7 @@ export class StellarCurrency implements LedgerCurrency {
     issuer: Keypair,
     credit?: Keypair, // Only if defaultInitialCredit > 0
     account?: Keypair, // Optional account keypair to use instead of generating a new one.
-  }): Promise<{key: Keypair}> {
+  }): Promise<{ key: Keypair }> {
     if (keys.credit && Big(options.initialCredit).eq(0)) {
       throw internalError("Credit key not allowed if initialCredit is 0")
     }
@@ -686,25 +662,22 @@ export class StellarCurrency implements LedgerCurrency {
     const account = keys.account ?? Keypair.random()
     const issuerAccount = await this.issuerAccount()
     const builder = this.ledger.transactionBuilder(issuerAccount)
+    const signers = new Set<string>()
 
     this.createAccountTransaction(builder, {
       publicKey: account.publicKey(),
       maximumBalance: options.maximumBalance,
       adminSigner: this.data.adminPublicKey
-    })
+    }, signers)
     const creditAccount = await this.creditAccount()
-    this.addCreditTransaction(builder, account.publicKey(), options.initialCredit, creditAccount.balance())
-    
-    const signers = [keys.sponsor, keys.issuer, account]
-    if (keys.credit) {
-      signers.push(keys.credit)
-    }
+    this.addCreditTransaction(builder, account.publicKey(), options.initialCredit, creditAccount.balance(), signers)
 
-    await this.ledger.submitTransaction(builder, signers, keys.sponsor)
+    const keyPairs = this.signerKeys({...keys, account}, signers)
+    await this.ledger.submitTransaction(builder, keyPairs, keys.sponsor)
 
-    logger.info({publicKey: account.publicKey()}, `Created new account for currency ${this.config.code}`)
+    logger.info({ publicKey: account.publicKey() }, `Created new account for currency ${this.config.code}`)
 
-    return {key: account}
+    return { key: account }
   }
   /**
    * Implements {@link LedgerCurrency#getAccount}. 
@@ -713,7 +686,7 @@ export class StellarCurrency implements LedgerCurrency {
    * 
    */
   async getAccount(publicKey: string): Promise<StellarAccount> {
-    
+
     if (!this.accounts[publicKey]) {
       this.accounts[publicKey] = new StellarAccount(publicKey, this)
     }
@@ -745,7 +718,7 @@ export class StellarCurrency implements LedgerCurrency {
    * @returns The amount in hours.
    */
   fromLocalToHour(amountInLocal: string): string {
-    return Big(amountInLocal).times(this.config.rate.n).div(this.config.rate.d).toFixed(7)
+    return Big(amountInLocal).times(this.config.rate.n).div(this.config.rate.d).toFixed(7, Big.roundDown)
   }
 
   /**
@@ -758,151 +731,15 @@ export class StellarCurrency implements LedgerCurrency {
   }
 
   /**
-   * Implements {@link LedgerCurrency.trustCurrency}.
+   * Implements {@link LedgerCurrency#quotePath}, adding additional asset properties to the result.
    */
-  async trustCurrency(line: { trustedPublicKey: string, limit: string }, keys: { sponsor: Keypair, externalTrader: Keypair, externalIssuer?: Keypair }) {
-    const asset = new Asset(StellarCurrency.GLOBAL_ASSET_CODE, line.trustedPublicKey)
-    const limit = this.fromLocalToHour(line.limit)
-    
-    const externalTrader = await this.externalTraderAccount()
-    const externalIssuer = await this.externalIssuerAccount()
-    
-    // Check if there is an existing balance for this currency either in the trader account 
-    // (for active trustlines) or in the issuer account (for inactive trustlines).
-    const traderExistingTrustline = externalTrader.balances().find((b) => b.asset.equals(asset))
-    const issuerExistingTrustline = externalIssuer.balances().find((b) => b.asset.equals(asset))
-
-    if (traderExistingTrustline && issuerExistingTrustline) {
-      throw internalError("Both trader and issuer should not have balance for the same external currency.")
-    }
-
-    const totalExistingBalance = Big(traderExistingTrustline?.balance ?? 0).plus(issuerExistingTrustline?.balance ?? 0)
-
-    if (Big(limit).lt(totalExistingBalance)) {
-      throw badRequest(`Trust limit ${limit} is less than current balance ${totalExistingBalance}.`)
-    }
-
-    if (traderExistingTrustline && Big(traderExistingTrustline.limit).eq(limit)) {
-      // We're already trusting the external currency with the correct limit.
-      logger.info({line}, `Currency ${this.config.code} already trusting ${asset.code} with limit ${limit}`)
-      return
-    }
-
-    const builder = this.ledger.transactionBuilder(externalTrader)
-    const signers = [keys.externalTrader]
-
-    const changeTrustOp = Operation.changeTrust({
-      source: this.data.externalTraderPublicKey,
-      asset,
-      limit
-    })
-    const offerOptions = {
-      source: this.data.externalTraderPublicKey,
-      selling: this.hour(),
-      buying: asset,
-      amount: Big(limit).minus(totalExistingBalance ?? 0).toString(),
-      price: "1"
-    }
-
-    if (traderExistingTrustline === undefined) {
-      if (!keys.externalIssuer) {
-        throw internalError("Missing external issuer key.")
-      }
-      // Case 1: We're creating a new trustline
-      // 1.1 Sponsor the trustline and the offer.
-      builder.addOperation(Operation.beginSponsoringFutureReserves({
-        source: keys.sponsor.publicKey(),
-        sponsoredId: this.data.externalTraderPublicKey
-      }))
-      // 1.2 Create trustline
-      builder.addOperation(changeTrustOp)
-      // 1.3 Fund account for the offer
-      .addOperation(Operation.payment({
-        source: this.data.externalIssuerPublicKey,
-        destination: this.data.externalTraderPublicKey,
-        asset: this.hour(),
-        amount: limit
-      }))
-      if (issuerExistingTrustline) {
-        // Move existing balance from issuer to trader.
-        builder.addOperation(Operation.payment({
-          source: this.data.externalIssuerPublicKey,
-          destination: this.data.externalTraderPublicKey,
-          asset,
-          amount: issuerExistingTrustline.balance
-        }))
-        // Revoke trustline from issuer.
-        builder.addOperation(Operation.changeTrust({
-          source: this.data.externalIssuerPublicKey,
-          asset,
-          limit: "0"
-        }))
-      }
-      
-      // 1.4 Create offer
-      builder.addOperation(Operation.createPassiveSellOffer(offerOptions))
-      // 1.5 End sponsoring
-      .addOperation(Operation.endSponsoringFutureReserves({
-        source: this.data.externalTraderPublicKey
-      }))
-      signers.push(keys.sponsor, keys.externalIssuer)
-    } else {
-      const offer = await this.fetchExternalOffer(this.hour(), asset)
-      if (!offer) {
-        // We could heal the system here.
-        throw internalError(`Expecting sell offer for existing trustline in currency ${asset.code}.`, {details: traderExistingTrustline})
-      }
-      const offerOp = Operation.manageSellOffer({
-        ...offerOptions,
-        offerId: offer.id,
-      })
-      if (Big(limit).gt(traderExistingTrustline.limit)) {
-        if (!keys.externalIssuer) {
-          throw internalError("Missing external issuer key.")
-        }
-        // Case 2: We're increasing the trustline limit
-        // 2.1 Update trustline
-        builder.addOperation(changeTrustOp)
-        // 2.2 Increase hours balance to satisfy the new offer
-        .addOperation(Operation.payment({
-          source: this.data.externalIssuerPublicKey,
-          destination: this.data.externalTraderPublicKey,
-          asset: this.hour(),
-          amount: Big(limit).minus(traderExistingTrustline.limit).toString()
-        }))
-        // 2.3 Update offer
-        .addOperation(offerOp)
-        signers.push(keys.externalIssuer)
-      } else {
-        // Case 3: We're reducing the trustline limit
-        // 3.1 Update offer
-        builder.addOperation(offerOp)
-        // 3.2 Decrease hours balance
-        .addOperation(Operation.payment({
-          source: this.data.externalTraderPublicKey,
-          destination: this.data.externalIssuerPublicKey,
-          asset: this.hour(),
-          amount: Big(traderExistingTrustline.limit).minus(limit).toString()
-        }))
-        // 3.3 Update trustline
-        builder.addOperation(changeTrustOp)
-      }
-    }
-    await this.ledger.submitTransaction(builder, signers, keys.sponsor)
-
-    logger.info({line}, `Currency ${this.config.code} trusted ${asset.code} with limit ${limit}`)
-  }
-
-  /**
-   * Implements {@link LedgerCurrency.quotePath}, adding additional asset properties to the result.
-   */
-  async quotePath(data: {destCode: string, destIssuer: string, amount: string, retry?: boolean}): Promise<false | PathQuote>{
+  async quotePath(data: { destCode: string, destIssuer: string, amount: string, retry?: boolean }): Promise<false | PathQuote> {
     const destAsset = new Asset(data.destCode, data.destIssuer)
     const noPathFound = new Error("No viable path found")
     const fn = async () => {
-      
-      logger.debug(`source_assets=${this.asset().code}:${this.asset().issuer}&destination_asset_type=credit_alphanum4&destination_asset_code=${destAsset.code}&destination_asset_issuer=${destAsset.issuer}&destination_amount=${data.amount}`)
-      
+
+      logger.debug(`Finding path from ${this.asset().code} to ${destAsset.code} for amount ${data.amount}`)
+
       const paths = await this.ledger.callServer((server) =>
         server.strictReceivePaths(
           [this.asset()],
@@ -911,7 +748,7 @@ export class StellarCurrency implements LedgerCurrency {
         ).call()
       )
 
-      // Filter out paths that are not sneding the required amount.
+      // Filter out paths that are not sending the required amount.
       const viable = paths.records.filter((p) => Big(p.destination_amount).gte(data.amount))
 
       if (viable.length > 0) {
@@ -947,15 +784,15 @@ export class StellarCurrency implements LedgerCurrency {
   /**
    * Fetch a transfer from the ledger.
    */
-  async getTransfer(hash: string): Promise<LedgerTransfer|LedgerExternalTransfer> {
+  async getTransfer(hash: string): Promise<LedgerTransfer | LedgerExternalTransfer> {
     const transaction = await this.ledger.callServer((server) => server.transactions().transaction(hash).call())
-    
+
     if (!transaction) {
       throw notFound(`Transaction ${hash} not found`)
     }
-    const operations = await transaction.operations({limit: 100})
+    const operations = await transaction.operations({ limit: 100 })
     const payment = operations.records.find((op) => [
-      Horizon.HorizonApi.OperationResponseType.payment, 
+      Horizon.HorizonApi.OperationResponseType.payment,
       Horizon.HorizonApi.OperationResponseType.pathPayment
     ].includes(op.type))
 
@@ -966,22 +803,21 @@ export class StellarCurrency implements LedgerCurrency {
     const transfer = payment.type === Horizon.HorizonApi.OperationResponseType.payment
       ? paymentToTransfer(payment)
       : pathPaymentToTransfer(payment as Horizon.HorizonApi.PathPaymentOperationResponse)
-    
+
     return transfer
   }
 
-  async enableAccount(options: { balance: string; credit: string; maximumBalance?: string }, keys: { account: KeyPair; issuer: KeyPair; disabledAccountsPool: KeyPair; sponsor: KeyPair;}): Promise<void> {
+  async enableAccount(options: { balance: string; credit: string; maximumBalance?: string }, keys: { account: KeyPair; issuer: KeyPair; disabledAccountsPool: KeyPair; sponsor: KeyPair; }): Promise<void> {
     // (re-)create account.
     const issuerAccount = await this.issuerAccount()
     const builder = this.ledger.transactionBuilder(issuerAccount)
     const accountKey = keys.account.publicKey()
-
+    const signers = new Set<string>()
     this.createAccountTransaction(builder, {
       publicKey: accountKey,
       adminSigner: this.data.adminPublicKey,
       maximumBalance: options.maximumBalance
-    })
-    const signers = [keys.account, keys.issuer, keys.sponsor]
+    }, signers)
 
     const requiredBalance = Big(options.balance)
     if (requiredBalance.gt(Big(0))) {
@@ -991,11 +827,13 @@ export class StellarCurrency implements LedgerCurrency {
         destination: accountKey,
         amount: requiredBalance.toString()
       }))
-      signers.push(keys.disabledAccountsPool)
+      signers.add(keys.disabledAccountsPool.publicKey())
     }
-    
-    const response = await this.ledger.submitTransaction(builder, signers, keys.sponsor)
-    logger.info({hash: response.hash, account: accountKey}, `Enabled account ${accountKey} for currency ${this.config.code}.`)
+
+    const keyPairs = this.signerKeys(keys, signers)
+    const response = await this.ledger.submitTransaction(builder, keyPairs, keys.sponsor)
+
+    logger.info({ hash: response.hash, account: accountKey }, `Enabled account ${accountKey} for currency ${this.config.code}.`)
   }
 
   /**
@@ -1004,13 +842,13 @@ export class StellarCurrency implements LedgerCurrency {
    * 2) Moving the balance (if any) to external issuer
    * 3) Removing the trustline from external trader
    */
-  async disableTrustline(line: { trustedPublicKey: string }, keys: { sponsor: Keypair, externalTrader: Keypair, externalIssuer: Keypair}): Promise<void> {
+  async disableTrustline(line: { trustedPublicKey: string }, keys: { sponsor: Keypair, externalTrader: Keypair, externalIssuer: Keypair }): Promise<void> {
     const asset = new Asset(StellarCurrency.GLOBAL_ASSET_CODE, line.trustedPublicKey)
     const externalTraderAccount = await this.externalTraderAccount()
     const trustline = externalTraderAccount.balances().find((b) => b.asset.equals(asset))
-    
+
     if (!trustline) {
-      logger.info({line}, `No trustline to disable for currency ${this.config.code} and asset ${asset.code}.`)
+      logger.info({ line }, `No trustline to disable for currency ${this.config.code} and asset ${asset.code}.`)
       return
     }
     const signers = [keys.externalTrader]
@@ -1050,11 +888,11 @@ export class StellarCurrency implements LedgerCurrency {
     }))
 
     await this.ledger.submitTransaction(builder, signers, keys.sponsor)
-    logger.info({line}, `Disabled trustline to ${asset.code} for currency ${this.config.code}.`)
+    logger.info({ line }, `Disabled trustline to ${asset.code} for currency ${this.config.code}.`)
 
   }
 
-  async disable(keys: {sponsor: Keypair, externalTrader: Keypair, externalIssuer: Keypair, admin: Keypair, credit: Keypair, issuer: Keypair}): Promise<void> {
+  async disable(keys: { sponsor: Keypair, externalTrader: Keypair, externalIssuer: Keypair, admin: Keypair, credit: Keypair, issuer: Keypair }): Promise<void> {
     // Disable all trustlines. 
     // We do it in separate transactions to avoid hitting total operation limit per transaction.
     const externalTraderAccount = await this.externalTraderAccount()
@@ -1077,7 +915,7 @@ export class StellarCurrency implements LedgerCurrency {
     const signers: Keypair[] = []
 
     const localAssetOffer = await this.fetchExternalOffer(this.asset(), this.hour())
-    
+
     if (localAssetOffer) {
       builder.addOperation(Operation.manageSellOffer({
         source: this.data.externalTraderPublicKey,
@@ -1124,7 +962,7 @@ export class StellarCurrency implements LedgerCurrency {
       pool.moveBalanceAndDeleteTransaction(builder, this.data.issuerPublicKey)
       // admin is signer of disabled accounts pool and will be added later anyway.
     }
-    
+
     const deleteAccountTransaction = (accountKey: string) => {
       builder.addOperation(Operation.accountMerge({
         source: accountKey,
@@ -1136,7 +974,7 @@ export class StellarCurrency implements LedgerCurrency {
     const externalIssuer = await this.externalIssuerAccount()
     const externalIssuerBalances = externalIssuer.balances()
     let keepExternalIssuer = true
-    if (externalIssuerBalances.length  === 0) {
+    if (externalIssuerBalances.length === 0) {
       const externalTrustlinesResult = await this.ledger.callServer((server) =>
         server.accounts().forAsset(this.hour()).limit(2).call()
       )
@@ -1167,6 +1005,513 @@ export class StellarCurrency implements LedgerCurrency {
     if (keepExternalIssuer) {
       logger.info(`External issuer for currency ${this.config.code} was not deleted because it has existing incoming trustlines or external balances.`)
     }
+  }
+
+  async logExternalState(): Promise<void> {
+    const externalTrader = await this.externalTraderAccount()
+    const offers = await this.fetchExternalOffers()
+    logger.info(`External state for currency ${this.config.code}: ${this.data.externalTraderPublicKey}`)
+    
+    const printAsset = (asset: Asset | OfferAsset) => {
+      const actualAsset = (asset instanceof Asset) ? asset : new Asset(asset.asset_code!, asset.asset_issuer)
+      if (this.hour().equals(actualAsset)) {
+        return `HOUR`
+      } else if (this.asset().equals(actualAsset)) {
+        return `${this.asset().code}`
+      } else {
+        return `${actualAsset.code}:${actualAsset.issuer.substring(0, 5)}`
+      }
+    }
+    const logOffer = (selling: Asset, buying: Asset) => {
+      const offer = offers.find((o) =>
+        o.selling.asset_code === selling.code &&
+        o.selling.asset_issuer === selling.issuer &&
+        o.buying.asset_code === buying.code &&
+        o.buying.asset_issuer === buying.issuer
+      )
+      if (offer) {
+        logger.info(`     Offer: Selling ${printAsset(selling)} for ${printAsset(buying)}, amount: ${offer.amount}, price: ${offer.price_r.n}/${offer.price_r.d}`)
+      }
+
+    }
+    externalTrader.balances().forEach((b) => {
+      if (b.asset.equals(this.hour())) {
+        logger.info(`   HOUR: ${b.balance} (limit: ${b.limit})`)
+      } else {
+        logger.info(`   ${printAsset(b.asset)}: ${b.balance} (limit: ${b.limit})`)
+        logOffer(b.asset, this.hour())
+        logOffer(this.hour(), b.asset)
+      }
+    })
+  }
+
+  /**
+   * Implements {@link LedgerCurrency#reconcileExternalState}
+   */
+  async reconcileExternalState(lines: ExternalTrustline[], keys: { sponsor: Keypair, credit: KeyPair, issuer: KeyPair, externalTrader: Keypair, externalIssuer: Keypair }) {
+    logger.debug(`Reconciling external state for currency ${this.config.code}`)
+    
+    const account = await this.externalTraderAccount()
+    const externalIssuer = await this.externalIssuerAccount()
+    // get balances
+    const trustlines = account.balances()
+    const findTrustline = (asset: Asset) => trustlines.find((b) => b.asset.equals(asset))
+    // get trustlines
+    const offers = await this.fetchExternalOffers()
+    const offerAssetEq = (a: OfferAsset, b: Asset) => {
+      return a.asset_type == b.getAssetType() && a.asset_code === b.code && a.asset_issuer === b.issuer
+    }
+    const rateEq = (a: Rate|undefined, b: Rate|undefined) => a?.n === b?.n && a?.d === b?.d
+    /**
+     * Find the offer buying -> selling.
+     */
+    const findOffer = (buying: Asset, selling: Asset) => offers.find((o) =>
+      offerAssetEq(o.selling, selling) && offerAssetEq(o.buying, buying)
+    )
+    // Compute the total hour balance required to back all offers.
+    const localAssetInitialCredit = Big(this.config.externalTraderInitialCredit ?? 0)
+    const existingLocalAssetInitialCredit = Big(await account.credit())
+    const localAssetMaximumBalance = Big(this.config.externalTraderMaximumBalance)
+    const localAssetTrustline = findTrustline(this.asset())
+    const existingLocalAssetBalance = Big(localAssetTrustline?.balance ?? 0)
+    const localAssetBalance = existingLocalAssetBalance.plus(localAssetInitialCredit).minus(existingLocalAssetInitialCredit)
+    // Sanity check: local asset balance must be positive.
+    if (localAssetBalance.lt(0)) {
+      throw badRequest(`Cannot reduce initial credit below existing balance of ${existingLocalAssetBalance.toString()}.`)
+    }
+    // The available room in local asset trustline, converted to hours.
+    const hourBalanceForLocalAsset = Big(this.fromLocalToHour(localAssetMaximumBalance.minus(localAssetBalance).toString()))
+    const totalHourBalance = lines.reduce((total, line) => {
+      const asset = new Asset(StellarCurrency.GLOBAL_ASSET_CODE, line.externalIssuerKey)
+      const trustline = findTrustline(asset)
+      const limit = this.fromLocalToHour(line.limit)
+      return total.plus(limit).minus(trustline?.balance ?? 0)
+    }, hourBalanceForLocalAsset)
+
+    const localHourTrustline = findTrustline(this.hour())
+    const existingHourBalance = Big(localHourTrustline?.balance ?? 0)
+
+    const builder = this.ledger.transactionBuilder(account, { sequential: true })
+    const signers = new Set<string>()
+
+    /**
+     * Creates or updates a passive sell offer buying -> selling with the given amount (in selling asset) and price
+     * (price of 1 unit of selling in terms of buying).
+     */
+    const updateSellOffer = (builder: TransactionBuilder, options: {
+      buying: Asset, selling: Asset, amount: string, price: Rate
+    }, signers: Set<string>) => {
+      const existingOffer = findOffer(options.buying, options.selling)
+      if (!existingOffer && Big(options.amount).gt(0)) {
+        logger.debug(`Creating offer selling ${options.amount} ${options.selling.code} for ${options.buying.code} at rate ${options.price.n}/${options.price.d}`)
+        builder.addOperation(Operation.beginSponsoringFutureReserves({
+          source: this.ledger.sponsorPublicKey.publicKey(),
+          sponsoredId: this.data.externalTraderPublicKey
+        }))
+        signers.add(this.ledger.sponsorPublicKey.publicKey())
+        builder.addOperation(Operation.createPassiveSellOffer({
+          source: this.data.externalTraderPublicKey,
+          ...options
+        }))
+        signers.add(this.data.externalTraderPublicKey)
+        builder.addOperation(Operation.endSponsoringFutureReserves({
+          source: this.data.externalTraderPublicKey
+        }))
+        
+      } else if (existingOffer && (!Big(existingOffer.amount).eq(options.amount) || !rateEq(existingOffer.price_r, options.price))) {
+        logger.debug(`Updating offer from selling ${existingOffer.amount} to selling ${options.amount} ${options.selling.code} for ${options.buying.code} at rate ${options.price.n}/${options.price.d}`)
+        builder.addOperation(Operation.manageSellOffer({
+          offerId: existingOffer.id,
+          source: this.data.externalTraderPublicKey,
+          ...options
+        }))
+        signers.add(this.data.externalTraderPublicKey)
+      }
+    }
+    /**
+     * Creates or updates a trustline for the given asset with the given limit.
+     */
+    const updateTrustline = (builder: TransactionBuilder, options: { asset: Asset, limit: string | undefined }, signers: Set<string>) => {
+      const existingTrustline = findTrustline(options.asset)
+      if (existingTrustline === undefined) {
+        builder.addOperation(Operation.beginSponsoringFutureReserves({
+          source: this.ledger.sponsorPublicKey.publicKey(),
+          sponsoredId: this.data.externalTraderPublicKey
+        }))
+        signers.add(this.ledger.sponsorPublicKey.publicKey())
+      }
+      if (existingTrustline === undefined || !(options.limit === undefined ? UNDEFINED_TRUSTLINE_LIMIT : Big(options.limit)).eq(existingTrustline.limit)) {
+        logger.debug(`Updating trustline ${options.asset.code} from ${existingTrustline?.limit} to ${options.limit}`)
+        builder.addOperation(Operation.changeTrust({
+          source: this.data.externalTraderPublicKey,
+          asset: options.asset,
+          limit: options.limit
+        }))
+        signers.add(this.data.externalTraderPublicKey)
+      }
+      if (existingTrustline === undefined) {
+        builder.addOperation(Operation.endSponsoringFutureReserves({
+          source: this.data.externalTraderPublicKey
+        }))
+      }
+    }
+
+    /**
+     * Makes sure the external account has:
+     *  - A trustline to the given asset with the given limit.
+     *  - A passive sell offer asset => hour (buying asset and selling hour) for the given rate and amount equal to existing balance in asset. 
+     *  - A passive sell offer hour => asset (buying hour and selling asset) for the inverse of the given rate and amount equal to the available room in the trustline (limit - balance).
+     *  - The adjusted balance by calling adjustBalance.
+     * 
+     * This function makes the necessary operations in the correct order to avoid transient states that would violate
+     * offer liabilities or trustline limits.
+     * 
+     * @param limit Trustline limit expressed in units of the given asset.
+     * @param balance Desired balance expressed in units of the given asset.
+     * @param rate Price of 1 unit of the given asset in hours.
+     * @param adjustBalance A function that will add the necessary operations to adjust the balance to the desired value.
+     */
+    const updateRelationship = async (
+      builder: TransactionBuilder, 
+      asset: Asset, 
+      limit: string, // in units of asset
+      balance: string, // in units of asset
+      rate: Rate, // price of 1 unit of asset in hours
+      adjustBalance: (builder: TransactionBuilder, signers: Set<string>) => Promise<void>,
+      signers: Set<string>
+    ) => {
+      const hour = this.hour()
+      const existingTrustline = findTrustline(asset)
+
+      const targetLimit = Big(limit)
+      const existingLimit = Big(existingTrustline?.limit ?? 0)
+
+      const existingSellingOffer = findOffer(hour, asset) // hour -> asset
+      const existingBuyingOffer = findOffer(asset, hour) // asset -> hour
+
+      // Stellar offer: price of 1 unit of selling in terms of buying
+      // Amount in selling asset.
+      const targetSellingOffer = {
+        buying: hour,
+        selling: asset,
+        amount: balance,
+        price: rate
+      }
+      const targetBuyingOffer = {
+        buying: asset,
+        selling: hour,
+        amount: Big(limit).minus(balance).times(rate.n).div(rate.d).toFixed(7, Big.roundDown), // amount in selling asset
+        price: { n: rate.d, d: rate.n }
+      }
+      
+      // We compare size of existing offers in asset units since we're concerned about
+      // the asset trustline size and balance.
+      
+      const existingSellingOfferAmount = Big(existingSellingOffer?.amount ?? 0)
+      const existingBuyingOfferAmount = Big(existingBuyingOffer?.amount ?? 0).times(rate.d).div(rate.n)
+      const targetSellingOfferAmount = Big(balance)
+      const targetBuyingOfferAmount = Big(limit).minus(balance)
+
+      // We need to make operations in a very specific order to avoid transient states that would violate
+      // offer liabilities or trustline limits. A safe order is the following:
+
+      // Increase trustline
+      if (targetLimit.gt(existingLimit)) {
+        updateTrustline(builder, {asset, limit: targetLimit.toString()}, signers)
+      }
+
+      // Reduce offers
+      if (targetSellingOfferAmount.lt(existingSellingOfferAmount)) {  
+        updateSellOffer(builder, targetSellingOffer, signers)
+      }
+      if (targetBuyingOfferAmount.lt(existingBuyingOfferAmount)) {  
+        updateSellOffer(builder, targetBuyingOffer, signers)
+      }
+      
+      // Adjust balance
+      await adjustBalance(builder, signers)
+
+      // Increase offers (or update if price changed)
+      const shouldUpdateSelling = targetSellingOfferAmount.gt(existingSellingOfferAmount) 
+        || (targetSellingOfferAmount.eq(existingSellingOfferAmount) && !rateEq(targetSellingOffer.price, existingSellingOffer?.price_r))
+      if (shouldUpdateSelling) {  
+        updateSellOffer(builder, targetSellingOffer, signers)
+      }
+      
+      const shouldUpdateBuying = targetBuyingOfferAmount.gt(existingBuyingOfferAmount) 
+        || (targetBuyingOfferAmount.eq(existingBuyingOfferAmount) && !rateEq(targetBuyingOffer.price, existingBuyingOffer?.price_r))
+      if (shouldUpdateBuying) {  
+        updateSellOffer(builder, targetBuyingOffer, signers)
+      }
+
+      // Reduce trustline
+      if (targetLimit.lt(existingLimit)) {
+        updateTrustline(builder, {asset, limit: targetLimit.toString()}, signers)
+      }
+    }
+    /**
+     * Update the relationship with the local asset, including adjusting the initial credit.
+     */
+    const updateLocalRelationship = async () => {
+      const adjustBalance = async (builder: TransactionBuilder, signers: Set<string>) => {
+        if (localAssetInitialCredit.gt(existingLocalAssetInitialCredit)) {
+          logger.debug(`Increasing local asset credit from ${existingLocalAssetInitialCredit.toString()} to ${localAssetInitialCredit.toString()}`)
+          const diff = localAssetInitialCredit.minus(existingLocalAssetInitialCredit).toString()
+          const creditAccount = await this.creditAccount()
+          this.addCreditTransaction(builder, this.data.externalTraderPublicKey, diff, creditAccount.balance(), signers)
+        } else if (localAssetInitialCredit.lt(existingLocalAssetInitialCredit)) {
+          logger.debug(`Decreasing local asset credit from ${existingLocalAssetInitialCredit.toString()} to ${localAssetInitialCredit.toString()}`)
+          const diff = existingLocalAssetInitialCredit.minus(localAssetInitialCredit).toString()
+          builder.addOperation(Operation.payment({
+            source: this.data.externalTraderPublicKey,
+            destination: this.data.creditPublicKey,
+            asset: this.asset(),
+            amount: diff
+          }))
+          signers.add(this.data.externalTraderPublicKey)
+        }
+      }
+      await updateRelationship(
+        builder, 
+        this.asset(), 
+        localAssetMaximumBalance.toString(), 
+        localAssetBalance.toString(), 
+        this.config.rate, 
+        adjustBalance, 
+        signers
+      )
+    }
+    
+    /**
+     * Update the relationship with the given external HOUR asset, including moving the eventual balance from
+     * the external issuer.
+     */
+    const updateExternalRelationship = async (builder: TransactionBuilder, asset: Asset, limit: string, signers: Set<string>) => {
+      const existingTrustline = findTrustline(asset)
+      const externalIssuerTrustline = externalIssuer.balances().find(b => b.asset.equals(asset))
+
+      const existingBalance = Big(existingTrustline?.balance ?? 0)
+      const externalIssuerBalance = Big(externalIssuerTrustline?.balance ?? 0)
+
+      const balance = existingBalance.plus(externalIssuerBalance)
+
+      const adjustBalance = async (builder: TransactionBuilder, signers: Set<string>) => {
+        // Disabled trustlines move the balance to external issuer. Now we may be enabling a
+        // previously disabled trustline so we recover the balance from external issuer.
+        if (externalIssuerTrustline) {
+          if (externalIssuerBalance.gt(0)) {
+            logger.debug(`Recovering ${externalIssuerBalance.toString()} ${asset.code} balance from external issuer`)
+            builder.addOperation(Operation.payment({
+              source: this.data.externalIssuerPublicKey,
+              destination: this.data.externalTraderPublicKey,
+              asset,
+              amount: externalIssuerBalance.toString()
+            }))
+            signers.add(this.data.externalIssuerPublicKey)
+          }
+          // Revoke trustline from external issuer.
+          builder.addOperation(Operation.changeTrust({
+            source: this.data.externalIssuerPublicKey,
+            asset,
+            limit: "0"
+          }))
+        }
+      }
+
+      await updateRelationship(
+        builder,
+        asset,
+        limit,
+        balance.toString(),
+        {n: 1, d: 1},
+        adjustBalance,
+        signers
+      )
+
+    }
+
+    /**
+     * Disable the relationship with the given asset by removing offers, moving balance -if any- 
+     * to external issuer and removing trustline.*/
+    const disableRelationship = (builder: TransactionBuilder, asset: Asset, signers: Set<string>) => {
+      logger.debug(`Disabling relationship with ${asset.code}`)
+      const existingTrustline = findTrustline(asset)
+      const existingSellingOffer = findOffer(this.hour(), asset) // hour -> asset
+      const existingBuyingOffer = findOffer(asset, this.hour()) // asset -> hour
+      // Remove associated offers.
+      if (existingSellingOffer) {
+        builder.addOperation(Operation.manageSellOffer({
+          source: this.data.externalTraderPublicKey,
+          offerId: existingSellingOffer.id,
+          selling: this.hour(),
+          buying: asset,
+          amount: "0",
+          price: existingSellingOffer.price_r
+        }))
+      }
+      if (existingBuyingOffer) {
+        builder.addOperation(Operation.manageSellOffer({
+          source: this.data.externalTraderPublicKey,
+          offerId: existingBuyingOffer.id,
+          selling: asset,
+          buying: this.hour(),
+          amount: "0",
+          price: existingBuyingOffer.price_r
+        }))
+      }
+      // Move existing balance to external issuer, including sponsored trustline.
+      if (existingTrustline?.balance && Big(existingTrustline.balance).gt(0)) {
+        builder.addOperation(Operation.beginSponsoringFutureReserves({
+          source: this.ledger.sponsorPublicKey.publicKey(),
+          sponsoredId: this.data.externalIssuerPublicKey
+        }))
+        signers.add(this.ledger.sponsorPublicKey.publicKey())
+        builder.addOperation(Operation.changeTrust({
+          source: this.data.externalIssuerPublicKey,
+          asset: asset,
+          limit: existingTrustline.balance
+        }))
+        signers.add(this.data.externalIssuerPublicKey)
+        builder.addOperation(Operation.endSponsoringFutureReserves({
+          source: this.data.externalIssuerPublicKey
+        }))
+        builder.addOperation(Operation.payment({
+          source: this.data.externalTraderPublicKey,
+          destination: this.data.externalIssuerPublicKey,
+          asset: asset,
+          amount: existingTrustline.balance
+        }))
+        signers.add(this.data.externalTraderPublicKey)
+      }
+      // Finally remove the trustline.
+      builder.addOperation(Operation.changeTrust({
+        source: this.data.externalTraderPublicKey,
+        asset: asset,
+        limit: "0"
+      }))
+      signers.add(this.data.externalTraderPublicKey)
+    }
+    
+    // 1. Remove existing offers and trustlines that are not in the desired lines, and move their 
+    // balances to external issuer.
+    const toDisable = trustlines.filter((balance) => {
+      return !this.hour().equals(balance.asset)
+      && !this.asset().equals(balance.asset)
+      && !lines.some(b => b.externalIssuerKey === balance.asset.issuer && balance.asset.code === StellarCurrency.GLOBAL_ASSET_CODE)
+    })
+    for (const balance of toDisable) {
+      disableRelationship(builder, balance.asset, signers)
+    }
+
+    // 2. Create the unlimited trustline for local HOUR.
+    updateTrustline(builder, {asset: this.hour(), limit: undefined}, signers)
+    // 3. Ensure hour balance is sufficient.
+    if (totalHourBalance.gt(existingHourBalance)) {
+      logger.debug(`Increasing hour balance from ${existingHourBalance.toString()} to ${totalHourBalance.toString()}`)
+      const diff = totalHourBalance.minus(existingHourBalance).toString()
+      builder.addOperation(Operation.payment({
+        source: this.data.externalIssuerPublicKey,
+        destination: this.data.externalTraderPublicKey,
+        asset: this.hour(),
+        amount: diff
+      }))
+      signers.add(this.data.externalIssuerPublicKey)
+    }
+
+    // 4. Handle local asset.
+    await updateLocalRelationship()
+
+    // 5. Handle all external currencies.
+    for (const line of lines) {
+      const externalAsset = new Asset(StellarCurrency.GLOBAL_ASSET_CODE, line.externalIssuerKey)
+      const limit = this.fromLocalToHour(line.limit)
+      await updateExternalRelationship(builder, externalAsset, limit, signers)
+    }
+
+    // 6. Reduce hour balance if needed.
+    if (totalHourBalance.lt(existingHourBalance)) {
+      logger.debug(`Reducing hour balance from ${existingHourBalance.toString()} to ${totalHourBalance.toString()}`)
+      const diff = existingHourBalance.minus(totalHourBalance).toString()
+      builder.addOperation(Operation.payment({
+        source: this.data.externalTraderPublicKey,
+        destination: this.data.externalIssuerPublicKey,
+        asset: this.hour(),
+        amount: diff
+      }))
+      signers.add(this.data.externalTraderPublicKey)
+    }
+
+    if (signers.size === 0) {
+      // There were no changes to be made.
+      logger.debug(`External state for currency ${this.config.code} is already in desired state.`)
+    } else {
+      await this.ledger.submitTransaction(builder, this.signerKeys(keys, signers), keys.sponsor)
+    }
+    await this.logExternalState()
+  }
+
+  async getExternalBalances(): Promise<ExternalBalance[]> {
+    const balances = new Map<string, ExternalBalance>()
+    const hour = this.hour()
+
+    // 1. Compute local balances held in external trader account.
+    const account = await this.externalTraderAccount()
+    for (const balance of account.balances()) {
+      if (!hour.equals(balance.asset) && !this.asset().equals(balance.asset)) {
+        const amount = this.fromHourToLocal(balance.balance)
+        balances.set(balance.asset.issuer!, {
+          externalIssuerKey: balance.asset.issuer!,
+          local: {
+            balance: amount,
+            limit: this.fromHourToLocal(balance.limit)
+          },
+          balance: Big(amount).neg().toString(),
+        })
+      }
+    }
+
+    // 2. Compute external balances held in other accounts.
+    const accounts = await this.ledger.callServer((server) => server.accounts().forAsset(hour).limit(200).call())
+    for (const acc of accounts.records) {
+      if (acc.account_id === this.data.externalTraderPublicKey) continue
+
+      const b = acc.balances.find((b) =>
+        (b.asset_type === 'credit_alphanum4' || b.asset_type === 'credit_alphanum12') &&
+        b.asset_code === hour.code &&
+        b.asset_issuer === hour.issuer
+      ) as HorizonApi.BalanceLineAsset | undefined
+
+      if (b) {
+        const amount = this.fromHourToLocal(b.balance)
+        // the account_id is the external trader account for the remote currency,
+        // but we need the external issuer key for this currency. We don't have a
+        // direct way to get it, so we guess it as the first unlimited trustline
+        // to an HOUR asset.
+        const externalIssuerBalance = acc.balances.find((b) =>
+          (b.asset_type === 'credit_alphanum4' || b.asset_type === 'credit_alphanum12') &&
+          b.asset_code === StellarCurrency.GLOBAL_ASSET_CODE && Big(b.limit).eq(UNDEFINED_TRUSTLINE_LIMIT)
+        ) as HorizonApi.BalanceLineAsset | undefined
+        if (!externalIssuerBalance) {
+          logger.warn(`Cannot determine external issuer for account ${acc.account_id} holding ${amount} HOUR balance for currency ${this.config.code}. Skipping.`)
+          continue
+        }
+        const externalIssuerKey = externalIssuerBalance.asset_issuer
+        
+        // Update or create entry.
+        const entry = balances.get(externalIssuerKey) ?? {
+          externalIssuerKey: externalIssuerKey,
+          balance: '0'
+        }
+
+        entry.external = {
+          balance: amount,
+          limit: this.fromHourToLocal(b.limit)
+        }
+        entry.balance = Big(entry.balance).plus(amount).toString()
+        balances.set(acc.account_id, entry)
+      }
+    }
+    return Array.from(balances.values())
   }
 
 }

@@ -1,5 +1,5 @@
 import { Keypair } from "@stellar/stellar-sdk"
-import { LedgerCurrencyController } from "./currency-controller"
+import { CurrencyControllerImpl } from "./currency-controller"
 import { AbstractCurrencyController } from "./abstract-currency-controller"
 import type { KeyObject } from "node:crypto";
 import { decrypt, encrypt } from "src/utils/crypto";
@@ -23,7 +23,7 @@ export async function storeCurrencyKey(key: Keypair, db: TenantPrismaClient, enc
 export class KeyController extends AbstractCurrencyController {
 
   constructor(
-    readonly currencyController: LedgerCurrencyController, 
+    readonly currencyController: CurrencyControllerImpl, 
     readonly sponsorKey: () => Promise<Keypair>,
     readonly encryptionKey: () => Promise<KeyObject>) {
     super(currencyController)

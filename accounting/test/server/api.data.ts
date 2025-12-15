@@ -72,9 +72,9 @@ export const testCreditCommonsNeighbour = (neighbour: CreditCommonsNode) => ({
   }
 })
 
-export const userAuth = (userId: string) => ({
+export const userAuth = (userId: string, scopes?: Scope[]) => ({
   user: userId,
-  scopes: [Scope.Accounting]
+  scopes: scopes ?? [Scope.Accounting]
 })
 
 
