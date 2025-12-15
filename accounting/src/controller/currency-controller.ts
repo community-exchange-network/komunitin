@@ -519,7 +519,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       })
     }
   }
-  
+
   public async syncTrustlines(ctx: Context) {
     await this.users.checkAdmin(ctx)
     await this.reconcileExternalState()
@@ -563,7 +563,13 @@ export class CurrencyControllerImpl implements CurrencyService {
         const trustedCurrency = trustedExternalResource.resource
         return trustedCurrency.keys?.externalIssuer === item.externalIssuerKey
       })
-      if (record && Number(record.balance) !== balance) {
+      if (!record) {
+        // TODO: find the external currency somehow and create a trustline record with limit 0. 
+        // This is not trivial since we don't have a mapping from externalIssuerPublicKey to currency and
+        // it may belong to a different server. We can use the home_domain entry of the external issuer 
+        // account, then find the associated accounting url, then find the currency.
+        logger.info(`Could not find trustline record for external issuer ${item.externalIssuerKey}`)
+      } else if (Number(record.balance) !== balance) {
         await this.db.trustline.update({
           data: {
             balance
@@ -572,16 +578,7 @@ export class CurrencyControllerImpl implements CurrencyService {
             id: record.id
           }
         })
-      } else {
-        // TODO: find the external currency somehow and create a trustline record with limit 0. 
-        // This is not trivial since we don't have a mapping from externalIssuerPublicKey to currency and
-        // it may belong to a different server. We can use the home_domain entry of the external issuer 
-        // account, then find the associated accounting url, then find the currency.
-        logger.info(`Could not find trustline record for external issuer ${item.externalIssuerKey}`)
       }
     }
-      
-
-
   }
 }

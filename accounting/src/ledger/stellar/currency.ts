@@ -34,6 +34,9 @@ const paymentToTransfer = (payment: Omit<Horizon.HorizonApi.PaymentOperationResp
   hash: payment.transaction_hash
 })
 
+// This is the actual value that the Stellar SDK sets for a trustline with undefined limit.
+const UNDEFINED_TRUSTLINE_LIMIT = Big('9223372036854775807').div(10**7)
+
 export class StellarCurrency implements LedgerCurrency {
   static GLOBAL_ASSET_CODE = "HOUR"
 
@@ -1137,10 +1140,7 @@ export class StellarCurrency implements LedgerCurrency {
         }))
         signers.add(this.ledger.sponsorPublicKey.publicKey())
       }
-      // This is the actual value that the Stellar SDK sets for a trustline with undefined limit.
-      const MAX_INT64 = Big('9223372036854775807')
-      const UNDEFINED_TRUSTLINE = MAX_INT64.div(10**7)
-      if (existingTrustline === undefined || !(options.limit === undefined ? UNDEFINED_TRUSTLINE : Big(options.limit)).eq(existingTrustline.limit)) {
+      if (existingTrustline === undefined || !(options.limit === undefined ? UNDEFINED_TRUSTLINE_LIMIT : Big(options.limit)).eq(existingTrustline.limit)) {
         logger.debug(`Updating trustline ${options.asset.code} from ${existingTrustline?.limit} to ${options.limit}`)
         builder.addOperation(Operation.changeTrust({
           source: this.data.externalTraderPublicKey,
@@ -1441,7 +1441,12 @@ export class StellarCurrency implements LedgerCurrency {
       signers.add(this.data.externalTraderPublicKey)
     }
 
-    await this.ledger.submitTransaction(builder, this.signerKeys(keys, signers), keys.sponsor)
+    if (signers.size === 0) {
+      // There were no changes to be made.
+      logger.debug(`External state for currency ${this.config.code} is already in desired state.`)
+    } else {
+      await this.ledger.submitTransaction(builder, this.signerKeys(keys, signers), keys.sponsor)
+    }
     await this.logExternalState()
   }
 
@@ -1460,7 +1465,7 @@ export class StellarCurrency implements LedgerCurrency {
             balance: amount,
             limit: this.fromHourToLocal(balance.limit)
           },
-          balance: amount,
+          balance: Big(amount).neg().toString(),
         })
       }
     }
@@ -1478,8 +1483,23 @@ export class StellarCurrency implements LedgerCurrency {
 
       if (b) {
         const amount = this.fromHourToLocal(b.balance)
-        const entry = balances.get(acc.account_id) ?? {
-          externalIssuerKey: acc.account_id,
+        // the account_id is the external trader account for the remote currency,
+        // but we need the external issuer key for this currency. We don't have a
+        // direct way to get it, so we guess it as the first unlimited trustline
+        // to an HOUR asset.
+        const externalIssuerBalance = acc.balances.find((b) =>
+          (b.asset_type === 'credit_alphanum4' || b.asset_type === 'credit_alphanum12') &&
+          b.asset_code === StellarCurrency.GLOBAL_ASSET_CODE && Big(b.limit).eq(UNDEFINED_TRUSTLINE_LIMIT)
+        ) as HorizonApi.BalanceLineAsset | undefined
+        if (!externalIssuerBalance) {
+          logger.warn(`Cannot determine external issuer for account ${acc.account_id} holding ${amount} HOUR balance for currency ${this.config.code}. Skipping.`)
+          continue
+        }
+        const externalIssuerKey = externalIssuerBalance.asset_issuer
+        
+        // Update or create entry.
+        const entry = balances.get(externalIssuerKey) ?? {
+          externalIssuerKey: externalIssuerKey,
           balance: '0'
         }
 
@@ -1487,7 +1507,7 @@ export class StellarCurrency implements LedgerCurrency {
           balance: amount,
           limit: this.fromHourToLocal(b.limit)
         }
-        entry.balance = Big(entry.balance).minus(amount).toString()
+        entry.balance = Big(entry.balance).plus(amount).toString()
         balances.set(acc.account_id, entry)
       }
     }
