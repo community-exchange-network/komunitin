@@ -59,6 +59,9 @@ describe('Creates stellar elements', async () => {
     currencyConfig = {
       code: "TEST",
       rate: { n: 1, d: 10 }, //1 TEST = 0.1 HOUR
+      externalTraderInitialCredit: "1000",
+      externalTraderMaximumBalance: "5000"
+      
     }
     currencyKeys = await ledger.createCurrency(currencyConfig, sponsor)
     currencyData = {
@@ -165,7 +168,8 @@ describe('Creates stellar elements', async () => {
     const config = {
       code: "TES2",
       rate: { n: 1, d: 2 }, // 1TES2 = 0.5 HOUR
-      externalTraderInitialCredit: "1000"
+      externalTraderInitialCredit: "1000",
+      externalTraderMaximumBalance: "5000"
     }
     currency2Keys = await ledger.createCurrency(config, sponsor)
     currency2 = ledger.getCurrency(config, {
