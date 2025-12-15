@@ -4,15 +4,22 @@ import { isExternalResourceIdentifier } from "./external-resource-controller";
 import { Context } from "src/utils/context";
 import { badRequest, forbidden, internalError, noTrustPath } from "src/utils/error";
 import { ExternalResource, ExternalResourceIdentifier } from "src/model/resource";
-import { WithRequired } from "src/utils/types";
-import { toStringAmount, convertAmount } from "./currency-controller";
+import { AtLeast, WithRequired } from "src/utils/types";
 import { TransferSerializer } from "src/server/serialize";
 import { createExternalToken } from "./external-jwt";
 import { config } from "src/config";
 import { mount } from "src/server/parse";
+import { toStringAmount } from "./currency-controller";
 
 type ExternalPayeeTransfer = WithRequired<FullTransfer, "externalPayee">
 type ExternalPayerTransfer = WithRequired<FullTransfer, "externalPayer">
+
+/**
+ * This function does not round the result.
+ */
+function convertAmount(amount: number, from: AtLeast<Currency, "rate">, to: AtLeast<Currency,"rate">) {
+  return amount * from.rate.n / from.rate.d * to.rate.d / to.rate.n
+}
 
 /**
  * This class implements the external transfers. There are requests to be handled:
@@ -452,7 +459,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
 
     // There is no trust path between these two accounts. The transfer is not possible.
     if (!path) {
-      throw noTrustPath(`No trust path between currencies ${this.currency().code} and ${externalCurrency.resource.code}`)
+      throw noTrustPath(`No trust path from currency ${this.currency().code} to ${externalCurrency.resource.code}`)
     }
     // There is a trust path! Submit the transaction.
 
@@ -532,7 +539,8 @@ export class ExternalTransferController extends AbstractCurrencyController {
 
       // Convert amount to payee currency
       const externalCurrency = await this.getExternalAccountCurrency(ctx, transfer.externalPayee)
-      const payeeAmount = convertAmount(transfer.amount, this.currency(), externalCurrency.resource)
+      // We round down the amount so what the payee receives is at least what we notify.
+      const payeeAmount = Math.floor(convertAmount(transfer.amount, this.currency(), externalCurrency.resource))
       externalPayerTransfer.amount = payeeAmount
       
       const response = await this.notifyCreateExternalTransfer(ctx, endpoint, externalPayerTransfer, transfer.payer.key)
@@ -569,7 +577,9 @@ export class ExternalTransferController extends AbstractCurrencyController {
 
     // Convert amount to payer currency
     const externalCurrency = await this.getExternalAccountCurrency(ctx, transfer.externalPayer)
-    const payerAmount = convertAmount(transfer.amount, this.currency(), externalCurrency.resource)
+
+    // We round up the amount to make sure the payer covers the required amount.
+    const payerAmount = Math.ceil(convertAmount(transfer.amount, this.currency(), externalCurrency.resource))
     externalPayeeTransfer.amount = payerAmount
 
     const response = await this.notifyCreateExternalTransfer(ctx, endpoint, externalPayeeTransfer, transfer.payee.key)

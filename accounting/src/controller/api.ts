@@ -63,6 +63,7 @@ export interface CurrencyPublicService {
   createTrustline(ctx: Context, trustline: InputTrustline): Promise<Trustline>
   updateTrustline(ctx: Context, trustline: UpdateTrustline): Promise<Trustline>
   getTrustlines(ctx: Context, params: CollectionOptions): Promise<Trustline[]>
+  syncTrustlines(ctx: Context): Promise<void>
 }
 
 export interface CurrencyService extends CurrencyPublicService {

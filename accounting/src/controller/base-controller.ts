@@ -13,7 +13,7 @@ import { CreateCurrency, Currency, CurrencySettings, currencyToRecord, recordToC
 import { decrypt, encrypt, exportKey, importKey, randomKey } from "../utils/crypto"
 import { logger } from "../utils/logger"
 import { BasePublicService, ServiceEvents } from "./api"
-import { CurrencyControllerImpl, currencyConfig, currencyData } from "./currency-controller"
+import { currencyConfig, currencyData, CurrencyControllerImpl, defaultCurrencySettings } from "./currency-controller"
 import { initUpdateCreditOnPayment } from "./features/credit-on-payment"
 import { initNotifications } from "./features/notificatons"
 import { storeCurrencyKey } from "./key-controller"
@@ -50,7 +50,7 @@ export class BaseControllerImpl implements BasePublicService {
         const controller = await this.getCurrencyController(code)
         return controller.keys.externalTraderKey()
       })
-    
+
     initLedgerListener(this)
 
     // Feature: update credit limit on received payments (for enabled currencies and accounts)
@@ -79,7 +79,7 @@ export class BaseControllerImpl implements BasePublicService {
     return privilegedDb(this._db)
   }
 
-  public tenantDb(tenantId: string) : TenantPrismaClient {
+  public tenantDb(tenantId: string): TenantPrismaClient {
     return tenantDb(this._db, tenantId)
   }
 
@@ -97,37 +97,9 @@ export class BaseControllerImpl implements BasePublicService {
     // related to this currency. This key itself is encrypted using the master key.
     const currencyKey = await randomKey()
     const encryptedCurrencyKey = await this.storeKey(currency.code, currencyKey)
-    
+
     // Default settings:
-    const defaultSettings: CurrencySettings = {
-      defaultInitialCreditLimit: 0,
-      defaultInitialMaximumBalance: false,
-      defaultAllowPayments: true,
-      defaultAllowPaymentRequests: true,
-      defaultAcceptPaymentsAutomatically: false,
-      defaultAcceptPaymentsWhitelist: [],
-      defaultAllowSimplePayments: true,
-      defaultAllowSimplePaymentRequests: true,
-      defaultAllowQrPayments: true,
-      defaultAllowQrPaymentRequests: true,
-      defaultAllowMultiplePayments: true,
-      defaultAllowMultiplePaymentRequests: true,
-      defaultAllowTagPayments: true,
-      defaultAllowTagPaymentRequests: false,
-
-      defaultAcceptPaymentsAfter: 14*24*60*60, // 2 weeks,
-      defaultOnPaymentCreditLimit: false,
-
-      enableExternalPayments: true,
-      enableExternalPaymentRequests: false,
-      enableCreditCommonsPayments: false,
-      defaultAllowExternalPayments: true,
-      defaultAllowExternalPaymentRequests: false,
-      defaultAcceptExternalPaymentsAutomatically: false,
-      
-      externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit ?? 0,
-      externalTraderMaximumBalance: false,
-    }
+    const defaultSettings: CurrencySettings = defaultCurrencySettings(currency)
 
     // Merge default settings with provided settings, while deleting eventual extra fields.
     const settings = {} as Record<string, any>
@@ -146,23 +118,23 @@ export class BaseControllerImpl implements BasePublicService {
     }
 
     // Use logged in user as admin if not provided.
-    const admin = currency.admins && currency.admins.length > 0 
-      ? currency.admins[0].id 
+    const admin = currency.admins && currency.admins.length > 0
+      ? currency.admins[0].id
       : ctx.userId
-    
+
     if (!admin) {
       throw badRequest("Admin user must be provided explicitly or as logged in user")
     }
 
     // Check that the user is not already being used in other tenant.
-    const user = await this.privilegedDb().user.findFirst({where: { id: admin }})
+    const user = await this.privilegedDb().user.findFirst({ where: { id: admin } })
     if (user) {
       throw badRequest(`User ${admin} is already being used in another tenant`)
     }
 
     // Create the currency on the ledger.
     const keys = await this.ledger.createCurrency(
-      currencyConfig(currency), 
+      currencyConfig(currency),
       await this.sponsorKey()
     )
 
@@ -178,7 +150,7 @@ export class BaseControllerImpl implements BasePublicService {
         },
         admin: {
           connectOrCreate: {
-            where: { 
+            where: {
               tenantId_id: {
                 id: admin,
                 tenantId: db.tenantId
@@ -189,7 +161,7 @@ export class BaseControllerImpl implements BasePublicService {
         }
       },
     })
-    
+
     // Store the keys into the DB, encrypted using the currency key.
     const storeKey = (key: Keypair) => storeCurrencyKey(key, db, async () => currencyKey)
     const currencyKeyIds = {
@@ -209,12 +181,12 @@ export class BaseControllerImpl implements BasePublicService {
         balance: 0,
         maximumBalance: currency.settings.externalTraderMaximumBalance ? currency.settings.externalTraderMaximumBalance : null,
         creditLimit: currency.settings.externalTraderCreditLimit ?? 0,
-        key: { connect: { id: currencyKeyIds.externalTraderKeyId }},
+        key: { connect: { id: currencyKeyIds.externalTraderKeyId } },
         settings: {
           allowPayments: false,
           allowPaymentRequests: false
         },
-        currency: { connect: { id: record.id }},
+        currency: { connect: { id: record.id } },
         // no users for virtual account.
       }
     })
@@ -243,7 +215,7 @@ export class BaseControllerImpl implements BasePublicService {
       throw forbidden("Only superadmins can filter by status")
     }
     const filter = whereFilter(params.filters)
-    
+
     const records = await this.privilegedDb().currency.findMany({
       where: {
         status: "active",

@@ -116,5 +116,6 @@
   "disableGroup": "Disable Community",
   "groupStatus": "Community Status",
   "groupStatusText": "Danger zone.",
-  "groupStatusUpdated": "Community status updated successfully."
+  "groupStatusUpdated": "Community status updated successfully.",
+  "refresh": "Refresh"
 }

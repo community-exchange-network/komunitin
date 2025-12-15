@@ -247,6 +247,16 @@ export function getRoutes(controller: BaseService) {
     }, {checkActive: false})
   )
 
+  router.post('/:code/trustlines/sync', userAuth([Scope.Accounting, Scope.Superadmin]),
+    asyncHandler(async (req, res) => {
+      const currencyController = await controller.getCurrencyController(req.params.code)
+      await currencyController.syncTrustlines(context(req))
+      res.status(204).end()
+    })
+  )
+
+  // Statistics routes
+
   const successCache = (seconds: number) => routeCache.cacheSeconds(seconds, (req: Request, res: Response) => {
     // Cache only successful responses
     if (res.statusCode !== 200) {

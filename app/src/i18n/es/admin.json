@@ -116,5 +116,6 @@
   "disableGroup": "Desactivar comunidad",
   "groupStatus": "Estado de la comunidad",
   "groupStatusText": "Zona de peligro.",
-  "groupStatusUpdated": "Estado de la comunidad actualizado correctamente."
+  "groupStatusUpdated": "Estado de la comunidad actualizado correctamente.",
+  "refresh": "Actualizar"
 }
