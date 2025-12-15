@@ -116,5 +116,6 @@
   "disableGroup": "Desactivar comunitat",
   "groupStatus": "Estat de la comunitat",
   "groupStatusText": "Zona de perill.",
-  "groupStatusUpdated": "Estat de la comunitat actualitzat correctament."
+  "groupStatusUpdated": "Estat de la comunitat actualitzat correctament.",
+  "refresh": "Actualitzar"
 }

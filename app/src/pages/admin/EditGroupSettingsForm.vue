@@ -181,6 +181,7 @@
       :trustlines="trustlines"
       @update:trustline="$emit('update:trustline', $event)"
       @create:trustline="$emit('create:trustline', $event)"
+      @sync:trustlines="$emit('sync:trustlines')"
     />
     <template v-if="featTopup">
       <q-separator class="q-mt-xl" />
@@ -260,6 +261,7 @@ const emit = defineEmits<{
   (e: 'update:currency-settings', value: DeepPartial<CurrencySettings>): void
   (e: 'update:trustline', value: DeepPartial<Trustline>): void
   (e: 'create:trustline', value: DeepPartial<Trustline>): void
+  (e: 'sync:trustlines'): void
   (e: 'update:category', value: DeepPartial<Category>): void
   (e: 'create:category', value: DeepPartial<Category>): void
   (e: 'delete:category', value: DeepPartial<Category>): void
