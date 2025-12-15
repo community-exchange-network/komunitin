@@ -38,7 +38,11 @@ export function client(app: Express) {
   }
 
   const sendData = (req: Request, data: any) => {
-    return req.send(data).set('Content-Type', 'application/vnd.api+json')
+    if (data !== undefined) {
+      return req.send(data).set('Content-Type', 'application/vnd.api+json')
+    } else {
+      return req
+    }
   }
 
   const API_CONTENT_TYPE = "application/vnd.api+json"

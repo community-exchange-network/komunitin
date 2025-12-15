@@ -28,6 +28,7 @@
         @update:currency-settings="updateCurrencySettings"
         @update:trustline="updateTrustline"
         @create:trustline="createTrustline"
+        @sync:trustlines="loadTrustlines"
         @update:category="updateCategory"
         @create:category="createCategory"
         @delete:category="deleteCategory"

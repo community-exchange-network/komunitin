@@ -116,5 +116,6 @@
   "disableGroup": "Disabilita comunità",
   "groupStatus": "Stato della comunità",
   "groupStatusText": "Zona pericolosa.",
-  "groupStatusUpdated": "Stato della comunità aggiornato con successo."
+  "groupStatusUpdated": "Stato della comunità aggiornato con successo.",
+  "refresh": "Aggiorna"
 }

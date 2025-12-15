@@ -56,10 +56,19 @@
         </group-header>
       </q-list>
     </div>
-    <div class="row justify-end q-mt-md">
+    <div class="row justify-end q-mt-md q-gutter-x-md">
       <q-btn
         flat
         color="primary"
+        icon="refresh"
+        :label="$t('refresh')"
+        :loading="syncTrustlinesLoading"
+        @click="syncTrustlines()"
+      />
+      <q-btn
+        flat
+        color="primary"
+        icon="add"
         :label="$t('addTrustline')"
         @click="addTrustline()"
       />
@@ -121,6 +130,8 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import type { DeepPartial } from 'quasar';
+import { useApiFetch } from '../../composables/useApiFetch';
+import { config } from 'src/utils/config';
 
 type ExtendedGroup = Group & {
   currency: Currency
@@ -138,6 +149,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:trustline', value: DeepPartial<Trustline>): void
   (e: 'create:trustline', value: DeepPartial<Trustline>): void
+  (e: 'sync:trustlines'): void
 }>()
 
 const store = useStore()
@@ -224,5 +236,22 @@ const groupDisabled = (group: Group) => {
     return true
   }
   return false
+}
+
+const syncTrustlinesLoading = ref(false)
+const apiFetch = useApiFetch()
+
+const syncTrustlines = async () => {  
+  const baseUrl = config.ACCOUNTING_URL
+  const code = myGroup.value.attributes.code
+  try {
+    syncTrustlinesLoading.value = true
+      await apiFetch(`${baseUrl}/${code}/trustlines/sync`, {
+      method: 'POST',
+    })
+    emit("sync:trustlines")
+  } finally {
+    syncTrustlinesLoading.value = false
+  }
 }
 </script>
