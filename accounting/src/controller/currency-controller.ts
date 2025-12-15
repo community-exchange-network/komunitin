@@ -519,6 +519,11 @@ export class CurrencyControllerImpl implements CurrencyService {
       })
     }
   }
+  
+  public async syncTrustlines(ctx: Context) {
+    await this.users.checkAdmin(ctx)
+    await this.reconcileExternalState()
+  }
 
   async reconcileExternalState() {
     // Get trustlines

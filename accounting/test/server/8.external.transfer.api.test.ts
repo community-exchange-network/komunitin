@@ -4,9 +4,9 @@ import { config } from "src/config"
 import { CurrencyControllerImpl } from "src/controller/currency-controller"
 import { EventName } from "src/controller/features/notificatons"
 import { logger } from "src/utils/logger"
-import { BaseControllerImpl } from "../../src/controller/base-controller"
 import { CurrencySettings } from "../../src/model"
 import { testCurrency, testTransfer, userAuth } from "./api.data"
+import { AuthInfo } from "./net.client"
 import { clearEvents, getEvents } from "./net.mock"
 import { setupServerTest } from './setup'
 import { waitFor } from "./utils"
@@ -45,10 +45,8 @@ describe("External transfers", async () => {
     return response.ok ? response.body.data : response.body
   }
 
-  const reconcileExternalState = async (code: string) => {
-    const service = t.app.komunitin.service as BaseControllerImpl
-    const currency = await service.getCurrencyController(code)
-    await currency.reconcileExternalState()
+  const reconcileExternalState = async (code: string, auth: AuthInfo) => {
+    await t.api.post(`/${code}/trustlines/sync`, undefined, auth, 204)
   }
   
   before(async () => {
@@ -196,7 +194,7 @@ describe("External transfers", async () => {
   })
 
   await it("trustline balance", async () => {
-    await reconcileExternalState("EXTR")
+    await reconcileExternalState("EXTR", eAdmin)
     const trustline = (await t.api.get(`/EXTR/trustlines/${eTrustline.id}`, eUser1)).body.data
     assert.equal(trustline.attributes.balance, 20)
   })
@@ -326,8 +324,8 @@ describe("External transfers", async () => {
   it("can trade without trust if in surplus", async () => {
     // The system listens to a stellar stream of external trades to update the external trader sell offers.
     // However I'm not able to make it work in the test environment, so we manually trigger the reconciliation here.
-    await reconcileExternalState("EXTR")
-    await reconcileExternalState("TEST")
+    await reconcileExternalState("EXTR", eAdmin)
+    await reconcileExternalState("TEST", t.admin)
 
     const externalAccount = (await t.api.get(`/TEST/accounts?filter[code]=TESTEXTR`, t.admin)).body.data[0]
     assert.equal(externalAccount.attributes.balance, 300) // From previous tests
