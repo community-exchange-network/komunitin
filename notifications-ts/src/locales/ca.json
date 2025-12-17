@@ -1,0 +1,24 @@
+{
+  "newsletter": {
+    "subject": "Novetats a {{group}}",
+    "header_title": "Novetats a {{group}}",
+    "hello": "Hola, <0>{{name}}</0>",
+    "section_offer": "OFERTA",
+    "section_need": "NECESSITAT",
+    "user_placeholder": "👤 {{name}}",
+    "cta_main": "ENTRA I FES EL TEU PRÒXIM INTERCANVI",
+    "cta_secondary": "Tens alguna cosa a oferir? Publica aquí!",
+    "account_title": "👤 El meu Compte",
+    "balance_label": "Saldo Actual",
+    "balance_positive": "Tens saldo disponible per fer intercanvis.",
+    "balance_negative": "Pots oferir serveis per augmentar el teu saldo.",
+    "view_movements": "VEURE MOVIMENTS →",
+    "alert_old_offers_title": "Tens {{count}} ofertes antigues",
+    "alert_old_offers_text": "Estan publicades fa més de 3 mesos. Si us plau, revisa si encara estan disponibles.",
+    "manage_offers": "→ GESTIONAR OFERTES",
+    "stats_title": "Activitat a {{group}}",
+    "stats_exchanges": "Intercanvis",
+    "stats_new_members": "Nous Veïns",
+    "footer_reason": "Reps aquest correu com a membre actiu de <strong>Komunitin</strong>."
+  }
+}
