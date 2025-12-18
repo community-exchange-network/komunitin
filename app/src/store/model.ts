@@ -81,7 +81,7 @@ export interface ResourceResponseInclude<
 export interface Location {
   name: string;
   type: "Point";
-  coordinates: [number, number];
+  coordinates: [number, number]; //longitude and latitude
 }
 
 export type ImageObject = string;
