@@ -12,7 +12,6 @@ import PageHeader from "../../../src/layouts/PageHeader.vue";
 import { seeds } from "src/server";
 import NeedCard from "src/components/NeedCard.vue";
 import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
-import MemberHeader from 'src/components/MemberHeader.vue';
 import MenuItem from 'src/components/MenuItem.vue';
 
 describe("Home", () => {
@@ -96,14 +95,19 @@ describe("Home", () => {
 
     await wrapper.vm.$nextTick();
 
-    const profileMenu = wrapper.getComponent(QMenu)
+    const profileMenu = wrapper.getComponent(QMenu);
     expect(profileMenu.isVisible()).toBe(true);
-    expect(profileMenu.getComponent(MemberHeader).text()).toContain('Emiliano Lemke');
+    // Workaround for targeting teleport-rendered element that is not a Component.
+    // Returns a native DOM element
+    const profileDetails = profileMenu.element.ownerDocument.querySelector('[data-testid="profile-details"]');
+    expect(profileDetails.textContent).toContain('Emiliano Lemke');
     
+    const myProfileBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My profile'));
     const myOffersBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My offers'));
     const myNeedsBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My needs'));
     const logOutBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Log out'));
 
+    expect(myProfileBtn).toBeDefined();
     expect(myOffersBtn).toBeDefined();
     expect(myNeedsBtn).toBeDefined();
     expect(logOutBtn).toBeDefined();
