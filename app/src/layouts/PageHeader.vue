@@ -2,7 +2,7 @@
   <q-header>
     <div
       id="header"
-      class="bg-primary flex row wrap justify-between items-center q-pt-sm q-pb-xs q-px-md"
+      :class="`bg-primary flex row ${balanceScaleFactor > 0 ? 'wrap' : 'no-wrap' } justify-between items-center q-pt-sm q-pb-xs q-pl-sm q-pr-md`"
       :style="`height: ${computedHeight}px; ${showBalance ? '' : 'padding-top:4px;'}`"
     >
         <!-- render back button, menu button, profile button or none -->
@@ -55,7 +55,7 @@
       </div>
       <q-toolbar
         class="no-wrap"
-        style="max-width: none; flex: 1 1 0%; padding-right: 0;"
+        style="max-width: none; min-width: 0;flex: 1 1 0%; padding-right: 0;"
         :style="showBalance ? 'padding-left:18px;' : 'padding-left:0;'"
       >
         <q-toolbar-title v-if="!searchActive">
@@ -211,6 +211,8 @@ if (process.env.FEAT_HEADER_BALANCE === 'true') {
   computedHeight = computed(() => originalHeight.value - offset.value)
   balanceScaleFactor = computed(() => Math.max(0, 1 - offset.value / balanceHeight))
   showBalance = computed(() => toValue(requireBalance) && offset.value < balanceHeight)
+  console.log(balanceScaleFactor.value);
+
   
   scrollHandler = (details: { position: { top: number; }; }) => {
     offset.value = Math.min(details.position.top, originalHeight.value - headerHeight)
