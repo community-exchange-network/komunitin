@@ -1,14 +1,6 @@
 <template>
   <q-list>
-
-    <menu-item 
-    icon="home" 
-    :title="$t('home')" 
-    to="/home" 
-    />
     
-    <q-separator />
-
     <!-- Group -->
     <group-header 
       id="my-group"
@@ -19,6 +11,21 @@
       @click="$router.push(`/groups/${groupCode}`)"
     />
 
+    <q-separator />
+
+    <menu-item 
+    icon="home" 
+    :title="$t('home')" 
+    to="/home" 
+    />
+
+    <menu-item 
+      id="menu-transactions" 
+      icon="account_balance_wallet"
+      :title="$t('transactions')" 
+      :to="`/groups/${groupCode}/members/${myMember.attributes.code}/transactions`"
+    />
+    
     <q-separator />
     
     <menu-item
@@ -49,13 +56,6 @@
 
     <q-separator />
     
-    <menu-item 
-      id="menu-transactions" 
-      icon="account_balance_wallet"
-      :title="$t('transactions')" 
-      :to="`/groups/${groupCode}/members/${myMember.attributes.code}/transactions`"
-    />
-
     <template v-if="isAdmin">
       <q-separator />
       <div class="text-overline text-onsurface-d q-pl-md q-pt-md text-uppercase">
