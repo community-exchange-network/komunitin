@@ -167,6 +167,23 @@ export const handlers = [
     });
   }),
 
+  http.get(`${SOCIAL_URL}/users/:id/settings`, ({ params }) => {
+    const { id } = params;
+    return HttpResponse.json({
+      data: {
+        type: 'user-settings',
+        id: `${id}-settings`,
+        attributes: {
+          language: 'en',
+          emails: {
+            group: 'weekly',
+            myAccount: true
+          }
+        }
+      }
+    });
+  }),
+
   // Users List (for getMemberUsers)
   http.get(`${SOCIAL_URL}/users`, () => {
     // Return a single user for the requested member
@@ -202,6 +219,26 @@ export const handlers = [
   }),
 
   // Accounting API
+  // Currency
+  http.get(`${ACCOUNTING_URL}/:code/currency`, ({ params }) => {
+    const { code } = params;
+    return HttpResponse.json({
+      data: {
+        type: 'currencies',
+        id: faker.string.uuid(),
+        attributes: {
+          code,
+          name: `${code} Currency`,
+          namePlural: `${code} Credits`,
+          symbol: code === 'GRP0' ? 'ħ' : code === 'GRP1' ? '€' : '¤',
+          decimals: 2,
+          scale: 2,
+          rate: { n: 100, d: 1 } // 100:1 ratio to hours
+        }
+      }
+    });
+  }),
+
   // Note: ID in the URL for account usually follows pattern, or we just mock generic response
   http.get(`${ACCOUNTING_URL}/:currency/accounts/:id`, ({ params }) => {
     const { currency, id } = params;
@@ -221,6 +258,24 @@ export const handlers = [
         }
       }
     })
+  }),
+
+  http.get(`${ACCOUNTING_URL}/:code/stats/transfers`, ({ request }) => {
+    const url = new URL(request.url);
+    const from = url.searchParams.get('from');
+    const to = url.searchParams.get('to');
+
+    return HttpResponse.json({
+      data: {
+        type: 'transfer-stats',
+        id: faker.string.uuid(),
+        attributes: {
+          from: from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          to: to || new Date().toISOString(),
+          values: [54] // Number of transfers last month
+        }
+      }
+    });
   }),
 
   http.get(`${ACCOUNTING_URL}/:groupCode/transfers`, () => {

@@ -1,16 +1,20 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { selectBestItems, getDistance, Item } from './algorithm';
+import { selectBestItems, getDistance, Item } from './posts-algorithm';
 import { Member, LogContent, HistoryLog } from './types';
 
 // Helpers
 const createMember = (id: string, lat?: number, lon?: number): Member => ({
   id,
   attributes: {
-    latitude: lat,
-    longitude: lon,
-    name: `Member ${id}`
+    location: (lat !== undefined && lon !== undefined) ? {
+      type: 'Point',
+      coordinates: [lon, lat]
+    } : undefined,
+    name: `Member ${id}`,
+    image: 'img',
+    description: 'desc'
   }
 });
 
@@ -18,11 +22,14 @@ const createItem = (id: string, authorId: string, created: string, category?: st
   id,
   attributes: {
     name: `Item ${id}`,
-    description: 'desc',
-    created
+    content: 'desc',
+    created,
+    expires: '2099-01-01',
+    images: [],
+    code: id
   },
   relationships: {
-    author: { data: { id: authorId } },
+    member: { data: { id: authorId } },
     category: category ? { data: { id: category } } : undefined
   }
 } as any);
@@ -33,7 +40,8 @@ describe('Feedback Algorithm', () => {
     const m1 = createMember('1', 41.38, 2.17); // Barcelona
     const m2 = createMember('2', 40.41, -3.70); // Madrid ~500km
     const d = getDistance(m1, m2);
-    assert.ok(d > 400 && d < 600, `Distance ${d} should be around 500km`);
+    // d is in meters. 500km = 500,000m.
+    assert.ok(d > 400000 && d < 600000, `Distance ${d} should be around 500km`);
   });
 
   test('selectBestItems prefers closer members (Distance Score)', () => {
@@ -42,8 +50,8 @@ describe('Feedback Algorithm', () => {
     const farMember = createMember('far', 20, 20); // Very Far (d >> K)
 
     const items = [
-      createItem('i1', 'close', '2025-01-02'),
-      createItem('i2', 'far', '2025-01-02')
+      createItem('i1', 'close', new Date().toISOString()),
+      createItem('i2', 'far', new Date().toISOString())
     ];
 
     const members = new Map([
@@ -59,7 +67,6 @@ describe('Feedback Algorithm', () => {
         items,
         members,
         history: [],
-        lastNewsletterDate: new Date('2025-01-01'),
         globalFeaturedIndex: new Map()
       }, { freshCount: 1, randomCount: 0 });
 
@@ -78,8 +85,8 @@ describe('Feedback Algorithm', () => {
     // So probability should be roughly 50/50
 
     const items = [
-      createItem('i1', 'm1', '2025-01-02'),
-      createItem('i2', 'm2', '2025-01-02')
+      createItem('i1', 'm1', new Date().toISOString()),
+      createItem('i2', 'm2', new Date().toISOString())
     ];
 
     const members = new Map([['m1', m1], ['m2', m2]]);
@@ -91,7 +98,6 @@ describe('Feedback Algorithm', () => {
         items,
         members,
         history: [],
-        lastNewsletterDate: new Date('2025-01-01'),
         globalFeaturedIndex: new Map()
       }, { freshCount: 1, randomCount: 0 });
       if (result[0]?.id === 'i1') i1Count++;
@@ -107,15 +113,18 @@ describe('Feedback Algorithm', () => {
     const m2 = createMember('m2', 1, 1); // Same distance
 
     const items = [
-      createItem('item1', 'm1', '2025-01-02'),
-      createItem('item2', 'm2', '2025-01-02')
+      createItem('item1', 'm1', new Date().toISOString()),
+      createItem('item2', 'm2', new Date().toISOString())
     ];
 
     const members = new Map([['m1', m1], ['m2', m2]]);
 
     // History: m1 was featured recently (penalty applies)
     const history: HistoryLog[] = [
-      { content: { bestOffers: ['old-item-from-m1'] } } // Last newsletter
+      { 
+        sentAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+        content: { bestOffers: ['old-item-from-m1'] } 
+      } as any
     ];
 
     const oldItem = createItem('old-item-from-m1', 'm1', '2024-01-01');
@@ -128,7 +137,6 @@ describe('Feedback Algorithm', () => {
         items: allItems,
         members,
         history,
-        lastNewsletterDate: new Date('2025-01-01'),
         globalFeaturedIndex: new Map()
       }, { freshCount: 1, randomCount: 0 });
 
@@ -154,7 +162,6 @@ describe('Feedback Algorithm', () => {
       items,
       members,
       history: [],
-      lastNewsletterDate: new Date('2025-01-01'),
       globalFeaturedIndex: new Map()
     }, { freshCount: 2, randomCount: 1 });
 
@@ -170,11 +177,11 @@ describe('Feedback Algorithm', () => {
 
     const target = createMember('target', 0, 0);
     const neighbor = createMember('neighbor', 0, 0); // d=0 < 1000
-    const stranger = createMember('stranger', 20, 20); // d ~ 3000km > 1000
+    const stranger = createMember('stranger', 0.02, 0.02); // d ~ 3km > 1000
 
     const items = [
-      createItem('neighborItem', 'neighbor', '2025-01-02'),
-      createItem('strangerItem', 'stranger', '2025-01-02')
+      createItem('neighborItem', 'neighbor', new Date().toISOString()),
+      createItem('strangerItem', 'stranger', new Date().toISOString())
     ];
 
     const members = new Map([
@@ -188,7 +195,10 @@ describe('Feedback Algorithm', () => {
     // We can use a dummy item id that maps to neighbor in the items list, 
     // BUT our logic looks up valid items. 'neighborItem' is valid.
     const history: HistoryLog[] = [
-      { content: { bestOffers: ['neighborItem'] } }
+      { 
+        sentAt: new Date(Date.now() - 86400000).toISOString(),
+        content: { bestOffers: ['neighborItem'] } 
+      } as any
     ];
 
     let strangerCount = 0;
@@ -199,7 +209,6 @@ describe('Feedback Algorithm', () => {
         items,
         members,
         history,
-        lastNewsletterDate: new Date('2025-01-01'),
         globalFeaturedIndex: new Map()
       }, { freshCount: 1, randomCount: 0 });
 

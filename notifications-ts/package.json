@@ -4,7 +4,9 @@
   "description": "Komunitin Notifications Service (Node.js/TypeScript)",
   "main": "dist/index.js",
   "scripts": {
+    "compile": "tsc",
     "dev": "tsx watch src/index.ts",
+    "run": "tsx src/scripts/run.ts",
     "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js",
     "start": "node dist/index.js",
     "test": "node --env-file=.env.test --import tsx --test src/**/*.test.ts"

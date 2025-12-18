@@ -5,7 +5,7 @@ This document describes the logic behind the `selectBestItems` function used to 
 ## Usage
 
 ```typescript
-import { selectBestItems } from './algorithm';
+import { selectBestItems } from './posts-algorithm';
 
 const options = {
   freshCount: 2, // M
@@ -89,7 +89,7 @@ This section displays the current balance and celebrates recent activity.
 - **Balance Advice**:
     - **Positive (> 10 Hours)**: "You have given more than received. You can use your balance..."
     - **Negative (< -10 Hours)**: "You have received more than given. Try to balance it..."
-    - **Balanced (Within +/- 2 Hours)**: "Your balance is well balanced!"
+    - **Balanced (Within +/- 10 Hours)**: "Your balance is well balanced!"
 
 ## 2. Alerts Logic (Prioritized)
 

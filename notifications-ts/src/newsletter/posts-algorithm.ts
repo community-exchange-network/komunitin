@@ -9,7 +9,6 @@ interface Dataset {
   items: Item[];
   members: Map<string, Member>;
   history: HistoryLog[];
-  lastNewsletterDate: Date;
   globalFeaturedIndex: Map<string, number>;
 }
 
@@ -20,24 +19,27 @@ interface Options {
 }
 
 export const getDistance = (m1: Member, m2: Member): number => {
-  const lat1 = m1.attributes.latitude;
-  const lon1 = m1.attributes.longitude;
-  const lat2 = m2.attributes.latitude;
-  const lon2 = m2.attributes.longitude;
-
-  if (typeof lat1 !== 'number' || typeof lon1 !== 'number' || typeof lat2 !== 'number' || typeof lon2 !== 'number') {
-    return 100; // Default distance
+  if (!m1.attributes.location || !m2.attributes.location) {
+    return Infinity;
   }
-
-  const R = 6371; // km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  const lon1 = m1.attributes.location.coordinates[0];
+  const lat1 = m1.attributes.location.coordinates[1];
+  const lon2 = m2.attributes.location.coordinates[0];
+  const lat2 = m2.attributes.location.coordinates[1];
+  
+  const R = 6371e3; // metres
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
+  
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const d = R * c; // in metres
+  
+  return d;
 };
 
 // Weighted random selection
@@ -62,17 +64,18 @@ const weightedRandom = (items: Item[], scores: Map<string, number>): Item | null
 };
 
 export const selectBestItems = (
-  { targetMember, items, members, history, lastNewsletterDate, globalFeaturedIndex }: Dataset,
+  { targetMember, items, members, history, globalFeaturedIndex }: Dataset,
   { freshCount, randomCount }: Options
 ): Item[] => {
   const result: Item[] = [];
   const selectedIds = new Set<string>();
 
   // Helper to get author ID
-  const getAuthorId = (item: Item) => item.relationships.author.data.id;
+  const getAuthorId = (item: Item) => item.relationships.member.data.id;
 
   // 1. FRESH & CLOSE (M items)
   // -------------------------
+  const lastNewsletterDate = history.length > 0 ? new Date(history[0].sentAt) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   // Filter candidates: Not own, Created after last newsletter
   let freshCandidates = items.filter(item =>

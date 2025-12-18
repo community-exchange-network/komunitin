@@ -1,6 +1,7 @@
 import { config } from '../config';
 import { AuthProvider } from '../auth/AuthProvider';
 import logger from '../utils/logger';
+import { Group, Member, User, Offer, Need, Account, Transfer, Currency, TransferStats } from './types';
 
 export class KomunitinClient {
   private auth: AuthProvider;
@@ -57,11 +58,11 @@ export class KomunitinClient {
   }
 
   // Helper for pagination
-  private async paginate(service: 'social' | 'accounting', path: string, params: Record<string, string> = {}): Promise<any[]> {
+  private async paginate<T>(service: 'social' | 'accounting', path: string, params: Record<string, string> = {}): Promise<T[]> {
     const query = new URLSearchParams(params).toString();
     // Ensure we start with a path
     let url = this.getUrl(service, `${path}${path.includes('?') ? '&' : '?'}${query}`);
-    let allData: any[] = [];
+    let allData: T[] = [];
 
     while (url) {
       const res = await this.fetchWithAuth(url);
@@ -86,34 +87,51 @@ export class KomunitinClient {
     return allData;
   }
 
-  public async getGroups(params: Record<string, string> = {}): Promise<any[]> {
-    return this.paginate('social', '/groups', params);
+  public async getGroups(params: Record<string, string> = {}): Promise<Group[]> {
+    return this.paginate<Group>('social', '/groups', params);
   }
 
-  public async getGroupMembers(groupCode: string, params: Record<string, string> = {}): Promise<any[]> {
-    return this.paginate('social', `/${groupCode}/members`, params);
+  public async getMembers(groupCode: string, params: Record<string, string> = {}): Promise<Member[]> {
+    return this.paginate<Member>('social', `/${groupCode}/members`, params);
   }
 
-  public async getMemberUsers(memberId: string): Promise<any[]> {
+  public async getMemberUsers(memberId: string): Promise<User[]> {
     // According to API docs/usage: /users?filter[members]=memberId
     // Usually few users per member, but good to be consistent
-    return this.paginate('social', `/users`, { 'filter[members]': memberId, include: 'settings' });
+    return this.paginate<User>('social', `/users`, { 'filter[members]': memberId, include: 'settings' });
   }
 
-  public async getOffers(groupCode: string, params: Record<string, string> = {}): Promise<any[]> {
-    return this.paginate('social', `/${groupCode}/offers`, params);
+  public async getOffers(groupCode: string, params: Record<string, string> = {}): Promise<Offer[]> {
+    return this.paginate<Offer>('social', `/${groupCode}/offers`, params);
   }
 
-  public async getNeeds(groupCode: string, params: Record<string, string> = {}): Promise<any[]> {
-    return this.paginate('social', `/${groupCode}/needs`, params);
+  public async getNeeds(groupCode: string, params: Record<string, string> = {}): Promise<Need[]> {
+    return this.paginate<Need>('social', `/${groupCode}/needs`, params);
   }
 
-  public async getAccount(groupCode: string, accountId: string): Promise<any> {
+  public async getAccount(groupCode: string, accountId: string): Promise<Account> {
     const res = await this.get('accounting', `/${groupCode}/accounts/${accountId}`);
     return res.data;
   }
 
-  public async getTransfers(groupCode: string, params: Record<string, string> = {}): Promise<any[]> {
-    return this.paginate('accounting', `/${groupCode}/transfers`, params);
+  public async getTransfers(groupCode: string, params: Record<string, string> = {}): Promise<Transfer[]> {
+    return this.paginate<Transfer>('accounting', `/${groupCode}/transfers`, params);
+  }
+
+  public async getCurrency(groupCode: string): Promise<Currency> {
+    const res = await this.get('accounting', `/${groupCode}/currency`);
+    return res.data;
+  }
+
+  public async getTransferStats(groupCode: string, params: { from?: string; to?: string } = {}): Promise<TransferStats> {
+    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const path = `/${groupCode}/stats/transfers${query ? '?' + query : ''}`;
+    const res = await this.get('accounting', path);
+    return res.data;
+  }
+
+  public async getUserSettings(userId: string): Promise<any> {
+    const res = await this.get('social', `/users/${userId}/settings`);
+    return res.data;
   }
 }

@@ -1,29 +1,7 @@
-export interface Offer {
-  id: string;
-  attributes: {
-    name: string;
-    description: string;
-    created: string;
-    expires?: string;
-    // add other fields
-  };
-  relationships: {
-    author: { data: { id: string } }
-  }
-}
+import { Offer, Need, User, Account, Group, Currency, Member } from '../api/types';
 
-export interface Need {
-  id: string;
-  attributes: {
-    name: string;
-    description: string;
-    created: string;
-    expires?: string;
-  };
-  relationships: {
-    author: { data: { id: string } }
-  }
-}
+export { Member, Currency } from '../api/types';
+export { Offer, Need };
 
 export interface Stats {
   exchanges: number;
@@ -32,47 +10,67 @@ export interface Stats {
 
 export interface AccountAlert {
   type: string;
-  message: string;
+  titleId: string;
+  textId: string;
+  messageParams?: Record<string, any>;
   actionUrl: string;
-  actionText: string;
+  actionTextId: string;
 }
 
 export interface AccountSection {
-  balanceText: string;
-  activityText?: string;
-  balanceAdvice?: string;
+  balance: number;
+  activityCount?: number;
+  balanceAdviceId?: string;
   alert?: AccountAlert;
 }
 
+export interface ProcessedItem {
+  id: string;
+  title?: string;
+  description: string;
+  image?: string;
+  author: {
+    name: string;
+    image?: string;
+  };
+  distance?: number;
+  category?: string;
+  link: string; // Useful for template
+}
+
 export interface NewsletterContext {
-  group: any;
-  member: any;
-  user: any;
-  account: any;
-  bestOffers: Offer[];
-  bestNeeds: Need[];
-  oldOffers: Offer[];
+  group: Group;
+  member: Member;
+  recipient: {
+    userId: string;
+    email: string;
+    language: string;
+  }
+  account: Account;
+  currency: Currency;
+  bestOffers: ProcessedItem[];
+  bestNeeds: ProcessedItem[];
   stats: Stats;
   accountSection?: AccountSection;
 }
 
-export interface Member {
-  id: string;
-  attributes: {
-    latitude?: number;
-    longitude?: number;
-    [key: string]: any;
-  };
-  relationships?: any;
-}
+
 
 export interface LogContent {
   bestOffers?: string[];
   bestNeeds?: string[];
   stats?: Stats;
-  accountSection?: AccountSection;
+  account?: {
+    balance: number;
+    activityCount?: number;
+    alert?: string; //alert type
+  };
 }
 
 export interface HistoryLog {
+  memberId: string;
+  groupId: string;
+  sentAt: Date;
   content: LogContent;
+  recipients: unknown;
 }

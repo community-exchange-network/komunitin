@@ -1,8 +1,7 @@
-import { Member, AccountSection, AccountAlert, Offer, Need, HistoryLog } from './types';
+import {Currency, Member, AccountSection, AccountAlert, Offer, Need, HistoryLog } from './types';
 
 // Constants
 const HOUR_THRESHOLD = 10;
-const ZERO_THRESHOLD = 2; // "Close to zero" range +/- 2 (e.g., -2 to 2)
 
 interface AccountData {
   member: Member;
@@ -13,31 +12,23 @@ interface AccountData {
   expiredNeeds: Need[];
   transfers: any[];
   history: HistoryLog[];
-  currencySymbol?: string;
-  currencyRate?: number; // Rate relative to HOUR? User said "using currency rate to compute it"
+  currency: Currency;
 }
 
 export const getAccountSectionData = (data: AccountData): AccountSection => {
   const {
     account, member, activeOffers, activeNeeds,
-    expiredOffers, expiredNeeds, transfers, history,
-    currencySymbol = '¤', currencyRate = 1
-  } = data;
+    expiredOffers, expiredNeeds, transfers, history, currency
+    } = data;
 
-  const balance = account.attributes.balance; // Assuming raw units
+  const balance = account.attributes.balance;
+
   // Convert balance to HOURS for logic checks
-  // User says: "If balance is positive (>10 HOUR, using the currency rate to compute it)"
-  // So: logicBalance = balance / rate? Or balance * rate?
-  // Usually rate implies: 1 Unit = X Hours? Or 1 Hour = X Units?
-  // Let's assume rate converts Balance -> Hours. 
-  // If rate is provided, logicBalance = balance * rate. If not, assume 1:1.
-  const balanceInHours = balance * currencyRate;
+  const balanceInHours = (balance / (10 ** currency.attributes.scale)) * (currency.attributes.rate.n / currency.attributes.rate.d);
+
 
   // 1. Account Info Logic
   // ---------------------
-
-  // Balance Text
-  const balanceText = `${balance.toFixed(2)} ${currencySymbol}`;
 
   // Activity Text
   // "If there has been trades during the last month"
@@ -45,23 +36,23 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
   const recentTransfers = transfers.filter(t => new Date(t.attributes.created) > oneMonthAgo);
 
-  let activityText: string | undefined;
+  let activityCount: number | undefined;
   if (recentTransfers.length > 0) {
-    activityText = `${recentTransfers.length} exchanges during last month`;
+    activityCount = recentTransfers.length;
   }
 
   // Balance Advice
-  let balanceAdvice: string | undefined;
+  let balanceAdviceId: string | undefined;
 
   if (balanceInHours > HOUR_THRESHOLD) {
     // > 10 HOURS
-    balanceAdvice = "You have given more than received. You can use your balance to fulfill your needs and recirculate it to the community.";
+    balanceAdviceId = "BALANCE_ADVICE_POSITIVE";
   } else if (balanceInHours < -HOUR_THRESHOLD) {
     // < -10 HOURS
-    balanceAdvice = "You have received more than given. Try to balance it by offering and helping your community.";
-  } else if (Math.abs(balanceInHours) <= ZERO_THRESHOLD) {
+    balanceAdviceId = "BALANCE_ADVICE_NEGATIVE";
+  } else if (Math.abs(balanceInHours) <= HOUR_THRESHOLD) {
     // Close to zero
-    balanceAdvice = "Your balance is well balanced!";
+    balanceAdviceId = "BALANCE_ADVICE_BALANCED";
   }
 
   // 2. Alerts Logic (Prioritized)
@@ -78,8 +69,9 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (noOffers && balance < 0) {
     alerts.push({
       type: 'NO_OFFERS_NEGATIVE',
-      message: "You have no active offers and a negative balance.",
-      actionText: "Create Offer",
+      titleId: "ALERT_NO_OFFERS_NEGATIVE_TITLE",
+      textId: "ALERT_NO_OFFERS_NEGATIVE_TEXT",
+      actionTextId: "ACTION_CREATE_OFFER",
       actionUrl: "/offers/new"
     });
   }
@@ -88,8 +80,9 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (noNeeds && balance > 0) {
     alerts.push({
       type: 'NO_NEEDS_POSITIVE',
-      message: "You have no active needs and a positive balance.",
-      actionText: "Create Need",
+      titleId: "ALERT_NO_NEEDS_POSITIVE_TITLE",
+      textId: "ALERT_NO_NEEDS_POSITIVE_TEXT",
+      actionTextId: "ACTION_CREATE_NEED",
       actionUrl: "/needs/new"
     });
   }
@@ -98,8 +91,9 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (noOffers) {
     alerts.push({
       type: 'NO_OFFERS',
-      message: "You don't have any active offers.",
-      actionText: "Create Offer",
+      titleId: "ALERT_NO_OFFERS_TITLE",
+      textId: "ALERT_NO_OFFERS_TEXT",
+      actionTextId: "ACTION_CREATE_OFFER",
       actionUrl: "/offers/new"
     });
   }
@@ -108,8 +102,9 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (noNeeds) {
     alerts.push({
       type: 'NO_NEEDS',
-      message: "You don't have any active needs.",
-      actionText: "Create Need",
+      titleId: "ALERT_NO_NEEDS_TITLE",
+      textId: "ALERT_NO_NEEDS_TEXT",
+      actionTextId: "ACTION_CREATE_NEED",
       actionUrl: "/needs/new"
     });
   }
@@ -118,39 +113,55 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (!member.attributes.image) {
     alerts.push({
       type: 'NO_IMAGE',
-      message: "Your profile has no image.",
-      actionText: "Edit Profile",
+      titleId: "ALERT_NO_IMAGE_TITLE",
+      textId: "ALERT_NO_IMAGE_TEXT",
+      actionTextId: "ACTION_EDIT_PROFILE",
       actionUrl: "/profile/edit"
     });
   }
 
-  // 6. No profile bio OR location => Edit profile
-  // Assuming 'bio' is in attributes or similar common field
-  if (!member.attributes.bio || !member.attributes.address) { // address ~ location
+  // 6. No profile bio => Edit profile
+  if (!member.attributes.description) {
     alerts.push({
-      type: 'NO_BIO_LOC',
-      message: "Your profile is missing a bio or location.",
-      actionText: "Edit Profile",
+      type: 'NO_BIO',
+      titleId: "ALERT_NO_BIO_TITLE",
+      textId: "ALERT_NO_BIO_TEXT",
+      actionTextId: "ACTION_EDIT_PROFILE",
       actionUrl: "/profile/edit"
     });
   }
 
-  // 7. Have expired offers => Manage Offers
+  // 7. No location => Edit profile
+  if (!member.attributes.location?.coordinates[0] && !member.attributes.location?.coordinates[1]) {
+    alerts.push({
+      type: 'NO_LOCATION',
+      titleId: "ALERT_NO_LOCATION_TITLE",
+      textId: "ALERT_NO_LOCATION_TEXT",
+      actionTextId: "ACTION_EDIT_PROFILE",
+      actionUrl: "/profile/edit"
+    });
+  }
+
+  // 8. Have expired offers => Manage Offers
   if (expiredOffers.length > 0) {
     alerts.push({
       type: 'EXPIRED_OFFERS',
-      message: `You have ${expiredOffers.length} expired offers.`,
-      actionText: "Manage Offers",
+      titleId: "ALERT_EXPIRED_OFFERS_TITLE",
+      textId: "ALERT_EXPIRED_OFFERS_TEXT",
+      messageParams: { count: expiredOffers.length },
+      actionTextId: "ACTION_MANAGE_OFFERS",
       actionUrl: "/offers" // or /my-offers
     });
   }
 
-  // 8. Have expired needs => Manage Needs
+  // 9. Have expired needs => Manage Needs
   if (expiredNeeds.length > 0) {
     alerts.push({
       type: 'EXPIRED_NEEDS',
-      message: `You have ${expiredNeeds.length} expired needs.`,
-      actionText: "Manage Needs",
+      titleId: "ALERT_EXPIRED_NEEDS_TITLE",
+      textId: "ALERT_EXPIRED_NEEDS_TEXT",
+      messageParams: { count: expiredNeeds.length },
+      actionTextId: "ACTION_MANAGE_NEEDS",
       actionUrl: "/needs" // or /my-needs
     });
   }
@@ -177,8 +188,7 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
 
     // "don't show the same alert more than twice in a row"
     // If repeatCount is 2 (shown last time AND time before), Skip.
-    // If repeatCount is 1 (shown last time), Accept (assuming we allow 2 in a row).
-    // Prompt: "more than twice". So 2 times is max.
+    // If repeatCount is 1 (shown last time), Accept
     // If seen 2 times consecutively, skip this type and try next priority.
 
     if (repeatCount < 2) {
@@ -188,9 +198,9 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   }
 
   return {
-    balanceText,
-    activityText,
-    balanceAdvice,
+    balance,
+    activityCount,
+    balanceAdviceId,
     alert: selectedAlert
   };
 };

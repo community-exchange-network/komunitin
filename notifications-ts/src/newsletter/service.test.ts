@@ -72,8 +72,8 @@ describe('Newsletter Cron Job', () => {
     // assert.match(emailOptions.html, /Balance/, 'Email should contain balance info');
 
     // Verify Account Section in Log
-    assert.ok(logData.content.accountSection, 'Log should have accountSection');
+    assert.ok(logData.content.account, 'Log should have account');
     // If our mock account has balance (random), and transfers (mocked), it should produce some data.
-    assert.ok(logData.content.accountSection.balanceText, 'Account section should have balanceText');
+    assert.ok(logData.content.account.balance !== undefined, 'Account section should have balance');
   });
 });

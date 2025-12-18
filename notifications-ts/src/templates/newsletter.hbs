@@ -141,39 +141,25 @@
                   </tr>
                 </table>
               </div>
-            </td>
-          </tr>
 
-          <!-- Alerts -->
-          {{#if oldOffers}}
-          <tr>
-            <td class="mobile-pad" style="padding: 10px 30px 30px 30px;">
-              <div
-                style="border-left: 4px solid #ff9800; background-color: #fff3e0; padding: 15px; border-radius: 2px;">
-                <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td width="40" style="vertical-align: top;">
-                      <div style="font-size: 24px;">⚠️</div>
-                    </td>
-                    <td>
-                      <h3 style="margin: 0 0 5px 0; color: #ef6c00; font-size: 15px;">
-                        {{t "newsletter.alert_old_offers_title" count=oldOffers.length}}
-                      </h3>
-                      <p style="margin: 0 0 10px 0; color: #5d4037; font-size: 13px; line-height: 1.4;">
-                        {{t "newsletter.alert_old_offers_text"}}
-                      </p>
-                      <a href="https://komunitin.org/app/my-profile"
-                        style="color: #ef6c00; font-weight: bold; text-decoration: none; font-size: 13px;">
-                        {{t "newsletter.manage_offers"}}
-                      </a>
-                    </td>
-                  </tr>
-                </table>
+              {{#if alert}}
+              <div style="margin-top: 15px; background-color: #fff8e1; border: 1px solid #ffecb3; border-radius: 4px; padding: 15px;">
+                 <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                       <td width="30" valign="top" style="font-size: 24px; line-height: 1;">⚠️</td>
+                       <td valign="top">
+                          <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; color: #ef6c00;">{{alert.title}}</div>
+                          <div style="font-size: 13px; color: #333; margin-bottom: 10px;">{{alert.text}}</div>
+                          <div>
+                             <a href="{{alert.actionUrl}}" style="background-color: #ff8f00; color: #ffffff; padding: 8px 15px; text-decoration: none; border-radius: 3px; font-weight: bold; font-size: 12px; display: inline-block;">{{alert.actionText}}</a>
+                          </div>
+                       </td>
+                    </tr>
+                 </table>
               </div>
+              {{/if}}
             </td>
           </tr>
-          {{/if}}
-
           <!-- Stats -->
           <tr>
             <td class="mobile-pad" style="padding: 20px 30px; border-top: 1px solid #eeeeee;">

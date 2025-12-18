@@ -1,16 +1,28 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import { getAccountSectionData } from './account-algorithm';
-import { Member, Offer, Need, HistoryLog } from './types';
+import { Member, Offer, Need, HistoryLog, Currency } from './types';
 
 // Helpers
 const createMember = (attrs: any = {}): Member => ({
   id: 'm1',
-  attributes: { image: 'img', bio: 'bio', address: 'loc', ...attrs }
+  attributes: { image: 'img', description: 'bio', location: { type: 'Point', coordinates: [0, 0] }, ...attrs }
 });
 
 const createAccount = (balance: number) => ({
   attributes: { balance }
+});
+
+const createCurrency = (): Currency => ({
+  attributes: {
+    code: 'TEST',
+    name: 'Test Coin',
+    namePlural: 'Test Coins',
+    symbol: 'T',
+    decimals: 2,
+    scale: 0,
+    rate: { n: 1, d: 1 }
+  }
 });
 
 const createTransfer = (daysAgo: number) => {
@@ -27,24 +39,27 @@ describe('Account Algorithm', () => {
       member: createMember(),
       account: createAccount(15),
       activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      currency: createCurrency()
     });
-    assert.strictEqual(d1.balanceAdvice, "You have given more than received. You can use your balance to fulfill your needs and recirculate it to the community.");
+    assert.strictEqual(d1.balanceAdviceId, "BALANCE_ADVICE_POSITIVE");
 
     // < -10
     const d2 = getAccountSectionData({
       member: createMember(),
       account: createAccount(-15),
       activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      currency: createCurrency()
     });
-    assert.strictEqual(d2.balanceAdvice, "You have received more than given. Try to balance it by offering and helping your community.");
+    assert.strictEqual(d2.balanceAdviceId, "BALANCE_ADVICE_NEGATIVE");
 
     // ~ 0
     const d3 = getAccountSectionData({
       member: createMember(),
       account: createAccount(1),
       activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      currency: createCurrency()
     });
-    assert.strictEqual(d3.balanceAdvice, "Your balance is well balanced!");
+    assert.strictEqual(d3.balanceAdviceId, "BALANCE_ADVICE_BALANCED");
   });
 
   test('Alert Priorities', () => {
@@ -54,6 +69,7 @@ describe('Account Algorithm', () => {
       account: createAccount(-5),
       activeOffers: [], activeNeeds: [], // No offers/needs
       expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      currency: createCurrency()
     });
     assert.strictEqual(d1.alert?.type, 'NO_OFFERS_NEGATIVE', 'Should define priority 1 alert');
 
@@ -64,6 +80,7 @@ describe('Account Algorithm', () => {
       account: createAccount(5),
       activeOffers: [offer], activeNeeds: [],
       expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      currency: createCurrency()
     });
     assert.strictEqual(d2.alert?.type, 'NO_NEEDS_POSITIVE', 'Should define priority 2 alert');
 
@@ -73,6 +90,7 @@ describe('Account Algorithm', () => {
       account: createAccount(5),
       activeOffers: [], activeNeeds: [],
       expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      currency: createCurrency()
     });
     // Priority 1 fails (balance not < 0). Priority 2 fails (needs empty but we care about offers).
     // Wait. Alert 3 is "No offers".
@@ -90,6 +108,7 @@ describe('Account Algorithm', () => {
       account: createAccount(5),
       activeOffers: [], activeNeeds: [need],
       expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      currency: createCurrency()
     });
     assert.strictEqual(d3_fixed.alert?.type, 'NO_OFFERS', 'Should define priority 3 alert');
   });
@@ -100,11 +119,13 @@ describe('Account Algorithm', () => {
       member: createMember(),
       account: createAccount(-5),
       activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [],
+      currency: createCurrency()
     };
 
     // Case: No history. Shows Alert 1.
     const run1 = getAccountSectionData({ ...dataBase, history: [] });
     assert.strictEqual(run1.alert?.type, 'NO_OFFERS_NEGATIVE');
+
 
     // Case: History has 1 occurence. Shows Alert 1 (2nd time).
     const log1 = { content: { accountSection: { alert: { type: 'NO_OFFERS_NEGATIVE' } } } } as any;
@@ -135,9 +156,47 @@ describe('Account Algorithm', () => {
       expiredOffers: [], expiredNeeds: [],
       transfers: [t1, t2, t3],
       history: [],
+      currency: createCurrency()
     });
 
-    assert.strictEqual(d.activityText, '2 exchanges during last month');
+    assert.strictEqual(d.activityCount, 2);
+  });
+
+  test('Multiple Alerts - Priority Check', () => {
+    // User has NO IMAGE (Priority 5) and EXPIRED OFFERS (Priority 8)
+    // Should pick NO IMAGE
+    const d = getAccountSectionData({
+      member: createMember({ image: null }), // No image
+      account: createAccount(0),
+      activeOffers: [{ id: 'o1' } as Offer], // Has offers (skips 1, 3)
+      activeNeeds: [{ id: 'n1' } as Need],   // Has needs (skips 2, 4)
+      expiredOffers: [{ id: 'eo1' } as Offer], // Has expired offers
+      expiredNeeds: [],
+      transfers: [], history: [],
+      currency: createCurrency()
+    });
+
+    assert.strictEqual(d.alert?.type, 'NO_IMAGE', 'Should prioritize NO_IMAGE over EXPIRED_OFFERS');
+  });
+
+  test('No Alerts', () => {
+    // User has everything set up correctly
+    const d = getAccountSectionData({
+      member: createMember({ 
+        image: 'img.jpg', 
+        description: 'Bio', 
+        location: { type: 'Point', coordinates: [1, 1] } 
+      }),
+      account: createAccount(0),
+      activeOffers: [{ id: 'o1' } as Offer],
+      activeNeeds: [{ id: 'n1' } as Need],
+      expiredOffers: [],
+      expiredNeeds: [],
+      transfers: [], history: [],
+      currency: createCurrency()
+    });
+
+    assert.strictEqual(d.alert, undefined, 'Should have no alerts');
   });
 
 });
