@@ -10,6 +10,7 @@ import TransactionItems from "../../../src/pages/transactions/TransactionItems.v
 import { seeds } from "src/server";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
 import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
+import MenuItem from 'src/components/MenuItem.vue';
 
 describe("Member", () => {
   let wrapper: VueWrapper;
@@ -27,7 +28,11 @@ describe("Member", () => {
     // Open profile menu
     await wrapper.findComponent(ProfileBtnMenu).trigger('click');
     // Click members link
-    await wrapper.getComponent(QMenu).getComponent(MemberHeader).trigger("click");
+    const memberButton = wrapper
+      .getComponent(QMenu)
+      .findAllComponents(MenuItem)
+      .find((item) => item.text().includes("My profile"));
+    await memberButton.trigger("click");
     await flushPromises();
     expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57");
     // Wait for content.

@@ -22,7 +22,10 @@
       <q-list style="min-width: 250px;">
 
         <!-- Profile details -->
-        <div class="column items-center q-pa-md" @click.stop>
+        <div 
+          class="column items-center q-pa-md" 
+          data-testid="profile-details"
+          @click.stop>
           <avatar
             size="xl"
             :img-src="myMember.attributes.image"
