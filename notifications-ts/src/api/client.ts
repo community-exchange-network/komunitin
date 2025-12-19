@@ -150,7 +150,7 @@ export class KomunitinClient {
     return res.data;
   }
 
-  public async getAccountStats(groupCode: string, params: { from?: string; to?: string } = {}): Promise<AccountStats> {
+  public async getAccountStats(groupCode: string, params: { from?: string; to?: string, minTransactions?: number, maxTransactions?: number } = {}): Promise<AccountStats> {
     const query = new URLSearchParams(params as Record<string, string>).toString();
     const path = `/${groupCode}/stats/accounts${query ? '?' + query : ''}`;
     const res = await this.get('accounting', path);

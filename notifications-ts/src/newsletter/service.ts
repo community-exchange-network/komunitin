@@ -72,7 +72,8 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
   // Number of active accounts last month
   const accountStats = await client.getAccountStats(group.attributes.code, {
-    from: oneMonthAgo.toISOString()
+    from: oneMonthAgo.toISOString(),
+    minTransactions: 1
   });
   const activeAccountsLastMonth = accountStats.attributes.values[0];
 
@@ -294,7 +295,7 @@ export const runNewsletter = async (options?: { groupCode?: string, memberCode?:
     if (options?.memberCode && !options?.groupCode) {
       options.groupCode = options.memberCode.substring(0, 4);
     }
-    
+
     if (options?.groupCode) {
       groups = groups.filter((g: any) => g.attributes.code === options.groupCode);
     }
