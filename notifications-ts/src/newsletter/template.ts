@@ -48,6 +48,10 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
     ? i18n.t(accountSection.balanceAdviceId, { lng })
     : '';
 
+  const activityText = (accountSection?.activityCount && accountSection.activityCount > 0)
+    ? i18n.t('newsletter.activity_count', { lng, count: accountSection.activityCount })
+    : null;
+
   // Helper to build full URLs
   const buildUrl = (path: string) => {
     // Replace :code placeholder with actual group code
@@ -78,6 +82,7 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
     ...ctx,
     formattedBalance,
     balanceText,
+    activityText,
     alert: alertData,
     groupInitial: group.attributes.name?.charAt(0).toUpperCase() || '?',
     bestOffers: ctx.bestOffers.map(item => ({

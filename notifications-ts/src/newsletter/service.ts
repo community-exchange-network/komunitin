@@ -290,6 +290,10 @@ export const runNewsletter = async (options?: { groupCode?: string, memberCode?:
   try {
     // 1. Get all active groups
     let groups = await client.getGroups({ 'filter[status]': 'active' });
+
+    if (options?.memberCode && !options?.groupCode) {
+      options.groupCode = options.memberCode.substring(0, 4);
+    }
     
     if (options?.groupCode) {
       groups = groups.filter((g: any) => g.attributes.code === options.groupCode);

@@ -154,18 +154,6 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
     });
   }
 
-  // 9. Have expired needs => Manage Needs
-  if (expiredNeeds.length > 0) {
-    alerts.push({
-      type: 'EXPIRED_NEEDS',
-      titleId: "newsletter.alert_expired_needs_title",
-      textId: "newsletter.alert_expired_needs_text",
-      messageParams: { count: expiredNeeds.length },
-      actionTextId: "newsletter.action_manage_needs",
-      actionUrl: "/groups/:code/needs"
-    });
-  }
-
   // Select best alert: Highest priority NOT shown twice in a row
   let selectedAlert: AccountAlert | undefined;
 
