@@ -46,13 +46,13 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
 
   if (balanceInHours > HOUR_THRESHOLD) {
     // > 10 HOURS
-    balanceAdviceId = "BALANCE_ADVICE_POSITIVE";
+    balanceAdviceId = "newsletter.balance_advice_positive";
   } else if (balanceInHours < -HOUR_THRESHOLD) {
     // < -10 HOURS
-    balanceAdviceId = "BALANCE_ADVICE_NEGATIVE";
+    balanceAdviceId = "newsletter.balance_advice_negative";
   } else if (Math.abs(balanceInHours) <= HOUR_THRESHOLD) {
     // Close to zero
-    balanceAdviceId = "BALANCE_ADVICE_BALANCED";
+    balanceAdviceId = "newsletter.balance_advice_balanced";
   }
 
   // 2. Alerts Logic (Prioritized)
@@ -69,10 +69,10 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (noOffers && balance < 0) {
     alerts.push({
       type: 'NO_OFFERS_NEGATIVE',
-      titleId: "ALERT_NO_OFFERS_NEGATIVE_TITLE",
-      textId: "ALERT_NO_OFFERS_NEGATIVE_TEXT",
-      actionTextId: "ACTION_CREATE_OFFER",
-      actionUrl: "/offers/new"
+      titleId: "newsletter.alert_no_offers_negative_title",
+      textId: "newsletter.alert_no_offers_negative_text",
+      actionTextId: "newsletter.action_create_offer",
+      actionUrl: "/groups/:code/offers/new"
     });
   }
 
@@ -80,10 +80,10 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (noNeeds && balance > 0) {
     alerts.push({
       type: 'NO_NEEDS_POSITIVE',
-      titleId: "ALERT_NO_NEEDS_POSITIVE_TITLE",
-      textId: "ALERT_NO_NEEDS_POSITIVE_TEXT",
-      actionTextId: "ACTION_CREATE_NEED",
-      actionUrl: "/needs/new"
+      titleId: "newsletter.alert_no_needs_positive_title",
+      textId: "newsletter.alert_no_needs_positive_text",
+      actionTextId: "newsletter.action_create_need",
+      actionUrl: "/groups/:code/needs/new"
     });
   }
 
@@ -91,10 +91,10 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (noOffers) {
     alerts.push({
       type: 'NO_OFFERS',
-      titleId: "ALERT_NO_OFFERS_TITLE",
-      textId: "ALERT_NO_OFFERS_TEXT",
-      actionTextId: "ACTION_CREATE_OFFER",
-      actionUrl: "/offers/new"
+      titleId: "newsletter.alert_no_offers_title",
+      textId: "newsletter.alert_no_offers_text",
+      actionTextId: "newsletter.action_create_offer",
+      actionUrl: "/groups/:code/offers/new"
     });
   }
 
@@ -102,10 +102,10 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (noNeeds) {
     alerts.push({
       type: 'NO_NEEDS',
-      titleId: "ALERT_NO_NEEDS_TITLE",
-      textId: "ALERT_NO_NEEDS_TEXT",
-      actionTextId: "ACTION_CREATE_NEED",
-      actionUrl: "/needs/new"
+      titleId: "newsletter.alert_no_needs_title",
+      textId: "newsletter.alert_no_needs_text",
+      actionTextId: "newsletter.action_create_need",
+      actionUrl: "/groups/:code/needs/new"
     });
   }
 
@@ -113,10 +113,10 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (!member.attributes.image) {
     alerts.push({
       type: 'NO_IMAGE',
-      titleId: "ALERT_NO_IMAGE_TITLE",
-      textId: "ALERT_NO_IMAGE_TEXT",
-      actionTextId: "ACTION_EDIT_PROFILE",
-      actionUrl: "/profile/edit"
+      titleId: "newsletter.alert_no_image_title",
+      textId: "newsletter.alert_no_image_text",
+      actionTextId: "newsletter.action_edit_profile",
+      actionUrl: "/profile"
     });
   }
 
@@ -124,10 +124,10 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (!member.attributes.description) {
     alerts.push({
       type: 'NO_BIO',
-      titleId: "ALERT_NO_BIO_TITLE",
-      textId: "ALERT_NO_BIO_TEXT",
-      actionTextId: "ACTION_EDIT_PROFILE",
-      actionUrl: "/profile/edit"
+      titleId: "newsletter.alert_no_bio_title",
+      textId: "newsletter.alert_no_bio_text",
+      actionTextId: "newsletter.action_edit_profile",
+      actionUrl: "/profile"
     });
   }
 
@@ -135,10 +135,10 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (!member.attributes.location?.coordinates[0] && !member.attributes.location?.coordinates[1]) {
     alerts.push({
       type: 'NO_LOCATION',
-      titleId: "ALERT_NO_LOCATION_TITLE",
-      textId: "ALERT_NO_LOCATION_TEXT",
-      actionTextId: "ACTION_EDIT_PROFILE",
-      actionUrl: "/profile/edit"
+      titleId: "newsletter.alert_no_location_title",
+      textId: "newsletter.alert_no_location_text",
+      actionTextId: "newsletter.action_edit_profile",
+      actionUrl: "/profile"
     });
   }
 
@@ -146,11 +146,11 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (expiredOffers.length > 0) {
     alerts.push({
       type: 'EXPIRED_OFFERS',
-      titleId: "ALERT_EXPIRED_OFFERS_TITLE",
-      textId: "ALERT_EXPIRED_OFFERS_TEXT",
+      titleId: "newsletter.alert_expired_offers_title",
+      textId: "newsletter.alert_expired_offers_text",
       messageParams: { count: expiredOffers.length },
-      actionTextId: "ACTION_MANAGE_OFFERS",
-      actionUrl: "/offers" // or /my-offers
+      actionTextId: "newsletter.action_manage_offers",
+      actionUrl: "/groups/:code/offers"
     });
   }
 
@@ -158,11 +158,11 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   if (expiredNeeds.length > 0) {
     alerts.push({
       type: 'EXPIRED_NEEDS',
-      titleId: "ALERT_EXPIRED_NEEDS_TITLE",
-      textId: "ALERT_EXPIRED_NEEDS_TEXT",
+      titleId: "newsletter.alert_expired_needs_title",
+      textId: "newsletter.alert_expired_needs_text",
       messageParams: { count: expiredNeeds.length },
-      actionTextId: "ACTION_MANAGE_NEEDS",
-      actionUrl: "/needs" // or /my-needs
+      actionTextId: "newsletter.action_manage_needs",
+      actionUrl: "/groups/:code/needs"
     });
   }
 

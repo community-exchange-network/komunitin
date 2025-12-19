@@ -1,7 +1,7 @@
 import { config } from '../config';
 import { AuthProvider } from '../auth/AuthProvider';
 import logger from '../utils/logger';
-import { Group, Member, User, Offer, Need, Account, Transfer, Currency, TransferStats } from './types';
+import { Group, Member, User, Offer, Need, Account, Transfer, Currency, TransferStats, AccountStats } from './types';
 
 export class KomunitinClient {
   private auth: AuthProvider;
@@ -11,31 +11,49 @@ export class KomunitinClient {
   }
 
   private async fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
-    let token = await this.auth.getAccessToken();
+    const maxRetries = 3;
+    let lastError;
 
-    const makeRequest = async (t: string) => {
-      return fetch(url, {
-        ...options,
-        headers: {
-          ...options.headers,
-          'Authorization': `Bearer ${t}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/vnd.api+json',
-        },
-      });
-    };
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        let token = await this.auth.getAccessToken();
 
-    let response = await makeRequest(token);
+        const makeRequest = async (t: string) => {
+          return fetch(url, {
+            ...options,
+            headers: {
+              ...options.headers,
+              'Authorization': `Bearer ${t}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/vnd.api+json',
+            },
+          });
+        };
 
-    // Handle 401: Refresh token and retry once
-    if (response.status === 401) {
-      logger.warn('Received 401 from API, refreshing token and retrying...');
-      this.auth.forceRefresh();
-      token = await this.auth.getAccessToken();
-      response = await makeRequest(token);
+        let response = await makeRequest(token);
+
+        // Handle 401: Refresh token and retry once
+        if (response.status === 401) {
+          logger.warn('Received 401 from API, refreshing token and retrying...');
+          this.auth.forceRefresh();
+          token = await this.auth.getAccessToken();
+          response = await makeRequest(token);
+        }
+
+        return response;
+      } catch (error: any) {
+        lastError = error;
+        const isNetworkError = error.message.includes('fetch failed') || error.message.includes('other side closed');
+
+        if (isNetworkError && i < maxRetries - 1) {
+          logger.warn({ err: error.message, attempt: i + 1 }, 'Network error, retrying...');
+          await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+          continue;
+        }
+        throw error;
+      }
     }
-
-    return response;
+    throw lastError;
   }
 
   private getUrl(service: 'social' | 'accounting', path: string): string {
@@ -79,6 +97,8 @@ export class KomunitinClient {
       if (body.links && body.links.next) {
         // links.next is usually a full URL
         url = body.links.next;
+        // Add a small delay to avoid overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 100));
       } else {
         url = '';
       }
@@ -126,6 +146,13 @@ export class KomunitinClient {
   public async getTransferStats(groupCode: string, params: { from?: string; to?: string } = {}): Promise<TransferStats> {
     const query = new URLSearchParams(params as Record<string, string>).toString();
     const path = `/${groupCode}/stats/transfers${query ? '?' + query : ''}`;
+    const res = await this.get('accounting', path);
+    return res.data;
+  }
+
+  public async getAccountStats(groupCode: string, params: { from?: string; to?: string } = {}): Promise<AccountStats> {
+    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const path = `/${groupCode}/stats/accounts${query ? '?' + query : ''}`;
     const res = await this.get('accounting', path);
     return res.data;
   }

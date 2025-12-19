@@ -27,7 +27,7 @@ const loadTemplate = async () => {
 };
 
 export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<string> => {
-  const { recipient, account, bestOffers, bestNeeds, group, currency, accountSection } = ctx;
+  const { recipient, account, bestOffers, bestNeeds, group, currency, accountSection, appUrl } = ctx;
   const i18n = await initI18n();
 
   
@@ -48,31 +48,53 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
     ? i18n.t(accountSection.balanceAdviceId, { lng })
     : '';
 
+  // Helper to build full URLs
+  const buildUrl = (path: string) => {
+    // Replace :code placeholder with actual group code
+    const resolvedPath = path.replace(':code', group.attributes.code);
+    return `${appUrl}${resolvedPath}`;
+  };
+
   let alertData = null;
   if (accountSection?.alert) {
     alertData = {
       title: i18n.t(accountSection.alert.titleId, { lng, ...accountSection.alert.messageParams }),
       text: i18n.t(accountSection.alert.textId, { lng, ...accountSection.alert.messageParams }),
       actionText: i18n.t(accountSection.alert.actionTextId, { lng }),
-      actionUrl: accountSection.alert.actionUrl,
+      actionUrl: buildUrl(accountSection.alert.actionUrl),
       type: accountSection.alert.type
     };
   }
+
+  const formatDistance = (km: number | undefined): string | undefined => {
+    if (km === undefined || km >= 100) return undefined;
+    if (km < 1) return '1 km';
+    if (km < 3) return `${Math.round(km)} km`;
+    // Round to nearest 5
+    return `${Math.round(km / 5) * 5} km`;
+  };
 
   const viewData = {
     ...ctx,
     formattedBalance,
     balanceText,
     alert: alertData,
+    groupInitial: group.attributes.name?.charAt(0).toUpperCase() || '?',
     bestOffers: ctx.bestOffers.map(item => ({
       ...item,
       description: truncate(item.description || '', 80),
-      title: truncate(item.title || '', 40)
+      title: truncate(item.title || '', 40),
+      authorName: item.author?.name || 'Unknown',
+      formattedDistance: formatDistance(item.distance),
+      link: item.link
     })),
     bestNeeds: ctx.bestNeeds.map(item => ({
       ...item,
       description: truncate(item.description || '', 80),
-      title: truncate(item.title || '', 40)
+      title: truncate(item.title || '', 40),
+      authorName: item.author?.name || 'Unknown',
+      formattedDistance: formatDistance(item.distance),
+      link: item.link
     })),
   };
 

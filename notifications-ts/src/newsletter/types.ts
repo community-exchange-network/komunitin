@@ -26,6 +26,7 @@ export interface AccountSection {
 
 export interface ProcessedItem {
   id: string;
+  code: string;
   title?: string;
   description: string;
   image?: string;
@@ -52,6 +53,7 @@ export interface NewsletterContext {
   bestNeeds: ProcessedItem[];
   stats: Stats;
   accountSection?: AccountSection;
+  appUrl: string;
 }
 
 

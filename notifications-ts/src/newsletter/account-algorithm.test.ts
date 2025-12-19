@@ -41,7 +41,7 @@ describe('Account Algorithm', () => {
       activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
       currency: createCurrency()
     });
-    assert.strictEqual(d1.balanceAdviceId, "BALANCE_ADVICE_POSITIVE");
+    assert.strictEqual(d1.balanceAdviceId, "newsletter.balance_advice_positive");
 
     // < -10
     const d2 = getAccountSectionData({
@@ -50,7 +50,7 @@ describe('Account Algorithm', () => {
       activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
       currency: createCurrency()
     });
-    assert.strictEqual(d2.balanceAdviceId, "BALANCE_ADVICE_NEGATIVE");
+    assert.strictEqual(d2.balanceAdviceId, "newsletter.balance_advice_negative");
 
     // ~ 0
     const d3 = getAccountSectionData({
@@ -59,7 +59,7 @@ describe('Account Algorithm', () => {
       activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
       currency: createCurrency()
     });
-    assert.strictEqual(d3.balanceAdviceId, "BALANCE_ADVICE_BALANCED");
+    assert.strictEqual(d3.balanceAdviceId, "newsletter.balance_advice_balanced");
   });
 
   test('Alert Priorities', () => {

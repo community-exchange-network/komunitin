@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "compile": "tsc",
-    "dev": "tsx watch src/index.ts",
-    "run": "tsx src/scripts/run.ts",
+    "dev": "tsx --inspect=0.0.0.0:9229 watch src/index.ts",
+    "newsletter": "tsx --inspect=0.0.0.0:9229 src/scripts/run.ts",
     "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js",
     "start": "node dist/index.js",
     "test": "node --env-file=.env.test --import tsx --test src/**/*.test.ts"
@@ -15,12 +15,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "5.10.0",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "7.2.0",
     "dotenv": "^16.3.1",
     "handlebars": "^4.7.8",
     "i18next": "^25.7.3",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.7",
+    "pg": "^8.16.3",
     "pino": "^8.16.2",
     "zod": "^3.22.4"
   },
@@ -31,11 +33,12 @@
     "@types/node": "^20.10.4",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.14",
+    "@types/pg": "^8.16.0",
     "esbuild": "^0.19.9",
     "i18next-fs-backend": "^2.6.1",
     "msw": "^2.12.4",
     "pino-pretty": "^10.3.0",
-    "prisma": "5.10.0",
+    "prisma": "7.2.0",
     "tsx": "^4.6.2",
     "typescript": "^5.3.3"
   }

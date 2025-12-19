@@ -13,47 +13,88 @@
     <tr>
       <td align="center" style="padding: 20px 0;">
         <table width="600" border="0" cellspacing="0" cellpadding="0"
-          style="background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden;">
+          style="background-color: #ffffff; border-radius: 4px; overflow: hidden;">
           <!-- Header -->
           <tr>
             <td class="header"
-              style="background-color: #ffffff; padding: 30px 30px 20px 30px; border-bottom: 3px solid #8bc34a;">
+              style="background-color: #f3f8e5; padding: 30px 30px 20px 30px; border-bottom: 3px solid #72A310;">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td>
-                    <div style="font-size: 24px; font-weight: bold; color: #444;">Komunitin</div>
-                    <div
-                      style="font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: #8bc34a; margin-top: 5px;">
-                      {{t "newsletter.header_title" group=group.attributes.name}}
-                    </div>
+                  <td width="60" valign="middle">
+                    {{#if group.attributes.image}}
+                    <img src="{{group.attributes.image}}" alt="{{group.attributes.name}}" width="50" height="50" style="border-radius: 50%; background-color: #ffffff;">
+                    {{else}}
+                    <!--[if mso]>
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" style="height:50px;v-text-anchor:middle;width:50px;" arcsize="50%" fillcolor="#72A310">
+                    <w:anchorlock/>
+                    <center style="color:#ffffff;font-family:sans-serif;font-size:24px;font-weight:bold;">{{groupInitial}}</center>
+                    </v:roundrect>
+                    <![endif]-->
+                    <!--[if !mso]><!-->
+                    <table width="50" height="50" cellpadding="0" cellspacing="0" border="0" style="border-radius: 50%; background-color: #72A310;">
+                      <tr>
+                        <td align="center" valign="middle" style="color: #ffffff; font-size: 24px; font-weight: bold; font-family: sans-serif;">{{groupInitial}}</td>
+                      </tr>
+                    </table>
+                    <!--<![endif]-->
+                    {{/if}}
                   </td>
-                  <td align="right" style="font-size: 14px; color: #666;">
-                    {{t "newsletter.hello" name=user.attributes.firstName}}
+                  <td valign="middle" style="padding-left: 15px;">
+                    <div style="font-size: 24px; font-weight: bold; color: #333;">{{group.attributes.name}}</div>
+                    <div style="font-size: 13px; color: #888; margin-top: 3px;">
+                      {{group.attributes.code}}
+                    </div>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
+          <!-- Greeting -->
+          <tr>
+            <td style="padding: 25px 30px 20px 30px;">
+              <div style="font-size: 22px; color: #333; margin-bottom: 8px;">
+                {{t "newsletter.hello" name=member.attributes.name}}
+              </div>
+              <div style="font-size: 14px; color: #666; line-height: 1.5;">
+                {{t "newsletter.intro"}}
+              </div>
+            </td>
+          </tr>
+
           <!-- Best Offers -->
           {{#if bestOffers}}
+          <tr>
+            <td class="mobile-pad" style="padding: 20px 30px 10px 30px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="font-size: 16px; font-weight: bold; color: #333;">{{t "newsletter.offers_header"}}</td>
+                  <td align="right"><a href="{{appUrl}}/groups/{{group.attributes.code}}/offers" style="font-size: 13px; color: #888; text-decoration: none;">{{t "newsletter.all_offers"}} →</a></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           <tr>
             <td class="mobile-pad" style="padding: 0 30px 20px 30px;">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   {{#each bestOffers}}
                   <td class="column" width="32%"
-                    style="border: 1px solid #e0e0e0; border-radius: 3px; vertical-align: top; background-color: #ffffff;">
-                    <div style="padding: 12px;">
-                      <div
-                        style="color: #c62828; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 5px;">
-                        {{t "newsletter.section_offer"}}
+                    style="border: 1px solid #e0e0e0; border-radius: 3px; vertical-align: top; background-color: #ffffff; overflow: hidden;">
+                    <a href="{{link}}" style="display: block; text-decoration: none; color: inherit;">
+                      {{#if image}}
+                      <img src="{{image}}" alt="{{title}}" width="100%" height="120" style="display: block;">
+                      {{/if}}
+                      <div style="padding: 12px;">
+                        <div
+                          style="color: #c62828; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 5px;">
+                          {{t "newsletter.section_offer"}}
+                        </div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #333;">{{title}}</h4>
+                        <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">{{description}}</p>
+                        <div style="margin-top: 8px; font-size: 11px; color: #999;">👤 {{authorName}}{{#if formattedDistance}} · 📍 {{formattedDistance}}{{/if}}</div>
                       </div>
-                      <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #333;">{{title}}</h4>
-                      <!-- Using helper or pre-processed title -->
-                      <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">{{description}}</p>
-                      <div style="margin-top: 8px; font-size: 11px; color: #999;">👤 {{authorName}}</div>
-                    </div>
+                    </a>
                   </td>
                   {{#unless @last}}<td class="spacer" width="2%">&nbsp;</td>{{/unless}}
                   {{/each}}
@@ -66,21 +107,36 @@
           <!-- Best Needs -->
           {{#if bestNeeds}}
           <tr>
+            <td class="mobile-pad" style="padding: 20px 30px 10px 30px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="font-size: 16px; font-weight: bold; color: #333;">{{t "newsletter.needs_header"}}</td>
+                  <td align="right"><a href="{{appUrl}}/groups/{{group.attributes.code}}/needs" style="font-size: 13px; color: #888; text-decoration: none;">{{t "newsletter.all_needs"}} →</a></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
             <td class="mobile-pad" style="padding: 0 30px 20px 30px;">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   {{#each bestNeeds}}
                   <td class="column" width="32%"
-                    style="border: 1px solid #e0e0e0; border-radius: 3px; vertical-align: top; background-color: #ffffff;">
-                    <div style="padding: 12px;">
-                      <div
-                        style="color: #c62828; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 5px;">
-                        {{t "newsletter.section_need"}}
+                    style="border: 1px solid #e0e0e0; border-radius: 3px; vertical-align: top; background-color: #ffffff; overflow: hidden;">
+                    <a href="{{link}}" style="display: block; text-decoration: none; color: inherit;">
+                      {{#if image}}
+                      <img src="{{image}}" alt="{{title}}" width="100%" height="120" style="display: block;">
+                      {{/if}}
+                      <div style="padding: 12px;">
+                        <div
+                          style="color: #c62828; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 5px;">
+                          {{t "newsletter.section_need"}}
+                        </div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #333;">{{title}}</h4>
+                        <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">{{description}}</p>
+                        <div style="margin-top: 8px; font-size: 11px; color: #999;">👤 {{authorName}}{{#if formattedDistance}} · 📍 {{formattedDistance}}{{/if}}</div>
                       </div>
-                      <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #333;">{{title}}</h4>
-                      <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.4;">{{description}}</p>
-                      <div style="margin-top: 8px; font-size: 11px; color: #999;">👤 {{authorName}}</div>
-                    </div>
+                    </a>
                   </td>
                   {{#unless @last}}<td class="spacer" width="2%">&nbsp;</td>{{/unless}}
                   {{/each}}
@@ -93,15 +149,15 @@
           <!-- CTA -->
           <tr>
             <td style="padding: 10px 30px;">
-              <div style="text-align: center; margin-top: 25px;">
-                <a href="https://komunitin.org/app/listings"
-                  style="background-color: #8bc34a; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 2px; font-weight: bold; font-size: 14px; display: inline-block; text-transform: uppercase; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+              <div style="text-align: center;">
+                <a href="{{appUrl}}/home"
+                  style="background-color: #72A310; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; display: inline-block; text-transform: uppercase;">
                   {{t "newsletter.cta_main"}}
                 </a>
               </div>
               <div style="text-align: center; margin-top: 15px;">
-                <a href="https://komunitin.org/app/new-listing"
-                  style="color: #8bc34a; font-size: 13px; font-weight: bold; text-decoration: none;">
+                <a href="{{appUrl}}/groups/{{group.attributes.code}}/offers/new"
+                  style="color: #72A310; font-size: 13px; font-weight: bold; text-decoration: none;">
                   {{t "newsletter.cta_secondary"}}
                 </a>
               </div>
@@ -112,13 +168,13 @@
           <tr>
             <td class="mobile-pad" style="padding: 20px 30px 10px 30px;">
               <h3
-                style="color: #4a7e23; margin: 0 0 15px 0; font-size: 18px; border-bottom: 2px solid #eeeeee; padding-bottom: 10px;">
+                style="margin: 0 0 15px 0; color:#333; font-size: 18px; border-bottom: 1px solid #eeeeee; padding-bottom: 10px;">
                 {{t "newsletter.account_title"}}
               </h3>
-              <div style="background-color: #f1f8e9; border: 1px solid #c5e1a5; border-radius: 4px; padding: 20px;">
+              <div style="background-color: #f3f8e5; border: 1px solid #c5e1a5; border-radius: 4px; padding: 20px;">
                 <table width="100%" border="0" cellspacing="0" cellpadding="0">
                   <tr>
-                    <td class="dashboard-col" width="50%" style="vertical-align: middle;">
+                    <td class="dashboard-col" width="35%" style="vertical-align: middle;">
                       <div
                         style="font-size: 12px; text-transform: uppercase; color: #558b2f; font-weight: bold; letter-spacing: 1px;">
                         {{t "newsletter.balance_label"}}
@@ -126,12 +182,12 @@
                       <div style="font-size: 32px; font-weight: 300; color: #33691e; margin-top: 5px;">
                         {{formattedBalance}}</div>
                     </td>
-                    <td class="dashboard-col" width="50%"
+                    <td class="dashboard-col" width="65%"
                       style="vertical-align: middle; border-left: 1px solid #dcedc8; padding-left: 20px;">
                       <div style="font-size: 14px; color: #558b2f; line-height: 1.4;">
                         {{balanceText}}
                         <div style="margin-top: 5px;">
-                          <a href="#"
+                          <a href="{{appUrl}}/groups/{{group.attributes.code}}/members/{{member.attributes.code}}/transactions"
                             style="color: #33691e; font-weight: bold; text-decoration: none; font-size: 12px;">
                             {{t "newsletter.view_movements"}}
                           </a>
@@ -147,7 +203,7 @@
                  <table width="100%" border="0" cellspacing="0" cellpadding="0">
                     <tr>
                        <td width="30" valign="top" style="font-size: 24px; line-height: 1;">⚠️</td>
-                       <td valign="top">
+                       <td valign="top" style="padding-left: 15px;">
                           <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; color: #ef6c00;">{{alert.title}}</div>
                           <div style="font-size: 13px; color: #333; margin-bottom: 10px;">{{alert.text}}</div>
                           <div>
@@ -169,18 +225,30 @@
               </h3>
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td width="50%" align="center" style="padding: 5px;">
-                    <div style="color: #8bc34a; font-size: 32px; font-weight: 300;">{{stats.exchanges}}</div>
+                  {{#if stats.exchanges}}
+                  <td align="center" style="padding: 5px;">
+                    <div style="color: #72A310; font-size: 32px; font-weight: 300;">{{stats.exchanges}}</div>
                     <div style="color: #999999; font-size: 12px; text-transform: uppercase;">
                       {{t "newsletter.stats_exchanges"}}
                     </div>
                   </td>
-                  <td width="50%" align="center" style="border-left: 1px solid #eeeeee; padding: 5px;">
-                    <div style="color: #8bc34a; font-size: 32px; font-weight: 300;">{{stats.newMembers}}</div>
+                  {{/if}}
+                  {{#if stats.activeAccounts}}
+                  <td align="center" style="{{#if stats.exchanges}}border-left: 1px solid #eeeeee;{{/if}} padding: 5px;">
+                    <div style="color: #72A310; font-size: 32px; font-weight: 300;">{{stats.activeAccounts}}</div>
+                    <div style="color: #999999; font-size: 12px; text-transform: uppercase;">
+                      {{t "newsletter.stats_active_accounts"}}
+                    </div>
+                  </td>
+                  {{/if}}
+                  {{#if stats.newMembers}}
+                  <td align="center" style="{{#if stats.exchanges}}border-left: 1px solid #eeeeee;{{else}}{{#if stats.activeAccounts}}border-left: 1px solid #eeeeee;{{/if}}{{/if}} padding: 5px;">
+                    <div style="color: #72A310; font-size: 32px; font-weight: 300;">{{stats.newMembers}}</div>
                     <div style="color: #999999; font-size: 12px; text-transform: uppercase;">
                       {{t "newsletter.stats_new_members"}}
                     </div>
                   </td>
+                  {{/if}}
                 </tr>
               </table>
             </td>
@@ -190,8 +258,11 @@
           <tr>
             <td
               style="padding: 30px; background-color: #333333; color: #9e9e9e; font-size: 11px; text-align: center; line-height: 1.6;">
+              <img src="{{appUrl}}/logos/logo-200.png" alt="Komunitin" width="100" style="margin-bottom: 15px;">
               <p style="margin: 0 0 10px 0;">{{{t "newsletter.footer_reason"}}}</p>
-              <!-- Unsubscribe links could go here -->
+              <p style="margin: 0;">
+                <a href="{{appUrl}}/settings" style="color: #9e9e9e; text-decoration: underline;">{{t "newsletter.manage_subscription"}}</a>
+              </p>
             </td>
           </tr>
 

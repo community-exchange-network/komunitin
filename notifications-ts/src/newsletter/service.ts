@@ -1,5 +1,5 @@
 import { KomunitinClient } from '../api/client';
-import { Mailer } from '../services/mailer';
+import { Mailer, saveNewsletter } from '../services/mailer';
 import { generateNewsletterHtml } from './template';
 import logger from '../utils/logger';
 import { config } from '../config';
@@ -30,10 +30,11 @@ const processItems = (
       }
     }
 
-    const link = `${config.KOMUNITIN_APP_URL}/groups/${groupCode}/${type}/${item.id}`;
+    const link = `${config.KOMUNITIN_APP_URL}/groups/${groupCode}/${type}/${item.attributes.code}`;
 
     return {
       id: item.id,
+      code: item.attributes.code,
       type: type,
       title: "name" in item.attributes ? item.attributes.name : undefined,
       description: item.attributes.content,
@@ -49,7 +50,7 @@ const processItems = (
   });
 };
 
-const processGroupNewsletter = async (group: any, client: KomunitinClient, mailer: Mailer, memberCodeFilter?: string) => {
+const processGroupNewsletter = async (group: any, client: KomunitinClient, mailer: Mailer, memberCodeFilter?: string, forceSend?: boolean) => {
   logger.info({ group: group.attributes.code }, 'Processing group');
 
   // 3. Cache Content
@@ -69,11 +70,18 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
   });
   const groupExchangesLastMonth = transferStats.attributes.values[0];
 
+  // Number of active accounts last month
+  const accountStats = await client.getAccountStats(group.attributes.code, {
+    from: oneMonthAgo.toISOString()
+  });
+  const activeAccountsLastMonth = accountStats.attributes.values[0];
+
   // Number of members created last month
   const groupMembersLastMonth = allMembers.filter((m: any) => m.attributes.created > oneMonthAgo.toISOString()).length;
   
   const stats = {
     exchanges: groupExchangesLastMonth,
+    activeAccounts: activeAccountsLastMonth,
     newMembers: groupMembersLastMonth
   };
 
@@ -115,7 +123,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       );
 
       const lastSentDate = lastSentLog ? new Date(lastSentLog.sentAt) : undefined;
-      const shouldSend = shouldSendNewsletter(frequency, lastSentDate, new Date());
+      const shouldSend = forceSend || shouldSendNewsletter(frequency, lastSentDate, new Date());
 
       if (shouldSend) {
         recipientsToProcess.push({ user, settings: userSettings });
@@ -172,8 +180,8 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       logger.warn({ err: e }, 'Failed to fetch transfers');
     }
     // Active/Expired Offers/Needs
-    const activeOffers = allOffers.filter((o: any) => o.relationships.author.data.id === member.id);
-    const activeNeeds = allNeeds.filter((n: any) => n.relationships.author.data.id === member.id);
+    const activeOffers = allOffers.filter((o: any) => o.relationships.member.data.id === member.id);
+    const activeNeeds = allNeeds.filter((n: any) => n.relationships.member.data.id === member.id);
 
     let expiredOffers: any[] = [];
     let expiredNeeds: any[] = [];
@@ -219,7 +227,8 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       bestOffers: selectedOffers,
       bestNeeds: selectedNeeds,
       stats,
-      accountSection
+      accountSection,
+      appUrl: config.KOMUNITIN_APP_URL
     };
 
     for (const { user, settings: userSettings } of recipientsToProcess) {
@@ -234,6 +243,10 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       const html = await generateNewsletterHtml(context);
 
       try {
+        // Dev mode: save to file
+        if (config.DEV_SAVE_NEWSLETTERS) {
+          saveNewsletter(member.attributes.code, html);
+        }
         // Send Email
         await mailer.sendNewsletter(user.attributes.email, `Novetats a ${group.attributes.name}`, html);
         logger.info({ user: user.id }, 'Newsletter sent');
@@ -269,7 +282,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
   }
 };
 
-export const runNewsletter = async (options?: { groupCode?: string, memberCode?: string }) => {
+export const runNewsletter = async (options?: { groupCode?: string, memberCode?: string, forceSend?: boolean }) => {
   logger.info('Starting newsletter generation...');
   const client = new KomunitinClient();
   const mailer = new Mailer();
@@ -285,7 +298,7 @@ export const runNewsletter = async (options?: { groupCode?: string, memberCode?:
     logger.info({ count: groups.length }, 'Fetched active groups');
 
     for (const group of groups) {
-      await processGroupNewsletter(group, client, mailer, options?.memberCode);
+      await processGroupNewsletter(group, client, mailer, options?.memberCode, options?.forceSend);
     }
   } catch (error) {
     logger.error({ err: error }, 'Error running newsletter job');

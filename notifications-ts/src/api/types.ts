@@ -139,3 +139,9 @@ export interface TransferStats {
     values: number[];
   };
 }
+
+export interface AccountStats {
+  attributes: {
+    values: number[];
+  };
+}

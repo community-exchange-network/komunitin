@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: notifications
+      POSTGRES_DB: postgres
       POSTGRES_APP_USER: notifications
       POSTGRES_APP_PASSWORD: notifications
       # Backup settings (optional for dev but keeps image happy)

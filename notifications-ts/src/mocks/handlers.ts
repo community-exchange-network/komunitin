@@ -278,6 +278,24 @@ export const handlers = [
     });
   }),
 
+  http.get(`${ACCOUNTING_URL}/:code/stats/accounts`, ({ request }) => {
+    const url = new URL(request.url);
+    const from = url.searchParams.get('from');
+    const to = url.searchParams.get('to');
+
+    return HttpResponse.json({
+      data: {
+        type: 'account-stats',
+        id: faker.string.uuid(),
+        attributes: {
+          from: from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          to: to || new Date().toISOString(),
+          values: [12] // Number of active accounts last month
+        }
+      }
+    });
+  }),
+
   http.get(`${ACCOUNTING_URL}/:groupCode/transfers`, () => {
     // Generate few transfers
     const transfers = Array.from({ length: 2 }, () => ({
