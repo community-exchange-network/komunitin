@@ -3,12 +3,13 @@ import { Mailer, saveNewsletter } from '../services/mailer';
 import { generateNewsletterHtml } from './template';
 import logger from '../utils/logger';
 import { config } from '../config';
-import { Offer, Need, NewsletterContext, ProcessedItem } from './types';
+import { HistoryLog, NewsletterContext, ProcessedItem } from './types';
 import prisma from '../utils/prisma';
 import { shouldSendNewsletter } from './frequency';
+import initI18n from '../utils/i18n';
 
 import { selectBestItems, getDistance } from './posts-algorithm';
-import { Member, HistoryLog } from './types';
+import { Member, Offer, Need } from '../api/types';
 import { getAccountSectionData } from './account-algorithm';
 
 const processItems = (
@@ -40,7 +41,7 @@ const processItems = (
       description: item.attributes.content,
       image: item.attributes.images?.[0],
       author: {
-        name: author?.attributes.name || 'Unknown',
+        name: author?.attributes.name || '',
         image: author?.attributes.image
       },
       distance,
@@ -53,7 +54,9 @@ const processItems = (
 const processGroupNewsletter = async (group: any, client: KomunitinClient, mailer: Mailer, memberCodeFilter?: string, forceSend?: boolean) => {
   logger.info({ group: group.attributes.code }, 'Processing group');
 
-  // 3. Cache Content
+  const i18n = await initI18n();
+
+  // 3. Fetch data to be used for all members of the group
   // Fetch ALL offers/needs using the pagination-enabled client methods
   const allOffers = await client.getOffers(group.attributes.code, { sort: '-updated' });
   const allNeeds = await client.getNeeds(group.attributes.code, { sort: '-updated' });
@@ -95,7 +98,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       continue;
     }
 
-    // 0. Check Recipients (Users)
+    // Check Recipients (Users)
     const users = await client.getMemberUsers(member.id);
     const recipientsToProcess: { user: any, settings: any }[] = [];
 
@@ -185,18 +188,13 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     const activeNeeds = allNeeds.filter((n: any) => n.relationships.member.data.id === member.id);
 
     let expiredOffers: any[] = [];
-    let expiredNeeds: any[] = [];
     try {
       expiredOffers = await client.getOffers(group.attributes.code, {
         'filter[member]': member.id,
         'filter[expired]': 'true'
       });
-      expiredNeeds = await client.getNeeds(group.attributes.code, {
-        'filter[member]': member.id,
-        'filter[expired]': 'true'
-      });
     } catch (e) {
-      logger.warn({ err: e }, 'Failed to fetch expired offers/needs');
+      logger.warn({ err: e }, 'Failed to fetch expired offers');
     }
     const accountSection = getAccountSectionData({
       member,
@@ -204,20 +202,13 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       activeOffers,
       activeNeeds,
       expiredOffers,
-      expiredNeeds,
       transfers,
       history,
       currency
     });
 
 
-    // Get Users
-    // const users = await client.getMemberUsers(member.id); // Moved up
     const sentRecipients: { userId: string, email: string }[] = [];
-
-    // Major content (bestOffers, etc.) is member-centric.
-    // Users can have different locales or preferences.
-    
 
     // Compute Personal Content (Member level)
     const contextBase: Omit<NewsletterContext, 'recipient'> = {
@@ -249,7 +240,9 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
           saveNewsletter(member.attributes.code, html);
         }
         // Send Email
-        await mailer.sendNewsletter(user.attributes.email, `Novetats a ${group.attributes.name}`, html);
+        const lng = userSettings.attributes.language || 'ca';
+        const subject = i18n.t('newsletter.subject', { lng, group: group.attributes.name });
+        await mailer.sendNewsletter(user.attributes.email, subject, html);
         logger.info({ user: user.id }, 'Newsletter sent');
         sentRecipients.push({ userId: user.id, email: user.attributes.email });
       } catch (err) {

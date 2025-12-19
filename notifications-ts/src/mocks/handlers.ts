@@ -75,7 +75,6 @@ const createNeed = (groupCode: string, i: number) => ({
   type: 'needs',
   id: faker.string.uuid(),
   attributes: {
-    name: faker.commerce.productName(), // Needs might not have name in all versions, but good to have
     content: faker.lorem.paragraph(),
     images: [faker.image.url()],
     created: faker.date.past().toISOString(),

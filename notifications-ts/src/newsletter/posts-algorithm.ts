@@ -1,5 +1,6 @@
 
-import { Offer, Need, Member, LogContent, HistoryLog } from './types';
+import { LogContent, HistoryLog } from './types';
+import { Member, Offer, Need } from '../api/types';
 
 // Generic interface for items
 export type Item = Offer | Need;
@@ -91,7 +92,6 @@ export const selectBestItems = (
     const author = members.get(authorId);
     if (!author) return 0;
 
-    // Distance Score
     // Distance Score
     const d = getDistance(targetMember, author);
 
@@ -198,14 +198,7 @@ export const selectBestItems = (
     !selectedIds.has(item.id)
   );
 
-  // Fill remaining slots (N + any unfilled Fresh slots?)
-  // Prompt says: "if there are no sufficient items ... fallback to method 2 (random)"
-  // So we target total items = freshCount + randomCount?
-  // User says: "implement so we can get M fresh... and N random".
-  // "Compute the 2nd offer by ... random" (in example M=2 was context).
-  // I will fill up to satisfy N random items. 
-  // If result.length < M, should I fill with random to reach M+N? 
-  // Yes, "fallback to method 2".
+  // Fill remaining slots
 
   const totalTarget = freshCount + randomCount;
 

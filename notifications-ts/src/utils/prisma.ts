@@ -10,10 +10,6 @@ const prisma = new PrismaClient({
   adapter,
   log: [
     {
-      emit: 'event',
-      level: 'query',
-    },
-    {
       emit: 'stdout',
       level: 'error',
     },
@@ -27,9 +23,5 @@ const prisma = new PrismaClient({
     },
   ],
 });
-
-// prisma.$on('query', (e) => {
-//   logger.debug({ query: e.query, duration: e.duration }, 'Prisma Query');
-// });
 
 export default prisma;

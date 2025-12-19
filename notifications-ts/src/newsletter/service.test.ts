@@ -68,9 +68,7 @@ describe('Newsletter Cron Job', () => {
     assert.ok(logData.content, 'Log should have content');
 
     // Check if content contains expected mocked data parts
-    // assert.match(emailOptions.html, /Group 0/, 'Email should contain group name');
-    // assert.match(emailOptions.html, /Balance/, 'Email should contain balance info');
-
+    // TODO
     // Verify Account Section in Log
     assert.ok(logData.content.account, 'Log should have account');
     // If our mock account has balance (random), and transfers (mocked), it should produce some data.

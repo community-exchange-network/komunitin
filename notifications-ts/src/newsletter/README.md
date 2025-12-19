@@ -95,14 +95,14 @@ This section displays the current balance and celebrates recent activity.
 
 Selects the most specific and urgent action for the user to take. Alerts are checked in the following priority order:
 
-1.  **NO_OFFERS_NEGATIVE**: No active offers AND negative balance. (Action: Create Offer)
-2.  **NO_NEEDS_POSITIVE**: No active needs AND positive balance. (Action: Create Need)
-3.  **NO_OFFERS**: No active offers. (Action: Create Offer)
-4.  **NO_NEEDS**: No active needs. (Action: Create Need)
-5.  **NO_IMAGE**: Profile has no image. (Action: Edit Profile)
-6.  **NO_BIO_LOC**: Profile missing bio or location. (Action: Edit Profile)
-7.  **EXPIRED_OFFERS**: Has expired offers. (Action: Manage Offers)
-8.  **EXPIRED_NEEDS**: Has expired needs. (Action: Manage Needs)
+1.  No active offers AND negative balance. (Action: Create Offer)
+2.  No active needs AND positive balance. (Action: Create Need)
+3.  No active offers. (Action: Create Offer)
+4.  No active needs. (Action: Create Need)
+5.  Profile has no image. (Action: Edit Profile)
+6.  Profile has no bio. (Action: Edit Profile)  
+7.  Profile has no location. (Action: Edit Profile)  
+8.  Has expired offers. (Action: Manage Offers)
 
 ### History Check (Anti-Repetition)
 

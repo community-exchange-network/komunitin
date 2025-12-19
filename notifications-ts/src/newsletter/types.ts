@@ -1,8 +1,4 @@
-import { Offer, Need, User, Account, Group, Currency, Member } from '../api/types';
-
-export { Member, Currency } from '../api/types';
-export { Offer, Need };
-
+import { Account, Group, Currency, Member } from '../api/types';
 export interface Stats {
   exchanges: number;
   newMembers: number;

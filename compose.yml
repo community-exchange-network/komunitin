@@ -132,43 +132,43 @@ services:
       - "host.docker.internal:host-gateway"
 
 
-  # notifications-ts:
-  #   build:
-  #     context: ./notifications-ts
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - db-notifications
-  #   environment:
-  #     KOMUNITIN_AUTH_URL: http://integralces:2029/oauth2
-  #     KOMUNITIN_SOCIAL_URL: http://integralces:2029/ces/api/social
-  #     KOMUNITIN_ACCOUNTING_URL: http://accounting:2025
-  #     DATABASE_URL: postgresql://notifications:notifications@db-notifications:5432/notifications?schema=public
-  #     OAUTH_CLIENT_ID: komunitin-notifications
-  #     OAUTH_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
-  #     SMTP_HOST: ${SMTP_HOST}
-  #     SMTP_PORT: ${SMTP_PORT}
-  #     SMTP_USER: ${SMTP_USER}
-  #     SMTP_PASS: ${SMTP_PASS}
-  #     SMTP_FROM: ${SMTP_FROM}
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
+  notifications-ts:
+    build:
+      context: ./notifications-ts
+    restart: unless-stopped
+    depends_on:
+      - db-notifications
+    environment:
+      KOMUNITIN_AUTH_URL: http://integralces:2029/oauth2
+      KOMUNITIN_SOCIAL_URL: http://integralces:2029/ces/api/social
+      KOMUNITIN_ACCOUNTING_URL: http://accounting:2025
+      DATABASE_URL: postgresql://notifications:notifications@db-notifications:5432/notifications?schema=public
+      OAUTH_CLIENT_ID: komunitin-notifications
+      OAUTH_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${APP_EMAIL}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
-  # db-notifications:
-  #   build:
-  #     context: ./accounting/docker/db
-  #   restart: unless-stopped
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: notifications
-  #     POSTGRES_APP_USER: notifications
-  #     POSTGRES_APP_PASSWORD: notifications
-  #     WALG_GS_PREFIX: ${GOOGLE_CLOUD_STORAGE_BUCKET}/db-notifications
-  #     WALG_COMPRESSION_METHOD: zstd
-  #     GOOGLE_APPLICATION_CREDENTIALS: "/opt/komunitin-project-backup-credentials.json"
-  #   volumes:
-  #     - db-notifications:/var/lib/postgresql/data
-  #     - "./notifications-ts/komunitin-project-backup-credentials.json:/opt/komunitin-project-backup-credentials.json:ro"
+  db-notifications:
+    build:
+      context: ./accounting/docker/db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_APP_USER: notifications
+      POSTGRES_APP_PASSWORD: notifications
+      WALG_GS_PREFIX: ${GOOGLE_CLOUD_STORAGE_BUCKET}/db-notifications
+      WALG_COMPRESSION_METHOD: zstd
+      GOOGLE_APPLICATION_CREDENTIALS: "/opt/komunitin-project-backup-credentials.json"
+    volumes:
+      - db-notifications:/var/lib/postgresql/data
+      - "./accounting/komunitin-project-backup-credentials.json:/opt/komunitin-project-backup-credentials.json:ro"
 
 volumes:
   db-accounting:

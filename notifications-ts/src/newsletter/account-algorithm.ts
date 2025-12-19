@@ -1,4 +1,5 @@
-import {Currency, Member, AccountSection, AccountAlert, Offer, Need, HistoryLog } from './types';
+import {AccountSection, AccountAlert, HistoryLog } from './types';
+import { Member, Offer, Need, Currency } from '../api/types';
 
 // Constants
 const HOUR_THRESHOLD = 10;
@@ -9,7 +10,6 @@ interface AccountData {
   activeOffers: Offer[];
   activeNeeds: Need[];
   expiredOffers: Offer[];
-  expiredNeeds: Need[];
   transfers: any[];
   history: HistoryLog[];
   currency: Currency;
@@ -18,7 +18,7 @@ interface AccountData {
 export const getAccountSectionData = (data: AccountData): AccountSection => {
   const {
     account, member, activeOffers, activeNeeds,
-    expiredOffers, expiredNeeds, transfers, history, currency
+    expiredOffers, transfers, history, currency
     } = data;
 
   const balance = account.attributes.balance;
@@ -132,6 +132,7 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
   }
 
   // 7. No location => Edit profile
+  // In practice service may return [0,0] coords when no location set
   if (!member.attributes.location?.coordinates[0] && !member.attributes.location?.coordinates[1]) {
     alerts.push({
       type: 'NO_LOCATION',
@@ -165,8 +166,8 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
       // history is sorted desc? Assuming YES.
       if (!history[i]) break;
       // Check if log contains accountSection with same alert type
-      const prevContent = history[i].content as any;
-      if (prevContent?.accountSection?.alert?.type === alert.type) {
+      const prevContent = history[i].content;
+      if (prevContent.account?.alert === alert.type) {
         repeatCount++;
       } else {
         // Consecutive chain broken

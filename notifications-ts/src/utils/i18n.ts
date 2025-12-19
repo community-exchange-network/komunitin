@@ -10,7 +10,7 @@ const initI18n = async () => {
       .init({
         lng: 'ca', // Default fallback
         fallbackLng: 'ca',
-        preload: ['ca'], // Preload languages
+        preload: ['ca', 'en', 'es', 'it'], // Preload languages
         ns: ['translation'],
         defaultNS: 'translation',
         backend: {

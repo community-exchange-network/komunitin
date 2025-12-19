@@ -1,8 +1,9 @@
 
-import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { selectBestItems, getDistance, Item } from './posts-algorithm';
-import { Member, LogContent, HistoryLog } from './types';
+import { describe, test } from 'node:test';
+import { getDistance, Item, selectBestItems } from './posts-algorithm';
+import { HistoryLog } from './types';
+import { Member } from '../api/types';
 
 // Helpers
 const createMember = (id: string, lat?: number, lon?: number): Member => ({

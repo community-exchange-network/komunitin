@@ -1,7 +1,7 @@
-import { test, describe } from 'node:test';
 import assert from 'node:assert';
+import { describe, test } from 'node:test';
 import { getAccountSectionData } from './account-algorithm';
-import { Member, Offer, Need, HistoryLog, Currency } from './types';
+import { Currency, Member, Need, Offer } from '../api/types';
 
 // Helpers
 const createMember = (attrs: any = {}): Member => ({
@@ -38,7 +38,7 @@ describe('Account Algorithm', () => {
     const d1 = getAccountSectionData({
       member: createMember(),
       account: createAccount(15),
-      activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      activeOffers: [], activeNeeds: [], expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d1.balanceAdviceId, "newsletter.balance_advice_positive");
@@ -47,7 +47,7 @@ describe('Account Algorithm', () => {
     const d2 = getAccountSectionData({
       member: createMember(),
       account: createAccount(-15),
-      activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      activeOffers: [], activeNeeds: [], expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d2.balanceAdviceId, "newsletter.balance_advice_negative");
@@ -56,7 +56,7 @@ describe('Account Algorithm', () => {
     const d3 = getAccountSectionData({
       member: createMember(),
       account: createAccount(1),
-      activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      activeOffers: [], activeNeeds: [], expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d3.balanceAdviceId, "newsletter.balance_advice_balanced");
@@ -68,7 +68,7 @@ describe('Account Algorithm', () => {
       member: createMember(),
       account: createAccount(-5),
       activeOffers: [], activeNeeds: [], // No offers/needs
-      expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d1.alert?.type, 'NO_OFFERS_NEGATIVE', 'Should define priority 1 alert');
@@ -79,38 +79,21 @@ describe('Account Algorithm', () => {
       member: createMember(),
       account: createAccount(5),
       activeOffers: [offer], activeNeeds: [],
-      expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d2.alert?.type, 'NO_NEEDS_POSITIVE', 'Should define priority 2 alert');
 
     // 3. No offers (Balance positive)
+    const need = { id: 'n1' } as Need;
     const d3 = getAccountSectionData({
       member: createMember(),
       account: createAccount(5),
-      activeOffers: [], activeNeeds: [],
-      expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
-      currency: createCurrency()
-    });
-    // Priority 1 fails (balance not < 0). Priority 2 fails (needs empty but we care about offers).
-    // Wait. Alert 3 is "No offers".
-    // Is alert 2 check "No needs AND positive"? Yes.
-    // If I have No Offers and Balance > 0.
-    // 1 (NoOffersNeg) -> False.
-    // 2 (NoNeedsPos) -> "You have no active needs...". Wait.
-    // My input for d3 has No Offers AND No Needs.
-    // Priority 2 matches (No Needs + Pos). So it will show Priority 2.
-    // If I want to verify Priority 3 "No Offers", I must NOT match Priority 2.
-    // So I need HAS NEEDS.
-    const need = { id: 'n1' } as Need;
-    const d3_fixed = getAccountSectionData({
-      member: createMember(),
-      account: createAccount(5),
       activeOffers: [], activeNeeds: [need],
-      expiredOffers: [], expiredNeeds: [], transfers: [], history: [],
+      expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
-    assert.strictEqual(d3_fixed.alert?.type, 'NO_OFFERS', 'Should define priority 3 alert');
+    assert.strictEqual(d3.alert?.type, 'NO_OFFERS', 'Should define priority 3 alert');
   });
 
   test('History Logic - Skipping Repeated Alerts', () => {
@@ -118,7 +101,7 @@ describe('Account Algorithm', () => {
     const dataBase = {
       member: createMember(),
       account: createAccount(-5),
-      activeOffers: [], activeNeeds: [], expiredOffers: [], expiredNeeds: [], transfers: [],
+      activeOffers: [], activeNeeds: [], expiredOffers: [], transfers: [],
       currency: createCurrency()
     };
 
@@ -128,7 +111,7 @@ describe('Account Algorithm', () => {
 
 
     // Case: History has 1 occurence. Shows Alert 1 (2nd time).
-    const log1 = { content: { accountSection: { alert: { type: 'NO_OFFERS_NEGATIVE' } } } } as any;
+  const log1 = { content: { account: { alert: 'NO_OFFERS_NEGATIVE' } } } as any;
     const run2 = getAccountSectionData({ ...dataBase, history: [log1] });
     assert.strictEqual(run2.alert?.type, 'NO_OFFERS_NEGATIVE');
 
@@ -137,7 +120,7 @@ describe('Account Algorithm', () => {
     // Priority 1: NO_OFFERS_NEGATIVE (Skipped)
     // Priority 2: NO_NEEDS_POSITIVE (Balance < 0, False)
     // Priority 3: NO_OFFERS (True, No active offers)
-    const log2 = { content: { accountSection: { alert: { type: 'NO_OFFERS_NEGATIVE' } } } } as any;
+    const log2 = { content: { account: { alert: 'NO_OFFERS_NEGATIVE' } } } as any;
     const run3 = getAccountSectionData({ ...dataBase, history: [log1, log2] }); // Recent first
 
     assert.strictEqual(run3.alert?.type, 'NO_OFFERS', 'Should skip priority 1 and fall to priority 3');
@@ -153,7 +136,7 @@ describe('Account Algorithm', () => {
       member: createMember(),
       account: createAccount(0),
       activeOffers: [{ id: 'o' }] as any, activeNeeds: [{ id: 'n' }] as any,
-      expiredOffers: [], expiredNeeds: [],
+      expiredOffers: [],
       transfers: [t1, t2, t3],
       history: [],
       currency: createCurrency()
@@ -171,7 +154,6 @@ describe('Account Algorithm', () => {
       activeOffers: [{ id: 'o1' } as Offer], // Has offers (skips 1, 3)
       activeNeeds: [{ id: 'n1' } as Need],   // Has needs (skips 2, 4)
       expiredOffers: [{ id: 'eo1' } as Offer], // Has expired offers
-      expiredNeeds: [],
       transfers: [], history: [],
       currency: createCurrency()
     });
@@ -191,7 +173,6 @@ describe('Account Algorithm', () => {
       activeOffers: [{ id: 'o1' } as Offer],
       activeNeeds: [{ id: 'n1' } as Need],
       expiredOffers: [],
-      expiredNeeds: [],
       transfers: [], history: [],
       currency: createCurrency()
     });

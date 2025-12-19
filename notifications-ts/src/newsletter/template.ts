@@ -1,10 +1,10 @@
 import fs from 'fs/promises';
-import path from 'path';
 import Handlebars from 'handlebars';
-import initI18n from '../utils/i18n';
-import { NewsletterContext, Offer, Need } from './types';
-import logger from '../utils/logger';
+import path from 'path';
 import { formatAmount } from '../utils/format';
+import initI18n from '../utils/i18n';
+import logger from '../utils/logger';
+import { NewsletterContext } from './types';
 
 // Helper to truncate text
 const truncate = (str: string, length: number) => {
@@ -32,6 +32,7 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
 
   
   const lng = recipient.language;
+  const unknownMemberName = i18n.t('newsletter.unknown_member', { lng });
 
   // Register 't' helper for this render
   Handlebars.registerHelper('t', (key, options) => {
@@ -85,19 +86,19 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
     activityText,
     alert: alertData,
     groupInitial: group.attributes.name?.charAt(0).toUpperCase() || '?',
-    bestOffers: ctx.bestOffers.map(item => ({
+    bestOffers: bestOffers.map(item => ({
       ...item,
       description: truncate(item.description || '', 80),
       title: truncate(item.title || '', 40),
-      authorName: item.author?.name || 'Unknown',
+      authorName: item.author?.name?.trim() ? item.author.name : unknownMemberName,
       formattedDistance: formatDistance(item.distance),
       link: item.link
     })),
-    bestNeeds: ctx.bestNeeds.map(item => ({
+    bestNeeds: bestNeeds.map(item => ({
       ...item,
       description: truncate(item.description || '', 80),
       title: truncate(item.title || '', 40),
-      authorName: item.author?.name || 'Unknown',
+      authorName: item.author?.name?.trim() ? item.author.name : unknownMemberName,
       formattedDistance: formatDistance(item.distance),
       link: item.link
     })),
