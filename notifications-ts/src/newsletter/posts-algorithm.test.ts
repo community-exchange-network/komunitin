@@ -4,6 +4,7 @@ import { describe, test } from 'node:test';
 import { getDistance, Item, selectBestItems } from './posts-algorithm';
 import { HistoryLog } from './types';
 import { Member } from '../api/types';
+import { SeededRandom } from '../utils/seededRandom';
 
 // Helpers
 const createMember = (id: string, lat?: number, lon?: number): Member => ({
@@ -63,12 +64,14 @@ describe('Feedback Algorithm', () => {
     // Run multiple times to verify probability favors i1
     let closeCount = 0;
     for (let i = 0; i < 100; i++) {
+      const rng = new SeededRandom(1000 + i); // Fixed seed per iteration
       const result = selectBestItems({
         targetMember: target,
         items,
         members,
         history: [],
-        globalFeaturedIndex: new Map()
+        globalFeaturedIndex: new Map(),
+        rng
       }, { freshCount: 1, randomCount: 0 });
 
       if (result[0]?.id === 'i1') closeCount++;
@@ -94,12 +97,14 @@ describe('Feedback Algorithm', () => {
 
     let i1Count = 0;
     for (let i = 0; i < 1000; i++) {
+      const rng = new SeededRandom(2000 + i);
       const result = selectBestItems({
         targetMember: target,
         items,
         members,
         history: [],
-        globalFeaturedIndex: new Map()
+        globalFeaturedIndex: new Map(),
+        rng
       }, { freshCount: 1, randomCount: 0 });
       if (result[0]?.id === 'i1') i1Count++;
     }
@@ -133,12 +138,14 @@ describe('Feedback Algorithm', () => {
 
     let m2Count = 0;
     for (let i = 0; i < 100; i++) {
+      const rng = new SeededRandom(3000 + i);
       const result = selectBestItems({
         targetMember: target,
         items: allItems,
         members,
         history,
-        globalFeaturedIndex: new Map()
+        globalFeaturedIndex: new Map(),
+        rng
       }, { freshCount: 1, randomCount: 0 });
 
       if (result[0]?.id === 'item2') m2Count++;
@@ -158,12 +165,14 @@ describe('Feedback Algorithm', () => {
       ['m2', createMember('m2')]
     ]);
 
+    const rng = new SeededRandom(4000);
     const result = selectBestItems({
       targetMember: target,
       items,
       members,
       history: [],
-      globalFeaturedIndex: new Map()
+      globalFeaturedIndex: new Map(),
+      rng
     }, { freshCount: 2, randomCount: 1 });
 
     assert.strictEqual(result.length, 2, 'Should return 2 items (fallback)');
@@ -205,17 +214,63 @@ describe('Feedback Algorithm', () => {
     let strangerCount = 0;
 
     for (let i = 0; i < 100; i++) {
+      const rng = new SeededRandom(5000 + i);
       const result = selectBestItems({
         targetMember: target,
         items,
         members,
         history,
-        globalFeaturedIndex: new Map()
+        globalFeaturedIndex: new Map(),
+        rng
       }, { freshCount: 1, randomCount: 0 });
 
       if (result[0]?.id === 'strangerItem') strangerCount++;
     }
 
     assert.ok(strangerCount > 50, `Stranger selected ${strangerCount}/100 times (should beat penalized neighbor)`);
+  });
+
+  test('Random selection with category conflict retry', () => {
+    // Test the retry logic when random items share category with selected items
+    const target = createMember('target', 0, 0);
+    const m1 = createMember('m1', 0.01, 0.01);
+    const m2 = createMember('m2', 0.01, 0.01);
+    const m3 = createMember('m3', 0.01, 0.01);
+
+    // Create items with categories - item1 will likely be selected first
+    const items = [
+      createItem('item1', 'm1', new Date().toISOString(), 'cat1'),
+      createItem('item2', 'm2', new Date().toISOString(), 'cat1'), // Same category
+      createItem('item3', 'm3', new Date().toISOString(), 'cat2')  // Different category
+    ];
+
+    const members = new Map([
+      ['m1', m1],
+      ['m2', m2],
+      ['m3', m3]
+    ]);
+
+    // Select 2 items total (1 fresh, 1 random)
+    // The random picker should prefer item3 over item2 due to category conflict retry
+    let item3SelectedCount = 0;
+
+    for (let i = 0; i < 100; i++) {
+      const rng = new SeededRandom(6000 + i);
+      const result = selectBestItems({
+        targetMember: target,
+        items,
+        members,
+        history: [],
+        globalFeaturedIndex: new Map(),
+        rng
+      }, { freshCount: 1, randomCount: 1 });
+
+      if (result.length === 2 && result.some(item => item.id === 'item3')) {
+        item3SelectedCount++;
+      }
+    }
+
+    // item3 should be selected more often than item2 due to conflict retry logic
+    assert.ok(item3SelectedCount > 40, `Item with different category selected ${item3SelectedCount}/100 times`);
   });
 });

@@ -11,6 +11,7 @@ import initI18n from '../utils/i18n';
 import { selectBestItems, getDistance } from './posts-algorithm';
 import { Member, Offer, Need } from '../api/types';
 import { getAccountSectionData } from './account-algorithm';
+import { SeededRandom, stringToSeed } from '../utils/seededRandom';
 
 const processItems = (
   items: (Offer | Need)[],
@@ -149,13 +150,22 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
     // 2. Posts section
 
+    // Compute reproducible seed for this member's newsletter
+    // Use last history log ID if available, otherwise use member ID
+    const seedString = history.length > 0 
+      ? `${history[0].memberId}-${history[0].sentAt}` 
+      : member.id;
+    const seed = stringToSeed(seedString);
+    const rng = new SeededRandom(seed);
+
     // Best offers for me (Using Algorithm)
     const bestOffers = selectBestItems({
       targetMember: member,
       items: allOffers,
       members: memberMap,
       history,
-      globalFeaturedIndex
+      globalFeaturedIndex,
+      rng
     }, { freshCount: 2, randomCount: 1 }) as Offer[];
 
     // Best needs for me (Using Algorithm)
@@ -164,7 +174,8 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       items: allNeeds,
       members: memberMap,
       history,
-      globalFeaturedIndex
+      globalFeaturedIndex,
+      rng
     }, { freshCount: 2, randomCount: 1 }) as Need[];
 
     const selectedOffers = processItems(bestOffers, member, memberMap, group.attributes.code, 'offers');

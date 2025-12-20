@@ -180,4 +180,101 @@ describe('Account Algorithm', () => {
     assert.strictEqual(d.alert, undefined, 'Should have no alerts');
   });
 
+  test('Alert Priority 4: No Needs', () => {
+    // Has offers, has needs=false, balance neutral
+    const d = getAccountSectionData({
+      member: createMember(),
+      account: createAccount(0),
+      activeOffers: [{ id: 'o1' } as Offer],
+      activeNeeds: [], // No needs
+      expiredOffers: [],
+      transfers: [], history: [],
+      currency: createCurrency()
+    });
+
+    assert.strictEqual(d.alert?.type, 'NO_NEEDS', 'Should show NO_NEEDS alert');
+    assert.strictEqual(d.alert?.actionUrl, '/groups/:code/needs/new');
+  });
+
+  test('Alert Priority 6: No Bio', () => {
+    const d = getAccountSectionData({
+      member: createMember({ description: '' }), // No bio
+      account: createAccount(0),
+      activeOffers: [{ id: 'o1' } as Offer],
+      activeNeeds: [{ id: 'n1' } as Need],
+      expiredOffers: [],
+      transfers: [], history: [],
+      currency: createCurrency()
+    });
+
+    assert.strictEqual(d.alert?.type, 'NO_BIO', 'Should show NO_BIO alert');
+    assert.strictEqual(d.alert?.actionUrl, '/profile');
+  });
+
+  test('Alert Priority 7: No Location', () => {
+    const d = getAccountSectionData({
+      member: createMember({ location: { type: 'Point', coordinates: [0, 0] } }), // [0,0] means no location
+      account: createAccount(0),
+      activeOffers: [{ id: 'o1' } as Offer],
+      activeNeeds: [{ id: 'n1' } as Need],
+      expiredOffers: [],
+      transfers: [], history: [],
+      currency: createCurrency()
+    });
+
+    assert.strictEqual(d.alert?.type, 'NO_LOCATION', 'Should show NO_LOCATION alert');
+    assert.strictEqual(d.alert?.actionUrl, '/profile');
+  });
+
+  test('Alert Priority 8: Expired Offers with count', () => {
+    const d = getAccountSectionData({
+      member: createMember({ 
+        image: 'img.jpg',
+        description: 'Has bio',
+        location: { type: 'Point', coordinates: [1, 1] } // Has location
+      }),
+      account: createAccount(0),
+      activeOffers: [{ id: 'o1' } as Offer],
+      activeNeeds: [{ id: 'n1' } as Need],
+      expiredOffers: [
+        { id: 'eo1' } as Offer,
+        { id: 'eo2' } as Offer,
+        { id: 'eo3' } as Offer
+      ],
+      transfers: [], history: [],
+      currency: createCurrency()
+    });
+
+    assert.strictEqual(d.alert?.type, 'EXPIRED_OFFERS', 'Should show EXPIRED_OFFERS alert');
+    assert.strictEqual(d.alert?.messageParams?.count, 3, 'Should include count of expired offers');
+    assert.strictEqual(d.alert?.actionUrl, '/groups/:code/offers');
+  });
+
+  test('Currency conversion with scale', () => {
+    // Test balance conversion with scale != 0
+    const currencyWithScale = {
+      attributes: {
+        code: 'TEST',
+        name: 'Test Coin',
+        namePlural: 'Test Coins',
+        symbol: 'T',
+        decimals: 2,
+        scale: 2, // 100 units = 1 HOUR
+        rate: { n: 1, d: 1 }
+      }
+    };
+
+    // balance = 1500, scale = 2, so 1500 / 100 = 15 HOURS > 10
+    const d = getAccountSectionData({
+      member: createMember(),
+      account: createAccount(1500),
+      activeOffers: [], activeNeeds: [],
+      expiredOffers: [],
+      transfers: [], history: [],
+      currency: currencyWithScale as Currency
+    });
+
+    assert.strictEqual(d.balanceAdviceId, 'newsletter.balance_advice_positive', 'Should handle currency scale correctly');
+  });
+
 });

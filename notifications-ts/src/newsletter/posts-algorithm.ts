@@ -1,6 +1,7 @@
 
 import { LogContent, HistoryLog } from './types';
 import { Member, Offer, Need } from '../api/types';
+import { SeededRandom } from '../utils/seededRandom';
 
 // Generic interface for items
 export type Item = Offer | Need;
@@ -11,6 +12,7 @@ interface Dataset {
   members: Map<string, Member>;
   history: HistoryLog[];
   globalFeaturedIndex: Map<string, number>;
+  rng?: SeededRandom; // Optional seeded RNG for reproducibility
 }
 
 interface Options {
@@ -44,7 +46,7 @@ export const getDistance = (m1: Member, m2: Member): number => {
 };
 
 // Weighted random selection
-const weightedRandom = (items: Item[], scores: Map<string, number>): Item | null => {
+const weightedRandom = (items: Item[], scores: Map<string, number>, rng?: SeededRandom): Item | null => {
   if (items.length === 0) return null;
 
   let totalWeight = 0;
@@ -54,9 +56,10 @@ const weightedRandom = (items: Item[], scores: Map<string, number>): Item | null
     return w;
   });
 
-  if (totalWeight === 0) return items[Math.floor(Math.random() * items.length)];
+  const rand = rng ? rng.random() : Math.random();
+  if (totalWeight === 0) return items[Math.floor(rand * items.length)];
 
-  let random = Math.random() * totalWeight;
+  let random = rand * totalWeight;
   for (let i = 0; i < items.length; i++) {
     random -= weights[i];
     if (random <= 0) return items[i];
@@ -65,7 +68,7 @@ const weightedRandom = (items: Item[], scores: Map<string, number>): Item | null
 };
 
 export const selectBestItems = (
-  { targetMember, items, members, history, globalFeaturedIndex }: Dataset,
+  { targetMember, items, members, history, globalFeaturedIndex, rng }: Dataset,
   { freshCount, randomCount }: Options
 ): Item[] => {
   const result: Item[] = [];
@@ -145,7 +148,7 @@ export const selectBestItems = (
   for (let i = 0; i < freshCount; i++) {
     if (freshCandidates.length === 0) break;
 
-    const selected = weightedRandom(freshCandidates, scores);
+    const selected = weightedRandom(freshCandidates, scores, rng);
     if (!selected) break;
 
     result.push(selected);
@@ -204,7 +207,8 @@ export const selectBestItems = (
 
   while (result.length < totalTarget && randomCandidates.length > 0) {
     // Pure random
-    let pickIndex = Math.floor(Math.random() * randomCandidates.length);
+    const rand = rng ? rng.random() : Math.random();
+    let pickIndex = Math.floor(rand * randomCandidates.length);
     let pick = randomCandidates[pickIndex];
 
     // Retry 3 times if shares member or category with ANY previously selected
@@ -221,7 +225,8 @@ export const selectBestItems = (
       if (!conflict) break; // Good to go
 
       // Try again
-      pickIndex = Math.floor(Math.random() * randomCandidates.length);
+      const retryRand = rng ? rng.random() : Math.random();
+      pickIndex = Math.floor(retryRand * randomCandidates.length);
       pick = randomCandidates[pickIndex];
     }
 
