@@ -379,6 +379,9 @@
   "accountStatusUpdated": "Estat del compte actualitzat correctament.",
   "loggingOut": "Tancant sessió...",
   "loggedOut": "Has tancat la sessió i no rebràs més notificacions fins que tornis a iniciar sessió.",
+  "unsubscribed": "T'has donat de baixa",
+  "unsubscribedText": "Ja no rebràs correus electrònics del butlletí de la comunitat. Pots canviar les teves preferències de correu electrònic en qualsevol moment a la configuració.",
+  "unsubscribeError": "Error al donar-se de baixa",
 
   "ErrorAuthNoCredentials": "Email o contrasenya incorrectes",
   "ErrorInvalidPassword": "Contrasenya incorrecta",

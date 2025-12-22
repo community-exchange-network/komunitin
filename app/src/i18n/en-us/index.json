@@ -385,6 +385,9 @@
   "loggedOut": "You have been logged out and you won't receive any further notifications until you log in again.",
   "create": "Create",
   "backToTransfers": "Back to transfers",
+  "unsubscribed": "You've been unsubscribed",
+  "unsubscribedText": "You will no longer receive community newsletter emails. You can change your email preferences at any time in your settings.",
+  "unsubscribeError": "Unsubscribe failed",
   
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",

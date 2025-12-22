@@ -396,6 +396,10 @@
 
   "loggingOut": "Disconnessione in corso...",
   "loggedOut": "Sei stato disconnesso e non riceverai ulteriori notifiche finché non effettuerai nuovamente l'accesso.",
+  "unsubscribed": "Ti sei disiscritto",
+  "unsubscribedText": "Non riceverai più email della newsletter della comunità. Puoi modificare le tue preferenze email in qualsiasi momento nelle impostazioni.",
+  "unsubscribeError": "Disiscrizione fallita",
+
   "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
   "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",
   

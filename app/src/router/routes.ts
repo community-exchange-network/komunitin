@@ -28,6 +28,14 @@ const routes: RouteRecordRaw[] = [
         path: '/logout',
         name: 'Logout',
         component: () => import('../pages/home/Logout.vue')
+      },
+      {
+        path: '/unsubscribe',
+        name: 'Unsubscribe',
+        component: () => import('../pages/home/Unsubscribe.vue'),
+        meta: {
+          public: true
+        }
       }
     ]
   },
