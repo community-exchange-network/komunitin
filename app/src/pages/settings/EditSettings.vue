@@ -96,29 +96,16 @@
             :label="$t('myAccountEmails')"
             :hint="$t('myAccountEmailsHint')"
           />
-          <q-item style="padding-left: 12px; padding-right: 12px;">
-            <q-item-section>
-              <q-item-label>{{ $t('groupEmails') }}</q-item-label>
-              <q-item-label caption>{{ $t('groupEmailsHint') }}</q-item-label>
-              <q-btn-toggle
-                v-model="emailGroup"
-                class="q-mt-sm"
-                spread
-                unelevated
-                color="white"
-                text-color="primary"
-                :options="[
-                  {label: $t('weekly'), value: 'weekly', style: 'border: solid 1px var(--q-primary); border-right: none'},
-                  {label: $t('monthly'), value: 'monthly', style: 'border: solid 1px var(--q-primary); border-left: none; border-right: none'},
-                  {label: $t('never'), value: 'never', style: [
-                    // #9E9E9E is 'grey' in Quasar color palette.
-                    'border: solid 1px #9E9E9E; border-left: none',
-                    emailGroup === 'never' ? 'background-color: #9E9E9E !important; color: white !important;' : 'color: #9E9E9E !important;'
-                  ]},
-                ]"
-              />
-            </q-item-section>
-          </q-item>
+          <toggle-btn-item
+            v-model="emailGroup"
+            :label="$t('groupEmails')"
+            :caption="$t('groupEmailsHint')"
+            :options="[
+              { label: $t('weekly'), value: 'weekly'},
+              { label: $t('monthly'), value: 'monthly'},
+              { label: $t('never'), value: 'never', off: true},
+            ]"
+          />
         </q-list>  
       </div>
       <div class="q-mt-lg">
@@ -160,6 +147,7 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import PageHeader from '../../layouts/PageHeader.vue';
 import ToggleItem from '../../components/ToggleItem.vue';
+import ToggleBtnItem from '../../components/ToggleBtnItem.vue';
 import SaveChanges from '../../components/SaveChanges.vue';
 import NfcTagsList from '../../components/NfcTagsList.vue';
 import AccountHeader from 'src/components/AccountHeader.vue';

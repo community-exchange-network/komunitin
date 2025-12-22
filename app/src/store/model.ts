@@ -221,6 +221,8 @@ export interface GroupSettings extends ResourceObject {
     minOffers: number;
     minNeeds: number;
     allowAnonymousMemberList: boolean;
+    enableGroupEmail: boolean;
+    defaultGroupEmailFrequency: MailingFrequency;
   },
   relationships: {
     group: RelatedResource;
