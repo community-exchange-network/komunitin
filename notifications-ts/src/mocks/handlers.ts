@@ -110,6 +110,12 @@ export const handlers = [
     });
   }),
 
+  http.post(`${AUTH_URL}/get-auth-code`, () => {
+    return HttpResponse.json({
+      code: 'mock-unsubscribe-token'
+    });
+  }),
+
   // Social API
   http.get(`${SOCIAL_URL}/groups`, () => {
     const groups = Array.from({ length: 3 }, (_, i) => createGroup(`GRP${i}`, i));
@@ -132,6 +138,19 @@ export const handlers = [
     const { groupCode } = params;
     const needs = Array.from({ length: 2 }, (_, i) => createNeed(groupCode as string, i));
     return HttpResponse.json({ data: needs });
+  }),
+
+  http.get(`${SOCIAL_URL}/:groupCode/settings`, ({ params }) => {
+    const { groupCode } = params;
+    return HttpResponse.json({
+      data: {
+        type: 'group-settings',
+        id: `${groupCode}-settings`,
+        attributes: {
+          enableGroupEmail: true
+        }
+      }
+    });
   }),
 
   http.get(`${SOCIAL_URL}/users/:id`, ({ params }) => {

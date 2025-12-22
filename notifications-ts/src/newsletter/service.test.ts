@@ -2,6 +2,7 @@ import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import { server } from '../mocks/server';
 import { runNewsletter } from './service';
+import { http, HttpResponse } from 'msw';
 // Mock nodemailer to prevent actual email sending
 import nodemailer from 'nodemailer';
 import prisma from '../utils/prisma';
@@ -73,5 +74,39 @@ describe('Newsletter Cron Job', () => {
     assert.ok(logData.content.account, 'Log should have account');
     // If our mock account has balance (random), and transfers (mocked), it should produce some data.
     assert.ok(logData.content.account.balance !== undefined, 'Account section should have balance');
+  });
+
+  test('should skip groups with enableGroupEmail disabled', async () => {
+    // Override the group settings handler to return enableGroupEmail: false
+    server.use(
+      http.get('http://social.test/:groupCode/settings', () => {
+        return HttpResponse.json({
+          data: {
+            type: 'group-settings',
+            id: 'settings',
+            attributes: {
+              enableGroupEmail: false
+            }
+          }
+        });
+      })
+    );
+
+    sendMailMock.mock.resetCalls();
+    // @ts-ignore
+    prisma.newsletterLog.create.mock.resetCalls();
+
+    await runNewsletter();
+
+    // Verify no emails were sent
+    assert.strictEqual(sendMailMock.mock.calls.length, 0, 'Should not send any emails when enableGroupEmail is false');
+    
+    // Verify no logs were created
+    assert.strictEqual(
+      // @ts-ignore
+      prisma.newsletterLog.create.mock.calls.length,
+      0,
+      'Should not create any log entries when enableGroupEmail is false'
+    );
   });
 });

@@ -161,4 +161,9 @@ export class KomunitinClient {
     const res = await this.get('social', `/users/${userId}/settings`);
     return res.data;
   }
+
+  public async getGroupSettings(groupCode: string): Promise<any> {
+    const res = await this.get('social', `/${groupCode}/settings`);
+    return res.data;
+  }
 }

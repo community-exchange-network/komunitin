@@ -75,6 +75,14 @@ export interface Group {
   };
 }
 
+export interface GroupSettings {
+  id: string;
+  attributes: {
+    enableGroupEmail: boolean;
+    // ... other fields
+  };
+}
+
 export interface User {
   id: string;
   attributes: {

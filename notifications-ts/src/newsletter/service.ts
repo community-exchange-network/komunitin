@@ -7,7 +7,7 @@ import { HistoryLog, NewsletterContext, ProcessedItem } from './types';
 import prisma from '../utils/prisma';
 import { shouldSendNewsletter } from './frequency';
 import initI18n from '../utils/i18n';
-import { getAuthCode } from '../auth/getUserToken';
+import { getAuthCode } from '../auth/getAuthCode';
 
 import { selectBestItems, getDistance } from './posts-algorithm';
 import { Member, Offer, Need } from '../api/types';
@@ -55,6 +55,20 @@ const processItems = (
 
 const processGroupNewsletter = async (group: any, client: KomunitinClient, mailer: Mailer, memberCodeFilter?: string, forceSend?: boolean) => {
   logger.info({ group: group.attributes.code }, 'Processing group');
+
+  // Check if group email newsletter is enabled
+  let groupSettings;
+  try {
+    groupSettings = await client.getGroupSettings(group.attributes.code);
+  } catch (err) {
+    logger.warn({ err, group: group.attributes.code }, 'Failed to fetch group settings, skipping group');
+    return;
+  }
+
+  if (!groupSettings.attributes.enableGroupEmail) {
+    logger.info({ group: group.attributes.code }, 'Group email newsletter is disabled, skipping group');
+    return;
+  }
 
   const i18n = await initI18n();
 
@@ -319,6 +333,7 @@ export const runNewsletter = async (options?: { groupCode?: string, memberCode?:
     logger.info({ count: groups.length }, 'Fetched active groups');
 
     for (const group of groups) {
+
       await processGroupNewsletter(group, client, mailer, options?.memberCode, options?.forceSend);
     }
   } catch (error) {
