@@ -5,13 +5,13 @@ const envSchema = z.object({
   KOMUNITIN_SOCIAL_URL: z.string().url(),
   KOMUNITIN_ACCOUNTING_URL: z.string().url(),
   KOMUNITIN_APP_URL: z.string().url(),
-  OAUTH_CLIENT_ID: z.string().min(1),
-  OAUTH_CLIENT_SECRET: z.string().min(1),
+  NOTIFICATIONS_CLIENT_ID: z.string().min(1),
+  NOTIFICATIONS_CLIENT_SECRET: z.string().min(1),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().optional(),
+  APP_EMAIL: z.string().optional(),
   DEV_SAVE_NEWSLETTERS: z.coerce.boolean().optional().default(false),
 });
 

@@ -143,13 +143,13 @@ services:
       KOMUNITIN_SOCIAL_URL: http://integralces:2029/ces/api/social
       KOMUNITIN_ACCOUNTING_URL: http://accounting:2025
       DATABASE_URL: postgresql://notifications:notifications@db-notifications:5432/notifications?schema=public
-      OAUTH_CLIENT_ID: komunitin-notifications
-      OAUTH_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
+      NOTIFICATIONS_CLIENT_ID: komunitin-notifications
+      NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM: ${APP_EMAIL}
+      APP_EMAIL: ${APP_EMAIL}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

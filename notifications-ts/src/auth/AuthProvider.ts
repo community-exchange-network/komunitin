@@ -49,8 +49,8 @@ export class AuthProvider {
     // Prepare request body for client_credentials flow
     const params = new URLSearchParams();
     params.append('grant_type', 'client_credentials');
-    params.append('client_id', config.OAUTH_CLIENT_ID);
-    params.append('client_secret', config.OAUTH_CLIENT_SECRET);
+    params.append('client_id', config.NOTIFICATIONS_CLIENT_ID);
+    params.append('client_secret', config.NOTIFICATIONS_CLIENT_SECRET);
     params.append('scope', 'komunitin_social_read_all komunitin_accounting_read_all');
 
     try {

@@ -42,7 +42,7 @@ export class Mailer {
 
     try {
       const info = await this.transporter.sendMail({
-        from: config.SMTP_FROM,
+        from: config.APP_EMAIL,
         to,
         subject,
         html,
