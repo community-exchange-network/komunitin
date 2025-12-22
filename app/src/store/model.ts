@@ -151,7 +151,7 @@ export interface User extends ResourceObject {
   }
 }
 
-export type MailingFrequency = "never" | "daily" | "weekly" | "monthly" | "quarterly";
+export type MailingFrequency = "never" | "weekly" | "monthly";
 
 export interface UserSettings extends ResourceObject {
   attributes: {

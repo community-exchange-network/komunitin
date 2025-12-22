@@ -96,16 +96,29 @@
             :label="$t('myAccountEmails')"
             :hint="$t('myAccountEmailsHint')"
           />
-          <q-select
-            v-show="false"  
-            v-model="emailGroup"
-            outlined
-            emit-value
-            map-options
-            :options="frequencies"
-            :label="$t('groupEmails')"
-            :hint="$t('groupEmailsHint')"
-          />
+          <q-item style="padding-left: 12px; padding-right: 12px;">
+            <q-item-section>
+              <q-item-label>{{ $t('groupEmails') }}</q-item-label>
+              <q-item-label caption>{{ $t('groupEmailsHint') }}</q-item-label>
+              <q-btn-toggle
+                v-model="emailGroup"
+                class="q-mt-sm"
+                spread
+                unelevated
+                color="white"
+                text-color="primary"
+                :options="[
+                  {label: $t('weekly'), value: 'weekly', style: 'border: solid 1px var(--q-primary); border-right: none'},
+                  {label: $t('monthly'), value: 'monthly', style: 'border: solid 1px var(--q-primary); border-left: none; border-right: none'},
+                  {label: $t('never'), value: 'never', style: [
+                    // #9E9E9E is 'grey' in Quasar color palette.
+                    'border: solid 1px #9E9E9E; border-left: none',
+                    emailGroup === 'never' ? 'background-color: #9E9E9E !important; color: white !important;' : 'color: #9E9E9E !important;'
+                  ]},
+                ]"
+              />
+            </q-item-section>
+          </q-item>
         </q-list>  
       </div>
       <div class="q-mt-lg">
@@ -160,7 +173,6 @@ import type { AccountSettings, MailingFrequency, AccountTag, UserSettings, Membe
 import type { DeepPartial } from 'quasar';
 import { useLocale } from "../../boot/i18n"
 import { watchDebounced } from "@vueuse/shared";
-import { useI18n } from 'vue-i18n';
 import { currencySettingsToAccountSettingsAttributes, useEffectiveSettings } from 'src/composables/accountSettings';
 import { useFullMemberByCode } from 'src/composables/fullMember';
 import { isEqual } from 'lodash-es';
@@ -217,15 +229,6 @@ const userLanguage = computed(() => {
   const lang = userSettings.value?.attributes.language
   return lang ? normalizeLocale(lang) : undefined
 })
-
-const { t } = useI18n()
-const frequencies = [
-  {label: t('daily'), value: 'daily'},
-  {label: t('weekly'), value: 'weekly'},
-  {label: t('monthly'), value: 'monthly'},
-  {label: t('quarterly'), value: 'quarterly'},
-  {label: t('never'), value: 'never'}
-] as const
 
 const langOptions = computed(() => {
   return (Object.keys(langs) as LangName[]).map((lang: LangName) => ({label: langs[lang].label, value: lang}))
