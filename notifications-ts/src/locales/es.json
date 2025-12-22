@@ -46,6 +46,7 @@
     "stats_active_accounts": "Cuentas activas",
     "stats_new_members": "Nuevos miembros",
     "footer_reason": "Recibes este correo como miembro activo de <strong>Komunitin</strong>.",
-    "manage_subscription": "Gestiona tus preferencias de correo"
+    "manage_subscription": "Gestiona tus preferencias de correo",
+    "unsubscribe": "Darse de baja del boletín"
   }
 }

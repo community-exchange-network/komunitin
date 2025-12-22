@@ -42,6 +42,7 @@ export interface NewsletterContext {
     userId: string;
     email: string;
     language: string;
+    unsubscribeToken?: string;
   }
   account: Account;
   currency: Currency;

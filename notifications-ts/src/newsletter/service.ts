@@ -7,6 +7,7 @@ import { HistoryLog, NewsletterContext, ProcessedItem } from './types';
 import prisma from '../utils/prisma';
 import { shouldSendNewsletter } from './frequency';
 import initI18n from '../utils/i18n';
+import { getAuthCode } from '../auth/getUserToken';
 
 import { selectBestItems, getDistance } from './posts-algorithm';
 import { Member, Offer, Need } from '../api/types';
@@ -235,12 +236,22 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     };
 
     for (const { user, settings: userSettings } of recipientsToProcess) {
+      let unsubscribeToken: string | undefined;
+      try {
+        unsubscribeToken = await getAuthCode(user.id);
+      } catch (err) {
+        logger.error({ err, user: user.id }, 'Failed to get unsubscribe token. Aborting sending to this user.');
+        //abort
+        continue;
+      }
+
       const context: NewsletterContext = {
         ...contextBase,
         recipient: {
           userId: user.id,
           email: user.attributes.email,
-          language: userSettings.attributes.language
+          language: userSettings.attributes.language,
+          unsubscribeToken
         }
       };
       const html = await generateNewsletterHtml(context);
@@ -253,7 +264,8 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
         // Send Email
         const lng = userSettings.attributes.language || 'ca';
         const subject = i18n.t('newsletter.subject', { lng, group: group.attributes.name });
-        await mailer.sendNewsletter(user.attributes.email, subject, html);
+        const unsubscribeUrl = `${config.KOMUNITIN_SOCIAL_URL}/users/me/unsubscribe?token=${unsubscribeToken}`;
+        await mailer.sendNewsletter(user.attributes.email, subject, html, unsubscribeUrl);
         logger.info({ user: user.id }, 'Newsletter sent');
         sentRecipients.push({ userId: user.id, email: user.attributes.email });
       } catch (err) {

@@ -51,7 +51,7 @@ export class AuthProvider {
     params.append('grant_type', 'client_credentials');
     params.append('client_id', config.NOTIFICATIONS_CLIENT_ID);
     params.append('client_secret', config.NOTIFICATIONS_CLIENT_SECRET);
-    params.append('scope', 'komunitin_social_read_all komunitin_accounting_read_all');
+    params.append('scope', 'komunitin_social_read_all komunitin_accounting_read_all komunitin_auth_impersonate_all');
 
     try {
       const response = await fetch(`${config.KOMUNITIN_AUTH_URL}/token`, {

@@ -34,19 +34,29 @@ export class Mailer {
     }
   }
 
-  public async sendNewsletter(to: string, subject: string, html: string): Promise<void> {
+  public async sendNewsletter(to: string, subject: string, html: string, unsubscribeUrl?: string): Promise<void> {
     if (!this.transporter) {
       logger.warn({ to }, 'SMTP not configured, skipping email send');
       return;
     }
 
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: config.APP_EMAIL,
+      to,
+      subject,
+      html,
+    };
+
+    // Add List-Unsubscribe headers for one-click unsubscribe (RFC 8058)
+    if (unsubscribeUrl) {
+      mailOptions.headers = {
+        'List-Unsubscribe': `<${unsubscribeUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      };
+    }
+
     try {
-      const info = await this.transporter.sendMail({
-        from: config.APP_EMAIL,
-        to,
-        subject,
-        html,
-      });
+      const info = await this.transporter.sendMail(mailOptions);
       logger.info({ messageId: info.messageId, to }, 'Newsletter sent');
     } catch (error) {
       logger.error({ err: error, to }, 'Failed to send newsletter');
