@@ -70,7 +70,7 @@ onMounted(async () => {
       method: 'POST',
     });
     success.value = true;
-  } catch (err: any) {
+  } catch (err) {
     error.value = err.response?.data?.message;
   } finally {
     loading.value = false;
