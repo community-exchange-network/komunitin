@@ -20,7 +20,7 @@ async function main() {
     }
   }
 
-  logger.info('Starting manual newsletter run with real API...');
+  logger.info('Starting manual newsletter run...');
 
   if (groupCode) logger.info({ groupCode }, 'Filtering by group');
   if (memberCode) logger.info({ memberCode }, 'Filtering by member');

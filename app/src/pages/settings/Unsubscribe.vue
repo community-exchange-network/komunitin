@@ -1,6 +1,11 @@
 <template>
+  <div>
+  <page-header
+      :title="t('settings')"
+  />
+  <q-page-container>
   <q-page class="flex flex-center">
-    <div class="q-pa-md text-center" style="max-width: 500px">
+    <div class="q-pa-md text-center">
       <q-spinner-dots
         v-if="loading"
         color="primary"
@@ -20,7 +25,7 @@
           {{ t('unsubscribedText') }}
         </p>
       </template>
-      <template v-else-if="error">
+      <template v-else>
         <q-icon
           name="error"
           color="negative"
@@ -35,6 +40,7 @@
         </p>
       </template>
       <q-btn
+      v-if="!loading"
         color="primary"
         :label="$t('settings')"
         unelevated
@@ -43,6 +49,8 @@
       />
     </div>
   </q-page>
+  </q-page-container>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -52,7 +60,9 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-
+import PageHeader from '../../layouts/PageHeader.vue';
+import { config } from 'src/utils/config'
+import { checkFetchResponse } from '../../KError';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -63,15 +73,16 @@ const error = ref<string | null>(null);
 
 onMounted(async () => {
   const token = route.query.token as string;
-
+  const socialApiUrl = config.SOCIAL_URL
   try {
     // POST to /users/me/unsubscribe with the token
-    await fetch(`/users/me/unsubscribe?token=${token}`, {
+    const response = await fetch(`${socialApiUrl}/users/me/unsubscribe?token=${token}`, {
       method: 'POST',
     });
+    await checkFetchResponse(response);
     success.value = true;
   } catch (err) {
-    error.value = err.response?.data?.message;
+    error.value = err.message
   } finally {
     loading.value = false;
   }
