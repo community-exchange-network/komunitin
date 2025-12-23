@@ -2,17 +2,16 @@
 CREATE TABLE "NewsletterLog" (
     "id" TEXT NOT NULL,
     "sentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "userId" TEXT NOT NULL,
-    "memberId" TEXT,
+    "memberId" TEXT NOT NULL,
     "groupId" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
+    "recipients" JSONB NOT NULL,
     "content" JSONB NOT NULL,
 
     CONSTRAINT "NewsletterLog_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE INDEX "NewsletterLog_userId_idx" ON "NewsletterLog"("userId");
+CREATE INDEX "NewsletterLog_memberId_idx" ON "NewsletterLog"("memberId");
 
 -- CreateIndex
 CREATE INDEX "NewsletterLog_groupId_idx" ON "NewsletterLog"("groupId");
