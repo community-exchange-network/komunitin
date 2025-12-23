@@ -45,9 +45,6 @@ importers:
       '@tsconfig/node22':
         specifier: ^22.0.5
         version: 22.0.5
-      '@types/handlebars':
-        specifier: ^4.1.0
-        version: 4.1.0
       '@types/node':
         specifier: ^20.10.4
         version: 20.19.27
@@ -826,10 +823,6 @@ packages:
 
   '@tsconfig/node22@22.0.5':
     resolution: {integrity: sha512-hLf2ld+sYN/BtOJjHUWOk568dvjFQkHnLNa6zce25GIH+vxKfvTgm3qpaH6ToF5tu/NN0IH66s+Bb5wElHrLcw==}
-
-  '@types/handlebars@4.1.0':
-    resolution: {integrity: sha512-gq9YweFKNNB1uFK71eRqsd4niVkXrxHugqWFQkeLRJvGjnxsLr16bYtcsG4tOFwmYi0Bax+wCkbf1reUfdl4kA==}
-    deprecated: This is a stub types definition. handlebars provides its own type definitions, so you do not need this installed.
 
   '@types/node-cron@3.0.11':
     resolution: {integrity: sha512-0ikrnug3/IyneSHqCBeslAhlK2aBfYek1fGo4bP4QnZPmiqSGRK+Oy7ZMisLWkesffJvQ1cqAcBnJC+8+nxIAg==}
@@ -2499,10 +2492,6 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@tsconfig/node22@22.0.5': {}
-
-  '@types/handlebars@4.1.0':
-    dependencies:
-      handlebars: 4.7.8
 
   '@types/node-cron@3.0.11': {}
 

@@ -1,10 +1,13 @@
 import fs from 'fs/promises';
 import Handlebars from 'handlebars';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { formatAmount } from '../utils/format';
 import initI18n from '../utils/i18n';
 import logger from '../utils/logger';
 import { NewsletterContext } from './types';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Helper to truncate text
 const truncate = (str: string, length: number) => {

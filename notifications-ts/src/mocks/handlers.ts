@@ -35,7 +35,11 @@ const createMember = (groupCode: string, i: number) => {
       code: faker.internet.username(),
       name: faker.person.fullName(),
       image: i % 3 === 0 ? null : faker.image.avatar(),
-
+      location: {
+        type: 'Point',
+        coordinates: [faker.location.longitude(), faker.location.latitude()]
+      },
+      description: faker.lorem.sentence()
     },
     relationships: {
       account: {
@@ -51,43 +55,48 @@ const createMember = (groupCode: string, i: number) => {
   };
 };
 
-const createOffer = (groupCode: string, i: number) => ({
-  type: 'offers',
-  id: faker.string.uuid(),
-  attributes: {
-    name: faker.commerce.productName(),
-    content: faker.lorem.paragraph(),
-    price: faker.commerce.price(),
-    images: [faker.image.url()],
-    created: faker.date.past().toISOString(),
-  },
-  relationships: {
-    member: {
-      data: { type: 'members', id: `member-${i}` }
+const createOffer = (groupCode: string, i: number) => {
+  const created = faker.date.past().toISOString();
+  return {
+    type: 'offers',
+    id: faker.string.uuid(),
+    attributes: {
+      name: faker.commerce.productName(),
+      content: faker.lorem.paragraph(),
+      price: faker.commerce.price(),
+      images: [faker.image.url()],
+      code: faker.string.alphanumeric(8).toUpperCase(),
+      created,
+      updated: created,
     },
-    author: {
-      data: { type: 'members', id: `member-${i}` }
+    relationships: {
+      member: {
+        data: { type: 'members', id: `member-${i}` }
+      },
     }
-  }
-});
+  };
+};
 
-const createNeed = (groupCode: string, i: number) => ({
-  type: 'needs',
-  id: faker.string.uuid(),
-  attributes: {
-    content: faker.lorem.paragraph(),
-    images: [faker.image.url()],
-    created: faker.date.past().toISOString(),
-  },
-  relationships: {
-    member: {
-      data: { type: 'members', id: `member-${i}` }
+const createNeed = (groupCode: string, i: number) => {
+  const created = faker.date.past().toISOString();
+  return {
+    type: 'needs',
+    id: faker.string.uuid(),
+    attributes: {
+      name: faker.commerce.productName(),
+      content: faker.lorem.paragraph(),
+      images: [faker.image.url()],
+      code: faker.string.alphanumeric(8).toUpperCase(),
+      created,
+      updated: created,
     },
-    author: {
-      data: { type: 'members', id: `member-${i}` }
+    relationships: {
+      member: {
+        data: { type: 'members', id: `member-${i}` }
+      },
     }
   }
-});
+};
 
 const createAccount = (code: string, currency: string) => ({
   type: 'accounts',
