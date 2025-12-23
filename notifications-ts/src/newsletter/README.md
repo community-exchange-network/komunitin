@@ -14,13 +14,14 @@ Candidates are selected using a **Weighted Random** selection, where weights are
 
 #### Scoring Formula
 
-The score for an item is calculated using a two-component base score, followed by multiplicative penalties:
+The score for an item is calculated using a three-component base score, followed by multiplicative penalties:
 
-$$ Score = (w_d \times S_{dist} + w_t \times S_{time}) \times P_{history} \times P_{global} $$
+$$ Score = (w_d \times S_{dist} + w_t \times S_{time} + w_q \times S_{quality}) \times P_{history} \times P_{global} $$
 
 **Weight Constants:**
-- $w_d = 0.33$ (WEIGHT_DISTANCE)
-- $w_t = 0.67$ (WEIGHT_TIME)
+- $w_d = 0.3$ (WEIGHT_DISTANCE)
+- $w_t = 0.6$ (WEIGHT_TIME)
+- $w_q = 0.1$ (WEIGHT_QUALITY)
 
 **Distance Score ($S_{dist}$):**
 
@@ -39,7 +40,14 @@ Items created recently receive a perfect time score. The threshold adapts based 
 
 Where item age is the time elapsed since the item was created (measured from now).
 
-**Historic Penalty ($P_{history}$):**
+**Quality Score ($S_{quality}$):**
+
+Items with images receive a higher quality score to promote more complete and engaging content:
+
+- If item has images: $S_{quality} = 1.0$
+- If item has no images: $S_{quality} = 0.33$
+
+**Historic Penalty ($P_{history}$):****
 
 Penalizes items from authors who were featured in the last 3 newsletters using a base penalty of 0.5:
 

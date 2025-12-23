@@ -78,8 +78,9 @@ export const selectBestItems = (
   const getAuthorId = (item: Item) => item.relationships.member.data.id;
 
   // Constants for scoring
-  const WEIGHT_DISTANCE = 0.33;
-  const WEIGHT_TIME = 0.67;
+  const WEIGHT_DISTANCE = 0.3;
+  const WEIGHT_TIME = 0.6;
+  const WEIGHT_QUALITY = 0.1;
   const HALF_LIFE_DISTANCE = 10000; // 10km in meters
   const HALF_LIFE_TIME = 3 * 30 * 24 * 60 * 60 * 1000; // 3 months in milliseconds
   const DISTANCE_THRESHOLD = 1000; // 1km in meters
@@ -134,8 +135,12 @@ export const selectBestItems = (
     }
     // Otherwise (item age <= TIME_THRESHOLD): scoreTime stays 1.0
 
-    // Base score combining distance and time
-    let score = WEIGHT_DISTANCE * scoreDistance + WEIGHT_TIME * scoreTime;
+    // Quality Score
+    const hasImages = item.attributes.images && item.attributes.images.length > 0;
+    const scoreQuality = hasImages ? 1.0 : 0.33;
+
+    // Base score combining distance, time, and quality
+    let score = WEIGHT_DISTANCE * scoreDistance + WEIGHT_TIME * scoreTime + WEIGHT_QUALITY * scoreQuality;
 
     // Historic Penalty
     for (let m = 1; m <= 3; m++) {

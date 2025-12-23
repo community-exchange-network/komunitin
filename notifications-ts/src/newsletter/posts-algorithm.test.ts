@@ -26,6 +26,7 @@ const createItem = (id: string, authorId: string, created: string, category?: st
     name: `Item ${id}`,
     content: 'desc',
     created,
+    updated: created,
     expires: '2099-01-01',
     images: [],
     code: id
@@ -271,5 +272,66 @@ describe('Feedback Algorithm', () => {
 
     // item3 should be selected more often than item2 due to conflict retry logic
     assert.ok(item3SelectedCount > 40, `Item with different category selected ${item3SelectedCount}/100 times`);
+  });
+
+  test('selectBestItems prefers items with images (Quality Score)', () => {
+    const target = createMember('target', 0, 0);
+    const m1 = createMember('m1', 1, 1); // Far away (~157km)
+    const m2 = createMember('m2', 1, 1); // Same distance, far away
+
+    // Create items with same distance (far) and old, but different image status
+    // Using old dates so time score is low, making quality more significant
+    const oldDate = new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString(); // 2 years ago
+    
+    const itemWithImages = createItem('withImages', 'm1', oldDate);
+    itemWithImages.attributes.images = ['image1.jpg'];
+    
+    const itemWithoutImages = createItem('withoutImages', 'm2', oldDate);
+    itemWithoutImages.attributes.images = [];
+
+    const items = [itemWithImages, itemWithoutImages];
+
+    const members = new Map([
+      ['m1', m1],
+      ['m2', m2]
+    ]);
+
+    // Run multiple times to verify probability favors item with images
+    // Both items: far (low distance score) + old (low time score)
+    // Quality becomes a key differentiator: 1.0 vs 0.5
+    let withImagesCount = 0;
+    
+    // Debug: run once to see actual scores
+    const debugRng = new SeededRandom(7000);
+    const debugResult = selectBestItems({
+      targetMember: target,
+      items,
+      members,
+      history: [],
+      globalFeaturedIndex: new Map(),
+      rng: debugRng
+    }, { freshCount: 2, randomCount: 0 }); // Get both to see scores
+    
+    console.log('Debug - items selected:', debugResult.map(i => i.id));
+    
+    for (let i = 0; i < 100; i++) {
+      const rng = new SeededRandom(7000 + i);
+      const result = selectBestItems({
+        targetMember: target,
+        items,
+        members,
+        history: [],
+        globalFeaturedIndex: new Map(),
+        rng
+      }, { freshCount: 1, randomCount: 0 });
+
+      if (result[0]?.id === 'withImages') withImagesCount++;
+    }
+
+    // With items 2 years old and ~157km away, distance and time scores are near zero
+    // Quality becomes the primary differentiator (0.1 weight):
+    // scoreWith ≈ 0.1*1.0 = 0.1, scoreWithout ≈ 0.1*0.33 = 0.033
+    // Probability = 0.1/(0.1+0.033) = 75.2%
+    assert.ok(withImagesCount > 70, `Item with images selected ${withImagesCount}/100 times (quality provides advantage when items are old and far)`);
   });
 });
