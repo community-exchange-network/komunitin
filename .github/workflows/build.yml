@@ -100,7 +100,7 @@ jobs:
         pnpm prisma generate
     - name: Run tests
       run: |
-        pnpm compile
+        pnpm typecheck
         pnpm test
     - name: Build production image
       run: docker build --tag komunitin/komunitin-notifications-ts .

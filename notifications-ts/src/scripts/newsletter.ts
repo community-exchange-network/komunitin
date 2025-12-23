@@ -9,6 +9,18 @@ async function main() {
   let forceSend = false;
 
   for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--help') {
+      console.log(`
+Usage: pnpm newsletter [options]
+
+Options:
+  --group <code >    Filter by group code
+  --member <code >   Filter by member code (requires --group)
+  --force-send       Ignore frequency settings and send immediately
+  --help             Show this help message
+      `);
+      process.exit(0);
+    }
     if (args[i] === '--group') {
       groupCode = args[i + 1];
       i++;
