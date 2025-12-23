@@ -2,12 +2,13 @@
   "name": "notifications-ts",
   "version": "1.0.0",
   "description": "Komunitin Notifications Service (Node.js/TypeScript)",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "compile": "tsc",
+    "typecheck": "tsc --noEmit",
     "dev": "tsx --inspect=0.0.0.0:9229 watch src/index.ts",
     "newsletter": "tsx --inspect=0.0.0.0:9229 src/scripts/run.ts",
-    "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js",
+    "build": "pnpm typecheck && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --packages=external --sourcemap",
     "start": "node dist/index.js",
     "reset-db": "prisma migrate reset --force",
     "test": "pnpm reset-db && node --env-file=.env.test --import tsx --test src/**/*.test.ts"

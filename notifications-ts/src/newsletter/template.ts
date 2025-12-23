@@ -60,7 +60,7 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
     return `${appUrl}${resolvedPath}`;
   };
 
-  let alertData = null;
+  let alertData: any = null;
   if (accountSection?.alert) {
     alertData = {
       title: i18n.t(accountSection.alert.titleId, { lng, ...accountSection.alert.messageParams }),
