@@ -166,7 +166,7 @@ jobs:
 
   update-server:
     runs-on: ubuntu-latest
-    needs: [build-app, build-notifications, build-accounting]
+    needs: [build-app, build-notifications, build-accounting, build-notifications-ts]
     steps:
     - uses: actions/checkout@v4
 
