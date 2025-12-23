@@ -146,7 +146,9 @@ jobs:
       run: pnpm install
 
     - name: Run tests
-      run: pnpm test
+      run: |
+        pnpm reset-db
+        pnpm test
 
     - name: Build docker images
       run: |
