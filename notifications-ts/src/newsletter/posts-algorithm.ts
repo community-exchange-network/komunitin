@@ -77,15 +77,27 @@ export const selectBestItems = (
   // Helper to get author ID
   const getAuthorId = (item: Item) => item.relationships.member.data.id;
 
+  // Constants for scoring
+  const WEIGHT_DISTANCE = 0.33;
+  const WEIGHT_TIME = 0.67;
+  const HALF_LIFE_DISTANCE = 10000; // 10km in meters
+  const HALF_LIFE_TIME = 3 * 30 * 24 * 60 * 60 * 1000; // 3 months in milliseconds
+  const DISTANCE_THRESHOLD = 1000; // 1km in meters
+  const HISTORIC_PENALTY_BASE = 0.5;
+  const GLOBAL_EQUALITY_PENALTY_BASE = 0.5;
+  const REPEATED_MEMBER_PENALTY = 0.01;
+  const REPEATED_CATEGORY_PENALTY = 0.1;
+  const MAX_FRESH_CANDIDATES = 100;
+
   // 1. FRESH & CLOSE (M items)
   // -------------------------
   const lastNewsletterDate = history.length > 0 ? new Date(history[0].sentAt) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  // Filter candidates: Not own, Created after last newsletter
-  let freshCandidates = items.filter(item =>
-    getAuthorId(item) !== targetMember.id &&
-    new Date(item.attributes.created) > lastNewsletterDate
-  );
+  // Filter candidates: Not own items, limit to most recent items
+  // Assumes items are ordered by update date (latest first)
+  let freshCandidates = items
+    .filter(item => getAuthorId(item) !== targetMember.id)
+    .slice(0, MAX_FRESH_CANDIDATES);
 
   // Initialize Scores
   const scores = new Map<string, number>();
@@ -97,19 +109,33 @@ export const selectBestItems = (
 
     // Distance Score
     const d = getDistance(targetMember, author);
-
-    // Internal constants
-    const K = 1000;
-    const ALPHA = 0.1;
-
-    // Flat score if d < K (approx 1000m "local" radius)
-    // Continuous decay starting from K: exp(-(d-K)/K)
-    let distTerm = 1.0;
-    if (d > K) {
-      distTerm = Math.exp(-(d - K) / K);
+    let scoreDistance = 1.0;
+    if (d > DISTANCE_THRESHOLD) {
+      // Exponential decay using half-life formula
+      // score = exp(-ln(2) * (d - threshold) / half_life)
+      const lambda = Math.log(2) / HALF_LIFE_DISTANCE;
+      scoreDistance = Math.exp(-lambda * (d - DISTANCE_THRESHOLD));
     }
 
-    let score = ALPHA + (1 - ALPHA) * distTerm;
+    // Time Score
+    const itemCreationDate = new Date(item.attributes.updated);
+    const now = Date.now();
+    const itemAge = now - itemCreationDate.getTime(); // How old the item is
+    const timeSinceLastNewsletter = now - lastNewsletterDate.getTime();
+    const oneMonth = 30 * 24 * 60 * 60 * 1000;
+    
+    const TIME_THRESHOLD = Math.min(oneMonth, timeSinceLastNewsletter);
+    
+    let scoreTime = 1.0;
+    if (itemAge > TIME_THRESHOLD) {
+      // Item is older than threshold - apply exponential decay
+      const lambda = Math.log(2) / HALF_LIFE_TIME;
+      scoreTime = Math.exp(-lambda * (itemAge - TIME_THRESHOLD));
+    }
+    // Otherwise (item age <= TIME_THRESHOLD): scoreTime stays 1.0
+
+    // Base score combining distance and time
+    let score = WEIGHT_DISTANCE * scoreDistance + WEIGHT_TIME * scoreTime;
 
     // Historic Penalty
     for (let m = 1; m <= 3; m++) {
@@ -119,8 +145,6 @@ export const selectBestItems = (
       const oldItemIds = [...(content.bestOffers || []), ...(content.bestNeeds || [])];
 
       // Check if this author provided any of these items
-      // We look up the items in our full `items` list to find their author
-      // Optimization: Could pre-calculate authors of history items
       const authorsInLog = new Set<string>();
       oldItemIds.forEach(id => {
         const i = items.find(x => x.id === id);
@@ -128,14 +152,14 @@ export const selectBestItems = (
       });
 
       if (authorsInLog.has(authorId)) {
-        score *= Math.pow(0.5, 4 - m);
+        score *= Math.pow(HISTORIC_PENALTY_BASE, 4 - m);
       }
     }
 
     // Item Equality Penalty (Global)
     const N = globalFeaturedIndex.get(item.id) || 0;
     if (N > 0) {
-      score *= Math.pow(0.5, N);
+      score *= Math.pow(GLOBAL_EQUALITY_PENALTY_BASE, N);
     }
 
     return score;
@@ -163,13 +187,8 @@ export const selectBestItems = (
     freshCandidates = freshCandidates.filter(item => item.id !== selected.id);
 
     // Update scores for remaining candidates
-    // Sympathy penalty: same category * 0.1, same member * 0.1^2
-    const selectedCategory = (selected as any).relationships.category?.data?.id; // Assuming category exists? Or implies type? Or attributes?
-    // User request: "sharing same category". Offer/Need might have category relationship.
-    // If mock/types don't have category, ignore for now or infer. Mock has no category.
-    // Let's assume generic "type" is category if specific category field missing, or skip.
-    // Actually, offers usually have categories. I'll check generic attribute 'category' just in case.
-
+    // Sympathy penalty: same category * REPEATED_CATEGORY_PENALTY, same member * REPEATED_MEMBER_PENALTY
+    const selectedCategory = (selected as any).relationships.category?.data?.id;
     const selectedAuthor = getAuthorId(selected);
 
     freshCandidates.forEach(candidate => {
@@ -177,15 +196,13 @@ export const selectBestItems = (
 
       // Same Author penalty
       if (getAuthorId(candidate) === selectedAuthor) {
-        currentScore *= 0.01; // 0.1^2
+        currentScore *= REPEATED_MEMBER_PENALTY;
       }
 
       // Same Category penalty
-      // If category is available... let's check relationships
-      // Assuming candidate.relationships.category?.data?.id
       const candidateCategory = (candidate as any).relationships.category?.data?.id;
       if (selectedCategory && candidateCategory && selectedCategory === candidateCategory) {
-        currentScore *= 0.1;
+        currentScore *= REPEATED_CATEGORY_PENALTY;
       }
 
       scores.set(candidate.id, currentScore);

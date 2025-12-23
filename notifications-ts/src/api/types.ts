@@ -31,6 +31,7 @@ export interface Offer {
     images: string[];
     content: string;
     created: string;
+    updated: string;
     expires: string;
     // add other fields
   };
@@ -46,6 +47,7 @@ export interface Need {
     images: string[];
     content: string;
     created: string;
+    updated: string;
     expires: string;
   };
   relationships: {

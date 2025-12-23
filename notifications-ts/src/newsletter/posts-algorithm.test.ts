@@ -48,8 +48,8 @@ describe('Feedback Algorithm', () => {
 
   test('selectBestItems prefers closer members (Distance Score)', () => {
     const target = createMember('target', 0, 0);
-    const closeMember = createMember('close', 0.01, 0.01); // Very close
-    const farMember = createMember('far', 20, 20); // Very Far (d >> K)
+    const closeMember = createMember('close', 0.001, 0.001); // Very close (~150m)
+    const farMember = createMember('far', 1, 1); // Very Far (d >> 100km)
 
     const items = [
       createItem('i1', 'close', new Date().toISOString()),
@@ -62,6 +62,8 @@ describe('Feedback Algorithm', () => {
     ]);
 
     // Run multiple times to verify probability favors i1
+    // With new scoring: close has score ~1.0, far has score ~0.5 (due to time component)
+    // Expected ratio: ~66%
     let closeCount = 0;
     for (let i = 0; i < 100; i++) {
       const rng = new SeededRandom(1000 + i); // Fixed seed per iteration
@@ -77,15 +79,15 @@ describe('Feedback Algorithm', () => {
       if (result[0]?.id === 'i1') closeCount++;
     }
 
-    assert.ok(closeCount > 70, `Close item selected ${closeCount}/100 times`);
+    assert.ok(closeCount > 60, `Close item selected ${closeCount}/100 times (should be ~66%)`);
   });
 
-  test('selectBestItems treats distance < K as flat (equal probability)', () => {
+  test('selectBestItems treats distance < 1km as flat (equal probability)', () => {
     const target = createMember('target', 0, 0);
-    const m1 = createMember('m1', 1, 1); // ~150km < 1000
-    const m2 = createMember('m2', 2, 2); // ~300km < 1000
+    const m1 = createMember('m1', 0.005, 0.005); // ~800m < 1000m
+    const m2 = createMember('m2', 0.008, 0.008); // ~1200m < 1000m (still very close)
 
-    // Both should have score 1.0 (before ALPHA mix, actually 1.0 total)
+    // Both should have score 1.0 for distance component (within threshold)
     // So probability should be roughly 50/50
 
     const items = [
@@ -110,7 +112,7 @@ describe('Feedback Algorithm', () => {
     }
 
     // Allow variance, but should be close to 500
-    assert.ok(i1Count > 400 && i1Count < 600, `Items within K should be treated equally (i1 count: ${i1Count})`);
+    assert.ok(i1Count > 400 && i1Count < 600, `Items within 1km threshold should be treated equally (i1 count: ${i1Count})`);
   });
 
   test('selectBestItems applies History Penalty', () => {
@@ -181,13 +183,14 @@ describe('Feedback Algorithm', () => {
 
   test('Penalties can outweigh proximity (Base Score check)', () => {
     // Neighbor (d=0) but penalized heavily (featured recently)
-    // Stranger (d=2000 > K=1000) but fresh
-    // With pure exp(), stranger score ~ 0, so neighbor wins.
-    // With base score, stranger score ~ 0.2. Neighbor score 1.0 * 0.125 = 0.125. Stranger should win.
+    // Stranger (d=2000 > 1km) but fresh
+    // With new scoring: neighbor gets scoreDistance=1.0 but historic penalty 0.5^3 = 0.125
+    // Stranger gets scoreDistance based on half-life (10km), so at 2km: exp(-ln(2) * 1/10) ≈ 0.933
+    // Stranger's total score (0.5 * 0.933 + 0.5 * 1.0) = 0.967 should beat neighbor's 0.5 * 0.125 = 0.0625
 
     const target = createMember('target', 0, 0);
-    const neighbor = createMember('neighbor', 0, 0); // d=0 < 1000
-    const stranger = createMember('stranger', 0.02, 0.02); // d ~ 3km > 1000
+    const neighbor = createMember('neighbor', 0, 0); // d=0 < 1km
+    const stranger = createMember('stranger', 0.018, 0.018); // d ~ 2.8km > 1km
 
     const items = [
       createItem('neighborItem', 'neighbor', new Date().toISOString()),
@@ -199,11 +202,7 @@ describe('Feedback Algorithm', () => {
       ['stranger', stranger]
     ]);
 
-    // History: neighbor featured last time (m=1 -> factor 0.125)
-    // Add neighborItem to history
-    // Since we check if AUTHOR was featured, we need to trace author.
-    // We can use a dummy item id that maps to neighbor in the items list, 
-    // BUT our logic looks up valid items. 'neighborItem' is valid.
+    // History: neighbor featured last time (m=1 -> factor 0.5^3 = 0.125)
     const history: HistoryLog[] = [
       { 
         sentAt: new Date(Date.now() - 86400000).toISOString(),
@@ -227,7 +226,7 @@ describe('Feedback Algorithm', () => {
       if (result[0]?.id === 'strangerItem') strangerCount++;
     }
 
-    assert.ok(strangerCount > 50, `Stranger selected ${strangerCount}/100 times (should beat penalized neighbor)`);
+    assert.ok(strangerCount > 80, `Stranger selected ${strangerCount}/100 times (should beat penalized neighbor)`);
   });
 
   test('Random selection with category conflict retry', () => {

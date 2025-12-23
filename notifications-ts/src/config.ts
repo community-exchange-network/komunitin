@@ -3,6 +3,7 @@ import { z } from 'zod';
 const envSchema = z.object({
   KOMUNITIN_AUTH_URL: z.string().url(),
   KOMUNITIN_SOCIAL_URL: z.string().url(),
+  KOMUNITIN_SOCIAL_PUBLIC_URL: z.string().url(),
   KOMUNITIN_ACCOUNTING_URL: z.string().url(),
   KOMUNITIN_APP_URL: z.string().url(),
   NOTIFICATIONS_CLIENT_ID: z.string().min(1),

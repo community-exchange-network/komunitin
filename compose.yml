@@ -141,7 +141,9 @@ services:
     environment:
       KOMUNITIN_AUTH_URL: http://integralces:2029/oauth2
       KOMUNITIN_SOCIAL_URL: http://integralces:2029/ces/api/social
+      KOMUNITIN_SOCIAL_PUBLIC_URL: ${ICES_URL}/ces/api/social
       KOMUNITIN_ACCOUNTING_URL: http://accounting:2025
+      KOMUNITIN_APP_URL: ${KOMUNITIN_APP_URL}
       DATABASE_URL: postgresql://notifications:notifications@db-notifications:5432/notifications?schema=public
       NOTIFICATIONS_CLIENT_ID: komunitin-notifications
       NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
