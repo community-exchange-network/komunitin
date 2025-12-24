@@ -4,6 +4,7 @@
     header-balance
     :both-accounts="false"
     only-mine
+    show-profile
   />
 </template>
 <script setup lang="ts">

@@ -5,6 +5,7 @@
       search 
       :balance="props.headerBalance"
       @search="query = $event" 
+      :profile="props.showProfile"
     >
       <template #buttons>
         <q-btn
@@ -74,6 +75,7 @@ const props = defineProps<{
   headerBalance?: boolean
   bothAccounts?: boolean
   onlyMine?: boolean
+  showProfile?:boolean
 }>()
 const store = useStore()
 const myMember = computed(() => props.onlyMine ? store.getters.myMember : undefined);

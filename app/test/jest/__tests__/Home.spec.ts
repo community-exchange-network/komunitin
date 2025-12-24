@@ -5,15 +5,14 @@ import {
   QInnerLoading,
   QToolbarTitle,
   QInfiniteScroll,
-  QSelect,
-  QItem,
+  QMenu,
 } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
-import ApiSerializer from "src/server/ApiSerializer";
 import { seeds } from "src/server";
-import SelectCategory from "src/components/SelectCategory.vue";
 import NeedCard from "src/components/NeedCard.vue";
+import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
+import MenuItem from 'src/components/MenuItem.vue';
 
 describe("Home", () => {
   let wrapper: VueWrapper;
@@ -87,5 +86,30 @@ describe("Home", () => {
     const needBtn = actions.find(action => action.text().includes('Create need'));
     expect(offerBtn).toBeDefined();
     expect(needBtn).toBeDefined();
+  })
+
+  it('displays Profile button and menu', async () => {
+    const profileButton = wrapper.findComponent(ProfileBtnMenu);
+    expect(profileButton.isVisible()).toBe(true);
+    await profileButton.trigger('click');
+
+    await wrapper.vm.$nextTick();
+
+    const profileMenu = wrapper.getComponent(QMenu);
+    expect(profileMenu.isVisible()).toBe(true);
+    // Workaround for targeting teleport-rendered element that is not a Component.
+    // Returns a native DOM element
+    const profileDetails = profileMenu.element.ownerDocument.querySelector('[data-testid="profile-details"]');
+    expect(profileDetails.textContent).toContain('Emiliano Lemke');
+    
+    const myProfileBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My profile'));
+    const myOffersBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My offers'));
+    const myNeedsBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My needs'));
+    const logOutBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Log out'));
+
+    expect(myProfileBtn).toBeDefined();
+    expect(myOffersBtn).toBeDefined();
+    expect(myNeedsBtn).toBeDefined();
+    expect(logOutBtn).toBeDefined();
   })
 });
