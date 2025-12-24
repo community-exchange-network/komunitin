@@ -23,6 +23,8 @@ services:
   db-notifications:
     image: redis:7
     restart: unless-stopped
+    expose:
+      - "6379"
     volumes:
       - db-notifications:/data
   

@@ -1,5 +1,5 @@
 services:
-  redis:
+  db-notifications:
     image: redis:7
     command: redis-server --save 600 1 20 100 --appendonly yes
     restart: unless-stopped
@@ -8,7 +8,7 @@ services:
 
   notifications:
     depends_on:
-      - redis
+      - db-notifications
     build: .
     restart: unless-stopped
     ports:
@@ -61,7 +61,7 @@ services:
     image: rediscommander/redis-commander:latest
     restart: unless-stopped
     environment:
-     - REDIS_HOSTS=local:redis:6379
+     - REDIS_HOSTS=local:db-notifications:6379
     ports:
      - "2027:8081" 
     profiles:
