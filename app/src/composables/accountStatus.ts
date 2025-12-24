@@ -9,7 +9,7 @@ export const useAccountStatus = (status: MaybeRefOrGetter<MemberState>) => {
       case 'active':
         return 'positive'
       case 'disabled':
-        return 'grey-6'
+        return 'grey'
       case 'pending':
         return 'info'
       case 'suspended':

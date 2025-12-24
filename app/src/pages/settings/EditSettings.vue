@@ -96,15 +96,15 @@
             :label="$t('myAccountEmails')"
             :hint="$t('myAccountEmailsHint')"
           />
-          <q-select
-            v-show="false"  
+          <toggle-btn-item
             v-model="emailGroup"
-            outlined
-            emit-value
-            map-options
-            :options="frequencies"
             :label="$t('groupEmails')"
-            :hint="$t('groupEmailsHint')"
+            :caption="$t('groupEmailsHint')"
+            :options="[
+              { label: $t('weekly'), value: 'weekly'},
+              { label: $t('monthly'), value: 'monthly'},
+              { label: $t('never'), value: 'never', off: true},
+            ]"
           />
         </q-list>  
       </div>
@@ -147,6 +147,7 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import PageHeader from '../../layouts/PageHeader.vue';
 import ToggleItem from '../../components/ToggleItem.vue';
+import ToggleBtnItem from '../../components/ToggleBtnItem.vue';
 import SaveChanges from '../../components/SaveChanges.vue';
 import NfcTagsList from '../../components/NfcTagsList.vue';
 import AccountHeader from 'src/components/AccountHeader.vue';
@@ -160,7 +161,6 @@ import type { AccountSettings, MailingFrequency, AccountTag, UserSettings, Membe
 import type { DeepPartial } from 'quasar';
 import { useLocale } from "../../boot/i18n"
 import { watchDebounced } from "@vueuse/shared";
-import { useI18n } from 'vue-i18n';
 import { currencySettingsToAccountSettingsAttributes, useEffectiveSettings } from 'src/composables/accountSettings';
 import { useFullMemberByCode } from 'src/composables/fullMember';
 import { isEqual } from 'lodash-es';
@@ -217,15 +217,6 @@ const userLanguage = computed(() => {
   const lang = userSettings.value?.attributes.language
   return lang ? normalizeLocale(lang) : undefined
 })
-
-const { t } = useI18n()
-const frequencies = [
-  {label: t('daily'), value: 'daily'},
-  {label: t('weekly'), value: 'weekly'},
-  {label: t('monthly'), value: 'monthly'},
-  {label: t('quarterly'), value: 'quarterly'},
-  {label: t('never'), value: 'never'}
-] as const
 
 const langOptions = computed(() => {
   return (Object.keys(langs) as LangName[]).map((lang: LangName) => ({label: langs[lang].label, value: lang}))

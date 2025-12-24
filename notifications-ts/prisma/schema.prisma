@@ -1,0 +1,27 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model NewsletterLog {
+  id        String   @id @default(uuid())
+  sentAt    DateTime @default(now())
+  
+  // Recipient details
+  memberId  String
+  groupId   String
+  recipients Json
+
+  // Variable content snapshot (featured items, alerts triggered)
+  content   Json
+
+  @@index([memberId])
+  @@index([groupId])
+  @@index([sentAt])
+}

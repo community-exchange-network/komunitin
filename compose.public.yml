@@ -27,6 +27,11 @@ services:
     networks:
       - proxy
   
+  notifications-ts:
+    ports: !reset []
+    networks:
+      - proxy
+  
   accounting:
     ports: !reset []
     expose:
@@ -55,7 +60,8 @@ services:
     networks:
       - proxy
 
-  redis:
+  db-notifications:
+    ports: !reset []
     networks:
       - proxy
 
@@ -68,7 +74,12 @@ services:
     ports: !reset []
     networks:
       - proxy
-
+  
+  db-notifications-ts:
+    ports: !reset []
+    networks:
+      - proxy
+  
 networks:
   proxy:
     name: ${KOMUNITIN_DOMAIN}

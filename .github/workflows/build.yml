@@ -59,7 +59,56 @@ jobs:
       run: |
         docker login -u komunitin -p ${{ secrets.DOCKER_PASS }}
         docker push komunitin/komunitin-notifications
+  
+  build-notifications-ts:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./notifications-ts
+    steps:
+    - uses: actions/checkout@v4
 
+    - name: Set environment and start dependent services
+      shell: bash
+      run: cp .env.test .env && docker compose up -d
+      
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - uses: actions/cache@v4
+      name: Setup pnpm cache
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+    - name: Install dependencies
+      run: |
+        pnpm install --ignore-scripts=false
+        pnpm prisma generate
+    - name: Run tests
+      run: |
+        pnpm typecheck
+        pnpm test
+    - name: Build production image
+      run: docker build --tag komunitin/komunitin-notifications-ts .
+    - name: Publish to Docker Hub
+      if: github.ref == 'refs/heads/master'
+      run: |
+        docker login -u komunitin -p ${{ secrets.DOCKER_PASS }}
+        docker push komunitin/komunitin-notifications-ts
   build-accounting:
     runs-on: ubuntu-latest
     defaults:
@@ -96,10 +145,12 @@ jobs:
           ${{ runner.os }}-pnpm-store-
 
     - name: Install dependencies
-      run: pnpm install
+      run: pnpm install --ignore-scripts=false
 
     - name: Run tests
-      run: pnpm test
+      run: |
+        pnpm reset-db
+        pnpm test
 
     - name: Build docker images
       run: |
@@ -115,7 +166,7 @@ jobs:
 
   update-server:
     runs-on: ubuntu-latest
-    needs: [build-app, build-notifications, build-accounting]
+    needs: [build-app, build-notifications, build-accounting, build-notifications-ts]
     steps:
     - uses: actions/checkout@v4
 

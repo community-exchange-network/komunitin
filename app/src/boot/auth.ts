@@ -6,7 +6,7 @@ export default boot(({ router }) => {
   // Prevent access to paths that need authorization.
   router.beforeEach(async (to) => {
     try {
-      if (to.query.token) {
+      if (to.query.token && to.path !== '/unsubscribe') {
         // Login with url token.
         await store.dispatch("authorizeWithCode", {code: to.query.token});
       } else {

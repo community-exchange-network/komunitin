@@ -22,7 +22,7 @@ func NewStore() (*Store, error) {
 		// Store and Stream are using the same Redis instance. That's fine but incidental.
 		// They could perfectly use different instances if needed for scalability.
 		client: *redis.NewClient(&redis.Options{
-			Addr:     "redis:6379",
+			Addr:     "db-notifications:6379",
 			Password: "", // no password set
 			DB:       0,  // use default database
 		}),

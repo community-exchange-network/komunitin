@@ -51,6 +51,15 @@ services:
       - ./accounting/.env:/app/.env
       - ./accounting/package.json:/app/package.json
       - ./accounting/pnpm-lock.yaml:/app/pnpm-lock.yaml
+  
+  notifications-ts:
+    command: pnpm dev
+    volumes:
+      - ./notifications-ts/src:/app/src
+      - ./notifications-ts/prisma:/app/prisma
+      - ./notifications-ts/.env:/app/.env
+      - ./notifications-ts/package.json:/app/package.json
+      - ./notifications-ts/pnpm-lock.yaml:/app/pnpm-lock.yaml
 
   cc:
     build:
@@ -73,11 +82,14 @@ services:
       PMA_PORTS: "3306,5432"
     ports:
       - "2026:80"
+  db-notifications:
+    ports:
+      - "6379:6379"
   redis-commander:
     image: rediscommander/redis-commander:latest
     restart: unless-stopped
     environment:
-     - REDIS_HOSTS=local:redis:6379
+     - REDIS_HOSTS=local:db-notifications:6379
     ports:
      - "2027:8081" 
   

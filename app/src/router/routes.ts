@@ -28,7 +28,7 @@ const routes: RouteRecordRaw[] = [
         path: '/logout',
         name: 'Logout',
         component: () => import('../pages/home/Logout.vue')
-      }
+      },
     ]
   },
   {
@@ -48,6 +48,16 @@ const routes: RouteRecordRaw[] = [
         path: '/settings',
         name: 'Settings',
         component: () => import('../pages/settings/EditSettings.vue')
+      },
+      {
+        path: '/unsubscribe',
+        name: 'Unsubscribe',
+        component: () => import('../pages/settings/Unsubscribe.vue'),
+        meta: {
+          public: true,
+          back: false,
+          rootPage: true
+        }
       },
       {
         path: '/profile',
