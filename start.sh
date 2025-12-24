@@ -57,12 +57,14 @@ sleep 10
 
 fi
 
-# Install Accounting service
+# Install Accounting and NOtifications-ts service
 if [ "$demo" = true  ]; then
   docker compose exec accounting pnpm prisma migrate reset --force
+  docker compose exec notifications-ts pnpm prisma migrate reset --force
   sleep 2
 else
   docker compose exec accounting pnpm prisma migrate deploy
+  docker compose exec notifications-ts pnpm prisma migrate deploy
   sleep 2
 fi
 

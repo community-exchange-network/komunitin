@@ -240,7 +240,7 @@
   "myAccountEmails": "My account",
   "myAccountEmailsHint": "Emails related to your account: transfers, expired offers and needs...",
   "groupEmails": "Community news",
-  "groupEmailsHint": "Compilation of latest community news: new members, new offers and needs...",
+  "groupEmailsHint": "Receive a compilation of latest offers, needs and statistics from your community.",
   "never": "Never",
   "daily": "Daily",
   "weekly": "Weekly",
@@ -385,6 +385,9 @@
   "loggedOut": "You have been logged out and you won't receive any further notifications until you log in again.",
   "create": "Create",
   "backToTransfers": "Back to transfers",
+  "unsubscribed": "You've been unsubscribed",
+  "unsubscribedText": "You will no longer receive community newsletter emails. You can change your email preferences at any time in your settings.",
+  "unsubscribeError": "Unsubscribe failed",
   
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",

@@ -241,7 +241,7 @@
   "myAccountEmails": "Mi cuenta",
   "myAccountEmailsHint": "Emails de movimientos de tu cuenta: movimientos, ofertas o necesidades caducadas...",
   "groupEmails": "Novedades de la comunidad",
-  "groupEmailsHint": "Recopilación de novedades de tu comunidad: nuevos miembros, nuevas ofertas y necesidades...",
+  "groupEmailsHint": "Recibir una recopilación de las últimas ofertas, necesidades y estadísticas de tu comunidad.",
   "never": "Nunca",
   "daily": "Diario",
   "weekly": "Semanal",
@@ -379,6 +379,9 @@
   "accountStatusUpdated": "Estado de la cuenta actualizado con éxito.",
   "loggingOut": "Cerrando sesión...",
   "loggedOut": "Has cerrado la sesión y no recibirás más notificaciones hasta que vuelvas a iniciar sesión.",
+  "unsubscribed": "Te has dado de baja",
+  "unsubscribedText": "Ya no recibirás correos electrónicos del boletín de la comunidad. Puedes cambiar tus preferencias de correo electrónico en cualquier momento en la configuración.",
+  "unsubscribeError": "Error al darse de baja",
 
   "ErrorAuthNoCredentials": "Email o password incorrectos",
   "ErrorInvalidPassword": "Contraseña incorrecta",
