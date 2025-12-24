@@ -62,7 +62,7 @@ import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import PageHeader from '../../layouts/PageHeader.vue';
 import { config } from 'src/utils/config'
-import { checkFetchResponse } from '../../KError';
+import KError, { checkFetchResponse } from '../../KError';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -82,7 +82,8 @@ onMounted(async () => {
     await checkFetchResponse(response);
     success.value = true;
   } catch (err) {
-    error.value = err.message
+    const kerr = KError.getKError(err);
+    error.value = kerr.message;
   } finally {
     loading.value = false;
   }

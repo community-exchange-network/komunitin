@@ -14,8 +14,8 @@ async function main() {
 Usage: pnpm newsletter [options]
 
 Options:
-  --group <code >    Filter by group code
-  --member <code >   Filter by member code (requires --group)
+  --group <code>    Filter by group code
+  --member <code>   Filter by member code (requires --group)
   --force-send       Ignore frequency settings and send immediately
   --help             Show this help message
       `);
