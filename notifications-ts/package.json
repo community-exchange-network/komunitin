@@ -24,7 +24,7 @@
     "i18next": "^25.7.3",
     "i18next-fs-backend": "^2.6.1",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.9.7",
+    "nodemailer": "^7.0.11",
     "pg": "^8.16.3",
     "pino": "^8.16.2",
     "zod": "^3.22.4"
