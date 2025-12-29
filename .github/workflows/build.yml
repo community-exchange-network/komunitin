@@ -96,7 +96,7 @@ jobs:
           ${{ runner.os }}-pnpm-store-
     - name: Install dependencies
       run: |
-        pnpm install --ignore-scripts=false
+        pnpm install
         pnpm prisma generate
     - name: Run tests
       run: |
@@ -145,7 +145,7 @@ jobs:
           ${{ runner.os }}-pnpm-store-
 
     - name: Install dependencies
-      run: pnpm install --ignore-scripts=false
+      run: pnpm install
 
     - name: Run tests
       run: |
