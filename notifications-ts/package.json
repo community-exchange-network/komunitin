@@ -6,7 +6,7 @@
   "main": "dist/index.mjs",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "tsx --inspect=0.0.0.0:9229 watch src/index.ts",
+    "dev": "tsx watch --inspect=0.0.0.0:9229 src/index.ts",
     "newsletter": "tsx --inspect=0.0.0.0:9229 src/scripts/newsletter.ts",
     "build": "pnpm typecheck && unbuild",
     "start": "node dist/index.mjs",
