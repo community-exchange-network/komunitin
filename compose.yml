@@ -64,6 +64,7 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: accounting
       POSTGRES_APP_PASSWORD: accounting
+      WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
       WALG_GS_PREFIX: ${GOOGLE_CLOUD_STORAGE_BUCKET}/db-accounting
       WALG_COMPRESSION_METHOD: zstd
       GOOGLE_APPLICATION_CREDENTIALS: "/opt/komunitin-project-backup-credentials.json"
@@ -169,6 +170,7 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: notifications
       POSTGRES_APP_PASSWORD: notifications
+      WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
       WALG_GS_PREFIX: ${GOOGLE_CLOUD_STORAGE_BUCKET}/db-notifications
       WALG_COMPRESSION_METHOD: zstd
       GOOGLE_APPLICATION_CREDENTIALS: "/opt/komunitin-project-backup-credentials.json"
