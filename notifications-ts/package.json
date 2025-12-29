@@ -42,5 +42,8 @@
     "tsx": "^4.6.2",
     "typescript": "^5.3.3",
     "unbuild": "^3.6.1"
+  },
+  "pnpm": {
+    "neverBuiltDependencies": []
   }
 }
