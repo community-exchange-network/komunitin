@@ -1,7 +1,7 @@
 import { flushPromises, VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent } from "../utils";
-import { QTab } from "quasar";
+import { QMenu, QTab } from "quasar";
 import NeedCard from "../../../src/components/NeedCard.vue";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import MemberList from "../../../src/pages/members/MemberList.vue";
@@ -9,6 +9,8 @@ import MemberHeader from "../../../src/components/MemberHeader.vue";
 import TransactionItems from "../../../src/pages/transactions/TransactionItems.vue";
 import { seeds } from "src/server";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
+import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
+import MenuItem from 'src/components/MenuItem.vue';
 
 describe("Member", () => {
   let wrapper: VueWrapper;
@@ -20,11 +22,17 @@ describe("Member", () => {
   afterAll(() => wrapper.unmount());
 
   it("Navigation to my account", async () => {
-    await wrapper.vm.$router.push("/groups/GRP0/needs")
-    // Wait for the login redirect.
+    await wrapper.vm.$router.push("/login");
+    // Wait for the login redirect to Home.
     await flushPromises();
+    // Open profile menu
+    await wrapper.findComponent(ProfileBtnMenu).trigger('click');
     // Click members link
-    await wrapper.get("#my-member").trigger("click");
+    const memberButton = wrapper
+      .getComponent(QMenu)
+      .findAllComponents(MenuItem)
+      .find((item) => item.text().includes("My profile"));
+    await memberButton.trigger("click");
     await flushPromises();
     expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57");
     // Wait for content.
