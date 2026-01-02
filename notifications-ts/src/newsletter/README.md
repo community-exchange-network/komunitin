@@ -111,4 +111,5 @@ To avoid "alert fatigue", the algorithm checks the previous 2 newsletter logs fo
 
 - If the **same alert type** was shown in the **last 2 consecutive newsletters**, that alert is **skipped**.
 - The algorithm then proceeds to the next highest priority alert.
-- This ensures users are not pestered with the same message more than twice in a row, allowing lower-priority but relevant alerts to surface.
+
+This ensures users are not pestered with the same message more than twice in a row, allowing lower-priority but relevant alerts to surface.
