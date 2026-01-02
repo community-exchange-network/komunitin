@@ -47,7 +47,16 @@ func Mailer(ctx context.Context) error {
 	}
 
 	if config.SendMails == "true" {
-		mailSender = NewMailerSend(config.MailersendApiKey)
+		if config.MailersendApiKey != "" {
+			mailSender = NewMailerSend(config.MailersendApiKey)
+		} else {
+			// Use SMTP when MailerSend API key is not set
+			sender, err := NewSmtpSender(config.SmtpHost, config.SmtpPort, config.SmtpUser, config.SmtpPass)
+			if err != nil {
+				return fmt.Errorf("failed to initialize SMTP sender: %w", err)
+			}
+			mailSender = sender
+		}
 	} else {
 		mailSender = NewMockMailSender()
 	}
@@ -196,9 +205,10 @@ func fetchTransferResources(ctx context.Context, event *events.Event, which fetc
 
 	// Find the payer and payee members since the return order from the api is not guaranteed.
 	for _, member := range members {
-		if member.Account.Id == event.Data["payer"] {
+		switch member.Account.Id {
+		case event.Data["payer"]:
 			payer = member
-		} else if member.Account.Id == event.Data["payee"] {
+		case event.Data["payee"]:
 			payee = member
 		}
 	}
