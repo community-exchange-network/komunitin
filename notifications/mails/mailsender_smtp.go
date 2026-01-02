@@ -12,7 +12,6 @@ import (
 
 type SmtpSender struct {
 	client *mail.Client
-	from   string
 }
 
 func NewSmtpSender(host, port, username, password string) (*SmtpSender, error) {
@@ -32,11 +31,10 @@ func NewSmtpSender(host, port, username, password string) (*SmtpSender, error) {
 		return nil, fmt.Errorf("failed to create SMTP client: %w", err)
 	}
 
-	log.Printf("SMTP client initialized: %s:%s (user: %s)\n", host, port, username)
+	log.Printf("SMTP client initialized: %s:%s\n", host, port)
 
 	return &SmtpSender{
 		client: client,
-		from:   username,
 	}, nil
 }
 
@@ -47,20 +45,15 @@ func (s *SmtpSender) SendMail(ctx context.Context, message Email) error {
 	m := mail.NewMsg()
 
 	// Set From address
-	if err := m.From(message.From.Email); err != nil {
+	if err := m.FromFormat(message.From.Name, message.From.Email); err != nil {
 		return fmt.Errorf("failed to set from address: %w", err)
 	}
-	m.SetGenHeader("From", fmt.Sprintf("%s <%s>", message.From.Name, message.From.Email))
 
 	// Set Recipients
-	var recipients []string
 	for _, to := range message.To {
-		recipients = append(recipients, to.Email)
-		if err := m.AddTo(to.Email); err != nil {
-			return fmt.Errorf("failed to add recipient %s: %w", to.Email, err)
+		if err := m.AddToFormat(to.Name, to.Email); err != nil {
+			return fmt.Errorf("failed to add to address: %w", err)
 		}
-		// Set friendly name for recipient
-		m.SetGenHeader("To", fmt.Sprintf("%s <%s>", to.Name, to.Email))
 	}
 
 	// Set Subject
@@ -72,7 +65,7 @@ func (s *SmtpSender) SendMail(ctx context.Context, message Email) error {
 
 	// Send the email
 	if err := s.client.DialAndSendWithContext(ctx, m); err != nil {
-		return fmt.Errorf("error sending email to %v: %w", recipients, err)
+		return fmt.Errorf("error sending email: %w", err)
 	}
 
 	for _, recipient := range message.To {
