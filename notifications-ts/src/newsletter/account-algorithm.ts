@@ -1,5 +1,5 @@
 import {AccountSection, AccountAlert, HistoryLog } from './types';
-import { Member, Offer, Need, Currency } from '../api/types';
+import { Member, Offer, Need, Currency } from '../clients/komunitin/types';
 
 // Constants
 const HOUR_THRESHOLD = 10;

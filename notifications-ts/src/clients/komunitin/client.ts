@@ -1,6 +1,6 @@
-import { config } from '../config';
-import { AuthProvider } from '../auth/AuthProvider';
-import logger from '../utils/logger';
+import { config } from '../../config';
+import { AuthProvider } from './AuthProvider';
+import logger from '../../utils/logger';
 import { Group, Member, User, Offer, Need, Account, Transfer, Currency, TransferStats, AccountStats } from './types';
 
 export class KomunitinClient {

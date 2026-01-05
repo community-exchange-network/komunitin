@@ -1,4 +1,4 @@
-import { Currency } from '../api/types';
+import { Currency } from '../clients/komunitin/types';
 
 export const formatAmount = (amount: number, currency: Currency, locale: string = 'ca'): string => {
   const { scale, decimals, symbol } = currency.attributes;

@@ -1,6 +1,6 @@
 
 import { LogContent, HistoryLog } from './types';
-import { Member, Offer, Need } from '../api/types';
+import { Member, Offer, Need } from '../clients/komunitin/types';
 import { SeededRandom } from '../utils/seededRandom';
 
 // Generic interface for items
