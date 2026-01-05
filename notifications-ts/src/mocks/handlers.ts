@@ -16,6 +16,10 @@ const createGroup = (code: string, i: number) => ({
     name: `Group ${i}`,
     access: 'public',
     city: faker.location.city(),
+    location: {
+      type: 'Point',
+      coordinates: [2.1734, 41.3851] // Barcelona coordinates
+    }
   },
   relationships: {
     currency: {

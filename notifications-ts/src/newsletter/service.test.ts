@@ -1,4 +1,4 @@
-import { test, describe, before, after, beforeEach } from 'node:test';
+import { test, describe, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { server } from '../mocks/server';
 import { runNewsletter } from './service';
@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 // Mock nodemailer to prevent actual email sending
 import nodemailer from 'nodemailer';
 import prisma from '../utils/prisma';
+import { mockDate, restoreDate } from '../mocks/date';
 
 // Mock nodemailer
 const sendMailMock = test.mock.fn((_options: any) => Promise.resolve({ messageId: 'mock-id' }));
@@ -28,7 +29,14 @@ describe('Newsletter Cron Job', () => {
     sendMailMock.mock.resetCalls();
   });
 
+  afterEach(() => {
+    restoreDate();
+  });
+
   test('should generate and send newsletter', async () => {
+    // Mock date to Sunday 15:30 Madrid time (UTC+1 in winter) -> 14:30 UTC
+    mockDate('2026-01-04T14:30:00Z');
+    
     await runNewsletter();
 
     // Verify emails were sent
@@ -108,5 +116,51 @@ describe('Newsletter Cron Job', () => {
       0,
       'Should not create any log entries when enableGroupEmail is false'
     );
+  });
+
+  test('should cache groups and not hit endpoint repeatedly', async () => {
+    let groupsCallCount = 0;
+    
+    // Override handler to count calls and return minimal data
+    server.use(
+      http.get('http://social.test/groups', () => {
+        groupsCallCount++;
+        return HttpResponse.json({
+          data: [
+            {
+              type: 'groups',
+              id: 'g-cache-test',
+              attributes: {
+                code: 'TEST',
+                name: 'Test Group',
+                access: 'public',
+                location: { type: 'Point', coordinates: [0, 0] }
+              }
+            }
+          ]
+        });
+      })
+    );
+
+    // Set date to Sunday 15:30
+    const initialDate = '2026-01-04T14:30:00Z';
+    mockDate(initialDate);
+
+    // 1. Force refresh to ensure known state
+    // We use forceSend: true to trigger the fetch.
+    await runNewsletter({ forceSend: true });
+    assert.strictEqual(groupsCallCount, 1, 'Should fetch groups when forced');
+
+    // 2. Normal run immediately after
+    await runNewsletter();
+    assert.strictEqual(groupsCallCount, 1, 'Should use cache on second run');
+
+    // 3. Advance time by 25 hours
+    // 2026-01-05T15:30:00Z (Monday)
+    mockDate('2026-01-05T15:30:00Z');
+
+    // 4. Normal run after TTL
+    await runNewsletter();
+    assert.strictEqual(groupsCallCount, 2, 'Should refresh cache after TTL');
   });
 });
