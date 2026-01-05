@@ -10,7 +10,7 @@ import initI18n from '../utils/i18n';
 import { getAuthCode } from '../clients/komunitin/getAuthCode';
 
 import { selectBestItems, getDistance } from './posts-algorithm';
-import { Member, Offer, Need } from '../clients/komunitin/types';
+import { Member, Offer, Need, UserSettings } from '../clients/komunitin/types';
 import { getAccountSectionData } from './account-algorithm';
 import { SeededRandom, stringToSeed } from '../utils/seededRandom';
 
@@ -126,7 +126,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     }) as HistoryLog[];
 
     for (const user of users) {
-      let userSettings;
+      let userSettings: UserSettings;
       try {
         userSettings = await client.getUserSettings(user.id);
       } catch (e) {

@@ -1,7 +1,7 @@
 import { config } from '../../config';
 import { AuthProvider } from './AuthProvider';
 import logger from '../../utils/logger';
-import { Group, Member, User, Offer, Need, Account, Transfer, Currency, TransferStats, AccountStats } from './types';
+import { Group, Member, User, Offer, Need, Account, Transfer, Currency, TransferStats, AccountStats, UserSettings, GroupSettings } from './types';
 
 export class KomunitinClient {
   private auth: AuthProvider;
@@ -157,12 +157,12 @@ export class KomunitinClient {
     return res.data;
   }
 
-  public async getUserSettings(userId: string): Promise<any> {
+  public async getUserSettings(userId: string): Promise<UserSettings> {
     const res = await this.get('social', `/users/${userId}/settings`);
     return res.data;
   }
 
-  public async getGroupSettings(groupCode: string): Promise<any> {
+  public async getGroupSettings(groupCode: string): Promise<GroupSettings> {
     const res = await this.get('social', `/${groupCode}/settings`);
     return res.data;
   }
