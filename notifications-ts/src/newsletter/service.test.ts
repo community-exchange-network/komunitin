@@ -34,8 +34,8 @@ describe('Newsletter Cron Job', () => {
   });
 
   test('should generate and send newsletter', async () => {
-    // Mock date to Sunday 15:30 UTC (which matches our test group's UTC timezone)
-    mockDate('2026-01-04T15:30:00Z');
+    // Mock date to Sunday 15:30 Madrid time (UTC+1 in winter) -> 14:30 UTC
+    mockDate('2026-01-04T14:30:00Z');
     
     await runNewsletter();
 
