@@ -7,8 +7,8 @@ import { runNewsletter } from './newsletter/service';
 const main = async () => {
   logger.info('Starting notifications-ts service...');
 
-  // Schedule newsletter: Every Sunday at 18:30
-  cron.schedule('30 18 * * 0', () => {
+  // Schedule newsletter: Every hour at minute 30
+  cron.schedule('30 * * * *', () => {
     runNewsletter();
   });
 

@@ -5,14 +5,20 @@ import logger from '../utils/logger';
 import { config } from '../config';
 import { HistoryLog, NewsletterContext, ProcessedItem } from './types';
 import prisma from '../utils/prisma';
-import { shouldSendNewsletter } from './frequency';
+import { shouldSendNewsletter, shouldProcessGroup } from './frequency';
 import initI18n from '../utils/i18n';
 import { getAuthCode } from '../clients/komunitin/getAuthCode';
 
 import { selectBestItems, getDistance } from './posts-algorithm';
-import { Member, Offer, Need, UserSettings } from '../clients/komunitin/types';
+import { Member, Offer, Need, UserSettings, Group } from '../clients/komunitin/types';
 import { getAccountSectionData } from './account-algorithm';
 import { SeededRandom, stringToSeed } from '../utils/seededRandom';
+
+
+// Cache groups for 24 hours to avoid fetching them every hour
+let cachedGroups: Group[] = [];
+let lastCacheTime = 0;
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 const processItems = (
   items: (Offer | Need)[],
@@ -319,8 +325,17 @@ export const runNewsletter = async (options?: { groupCode?: string, memberCode?:
   const mailer = new Mailer();
 
   try {
-    // 1. Get all active groups
-    let groups = await client.getGroups({ 'filter[status]': 'active' });
+    // 1. Get all active groups, using a 24h cache
+    
+    const isManualRun = !!(options?.groupCode || options?.memberCode || options?.forceSend);
+    const now = Date.now();
+    if (isManualRun || now - lastCacheTime > CACHE_TTL || cachedGroups.length === 0) {
+      logger.info('Refreshing groups cache...');
+      cachedGroups = await client.getGroups({ 'filter[status]': 'active' });
+      lastCacheTime = now;
+      logger.info({ count: cachedGroups.length }, 'Fetched active groups');
+    }
+    let groups: Group[] = cachedGroups
 
     if (options?.memberCode && !options?.groupCode) {
       options.groupCode = options.memberCode.substring(0, 4);
@@ -330,10 +345,9 @@ export const runNewsletter = async (options?: { groupCode?: string, memberCode?:
       groups = groups.filter((g: any) => g.attributes.code === options.groupCode);
     }
 
-    logger.info({ count: groups.length }, 'Fetched active groups');
-
-    for (const group of groups) {
-
+    const groupsToProcess = groups.filter(group => shouldProcessGroup(group, isManualRun));
+    logger.info({ count: groupsToProcess.length }, 'Processing groups for newsletter');
+    for (const group of groupsToProcess) {
       await processGroupNewsletter(group, client, mailer, options?.memberCode, options?.forceSend);
     }
   } catch (error) {

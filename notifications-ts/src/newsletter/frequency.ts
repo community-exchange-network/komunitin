@@ -1,4 +1,39 @@
 
+import tz from '@photostructure/tz-lookup';
+import { Group } from '../clients/komunitin/types';
+import logger from '../utils/logger';
+
+const NEWSLETTER_SEND_DAY = 0; // Sunday
+const NEWSLETTER_SEND_HOUR = 15; // at 3:30 PM
+
+export const shouldProcessGroup = (group: Group, isManualRun: boolean): boolean => {
+  if (isManualRun) return true;
+
+  let timeZone = 'UTC';
+  const coords = group.attributes.location?.coordinates;
+
+  if (coords && coords.length === 2 && !(coords[0] === 0 && coords[1] === 0)) {
+    try {
+      const [lon, lat] = coords;
+      timeZone = tz(lat, lon);
+    } catch (err) {
+      logger.warn({ err, group: group.attributes.code }, 'Failed to determine timezone from coordinates, defaulting to UTC timezone');
+    }
+  } else {
+    logger.warn({ group: group.attributes.code }, 'Group has invalid coordinates, defaulting to UTC timezone');
+  }
+
+  // Build a date string in local time zone
+  const localTime = new Date().toLocaleString('en-US', { timeZone, hour12: false });
+  // Now parse it back to a Date object to extract components
+  const localDate = new Date(localTime);
+  
+  // Use getDay() and getHours() to get the "face value" of the time in the target timezone
+  // (Since localDate was constructed from a string without timezone, it represents that time in the system timezone,
+  // so getHours() returns exactly what we parsed)
+  return localDate.getDay() === NEWSLETTER_SEND_DAY && localDate.getHours() === NEWSLETTER_SEND_HOUR;
+};
+
 export const shouldSendNewsletter = (frequency: string, lastSentDate: Date | undefined, now: Date = new Date()): boolean => {
   if (!lastSentDate) return true;
 

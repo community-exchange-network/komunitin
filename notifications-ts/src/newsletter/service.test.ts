@@ -1,4 +1,4 @@
-import { test, describe, before, after, beforeEach } from 'node:test';
+import { test, describe, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { server } from '../mocks/server';
 import { runNewsletter } from './service';
@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 // Mock nodemailer to prevent actual email sending
 import nodemailer from 'nodemailer';
 import prisma from '../utils/prisma';
+import { mockDate, restoreDate } from '../mocks/date';
 
 // Mock nodemailer
 const sendMailMock = test.mock.fn((_options: any) => Promise.resolve({ messageId: 'mock-id' }));
@@ -28,7 +29,14 @@ describe('Newsletter Cron Job', () => {
     sendMailMock.mock.resetCalls();
   });
 
+  afterEach(() => {
+    restoreDate();
+  });
+
   test('should generate and send newsletter', async () => {
+    // Mock date to Sunday 15:30 UTC (which matches our test group's UTC timezone)
+    mockDate('2026-01-04T15:30:00Z');
+    
     await runNewsletter();
 
     // Verify emails were sent

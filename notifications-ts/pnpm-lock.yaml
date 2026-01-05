@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@photostructure/tz-lookup':
+        specifier: ^11.3.0
+        version: 11.3.0
       '@prisma/adapter-pg':
         specifier: ^7.2.0
         version: 7.2.0
@@ -612,6 +615,9 @@ packages:
 
   '@open-draft/until@2.1.0':
     resolution: {integrity: sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==}
+
+  '@photostructure/tz-lookup@11.3.0':
+    resolution: {integrity: sha512-rYGy7ETBHTnXrwbzm47e3LJPKJmzpY7zXnbZhdosNU0lTGWVqzxptSjK4qZkJ1G+Kwy4F6XStNR9ZqMsXAoASQ==}
 
   '@prisma/adapter-pg@7.2.0':
     resolution: {integrity: sha512-euIdQ13cRB2wZ3jPsnDnFhINquo1PYFPCg6yVL8b2rp3EdinQHsX9EDdCtRr489D5uhphcRk463OdQAFlsCr0w==}
@@ -2827,6 +2833,8 @@ snapshots:
       outvariant: 1.4.3
 
   '@open-draft/until@2.1.0': {}
+
+  '@photostructure/tz-lookup@11.3.0': {}
 
   '@prisma/adapter-pg@7.2.0':
     dependencies:

@@ -6,6 +6,12 @@ export interface Address {
   addressCountry: string;
 }
 
+export interface Location {  
+  name?: string;
+  type: "Point";
+  coordinates: [number, number];
+}
+
 export interface Member {
   id: string;
   attributes: {
@@ -13,11 +19,7 @@ export interface Member {
     image: string;
     description: string;
     address?: Address;
-    location?: {
-      name?: string;
-      type: "Point";
-      coordinates: [number, number];
-    };
+    location?: Location;
     [key: string]: any;
   };
   relationships?: any;
@@ -73,6 +75,8 @@ export interface Group {
     code: string;
     name: string;
     status: "pending" | "active" | "disabled";
+    location: Location;
+    address?: Address;
     // ... other fields
   };
 }
