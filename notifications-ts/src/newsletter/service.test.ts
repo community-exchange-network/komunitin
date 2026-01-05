@@ -117,4 +117,50 @@ describe('Newsletter Cron Job', () => {
       'Should not create any log entries when enableGroupEmail is false'
     );
   });
+
+  test('should cache groups and not hit endpoint repeatedly', async () => {
+    let groupsCallCount = 0;
+    
+    // Override handler to count calls and return minimal data
+    server.use(
+      http.get('http://social.test/groups', () => {
+        groupsCallCount++;
+        return HttpResponse.json({
+          data: [
+            {
+              type: 'groups',
+              id: 'g-cache-test',
+              attributes: {
+                code: 'TEST',
+                name: 'Test Group',
+                access: 'public',
+                location: { type: 'Point', coordinates: [0, 0] }
+              }
+            }
+          ]
+        });
+      })
+    );
+
+    // Set date to Sunday 15:30
+    const initialDate = '2026-01-04T14:30:00Z';
+    mockDate(initialDate);
+
+    // 1. Force refresh to ensure known state
+    // We use forceSend: true to trigger the fetch.
+    await runNewsletter({ forceSend: true });
+    assert.strictEqual(groupsCallCount, 1, 'Should fetch groups when forced');
+
+    // 2. Normal run immediately after
+    await runNewsletter();
+    assert.strictEqual(groupsCallCount, 1, 'Should use cache on second run');
+
+    // 3. Advance time by 25 hours
+    // 2026-01-05T15:30:00Z (Monday)
+    mockDate('2026-01-05T15:30:00Z');
+
+    // 4. Normal run after TTL
+    await runNewsletter();
+    assert.strictEqual(groupsCallCount, 2, 'Should refresh cache after TTL');
+  });
 });

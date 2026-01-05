@@ -13,11 +13,11 @@ import { selectBestItems, getDistance } from './posts-algorithm';
 import { Member, Offer, Need, UserSettings, Group } from '../clients/komunitin/types';
 import { getAccountSectionData } from './account-algorithm';
 import { SeededRandom, stringToSeed } from '../utils/seededRandom';
+import { MemCache } from '../utils/memcache';
 
 
 // Cache groups for 24 hours to avoid fetching them every hour
-let cachedGroups: Group[] = [];
-let lastCacheTime = 0;
+const groupsCache = new MemCache<Group[]>();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 const processItems = (
@@ -328,14 +328,14 @@ export const runNewsletter = async (options?: { groupCode?: string, memberCode?:
     // 1. Get all active groups, using a 24h cache
     
     const isManualRun = !!(options?.groupCode || options?.memberCode || options?.forceSend);
-    const now = Date.now();
-    if (isManualRun || now - lastCacheTime > CACHE_TTL || cachedGroups.length === 0) {
-      logger.info('Refreshing groups cache...');
-      cachedGroups = await client.getGroups({ 'filter[status]': 'active' });
-      lastCacheTime = now;
-      logger.info({ count: cachedGroups.length }, 'Fetched active groups');
-    }
-    let groups: Group[] = cachedGroups
+    
+    const allGroups = await groupsCache.get(async () => {
+      const result = await client.getGroups({ 'filter[status]': 'active' });
+      logger.info({ count: result.length }, 'Fetched active groups');
+      return result;
+    }, CACHE_TTL, isManualRun);
+    
+    let groups: Group[] = allGroups;
 
     if (options?.memberCode && !options?.groupCode) {
       options.groupCode = options.memberCode.substring(0, 4);
