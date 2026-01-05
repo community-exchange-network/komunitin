@@ -1,5 +1,5 @@
-import { KomunitinClient } from '../api/client';
-import { Mailer, saveNewsletter } from '../services/mailer';
+import { KomunitinClient } from '../clients/komunitin/client';
+import { Mailer, saveNewsletter } from '../clients/email/mailer';
 import { generateNewsletterHtml } from './template';
 import logger from '../utils/logger';
 import { config } from '../config';
@@ -7,10 +7,10 @@ import { HistoryLog, NewsletterContext, ProcessedItem } from './types';
 import prisma from '../utils/prisma';
 import { shouldSendNewsletter } from './frequency';
 import initI18n from '../utils/i18n';
-import { getAuthCode } from '../auth/getAuthCode';
+import { getAuthCode } from '../clients/komunitin/getAuthCode';
 
 import { selectBestItems, getDistance } from './posts-algorithm';
-import { Member, Offer, Need } from '../api/types';
+import { Member, Offer, Need, UserSettings } from '../clients/komunitin/types';
 import { getAccountSectionData } from './account-algorithm';
 import { SeededRandom, stringToSeed } from '../utils/seededRandom';
 
@@ -126,7 +126,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     }) as HistoryLog[];
 
     for (const user of users) {
-      let userSettings;
+      let userSettings: UserSettings;
       try {
         userSettings = await client.getUserSettings(user.id);
       } catch (e) {

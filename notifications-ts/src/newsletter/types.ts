@@ -1,4 +1,4 @@
-import { Account, Group, Currency, Member } from '../api/types';
+import { Account, Group, Currency, Member } from '../clients/komunitin/types';
 export interface Stats {
   exchanges: number;
   newMembers: number;

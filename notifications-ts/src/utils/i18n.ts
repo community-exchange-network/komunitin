@@ -17,7 +17,7 @@ const initI18n = async () => {
         ns: ['translation'],
         defaultNS: 'translation',
         backend: {
-          loadPath: path.join(__dirname, '../locales/{{lng}}.json'),
+          loadPath: path.join(__dirname, '../i18n/{{lng}}.json'),
         },
         interpolation: {
           escapeValue: false, // Handlebars scrubs HTML

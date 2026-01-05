@@ -19,7 +19,7 @@ let templateCache: Handlebars.TemplateDelegate | null = null;
 const loadTemplate = async () => {
   if (templateCache) return templateCache;
   try {
-    const templatePath = path.join(__dirname, '../templates/newsletter.hbs');
+    const templatePath = path.join(__dirname, 'templates', 'newsletter.hbs');
     const source = await fs.readFile(templatePath, 'utf-8');
     templateCache = Handlebars.compile(source);
     return templateCache;

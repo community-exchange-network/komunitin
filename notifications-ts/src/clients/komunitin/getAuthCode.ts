@@ -1,6 +1,6 @@
-import { config } from '../config';
+import { config } from '../../config';
 import { AuthProvider } from './AuthProvider';
-import logger from '../utils/logger';
+import logger from '../../utils/logger';
 
 /**
  * Get a temporary user token for unsubscribe links

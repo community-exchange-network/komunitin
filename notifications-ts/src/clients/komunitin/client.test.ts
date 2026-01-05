@@ -1,7 +1,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { KomunitinClient } from './client';
-import { server } from '../mocks/server';
+import { server } from '../../mocks/server';
 
 describe('KomunitinClient', () => {
   before(() => {

@@ -1,5 +1,5 @@
-import { config } from '../config';
-import logger from '../utils/logger';
+import { config } from '../../config';
+import logger from '../../utils/logger';
 
 interface TokenResponse {
   access_token: string;
