@@ -27,14 +27,14 @@
           data-testid="profile-details"
           @click.stop>
           <avatar
-            size="xl"
+            size="4rem"
             :img-src="myMember.attributes.image"
             :text="myMember.attributes.name"
           />
           <span class="text-center text-subtitle1 q-mt-md">
             {{ myMember.attributes.name }}
           </span>
-          <span class="text-center text-caption text-secondary">
+          <span class="text-center text-grey-7">
             {{ account }}
           </span>
         </div>
