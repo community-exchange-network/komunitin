@@ -175,10 +175,6 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
 
 const showProfile = props.profile;
-/**
- * Show no button
- */
-// const noButton = computed(() => !showBack.value && !showMenu.value && !showProfile)
 
 
 /**
