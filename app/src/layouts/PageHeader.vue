@@ -173,8 +173,10 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
  * Show the menu button.
  */
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
-
-const showProfile = props.profile;
+/**
+ * Show the profile button only on root pages. 
+ */
+const showProfile = computed(() => route.meta.rootPage);
 
 
 /**
