@@ -2,8 +2,8 @@
   <q-header>
     <div
       id="header"
-      :class="`bg-primary flex row ${balanceScaleFactor > 0 ? 'wrap' : 'no-wrap' } justify-between items-center q-pt-sm q-pb-xs q-pl-sm q-pr-md`"
-      :style="`height: ${computedHeight}px; ${showBalance ? '' : 'padding-top:4px;'}`"
+      :class="`bg-primary flex row ${showBalance ? '' : 'q-pt-xs'} ${balanceScaleFactor > 0 ? 'wrap' : 'no-wrap' } justify-between items-center q-pt-sm q-pb-xs q-pl-sm q-pr-md`"
+      :style="`height: ${computedHeight}px;`"
     >
         <!-- render back button, menu button, profile button or none -->
         <q-btn
