@@ -164,6 +164,7 @@ const offset = ref(0)
 const myAccount = computed(() => store.getters.myAccount)
 
 
+
 const route = useRoute()
 /**
  * Show the back button.
@@ -174,9 +175,9 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
  */
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
 /**
- * Show the profile button only on root pages. 
+ * Show the profile button only on (non-admin) root pages. 
  */
-const showProfile = computed(() => route.meta.rootPage);
+const showProfile = computed(() => route.meta.rootPage && !route.path.includes('/admin'));
 
 
 /**
