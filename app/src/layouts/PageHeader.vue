@@ -211,7 +211,6 @@ if (process.env.FEAT_HEADER_BALANCE === 'true') {
   computedHeight = computed(() => originalHeight.value - offset.value)
   balanceScaleFactor = computed(() => Math.max(0, 1 - offset.value / balanceHeight))
   showBalance = computed(() => toValue(requireBalance) && offset.value < balanceHeight)
-  console.log(balanceScaleFactor.value);
 
   
   scrollHandler = (details: { position: { top: number; }; }) => {
