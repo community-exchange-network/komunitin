@@ -8,8 +8,8 @@
   >
     <avatar
       size="md"
-      :img-src="myMember.attributes.image"
-      :text="myMember.attributes.name"
+      :img-src="myMember?.attributes.image"
+      :text="myMember?.attributes.name || ''"
     />
 
     <q-menu
@@ -28,11 +28,11 @@
           @click.stop>
           <avatar
             size="4rem"
-            :img-src="myMember.attributes.image"
-            :text="myMember.attributes.name"
+            :img-src="myMember?.attributes.image"
+            :text="myMember?.attributes.name || ''"
           />
           <span class="text-center text-subtitle1 q-mt-md">
-            {{ myMember.attributes.name }}
+            {{ myMember?.attributes.name }}
           </span>
           <span class="text-center text-grey-7">
             {{ account }}
