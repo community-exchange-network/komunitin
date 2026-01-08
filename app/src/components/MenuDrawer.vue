@@ -54,7 +54,6 @@
       :to="`/groups/${groupCode}/stats`"
     />
 
-    <q-separator />
     
     <template v-if="isAdmin">
       <q-separator />
