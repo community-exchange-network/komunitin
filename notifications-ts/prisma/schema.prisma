@@ -11,17 +11,18 @@ datasource db {
 
 model NewsletterLog {
   id        String   @id @default(uuid())
+  tenantId  String
+
   sentAt    DateTime @default(now())
   
   // Recipient details
   memberId  String
-  groupId   String
   recipients Json
 
   // Variable content snapshot (featured items, alerts triggered)
   content   Json
 
   @@index([memberId])
-  @@index([groupId])
+  @@index([tenantId])
   @@index([sentAt])
 }

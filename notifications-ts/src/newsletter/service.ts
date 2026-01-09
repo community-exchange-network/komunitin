@@ -299,7 +299,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       await prisma.newsletterLog.create({
         data: {
           memberId: member.id,
-          groupId: group.attributes.code,
+          tenantId: group.attributes.code,
           recipients: sentRecipients,
           content: {
             bestOffers: bestOffers.map(o => o.id),
