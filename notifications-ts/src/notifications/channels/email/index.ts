@@ -1,7 +1,7 @@
-import { eventBus } from '../event-bus';
-import { EVENT_NAME } from '../events';
-import logger from '../../utils/logger';
-import { EnrichedEvent } from '../enriched-events';
+import { eventBus } from '../../event-bus';
+import { EVENT_NAME } from '../../events';
+import logger from '../../../utils/logger';
+import { EnrichedEvent } from '../../enriched-events';
 
 export const initEmailChannel = (): (() => void) => {
   logger.info('Initializing email notification channel');
