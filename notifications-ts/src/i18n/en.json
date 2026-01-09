@@ -48,5 +48,15 @@
     "footer_reason": "You are receiving this email as an active member of <strong>Komunitin</strong>.",
     "manage_subscription": "Account settings",
     "unsubscribe": "Unsubscribe from newsletter"
+  },
+  "notifications": {
+    "transfer_sent_title": "Transfer sent",
+    "transfer_sent_body": "You sent {{amount}} to {{recipient}}",
+    "transfer_received_title": "Transfer received",
+    "transfer_received_body": "You received {{amount}} from {{sender}}",
+    "transfer_pending_title": "New transfer request",
+    "transfer_pending_body": "{{sender}} requests a transfer of {{amount}}. Please accept or reject it as soon as possible.",
+    "transfer_rejected_title": "Transfer rejected",
+    "transfer_rejected_body": "{{name}} rejected a transfer of {{amount}} and it won't be applied."
   }
 }

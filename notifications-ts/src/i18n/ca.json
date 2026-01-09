@@ -48,5 +48,15 @@
     "footer_reason": "Reps aquest correu com a membre actiu de <strong>Komunitin</strong>.",
     "manage_subscription": "Configuració del compte",
     "unsubscribe": "Donar-se de baixa del butlletí"
+  },
+  "notifications": {
+    "transfer_sent_title": "Nou moviment",
+    "transfer_sent_body": "Has enviat {{amount}} a {{recipient}}",
+    "transfer_received_title": "Nou moviment",
+    "transfer_received_body": "Has rebut {{amount}} de {{sender}}",
+    "transfer_pending_title": "Tens un moviment pendent",
+    "transfer_pending_body": "{{sender}} ha sol·licitat {{amount}}. Si us plau accepta o rebutja el moviment el més aviat possible.",
+    "transfer_rejected_title": "Moviment rebutjat",
+    "transfer_rejected_body": "{{name}} ha rebutjat el moviment de {{amount}}."
   }
 }

@@ -48,5 +48,15 @@
     "footer_reason": "Recibes este correo como miembro activo de <strong>Komunitin</strong>.",
     "manage_subscription": "Configuración de la cuenta",
     "unsubscribe": "Darse de baja del boletín"
+  },
+  "notifications": {
+    "transfer_sent_title": "Nuevo movimiento",
+    "transfer_sent_body": "Has enviado {{amount}} a {{recipient}}",
+    "transfer_received_title": "Nuevo movimiento",
+    "transfer_received_body": "Has recibido {{amount}} de {{sender}}",
+    "transfer_pending_title": "Tienes un movimiento pendiente",
+    "transfer_pending_body": "{{sender}} ha solicitado {{amount}}. Por favor acepta o rechaza el movimiento lo antes posible.",
+    "transfer_rejected_title": "Movimiento rechazado",
+    "transfer_rejected_body": "{{name}} ha rechazado la solicitud de {{amount}}."
   }
 }

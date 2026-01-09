@@ -48,5 +48,15 @@
     "footer_reason": "Ricevi questa email come membro attivo di <strong>Komunitin</strong>.",
     "manage_subscription": "Impostazioni dell'account",
     "unsubscribe": "Annulla l'iscrizione alla newsletter"
+  },
+  "notifications": {
+    "transfer_sent_title": "Nuovo movimento",
+    "transfer_sent_body": "Hai inviato {{amount}} a {{recipient}}",
+    "transfer_received_title": "Nuovo movimento",
+    "transfer_received_body": "Hai ricevuto {{amount}} da {{sender}}",
+    "transfer_pending_title": "Nuovo movimento in sospeso",
+    "transfer_pending_body": "Hai un nuovo movimento di {{amount}} da {{sender}}. Accetta o rifiuta il movimento il prima possibile.",
+    "transfer_rejected_title": "Movimento rifiutato",
+    "transfer_rejected_body": "{{name}} ha rifiutato un movimento di {{amount}}."
   }
 }
