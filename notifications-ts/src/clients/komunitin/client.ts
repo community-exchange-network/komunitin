@@ -111,27 +111,71 @@ export class KomunitinClient {
     return this.paginate<Group>('social', '/groups', params);
   }
 
+  public async getGroup(groupCode: string, include?: string[]): Promise<{ data: Group; included?: any[] }> {
+    const query = include ? `?include=${include.join(',')}` : '';
+    return this.get('social', `/${groupCode}${query}`);
+  }
+
   public async getMembers(groupCode: string, params: Record<string, string> = {}): Promise<Member[]> {
     return this.paginate<Member>('social', `/${groupCode}/members`, params);
   }
 
-  public async getMemberUsers(memberId: string): Promise<User[]> {
-    // According to API docs/usage: /users?filter[members]=memberId
-    // Usually few users per member, but good to be consistent
-    return this.paginate<User>('social', `/users`, { 'filter[members]': memberId, include: 'settings' });
+  public async getMember(groupCode: string, memberId: string): Promise<Member> {
+    const res = await this.get('social', `/${groupCode}/members/${memberId}`);
+    return res.data;
+  }
+
+  public async getMemberUsers(memberId: string): Promise<Array<{ user: User; settings: UserSettings }>> {
+    // Fetch users with settings included
+    const query = new URLSearchParams({ 'filter[members]': memberId, include: 'settings' }).toString();
+    const url = this.getUrl('social', `/users?${query}`);
+    const res = await this.fetchWithAuth(url);
+    
+    if (!res.ok) {
+      throw new Error(`API Error ${res.status}: ${res.statusText} at ${url}`);
+    }
+    
+    const body = await res.json() as any;
+    const users = body.data as User[];
+    const included = body.included || [];
+    
+    return users.map(user => {
+      const settingsId = user.relationships.settings.data.id;
+      const settings = included.find((r: any) => r.type === 'user-settings' && r.id === settingsId) as UserSettings;
+      return { user, settings };
+    });
   }
 
   public async getOffers(groupCode: string, params: Record<string, string> = {}): Promise<Offer[]> {
     return this.paginate<Offer>('social', `/${groupCode}/offers`, params);
   }
 
+  public async getOffer(groupCode: string, offerId: string, include?: string[]): Promise<{ data: Offer; included?: any[] }> {
+    const query = include ? `?include=${include.join(',')}` : '';
+    return this.get('social', `/${groupCode}/offers/${offerId}${query}`);
+  }
+
   public async getNeeds(groupCode: string, params: Record<string, string> = {}): Promise<Need[]> {
     return this.paginate<Need>('social', `/${groupCode}/needs`, params);
+  }
+
+  public async getNeed(groupCode: string, needId: string, include?: string[]): Promise<{ data: Need; included?: any[] }> {
+    const query = include ? `?include=${include.join(',')}` : '';
+    return this.get('social', `/${groupCode}/needs/${needId}${query}`);
   }
 
   public async getAccount(groupCode: string, accountId: string): Promise<Account> {
     const res = await this.get('accounting', `/${groupCode}/accounts/${accountId}`);
     return res.data;
+  }
+
+  public async getTransfer(groupCode: string, transferId: string, include?: string[]): Promise<{ data: Transfer; included?: any[] }> {
+    const query = include ? `?include=${include.join(',')}` : '';
+    return this.get('accounting', `/${groupCode}/transfers/${transferId}${query}`);
+  }
+
+  public async getMembersByAccount(groupCode: string, accountIds: string[]): Promise<Member[]> {
+    return this.paginate<Member>('social', `/${groupCode}/members`, { 'filter[account]': accountIds.join(',') });
   }
 
   public async getTransfers(groupCode: string, params: Record<string, string> = {}): Promise<Transfer[]> {

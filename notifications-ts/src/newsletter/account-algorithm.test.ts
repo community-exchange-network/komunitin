@@ -6,7 +6,15 @@ import { Currency, Member, Need, Offer } from '../clients/komunitin/types';
 // Helpers
 const createMember = (attrs: any = {}): Member => ({
   id: 'm1',
-  attributes: { image: 'img', description: 'bio', location: { type: 'Point', coordinates: [0, 0] }, ...attrs }
+  attributes: { 
+    image: 'img',
+    description: 'bio',
+    location: { type: 'Point', coordinates: [0, 0] }, 
+    ...attrs 
+  },
+  relationships: {
+    account: { data: { type: 'accounts', id: 'm1-account' } },
+  }
 });
 
 const createAccount = (balance: number) => ({

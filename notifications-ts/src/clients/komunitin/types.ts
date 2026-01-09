@@ -16,13 +16,17 @@ export interface Member {
   id: string;
   attributes: {
     name: string;
+    code: string;
     image: string;
     description: string;
+    created: string;
     address?: Address;
     location?: Location;
     [key: string]: any;
   };
-  relationships?: any;
+  relationships: {
+    account: { data: { id: string, type: string } };
+  };
 }
 
 export interface Offer {
@@ -77,7 +81,11 @@ export interface Group {
     status: "pending" | "active" | "disabled";
     location: Location;
     address?: Address;
+    image?: string;
     // ... other fields
+  };
+  relationships: {
+    admins: { data: { id: string, type: string }[] };
   };
 }
 
@@ -142,9 +150,15 @@ export interface Transfer {
   id: string;
   attributes: {
     amount: number;
+    meta: string;
     created: string;
+    updated: string;
     state: string;
-    // ... other fields
+  };
+  relationships: {
+    payer: { data: { id: string, type: string } };
+    payee: { data: { id: string, type: string } };
+    currency: { data: { id: string, type: string } };
   };
 }
 

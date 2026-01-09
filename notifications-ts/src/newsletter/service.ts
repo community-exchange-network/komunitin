@@ -121,7 +121,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     }
 
     // Check Recipients (Users)
-    const users = await client.getMemberUsers(member.id);
+    const usersAndSettings = await client.getMemberUsers(member.id);
     const recipientsToProcess: { user: any, settings: any }[] = [];
 
     // Fetch history for frequency check (last 50 logs should cover > 1 month even if daily)
@@ -131,16 +131,8 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       take: 50
     }) as HistoryLog[];
 
-    for (const user of users) {
-      let userSettings: UserSettings;
-      try {
-        userSettings = await client.getUserSettings(user.id);
-      } catch (e) {
-        logger.warn({ user: user.id, err: e }, 'Failed to fetch user settings, skipping user');
-        continue;
-      }
-
-      const frequency = userSettings.attributes.emails.group; // 'weekly', 'monthly', etc.
+    for (const {user, settings} of usersAndSettings) {
+      const frequency = settings.attributes.emails.group; // 'weekly', 'monthly', etc.
       if (!frequency || frequency === 'never') continue;
 
       // Check last sent
@@ -152,7 +144,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       const shouldSend = forceSend || shouldSendNewsletter(frequency, lastSentDate, new Date());
 
       if (shouldSend) {
-        recipientsToProcess.push({ user, settings: userSettings });
+        recipientsToProcess.push({ user, settings });
       }
     }
 
