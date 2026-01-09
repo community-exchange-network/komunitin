@@ -274,7 +274,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
           saveNewsletter(member.attributes.code, html);
         }
         // Send Email
-        const lng = userSettings.attributes.language || 'ca';
+        const lng = userSettings.attributes.language || 'en';
         const subject = i18n.t('newsletter.subject', { lng, group: group.attributes.name });
         const unsubscribeUrl = `${config.KOMUNITIN_SOCIAL_PUBLIC_URL}/users/me/unsubscribe?token=${unsubscribeToken}`;
         await mailer.sendNewsletter(user.attributes.email, subject, html, unsubscribeUrl);
