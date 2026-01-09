@@ -26,3 +26,31 @@ model NewsletterLog {
   @@index([tenantId])
   @@index([sentAt])
 }
+
+model AppNotification {
+  id        String   @id @default(uuid())
+  
+  // Scoping
+  tenantId  String
+  userId    String
+  
+  // Origin
+  eventId   String?
+  eventName String
+  
+  // Content
+  title     String
+  body      String   @db.Text
+  image     String?
+
+  // Routing
+  data      Json? 
+  
+  // State
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  // Indexes
+  @@index([tenantId, userId, createdAt]) // Main inbox query
+  @@index([tenantId, userId, readAt])    // Unread count
+}
