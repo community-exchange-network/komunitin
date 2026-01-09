@@ -1,4 +1,4 @@
-import { test, describe, it, before, after, beforeEach } from 'node:test'
+import { test, describe, it, before, after, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert'
 import { setupServer } from 'msw/node'
 import supertest from 'supertest'
@@ -38,6 +38,8 @@ prisma.appNotification.findMany = test.mock.fn(async (args: any) => {
 
 describe('App notifications', () => {
   let runNotificationsWorker: () => Promise<{ stop: () => Promise<void> }>;
+  let worker: { stop: () => Promise<void> } | null = null;
+  
   before(async () => {
     // We need to use a dynamic import for the worker because otherwise the redis mock
     // does not take effect. Specifically, all ESM imports are hoisted (evaluated before 
@@ -58,6 +60,16 @@ describe('App notifications', () => {
   beforeEach(async () => {
     // Clear DB
     appNotifications.length = 0
+    // Start the worker (channels will register their listeners)
+    worker = await runNotificationsWorker()
+  })
+
+  afterEach(async () => {
+    // Stop the worker
+    if (worker) {
+      await worker.stop()
+      worker = null
+    }
   })
 
   it('should process a TransferCommitted event and generate notifications', async () => {
@@ -86,9 +98,6 @@ describe('App notifications', () => {
       user: payerUserId,
       id: "test-event-001"
     }
-
-    // Start the worker
-    const { stop } = await runNotificationsWorker()
 
     // Put event and wait for processing
     await put(eventData)
@@ -126,7 +135,109 @@ describe('App notifications', () => {
     assert.equal(payeeResponse.body.data.length, 1)
     assert.equal(payeeResponse.body.data[0].id, payeeNotification.id)
     assert.equal(payeeResponse.body.data[0].attributes.title, "Transfer received")
+  })
 
-    await stop()
+  it('should process a TransferPending event and generate notification', async () => {
+    const groupId = 'GRP1'
+    createTransfers(groupId)
+    const transfer = db.transfers[0]
+
+    const accountUserId = (accountId: string) => {
+      const memberId = db.members.find(m => m.relationships.account.data.id === accountId)!.id
+      const userId = db.users.find(u => {
+        return u.relationships.members.data.some((r: any) => r.id === memberId)
+      })!.id
+      return userId
+    }
+    const payerUserId = accountUserId(transfer.relationships.payer.data.id)
+    const payeeUserId = accountUserId(transfer.relationships.payee.data.id)
+
+    const eventData = {
+      name: 'TransferPending',
+      time: new Date().toISOString(),
+      data: JSON.stringify({ 
+        transfer: transfer.id
+      }),
+      source: 'mock-accounting',
+      code: groupId,
+      user: payeeUserId,
+      id: "test-event-002"
+    }
+
+    // Put event and wait for processing
+    await put(eventData)
+
+    // Check DB - should only notify payer (who needs to accept/reject)
+    assert.equal(appNotifications.length, 1, "Should have created 1 notification")
+    const notification = appNotifications[0]
+    
+    assert.ok(notification, "Notification should be created in DB")
+    assert.equal(notification.tenantId, groupId)
+    assert.equal(notification.userId, payerUserId)
+    assert.ok(notification.title, "Notification should have a title")
+
+    // Verify payer notification via API
+    const token = await signJwt(payerUserId, ['komunitin_social'])
+
+    const response = await supertest(_app)
+      .get(`/${groupId}/notifications`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    assert.equal(response.body.data.length, 1)
+    assert.equal(response.body.data[0].id, notification.id)
+    assert.equal(response.body.data[0].attributes.title, "New transfer request")
+  })
+
+  it('should process a TransferRejected event and generate notification', async () => {
+    const groupId = 'GRP1'
+    createTransfers(groupId)
+    const transfer = db.transfers[0]
+
+    const accountUserId = (accountId: string) => {
+      const memberId = db.members.find(m => m.relationships.account.data.id === accountId)!.id
+      const userId = db.users.find(u => {
+        return u.relationships.members.data.some((r: any) => r.id === memberId)
+      })!.id
+      return userId
+    }
+    const payerUserId = accountUserId(transfer.relationships.payer.data.id)
+    const payeeUserId = accountUserId(transfer.relationships.payee.data.id)
+
+    const eventData = {
+      name: 'TransferRejected',
+      time: new Date().toISOString(),
+      data: JSON.stringify({ 
+        transfer: transfer.id
+      }),
+      source: 'mock-accounting',
+      code: groupId,
+      user: payerUserId,
+      id: "test-event-003"
+    }
+
+    // Put event and wait for processing
+    await put(eventData)
+
+    // Check DB - should only notify payee (the one who requested the transfer)
+    assert.equal(appNotifications.length, 1, "Should have created 1 notification")
+    const notification = appNotifications[0]
+    
+    assert.ok(notification, "Notification should be created in DB")
+    assert.equal(notification.tenantId, groupId)
+    assert.equal(notification.userId, payeeUserId)
+    assert.ok(notification.title, "Notification should have a title")
+
+    // Verify payee notification via API
+    const token = await signJwt(payeeUserId, ['komunitin_social'])
+
+    const response = await supertest(_app)
+      .get(`/${groupId}/notifications`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    assert.equal(response.body.data.length, 1)
+    assert.equal(response.body.data[0].id, notification.id)
+    assert.equal(response.body.data[0].attributes.title, "Transfer rejected")
   })
 })
