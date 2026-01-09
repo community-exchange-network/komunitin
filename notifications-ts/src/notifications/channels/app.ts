@@ -7,13 +7,15 @@ import initI18n from '../../utils/i18n';
 import { formatAmount } from '../../utils/format';
 import { i18n } from 'i18next';
 
-export const initInAppChannel = () => {
+export const initInAppChannel = (): (() => void) => {
   logger.info('Initializing in-app notification channel');
 
-  // Subscribe to transfer events
-  eventBus.on(EVENT_NAME.TransferCommitted, handleTransferCommitted);
-  eventBus.on(EVENT_NAME.TransferPending, handleTransferPending);
-  eventBus.on(EVENT_NAME.TransferRejected, handleTransferRejected);
+  // Subscribe to transfer events and collect unsubscribe functions
+  const unsubscribers = [
+    eventBus.on(EVENT_NAME.TransferCommitted, handleTransferCommitted),
+    eventBus.on(EVENT_NAME.TransferPending, handleTransferPending),
+    eventBus.on(EVENT_NAME.TransferRejected, handleTransferRejected),
+  ];
   // TODO: Implement handlers for other events
   // eventBus.on(EVENT_NAME.NeedPublished, handleNeedPublished);
   // eventBus.on(EVENT_NAME.NeedExpired, handleNeedExpired);
@@ -23,6 +25,11 @@ export const initInAppChannel = () => {
   // eventBus.on(EVENT_NAME.MemberRequested, handleMemberRequested);
   // eventBus.on(EVENT_NAME.GroupRequested, handleGroupRequested);
   // eventBus.on(EVENT_NAME.GroupActivated, handleGroupActivated);
+
+  // Return stop function that unsubscribes all listeners
+  return () => {
+    unsubscribers.forEach(unsub => unsub());
+  };
 };
 
 

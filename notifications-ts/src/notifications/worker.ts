@@ -15,10 +15,10 @@ type WorkerHandle = {
 };
 
 export const runNotificationsWorker = async (): Promise<WorkerHandle> => {
-  // Initialize notification channels
-  initInAppChannel();
-  initPushChannel();
-  initEmailChannel();
+  // Initialize notification channels and collect stop functions
+  const stopAppChannel = initInAppChannel();
+  const stopPushChannel = initPushChannel();
+  const stopEmailChannel = initEmailChannel();
 
   const stream = await createEventsStream();
   let stopped = false;
@@ -46,6 +46,11 @@ export const runNotificationsWorker = async (): Promise<WorkerHandle> => {
   return {
     stop: async () => {
       stopped = true;
+      // Close channels (remove listeners)
+      stopAppChannel();
+      stopPushChannel();
+      stopEmailChannel();
+      // Close stream
       await stream.close();
       // Wait for loop to end, swallowing errors.
       await loop.catch(() => undefined);

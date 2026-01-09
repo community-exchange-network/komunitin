@@ -18,11 +18,22 @@ class NotificationEventBus {
     return NotificationEventBus.instance;
   }
 
-  on<T extends BaseEvent>(eventName: string, listener: AsyncListener<T>): void {
+  on<T extends BaseEvent>(eventName: string, listener: AsyncListener<T>): () => void {
     if (!this.listeners.has(eventName)) {
       this.listeners.set(eventName, []);
     }
     this.listeners.get(eventName)!.push(listener);
+    
+    // Return unsubscribe function
+    return () => {
+      const listeners = this.listeners.get(eventName);
+      if (listeners) {
+        const index = listeners.indexOf(listener);
+        if (index > -1) {
+          listeners.splice(index, 1);
+        }
+      }
+    };
   }
 
   async emit(event: BaseEvent): Promise<void> {
