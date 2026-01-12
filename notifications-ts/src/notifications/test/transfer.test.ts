@@ -7,33 +7,14 @@ import prisma from '../../utils/prisma'
 import { mockRedisStream } from '../../mocks/redis'
 import { db, createTransfers } from '../../mocks/db'
 import { queueAdd, queueGetJob, resetQueueMocks, dispatchMockJob } from '../../mocks/queue'
+import { mockTable } from '../../mocks/prisma'
 import { createEvent, verifyNotification } from './utils'
 
 const { put } = mockRedisStream()
 const server = setupServer(...handlers)
 
 // Mock prisma
-const appNotifications: any[] = []
-
-prisma.appNotification.create = test.mock.fn(async (data: any) => {
-  const notification = {
-    id: `test-notification-${Math.random().toString(36).substring(2, 15)}`,
-    ...data.data,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
-  appNotifications.push(notification)
-  return notification
-}) as any
-prisma.appNotification.findMany = test.mock.fn(async (args: any) => {
-  let results = appNotifications
-  if (args.where) {
-    for (const [key, value] of Object.entries(args.where)) {
-      results = results.filter(n => n[key] === value)
-    }
-  }
-  return results
-}) as any
+const appNotifications = mockTable(prisma.appNotification, 'test-notification')
 
 describe('App notifications', () => {
   let runNotificationsWorker: () => Promise<{ stop: () => Promise<void> }>;

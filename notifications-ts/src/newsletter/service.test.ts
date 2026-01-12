@@ -7,6 +7,7 @@ import { http, HttpResponse } from 'msw';
 import nodemailer from 'nodemailer';
 import prisma from '../utils/prisma';
 import { mockDate, restoreDate } from '../mocks/date';
+import { mockTable } from '../mocks/prisma';
 
 // Mock nodemailer
 const sendMailMock = test.mock.fn((_options: any) => Promise.resolve({ messageId: 'mock-id' }));
@@ -15,16 +16,21 @@ nodemailer.createTransport = test.mock.fn(() => ({
 })) as any;
 
 // Mock Prisma
-prisma.newsletterLog.create = test.mock.fn(async () => ({ id: 'log-id' })) as any;
-prisma.newsletterLog.findMany = test.mock.fn(async () => []) as any;
+const newsletterLogStore = mockTable(prisma.newsletterLog, 'newsletterLog', () => ({ sentAt: new Date() }));
 
 
 describe('Newsletter Cron Job', () => {
   before(() => server.listen());
   after(() => server.close());
+  after(() => server.close());
   beforeEach(() => {
     server.resetHandlers();
     sendMailMock.mock.resetCalls();
+    newsletterLogStore.length = 0;
+    // @ts-ignore
+    prisma.newsletterLog.create.mock.resetCalls();
+    // @ts-ignore
+    prisma.newsletterLog.findMany.mock.resetCalls();
   });
 
   afterEach(() => {
