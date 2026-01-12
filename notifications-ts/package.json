@@ -11,7 +11,7 @@
     "build": "pnpm typecheck && unbuild",
     "start": "node dist/index.mjs",
     "reset-db": "prisma migrate reset --force",
-    "test": "pnpm reset-db && node --experimental-test-module-mocks --env-file=.env.test --import tsx --test src/**/*.test.ts",
+    "test": "node --experimental-test-module-mocks --env-file=.env.test --import tsx --test src/**/*.test.ts",
     "test-one": "node --experimental-test-module-mocks --env-file=.env.test --import tsx --test"
   },
   "keywords": [],

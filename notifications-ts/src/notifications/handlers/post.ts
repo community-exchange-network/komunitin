@@ -11,7 +11,10 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
   const client = new KomunitinClient();
 
   // Determine if it's an offer or need event
-  const isOfferEvent = event.name === EVENT_NAME.OfferPublished || event.name === EVENT_NAME.OfferExpired;
+  const isOfferEvent =
+    event.name === EVENT_NAME.OfferPublished ||
+    event.name === EVENT_NAME.OfferExpired ||
+    !!event.data.offer;
   const dataKey = isOfferEvent ? 'offer' : 'need';
   const postId = event.data[dataKey];
 

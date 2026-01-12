@@ -79,6 +79,7 @@ export const dispatchEvent = async (event: NotificationEvent): Promise<void> => 
     case EVENT_NAME.NeedExpired:
     case EVENT_NAME.OfferPublished:
     case EVENT_NAME.OfferExpired:
+    case EVENT_NAME.PostExpiresSoon:
       return handlePostEvent(event as PostEvent);
 
     case EVENT_NAME.MemberJoined:

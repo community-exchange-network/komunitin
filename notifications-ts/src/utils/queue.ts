@@ -19,5 +19,8 @@ export const createWorker = <DataType = any, ResultType = any, NameType extends 
   processor: Processor<DataType, ResultType, NameType>, 
   opts?: WorkerOptions
 ) => {
-  return new Worker<DataType, ResultType, NameType>(name, processor, { ...opts, connection });
+  return new Worker<DataType, ResultType, NameType>(name, processor, { 
+    removeOnComplete: { age: 30 * 24 * 3600 }, // Default Retention 30 days
+    ...opts,
+    connection });
 };

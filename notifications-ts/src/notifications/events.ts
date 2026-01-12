@@ -6,6 +6,7 @@ export const EVENT_NAME = {
   NeedExpired: 'NeedExpired',
   OfferPublished: 'OfferPublished',
   OfferExpired: 'OfferExpired',
+  PostExpiresSoon: 'PostExpiresSoon',
   MemberJoined: 'MemberJoined',
   MemberRequested: 'MemberRequested',
   GroupRequested: 'GroupRequested',
@@ -43,7 +44,8 @@ export type PostEvent = NotificationEvent & {
     | typeof EVENT_NAME.NeedPublished
     | typeof EVENT_NAME.NeedExpired
     | typeof EVENT_NAME.OfferPublished
-    | typeof EVENT_NAME.OfferExpired;
+    | typeof EVENT_NAME.OfferExpired
+    | typeof EVENT_NAME.PostExpiresSoon;
   data: {
     offer?: string; // offer id (for offer events)
     need?: string; // need id (for need events)
