@@ -10,6 +10,7 @@ export const EVENT_NAME = {
   MemberRequested: 'MemberRequested',
   GroupRequested: 'GroupRequested',
   GroupActivated: 'GroupActivated',
+  TransferStillPending: 'TransferStillPending',
 } as const;
 
 export type EventName = (typeof EVENT_NAME)[keyof typeof EVENT_NAME];
@@ -28,7 +29,8 @@ export type TransferEvent = NotificationEvent & {
   name:
     | typeof EVENT_NAME.TransferCommitted
     | typeof EVENT_NAME.TransferPending
-    | typeof EVENT_NAME.TransferRejected;
+    | typeof EVENT_NAME.TransferRejected
+    | typeof EVENT_NAME.TransferStillPending;
   data: {
     payer: string // account id of the payer
     payee: string // account id of the payee

@@ -6,7 +6,9 @@ import { NotificationEvent } from './events';
 
 const EVENT_STREAM_NAME = 'events';
 const EVENT_STREAM_GROUP = 'notifications-ts';
-
+/**
+ * Class representing a connection to the Redis event stream for notifications.
+ */
 class EventsStream {
   private client: ReturnType<typeof createClient>;
   private streamName: string;

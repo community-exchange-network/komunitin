@@ -3,7 +3,9 @@ import { internalError } from '../utils/error';
 type BaseEvent = {name: string; id: string};
 type AsyncListener<T extends BaseEvent = BaseEvent> = (event: T) => Promise<void>;
 
-// Async Event Bus
+/**
+ * Asynchronous event bus.
+ */
 class NotificationEventBus {
   private static instance: NotificationEventBus;
   

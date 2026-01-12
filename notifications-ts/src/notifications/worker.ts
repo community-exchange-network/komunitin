@@ -9,16 +9,24 @@ import { handleTransferEvent } from './handlers/transfer';
 import { initInAppChannel } from './channels/app';
 import { initPushChannel } from './channels/push';
 import { initEmailChannel } from './channels/email';
+import { initSyntheticEvents } from './synthetic-events';
 
 type WorkerHandle = {
   stop: () => Promise<void>;
 };
 
+/** 
+ * Run the notifications worker that listens to the event stream,
+ * then it calls to the appropriate handlers based on event type
+ * (transfer, post, member, group). The handlers will in turn use
+ * the event bus to notify the different channels (in-app, push, email).
+ */
 export const runNotificationsWorker = async (): Promise<WorkerHandle> => {
   // Initialize notification channels and collect stop functions
   const stopAppChannel = initInAppChannel();
   const stopPushChannel = initPushChannel();
   const stopEmailChannel = initEmailChannel();
+  const stopSyntheticEvents = initSyntheticEvents();
 
   const stream = await createEventsStream();
   let stopped = false;
@@ -50,6 +58,7 @@ export const runNotificationsWorker = async (): Promise<WorkerHandle> => {
       stopAppChannel();
       stopPushChannel();
       stopEmailChannel();
+      stopSyntheticEvents();
       // Close stream
       await stream.close();
       // Wait for loop to end, swallowing errors.
@@ -58,11 +67,12 @@ export const runNotificationsWorker = async (): Promise<WorkerHandle> => {
   };
 };
 
-const dispatchEvent = async (event: NotificationEvent): Promise<void> => {
+export const dispatchEvent = async (event: NotificationEvent): Promise<void> => {
   switch (event.name as EventName) {
     case EVENT_NAME.TransferCommitted:
     case EVENT_NAME.TransferPending:
     case EVENT_NAME.TransferRejected:
+    case EVENT_NAME.TransferStillPending:
       return handleTransferEvent(event as TransferEvent);
     
     case EVENT_NAME.NeedPublished:
