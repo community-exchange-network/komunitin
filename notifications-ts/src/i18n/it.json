@@ -49,7 +49,11 @@
     "manage_subscription": "Impostazioni dell'account",
     "unsubscribe": "Annulla l'iscrizione alla newsletter"
   },
+  "offer": "Offerta",
+  "need": "Necessità",
   "notifications": {
+    "post_expired_title": "{{type}} scaduta",
+    "post_expired_body": "La tua {{type}} '{{excerpt}}' è scaduta ed è ora nascosta, ma puoi riattivarla.",
     "transfer_sent_title": "Nuovo movimento",
     "transfer_sent_body": "Hai inviato {{amount}} a {{recipient}}",
     "transfer_received_title": "Nuovo movimento",

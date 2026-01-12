@@ -49,7 +49,11 @@
     "manage_subscription": "Configuració del compte",
     "unsubscribe": "Donar-se de baixa del butlletí"
   },
+  "offer": "Oferta",
+  "need": "Necessitat",
   "notifications": {
+    "post_expired_title": "{{type}} caducada",
+    "post_expired_body": "La teva {{type}} '{{excerpt}}' ha caducat i ja no és visible, però pots reactivar-la.",
     "transfer_sent_title": "Nou moviment",
     "transfer_sent_body": "Has enviat {{amount}} a {{recipient}}",
     "transfer_received_title": "Nou moviment",
