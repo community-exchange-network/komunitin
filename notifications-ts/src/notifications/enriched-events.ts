@@ -20,7 +20,7 @@ export type EnrichedTransferEvent = TransferEvent & {
 export type EnrichedPostEvent = PostEvent & {
   group: Group;
   post: Offer | Need;
-  postType: 'offer' | 'need';
+  postType: 'offers' | 'needs';
   member: Member;
   users: Array<{ user: User; settings: UserSettings }>;
 };

@@ -1,6 +1,7 @@
 import logger from '../../../utils/logger';
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
+import { handlePostExpired } from './post';
 import { handleTransferCommitted, handleTransferPending, handleTransferRejected, handleTransferStillPending } from './transfer';
 
 export const initInAppChannel = (): (() => void) => {
@@ -12,6 +13,8 @@ export const initInAppChannel = (): (() => void) => {
     eventBus.on(EVENT_NAME.TransferPending, handleTransferPending),
     eventBus.on(EVENT_NAME.TransferRejected, handleTransferRejected),
     eventBus.on(EVENT_NAME.TransferStillPending, handleTransferStillPending),
+    eventBus.on(EVENT_NAME.NeedExpired, handlePostExpired as any),
+    eventBus.on(EVENT_NAME.OfferExpired, handlePostExpired as any),
   ];
   // TODO: Implement handlers for other events
   // eventBus.on(EVENT_NAME.NeedPublished, handleNeedPublished);

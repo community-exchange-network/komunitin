@@ -12,18 +12,18 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
 
   // Determine if it's an offer or need event
   const isOfferEvent = event.name === EVENT_NAME.OfferPublished || event.name === EVENT_NAME.OfferExpired;
-  const postType: 'offer' | 'need' = isOfferEvent ? 'offer' : 'need';
-  const postId = event.data[postType];
+  const dataKey = isOfferEvent ? 'offer' : 'need';
+  const postId = event.data[dataKey];
 
   if (!postId) {
-    throw new Error(`Missing ${postType} id in post event ${event.name}`);
+    throw new Error(`Missing ${dataKey} id in post event ${event.name}`);
   }
 
   // Fetch the post (offer or need) with included member
   const postResponse = isOfferEvent
     ? await client.getOffer(event.code, postId, ['member'])
     : await client.getNeed(event.code, postId, ['member']);
-  
+
   const post = postResponse.data;
   const included = postResponse.included || [];
 
@@ -32,7 +32,7 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
   const member = included.find((r: any) => r.type === 'members' && r.id === memberId) as Member;
 
   if (!member) {
-    throw new Error(`Missing member ${memberId} in post response for ${postType} ${postId}`);
+    throw new Error(`Missing member ${memberId} in post response for ${dataKey} ${postId}`);
   }
 
   // Fetch users and group in parallel
@@ -47,7 +47,7 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
     ...event,
     group,
     post,
-    postType,
+    postType: isOfferEvent ? 'offers' : 'needs',
     member,
     users: usersWithSettings,
   };
