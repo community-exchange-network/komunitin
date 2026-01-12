@@ -1,14 +1,13 @@
 import { test, describe, it, before, after, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert'
 import { setupServer } from 'msw/node'
-import supertest from 'supertest'
-import handlers from '../mocks/handlers'
-import { generateKeys, signJwt } from '../mocks/auth'
-import prisma from '../utils/prisma'
-import { mockRedisStream } from '../mocks/redis'
-import { _app } from '../server'
-import { db, createTransfers } from '../mocks/db'
-import { queueAdd, queueGetJob, resetQueueMocks, dispatchMockJob } from '../mocks/queue'
+import handlers from '../../mocks/handlers'
+import { generateKeys } from '../../mocks/auth'
+import prisma from '../../utils/prisma'
+import { mockRedisStream } from '../../mocks/redis'
+import { db, createTransfers } from '../../mocks/db'
+import { queueAdd, queueGetJob, resetQueueMocks, dispatchMockJob } from '../../mocks/queue'
+import { createEvent, verifyNotification } from './utils'
 
 const { put } = mockRedisStream()
 const server = setupServer(...handlers)
@@ -44,7 +43,7 @@ describe('App notifications', () => {
     // We need to use a dynamic import for the worker because otherwise the redis mock
     // does not take effect. Specifically, all ESM imports are hoisted (evaluated before 
     // any code), so we cant solve it with static imports.
-    const workerModule = await import('./worker')
+    const workerModule = await import('../worker')
     runNotificationsWorker = workerModule.runNotificationsWorker
     
     // Generate Auth Keys
@@ -88,30 +87,6 @@ describe('App notifications', () => {
     const payeeUserId = accountUserId(transfer.relationships.payee.data.id)
     
     return { groupId, transfer, payerUserId, payeeUserId }
-  }
-
-  const createEvent = (name: string, transferId: string, groupId: string, userId: string, eventId: string) => {
-    return {
-      name,
-      time: new Date().toISOString(),
-      data: JSON.stringify({ transfer: transferId }),
-      source: 'mock-accounting',
-      code: groupId,
-      user: userId,
-      id: eventId
-    }
-  }
-
-  const verifyNotification = async (userId: string, groupId: string, notificationId: string, expectedTitle: string) => {
-    const token = await signJwt(userId, ['komunitin_social'])
-    const response = await supertest(_app)
-      .get(`/${groupId}/notifications`)
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-
-    assert.equal(response.body.data.length, 1)
-    assert.equal(response.body.data[0].id, notificationId)
-    assert.equal(response.body.data[0].attributes.title, expectedTitle)
   }
 
   it('should process a TransferCommitted event and generate notifications', async () => {

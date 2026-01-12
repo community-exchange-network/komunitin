@@ -122,6 +122,44 @@ export const handlers = [
   
   
 
+  http.get(`${SOCIAL_URL}/groups/:id`, ({ params }) => {
+    const { id } = params;
+    createGroups();
+    const group = db.groups.find(g => g.id === id || g.attributes.code === id);
+    if (!group) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ data: group });
+  }),
+
+  http.get(`${SOCIAL_URL}/:groupCode/offers/:id`, ({ request, params }) => {
+    const { groupCode, id } = params;
+    createOffers(groupCode as string);
+    const offer = db.offers.find(o => o.id === id);
+    if (!offer) return new HttpResponse(null, { status: 404 });
+
+    const included: any[] = [];
+    const url = new URL(request.url);
+    if (url.searchParams.get('include')?.includes('member')) {
+      const member = db.members.find(m => m.id === offer.relationships.member.data.id);
+      if (member) included.push(member);
+    }
+    return HttpResponse.json({ data: offer, included });
+  }),
+
+  http.get(`${SOCIAL_URL}/:groupCode/needs/:id`, ({ request, params }) => {
+    const { groupCode, id } = params;
+    createNeeds(groupCode as string);
+    const need = db.needs.find(n => n.id === id);
+    if (!need) return new HttpResponse(null, { status: 404 });
+
+    const included: any[] = [];
+    const url = new URL(request.url);
+    if (url.searchParams.get('include')?.includes('member')) {
+      const member = db.members.find(m => m.id === need.relationships.member.data.id);
+      if (member) included.push(member);
+    }
+    return HttpResponse.json({ data: need, included });
+  }),
+
   // Accounting API
   
   http.get(`${ACCOUNTING_URL}/:groupCode/currency`, ({ params }) => {

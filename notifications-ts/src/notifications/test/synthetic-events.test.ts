@@ -1,10 +1,10 @@
-import { test, describe, it, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
-import { queueAdd, queueGetJob, workerProcessor, resetQueueMocks, dispatchMockJob } from '../mocks/queue';
+import { afterEach, beforeEach, describe, it, test } from 'node:test';
+import { queueAdd, queueGetJob, resetQueueMocks, workerProcessor } from '../../mocks/queue';
 
 // Mock worker dispatchEvent to avoid side effects (network calls)
 const dispatchEvent = test.mock.fn(async () => {});
-test.mock.module('./worker', {
+test.mock.module('../worker', {
   namedExports: {
     dispatchEvent,
   }
@@ -26,9 +26,9 @@ const createMockJob = (data: any, id: string) => ({
 // 'mocks/queue' has side effects (test.mock.module).
 // So it should apply.
 
-const { initSyntheticEvents } = await import('./synthetic-events');
-const { eventBus } = await import('./event-bus');
-const { EVENT_NAME } = await import('./events');
+const { initSyntheticEvents } = await import('../synthetic-events');
+const { eventBus } = await import('../event-bus');
+const { EVENT_NAME } = await import('../events');
 
 describe('Synthetic Events', () => {
   let stopService: () => void;
