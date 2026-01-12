@@ -1,4 +1,5 @@
 import { formatAmount } from "../../../utils/format";
+import logger from "../../../utils/logger";
 import { EnrichedEvent, EnrichedTransferEvent } from "../../enriched-events";
 import { handleNotificationForUsers } from "./utils";
 
@@ -38,6 +39,15 @@ export const handleTransferPending = async (event: EnrichedEvent & {
   payee: { account: any; member: any; users: Array<{ user: any; settings: any }> };
 }): Promise<void> => {
   const { transfer, currency, payer, payee, code } = event;
+
+  const state = transfer.attributes.state;
+  if (state !== 'pending') {
+    // This shold not happen as when the transfer is committed/rejected,
+    // we cancel the TransferPending synthetic event. But the event could be
+    // lost, so just log and skip.
+    logger.warn(`Transfer ${transfer.id} is not pending (state: ${state}), skipping TransferPending notification`);
+    return;
+  }
   const amount = transfer.attributes.amount;
   const route = `/${code}/transactions/${transfer.id}`;
 
@@ -66,6 +76,27 @@ export const handleTransferRejected = async (event: EnrichedTransferEvent): Prom
       name: payer.member.attributes.name,
     }) as string,
     image: payer.member.attributes.image,
+    route,
+  }));
+};
+
+export const handleTransferStillPending = async (event: EnrichedTransferEvent): Promise<void> => {
+  const { transfer, currency, payer, payee, code } = event;
+  const amount = transfer.attributes.amount;
+  const route = `/${code}/transactions/${transfer.id}`;
+
+  const elapsedDays = Math.floor((Date.now() - new Date(transfer.attributes.created).getTime()) / (1000 * 60 * 60 * 24));
+
+  // Notify payer users (they need to accept/reject)
+  await handleNotificationForUsers(event, payer.users, ({ t, locale }) => ({
+    title: t('notifications.transfer_still_pending_title'),
+    body: t('notifications.transfer_still_pending_body', {
+      amount: formatAmount(amount, currency, locale),
+      name: payee.member.attributes.name,
+      days: elapsedDays,
+      count: elapsedDays,
+    }),
+    image: payee.member.attributes.image,
     route,
   }));
 };

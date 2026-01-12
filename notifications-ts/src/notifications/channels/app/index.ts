@@ -1,7 +1,7 @@
 import logger from '../../../utils/logger';
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
-import { handleTransferCommitted, handleTransferPending, handleTransferRejected } from './transfer';
+import { handleTransferCommitted, handleTransferPending, handleTransferRejected, handleTransferStillPending } from './transfer';
 
 export const initInAppChannel = (): (() => void) => {
   logger.info('Initializing in-app notification channel');
@@ -11,6 +11,7 @@ export const initInAppChannel = (): (() => void) => {
     eventBus.on(EVENT_NAME.TransferCommitted, handleTransferCommitted),
     eventBus.on(EVENT_NAME.TransferPending, handleTransferPending),
     eventBus.on(EVENT_NAME.TransferRejected, handleTransferRejected),
+    eventBus.on(EVENT_NAME.TransferStillPending, handleTransferStillPending),
   ];
   // TODO: Implement handlers for other events
   // eventBus.on(EVENT_NAME.NeedPublished, handleNeedPublished);

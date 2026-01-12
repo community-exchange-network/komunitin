@@ -57,6 +57,10 @@
     "transfer_pending_title": "Tens un moviment pendent",
     "transfer_pending_body": "{{sender}} ha sol·licitat {{amount}}. Si us plau accepta o rebutja el moviment el més aviat possible.",
     "transfer_rejected_title": "Moviment rebutjat",
-    "transfer_rejected_body": "{{name}} ha rebutjat el moviment de {{amount}}."
+    "transfer_rejected_body": "{{name}} ha rebutjat el moviment de {{amount}}.",
+    "transfer_still_pending_title": "Moviment encara pendent",
+    "transfer_still_pending_body": "El moviment de {{amount}} a {{name}} encara està pendent després de $t(notifications.days_elapsed). Si us plau, accepta'l o rebutja'l tan aviat com sigui possible.",
+    "days_elapsed_one": "{{count}} dia",
+    "days_elapsed_other": "{{count}} dies"
   }
 }

@@ -57,6 +57,10 @@
     "transfer_pending_title": "Tienes un movimiento pendiente",
     "transfer_pending_body": "{{sender}} ha solicitado {{amount}}. Por favor acepta o rechaza el movimiento lo antes posible.",
     "transfer_rejected_title": "Movimiento rechazado",
-    "transfer_rejected_body": "{{name}} ha rechazado la solicitud de {{amount}}."
+    "transfer_rejected_body": "{{name}} ha rechazado la solicitud de {{amount}}.",
+    "transfer_still_pending_title": "Movimiento aún pendiente",
+    "transfer_still_pending_body": "El movimiento de {{amount}} a {{name}} aún está pendiente después de $t(notifications.days_elapsed). Por favor, acéptalo o recházalo lo antes posible.",
+    "days_elapsed_one": "{{count}} día",
+    "days_elapsed_other": "{{count}} días"
   }
 }

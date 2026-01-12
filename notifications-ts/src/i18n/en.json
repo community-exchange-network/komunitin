@@ -57,6 +57,10 @@
     "transfer_pending_title": "New transfer request",
     "transfer_pending_body": "{{sender}} requests a transfer of {{amount}}. Please accept or reject it as soon as possible.",
     "transfer_rejected_title": "Transfer rejected",
-    "transfer_rejected_body": "{{name}} rejected a transfer of {{amount}} and it won't be applied."
+    "transfer_rejected_body": "{{name}} rejected a transfer of {{amount}} and it won't be applied.",
+    "transfer_still_pending_title": "Transfer still pending",
+    "transfer_still_pending_body": "Transfer of {{amount}} to {{name}} is still pending after $t(notifications.days_elapsed). Please accept or reject it as soon as possible.",
+    "days_elapsed_one": "{{count}} day",
+    "days_elapsed_other": "{{count}} days"
   }
 }
