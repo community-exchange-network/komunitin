@@ -13,6 +13,7 @@ test.mock.module('../worker', {
 // Mock Job class/object helper (local to test)
 const createMockJob = (data: any, id: string) => ({
   id,
+  name: '',
   data,
   remove: async () => {}, // basic mock
 });
@@ -26,7 +27,7 @@ const createMockJob = (data: any, id: string) => ({
 // 'mocks/queue' has side effects (test.mock.module).
 // So it should apply.
 
-const { initSyntheticEvents } = await import('../synthetic-events');
+const { initSyntheticEvents } = await import('../synthetic');
 const { eventBus } = await import('../event-bus');
 const { EVENT_NAME } = await import('../events');
 
@@ -83,7 +84,7 @@ describe('Synthetic Events', () => {
     assert.strictEqual(opts.jobId, `still-pending:${transferId}`);
     assert.strictEqual(opts.delay, 24 * 60 * 60 * 1000); // 24h
     assert.strictEqual(data.iteration, 1);
-    assert.strictEqual(data.userId, 'u_1');
+    assert.strictEqual(data.user, 'u_1');
   });
 
   it('should emit TransferStillPending and schedule next job when worker processes the job', async () => {
@@ -94,11 +95,13 @@ describe('Synthetic Events', () => {
 
     // Simulate job data as if it was retrieved from queue
     const jobData = {
-      tenantId,
-      transferId,
-      payer: 'acc_payer',
-      payee: 'acc_payee',
-      userId: 'u_1',
+      code: tenantId,
+      data: {
+        transfer: transferId,
+        payer: 'acc_payer',
+        payee: 'acc_payee',
+      },
+      user: 'u_1',
       iteration: 1
     };
     
@@ -106,6 +109,7 @@ describe('Synthetic Events', () => {
     dispatchEvent.mock.resetCalls();
 
     const mockJob = createMockJob(jobData, 'job_1');
+    mockJob.name = 'transfer-still-pending';
     
     // Manually invoke the worker processor
     assert.ok(workerProcessor, 'Worker processor should be registered');
@@ -113,8 +117,11 @@ describe('Synthetic Events', () => {
 
     // 1. Verify Event Dispatched (instead of emitted via bus)
     assert.strictEqual(dispatchEvent.mock.callCount(), 1, 'Should dispatch event');
-    const dispatchedEvent = dispatchEvent.mock.calls[0].arguments[0];
+    const dispatchArgs = dispatchEvent.mock.calls[0]?.arguments as any;
+    assert.ok(dispatchArgs && dispatchArgs.length > 0, 'Dispatch should have been called with arguments');
+    const dispatchedEvent = dispatchArgs[0];
     
+    assert.ok(dispatchedEvent, 'Dispatched event should exist');
     assert.strictEqual(dispatchedEvent.name, EVENT_NAME.TransferStillPending);
     assert.strictEqual(dispatchedEvent.data.transfer, transferId);
     assert.strictEqual(dispatchedEvent.user, 'u_1');
@@ -134,7 +141,7 @@ describe('Synthetic Events', () => {
     
     const mockJob = createMockJob({}, 'job_xxx');
     // Set implementation for this test
-    const removeSpy = test.mock.fn();
+    const removeSpy = test.mock.fn(async () => {});
     mockJob.remove = removeSpy;
     
     queueGetJob.mock.mockImplementation(async (id: string) => {

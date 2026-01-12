@@ -9,7 +9,7 @@ import { handleTransferEvent } from './handlers/transfer';
 import { initInAppChannel } from './channels/app';
 import { initPushChannel } from './channels/push';
 import { initEmailChannel } from './channels/email';
-import { initSyntheticEvents } from './synthetic-events';
+import { initSyntheticEvents } from './synthetic';
 
 type WorkerHandle = {
   stop: () => Promise<void>;
