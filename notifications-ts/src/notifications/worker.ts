@@ -84,6 +84,7 @@ export const dispatchEvent = async (event: NotificationEvent): Promise<void> => 
 
     case EVENT_NAME.MemberJoined:
     case EVENT_NAME.MemberRequested:
+    case EVENT_NAME.MemberHasExpiredPosts:
       return handleMemberEvent(event as MemberEvent);
 
     case EVENT_NAME.GroupRequested:

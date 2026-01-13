@@ -30,7 +30,7 @@ describe('App notifications', () => {
     // Generate Auth Keys
     await generateKeys()
     // Start MSW
-    server.listen()
+    server.listen({ onUnhandledRequest: 'bypass' })
   })
 
   after(() => {
@@ -165,7 +165,7 @@ describe('App notifications', () => {
     // Clear notifications before synthetic event to ensure we catch new one
     appNotifications.length = 0;
     
-    await dispatchMockJob(jobOpts, jobData)
+    await dispatchMockJob(jobName, jobOpts, jobData)
 
     // 4. Assert Notification (Iteration 1)
     assert.equal(appNotifications.length, 1, "Should create notification for still pending")
@@ -182,7 +182,7 @@ describe('App notifications', () => {
 
     // 6. Dispatch Job (Iteration 2)
     appNotifications.length = 0; 
-    await dispatchMockJob(jobOpts2, jobData2)
+    await dispatchMockJob(jobName2, jobOpts2, jobData2)
 
     // 7. Assert Notification (Iteration 2)
     assert.equal(appNotifications.length, 1, "Should create 2nd notification")

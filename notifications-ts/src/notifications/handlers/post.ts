@@ -4,6 +4,7 @@ import { Member } from '../../clients/komunitin/types';
 import logger from '../../utils/logger';
 import { eventBus } from '../event-bus';
 import { EnrichedPostEvent } from '../enriched-events';
+import { internalError } from '../../utils/error';
 
 export const handlePostEvent = async (event: PostEvent): Promise<void> => {
   logger.info({ event }, 'Handling post event');
@@ -35,7 +36,7 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
   const member = included.find((r: any) => r.type === 'members' && r.id === memberId) as Member;
 
   if (!member) {
-    throw new Error(`Missing member ${memberId} in post response for ${dataKey} ${postId}`);
+    throw internalError(`Missing member ${memberId} in post response for ${dataKey} ${postId}`);
   }
 
   // Fetch users and group in parallel
@@ -55,7 +56,7 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
     users: usersWithSettings,
   };
 
-  logger.info({ enrichedEvent }, 'Enriched post event');
+  logger.debug({ enrichedEvent }, 'Enriched post event');
 
   // Emit to event bus for channels to handle
   await eventBus.emit(enrichedEvent);

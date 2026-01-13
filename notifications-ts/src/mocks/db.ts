@@ -16,6 +16,27 @@ export const db = {
   transfers: [] as any[],
 };
 
+export const resetDb = () => {
+  db.groups.length = 0;
+  db.groupsSettings.length = 0;
+  db.currencies.length = 0;
+  db.members.length = 0;
+  db.users.length = 0;
+  db.userSettings.length = 0;
+  db.accounts.length = 0;
+  db.offers.length = 0;
+  db.needs.length = 0;
+  db.transfers.length = 0;
+};
+
+export const getUserIdForMember = (memberId: string) => {
+  const user = db.users.find(u => u.relationships.members.data.some((r: any) => r.id === memberId));
+  if (!user) {
+    throw new Error(`No user found for member ${memberId}`);
+  }
+  return user.id;
+};
+
 // -- Factories --
 
 export const createGroups = () => {
@@ -61,7 +82,7 @@ export const createGroup = (code: string) => {
       code: currencyCode,
       name: `${code} Currency`,
       namePlural: `${code} Credits`,
-      symbol: 'TC',
+      symbol: code === 'GRP0' ? 'ħ' : 'TC',
       decimals: 2,
       scale: 2,
       rate: { n: 100, d: 1 }
@@ -140,6 +161,45 @@ export const createMembers = (code: string) => {
   }
 };
 
+export const createOffer = (opts: {
+  id: string;
+  code: string;
+  groupCode: string;
+  memberId?: string;
+  attributes?: Partial<any>;
+}) => {
+  createMembers(opts.groupCode);
+  const groupId = `group-${opts.groupCode}`;
+  const members = db.members.filter(m => m.relationships.group.data.id === groupId);
+  const memberId = opts.memberId || members[0]?.id;
+  
+  if (!memberId) {
+    throw new Error(`No member found for group ${opts.groupCode}`);
+  }
+
+  const offer = {
+    type: 'offers',
+    id: opts.id,
+    attributes: {
+      name: faker.commerce.productName(),
+      content: faker.lorem.paragraph(),
+      price: faker.commerce.price(),
+      images: [faker.image.url()],
+      code: opts.code,
+      created: faker.date.past().toISOString(),
+      updated: faker.date.past().toISOString(),
+      ...opts.attributes,
+    },
+    relationships: {
+      member: { data: { type: 'members', id: memberId } },
+      group: { data: { type: 'groups', id: groupId } }
+    }
+  };
+  
+  db.offers.push(offer);
+  return offer;
+};
+
 export const createOffers = (code: string) => {
   createMembers(code);
   const groupId = `group-${code}`;
@@ -148,25 +208,52 @@ export const createOffers = (code: string) => {
   const members = db.members.filter(m => m.relationships.group.data.id === groupId);
   members.forEach((member, m) => {
     for (let o = 0; o < 3; o++) {
-      db.offers.push({
-        type: 'offers',
+      createOffer({
         id: `offer-${code}-${m}-${o}`,
-        attributes: {
-          name: faker.commerce.productName(),
-          content: faker.lorem.paragraph(),
-          price: faker.commerce.price(),
-          images: [faker.image.url()],
-          code: faker.string.alphanumeric(8).toUpperCase(),
-          created: faker.date.past().toISOString(),
-          updated: faker.date.past().toISOString(),
-        },
-        relationships: {
-          member: { data: { type: 'members', id: member.id } },
-          group: { data: { type: 'groups', id: groupId } }
-        }
+        code: faker.string.alphanumeric(8).toUpperCase(),
+        groupCode: code,
+        memberId: member.id,
       });
     }
   });
+};
+
+export const createNeed = (opts: {
+  id: string;
+  code: string;
+  groupCode: string;
+  memberId?: string;
+  attributes?: Partial<any>;
+}) => {
+  createMembers(opts.groupCode);
+  const groupId = `group-${opts.groupCode}`;
+  const members = db.members.filter(m => m.relationships.group.data.id === groupId);
+  const memberId = opts.memberId || members[0]?.id;
+  
+  if (!memberId) {
+    throw new Error(`No member found for group ${opts.groupCode}`);
+  }
+
+  const need = {
+    type: 'needs',
+    id: opts.id,
+    attributes: {
+      name: faker.commerce.productName(),
+      content: faker.lorem.paragraph(),
+      images: [faker.image.url()],
+      code: opts.code,
+      created: faker.date.past().toISOString(),
+      updated: faker.date.past().toISOString(),
+      ...opts.attributes,
+    },
+    relationships: {
+      member: { data: { type: 'members', id: memberId } },
+      group: { data: { type: 'groups', id: groupId } }
+    }
+  };
+  
+  db.needs.push(need);
+  return need;
 };
 
 export const createNeeds = (code: string) => {
@@ -177,21 +264,11 @@ export const createNeeds = (code: string) => {
   const members = db.members.filter(m => m.relationships.group.data.id === groupId);
   members.forEach((member, m) => {
     for (let n = 0; n < 2; n++) {
-      db.needs.push({
-        type: 'needs',
+      createNeed({
         id: `need-${code}-${m}-${n}`,
-        attributes: {
-          name: faker.commerce.productName(),
-          content: faker.lorem.paragraph(),
-          images: [faker.image.url()],
-          code: faker.string.alphanumeric(8).toUpperCase(),
-          created: faker.date.past().toISOString(),
-          updated: faker.date.past().toISOString(),
-        },
-        relationships: {
-          member: { data: { type: 'members', id: member.id } },
-          group: { data: { type: 'groups', id: groupId } }
-        }
+        code: faker.string.alphanumeric(8).toUpperCase(),
+        groupCode: code,
+        memberId: member.id,
       });
     }
   });

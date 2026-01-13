@@ -8,7 +8,7 @@ const JOB_NAME_STILL_PENDING = 'transfer-still-pending';
 
 const getStillPendingJobId = (transferId: string) => `still-pending:${transferId}`;
 
-export type StillPendingData = {
+type StillPendingData = {
   code: string;
   data: {
     transfer: string;
@@ -19,7 +19,7 @@ export type StillPendingData = {
   iteration: number;
 };
 
-export const handleStillPendingJob = async (job: Job<StillPendingData>, queue: Queue) => {
+const handleStillPendingJob = async (job: Job<StillPendingData>, queue: Queue) => {
   const { code, data, user, iteration } = job.data;
 
   logger.debug({ transfer: data.transfer, iteration }, 'Processing synthetic still-pending job');
@@ -52,7 +52,7 @@ export const handleStillPendingJob = async (job: Job<StillPendingData>, queue: Q
   );
 };
 
-export const subscribeTransferEvents = (queue: Queue) => {
+const subscribeTransferEvents = (queue: Queue) => {
   const unsubPending = eventBus.on(EVENT_NAME.TransferPending, async (event: TransferEvent) => {
     logger.debug({ transferId: event.data.transfer }, 'Scheduling first still-pending check');
 

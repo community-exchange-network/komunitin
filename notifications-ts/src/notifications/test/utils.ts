@@ -15,7 +15,15 @@ export const createEvent = (name: string, payloadId: string, groupId: string, us
   }
 }
 
-export const verifyNotification = async (userId: string, groupId: string, notificationId: string, expectedTitle: string) => {
+export const verifyNotification = async (
+  userId: string,
+  groupId: string,
+  notificationId: string,
+  expected: string | { title: string; body?: string }
+) => {
+  const expectedTitle = typeof expected === 'string' ? expected : expected.title;
+  const expectedBody = typeof expected === 'string' ? undefined : expected.body;
+
   const token = await signJwt(userId, ['komunitin_social'])
   const response = await supertest(_app)
     .get(`/${groupId}/notifications`)
@@ -25,4 +33,8 @@ export const verifyNotification = async (userId: string, groupId: string, notifi
   assert.equal(response.body.data.length, 1)
   assert.equal(response.body.data[0].id, notificationId)
   assert.equal(response.body.data[0].attributes.title, expectedTitle)
+
+  if (expectedBody !== undefined) {
+    assert.equal(response.body.data[0].attributes.body, expectedBody)
+  }
 }

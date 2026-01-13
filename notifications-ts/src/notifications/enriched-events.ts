@@ -31,6 +31,11 @@ export type EnrichedMemberEvent = MemberEvent & {
   users: Array<{ user: User; settings: UserSettings }>;
 };
 
+export type EnrichedMemberHasExpiredPostsEvent = EnrichedMemberEvent & {
+  expiredOffers: Offer[];
+  expiredNeeds: Need[];
+};
+
 export type EnrichedGroupEvent = GroupEvent & {
   group: Group;
   adminUsers: Array<{ user: User; settings: UserSettings }>;

@@ -1,8 +1,44 @@
 import { test } from 'node:test';
 
+// Mock job storage
+const mockJobs = new Map<string, any>();
+
 // Export mocked functions so tests can assert against them
-export const queueAdd: any = test.mock.fn();
-export const queueGetJob: any = test.mock.fn(async () => null);
+export const queueAdd: any = test.mock.fn(async (name: string, data: any, opts?: any) => {
+  const jobId = opts?.jobId || `job-${Date.now()}-${Math.random()}`;
+  const job = {
+    id: jobId,
+    name,
+    data,
+    opts: opts || {},
+    remove: async () => {
+      mockJobs.delete(jobId);
+    }
+  };
+  mockJobs.set(jobId, job);
+  return job;
+});
+
+export const queueGetJob: any = test.mock.fn(async (jobId: string) => {
+  return mockJobs.get(jobId) || null;
+});
+
+export const queueUpsertJobScheduler: any = test.mock.fn(async () => {});
+
+export const queueClose: any = test.mock.fn(async () => {});
+
+/**
+ * Create a Queue-like object that can be passed to synthetic modules.
+ * Backed by the same in-memory job store used by queueAdd/queueGetJob.
+ */
+export const createMockQueue = () => {
+  return {
+    add: queueAdd,
+    getJob: queueGetJob,
+    upsertJobScheduler: queueUpsertJobScheduler,
+    close: queueClose,
+  };
+};
 
 // Captures the processor function passed to the Worker constructor
 export let workerProcessor: any;
@@ -11,17 +47,11 @@ export let workerProcessor: any;
 test.mock.module('../utils/queue', {
   namedExports: {
     createQueue: (name: string) => {
-        // Return an object that looks like the BullMQ Queue mock
-        // We can just instantiate the mock class defined above if we could access it?
-        // But module mocking runs before this code possibly? No, test.mock.module is hoisted? 
-        // Actually, explicit mock factories can reference variables in scope if setup correctly, 
-        // but normally we define the class inside.
-        
-        // Let's create a fresh instance of a mock queue structure
         return {
            add: queueAdd,
            getJob: queueGetJob,
-           close: async () => {} 
+           upsertJobScheduler: queueUpsertJobScheduler,
+           close: queueClose
         };
     },
     createWorker: (name: string, processor: any) => {
@@ -30,7 +60,6 @@ test.mock.module('../utils/queue', {
            close: async () => {} 
         };
     },
-    connection: {},
   }
 });
 
@@ -40,19 +69,21 @@ test.mock.module('../utils/queue', {
 export const resetQueueMocks = () => {
     queueAdd.mock.resetCalls();
     queueGetJob.mock.resetCalls();
-    // Reset implementation if needed, but usually resetCalls is enough for call counts
-    // implementation of queueGetJob returns null by default which is fine
+    queueUpsertJobScheduler.mock.resetCalls();
+    queueClose.mock.resetCalls();
+    mockJobs.clear();
 };
 
 /**
  * Helper to manually dispatch a job to the worker processor
  */
-export const dispatchMockJob = async (jobOpts: { jobId?: string }, jobData: any) => {
+export const dispatchMockJob = async (jobName: string, jobOpts: { jobId?: string }, jobData: any) => {
     if (!workerProcessor) {
         throw new Error('Worker processor not initialized. Ensure worker is created before dispatching jobs.');
     }
     const mockJob = {
       id: jobOpts.jobId || 'test-job-id',
+      name: jobName,
       data: jobData,
       remove: async () => {} 
     };

@@ -6,6 +6,7 @@ import { generateKeys } from '../../mocks/auth'
 import prisma from '../../utils/prisma'
 import { mockRedisStream } from '../../mocks/redis'
 import { db, createOffers, createNeeds } from '../../mocks/db'
+import { resetQueueMocks } from '../../mocks/queue'
 import { mockTable } from '../../mocks/prisma'
 import { createEvent, verifyNotification } from './utils'
 
@@ -23,7 +24,7 @@ describe('Post notifications', () => {
     const workerModule = await import('../worker')
     runNotificationsWorker = workerModule.runNotificationsWorker
     await generateKeys()
-    server.listen()
+    server.listen({ onUnhandledRequest: 'bypass' })
   })
 
   after(() => {
@@ -32,6 +33,7 @@ describe('Post notifications', () => {
 
   beforeEach(async () => {
     appNotifications.length = 0
+    resetQueueMocks()
     worker = await runNotificationsWorker()
   })
 

@@ -164,10 +164,17 @@ describe('Synthetic Events', () => {
   it('should increase delay to weekly after 3rd iteration', async () => {
       const transferId = 'tr_123';
       const mockJob = createMockJob({
-        tenantId: 'T1',
-        transferId,
+        code: 'T1',
+        data: {
+          transfer: transferId,
+          payer: 'acc_payer',
+          payee: 'acc_payee',
+        },
+        user: 'u_1',
         iteration: 3 // Current is 3, next will be 4
       }, 'job_1');
+
+      mockJob.name = 'transfer-still-pending';
 
       await workerProcessor(mockJob);
 

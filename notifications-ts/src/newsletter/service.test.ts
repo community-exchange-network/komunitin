@@ -20,7 +20,7 @@ const newsletterLogStore = mockTable(prisma.newsletterLog, 'newsletterLog', () =
 
 
 describe('Newsletter Cron Job', () => {
-  before(() => server.listen());
+  before(() => server.listen({ onUnhandledRequest: 'bypass' }));
   after(() => server.close());
   after(() => server.close());
   beforeEach(() => {

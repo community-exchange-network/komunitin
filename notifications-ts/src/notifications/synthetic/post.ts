@@ -18,9 +18,10 @@ import { dispatchSyntheticEvent, queueJob } from './shared';
  */
 
 const JOB_NAME_CHECK_EXPIRING = 'check-post-expirations';
-const JOB_NAME_NOTIFY_EXPIRY = 'notify-post-expiry';
-const JOB_NAME_NOTIFY_EXPIRED = 'notify-expired-posts';
+const JOB_NAME_NOTIFY_POST_EXPIRES_SOON = 'notify-post-expires-soon';
+const JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS = 'notify-member-has-expired-posts';
 
+// Data in the job queue for notifying about post expiry
 export type NotifyExpiryData = {
   code: string;
   type: 'offer' | 'need';
@@ -28,6 +29,7 @@ export type NotifyExpiryData = {
   memberId: string;
 };
 
+// Info about the post that has expired last for a member
 type MemberExpiryInfo = {
   type: 'offer' | 'need';
   id: string;
@@ -64,7 +66,7 @@ const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpi
     if (delay < 7 * DAY) {
       await queueJob<NotifyExpiryData>(
         queue,
-        JOB_NAME_NOTIFY_EXPIRED,
+        JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS,
         getExpiredJobId(memberId),
         {
           code: groupCode,
@@ -72,13 +74,16 @@ const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpi
           id: info.id,
           memberId,
         },
-        { replace: true, delay }
+        { 
+          replace: true, 
+          delay 
+        }
       );
     }
   }
 }
 
-export const handleCheckExpiringJob = async (queue: Queue) => {
+const handleCheckExpiringJob = async (queue: Queue) => {
   logger.info('Checking for expiring posts');
 
   const client = new KomunitinClient();
@@ -108,29 +113,32 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
 
           // Handle already expired items
           if (timeLeft <= 0) {
-            
             const expiryDate = new Date(item.attributes.expires);
 
-            const current = memberExpiries.get(memberId);
+            let current = memberExpiries.get(memberId);
             if (!current || expiryDate > current.expires) {
-              memberExpiries.set(memberId, { type, id: item.id, expires: expiryDate });
+              memberExpiries.set(memberId, {
+                type,
+                id: item.id,
+                expires: expiryDate,
+              });
             }
             continue;
           }
-
+          // Handle posts expiring within 7 days
           if (timeLeft <= 7 * DAY) {
             if (window > 30 * DAY ) {
               // Immediately create 7-day notification, however it won't be re-processed if we have already
-              // created it before (even if it is already completed).
+              // created it before (even if it is already completed) because queueJob don't add repeated ids.
               await queueJob<NotifyExpiryData>(
                 queue,
-                JOB_NAME_NOTIFY_EXPIRY,
+                JOB_NAME_NOTIFY_POST_EXPIRES_SOON,
                 `expiry-7d:${item.id}`,
                 { 
                   code: groupCode, 
                   type, 
-                  id: item.id, 
-                  memberId
+                  id: item.id,
+                  memberId,
                 },
                 { removeOnComplete: { age: 30 * 24 * 60 * 60 } } // keep completed jobs for 30 days
               );
@@ -139,7 +147,7 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
             const delay = timeLeft - DAY;
             await queueJob<NotifyExpiryData>(
               queue,
-              JOB_NAME_NOTIFY_EXPIRY,
+              JOB_NAME_NOTIFY_POST_EXPIRES_SOON,
               `expiry-24h:${item.id}`,
               { 
                 code: groupCode, 
@@ -176,7 +184,7 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
   }
 };
 
-export const handleNotifyExpiryJob = async (job: Job<NotifyExpiryData>) => {
+const handleNotifyPostExpiresSoon = async (job: Job<NotifyExpiryData>) => {
   const { code, type, id } = job.data;
 
   await dispatchSyntheticEvent({
@@ -188,19 +196,19 @@ export const handleNotifyExpiryJob = async (job: Job<NotifyExpiryData>) => {
   });
 };
 
-export const handleNotifyExpiredJob = async (job: Job<NotifyExpiryData>) => {
-  const { code, type, id } = job.data;
+const handleNotifyMemberHasExpiredPosts = async (job: Job<NotifyExpiryData>) => {
+  const { code, memberId } = job.data;
 
   await dispatchSyntheticEvent({
-    name: EVENT_NAME.ExpiredPosts,
+    name: EVENT_NAME.MemberHasExpiredPosts,
     code,
     data: {
-      [type]: id
+      member: memberId
     }
   });
 };
 
-export const schedulePostExpirationCheck = async (queue: Queue) => {
+const schedulePostExpirationCheck = async (queue: Queue) => {
   await queue.upsertJobScheduler(
     'check-post-expirations-cron',
     { pattern: '0 */4 * * *' },
@@ -222,8 +230,8 @@ export const initPostEvents = (queue: Queue) => {
   return {
     handlers: {
       [JOB_NAME_CHECK_EXPIRING]: () => handleCheckExpiringJob(queue),
-      [JOB_NAME_NOTIFY_EXPIRY]: (job: Job<NotifyExpiryData>) => handleNotifyExpiryJob(job),
-      [JOB_NAME_NOTIFY_EXPIRED]: (job: Job<NotifyExpiryData>) => handleNotifyExpiredJob(job),
+      [JOB_NAME_NOTIFY_POST_EXPIRES_SOON]: (job: Job<NotifyExpiryData>) => handleNotifyPostExpiresSoon(job),
+      [JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS]: (job: Job<NotifyExpiryData>) => handleNotifyMemberHasExpiredPosts(job),
     },
     stop: async () => { }
   };

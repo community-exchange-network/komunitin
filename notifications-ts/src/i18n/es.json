@@ -65,6 +65,8 @@
     "transfer_still_pending_title": "Movimiento aún pendiente",
     "transfer_still_pending_body": "El movimiento de {{amount}} a {{name}} aún está pendiente después de $t(notifications.days_elapsed). Por favor, acéptalo o recházalo lo antes posible.",
     "days_elapsed_one": "{{count}} día",
-    "days_elapsed_other": "{{count}} días"
+    "days_elapsed_other": "{{count}} días",
+    "post_expires_soon_title": "{{type}} caduca {{time, relativetime}}",
+    "post_expires_soon_body": "Extiende tu {{type}} '{{excerpt}}' para que siga siendo visible para los demás"
   }
 }

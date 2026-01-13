@@ -7,7 +7,7 @@ export const EVENT_NAME = {
   OfferPublished: 'OfferPublished',
   OfferExpired: 'OfferExpired',
   PostExpiresSoon: 'PostExpiresSoon',
-  ExpiredPosts: 'ExpiredPosts',
+  MemberHasExpiredPosts: 'MemberHasExpiredPosts',
   MemberJoined: 'MemberJoined',
   MemberRequested: 'MemberRequested',
   GroupRequested: 'GroupRequested',
@@ -46,8 +46,7 @@ export type PostEvent = NotificationEvent & {
     | typeof EVENT_NAME.NeedExpired
     | typeof EVENT_NAME.OfferPublished
     | typeof EVENT_NAME.OfferExpired
-    | typeof EVENT_NAME.PostExpiresSoon
-    | typeof EVENT_NAME.ExpiredPosts;
+    | typeof EVENT_NAME.PostExpiresSoon;
   data: {
     offer?: string; // offer id (for offer events)
     need?: string; // need id (for need events)
@@ -56,12 +55,20 @@ export type PostEvent = NotificationEvent & {
 };
 
 export type MemberEvent = NotificationEvent & {
-  name: typeof EVENT_NAME.MemberJoined | typeof EVENT_NAME.MemberRequested;
+  name: 
+    | typeof EVENT_NAME.MemberJoined 
+    | typeof EVENT_NAME.MemberRequested 
+    | typeof EVENT_NAME.MemberHasExpiredPosts;
   data: {
     member: string; // member id
   };
 };
 
 export type GroupEvent = NotificationEvent & {
-  name: typeof EVENT_NAME.GroupRequested | typeof EVENT_NAME.GroupActivated;
+  name: 
+    | typeof EVENT_NAME.GroupRequested 
+    | typeof EVENT_NAME.GroupActivated;
+  data: {
+    group: string; // group code
+  };
 };

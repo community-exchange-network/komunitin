@@ -104,19 +104,61 @@ export const handlers = [
     return HttpResponse.json({ data: members });
   }),
 
-  http.get(`${SOCIAL_URL}/:groupCode/offers`, ({ params }) => {
+  http.get(`${SOCIAL_URL}/:groupCode/offers`, ({ params, request }) => {
     const { groupCode } = params;
     createOffers(groupCode as string);
     const groupId = `group-${groupCode}`;
-    const offers = db.offers.filter(o => o.relationships.group.data.id === groupId);
+
+    const url = new URL(request.url);
+    const expireLt = url.searchParams.get('filter[expire][lt]');
+    const expireLtTime = expireLt ? new Date(expireLt).getTime() : null;
+
+    const memberFilter = url.searchParams.get('filter[member]') || url.searchParams.get('filter[members]');
+    const memberIds = memberFilter ? memberFilter.split(',') : null;
+
+    const offers = db.offers
+      .filter(o => o.relationships.group.data.id === groupId)
+      .filter(o => {
+        if (!memberIds) return true;
+        const memberId = o.relationships?.member?.data?.id;
+        return memberId ? memberIds.includes(memberId) : false;
+      })
+      .filter(o => {
+        if (expireLtTime === null) return true;
+        const expires = o.attributes?.expires;
+        if (!expires) return false;
+        return new Date(expires).getTime() < expireLtTime;
+      });
+
     return HttpResponse.json({ data: offers });
   }),
 
-  http.get(`${SOCIAL_URL}/:groupCode/needs`, ({ params }) => {
+  http.get(`${SOCIAL_URL}/:groupCode/needs`, ({ params, request }) => {
     const { groupCode } = params;
     createNeeds(groupCode as string);
     const groupId = `group-${groupCode}`;
-    const needs = db.needs.filter(n => n.relationships.group.data.id === groupId);
+
+    const url = new URL(request.url);
+    const expireLt = url.searchParams.get('filter[expire][lt]');
+    const expireLtTime = expireLt ? new Date(expireLt).getTime() : null;
+
+    const memberFilter = url.searchParams.get('filter[member]') || url.searchParams.get('filter[members]');
+    const memberIds = memberFilter ? memberFilter.split(',') : null;
+
+    const needs = db.needs
+      .filter(n => n.relationships.group.data.id === groupId)
+      .filter(n => {
+        if (!memberIds) return true;
+        const memberId = n.relationships?.member?.data?.id;
+        return memberId ? memberIds.includes(memberId) : false;
+      })
+      .filter(n => {
+        if (expireLtTime === null) return true;
+        const expires = n.attributes?.expires;
+        if (!expires) return false;
+        return new Date(expires).getTime() < expireLtTime;
+      });
+
     return HttpResponse.json({ data: needs });
   }),
   
