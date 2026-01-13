@@ -1,6 +1,5 @@
 import { MemberEvent } from '../events';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Member, User, Group, UserSettings } from '../../clients/komunitin/types';
 import logger from '../../utils/logger';
 import { eventBus } from '../event-bus';
 import { EnrichedMemberEvent } from '../enriched-events';

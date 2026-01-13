@@ -25,20 +25,22 @@ export type NotifyExpiryData = {
   code: string;
   type: 'offer' | 'need';
   id: string;
+  memberId: string;
 };
 
-type NotifyExpiredData = {
-  code: string;
-  memberId: string;
+type MemberExpiryInfo = {
+  type: 'offer' | 'need';
+  id: string;
+  expires: Date;
 };
 
 const getExpiredJobId = (memberId: string) => `expired-posts:${memberId}`;
 
-const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpiries: Map<string, Date>) => {
-  for (const [memberId, latestExpiry] of memberExpiries) {
+const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpiries: Map<string, MemberExpiryInfo>) => {
+  for (const [memberId, info] of memberExpiries) {
 
     const now = Date.now();
-    const expiryTime = latestExpiry.getTime();
+    const expiryTime = info.expires.getTime();
     const DAY = 24 * 60 * 60 * 1000;
 
     const timeSinceExpiry = now - expiryTime;
@@ -60,14 +62,16 @@ const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpi
 
     // Only schedule if delay is reasonable (within next cycle)
     if (delay < 7 * DAY) {
-      await queueJob(
+      await queueJob<NotifyExpiryData>(
         queue,
         JOB_NAME_NOTIFY_EXPIRED,
         getExpiredJobId(memberId),
         {
           code: groupCode,
+          type: info.type,
+          id: info.id,
           memberId,
-        } as NotifyExpiredData,
+        },
         { replace: true, delay }
       );
     }
@@ -85,7 +89,7 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
       const groupCode = group.attributes.code;
 
       // Track expired posts by member
-      const memberExpiries = new Map<string, Date>();
+      const memberExpiries = new Map<string, MemberExpiryInfo>();
 
       const processItems = async (items: (Offer | Need)[], type: 'offer' | 'need') => {
         for (const item of items) {
@@ -100,15 +104,16 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
           const timeLeft = expires - now;
 
           const DAY = 24 * 60 * 60 * 1000;
+          const memberId = item.relationships.member.data.id;
 
           // Handle already expired items
           if (timeLeft <= 0) {
-            const memberId = item.relationships.member.data.id;
+            
             const expiryDate = new Date(item.attributes.expires);
 
             const current = memberExpiries.get(memberId);
-            if (!current || expiryDate > current) {
-              memberExpiries.set(memberId, expiryDate);
+            if (!current || expiryDate > current.expires) {
+              memberExpiries.set(memberId, { type, id: item.id, expires: expiryDate });
             }
             continue;
           }
@@ -117,21 +122,31 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
             if (window > 30 * DAY ) {
               // Immediately create 7-day notification, however it won't be re-processed if we have already
               // created it before (even if it is already completed).
-              await queueJob(
+              await queueJob<NotifyExpiryData>(
                 queue,
                 JOB_NAME_NOTIFY_EXPIRY,
                 `expiry-7d:${item.id}`,
-                { code: groupCode, type, id: item.id } as NotifyExpiryData,
+                { 
+                  code: groupCode, 
+                  type, 
+                  id: item.id, 
+                  memberId
+                },
                 { removeOnComplete: { age: 30 * 24 * 60 * 60 } } // keep completed jobs for 30 days
               );
             }
             // Queue the 24-hour notification
             const delay = timeLeft - DAY;
-            await queueJob(
+            await queueJob<NotifyExpiryData>(
               queue,
               JOB_NAME_NOTIFY_EXPIRY,
               `expiry-24h:${item.id}`,
-              { code: groupCode, type, id: item.id } as NotifyExpiryData,
+              { 
+                code: groupCode, 
+                type, 
+                id: item.id,
+                memberId
+              },
               { 
                 delay: delay > 0 ? delay : 0,
                 removeOnComplete: { age: 7 * 24 * 60 * 60 } // keep completed jobs for 7 days
@@ -173,17 +188,14 @@ export const handleNotifyExpiryJob = async (job: Job<NotifyExpiryData>) => {
   });
 };
 
-export const handleNotifyExpiredJob = async (job: Job<NotifyExpiredData>, queue: Queue) => {
-  const { code, memberId } = job.data;
+export const handleNotifyExpiredJob = async (job: Job<NotifyExpiryData>) => {
+  const { code, type, id } = job.data;
 
-  logger.debug({ memberId }, 'Processing expired posts notification');
-
-  // Dispatch the event
   await dispatchSyntheticEvent({
     name: EVENT_NAME.ExpiredPosts,
     code,
     data: {
-      member: memberId
+      [type]: id
     }
   });
 };
@@ -211,7 +223,7 @@ export const initPostEvents = (queue: Queue) => {
     handlers: {
       [JOB_NAME_CHECK_EXPIRING]: () => handleCheckExpiringJob(queue),
       [JOB_NAME_NOTIFY_EXPIRY]: (job: Job<NotifyExpiryData>) => handleNotifyExpiryJob(job),
-      [JOB_NAME_NOTIFY_EXPIRED]: (job: Job<NotifyExpiredData>) => handleNotifyExpiredJob(job, queue),
+      [JOB_NAME_NOTIFY_EXPIRED]: (job: Job<NotifyExpiryData>) => handleNotifyExpiredJob(job),
     },
     stop: async () => { }
   };
