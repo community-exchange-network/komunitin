@@ -7,7 +7,7 @@ import { generateKeys } from '../../mocks/auth'
 import prisma from '../../utils/prisma'
 import { mockTable } from '../../mocks/prisma'
 import { createMockQueue, resetQueueMocks, queueAdd, queueGetJob } from '../../mocks/queue'
-import { createOffer, getUserIdForMember, resetDb } from '../../mocks/db'
+import { createOffer, createNeed, getUserIdForMember, resetDb, db } from '../../mocks/db'
 import { mockDate, restoreDate } from '../../mocks/date'
 import { verifyNotification } from './utils'
 
@@ -90,7 +90,7 @@ describe('Member has expired posts (synthetic cron)', () => {
 
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expired 1 day ago',
-      body: 'Your offer "Old expired offer" has been hidden for 1 day ago. Extend it to make it visible again.',
+      body: 'Your offer "Old expired offer" was hidden 1 day ago. Extend it to make it visible again.',
     })
 
     // 3) Re-run cron and verify it replaces (reschedules) the same job without creating extra notifications
@@ -165,5 +165,123 @@ describe('Member has expired posts (synthetic cron)', () => {
 
     // Ensure only one job exists in the mock storage (idempotency/replacement)
     assert.equal(queueAdd.mock.callCount(), 2, 'Should have called add twice (once for each cron run)')
+  })
+
+  it('updates notification text as more expired posts (offers and needs) are added', async () => {
+    const groupCode = 'GRP1'
+    const DAY = 24 * 60 * 60 * 1000
+    const now = Date.now()
+
+    const queue = createMockQueue() as any
+    const { initPostEvents } = await import('../synthetic/post')
+    const { handlers: postHandlers } = initPostEvents(queue)
+
+    // Helper to run cron, process job and return the notification
+    const getNotification = async (mId: string) => {
+      // 1) Run cron to discover expired posts and schedule member reminder
+      await postHandlers['check-post-expirations']()
+      // 2) Process the job
+      const jobId = `member-has-expired-posts:${mId}`
+      const job = await queueGetJob(jobId)
+      if (!job) return null
+
+      appNotifications.length = 0
+      await postHandlers['notify-member-has-expired-posts']({ data: job.data } as any)
+      return appNotifications[0]
+    }
+
+    // SCENARIO 1: Only one expired need (1 day ago)
+    const need1 = createNeed({
+      groupCode,
+      id: 'need-1',
+      code: 'NEED1',
+      attributes: {
+        content: 'Need 1 content',
+        expires: new Date(now - 1 * DAY - 1000).toISOString(),
+      },
+    })
+    const memberId = need1.relationships.member.data.id
+    const userId = getUserIdForMember(memberId)
+
+    let notification = await getNotification(memberId)
+    assert.ok(notification)
+    await verifyNotification(userId, groupCode, notification.id, {
+      title: 'Need expired 1 day ago',
+      body: 'Your need "Need 1 content" was hidden 1 day ago. Extend it to make it visible again.',
+    })
+
+    // SCENARIO 2: An expired offer (featured, 1 day ago) + 1 expired need (older, 2 days ago)
+    // Make need1 older
+    db.needs.find((n: any) => n.id === 'need-1').attributes.expires = new Date(now - 2 * DAY).toISOString()
+    // Add a more recent offer
+    createOffer({
+      groupCode,
+      id: 'offer-1',
+      code: 'OFFER1',
+      memberId,
+      attributes: {
+        name: 'Offer 1',
+        expires: new Date(now - 1 * DAY).toISOString(),
+      },
+    })
+
+    notification = await getNotification(memberId)
+    assert.ok(notification)
+    await verifyNotification(userId, groupCode, notification.id, {
+      title: 'Offer expired 1 day ago + 1 more',
+      body: 'Your offer "Offer 1" was hidden 1 day ago. Extend it to make it visible again. You have expired 1 need more to review.',
+    })
+
+    // SCENARIO 3: An expired need (featured, 1 day ago) + 2 expired needs + 2 expired offers
+    // Featured (Need F, 1d)
+    // Extra Needs (Need 1 [2d], Need 2 [3d]) -> 2 extra
+    // Extra Offers (Offer 1 [5d], Offer 2 [4d]) -> 2 extra
+    // Total: 5 items. 4 "more".
+    
+    // Refresh existing:
+    db.needs.find((n: any) => n.id === 'need-1').attributes.expires = new Date(now - 2 * DAY).toISOString()
+    db.offers.find((o: any) => o.id === 'offer-1').attributes.expires = new Date(now - 5 * DAY).toISOString()
+
+    // Add new ones:
+    createNeed({
+      groupCode,
+      id: 'need-featured',
+      code: 'NEEDF',
+      memberId,
+      attributes: {
+        content: 'Need Featured content',
+        expires: new Date(now - 1 * DAY).toISOString(), // Most recent
+      },
+    })
+    // Move Offer 1 to be older than Need Featured
+    db.offers.find((o: any) => o.id === 'offer-1').attributes.expires = new Date(now - 1 * DAY - 1000).toISOString()
+
+    createNeed({
+      groupCode,
+      id: 'need-2',
+      code: 'NEED2',
+      memberId,
+      attributes: {
+        content: 'Need 2 content',
+        expires: new Date(now - 3 * DAY).toISOString(),
+      },
+    })
+    createOffer({
+      groupCode,
+      id: 'offer-2',
+      code: 'OFFER2',
+      memberId,
+      attributes: {
+        name: 'Offer 2',
+        expires: new Date(now - 4 * DAY).toISOString(),
+      },
+    })
+
+    notification = await getNotification(memberId)
+    assert.ok(notification)
+    await verifyNotification(userId, groupCode, notification.id, {
+      title: 'Need expired 1 day ago + 4 more',
+      body: 'Your need "Need Featured content" was hidden 1 day ago. Extend it to make it visible again. You have expired 2 offers and 2 needs more to review.',
+    })
   })
 })

@@ -62,7 +62,7 @@
     "needs_count_other": "{{count}} necessitats",
     "member_expired_posts_counts_join": "{{offers}} i {{needs}}",
     "member_expired_posts_counts_sentence": " Tens {{counts}} més per revisar.",
-    "member_expired_posts_body": "La teva {{type}} \"{{excerpt}}\" ha estat amagada durant {{time, relativetime}}. Extén-la per tornar-la a fer visible.{{countsSentence}}",
+    "member_expired_posts_body": "La teva {{type}} \"{{excerpt}}\" es va amagar {{time, relativetime}}. Amplia-la per tornar-la a fer visible.{{countsSentence}}",
     "transfer_sent_title": "Nou moviment",
     "transfer_sent_body": "Has enviat {{amount}} a {{recipient}}",
     "transfer_received_title": "Nou moviment",

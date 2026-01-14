@@ -62,7 +62,7 @@
     "needs_count_other": "{{count}} necessità",
     "member_expired_posts_counts_join": "{{offers}} e {{needs}}",
     "member_expired_posts_counts_sentence": " Hai {{counts}} in più da rivedere.",
-    "member_expired_posts_body": "La tua {{type}} \"{{excerpt}}\" è stata nascosta da {{time, relativetime}}. Estendila per renderla di nuovo visibile.{{countsSentence}}",
+    "member_expired_posts_body": "La tua {{type}} \"{{excerpt}}\" è stata nascosta {{time, relativetime}}. Estendila per renderla di nuovo visibile.{{countsSentence}}",
     "transfer_sent_title": "Nuovo movimento",
     "transfer_sent_body": "Hai inviato {{amount}} a {{recipient}}",
     "transfer_received_title": "Nuovo movimento",
