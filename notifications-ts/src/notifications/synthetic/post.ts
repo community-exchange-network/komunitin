@@ -36,8 +36,6 @@ type MemberExpiryInfo = {
   expires: Date;
 };
 
-const getExpiredJobId = (memberId: string) => `expired-posts:${memberId}`;
-
 const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpiries: Map<string, MemberExpiryInfo>) => {
   for (const [memberId, info] of memberExpiries) {
 
@@ -67,7 +65,7 @@ const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpi
       await queueJob<NotifyExpiryData>(
         queue,
         JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS,
-        getExpiredJobId(memberId),
+        `member-has-expired-posts:${memberId}`,
         {
           code: groupCode,
           type: info.type,
@@ -127,19 +125,20 @@ const handleCheckExpiringJob = async (queue: Queue) => {
           }
           // Handle posts expiring within 7 days
           if (timeLeft <= 7 * DAY) {
-            if (window > 30 * DAY ) {
+            const data = {
+              code: groupCode, 
+              type, 
+              id: item.id,
+              memberId,
+            }
+            if (window > 30 * DAY ) {  
               // Immediately create 7-day notification, however it won't be re-processed if we have already
               // created it before (even if it is already completed) because queueJob don't add repeated ids.
               await queueJob<NotifyExpiryData>(
                 queue,
                 JOB_NAME_NOTIFY_POST_EXPIRES_SOON,
-                `expiry-7d:${item.id}`,
-                { 
-                  code: groupCode, 
-                  type, 
-                  id: item.id,
-                  memberId,
-                },
+                `post-expires-in-7d:${item.id}`,
+                data,
                 { removeOnComplete: { age: 30 * 24 * 60 * 60 } } // keep completed jobs for 30 days
               );
             }
@@ -148,13 +147,8 @@ const handleCheckExpiringJob = async (queue: Queue) => {
             await queueJob<NotifyExpiryData>(
               queue,
               JOB_NAME_NOTIFY_POST_EXPIRES_SOON,
-              `expiry-24h:${item.id}`,
-              { 
-                code: groupCode, 
-                type, 
-                id: item.id,
-                memberId
-              },
+              `post-expires-in-24h:${item.id}`,
+              data,
               { 
                 delay: delay > 0 ? delay : 0,
                 removeOnComplete: { age: 7 * 24 * 60 * 60 } // keep completed jobs for 7 days

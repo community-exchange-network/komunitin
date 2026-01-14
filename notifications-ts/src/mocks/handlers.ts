@@ -104,6 +104,14 @@ export const handlers = [
     return HttpResponse.json({ data: members });
   }),
 
+  http.get(`${SOCIAL_URL}/:groupCode/members/:id`, ({ params }) => {
+    const { groupCode, id } = params;
+    createMembers(groupCode as string);
+    const member = db.members.find(m => m.id === id);
+    if (!member) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ data: member });
+  }),
+
   http.get(`${SOCIAL_URL}/:groupCode/offers`, ({ params, request }) => {
     const { groupCode } = params;
     createOffers(groupCode as string);

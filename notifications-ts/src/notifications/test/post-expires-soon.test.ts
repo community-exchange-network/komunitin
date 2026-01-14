@@ -74,8 +74,8 @@ describe('Post expires soon (synthetic cron)', () => {
     await postHandlers['check-post-expirations']()
 
     // 2) Assert the two jobs exist (7d immediate + 24h delayed)
-    const job7dId = `expiry-7d:${offer.id}`
-    const job24hId = `expiry-24h:${offer.id}`
+    const job7dId = `post-expires-in-7d:${offer.id}`
+    const job24hId = `post-expires-in-24h:${offer.id}`
 
     const job7d = await queueGetJob(job7dId)
     const job24h = await queueGetJob(job24hId)
