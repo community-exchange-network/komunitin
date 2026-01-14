@@ -76,6 +76,8 @@
     "days_elapsed_one": "{{count}} dia",
     "days_elapsed_other": "{{count}} dies",
     "post_expires_soon_title": "{{type}} caduca {{time, relativetime}}",
-    "post_expires_soon_body": "Extén la teva {{type}} '{{excerpt}}' per a que segueixi sent visible per als altres"
+    "post_expires_soon_body": "Extén la teva {{type}} '{{excerpt}}' per a que segueixi sent visible per als altres",
+    "new_post_title": "{{type}} de {{name}}",
+    "new_post_body": "{{excerpt}}"
   }
 }

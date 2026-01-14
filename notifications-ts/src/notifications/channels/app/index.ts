@@ -2,7 +2,7 @@ import logger from '../../../utils/logger';
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
 import { handleMemberHasExpiredPosts } from './member';
-import { handlePostExpired, handlePostExpiresSoon } from './post';
+import { handlePostExpired, handlePostExpiresSoon, handlePostPublished } from './post';
 import { handleTransferCommitted, handleTransferPending, handleTransferRejected, handleTransferStillPending } from './transfer';
 
 export const initInAppChannel = (): (() => void) => {
@@ -18,6 +18,8 @@ export const initInAppChannel = (): (() => void) => {
     eventBus.on(EVENT_NAME.OfferExpired, handlePostExpired),
     eventBus.on(EVENT_NAME.PostExpiresSoon, handlePostExpiresSoon),
     eventBus.on(EVENT_NAME.MemberHasExpiredPosts, handleMemberHasExpiredPosts),
+    eventBus.on(EVENT_NAME.OfferPublished, handlePostPublished),
+    eventBus.on(EVENT_NAME.NeedPublished, handlePostPublished),
   ];
   // TODO: Implement handlers for other events
   // eventBus.on(EVENT_NAME.NeedPublished, handleNeedPublished);

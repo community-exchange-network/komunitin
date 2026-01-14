@@ -76,6 +76,8 @@
     "days_elapsed_one": "{{count}} day",
     "days_elapsed_other": "{{count}} days",
     "post_expires_soon_title": "{{type}} expires {{time, relativetime}}",
-    "post_expires_soon_body": "Extend your {{type}} '{{excerpt}}' to keep it visible to others."
+    "post_expires_soon_body": "Extend your {{type}} '{{excerpt}}' to keep it visible to others.",
+    "new_post_title": "New {{type}} from {{name}}",
+    "new_post_body": "{{excerpt}}"
   }
 }

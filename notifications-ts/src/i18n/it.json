@@ -72,6 +72,8 @@
     "transfer_rejected_title": "Movimento rifiutato",
     "transfer_rejected_body": "{{name}} ha rifiutato un movimento di {{amount}}.",
     "post_expires_soon_title": "{{type}} scade {{time, relativetime}}",
-    "post_expires_soon_body": "Estendi la tua {{type}} '{{excerpt}}' per mantenerla visibile agli altri."
+    "post_expires_soon_body": "Estendi la tua {{type}} '{{excerpt}}' per mantenerla visibile agli altri.",
+    "new_post_title": "Nuova {{type}} da {{name}}",
+    "new_post_body": "{{excerpt}}"
   }
 }
