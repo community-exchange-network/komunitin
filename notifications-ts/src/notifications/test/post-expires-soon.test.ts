@@ -7,7 +7,7 @@ import { generateKeys } from '../../mocks/auth'
 import prisma from '../../utils/prisma'
 import { mockTable } from '../../mocks/prisma'
 import { createMockQueue, resetQueueMocks, queueAdd, queueGetJob } from '../../mocks/queue'
-import { createOffer, getUserIdForMember, resetDb } from '../../mocks/db'
+import { createOffer, getUserIdForMember, resetDb, db } from '../../mocks/db'
 import { mockDate, restoreDate } from '../../mocks/date'
 import { verifyNotification } from './utils'
 
@@ -94,7 +94,7 @@ describe('Post expires soon (synthetic cron)', () => {
 
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expires in 6 days',
-      body: "Your Offer 'Offer that will expire soon' will be hidden unless you extend it",
+      body: "Extend your Offer 'Offer that will expire soon' to keep it visible to others.",
     })
 
     // 4) Run cron again and verify idempotency (no duplicate jobs / no duplicate send)
@@ -102,5 +102,54 @@ describe('Post expires soon (synthetic cron)', () => {
 
     assert.equal(queueAdd.mock.callCount(), 2, 'Should not enqueue duplicate jobs on re-run')
     assert.equal(appNotifications.length, 1, 'Should not create a duplicate notification on re-run')
+  })
+
+  it('cancels the 24h notification if the post is extended before the job runs', async () => {
+    const groupCode = 'GRP1'
+    const DAY = 24 * 60 * 60 * 1000
+    const now = Date.now()
+
+    // 1) Set a post expiring in 3 days ( < 7 days but > 24h)
+    const offer = createOffer({
+      groupCode,
+      id: 'offer-extensible',
+      code: 'OFFEREXT',
+      attributes: {
+        name: 'Extensible Offer',
+        expires: new Date(now + 3 * DAY).toISOString(),
+      }
+    })
+
+    const memberId = offer.relationships.member.data.id
+    const userId = getUserIdForMember(memberId)
+
+    const queue = createMockQueue() as any
+    const { initPostEvents } = await import('../synthetic/post')
+    const { handlers: postHandlers } = initPostEvents(queue)
+
+    // 2) Run cron job
+    await postHandlers['check-post-expirations']()
+
+    const job7dId = `post-expires-in-7d:${offer.id}`
+    const job24hId = `post-expires-in-24h:${offer.id}`
+
+    const job7d = await queueGetJob(job7dId)
+    const job24h = await queueGetJob(job24hId)
+
+    assert.ok(job7d, 'Expected 7d job')
+    assert.ok(job24h, 'Expected 24h job')
+
+    // 3) Process 7d job. It should send the notification.
+    await postHandlers['notify-post-expires-soon']({ data: job7d.data } as any)
+    assert.equal(appNotifications.length, 1)
+
+    // 4) Extend the post expiration to 30 days from now
+    db.offers.find((o: any) => o.id === offer.id).attributes.expires = new Date(now + 30 * DAY).toISOString()
+
+    // 5) Process the 24h job. It should NOT send a notification.
+    appNotifications.length = 0 // Clear to see if a new one is added
+    await postHandlers['notify-post-expires-soon']({ data: job24h.data } as any)
+
+    assert.equal(appNotifications.length, 0, 'Expected no notification to be sent as post was extended')
   })
 })
