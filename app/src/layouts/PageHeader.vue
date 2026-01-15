@@ -3,7 +3,7 @@
     <div
       id="header"
       class="bg-primary flex row justify-between items-center q-pt-sm q-pb-xs q-pl-sm q-pr-md"
-      :class="`${showBalance ? 'wrap' : 'q-pt-xs no-wrap'}`"
+      :class="showBalance ? 'wrap' : 'q-pt-xs no-wrap'"
       :style="`height: ${computedHeight}px;`"
     >
         <!-- render back button, menu button, profile button or none -->

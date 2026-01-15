@@ -44,17 +44,17 @@
         <menu-item
           icon="account_circle"
           :title="$t('myProfile')"
-          :to="`/groups/${groupCode}/members/${myMember.attributes.code}`"
+          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}`"
         />
         <menu-item
           icon="loyalty"
           :title="$t('myNeeds')"
-          :to="`/groups/${groupCode}/members/${myMember.attributes.code}#needs`"
+          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#needs`"
         />
         <menu-item
           icon="local_offer"
           :title="$t('myOffers')"
-          :to="`/groups/${groupCode}/members/${myMember.attributes.code}#offers`"
+          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#offers`"
         />
         <menu-item
           icon="edit"
@@ -101,7 +101,7 @@ import MenuItem from '../components/MenuItem.vue';
 const store = useStore();
 
 const myMember = computed(() => store.getters.myMember);
-const groupCode = computed(() => myMember?.value.group.attributes.code);
+const groupCode = computed(() => myMember.value?.group?.attributes.code ?? '');
 const account = computed(() => myMember?.value.account.attributes.code || '')
 
 const feedbackURL = config.FEEDBACK_URL;
