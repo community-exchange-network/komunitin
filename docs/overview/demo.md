@@ -6,7 +6,7 @@ Use the demo to experiment the app and discover all the features by yourself bef
 
 {% embed url="https://demo.komunitin.org" %}
 
-In this server there are two communities "NET1" and "NET2" with some users in each. You can use any of the following credentials to log in:
+In this server there are two communities "NET1" (Time bank) and "NET2" (Mutual credit) with some users in each. You can use any of the following credentials to log in:
 
 **NET1 - regular user**\
 email: euclides@komunitin.org\
@@ -18,6 +18,10 @@ password: komunitin
 
 **NET2 - regular user**\
 email: noether@komunitin.org\
+password: komunitin
+
+**NET2 - admin user**\
+email: fermat@komunitin.org\
 password: komunitin
 
 The demo instance is automatically deployed with the lastest code in the main branch. It may occasionally be down or corrupted due to maintenance, testing or users changing passwords and/or config settings from the admin user. It is regularly reset with fresh data.
