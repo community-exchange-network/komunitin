@@ -6,8 +6,8 @@ import { eventBus } from '../event-bus';
 import { EnrichedPostEvent } from '../enriched-events';
 import { internalError } from '../../utils/error';
 import { setTimeout as delay } from 'timers/promises';
+import { isPostUrgent } from '../channels/app/post';
 
-const URGENT_POST_DAYS = 7;
 const FETCH_DELAY_MS = 50;
 
 export const handlePostEvent = async (event: PostEvent): Promise<void> => {
@@ -51,25 +51,16 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
     event.name === EVENT_NAME.OfferPublished || event.name === EVENT_NAME.NeedPublished;
   let usersWithSettings: Array<{ user: any; settings: any }> = [];
 
-  if (isPublishedEvent) {
-    const created = new Date(post.attributes.created);
-    const expires = new Date(post.attributes.expires);
-    const windowDays = (expires.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
-
-    if (windowDays <= URGENT_POST_DAYS) {
-      logger.info({ postId, windowDays }, 'Urgent post detected, fetching all group users');
-      const members = await client.getMembers(event.code);
-      const allUsersMap = new Map<string, { user: any; settings: any }>();
-
-      for (const m of members) {
-        await delay(FETCH_DELAY_MS);
-        const memberUsers = await client.getMemberUsers(m.id);
-        memberUsers.forEach((r) => allUsersMap.set(r.user.id, r));
-      }
-      usersWithSettings = Array.from(allUsersMap.values());
-    } else {
-      logger.info({ postId, windowDays }, 'Post is not urgent, skipping group notification');
+  // For published events, fetch all member users; for others, just the post author.
+  if (isPublishedEvent && isPostUrgent(post)) {
+    const members = await client.getMembers(event.code);
+    const allUsersMap = new Map<string, { user: any; settings: any }>();
+    for (const m of members) {
+      await delay(FETCH_DELAY_MS);
+      const memberUsers = await client.getMemberUsers(m.id);
+      memberUsers.forEach((r) => allUsersMap.set(r.user.id, r));
     }
+    usersWithSettings = Array.from(allUsersMap.values());
   } else {
     usersWithSettings = await client.getMemberUsers(memberId);
   }

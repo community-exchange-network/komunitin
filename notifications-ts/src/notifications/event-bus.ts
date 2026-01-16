@@ -38,7 +38,7 @@ class NotificationEventBus {
     };
   }
 
-  async emit(event: BaseEvent): Promise<void> {
+  async emit<T extends BaseEvent>(event: T): Promise<void> {
     const listeners = this.listeners.get(event.name)
     
     if (!listeners || listeners.length === 0) {

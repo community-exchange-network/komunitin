@@ -10,15 +10,11 @@ import initI18n from '../utils/i18n';
 import { getAuthCode } from '../clients/komunitin/getAuthCode';
 
 import { selectBestItems, getDistance } from './posts-algorithm';
-import { Member, Offer, Need, UserSettings, Group } from '../clients/komunitin/types';
+import { Member, Offer, Need, Group } from '../clients/komunitin/types';
 import { getAccountSectionData } from './account-algorithm';
 import { SeededRandom, stringToSeed } from '../utils/seededRandom';
-import { MemCache } from '../utils/memcache';
+import { CACHE_TTL_24H, CACHE_TTL_NO_CACHE, getCachedActiveGroups } from '../utils/cached-resources';
 
-
-// Cache groups for 24 hours to avoid fetching them every hour
-const groupsCache = new MemCache<Group[]>();
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 const processItems = (
   items: (Offer | Need)[],
@@ -30,7 +26,7 @@ const processItems = (
   return items.map(item => {
     const authorId = item.relationships.member.data.id;
     const author = memberMap.get(authorId);
-    
+
     let distance: number | undefined;
     if (author) {
       const d = getDistance(targetMember, author);
@@ -104,7 +100,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
   // Number of members created last month
   const groupMembersLastMonth = allMembers.filter((m: any) => m.attributes.created > oneMonthAgo.toISOString()).length;
-  
+
   const stats = {
     exchanges: groupExchangesLastMonth,
     activeAccounts: activeAccountsLastMonth,
@@ -131,12 +127,12 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       take: 50
     }) as HistoryLog[];
 
-    for (const {user, settings} of usersAndSettings) {
+    for (const { user, settings } of usersAndSettings) {
       const frequency = settings.attributes.emails.group; // 'weekly', 'monthly', etc.
       if (!frequency || frequency === 'never') continue;
 
       // Check last sent
-      const lastSentLog = history.find(log => 
+      const lastSentLog = history.find(log =>
         (log.recipients as any[]).some((r: any) => r.userId === user.id)
       );
 
@@ -165,8 +161,8 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
     // Compute reproducible seed for this member's newsletter
     // Use last history log ID if available, otherwise use member ID
-    const seedString = history.length > 0 
-      ? `${history[0].memberId}-${history[0].sentAt}` 
+    const seedString = history.length > 0
+      ? `${history[0].memberId}-${history[0].sentAt}`
       : member.id;
     const seed = stringToSeed(seedString);
     const rng = new SeededRandom(seed);
@@ -287,7 +283,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
     // Log to DB (One entry per member)
     try {
-      
+
       await prisma.newsletterLog.create({
         data: {
           memberId: member.id,
@@ -317,29 +313,23 @@ export const runNewsletter = async (options?: { groupCode?: string, memberCode?:
   const mailer = new Mailer();
 
   try {
-    // 1. Get all active groups, using a 24h cache
-    
     const isManualRun = !!(options?.groupCode || options?.memberCode || options?.forceSend);
-    
-    const allGroups = await groupsCache.get(async () => {
-      const result = await client.getGroups({ 'filter[status]': 'active' });
-      logger.info({ count: result.length }, 'Fetched active groups');
-      return result;
-    }, CACHE_TTL, isManualRun);
-    
-    let groups: Group[] = allGroups;
+
+    const allGroups = await getCachedActiveGroups(client, isManualRun ? CACHE_TTL_NO_CACHE : CACHE_TTL_24H);
+
+    let groupsToProcess: Group[] = allGroups;
 
     if (options?.memberCode && !options?.groupCode) {
       options.groupCode = options.memberCode.substring(0, 4);
     }
 
     if (options?.groupCode) {
-      groups = groups.filter((g: any) => g.attributes.code === options.groupCode);
+      groupsToProcess = groupsToProcess.filter((g: any) => g.attributes.code === options.groupCode);
     }
 
-    const groupsToProcess = groups.filter(group => shouldProcessGroup(group, isManualRun));
-    logger.info({ count: groupsToProcess.length }, 'Processing groups for newsletter');
-    for (const group of groupsToProcess) {
+    const groupsFiltered = groupsToProcess.filter(group => shouldProcessGroup(group, isManualRun));
+    logger.info({ count: groupsFiltered.length }, 'Processing groups for newsletter');
+    for (const group of groupsFiltered) {
       await processGroupNewsletter(group, client, mailer, options?.memberCode, options?.forceSend);
     }
   } catch (error) {

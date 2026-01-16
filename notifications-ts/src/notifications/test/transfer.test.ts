@@ -4,13 +4,13 @@ import { setupServer } from 'msw/node'
 import handlers from '../../mocks/handlers'
 import { generateKeys } from '../../mocks/auth'
 import prisma from '../../utils/prisma'
-import { mockRedisStream } from '../../mocks/redis'
+import { mockRedis } from '../../mocks/redis'
 import { db, createTransfers } from '../../mocks/db'
 import { queueAdd, queueGetJob, resetQueueMocks, dispatchMockJob } from '../../mocks/queue'
 import { mockTable } from '../../mocks/prisma'
 import { createEvent, verifyNotification } from './utils'
 
-const { put } = mockRedisStream()
+const { put } = mockRedis()
 const server = setupServer(...handlers)
 
 // Mock prisma

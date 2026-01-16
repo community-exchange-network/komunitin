@@ -1,13 +1,13 @@
 import { test, describe, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { server } from '../mocks/server';
-import { runNewsletter } from './service';
 import { http, HttpResponse } from 'msw';
 // Mock nodemailer to prevent actual email sending
 import nodemailer from 'nodemailer';
 import prisma from '../utils/prisma';
 import { mockDate, restoreDate } from '../mocks/date';
 import { mockTable } from '../mocks/prisma';
+import { mockRedis } from '../mocks/redis';
 
 // Mock nodemailer
 const sendMailMock = test.mock.fn((_options: any) => Promise.resolve({ messageId: 'mock-id' }));
@@ -18,11 +18,18 @@ nodemailer.createTransport = test.mock.fn(() => ({
 // Mock Prisma
 const newsletterLogStore = mockTable(prisma.newsletterLog, 'newsletterLog', () => ({ sentAt: new Date() }));
 
+const { reset: resetRedis } = mockRedis();
 
 describe('Newsletter Cron Job', () => {
-  before(() => server.listen({ onUnhandledRequest: 'bypass' }));
+  let runNewsletter: (options?: { forceSend?: boolean }) => Promise<void>;
+  before(async () => {
+    // We need to delay import until mocks (redis) are set up.
+    const newsletterModule = await import('../newsletter/service');
+    runNewsletter = newsletterModule.runNewsletter;
+    server.listen({ onUnhandledRequest: 'bypass' })
+  });
   after(() => server.close());
-  after(() => server.close());
+  
   beforeEach(() => {
     server.resetHandlers();
     sendMailMock.mock.resetCalls();
@@ -31,6 +38,7 @@ describe('Newsletter Cron Job', () => {
     prisma.newsletterLog.create.mock.resetCalls();
     // @ts-ignore
     prisma.newsletterLog.findMany.mock.resetCalls();
+    resetRedis();
   });
 
   afterEach(() => {

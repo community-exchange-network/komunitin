@@ -94,7 +94,7 @@ describe('Post expires soon (synthetic cron)', () => {
 
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expires in 6 days',
-      body: "Extend your Offer 'Offer that will expire soon' to keep it visible to others.",
+      body: "Extend your Offer 'Offer that will expire soon · Spero turbo agnosco…' to keep it visible to others.",
     })
 
     // 4) Run cron again and verify idempotency (no duplicate jobs / no duplicate send)
@@ -119,9 +119,6 @@ describe('Post expires soon (synthetic cron)', () => {
         expires: new Date(now + 3 * DAY).toISOString(),
       }
     })
-
-    const memberId = offer.relationships.member.data.id
-    const userId = getUserIdForMember(memberId)
 
     const queue = createMockQueue() as any
     const { initPostEvents } = await import('../synthetic/post')

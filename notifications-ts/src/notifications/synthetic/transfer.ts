@@ -2,7 +2,8 @@ import { Job, Queue } from 'bullmq';
 import { eventBus } from '../event-bus';
 import { EVENT_NAME, TransferEvent } from '../events';
 import logger from '../../utils/logger';
-import { dispatchSyntheticEvent, queueJob } from './shared';
+import { dispatchSyntheticEvent } from './shared';
+import { queueJob } from '../../utils/queue';
 
 const JOB_NAME_STILL_PENDING = 'transfer-still-pending';
 

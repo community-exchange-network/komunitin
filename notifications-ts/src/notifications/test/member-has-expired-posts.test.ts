@@ -90,7 +90,7 @@ describe('Member has expired posts (synthetic cron)', () => {
 
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expired 1 day ago',
-      body: 'Your offer "Old expired offer" was hidden 1 day ago. Extend it to make it visible again.',
+      body: 'Your offer "Old expired offer · Spero turbo agnosco tenax car…" was hidden 1 day ago. Extend it to make it visible again.',
     })
 
     // 3) Re-run cron and verify it replaces (reschedules) the same job without creating extra notifications
@@ -229,15 +229,15 @@ describe('Member has expired posts (synthetic cron)', () => {
     assert.ok(notification)
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expired 1 day ago + 1 more',
-      body: 'Your offer "Offer 1" was hidden 1 day ago. Extend it to make it visible again. You have expired 1 need more to review.',
     })
+    assert.equal(notification.body, 'Your offer "Offer 1 · Despecto pariatur turba vita vesica bar…" was hidden 1 day ago. Extend it to make it visible again. You have expired 1 need more to review.')
 
     // SCENARIO 3: An expired need (featured, 1 day ago) + 2 expired needs + 2 expired offers
     // Featured (Need F, 1d)
     // Extra Needs (Need 1 [2d], Need 2 [3d]) -> 2 extra
     // Extra Offers (Offer 1 [5d], Offer 2 [4d]) -> 2 extra
     // Total: 5 items. 4 "more".
-    
+
     // Refresh existing:
     db.needs.find((n: any) => n.id === 'need-1').attributes.expires = new Date(now - 2 * DAY).toISOString()
     db.offers.find((o: any) => o.id === 'offer-1').attributes.expires = new Date(now - 5 * DAY).toISOString()

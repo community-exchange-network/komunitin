@@ -3,18 +3,20 @@ import { EVENT_NAME } from '../events';
 import logger from '../../utils/logger';
 import { KomunitinClient } from '../../clients/komunitin/client';
 import { Offer, Need } from '../../clients/komunitin/types';
-import { dispatchSyntheticEvent, queueJob } from './shared';
+import { dispatchSyntheticEvent } from './shared';
+import { queueJob } from '../../utils/queue';
 
 /**
- * Post synthetic events
+ * Post synthetic events - Expiration handling
  *
- * This module handles synthetic events related to posts (offers and needs),
- * specifically for expiration notifications.
+ * This module handles synthetic events related to post expiration:
+ * - PostExpiresSoon: Notify users when their posts are about to expire
+ * - MemberHasExpiredPosts: Remind users about their expired posts
  *
  * It periodically checks for posts that are expired or expiring before 7 days.
  * For posts expiring soon, it schedules notifications at 7 days and 24 hours before expiration.
  * For already expired posts, it aggregates them by member and schedules notifications at
- * increasing intervals: 7 days, 30 days, then every 90 days after the lastest expiration.
+ * increasing intervals: 7 days, 30 days, then every 90 days after the latest expiration.
  */
 
 const JOB_NAME_CHECK_EXPIRING = 'check-post-expirations';
@@ -72,9 +74,9 @@ const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpi
           id: info.id,
           memberId,
         },
-        { 
-          replace: true, 
-          delay 
+        {
+          replace: true,
+          delay
         }
       );
     }
@@ -126,12 +128,12 @@ const handleCheckExpiringJob = async (queue: Queue) => {
           // Handle posts expiring within 7 days
           if (timeLeft <= 7 * DAY) {
             const data = {
-              code: groupCode, 
-              type, 
+              code: groupCode,
+              type,
               id: item.id,
               memberId,
             }
-            if (window > 30 * DAY ) {  
+            if (window > 30 * DAY) {
               // Immediately create 7-day notification, however it won't be re-processed if we have already
               // created it before (even if it is already completed) because queueJob don't add repeated ids.
               await queueJob<NotifyExpiryData>(
@@ -149,7 +151,7 @@ const handleCheckExpiringJob = async (queue: Queue) => {
               JOB_NAME_NOTIFY_POST_EXPIRES_SOON,
               `post-expires-in-24h:${item.id}`,
               data,
-              { 
+              {
                 delay: delay > 0 ? delay : 0,
                 removeOnComplete: { age: 7 * 24 * 60 * 60 } // keep completed jobs for 7 days
               }
@@ -212,9 +214,13 @@ const schedulePostExpirationCheck = async (queue: Queue) => {
   );
 };
 
+const stopPostExpirationCheck = async (queue: Queue) => {
+  await queue.removeJobScheduler('check-post-expirations-cron');
+}
+
 /**
- * Initialize post synthetic events.
- * Returns job handlers and setup promise.
+ * Initialize post expiration synthetic events.
+ * Returns job handlers.
  */
 export const initPostEvents = (queue: Queue) => {
   schedulePostExpirationCheck(queue).catch(err => {
@@ -227,6 +233,8 @@ export const initPostEvents = (queue: Queue) => {
       [JOB_NAME_NOTIFY_POST_EXPIRES_SOON]: (job: Job<NotifyExpiryData>) => handleNotifyPostExpiresSoon(job),
       [JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS]: (job: Job<NotifyExpiryData>) => handleNotifyMemberHasExpiredPosts(job),
     },
-    stop: async () => { }
+    stop: async () => {
+      await stopPostExpirationCheck(queue);
+    },
   };
 };
