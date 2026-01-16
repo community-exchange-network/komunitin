@@ -18,10 +18,20 @@ const appNotifications = mockTable(prisma.appNotification, 'test-notification')
 
 describe('Member has expired posts (synthetic cron)', () => {
   let stopAppChannel: (() => void) | null = null
+  let runPostExpirationCron: () => Promise<void>;
+  let runNotifyMemberHasExpiredPosts: (data: any) => Promise<void>;
 
   before(async () => {
     await generateKeys()
     server.listen({ onUnhandledRequest: 'bypass' })
+    
+    const queue = createMockQueue() as any
+    const { initPostEvents } = await import('../synthetic/post')
+    const { handlers: postHandlers } = initPostEvents(queue)
+
+    runPostExpirationCron = postHandlers['post-expiration-cron'];
+    runNotifyMemberHasExpiredPosts = postHandlers['notify-member-has-expired-posts'];
+
   })
 
   after(() => {
@@ -67,12 +77,8 @@ describe('Member has expired posts (synthetic cron)', () => {
     const memberId = offer.relationships.member.data.id
     const userId = getUserIdForMember(memberId)
 
-    const queue = createMockQueue() as any
-    const { initPostEvents } = await import('../synthetic/post')
-    const { handlers: postHandlers } = initPostEvents(queue)
-
-    // 1) Run cron job to discover expired posts and schedule per-member reminder
-    await postHandlers['check-post-expirations']()
+    // 1) Run cron to discover expired posts and schedule member reminder
+    await runPostExpirationCron()
 
     // Expired 1 day ago => reminder should be delayed until the 7-day boundary => 6 days
     const jobId = `member-has-expired-posts:${memberId}`
@@ -83,7 +89,7 @@ describe('Member has expired posts (synthetic cron)', () => {
     assert.equal(job.opts.delay, 6 * DAY)
 
     // 2) Process the job and verify notification via HTTP endpoint
-    await postHandlers['notify-member-has-expired-posts']({ data: job.data } as any)
+    await runNotifyMemberHasExpiredPosts({ data: job.data } )
 
     assert.equal(appNotifications.length, 1)
     const notification = appNotifications[0]
@@ -94,7 +100,7 @@ describe('Member has expired posts (synthetic cron)', () => {
     })
 
     // 3) Re-run cron and verify it replaces (reschedules) the same job without creating extra notifications
-    await postHandlers['check-post-expirations']()
+    await runPostExpirationCron()
 
     const jobAfter = await queueGetJob(jobId)
     assert.ok(jobAfter, 'Expected the expired-posts job to still exist after rescheduling')
@@ -127,12 +133,8 @@ describe('Member has expired posts (synthetic cron)', () => {
     const memberId = oldOffer.relationships.member.data.id
     const jobId = `member-has-expired-posts:${memberId}`
 
-    const queue = createMockQueue() as any
-    const { initPostEvents } = await import('../synthetic/post')
-    const { handlers: postHandlers } = initPostEvents(queue)
-
     // Run cron
-    await postHandlers['check-post-expirations']()
+    await runPostExpirationCron()
 
     // 2) Check that a notification is scheduled for 30d after expiry (5 days from now)
     const job1 = await queueGetJob(jobId)
@@ -154,7 +156,7 @@ describe('Member has expired posts (synthetic cron)', () => {
     })
 
     // 4) Run cron again
-    await postHandlers['check-post-expirations']()
+    await runPostExpirationCron()
 
     // Check that now there is only one notification scheduled for 7d after the new expiry (6 days delay)
     // 7 - 1 = 6 days. 6 < 7 so it is scheduled.
@@ -172,21 +174,17 @@ describe('Member has expired posts (synthetic cron)', () => {
     const DAY = 24 * 60 * 60 * 1000
     const now = Date.now()
 
-    const queue = createMockQueue() as any
-    const { initPostEvents } = await import('../synthetic/post')
-    const { handlers: postHandlers } = initPostEvents(queue)
-
     // Helper to run cron, process job and return the notification
     const getNotification = async (mId: string) => {
       // 1) Run cron to discover expired posts and schedule member reminder
-      await postHandlers['check-post-expirations']()
+      await runPostExpirationCron()
       // 2) Process the job
       const jobId = `member-has-expired-posts:${mId}`
       const job = await queueGetJob(jobId)
       if (!job) return null
 
       appNotifications.length = 0
-      await postHandlers['notify-member-has-expired-posts']({ data: job.data } as any)
+      await runNotifyMemberHasExpiredPosts({ data: job.data } )
       return appNotifications[0]
     }
 

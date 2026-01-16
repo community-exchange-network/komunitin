@@ -18,10 +18,18 @@ const appNotifications = mockTable(prisma.appNotification, 'test-notification')
 
 describe('Post expires soon (synthetic cron)', () => {
   let stopAppChannel: (() => void) | null = null
+  let runPostExpirationCron: () => Promise<void>;
+  let runNotifyPostExpiresSoon: (job: any) => Promise<void>;
 
   before(async () => {
     await generateKeys()
     server.listen({ onUnhandledRequest: 'bypass' })
+    const queue = createMockQueue() as any
+    const { initPostEvents } = await import('../synthetic/post')
+    const { handlers: postHandlers } = initPostEvents(queue)
+
+    runPostExpirationCron = postHandlers['post-expiration-cron'];
+    runNotifyPostExpiresSoon = postHandlers['notify-post-expires-soon'];
   })
 
   after(() => {
@@ -66,12 +74,8 @@ describe('Post expires soon (synthetic cron)', () => {
     const memberId = offer.relationships.member.data.id
     const userId = getUserIdForMember(memberId)
 
-    const queue = createMockQueue() as any
-    const { initPostEvents } = await import('../synthetic/post')
-    const { handlers: postHandlers } = initPostEvents(queue)
-
     // 1) Run cron job to discover expiring posts (< 7d)
-    await postHandlers['check-post-expirations']()
+    await runPostExpirationCron()
 
     // 2) Assert the two jobs exist (7d immediate + 24h delayed)
     const job7dId = `post-expires-in-7d:${offer.id}`
@@ -87,7 +91,7 @@ describe('Post expires soon (synthetic cron)', () => {
     assert.equal(job24h.opts.delay, 5 * DAY)
 
     // 3) Process the 7d job and verify notification via HTTP endpoint
-    await postHandlers['notify-post-expires-soon']({ data: job7d.data } as any)
+    await runNotifyPostExpiresSoon({ data: job7d.data } )
 
     assert.equal(appNotifications.length, 1)
     const notification = appNotifications[0]
@@ -98,7 +102,7 @@ describe('Post expires soon (synthetic cron)', () => {
     })
 
     // 4) Run cron again and verify idempotency (no duplicate jobs / no duplicate send)
-    await postHandlers['check-post-expirations']()
+    await runPostExpirationCron()
 
     assert.equal(queueAdd.mock.callCount(), 2, 'Should not enqueue duplicate jobs on re-run')
     assert.equal(appNotifications.length, 1, 'Should not create a duplicate notification on re-run')
@@ -125,7 +129,7 @@ describe('Post expires soon (synthetic cron)', () => {
     const { handlers: postHandlers } = initPostEvents(queue)
 
     // 2) Run cron job
-    await postHandlers['check-post-expirations']()
+    await runPostExpirationCron()
 
     const job7dId = `post-expires-in-7d:${offer.id}`
     const job24hId = `post-expires-in-24h:${offer.id}`
@@ -137,7 +141,7 @@ describe('Post expires soon (synthetic cron)', () => {
     assert.ok(job24h, 'Expected 24h job')
 
     // 3) Process 7d job. It should send the notification.
-    await postHandlers['notify-post-expires-soon']({ data: job7d.data } as any)
+    await runNotifyPostExpiresSoon({ data: job7d.data } )
     assert.equal(appNotifications.length, 1)
 
     // 4) Extend the post expiration to 30 days from now
@@ -145,7 +149,7 @@ describe('Post expires soon (synthetic cron)', () => {
 
     // 5) Process the 24h job. It should NOT send a notification.
     appNotifications.length = 0 // Clear to see if a new one is added
-    await postHandlers['notify-post-expires-soon']({ data: job24h.data } as any)
+    await runNotifyPostExpiresSoon({ data: job24h.data } )
 
     assert.equal(appNotifications.length, 0, 'Expected no notification to be sent as post was extended')
   })

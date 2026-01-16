@@ -5,6 +5,7 @@ import { KomunitinClient } from '../../clients/komunitin/client';
 import { Offer, Need } from '../../clients/komunitin/types';
 import { dispatchSyntheticEvent } from './shared';
 import { queueJob } from '../../utils/queue';
+import { getCachedActiveGroups } from '../../utils/cached-resources';
 
 /**
  * Post synthetic events - Expiration handling
@@ -19,9 +20,12 @@ import { queueJob } from '../../utils/queue';
  * increasing intervals: 7 days, 30 days, then every 90 days after the latest expiration.
  */
 
-const JOB_NAME_CHECK_EXPIRING = 'check-post-expirations';
+const JOB_NAME_POST_EXPIRATION_CRON = 'post-expiration-cron';
+const SCHEDULER_NAME_POST_EXPIRATION_CRON = 'scheduler-post-expirations-cron';
+
 const JOB_NAME_NOTIFY_POST_EXPIRES_SOON = 'notify-post-expires-soon';
 const JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS = 'notify-member-has-expired-posts';
+
 
 // Data in the job queue for notifying about post expiry
 export type NotifyExpiryData = {
@@ -89,7 +93,7 @@ const handleCheckExpiringJob = async (queue: Queue) => {
   const client = new KomunitinClient();
 
   try {
-    const groups = await client.getGroups();
+    const groups = await getCachedActiveGroups(client);
     for (const group of groups) {
       const groupCode = group.attributes.code;
 
@@ -206,16 +210,16 @@ const handleNotifyMemberHasExpiredPosts = async (job: Job<NotifyExpiryData>) => 
 
 const schedulePostExpirationCheck = async (queue: Queue) => {
   await queue.upsertJobScheduler(
-    'check-post-expirations-cron',
+    SCHEDULER_NAME_POST_EXPIRATION_CRON,
     { pattern: '0 */4 * * *' },
     {
-      name: JOB_NAME_CHECK_EXPIRING,
+      name: JOB_NAME_POST_EXPIRATION_CRON,
     }
   );
 };
 
 const stopPostExpirationCheck = async (queue: Queue) => {
-  await queue.removeJobScheduler('check-post-expirations-cron');
+  await queue.removeJobScheduler(SCHEDULER_NAME_POST_EXPIRATION_CRON);
 }
 
 /**
@@ -224,12 +228,12 @@ const stopPostExpirationCheck = async (queue: Queue) => {
  */
 export const initPostEvents = (queue: Queue) => {
   schedulePostExpirationCheck(queue).catch(err => {
-    logger.error({ err }, 'Failed to schedule check-post-expirations-cron');
+    logger.error({ err }, 'Failed to schedule post expiration check');
   });
 
   return {
     handlers: {
-      [JOB_NAME_CHECK_EXPIRING]: () => handleCheckExpiringJob(queue),
+      [JOB_NAME_POST_EXPIRATION_CRON]: () => handleCheckExpiringJob(queue),
       [JOB_NAME_NOTIFY_POST_EXPIRES_SOON]: (job: Job<NotifyExpiryData>) => handleNotifyPostExpiresSoon(job),
       [JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS]: (job: Job<NotifyExpiryData>) => handleNotifyMemberHasExpiredPosts(job),
     },
