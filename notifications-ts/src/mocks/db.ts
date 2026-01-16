@@ -140,7 +140,11 @@ export const createMembers = (code: string) => {
       id: `${userId}-settings`,
       attributes: {
         language: 'en',
-        emails: { group: 'weekly', myAccount: true }
+        emails: { group: 'weekly', myAccount: true },
+        notifications: {
+          newOffers: true,
+          newNeeds: true
+        }
       }
     });
 

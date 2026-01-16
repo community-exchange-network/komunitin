@@ -1,3 +1,4 @@
+import { group } from 'node:console';
 import { test } from 'node:test';
 
 export const mockTable = (table: any, name: string = 'test', defaults?: (data: any) => any) => {
@@ -34,6 +35,33 @@ export const mockTable = (table: any, name: string = 'test', defaults?: (data: a
         results = results.slice(0, args.take);
       }
       return results;
+    }),
+    groupBy: test.mock.fn(async (args: any) => {
+      const all = await delegate.findMany({ where: args.where });
+      const field = args.by[0];
+      const groups = new Map();
+      all.forEach((item: any) => {
+        const key = item[field];
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key)!.push(item);
+      });
+      // Implement _max aggregation only.
+      if (args._max) {
+        const aggField = Object.keys(args._max)[0];
+        const items = groups.values().map((items: any[]) => {
+          return items.reduce((max, item) => {
+            return item[aggField] > max[aggField] ? item : max;
+          });
+        });
+        return items.map(item => ({
+          [field]: item[field],
+          _max: { [aggField]: item[aggField] },
+        }));
+      } else {
+        throw new Error('Only _max aggregation is implemented in mockTable.groupBy');
+      }
     }),
   };
 
