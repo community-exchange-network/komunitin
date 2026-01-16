@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { queueJob } from '../utils/queue-job';
 
 // Mock job storage
 const mockJobs = new Map<string, any>();
@@ -23,9 +24,11 @@ export const queueGetJob: any = test.mock.fn(async (jobId: string) => {
   return mockJobs.get(jobId) || null;
 });
 
-export const queueUpsertJobScheduler: any = test.mock.fn(async () => {});
+export const queueUpsertJobScheduler: any = test.mock.fn(async () => { });
 
-export const queueClose: any = test.mock.fn(async () => {});
+export const queueRemoveJobScheduler: any = test.mock.fn(async () => { });
+
+export const queueClose: any = test.mock.fn(async () => { });
 
 /**
  * Create a Queue-like object that can be passed to synthetic modules.
@@ -36,6 +39,7 @@ export const createMockQueue = () => {
     add: queueAdd,
     getJob: queueGetJob,
     upsertJobScheduler: queueUpsertJobScheduler,
+    removeJobScheduler: queueRemoveJobScheduler,
     close: queueClose,
   };
 };
@@ -43,50 +47,53 @@ export const createMockQueue = () => {
 // Captures the processor function passed to the Worker constructor
 export let workerProcessor: any;
 
-// Mock utils/queue to use the same logic
-test.mock.module('../utils/queue', {
-  namedExports: {
-    createQueue: (name: string) => {
-        return {
-           add: queueAdd,
-           getJob: queueGetJob,
-           upsertJobScheduler: queueUpsertJobScheduler,
-           close: queueClose
-        };
-    },
-    createWorker: (name: string, processor: any) => {
-        workerProcessor = processor;
-        return {
-           close: async () => {} 
-        };
-    },
-  }
-});
+const mockExports = {
+  createQueue: (name: string) => {
+    return {
+      add: queueAdd,
+      getJob: queueGetJob,
+      upsertJobScheduler: queueUpsertJobScheduler,
+      removeJobScheduler: queueRemoveJobScheduler,
+      close: queueClose
+    };
+  },
+  createWorker: (name: string, processor: any) => {
+    workerProcessor = processor;
+    return {
+      close: async () => { }
+    };
+  },
+  queueJob: queueJob,
+};
+
+// Mock utils/queue (relative path)
+test.mock.module('../utils/queue', { namedExports: mockExports });
 
 /**
  * Reset all queue mocks
  */
 export const resetQueueMocks = () => {
-    queueAdd.mock.resetCalls();
-    queueGetJob.mock.resetCalls();
-    queueUpsertJobScheduler.mock.resetCalls();
-    queueClose.mock.resetCalls();
-    mockJobs.clear();
+  queueAdd.mock.resetCalls();
+  queueGetJob.mock.resetCalls();
+  queueUpsertJobScheduler.mock.resetCalls();
+  queueRemoveJobScheduler.mock.resetCalls();
+  queueClose.mock.resetCalls();
+  mockJobs.clear();
 };
 
 /**
  * Helper to manually dispatch a job to the worker processor
  */
 export const dispatchMockJob = async (jobName: string, jobOpts: { jobId?: string }, jobData: any) => {
-    if (!workerProcessor) {
-        throw new Error('Worker processor not initialized. Ensure worker is created before dispatching jobs.');
-    }
-    const mockJob = {
-      id: jobOpts.jobId || 'test-job-id',
-      name: jobName,
-      data: jobData,
-      remove: async () => {} 
-    };
-    
-    await workerProcessor(mockJob);
+  if (!workerProcessor) {
+    throw new Error('Worker processor not initialized. Ensure worker is created before dispatching jobs.');
+  }
+  const mockJob = {
+    id: jobOpts.jobId || 'test-job-id',
+    name: jobName,
+    data: jobData,
+    remove: async () => { }
+  };
+
+  await workerProcessor(mockJob);
 };

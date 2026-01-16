@@ -31,6 +31,7 @@ export interface Member {
 
 export interface Offer {
   id: string;
+  type: "offers";
   attributes: {
     code: string;
     name: string;
@@ -48,6 +49,7 @@ export interface Offer {
 
 export interface Need {
   id: string;
+  type: "needs";
   attributes: {
     code: string;
     images: string[];

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import logger from './utils/logger';
+import { connectRedis } from './utils/redis';
 
 import { runNewsletterWorker } from './newsletter/worker';
 import { runNotificationsWorker } from './notifications/worker';
@@ -7,6 +8,8 @@ import { startServer } from './server';
 
 const main = async () => {
   logger.info('Starting notifications-ts service...');
+
+  await connectRedis();
 
   const { stop: stopNotifications } = await runNotificationsWorker();
   const { stop: stopNewsletter } = await runNewsletterWorker();
