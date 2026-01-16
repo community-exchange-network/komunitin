@@ -4,10 +4,12 @@ import logger from '../../utils/logger';
 import { QUEUE_NAME } from './shared';
 import { initTransferEvents } from './transfer';
 import { initPostEvents } from './post';
+import { initDigestCron } from './digest-cron';
 
 /**
  * Synthetic event generator.
- * It schedules future events based on current events (e.g. transfer still pending).
+ * It schedules future events based on current events (e.g. transfer still pending)
+ * and runs periodic crons (e.g. digest notifications).
  */
 export const initSyntheticEvents = () => {
   const queue = createQueue(QUEUE_NAME);
@@ -15,11 +17,13 @@ export const initSyntheticEvents = () => {
   // Initialize modules
   const transferModule = initTransferEvents(queue);
   const postModule = initPostEvents(queue);
+  const digestModule = initDigestCron(queue);
 
   // Combine all handlers
   const handlers = {
     ...transferModule.handlers,
     ...postModule.handlers,
+    ...digestModule.handlers,
   };
 
   // Create worker that delegates to registered handlers
@@ -42,3 +46,4 @@ export const initSyntheticEvents = () => {
     queue.close();
   };
 };
+

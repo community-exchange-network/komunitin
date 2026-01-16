@@ -13,6 +13,7 @@ export const EVENT_NAME = {
   GroupRequested: 'GroupRequested',
   GroupActivated: 'GroupActivated',
   TransferStillPending: 'TransferStillPending',
+  PostsPublishedDigest: 'PostsPublishedDigest',
 } as const;
 
 export type EventName = (typeof EVENT_NAME)[keyof typeof EVENT_NAME];
@@ -23,7 +24,7 @@ export type NotificationEvent = {
   source: string;
   code: string;
   time: Date;
-  data: Record<string, string>;
+  data: Record<string, any>;
   user: string;
 };
 

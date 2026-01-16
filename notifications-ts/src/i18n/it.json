@@ -74,6 +74,9 @@
     "post_expires_soon_title": "{{type}} scade {{time, relativetime}}",
     "post_expires_soon_body": "Estendi la tua {{type}} '{{excerpt}}' per mantenerla visibile agli altri.",
     "new_post_title": "Nuova {{type}} da {{name}}",
-    "new_post_body": "{{excerpt}}"
+    "new_post_body": "{{excerpt}}",
+    "posts_published_digest_title": "Notizie da {{names, list}}",
+    "and_more_members": "e {{count}} altri",
+    "and_more_posts": "E {{count}} altri"
   }
 }

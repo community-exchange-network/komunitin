@@ -1,4 +1,4 @@
-import { GroupEvent, MemberEvent, PostEvent, TransferEvent } from "./events"
+import { GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent } from "./events"
 import { Account, Member, User, Group, Currency, Transfer, UserSettings, Need, Offer } from "../clients/komunitin/types";
 
 export type EnrichedTransferEvent = TransferEvent & {
@@ -41,7 +41,17 @@ export type EnrichedGroupEvent = GroupEvent & {
   adminUsers: Array<{ user: User; settings: UserSettings }>;
 };
 
-export type EnrichedEvent = EnrichedGroupEvent | EnrichedMemberEvent | EnrichedPostEvent | EnrichedTransferEvent;
+export type EnrichedPostsPublishedDigestEvent = NotificationEvent & {
+  name: 'PostsPublishedDigest';
+  code: string;
+  group: Group;
+  members: Member[];
+  users: Array<{ user: User; settings: UserSettings }>;
+  offers: Offer[];
+  needs: Need[];
+};
+
+export type EnrichedEvent = EnrichedGroupEvent | EnrichedMemberEvent | EnrichedPostEvent | EnrichedTransferEvent | EnrichedPostsPublishedDigestEvent;
 
 
 
