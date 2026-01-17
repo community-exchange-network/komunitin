@@ -43,7 +43,15 @@ const langs = {
     loadDateFNS: async () => (await import("date-fns/locale/es")).es,
     loadCountries: async () => (await import("i18n-iso-countries/langs/es.json")).default
   } as LocaleDefinition,
-  "it": {
+  "fr": {
+    label: "Français",
+    loadMessages: async () => (await import("src/i18n/fr/index.json")).default,
+    loadAdminMessages: async () => (await import("src/i18n/fr/admin.json")).default,
+    loadQuasar: async () => (await import("quasar/lang/fr")).default,
+    loadDateFNS: async () => (await import("date-fns/locale/fr")).fr,
+    loadCountries: async () => (await import("i18n-iso-countries/langs/fr.json")).default
+  } as LocaleDefinition,
+ "it": {
     label: "Italiano",
     loadMessages: async () => (await import("src/i18n/it/index.json")).default,
     loadAdminMessages: async () => (await import("src/i18n/it/admin.json")).default,
@@ -62,6 +70,9 @@ if (process.env.FEAT_TOPUP === 'true') {
   }
   langs["es"].features = {
     topup: async () => (await import("src/i18n/es/topup.json")).default as never
+  }
+  langs["fr"].features = {
+    topup: async () => (await import("src/i18n/fr/topup.json")).default as never
   }
 }
 
