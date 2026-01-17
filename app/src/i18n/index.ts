@@ -81,7 +81,7 @@ export default langs as Record<LangName, LocaleDefinition>
 /**
  * Default to english language.
  */
-export const DEFAULT_LANG = "fr";
+export const DEFAULT_LANG = "en-us";
 /**
  * Return locale if it is a defined language for this app,
  * or the default language code (English) instead.
