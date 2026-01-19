@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { ACCOUNTING_URL } from './handlers';
 import { group } from 'console';
+import { Member } from '../clients/komunitin/types';
 
 // -- Data Store --
 export const db = {
@@ -90,79 +91,121 @@ export const createGroup = (code: string) => {
   });
 };
 
+
+export const createMember = (opts: {
+  groupCode: string;
+  id?: string;
+  code?: string;
+  name?: string;
+  userId?: string;
+  accountId?: string;
+  attributes?: Record<string, any>;
+  image?: string | null;
+}) => {
+  createGroup(opts.groupCode);
+  const groupId = `group-${opts.groupCode}`;
+  
+  const id = opts.id || `member-${opts.groupCode}-${Math.random().toString(36).substring(7)}`;
+  const userId = opts.userId || `user-${id}`;
+  const accountId = opts.accountId || `account-${id}`;
+  const userCode = opts.code || `u${Math.random().toString(36).substring(7)}`;
+
+  // Check if member already exists to avoid duplicates if ID provided
+  if (db.members.find(m => m.id === id)) return db.members.find(m => m.id === id);
+
+   // Member
+   const member = {
+    type: 'members',
+    id: id,
+    attributes: {
+      code: userCode,
+      name: opts.name || `Member ${userCode}`,
+      image: opts.image !== undefined ? opts.image : faker.image.avatar(),
+      location: { type: 'Point', coordinates: [faker.location.longitude(), faker.location.latitude()] },
+      description: faker.lorem.sentence(),
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      ...opts.attributes
+    },
+    relationships: {
+      account: {
+        data: { type: 'accounts', id: accountId },
+        links: { related: `${ACCOUNTING_URL}/${opts.groupCode}/accounts/${accountId}` }
+      },
+      user: { data: { type: 'users', id: userId } },
+      group: { data: { type: 'groups', id: groupId } }
+    }
+  };
+  db.members.push(member);
+
+  // User
+  db.users.push({
+    type: 'users',
+    id: userId,
+    attributes: { email: `${userCode}@example.com` },
+    relationships: {
+      settings: { data: { type: 'user-settings', id: `${userId}-settings` } },
+      members: { data: [{ type: 'members', id: id }] }
+    }
+  });
+
+  // Settings
+  db.userSettings.push({
+    type: 'user-settings',
+    id: `${userId}-settings`,
+    attributes: {
+      language: 'en',
+      emails: { group: 'weekly', myAccount: true },
+      notifications: {
+        newOffers: true,
+        newNeeds: true
+      }
+    }
+  });
+
+  // Account
+  db.accounts.push({
+    type: 'accounts',
+    id: accountId,
+    attributes: {
+      code: accountId,
+      balance: faker.number.int({ min: -500, max: 1000 }),
+    },
+    relationships: {
+      currency: {
+        data: { type: "currencies", id: `currency-${opts.groupCode}` }
+      }
+    }
+  });
+
+  return member;
+};
+
 export const createMembers = (code: string) => {
   createGroup(code);
   const groupId = `group-${code}`;
   // Check if members already exist for this group
-  if (db.members.some(m => m.relationships.group.data.id === groupId)) return;
-
-  for (let m = 0; m < 5; m++) {
-    const memberId = `member-${code}-${m}`;
-    const userId = `user-${code}-${m}`;
-    const accountId = `account-${code}-${m}`;
-    const userCode = `user${code}${m}`;
-
-    // Member
-    db.members.push({
-      type: 'members',
-      id: memberId,
-      attributes: {
-        code: userCode,
-        name: `Member ${code}-${m}`,
-        image: m % 3 === 0 ? null : faker.image.avatar(),
-        location: { type: 'Point', coordinates: [faker.location.longitude(), faker.location.latitude()] },
-        description: faker.lorem.sentence()
-      },
-      relationships: {
-        account: {
-          data: { type: 'accounts', id: accountId },
-          links: { related: `${ACCOUNTING_URL}/${code}/accounts/${accountId}` }
-        },
-        user: { data: { type: 'users', id: userId } },
-        group: { data: { type: 'groups', id: groupId } }
-      }
-    });
-
-    // User
-    db.users.push({
-      type: 'users',
-      id: userId,
-      attributes: { email: `${userCode}@example.com` },
-      relationships: {
-        settings: { data: { type: 'user-settings', id: `${userId}-settings` } },
-        members: { data: [{ type: 'members', id: memberId }] }
-      }
-    });
-
-    // Settings
-    db.userSettings.push({
-      type: 'user-settings',
-      id: `${userId}-settings`,
-      attributes: {
-        language: 'en',
-        emails: { group: 'weekly', myAccount: true },
-        notifications: {
-          newOffers: true,
-          newNeeds: true
-        }
-      }
-    });
-
-    // Account
-    db.accounts.push({
-      type: 'accounts',
-      id: accountId,
-      attributes: {
-        code: accountId,
-        balance: faker.number.int({ min: -500, max: 1000 }),
-      },
-      relationships: {
-        currency: {
-          data: { type: "currencies", id: `currency-${code}` }
-        }
-      }
-    });
+  if (db.members.some(m => m.relationships.group.data.id === groupId)) {
+    return db.members.filter(m => m.relationships.group.data.id === groupId)
+      .filter(m => m.id.match(`^member-${code}-\\d+$`)); // select only members created by this function
   }
+
+  const oldDate = new Date();
+  oldDate.setDate(oldDate.getDate() - 60); // 60 days old
+  const members: Member[] = []
+  for (let m = 0; m < 5; m++) {
+    members.push(createMember({
+      groupCode: code,
+      id: `member-${code}-${m}`,
+      code: `user${code}${m}`,
+      name: `Member ${code}-${m}`,
+      userId: `user-${code}-${m}`,
+      accountId: `account-${code}-${m}`,
+      image: m % 3 === 0 ? null : undefined,
+      attributes: { created: oldDate.toISOString(), updated: oldDate.toISOString() }
+    }));
+  }
+  return members;
 };
 
 export const createOffer = (opts: {
@@ -172,9 +215,9 @@ export const createOffer = (opts: {
   memberId?: string;
   attributes?: Partial<any>;
 }) => {
-  createMembers(opts.groupCode);
+  const members = createMembers(opts.groupCode);
   const groupId = `group-${opts.groupCode}`;
-  const members = db.members.filter(m => m.relationships.group.data.id === groupId);
+  
   const memberId = opts.memberId || members[0]?.id;
   
   if (!memberId) {
@@ -205,11 +248,10 @@ export const createOffer = (opts: {
 };
 
 export const createOffers = (code: string) => {
-  createMembers(code);
+  const members = createMembers(code);
   const groupId = `group-${code}`;
   if (db.offers.some(o => o.relationships.group.data.id === groupId)) return;
 
-  const members = db.members.filter(m => m.relationships.group.data.id === groupId);
   members.forEach((member, m) => {
     for (let o = 0; o < 3; o++) {
       createOffer({
@@ -229,9 +271,9 @@ export const createNeed = (opts: {
   memberId?: string;
   attributes?: Partial<any>;
 }) => {
-  createMembers(opts.groupCode);
+  const members = createMembers(opts.groupCode);
   const groupId = `group-${opts.groupCode}`;
-  const members = db.members.filter(m => m.relationships.group.data.id === groupId);
+
   const memberId = opts.memberId || members[0]?.id;
   
   if (!memberId) {
@@ -261,11 +303,10 @@ export const createNeed = (opts: {
 };
 
 export const createNeeds = (code: string) => {
-  createMembers(code);
+  const members = createMembers(code);
   const groupId = `group-${code}`;
   if (db.needs.some(n => n.relationships.group.data.id === groupId)) return;
 
-  const members = db.members.filter(m => m.relationships.group.data.id === groupId);
   members.forEach((member, m) => {
     for (let n = 0; n < 2; n++) {
       createNeed({
@@ -279,12 +320,10 @@ export const createNeeds = (code: string) => {
 };
 
 export const createTransfers = (code: string) => {
-  createMembers(code);
-  const groupId = `group-${code}`;
+  const members = createMembers(code);
+  
   // Check if transfers exist (heuristic: check if any transfer ID contains group code)
   if (db.transfers.some(t => t.id.startsWith(`transfer-${code}`))) return;
-
-  const members = db.members.filter(m => m.relationships.group.data.id === groupId);
 
   // Create circular transfers: 0->1, 1->2, 2->3, 3->4, 4->0
   members.forEach((payer, i) => {

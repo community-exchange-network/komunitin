@@ -41,17 +41,29 @@ export type EnrichedGroupEvent = GroupEvent & {
   adminUsers: Array<{ user: User; settings: UserSettings }>;
 };
 
-export type EnrichedPostsPublishedDigestEvent = NotificationEvent & {
-  name: 'PostsPublishedDigest';
+type EnrichedGroupDigestEvent = NotificationEvent & {
   code: string;
   group: Group;
   members: Member[];
   users: Array<{ user: User; settings: UserSettings }>;
   offers: Offer[];
   needs: Need[];
+}
+
+export type EnrichedPostsPublishedDigestEvent = EnrichedGroupDigestEvent & {
+  name: 'PostsPublishedDigest';
 };
 
-export type EnrichedEvent = EnrichedGroupEvent | EnrichedMemberEvent | EnrichedPostEvent | EnrichedTransferEvent | EnrichedPostsPublishedDigestEvent;
+export type EnrichedMembersJoinedDigestEvent = EnrichedGroupDigestEvent & {
+  name: 'MembersJoinedDigest';
+};
 
+export type EnrichedEvent =
+  | EnrichedGroupEvent
+  | EnrichedMemberEvent
+  | EnrichedPostEvent
+  | EnrichedTransferEvent
+  | EnrichedPostsPublishedDigestEvent
+  | EnrichedMembersJoinedDigestEvent;
 
 

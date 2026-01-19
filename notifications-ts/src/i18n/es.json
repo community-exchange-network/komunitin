@@ -80,7 +80,12 @@
     "new_post_title": "{{type}} de {{name}}",
     "new_post_body": "{{excerpt}}",
     "posts_published_digest_title": "Noticias de {{names, list}}",
-    "and_more_members": "y {{count}} más",
-    "and_more_posts": "Y {{count}} más"
+    "members_joined_digest_title": "{{names, list}} se unieron a {{groupName}}",
+    "member_joined_title": "{{name}} se unió a {{groupName}}",
+    "member_from_city": "{{name}} de {{city}}",
+    "and_more_members": "{{count}} más",
+    "and_more_posts": "Y {{count}} más",
+    "check_member_profiles_one": "Consulta su perfil",
+    "check_member_profiles_other": "Consulta sus perfiles"
   }
 }

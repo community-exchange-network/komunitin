@@ -80,7 +80,12 @@
     "new_post_title": "{{type}} de {{name}}",
     "new_post_body": "{{excerpt}}",
     "posts_published_digest_title": "Novetats de {{names, list}}",
-    "and_more_members": "i {{count}} més",
-    "and_more_posts": "I {{count}} més"
+    "members_joined_digest_title": "{{names, list}} s'han unit a {{groupName}}",
+    "member_joined_title": "{{name}} s'ha unit a {{groupName}}",
+    "member_from_city": "{{name}} de {{city}}",
+    "and_more_members": "{{count}} més",
+    "and_more_posts": "I {{count}} més",
+    "check_member_profiles_one": "Consulta el seu perfil",
+    "check_member_profiles_other": "Consulta els seus perfils"
   }
 }

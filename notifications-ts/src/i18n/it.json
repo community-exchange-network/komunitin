@@ -76,7 +76,12 @@
     "new_post_title": "Nuova {{type}} da {{name}}",
     "new_post_body": "{{excerpt}}",
     "posts_published_digest_title": "Notizie da {{names, list}}",
-    "and_more_members": "e {{count}} altri",
-    "and_more_posts": "E {{count}} altri"
+    "members_joined_digest_title": "{{names, list}} si sono uniti a {{groupName}}",
+    "member_joined_title": "{{name}} si è unito a {{groupName}}",
+    "member_from_city": "{{name}} da {{city}}",
+    "and_more_members": "altri {{count}}",
+    "and_more_posts": "E altri {{count}}",
+    "check_member_profiles_one": "Controlla il suo profilo",
+    "check_member_profiles_other": "Controlla i loro profili"
   }
 }

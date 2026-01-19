@@ -80,7 +80,12 @@
     "new_post_title": "New {{type}} from {{name}}",
     "new_post_body": "{{excerpt}}",
     "posts_published_digest_title": "News from {{names, list}}",
-    "and_more_members": "and {{count}} more",
-    "and_more_posts": "And {{count}} more"
+    "members_joined_digest_title": "{{names, list}} joined {{groupName}}",
+    "member_joined_title": "{{name}} joined {{groupName}}",
+    "member_from_city": "{{name}} from {{city}}",
+    "and_more_members": "{{count}} more",
+    "and_more_posts": "And {{count}} more",
+    "check_member_profiles_one": "Check their member profile",
+    "check_member_profiles_other": "Check their member profiles"
   }
 }

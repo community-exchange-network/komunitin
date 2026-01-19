@@ -93,7 +93,7 @@ export const handlePostsPublishedDigest = async (event: EnrichedPostsPublishedDi
       });
       const bodyLines = featuredPosts.map(post => {
         const type = post.type === 'offers' ? t('offer') : t('need');
-        const excerpt = excerptText(post);
+        const excerpt = excerptPost(post);
         return `${type} · ${excerpt}`;
       });
       if (extraPostsCount > 0) {
@@ -110,7 +110,7 @@ export const handlePostsPublishedDigest = async (event: EnrichedPostsPublishedDi
   }
 };
 
-export const excerptText = (post: Offer|Need): string => {
+export const excerptPost = (post: Offer|Need): string => {
   const text = post.type === 'offers'
     ? `${post.attributes.name} · ${post.attributes.content}`
     : post.attributes.content;
@@ -123,7 +123,7 @@ export const excerptText = (post: Offer|Need): string => {
 
 const singlePostPublishedNotification = async (event: EnrichedPostEvent | EnrichedPostsPublishedDigestEvent, post: Offer|Need, member: Member) => {
   
-  const excerpt = excerptText(post);
+  const excerpt = excerptPost(post);
   const route = `/groups/${event.code}/${post.type}/${post.attributes.code}`;
 
   await handleNotificationForUsers(event, event.users, ({ t }) => {
@@ -147,7 +147,7 @@ export const handlePostPublished = async (event: EnrichedPostEvent): Promise<voi
 export const handlePostExpired = async (event: EnrichedPostEvent): Promise<void> => {
   const { post, postType, code, group } = event;
 
-  const excerpt = excerptText(post);
+  const excerpt = excerptPost(post);
   const route = `/groups/${code}/${postType}/${post.attributes.code}/edit`;
 
   await handleNotificationForUsers(event, event.users, ({ t }) => {
@@ -167,7 +167,7 @@ export const handlePostExpired = async (event: EnrichedPostEvent): Promise<void>
 export const handlePostExpiresSoon = async (event: EnrichedPostEvent): Promise<void> => {
   const { post, postType, code, group } = event;
 
-  const excerpt = excerptText(post);
+  const excerpt = excerptPost(post);
   const route = `/groups/${code}/${postType}/${post.attributes.code}/edit`;
   const timeToExpiryHours = (new Date(post.attributes.expires).getTime() - Date.now()) / (1000 * 60 * 60);
 

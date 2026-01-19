@@ -1,11 +1,11 @@
 import { Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Group, Need, Offer, UserSettings } from '../../clients/komunitin/types';
+import { Group, Member, Need, Offer, UserSettings } from '../../clients/komunitin/types';
 import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import prisma from '../../utils/prisma';
 import { isMemberUser, isPostUrgent } from '../channels/app/post';
-import { EVENT_NAME } from '../events';
+import { EVENT_NAME, EventName } from '../events';
 import { dispatchSyntheticEnrichedEvent } from './shared';
 
 /**
@@ -28,7 +28,8 @@ const JOB_NAME_GROUP_DIGEST_CRON = 'group-digest-cron';
 const MIN_ITEMS_FAST = 3;        // 3+ items → send after MIN_DAYS_FAST
 const MIN_SILENCE_DAYS_FAST = 2;         // days before sending with 3+ items
 const MIN_SILENCE_DAYS_SLOW = 7;         // days before sending with 1+ items
-const POSTS_LOOKBACK_DAYS = 14;  // how far back to look for posts
+
+const LOOKBACK_DAYS = 14;  // how far back to look for posts and members
 
 /**
  * Calculate days since a date
@@ -41,15 +42,17 @@ const daysSince = (date: Date | string): number => {
 /**
  * Check if a user should receive a digest based on their posts and last sent time.
  */
-const shouldSendPostDigest = (
+const canSendDigest = (
   settings: UserSettings,
-  postsForUser: (Offer | Need)[],
+  count: number,
   lastSentAt: Date | null
 ): boolean => {
-  if (postsForUser.length === 0) return false;
+  if (count === 0) return false;
 
-  // User settings
-  if (!settings.attributes.notifications.newOffers && !settings.attributes.notifications.newNeeds) {
+  // User settings.
+  // TODO: simplify this to single "community" setting. This implies
+  // the frontend and the user settings API.
+  if (!settings.attributes.notifications.newOffers && !settings.attributes.notifications.newNeeds && !settings.attributes.notifications.newMembers) {
     return false;
   }
 
@@ -57,12 +60,12 @@ const shouldSendPostDigest = (
   const silenceDays = daysSince(lastSentAt ?? new Date(0));
 
   // Fast path: 3+ items and 2+ days old
-  if (postsForUser.length >= MIN_ITEMS_FAST && silenceDays >= MIN_SILENCE_DAYS_FAST) {
+  if (count >= MIN_ITEMS_FAST && silenceDays >= MIN_SILENCE_DAYS_FAST) {
     return true;
   }
 
   // Slow path: 1+ items and 7+ days old
-  if (postsForUser.length > 0 && silenceDays >= MIN_SILENCE_DAYS_SLOW) {
+  if (count > 0 && silenceDays >= MIN_SILENCE_DAYS_SLOW) {
     return true;
   }
 
@@ -70,6 +73,29 @@ const shouldSendPostDigest = (
 };
 
 
+const lastSentMap = async (tenantId: string, eventName: EventName) => {
+  const lastPostsDigests = await prisma.appNotification.groupBy({
+    by: ['userId'],
+    where: {
+      tenantId,
+      eventName,
+    },
+    _max: { createdAt: true },
+  });
+  
+  return new Map<string, Date>(
+    lastPostsDigests.map(item => [item.userId, item._max.createdAt!])
+  );
+  
+}
+
+const maxDate = (...dates: (Date | null)[]): Date | null => {
+  return dates.reduce((max, date) => {
+    if (!date) return max;
+    if (!max) return date;
+    return date > max ? date : max;
+  });
+}
 
 /**
  * Process digest for a single community.
@@ -83,7 +109,7 @@ const processCommunityDigest = async (
 
   // 1. Fetch recent posts (offers and needs)
   const lookbackDate = new Date();
-  lookbackDate.setDate(lookbackDate.getDate() - POSTS_LOOKBACK_DAYS);
+  lookbackDate.setDate(lookbackDate.getDate() - LOOKBACK_DAYS);
   const lookbackIso = lookbackDate.toISOString();
 
   const [offers, needs] = await Promise.all([
@@ -91,12 +117,15 @@ const processCommunityDigest = async (
     client.getNeeds(code, { 'filter[created][gt]': lookbackIso }),
   ]);
 
+  // 2. Fetch recent members
+  const newMembers = await client.getMembers(code, { 'filter[created][gt]': lookbackIso });
+
   const allPosts = [...offers, ...needs];
 
   // Filter out urgent posts (they get immediate notification)
   const nonUrgentPosts = allPosts.filter(p => !isPostUrgent(p));
-  if (nonUrgentPosts.length === 0) {
-    logger.debug({ code }, 'All recent posts are urgent, skipping digest');
+  if (nonUrgentPosts.length === 0 && newMembers.length === 0) {
+    logger.debug({ code }, 'No new non-urgent posts or new members, skipping digest');
     return;
   }
 
@@ -104,68 +133,90 @@ const processCommunityDigest = async (
   const membersWithUsers = await getCachedGroupMembersWithUsers(client, code);
   
   // Compute flat users with settings
-  const usersWithSetingsMap = new Map(
+  const usersWithSettingsMap = new Map(
     membersWithUsers.flatMap(mwu => mwu.users).map(u => [u.user.id, u])
   )
-  const usersWithSetings = usersWithSetingsMap.values()
+  const usersWithSetings = usersWithSettingsMap.values()
+
 
   // Get lastest PostsPublishedDigest notifications for all users in this community = tenant
-  const lastDigests = await prisma.appNotification.groupBy({
-    by: ['userId'],
-    where: {
-      tenantId: code,
-      eventName: EVENT_NAME.PostsPublishedDigest,
-    },
-    _max: { createdAt: true },
-  });
-
-  const lastDigestMap = new Map(
-    lastDigests.map(d => [d.userId, d._max.createdAt])
-  );
+  const lastPostsMap = await lastSentMap(code, EVENT_NAME.PostsPublishedDigest);
+  const lastMembersMap = await lastSentMap(code, EVENT_NAME.MembersJoinedDigest);
 
   // For each user, determine if they should receive a digest
-
   for (const { user, settings } of usersWithSetings) {
-    
-    const lastSentAt = lastDigestMap.get(user.id) ?? null;
+    const lastSentForPosts = lastPostsMap.get(user.id) || null;
+    const lastSentForMembers = lastMembersMap.get(user.id) || null;
+    const lastSentGlobal = maxDate(lastSentForPosts, lastSentForMembers);
 
-    // Filter posts for this user:
-    // - Created after their last digest (or all if never sent)
-    // - Not authored by this user
-    const postsForUser = nonUrgentPosts.filter(p => {
-      const createdAt = new Date(p.attributes.created);
-      const afterLastDigest = !lastSentAt || createdAt > lastSentAt;
-      const notAuthor = !isMemberUser(user, p.relationships.member.data.id);
-      return afterLastDigest && notAuthor;
-    });
+    const newMemberIds = new Set(newMembers.map(m => m.id));
+    const isNew = (date: string, lastSent: Date | null) => !lastSent || new Date(date) > lastSent;
 
-    if (!shouldSendPostDigest(settings, postsForUser, lastSentAt)) {
-      continue;
-    }
-
-    const digestOffers = postsForUser.filter((p): p is Offer => p.type === 'offers');
-    const digestNeeds = postsForUser.filter((p): p is Need => p.type === 'needs');
-
-    logger.debug(
-      { userId: user.id, code, offerCount: digestOffers.length, needCount: digestNeeds.length },
-      'Sending PostsPublishedDigest'
+    // Take only the members since last digest
+    const eligibleNewMembers = newMembers.filter(m => 
+      !isMemberUser(user, m.id) && isNew(m.attributes.created, lastSentForMembers)
     );
 
-    const memberIds = new Set(postsForUser.map(post => post.relationships.member.data.id));
-    const digestMembers = membersWithUsers
-      .map(mwu => mwu.member)
-      .filter(member => memberIds.has(member.id));
+    // Divide posts into regular and posts from new members, removing the ones
+    // that have already been included in previous digests.
+    const regularPosts: (Offer | Need)[] = [];
+    const newMemberPosts: (Offer | Need)[] = [];
 
-    await dispatchSyntheticEnrichedEvent({
-      name: EVENT_NAME.PostsPublishedDigest,
-      code,
-      group,
-      data: {},
-      members: digestMembers,
-      users: [{ user, settings }],
-      offers: digestOffers,
-      needs: digestNeeds,
-    });
+    for (const post of nonUrgentPosts) {
+      if (isMemberUser(user, post.relationships.member.data.id)) continue;
+
+      const isFromNewMember = newMemberIds.has(post.relationships.member.data.id);
+      const targetList = isFromNewMember ? newMemberPosts : regularPosts;
+      const lastSent = isFromNewMember ? lastSentForMembers : lastSentForPosts;
+
+      if (isNew(post.attributes.created, lastSent)) {
+        targetList.push(post);
+      }
+    }
+
+    const canSendPostsDigest = canSendDigest(settings, regularPosts.length, lastSentGlobal);
+    const canSendMembersDigest = canSendDigest(settings, eligibleNewMembers.length, lastSentGlobal);
+
+    // If both digests are eligible, take the one with older last sent time and take the new members in case of a tie.
+    const sendMembersDigest = canSendMembersDigest && (
+      !canSendPostsDigest ||
+      (lastSentForMembers ?? new Date(0)) <= (lastSentForPosts ?? new Date(0))
+    );
+    const sendPostsDigest = canSendPostsDigest && !sendMembersDigest;
+
+    if (sendMembersDigest) {
+      const digestOffers = newMemberPosts.filter((p): p is Offer => p.type === 'offers');
+      const digestNeeds = newMemberPosts.filter((p): p is Need => p.type === 'needs');
+      await dispatchSyntheticEnrichedEvent({
+        name: EVENT_NAME.MembersJoinedDigest,
+        code,
+        group,
+        data: {},
+        members: eligibleNewMembers,
+        users: [{ user, settings }],
+        offers: digestOffers,
+        needs: digestNeeds,
+      });
+
+    } else if (sendPostsDigest) {
+      const digestOffers = regularPosts.filter((p): p is Offer => p.type === 'offers');
+      const digestNeeds = regularPosts.filter((p): p is Need => p.type === 'needs');
+      const postMemberIds = new Set(regularPosts.map(post => post.relationships.member.data.id));
+      const digestMembers = membersWithUsers
+        .map(mwu => mwu.member)
+        .filter(member => postMemberIds.has(member.id));
+
+      await dispatchSyntheticEnrichedEvent({
+        name: EVENT_NAME.PostsPublishedDigest,
+        code,
+        group,
+        data: {},
+        members: digestMembers,
+        users: [{ user, settings }],
+        offers: digestOffers,
+        needs: digestNeeds,
+      });
+    }
   }
 
 };

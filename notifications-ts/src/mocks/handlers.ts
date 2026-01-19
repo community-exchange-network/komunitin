@@ -93,6 +93,7 @@ export const handlers = [
     const groupId = `group-${groupCode}`;
     const url = new URL(request.url);
     const accountFilter = url.searchParams.get('filter[account]');
+    const createdGt = url.searchParams.get('filter[created][gt]');
 
     let members = db.members.filter(m => m.relationships.group.data.id === groupId);
 
@@ -100,7 +101,11 @@ export const handlers = [
       const accounts = accountFilter.split(',');
       members = members.filter(m => accounts.includes(m.relationships.account.data.id));
     }
-
+    
+    if (createdGt) {
+        members = members.filter(m => new Date(m.attributes.created) > new Date(createdGt));
+    }
+    
     return HttpResponse.json({ data: members });
   }),
 
