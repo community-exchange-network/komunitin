@@ -7,7 +7,7 @@ const envSchema = z.object({
   KOMUNITIN_ACCOUNTING_URL: z.string().url(),
   KOMUNITIN_APP_URL: z.string().url(),
   AUTH_JWT_ISSUER: z.string().default('https://komunitin.org'),
-  AUTH_JWT_AUDIENCE: z.string().default('komunitin-notifications'),
+  AUTH_JWT_AUDIENCE: z.string().default('komunitin-app,komunitin-notifications').transform((s) => s.split(',')),
   AUTH_JWKS_URL: z.string().url().default('https://komunitin.org/.well-known/jwks.json'),
   NOTIFICATIONS_CLIENT_ID: z.string().min(1),
   NOTIFICATIONS_CLIENT_SECRET: z.string().min(1),

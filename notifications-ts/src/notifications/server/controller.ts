@@ -2,12 +2,12 @@ import { Request, Response, NextFunction } from "express"
 import prisma from "../../utils/prisma"
 import { pagination } from "../../server/request"
 import { serializeNotification } from "./serialize"
+import { getUserId } from "../../server/auth-compat"
 
 export const listNotifications = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { code } = req.params
-    const auth = (req as any).auth
-    const userId = auth?.payload.sub
+    const userId = await getUserId(req)
 
     if (!userId) {
        // Should be handled by auth middleware but double check

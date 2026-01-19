@@ -160,6 +160,9 @@ services:
       KOMUNITIN_APP_URL: ${KOMUNITIN_APP_URL}
       DATABASE_URL: postgresql://notifications:notifications@db-notifications-ts:5432/notifications?schema=public
       REDIS_URL: redis://db-notifications:6379
+      AUTH_JWKS_URL: http://integralces:2029/.well-known/jwks.json
+      AUTH_JWT_ISSUER: ${ICES_URL}/
+      AUTH_JWT_AUDIENCE: "komunitin-app,komunitin-notifications"
 
       NOTIFICATIONS_CLIENT_ID: komunitin-notifications
       NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
