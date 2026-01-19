@@ -29,6 +29,16 @@ services:
   
   notifications-ts:
     ports: !reset []
+    expose:
+      - "2024"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.notifications-ts-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=2024"
+      - "traefik.http.routers.notifications-ts-${COMPOSE_PROJECT_NAME}.rule=Host(`notifications.${KOMUNITIN_DOMAIN}`) && PathPrefix(`/notifications`)"
+      - "traefik.http.routers.notifications-ts-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
+      - "traefik.http.routers.notifications-ts-${COMPOSE_PROJECT_NAME}.tls=true"
+      - "traefik.http.routers.notifications-ts-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
+    
     networks:
       - proxy
   

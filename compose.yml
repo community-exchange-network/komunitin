@@ -122,6 +122,8 @@ services:
     build:
       context: ../ices
     restart: unless-stopped
+    expose:
+      - "2029"
     ports:
       - "2029:2029"
     depends_on:
@@ -145,6 +147,8 @@ services:
     build:
       context: ./notifications-ts
     restart: unless-stopped
+    ports:
+      - "2024:2024"
     depends_on:
       - db-notifications-ts
     environment:
@@ -161,6 +165,7 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       APP_EMAIL: ${APP_EMAIL}
+      PORT: 2024
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
