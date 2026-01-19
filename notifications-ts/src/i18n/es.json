@@ -55,7 +55,7 @@
     "post_expired_title": "{{type}} caducada",
     "post_expired_body": "Tu {{type}} '{{excerpt}}' ha caducado y ya no es visible, pero puedes reactivarla.",
     "member_expired_posts_title": "{{type}} caducó {{time, relativetime}}",
-    "member_expired_posts_title_more": "{{type}} caducó {{time, relativetime}} + {{count}} más",
+    "member_expired_posts_title_more": "{{type}} caducó {{time, relativetime}} y {{count}} más",
     "offers_count_one": "{{count}} oferta",
     "offers_count_other": "{{count}} ofertas",
     "needs_count_one": "{{count}} necesidad",

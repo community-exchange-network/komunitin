@@ -55,7 +55,7 @@
     "post_expired_title": "{{type}} expired",
     "post_expired_body": "Your {{type}} '{{excerpt}}' has expired and is hidden now, but you can reactivate it.",
     "member_expired_posts_title": "{{type}} expired {{time, relativetime}}",
-    "member_expired_posts_title_more": "{{type}} expired {{time, relativetime}} + {{count}} more",
+    "member_expired_posts_title_more": "{{type}} expired {{time, relativetime}} and {{count}} more",
     "offers_count_one": "{{count}} offer",
     "offers_count_other": "{{count}} offers",
     "needs_count_one": "{{count}} need",

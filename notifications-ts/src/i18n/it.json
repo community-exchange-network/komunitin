@@ -55,7 +55,7 @@
     "post_expired_title": "{{type}} scaduta",
     "post_expired_body": "La tua {{type}} '{{excerpt}}' è scaduta ed è ora nascosta, ma puoi riattivarla.",
     "member_expired_posts_title": "{{type}} scaduta {{time, relativetime}}",
-    "member_expired_posts_title_more": "{{type}} scaduta {{time, relativetime}} + {{count}} in più",
+    "member_expired_posts_title_more": "{{type}} scaduta {{time, relativetime}} e {{count}} in più",
     "offers_count_one": "{{count}} offerta",
     "offers_count_other": "{{count}} offerte",
     "needs_count_one": "{{count}} necessità",

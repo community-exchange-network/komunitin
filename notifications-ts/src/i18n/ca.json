@@ -55,7 +55,7 @@
     "post_expired_title": "{{type}} caducada",
     "post_expired_body": "La teva {{type}} '{{excerpt}}' ha caducat i ja no és visible, però pots reactivar-la.",
     "member_expired_posts_title": "{{type}} caducada {{time, relativetime}}",
-    "member_expired_posts_title_more": "{{type}} caducada {{time, relativetime}} + {{count}} més",
+    "member_expired_posts_title_more": "{{type}} caducada {{time, relativetime}} i {{count}} més",
     "offers_count_one": "{{count}} oferta",
     "offers_count_other": "{{count}} ofertes",
     "needs_count_one": "{{count}} necessitat",
