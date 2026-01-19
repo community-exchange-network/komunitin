@@ -382,6 +382,10 @@
   "unsubscribed": "T'has donat de baixa",
   "unsubscribedText": "Ja no rebràs correus electrònics del butlletí de la comunitat. Pots canviar les teves preferències de correu electrònic en qualsevol moment a la configuració.",
   "unsubscribeError": "Error al donar-se de baixa",
+  "today": "Avui",
+  "yesterday": "Ahir",
+  "thisWeek": "Aquesta setmana",
+  "thisMonth": "Aquest mes",
 
   "ErrorAuthNoCredentials": "Email o contrasenya incorrectes",
   "ErrorInvalidPassword": "Contrasenya incorrecta",
@@ -400,9 +404,5 @@
   "ErrorAccountNotFound": "No s'ha trobat el compte",
   "ErrorAccountIsNotYours": "El compte especificat no és el teu compte actiu actual.",
   "ErrorDescriptionRequired" : "Entra una descripció de l'intercanvi.",
-  "ErrorInvalidAmount" : "Quantitat invàlida. Entra un número positiu.",
-  "today": "Avui",
-  "yesterday": "Ahir",
-  "thisWeek": "Aquesta setmana",
-  "thisMonth": "Aquest mes"
+  "ErrorInvalidAmount" : "Quantitat invàlida. Entra un número positiu."
 }

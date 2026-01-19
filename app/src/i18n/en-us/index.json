@@ -388,6 +388,10 @@
   "unsubscribed": "You've been unsubscribed",
   "unsubscribedText": "You will no longer receive community newsletter emails. You can change your email preferences at any time in your settings.",
   "unsubscribeError": "Unsubscribe failed",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "thisWeek": "This week",
+  "thisMonth": "This month",
   
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",
@@ -425,9 +429,6 @@
   "ErrorAccountNotFound": "Account not found",
   "ErrorAccountIsNotYours": "The specified account is not your current active account.",
   "ErrorInvalidAmount": "Invalid amount. Enter a positive number.",
-  "ErrorDescriptionRequired": "Transfer description is required.",
-  "today": "Today",
-  "yesterday": "Yesterday",
-  "thisWeek": "This week",
-  "thisMonth": "This month"
+  "ErrorDescriptionRequired": "Transfer description is required."
+
 }
