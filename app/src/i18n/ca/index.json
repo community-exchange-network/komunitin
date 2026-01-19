@@ -400,5 +400,9 @@
   "ErrorAccountNotFound": "No s'ha trobat el compte",
   "ErrorAccountIsNotYours": "El compte especificat no és el teu compte actiu actual.",
   "ErrorDescriptionRequired" : "Entra una descripció de l'intercanvi.",
-  "ErrorInvalidAmount" : "Quantitat invàlida. Entra un número positiu."
+  "ErrorInvalidAmount" : "Quantitat invàlida. Entra un número positiu.",
+  "today": "Avui",
+  "yesterday": "Ahir",
+  "thisWeek": "Aquesta setmana",
+  "thisMonth": "Aquest mes"
 }

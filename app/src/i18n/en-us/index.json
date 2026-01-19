@@ -425,6 +425,9 @@
   "ErrorAccountNotFound": "Account not found",
   "ErrorAccountIsNotYours": "The specified account is not your current active account.",
   "ErrorInvalidAmount": "Invalid amount. Enter a positive number.",
-  "ErrorDescriptionRequired": "Transfer description is required."
-  
+  "ErrorDescriptionRequired": "Transfer description is required.",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "thisWeek": "This week",
+  "thisMonth": "This month"
 }

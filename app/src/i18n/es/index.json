@@ -400,5 +400,9 @@
   "ErrorAccountNotFound": "No se ha encontrado la cuenta",
   "ErrorAccountIsNotYours": "La cuenta especificada no es tu cuenta activa actual.",
   "ErrorDescriptionRequired" : "Entra una descripción del intercambio.",
-  "ErrorInvalidAmount" : "Cantidad inválida. Entra un número positivo."
+  "ErrorInvalidAmount" : "Cantidad inválida. Entra un número positivo.",
+  "today": "Hoy",
+  "yesterday": "Ayer",
+  "thisWeek": "Esta semana",
+  "thisMonth": "Este mes"
 }
