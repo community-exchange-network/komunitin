@@ -87,7 +87,7 @@ const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpi
   }
 }
 
-const handleCheckExpiringJob = async (queue: Queue) => {
+export const handleCheckExpiringJob = async (queue: Queue) => {
   logger.info('Checking for expiring posts');
 
   const client = new KomunitinClient();

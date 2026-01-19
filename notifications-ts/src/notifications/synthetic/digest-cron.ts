@@ -224,7 +224,7 @@ const processCommunityDigest = async (
 /**
  * Main digest cron handler.
  */
-const handleDigestCron = async (): Promise<void> => {
+export const handleDigestCron = async (): Promise<void> => {
   logger.info('Running digest cron');
   const client = new KomunitinClient();
 
@@ -268,7 +268,7 @@ export const initDigestCron = (queue: Queue) => {
 
   return {
     handlers: {
-      [JOB_NAME_GROUP_DIGEST_CRON]: () =>   handleDigestCron(),
+      [JOB_NAME_GROUP_DIGEST_CRON]: () => handleDigestCron(),
     },
   };
 };
