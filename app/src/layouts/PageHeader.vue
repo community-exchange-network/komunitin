@@ -2,16 +2,11 @@
   <q-header>
     <div
       id="header"
-      class="bg-primary items-center no-wrap"
-      :class="showBalance ? '' : 'flex'"
+      class="bg-primary flex row justify-between items-center q-pt-sm q-pb-xs q-pl-sm q-pr-md"
+      :class="showBalance ? 'wrap' : 'q-pt-xs no-wrap'"
       :style="`height: ${computedHeight}px;`"
     >
-      <div
-        class="flex q-py-xs"
-        :class="[noButton ? '' : 'q-pl-sm q-pr-xs']"
-        style="height: 50px;"
-      >
-        <!-- render back button, menu button or none -->
+        <!-- render back button, menu button, profile button or none -->
         <q-btn
           v-if="showBack"
           id="back"
@@ -30,10 +25,16 @@
           :aria-label="$t('menu')"
           @click="$store.dispatch('toogleDrawer')"
         />
-      </div>
+        <profile-btn-menu
+          v-if="showProfile"
+          id="profile"
+          class="q-ml-auto"
+          :class="!showBalance ? 'order-last' : ''"
+        />
       <div
         v-if="showBalance"
         class="col self-center column items-center"
+        style="min-width: 100%; max-width: 100%;"
       > 
         <div 
           class="text-body2 text-onprimary-m"
@@ -55,8 +56,8 @@
       </div>
       <q-toolbar
         class="no-wrap"
-        :class="((noButton || showBalance) ? 'no-button ' : '') + (showBalance ? '' : 'col-grow q-pl-none')"
-        style="max-width: none; flex: 1 1 0%"
+        style="max-width: none; min-width: 0;flex: 1 1 0%; padding-right: 0;"
+        :style="showBalance ? 'padding-left:18px;' : 'padding-left:0;'"
       >
         <q-toolbar-title v-if="!searchActive">
           {{ title }}
@@ -123,6 +124,7 @@
  *  - If balance prop is set to true, shows a section with the logged in account 
  * balance. This section shrinks on scroll.
  *  - If search prop is set to true, provides a search box that emits the `search` event.
+ *  - If profile prop is set to true, shows a profile button and menu.
  *  - Provides a slot #buttons to be able to customize the right toolbar buttons 
  * depending on the page content.
  */
@@ -132,17 +134,20 @@ import { useStore } from "vuex"
 import { useRoute, useRouter } from "vue-router"
 import FormatCurrency from "../plugins/FormatCurrency";
 import Banner from "./Banner.vue";
+import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
 
 const props = withDefaults(defineProps<{
   title?: string;
   search?: boolean;
   balance?: boolean;
   back?: string;
+  profile?: boolean;
 }>(), {
   title: "",
   search: false,
   balance: false,
-  back: ""
+  back: "",
+  profile: false,
 })
 
 const emit = defineEmits<{
@@ -159,6 +164,8 @@ const offset = ref(0)
 
 const myAccount = computed(() => store.getters.myAccount)
 
+
+
 const route = useRoute()
 /**
  * Show the back button.
@@ -169,9 +176,10 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
  */
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
 /**
- * Show no button
+ * Show the profile button only on root pages. 
  */
-const noButton = computed(() => !showBack.value && !showMenu.value)
+const showProfile = computed(() => route.meta.rootPage);
+
 
 /**
   * Constant value for the thin header height.
@@ -203,6 +211,7 @@ if (process.env.FEAT_HEADER_BALANCE === 'true') {
   computedHeight = computed(() => originalHeight.value - offset.value)
   balanceScaleFactor = computed(() => Math.max(0, 1 - offset.value / balanceHeight))
   showBalance = computed(() => toValue(requireBalance) && offset.value < balanceHeight)
+
   
   scrollHandler = (details: { position: { top: number; }; }) => {
     offset.value = Math.min(details.position.top, originalHeight.value - headerHeight)
