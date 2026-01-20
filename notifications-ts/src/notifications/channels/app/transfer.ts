@@ -6,7 +6,7 @@ import { handleNotificationForUsers } from "./utils";
 export const handleTransferCommitted = async (event: EnrichedTransferEvent): Promise<void> => {
   const { transfer, currency, payer, payee, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/${code}/transactions/${transfer.id}`;
+  const route = `/groups/${code}/transactions/${transfer.id}`;
 
   // Notify payer users
   await handleNotificationForUsers(event, payer.users, ({ t, locale }) => ({
