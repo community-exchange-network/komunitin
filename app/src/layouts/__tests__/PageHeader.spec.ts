@@ -14,16 +14,23 @@ import {
   QScrollObserver,
   QToolbar,
   QToolbarTitle,
+  QMenu,
+  QItem,
+  QSeparator,
+  QList,
+  QAvatar,
   Quasar
 } from "quasar";
 import PageHeader from "../PageHeader.vue";
+import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
+import MenuItem from 'src/components/MenuItem.vue';
 import { createI18n } from "vue-i18n";
 import { defineComponent } from "vue";
 
 // Install quasar.
 config.global.plugins.unshift([Quasar, {
   components: {
-    QHeader, QBtn, QToolbar, QToolbarTitle, QInput, QIcon, QScrollObserver, QBanner
+    QHeader, QBtn, QToolbar, QToolbarTitle, QInput, QIcon, QScrollObserver, QBanner, QMenu, QItem, QSeparator, QList, QAvatar
   }
 }]);
 // Install i18n.
@@ -36,6 +43,7 @@ jest.mock("../../plugins/Notifications")
 jest.mock("@firebase/messaging");
 jest.mock('vue-router', () => ({
   useRoute: jest.fn(() => ({
+    path: '/test-path',
     meta: {
       rootPage: true
     }
@@ -93,7 +101,9 @@ describe("PageHeader", () => {
         plugins: [store]
       },
       components: {
+        MenuItem,
         PageHeader,
+        ProfileBtnMenu,
         QLayout
       },
       attachTo: document.body

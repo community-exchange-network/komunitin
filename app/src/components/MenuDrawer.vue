@@ -1,67 +1,6 @@
 <template>
   <q-list>
-    <member-header
-      id="my-member" 
-      :member="myMember" 
-      :to="`/groups/${groupCode}/members/${myMember.attributes.code}`"
-      active-class="bg-active"
-    >
-      <template #caption>
-        {{ myAccount?.attributes.code }}
-      </template>
-      <template #side>
-        <q-btn
-          flat
-          round
-          color="icon-dark"
-          icon="expand_more"
-          @click.stop
-        >
-          <q-menu
-            auto-close
-            anchor="bottom right"
-            self="top right"
-          >
-            <q-list>
-              <menu-item
-                icon="edit"
-                :title="$t('editProfile')"
-                to="/profile"
-              />
-              <menu-item  
-                icon="settings"
-                :title="$t('settings')"
-                to="/settings"
-              />
-              <menu-item
-                id="user-menu-logout"
-                icon="logout"
-                :title="$t('logout')"
-                to="/logout"
-              />
-            </q-list>
-          </q-menu>
-        </q-btn>
-      </template>
-    </member-header>
-
-    <q-separator />
     
-    <menu-item 
-    icon="home" 
-    :title="$t('home')" 
-    to="/home" 
-    />
-    
-    <menu-item 
-      id="menu-transactions" 
-      icon="account_balance_wallet"
-      :title="$t('transactions')" 
-      :to="`/groups/${groupCode}/members/${myMember.attributes.code}/transactions`"
-    />
-
-    <q-separator />
-
     <!-- Group -->
     <group-header 
       id="my-group"
@@ -72,6 +11,21 @@
       @click="$router.push(`/groups/${groupCode}`)"
     />
 
+    <q-separator />
+
+    <menu-item 
+    icon="home" 
+    :title="$t('home')" 
+    to="/home" 
+    />
+
+    <menu-item 
+      id="menu-transactions" 
+      icon="account_balance_wallet"
+      :title="$t('transactions')" 
+      :to="`/groups/${groupCode}/members/${myMember.attributes.code}/transactions`"
+    />
+    
     <q-separator />
     
     <menu-item
@@ -100,6 +54,7 @@
       :to="`/groups/${groupCode}/stats`"
     />
 
+    
     <template v-if="isAdmin">
       <q-separator />
       <div class="text-overline text-onsurface-d q-pl-md q-pt-md text-uppercase">
@@ -126,6 +81,7 @@
         :to="`/groups/${groupCode}/admin/transactions`"
       />
     </template>
+
     <q-separator />
 
     <menu-item
@@ -133,35 +89,21 @@
       :title="$t('otherGroups')"
       to="/groups"
     />
-    <menu-item
-    icon="info"
-    :title="$t('komunitinProject')"
-    href="https://github.com/komunitin/komunitin"
-    />
-    <menu-item 
-      v-if="feedbackURL"
-      icon="feedback"
-      :title="$t('feedback')"
-      :href="feedbackURL"
-    />
+    
   </q-list>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { useStore } from "vuex";
-import MemberHeader from "./MemberHeader.vue";
 import MenuItem from "./MenuItem.vue";
 import GroupHeader from "./GroupHeader.vue";
 import { useRoute } from "vue-router";
-import { config } from "src/utils/config";
 
-const feedbackURL = config.FEEDBACK_URL;
 const store = useStore()
 const route = useRoute()
 
 const myMember = computed(() => store.getters.myMember)
-const myAccount = computed(() => store.getters.myAccount)
 const groupCode = computed(() => myMember?.value.group.attributes.code)
 
 const isAdmin = computed(() => store.getters.isAdmin)
