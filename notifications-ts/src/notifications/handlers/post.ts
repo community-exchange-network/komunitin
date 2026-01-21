@@ -1,13 +1,11 @@
-import { PostEvent, EVENT_NAME } from '../events';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Member } from '../../clients/komunitin/types';
-import logger from '../../utils/logger';
-import { eventBus } from '../event-bus';
-import { EnrichedPostEvent } from '../enriched-events';
+import { Member, User, UserSettings } from '../../clients/komunitin/types';
+import { getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
 import { internalError } from '../../utils/error';
-import { setTimeout as delay } from 'timers/promises';
-
-const FETCH_DELAY_MS = 50;
+import logger from '../../utils/logger';
+import { EnrichedPostEvent } from '../enriched-events';
+import { eventBus } from '../event-bus';
+import { EVENT_NAME, PostEvent } from '../events';
 
 /**
  * Expiry window (created - expires in days) to consider a post as "urgent".
@@ -67,13 +65,11 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
 
   // For published events, fetch all member users; for others, just the post author.
   if (isPublishedEvent && isPostUrgent(post)) {
-    const members = await client.getMembers(event.code);
-    const allUsersMap = new Map<string, { user: any; settings: any }>();
-    for (const m of members) {
-      await delay(FETCH_DELAY_MS);
-      const memberUsers = await client.getMemberUsers(m.id);
-      memberUsers.forEach((r) => allUsersMap.set(r.user.id, r));
-    }
+    const allMembersWithUsers = await getCachedGroupMembersWithUsers(client, event.code);
+    const allUsersMap = allMembersWithUsers.reduce((map, mwu) => {
+      mwu.users.forEach((r) => map.set(r.user.id, r));
+      return map;
+    }, new Map<string, { user: User; settings: UserSettings }>());
     usersWithSettings = Array.from(allUsersMap.values());
   } else {
     usersWithSettings = await client.getMemberUsers(memberId);
