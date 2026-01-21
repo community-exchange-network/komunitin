@@ -136,4 +136,25 @@ describe('Subscriptions API', () => {
     assert.ok(subscriptions.find(s => s.id === created.id))
     assert.equal(res.body.errors[0].status, '404')
   })
+
+  it('supports the legacy user id from IntegralCES', async () => {
+    const authId = '123'
+    // This is the expected userId derived from authId, with fixed prefix
+    // and authId in hexadecimal form as the suffix.
+    const bodyId = '75736572-2020-1234-5678-00000000007b'
+
+    const token = await signJwt(authId, ['komunitin_social'])
+    const body = makeSubscriptionBody(bodyId)
+
+    const groupCode = 'GRP1'
+
+    await supertest(_app)
+      .post(`/${groupCode}/subscriptions`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(body)
+      .expect(200)
+    
+    assert.equal(subscriptions.length, 1)
+    assert.equal(subscriptions[0].userId, bodyId)
+  })
 })
