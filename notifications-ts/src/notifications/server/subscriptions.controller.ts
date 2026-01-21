@@ -3,6 +3,8 @@ import { z } from "zod"
 import prisma from "../../utils/prisma"
 import { serializeSubscription } from "./subscriptions.serialize"
 import { Prisma } from "@prisma/client"
+import { badRequest, unauthorized } from "../../utils/error"
+import { validateUserId } from "../../server/auth-compat"
 
 // Validation schema for subscription data (JSON:API format)
 const subscriptionSchema = z.object({
@@ -16,29 +18,33 @@ const subscriptionSchema = z.object({
       }),
       meta: z.record(z.unknown()).optional(),
     }),
+    relationships: z.object({
+      user: z.object({
+        data: z.object({
+          id: z.string().uuid(),
+          type: z.literal("users"),
+        }),
+      }),
+    }),
   }),
 })
 
 export const upsertSubscription = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { code } = req.params
-    const auth = (req as any).auth
-    // TODO: use the userId from payload (UUID) but validate it matches the one
-    // in the auth payload (may be just numeric, due to Drupal issue). PLace the
-    // check function in auth-compat.ts (when branch is merged).
-    const userId = auth?.payload.sub
-
-    if (!userId) {
-      throw new Error("User not authenticated")
-    }
-
+    
     // Validate request body
     const validatedData = subscriptionSchema.parse(req.body)
+    const userId = validatedData.data.relationships.user.data.id
+    
+    validateUserId(req, userId)
     
     const { endpoint, keys, meta: inputMeta } = validatedData.data.attributes
     const meta = inputMeta as Prisma.InputJsonValue ?? Prisma.DbNull
 
-    // Upsert subscription - if endpoint exists, update it; otherwise create new
+    // Note that a single device (endpoint) can only be associated with one user
+    // at a time. So a device will only receive notifications for the user that last
+    // registered the subscription.
     const subscription = await prisma.pushSubscription.upsert({
       where: { endpoint },
       create: {
@@ -68,15 +74,17 @@ export const upsertSubscription = async (req: Request, res: Response, next: Next
     res.status(200).json(response)
   } catch (err) {
     if (err instanceof z.ZodError) {
-      res.status(400).json({ 
-        errors: err.errors.map(e => ({
-          status: '400',
-          title: 'Validation Error',
-          detail: e.message,
-          source: { pointer: `/data/attributes/${e.path.join('/')}` }
-        }))
-      })
-      return
+      next(
+        badRequest('Input validation failed', {
+          cause: err,
+          details: {
+            errors: err.errors.map(e => ({
+              source: e.path,
+              message: e.message,
+            })),
+          }
+        })
+      )
     }
     next(err)
   }

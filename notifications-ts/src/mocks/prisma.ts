@@ -1,3 +1,4 @@
+import { getUnpackedSettings } from 'node:http2';
 import { test } from 'node:test';
 
 export const mockTable = (table: any, name: string = 'test', defaults?: (data: any) => any) => {
@@ -34,6 +35,34 @@ export const mockTable = (table: any, name: string = 'test', defaults?: (data: a
         results = results.slice(0, args.take);
       }
       return results;
+    }),
+    // Added helpers useful for tests: findFirst, upsert and delete
+    findFirst: test.mock.fn(async (args: any) => {
+      const results = await delegate.findMany({ where: args?.where });
+      return results.length ? results[0] : null;
+    }),
+    upsert: test.mock.fn(async (args: any) => {
+      const { where, create, update } = args as any;
+      // Try to find by matching all where fields
+      const existing = await delegate.findFirst({ where })
+      if (existing) {
+        Object.assign(existing, {
+          ...update,
+          updatedAt: new Date()
+        });
+        return existing;
+      } else {
+        return await delegate.create({ data: create });
+      }
+    }),
+    delete: test.mock.fn(async (args: any) => {
+      const found = await delegate.findFirst({ where: args.where });
+      if (found) {
+        const index = store.findIndex(item => item.id === found.id);
+        const [deleted] = store.splice(index, 1);
+        return deleted;
+      }
+      return null;
     }),
     groupBy: test.mock.fn(async (args: any) => {
       const all = await delegate.findMany({ where: args.where });
