@@ -1,4 +1,3 @@
-import { getUnpackedSettings } from 'node:http2';
 import { test } from 'node:test';
 
 export const mockTable = (table: any, name: string = 'test', defaults?: (data: any) => any) => {
