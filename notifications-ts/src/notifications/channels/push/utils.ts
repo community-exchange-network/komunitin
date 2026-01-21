@@ -111,8 +111,8 @@ export const sendPushToUsers = async <T extends EnrichedEvent>(
   event: T,
   users: Array<{ user: User; settings: UserSettings }>,
   builder: (ctx: MessageContext, event: T) => NotificationMessage | null,
-  priority: PushPriority,
-  notificationClass: NotificationClass
+  notificationClass: NotificationClass,
+  priority: PushPriority = 'normal'
 ) => {
   const i18n = await initI18n();
 

@@ -33,74 +33,74 @@ export const initPushChannel = (): (() => void) => {
       const { payer, payee } = event;
       await sendPushToUsers(event, payer.users, (ctx) => 
         buildTransferSentMessage(event, ctx)
-      );
+      , 'account');
       await sendPushToUsers(event, payee.users, (ctx) => 
         buildTransferReceivedMessage(event, ctx)
-      );
+      , 'account');
     }),
     eventBus.on(EVENT_NAME.TransferPending, async (event: EnrichedTransferEvent) => {
       const { payer } = event;
       await sendPushToUsers(event, payer.users, (ctx) =>
         buildTransferPendingMessage(event, ctx)
-      );
+      , 'account', 'high');
     }),
     eventBus.on(EVENT_NAME.TransferRejected, async (event: EnrichedTransferEvent) => {
       const { payee } = event;
       await sendPushToUsers(event, payee.users, (ctx) =>
         buildTransferRejectedMessage(event, ctx)
-      );
+      , 'account', 'high');
     }),
     eventBus.on(EVENT_NAME.TransferStillPending, async (event: EnrichedTransferEvent) => {
       const { payer } = event;
       await sendPushToUsers(event, payer.users, (ctx) =>
         buildTransferStillPendingMessage(event, ctx)
-      );
+      , 'account');
     }),
 
     // Post events
     eventBus.on(EVENT_NAME.NeedExpired, async (event: EnrichedPostEvent) => {
       await sendPushToUsers(event, event.users, (ctx) =>
         buildPostExpiredMessage(event, ctx)
-      );
+      , 'account');
     }),
     eventBus.on(EVENT_NAME.OfferExpired, async (event: EnrichedPostEvent) => {
       await sendPushToUsers(event, event.users, (ctx) =>
         buildPostExpiredMessage(event, ctx)
-      );
+      , 'account');
     }),
     eventBus.on(EVENT_NAME.PostExpiresSoon, async (event: EnrichedPostEvent) => {
       await sendPushToUsers(event, event.users, (ctx) =>
         buildPostExpiresSoonMessage(event, ctx)
-      );
+      , 'account');
     }),
     eventBus.on(EVENT_NAME.OfferPublished, async (event: EnrichedPostEvent) => {
       const { post, member } = event;
       await sendPushToUsers(event, event.users, (ctx) =>
         buildSinglePostPublishedMessage(event, post, member, ctx)
-      );
+      , 'group');
     }),
     eventBus.on(EVENT_NAME.NeedPublished, async (event: EnrichedPostEvent) => {
       const { post, member } = event;
       await sendPushToUsers(event, event.users, (ctx) =>
         buildSinglePostPublishedMessage(event, post, member, ctx)
-      );
+      , 'group');
     }),
     eventBus.on(EVENT_NAME.PostsPublishedDigest, async (event: EnrichedPostsPublishedDigestEvent) => {
       await sendPushToUsers(event, event.users, (ctx) =>
         buildPostsPublishedDigestMessage(event, ctx)
-      );
+      , 'group');
     }),
 
     // Member events
     eventBus.on(EVENT_NAME.MemberHasExpiredPosts, async (event: EnrichedMemberHasExpiredPostsEvent) => {
       await sendPushToUsers(event, event.users, (ctx) =>
         buildMemberHasExpiredPostsMessage(event, ctx)
-      );
+      , 'group');
     }),
     eventBus.on(EVENT_NAME.MembersJoinedDigest, async (event: EnrichedMembersJoinedDigestEvent) => {
       await sendPushToUsers(event, event.users, (ctx) =>
         buildMembersJoinedDigestMessage(event, ctx)
-      );
+      , 'group');
     }),
   ];
 
