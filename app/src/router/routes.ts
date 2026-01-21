@@ -50,6 +50,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/settings/EditSettings.vue')
       },
       {
+        path: '/notifications',
+        name: 'Notifications',
+        component: () => import('../pages/user/Notifications.vue'),
+        meta: {
+          rootPage: true
+        }
+      },
+      {
         path: '/unsubscribe',
         name: 'Unsubscribe',
         component: () => import('../pages/settings/Unsubscribe.vue'),

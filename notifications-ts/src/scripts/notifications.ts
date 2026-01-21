@@ -16,7 +16,7 @@ async function main() {
 Usage: pnpm notifications [options]
 
 Options:
-  --digests     Run digest processn only
+  --digests     Run digest process only
   --expired     Run expired posts check only
   --help        Show this help message
       `);

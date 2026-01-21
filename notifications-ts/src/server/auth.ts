@@ -13,7 +13,7 @@ const buildJwt = () => {
       // requested by the notifications service. The default validator
       // in express-oauth2-jwt-bearer does not allow null values for 
       // the sub claim. But this service is never reached from notifications
-      // service, so we are fine with default sub validation.
+      // service (itself), so we are fine with default sub validation.
       // sub: (sub) => typeof sub === "string" || sub === null,
       
       // IntegralCES may append the language code to the issuer claim (!),

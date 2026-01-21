@@ -1,6 +1,6 @@
 import { Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Group, Member, Need, Offer, UserSettings } from '../../clients/komunitin/types';
+import { Group, Need, Offer, UserSettings } from '../../clients/komunitin/types';
 import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import prisma from '../../utils/prisma';
@@ -136,7 +136,7 @@ const processCommunityDigest = async (
   const usersWithSettingsMap = new Map(
     membersWithUsers.flatMap(mwu => mwu.users).map(u => [u.user.id, u])
   )
-  const usersWithSetings = usersWithSettingsMap.values()
+  const usersWithSettings = usersWithSettingsMap.values()
 
 
   // Get lastest PostsPublishedDigest notifications for all users in this community = tenant
@@ -144,7 +144,7 @@ const processCommunityDigest = async (
   const lastMembersMap = await lastSentMap(code, EVENT_NAME.MembersJoinedDigest);
 
   // For each user, determine if they should receive a digest
-  for (const { user, settings } of usersWithSetings) {
+  for (const { user, settings } of usersWithSettings) {
     const lastSentForPosts = lastPostsMap.get(user.id) || null;
     const lastSentForMembers = lastMembersMap.get(user.id) || null;
     const lastSentGlobal = maxDate(lastSentForPosts, lastSentForMembers);

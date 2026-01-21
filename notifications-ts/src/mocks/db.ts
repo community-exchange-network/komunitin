@@ -1,7 +1,6 @@
 import { faker } from '@faker-js/faker';
-import { ACCOUNTING_URL } from './handlers';
-import { group } from 'console';
 import { Member } from '../clients/komunitin/types';
+import { ACCOUNTING_URL } from './handlers';
 
 // -- Data Store --
 export const db = {

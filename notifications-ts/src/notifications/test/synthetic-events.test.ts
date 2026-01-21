@@ -128,7 +128,7 @@ describe('Synthetic Events', () => {
 
     // 2. Verify next job scheduled
     assert.strictEqual(queueAdd.mock.callCount(), 1, 'Should add next iteration');
-    const [name, data, opts] = queueAdd.mock.calls[0].arguments;
+    const [_, data, opts] = queueAdd.mock.calls[0].arguments;
     
     assert.strictEqual(data.iteration, 2);
     // Delay for 2nd iteration is still 24h (total 48h from start)
@@ -178,7 +178,7 @@ describe('Synthetic Events', () => {
 
       await workerProcessor(mockJob);
 
-      const [name, data, opts] = queueAdd.mock.calls[0].arguments;
+      const [_, data, opts] = queueAdd.mock.calls[0].arguments;
       assert.strictEqual(data.iteration, 4);
       assert.strictEqual(opts.delay, 7 * 24 * 60 * 60 * 1000); // 7 days
   });

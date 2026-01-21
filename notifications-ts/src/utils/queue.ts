@@ -4,7 +4,7 @@ import { queueJob, type QueueJobOptions } from './queue-job';
 
 export { queueJob, type QueueJobOptions };
 
-const redisUrl = new URL(config.NOTIFICATIONS_REDIS_URL);
+const redisUrl = new URL(config.REDIS_URL);
 
 export const connection: ConnectionOptions = {
   host: redisUrl.hostname,

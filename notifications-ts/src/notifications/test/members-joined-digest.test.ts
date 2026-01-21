@@ -1,17 +1,17 @@
 
-import { test, describe, it, before, after, beforeEach, afterEach } from 'node:test'
-import assert from 'node:assert'
-import { setupServer } from 'msw/node'
-import handlers from '../../mocks/handlers'
-import { generateKeys } from '../../mocks/auth'
-import prisma from '../../utils/prisma'
-import { db, createOffer, createNeed, createMembers, createMember, resetDb, getUserIdForMember } from '../../mocks/db'
-import { mockTable } from '../../mocks/prisma'
-import { mockRedis } from '../../mocks/redis'
-import { EVENT_NAME } from '../events'
-import { createMockQueue } from '../../mocks/queue'
 import type { Queue } from 'bullmq'
+import { setupServer } from 'msw/node'
+import assert from 'node:assert'
+import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
+import { generateKeys } from '../../mocks/auth'
+import { createMember, createMembers, createNeed, createOffer, db, getUserIdForMember, resetDb } from '../../mocks/db'
+import handlers from '../../mocks/handlers'
+import { mockTable } from '../../mocks/prisma'
+import { createMockQueue } from '../../mocks/queue'
+import { mockRedis } from '../../mocks/redis'
+import prisma from '../../utils/prisma'
 import { initInAppChannel } from '../channels/app'
+import { EVENT_NAME } from '../events'
 
 const server = setupServer(...handlers)
 mockRedis()
@@ -20,13 +20,12 @@ mockRedis()
 const appNotifications = mockTable(prisma.appNotification, 'test-notification')
 
 describe('MembersJoinedDigest notifications', () => {
-  let worker: { stop: () => Promise<void> } | null = null;
-  const queue = createMockQueue()
   let runDigest: () => Promise<void>;
 
   before(async () => {
     const digestModule = await import('../synthetic/digest-cron')
-    const { handlers } = digestModule.initDigestCron(queue as Queue)
+    const queue = createMockQueue()
+    const { handlers } = digestModule.initDigestCron(queue)
     runDigest = handlers['group-digest-cron']
 
     initInAppChannel()
@@ -52,13 +51,6 @@ describe('MembersJoinedDigest notifications', () => {
     recipientMember = members[0]
     // Clear notifications
     appNotifications.length = 0
-  })
-
-  afterEach(async () => {
-    if (worker) {
-      await worker.stop()
-      worker = null
-    }
   })
 
   // Helper to create members with specific created dates

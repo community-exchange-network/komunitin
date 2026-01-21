@@ -124,10 +124,6 @@ describe('Post expires soon (synthetic cron)', () => {
       }
     })
 
-    const queue = createMockQueue() as any
-    const { initPostEvents } = await import('../synthetic/post')
-    const { handlers: postHandlers } = initPostEvents(queue)
-
     // 2) Run cron job
     await runPostExpirationCron()
 

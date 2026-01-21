@@ -1,5 +1,5 @@
-import { describe, it, mock, afterEach, beforeEach, before } from 'node:test';
 import assert from 'node:assert';
+import { before, beforeEach, describe, it, mock } from 'node:test';
 import { mockRedis } from '../../mocks/redis';
 
 // Set up redis mocking before imports that use redis

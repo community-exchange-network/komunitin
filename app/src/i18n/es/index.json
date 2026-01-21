@@ -386,6 +386,10 @@
   "unsubscribed": "Te has dado de baja",
   "unsubscribedText": "Ya no recibirás correos electrónicos del boletín de la comunidad. Puedes cambiar tus preferencias de correo electrónico en cualquier momento en la configuración.",
   "unsubscribeError": "Error al darse de baja",
+  "today": "Hoy",
+  "yesterday": "Ayer",
+  "thisWeek": "Esta semana",
+  "thisMonth": "Este mes",
 
   "ErrorAuthNoCredentials": "Email o password incorrectos",
   "ErrorInvalidPassword": "Contraseña incorrecta",
@@ -405,4 +409,5 @@
   "ErrorAccountIsNotYours": "La cuenta especificada no es tu cuenta activa actual.",
   "ErrorDescriptionRequired" : "Entra una descripción del intercambio.",
   "ErrorInvalidAmount" : "Cantidad inválida. Entra un número positivo."
+
 }
