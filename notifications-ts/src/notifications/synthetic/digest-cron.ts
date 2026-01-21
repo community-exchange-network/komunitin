@@ -51,18 +51,10 @@ const isMemberUser = (user: User, memberId: string): boolean => {
  * Check if a user should receive a digest based on their posts and last sent time.
  */
 const canSendDigest = (
-  settings: UserSettings,
   count: number,
   lastSentAt: Date | null
 ): boolean => {
   if (count === 0) return false;
-
-  // User settings.
-  // TODO: simplify this to single "community" setting. This implies
-  // the frontend and the user settings API.
-  if (!settings.attributes.notifications.newOffers && !settings.attributes.notifications.newNeeds && !settings.attributes.notifications.newMembers) {
-    return false;
-  }
 
   // Send only if 3+ items and 2+ silence days OR 1+ items and 7+ silence days
   const silenceDays = daysSince(lastSentAt ?? new Date(0));
@@ -182,8 +174,8 @@ const processCommunityDigest = async (
       }
     }
 
-    const canSendPostsDigest = canSendDigest(settings, regularPosts.length, lastSentGlobal);
-    const canSendMembersDigest = canSendDigest(settings, eligibleNewMembers.length, lastSentGlobal);
+    const canSendPostsDigest = canSendDigest(regularPosts.length, lastSentGlobal);
+    const canSendMembersDigest = canSendDigest(eligibleNewMembers.length, lastSentGlobal);
 
     // If both digests are eligible, take the one with older last sent time and take the new members in case of a tie.
     const sendMembersDigest = canSendMembersDigest && (
