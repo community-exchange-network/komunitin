@@ -106,8 +106,8 @@ const transfers = new Resources<Transfer, unknown>("transfers", accountingUrl);
 const trustlines = new Resources<Trustline, unknown>("trustlines", accountingUrl);
 
 
-const noitificationsUrl = config.NOTIFICATIONS_URL;
-const notifications = new Resources<Notification, unknown>("notifications", noitificationsUrl);
+const notificationsUrl = config.NOTIFICATIONS_URL;
+const notifications = new Resources<Notification, unknown>("notifications", notificationsUrl);
 
 const modules = {
     // Logged-in user module

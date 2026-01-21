@@ -6,8 +6,6 @@ const redisUrl = config.REDIS_URL;
 
 export const redis = createClient({ url: redisUrl });
 
-logger.info(`Creating Redis client for URL: ${redisUrl}`);
-
 redis.on('error', (err) => logger.error(err, 'Redis client error'));
 
 // Connect function to be called at application startup

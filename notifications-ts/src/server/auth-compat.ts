@@ -6,7 +6,7 @@ export const getUserId = async (req: Request) => {
   const userId = auth?.payload.sub
 
   /** In komunitin all ids (including user ids) are uuid, but the legacy auth service 
-   * (Drupal) is providing a numeric id from which whe can search the actual uuid. 
+   * (Drupal) is providing a numeric id from which we can search the actual uuid. 
    * */
   if (/^\d+$/.test(userId)) {
     const user = await prisma.appNotification.findFirst({

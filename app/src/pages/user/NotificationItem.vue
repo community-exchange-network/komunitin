@@ -31,5 +31,5 @@ const props = defineProps<{
   notification: Notification
 }>()
 
-const link = computed(() => props.notification.attributes.data.route ?? false);
+const link = computed(() => props.notification.attributes.data?.route ?? false);
 </script>
