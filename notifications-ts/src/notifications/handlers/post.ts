@@ -6,9 +6,23 @@ import { eventBus } from '../event-bus';
 import { EnrichedPostEvent } from '../enriched-events';
 import { internalError } from '../../utils/error';
 import { setTimeout as delay } from 'timers/promises';
-import { isPostUrgent } from '../channels/app/post';
 
 const FETCH_DELAY_MS = 50;
+
+/**
+ * Expiry window (created - expires in days) to consider a post as "urgent".
+ */
+export const POSTS_URGENT_DAYS = 7;
+
+/**
+ * Check if a post is urgent based on its expiry window.
+ */
+export const isPostUrgent = (post: { attributes: { expires: string; created: string } }): boolean => {
+  const expire = new Date(post.attributes.expires);
+  const created = new Date(post.attributes.created);
+  const windowDays = (expire.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+  return windowDays <= POSTS_URGENT_DAYS;
+};
 
 export const handlePostEvent = async (event: PostEvent): Promise<void> => {
   logger.info({ event }, 'Handling post event');

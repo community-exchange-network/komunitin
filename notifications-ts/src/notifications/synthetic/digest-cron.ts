@@ -1,12 +1,12 @@
 import { Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Group, Need, Offer, UserSettings } from '../../clients/komunitin/types';
+import { Group, Need, Offer, User, UserSettings } from '../../clients/komunitin/types';
 import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import prisma from '../../utils/prisma';
-import { isMemberUser, isPostUrgent } from '../channels/app/post';
 import { EVENT_NAME, EventName } from '../events';
 import { dispatchSyntheticEnrichedEvent } from './shared';
+import { isPostUrgent } from '../handlers/post';
 
 /**
  * Poll-based digest cron.
@@ -38,6 +38,14 @@ const daysSince = (date: Date | string): number => {
   const d = typeof date === 'string' ? new Date(date) : date;
   return (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
 };
+
+/**
+ * Check if a user is the author of a post.
+ */
+const isMemberUser = (user: User, memberId: string): boolean => {
+  return user.relationships.members.data.some((m: any) => m.id === memberId);
+};
+
 
 /**
  * Check if a user should receive a digest based on their posts and last sent time.
