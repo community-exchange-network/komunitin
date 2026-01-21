@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import { queueJob } from '../utils/queue-job';
+import { Queue } from 'bullmq';
 
 // Mock job storage
 const mockJobs = new Map<string, any>();
@@ -41,7 +42,7 @@ export const createMockQueue = () => {
     upsertJobScheduler: queueUpsertJobScheduler,
     removeJobScheduler: queueRemoveJobScheduler,
     close: queueClose,
-  };
+  } as Queue;
 };
 
 // Captures the processor function passed to the Worker constructor

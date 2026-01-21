@@ -203,7 +203,7 @@ describe('App notifications', () => {
     await put(eventPending)
 
     assert.strictEqual(queueAdd.mock.callCount(), 1, "Should schedule job")
-    const [jobName, jobData, jobOpts] = queueAdd.mock.calls[0].arguments
+    const [_, jobData, jobOpts] = queueAdd.mock.calls[0].arguments
     
     // Reset call counts for queueGetJob to isolate the next assertion
     queueGetJob.mock.resetCalls();

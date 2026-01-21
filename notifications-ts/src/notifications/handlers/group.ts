@@ -1,9 +1,9 @@
-import { GroupEvent } from '../events';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Group, User, UserSettings } from '../../clients/komunitin/types';
+import { User } from '../../clients/komunitin/types';
 import logger from '../../utils/logger';
-import { eventBus } from '../event-bus';
 import { EnrichedGroupEvent } from '../enriched-events';
+import { eventBus } from '../event-bus';
+import { GroupEvent } from '../events';
 
 export const handleGroupEvent = async (event: GroupEvent): Promise<void> => {
   logger.info({ event }, 'Handling group event');
