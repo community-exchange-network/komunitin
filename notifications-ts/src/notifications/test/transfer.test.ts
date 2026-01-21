@@ -15,6 +15,8 @@ const server = setupServer(...handlers)
 
 // Mock prisma
 const appNotifications = mockTable(prisma.appNotification, 'test-notification')
+// We need to mock push subscriptions as well just to avoid DB connection error in test env.
+mockTable(prisma.pushSubscription, 'push-subscription')
 
 describe('App notifications', () => {
   let runNotificationsWorker: () => Promise<{ stop: () => Promise<void> }>;
