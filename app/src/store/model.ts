@@ -552,3 +552,14 @@ export interface CurrencyStatsData extends ResourceObject {
     values: number[]
   }
 }
+
+export interface Notification extends ResourceObject {
+  attributes: {
+    title: string
+    body: string
+    image: string | null
+    read: string | null
+    created: string
+    data: Record<string, unknown> | null
+  }
+}

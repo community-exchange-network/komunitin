@@ -25,11 +25,11 @@ class EventsStream {
   static async connect(options?: { redisUrl?: string }): Promise<EventsStream> {
     const streamName = EVENT_STREAM_NAME;
     const group = EVENT_STREAM_GROUP;
-    const redisUrl = options?.redisUrl ?? config.NOTIFICATIONS_REDIS_URL;
+    const redisUrl = options?.redisUrl ?? config.REDIS_URL;
     const consumerId = randomUUID();
 
     const client = createClient({ url: redisUrl });
-    client.on('error', (err) => logger.error(err, 'Redis client error'));
+    client.on('error', (err) => logger.error(err, `Failed connection to Redis at ${redisUrl} for EventsStream`));
     await client.connect();
 
     const stream = new EventsStream(client, streamName, group, consumerId);

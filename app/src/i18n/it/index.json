@@ -404,6 +404,11 @@
   "unsubscribedText": "Non riceverai più email della newsletter della comunità. Puoi modificare le tue preferenze email in qualsiasi momento nelle impostazioni.",
   "unsubscribeError": "Disiscrizione fallita",
 
+  "today": "Oggi",
+  "yesterday": "Ieri",
+  "thisWeek": "Questa settimana",
+  "thisMonth": "Questo mese",
+
   "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
   "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",
   
