@@ -13,19 +13,6 @@ export const initPushChannel = (): (() => void) => {
     eventBus.on(EVENT_NAME.TransferPending, handleEvent),
     eventBus.on(EVENT_NAME.TransferRejected, handleEvent),
 
-    // Post events
-    eventBus.on(EVENT_NAME.NeedPublished, handleEvent),
-    eventBus.on(EVENT_NAME.NeedExpired, handleEvent),
-    eventBus.on(EVENT_NAME.OfferPublished, handleEvent),
-    eventBus.on(EVENT_NAME.OfferExpired, handleEvent),
-
-    // Member events
-    eventBus.on(EVENT_NAME.MemberJoined, handleEvent),
-    eventBus.on(EVENT_NAME.MemberRequested, handleEvent),
-
-    // Group events
-    eventBus.on(EVENT_NAME.GroupRequested, handleEvent),
-    eventBus.on(EVENT_NAME.GroupActivated, handleEvent),
   ];
 
   // Return stop function that unsubscribes all listeners
@@ -41,8 +28,8 @@ const handleEvent = async (event: EnrichedEvent): Promise<void> => {
     // TODO: Implement push notification logic
     // 1. Check user preferences (notifications.myAccount, etc.)
     // 2. Get push tokens from database/subscriptions
-    // 3. Generate concise push message
-    // 4. Send via Firebase Cloud Messaging (FCM) or similar
+    // 3. Generate message
+    // 4. Send via Web Push endpoint
     // 5. Handle failed tokens (unregister)
   } catch (err) {
     logger.error({ err, event }, 'Error in push channel');
