@@ -100,7 +100,7 @@
         <!-- slot for right buttons -->
         <slot name="buttons" >
           <q-btn
-            v-if="!isComplete"
+            v-if="showLogOut"
             icon="logout"
             flat
             round
@@ -124,6 +124,7 @@
  *  - If balance prop is set to true, shows a section with the logged in account 
  * balance. This section shrinks on scroll.
  *  - If search prop is set to true, provides a search box that emits the `search` event.
+ *  - If profile prop is set to true, shows a profile button and menu.
  *  - Provides a slot #buttons to be able to customize the right toolbar buttons 
  * depending on the page content.
  */
@@ -163,8 +164,6 @@ const offset = ref(0)
 
 const myAccount = computed(() => store.getters.myAccount)
 
-
-
 const route = useRoute()
 /**
  * Show the back button.
@@ -178,6 +177,11 @@ const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersist
  * Show the profile button only on root pages when logged in. 
  */
 const showProfile = computed(() => route.meta.rootPage && store.getters.isLoggedIn);
+
+/**
+ * Show the log-out button when user is logged in but not in 'complete' status (ie pending). 
+ */
+const showLogOut = computed(() => store.getters.isLoggedIn && !store.getters.isComplete)
 
 
 /**
@@ -244,8 +248,6 @@ const goUp = () => {
     router.push('/')
   }
 }
-
-const isComplete = computed(() => store.getters.isComplete)
 
 </script>
 <style lang="scss" scoped>
