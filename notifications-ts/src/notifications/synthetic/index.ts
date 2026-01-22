@@ -5,6 +5,7 @@ import { QUEUE_NAME } from './shared';
 import { initTransferEvents } from './transfer';
 import { initPostEvents } from './post';
 import { initDigestCron } from './digest-cron';
+import { internalError } from '../../utils/error';
 
 /**
  * Synthetic event generator.
@@ -30,11 +31,16 @@ export const initSyntheticEvents = () => {
   const worker = createWorker(
     QUEUE_NAME,
     async (job: Job) => {
-      const handler = handlers[job.name];
-      if (handler) {
-        await handler(job);
-      } else {
-        logger.warn({ jobName: job.name }, 'No handler registered for job');
+      try {
+        const handler = handlers[job.name];
+        if (handler) {
+          await handler(job);
+        } else {
+          throw internalError(`No handler registered for job: ${job.name}`);
+        }
+      } catch (err) {
+        logger.error(err);
+        throw err;
       }
     }
   );

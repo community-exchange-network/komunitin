@@ -38,10 +38,6 @@ describe('Push notifications', () => {
   beforeEach(async () => {
     queue.resetMocks();
     resetWebPushMocks();
-
-    const { initPushChannel } = await import('../channels/push/utils');
-    stopWorker = await initPushChannel();
-
     // Start notifications worker so the event stream is processed
     notificationsWorker = await runNotificationsWorker();
   });

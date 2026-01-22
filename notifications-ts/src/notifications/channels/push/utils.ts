@@ -22,16 +22,21 @@ export type PushPriority = 'high' | 'normal';
 export type NotificationClass = 'account' | 'group';
 
 
-export const initPushChannel = async () => {
-  logger.info('Initializing push notification channel');
+export const initPushQueue = () => {
+  logger.info('Initializing push notification queue');
   queue = createQueue(QUEUE_NAME);
   const worker = createWorker(QUEUE_NAME, async (job) => {
     // Send the push notification using Web Push protocol
-    if (job.name === JOB_NAME_SEND_PUSH) {
-      const { subscription, message, code, subscriptionId, userId, eventId } = job.data;
-      await sendWebPush(subscription, message, code, { subscriptionId, userId, eventId });
-    } else {
-      logger.warn({ jobName: job.name }, 'No handler registered for job');
+    try {
+      if (job.name === JOB_NAME_SEND_PUSH) {
+        const { subscription, message, code, subscriptionId, userId, eventId } = job.data;
+        await sendWebPush(subscription, message, code, { subscriptionId, userId, eventId });
+      } else {
+        throw internalError(`Unknown job name: ${job.name}`);
+      }
+    } catch (err) {
+      logger.error(err);
+      throw err;
     }
   })
 
@@ -206,13 +211,13 @@ const sendWebPush = async (
   const vapidPrivateKey = config.PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY;
 
   if (!vapidPublicKey || !vapidPrivateKey) {
-    logger.error('Missing VAPID keys for push notifications');
-    return;
+    throw internalError('Missing VAPID keys for push notifications');
   }
 
   if (!subscription.endpoint || !subscription.p256dh || !subscription.auth) {
-    logger.error({ subscription, tenantId }, 'Invalid push subscription data');
-    return;
+    throw internalError('Invalid push subscription data', {
+      details: { subscription },
+    });
   }
   
   const subjectEmail = () => {
@@ -270,7 +275,6 @@ const sendWebPush = async (
       return;
     }
 
-    logger.error({ err, subscriptionId: meta.subscriptionId }, 'Failed to send push notification');
     throw err;
   }
 };

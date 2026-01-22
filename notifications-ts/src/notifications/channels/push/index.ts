@@ -21,11 +21,12 @@ import {
   EnrichedMemberHasExpiredPostsEvent,
   EnrichedMembersJoinedDigestEvent,
 } from '../../enriched-events';
-import { sendPushToUsers } from './utils';
+import { initPushQueue, sendPushToUsers } from './utils';
 
 export const initPushChannel = (): (() => void) => {
   logger.info('Initializing push notification channel');
 
+  const stopPushQueue = initPushQueue();
   // Subscribe to events and collect unsubscribe functions
   const unsubscribers = [
     // Transfer events
@@ -107,6 +108,7 @@ export const initPushChannel = (): (() => void) => {
   // Return stop function that unsubscribes all listeners
   return () => {
     unsubscribers.forEach(unsub => unsub());
+    stopPushQueue();
   };
 };
 
