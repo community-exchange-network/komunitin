@@ -143,12 +143,8 @@ export const sendPushToUsers = async <T extends EnrichedEvent>(
       continue;
     }
 
-    // TODO: Check quiet hours: guess the user's local time from their coordinates if available
-    // otherwise use group coordinates. If timezone defined, skip sending during quiet hours.
-    // Quiet hours are 10 PM to 8 AM local time.
     const timezone = await getUserTimezone(user, settings, event.code);
     const delay = pushNotificationDelay(priority, timezone);
-
 
     // Send to all subscriptions
     for (const subscription of subscriptions) {
@@ -185,7 +181,6 @@ const queueWebPush = async (
         delay: 60*1000, // initial delay 1min
       },
       removeOnComplete: true,
-      removeOnFail: false,
     }
   );
 }
