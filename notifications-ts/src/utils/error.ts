@@ -44,3 +44,4 @@ export const badRequest = (message: string = "Bad Request", options?: KErrorOpti
 export const internalError = (message: string = "Internal Error", options?: KErrorOptions) => new KError(KErrorCode.InternalError, message, options)
 export const unauthorized = (message: string = "Unauthorized", options?: KErrorOptions) => new KError(KErrorCode.Unauthorized, message, options)
 export const forbidden = (message: string = "Forbidden", options?: KErrorOptions) => new KError(KErrorCode.Forbidden, message, options)
+export const notFound = (message: string = "Not Found", options?: KErrorOptions) => new KError(KErrorCode.BadRequest, message, options)

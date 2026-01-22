@@ -1,10 +1,10 @@
-import { Request, Response, NextFunction } from "express"
+import { Prisma } from "@prisma/client"
+import { NextFunction, Request, Response } from "express"
 import { z } from "zod"
+import { validateUserId } from "../../server/auth-compat"
+import { badRequest, notFound } from "../../utils/error"
 import prisma from "../../utils/prisma"
 import { serializeSubscription } from "./subscriptions.serialize"
-import { Prisma } from "@prisma/client"
-import { badRequest, unauthorized } from "../../utils/error"
-import { validateUserId } from "../../server/auth-compat"
 
 // Validation schema for subscription data (JSON:API format)
 const subscriptionSchema = z.object({
@@ -93,32 +93,20 @@ export const upsertSubscription = async (req: Request, res: Response, next: Next
 export const deleteSubscription = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { code, id } = req.params
-    const auth = (req as any).auth
-    const userId = auth?.payload.sub
-
-    if (!userId) {
-      throw new Error("User not authenticated")
-    }
 
     // Find the subscription to ensure it belongs to the user
     const subscription = await prisma.pushSubscription.findFirst({
       where: {
         id,
         tenantId: code,
-        userId,
       },
     })
 
     if (!subscription) {
-      res.status(404).json({
-        errors: [{
-          status: '404',
-          title: 'Not Found',
-          detail: 'Subscription not found or does not belong to this user'
-        }]
-      })
-      return
+      throw notFound()
     }
+
+    validateUserId(req, subscription.userId)
 
     // Delete the subscription
     await prisma.pushSubscription.delete({
