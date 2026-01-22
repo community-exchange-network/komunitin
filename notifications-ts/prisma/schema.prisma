@@ -79,3 +79,26 @@ model PushSubscription {
   @@index([tenantId, userId])
   @@index([endpoint])
 }
+
+model PushNotification {
+  id        String   @id @default(uuid())
+
+  // Scoping
+  tenantId  String
+  userId    String
+  subscriptionId String
+  eventId   String
+
+  // Delivery telemetry
+  createdAt DateTime @default(now())
+  sentAt    DateTime?
+  deliveredAt DateTime?
+  clickedAt DateTime?
+  clickedAction String?
+  meta Json?
+
+  // Indexes
+  @@index([tenantId, userId, createdAt])
+  @@index([subscriptionId])
+  @@index([eventId])
+}

@@ -60,7 +60,7 @@ export const config = {
   SOCIAL_URL: getString('SOCIAL_URL', process.env.SOCIAL_URL),
   FILES_URL: getString('FILES_URL', process.env.FILES_URL),
   NOTIFICATIONS_URL: getString('NOTIFICATIONS_URL', process.env.NOTIFICATIONS_URL),
-  PUSH_SERVER_KEY: getString('PUSH_SERVER_KEY', process.env.PUSH_SERVER_KEY),
+  PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: getString('PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY', process.env.PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY),
   GTAG_ID: getString('GTAG_ID', process.env.GTAG_ID),
   FEEDBACK_URL: getString('FEEDBACK_URL', process.env.FEEDBACK_URL)
 };

@@ -4,17 +4,18 @@ import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
 import { generateKeys } from '../../mocks/auth'
 import { createMembers, createNeed, createOffer, db, getUserIdForMember, resetDb } from '../../mocks/db'
 import handlers from '../../mocks/handlers'
-import { mockTable } from '../../mocks/prisma'
-import { resetQueueMocks } from '../../mocks/queue'
+import { mockDb } from '../../mocks/prisma'
+import { createQueue } from '../../mocks/queue'
 import { mockRedis } from '../../mocks/redis'
-import prisma from '../../utils/prisma'
 import { createEvent } from './utils'
 
 const { put } = mockRedis()
 const server = setupServer(...handlers)
+const pushQueue = createQueue('push-notifications')
+const syntheticQueue = createQueue('synthetic-events')
 
 // Mock prisma
-const appNotifications = mockTable(prisma.appNotification, 'test-notification')
+const { appNotification: appNotifications } = mockDb()
 
 describe('New post notifications (URGENT)', () => {
   let runNotificationsWorker: () => Promise<{ stop: () => Promise<void> }>;
@@ -34,7 +35,8 @@ describe('New post notifications (URGENT)', () => {
   beforeEach(async () => {
     resetDb()
     appNotifications.length = 0
-    resetQueueMocks()
+    pushQueue.resetMocks()
+    syntheticQueue.resetMocks()
     worker = await runNotificationsWorker()
   })
 

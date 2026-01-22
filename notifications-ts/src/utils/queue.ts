@@ -1,8 +1,5 @@
 import { ConnectionOptions, Queue, QueueOptions, Worker, WorkerOptions, Processor } from 'bullmq';
 import { config } from '../config';
-import { queueJob, type QueueJobOptions } from './queue-job';
-
-export { queueJob, type QueueJobOptions };
 
 const redisUrl = new URL(config.REDIS_URL);
 

@@ -6,7 +6,7 @@ import { http, HttpResponse } from 'msw';
 import nodemailer from 'nodemailer';
 import prisma from '../utils/prisma';
 import { mockDate, restoreDate } from '../mocks/date';
-import { mockTable } from '../mocks/prisma';
+import { mockDb } from '../mocks/prisma';
 import { mockRedis } from '../mocks/redis';
 
 // Mock nodemailer
@@ -16,7 +16,7 @@ nodemailer.createTransport = test.mock.fn(() => ({
 })) as any;
 
 // Mock Prisma
-const newsletterLogStore = mockTable(prisma.newsletterLog, 'newsletterLog', () => ({ sentAt: new Date() }));
+const { newsletterLog } = mockDb();
 
 const { reset: resetRedis } = mockRedis();
 
@@ -33,7 +33,7 @@ describe('Newsletter Cron Job', () => {
   beforeEach(() => {
     server.resetHandlers();
     sendMailMock.mock.resetCalls();
-    newsletterLogStore.length = 0;
+    newsletterLog.length = 0;
     // @ts-ignore
     prisma.newsletterLog.create.mock.resetCalls();
     // @ts-ignore

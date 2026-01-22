@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { afterEach, beforeEach, describe, it, test } from 'node:test';
-import { queueAdd, queueGetJob, resetQueueMocks, workerProcessor } from '../../mocks/queue';
+import { createQueue } from '../../mocks/queue';
 
 // Mock worker dispatchEvent to avoid side effects (network calls)
 const dispatchEvent = test.mock.fn(async () => {});
@@ -30,16 +30,17 @@ const createMockJob = (data: any, id: string) => ({
 const { initSyntheticEvents } = await import('../synthetic');
 const { eventBus } = await import('../event-bus');
 const { EVENT_NAME } = await import('../events');
+const queue = createQueue('synthetic-events');
 
 describe('Synthetic Events', () => {
   let stopService: () => void;
   // ...
   
   beforeEach(() => {
-    resetQueueMocks();
+    queue.resetMocks();
     // Default implementations
-    queueAdd.mock.mockImplementation(async () => {});
-    queueGetJob.mock.mockImplementation(async () => null);
+    queue.add.mock.mockImplementation(async () => {});
+    queue.getJob.mock.mockImplementation(async () => null);
     
     // Start service
     stopService = initSyntheticEvents();
@@ -74,10 +75,10 @@ describe('Synthetic Events', () => {
 
     // 2. Verify queue.add called
     // We expect verification to check if no existing job exists first (getJob)
-    assert.strictEqual(queueGetJob.mock.callCount(), 1); 
-    assert.strictEqual(queueAdd.mock.callCount(), 1);
+    assert.strictEqual(queue.getJob.mock.callCount(), 1); 
+    assert.strictEqual(queue.add.mock.callCount(), 1);
 
-    const call = queueAdd.mock.calls[0];
+    const call = queue.add.mock.calls[0];
     const [name, data, opts] = call.arguments;
 
     assert.strictEqual(name, 'transfer-still-pending');
@@ -108,12 +109,7 @@ describe('Synthetic Events', () => {
     // Reset dispatch spy
     dispatchEvent.mock.resetCalls();
 
-    const mockJob = createMockJob(jobData, 'job_1');
-    mockJob.name = 'transfer-still-pending';
-    
-    // Manually invoke the worker processor
-    assert.ok(workerProcessor, 'Worker processor should be registered');
-    await workerProcessor(mockJob);
+    await queue.dispatchToWorker('transfer-still-pending', { jobId: 'job_1' }, jobData);
 
     // 1. Verify Event Dispatched (instead of emitted via bus)
     assert.strictEqual(dispatchEvent.mock.callCount(), 1, 'Should dispatch event');
@@ -127,8 +123,8 @@ describe('Synthetic Events', () => {
     assert.strictEqual(dispatchedEvent.user, 'u_1');
 
     // 2. Verify next job scheduled
-    assert.strictEqual(queueAdd.mock.callCount(), 1, 'Should add next iteration');
-    const [_, data, opts] = queueAdd.mock.calls[0].arguments;
+    assert.strictEqual(queue.add.mock.callCount(), 1, 'Should add next iteration');
+    const [_, data, opts] = queue.add.mock.calls[0].arguments;
     
     assert.strictEqual(data.iteration, 2);
     // Delay for 2nd iteration is still 24h (total 48h from start)
@@ -144,7 +140,7 @@ describe('Synthetic Events', () => {
     const removeSpy = test.mock.fn(async () => {});
     mockJob.remove = removeSpy;
     
-    queueGetJob.mock.mockImplementation(async (id: string) => {
+    queue.getJob.mock.mockImplementation(async (id: string) => {
       if (id === `still-pending:${transferId}`) return mockJob;
       return null;
     });
@@ -157,13 +153,13 @@ describe('Synthetic Events', () => {
 
     await eventBus.emit(event as any);
 
-    assert.strictEqual(queueGetJob.mock.callCount(), 1);
+    assert.strictEqual(queue.getJob.mock.callCount(), 1);
     assert.strictEqual(removeSpy.mock.callCount(), 1);
   });
 
   it('should increase delay to weekly after 3rd iteration', async () => {
       const transferId = 'tr_123';
-      const mockJob = createMockJob({
+      const jobData = {
         code: 'T1',
         data: {
           transfer: transferId,
@@ -172,13 +168,11 @@ describe('Synthetic Events', () => {
         },
         user: 'u_1',
         iteration: 3 // Current is 3, next will be 4
-      }, 'job_1');
+      };
 
-      mockJob.name = 'transfer-still-pending';
+      await queue.dispatchToWorker('transfer-still-pending', { jobId: 'job_1' }, jobData);
 
-      await workerProcessor(mockJob);
-
-      const [_, data, opts] = queueAdd.mock.calls[0].arguments;
+      const [_, data, opts] = queue.add.mock.calls[0].arguments;
       assert.strictEqual(data.iteration, 4);
       assert.strictEqual(opts.delay, 7 * 24 * 60 * 60 * 1000); // 7 days
   });

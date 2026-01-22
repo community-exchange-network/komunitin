@@ -87,8 +87,9 @@ export const mockRedis = () => {
 
   return {
     // Helper to put an event into the stream and wait for it to be processed (acked)
-    put: (eventData: any, id: string = Date.now().toString() + '-0') => {
+    put: (eventData: any) => {
       return new Promise((resolve) => {
+        const id = eventData.id || Date.now().toString() + '-0'
         const message = { id, message: eventData };
         
         ackResolvers.set(id, resolve);

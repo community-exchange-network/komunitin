@@ -17,6 +17,8 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   APP_EMAIL: z.string().optional(),
+  PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: z.string().optional(),
+  PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY: z.string().optional(),
   DEV_SAVE_NEWSLETTERS: z.coerce.boolean().optional().default(false),
   PORT: z.coerce.number().int().positive().default(3000),
 });

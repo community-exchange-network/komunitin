@@ -1,6 +1,7 @@
 import { test } from 'node:test';
+import prisma from '../utils/prisma';
 
-export const mockTable = (table: any, name: string = 'test', defaults?: (data: any) => any) => {
+const mockTable = (table: any, name: string = 'test', defaults?: (data: any) => any) => {
   const store: any[] = [];
 
   const delegate = {
@@ -54,6 +55,18 @@ export const mockTable = (table: any, name: string = 'test', defaults?: (data: a
         return await delegate.create({ data: create });
       }
     }),
+    update: test.mock.fn(async (args: any) => {
+      const { where, data } = args as any;
+      const existing = await delegate.findFirst({ where });
+      if (!existing) {
+        throw new Error('Record not found');
+      }
+      Object.assign(existing, {
+        ...data,
+        updatedAt: new Date()
+      });
+      return existing;
+    }),
     delete: test.mock.fn(async (args: any) => {
       const found = await delegate.findFirst({ where: args.where });
       if (found) {
@@ -96,3 +109,16 @@ export const mockTable = (table: any, name: string = 'test', defaults?: (data: a
 
   return store;
 };
+
+
+export const mockDb = () => {
+  return {
+    newsletterLog: mockTable(prisma.newsletterLog, 'newsletterLog', (data) => ({
+      sentAt: new Date(),
+    })),
+    appNotification: mockTable(prisma.appNotification, 'appNotification'),
+    pushSubscription: mockTable(prisma.pushSubscription, 'pushSubscription'),
+    pushNotification: mockTable(prisma.pushNotification, 'pushNotification'),
+    // Add other tables as needed
+  }
+}

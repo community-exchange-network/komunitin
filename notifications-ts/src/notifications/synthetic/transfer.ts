@@ -3,7 +3,7 @@ import { eventBus } from '../event-bus';
 import { EVENT_NAME, TransferEvent } from '../events';
 import logger from '../../utils/logger';
 import { dispatchSyntheticEvent } from './shared';
-import { queueJob } from '../../utils/queue';
+import { queueJob } from '../../utils/queue-job';
 
 const JOB_NAME_STILL_PENDING = 'transfer-still-pending';
 

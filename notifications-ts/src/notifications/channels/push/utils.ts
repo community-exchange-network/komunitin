@@ -6,11 +6,13 @@ import { MessageContext, NotificationMessage } from "../../messages";
 import { createQueue, createWorker } from "../../../utils/queue";
 import { Queue } from "bullmq";
 import { User, UserSettings } from "../../../clients/komunitin/types";
-import { time } from "console";
 import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from "../../../utils/cached-resources";
 import { KomunitinClient } from "../../../clients/komunitin/client";
 import tz from '@photostructure/tz-lookup';
-import { PushSubscription } from "@prisma/client";
+import { Prisma, PushSubscription } from '@prisma/client';
+import webpush from 'web-push';
+import { config } from "../../../config";
+import { internalError } from "../../../utils/error";
 
 const QUEUE_NAME = 'push-notifications';
 const JOB_NAME_SEND_PUSH = 'send-push-notification';
@@ -26,8 +28,8 @@ export const initPushChannel = async () => {
   const worker = createWorker(QUEUE_NAME, async (job) => {
     // Send the push notification using Web Push protocol
     if (job.name === JOB_NAME_SEND_PUSH) {
-      const { subscription, message, code } = job.data;
-      await sendWebPush(subscription, message, code);
+      const { subscription, message, code, subscriptionId, userId, eventId } = job.data;
+      await sendWebPush(subscription, message, code, { subscriptionId, userId, eventId });
     } else {
       logger.warn({ jobName: job.name }, 'No handler registered for job');
     }
@@ -148,7 +150,7 @@ export const sendPushToUsers = async <T extends EnrichedEvent>(
 
     // Send to all subscriptions
     for (const subscription of subscriptions) {
-      await queueWebPush(subscription, message, event.code, delay);
+      await queueWebPush(subscription, message, event.code, delay, { userId: user.id, eventId: event.id });
     }
   }
 };
@@ -157,7 +159,8 @@ const queueWebPush = async (
   subscription: PushSubscription,
   message: NotificationMessage,
   groupCode: string,
-  delay: number
+  delay: number,
+  meta: { userId: string; eventId: string }
 ): Promise<void> => {
   if (!queue) {
     throw new Error('Push notification queue not initialized');
@@ -172,6 +175,9 @@ const queueWebPush = async (
       },
       message,
       code: groupCode,
+      subscriptionId: subscription.id,
+      userId: meta.userId,
+      eventId: meta.eventId,
     },
     {
       delay,
@@ -188,49 +194,82 @@ const queueWebPush = async (
 /**
  * Send a Web Push notification
  * 
- * TODO: Implement actual Web Push protocol
- * This requires:
- * - VAPID keys configuration
- * - web-push library integration
- * - Proper payload encryption
  */
 const sendWebPush = async (
   subscription: { endpoint: string; p256dh: string; auth: string },
   message: NotificationMessage,
-  tenantId: string
+  tenantId: string,
+  meta: { subscriptionId: string; userId: string; eventId: string }
 ): Promise<void> => {
-  // TODO: Implement Web Push sending
-  // For now, just log what would be sent
-  logger.debug(
-    {
-      endpoint: subscription.endpoint,
-      title: message.title,
-      body: message.body,
-      tenantId,
-    },
-    'Would send push notification (not implemented yet)'
-  );
+  const vapidPublicKey = config.PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY;
+  const vapidPrivateKey = config.PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY;
 
-  // Example implementation would look like:
-  // import webpush from 'web-push';
-  // 
-  // const payload = JSON.stringify({
-  //   title: message.title,
-  //   body: message.body,
-  //   icon: message.image,
-  //   data: {
-  //     url: message.route,
-  //   },
-  // });
-  //
-  // await webpush.sendNotification(
-  //   {
-  //     endpoint: subscription.endpoint,
-  //     keys: {
-  //       p256dh: subscription.p256dh,
-  //       auth: subscription.auth,
-  //     },
-  //   },
-  //   payload
-  // );
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    logger.error('Missing VAPID keys for push notifications');
+    return;
+  }
+
+  if (!subscription.endpoint || !subscription.p256dh || !subscription.auth) {
+    logger.error({ subscription, tenantId }, 'Invalid push subscription data');
+    return;
+  }
+  
+  const subjectEmail = () => {
+    const matched = config.APP_EMAIL?.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    if (!matched || matched.length === 0) {
+      throw internalError(`Invalid APP_EMAIL: ${config.APP_EMAIL}`);
+    }
+    return `mailto:${matched[0]}`;
+  }
+
+  webpush.setVapidDetails(subjectEmail(), vapidPublicKey, vapidPrivateKey);
+
+  const pushNotification = await prisma.pushNotification.create({
+    data: {
+      tenantId,
+      userId: meta.userId,
+      subscriptionId: meta.subscriptionId,
+      eventId: meta.eventId,
+      meta: Prisma.DbNull,
+    }
+  });
+
+  const payload = JSON.stringify({
+    title: message.title,
+    body: message.body,
+    image: message.image,
+    route: message.route,
+    code: tenantId,
+    id: pushNotification.id,
+  });
+
+  try {
+    await webpush.sendNotification(
+      {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.p256dh,
+          auth: subscription.auth,
+        }
+      },
+      payload
+    );
+    // Log sending success by updating sentAt
+    await prisma.pushNotification.update({
+      where: { id: pushNotification.id },
+      data: { sentAt: new Date() },
+    });
+  } catch (err: any) {
+    const status = err?.statusCode;
+    const isPermanent = status === 404 || status === 410;
+
+    if (isPermanent) {
+      logger.warn({ err, subscriptionId: meta.subscriptionId }, 'Removing expired push subscription');
+      await prisma.pushSubscription.delete({ where: { id: meta.subscriptionId } });
+      return;
+    }
+
+    logger.error({ err, subscriptionId: meta.subscriptionId }, 'Failed to send push notification');
+    throw err;
+  }
 };

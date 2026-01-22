@@ -4,7 +4,7 @@ import { after, before, beforeEach, describe, it } from 'node:test'
 import supertest from 'supertest'
 import { generateKeys, signJwt } from '../../mocks/auth'
 import handlers from '../../mocks/handlers'
-import { mockTable } from '../../mocks/prisma'
+import { mockDb } from '../../mocks/prisma'
 import { _app } from '../../server'
 import prisma from '../../utils/prisma'
 
@@ -40,7 +40,7 @@ describe('Subscriptions API', () => {
     server.listen({ onUnhandledRequest: 'bypass' })
 
     // Simple in-memory mock for pushSubscription table using shared mock helper
-    subscriptions = mockTable(prisma.pushSubscription, 'push-subscription')
+    subscriptions = mockDb().pushSubscription
   })
 
   after(() => {

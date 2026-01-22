@@ -1,15 +1,13 @@
 
-import type { Queue } from 'bullmq'
 import { setupServer } from 'msw/node'
 import assert from 'node:assert'
 import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
 import { generateKeys } from '../../mocks/auth'
 import { createMembers, createNeed, createOffer, db, getUserIdForMember, resetDb } from '../../mocks/db'
 import handlers from '../../mocks/handlers'
-import { mockTable } from '../../mocks/prisma'
-import { createMockQueue } from '../../mocks/queue'
+import { mockDb } from '../../mocks/prisma'
+import { createQueue } from '../../mocks/queue'
 import { mockRedis } from '../../mocks/redis'
-import prisma from '../../utils/prisma'
 import { initInAppChannel } from '../channels/app'
 import { EVENT_NAME } from '../events'
 
@@ -17,13 +15,13 @@ const server = setupServer(...handlers)
 mockRedis()
 
 // Mock prisma table
-const appNotifications = mockTable(prisma.appNotification, 'test-notification')
+const { appNotification: appNotifications } = mockDb()
 
 describe('PostsPublishedDigest notifications', () => {
   let runDigest: () => Promise<void>;
 
   before(async () => {
-    const queue = createMockQueue()
+    const queue = createQueue('synthetic-events') as any
     const digestModule = await import('../synthetic/digest-cron')
     const { handlers } = digestModule.initDigestCron(queue)
     runDigest = handlers['group-digest-cron']
