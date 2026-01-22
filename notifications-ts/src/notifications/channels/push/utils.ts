@@ -88,12 +88,13 @@ const pushNotificationDelay = (priority: PushPriority, timezone: string | null):
   // respect fixed quiet hours for normal priority
   const localDate = tzDate(timezone);
   const currentHour = localDate.getHours();
-  const currentMinutes = localDate.getMinutes();
   if (currentHour >= QUIET_HOURS_START || currentHour < QUIET_HOURS_END) {
-    // Eg: if 5:45 AM, delayHours = 2, delayMinutes = 15.
-    const delayHours = (QUIET_HOURS_END - currentHour - 1 + 24) % 24;
-    const delayMinutes = (60 - currentMinutes) % 60; // minutes to next hour
-    const minutesUntilEnd = delayHours * 60 + delayMinutes
+    const endDate = new Date(localDate);
+    endDate.setHours(QUIET_HOURS_END, 0, 0, 0);
+    if (currentHour >= QUIET_HOURS_START) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+    const minutesUntilEnd = Math.ceil((endDate.getTime() - localDate.getTime()) / (60 * 1000));
     // add up to 15 min random delay
     const totalDelayMinutes = minutesUntilEnd + Math.random() * 15;
     return totalDelayMinutes * 60 * 1000; // convert to ms
