@@ -2,7 +2,7 @@
 import tz from '@photostructure/tz-lookup';
 import { Group } from '../clients/komunitin/types';
 import logger from '../utils/logger';
-import { localTime } from '../utils/i18n';
+import { tzDate } from '../utils/i18n';
 
 const NEWSLETTER_SEND_DAY = 0; // Sunday
 const NEWSLETTER_SEND_HOUR = 15; // at 3:30 PM
@@ -25,7 +25,7 @@ export const shouldProcessGroup = (group: Group, isManualRun: boolean): boolean 
   }
 
   // Build a date object in local time zone
-  const localDate = localTime(timeZone)
+  const localDate = tzDate(timeZone)
   
   return localDate.getDay() === NEWSLETTER_SEND_DAY && localDate.getHours() === NEWSLETTER_SEND_HOUR;
 };

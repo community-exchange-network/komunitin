@@ -1,5 +1,5 @@
 import logger from "../../../utils/logger";
-import initI18n, { localTime } from "../../../utils/i18n";
+import initI18n, { tzDate } from "../../../utils/i18n";
 import prisma from "../../../utils/prisma";
 import { EnrichedEvent } from "../../enriched-events";
 import { MessageContext, NotificationMessage } from "../../messages";
@@ -86,7 +86,7 @@ const pushNotificationDelay = (priority: PushPriority, timezone: string | null):
     return 0; // no timezone info, send immediately
   }
   // respect fixed quiet hours for normal priority
-  const localDate = localTime(timezone);
+  const localDate = tzDate(timezone);
   const currentHour = localDate.getHours();
   const currentMinutes = localDate.getMinutes();
   if (currentHour >= QUIET_HOURS_START || currentHour < QUIET_HOURS_END) {

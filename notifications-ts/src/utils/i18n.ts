@@ -1,4 +1,3 @@
-import { time } from 'console';
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
 import path from 'path';
@@ -28,7 +27,7 @@ const initI18n = async () => {
   return i18next;
 };
 
-export const localTime = (timezone: string, date: Date = new Date()): Date => {
+export const tzDate = (timezone: string, date: Date = new Date()): Date => {
   const localTimeStr = date.toLocaleString('en-US', { timeZone: timezone, hour12: false });
   return new Date(localTimeStr);
 }
