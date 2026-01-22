@@ -176,9 +176,9 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
  */
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
 /**
- * Show the profile button only on root pages. 
+ * Show the profile button only on root pages when logged in. 
  */
-const showProfile = computed(() => route.meta.rootPage);
+const showProfile = computed(() => route.meta.rootPage && store.getters.isLoggedIn);
 
 
 /**
