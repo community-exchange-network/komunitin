@@ -8,20 +8,19 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/komunitin/komunitin/notifications/events"
 	"github.com/komunitin/komunitin/notifications/mails"
-	"github.com/komunitin/komunitin/notifications/notifications"
 )
 
 func main() {
 	log.Println("Starting notifications app...")
 
 	events.InitService()
-	notifications.InitService()
+	//notifications.InitService()
 
 	log.Println("Starting mailer service...")
 	go mails.Mailer(context.Background())
 
-	log.Println("Starting notifier service...")
-	go notifications.Notifier(context.Background())
+	//log.Println("Starting notifier service...")
+	//go notifications.Notifier(context.Background())
 
 	// Setup CORS middleware.
 	allowedOrigins := handlers.AllowedOrigins([]string{
