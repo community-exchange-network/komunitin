@@ -2,6 +2,8 @@
   "extends": "./.quasar/tsconfig.json",
   "compilerOptions": {
     "types": ["node", "jest", "resize-observer-browser"],
+    // Extending Quasar's default ["esnext", "dom", "dom.iterable"].
+    "lib": ["esnext", "dom", "dom.iterable", "webworker"],
     "allowSyntheticDefaultImports": true,
     // The "./node_modules/@quasar/app-vite/node_modules" is needed in order to
     // resolve the "vite/client" types defined in .quasar/quasar.d.ts. For sure
