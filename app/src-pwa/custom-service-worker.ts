@@ -6,25 +6,13 @@ import { CacheFirst } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { ExpirationPlugin } from 'workbox-expiration'
 import { clientsClaim } from 'workbox-core'
-import localforage from 'localforage'
 // Komunitin
-import { config, setConfig } from "src/utils/config"
+import { getConfig, setConfig } from "./sw-config"
 
 declare const self: ServiceWorkerGlobalScope
 
 // This version will be replaced by DefinePlugin at build time
 const SW_VERSION = process.env.APP_VERSION
-
-const restoreConfig = async () => {
-    try {
-        const storedConfig = await localforage.getItem<Record<string, string>>('app-config')
-        if (storedConfig) {
-            setConfig(storedConfig)
-        }
-    } catch (err) {
-        console.error("Failed to restore config", err)
-    }
-}
 
 // Add a listener for messages from the client (register-service-worker.ts).
 self.addEventListener('message', (event: MessageEvent) => {
@@ -37,7 +25,6 @@ self.addEventListener('message', (event: MessageEvent) => {
   }
   if (event.data && event.data.type === 'SET_CONFIG') {
     setConfig(event.data.config)
-    localforage.setItem('app-config', event.data.config)
     if (process.env.DEV) {
       console.log("Service worker config set:", event.data.config)
     }
@@ -102,6 +89,8 @@ const updateNotificationEvent = async (
   id: string | undefined,
   attributes: Record<string, unknown>
 ): Promise<void> => {
+  const config = await getConfig()
+
   if (!code || !id || !config.NOTIFICATIONS_URL) {
     return
   }
@@ -181,16 +170,26 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
       includeUncontrolled: true,
     })
 
+    let matchingClient = null
     for (const client of windowClients) {
-      if ("focus" in client) {
-        if (client.url === targetUrl || client.url === route) {
-          await client.focus()
-          return
-        }
+      const clientUrl = new URL(client.url, self.location.origin)
+      const targetUrlObj = new URL(targetUrl, self.location.origin)
+      if (clientUrl.origin === targetUrlObj.origin) {
+        matchingClient = client
+        break
       }
     }
 
-    await self.clients.openWindow(targetUrl)
+    if (matchingClient) {
+      if ("focus" in matchingClient) {
+        await matchingClient.focus()
+      }
+      if (matchingClient.url !== targetUrl && "navigate" in matchingClient) {
+        await matchingClient.navigate(targetUrl)
+      }
+    } else {
+      await self.clients.openWindow(targetUrl)
+    }
   })()
 
   // Notify backend that the notification has been clicked.
