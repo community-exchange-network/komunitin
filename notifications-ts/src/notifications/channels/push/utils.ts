@@ -49,7 +49,7 @@ const getUserTimezone = async (user: User, settings: UserSettings, groupCode: st
   const client = new KomunitinClient();
   const members = await getCachedGroupMembersWithUsers(client, groupCode, Infinity);
   const member = members.find(mwu => mwu.users.some(u => u.user.id === user.id))?.member;
-  let coordinates = member?.attributes.location?.coordinates
+  let coordinates = member?.attributes.location?.coordinates;
   if (!coordinates || coordinates.length !== 2 || coordinates[0] === 0 && coordinates[1] === 0) {
     // Fallback to group coordinates
     const groups = await getCachedActiveGroups(client, Infinity);

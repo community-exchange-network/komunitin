@@ -191,7 +191,7 @@ describe('Push notifications', () => {
     const payeeUserId = accountUserId(transfer.relationships.payee.data.id);
 
     // Create a push subscription for payee (so only one job should be scheduled)
-    const subscription = await prisma.pushSubscription.create({
+    await prisma.pushSubscription.create({
       data: {
         tenantId: groupId,
         userId: payeeUserId,

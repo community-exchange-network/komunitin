@@ -93,7 +93,7 @@ describe('Subscriptions API', () => {
 
     const body = makeSubscriptionBody(userB, 'https://example.com/endpoint/forbidden')
 
-    const res = await supertest(_app)
+    await supertest(_app)
       .post(`/${groupCode}/subscriptions`)
       .set('Authorization', `Bearer ${token}`)
       .send(body)

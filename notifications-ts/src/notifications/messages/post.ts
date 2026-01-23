@@ -82,7 +82,7 @@ export const buildPostsPublishedDigestMessage = (
   );
 
   if (items.length === 0) {
-    return null
+    return null;
   }
 
   const memberMap = new Map(members.map(member => [member.id, member]));

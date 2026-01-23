@@ -1,12 +1,12 @@
 import { Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Group, Need, Offer, User, UserSettings } from '../../clients/komunitin/types';
+import { Group, Need, Offer, User } from '../../clients/komunitin/types';
 import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import prisma from '../../utils/prisma';
 import { EVENT_NAME, EventName } from '../events';
-import { dispatchSyntheticEnrichedEvent } from './shared';
 import { isPostUrgent } from '../handlers/post';
+import { dispatchSyntheticEnrichedEvent } from './shared';
 
 /**
  * Poll-based digest cron.

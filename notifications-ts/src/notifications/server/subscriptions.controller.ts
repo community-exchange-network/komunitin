@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from "express"
 import { z } from "zod"
 import { validateUserId } from "../../server/auth-compat"
 import { badRequest, notFound } from "../../utils/error"
-import prisma from "../../utils/prisma"
+import prisma from "../../utils/prisma";
 import { serializeSubscription } from "./subscriptions.serialize"
 
 // Validation schema for subscription data (JSON:API format)
