@@ -1,111 +1,67 @@
-import type { FirebaseApp} from "firebase/app";
-import { initializeApp } from "firebase/app";
-import type { Messaging } from "firebase/messaging";
-import { getMessaging, getToken } from "firebase/messaging"
 import { config } from "src/utils/config"
-import type {UserSettings} from "../store/model"
+import { urlBase64ToUint8Array } from "src/utils/encoding";
+import KError, { KErrorCode } from "../KError";
 
-import type { Member, NotificationsSubscription, User } from "src/store/model";
-import KError, { KErrorCode } from "src/KError";
+export interface WebPushSubscriptionAttributes {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  meta?: {
+    userAgent: string;
+  };
+}
 
-import firebaseConfig from "./FirebaseConfig";
-
-export type SubscriptionSettings = UserSettings['attributes']['notifications'] & { locale: string }
-
-class Notifications {
-
-  private app: FirebaseApp | null = null
-  private messaging: Messaging | null = null
-  /**
-   * @returns The Firebase Messaging class, to be called from the main thread.
-   */
-  public getMessaging() : Messaging {
-    if (this.app === null) {
-      this.app = initializeApp(firebaseConfig)
-    }
-    if (this.messaging === null) {
-      this.messaging = getMessaging(this.app)
-    }
-    return this.messaging;
+export const subscribe = async (): Promise<WebPushSubscriptionAttributes> => {
+  const vapidPublicKey = config.PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY;
+  if (!vapidPublicKey) {
+    throw new KError(KErrorCode.ScriptError, "Missing VAPID public key for push notifications");
   }
 
-  /**
-   * Subscribe the current device, user and member to push notifications.
-  */
-  public async subscribe(user: User, member: Member, settings: SubscriptionSettings, accessToken: string): Promise<NotificationsSubscription> {
-    // Initialize Firebase
-    const messaging = this.getMessaging();
-    const vapidKey = config.PUSH_SERVER_KEY;
-    const serviceWorkerRegistration = await window.navigator.serviceWorker.getRegistration()
-    try {
-      // Get registration token. Initially this makes a network call, once retrieved
-      // subsequent calls to getToken will return from cache.
-      const token = await getToken(messaging, { 
-        vapidKey,
-        serviceWorkerRegistration
-      });
-      const message = {
-        data: {
-          type: "subscriptions",
-          attributes: {
-            token,
-            settings
-          },
-          relationships: {
-            user: {
-              data: {
-                id: user.id,
-                type: "users",
-                meta: {
-                  external: true,
-                  href: user.links.self
-                }
-              }
-            },
-            member: {
-              data: {
-                id: member.id,
-                type: "members",
-                meta: {
-                  external: true,
-                  href: member.links.self
-                }
-              }
-            }
-          }
-        }
-      }
-      // Send token to the server.
-      const response = await fetch(config.NOTIFICATIONS_URL + '/subscriptions', {
-        method: 'POST',
-        body: JSON.stringify(message),
-        headers: {
-          Accept: "application/vnd.api+json",
-          "Content-Type": "application/vnd.api+json",
-          Authorization: `Bearer ${accessToken}` 
-        }
-      })
-      const data = await response.json();
-
-      return data.data
-
-    } catch (err) {
-      // The user doesn't grant the app to receive notifications.
-      throw new KError(KErrorCode.NotificationsPermissionDenied, 'An error occurred with notifications subscription.' + err);
-    }
+  if (!('serviceWorker' in navigator)) {
+    throw new KError(KErrorCode.ScriptError, "Service Worker not supported");
   }
 
-  /**
-   * Unsubscribe the current device, user and member from push notifications.
-   */
-  public async unsubscribe(subscription: NotificationsSubscription, accessToken: string): Promise<void> {
-    await fetch(config.NOTIFICATIONS_URL + '/subscriptions/' + subscription.id, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    })
+  const registration = await navigator.serviceWorker.ready;
+  const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: convertedVapidKey
+    });
+  }
+
+  const p256dh = subscription.getKey('p256dh');
+  const auth = subscription.getKey('auth');
+
+  if (!p256dh || !auth) {
+    throw new KError(KErrorCode.ScriptError, "Unable to get subscription keys");
+  }
+
+  return {
+    endpoint: subscription.endpoint,
+    keys: {
+      p256dh: btoa(String.fromCharCode(...new Uint8Array(p256dh))),
+      auth: btoa(String.fromCharCode(...new Uint8Array(auth)))
+    },
+    meta: (navigator && { userAgent: navigator.userAgent }) || undefined
+  };
+}
+
+/**
+ * Unsubscribe the current device from push notifications. Note that the permission
+ * granted by the user is not revoked.
+ */
+export const unsubscribe = async (): Promise<void> => {
+  if ('serviceWorker' in navigator) {
+    const registration = await navigator.serviceWorker.ready;
+    const sub = await registration.pushManager.getSubscription();
+    if (sub) {
+      await sub.unsubscribe();
+    }
   }
 }
 
-export const notifications = new Notifications()

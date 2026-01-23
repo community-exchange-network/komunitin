@@ -494,13 +494,15 @@ export interface Need extends ResourceObject {
 
 export interface NotificationsSubscription extends ResourceObject {
   attributes: {
-    token: string;
-    // Here it goes the notification settings as an embedded map.
-    // settings: NotificationsSettings
+    endpoint: string,
+    keys: {
+      p256dh: string,
+      auth: string
+    }
+    meta?: Record<string, unknown>
   };
   relationships: {
     user: RelatedResource;
-    member: RelatedResource;
   }
 }
 

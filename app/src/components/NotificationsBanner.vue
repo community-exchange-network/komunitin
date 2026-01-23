@@ -12,39 +12,32 @@
       <q-btn
         flat
         color="primary"
-        :label="$t('dismiss')"
+        :label="t('dismiss')"
         @click="dismiss"
       />
       <q-btn
         v-if="isCompatible && !isDenied"
         flat
         color="primary"
-        :label="$t('enableNotifications')"
+        :label="t('enableNotifications')"
         @click="subscribe"
       />
     </template>
   </q-banner>
 </template>
 <script setup lang="ts">
-import { ref, computed, onBeforeMount } from "vue";
+import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
-import { onMessage } from "firebase/messaging"
-import { notifications } from "../plugins/Notifications"
-import { notificationBuilder } from "../../src-pwa/notifications"
-import { useRouter } from "vue-router";
-
 
 const {t} = useI18n()
-
-const ready = ref(false);
 
 const store = useStore()
 const dismissed = computed(() => store.state.ui.notificationsBannerDismissed)
 const isLoggedIn = computed(() => store.getters.isLoggedIn)
 const hasMember = computed(() => !!store.getters.myMember)
-const isCompatible = computed(() => (window && 'Notification' in window))
-const permission = ref(isCompatible.value && Notification.permission)
+const isCompatible = computed(() => (typeof window !== 'undefined' && 'Notification' in window))
+const permission = ref(isCompatible.value ? Notification.permission : 'denied')
 const isAuthorized = computed(() => permission.value == 'granted')
 const isDenied = computed(() => permission.value == 'denied')
 const text = computed(() => {
@@ -55,44 +48,16 @@ const text = computed(() => {
   }
 })
 
-const router = useRouter()
-
-const show = computed(() => ready.value && isLoggedIn.value && hasMember.value && !isAuthorized.value && !dismissed.value)
+const show = computed(() => isLoggedIn.value && hasMember.value && !isAuthorized.value && !dismissed.value)
 
 const dismiss = () => store.commit("notificationsBannerDismissed", true)
 const subscribe = async () => {
+  if (!isCompatible.value) return;
   permission.value = await Notification.requestPermission()
   if (permission.value == 'granted') {
     await store.dispatch("subscribe");
   }
 }
-
-
-// Initialization.
-onBeforeMount(async () => {
-  if (isLoggedIn.value && hasMember.value && isAuthorized.value) {
-    await store.dispatch("subscribe");
-  }
-  ready.value = true
-
-  // Set foreground message handler. We do it here instead of in the store or in the
-  // Notifications plugin file because we need to access the full UI including the 
-  // store and router.
-  const notification  = notificationBuilder(store)
-  onMessage(notifications.getMessaging(), (payload) => {
-    notification(payload).then(({title, options}) => {
-      const noti = new Notification(title, options)
-      noti.addEventListener('click', function() {
-        if (noti.data.url) {
-          router.push(noti.data.url)
-        }
-      })
-    }).catch((err) => {
-      console.error("Error showing notification", err)
-    })
-  })
-
-})
 
 defineExpose({show})
 
