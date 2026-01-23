@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express"
 import prisma from "../../utils/prisma"
 import { pagination } from "../../server/request"
-import { serializeNotification } from "./serialize"
+import { serializeNotification } from "./notifications.serialize"
 import { getUserId } from "../../server/auth-compat"
 
 export const listNotifications = async (req: Request, res: Response, next: NextFunction) => {
@@ -45,3 +45,4 @@ export const listNotifications = async (req: Request, res: Response, next: NextF
     next(err)
   }
 }
+

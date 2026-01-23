@@ -1,5 +1,8 @@
 import assert from 'node:assert';
 import { after, afterEach, before, beforeEach, describe, it } from 'node:test';
+import { randomUUID } from 'node:crypto';
+import request from 'supertest';
+import { _app as app } from '../../server';
 import { createQueue } from '../../mocks/queue';
 import { resetWebPushMocks, sendNotification, setVapidDetails } from '../../mocks/web-push';
 import { mockDb } from '../../mocks/prisma';
@@ -34,6 +37,31 @@ describe('Push notifications', () => {
   after(() => {
     server.close();
   });
+
+  const createPushNotification = (overrides: any = {}) => {
+    return prisma.pushNotification.create({
+      data: {
+        id: randomUUID(),
+        tenantId: 'GRP1',
+        userId: 'user-1',
+        subscriptionId: 'sub-1',
+        eventId: 'evt-1',
+        ...overrides,
+      },
+    });
+  };
+
+  const patchTelemetry = (id: string, attributes: any, code: string = 'GRP1') => {
+    return request(app)
+      .patch(`/${code}/push-notifications/${id}`)
+      .send({
+        data: {
+          type: 'push-notifications',
+          id,
+          attributes,
+        },
+      });
+  };
 
   beforeEach(async () => {
     queue.resetMocks();
@@ -229,5 +257,57 @@ describe('Push notifications', () => {
     assert.strictEqual(pushNotifications.length, 1);
     assert.strictEqual(pushNotifications[0].tenantId, groupId);
     assert.strictEqual(pushNotifications[0].userId, payeeUserId);
+  });
+
+  describe('Telemetry API', () => {
+    it('updates deliveredAt when delivered is true', async () => {
+      const pn = await createPushNotification();
+
+      const response = await patchTelemetry(pn.id, { delivered: true });
+
+      assert.strictEqual(response.status, 200);
+      assert.ok(response.body.data.attributes.delivered);
+      assert.ok(pushNotifications.find((n: any) => n.id === pn.id).deliveredAt instanceof Date);
+    });
+
+    it('updates clickedAt and clickedAction', async () => {
+      const pn = await createPushNotification();
+
+      const response = await patchTelemetry(pn.id, {
+        clicked: true,
+        clickaction: 'open_app',
+      });
+
+      assert.strictEqual(response.status, 200);
+      assert.ok(response.body.data.attributes.clicked);
+      assert.strictEqual(response.body.data.attributes.clickaction, 'open_app');
+      assert.ok(pushNotifications.find((n: any) => n.id === pn.id).clickedAt instanceof Date);
+      assert.strictEqual(pushNotifications.find((n: any) => n.id === pn.id).clickedAction, 'open_app');
+    });
+
+    it('returns 400 if ID in body does not match ID in URL', async () => {
+      const id1 = randomUUID();
+      const id2 = randomUUID();
+      const response = await request(app)
+        .patch(`/GRP1/push-notifications/${id1}`)
+        .send({
+          data: {
+            type: 'push-notifications',
+            id: id2,
+            attributes: {
+              delivered: true,
+            },
+          },
+        });
+
+      assert.strictEqual(response.status, 400);
+    });
+
+    it('returns 404 if notification not found', async () => {
+      const nonExistentId = randomUUID();
+      const response = await patchTelemetry(nonExistentId, { delivered: true });
+
+      assert.strictEqual(response.status, 404);
+    });
   });
 });
