@@ -130,11 +130,11 @@ describe('Subscriptions API', () => {
     const res = await supertest(_app)
       .delete(`/${groupCode}/subscriptions/${created.id}`)
       .set('Authorization', `Bearer ${token}`)
-      .expect(404)
+      .expect(403)
 
     // subscription still exists
     assert.ok(subscriptions.find(s => s.id === created.id))
-    assert.equal(res.body.errors[0].status, '404')
+    assert.equal(res.body.errors[0].status, '403')
   })
 
   it('supports the legacy user id from IntegralCES', async () => {
