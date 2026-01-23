@@ -94,6 +94,7 @@ model PushNotification {
   sentAt    DateTime?
   deliveredAt DateTime?
   clickedAt DateTime?
+  dismissedAt DateTime?
   clickedAction String?
   meta Json?
 

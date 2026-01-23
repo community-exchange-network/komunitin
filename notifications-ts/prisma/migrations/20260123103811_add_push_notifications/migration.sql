@@ -9,6 +9,7 @@ CREATE TABLE "PushNotification" (
     "sentAt" TIMESTAMP(3),
     "deliveredAt" TIMESTAMP(3),
     "clickedAt" TIMESTAMP(3),
+    "dismissedAt" TIMESTAMP(3),
     "clickedAction" TEXT,
     "meta" JSONB,
 

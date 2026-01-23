@@ -10,6 +10,7 @@ const pushNotificationSchema = z.object({
     type: z.literal("push-notifications").optional(),
     id: z.string().uuid().optional(),
     attributes: z.object({
+      dismissed: z.coerce.boolean().optional(),
       delivered: z.coerce.boolean().optional(),
       clicked: z.coerce.boolean().optional(),
       clickaction: z.string().min(1).max(32).optional()
@@ -32,11 +33,14 @@ export const updatePushNotification = async (req: Request, res: Response, next: 
       throw badRequest("Resource ID in body does not match ID in URL");
     }
 
-    const { delivered, clicked, clickaction } = validatedData.data.attributes;
+    const { delivered, dismissed, clicked, clickaction } = validatedData.data.attributes;
 
     const data: any = {};
     if (delivered === true) {
       data.deliveredAt = new Date();
+    }
+    if (dismissed === true) {
+      data.dismissedAt = new Date();
     }
     if (clicked === true) {
       data.clickedAt = new Date();

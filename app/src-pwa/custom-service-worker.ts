@@ -6,6 +6,7 @@ import { CacheFirst } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { ExpirationPlugin } from 'workbox-expiration'
 import { clientsClaim } from 'workbox-core'
+import { Queue } from 'workbox-background-sync'
 // Komunitin
 import { getConfig, setConfig } from "./sw-config"
 
@@ -13,6 +14,10 @@ declare const self: ServiceWorkerGlobalScope
 
 // This version will be replaced by DefinePlugin at build time
 const SW_VERSION = process.env.APP_VERSION
+
+const requestQueue = new Queue('request-queue', {
+  maxRetentionTime: 48 * 60, // Retry for max of 48 hours (in minutes)
+})
 
 // Add a listener for messages from the client (register-service-worker.ts).
 self.addEventListener('message', (event: MessageEvent) => {
@@ -95,23 +100,32 @@ const updateNotificationEvent = async (
     return
   }
   const url = `${config.NOTIFICATIONS_URL}/${code}/push-notifications/${id}`
-  try {
-    await fetch(url, {
-      method: "PATCH",
-      headers: {
-        Accept: "application/vnd.api+json",
-        "Content-Type": "application/vnd.api+json",
-      },      
-      body: JSON.stringify({
-        data: {
-          type: "push-notifications",
-          id,
-          attributes,
-        },
-      }),
+
+  const request = new Request(url, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
+    },      
+    body: JSON.stringify({
+      data: {
+        type: "push-notifications",
+        id,
+        attributes,
+      },
     })
+  });
+
+  try {
+    const response = await fetch(request.clone())
+    // Note that fetch throws on network errors, we dont need to re-queue requests with
+    // valid 400 or 500 responses.
+    if (!response.ok) {
+      console.error("Failed to update notification event", response.status, await response.text())
+    }
   } catch (err) {
-    console.error("Failed to post notification status", err)
+    console.warn("Network error when updating notification event, queuing for background retry", err)
+    await requestQueue.pushRequest({ request })
   }
 }
 
@@ -142,7 +156,7 @@ self.addEventListener("push", (event: PushEvent) => {
   })
   // Notify backend that the notification has been delivered.
   const deliveredPromise = updateNotificationEvent(payload.code, payload.id, {
-    deliveredAt: new Date(),
+    delivered: new Date(),
   })
 
   event.waitUntil(Promise.allSettled([showPromise, deliveredPromise]))
@@ -170,22 +184,14 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
       includeUncontrolled: true,
     })
 
-    let matchingClient = null
-    for (const client of windowClients) {
-      const clientUrl = new URL(client.url, self.location.origin)
-      const targetUrlObj = new URL(targetUrl, self.location.origin)
-      if (clientUrl.origin === targetUrlObj.origin) {
-        matchingClient = client
-        break
-      }
-    }
+    const targetOrigin = new URL(targetUrl).origin
+    const match = windowClients.find(c => c.visibilityState === 'visible' && new URL(c.url).origin === targetOrigin) 
+      || windowClients.find(c => new URL(c.url).origin === targetOrigin)
 
-    if (matchingClient) {
-      if ("focus" in matchingClient) {
-        await matchingClient.focus()
-      }
-      if (matchingClient.url !== targetUrl && "navigate" in matchingClient) {
-        await matchingClient.navigate(targetUrl)
+    if (match) {
+      await match.focus()
+      if (match.url !== targetUrl) {
+        await match.navigate(targetUrl)
       }
     } else {
       await self.clients.openWindow(targetUrl)
@@ -194,9 +200,18 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
 
   // Notify backend that the notification has been clicked.
   const clickedPromise = updateNotificationEvent(data.code, data.id, {
-    clickedAt: new Date(),
+    clicked: new Date(),
   })
 
   event.waitUntil(Promise.allSettled([openPromise, clickedPromise]))
 })
 
+self.addEventListener('notificationclose', (event: NotificationEvent) => {
+  const data = event.notification.data || {}
+  
+  const dismissedPromise = updateNotificationEvent(data.code, data.id, {
+    dismissed: new Date(),
+  })
+  
+  event.waitUntil(dismissedPromise)
+})

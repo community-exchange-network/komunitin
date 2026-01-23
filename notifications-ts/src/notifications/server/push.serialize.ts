@@ -6,6 +6,7 @@ export const serializePushNotification = (notification: PushNotification) => {
     id: notification.id,
     attributes: {
       delivered: notification.deliveredAt,
+      dismissed: notification.dismissedAt,
       clicked: notification.clickedAt,
       clickaction: notification.clickedAction,
       created: notification.createdAt,
