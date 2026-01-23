@@ -100,7 +100,7 @@
         <!-- slot for right buttons -->
         <slot name="buttons" >
           <q-btn
-            v-if="!isComplete"
+            v-if="showLogOut"
             icon="logout"
             flat
             round
@@ -164,8 +164,6 @@ const offset = ref(0)
 
 const myAccount = computed(() => store.getters.myAccount)
 
-
-
 const route = useRoute()
 /**
  * Show the back button.
@@ -176,9 +174,14 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
  */
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
 /**
- * Show the profile button only on root pages. 
+ * Show the profile button only on root pages when logged in. 
  */
-const showProfile = computed(() => route.meta.rootPage);
+const showProfile = computed(() => route.meta.rootPage && store.getters.isLoggedIn);
+
+/**
+ * Show the log-out button when user is logged in but not in 'complete' status (ie pending). 
+ */
+const showLogOut = computed(() => store.getters.isLoggedIn && !store.getters.isComplete)
 
 
 /**
@@ -245,8 +248,6 @@ const goUp = () => {
     router.push('/')
   }
 }
-
-const isComplete = computed(() => store.getters.isComplete)
 
 </script>
 <style lang="scss" scoped>
