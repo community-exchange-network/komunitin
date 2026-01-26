@@ -278,7 +278,7 @@ const sendWebPush = async (
     });
   } catch (err: any) {
     const status = err?.statusCode;
-    const isPermanent = status === 404 || status === 410;
+    const isPermanent = status === 403 || status === 404 || status === 410;
 
     if (isPermanent) {
       logger.warn({ err, subscriptionId: meta.subscriptionId }, 'Removing expired push subscription');
