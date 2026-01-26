@@ -14,11 +14,13 @@ func main() {
 	log.Println("Starting notifications app...")
 
 	events.InitService()
+	// Subscriptions service is now implemented in the notifications-ts folder.
 	//notifications.InitService()
 
 	log.Println("Starting mailer service...")
 	go mails.Mailer(context.Background())
 
+	// Notifications worker is now implemented in the notifications-ts folder.
 	//log.Println("Starting notifier service...")
 	//go notifications.Notifier(context.Background())
 

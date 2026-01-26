@@ -22,9 +22,8 @@ const queue = createQueue('push-notifications');
 const { pushSubscription: subscriptions, pushNotification: pushNotifications } = mockDb();
 
 describe('Push notifications', () => {
-  let stopWorker: (() => Promise<void>) | (() => void) | undefined;
-  let runNotificationsWorker: any;
-  let notificationsWorker: { stop: () => Promise<void> } | null = null;
+  let runNotificationsWorker: () => Promise<{ stop: () => Promise<void> }>;
+  let worker: { stop: () => Promise<void> } | null = null;
 
   before(async () => {
     // Prepare auth keys and start MSW to mock accounting/client API
@@ -36,6 +35,23 @@ describe('Push notifications', () => {
 
   after(() => {
     server.close();
+  });
+
+  beforeEach(async () => {
+    queue.resetMocks();
+    resetWebPushMocks();
+    // Start notifications worker so the event stream is processed
+    worker = await runNotificationsWorker();
+  });
+
+  afterEach(async () => {
+    subscriptions.length = 0;
+    pushNotifications.length = 0;
+
+    if (worker) {
+      await worker.stop();
+      worker = null;
+    }
   });
 
   const createPushNotification = (overrides: any = {}) => {
@@ -62,27 +78,6 @@ describe('Push notifications', () => {
         },
       });
   };
-
-  beforeEach(async () => {
-    queue.resetMocks();
-    resetWebPushMocks();
-    // Start notifications worker so the event stream is processed
-    notificationsWorker = await runNotificationsWorker();
-  });
-
-  afterEach(async () => {
-    subscriptions.length = 0;
-    pushNotifications.length = 0;
-
-    if (notificationsWorker) {
-      await notificationsWorker.stop();
-      notificationsWorker = null;
-    }
-
-    if (stopWorker) {
-      await stopWorker();
-    }
-  });
 
   it('sends a web push and stores telemetry', async () => {
     const subscription = await prisma.pushSubscription.create({

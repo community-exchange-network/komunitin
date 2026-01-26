@@ -24,3 +24,6 @@ CREATE INDEX "PushNotification_subscriptionId_idx" ON "PushNotification"("subscr
 
 -- CreateIndex
 CREATE INDEX "PushNotification_eventId_idx" ON "PushNotification"("eventId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PushNotification_tenantId_userId_subscriptionId_eventId_key" ON "PushNotification"("tenantId", "userId", "subscriptionId", "eventId");

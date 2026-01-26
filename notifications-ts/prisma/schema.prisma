@@ -99,6 +99,7 @@ model PushNotification {
   meta Json?
 
   // Indexes
+  @@unique([tenantId, userId, subscriptionId, eventId])
   @@index([tenantId, userId, createdAt])
   @@index([subscriptionId])
   @@index([eventId])

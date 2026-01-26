@@ -211,7 +211,8 @@ const sendWebPush = async (
   const vapidPrivateKey = config.PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY;
 
   if (!vapidPublicKey || !vapidPrivateKey) {
-    throw internalError('Missing VAPID keys for push notifications');
+    logger.warn('Missing VAPID keys for push notifications, skipping send');
+    return;
   }
 
   if (!subscription.endpoint || !subscription.p256dh || !subscription.auth) {
@@ -230,14 +231,24 @@ const sendWebPush = async (
 
   webpush.setVapidDetails(subjectEmail(), vapidPublicKey, vapidPrivateKey);
 
-  const pushNotification = await prisma.pushNotification.create({
-    data: {
-      tenantId,
-      userId: meta.userId,
-      subscriptionId: meta.subscriptionId,
-      eventId: meta.eventId,
+  const scope = {
+    tenantId,
+    userId: meta.userId,
+    subscriptionId: meta.subscriptionId,
+    eventId: meta.eventId,
+  };
+  // Note that the record could already exist in case of a retry, so we use upsert.
+  const pushNotification = await prisma.pushNotification.upsert({
+    where: {
+      tenantId_userId_subscriptionId_eventId: scope
+    },
+    create: {
+      ...scope,
       meta: Prisma.DbNull,
-    }
+    },
+    update: {
+      sentAt: new Date(),
+    },
   });
 
   const payload = JSON.stringify({
