@@ -19,6 +19,9 @@ const requestQueue = new Queue('request-queue', {
   maxRetentionTime: 48 * 60, // Retry for max of 48 hours (in minutes)
 })
 
+// Keep track of clicked notifications to avoid double telemetry on notificationclose
+const clickedNotifications = new Set<string>()
+
 // Add a listener for messages from the client (register-service-worker.ts).
 self.addEventListener('message', (event: MessageEvent) => {
   if (event.data && event.data.type === 'GET_VERSION') {
@@ -163,6 +166,16 @@ self.addEventListener("push", (event: PushEvent) => {
 })
 
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
+  const data = (event.notification.data || {}) as {
+    route?: string
+    code?: string
+    id?: string
+  }
+  
+  if (data.id) {
+    clickedNotifications.add(data.id)
+  }
+
   event.notification.close()
 
   // TODO: handle custom actions once defined (event.action)
@@ -170,33 +183,29 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
   //   return
   // }
 
-  const data = (event.notification.data || {}) as {
-    route?: string
-    code?: string
-    id?: string
-  }
-  const route = data.route || "/"
-  const targetUrl = new URL(route, self.location.origin).toString()
-
-  const openPromise = (async () => {
+  const openWindow = async (url: string) => {
     const windowClients = await self.clients.matchAll({
       type: "window",
       includeUncontrolled: true,
     })
 
-    const targetOrigin = new URL(targetUrl).origin
+    const targetOrigin = new URL(url).origin
     const match = windowClients.find(c => c.visibilityState === 'visible' && new URL(c.url).origin === targetOrigin) 
       || windowClients.find(c => new URL(c.url).origin === targetOrigin)
 
     if (match) {
       await match.focus()
-      if (match.url !== targetUrl) {
-        await match.navigate(targetUrl)
+      if (match.url !== url) {
+        await match.navigate(url)
       }
     } else {
-      await self.clients.openWindow(targetUrl)
+      await self.clients.openWindow(url)
     }
-  })()
+  }
+
+  const route = data.route || "/"
+  const targetUrl = new URL(route, self.location.origin).toString()
+  const openPromise = openWindow(targetUrl)
 
   // Notify backend that the notification has been clicked.
   const clickedPromise = updateNotificationEvent(data.code, data.id, {
@@ -208,10 +217,15 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
 
 self.addEventListener('notificationclose', (event: NotificationEvent) => {
   const data = event.notification.data || {}
-  
+
+  if (data.id && clickedNotifications.has(data.id)) {
+    clickedNotifications.delete(data.id)
+    return
+  }
+
   const dismissedPromise = updateNotificationEvent(data.code, data.id, {
     dismissed: new Date(),
   })
-  
+
   event.waitUntil(dismissedPromise)
 })
