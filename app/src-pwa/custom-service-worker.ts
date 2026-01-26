@@ -140,10 +140,11 @@ self.addEventListener("push", (event: PushEvent) => {
 
   const title = payload.title
   const route = payload.route || "/"
+  const icon = payload.image ||  new URL('/icons/icon-192x192.png', self.location.origin).toString()
 
   const showPromise = self.registration.showNotification(title, {
     body: payload.body,
-    icon: payload.image,
+    icon,
     data: {
       route,
       code: payload.code,
