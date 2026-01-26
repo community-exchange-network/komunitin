@@ -100,9 +100,9 @@ describe('PostsPublishedDigest notifications', () => {
     
     assert.equal(notifications[0].title, `News from ${authorMember.attributes.name}`);
     assert.equal(notifications[0].body, 
-`Offer · Test offer · Content for offer
-Need · Content for need
-And 1 more`);
+`• Offer · Test offer
+• Need · Content for need
+• And 1 more`);
 
     // Author should NOT receive the digest. Note that in production the author would receive 3 
     // individual notifications due to the OfferPublished events but we've not simulated that here.

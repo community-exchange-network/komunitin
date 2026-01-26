@@ -266,7 +266,7 @@ describe('MembersJoinedDigest notifications', () => {
     const notif = appNotifications.find(n => n.userId === recipientUserId);
 
     assert.match(notif.title, /Member B/);
-    assert.match(notif.body, /Offer · Offer 1 · /);
+    assert.match(notif.body, /Offer · Offer 1/);
     assert.match(notif.body, /Need · /);
   })
 

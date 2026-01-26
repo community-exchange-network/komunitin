@@ -3,7 +3,7 @@ import prisma from "../utils/prisma"
 import { forbidden, unauthorized } from "../utils/error"
 
 const USER_ID_FIXED_PREFIX = "75736572-2020-"
-export const getUserId = async (req: Request) => {
+export const getUserId = async (req: Request) : Promise<string|null> => {
   const auth = (req as any).auth
   const userId = auth?.payload.sub
 

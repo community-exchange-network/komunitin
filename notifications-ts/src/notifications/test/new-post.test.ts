@@ -86,7 +86,7 @@ describe('New post notifications (URGENT)', () => {
 
     const expectedTitle = `New Offer from ${authorMember.attributes.name}`
     assert.equal(notification.title, expectedTitle)
-    assert.equal(notification.body, 'Urgent Offer · Urgent content')
+    assert.equal(notification.body, 'Urgent Offer')
   })
 
   it('should NOT process non-urgent OfferPublished event', async () => {

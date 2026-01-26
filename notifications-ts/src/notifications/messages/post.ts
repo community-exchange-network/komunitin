@@ -7,7 +7,7 @@ import { MessageContext, NotificationMessage } from "./types";
  */
 export const excerptPost = (post: Offer | Need): string => {
   const text = post.type === 'offers'
-    ? `${post.attributes.name} · ${post.attributes.content}`
+    ? post.attributes.name
     : post.attributes.content;
 
   // Truncate excerpt if too long
@@ -121,11 +121,11 @@ export const buildPostsPublishedDigestMessage = (
   const bodyLines = featuredPosts.map(post => {
     const type = post.type === 'offers' ? ctx.t('offer') : ctx.t('need');
     const excerpt = excerptPost(post);
-    return `${type} · ${excerpt}`;
+    return `• ${type} · ${excerpt}`;
   });
 
   if (extraPostsCount > 0) {
-    bodyLines.push(ctx.t('notifications.and_more_posts', { count: extraPostsCount }));
+    bodyLines.push(`• ${ctx.t('notifications.and_more_posts', { count: extraPostsCount })}`);
   }
 
   return {
