@@ -52,7 +52,6 @@ class MockNotification {
 
 Object.defineProperty(global, 'Notification', {value: MockNotification})
 jest.mock("../../../src/plugins/Notifications");
-jest.mock("firebase/messaging");
 
 jest.mock("qrcode", () => ({
   toCanvas: jest.fn(),

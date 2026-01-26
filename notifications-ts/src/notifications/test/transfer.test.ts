@@ -3,18 +3,18 @@ import assert from 'node:assert'
 import { setupServer } from 'msw/node'
 import handlers from '../../mocks/handlers'
 import { generateKeys } from '../../mocks/auth'
-import prisma from '../../utils/prisma'
 import { mockRedis } from '../../mocks/redis'
 import { db, createTransfers } from '../../mocks/db'
-import { queueAdd, queueGetJob, resetQueueMocks, dispatchMockJob } from '../../mocks/queue'
-import { mockTable } from '../../mocks/prisma'
+import { createQueue } from '../../mocks/queue'
+import { mockDb } from '../../mocks/prisma'
 import { createEvent, verifyNotification } from './utils'
 
 const { put } = mockRedis()
 const server = setupServer(...handlers)
+const queue = createQueue('synthetic-events')
 
 // Mock prisma
-const appNotifications = mockTable(prisma.appNotification, 'test-notification')
+const { appNotification: appNotifications } = mockDb()
 
 describe('App notifications', () => {
   let runNotificationsWorker: () => Promise<{ stop: () => Promise<void> }>;
@@ -145,7 +145,7 @@ describe('App notifications', () => {
     transfer.attributes.state = 'pending'
     
     // Reset queue mock calls
-    resetQueueMocks()
+    queue.resetMocks()
 
     const eventData = createEvent('TransferPending', transfer.id, groupId, payeeUserId, 'test-event-pending-1')
 
@@ -153,8 +153,8 @@ describe('App notifications', () => {
     await put(eventData)
 
     // 2. Verify Job Added (24h)
-    assert.strictEqual(queueAdd.mock.callCount(), 1, "Should schedule first job")
-    const [jobName, jobData, jobOpts] = queueAdd.mock.calls[0].arguments
+    assert.strictEqual(queue.add.mock.callCount(), 1, "Should schedule first job")
+    const [jobName, jobData, jobOpts] = queue.add.mock.calls[0].arguments
     assert.strictEqual(jobName, 'transfer-still-pending')
     assert.strictEqual(jobOpts.delay, 24 * 60 * 60 * 1000)
     assert.strictEqual(jobData.iteration, 1)
@@ -165,7 +165,7 @@ describe('App notifications', () => {
     // Clear notifications before synthetic event to ensure we catch new one
     appNotifications.length = 0;
     
-    await dispatchMockJob(jobName, jobOpts, jobData)
+    await queue.dispatchToWorker(jobName, jobOpts, jobData)
 
     // 4. Assert Notification (Iteration 1)
     assert.equal(appNotifications.length, 1, "Should create notification for still pending")
@@ -175,14 +175,14 @@ describe('App notifications', () => {
     await verifyNotification(payerUserId, groupId, notif1.id, "Transfer still pending")
 
     // 5. Verify Next Job Scheduled
-    assert.strictEqual(queueAdd.mock.callCount(), 2, "Should schedule next job")
-    const [jobName2, jobData2, jobOpts2] = queueAdd.mock.calls[1].arguments
+    assert.strictEqual(queue.add.mock.callCount(), 2, "Should schedule next job")
+    const [jobName2, jobData2, jobOpts2] = queue.add.mock.calls[1].arguments
     assert.strictEqual(jobData2.iteration, 2)
     assert.strictEqual(jobOpts2.delay, 24 * 60 * 60 * 1000)
 
     // 6. Dispatch Job (Iteration 2)
     appNotifications.length = 0; 
-    await dispatchMockJob(jobName2, jobOpts2, jobData2)
+    await queue.dispatchToWorker(jobName2, jobOpts2, jobData2)
 
     // 7. Assert Notification (Iteration 2)
     assert.equal(appNotifications.length, 1, "Should create 2nd notification")
@@ -195,18 +195,18 @@ describe('App notifications', () => {
     transfer.attributes.state = 'pending'
     
     // Reset queue mock calls
-    resetQueueMocks()
+    queue.resetMocks()
 
     const eventPending = createEvent('TransferPending', transfer.id, groupId, payeeUserId, 'test-event-pending-2')
 
     // 1. Emit Pending Event -> Should schedule job
     await put(eventPending)
 
-    assert.strictEqual(queueAdd.mock.callCount(), 1, "Should schedule job")
-    const [_, jobData, jobOpts] = queueAdd.mock.calls[0].arguments
+    assert.strictEqual(queue.add.mock.callCount(), 1, "Should schedule job")
+    const [_, jobData, jobOpts] = queue.add.mock.calls[0].arguments
     
-    // Reset call counts for queueGetJob to isolate the next assertion
-    queueGetJob.mock.resetCalls();
+    // Reset call counts for queue.getJob to isolate the next assertion
+    queue.getJob.mock.resetCalls();
 
     // 2. Setup mock job that will be retrieved for cancellation
     const removeSpy = test.mock.fn(async () => {})
@@ -217,7 +217,7 @@ describe('App notifications', () => {
     }
 
     // When synthetic-events calls queue.getJob(id), return our mock job
-    queueGetJob.mock.mockImplementation(async (id: string) => {
+    queue.getJob.mock.mockImplementation(async (id: string) => {
         if (id === jobOpts.jobId) return mockJob
         return null
     })
@@ -230,8 +230,8 @@ describe('App notifications', () => {
     await put(eventCommitted)
 
     // 4. Verify getJob called with correct ID
-    assert.strictEqual(queueGetJob.mock.callCount(), 1, "Should try to find existing job")
-    assert.strictEqual(queueGetJob.mock.calls[0].arguments[0], jobOpts.jobId)
+    assert.strictEqual(queue.getJob.mock.callCount(), 1, "Should try to find existing job")
+    assert.strictEqual(queue.getJob.mock.calls[0].arguments[0], jobOpts.jobId)
 
     // 5. Verify remove was called
     assert.strictEqual(removeSpy.mock.callCount(), 1, "Should remove (cancel) the job")

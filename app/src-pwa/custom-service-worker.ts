@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/// <reference lib="webworker" />
 // Workbox
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
@@ -6,26 +6,30 @@ import { CacheFirst } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { ExpirationPlugin } from 'workbox-expiration'
 import { clientsClaim } from 'workbox-core'
-// Firebase
-import { onBackgroundMessage, getMessaging } from "firebase/messaging/sw"
-import { initializeApp } from 'firebase/app'
-import firebaseConfig from '../src/plugins/FirebaseConfig'
+import { Queue } from 'workbox-background-sync'
 // Komunitin
-import { notificationBuilder } from './notifications'
-import { setConfig } from "src/utils/config"
-import type { Store } from 'vuex/types/index.js'
+import { getConfig, setConfig } from "./sw-config"
+
+declare const self: ServiceWorkerGlobalScope
 
 // This version will be replaced by DefinePlugin at build time
 const SW_VERSION = process.env.APP_VERSION
 
+const requestQueue = new Queue('request-queue', {
+  maxRetentionTime: 48 * 60, // Retry for max of 48 hours (in minutes)
+})
+
+// Keep track of clicked notifications to avoid double telemetry on notificationclose
+const clickedNotifications = new Set<string>()
+
 // Add a listener for messages from the client (register-service-worker.ts).
-self.addEventListener('message', (event: any) => {
+self.addEventListener('message', (event: MessageEvent) => {
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: SW_VERSION })
   }
   if (event.data && event.data.type === 'SKIP_WAITING') {
     // This command makes the service worker to take control of the current pages.
-    (self as any).skipWaiting()
+    self.skipWaiting()
   }
   if (event.data && event.data.type === 'SET_CONFIG') {
     setConfig(event.data.config)
@@ -37,7 +41,7 @@ self.addEventListener('message', (event: any) => {
 })
 
 // Precache generated manifest file.
-precacheAndRoute((self as any).__WB_MANIFEST)
+precacheAndRoute(self.__WB_MANIFEST)
 
 clientsClaim()
 cleanupOutdatedCaches()
@@ -67,57 +71,162 @@ registerRoute(
 );
 
 // Setup push notifications handler.
-
-// Initialize Firebase so we receive push notifications.
-const app = initializeApp(firebaseConfig)
-//Note that this getMessaging is not the same as the one in src/plugins/Notifications.ts
-const messaging = getMessaging(app)
-
-// We load the store dynamically in order to allow the config
-// to be sent from the main thread to the SW before the store is loaded.
-const loadStore = async () : Promise<Store<any>> => {
-  const module = await import("../src/store")
-  return module.default
+type PushPayload = {
+  title: string
+  body: string
+  route: string
+  code: string
+  id: string
+  image?: string
 }
-let notificationBuilderInstance = null
-const notification = async (payload: any) => {
-  if (notificationBuilderInstance === null) {
-    const store = await loadStore()
-    notificationBuilderInstance = notificationBuilder(store)
+
+const parsePushPayload = (event: PushEvent): PushPayload | null => {
+  if (!event.data) {
+    return null
   }
-  return notificationBuilderInstance(payload)
+  try {
+    return event.data.json() as PushPayload
+  } catch (err) {
+    console.error("Failed to parse push payload", err)
+    return null
+  }
 }
 
-// Push Message handler. 
-onBackgroundMessage(messaging, (payload) => {
-  notification(payload).then(({title, options}) =>
-    (self as any).registration.showNotification(title, options)
-  ).catch((error) => {
-    console.error("Error showing notification", error)
+const updateNotificationEvent = async (
+  code: string | undefined,
+  id: string | undefined,
+  attributes: Record<string, unknown>
+): Promise<void> => {
+  const config = await getConfig()
+
+  if (!code || !id || !config.NOTIFICATIONS_URL) {
+    return
+  }
+  const url = `${config.NOTIFICATIONS_URL}/${code}/push-notifications/${id}`
+
+  const request = new Request(url, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
+    },      
+    body: JSON.stringify({
+      data: {
+        type: "push-notifications",
+        id,
+        attributes,
+      },
+    })
+  });
+
+  try {
+    const response = await fetch(request.clone())
+    // Note that fetch throws on network errors, we dont need to re-queue requests with
+    // valid 400 or 500 responses.
+    if (!response.ok) {
+      console.error("Failed to update notification event", response.status, await response.text())
+    }
+  } catch (err) {
+    console.warn("Network error when updating notification event, queuing for background retry", err)
+    await requestQueue.pushRequest({ request })
+  }
+}
+
+self.addEventListener("push", (event: PushEvent) => {
+  const payload = parsePushPayload(event)
+  if (!payload) {
+    return
+  }
+
+  const title = payload.title
+  const route = payload.route || "/"
+  const icon = payload.image ||  new URL('/icons/icon-192x192.png', self.location.origin).toString()
+
+  const showPromise = self.registration.showNotification(title, {
+    body: payload.body,
+    icon,
+    data: {
+      route,
+      code: payload.code,
+      id: payload.id,
+    },
+    /*
+      actions: [{
+        action: 'open',
+        title: 'Open App'
+      }],
+    */
+    tag: payload.id,
   })
+  // Notify backend that the notification has been delivered.
+  const deliveredPromise = updateNotificationEvent(payload.code, payload.id, {
+    delivered: new Date(),
+  })
+
+  event.waitUntil(Promise.allSettled([showPromise, deliveredPromise]))
 })
 
-self.addEventListener('notificationclick', function(event: any) {
-  event.notification.close();
-  // If a window matching the app is already open, focus that;
-  // otherwise, open a new one.
-  event.waitUntil(
-    (self as any).clients.matchAll({type: 'window'}).then((clientList: any[]) => {
-      const url = event.notification.data?.url as string | undefined
-      for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i]
-        if (client.focus && client.navigate) {
-          if (url && (client.url !== url)) {
-            return client.navigate(url).then((client: any) => client.focus())
-          } else {
-            return client.focus()
-          }
-        }
-      }
-      if (url && (self as any).clients.openWindow) {
-        return (self as any).clients.openWindow(url)
-      }
-    })
-  );
+self.addEventListener("notificationclick", (event: NotificationEvent) => {
+  const data = (event.notification.data || {}) as {
+    route?: string
+    code?: string
+    id?: string
+  }
+  
+  if (data.id) {
+    clickedNotifications.add(data.id)
+  }
 
+  event.notification.close()
+
+  // TODO: handle custom actions once defined (event.action)
+  // if (event.action) {
+  //   return
+  // }
+
+  const openWindow = async (url: string) => {
+    const windowClients = await self.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true,
+    })
+
+    const targetOrigin = new URL(url).origin
+    const match = windowClients.find(c => c.visibilityState === 'visible' && new URL(c.url).origin === targetOrigin) 
+      || windowClients.find(c => new URL(c.url).origin === targetOrigin)
+
+    if (match) {
+      await match.focus()
+      if (match.url !== url) {
+        await match.navigate(url)
+      }
+    } else {
+      await self.clients.openWindow(url)
+    }
+  }
+
+  const route = data.route || "/"
+  const targetUrl = new URL(route, self.location.origin).toString()
+  const openPromise = openWindow(targetUrl)
+
+  // Notify backend that the notification has been clicked.
+  const clickedPromise = updateNotificationEvent(data.code, data.id, {
+    clicked: new Date(),
+  })
+
+  event.waitUntil(Promise.allSettled([openPromise, clickedPromise]))
+})
+
+self.addEventListener('notificationclose', (event: NotificationEvent) => {
+  const data = event.notification.data || {}
+
+  if (data.id && clickedNotifications.has(data.id)) {
+    clickedNotifications.delete(data.id)
+    return
+  }
+
+  const dismissedPromise = updateNotificationEvent(data.code, data.id, {
+    dismissed: new Date(),
+  })
+
+  event.waitUntil(dismissedPromise)
 })

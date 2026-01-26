@@ -4,30 +4,31 @@ import { setupServer } from 'msw/node'
 
 import handlers from '../../mocks/handlers'
 import { generateKeys } from '../../mocks/auth'
-import prisma from '../../utils/prisma'
-import { mockTable } from '../../mocks/prisma'
-import { createMockQueue, resetQueueMocks, queueAdd, queueGetJob } from '../../mocks/queue'
+import { mockDb } from '../../mocks/prisma'
+import { createQueue } from '../../mocks/queue'
 import { createOffer, createNeed, getUserIdForMember, resetDb, db } from '../../mocks/db'
 import { mockDate, restoreDate } from '../../mocks/date'
 import { verifyNotification } from './utils'
 
+import { mockRedis } from '../../mocks/redis'
+
 const server = setupServer(...handlers)
+mockRedis()
 
 // Mock prisma table used by app channel + HTTP endpoint
-const appNotifications = mockTable(prisma.appNotification, 'test-notification')
+const { appNotification } = mockDb()
 
 describe('Member has expired posts (synthetic cron)', () => {
   let stopAppChannel: (() => void) | null = null
   let runPostExpirationCron: () => Promise<void>;
   let runNotifyMemberHasExpiredPosts: (data: any) => Promise<void>;
+  const queue = createQueue("synthetic-events");
 
   before(async () => {
     await generateKeys()
     server.listen({ onUnhandledRequest: 'bypass' })
-    
-    const queue = createMockQueue() as any
     const { initPostEvents } = await import('../synthetic/post')
-    const { handlers: postHandlers } = initPostEvents(queue)
+    const { handlers: postHandlers } = initPostEvents(queue as any)
 
     runPostExpirationCron = postHandlers['post-expiration-cron'];
     runNotifyMemberHasExpiredPosts = postHandlers['notify-member-has-expired-posts'];
@@ -40,8 +41,8 @@ describe('Member has expired posts (synthetic cron)', () => {
 
   beforeEach(async () => {
     resetDb()
-    resetQueueMocks()
-    appNotifications.length = 0
+    queue.resetMocks()
+    appNotification.length = 0
 
     mockDate('2026-01-13T00:00:00.000Z')
 
@@ -82,7 +83,7 @@ describe('Member has expired posts (synthetic cron)', () => {
 
     // Expired 1 day ago => reminder should be delayed until the 7-day boundary => 6 days
     const jobId = `member-has-expired-posts:${memberId}`
-    const job = await queueGetJob(jobId)
+    const job = await queue.getJob(jobId)
 
     assert.ok(job, 'Expected the expired-posts job to be queued')
     assert.equal(job.name, 'notify-member-has-expired-posts')
@@ -91,24 +92,24 @@ describe('Member has expired posts (synthetic cron)', () => {
     // 2) Process the job and verify notification via HTTP endpoint
     await runNotifyMemberHasExpiredPosts({ data: job.data } )
 
-    assert.equal(appNotifications.length, 1)
-    const notification = appNotifications[0]
+    assert.equal(appNotification.length, 1)
+    const notification = appNotification[0]
 
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expired 1 day ago',
-      body: 'Your offer "Old expired offer · Spero turbo agnosco tenax car…" was hidden 1 day ago. Extend it to make it visible again.',
+      body: 'Your offer "Old expired offer" was hidden 1 day ago. Extend it to make it visible again.',
     })
 
     // 3) Re-run cron and verify it replaces (reschedules) the same job without creating extra notifications
     await runPostExpirationCron()
 
-    const jobAfter = await queueGetJob(jobId)
+    const jobAfter = await queue.getJob(jobId)
     assert.ok(jobAfter, 'Expected the expired-posts job to still exist after rescheduling')
     assert.equal(jobAfter.opts.delay, 6 * DAY)
 
     // Because this job is scheduled with replace=true, the second run removes and re-adds it.
-    assert.equal(queueAdd.mock.callCount(), 2)
-    assert.equal(appNotifications.length, 1)
+    assert.equal(queue.add.mock.callCount(), 2)
+    assert.equal(appNotification.length, 1)
   })
 
   it('ensures a more recent expiration supersedes older ones for the same member', async () => {
@@ -137,7 +138,7 @@ describe('Member has expired posts (synthetic cron)', () => {
     await runPostExpirationCron()
 
     // 2) Check that a notification is scheduled for 30d after expiry (5 days from now)
-    const job1 = await queueGetJob(jobId)
+    const job1 = await queue.getJob(jobId)
     assert.ok(job1, 'Expected job for old offer')
     assert.equal(job1.opts.delay, 5 * DAY)
     assert.equal(job1.data.id, oldOffer.id)
@@ -160,13 +161,13 @@ describe('Member has expired posts (synthetic cron)', () => {
 
     // Check that now there is only one notification scheduled for 7d after the new expiry (6 days delay)
     // 7 - 1 = 6 days. 6 < 7 so it is scheduled.
-    const job2 = await queueGetJob(jobId)
+    const job2 = await queue.getJob(jobId)
     assert.ok(job2, 'Expected job to exist')
     assert.equal(job2.opts.delay, 6 * DAY)
     assert.equal(job2.data.id, newOffer.id, 'Expected the job to be related to the new offer')
 
     // Ensure only one job exists in the mock storage (idempotency/replacement)
-    assert.equal(queueAdd.mock.callCount(), 2, 'Should have called add twice (once for each cron run)')
+    assert.equal(queue.add.mock.callCount(), 2, 'Should have called add twice (once for each cron run)')
   })
 
   it('updates notification text as more expired posts (offers and needs) are added', async () => {
@@ -180,12 +181,12 @@ describe('Member has expired posts (synthetic cron)', () => {
       await runPostExpirationCron()
       // 2) Process the job
       const jobId = `member-has-expired-posts:${mId}`
-      const job = await queueGetJob(jobId)
+      const job = await queue.getJob(jobId)
       if (!job) return null
 
-      appNotifications.length = 0
+      appNotification.length = 0
       await runNotifyMemberHasExpiredPosts({ data: job.data } )
-      return appNotifications[0]
+      return appNotification[0]
     }
 
     // SCENARIO 1: Only one expired need (1 day ago)
@@ -228,7 +229,7 @@ describe('Member has expired posts (synthetic cron)', () => {
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expired 1 day ago and 1 more',
     })
-    assert.equal(notification.body, 'Your offer "Offer 1 · Despecto pariatur turba vita vesica bar…" was hidden 1 day ago. Extend it to make it visible again. You have expired 1 need more to review.')
+    assert.equal(notification.body, 'Your offer "Offer 1" was hidden 1 day ago. Extend it to make it visible again. You have expired 1 need more to review.')
 
     // SCENARIO 3: An expired need (featured, 1 day ago) + 2 expired needs + 2 expired offers
     // Featured (Need F, 1d)

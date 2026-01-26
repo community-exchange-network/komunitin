@@ -3,15 +3,23 @@ import cors from 'cors'
 import { config } from './config'
 import notificationsRouter from './notifications/server/routes'
 import logger from './utils/logger'
+import helmet from 'helmet'
+import { httpLogger } from './server/http-logger'
 import { errorHandler } from './server/errors'
 
 const app = express()
 
+app.use(helmet())
 app.use(cors({
   origin: true,
   credentials: true,
 }))
-app.use(express.json())
+
+app.use(express.json({
+  type: ['application/vnd.api+json', 'application/json']
+}))
+
+app.use(httpLogger)
 
 app.use(notificationsRouter)
 

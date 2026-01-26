@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express"
 import prisma from "../../utils/prisma"
 import { pagination } from "../../server/request"
-import { serializeNotification } from "./serialize"
+import { serializeNotification } from "./notifications.serialize"
 import { getUserId } from "../../server/auth-compat"
 
 export const listNotifications = async (req: Request, res: Response, next: NextFunction) => {
@@ -9,9 +9,17 @@ export const listNotifications = async (req: Request, res: Response, next: NextF
     const { code } = req.params
     const userId = await getUserId(req)
 
+    const baseUrl = `${req.protocol}://${req.get('host')}${req.baseUrl}${req.path}`.replace(/\/$/, '')
+
     if (!userId) {
-       // Should be handled by auth middleware but double check
-       throw new Error("User not authenticated")
+      // This is a case where the authentication header is ok but we can't get a user id. That
+      // happens only if the user is not (yet) in this database. In particular, that means that
+      // there are no notifications for them.
+      res.json({
+        links: { self: baseUrl, next: null },
+        data: [],
+      })
+      return
     }
 
     const { cursor, size } = pagination(req)
@@ -30,8 +38,6 @@ export const listNotifications = async (req: Request, res: Response, next: NextF
       take: size,
     })
     
-    const baseUrl = `${req.protocol}://${req.get('host')}${req.baseUrl}${req.path}`.replace(/\/$/, '')
-    
     const response = {
       links: {
         self: `${baseUrl}?page[after]=${cursor}&page[size]=${size}`,
@@ -45,3 +51,4 @@ export const listNotifications = async (req: Request, res: Response, next: NextF
     next(err)
   }
 }
+

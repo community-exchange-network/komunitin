@@ -4,7 +4,7 @@ import logger from '../../utils/logger';
 import { KomunitinClient } from '../../clients/komunitin/client';
 import { Offer, Need } from '../../clients/komunitin/types';
 import { dispatchSyntheticEvent } from './shared';
-import { queueJob } from '../../utils/queue';
+import { queueJob } from '../../utils/queue-job';
 import { getCachedActiveGroups } from '../../utils/cached-resources';
 
 /**

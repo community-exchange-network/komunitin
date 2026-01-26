@@ -2,10 +2,13 @@ import type { Module, ActionContext } from "vuex";
 import type { AuthData } from "../plugins/Auth";
 import { Auth } from "../plugins/Auth";
 import KError, { KErrorCode } from "src/KError";
-import { notifications } from "src/plugins/Notifications";
+import { subscribe, unsubscribe } from "../plugins/Notifications";
 import locate from "src/plugins/Location";
-import type {Member, NotificationsSubscription, UserSettings} from "./model"
+import type {Member, NotificationsSubscription,} from "./model"
 import { setAccountingApiUrl } from ".";
+
+import { config } from "src/utils/config";
+import { apiRequest } from "./request";
 
 // Exported just for testing purposes.
 export const auth = new Auth()
@@ -97,6 +100,11 @@ async function loadUser(
   if (state.location == undefined && getters.myMember) {
     const member = getters.myMember as Member
     commit("location", member.attributes.location?.coordinates)
+  }
+
+  // Renew push notification subscription if permission is granted
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    dispatch("subscribe").catch(e => console.warn("Failed to restore subscription", e));
   }
 }
 
@@ -246,29 +254,57 @@ export default {
      * Subscribe to push notifications
     */
     subscribe: async (context: ActionContext<UserState, never>) => {
-      if (!context.getters.isSubscribed && context.getters.isLoggedIn) {
-        const userSettings = context.getters.myUser?.settings as UserSettings
-        if (userSettings) {
-          const subscription = await notifications.subscribe(
-            context.getters.myUser, 
-            context.getters.myMember,
-            {
-              locale: userSettings.attributes.language,
-              ...userSettings.attributes.notifications
-            },
-            context.getters.accessToken);
-          context.commit("subscription", subscription);
+      const { commit, getters } = context
+      if (!getters.isSubscribed && getters.isLoggedIn) {
+        // 1. Subscribe in the Browser
+        const attributes = await subscribe()
 
+        // 2. Register subscription in the Backend
+        const userId = getters.myUser.id
+        const groupCode = getters.myMember.group.attributes.code
+        if (!userId || !groupCode) {
+          throw new KError(KErrorCode.ScriptError, "Missing user id or group code when subscribing to push notifications");
         }
+        
+        const body = {
+          data: {
+            type: "subscriptions",
+            attributes,
+            relationships: {
+              user: {
+                data: { id: userId, type: "users" }
+              }
+            }
+          }
+        }
+        const url = `${config.NOTIFICATIONS_URL}/${groupCode}/subscriptions`
+
+        const response = await apiRequest<NotificationsSubscription>(context, url, 'post', body);
+
+        // 3. Store subscription in the Vuex store
+        if (response) {
+          commit("subscription", response.data);
+        }
+
+        return response
       }
     },
     /**
      * Unsubscribe from push notifications.
      */
     unsubscribe: async (context: ActionContext<UserState, never>) => {
-      if (context.state.subscription) {
-        await notifications.unsubscribe(context.state.subscription, context.getters.accessToken);
-        context.commit("subscription", undefined);
+      const { state, commit, getters } = context;
+      // 1. Unsubscribe from Browser
+      await unsubscribe();
+
+      // 2. Delete from Backend
+      const groupCode = getters.myMember.group?.attributes.code;
+      if (state.subscription && groupCode) {
+        const url = `${config.NOTIFICATIONS_URL}/${groupCode}/subscriptions/${state.subscription.id}`;
+        await apiRequest(context, url, 'delete');
+
+        // 3. Remove from Vuex store
+        commit("subscription", undefined);
       }
     }
   }

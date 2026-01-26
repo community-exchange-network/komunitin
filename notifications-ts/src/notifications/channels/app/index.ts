@@ -1,37 +1,108 @@
 import logger from '../../../utils/logger';
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
-import { handleMemberHasExpiredPosts, handleMembersJoinedDigest } from './member';
-import { handlePostExpired, handlePostExpiresSoon, handlePostPublished, handlePostsPublishedDigest } from './post';
-import { handleTransferCommitted, handleTransferPending, handleTransferRejected, handleTransferStillPending } from './transfer';
+import { 
+  buildTransferSentMessage, 
+  buildTransferReceivedMessage, 
+  buildTransferPendingMessage, 
+  buildTransferRejectedMessage, 
+  buildTransferStillPendingMessage,
+  buildSinglePostPublishedMessage,
+  buildPostsPublishedDigestMessage,
+  buildPostExpiredMessage,
+  buildPostExpiresSoonMessage,
+  buildMemberHasExpiredPostsMessage,
+  buildMembersJoinedDigestMessage,
+} from '../../messages';
+import {
+  EnrichedTransferEvent,
+  EnrichedPostEvent,
+  EnrichedPostsPublishedDigestEvent,
+  EnrichedMemberHasExpiredPostsEvent,
+  EnrichedMembersJoinedDigestEvent,
+} from '../../enriched-events';
+import { handleNotificationForUsers } from './utils';
 
 export const initInAppChannel = (): (() => void) => {
   logger.info('Initializing in-app notification channel');
 
-  // Subscribe to transfer events and collect unsubscribe functions
+  // Subscribe to events and collect unsubscribe functions
   const unsubscribers = [
-    eventBus.on(EVENT_NAME.TransferCommitted, handleTransferCommitted),
-    eventBus.on(EVENT_NAME.TransferPending, handleTransferPending),
-    eventBus.on(EVENT_NAME.TransferRejected, handleTransferRejected),
-    eventBus.on(EVENT_NAME.TransferStillPending, handleTransferStillPending),
-    eventBus.on(EVENT_NAME.NeedExpired, handlePostExpired),
-    eventBus.on(EVENT_NAME.OfferExpired, handlePostExpired),
-    eventBus.on(EVENT_NAME.PostExpiresSoon, handlePostExpiresSoon),
-    eventBus.on(EVENT_NAME.MemberHasExpiredPosts, handleMemberHasExpiredPosts),
-    eventBus.on(EVENT_NAME.OfferPublished, handlePostPublished),
-    eventBus.on(EVENT_NAME.NeedPublished, handlePostPublished),
-    eventBus.on(EVENT_NAME.PostsPublishedDigest, handlePostsPublishedDigest),
-    eventBus.on(EVENT_NAME.MembersJoinedDigest, handleMembersJoinedDigest),
+    // Transfer events
+    eventBus.on(EVENT_NAME.TransferCommitted, async (event: EnrichedTransferEvent) => {
+      const { payer, payee } = event;
+      await handleNotificationForUsers(event, payer.users, (ctx) => 
+        buildTransferSentMessage(event, ctx)
+      );
+      await handleNotificationForUsers(event, payee.users, (ctx) => 
+        buildTransferReceivedMessage(event, ctx)
+      );
+    }),
+    eventBus.on(EVENT_NAME.TransferPending, async (event: EnrichedTransferEvent) => {
+      const { payer } = event;
+      await handleNotificationForUsers(event, payer.users, (ctx) =>
+        buildTransferPendingMessage(event, ctx)
+      );
+    }),
+    eventBus.on(EVENT_NAME.TransferRejected, async (event: EnrichedTransferEvent) => {
+      const { payee } = event;
+      await handleNotificationForUsers(event, payee.users, (ctx) =>
+        buildTransferRejectedMessage(event, ctx)
+      );
+    }),
+    eventBus.on(EVENT_NAME.TransferStillPending, async (event: EnrichedTransferEvent) => {
+      const { payer } = event;
+      await handleNotificationForUsers(event, payer.users, (ctx) =>
+        buildTransferStillPendingMessage(event, ctx)
+      );
+    }),
+
+    // Post events
+    eventBus.on(EVENT_NAME.NeedExpired, async (event: EnrichedPostEvent) => {
+      await handleNotificationForUsers(event, event.users, (ctx) =>
+        buildPostExpiredMessage(event, ctx)
+      );
+    }),
+    eventBus.on(EVENT_NAME.OfferExpired, async (event: EnrichedPostEvent) => {
+      await handleNotificationForUsers(event, event.users, (ctx) =>
+        buildPostExpiredMessage(event, ctx)
+      );
+    }),
+    eventBus.on(EVENT_NAME.PostExpiresSoon, async (event: EnrichedPostEvent) => {
+      await handleNotificationForUsers(event, event.users, (ctx) =>
+        buildPostExpiresSoonMessage(event, ctx)
+      );
+    }),
+    eventBus.on(EVENT_NAME.OfferPublished, async (event: EnrichedPostEvent) => {
+      const { post, member } = event;
+      await handleNotificationForUsers(event, event.users, (ctx) =>
+        buildSinglePostPublishedMessage(event, post, member, ctx)
+      );
+    }),
+    eventBus.on(EVENT_NAME.NeedPublished, async (event: EnrichedPostEvent) => {
+      const { post, member } = event;
+      await handleNotificationForUsers(event, event.users, (ctx) =>
+        buildSinglePostPublishedMessage(event, post, member, ctx)
+      );
+    }),
+    eventBus.on(EVENT_NAME.PostsPublishedDigest, async (event: EnrichedPostsPublishedDigestEvent) => {
+      await handleNotificationForUsers(event, event.users, (ctx) =>
+        buildPostsPublishedDigestMessage(event, ctx)
+      );
+    }),
+
+    // Member events
+    eventBus.on(EVENT_NAME.MemberHasExpiredPosts, async (event: EnrichedMemberHasExpiredPostsEvent) => {
+      await handleNotificationForUsers(event, event.users, (ctx) =>
+        buildMemberHasExpiredPostsMessage(event, ctx)
+      );
+    }),
+    eventBus.on(EVENT_NAME.MembersJoinedDigest, async (event: EnrichedMembersJoinedDigestEvent) => {
+      await handleNotificationForUsers(event, event.users, (ctx) =>
+        buildMembersJoinedDigestMessage(event, ctx)
+      );
+    }),
   ];
-  // TODO: Implement handlers for other events
-  // eventBus.on(EVENT_NAME.NeedPublished, handleNeedPublished);
-  // eventBus.on(EVENT_NAME.NeedExpired, handleNeedExpired);
-  // eventBus.on(EVENT_NAME.OfferPublished, handleOfferPublished);
-  // eventBus.on(EVENT_NAME.OfferExpired, handleOfferExpired);
-  // eventBus.on(EVENT_NAME.MemberJoined, handleMemberJoined);
-  // eventBus.on(EVENT_NAME.MemberRequested, handleMemberRequested);
-  // eventBus.on(EVENT_NAME.GroupRequested, handleGroupRequested);
-  // eventBus.on(EVENT_NAME.GroupActivated, handleGroupActivated);
 
   // Return stop function that unsubscribes all listeners
   return () => {

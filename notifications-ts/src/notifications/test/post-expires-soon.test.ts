@@ -4,17 +4,19 @@ import { setupServer } from 'msw/node'
 
 import handlers from '../../mocks/handlers'
 import { generateKeys } from '../../mocks/auth'
-import prisma from '../../utils/prisma'
-import { mockTable } from '../../mocks/prisma'
-import { createMockQueue, resetQueueMocks, queueAdd, queueGetJob } from '../../mocks/queue'
+import { mockDb } from '../../mocks/prisma'
+import { createQueue } from '../../mocks/queue'
 import { createOffer, getUserIdForMember, resetDb, db } from '../../mocks/db'
 import { mockDate, restoreDate } from '../../mocks/date'
 import { verifyNotification } from './utils'
+import { mockRedis } from '../../mocks/redis'
 
 const server = setupServer(...handlers)
+mockRedis()
+const queue = createQueue('synthetic-events')
 
 // Mock prisma table used by app channel + HTTP endpoint
-const appNotifications = mockTable(prisma.appNotification, 'test-notification')
+const { appNotification } = mockDb()
 
 describe('Post expires soon (synthetic cron)', () => {
   let stopAppChannel: (() => void) | null = null
@@ -24,9 +26,8 @@ describe('Post expires soon (synthetic cron)', () => {
   before(async () => {
     await generateKeys()
     server.listen({ onUnhandledRequest: 'bypass' })
-    const queue = createMockQueue() as any
     const { initPostEvents } = await import('../synthetic/post')
-    const { handlers: postHandlers } = initPostEvents(queue)
+    const { handlers: postHandlers } = initPostEvents(queue as any)
 
     runPostExpirationCron = postHandlers['post-expiration-cron'];
     runNotifyPostExpiresSoon = postHandlers['notify-post-expires-soon'];
@@ -38,8 +39,8 @@ describe('Post expires soon (synthetic cron)', () => {
 
   beforeEach(async () => {
     resetDb()
-    resetQueueMocks()
-    appNotifications.length = 0
+    queue.resetMocks()
+    appNotification.length = 0
 
     mockDate('2026-01-13T00:00:00.000Z')
 
@@ -81,8 +82,8 @@ describe('Post expires soon (synthetic cron)', () => {
     const job7dId = `post-expires-in-7d:${offer.id}`
     const job24hId = `post-expires-in-24h:${offer.id}`
 
-    const job7d = await queueGetJob(job7dId)
-    const job24h = await queueGetJob(job24hId)
+    const job7d = await queue.getJob(job7dId)
+    const job24h = await queue.getJob(job24hId)
 
     assert.ok(job7d, 'Expected the 7d notification job to be queued')
     assert.ok(job24h, 'Expected the 24h notification job to be queued')
@@ -93,19 +94,19 @@ describe('Post expires soon (synthetic cron)', () => {
     // 3) Process the 7d job and verify notification via HTTP endpoint
     await runNotifyPostExpiresSoon({ data: job7d.data } )
 
-    assert.equal(appNotifications.length, 1)
-    const notification = appNotifications[0]
+    assert.equal(appNotification.length, 1)
+    const notification = appNotification[0]
 
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expires in 6 days',
-      body: "Extend your Offer 'Offer that will expire soon · Spero turbo agnosco…' to keep it visible to others.",
+      body: "Extend your Offer 'Offer that will expire soon' to keep it visible to others.",
     })
 
     // 4) Run cron again and verify idempotency (no duplicate jobs / no duplicate send)
     await runPostExpirationCron()
 
-    assert.equal(queueAdd.mock.callCount(), 2, 'Should not enqueue duplicate jobs on re-run')
-    assert.equal(appNotifications.length, 1, 'Should not create a duplicate notification on re-run')
+    assert.equal(queue.add.mock.callCount(), 2, 'Should not enqueue duplicate jobs on re-run')
+    assert.equal(appNotification.length, 1, 'Should not create a duplicate notification on re-run')
   })
 
   it('cancels the 24h notification if the post is extended before the job runs', async () => {
@@ -130,23 +131,23 @@ describe('Post expires soon (synthetic cron)', () => {
     const job7dId = `post-expires-in-7d:${offer.id}`
     const job24hId = `post-expires-in-24h:${offer.id}`
 
-    const job7d = await queueGetJob(job7dId)
-    const job24h = await queueGetJob(job24hId)
+    const job7d = await queue.getJob(job7dId)
+    const job24h = await queue.getJob(job24hId)
 
     assert.ok(job7d, 'Expected 7d job')
     assert.ok(job24h, 'Expected 24h job')
 
     // 3) Process 7d job. It should send the notification.
     await runNotifyPostExpiresSoon({ data: job7d.data } )
-    assert.equal(appNotifications.length, 1)
+    assert.equal(appNotification.length, 1)
 
     // 4) Extend the post expiration to 30 days from now
     db.offers.find((o: any) => o.id === offer.id).attributes.expires = new Date(now + 30 * DAY).toISOString()
 
     // 5) Process the 24h job. It should NOT send a notification.
-    appNotifications.length = 0 // Clear to see if a new one is added
+    appNotification.length = 0 // Clear to see if a new one is added
     await runNotifyPostExpiresSoon({ data: job24h.data } )
 
-    assert.equal(appNotifications.length, 0, 'Expected no notification to be sent as post was extended')
+    assert.equal(appNotification.length, 0, 'Expected no notification to be sent as post was extended')
   })
 })

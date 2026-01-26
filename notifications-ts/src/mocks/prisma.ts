@@ -1,6 +1,7 @@
 import { test } from 'node:test';
+import prisma from '../utils/prisma';
 
-export const mockTable = (table: any, name: string = 'test', defaults?: (data: any) => any) => {
+const mockTable = (table: any, name: string = 'test', defaults?: (data: any) => any) => {
   const store: any[] = [];
 
   const delegate = {
@@ -35,6 +36,46 @@ export const mockTable = (table: any, name: string = 'test', defaults?: (data: a
       }
       return results;
     }),
+    // Added helpers useful for tests: findFirst, upsert and delete
+    findFirst: test.mock.fn(async (args: any) => {
+      const results = await delegate.findMany({ where: args?.where });
+      return results.length ? results[0] : null;
+    }),
+    upsert: test.mock.fn(async (args: any) => {
+      const { where, create, update } = args as any;
+      // Try to find by matching all where fields
+      const existing = await delegate.findFirst({ where })
+      if (existing) {
+        Object.assign(existing, {
+          ...update,
+          updatedAt: new Date()
+        });
+        return existing;
+      } else {
+        return await delegate.create({ data: create });
+      }
+    }),
+    update: test.mock.fn(async (args: any) => {
+      const { where, data } = args as any;
+      const existing = await delegate.findFirst({ where });
+      if (!existing) {
+        throw new Error('Record not found');
+      }
+      Object.assign(existing, {
+        ...data,
+        updatedAt: new Date()
+      });
+      return existing;
+    }),
+    delete: test.mock.fn(async (args: any) => {
+      const found = await delegate.findFirst({ where: args.where });
+      if (found) {
+        const index = store.findIndex(item => item.id === found.id);
+        const [deleted] = store.splice(index, 1);
+        return deleted;
+      }
+      return null;
+    }),
     groupBy: test.mock.fn(async (args: any) => {
       const all = await delegate.findMany({ where: args.where });
       const field = args.by[0];
@@ -68,3 +109,16 @@ export const mockTable = (table: any, name: string = 'test', defaults?: (data: a
 
   return store;
 };
+
+
+export const mockDb = () => {
+  return {
+    newsletterLog: mockTable(prisma.newsletterLog, 'newsletterLog', (data) => ({
+      sentAt: new Date(),
+    })),
+    appNotification: mockTable(prisma.appNotification, 'appNotification'),
+    pushSubscription: mockTable(prisma.pushSubscription, 'pushSubscription'),
+    pushNotification: mockTable(prisma.pushNotification, 'pushNotification'),
+    // Add other tables as needed
+  }
+}
