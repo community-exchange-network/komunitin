@@ -73,9 +73,7 @@ const shouldSendPushNotificationToUser = (notificationClass: NotificationClass, 
   if (notificationClass === 'account') {
     return settings.attributes.notifications.myAccount;
   } else if (notificationClass === 'group') {
-    return settings.attributes.notifications.newNeeds ||
-           settings.attributes.notifications.newOffers ||
-           settings.attributes.notifications.newMembers;
+    return settings.attributes.notifications.group
   }
   return false;
 }

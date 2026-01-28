@@ -79,7 +79,7 @@
             :disable="disableNotificationControls"
           />
           <toggle-item 
-            v-model="notiNeeds"
+            v-model="notiGroup"
             :label="$t('groupNotifications')"
             :hint="$t('groupNotificationsHint')"
             :disable="disableNotificationControls"
@@ -342,9 +342,8 @@ watch(maximumBalance, async () => {
 const language = ref()
 
 const notiMyAccount = ref<boolean>()
-const notiNeeds = ref<boolean>()
-const notiOffers = ref<boolean>()
-const notiMembers = ref<boolean>()
+const notiGroup = ref<boolean>()
+
 
 const emailMyAccount = ref<boolean>()
 const emailGroup = ref<MailingFrequency>()
@@ -355,9 +354,7 @@ watchEffect(() => {
   
   const notifications = userSettings.value?.attributes.notifications
   notiMyAccount.value = notifications?.myAccount
-  notiNeeds.value = notifications?.newNeeds
-  notiOffers.value = notifications?.newOffers
-  notiMembers.value = notifications?.newMembers
+  notiGroup.value = notifications?.group
 
   const emails = userSettings.value?.attributes.emails
   emailMyAccount.value = emails?.myAccount
@@ -366,14 +363,12 @@ watchEffect(() => {
 
 const locale = useLocale()
 
-watchDebounced([language, notiMyAccount, notiNeeds, notiOffers, notiMembers, emailMyAccount, emailGroup], () => {
+watchDebounced([language, notiMyAccount, notiGroup, emailMyAccount, emailGroup], () => {
   const notis = userSettings.value?.attributes.notifications  
   const emails = userSettings.value?.attributes.emails
   if (language.value !== undefined && language.value.value !== userLanguage.value
     || notiMyAccount.value !== undefined && notiMyAccount.value !== notis?.myAccount
-    || notiNeeds.value !== undefined && notiNeeds.value !== notis?.newNeeds
-    || notiOffers.value !== undefined && notiOffers.value !== notis?.newOffers
-    || notiMembers.value !== undefined && notiMembers.value !== notis?.newMembers
+    || notiGroup.value !== undefined && notiGroup.value !== notis?.group
     || emailMyAccount.value !== undefined && emailMyAccount.value !== emails?.myAccount
     || emailGroup.value !== undefined && emailGroup.value !== emails?.group) {
     saveUserSettings({
@@ -381,9 +376,7 @@ watchDebounced([language, notiMyAccount, notiNeeds, notiOffers, notiMembers, ema
         language: language.value.value,
         notifications: {
           myAccount: notiMyAccount.value,
-          newNeeds: notiNeeds.value,
-          newOffers: notiOffers.value,
-          newMembers: notiMembers.value
+          group: notiGroup.value,
         },
         emails: {
           myAccount: emailMyAccount.value,

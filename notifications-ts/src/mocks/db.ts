@@ -155,10 +155,7 @@ export const createMember = (opts: {
     attributes: {
       language: 'en',
       emails: { group: 'weekly', myAccount: true },
-      notifications: {
-        newOffers: true,
-        newNeeds: true
-      }
+      notifications: { myAccount: true, group: true }
     }
   });
 
