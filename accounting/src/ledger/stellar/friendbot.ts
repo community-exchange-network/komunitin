@@ -13,7 +13,7 @@ export const friendbot = async (url: string, publicKey: string) => {
       }
       await response.json()
       logger.info(`Account ${publicKey} funded with 10,000 XLM with friendbot`)
-    }, 60000, 1000)
+    }, 300000, 1000, 5000)
   } catch (e) {
     logger.error(e)
   }
