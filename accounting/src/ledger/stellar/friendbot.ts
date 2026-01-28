@@ -13,8 +13,8 @@ export const friendbot = async (url: string, publicKey: string) => {
       }
       await response.json()
       logger.info(`Account ${publicKey} funded with 10,000 XLM with friendbot`)
-    }, 30000, 1000)
+    }, 60000, 1000)
   } catch (e) {
-    logger.error("Error funding account", e)
+    logger.error(e)
   }
 }
