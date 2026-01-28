@@ -11,17 +11,96 @@ datasource db {
 
 model NewsletterLog {
   id        String   @id @default(uuid())
+  tenantId  String
+
   sentAt    DateTime @default(now())
   
   // Recipient details
   memberId  String
-  groupId   String
   recipients Json
 
   // Variable content snapshot (featured items, alerts triggered)
   content   Json
 
   @@index([memberId])
-  @@index([groupId])
+  @@index([tenantId])
   @@index([sentAt])
+}
+
+model AppNotification {
+  id        String   @id @default(uuid())
+  
+  // Scoping
+  tenantId  String
+  userId    String
+  
+  // Origin
+  eventId   String?
+  eventName String
+  
+  // Content
+  title     String
+  body      String   @db.Text
+  image     String?
+
+  // Routing
+  data      Json? 
+  
+  // State
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  // Indexes
+  @@index([tenantId, userId, createdAt]) // Main inbox query
+  @@index([tenantId, userId, readAt])    // Unread count
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  
+  // Scoping
+  tenantId  String
+  userId    String
+
+  // Web Push subscription details
+  endpoint  String   @unique // The push service URL (unique per device/browser profile)
+  p256dh    String   // Public key for encryption
+  auth      String   // Authentication secret
+
+  // Metadata
+  meta Json?         // For debugging and showing user which devices are subscribed
+                     // schema: 
+                     // { userAgent: string }
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes
+  @@index([tenantId, userId])
+  @@index([endpoint])
+}
+
+model PushNotification {
+  id        String   @id @default(uuid())
+
+  // Scoping
+  tenantId  String
+  userId    String
+  subscriptionId String
+  eventId   String
+
+  // Delivery telemetry
+  createdAt DateTime @default(now())
+  sentAt    DateTime?
+  deliveredAt DateTime?
+  clickedAt DateTime?
+  dismissedAt DateTime?
+  clickedAction String?
+  meta Json?
+
+  // Indexes
+  @@unique([tenantId, userId, subscriptionId, eventId])
+  @@index([tenantId, userId, createdAt])
+  @@index([subscriptionId])
+  @@index([eventId])
 }

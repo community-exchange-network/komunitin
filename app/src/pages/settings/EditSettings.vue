@@ -63,23 +63,26 @@
         <div class="text-body2 text-onsurface-m q-mb-sm">
           {{ $t('notificationsSettingsText') }}
         </div>
+
+        <notifications-banner
+          ref="notifications-banner"
+          :dismissable="false"
+          class="q-my-md inline-banner"
+          rounded
+        />
+        
         <q-list>
           <toggle-item 
             v-model="notiMyAccount"
             :label="$t('myAccountNotifications')"
             :hint="$t('myAccountNotificationsHint')"
+            :disable="disableNotificationControls"
           />
           <toggle-item 
-            v-model="notiNeeds"
-            :label="$t('needsNotifications')"
-          />
-          <toggle-item 
-            v-model="notiOffers"
-            :label="$t('offersNotifications')"
-          />
-          <toggle-item 
-            v-model="notiMembers"
-            :label="$t('membersNotifications')"
+            v-model="notiGroup"
+            :label="$t('groupNotifications')"
+            :hint="$t('groupNotificationsHint')"
+            :disable="disableNotificationControls"
           />
         </q-list>
       </div>
@@ -142,7 +145,7 @@
 </template>
 <script setup lang="ts">
 import type { Ref} from 'vue';
-import { computed, ref, watch, watchEffect } from 'vue';
+import { computed, ref, useTemplateRef, watch, watchEffect } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import PageHeader from '../../layouts/PageHeader.vue';
@@ -150,6 +153,7 @@ import ToggleItem from '../../components/ToggleItem.vue';
 import ToggleBtnItem from '../../components/ToggleBtnItem.vue';
 import SaveChanges from '../../components/SaveChanges.vue';
 import NfcTagsList from '../../components/NfcTagsList.vue';
+import NotificationsBanner from 'src/components/NotificationsBanner.vue';
 import AccountHeader from 'src/components/AccountHeader.vue';
 import AccountSettingsFields from './AccountSettingsFields.vue';
 import DeleteMemberBtn from './DeleteMemberBtn.vue';
@@ -338,9 +342,8 @@ watch(maximumBalance, async () => {
 const language = ref()
 
 const notiMyAccount = ref<boolean>()
-const notiNeeds = ref<boolean>()
-const notiOffers = ref<boolean>()
-const notiMembers = ref<boolean>()
+const notiGroup = ref<boolean>()
+
 
 const emailMyAccount = ref<boolean>()
 const emailGroup = ref<MailingFrequency>()
@@ -351,9 +354,7 @@ watchEffect(() => {
   
   const notifications = userSettings.value?.attributes.notifications
   notiMyAccount.value = notifications?.myAccount
-  notiNeeds.value = notifications?.newNeeds
-  notiOffers.value = notifications?.newOffers
-  notiMembers.value = notifications?.newMembers
+  notiGroup.value = notifications?.group
 
   const emails = userSettings.value?.attributes.emails
   emailMyAccount.value = emails?.myAccount
@@ -362,14 +363,12 @@ watchEffect(() => {
 
 const locale = useLocale()
 
-watchDebounced([language, notiMyAccount, notiNeeds, notiOffers, notiMembers, emailMyAccount, emailGroup], () => {
+watchDebounced([language, notiMyAccount, notiGroup, emailMyAccount, emailGroup], () => {
   const notis = userSettings.value?.attributes.notifications  
   const emails = userSettings.value?.attributes.emails
   if (language.value !== undefined && language.value.value !== userLanguage.value
     || notiMyAccount.value !== undefined && notiMyAccount.value !== notis?.myAccount
-    || notiNeeds.value !== undefined && notiNeeds.value !== notis?.newNeeds
-    || notiOffers.value !== undefined && notiOffers.value !== notis?.newOffers
-    || notiMembers.value !== undefined && notiMembers.value !== notis?.newMembers
+    || notiGroup.value !== undefined && notiGroup.value !== notis?.group
     || emailMyAccount.value !== undefined && emailMyAccount.value !== emails?.myAccount
     || emailGroup.value !== undefined && emailGroup.value !== emails?.group) {
     saveUserSettings({
@@ -377,9 +376,7 @@ watchDebounced([language, notiMyAccount, notiNeeds, notiOffers, notiMembers, ema
         language: language.value.value,
         notifications: {
           myAccount: notiMyAccount.value,
-          newNeeds: notiNeeds.value,
-          newOffers: notiOffers.value,
-          newMembers: notiMembers.value
+          group: notiGroup.value,
         },
         emails: {
           myAccount: emailMyAccount.value,
@@ -397,4 +394,15 @@ watchDebounced([language, notiMyAccount, notiNeeds, notiOffers, notiMembers, ema
 
 const effectiveSettings = useEffectiveSettings(accountSettings, currencySettings)
 
+const notificationsBannerRef = useTemplateRef<InstanceType<typeof NotificationsBanner>>('notifications-banner')
+const disableNotificationControls = computed(() => {
+  return notificationsBannerRef.value?.show
+})
+
 </script>
+<style scoped lang="scss">
+.inline-banner {
+  border: solid 1px $separator-color;
+}
+
+</style>

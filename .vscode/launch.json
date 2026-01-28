@@ -21,6 +21,18 @@
       }
     },
     {
+      "name": "Notifications TS service",
+      "type": "node",
+      "request": "attach",
+      "port": 9223,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/notifications-ts",
+      "remoteRoot": "/app",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
       "name": "Accounting service",
       "type": "node",
       "request": "attach",

@@ -2,6 +2,7 @@
 import tz from '@photostructure/tz-lookup';
 import { Group } from '../clients/komunitin/types';
 import logger from '../utils/logger';
+import { tzDate } from '../utils/i18n';
 
 const NEWSLETTER_SEND_DAY = 0; // Sunday
 const NEWSLETTER_SEND_HOUR = 15; // at 3:30 PM
@@ -23,14 +24,9 @@ export const shouldProcessGroup = (group: Group, isManualRun: boolean): boolean 
     logger.warn({ group: group.attributes.code }, 'Group has invalid coordinates, defaulting to UTC timezone');
   }
 
-  // Build a date string in local time zone
-  const localTime = new Date().toLocaleString('en-US', { timeZone, hour12: false });
-  // Now parse it back to a Date object to extract components
-  const localDate = new Date(localTime);
+  // Build a date object in local time zone
+  const localDate = tzDate(timeZone)
   
-  // Use getDay() and getHours() to get the "face value" of the time in the target timezone
-  // (Since localDate was constructed from a string without timezone, it represents that time in the system timezone,
-  // so getHours() returns exactly what we parsed)
   return localDate.getDay() === NEWSLETTER_SEND_DAY && localDate.getHours() === NEWSLETTER_SEND_HOUR;
 };
 

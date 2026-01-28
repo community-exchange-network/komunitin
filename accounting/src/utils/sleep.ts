@@ -12,7 +12,7 @@ export const sleep = (milliseconds: number) => new Promise((r) => setTimeout(r, 
  * @param startIntervalMilliseconds The initial time to wait before retrying (will be doubled each retry).
  * @returns The function outcome
  */
-export const retry = async <T>(fn: () => Promise<T>, timeoutMilliseconds: number = 30000, startIntervalMilliseconds: number = 200): Promise<T> => {
+export const retry = async <T>(fn: () => Promise<T>, timeoutMilliseconds: number = 30000, startIntervalMilliseconds: number = 200, maxIntervalMilliseconds: number = 10000): Promise<T> => {
   try {
     return await fn()
   } catch (error) {
@@ -20,6 +20,6 @@ export const retry = async <T>(fn: () => Promise<T>, timeoutMilliseconds: number
       throw error
     }
     await sleep(startIntervalMilliseconds)
-    return await retry(fn, timeoutMilliseconds - startIntervalMilliseconds, 2 * startIntervalMilliseconds)
+    return await retry(fn, timeoutMilliseconds - startIntervalMilliseconds, Math.min(2 * startIntervalMilliseconds, maxIntervalMilliseconds), maxIntervalMilliseconds)
   }
 }
