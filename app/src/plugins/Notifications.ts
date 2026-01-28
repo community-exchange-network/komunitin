@@ -2,6 +2,26 @@ import { config } from "src/utils/config"
 import { urlBase64ToUint8Array } from "src/utils/encoding";
 import KError, { KErrorCode } from "../KError";
 
+const isNotificationsSupported = (): boolean =>
+  (typeof window !== 'undefined') && ('Notification' in window)
+
+export const isWebPushCompatible = (): boolean =>
+  isNotificationsSupported()
+  && (typeof navigator !== 'undefined')
+  && ('serviceWorker' in navigator)
+  && (typeof window !== 'undefined')
+  && ('PushManager' in window)
+
+export const getNotificationPermission = (): NotificationPermission =>
+  isNotificationsSupported() ? Notification.permission : 'denied'
+
+export const requestNotificationPermission = async (): Promise<NotificationPermission> => {
+  if (!isNotificationsSupported()) {
+    return 'denied'
+  }
+  return await Notification.requestPermission()
+}
+
 export interface WebPushSubscriptionAttributes {
   endpoint: string;
   keys: {
@@ -14,6 +34,10 @@ export interface WebPushSubscriptionAttributes {
 }
 
 export const subscribe = async (): Promise<WebPushSubscriptionAttributes> => {
+  if (getNotificationPermission() !== 'granted') {
+    throw new KError(KErrorCode.NotificationsPermissionDenied, 'Notifications permission not granted')
+  }
+
   const vapidPublicKey = config.PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY;
   if (!vapidPublicKey) {
     throw new KError(KErrorCode.ScriptError, "Missing VAPID public key for push notifications");
