@@ -14,20 +14,10 @@ The header prominently displays your **Group Name and Logo** to build a closer c
 
 This section aims to spark curiosity by showcasing a curated selection of marketplace items:
 
-* 
-**Offers**: Displays 3 selected offers from the local marketplace, including an image, title, truncated description, author details (name and avatar), and the distance from the author to the user.
-
-
-* 
-**Needs**: Displays 3 selected needs with a similar layout to the offers.
-
-
-* 
-**Primary Call to Action (CTA)**: A button directing users to the main Home feed to browse more content.
-
-
-* 
-**Secondary CTA**: A link encouraging users to "Publish a new offer" to drive community content creation.
+* **Offers**: Displays 3 selected offers from the local marketplace, including an image, title, truncated description, author details (name and avatar), and the distance from the author to the user.
+* **Needs**: Displays 3 selected needs with a similar layout to the offers.
+* **Primary Call to Action (CTA)**: A button directing users to the main Home feed to browse more content.
+* **Secondary CTA**: A link encouraging users to "Publish a new offer" to drive community content creation.
 
 
 
@@ -35,19 +25,9 @@ This section aims to spark curiosity by showcasing a curated selection of market
 
 Provides members with a clear view of their current status within the community:
 
-* 
-**Balance**: A prominent box displaying the local currency balance.
-
-
-* 
-**Balance Description**: A helpful explanation of the balance within the context of a mutual credit system (e.g., explaining that a negative balance is acceptable and represents receiving more than provided).
-
-
-* 
-**Monthly Stats**: Shows the number of transfers the user completed in the last month (hidden if no transfers occurred).
-
-
-
+* **Balance**: A prominent box displaying the local currency balance.
+* **Balance Description**: A helpful explanation of the balance within the context of a mutual credit system (e.g., explaining that a negative balance is acceptable and represents receiving more than provided).
+* **Monthly Stats**: Shows the number of transfers the user completed in the last month (hidden if no transfers occurred).
 ### 4. Account Alert Box
 
 A high-impact, personalized section that identifies specific tasks for the user to improve their participation. It prioritizes alerts such as:
@@ -168,31 +148,14 @@ The "Account Alert" box is designed to nudge users toward the most urgent action
 
 | Priority | Condition | Recommended Action |
 | --- | --- | --- |
-| 1 | Negative balance AND no active offers | Create an Offer 
-
- |
-| 2 | Positive balance AND no active needs | Create a Need 
-
- |
-| 3 | No active offers (any balance) | Create an Offer 
-
- |
-| 4 | No active needs (any balance) | Create a Need 
-
- |
-| 5 | Profile is missing an image | Edit Profile 
-
- |
-| 6 | Profile is missing a biography | Edit Profile 
-
- |
-| 7 | Profile is missing a location | Edit Profile 
-
- |
-| 8 | User has expired offers | Manage Offers 
-
- |
-
+| 1 | Negative balance AND no active offers | Create an Offer |
+| 2 | Positive balance AND no active needs | Create a Need |
+| 3 | No active offers (any balance) | Create an Offer |
+| 4 | No active needs (any balance) | Create a Need |
+| 5 | Profile is missing an image | Edit Profile |
+| 6 | Profile is missing a biography | Edit Profile |
+| 7 | Profile is missing a location | Edit Profile |
+| 8 | User has expired offers | Manage Offers |
 ### Anti-Fatigue Logic (Repetition Check)
 
 To prevent users from being "pestered" by the same message repeatedly, the system checks the logs of the previous two newsletters.
