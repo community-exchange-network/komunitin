@@ -63,6 +63,35 @@ export default function createPersistPlugin<T>() {
   // Storage for timestamps of update time for values with the same key.
   const timestamps = localForage.createInstance({name: name + "_timestamps"})
 
+  // Given a root mutation name (eg: "notificationsBannerDismissed"), resolve the module name if it's a
+  // non-namespaced root module (eg: "me" or "ui"). Otherwise return null.
+  const resolveRootModule = (store: Store<T>, mutation: string): string | null => {
+
+    const nonNamespacedModules = ["me", "ui"]
+    const rootState = store.state
+
+    for (const moduleName of nonNamespacedModules) {
+      if (rootState?.[moduleName] && Object.prototype.hasOwnProperty.call(rootState[moduleName], mutation)) {
+        return moduleName
+      }
+    }
+    return null
+  }
+
+  const resolvePath = (store: Store<T>, mutation: string): {index: string[], op: string} => {
+    const parts = mutation.split("/")
+    const index = parts.slice(0, parts.length - 1)
+    const op = parts[parts.length - 1]
+    if (index.length === 0) {
+      const moduleName = resolveRootModule(store, op)
+      if (moduleName) {
+        index.push(moduleName)
+      }
+    }
+    return {index, op}
+
+  }
+
   const setStateCache = async (key: string, value: unknown) => {
     if (key.startsWith("_")) {
       throw new Error("Cannot set a cache item starting with '_'.");
@@ -155,11 +184,9 @@ export default function createPersistPlugin<T>() {
         }
       })
       store.replaceState(merge(store.state, state))
-
     }
 
     initialize().catch((error) => {
-       
       console.error("Error initializing persisted state:", error);
     });
 
@@ -169,9 +196,7 @@ export default function createPersistPlugin<T>() {
       // The cloneDeep ensures no reactivity in the object hierarchy.
       const value = cloneDeep(payload)
 
-      const parts = type.split("/")
-      const index = parts.slice(0, parts.length - 1)
-      const op = parts[parts.length - 1]
+      const {index, op} = resolvePath(store, type)
       
       // storage methods are asynchronous but we don't wait for the result (or error).
       const save = (i: string[], item: unknown) => {
