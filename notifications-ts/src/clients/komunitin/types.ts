@@ -119,9 +119,7 @@ export interface UserSettings {
     komunitin: boolean;
     notifications: {
       myAccount: boolean;
-      newNeeds: boolean;
-      newOffers: boolean;
-      newMembers: boolean;
+      group: boolean;
     };
     emails: {
       myAccount: boolean;

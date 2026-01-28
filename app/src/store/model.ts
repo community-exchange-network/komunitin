@@ -159,9 +159,7 @@ export interface UserSettings extends ResourceObject {
     komunitin: boolean
     notifications: {
       myAccount: boolean
-      newNeeds: boolean
-      newOffers: boolean
-      newMembers: boolean
+      group: boolean
     },
     emails: {
       myAccount: boolean

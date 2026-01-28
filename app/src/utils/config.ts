@@ -62,7 +62,8 @@ export const config = {
   NOTIFICATIONS_URL: getString('NOTIFICATIONS_URL', process.env.NOTIFICATIONS_URL),
   PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: getString('PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY', process.env.PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY),
   GTAG_ID: getString('GTAG_ID', process.env.GTAG_ID),
-  FEEDBACK_URL: getString('FEEDBACK_URL', process.env.FEEDBACK_URL)
+  FEEDBACK_URL: getString('FEEDBACK_URL', process.env.FEEDBACK_URL),
+  DOCS_URL: getString('DOCS_URL', process.env.DOCS_URL)
 };
 
 export function setConfig(newConfig: Record<string, string>) {
