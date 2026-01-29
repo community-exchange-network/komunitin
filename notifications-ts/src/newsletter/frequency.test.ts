@@ -52,6 +52,11 @@ describe('shouldProcessGroup', () => {
         type: 'Point',
         coordinates: coordinates || [0, 0]
       }
+    },
+    relationships: {
+      admins: { data: [
+        { id: 'admin-1', type: 'users' }
+      ] }
     }
   });
 

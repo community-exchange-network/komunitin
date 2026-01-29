@@ -11,8 +11,8 @@ const initI18n = async () => {
     await i18next
       .use(Backend)
       .init({
-        lng: 'ca', // Default fallback
-        fallbackLng: 'ca',
+        lng: 'en', // Default fallback
+        fallbackLng: 'en',
         preload: ['ca', 'en', 'es', 'it'], // Preload languages
         ns: ['translation'],
         defaultNS: 'translation',
@@ -26,5 +26,10 @@ const initI18n = async () => {
   }
   return i18next;
 };
+
+export const tzDate = (timezone: string, date: Date = new Date()): Date => {
+  const localTimeStr = date.toLocaleString('en-US', { timeZone: timezone, hour12: false });
+  return new Date(localTimeStr);
+}
 
 export default initI18n;

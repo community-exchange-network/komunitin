@@ -5,7 +5,7 @@ import { server } from '../../mocks/server';
 
 describe('KomunitinClient', () => {
   before(() => {
-    server.listen();
+    server.listen({ onUnhandledRequest: 'bypass' });
   });
 
   after(() => {

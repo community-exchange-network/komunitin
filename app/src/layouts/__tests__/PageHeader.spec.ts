@@ -40,7 +40,6 @@ const i18n = createI18n({
 config.global.plugins.unshift([i18n])
 
 jest.mock("../../plugins/Notifications")
-jest.mock("@firebase/messaging");
 jest.mock('vue-router', () => ({
   useRoute: jest.fn(() => ({
     path: '/test-path',
