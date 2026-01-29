@@ -3,8 +3,6 @@
   "findYourLocalGroup": "Find your community",
   "balance": "Community Standing",
   "members": "Users",
-  "sendPaymentText": "Select the user you want to send to, a description and the amount you will transfer from your account.",
-  "receivePaymentText": "Select the user you want to receive from, a description and the amount you will receive to your account.",
   "transactionPayerHint": "Choose the user from which the amount will be transferred.",
   "createTransaction": "Record a trade",
   "enterTransactionData": "Enter information about the trade",
@@ -18,6 +16,8 @@
   "selectPayer": "Who received this?",
   "selectPayee": "Who provided this?",
   "receivePaymentText": "Select who received what you provided, describe what you provided, and enter the value.",
-  "sendPaymentText": "Select who provided what you received, describe what you received, and enter the value."
+  "sendPaymentText": "Select who provided what you received, describe what you received, and enter the value.",
+  "sendPayment": "Record trade",
+  "receivePayment": "Record trade"
 
 }
