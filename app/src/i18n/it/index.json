@@ -80,6 +80,7 @@
   "payee": "A",
   "feedback": "Feedback",
   "komunitinProject": "Progetto Komunitin",
+  "about": "Informazioni",
   "nothingHere": "Spiacenti, non c'è ancora niente...!",
   "enableNotificationsText": "Abilita le notifiche per essere informato sui movimenti del tuo account e sulle novità della comunità. Puoi configurarle o disabilitarle in seguito",
   "deniedNotificationsText": "Il tuo dispositivo blocca le notifiche. Abilita le notifiche da Komunitin nelle impostazioni.",
@@ -168,6 +169,9 @@
   "offersNotifications": "Nuove offerte",
   "membersNotifications": "Nuovi membri",
   "notifications": "Notifiche",
+  "myProfile": "Il mio profilo",
+  "myNeeds": "Le mie necessità",
+  "myOffers": "Le mie offerte",
   "app": "App",
   "account": "Conti",
   "enterProfileData": "Chi sei?",
@@ -241,7 +245,7 @@
   "myAccountEmails": "Il mio account",
   "myAccountEmailsHint": "Email relative al tuo account: movimenti, movimenti sospesi, offerte e necessità scadute...",
   "groupEmails": "Novità dalla rete",
-  "groupEmailsHint": "Raccolta delle ultime notizie dalla rete: nuovi membri, nuove offerte e necessità...",
+  "groupEmailsHint": "Ricevere una raccolta delle ultime offerte, necessità e statistiche dalla rete.",
   "never": "Mai",
   "daily": "Quotidiano",
   "weekly": "Settimanale",
@@ -396,6 +400,10 @@
 
   "loggingOut": "Disconnessione in corso...",
   "loggedOut": "Sei stato disconnesso e non riceverai ulteriori notifiche finché non effettuerai nuovamente l'accesso.",
+  "unsubscribed": "Ti sei disiscritto",
+  "unsubscribedText": "Non riceverai più email della newsletter della comunità. Puoi modificare le tue preferenze email in qualsiasi momento nelle impostazioni.",
+  "unsubscribeError": "Disiscrizione fallita",
+
   "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
   "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",
   

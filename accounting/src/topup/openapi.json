@@ -1,0 +1,888 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Topup API",
+    "version": "1.0.0",
+    "description": "API for managing topups and topup settings."
+  },
+  "paths": {
+    "/{code}/topups": {
+      "post": {
+        "summary": "Create a new topup",
+        "description": "Creates a new topup request for an account.",
+        "tags": ["Topups"],
+        "security": [
+          {
+            "oauth2": ["accounting"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "TEST"
+            },
+            "description": "Currency code"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.api+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTopupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Topup created successfully",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/{code}/topups/{id}": {
+      "get": {
+        "summary": "Get a topup",
+        "description": "Retrieves a topup by its ID.",
+        "tags": ["Topups"],
+        "security": [
+          {
+            "oauth2": ["accounting"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "TEST"
+            },
+            "description": "Currency code"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-0000-0000-000000000001"
+            },
+            "description": "Topup ID"
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "user,account,transfer"
+            },
+            "description": "Comma-separated list of related resources to include (user, account, transfer)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Topup details",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopupResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Topup not found"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a topup",
+        "description": "Updates an existing topup.",
+        "tags": ["Topups"],
+        "security": [
+          {
+            "oauth2": ["accounting"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "TEST"
+            },
+            "description": "Currency code"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-0000-0000-000000000001"
+            },
+            "description": "Topup ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.api+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTopupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Topup updated successfully",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopupResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Topup not found"
+          }
+        }
+      }
+    },
+    "/{code}/topups/{id}/hooks/mollie": {
+      "post": {
+        "summary": "Mollie Webhook",
+        "description": "Webhook endpoint for Mollie payment updates.",
+        "tags": ["Topups"],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "TEST"
+            },
+            "description": "Currency code"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-0000-0000-000000000001"
+            },
+            "description": "Topup ID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Mollie Payment ID",
+                    "example": "tr_7UhSN1zuXS"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook processed"
+          }
+        }
+      }
+    },
+    "/{code}/currency/topup-settings": {
+      "get": {
+        "summary": "Get currency topup settings",
+        "description": "Retrieves the topup settings for the currency.",
+        "tags": ["Settings"],
+        "security": [
+          {
+            "oauth2": ["accounting"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "TEST"
+            },
+            "description": "Currency code"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Topup settings",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopupSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update currency topup settings",
+        "description": "Updates the topup settings for the currency.",
+        "tags": ["Settings"],
+        "security": [
+          {
+            "oauth2": ["accounting"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "TEST"
+            },
+            "description": "Currency code"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.api+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTopupSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings updated successfully",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopupSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{code}/accounts/{id}/topup-settings": {
+      "get": {
+        "summary": "Get account topup settings",
+        "description": "Retrieves the topup settings for a specific account.",
+        "tags": ["Settings"],
+        "security": [
+          {
+            "oauth2": ["accounting"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "TEST"
+            },
+            "description": "Currency code"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-0000-0000-000000000002"
+            },
+            "description": "Account ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account topup settings",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountTopupSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update account topup settings",
+        "description": "Updates the topup settings for a specific account.",
+        "tags": ["Settings"],
+        "security": [
+          {
+            "oauth2": ["accounting"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "TEST"
+            },
+            "description": "Currency code"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-0000-0000-000000000002"
+            },
+            "description": "Account ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/vnd.api+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountTopupSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings updated successfully",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountTopupSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "description": "OAuth2 authentication with Accounting or Superadmin scope",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://id.komunitin.org/oauth/authorize",
+            "tokenUrl": "https://id.komunitin.org/oauth/token",
+            "scopes": {
+              "accounting": "Access to accounting operations",
+              "superadmin": "Superadmin access"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "CreateTopupRequest": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["topups"]
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "depositAmount": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "depositCurrency": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 3
+                  },
+                  "receiveAmount": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["new"]
+                  },
+                  "meta": {
+                    "type": "object",
+                    "properties": {
+                      "description": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "required": ["depositAmount", "depositCurrency"]
+              },
+              "relationships": {
+                "type": "object",
+                "properties": {
+                  "account": {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["accounts"]
+                          },
+                          "id": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["type", "id"]
+                      }
+                    },
+                    "required": ["data"]
+                  }
+                },
+                "required": ["account"]
+              }
+            },
+            "required": ["type", "attributes", "relationships"]
+          }
+        },
+        "required": ["data"],
+        "example": {
+          "data": {
+            "type": "topups",
+            "attributes": {
+              "depositAmount": 1000,
+              "depositCurrency": "EUR",
+              "meta": {
+                "description": "Topup for December"
+              }
+            },
+            "relationships": {
+              "account": {
+                "data": {
+                  "type": "accounts",
+                  "id": "00000000-0000-0000-0000-000000000002"
+                }
+              }
+            }
+          }
+        }
+      },
+      "UpdateTopupRequest": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["topups"]
+              },
+              "id": {
+                "type": "string"
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["new", "pending", "canceled", "transfer_completed"]
+                  },
+                  "depositAmount": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "depositCurrency": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 3
+                  },
+                  "meta": {
+                    "type": "object",
+                    "properties": {
+                      "description": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": ["type", "id"]
+          }
+        },
+        "required": ["data"],
+        "example": {
+          "data": {
+            "type": "topups",
+            "id": "00000000-0000-0000-0000-000000000001",
+            "attributes": {
+              "status": "canceled"
+            }
+          }
+        }
+      },
+      "TopupResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["topups"]
+              },
+              "id": {
+                "type": "string"
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string"
+                  },
+                  "depositAmount": {
+                    "type": "integer"
+                  },
+                  "depositCurrency": {
+                    "type": "string"
+                  },
+                  "receiveAmount": {
+                    "type": "integer"
+                  },
+                  "paymentProvider": {
+                    "type": "string"
+                  },
+                  "paymentData": {
+                    "type": "object"
+                  },
+                  "meta": {
+                    "type": "object"
+                  },
+                  "created": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "updated": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "relationships": {
+                "type": "object",
+                "properties": {
+                  "account": {
+                    "type": "object"
+                  },
+                  "user": {
+                    "type": "object"
+                  },
+                  "transfer": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "included": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "example": {
+          "data": {
+            "type": "topups",
+            "id": "00000000-0000-0000-0000-000000000001",
+            "attributes": {
+              "status": "new",
+              "depositAmount": 1000,
+              "depositCurrency": "EUR",
+              "receiveAmount": 1000,
+              "paymentProvider": "mollie",
+              "created": "2023-01-01T12:00:00Z",
+              "updated": "2023-01-01T12:00:00Z"
+            },
+            "relationships": {
+              "account": {
+                "data": { "type": "accounts", "id": "00000000-0000-0000-0000-000000000002" }
+              }
+            }
+          }
+        }
+      },
+      "UpdateTopupSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["topup-settings"]
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "defaultAllowTopup": {
+                    "type": "boolean"
+                  },
+                  "depositCurrency": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 3
+                  },
+                  "rate": {
+                    "type": "object",
+                    "properties": {
+                      "n": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "d": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  },
+                  "paymentProvider": {
+                    "type": "string",
+                    "minLength": 3
+                  },
+                  "minAmount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "maxAmount": {
+                    "oneOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "boolean",
+                        "enum": [false]
+                      }
+                    ]
+                  },
+                  "mollieApiKey": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": ["type"]
+          }
+        },
+        "required": ["data"],
+        "example": {
+          "data": {
+            "type": "topup-settings",
+            "attributes": {
+              "enabled": true,
+              "minAmount": 500
+            }
+          }
+        }
+      },
+      "TopupSettingsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["topup-settings"]
+              },
+              "id": {
+                "type": "string"
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "defaultAllowTopup": {
+                    "type": "boolean"
+                  },
+                  "depositCurrency": {
+                    "type": "string"
+                  },
+                  "rate": {
+                    "type": "object",
+                    "properties": {
+                      "n": {
+                        "type": "integer"
+                      },
+                      "d": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "minAmount": {
+                    "type": "integer"
+                  },
+                  "maxAmount": {
+                    "oneOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "paymentProvider": {
+                    "type": "string"
+                  },
+                  "sourceAccountId": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "data": {
+            "type": "topup-settings",
+            "id": "00000000-0000-0000-1000-000000000001",
+            "attributes": {
+              "enabled": true,
+              "defaultAllowTopup": false,
+              "depositCurrency": "EUR",
+              "minAmount": 500,
+              "paymentProvider": "mollie"
+            }
+          }
+        }
+      },
+      "UpdateAccountTopupSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["account-topup-settings"]
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "allowTopup": {
+                    "type": "boolean",
+                    "nullable": true
+                  }
+                }
+              }
+            },
+            "required": ["type"]
+          }
+        },
+        "required": ["data"],
+        "example": {
+          "data": {
+            "type": "account-topup-settings",
+            "attributes": {
+              "allowTopup": true
+            }
+          }
+        }
+      },
+      "AccountTopupSettingsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["account-topup-settings"]
+              },
+              "id": {
+                "type": "string"
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "allowTopup": {
+                    "type": "boolean",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "data": {
+            "type": "account-topup-settings",
+            "id": "00000000-0000-0000-0000-000000000002",
+            "attributes": {
+              "allowTopup": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

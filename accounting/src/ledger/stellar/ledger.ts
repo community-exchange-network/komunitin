@@ -191,10 +191,13 @@ export class StellarLedger implements Ledger {
   /**
    * Return a TransactionBuilder with fee and network.
    * @param account The source account.
+   * @param options
+   *  - sequential: If true, don't use channel accounts and don't optimistically set sequence numbers to 
+   * avoid parallel transactions from the same account.
    * @returns 
    */
-  transactionBuilder(account: StellarAccount): StellarTransactionBuilder {
-    return this.stellarTransactionBuilder(account.getStellarAccount())
+  transactionBuilder(account: StellarAccount, options: { sequential?: boolean } = {}): StellarTransactionBuilder {
+    return this.stellarTransactionBuilder(account.getStellarAccount(), options)
   }
   sponsorTransactionBuilder(): StellarTransactionBuilder {
     if (this.sponsorAccount === undefined) {
@@ -219,8 +222,11 @@ export class StellarLedger implements Ledger {
     return builder
   }
 
-  private stellarTransactionBuilder(account: Horizon.AccountResponse) {
-    if (this.channelAccounts === undefined || this.channelAccounts.length === 0 || this.concurrentTransactions[account.accountId()] === undefined) {
+  private stellarTransactionBuilder(account: Horizon.AccountResponse, options: { sequential?: boolean } = {}) {
+    if (options.sequential && this.concurrentTransactions[account.accountId()] !== undefined) {
+      throw internalError("There is a concurrent transaction from this account. Please try again later.")
+    }
+    if (options.sequential || this.channelAccounts === undefined || this.channelAccounts.length === 0 || this.concurrentTransactions[account.accountId()] === undefined) {
       return this.rawStellarTransactionBuilder(account)
     } else {
       // THere is a concurrent transaction from this account. Use a channel account for better throughput.

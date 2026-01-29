@@ -87,6 +87,28 @@
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
       <div class="text-subtitle1">
+        {{ $t('emails') }}
+      </div>
+    </div>
+    <toggle-item
+      v-model="enableGroupEmail"
+      :label="$t('enableGroupEmail')"
+      :hint="$t('enableGroupEmailHint')"
+    />
+    <toggle-btn-item
+      v-model="defaultEmailFrequency"
+      :label="$t('defaultGroupEmailFrequency')"
+      :caption="$t('defaultGroupEmailFrequencyHint')"
+      :disable="!enableGroupEmail"
+      :options="[
+        { label: $t('weekly'), value: 'weekly' },
+        { label: $t('monthly'), value: 'monthly' },
+        { label: $t('never'), value: 'never', off: true }
+      ]"
+    />
+    <q-separator class="q-mt-xl" />
+    <div class="q-mt-lg">
+      <div class="text-subtitle1">
         {{ $t('accountDefaults') }}
       </div>
       <div class="text-onsurface-m">
@@ -140,7 +162,6 @@
       :rules="[(val: string) => val.match(/^\d+(\/\d+)?$/) || $t('invalidCurrencyValue')]"
       hide-bottom-space
       :loading="currencyValueLoading"
-      disable
     />
     <input-update
       v-model="externalTraderCreditLimit"
@@ -182,6 +203,7 @@
       :trustlines="trustlines"
       @update:trustline="$emit('update:trustline', $event)"
       @create:trustline="$emit('create:trustline', $event)"
+      @sync:trustlines="$emit('sync:trustlines')"
     />
     <template v-if="featTopup">
       <q-separator class="q-mt-xl" />
@@ -223,6 +245,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import ToggleItem from 'src/components/ToggleItem.vue';
+import ToggleBtnItem from 'src/components/ToggleBtnItem.vue';
 import InputUpdate from 'src/components/InputUpdate.vue';
 import AmountInput from 'src/components/AmountInput.vue';
 import TrustlinesField from './TrustlinesField.vue';
@@ -261,6 +284,7 @@ const emit = defineEmits<{
   (e: 'update:currency-settings', value: DeepPartial<CurrencySettings>): void
   (e: 'update:trustline', value: DeepPartial<Trustline>): void
   (e: 'create:trustline', value: DeepPartial<Trustline>): void
+  (e: 'sync:trustlines'): void
   (e: 'update:category', value: DeepPartial<Category>): void
   (e: 'create:category', value: DeepPartial<Category>): void
   (e: 'delete:category', value: DeepPartial<Category>): void
@@ -273,8 +297,10 @@ const terms = ref(groupSettings.value.attributes.terms ?? "")
 const minOffers = ref(groupSettings.value.attributes.minOffers ?? 0)
 const minNeeds = ref(groupSettings.value.attributes.minNeeds ?? 0)
 const allowAnonymousMemberList = ref(groupSettings.value.attributes.allowAnonymousMemberList ?? false)
+const enableGroupEmail = ref(groupSettings.value.attributes.enableGroupEmail ?? true)
+const defaultEmailFrequency = ref(groupSettings.value.attributes.defaultGroupEmailFrequency ?? "monthly")
 
-watchDebounced([requireAcceptTerms, terms, minOffers, minNeeds, allowAnonymousMemberList], () => {
+watchDebounced([requireAcceptTerms, terms, minOffers, minNeeds, allowAnonymousMemberList, enableGroupEmail, defaultEmailFrequency], () => {
   emit('update:group-settings', {
     ...groupSettings.value,
     attributes: {
@@ -282,7 +308,9 @@ watchDebounced([requireAcceptTerms, terms, minOffers, minNeeds, allowAnonymousMe
       terms: terms.value,
       minOffers: minOffers.value,
       minNeeds: minNeeds.value,
-      allowAnonymousMemberList: allowAnonymousMemberList.value
+      allowAnonymousMemberList: allowAnonymousMemberList.value,
+      enableGroupEmail: enableGroupEmail.value,
+      defaultGroupEmailFrequency: defaultEmailFrequency.value
     }
   } as DeepPartial<GroupSettings>)
 })

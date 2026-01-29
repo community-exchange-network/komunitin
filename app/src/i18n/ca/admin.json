@@ -78,7 +78,10 @@
   "offersAndNeeds": "Ofertes i necessitats",
   "marketplace": "Mercat",
   "marketplaceText": "Defineix la configuració per a les ofertes i necessitats dins de la teva comunitat.",
-  "categoriesText": "Les ofertes i necessitats estan organitzades en categories. Defineix les categories que estaran disponibles a la teva comunitat.",
+  "enableGroupEmail": "Habilitar butlletí de la comunitat",
+  "enableGroupEmailHint": "Habilitar l'enviament de butlletins periòdics amb les últimes ofertes, necessitats i estadístiques als membres de la comunitat.",
+  "defaultGroupEmailFrequency": "Freqüència predeterminada del butlletí",
+  "defaultGroupEmailFrequencyHint": "Freqüència predeterminada per enviar butlletins de la comunitat als nous membres. Els membres poden canviar aquesta configuració a la configuració del seu compte.",  "categoriesText": "Les ofertes i necessitats estan organitzades en categories. Defineix les categories que estaran disponibles a la teva comunitat.",
   "deleteCategoryConfirmation": "Estàs segur que vols eliminar la categoria {name}?",
   "addCategory": "Afegir Categoria",
   "editCategory": "Editar Categoria",
@@ -116,5 +119,6 @@
   "disableGroup": "Desactivar comunitat",
   "groupStatus": "Estat de la comunitat",
   "groupStatusText": "Zona de perill.",
-  "groupStatusUpdated": "Estat de la comunitat actualitzat correctament."
+  "groupStatusUpdated": "Estat de la comunitat actualitzat correctament.",
+  "refresh": "Actualitzar"
 }

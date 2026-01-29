@@ -81,7 +81,7 @@ export interface ResourceResponseInclude<
 export interface Location {
   name: string;
   type: "Point";
-  coordinates: [number, number];
+  coordinates: [number, number]; //longitude and latitude
 }
 
 export type ImageObject = string;
@@ -151,7 +151,7 @@ export interface User extends ResourceObject {
   }
 }
 
-export type MailingFrequency = "never" | "daily" | "weekly" | "monthly" | "quarterly";
+export type MailingFrequency = "never" | "weekly" | "monthly";
 
 export interface UserSettings extends ResourceObject {
   attributes: {
@@ -221,6 +221,8 @@ export interface GroupSettings extends ResourceObject {
     minOffers: number;
     minNeeds: number;
     allowAnonymousMemberList: boolean;
+    enableGroupEmail: boolean;
+    defaultGroupEmailFrequency: MailingFrequency;
   },
   relationships: {
     group: RelatedResource;

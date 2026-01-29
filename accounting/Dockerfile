@@ -7,8 +7,7 @@ WORKDIR /app
 RUN npm install -g pnpm
 # Copy just package.json (and pnpm-lock.yaml) so when there's no package changes we don't
 # need to redo the install step.
-COPY package.json ./
-COPY pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies.
 RUN pnpm install

@@ -78,6 +78,10 @@
   "offersAndNeeds": "Offers and Needs",
   "marketplace": "Marketplace",
   "marketplaceText": "Define the settings for the offers and needs within your community.",
+  "enableGroupEmail": "Enable community newsletter",
+  "enableGroupEmailHint": "Enable sending periodic newsletters with latest offers, needs and statistics to community members.",
+  "defaultGroupEmailFrequency": "Default newsletter frequency",
+  "defaultGroupEmailFrequencyHint": "Default frequency for sending community newsletters to new members. Members can change this setting in their account settings.",
   "categoriesText": "Offers and needs are organized in categories. Define the categories that will be available in your community.",
   "deleteCategoryConfirmation": "Are you sure you want to delete the category {name}?",
   "addCategory": "Add Category",
@@ -116,5 +120,6 @@
   "disableGroup": "Disable Community",
   "groupStatus": "Community Status",
   "groupStatusText": "Danger zone.",
-  "groupStatusUpdated": "Community status updated successfully."
+  "groupStatusUpdated": "Community status updated successfully.",
+  "refresh": "Refresh"
 }

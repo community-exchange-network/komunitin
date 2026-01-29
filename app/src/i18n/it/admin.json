@@ -78,7 +78,10 @@
   "offersAndNeeds": "Offerte e necessità",
   "marketplace": "Marketplace",
   "marketplaceText": "Definisci le impostazioni delle offerte e delle necessità interne alla comunità.",
-  "categoriesText": "Offerte e necessità sono organizzate in categorie. Definisci le categorie che saranno disponibili per la comunità.",
+  "enableGroupEmail": "Abilita newsletter della comunità",
+  "enableGroupEmailHint": "Abilita l'invio di newsletter periodiche con le ultime offerte, necessità e statistiche ai membri della comunità.",
+  "defaultGroupEmailFrequency": "Frequenza predefinita della newsletter",
+  "defaultGroupEmailFrequencyHint": "Frequenza predefinita per l'invio di newsletter della comunità ai nuovi membri. I membri possono modificare questa impostazione nelle impostazioni del loro account.",  "categoriesText": "Offerte e necessità sono organizzate in categorie. Definisci le categorie che saranno disponibili per la comunità.",
   "deleteCategoryConfirmation": "Sei sicuro di eliminare la categoria {name}?",
   "addCategory": "Aggiungi Categoria",
   "editCategory": "Modifica Categoria",
@@ -116,5 +119,6 @@
   "disableGroup": "Disabilita comunità",
   "groupStatus": "Stato della comunità",
   "groupStatusText": "Zona pericolosa.",
-  "groupStatusUpdated": "Stato della comunità aggiornato con successo."
+  "groupStatusUpdated": "Stato della comunità aggiornato con successo.",
+  "refresh": "Aggiorna"
 }
