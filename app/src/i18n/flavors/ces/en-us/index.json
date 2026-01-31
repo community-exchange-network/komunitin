@@ -23,6 +23,11 @@
   "transactionPayeeHint": "Select the user the who will receive the transfer.",
   "submitTransaction": "Record trade",
   "submitTransactions": "Submit trade",
-  "account": "User"
+  "account": "User",
+  "currency": "Unit System",
+  "currencyName": "Unit Name",
+  "currencySymbol": "Unit Symbol",
+  "currencyNamePlural": "Units Name (plural)",
+  "editCurrencyText": "Define the main attributes of your community's units"
  
 }
