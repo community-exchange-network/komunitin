@@ -13,6 +13,14 @@ export const serializeSubscription = (subscription: PushSubscription) => {
       meta: subscription.meta,
       created: subscription.createdAt,
       updated: subscription.updatedAt,
+    },
+    relationships: {
+      user: {
+        data: {
+          type: "users",
+          id: subscription.userId,
+        },
+      },
     }
   }
 }

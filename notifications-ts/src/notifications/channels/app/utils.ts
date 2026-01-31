@@ -1,28 +1,30 @@
 import logger from "../../../utils/logger";
-import { i18n } from "i18next";
 import initI18n from "../../../utils/i18n";
 import prisma from "../../../utils/prisma";
 import { EnrichedEvent } from "../../enriched-events";
-import { MessageContext } from "../../messages";
+import { MessageContext, NotificationMessage } from "../../messages";
 
 const createNotification = async (
   event: { id: string; name: string; code: string },
   user: { id: string },
-  content: { title: string; body: string; image: string | undefined },
-  route: string
+  message: NotificationMessage
 ) => {
+  const data = {
+    route: message.route,
+    ...(message.data),
+    ...(message.actions ? {actions: message.actions} : undefined),
+  }
+  
   await prisma.appNotification.create({
     data: {
       tenantId: event.code,
       userId: user.id,
       eventId: event.id,
       eventName: event.name,
-      title: content.title,
-      body: content.body,
-      image: content.image,
-      data: {
-        route,
-      },
+      title: message.title,
+      body: message.body,
+      image: message.image,
+      data: data as any,
     },
   });
 };
@@ -30,7 +32,7 @@ const createNotification = async (
 export const handleNotificationForUsers = async <T extends EnrichedEvent>(
   event: T,
   users: Array<{ user: any; settings: any }>,
-  builder: (ctx: MessageContext, event: T) => { title: string; body: string; image: string | undefined; route: string } | null
+  builder: (ctx: MessageContext, event: T) => NotificationMessage | null
 ) => {
   const i18n = await initI18n();
   let notificationCount = 0;
@@ -45,13 +47,10 @@ export const handleNotificationForUsers = async <T extends EnrichedEvent>(
       continue;
     }
 
-    const { title, body, image, route } = message;
-
     await createNotification(
       event,
       user,
-      { title, body, image },
-      route
+      message
     );
     notificationCount++;
   }
