@@ -1,3 +1,8 @@
 {
-    "manageMembers": "Manage Users"
+    "manageMembers": "Manage Users",
+    "move": "Record",
+  "currencyValue": "Credit Value",
+  "currencyValueHint": "The value of your credits in relation to the reference HOUR. It is used to calculate the exchange rate between your credits and others. Use the notation n/d. Eg, if you set 1/10, it means that 10 units of your credit are equivalent to 1 HOUR.",
+  "invalidCurrencyValue": "Invalid credit value. Please use the notation n/d."
+ 
 }

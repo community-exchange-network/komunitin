@@ -3,7 +3,7 @@
   "findYourLocalGroup": "Find your community",
   "balance": "Community Standing",
   "members": "Users",
-  "transactionPayerHint": "Choose the user from which the amount will be transferred.",
+  "transactionPayerHint": "Select the user from which the amount will be transferred.",
   "createTransaction": "Record a trade",
   "enterTransactionData": "Enter information about the trade",
   "transactionAmountHint": "Value of the trade",
@@ -18,6 +18,11 @@
   "receivePaymentText": "Select who received what you provided, describe what you provided, and enter the value.",
   "sendPaymentText": "Select who provided what you received, describe what you received, and enter the value.",
   "sendPayment": "Record trade",
-  "receivePayment": "Record trade"
-
+  "receivePayment": "Record trade",
+  "enableNotificationsText": "Enable notifications to be aware of trade activity related to you and important news in your community. You can configure or disable them later.",
+  "transactionPayeeHint": "Select the user the who will receive the transfer.",
+  "submitTransaction": "Record trade",
+  "submitTransactions": "Submit trade",
+  "account": "User"
+ 
 }
