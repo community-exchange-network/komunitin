@@ -23,6 +23,12 @@ const initI18n = async () => {
           escapeValue: false, // Handlebars scrubs HTML
         }
       });
+      // Use Intl.DurationFormat for duration formatting (from node 23+)
+      i18next.services.formatter?.add('duration', (value: Intl.Duration) => {
+        return Intl.DurationFormat(i18next.language, {
+          style: 'short',
+        }).format(value);
+      });
   }
   return i18next;
 };
