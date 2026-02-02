@@ -54,8 +54,8 @@
   "notifications": {
     "post_expired_title": "{{type}} scaduta",
     "post_expired_body": "La tua {{type}} '{{excerpt}}' è scaduta ed è ora nascosta, ma puoi riattivarla.",
-    "member_expired_posts_title": "{{type}} scaduta {{time, relativetime}}",
-    "member_expired_posts_title_more": "{{type}} scaduta {{time, relativetime}} e {{count}} in più",
+    "member_expired_posts_title_one": "{{type}} scaduta {{time, relativetime}}",
+    "member_expired_posts_title_other": "{{type}} scaduta {{time, relativetime}} e {{countMore}} in più",
     "offers_count_one": "{{count}} offerta",
     "offers_count_other": "{{count}} offerte",
     "needs_count_one": "{{count}} necessità",
@@ -71,6 +71,8 @@
     "transfer_pending_body": "Hai un nuovo movimento di {{amount}} da {{sender}}. Accetta o rifiuta il movimento il prima possibile.",
     "transfer_rejected_title": "Movimento rifiutato",
     "transfer_rejected_body": "{{name}} ha rifiutato un movimento di {{amount}}.",
+    "transfer_still_pending_title": "Movimento ancora in sospeso",
+    "transfer_still_pending_body": "Il movimento di {{amount}} a {{name}} è ancora in sospeso dopo {{ duration, duration }}. Per favore accettalo o rifiutalo il prima possibile.",
     "post_expires_soon_title": "{{type}} scade {{time, relativetime}}",
     "post_expires_soon_body": "Estendi la tua {{type}} '{{excerpt}}' per mantenerla visibile agli altri.",
     "new_post_title": "Nuova {{type}} da {{name}}",
@@ -82,6 +84,10 @@
     "and_more_members": "altri {{count}}",
     "and_more_posts": "E altri {{count}}",
     "check_member_profiles_one": "Controlla il suo profilo",
-    "check_member_profiles_other": "Controlla i loro profili"
+    "check_member_profiles_other": "Controlla i loro profili",
+    "action_respond": "Rispondi",
+    "action_view": "Visualizza",
+    "action_extend": "Estendi {{duration, duration}}",
+    "action_hide": "Nascondi"
   }
 }
