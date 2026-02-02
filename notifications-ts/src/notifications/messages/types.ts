@@ -9,7 +9,10 @@ export interface MessageContext {
 }
 
 export const NotificationActions = {
-  DEFAULT: 'default',
+  OPEN_ROUTE: 'open_route',
+  OPEN_ROUTE_2: 'open_route_2',
+  EXTEND_POST: 'extend_post',
+  HIDE_POST: 'hide_post',
 } as const;
 
 export type NotificationAction = typeof NotificationActions[keyof typeof NotificationActions]

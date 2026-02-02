@@ -1,6 +1,6 @@
 import { Member, Need, Offer } from "../../clients/komunitin/types";
 import { EnrichedPostEvent, EnrichedPostsPublishedDigestEvent } from "../enriched-events";
-import { MessageContext, NotificationMessage } from "./types";
+import { MessageContext, NotificationActions, NotificationMessage } from "./types";
 
 /**
  * Create an excerpt from a post for use in notification body
@@ -11,10 +11,42 @@ export const excerptPost = (post: Offer | Need): string => {
     : post.attributes.content;
 
   // Truncate excerpt if too long
-  return text && text.length > 50
-    ? text.substring(0, 49) + '…'
+  return text && text.length > 40
+    ? text.substring(0, 39) + '…'
     : text;
 };
+
+/**
+ * Calculate new expiry date and duration for extending a post. It is based
+ * on the current age of the post (from creation to current expiry).
+ * 
+ * @param post 
+ * @returns 
+ */
+export const extendPostDuration = (post: Offer | Need): { expire: Date; duration: Intl.Duration } => {
+  const currentExpiry = new Date(post.attributes.expires);
+  const creation = new Date(post.attributes.created);
+  const ageDays = (currentExpiry.getTime() - creation.getTime()) / (1000 * 60 * 60 * 24);
+  
+  const expire = new Date(Math.max(currentExpiry.getTime(), Date.now()));
+
+  const duration: Intl.Duration = {};
+  if (ageDays <= 7) {
+    duration.days = 7;
+    expire.setDate(expire.getDate() + 7);
+  } else if (ageDays <= 30) {
+    duration.months = 1;
+    expire.setMonth(expire.getMonth() + 1);
+  } else if (ageDays <= 180) {
+    duration.months = 6;
+    expire.setMonth(expire.getMonth() + 6);
+  } else {
+    duration.years = 1;
+    expire.setFullYear(expire.getFullYear() + 1);
+  }
+  return { expire, duration };
+};
+
 
 /**
  * Select featured posts for digest notifications
@@ -53,18 +85,24 @@ export const buildSinglePostPublishedMessage = (
   event: EnrichedPostEvent | EnrichedPostsPublishedDigestEvent,
   post: Offer | Need,
   member: Member,
-  ctx: MessageContext
+  { t }: MessageContext
 ): NotificationMessage => {
   const excerpt = excerptPost(post);
   const route = `/groups/${event.code}/${post.type}/${post.attributes.code}`;
 
-  const type = post.type === 'offers' ? ctx.t('offer') : ctx.t('need');
+  const type = post.type === 'offers' ? t('offer') : t('need');
   
   return {
-    title: ctx.t('notifications.new_post_title', { type, name: member.attributes.name }),
-    body: ctx.t('notifications.new_post_body', { excerpt }),
+    title: t('notifications.new_post_title', { type, name: member.attributes.name }),
+    body: t('notifications.new_post_body', { excerpt }),
     image: member.attributes.image ?? event.group.attributes.image,
     route,
+    actions: [
+      {
+        title: t('notifications.action_view'),
+        action: NotificationActions.OPEN_ROUTE,
+      }
+    ],
   };
 };
 
@@ -94,6 +132,8 @@ export const buildPostsPublishedDigestMessage = (
     return buildSinglePostPublishedMessage(event, post, member, ctx);
   }
 
+  const { t } = ctx;
+
   // Handle multiple posts case
   const getMemberName = (memberId: string): string => {
     return memberMap.get(memberId)!.attributes.name;
@@ -111,21 +151,21 @@ export const buildPostsPublishedDigestMessage = (
   const extraPostsCount = items.length - featuredPosts.length;
   const image = getMemberImage(featuredMemberIds[0]) ?? group.attributes.image;
 
-  const title = ctx.t('notifications.posts_published_digest_title', {
+  const title = t('notifications.posts_published_digest_title', {
     names: [
       ...featuredMemberNames,
-      ...(extraMembersCount > 0 ? [ctx.t('notifications.and_more_members', { count: extraMembersCount })] : []),
+      ...(extraMembersCount > 0 ? [t('notifications.and_more_members', { count: extraMembersCount })] : []),
     ]
   });
 
   const bodyLines = featuredPosts.map(post => {
-    const type = post.type === 'offers' ? ctx.t('offer') : ctx.t('need');
+    const type = post.type === 'offers' ? t('offer') : t('need');
     const excerpt = excerptPost(post);
     return `• ${type} · ${excerpt}`;
   });
 
   if (extraPostsCount > 0) {
-    bodyLines.push(`• ${ctx.t('notifications.and_more_posts', { count: extraPostsCount })}`);
+    bodyLines.push(`• ${t('notifications.and_more_posts', { count: extraPostsCount })}`);
   }
 
   return {
@@ -133,6 +173,12 @@ export const buildPostsPublishedDigestMessage = (
     body: bodyLines.join('\n'),
     image,
     route: `/home`,
+    actions: [
+      {
+        title: t('notifications.action_view_all'),
+        action: NotificationActions.OPEN_ROUTE,
+      }
+    ],
   };
 };
 
@@ -141,19 +187,39 @@ export const buildPostsPublishedDigestMessage = (
  */
 export const buildPostExpiredMessage = (
   event: EnrichedPostEvent,
-  ctx: MessageContext
+  { t }: MessageContext
 ): NotificationMessage => {
   const { post, postType, code, group } = event;
 
   const excerpt = excerptPost(post);
   const route = `/groups/${code}/${postType}/${post.attributes.code}/edit`;
-  const type = postType === 'offers' ? ctx.t('offer') : ctx.t('need');
+  const type = postType === 'offers' ? t('offer') : t('need');
+
+  const { expire, duration } = extendPostDuration(post);
 
   return {
-    title: ctx.t('notifications.post_expired_title', { type }),
-    body: ctx.t('notifications.post_expired_body', { type, excerpt }),
+    title: t('notifications.post_expired_title', { type }),
+    body: t('notifications.post_expired_body', { type, excerpt }),
     image: group.attributes.image,
     route,
+    actions: [
+      {
+        title: t('notifications.action_view'),
+        action: NotificationActions.OPEN_ROUTE,
+      },
+      {
+        title: t('notifications.action_extend', { duration }),
+        action: NotificationActions.EXTEND_POST,
+      },
+      {
+        title: t('notifications.action_hide'),
+        action: NotificationActions.HIDE_POST,
+      }
+    ],
+    data: {
+      postId: post.id,
+      extendTo: expire.toISOString(),
+    },
   };
 };
 
@@ -162,7 +228,7 @@ export const buildPostExpiredMessage = (
  */
 export const buildPostExpiresSoonMessage = (
   event: EnrichedPostEvent,
-  ctx: MessageContext
+  { t }: MessageContext
 ): NotificationMessage | null => {
   const { post, postType, code, group } = event;
 
@@ -179,13 +245,30 @@ export const buildPostExpiresSoonMessage = (
     : Math.floor(timeToExpiryHours / 24);
 
   const excerpt = excerptPost(post);
+  const { expire, duration } = extendPostDuration(post)
   const route = `/groups/${code}/${postType}/${post.attributes.code}/edit`;
-  const type = postType === 'offers' ? ctx.t('offer') : ctx.t('need');
+  const type = postType === 'offers' ? t('offer') : t('need');
 
   return {
-    title: ctx.t('notifications.post_expires_soon_title', { type, time, range }),
-    body: ctx.t('notifications.post_expires_soon_body', { type, excerpt }),
+    title: t('notifications.post_expires_soon_title', { type, time, range }),
+    body: t('notifications.post_expires_soon_body', { type, excerpt }),
     image: group.attributes.image,
     route,
+    actions: [
+    {
+      title: t('notifications.action_view'),
+      action: NotificationActions.OPEN_ROUTE,
+    },
+    {
+      title: t('notifications.action_extend', { duration }),
+      action: NotificationActions.EXTEND_POST,
+    },{
+      title: t('notifications.action_hide'),
+      action: NotificationActions.HIDE_POST,
+    }],
+    data: {
+      postId: post.id,
+      extendTo: expire.toISOString(),
+    },
   };
 };

@@ -1,7 +1,7 @@
 import { Member, Need, Offer } from "../../clients/komunitin/types";
 import { EnrichedMemberHasExpiredPostsEvent, EnrichedMembersJoinedDigestEvent } from "../enriched-events";
-import { MessageContext, NotificationMessage } from "./types";
-import { excerptPost } from "./post";
+import { excerptPost, extendPostDuration } from "./post";
+import { MessageContext, NotificationActions, NotificationMessage, NotificationMessageAction } from "./types";
 
 /**
  * Calculate time ago parameters for i18n relative time formatting
@@ -25,10 +25,10 @@ const getTimeAgoParams = (date: Date): { time: number; range: 'day' | 'month' | 
 const getMemberCity = (member: Member): string | undefined =>
   member.attributes.location?.name || member.attributes.address?.addressLocality;
 
-const getMemberLabel = (member: Member, ctx: MessageContext): string => {
+const getMemberLabel = (member: Member, { t }: MessageContext): string => {
   const city = getMemberCity(member);
   return city
-    ? (ctx.t('notifications.member_from_city', { name: member.attributes.name, city }) as string)
+    ? (t('notifications.member_from_city', { name: member.attributes.name, city }))
     : member.attributes.name;
 };
 
@@ -45,7 +45,7 @@ const excerptMemberDescription = (description?: string) => {
  */
 export const buildMemberHasExpiredPostsMessage = (
   event: EnrichedMemberHasExpiredPostsEvent,
-  ctx: MessageContext
+  { t, locale }: MessageContext
 ): NotificationMessage | null => {
   const expiredOffers = (event.expiredOffers || []).filter(
     o => new Date(o.attributes.expires).getTime() <= Date.now()
@@ -58,7 +58,7 @@ export const buildMemberHasExpiredPostsMessage = (
   const totalCount = expiredPosts.length;
 
   // Double-check we actually have expired items
-  if (totalCount <= 0) {
+  if (totalCount === 0) {
     return null;
   }
 
@@ -67,49 +67,78 @@ export const buildMemberHasExpiredPostsMessage = (
       ? current : best
   );
   const featuredType = featured.type;
-  const moreCount = Math.max(0, totalCount - 1);
 
   const remainingOffersCount = expiredOffers.length - (featuredType === 'offers' ? 1 : 0);
   const remainingNeedsCount = expiredNeeds.length - (featuredType === 'needs' ? 1 : 0);
 
   const route = `/groups/${event.code}/${featuredType}/${featured.attributes.code}/edit`;
 
-  const typeLabel = featuredType === 'offers' ? ctx.t('offer') : ctx.t('need');
-  const typeLower = String(typeLabel).toLocaleLowerCase(ctx.locale);
+  const typeLabel = featuredType === 'offers' ? t('offer') : t('need');
+  const typeLower = String(typeLabel).toLocaleLowerCase(locale);
   const excerpt = excerptPost(featured);
   const { time, range } = getTimeAgoParams(new Date(featured.attributes.expires));
 
-  const titleKey = moreCount > 0
-    ? 'notifications.member_expired_posts_title_more'
-    : 'notifications.member_expired_posts_title';
-
   const countParts: string[] = [];
   if (remainingOffersCount > 0) {
-    countParts.push(ctx.t('notifications.offers_count', { count: remainingOffersCount }) as string);
+    countParts.push(t('notifications.offers_count', { count: remainingOffersCount }));
   }
   if (remainingNeedsCount > 0) {
-    countParts.push(ctx.t('notifications.needs_count', { count: remainingNeedsCount }) as string);
+    countParts.push(t('notifications.needs_count', { count: remainingNeedsCount }));
   }
 
   const countsPhrase = countParts.length === 2
-    ? (ctx.t('notifications.member_expired_posts_counts_join', { offers: countParts[0], needs: countParts[1] }) as string)
+    ? (t('notifications.member_expired_posts_counts_join', { offers: countParts[0], needs: countParts[1] }))
     : (countParts[0] || '');
 
   const countsSentence = countsPhrase
-    ? (ctx.t('notifications.member_expired_posts_counts_sentence', { counts: countsPhrase }) as string)
+    ? (t('notifications.member_expired_posts_counts_sentence', { counts: countsPhrase }))
     : '';
 
+  const actions: NotificationMessageAction[] = [{
+    title: t('notifications.action_view'),
+    action: NotificationActions.OPEN_ROUTE,
+  }];
+  const data: Record<string, unknown> = {};
+
+  if (totalCount === 1) {
+    const { expire, duration } = extendPostDuration(featured);
+    actions.push({
+      title: t('notifications.action_extend', { duration }),
+      action: NotificationActions.EXTEND_POST,
+    });
+    actions.push({
+      title: t('notifications.action_hide'),
+      action: NotificationActions.HIDE_POST,
+    });
+    data.postId = featured.id;
+    data.extendTo = expire.toISOString();
+  } else {
+    actions.push({
+      title: t('notifications.action_view_all'),
+      action: NotificationActions.OPEN_ROUTE_2,
+    });
+    data.route2 = `/groups/${event.code}/members/${event.member.attributes.code}#${featuredType}`;
+  }
+
   return {
-    title: ctx.t(titleKey, { type: typeLabel, time, range, count: moreCount }) as string,
-    body: ctx.t('notifications.member_expired_posts_body', {
+    title: t('notifications.member_expired_posts_title', { 
+      type: typeLabel, 
+      time,
+      range,
+      count: totalCount,
+      countMore: totalCount - 1,
+     }),
+    body: t('notifications.member_expired_posts_body', {
       type: typeLower,
       excerpt,
       time,
       range,
       countsSentence,
-    }) as string,
+    }),
     image: event.group.attributes.image,
     route,
+    actions,
+    data
   };
 };
 
@@ -181,33 +210,39 @@ export const buildMembersJoinedDigestMessage = (
     ? `/groups/${code}/members/${members[0].attributes.code}`
     : `/home`;
 
+  const { t } = ctx;
+  
+  const actions: NotificationMessageAction[] = [{
+    title: members.length === 1
+      ? t('notifications.action_view')
+      : t('notifications.action_view_all'),
+    action: NotificationActions.OPEN_ROUTE,
+  }];
+
   const names = featuredMembers.map(member => getMemberLabel(member, ctx));
+
   if (extraMembersCount > 0) {
-    names.push(ctx.t('notifications.and_more_members', { count: extraMembersCount }) as string);
+    names.push(t('notifications.and_more_members', { count: extraMembersCount }));
   }
 
   const title = members.length === 1
-    ? ctx.t('notifications.member_joined_title', { name: names[0], groupName: group.attributes.name })
-    : ctx.t('notifications.members_joined_digest_title', { names, groupName: group.attributes.name });
+    ? t('notifications.member_joined_title', { name: names[0], groupName: group.attributes.name })
+    : t('notifications.members_joined_digest_title', { names, groupName: group.attributes.name });
 
   const bodyLines: string[] = [];
   for (const entry of featuredEntries) {
     if (entry.kind === 'description') {
       bodyLines.push(entry.text);
     } else {
-      const type = entry.kind === 'offer' ? ctx.t('offer') : ctx.t('need');
+      const type = entry.kind === 'offer' ? t('offer') : t('need');
       bodyLines.push(`${type} · ${entry.text}`);
     }
   }
   if (extraPostsCount > 0) {
-    bodyLines.push(ctx.t('notifications.and_more_posts', { count: extraPostsCount }) as string);
+    bodyLines.push(t('notifications.and_more_posts', { count: extraPostsCount }));
   }
   if (bodyLines.length === 0) {
-    if (members.length === 1) {
-      bodyLines.push(ctx.t('notifications.check_member_profiles_one'));
-    } else {
-      bodyLines.push(ctx.t('notifications.check_member_profiles_other'));
-    }
+    bodyLines.push(t('notifications.check_member_profiles', { count: members.length }));
   }
   const body = bodyLines.join('\n');
 
@@ -220,5 +255,6 @@ export const buildMembersJoinedDigestMessage = (
     body,
     image,
     route,
+    actions
   };
 };
