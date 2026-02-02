@@ -9,6 +9,7 @@ import { clientsClaim } from 'workbox-core'
 import { Queue } from 'workbox-background-sync'
 // Komunitin
 import { getConfig, setConfig } from "./sw-config"
+import { runAction } from './notification-actions'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -78,6 +79,11 @@ type PushPayload = {
   code: string
   id: string
   image?: string
+  data?: Record<string, unknown>
+  actions?: {
+    title: string
+    action: string
+  }[]
 }
 
 const parsePushPayload = (event: PushEvent): PushPayload | null => {
@@ -149,15 +155,11 @@ self.addEventListener("push", (event: PushEvent) => {
       route,
       code: payload.code,
       id: payload.id,
+      ...payload.data
     },
-    /*
-      actions: [{
-        action: 'open',
-        title: 'Open App'
-      }],
-    */
+    actions: payload.actions,
     tag: payload.id,
-  })
+  } as NotificationOptions)
   // Notify backend that the notification has been delivered.
   const deliveredPromise = updateNotificationEvent(payload.code, payload.id, {
     delivered: new Date(),
@@ -167,11 +169,7 @@ self.addEventListener("push", (event: PushEvent) => {
 })
 
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
-  const data = (event.notification.data || {}) as {
-    route?: string
-    code?: string
-    id?: string
-  }
+  const data = (event.notification.data || {})
   
   if (data.id) {
     clickedNotifications.add(data.id)
@@ -179,41 +177,15 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
 
   event.notification.close()
 
-  // TODO: handle custom actions once defined (event.action)
-  // if (event.action) {
-  //   return
-  // }
-
-  const openWindow = async (url: string) => {
-    const windowClients = await self.clients.matchAll({
-      type: "window",
-      includeUncontrolled: true,
-    })
-
-    const targetOrigin = new URL(url).origin
-    const match = windowClients.find(c => c.visibilityState === 'visible' && new URL(c.url).origin === targetOrigin) 
-      || windowClients.find(c => new URL(c.url).origin === targetOrigin)
-
-    if (match) {
-      await match.focus()
-      if (match.url !== url) {
-        await match.navigate(url)
-      }
-    } else {
-      await self.clients.openWindow(url)
-    }
-  }
-
-  const route = data.route || "/"
-  const targetUrl = new URL(route, self.location.origin).toString()
-  const openPromise = openWindow(targetUrl)
+  const actionPromise = runAction(event)
 
   // Notify backend that the notification has been clicked.
   const clickedPromise = updateNotificationEvent(data.code, data.id, {
     clicked: new Date(),
+    clickedAction: event.action,
   })
 
-  event.waitUntil(Promise.allSettled([openPromise, clickedPromise]))
+  event.waitUntil(Promise.allSettled([actionPromise, clickedPromise]))
 })
 
 self.addEventListener('notificationclose', (event: NotificationEvent) => {
