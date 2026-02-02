@@ -1,4 +1,4 @@
-FROM node:22 AS komunitin-notifications-ts
+FROM node:24 AS komunitin-notifications-ts
 
 WORKDIR /app
 
