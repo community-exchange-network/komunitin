@@ -1,15 +1,17 @@
-import i18next from 'i18next';
+import i18next, { type i18n } from 'i18next';
 import Backend from 'i18next-fs-backend';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Singleton promise to ensure i18n is initialized only once
+let initI18nPromise: Promise<i18n> | null = null;
+
 // Initialize i18next
 const initI18n = async () => {
-  if (!i18next.isInitialized) {
-    await i18next
-      .use(Backend)
+  if (initI18nPromise === null) {
+    initI18nPromise = i18next.use(Backend)
       .init({
         lng: 'en', // Default fallback
         fallbackLng: 'en',
@@ -21,17 +23,19 @@ const initI18n = async () => {
         },
         interpolation: {
           escapeValue: false, // Handlebars scrubs HTML
-        }
-      });
-      // Use Intl.DurationFormat for duration formatting (from node 23+)
-      i18next.services.formatter?.add('duration', (value: Intl.Duration, lng?: string) => {
-        const locale = lng ?? i18next.language;
-        return Intl.DurationFormat(locale, {
-          style: 'short',
-        }).format(value);
+        },
+      }).then(() => {
+        // Use Intl.DurationFormat for duration formatting (from node 23+)
+        i18next.services.formatter?.add('duration', (value: Intl.Duration, lng?: string) => {
+          const locale = lng ?? i18next.language;
+          return Intl.DurationFormat(locale, {
+            style: 'short',
+          }).format(value);
+        });
+        return i18next;
       });
   }
-  return i18next;
+  return await initI18nPromise;
 };
 
 export const tzDate = (timezone: string, date: Date = new Date()): Date => {
