@@ -129,7 +129,7 @@ describe('Post expires soon (synthetic cron)', () => {
     // 2) Run cron job
     await runPostExpirationCron()
 
-    const job7dId = `post-expires-in-7d:${offer.id}`
+    const job7dId = `post-expires-in-7d-${offer.id}`
     const job24hId = `post-expires-in-24h-${offer.id}`
 
     const job7d = await queue.getJob(job7dId)
