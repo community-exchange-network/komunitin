@@ -82,7 +82,7 @@ importers:
         specifier: ^5.0.6
         version: 5.0.6
       '@types/node':
-        specifier: ^24
+        specifier: ^24.10.9
         version: 24.10.9
       '@types/node-cron':
         specifier: ^3.0.11
