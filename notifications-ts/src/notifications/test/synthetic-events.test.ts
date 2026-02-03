@@ -82,7 +82,7 @@ describe('Synthetic Events', () => {
     const [name, data, opts] = call.arguments;
 
     assert.strictEqual(name, 'transfer-still-pending');
-    assert.strictEqual(opts.jobId, `still-pending:${transferId}`);
+    assert.strictEqual(opts.jobId, `still-pending-${transferId}`);
     assert.strictEqual(opts.delay, 24 * 60 * 60 * 1000); // 24h
     assert.strictEqual(data.iteration, 1);
     assert.strictEqual(data.user, 'u_1');
@@ -129,7 +129,7 @@ describe('Synthetic Events', () => {
     assert.strictEqual(data.iteration, 2);
     // Delay for 2nd iteration is still 24h (total 48h from start)
     assert.strictEqual(opts.delay, 24 * 60 * 60 * 1000);
-    assert.strictEqual(opts.jobId, `still-pending:${transferId}`);
+    assert.strictEqual(opts.jobId, `still-pending-${transferId}`);
   });
 
   it('should cancel the checking job when TransferCommitted is received', async () => {
@@ -141,7 +141,7 @@ describe('Synthetic Events', () => {
     mockJob.remove = removeSpy;
     
     queue.getJob.mock.mockImplementation(async (id: string) => {
-      if (id === `still-pending:${transferId}`) return mockJob;
+      if (id === `still-pending-${transferId}`) return mockJob;
       return null;
     });
 

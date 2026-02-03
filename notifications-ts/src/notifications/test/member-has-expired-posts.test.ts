@@ -82,7 +82,7 @@ describe('Member has expired posts (synthetic cron)', () => {
     await runPostExpirationCron()
 
     // Expired 1 day ago => reminder should be delayed until the 7-day boundary => 6 days
-    const jobId = `member-has-expired-posts:${memberId}`
+    const jobId = `member-has-expired-posts-${memberId}`
     const job = await queue.getJob(jobId)
 
     assert.ok(job, 'Expected the expired-posts job to be queued')
@@ -132,7 +132,7 @@ describe('Member has expired posts (synthetic cron)', () => {
     })
 
     const memberId = oldOffer.relationships.member.data.id
-    const jobId = `member-has-expired-posts:${memberId}`
+    const jobId = `member-has-expired-posts-${memberId}`
 
     // Run cron
     await runPostExpirationCron()
@@ -180,7 +180,7 @@ describe('Member has expired posts (synthetic cron)', () => {
       // 1) Run cron to discover expired posts and schedule member reminder
       await runPostExpirationCron()
       // 2) Process the job
-      const jobId = `member-has-expired-posts:${mId}`
+      const jobId = `member-has-expired-posts-${mId}`
       const job = await queue.getJob(jobId)
       if (!job) return null
 
