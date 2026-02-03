@@ -24,7 +24,7 @@ export const excerptPost = (post: Offer | Need): string => {
  * @returns 
  */
 export const extendPostDuration = (post: Offer | Need): { expire: Date; duration: Intl.Duration } => {
-  const currentExpiry = new Date(post.attributes.expires);
+  const currentExpiry = new Date(post.attributes.expires ?? 0);
   const creation = new Date(post.attributes.created);
   const ageDays = (currentExpiry.getTime() - creation.getTime()) / (1000 * 60 * 60 * 24);
   

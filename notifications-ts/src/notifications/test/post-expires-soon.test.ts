@@ -121,6 +121,7 @@ describe('Post expires soon (synthetic cron)', () => {
       code: 'OFFEREXT',
       attributes: {
         name: 'Extensible Offer',
+        created: new Date(now - 365 * DAY).toISOString(), // Ensure +30d expiry window
         expires: new Date(now + 3 * DAY).toISOString(),
       }
     })
