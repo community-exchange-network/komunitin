@@ -79,8 +79,8 @@ describe('Post expires soon (synthetic cron)', () => {
     await runPostExpirationCron()
 
     // 2) Assert the two jobs exist (7d immediate + 24h delayed)
-    const job7dId = `post-expires-in-7d:${offer.id}`
-    const job24hId = `post-expires-in-24h:${offer.id}`
+    const job7dId = `post-expires-in-7d-${offer.id}`
+    const job24hId = `post-expires-in-24h-${offer.id}`
 
     const job7d = await queue.getJob(job7dId)
     const job24h = await queue.getJob(job24hId)
@@ -121,6 +121,7 @@ describe('Post expires soon (synthetic cron)', () => {
       code: 'OFFEREXT',
       attributes: {
         name: 'Extensible Offer',
+        created: new Date(now - 365 * DAY).toISOString(), // Ensure +30d expiry window
         expires: new Date(now + 3 * DAY).toISOString(),
       }
     })
@@ -128,8 +129,8 @@ describe('Post expires soon (synthetic cron)', () => {
     // 2) Run cron job
     await runPostExpirationCron()
 
-    const job7dId = `post-expires-in-7d:${offer.id}`
-    const job24hId = `post-expires-in-24h:${offer.id}`
+    const job7dId = `post-expires-in-7d-${offer.id}`
+    const job24hId = `post-expires-in-24h-${offer.id}`
 
     const job7d = await queue.getJob(job7dId)
     const job24h = await queue.getJob(job24hId)

@@ -35,6 +35,7 @@ export class MockQueue {
     this.upsertJobScheduler.mock.resetCalls();
     this.removeJobScheduler.mock.resetCalls();
     this.close.mock.resetCalls();
+    this.jobs.clear();
   }
   /**
    * Helper to manually dispatch a job to the worker processor

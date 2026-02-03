@@ -497,7 +497,9 @@ export interface NotificationsSubscription extends ResourceObject {
       p256dh: string,
       auth: string
     }
-    meta?: Record<string, unknown>
+    meta?: Record<string, unknown>,
+    created: string,
+    updated: string
   };
   relationships: {
     user: RelatedResource;

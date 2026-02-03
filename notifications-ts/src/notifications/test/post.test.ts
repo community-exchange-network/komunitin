@@ -7,13 +7,13 @@ import handlers from '../../mocks/handlers'
 import { mockDb } from '../../mocks/prisma'
 import { createQueue } from '../../mocks/queue'
 import { mockRedis } from '../../mocks/redis'
+import '../../mocks/web-push'
 import { createEvent, verifyNotification } from './utils'
 
 const { put } = mockRedis()
 const server = setupServer(...handlers)
 const pushQueue = createQueue('push-notifications')
 const syntheticQueue = createQueue('synthetic-events')
-
 // Mock prisma
 const { appNotification: appNotifications } = mockDb()
 
@@ -52,33 +52,33 @@ describe('Post notifications', () => {
      })!.id
   }
 
-  const setupTestOffer = () => {
+  const setupTestOffer = (atts: Record<string, any>) => {
     const groupId = 'GRP1'
     createOffers(groupId)
     const offer = db.offers[0]
+    offer.attributes = { ...offer.attributes, ...atts }
     const memberId = offer.relationships.member.data.id
     const userId = getUserIdForMember(memberId)
     return { groupId, offer, userId }
   }
 
-  const setupTestNeed = () => {
+  const setupTestNeed = (atts: Record<string, any>) => {
     const groupId = 'GRP1'
     createNeeds(groupId)
     const need = db.needs[0]
+    need.attributes = { ...need.attributes, ...atts }
     const memberId = need.relationships.member.data.id
     const userId = getUserIdForMember(memberId)
     return { groupId, need, userId }
   }
 
   it('should process OfferExpired event', async () => {
-      const { groupId, offer, userId } = setupTestOffer()
+      const { groupId, offer, userId } = setupTestOffer({
+        expires: new Date(Date.now() - 1000).toISOString()
+      })
       const eventData = createEvent('OfferExpired', offer.id, groupId, userId, 'test-offer-expired-1', 'offer')
       
       await put(eventData)
-
-      // Wait for async processing? put is usually "fire and forget" but mockRedisStream probably returns when processed if it's in-memory directly, 
-      // but usually we rely on the worker loop. In notifications.test.ts the previous tests used 'await put(eventData)' too.
-      // The redis mock implementation might be synchronous or close to it.
 
       assert.equal(appNotifications.length, 1, "Should create 1 notification")
       const notification = appNotifications[0]
@@ -90,7 +90,9 @@ describe('Post notifications', () => {
   })
 
   it('should process NeedExpired event', async () => {
-      const { groupId, need, userId } = setupTestNeed()
+      const { groupId, need, userId } = setupTestNeed({
+        expires: new Date(Date.now() - 1000).toISOString()
+      })
       const eventData = createEvent('NeedExpired', need.id, groupId, userId, 'test-need-expired-1', 'need')
 
       await put(eventData)

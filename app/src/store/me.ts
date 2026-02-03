@@ -1,11 +1,11 @@
-import type { Module, ActionContext } from "vuex";
+import KError, { KErrorCode } from "src/KError";
+import locate from "src/plugins/Location";
+import type { ActionContext, Module } from "vuex";
+import { setAccountingApiUrl } from ".";
 import type { AuthData } from "../plugins/Auth";
 import { Auth } from "../plugins/Auth";
-import KError, { KErrorCode } from "src/KError";
-import { subscribe, unsubscribe } from "../plugins/Notifications";
-import locate from "src/plugins/Location";
-import type {Member, NotificationsSubscription,} from "./model"
-import { setAccountingApiUrl } from ".";
+import { getNotificationPermission, subscribe, unsubscribe } from "../plugins/Notifications";
+import type { Member, NotificationsSubscription, } from "./model";
 
 import { config } from "src/utils/config";
 import { apiRequest } from "./request";
@@ -45,7 +45,7 @@ export interface UserState {
  * @param dispatch The vuex Dispatch object.
  */
 async function loadUser(
-  { commit, dispatch, state, getters, rootGetters }: ActionContext<UserState, never>
+  { commit, dispatch, getters, rootGetters }: ActionContext<UserState, never>
 ) {
   // Resource actions allow including external relationships such as members.account,
   // but we can't use it right here because we still don't know the group code (nor 
@@ -96,14 +96,14 @@ async function loadUser(
 
   commit("myUserId", user.id);
   
-  // If we don't have the user location yet, initialize to the member configured location.
-  if (state.location == undefined && getters.myMember) {
+  // Initialize the location to the member configured location.
+  if (getters.myMember) {
     const member = getters.myMember as Member
     commit("location", member.attributes.location?.coordinates)
   }
 
-  // Renew push notification subscription if permission is granted
-  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+  // Renew push notification subscription if permission is already granted
+  if (getNotificationPermission() === 'granted') {
     dispatch("subscribe").catch(e => console.warn("Failed to restore subscription", e));
   }
 }
@@ -254,8 +254,14 @@ export default {
      * Subscribe to push notifications
     */
     subscribe: async (context: ActionContext<UserState, never>) => {
-      const { commit, getters } = context
-      if (!getters.isSubscribed && getters.isLoggedIn) {
+      const { state, commit, getters } = context
+      // renew subscription if not there, incorrect user and every 24h
+      const shouldRenewSubscription = getters.isLoggedIn && (!state.subscription 
+        || state.subscription.relationships?.user?.data.id !== getters.myUser.id
+        || new Date(state.subscription.attributes.updated) < new Date(Date.now() - 24 * 60 * 60 * 1000)
+      )
+
+      if (shouldRenewSubscription) {
         // 1. Subscribe in the Browser
         const attributes = await subscribe()
 
@@ -301,11 +307,18 @@ export default {
       const groupCode = getters.myMember.group?.attributes.code;
       if (state.subscription && groupCode) {
         const url = `${config.NOTIFICATIONS_URL}/${groupCode}/subscriptions/${state.subscription.id}`;
-        await apiRequest(context, url, 'delete');
-
-        // 3. Remove from Vuex store
-        commit("subscription", undefined);
+        try {
+          await apiRequest(context, url, 'delete');
+        } catch (error) {
+          if (error instanceof KError && error.code === KErrorCode.NotFound) {
+            // Ignore not found errors
+          } else {
+            throw error;
+          }
+        }
       }
+      // 3. Remove from Vuex store
+      commit("subscription", undefined);
     }
   }
 } as Module<UserState, never>;

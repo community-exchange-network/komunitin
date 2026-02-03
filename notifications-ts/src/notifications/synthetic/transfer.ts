@@ -7,7 +7,7 @@ import { queueJob } from '../../utils/queue-job';
 
 const JOB_NAME_STILL_PENDING = 'transfer-still-pending';
 
-const getStillPendingJobId = (transferId: string) => `still-pending:${transferId}`;
+const getStillPendingJobId = (transferId: string) => `still-pending-${transferId}`;
 
 type StillPendingData = {
   code: string;

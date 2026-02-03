@@ -54,8 +54,8 @@
   "notifications": {
     "post_expired_title": "{{type}} caducada",
     "post_expired_body": "Tu {{type}} '{{excerpt}}' ha caducado y ya no es visible, pero puedes reactivarla.",
-    "member_expired_posts_title": "{{type}} caducó {{time, relativetime}}",
-    "member_expired_posts_title_more": "{{type}} caducó {{time, relativetime}} y {{count}} más",
+    "member_expired_posts_title_one": "{{type}} caducó {{time, relativetime}}",
+    "member_expired_posts_title_other": "{{type}} caducó {{time, relativetime}} y {{countMore}} más",
     "offers_count_one": "{{count}} oferta",
     "offers_count_other": "{{count}} ofertas",
     "needs_count_one": "{{count}} necesidad",
@@ -72,9 +72,7 @@
     "transfer_rejected_title": "Movimiento rechazado",
     "transfer_rejected_body": "{{name}} ha rechazado la solicitud de {{amount}}.",
     "transfer_still_pending_title": "Movimiento aún pendiente",
-    "transfer_still_pending_body": "El movimiento de {{amount}} a {{name}} aún está pendiente después de $t(notifications.days_elapsed). Por favor, acéptalo o recházalo lo antes posible.",
-    "days_elapsed_one": "{{count}} día",
-    "days_elapsed_other": "{{count}} días",
+    "transfer_still_pending_body": "El movimiento de {{amount}} a {{name}} aún está pendiente después de {{duration, duration}}. Por favor, acéptalo o recházalo lo antes posible.",
     "post_expires_soon_title": "{{type}} caduca {{time, relativetime}}",
     "post_expires_soon_body": "Extiende tu {{type}} '{{excerpt}}' para que siga siendo visible para los demás",
     "new_post_title": "{{type}} de {{name}}",
@@ -86,6 +84,11 @@
     "and_more_members": "{{count}} más",
     "and_more_posts": "Y {{count}} más",
     "check_member_profiles_one": "Consulta su perfil",
-    "check_member_profiles_other": "Consulta sus perfiles"
+    "check_member_profiles_other": "Consulta sus perfiles",
+    "action_respond": "Responder",
+    "action_view": "Ver",
+    "action_view_all": "Ver todo",
+    "action_extend": "Amplía {{duration, duration}}",
+    "action_hide": "Ocultar"
   }
 }

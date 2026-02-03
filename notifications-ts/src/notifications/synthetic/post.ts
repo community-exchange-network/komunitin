@@ -71,7 +71,7 @@ const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpi
       await queueJob<NotifyExpiryData>(
         queue,
         JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS,
-        `member-has-expired-posts:${memberId}`,
+        `member-has-expired-posts-${memberId}`,
         {
           code: groupCode,
           type: info.type,
@@ -143,7 +143,7 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
               await queueJob<NotifyExpiryData>(
                 queue,
                 JOB_NAME_NOTIFY_POST_EXPIRES_SOON,
-                `post-expires-in-7d:${item.id}`,
+                `post-expires-in-7d-${item.id}`,
                 data,
                 { removeOnComplete: { age: 30 * 24 * 60 * 60 } } // keep completed jobs for 30 days
               );
@@ -153,7 +153,7 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
             await queueJob<NotifyExpiryData>(
               queue,
               JOB_NAME_NOTIFY_POST_EXPIRES_SOON,
-              `post-expires-in-24h:${item.id}`,
+              `post-expires-in-24h-${item.id}`,
               data,
               {
                 delay: delay > 0 ? delay : 0,

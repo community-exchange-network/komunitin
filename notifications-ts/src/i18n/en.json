@@ -54,8 +54,8 @@
   "notifications": {
     "post_expired_title": "{{type}} expired",
     "post_expired_body": "Your {{type}} '{{excerpt}}' has expired and is hidden now, but you can reactivate it.",
-    "member_expired_posts_title": "{{type}} expired {{time, relativetime}}",
-    "member_expired_posts_title_more": "{{type}} expired {{time, relativetime}} and {{count}} more",
+    "member_expired_posts_title_one": "{{type}} expired {{time, relativetime}}",
+    "member_expired_posts_title_other": "{{type}} expired {{time, relativetime}} and {{countMore}} more",
     "offers_count_one": "{{count}} offer",
     "offers_count_other": "{{count}} offers",
     "needs_count_one": "{{count}} need",
@@ -68,13 +68,11 @@
     "transfer_received_title": "Transfer received",
     "transfer_received_body": "You received {{amount}} from {{sender}}",
     "transfer_pending_title": "New transfer request",
-    "transfer_pending_body": "{{sender}} requests a transfer of {{amount}}. Please accept or reject it as soon as possible.",
+    "transfer_pending_body": "{{sender}} requested {{amount}}. Please accept or reject it as soon as possible.",
     "transfer_rejected_title": "Transfer rejected",
     "transfer_rejected_body": "{{name}} rejected a transfer of {{amount}} and it won't be applied.",
     "transfer_still_pending_title": "Transfer still pending",
-    "transfer_still_pending_body": "Transfer of {{amount}} to {{name}} is still pending after $t(notifications.days_elapsed). Please accept or reject it as soon as possible.",
-    "days_elapsed_one": "{{count}} day",
-    "days_elapsed_other": "{{count}} days",
+    "transfer_still_pending_body": "Transfer of {{amount}} to {{name}} is still pending after {{ duration, duration }}. Please accept or reject it as soon as possible.",
     "post_expires_soon_title": "{{type}} expires {{time, relativetime}}",
     "post_expires_soon_body": "Extend your {{type}} '{{excerpt}}' to keep it visible to others.",
     "new_post_title": "New {{type}} from {{name}}",
@@ -86,6 +84,11 @@
     "and_more_members": "{{count}} more",
     "and_more_posts": "And {{count}} more",
     "check_member_profiles_one": "Check their member profile",
-    "check_member_profiles_other": "Check their member profiles"
+    "check_member_profiles_other": "Check their member profiles",
+    "action_respond": "Respond",
+    "action_view": "View",
+    "action_view_all": "View all",
+    "action_extend": "Extend {{duration, duration}}",
+    "action_hide": "Hide"
   }
 }

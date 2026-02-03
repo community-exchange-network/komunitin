@@ -250,12 +250,14 @@ const sendWebPush = async (
   });
 
   const payload = JSON.stringify({
+    id: pushNotification.id,
     title: message.title,
     body: message.body,
     image: message.image,
     route: message.route,
     code: tenantId,
-    id: pushNotification.id,
+    data: message.data,
+    actions: message.actions,
   });
 
   try {

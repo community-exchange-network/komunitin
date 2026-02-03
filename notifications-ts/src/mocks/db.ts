@@ -2,6 +2,9 @@ import { faker } from '@faker-js/faker';
 import { Member } from '../clients/komunitin/types';
 import { ACCOUNTING_URL } from './handlers';
 
+const IN_30_DAYS = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000);
+const IN_90_DAYS = new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000);
+
 // -- Data Store --
 export const db = {
   groups: [] as any[],
@@ -40,11 +43,17 @@ export const getUserIdForMember = (memberId: string) => {
 // -- Factories --
 
 export const createGroups = () => {
+  if (db.groups.length > 0) {
+    return db.groups;
+  }
   ["GRP1", "GRP2", "GRP3"].forEach(code => createGroup(code));
 }
 
 export const createGroup = (code: string) => {
-  if (db.groups.find(g => g.attributes.code === code)) return;
+  const group = db.groups.find(g => g.attributes.code === code);
+  if (group) {
+    return group;
+  }
 
   const id = `group-${code}`;
   const currencyCode = code;
@@ -220,6 +229,7 @@ export const createOffer = (opts: {
     throw new Error(`No member found for group ${opts.groupCode}`);
   }
 
+  const created = faker.date.past();
   const offer = {
     type: 'offers',
     id: opts.id,
@@ -229,8 +239,9 @@ export const createOffer = (opts: {
       price: faker.commerce.price(),
       images: [faker.image.url()],
       code: opts.code,
-      created: faker.date.past().toISOString(),
-      updated: faker.date.past().toISOString(),
+      created: created.toISOString(),
+      updated: created.toISOString(),
+      expires: IN_90_DAYS.toISOString(),
       ...opts.attributes,
     },
     relationships: {
@@ -246,7 +257,9 @@ export const createOffer = (opts: {
 export const createOffers = (code: string) => {
   const members = createMembers(code);
   const groupId = `group-${code}`;
-  if (db.offers.some(o => o.relationships.group.data.id === groupId)) return;
+  if (db.offers.some(o => o.relationships.group.data.id === groupId)) {
+    return;
+  }
 
   members.forEach((member, m) => {
     for (let o = 0; o < 3; o++) {
@@ -275,7 +288,7 @@ export const createNeed = (opts: {
   if (!memberId) {
     throw new Error(`No member found for group ${opts.groupCode}`);
   }
-
+  const created = faker.date.past();
   const need = {
     type: 'needs',
     id: opts.id,
@@ -284,8 +297,9 @@ export const createNeed = (opts: {
       content: faker.lorem.paragraph(),
       images: [faker.image.url()],
       code: opts.code,
-      created: faker.date.past().toISOString(),
-      updated: faker.date.past().toISOString(),
+      created: created.toISOString(),
+      updated: created.toISOString(),
+      expires: IN_30_DAYS.toISOString(),
       ...opts.attributes,
     },
     relationships: {

@@ -1,24 +1,32 @@
 import { formatAmount } from "../../utils/format";
 import { EnrichedTransferEvent } from "../enriched-events";
-import { MessageContext, NotificationMessage } from "./types";
+import { MessageContext, NotificationActions, NotificationMessage } from "./types";
+
+const transferRoute = (code: string, transferId: string): string => {
+  return `/groups/${code}/transactions/${transferId}`;
+}
 
 /**
  * Generate message for payer when transfer is committed
  */
 export const buildTransferSentMessage = (
   event: EnrichedTransferEvent,
-  ctx: MessageContext
+  { t, locale }: MessageContext
 ): NotificationMessage => {
   const { transfer, currency, payee, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/groups/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
 
   return {
-    title: ctx.t('notifications.transfer_sent_title') as string,
-    body: ctx.t('notifications.transfer_sent_body', {
-      amount: formatAmount(amount, currency, ctx.locale),
+    title: t('notifications.transfer_sent_title'),
+    body: t('notifications.transfer_sent_body', {
+      amount: formatAmount(amount, currency, locale),
       recipient: payee.member.attributes.name,
-    }) as string,
+    }),
+    actions: [{
+      title: t('notifications.action_view'),
+      action: NotificationActions.OPEN_ROUTE,
+    }],
     image: payee.member.attributes.image,
     route,
   };
@@ -29,18 +37,22 @@ export const buildTransferSentMessage = (
  */
 export const buildTransferReceivedMessage = (
   event: EnrichedTransferEvent,
-  ctx: MessageContext
+  { t, locale }: MessageContext
 ): NotificationMessage => {
   const { transfer, currency, payer, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/groups/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
 
   return {
-    title: ctx.t('notifications.transfer_received_title') as string,
-    body: ctx.t('notifications.transfer_received_body', {
-      amount: formatAmount(amount, currency, ctx.locale),
+    title: t('notifications.transfer_received_title'),
+    body: t('notifications.transfer_received_body', {
+      amount: formatAmount(amount, currency, locale),
       sender: payer.member.attributes.name,
-    }) as string,
+    }),
+    actions: [{
+      title: t('notifications.action_view'),
+      action: NotificationActions.OPEN_ROUTE,
+    }],
     image: payer.member.attributes.image,
     route,
   };
@@ -51,11 +63,11 @@ export const buildTransferReceivedMessage = (
  */
 export const buildTransferPendingMessage = (
   event: EnrichedTransferEvent,
-  ctx: MessageContext
+  { t, locale }: MessageContext
 ): NotificationMessage | null => {
   const { transfer, currency, payee, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
   
   const state = transfer.attributes.state;
   if (state !== 'pending') {
@@ -64,13 +76,20 @@ export const buildTransferPendingMessage = (
   }
 
   return {
-    title: ctx.t('notifications.transfer_pending_title') as string,
-    body: ctx.t('notifications.transfer_pending_body', {
-      amount: formatAmount(amount, currency, ctx.locale),
+    title: t('notifications.transfer_pending_title'),
+    body: t('notifications.transfer_pending_body', {
+      amount: formatAmount(amount, currency, locale),
       sender: payee.member.attributes.name,
-    }) as string,
+    }),
     image: payee.member.attributes.image,
     route,
+    actions: [{
+      title: t('notifications.action_respond'),
+      action: NotificationActions.OPEN_ROUTE,
+    }],
+    data: {
+      transferId: transfer.id,
+    }
   };
 };
 
@@ -79,18 +98,22 @@ export const buildTransferPendingMessage = (
  */
 export const buildTransferRejectedMessage = (
   event: EnrichedTransferEvent,
-  ctx: MessageContext
+  { t, locale }: MessageContext
 ): NotificationMessage => {
   const { transfer, currency, payer, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
 
   return {
-    title: ctx.t('notifications.transfer_rejected_title') as string,
-    body: ctx.t('notifications.transfer_rejected_body', {
-      amount: formatAmount(amount, currency, ctx.locale),
+    title: t('notifications.transfer_rejected_title') ,
+    body: t('notifications.transfer_rejected_body', {
+      amount: formatAmount(amount, currency, locale),
       name: payer.member.attributes.name,
-    }) as string,
+    }),
+    actions: [{
+      title: t('notifications.action_view'),
+      action: NotificationActions.OPEN_ROUTE,
+    }],
     image: payer.member.attributes.image,
     route,
   };
@@ -101,24 +124,29 @@ export const buildTransferRejectedMessage = (
  */
 export const buildTransferStillPendingMessage = (
   event: EnrichedTransferEvent,
-  ctx: MessageContext
+  { t, locale }: MessageContext
 ): NotificationMessage => {
   const { transfer, currency, payee, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
 
   const elapsedDays = Math.floor(
     (Date.now() - new Date(transfer.attributes.created).getTime()) / (1000 * 60 * 60 * 24)
   );
 
   return {
-    title: ctx.t('notifications.transfer_still_pending_title'),
-    body: ctx.t('notifications.transfer_still_pending_body', {
-      amount: formatAmount(amount, currency, ctx.locale),
+    title: t('notifications.transfer_still_pending_title'),
+    body: t('notifications.transfer_still_pending_body', {
+      amount: formatAmount(amount, currency, locale),
       name: payee.member.attributes.name,
-      days: elapsedDays,
-      count: elapsedDays,
+      duration: {
+        days: elapsedDays,
+      },
     }),
+    actions: [{
+      title: t('notifications.action_respond'),
+      action: NotificationActions.OPEN_ROUTE,
+    }],
     image: payee.member.attributes.image,
     route,
   };
