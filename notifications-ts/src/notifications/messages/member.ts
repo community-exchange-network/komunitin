@@ -1,5 +1,5 @@
 import { Member, Need, Offer } from "../../clients/komunitin/types";
-import { EnrichedMemberHasExpiredPostsEvent, EnrichedMembersJoinedDigestEvent } from "../enriched-events";
+import { EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMembersJoinedDigestEvent } from "../enriched-events";
 import { excerptPost, extendPostDuration } from "./post";
 import { MessageContext, NotificationActions, NotificationMessage, NotificationMessageAction } from "./types";
 
@@ -258,3 +258,28 @@ export const buildMembersJoinedDigestMessage = (
     actions
   };
 };
+
+/**
+ * Generate welcome message for new member
+ */
+export const buildMemberJoinedMessage = (
+  event: EnrichedMemberEvent,
+  { t }: MessageContext
+): NotificationMessage => {
+  const memberName = event.member.attributes.name;
+  const groupName = event.group.attributes.name;
+
+  return {
+    title: t('notifications.welcome_new_member_title', { groupName }),
+    body: t('notifications.welcome_new_member_body', { memberName }),
+    image: event.group.attributes.image,
+    route: `/home`,
+    actions: [
+      {
+        title: t('notifications.action_open'),
+        action: NotificationActions.OPEN_ROUTE,
+      }
+    ],
+  };
+}
+

@@ -85,9 +85,12 @@
     "and_more_posts": "And {{count}} more",
     "check_member_profiles_one": "Check their member profile",
     "check_member_profiles_other": "Check their member profiles",
+    "welcome_new_member_title": "Welcome to {{groupName}}!",
+    "welcome_new_member_body": "Hi {{name}}, your account is now active! Start exploring offers and needs in your community. Happy exchange!",
     "action_respond": "Respond",
     "action_view": "View",
     "action_view_all": "View all",
+    "action_open": "Open",
     "action_extend": "Extend {{duration, duration}}",
     "action_hide": "Hide"
   }

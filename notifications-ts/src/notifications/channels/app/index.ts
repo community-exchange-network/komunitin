@@ -13,6 +13,7 @@ import {
   buildPostExpiresSoonMessage,
   buildMemberHasExpiredPostsMessage,
   buildMembersJoinedDigestMessage,
+  buildMemberJoinedMessage,
 } from '../../messages';
 import {
   EnrichedTransferEvent,
@@ -20,6 +21,7 @@ import {
   EnrichedPostsPublishedDigestEvent,
   EnrichedMemberHasExpiredPostsEvent,
   EnrichedMembersJoinedDigestEvent,
+  EnrichedMemberEvent,
 } from '../../enriched-events';
 import { handleNotificationForUsers } from './utils';
 
@@ -102,6 +104,11 @@ export const initInAppChannel = (): (() => void) => {
         buildMembersJoinedDigestMessage(event, ctx)
       );
     }),
+    eventBus.on(EVENT_NAME.MemberJoined, async (event: EnrichedMemberEvent) => {
+      await handleNotificationForUsers(event, event.users, (ctx) => 
+        buildMemberJoinedMessage(event, ctx)
+      );
+    })
   ];
 
   // Return stop function that unsubscribes all listeners

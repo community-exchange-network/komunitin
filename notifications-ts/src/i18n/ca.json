@@ -85,9 +85,12 @@
     "and_more_posts": "I {{count}} més",
     "check_member_profiles_one": "Consulta el seu perfil",
     "check_member_profiles_other": "Consulta els seus perfils",
+    "welcome_new_member_title": "Benvingut a {{groupName}}!",
+    "welcome_new_member_body": "Hola {{name}}, el teu compte ja és actiu! Ja pots explorar ofertes i necessitats a la teva comunitat. Feliç intercanvi!",
     "action_respond": "Respon",
     "action_view": "Veure-ho",
     "action_view_all": "Veure-ho tot",
+    "action_open": "Obre",
     "action_extend": "Allarga {{duration, duration}}",
     "action_hide": "Amaga"
   }

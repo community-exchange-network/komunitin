@@ -85,9 +85,12 @@
     "and_more_posts": "E altri {{count}}",
     "check_member_profiles_one": "Controlla il suo profilo",
     "check_member_profiles_other": "Controlla i loro profili",
+    "welcome_new_member_title": "Benvenuto a {{groupName}}!",
+    "welcome_new_member_body": "Ciao {{name}}, il tuo account è ora attivo! Inizia a esplorare offerte e necessità nella tua comunità. Buono scambio!",
     "action_respond": "Rispondi",
     "action_view": "Visualizza",
     "action_view_all": "Visualizza tutto",
+    "action_open": "Apri",
     "action_extend": "Estendi {{duration, duration}}",
     "action_hide": "Nascondi"
   }
