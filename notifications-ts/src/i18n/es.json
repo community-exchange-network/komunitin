@@ -87,6 +87,7 @@
     "check_member_profiles_other": "Consulta sus perfiles",
     "action_respond": "Responder",
     "action_view": "Ver",
+    "action_view_all": "Ver todo",
     "action_extend": "Amplía {{duration, duration}}",
     "action_hide": "Ocultar"
   }

@@ -2,6 +2,10 @@ import { formatAmount } from "../../utils/format";
 import { EnrichedTransferEvent } from "../enriched-events";
 import { MessageContext, NotificationActions, NotificationMessage } from "./types";
 
+const transferRoute = (code: string, transferId: string): string => {
+  return `/groups/${code}/transactions/${transferId}`;
+}
+
 /**
  * Generate message for payer when transfer is committed
  */
@@ -11,7 +15,7 @@ export const buildTransferSentMessage = (
 ): NotificationMessage => {
   const { transfer, currency, payee, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/groups/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
 
   return {
     title: t('notifications.transfer_sent_title'),
@@ -37,7 +41,7 @@ export const buildTransferReceivedMessage = (
 ): NotificationMessage => {
   const { transfer, currency, payer, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/groups/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
 
   return {
     title: t('notifications.transfer_received_title'),
@@ -63,7 +67,7 @@ export const buildTransferPendingMessage = (
 ): NotificationMessage | null => {
   const { transfer, currency, payee, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
   
   const state = transfer.attributes.state;
   if (state !== 'pending') {
@@ -98,7 +102,7 @@ export const buildTransferRejectedMessage = (
 ): NotificationMessage => {
   const { transfer, currency, payer, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
 
   return {
     title: t('notifications.transfer_rejected_title') ,
@@ -124,7 +128,7 @@ export const buildTransferStillPendingMessage = (
 ): NotificationMessage => {
   const { transfer, currency, payee, code } = event;
   const amount = transfer.attributes.amount;
-  const route = `/${code}/transactions/${transfer.id}`;
+  const route = transferRoute(code, transfer.id);
 
   const elapsedDays = Math.floor(
     (Date.now() - new Date(transfer.attributes.created).getTime()) / (1000 * 60 * 60 * 24)

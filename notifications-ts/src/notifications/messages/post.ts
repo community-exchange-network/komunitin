@@ -245,7 +245,7 @@ export const buildPostExpiresSoonMessage = (
     : Math.floor(timeToExpiryHours / 24);
 
   const excerpt = excerptPost(post);
-  const { expire, duration } = extendPostDuration(post)
+  const { expire, duration } = extendPostDuration(post);
   const route = `/groups/${code}/${postType}/${post.attributes.code}/edit`;
   const type = postType === 'offers' ? t('offer') : t('need');
 

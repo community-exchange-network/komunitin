@@ -86,7 +86,8 @@
     "check_member_profiles_one": "Consulta el seu perfil",
     "check_member_profiles_other": "Consulta els seus perfils",
     "action_respond": "Respon",
-    "action_view": "Veure",
+    "action_view": "Veure-ho",
+    "action_view_all": "Veure-ho tot",
     "action_extend": "Allarga {{duration, duration}}",
     "action_hide": "Amaga"
   }

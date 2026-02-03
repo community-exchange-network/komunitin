@@ -87,6 +87,7 @@
     "check_member_profiles_other": "Check their member profiles",
     "action_respond": "Respond",
     "action_view": "View",
+    "action_view_all": "View all",
     "action_extend": "Extend {{duration, duration}}",
     "action_hide": "Hide"
   }
