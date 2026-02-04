@@ -58,32 +58,22 @@ type SetupNotificationsTestOptions = {
   resetDb?: boolean;
 };
 
-type SetupNotificationsTestReturn = {
+type SetupNotificationsTestReturnBase = {
   appNotifications: any[];
-  put: ReturnType<typeof mockRedis>['put'];
+  put: ReturnType<typeof mockRedis>['put'] | null;
   pushQueue: ReturnType<typeof createQueue> | null;
   syntheticQueue: ReturnType<typeof createQueue> | null;
 };
 
-type SetupNotificationsTestReturnWithSyntheticQueue = SetupNotificationsTestReturn & {
-  syntheticQueue: ReturnType<typeof createQueue>;
-};
+type SetupNotificationsTestReturn<T extends SetupNotificationsTestOptions> =
+  SetupNotificationsTestReturnBase &
+  (T['useMockRedis'] extends false ? { put: null } : { put: NonNullable<SetupNotificationsTestReturnBase['put']> }) &
+  (T['usePushQueue'] extends true ? { pushQueue: NonNullable<SetupNotificationsTestReturnBase['pushQueue']> } : {}) &
+  (T['useSyntheticQueue'] extends true ? { syntheticQueue: NonNullable<SetupNotificationsTestReturnBase['syntheticQueue']> } : {});
 
-type SetupNotificationsTestReturnWithPushQueue = SetupNotificationsTestReturn & {
-  pushQueue: ReturnType<typeof createQueue>;
-};
-
-export function setupNotificationsTest(
-  options?: SetupNotificationsTestOptions & { usePushQueue?: true; useSyntheticQueue?: true }
-): SetupNotificationsTestReturnWithPushQueue & SetupNotificationsTestReturnWithSyntheticQueue;
-export function setupNotificationsTest(
-  options?: SetupNotificationsTestOptions & { useSyntheticQueue?: true }
-): SetupNotificationsTestReturnWithSyntheticQueue;
-export function setupNotificationsTest(
-  options?: SetupNotificationsTestOptions & { usePushQueue?: true }
-): SetupNotificationsTestReturnWithPushQueue;
-
-export function setupNotificationsTest(options: SetupNotificationsTestOptions = {}): SetupNotificationsTestReturn  {
+export function setupNotificationsTest<T extends SetupNotificationsTestOptions = {}>(
+  options: T = {} as T
+): SetupNotificationsTestReturn<T> {
   const {
     useWorker = false,
     useAppChannel = false,
@@ -172,7 +162,7 @@ export function setupNotificationsTest(options: SetupNotificationsTestOptions = 
     appNotifications,
     pushQueue,
     syntheticQueue,
-  };
+  } as SetupNotificationsTestReturn<T>;
 }
 
 export const subscribeToPushNotifications = (groupCode: string, userId: string) => {
