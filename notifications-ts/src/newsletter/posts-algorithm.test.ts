@@ -21,7 +21,9 @@ const createMember = (id: string, lat?: number, lon?: number): Member => ({
     created: new Date().toISOString()    
   },
   relationships: {
-    account: { data: { type: 'accounts', id: `account-${id}` } }
+    account: { data: { type: 'accounts', id: `account-${id}` } },
+    needs: { meta: { count: 0 } },
+    offers: { meta: { count: 0 } }
   }
 });
 

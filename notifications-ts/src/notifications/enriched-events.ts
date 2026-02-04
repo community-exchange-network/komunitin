@@ -42,7 +42,6 @@ export type EnrichedGroupEvent = GroupEvent & {
 };
 
 type EnrichedGroupDigestEvent = NotificationEvent & {
-  code: string;
   group: Group;
   members: Member[];
   users: Array<{ user: User; settings: UserSettings }>;
@@ -58,12 +57,21 @@ export type EnrichedMembersJoinedDigestEvent = EnrichedGroupDigestEvent & {
   name: 'MembersJoinedDigest';
 };
 
+export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
+  name: 'MemberHasNoPosts';
+  member: Member;
+  balance: number;
+  group: Group;
+  currency: Currency;
+  users: Array<{ user: User; settings: UserSettings }>;
+};
+  
+
 export type EnrichedEvent =
   | EnrichedGroupEvent
   | EnrichedMemberEvent
   | EnrichedPostEvent
   | EnrichedTransferEvent
   | EnrichedPostsPublishedDigestEvent
-  | EnrichedMembersJoinedDigestEvent;
-
-
+  | EnrichedMembersJoinedDigestEvent
+  | EnrichedMemberHasNoPostsEvent;

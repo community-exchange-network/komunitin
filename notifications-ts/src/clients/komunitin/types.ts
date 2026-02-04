@@ -26,6 +26,8 @@ export interface Member {
   };
   relationships: {
     account: { data: { id: string, type: string } };
+    needs: { meta: { count: number } };
+    offers: { meta: { count: number } };
   };
 }
 

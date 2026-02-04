@@ -3,10 +3,9 @@ import { KomunitinClient } from '../../clients/komunitin/client';
 import { Group, Need, Offer, User } from '../../clients/komunitin/types';
 import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
-import prisma from '../../utils/prisma';
-import { EVENT_NAME, EventName } from '../events';
+import { EVENT_NAME } from '../events';
 import { isPostUrgent } from '../handlers/post';
-import { dispatchSyntheticEnrichedEvent } from './shared';
+import { dispatchSyntheticEnrichedEvent, lastNotificationDateByUser } from './shared';
 
 /**
  * Poll-based digest cron.
@@ -72,23 +71,6 @@ const canSendDigest = (
   return false;
 };
 
-
-const lastSentMap = async (tenantId: string, eventName: EventName) => {
-  const lastPostsDigests = await prisma.appNotification.groupBy({
-    by: ['userId'],
-    where: {
-      tenantId,
-      eventName,
-    },
-    _max: { createdAt: true },
-  });
-  
-  return new Map<string, Date>(
-    lastPostsDigests.map(item => [item.userId, item._max.createdAt!])
-  );
-  
-}
-
 const maxDate = (...dates: (Date | null)[]): Date | null => {
   return dates.reduce((max, date) => {
     if (!date) return max;
@@ -140,8 +122,8 @@ const processCommunityDigest = async (
 
 
   // Get lastest PostsPublishedDigest notifications for all users in this community = tenant
-  const lastPostsMap = await lastSentMap(code, EVENT_NAME.PostsPublishedDigest);
-  const lastMembersMap = await lastSentMap(code, EVENT_NAME.MembersJoinedDigest);
+  const lastPostsMap = await lastNotificationDateByUser(code, EVENT_NAME.PostsPublishedDigest);
+  const lastMembersMap = await lastNotificationDateByUser(code, EVENT_NAME.MembersJoinedDigest);
 
   // For each user, determine if they should receive a digest
   for (const { user, settings } of usersWithSettings) {
@@ -252,10 +234,12 @@ const scheduleDigestCron = async (queue: Queue): Promise<void> => {
   await queue.upsertJobScheduler(
     'digest-cron-scheduler',
     { pattern: '*/15 * * * *' }, // Every 15 minutes
-    {
-      name: JOB_NAME_GROUP_DIGEST_CRON,
-    }
+    { name: JOB_NAME_GROUP_DIGEST_CRON }
   );
+};
+
+const stopDigestCron = async (queue: Queue): Promise<void> => {
+  await queue.removeJobScheduler('digest-cron-scheduler');
 };
 
 /**
@@ -268,7 +252,8 @@ export const initDigestCron = (queue: Queue) => {
 
   return {
     handlers: {
-      [JOB_NAME_GROUP_DIGEST_CRON]: () => handleDigestCron(),
+      [JOB_NAME_GROUP_DIGEST_CRON]: handleDigestCron,
     },
+    stop: async () => stopDigestCron(queue)
   };
 };

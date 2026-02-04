@@ -48,6 +48,7 @@ export const initSyntheticEvents = () => {
   return () => {
     transferModule.stop();
     postModule.stop();
+    digestModule.stop();
     worker.close();
     queue.close();
   };

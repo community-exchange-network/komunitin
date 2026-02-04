@@ -2,6 +2,7 @@ import { dispatchEvent } from '../worker';
 import { NotificationEvent } from '../events';
 import { EnrichedEvent } from '../enriched-events';
 import { eventBus } from '../event-bus';
+import prisma from '../../utils/prisma';
 
 export const QUEUE_NAME = 'synthetic-events';
 
@@ -28,4 +29,25 @@ export const dispatchSyntheticEnrichedEvent = async <T extends Omit<EnrichedEven
     source: 'notifications-synthetic-events',
     time: new Date(),
   });
+}
+
+/**
+ * Returns a map of all users in the group with the date of their last notification. If eventName is provided,
+ * only notifications of that event type are considered.
+ * 
+ * @param groupCode 
+ * @param eventName 
+ */
+export const lastNotificationDateByUser = async (groupCode: string, eventName?: string): Promise<Map<string, Date>> => {
+  const lastNotifications = await prisma.appNotification.groupBy({
+    by: ['userId'],
+    where: {
+      tenantId: groupCode,
+      ...(eventName ? { eventName } : {}),
+    },
+    _max: { createdAt: true },
+  });
+  return new Map<string, Date>(
+    lastNotifications.map(item => [item.userId, item._max.createdAt!])
+  );
 }

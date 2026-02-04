@@ -1,5 +1,6 @@
 import { Member, Need, Offer } from "../../clients/komunitin/types";
-import { EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMembersJoinedDigestEvent } from "../enriched-events";
+import { formatAmount } from "../../utils/format";
+import { EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMemberHasNoPostsEvent, EnrichedMembersJoinedDigestEvent } from "../enriched-events";
 import { excerptPost, extendPostDuration } from "./post";
 import { MessageContext, NotificationActions, NotificationMessage, NotificationMessageAction } from "./types";
 
@@ -282,4 +283,52 @@ export const buildMemberJoinedMessage = (
     ],
   };
 }
+
+/**
+ * Generate messages for member with either:
+ *  - no offers when balance is negative
+ *  - no needs when balance is positive
+ */
+export const buildMemberHasNoPostsMessage = (
+  event: EnrichedMemberHasNoPostsEvent,
+  { t, locale }: MessageContext
+): NotificationMessage => {
+  
+  const postType = event.data.type as 'offers' | 'needs';
+  const currency = event.currency;
+  const balance = formatAmount(event.data.balance, currency, locale);
+
+  if (postType === 'offers') {
+    // No offers & balance is negative
+    return {
+      title: t('notifications.member_no_offers_title'),
+      body: t('notifications.member_no_offers_body', { balance }),
+      image: event.group.attributes.image,
+      route: `/groups/${event.code}/members/${event.member.attributes.code}#offers`,
+      data: {
+        route2: `/groups/${event.code}/offers/new`,
+      },
+      actions: [{
+        title: t('notifications.action_create_offer'),
+        action: NotificationActions.OPEN_ROUTE_2,
+      }],
+    };
+  } else {
+    // No needs & balance is positive
+    return {
+      title: t('notifications.member_no_needs_title', { balance }),
+      body: t('notifications.member_no_needs_body'),
+      image: event.group.attributes.image,
+      route: `/groups/${event.code}/members/${event.member.attributes.code}#needs`,
+      data: {
+        route2: `/groups/${event.code}/needs/new`,
+      },
+      actions: [{
+        title: t('notifications.action_create_need'),
+        action: NotificationActions.OPEN_ROUTE_2,
+      }],
+    };
+  }
+};
+  
 
