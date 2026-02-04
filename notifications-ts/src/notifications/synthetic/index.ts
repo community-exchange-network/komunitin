@@ -6,6 +6,7 @@ import { initTransferEvents } from './transfer';
 import { initPostEvents } from './post';
 import { initDigestCron } from './digest-cron';
 import { internalError } from '../../utils/error';
+import { initEngagementEvents } from './engagement';
 
 /**
  * Synthetic event generator.
@@ -19,12 +20,14 @@ export const initSyntheticEvents = () => {
   const transferModule = initTransferEvents(queue);
   const postModule = initPostEvents(queue);
   const digestModule = initDigestCron(queue);
+  const engagementModule = initEngagementEvents(queue);
 
   // Combine all handlers
   const handlers = {
     ...transferModule.handlers,
     ...postModule.handlers,
     ...digestModule.handlers,
+    ...engagementModule.handlers,
   };
 
   // Create worker that delegates to registered handlers
@@ -49,6 +52,7 @@ export const initSyntheticEvents = () => {
     transferModule.stop();
     postModule.stop();
     digestModule.stop();
+    engagementModule.stop();
     worker.close();
     queue.close();
   };
