@@ -254,8 +254,9 @@ describe('Push notifications', () => {
       assert.strictEqual(response.status, 200);
       assert.ok(response.body.data.attributes.delivered);
 
-      const stored = (await listPushNotifications()).find((n: any) => n.id === pn.id);
-      assert.ok(stored.deliveredAt instanceof Date);
+      const pushNotifications = await listPushNotifications();
+      const stored = pushNotifications.find((n: any) => n.id === pn.id);
+      assert.ok(stored?.deliveredAt instanceof Date);
     });
 
     it('updates clickedAt and clickedAction', async () => {
@@ -270,9 +271,10 @@ describe('Push notifications', () => {
       assert.ok(response.body.data.attributes.clicked);
       assert.strictEqual(response.body.data.attributes.clickaction, 'open_app');
 
-      const stored = (await listPushNotifications()).find((n: any) => n.id === pn.id);
-      assert.ok(stored.clickedAt instanceof Date);
-      assert.strictEqual(stored.clickedAction, 'open_app');
+      const pushNotifications = await listPushNotifications();
+      const stored = pushNotifications.find((n: any) => n.id === pn.id);
+      assert.ok(stored?.clickedAt instanceof Date);
+      assert.strictEqual(stored?.clickedAction, 'open_app');
     });
 
     it('returns 400 if ID in body does not match ID in URL', async () => {
