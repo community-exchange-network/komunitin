@@ -271,7 +271,7 @@ export const buildMemberJoinedMessage = (
 
   return {
     title: t('notifications.welcome_new_member_title', { groupName }),
-    body: t('notifications.welcome_new_member_body', { memberName }),
+    body: t('notifications.welcome_new_member_body', { name: memberName }),
     image: event.group.attributes.image,
     route: `/home`,
     actions: [
