@@ -1,53 +1,16 @@
-import { setupServer } from 'msw/node'
 import assert from 'node:assert'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import { generateKeys } from '../../mocks/auth'
-import { createMember, getUserIdForMember, resetDb } from '../../mocks/db'
-import handlers from '../../mocks/handlers'
-import { mockDb } from '../../mocks/prisma'
-import { createQueue } from '../../mocks/queue'
-import { mockRedis } from '../../mocks/redis'
+import { describe, it } from 'node:test'
+import { createMember, getUserIdForMember } from '../../mocks/db'
 import '../../mocks/web-push'
-import { createEvent, verifyNotification } from './utils'
+import { createEvent, setupNotificationsTest, verifyNotification } from './utils'
 
-const { put } = mockRedis()
-const server = setupServer(...handlers)
-const pushQueue = createQueue('push-notifications')
-const syntheticQueue = createQueue('synthetic-events')
-
-// Mock prisma
-const { appNotification: appNotifications } = mockDb()
+const { put, appNotifications } = setupNotificationsTest({
+  useWorker: true,
+  usePushQueue: true,
+  useSyntheticQueue: true,
+})
 
 describe('MemberJoined notifications', () => {
-  let runNotificationsWorker: () => Promise<{ stop: () => Promise<void> }>;
-  let worker: { stop: () => Promise<void> } | null = null;
-
-  before(async () => {
-    const workerModule = await import('../worker')
-    runNotificationsWorker = workerModule.runNotificationsWorker
-    await generateKeys()
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  after(() => {
-    server.close()
-  })
-
-  beforeEach(async () => {
-    resetDb()
-    appNotifications.length = 0
-    pushQueue.resetMocks()
-    syntheticQueue.resetMocks()
-    worker = await runNotificationsWorker()
-  })
-
-  afterEach(async () => {
-    if (worker) {
-      await worker.stop()
-      worker = null
-    }
-  })
-
   it('should process MemberJoined event and generate a welcome notification', async () => {
     const groupId = 'GRP1'
     const member = createMember({ groupCode: groupId, name: 'Ada Lovelace' })

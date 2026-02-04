@@ -1,57 +1,38 @@
 import assert from 'node:assert';
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { _app as app } from '../../server';
-import { createQueue } from '../../mocks/queue';
 import { resetWebPushMocks, sendNotification, setVapidDetails } from '../../mocks/web-push';
-import { mockDb } from '../../mocks/prisma';
 import prisma from '../../utils/prisma';
-import { setupServer } from 'msw/node';
-import handlers from '../../mocks/handlers';
-import { generateKeys } from '../../mocks/auth';
-import { mockRedis } from '../../mocks/redis';
 import { db, createTransfers } from '../../mocks/db';
-import { createEvent } from './utils';
+import { createEvent, setupNotificationsTest } from './utils';
 
 const JOB_NAME_SEND_PUSH = 'send-push-notification';
-const server = setupServer(...handlers);
-const { put } = mockRedis();
-const queue = createQueue('push-notifications');
 
-const { pushSubscription: subscriptions, pushNotification: pushNotifications } = mockDb();
+const { put, pushQueue } = setupNotificationsTest({
+  useWorker: true,
+  usePushQueue: true,
+});
+
+const queue = pushQueue!;
+
+const listPushNotifications = () => prisma.pushNotification.findMany();
+const listPushSubscriptions = () => prisma.pushSubscription.findMany();
+
+const clearPushTable = async (table: { findMany: (args?: any) => Promise<any[]>; delete: (args: any) => Promise<any> }) => {
+  const items = await table.findMany();
+  await Promise.all(items.map((item: any) => table.delete({ where: { id: item.id } })));
+};
 
 describe('Push notifications', () => {
-  let runNotificationsWorker: () => Promise<{ stop: () => Promise<void> }>;
-  let worker: { stop: () => Promise<void> } | null = null;
-
-  before(async () => {
-    // Prepare auth keys and start MSW to mock accounting/client API
-    await generateKeys();
-    server.listen({ onUnhandledRequest: 'bypass' });
-    const workerModule = await import('../worker');
-    runNotificationsWorker = workerModule.runNotificationsWorker;
-  });
-
-  after(() => {
-    server.close();
-  });
-
-  beforeEach(async () => {
-    queue.resetMocks();
+  beforeEach(() => {
     resetWebPushMocks();
-    // Start notifications worker so the event stream is processed
-    worker = await runNotificationsWorker();
   });
 
   afterEach(async () => {
-    subscriptions.length = 0;
-    pushNotifications.length = 0;
-
-    if (worker) {
-      await worker.stop();
-      worker = null;
-    }
+    await clearPushTable(prisma.pushSubscription);
+    await clearPushTable(prisma.pushNotification);
   });
 
   const createPushNotification = (overrides: any = {}) => {
@@ -112,6 +93,8 @@ describe('Push notifications', () => {
 
     assert.equal(setVapidDetails.mock.callCount(), 1);
     assert.equal(sendNotification.mock.callCount(), 1);
+
+    const pushNotifications = await listPushNotifications();
     assert.equal(pushNotifications.length, 1);
     assert.equal(pushNotifications[0].tenantId, 'GRP1');
     assert.equal(pushNotifications[0].userId, 'user-1');
@@ -154,6 +137,9 @@ describe('Push notifications', () => {
       eventId: 'evt-2',
     });
 
+    const subscriptions = await listPushSubscriptions();
+    const pushNotifications = await listPushNotifications();
+
     assert.equal(subscriptions.length, 0);
     assert.equal(pushNotifications.length, 1);
     assert.equal(pushNotifications[0].deliveredAt, undefined);
@@ -195,6 +181,9 @@ describe('Push notifications', () => {
         eventId: 'evt-3',
       });
     });
+
+    const subscriptions = await listPushSubscriptions();
+    const pushNotifications = await listPushNotifications();
 
     assert.equal(subscriptions.length, 1);
     assert.equal(pushNotifications.length, 1);
@@ -249,6 +238,8 @@ describe('Push notifications', () => {
 
     // Verify push was sent and telemetry stored
     assert.strictEqual(sendNotification.mock.callCount(), 1);
+
+    const pushNotifications = await listPushNotifications();
     assert.strictEqual(pushNotifications.length, 1);
     assert.strictEqual(pushNotifications[0].tenantId, groupId);
     assert.strictEqual(pushNotifications[0].userId, payeeUserId);
@@ -262,7 +253,9 @@ describe('Push notifications', () => {
 
       assert.strictEqual(response.status, 200);
       assert.ok(response.body.data.attributes.delivered);
-      assert.ok(pushNotifications.find((n: any) => n.id === pn.id).deliveredAt instanceof Date);
+
+      const stored = (await listPushNotifications()).find((n: any) => n.id === pn.id);
+      assert.ok(stored.deliveredAt instanceof Date);
     });
 
     it('updates clickedAt and clickedAction', async () => {
@@ -276,8 +269,10 @@ describe('Push notifications', () => {
       assert.strictEqual(response.status, 200);
       assert.ok(response.body.data.attributes.clicked);
       assert.strictEqual(response.body.data.attributes.clickaction, 'open_app');
-      assert.ok(pushNotifications.find((n: any) => n.id === pn.id).clickedAt instanceof Date);
-      assert.strictEqual(pushNotifications.find((n: any) => n.id === pn.id).clickedAction, 'open_app');
+
+      const stored = (await listPushNotifications()).find((n: any) => n.id === pn.id);
+      assert.ok(stored.clickedAt instanceof Date);
+      assert.strictEqual(stored.clickedAction, 'open_app');
     });
 
     it('returns 400 if ID in body does not match ID in URL', async () => {

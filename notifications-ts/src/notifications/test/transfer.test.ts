@@ -1,57 +1,15 @@
-import { test, describe, it, before, after, beforeEach, afterEach } from 'node:test'
+import { test, describe, it } from 'node:test'
 import assert from 'node:assert'
-import { setupServer } from 'msw/node'
-import handlers from '../../mocks/handlers'
-import { generateKeys } from '../../mocks/auth'
-import { mockRedis } from '../../mocks/redis'
 import { db, createTransfers } from '../../mocks/db'
-import { createQueue } from '../../mocks/queue'
-import { mockDb } from '../../mocks/prisma'
-import { createEvent, verifyNotification } from './utils'
+import { createEvent, setupNotificationsTest, verifyNotification } from './utils'
 
-const { put } = mockRedis()
-const server = setupServer(...handlers)
-const queue = createQueue('synthetic-events')
-
-// Mock prisma
-const { appNotification: appNotifications } = mockDb()
+const { put, appNotifications, syntheticQueue: queue } = setupNotificationsTest({
+  useWorker: true,
+  usePushQueue: true,
+  useSyntheticQueue: true,
+})
 
 describe('App notifications', () => {
-  let runNotificationsWorker: () => Promise<{ stop: () => Promise<void> }>;
-  let worker: { stop: () => Promise<void> } | null = null;
-  
-  before(async () => {
-    // We need to use a dynamic import for the worker because otherwise the redis mock
-    // does not take effect. Specifically, all ESM imports are hoisted (evaluated before 
-    // any code), so we cant solve it with static imports.
-    const workerModule = await import('../worker')
-    runNotificationsWorker = workerModule.runNotificationsWorker
-    
-    // Generate Auth Keys
-    await generateKeys()
-    // Start MSW
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  after(() => {
-    server.close()
-  })
-
-  beforeEach(async () => {
-    // Clear DB
-    appNotifications.length = 0
-    // Start the worker (channels will register their listeners)
-    worker = await runNotificationsWorker()
-  })
-
-  afterEach(async () => {
-    // Stop the worker
-    if (worker) {
-      await worker.stop()
-      worker = null
-    }
-  })
-
   const setupTestTransfer = () => {
     const groupId = 'GRP1'
     createTransfers(groupId)
@@ -63,10 +21,10 @@ describe('App notifications', () => {
         return u.relationships.members.data.some((r: any) => r.id === memberId)
       })!.id
     }
-    
+
     const payerUserId = accountUserId(transfer.relationships.payer.data.id)
     const payeeUserId = accountUserId(transfer.relationships.payee.data.id)
-    
+
     return { groupId, transfer, payerUserId, payeeUserId }
   }
 
@@ -82,7 +40,7 @@ describe('App notifications', () => {
     assert.equal(appNotifications.length, 2, "Should have created 2 notifications")
     const payerNotification = appNotifications[0]
     const payeeNotification = appNotifications[1]
-    
+
     assert.ok(payerNotification, "Notification should be created in DB")
     assert.equal(payerNotification.tenantId, groupId)
     // The title depends on the locale and templates, but let's assume it generated something
@@ -108,7 +66,7 @@ describe('App notifications', () => {
     // Check DB - should only notify payer (who needs to accept/reject)
     assert.equal(appNotifications.length, 1, "Should have created 1 notification")
     const notification = appNotifications[0]
-    
+
     assert.ok(notification, "Notification should be created in DB")
     assert.equal(notification.tenantId, groupId)
     assert.equal(notification.userId, payerUserId)
@@ -129,7 +87,7 @@ describe('App notifications', () => {
     // Check DB - should only notify payee (the one who requested the transfer)
     assert.equal(appNotifications.length, 1, "Should have created 1 notification")
     const notification = appNotifications[0]
-    
+
     assert.ok(notification, "Notification should be created in DB")
     assert.equal(notification.tenantId, groupId)
     assert.equal(notification.userId, payeeUserId)
@@ -143,7 +101,7 @@ describe('App notifications', () => {
     const { groupId, transfer, payerUserId, payeeUserId } = setupTestTransfer()
     // Ensure transfer is pending
     transfer.attributes.state = 'pending'
-    
+
     // Reset queue mock calls
     queue.resetMocks()
 
@@ -161,17 +119,17 @@ describe('App notifications', () => {
 
     // 3. Dispatch Job (Simulate Worker) passing 24h
     // Notification goes to payer (who needs to perform action)
-    
+
     // Clear notifications before synthetic event to ensure we catch new one
     appNotifications.length = 0;
-    
+
     await queue.dispatchToWorker(jobName, jobOpts, jobData)
 
     // 4. Assert Notification (Iteration 1)
     assert.equal(appNotifications.length, 1, "Should create notification for still pending")
     const notif1 = appNotifications[0]
     assert.equal(notif1.userId, payerUserId)
-    
+
     await verifyNotification(payerUserId, groupId, notif1.id, "Transfer still pending")
 
     // 5. Verify Next Job Scheduled
@@ -181,7 +139,7 @@ describe('App notifications', () => {
     assert.strictEqual(jobOpts2.delay, 24 * 60 * 60 * 1000)
 
     // 6. Dispatch Job (Iteration 2)
-    appNotifications.length = 0; 
+    appNotifications.length = 0;
     await queue.dispatchToWorker(jobName2, jobOpts2, jobData2)
 
     // 7. Assert Notification (Iteration 2)
@@ -193,7 +151,7 @@ describe('App notifications', () => {
     const { groupId, transfer, payerUserId, payeeUserId } = setupTestTransfer()
     // Ensure transfer is pending initially
     transfer.attributes.state = 'pending'
-    
+
     // Reset queue mock calls
     queue.resetMocks()
 
@@ -204,12 +162,12 @@ describe('App notifications', () => {
 
     assert.strictEqual(queue.add.mock.callCount(), 1, "Should schedule job")
     const [_, jobData, jobOpts] = queue.add.mock.calls[0].arguments
-    
+
     // Reset call counts for queue.getJob to isolate the next assertion
     queue.getJob.mock.resetCalls();
 
     // 2. Setup mock job that will be retrieved for cancellation
-    const removeSpy = test.mock.fn(async () => {})
+    const removeSpy = test.mock.fn(async () => { })
     const mockJob = {
       id: jobOpts.jobId,
       data: jobData,
@@ -218,14 +176,14 @@ describe('App notifications', () => {
 
     // When synthetic-events calls queue.getJob(id), return our mock job
     queue.getJob.mock.mockImplementation(async (id: string) => {
-        if (id === jobOpts.jobId) return mockJob
-        return null
+      if (id === jobOpts.jobId) return mockJob
+      return null
     })
 
     // 3. Emit Committed Event -> Should cancel job
     // Update transfer state to committed conceptually (though the handler for cancelled doesn't check state, 
     // it just cancels the job)
-    
+
     const eventCommitted = createEvent('TransferCommitted', transfer.id, groupId, payerUserId, 'test-event-committed-1')
     await put(eventCommitted)
 

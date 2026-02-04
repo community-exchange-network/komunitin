@@ -1,40 +1,23 @@
 
-import { setupServer } from 'msw/node'
 import assert from 'node:assert'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import { generateKeys } from '../../mocks/auth'
-import { createMember, createMembers, createNeed, createOffer, db, getUserIdForMember, resetDb } from '../../mocks/db'
-import handlers from '../../mocks/handlers'
-import { mockDb } from '../../mocks/prisma'
-import { createQueue } from '../../mocks/queue'
-import { mockRedis } from '../../mocks/redis'
-import { initInAppChannel } from '../channels/app'
+import { before, beforeEach, describe, it } from 'node:test'
+import { createMember, createMembers, createNeed, createOffer, db, getUserIdForMember } from '../../mocks/db'
 import { EVENT_NAME } from '../events'
+import { setupNotificationsTest } from './utils'
 
-const server = setupServer(...handlers)
-mockRedis()
 
-// Mock prisma table
-const { appNotification: appNotifications } = mockDb()
+const { appNotifications, syntheticQueue: queue } = setupNotificationsTest({
+  useAppChannel: true,
+  useSyntheticQueue: true,
+})
 
 describe('MembersJoinedDigest notifications', () => {
   let runDigest: () => Promise<void>;
 
   before(async () => {
     const digestModule = await import('../synthetic/digest-cron')
-    const queue = createQueue('synthetic-events') as any
-    const { handlers } = digestModule.initDigestCron(queue)
+    const { handlers } = digestModule.initDigestCron(queue as any)
     runDigest = handlers['group-digest-cron']
-
-    initInAppChannel()
-
-    await generateKeys()
-    server.listen({ onUnhandledRequest: 'bypass' })
-
-  })
-
-  after(() => {
-    server.close()
   })
 
   const groupCode = 'GRP1'
@@ -42,13 +25,10 @@ describe('MembersJoinedDigest notifications', () => {
   let recipientMember: any;
 
   beforeEach(async () => {
-    resetDb()
     // Setup base members for tests
     createMembers(groupCode) // creates members
     members = db.members.filter(m => m.relationships.group.data.id === `group-${groupCode}`)
     recipientMember = members[0]
-    // Clear notifications
-    appNotifications.length = 0
   })
 
   // Helper to create members with specific created dates

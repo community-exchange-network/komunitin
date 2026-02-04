@@ -18,14 +18,6 @@ const createMockJob = (data: any, id: string) => ({
   remove: async () => {}, // basic mock
 });
 
-// Import system under test
-// We need dynamic imports if we want to reset between tests, but usually safe to import once if we reset mocks
-// Note: importing mocks/queue handles module mocking before this import runs if it's top level?
-// Actually 'mocks/queue' calls test.mock.module.
-// We must ensure 'mocks/queue' is imported BEFORE 'synthetic-events'.
-// In ESM, imports are hoisted. But side effects?
-// 'mocks/queue' has side effects (test.mock.module).
-// So it should apply.
 
 const { initSyntheticEvents } = await import('../synthetic');
 const { eventBus } = await import('../event-bus');

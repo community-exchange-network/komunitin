@@ -1,31 +1,19 @@
 import assert from 'node:assert'
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test'
-import { setupServer } from 'msw/node'
-
-import handlers from '../../mocks/handlers'
-import { generateKeys } from '../../mocks/auth'
-import { mockDb } from '../../mocks/prisma'
-import { createQueue } from '../../mocks/queue'
-import { createOffer, getUserIdForMember, resetDb, db } from '../../mocks/db'
+import { describe, it, before, beforeEach, afterEach } from 'node:test'
+import { createOffer, getUserIdForMember, db } from '../../mocks/db'
 import { mockDate, restoreDate } from '../../mocks/date'
-import { verifyNotification } from './utils'
-import { mockRedis } from '../../mocks/redis'
+import { setupNotificationsTest, verifyNotification } from './utils'
 
-const server = setupServer(...handlers)
-mockRedis()
-const queue = createQueue('synthetic-events')
-
-// Mock prisma table used by app channel + HTTP endpoint
-const { appNotification } = mockDb()
+const { appNotifications, syntheticQueue: queue } = setupNotificationsTest({
+  useAppChannel: true,
+  useSyntheticQueue: true,
+})
 
 describe('Post expires soon (synthetic cron)', () => {
-  let stopAppChannel: (() => void) | null = null
   let runPostExpirationCron: () => Promise<void>;
   let runNotifyPostExpiresSoon: (job: any) => Promise<void>;
 
   before(async () => {
-    await generateKeys()
-    server.listen({ onUnhandledRequest: 'bypass' })
     const { initPostEvents } = await import('../synthetic/post')
     const { handlers: postHandlers } = initPostEvents(queue as any)
 
@@ -33,27 +21,12 @@ describe('Post expires soon (synthetic cron)', () => {
     runNotifyPostExpiresSoon = postHandlers['notify-post-expires-soon'];
   })
 
-  after(() => {
-    server.close()
-  })
-
   beforeEach(async () => {
-    resetDb()
-    queue.resetMocks()
-    appNotification.length = 0
-
     mockDate('2026-01-13T00:00:00.000Z')
-
-    const { initInAppChannel } = await import('../channels/app')
-    stopAppChannel = initInAppChannel()
   })
 
   afterEach(async () => {
     restoreDate()
-    if (stopAppChannel) {
-      stopAppChannel()
-      stopAppChannel = null
-    }
   })
 
   it('discovers an expiring post, sends the 7d notification, schedules the 24h one, and is idempotent', async () => {
@@ -94,8 +67,8 @@ describe('Post expires soon (synthetic cron)', () => {
     // 3) Process the 7d job and verify notification via HTTP endpoint
     await runNotifyPostExpiresSoon({ data: job7d.data } )
 
-    assert.equal(appNotification.length, 1)
-    const notification = appNotification[0]
+    assert.equal(appNotifications.length, 1)
+    const notification = appNotifications[0]
 
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expires in 6 days',
@@ -106,7 +79,7 @@ describe('Post expires soon (synthetic cron)', () => {
     await runPostExpirationCron()
 
     assert.equal(queue.add.mock.callCount(), 2, 'Should not enqueue duplicate jobs on re-run')
-    assert.equal(appNotification.length, 1, 'Should not create a duplicate notification on re-run')
+    assert.equal(appNotifications.length, 1, 'Should not create a duplicate notification on re-run')
   })
 
   it('cancels the 24h notification if the post is extended before the job runs', async () => {
@@ -140,15 +113,15 @@ describe('Post expires soon (synthetic cron)', () => {
 
     // 3) Process 7d job. It should send the notification.
     await runNotifyPostExpiresSoon({ data: job7d.data } )
-    assert.equal(appNotification.length, 1)
+    assert.equal(appNotifications.length, 1)
 
     // 4) Extend the post expiration to 30 days from now
     db.offers.find((o: any) => o.id === offer.id).attributes.expires = new Date(now + 30 * DAY).toISOString()
 
     // 5) Process the 24h job. It should NOT send a notification.
-    appNotification.length = 0 // Clear to see if a new one is added
+    appNotifications.length = 0 // Clear to see if a new one is added
     await runNotifyPostExpiresSoon({ data: job24h.data } )
 
-    assert.equal(appNotification.length, 0, 'Expected no notification to be sent as post was extended')
+    assert.equal(appNotifications.length, 0, 'Expected no notification to be sent as post was extended')
   })
 })

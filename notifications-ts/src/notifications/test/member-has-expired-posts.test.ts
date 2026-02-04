@@ -1,32 +1,19 @@
 import assert from 'node:assert'
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test'
-import { setupServer } from 'msw/node'
-
-import handlers from '../../mocks/handlers'
-import { generateKeys } from '../../mocks/auth'
-import { mockDb } from '../../mocks/prisma'
-import { createQueue } from '../../mocks/queue'
-import { createOffer, createNeed, getUserIdForMember, resetDb, db } from '../../mocks/db'
+import { describe, it, before, beforeEach, afterEach } from 'node:test'
+import { createOffer, createNeed, getUserIdForMember, db } from '../../mocks/db'
 import { mockDate, restoreDate } from '../../mocks/date'
-import { verifyNotification } from './utils'
+import { setupNotificationsTest, verifyNotification } from './utils'
 
-import { mockRedis } from '../../mocks/redis'
-
-const server = setupServer(...handlers)
-mockRedis()
-
-// Mock prisma table used by app channel + HTTP endpoint
-const { appNotification } = mockDb()
+const { appNotifications, syntheticQueue: queue } = setupNotificationsTest({
+  useAppChannel: true,
+  useSyntheticQueue: true,
+})
 
 describe('Member has expired posts (synthetic cron)', () => {
-  let stopAppChannel: (() => void) | null = null
   let runPostExpirationCron: () => Promise<void>;
   let runNotifyMemberHasExpiredPosts: (data: any) => Promise<void>;
-  const queue = createQueue("synthetic-events");
 
   before(async () => {
-    await generateKeys()
-    server.listen({ onUnhandledRequest: 'bypass' })
     const { initPostEvents } = await import('../synthetic/post')
     const { handlers: postHandlers } = initPostEvents(queue as any)
 
@@ -35,27 +22,12 @@ describe('Member has expired posts (synthetic cron)', () => {
 
   })
 
-  after(() => {
-    server.close()
-  })
-
   beforeEach(async () => {
-    resetDb()
-    queue.resetMocks()
-    appNotification.length = 0
-
     mockDate('2026-01-13T00:00:00.000Z')
-
-    const { initInAppChannel } = await import('../channels/app')
-    stopAppChannel = initInAppChannel()
   })
 
   afterEach(async () => {
     restoreDate()
-    if (stopAppChannel) {
-      stopAppChannel()
-      stopAppChannel = null
-    }
   })
 
   it('discovers a member with an expired offer, queues a reminder with the expected delay, sends an in-app notification, and reschedules on re-run', async () => {
@@ -92,8 +64,8 @@ describe('Member has expired posts (synthetic cron)', () => {
     // 2) Process the job and verify notification via HTTP endpoint
     await runNotifyMemberHasExpiredPosts({ data: job.data } )
 
-    assert.equal(appNotification.length, 1)
-    const notification = appNotification[0]
+    assert.equal(appNotifications.length, 1)
+    const notification = appNotifications[0]
 
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expired 1 day ago',
@@ -109,7 +81,7 @@ describe('Member has expired posts (synthetic cron)', () => {
 
     // Because this job is scheduled with replace=true, the second run removes and re-adds it.
     assert.equal(queue.add.mock.callCount(), 2)
-    assert.equal(appNotification.length, 1)
+    assert.equal(appNotifications.length, 1)
   })
 
   it('ensures a more recent expiration supersedes older ones for the same member', async () => {
@@ -184,9 +156,9 @@ describe('Member has expired posts (synthetic cron)', () => {
       const job = await queue.getJob(jobId)
       if (!job) return null
 
-      appNotification.length = 0
+      appNotifications.length = 0
       await runNotifyMemberHasExpiredPosts({ data: job.data } )
-      return appNotification[0]
+      return appNotifications[0]
     }
 
     // SCENARIO 1: Only one expired need (1 day ago)
