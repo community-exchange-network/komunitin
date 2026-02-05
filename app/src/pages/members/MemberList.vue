@@ -3,7 +3,6 @@
     <page-header
       search
       :title="$t('members')"
-      balance
       @search="query = $event"
     />
     <q-page-container>
