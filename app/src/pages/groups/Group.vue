@@ -95,22 +95,6 @@
                 </q-card-section>
               </q-card>
             </router-link>
-  
-            <router-link :to="`/groups/${code}/details`" 
-              style="text-decoration: none; color: inherit; height: fit-content;"
-              class="col">
-              <q-card 
-                flat
-                class="transition-all bg-active text-onsurface-m"
-              >
-                <q-card-section class="text-center">
-                  <q-icon name="info" size="sm"/>
-                  <div class="text-body2 text-weight-medium">
-                    {{ $t('about') }}
-                  </div>
-                </q-card-section>
-              </q-card>
-            </router-link>
           </nav>
         </q-page-sticky>
         
