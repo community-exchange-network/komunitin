@@ -1,13 +1,22 @@
-import express from 'express'
 import cors from 'cors'
+import express from 'express'
+import helmet from 'helmet'
+import qs from 'qs'
 import { config } from './config'
 import notificationsRouter from './notifications/server/routes'
-import logger from './utils/logger'
-import helmet from 'helmet'
-import { httpLogger } from './server/http-logger'
 import { errorHandler } from './server/errors'
+import { httpLogger } from './server/http-logger'
+import logger from './utils/logger'
 
 const app = express()
+
+app.disable('x-powered-by')
+app.set('query parser', (query: string) => {
+  return qs.parse(query, {
+    // parse comma-separated values into arrays.
+    comma: true
+  })
+})
 
 app.use(helmet())
 app.use(cors({
