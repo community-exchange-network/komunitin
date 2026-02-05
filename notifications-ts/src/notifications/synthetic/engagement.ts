@@ -1,11 +1,10 @@
 import { type Queue } from 'bullmq';
-import logger from '../../utils/logger';
-import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
 import { KomunitinClient } from '../../clients/komunitin/client';
 import { Group } from '../../clients/komunitin/types';
-import { dispatchSyntheticEnrichedEvent, dispatchSyntheticEvent, lastNotificationDateByUser } from './shared';
+import { getCachedActiveGroups, getCachedCurrency, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
+import logger from '../../utils/logger';
 import { EVENT_NAME } from '../events';
-import { send } from 'process';
+import { dispatchSyntheticEnrichedEvent, lastNotificationDateByUser } from './shared';
 
 /**
  * Engagement synthetic events.
@@ -57,6 +56,8 @@ const canSendEngagementEvent = (userId: string, lastEngagement: Date | undefined
 
 const processEngagementEventsForGroup = async (client: KomunitinClient, group: Group): Promise<void> => {
   const membersWithUsers = await getCachedGroupMembersWithUsers(client, group.attributes.code);
+  const currency = await getCachedCurrency(client, group.attributes.code);
+
   const lastEngagementNotificationMap = await lastNotificationDateByUser(group.attributes.code, EVENT_NAME.MemberHasNoPosts);
   const lastNotificationMap = await lastNotificationDateByUser(group.attributes.code);
 
@@ -90,12 +91,13 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
     const account = await client.getAccount(group.attributes.code, member.relationships.account.data.id);
     const balance = account.attributes.balance || 0;
 
-    if (balance > 0 && needsCounter > 0 || balance <= 0 && offersCounter > 0) {
+    if ((balance > 0 && needsCounter > 0) || (balance <= 0 && offersCounter > 0)) {
       // No need to send engagement event
       continue;
     }
 
-    // Fetch updated member with offers/needs counts
+    // Cached data may be up to 24h old, re-fetch member to get latest needs/offers count 
+    // before sending engagement event
     const updatedMember = await client.getMember(group.attributes.code, member.id);
     const updatedNeedsCounter = updatedMember.relationships.needs.meta.count ?? 0
     const updatedOffersCounter = updatedMember.relationships.offers.meta.count ?? 0
@@ -105,7 +107,6 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
 
     if (sendNoOffers || sendNoNeeds) {
       // Send engagement event
-      const currency = await client.getCurrency(group.attributes.code);
       await dispatchSyntheticEnrichedEvent({
         name: EVENT_NAME.MemberHasNoPosts,
         code: group.attributes.code,
@@ -139,7 +140,7 @@ const handleEngagementEventsCron = async (): Promise<void> => {
 
 export const initEngagementEvents = (queue: Queue) => {
   scheduleEngagementEventsCron(queue).catch(err => {
-    console.error({ err }, 'Failed to schedule engagement events cron');
+    logger.error({ err }, 'Failed to schedule engagement events cron');
   });
 
   return {

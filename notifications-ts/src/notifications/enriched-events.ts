@@ -59,8 +59,11 @@ export type EnrichedMembersJoinedDigestEvent = EnrichedGroupDigestEvent & {
 
 export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
   name: 'MemberHasNoPosts';
+  data: {
+    balance: number;
+    type: 'offers' | 'needs';
+  };
   member: Member;
-  balance: number;
   group: Group;
   currency: Currency;
   users: Array<{ user: User; settings: UserSettings }>;

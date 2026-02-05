@@ -34,9 +34,6 @@ export const dispatchSyntheticEnrichedEvent = async <T extends Omit<EnrichedEven
 /**
  * Returns a map of all users in the group with the date of their last notification. If eventName is provided,
  * only notifications of that event type are considered.
- * 
- * @param groupCode 
- * @param eventName 
  */
 export const lastNotificationDateByUser = async (groupCode: string, eventName?: string): Promise<Map<string, Date>> => {
   const lastNotifications = await prisma.appNotification.groupBy({
