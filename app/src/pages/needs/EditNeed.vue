@@ -27,13 +27,14 @@ import NeedForm from "./NeedForm.vue"
 import { useStore } from 'vuex';
 import type { Need, Category } from '../../store/model';
 import type { DeepPartial } from 'quasar';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 
 const props = defineProps<{
   code: string
   needCode: string
 }>()
 const store = useStore()
+const route = useRoute()
 const need = ref<Need & {category: Category} |null>(null)
 
 const fetchData = async () => {
@@ -42,7 +43,20 @@ const fetchData = async () => {
     group: props.code,
     include: "category"
   })
-  need.value = store.getters["needs/current"]
+  const fetchedNeed = store.getters["needs/current"]
+  // Apply optional URL params.
+  const params = route.query
+  if (typeof params.state === 'string' && ['hidden', 'published'].includes(params.state)) {
+    fetchedNeed.attributes.state = params.state
+  }
+  if (typeof params.expires === 'string') {
+    const expires = new Date(params.expires)
+    if (!isNaN(expires.getTime())) {
+      fetchedNeed.attributes.expires = expires.toISOString()
+    }
+  }
+
+  need.value = fetchedNeed
 }
 
 fetchData()
@@ -56,7 +70,7 @@ const onSubmit = async (resource: DeepPartial<Need>) => {
   })
   const need = store.getters["needs/current"]
   // Go to need page.
-  router.push({
+  router.replace({
     name: "Need",
     params: {
       code: props.code,

@@ -1,22 +1,28 @@
 import 'dotenv/config';
 import logger from './utils/logger';
+import { connectRedis } from './utils/redis';
 
-import cron from 'node-cron';
-import { runNewsletter } from './newsletter/service';
+import { runNewsletterWorker } from './newsletter/worker';
+import { runNotificationsWorker } from './notifications/worker';
+import { startServer } from './server';
 
 const main = async () => {
   logger.info('Starting notifications-ts service...');
 
-  // Schedule newsletter: Every hour at minute 30
-  cron.schedule('30 * * * *', () => {
-    runNewsletter();
-  });
+  await connectRedis();
+
+  const { stop: stopNotifications } = await runNotificationsWorker();
+  const { stop: stopNewsletter } = await runNewsletterWorker();
+  const { stop: stopServer } = startServer();
 
   // Prevent direct exit, keep process alive for cron jobs
   const keepAlive = setInterval(() => { }, 1000 * 60 * 60);
 
   const shutdown = () => {
     logger.info('Shutting down...');
+    stopNotifications().catch((err) => logger.error(err, 'Error stopping notifications worker'));
+    stopNewsletter().catch((err) => logger.error(err, 'Error stopping newsletter worker'));
+    stopServer().catch((err) => logger.error(err, 'Error stopping server'));
     clearInterval(keepAlive);
     process.exit(0);
   };

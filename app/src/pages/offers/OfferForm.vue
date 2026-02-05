@@ -116,7 +116,6 @@ const description = ref("")
 const category = ref<Category|null>(null)
 const price = ref("")
 const expiration = ref<Date>(new Date())
-
 const state = ref<OfferState>(props.modelValue?.attributes?.state || "published")
 
 watch([() => props.modelValue], async () => {

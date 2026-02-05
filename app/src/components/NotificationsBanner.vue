@@ -10,89 +10,101 @@
     {{ text }}
     <template #action>
       <q-btn
+        v-if="dismissable"
         flat
         color="primary"
-        :label="$t('dismiss')"
+        :label="t('dismiss')"
         @click="dismiss"
       />
       <q-btn
-        v-if="isCompatible && !isDenied"
+        v-if="isPushCompatible && !isPermissionDenied"
         flat
         color="primary"
-        :label="$t('enableNotifications')"
-        @click="subscribe"
+        :label="t('enableNotifications')"
+        @click="enablePushNotifications"
+      />
+      <q-btn
+        v-if="isPushCompatible && isPermissionDenied"
+        flat
+        color="primary"
+        :label="t('notificationsPermissionHelp')"
+        :href="helpUrl"
+        target="_blank"
+        rel="noopener"
       />
     </template>
   </q-banner>
 </template>
 <script setup lang="ts">
-import { ref, computed, onBeforeMount } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
-import { onMessage } from "firebase/messaging"
-import { notifications } from "../plugins/Notifications"
-import { notificationBuilder } from "../../src-pwa/notifications"
-import { useRouter } from "vue-router";
+import { getNotificationPermission, isWebPushCompatible, requestNotificationPermission } from "../plugins/Notifications";
+import { config } from "../utils/config";
 
+const props = withDefaults(defineProps<{
+  dismissable?: boolean
+}>(), {
+  dismissable: true,
+})
 
 const {t} = useI18n()
 
-const ready = ref(false);
-
 const store = useStore()
-const dismissed = computed(() => store.state.ui.notificationsBannerDismissed)
+
+const dismissed = computed(() => props.dismissable && store.state.ui.notificationsBannerDismissed)
+
 const isLoggedIn = computed(() => store.getters.isLoggedIn)
 const hasMember = computed(() => !!store.getters.myMember)
-const isCompatible = computed(() => (window && 'Notification' in window))
-const permission = ref(isCompatible.value && Notification.permission)
-const isAuthorized = computed(() => permission.value == 'granted')
-const isDenied = computed(() => permission.value == 'denied')
-const text = computed(() => {
-  if (isCompatible.value) {
-    return isDenied.value ? t("deniedNotificationsText") : t("enableNotificationsText")
-  } else {
-    return t("incompatibleNotificationsText")
+
+// Permission is not reactive by itself; keep a local ref.
+const permission = ref<NotificationPermission>(getNotificationPermission())
+
+const isPushCompatible = computed(() => isWebPushCompatible())
+
+const isPermissionGranted = computed(() => permission.value === 'granted')
+const isPermissionDenied = computed(() => permission.value === 'denied')
+
+const isSubscribed = computed(() => store.getters.isSubscribed)
+
+const isPushEnabled = computed(
+  () => isPushCompatible.value && isPermissionGranted.value && isSubscribed.value,
+)
+
+const requestPermission = async () => {
+  permission.value = await requestNotificationPermission()
+  return permission.value
+}
+
+const enablePushNotifications = async () => {
+  if (!isPushCompatible.value) return
+
+  if (permission.value !== 'granted') {
+    await requestPermission()
   }
-})
-
-const router = useRouter()
-
-const show = computed(() => ready.value && isLoggedIn.value && hasMember.value && !isAuthorized.value && !dismissed.value)
-
-const dismiss = () => store.commit("notificationsBannerDismissed", true)
-const subscribe = async () => {
-  permission.value = await Notification.requestPermission()
-  if (permission.value == 'granted') {
-    await store.dispatch("subscribe");
+  
+  if (permission.value === 'granted') {
+    await store.dispatch('subscribe')
   }
 }
 
-
-// Initialization.
-onBeforeMount(async () => {
-  if (isLoggedIn.value && hasMember.value && isAuthorized.value) {
-    await store.dispatch("subscribe");
+const text = computed(() => {
+  if (!isPushCompatible.value) {
+    return t("incompatibleNotificationsText")
+  } else if (isPermissionDenied.value) {
+    return t("deniedNotificationsText")
+  } else {
+    return t("enableNotificationsText")
   }
-  ready.value = true
-
-  // Set foreground message handler. We do it here instead of in the store or in the
-  // Notifications plugin file because we need to access the full UI including the 
-  // store and router.
-  const notification  = notificationBuilder(store)
-  onMessage(notifications.getMessaging(), (payload) => {
-    notification(payload).then(({title, options}) => {
-      const noti = new Notification(title, options)
-      noti.addEventListener('click', function() {
-        if (noti.data.url) {
-          router.push(noti.data.url)
-        }
-      })
-    }).catch((err) => {
-      console.error("Error showing notification", err)
-    })
-  })
-
 })
+
+const helpUrl = `${config.DOCS_URL}/features/notifications/enable-push-notifications`
+
+const show = computed(() => {
+  return isLoggedIn.value && hasMember.value && !isPushEnabled.value && !dismissed.value
+})
+
+const dismiss = () => store.commit("notificationsBannerDismissed", true)
 
 defineExpose({show})
 

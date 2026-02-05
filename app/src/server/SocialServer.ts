@@ -252,9 +252,7 @@ export default {
       komunitin: true,
       notifications: {
         myAccount: true,
-        newNeeds: true,
-        newOffers: true,
-        newMembers: true
+        group: true
       },
       emails: {
         myAccount: true,

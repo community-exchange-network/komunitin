@@ -159,9 +159,7 @@ export interface UserSettings extends ResourceObject {
     komunitin: boolean
     notifications: {
       myAccount: boolean
-      newNeeds: boolean
-      newOffers: boolean
-      newMembers: boolean
+      group: boolean
     },
     emails: {
       myAccount: boolean
@@ -494,13 +492,17 @@ export interface Need extends ResourceObject {
 
 export interface NotificationsSubscription extends ResourceObject {
   attributes: {
-    token: string;
-    // Here it goes the notification settings as an embedded map.
-    // settings: NotificationsSettings
+    endpoint: string,
+    keys: {
+      p256dh: string,
+      auth: string
+    }
+    meta?: Record<string, unknown>,
+    created: string,
+    updated: string
   };
   relationships: {
     user: RelatedResource;
-    member: RelatedResource;
   }
 }
 
@@ -550,5 +552,16 @@ export interface CurrencySettings extends ResourceObject {
 export interface CurrencyStatsData extends ResourceObject {
   attributes: {
     values: number[]
+  }
+}
+
+export interface Notification extends ResourceObject {
+  attributes: {
+    title: string
+    body: string
+    image: string | null
+    read: string | null
+    created: string
+    data: Record<string, unknown> | null
   }
 }
