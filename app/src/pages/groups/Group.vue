@@ -2,134 +2,268 @@
   <div>
     <page-header
       :title="group ? group.attributes.name : ''"
-     />
+    >
+      <template #buttons>
+        <contact-button
+          v-if="group"
+          icon="message"
+          round
+          flat
+          :contacts="group.contacts"
+        />
+        <share-button
+          v-if="group"
+          icon="share"
+          flat
+          round
+          :title="$t('checkTheExchangeCommunityGroup', {group: group.attributes.name})"
+          :text="group.attributes.description"
+        />
+      </template>
+    </page-header>
     <q-page-container>
-      <q-page style="padding-top: 70px;">
-        <div 
-          class="text-overline text-uppercase text-onsurface-d q-pt-md q-px-md row justify-between"
+      <q-page class="q-pa-md">
+        <!-- Loading spinner -->
+        <q-inner-loading
+          :showing="isLoading"
+          color="icon-dark"
+        />
+        <!-- Group view -->
+
+        <div
+          v-if="group"
+          class="row q-col-gutter-md"
         >
-          <div>
-            {{ $t('account') }}
+          <!-- image -->
+          <div class="col-4 q-px-md">
+            <div class="q-mx-auto" style="max-width: 152px; line-height: 0;">
+              <fit-text update>
+                <avatar
+                  size="inherit"
+                  :text="group.attributes.name"
+                  :img-src="group.attributes.image"
+                />
+              </fit-text>
+            </div>
           </div>
-          <div 
-            v-if="showBalances" 
-            class="text-right"
-          >
-            {{ $t('balance') }}
+
+          <!-- description -->
+          <div class="col column">
+            <div class="text-h6">
+              {{ group.attributes.code }}
+            </div>
+            <!-- eslint-disable vue/no-v-html -->
+            <div
+              class="text-onsurface-m ellipsis-3-lines"
+              v-html="md2html(group.attributes.description)"
+            />
           </div>
         </div>
-          
-        <resource-cards
-          v-slot="slotProps"
-          :code="code"
-          type="members"
-          include="contacts,account"
-          :query="query"
+        <!-- sub-page navigation -->
+        <nav
+          v-if="group"
+          class="row q-col-gutter-md q-py-md"
         >
-          <q-list
-            v-if="slotProps.resources"
-            padding
-          >
-            <member-header
-              v-for="member of slotProps.resources"
-              :key="member.id"
-              :member="member"
-              :to="`/groups/${code}/members/${member.attributes.code}`"
+          <router-link :to="`/groups/${code}/members`" 
+            style="text-decoration: none; color: inherit; height: fit-content;"
+            class="col-6"
             >
-              <template v-if="showBalances" #side>
-                <div class="column items-end">
-                  <div
-                    class="col currency text-h6"
-                    :class="
-                      member.account.attributes.balance >= 0
-                        ? 'positive-amount'
-                        : 'negative-amount'
-                    "
-                  >
-                    {{
-                      FormatCurrency(
-                        member.account.attributes.balance,
-                        member.account.currency
-                      )
-                    }}
-                  </div>
+            <q-card 
+              flat
+              class="transition-all bg-active text-onsurface-m"
+            >
+              <q-card-section class="text-center">
+                <q-icon name="people" size="sm"/>
+                <div class="text-body2 text-weight-medium">
+                  {{ $t('members') }}
                 </div>
-              </template>
-            </member-header>
-          </q-list>
-        </resource-cards>
+              </q-card-section>
+            </q-card>
+          </router-link>
 
-        <!-- Placed at the bottom so we don't have to mess with z-index -->
-        <q-page-sticky expand position="top" class="block"> 
-          <nav 
-            class="flex justify-between q-gutter-x-md q-py-sm q-px-md row bg-white"
+          <router-link :to="`/groups/${code}/stats`" 
+            style="text-decoration: none; color: inherit; height: fit-content;"
+            class="col-6"
             >
-            <router-link :to="`/groups/${code}/members`" 
-              style="text-decoration: none; color: inherit; height: fit-content;"
-              class="col">
-              <q-card 
-                flat
-                class="transition-all bg-active text-onsurface-m"
-              >
-                <q-card-section class="text-center">
-                  <q-icon name="people" size="sm"/>
-                  <div class="text-body2 text-weight-medium">
-                    {{ $t('members') }}
-                  </div>
-                </q-card-section>
-              </q-card>
-            </router-link>
-
-            <router-link :to="`/groups/${code}/stats`" 
-              style="text-decoration: none; color: inherit; height: fit-content;"
-              class="col">
-              <q-card 
-                flat
-                class="transition-all bg-active text-onsurface-m"
-              >
-                <q-card-section class="text-center">
-                  <q-icon name="insert_chart" size="sm"/>
-                  <div class="text-body2 text-weight-medium">
-                    {{ $t('statistics') }}
-                  </div>
-                </q-card-section>
-              </q-card>
-            </router-link>
-          </nav>
-        </q-page-sticky>
-        
+            <q-card 
+              flat
+              class="transition-all bg-active text-onsurface-m"
+            >
+              <q-card-section class="text-center">
+                <q-icon name="insert_chart" size="sm"/>
+                <div class="text-body2 text-weight-medium">
+                  {{ $t('statistics') }}
+                </div>
+              </q-card-section>
+            </q-card>
+          </router-link>
+        </nav>
+        <div
+          v-if="group"
+          class="row q-col-gutter-md"
+        >
+          <div class="col-12 col-sm-6 col-lg-8">
+            <q-card
+              square
+              flat
+            >
+              <simple-map
+                class="simple-map"
+                :center="center"
+                :marker="marker"
+              />
+              <q-card-section class="group-footer-card text-onsurface-m">
+                <q-icon name="place" />
+                {{ group.attributes.location.name }}
+              </q-card-section>
+            </q-card>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-4 relative-position">
+            <social-network-list
+              type="contact"
+              :contacts="group.contacts"
+            />
+          </div>
+          <floating-btn
+            v-if="!isLoggedIn"
+            :label="$t('signUp')"
+            icon="add"
+            color="primary"
+            :to="`/groups/${group.attributes.code}/signup`"
+          />
+        </div>
       </q-page>
     </q-page-container>
   </div>
 </template>
-<script setup lang="ts">
-import { computed, ref } from "vue";
 
-import FormatCurrency from "../../plugins/FormatCurrency";
+<script lang="ts">
+import { defineComponent, ref } from "vue";
+
+import md2html from "../../plugins/Md2html";
+
 import PageHeader from "../../layouts/PageHeader.vue";
-import ResourceCards from "../ResourceCards.vue";
-import MemberHeader from "../../components/MemberHeader.vue";
-import { useCurrencySettings } from "../../composables/currencySettings";
-import { useStore } from "vuex";
 
+import Avatar from '../../components/Avatar.vue';
+import ContactButton from "../../components/ContactButton.vue";
+import ShareButton from "../../components/ShareButton.vue";
+import SimpleMap from "../../components/SimpleMap.vue";
+import SocialNetworkList from "../../components/SocialNetworkList.vue";
+import FloatingBtn from "../../components/FloatingBtn.vue";
+import FitText from '../../components/FitText.vue';
 
-const props = defineProps<{
-  code: string
-}>();
+import type { Group, Contact, Category, Currency } from "../../store/model";
 
-const store = useStore();
-const currencySettings = useCurrencySettings(props.code);
-
-const showBalances = computed(() => 
-  currencySettings.value?.attributes.defaultHideBalance !== true
-  || store.getters.isAdmin
-);
-
-const group = computed(
-  () => store.getters["groups/current"]
-) 
-
-const query = ref("");
-
-
+/**
+ * Page for Group details.
+ */
+export default defineComponent({
+  name: "Group",
+  components: {
+    FitText,
+    Avatar,
+    SimpleMap,
+    ShareButton,
+    ContactButton,
+    SocialNetworkList,
+    PageHeader,
+    FloatingBtn
+  },
+  props: {
+    code: {
+      type: String,
+      required: true
+    }
+  },
+  setup() {
+    const ready = ref(false)
+    return {
+      link(link: string): string {
+        return link.replace(/(https|http):\/\//, "");
+      },
+      md2html,
+      ready
+    }
+  },
+  data() {
+    return {
+      socialButtonsView: false
+    };
+  },
+  computed: {
+    isLoggedIn(): boolean {
+      return this.$store.getters.isLoggedIn
+    },
+    group(): Group & { contacts: Contact[]; categories: Category[]; currency: Currency } {
+      return this.$store.getters["groups/current"];
+    },
+    currency(): Currency {
+      return this.group?.currency;
+    },
+    own(): boolean {
+      return this.group && this.$store.getters["myMember"] && this.group.id == this.$store.getters["myMember"].group.id
+    },
+    currencyItems(): string[] {
+      return [];
+      // FIXME: https://github.com/komunitin/komunitin/issues/81
+    },
+    offersItems(): string[] {
+      return this.group.categories ? this.buildCategoryItems("offers") : []
+    },
+    needsItems(): string[] {
+      return this.group.categories ? this.buildCategoryItems("needs") : []
+    },
+    center(): [number, number] | undefined {
+      return this.group?.attributes.location.coordinates;
+    },
+    marker(): [number, number] | undefined {
+      return this.center
+    },
+    isLoading(): boolean {
+      return !(this.ready || this.currency && this.group && this.group.contacts && this.group.categories);
+    }
+  },
+  created() {
+    // If I just call the fetch functions in created or mounted hook, then navigation from
+    // `/groups/GRP1` to `/groups/GRP2` doesn't trigger the action since the
+    // component is reused. If I otherwise add the `watch` Vue component member, the
+    // tests fail and give "You may have an infinite update loop in a component
+    // render function". So that's the way I found to make it work.
+    //
+    // https://router.vuejs.org/guide/essentials/dynamic-matching.html#reacting-to-params-changes
+    this.$watch("code", this.fetchData, { immediate: true });
+  },
+  methods: {
+    async fetchData(code: string) {
+      await this.fetchGroup(code);
+      this.ready = true
+    },
+    // Group info.
+    async fetchGroup(code: string) {
+      return this.$store.dispatch("groups/load", {
+        group: code,
+        include: "currency,contacts,categories"
+      });
+    },
+    // Categories info.
+    buildCategoryItems(type: "offers" | "needs"): string[] {
+      // Copy original array not to modify it when sorting.
+      const items: string[] = this.group.categories
+        .slice()
+        .sort(
+          (a, b) =>
+            b.relationships[type].meta.count - a.relationships[type].meta.count
+        )
+        .slice(0, 4)
+        .map(
+          category =>
+            `${category.relationships[type].meta.count} ${category.attributes.name}`
+        );
+      if (this.group.categories.length > 4) {
+        items.push(this.$t("andMoreCategories").toString());
+      }
+      return items;
+    }
+  }
+});
 </script>
