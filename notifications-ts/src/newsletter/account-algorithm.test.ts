@@ -14,6 +14,8 @@ const createMember = (attrs: any = {}): Member => ({
   },
   relationships: {
     account: { data: { type: 'accounts', id: 'm1-account' } },
+    needs: { meta: { count: 0 } },
+    offers: { meta: { count: 0 } }
   }
 });
 

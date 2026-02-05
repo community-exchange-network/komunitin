@@ -141,7 +141,9 @@ export const createMember = (opts: {
         links: { related: `${ACCOUNTING_URL}/${opts.groupCode}/accounts/${accountId}` }
       },
       user: { data: { type: 'users', id: userId } },
-      group: { data: { type: 'groups', id: groupId } }
+      group: { data: { type: 'groups', id: groupId } },
+      needs: { meta: { count: 0 } },
+      offers: { meta: { count: 0 } }
     }
   };
   db.members.push(member);
@@ -251,6 +253,13 @@ export const createOffer = (opts: {
   };
   
   db.offers.push(offer);
+
+  const member = db.members.find(m => m.id === memberId);
+  if (member) {
+    const offerCount = db.offers.filter(o => o.relationships.member.data.id === memberId).length;
+    member.relationships.offers.meta.count = offerCount;
+  }
+  
   return offer;
 };
 
@@ -309,6 +318,13 @@ export const createNeed = (opts: {
   };
   
   db.needs.push(need);
+
+  const member = db.members.find(m => m.id === memberId);
+  if (member) {
+    const needCount = db.needs.filter(n => n.relationships.member.data.id === memberId).length;
+    member.relationships.needs.meta.count = needCount;
+  }
+
   return need;
 };
 

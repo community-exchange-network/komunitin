@@ -14,6 +14,7 @@ import {
   buildMemberHasExpiredPostsMessage,
   buildMembersJoinedDigestMessage,
   buildMemberJoinedMessage,
+  buildMemberHasNoPostsMessage,
 } from '../../messages';
 import {
   EnrichedTransferEvent,
@@ -22,6 +23,7 @@ import {
   EnrichedMemberHasExpiredPostsEvent,
   EnrichedMembersJoinedDigestEvent,
   EnrichedMemberEvent,
+  EnrichedMemberHasNoPostsEvent,
 } from '../../enriched-events';
 import { handleNotificationForUsers } from './utils';
 
@@ -107,6 +109,13 @@ export const initInAppChannel = (): (() => void) => {
     eventBus.on(EVENT_NAME.MemberJoined, async (event: EnrichedMemberEvent) => {
       await handleNotificationForUsers(event, event.users, (ctx) => 
         buildMemberJoinedMessage(event, ctx)
+      );
+    }),
+
+    // Engagement synthetic events
+    eventBus.on(EVENT_NAME.MemberHasNoPosts, async (event: EnrichedMemberHasNoPostsEvent) => {
+      await handleNotificationForUsers(event, event.users, (ctx) =>
+        buildMemberHasNoPostsMessage(event, ctx)
       );
     })
   ];

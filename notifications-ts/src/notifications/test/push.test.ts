@@ -6,7 +6,7 @@ import { _app as app } from '../../server';
 import { resetWebPushMocks, sendNotification, setVapidDetails } from '../../mocks/web-push';
 import prisma from '../../utils/prisma';
 import { db, createTransfers } from '../../mocks/db';
-import { createEvent, setupNotificationsTest } from './utils';
+import { createEvent, setupNotificationsTest, subscribeToPushNotifications } from './utils';
 
 const JOB_NAME_SEND_PUSH = 'send-push-notification';
 
@@ -61,15 +61,7 @@ describe('Push notifications', () => {
   };
 
   it('sends a web push and stores telemetry', async () => {
-    const subscription = await prisma.pushSubscription.create({
-      data: {
-        tenantId: 'GRP1',
-        userId: 'user-1',
-        endpoint: 'https://example.com/endpoint',
-        p256dh: 'pkey',
-        auth: 'auth',
-      }
-    });
+    const subscription = await subscribeToPushNotifications('GRP1', 'user-1');
 
     const message = {
       title: 'Hello',
@@ -109,15 +101,7 @@ describe('Push notifications', () => {
       throw err;
     });
 
-    const subscription = await prisma.pushSubscription.create({
-      data: {
-        tenantId: 'GRP1',
-        userId: 'user-1',
-        endpoint: 'https://example.com/endpoint',
-        p256dh: 'pkey',
-        auth: 'auth',
-      }
-    });
+    const subscription = await subscribeToPushNotifications('GRP1', 'user-1');
 
     await queue.dispatchToWorker(JOB_NAME_SEND_PUSH, {}, {
       subscription: {
@@ -152,15 +136,7 @@ describe('Push notifications', () => {
       throw err;
     });
 
-    const subscription = await prisma.pushSubscription.create({
-      data: {
-        tenantId: 'GRP1',
-        userId: 'user-1',
-        endpoint: 'https://example.com/endpoint',
-        p256dh: 'pkey',
-        auth: 'auth',
-      }
-    });
+    const subscription = await subscribeToPushNotifications('GRP1', 'user-1');
 
     await assert.rejects(async () => {
       await queue.dispatchToWorker(JOB_NAME_SEND_PUSH, {}, {
@@ -203,15 +179,7 @@ describe('Push notifications', () => {
     const payeeUserId = accountUserId(transfer.relationships.payee.data.id);
 
     // Create a push subscription for payee (so only one job should be scheduled)
-    await prisma.pushSubscription.create({
-      data: {
-        tenantId: groupId,
-        userId: payeeUserId,
-        endpoint: 'https://example.com/endpoint',
-        p256dh: 'pkey',
-        auth: 'auth'
-      }
-    });
+    await subscribeToPushNotifications(groupId, payeeUserId);
 
     // Ensure the user's settings allow account notifications
     const settings = db.userSettings.find(s => s.id === `${payeeUserId}-settings`);

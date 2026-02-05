@@ -1,14 +1,15 @@
-import assert from 'node:assert'
-import supertest from 'supertest'
-import { before, after, beforeEach, afterEach } from 'node:test'
 import { setupServer } from 'msw/node'
-import handlers from '../../mocks/handlers'
+import assert from 'node:assert'
+import { after, afterEach, before, beforeEach } from 'node:test'
+import supertest from 'supertest'
 import { generateKeys, signJwt } from '../../mocks/auth'
+import { resetDb } from '../../mocks/db'
+import handlers from '../../mocks/handlers'
 import { mockDb } from '../../mocks/prisma'
 import { createQueue } from '../../mocks/queue'
 import { mockRedis } from '../../mocks/redis'
-import { resetDb } from '../../mocks/db'
 import { _app } from '../../server'
+import prisma from '../../utils/prisma'
 
 export const createEvent = (name: string, payloadId: string, groupId: string, userId: string, eventId: string, dataKey: string = 'transfer') => {
   return {
@@ -59,35 +60,20 @@ type SetupNotificationsTestOptions = {
 
 type SetupNotificationsTestReturnBase = {
   appNotifications: any[];
+  put: ReturnType<typeof mockRedis>['put'] | null;
   pushQueue: ReturnType<typeof createQueue> | null;
   syntheticQueue: ReturnType<typeof createQueue> | null;
 };
 
-type SetupNotificationsTestReturnWithSyntheticQueue = Omit<SetupNotificationsTestReturnBase, 'syntheticQueue'> & {
-  syntheticQueue: ReturnType<typeof createQueue>;
-};
+type SetupNotificationsTestReturn<T extends SetupNotificationsTestOptions> =
+  SetupNotificationsTestReturnBase &
+  (T['useMockRedis'] extends false ? { put: null } : { put: NonNullable<SetupNotificationsTestReturnBase['put']> }) &
+  (T['usePushQueue'] extends true ? { pushQueue: NonNullable<SetupNotificationsTestReturnBase['pushQueue']> } : {}) &
+  (T['useSyntheticQueue'] extends true ? { syntheticQueue: NonNullable<SetupNotificationsTestReturnBase['syntheticQueue']> } : {});
 
-type SetupNotificationsTestReturnWithRedis = SetupNotificationsTestReturnBase & {
-  put: NonNullable<ReturnType<typeof mockRedis>['put']>;
-};
-
-type SetupNotificationsTestReturnWithoutRedis = SetupNotificationsTestReturnBase & {
-  put?: undefined;
-};
-
-export function setupNotificationsTest(
-  options?: SetupNotificationsTestOptions & { useMockRedis?: true; useSyntheticQueue?: true }
-): SetupNotificationsTestReturnWithRedis & SetupNotificationsTestReturnWithSyntheticQueue;
-export function setupNotificationsTest(
-  options?: SetupNotificationsTestOptions & { useMockRedis?: true; useSyntheticQueue?: false }
-): SetupNotificationsTestReturnWithRedis;
-export function setupNotificationsTest(
-  options: SetupNotificationsTestOptions & { useMockRedis: false; useSyntheticQueue?: true }
-): SetupNotificationsTestReturnWithoutRedis & SetupNotificationsTestReturnWithSyntheticQueue;
-export function setupNotificationsTest(
-  options: SetupNotificationsTestOptions & { useMockRedis: false; useSyntheticQueue?: false }
-): SetupNotificationsTestReturnWithoutRedis;
-export function setupNotificationsTest(options: SetupNotificationsTestOptions = {}): SetupNotificationsTestReturnWithRedis | SetupNotificationsTestReturnWithoutRedis {
+export function setupNotificationsTest<T extends SetupNotificationsTestOptions = {}>(
+  options: T = {} as T
+): SetupNotificationsTestReturn<T> {
   const {
     useWorker = false,
     useAppChannel = false,
@@ -101,7 +87,7 @@ export function setupNotificationsTest(options: SetupNotificationsTestOptions = 
 
   const server = useServer ? setupServer(...handlers) : null;
   const redis = useMockRedis ? mockRedis() : null;
-  const put = redis?.put;
+  const put = redis?.put ?? null;
 
   const pushQueue = usePushQueue ? createQueue('push-notifications') : null;
   const syntheticQueue = useSyntheticQueue ? createQueue('synthetic-events') : null;
@@ -148,7 +134,8 @@ export function setupNotificationsTest(options: SetupNotificationsTestOptions = 
       syntheticQueue.resetMocks()
     }
 
-    if (useAppChannel) {
+    // worker inits all channels
+    if (useAppChannel && !useWorker) {
       const { initInAppChannel } = await import('../channels/app')
       stopAppChannel = initInAppChannel()
     }
@@ -175,5 +162,17 @@ export function setupNotificationsTest(options: SetupNotificationsTestOptions = 
     appNotifications,
     pushQueue,
     syntheticQueue,
-  };
+  } as SetupNotificationsTestReturn<T>;
+}
+
+export const subscribeToPushNotifications = (groupCode: string, userId: string) => {
+  return prisma.pushSubscription.create({
+    data: {
+      tenantId: groupCode,
+      userId,
+      endpoint: 'https://example.com/endpoint',
+      p256dh: 'pkey',
+      auth: 'auth',
+    }
+  })
 }

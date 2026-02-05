@@ -13,6 +13,8 @@ import {
   buildPostExpiresSoonMessage,
   buildMemberHasExpiredPostsMessage,
   buildMembersJoinedDigestMessage,
+  buildMemberJoinedMessage,
+  buildMemberHasNoPostsMessage,
 } from '../../messages';
 import {
   EnrichedTransferEvent,
@@ -20,6 +22,8 @@ import {
   EnrichedPostsPublishedDigestEvent,
   EnrichedMemberHasExpiredPostsEvent,
   EnrichedMembersJoinedDigestEvent,
+  EnrichedMemberEvent,
+  EnrichedMemberHasNoPostsEvent,
 } from '../../enriched-events';
 import { initPushQueue, sendPushToUsers } from './utils';
 
@@ -103,6 +107,18 @@ export const initPushChannel = (): (() => void) => {
         buildMembersJoinedDigestMessage(event, ctx)
       , 'group');
     }),
+    eventBus.on(EVENT_NAME.MemberJoined, async (event: EnrichedMemberEvent) => {
+      await sendPushToUsers(event, event.users, (ctx) =>
+        buildMemberJoinedMessage(event, ctx)
+      , 'account');
+    }),
+
+    // Engagement synthetic events
+    eventBus.on(EVENT_NAME.MemberHasNoPosts, async (event: EnrichedMemberHasNoPostsEvent) => {
+      await sendPushToUsers(event, event.users, (ctx) =>
+        buildMemberHasNoPostsMessage(event, ctx)
+      , 'account');
+    })
   ];
 
   // Return stop function that unsubscribes all listeners

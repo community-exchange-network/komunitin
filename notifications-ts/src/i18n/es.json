@@ -87,11 +87,17 @@
     "check_member_profiles_other": "Consulta sus perfiles",
     "welcome_new_member_title": "¡Bienvenido a {{groupName}}!",
     "welcome_new_member_body": "Hola {{name}}, tu cuenta ya está activa! Empieza a explorar ofertas y necesidades en tu comunidad. ¡Feliz intercambio!",
+    "member_no_offers_title": "No tienes ninguna oferta activa",
+    "member_no_offers_body": "Publica una oferta para ayudar a los demás y aumentar tu saldo de {{balance}}. ¿Qué puedes ofrecer?",
+    "member_no_needs_title": "Tienes un saldo de {{balance}}",
+    "member_no_needs_body": "Publica una necesidad para ayudar a los demás a conectar contigo y utilizar tu saldo. ¿Qué necesitas?",
     "action_respond": "Responder",
     "action_view": "Ver",
     "action_view_all": "Ver todo",
     "action_open": "Abrir",
     "action_extend": "Amplía {{duration, duration}}",
-    "action_hide": "Ocultar"
+    "action_hide": "Ocultar",
+    "action_create_offer": "Crear oferta",
+    "action_create_need": "Crear necesidad"
   }
 }

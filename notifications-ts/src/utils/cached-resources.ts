@@ -1,7 +1,7 @@
+import { KomunitinClient } from '../clients/komunitin/client';
+import { Member, User, UserSettings } from '../clients/komunitin/types';
 import { cache } from './cache';
 import logger from './logger';
-import { KomunitinClient } from '../clients/komunitin/client';
-import { Group, Member, User, UserSettings } from '../clients/komunitin/types';
 
 // Default TTL for resources: 24 hours
 export const CACHE_TTL_24H = 24 * 60 * 60 * 1000;
@@ -17,30 +17,24 @@ export type MemberWithUsers = {
 /**
  * Get active groups from cache or API
  */
-export const getCachedActiveGroups = (
-  client: KomunitinClient,
-  ttl: number = DEFAULT_TTL
-): Promise<Group[]> => {
-  const key = 'groups:active';
+export const getCachedActiveGroups = (client: KomunitinClient, ttl: number = DEFAULT_TTL) => {
+  return cache.get('groups:active', async () => client.getGroups({ 'filter[status]': 'active' }), ttl);
+}
 
-  return cache.get(key, async () => {
-    logger.info('Fetching active groups (cache miss)');
-    return client.getGroups({ 'filter[status]': 'active' });
-  }, ttl);
+/**
+ * Get a currency from cache or API
+ */
+export const getCachedCurrency = (client: KomunitinClient, groupCode: string, ttl: number = DEFAULT_TTL) => {
+  return cache.get(`currency:${groupCode}`, async () => client.getCurrency(groupCode), ttl);
 };
 
 /**
  * Get group members with their users from cache or API
  */
-export const getCachedGroupMembersWithUsers = (
-  client: KomunitinClient,
-  groupCode: string,
-  ttl: number = DEFAULT_TTL
-): Promise<MemberWithUsers[]> => {
+export const getCachedGroupMembersWithUsers = (client: KomunitinClient, groupCode: string, ttl: number = DEFAULT_TTL) => {
   const key = `group:${groupCode}:members`;
 
   return cache.get(key, async () => {
-    logger.info({ groupCode }, 'Fetching members and users (cache miss)');
     const members = await client.getMembers(groupCode);
     const result: MemberWithUsers[] = [];
 

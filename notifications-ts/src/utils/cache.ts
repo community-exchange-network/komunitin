@@ -54,6 +54,7 @@ class CacheService {
     // 3. Fetch data (with stampede protection)
     const promise = (async () => {
       try {
+        logger.info({ key }, 'Cache miss, fetching data');
         const result = await fetcher();
 
         // Save to Redis

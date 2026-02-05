@@ -87,11 +87,17 @@
     "check_member_profiles_other": "Check their member profiles",
     "welcome_new_member_title": "Welcome to {{groupName}}!",
     "welcome_new_member_body": "Hi {{name}}, your account is now active! Start exploring offers and needs in your community. Happy exchange!",
+    "member_no_offers_title": "You have no active offers",
+    "member_no_offers_body": "Create one to help others and move your balance of {{balance}} forward. What can you offer?",
+    "member_no_needs_title": "You have a balance of {{balance}}",
+    "member_no_needs_body": "Post a need to help others connect with you and use your balance. What do you need?",
     "action_respond": "Respond",
     "action_view": "View",
     "action_view_all": "View all",
     "action_open": "Open",
     "action_extend": "Extend {{duration, duration}}",
-    "action_hide": "Hide"
+    "action_hide": "Hide",
+    "action_create_offer": "Create offer",
+    "action_create_need": "Create need"
   }
 }

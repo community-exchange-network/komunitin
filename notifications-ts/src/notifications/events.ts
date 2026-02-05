@@ -15,6 +15,7 @@ export const EVENT_NAME = {
   TransferStillPending: 'TransferStillPending',
   PostsPublishedDigest: 'PostsPublishedDigest',
   MembersJoinedDigest: 'MembersJoinedDigest',
+  MemberHasNoPosts: 'MemberHasNoPosts',
 } as const;
 
 export type EventName = (typeof EVENT_NAME)[keyof typeof EVENT_NAME];
@@ -60,7 +61,7 @@ export type MemberEvent = NotificationEvent & {
   name: 
     | typeof EVENT_NAME.MemberJoined 
     | typeof EVENT_NAME.MemberRequested 
-    | typeof EVENT_NAME.MemberHasExpiredPosts;
+    | typeof EVENT_NAME.MemberHasExpiredPosts
   data: {
     member: string; // member id
   };
