@@ -39,6 +39,7 @@ describe('Post notifications', () => {
 
   it('should process OfferExpired event', async () => {
       const { groupId, offer, userId } = setupTestOffer({
+        created: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString(),
         expires: new Date(Date.now() - 1000).toISOString()
       })
       const eventData = createEvent('OfferExpired', offer.id, groupId, userId, 'test-offer-expired-1', 'offer')
@@ -49,13 +50,20 @@ describe('Post notifications', () => {
       const notification = appNotifications[0]
       assert.equal(notification.tenantId, groupId)
       assert.equal(notification.userId, userId)
-      assert.ok(notification.title)
+        assert.ok(notification.title)
+
+        const actions = notification.data?.actions
+        assert.ok(actions, 'Expected notification actions')
+        assert.equal(actions.length >= 2, true)
+        assert.equal(actions[0].title, 'View')
+        assert.equal(actions[1].title, 'Extend 1 yr')
       
       await verifyNotification(userId, groupId, notification.id, "Offer expired")
   })
 
   it('should process NeedExpired event', async () => {
       const { groupId, need, userId } = setupTestNeed({
+        created: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         expires: new Date(Date.now() - 1000).toISOString()
       })
       const eventData = createEvent('NeedExpired', need.id, groupId, userId, 'test-need-expired-1', 'need')
@@ -66,6 +74,13 @@ describe('Post notifications', () => {
       const notification = appNotifications[0]
       assert.equal(notification.tenantId, groupId)
       assert.equal(notification.userId, userId)
+
+      const actions = notification.data?.actions
+      assert.ok(actions, 'Expected notification actions')
+      assert.equal(actions.length >= 2, true)
+      assert.equal(actions[0].title, 'View')
+
+      assert.equal(actions[1].title, 'Extend 7 days')
       
       await verifyNotification(userId, groupId, notification.id, "Need expired")
   })
