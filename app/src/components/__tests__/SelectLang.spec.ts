@@ -1,9 +1,9 @@
 
 import SelectLang from "../SelectLang.vue";
 import type { VueWrapper} from "@vue/test-utils";
-import { flushPromises } from "@vue/test-utils";
-import { mountComponent } from "../../../test/jest/utils";
-import { i18n, setLocale } from "src/boot/i18n";
+import { mountComponent, waitFor } from "../../../test/jest/utils";
+import { i18n } from "src/boot/i18n";
+import { QItem } from "quasar";
 
 /**
  * This test uses the global Vue variable in order to properly interact 
@@ -24,18 +24,19 @@ describe("SelectLang", () => {
     // Check language on quasar.
     expect(wrapper.vm.$q.lang.isoName).toBe("en-US");
     
-    // Use setLocale directly since the watch-based approach may not settle
-    // with vitest's module runner.
-    await setLocale("ca");
-    await flushPromises();
+    // Open the dropdown and click on Catalan.
+    await wrapper.get("button").trigger("click");
+    await waitFor(() => wrapper.findAllComponents(QItem).length > 0, true, "Language dropdown should open");
+    const items = wrapper.findAllComponents(QItem);
+    const catalan = items.find(item => item.text().includes("Català"));
+    expect(catalan).toBeDefined();
+    await catalan!.trigger("click");
     
-    // Check language changed on i18n plugin.
-    expect(i18n.global.locale.value).toBe("ca");
+    // Wait for async locale change
+    await waitFor(() => i18n.global.locale.value === "ca", true, "Locale should change to Catalan");
     // Check language changed on quasar.
     expect(wrapper.vm.$q.lang.isoName).toBe("ca");
-    // Also verify emitting works by calling the component method
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (wrapper.vm as any).changeLanguage("ca");
+    // Check emit
     expect(wrapper.emitted('language-change')).toBeTruthy();
   });
 });

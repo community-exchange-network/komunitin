@@ -56,15 +56,15 @@ describe("Signup", () => {
   });
 
   it("Creates user", async () => {
-    await wrapper.vm.$router.push("/groups");
-    await wrapper.vm.$wait();
-    expect(wrapper.vm.$route.path).toBe("/groups");
-    await waitFor(() => wrapper.findAllComponents(GroupCard).length > 0);
+    // Wait for initial page load.
+    await waitFor(() => wrapper.find("#explore").exists(), true, "Front page should show explore button");
+    // Click explore button (UI-based navigation).
+    await wrapper.get("#explore").trigger("click");
+    await waitFor(() => wrapper.vm.$route.path, "/groups");
+    await waitFor(() => wrapper.findAllComponents(GroupCard).length > 0, true, "Groups should load");
     await wrapper.getComponent(GroupCard).get("a[href='/groups/GRP0/signup']").trigger("click");
-    await wrapper.vm.$wait();
-    
-    expect(wrapper.vm.$route.path).toBe("/groups/GRP0/signup");
-    expect(wrapper.text()).toContain("Membership terms");
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/signup");
+    await waitFor(() => wrapper.text().includes("Membership terms"), true, "Signup page should show terms");
     expect(wrapper.text()).toContain("Group 0");
     expect(wrapper.text()).toContain("Voluptatibus");
     await wrapper.get("button[type='submit']").trigger("click");
@@ -75,13 +75,12 @@ describe("Signup", () => {
     await wrapper.get("[name='password']").setValue("password");
     await wrapper.get("button[type='submit']").trigger("click");
     await flushPromises();
-    await wrapper.vm.$wait();
-    expect(wrapper.text()).toContain("Verify your email");
+    await waitFor(() => wrapper.text().includes("Verify your email"), true, "Verification email page should show");
   })
 
   it('Creates member', async () => {
     await wrapper.vm.$router.push("/groups/GRP0/signup-member?token=empty_user")
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Signup member form should load");
     // Check that the inactive banner does not show yet.
     expect(wrapper.text()).not.toContain("Your account is inactive.");
     expect(wrapper.get<HTMLInputElement>("[name='name']").element.value).toBe("Empty User");
@@ -94,10 +93,13 @@ describe("Signup", () => {
 
     // Select Andorra
     const select = wrapper.getComponent(CountryChooser).getComponent(QSelect)
+    // Wait for country list to be loaded asynchronously (onMounted)
+    await waitFor(() => (select.props("options") as any[])?.length > 0, true, "Country options should load");
     await select.trigger("click");
-    await wrapper.vm.$wait();
-    const menu = select.findAllComponents(QItem);
-    menu[3].trigger("click");
+    await waitFor(() => select.findAllComponents(QItem).length > 0, true, "Country dropdown should open");
+    const andorra = select.findAllComponents(QItem).find(i => i.text().includes("Andorra"))!;
+    expect(andorra).toBeDefined();
+    await andorra.trigger("click");
     await flushPromises();
     expect(select.get("input").element.value).toBe("Andorra");
 
@@ -105,11 +107,11 @@ describe("Signup", () => {
     const addContactBtn = wrapper.findAll("button").find(b => b.text() === "Add contact");
     expect(addContactBtn).toBeDefined();
     await addContactBtn?.trigger("click");
-    await flushPromises();
+    await waitFor(() => wrapper.findComponent(QDialog).exists(), true, "Contact dialog should open");
     const dialog = wrapper.getComponent(QDialog);
     const type = dialog.getComponent(QSelect);
     await type.trigger("click");
-    await wrapper.vm.$wait();
+    await waitFor(() => type.findAllComponents(QItem).length > 0, true, "Contact type dropdown should open");
     const typeMenu = type.findAllComponents(QItem);
     await typeMenu[0].trigger("click");
     const input = dialog.getComponent(QInput);
@@ -121,23 +123,23 @@ describe("Signup", () => {
     await flushPromises();
     // Save profile
     await wrapper.get("button[type='submit']").trigger("click");
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.text().includes("What do you offer?"), true, "Offer creation form should show");
 
     // Now go with the offer.
-    expect(wrapper.text()).toContain("What do you offer?");
     await wrapper.get("[name='title']").setValue("Test Offer");
     await wrapper.get("[name='description']").setValue("This is a test offer.");
     await wrapper.get("[name='price']").setValue("10");
 
     const cat = wrapper.getComponent(QSelect)
+    // Wait for categories to load (they're fetched asynchronously via store)
+    await waitFor(() => (cat.props("options") as any[])?.length > 0, true, "Category options should load");
     await cat.trigger("click");
-    await waitFor(() => cat.findAllComponents(QItem).length > 2)
+    await waitFor(() => cat.findAllComponents(QItem).length > 2, true, "Category dropdown should open")
     await cat.findAllComponents(QItem)[1].trigger("click");
     
     await wrapper.get("button[type='submit']").trigger("click");
 
-    await wrapper.vm.$wait();
-    expect(wrapper.text()).toContain("Signup complete");
+    await waitFor(() => wrapper.text().includes("Signup complete"), true, "Signup should complete");
   }, 100000)
   
 })

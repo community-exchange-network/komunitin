@@ -179,14 +179,42 @@ declare module "vue" {
 
 /**
  * Wait for the content of a function to be equal to the expected value, up to a timeout.
+ * 
+ * 1. First checks if the condition already holds synchronously.
+ * 2. Then tries flushing promises (microtasks) to see if the condition resolves.
+ * 3. Falls back to polling every 50ms until timeout.
+ * 
+ * @param fn - Function that returns the current value to check.
+ * @param expected - The expected value (default: true).
+ * @param message - Optional assertion message. Automatically generated if not provided.
+ * @param timeout - Maximum time to wait in ms (default: 2000).
  */
-export const waitFor = async (fn: () => any, expected: any = true, timeout = 2000) => {
+export const waitFor = async (fn: () => any, expected: any = true, message?: string, timeout = 2000) => {
+  const assertionMessage = message ?? (typeof expected === "boolean" ? `Expected condition to be ${expected}` : undefined);
+  // 1. Check synchronously.
+  if (fn() === expected) {
+    expect(fn()).toBe(expected);
+    return;
+  }
+  // 2. Try flushing promises.
+  await flushPromises();
+  if (fn() === expected) {
+    expect(fn()).toBe(expected);
+    return;
+  }
+  // 3. Poll with timeout.
   const start = Date.now();
   while (Date.now() - start < timeout) {
+    await new Promise(r => setTimeout(r, 50));
     if (fn() === expected) {
+      expect(fn()).toBe(expected);
       return;
     }
-    await new Promise(r => setTimeout(r, 50));
   }
-  expect(fn()).toBe(expected);
+  // Final assertion with message.
+  if (assertionMessage) {
+    expect(fn(), assertionMessage).toBe(expected);
+  } else {
+    expect(fn()).toBe(expected);
+  }
 }
