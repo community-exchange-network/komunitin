@@ -34,6 +34,25 @@ export class NotificationResources extends Resources<Notification, unknown> {
         state.unreadCount = count;
       };
 
+    // Add incrementUnreadCount mutation
+    (this.mutations as Record<string, unknown>).incrementUnreadCount = 
+      (state: NotificationResourcesState) => {
+        state.unreadCount++;
+      };
+
+    // Add decrementUnreadCount mutation
+    (this.mutations as Record<string, unknown>).decrementUnreadCount = 
+      (state: NotificationResourcesState) => {
+        if (state.unreadCount > 0) {
+          state.unreadCount--;
+        }
+      };
+
+    // Add updateUnreadCount action: lightweight API call to refresh the unread count.
+    (this.actions as Record<string, unknown>).updateUnreadCount = 
+      (context: ActionContext<NotificationResourcesState, unknown>) =>
+        this.updateUnreadCount(context);
+
     // Add markAllRead action
     (this.actions as Record<string, unknown>).markAllRead = 
       (context: ActionContext<NotificationResourcesState, unknown>, payload: { group: string }) =>
@@ -57,6 +76,26 @@ export class NotificationResources extends Resources<Notification, unknown> {
     }
 
     return super.handleCollectionResponse(data, context, key, page, onlyResources);
+  }
+
+  /**
+   * Fetch the unread count from the API by performing a minimal loadList request.
+   * Uses the group code from rootGetters so callers don't need to provide it.
+   */
+  private async updateUnreadCount(
+    context: ActionContext<NotificationResourcesState, unknown>,
+  ) {
+    const group = (context.rootGetters as Record<string, unknown>).myMember as
+      | { group: { attributes: { code: string } } }
+      | undefined;
+    const code = group?.group.attributes.code;
+    if (code) {
+      await context.dispatch("loadList", {
+        group: code,
+        onlyResources: true,
+        pageSize: 1,
+      });
+    }
   }
 
   /**

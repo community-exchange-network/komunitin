@@ -21,21 +21,32 @@ export default boot(({ router }) => {
       handlePushMessage(event.data.payload, store, router);
     }
   });
+
+  // When the app returns to the foreground, refresh the unread count.
+  // This handles the case where push notifications arrived while the app was
+  // in a background tab (OS notifications shown by the SW instead).
+  let lastUnreadCountUpdate = 0;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && Date.now() - lastUnreadCountUpdate > 30000) {
+      lastUnreadCountUpdate = Date.now();
+      store.dispatch("notifications/updateUnreadCount")
+        .catch(e => console.warn("Failed to refresh unread count", e));
+    }
+  });
 });
 
 type StoreType = typeof store
 
 /**
- * Update push notification telemetry on the notifications service.
+ * Send a PATCH to update push notification telemetry on the notifications service.
  * This mirrors what the service worker does for background notifications,
  * but for foreground (in-app) notifications.
  */
-const updatePushNotificationEvent = async (
+const patchPushNotification = async (
   code: string,
   id: string,
   attributes: Record<string, unknown>
 ): Promise<void> => {
-
   const url = `${config.NOTIFICATIONS_URL}/${code}/push-notifications/${id}`
   try {
     await fetch(url, {
@@ -53,9 +64,21 @@ const updatePushNotificationEvent = async (
       }),
     });
   } catch (err) {
-    // Don't show error to the user.
     console.error("Failed to update notification event", err)
   }
+};
+
+/**
+ * Handle user interaction with a foreground push notification.
+ * Reports the click to the backend and optimistically decrements the unread count.
+ */
+const onNotificationInteraction = (
+  code: string,
+  id: string,
+  clickaction: string,
+): void => {
+  store.commit("notifications/decrementUnreadCount");
+  patchPushNotification(code, id, { clicked: true, clickaction });
 };
 
 const handlePushMessage = (
@@ -68,7 +91,7 @@ const handlePushMessage = (
   if (myUser && payload.actor && myUser.id === payload.actor) {
     // We use the clicked event with action "auto_dismiss" so the
     // backend marks the notification as read.
-    updatePushNotificationEvent(payload.code, payload.id, {
+    patchPushNotification(payload.code, payload.id, {
       clicked: true,
       clickaction: "auto_dismiss",
     });
@@ -94,11 +117,7 @@ const handlePushMessage = (
           if (route) {
             router.push(route);
           }
-          // Notify backend of click
-          updatePushNotificationEvent(payload.code, payload.id, {
-            clicked: true,
-            clickaction: action.action,
-          });
+          onNotificationInteraction(payload.code, payload.id, action.action);
         },
       });
     });
@@ -109,11 +128,7 @@ const handlePushMessage = (
       color: "onsurface",
       handler: () => {
         router.push(data.route);
-        // Notify backend of click
-        updatePushNotificationEvent(payload.code, payload.id, {
-          clicked: true,
-          clickaction: "open_route",
-        });
+        onNotificationInteraction(payload.code, payload.id, "open_route");
       },
     });
   }
@@ -123,15 +138,12 @@ const handlePushMessage = (
     label: i18n.global.t("dismiss"),
     color: "onsurface",
     handler: () => {
-      // Notify backend of dismiss from in-app notification (as a click with action "dismiss")
-      // This is intentionally different from a dismiss on the OS push notification, which is
-      // not tracked as a click.
-      updatePushNotificationEvent(payload.code, payload.id, {
-        clicked: true,
-        clickaction: "dismiss",
-      });
+      onNotificationInteraction(payload.code, payload.id, "dismiss");
     },
   });
+
+  // Optimistically increment the unread count for the badge.
+  store.commit("notifications/incrementUnreadCount");
 
   // Show the notification using Quasar Notify
   Notify.create({

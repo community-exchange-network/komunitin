@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed } from "vue";
 import { useStore } from "vuex";
 import { useI18n } from "vue-i18n";
 
@@ -24,22 +24,9 @@ import MenuItem from "./MenuItem.vue";
 const store = useStore();
 const { t } = useI18n();
 
+// Unread count is kept up-to-date by:
+// 1. loadUser (on login/authorize) dispatches notifications/updateUnreadCount
+// 2. Foreground push messages optimistically increment it
+// 3. Viewing the notifications page self-corrects it from the API
 const unreadCount = computed(() => store.getters["notifications/unreadCount"] ?? 0);
-
-// The unread count is fetched as a field in the meta attribute of the notifications list, 
-// so we trigger a loadList action to update it.
-const fetchUnreadCount = async () => {
-  const myMember = store.getters.myMember;
-  const group = myMember?.group.attributes.code;
-  
-  if (group) {
-    await store.dispatch("notifications/loadList", {
-      group,
-      onlyResources: true,
-      pageSize: 1,
-    });
-  }
-};
-
-onMounted(fetchUnreadCount);
 </script>
