@@ -92,6 +92,7 @@
   "enableLocation": "Enable location",
   "enableNotifications": "Enable notifications",
   "dismiss": "Dismiss",
+  "open": "Open",
   "createTransaction": "Create transfer",
   "enterTransactionData": "Enter transfer data",
   "selectPayer": "From",

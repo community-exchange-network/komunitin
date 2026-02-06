@@ -91,6 +91,7 @@
   "deniedLocationText": "Este dispositivo bloquea el acceso a to localización por lo que Komunitin no puede ordenar los recursos por proximidad. Puedes solucionarlo en la configuración de tu navegador.",
   "enableLocation": "Activa la localización",
   "dismiss": "Ignora",
+  "open": "Abrir",
   "create": "Crear",
   "backToTransfers": "Volver a movimientos",
   "createTransaction": "Nuevo movimiento",
