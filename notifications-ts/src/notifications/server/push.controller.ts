@@ -69,6 +69,21 @@ export const updatePushNotification = async (req: Request, res: Response, next: 
       throw internalError("Failed to update push notification", { cause: err });
     }
 
+    // When a push notification is clicked, mark the related in-app notification as read.
+    if (clicked === true && pushNotification.eventId) {
+      await prisma.appNotification.updateMany({
+        where: {
+          tenantId: code,
+          userId: pushNotification.userId,
+          eventId: pushNotification.eventId,
+          readAt: null,
+        },
+        data: {
+          readAt: new Date(),
+        },
+      });
+    }
+
     const response = {
       data: serializePushNotification(pushNotification),
     };
