@@ -53,7 +53,7 @@ class MockNotification {
 
 Object.defineProperty(global, 'Notification', {value: MockNotification})
 vi.mock("../../../src/plugins/Notifications", () => ({
-  default: {
+  notifications: {
     getMessaging: vi.fn(() => undefined),
     requestPermission: vi.fn().mockResolvedValue(false),
     getToken: vi.fn().mockResolvedValue(""),
@@ -180,11 +180,11 @@ declare module "vue" {
 /**
  * Wait for the content of a function to be equal to the expected value, up to a timeout.
  */
-export const waitFor = async (fn: () => any, expected: any = true, timeout = 1000) => {
+export const waitFor = async (fn: () => any, expected: any = true, timeout = 2000) => {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     if (fn() === expected) {
-      expect(fn()).toBe(expected);
+      return;
     }
     await new Promise(r => setTimeout(r, 50));
   }

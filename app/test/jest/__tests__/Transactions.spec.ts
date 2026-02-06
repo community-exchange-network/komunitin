@@ -276,7 +276,7 @@ describe("Transactions", () => {
     await wrapper.get("button[name='confirm']").trigger("click")
     
     await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members/EmilianoLemke57/transactions")
-
+    await wrapper.vm.$wait();
     expect(wrapper.text()).toContain(`Test multi 1`)
     expect(wrapper.text()).toContain(`Test multi 4`)
   })

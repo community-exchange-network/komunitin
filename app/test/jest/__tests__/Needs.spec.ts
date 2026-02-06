@@ -58,9 +58,12 @@ describe("Needs", () => {
     await wrapper.vm.$router.push("/groups/GRP0/needs/new")
     await waitFor(() => wrapper.text().includes("Preview"))
 
-    const select = wrapper.getComponent(SelectCategory).getComponent(QSelect)
+    const selectCategory = wrapper.getComponent(SelectCategory);
+    const select = selectCategory.getComponent(QSelect);
+    // Wait for categories to load (they're fetched asynchronously via store)
+    await waitFor(() => (select.props("options") as any[])?.length > 0);
     await select.trigger("click");
-    await waitFor(() => select.findAllComponents(QItem).length > 0)
+    await wrapper.vm.$wait();
 
     const menu = select.findAllComponents(QItem);
     await menu[1].trigger("click");
