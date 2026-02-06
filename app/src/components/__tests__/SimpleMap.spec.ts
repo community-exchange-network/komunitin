@@ -1,6 +1,3 @@
-/**
- * @jest-environment jsdom
- */
 import type { VueWrapper } from "@vue/test-utils";
 import { shallowMount } from "@vue/test-utils";
 import SimpleMap from "../SimpleMap.vue";

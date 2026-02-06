@@ -1,6 +1,3 @@
-/**
- * @jest-environment jsdom
- */
 import { mount } from '@vue/test-utils'
 import Error404 from '../Error404.vue'
 import {QBtn, Quasar} from 'quasar'
