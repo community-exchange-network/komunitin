@@ -2,6 +2,7 @@ import type { Store } from "vuex";
 import { createStore } from "vuex";
 import type { ResourcesState } from "./resources";
 import { Resources } from "./resources";
+import { NotificationResources } from "./notifications";
 import { config } from "src/utils/config";
 import type {
   User,
@@ -107,7 +108,7 @@ const trustlines = new Resources<Trustline, unknown>("trustlines", accountingUrl
 
 
 const notificationsUrl = config.NOTIFICATIONS_URL;
-const notifications = new Resources<Notification, unknown>("notifications", notificationsUrl);
+const notifications = new NotificationResources("notifications", notificationsUrl);
 
 const modules = {
     // Logged-in user module
