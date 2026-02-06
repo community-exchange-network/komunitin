@@ -56,10 +56,10 @@ describe("Signup", () => {
   });
 
   it("Creates user", async () => {
-    await wrapper.vm.$router.push("/");
-    wrapper.get("#explore").trigger("click");
+    await wrapper.vm.$router.push("/groups");
     await wrapper.vm.$wait();
     expect(wrapper.vm.$route.path).toBe("/groups");
+    await waitFor(() => wrapper.findAllComponents(GroupCard).length > 0);
     await wrapper.getComponent(GroupCard).get("a[href='/groups/GRP0/signup']").trigger("click");
     await wrapper.vm.$wait();
     

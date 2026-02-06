@@ -57,7 +57,9 @@ describe("Offers", () => {
     expect(text).toContain("Arnoldo");
     expect(text).toContain("GRP00001");
     expect(text).toContain("$0.88");
-    expect(text).toContain("Updated yesterday");
+    // The date is generated with faker.date.recent() so it could be "today" or "yesterday"
+    // depending on when the test runs (especially around midnight boundaries).
+    expect(text).toMatch(/Updated (yesterday|today)/);
   })
 
   it ("creates an offer", async() => {
