@@ -9,6 +9,7 @@ import { CurrencyControllerImpl } from "./currency-controller";
 import { ExternalTransferController } from "./external-transfer-controller";
 import { includeRelations, whereFilter } from "./query";
 import { TransfersPublicService } from "src/controller";
+import { type Prisma } from "@prisma/client";
 
 export class TransferControllerImpl  extends AbstractCurrencyController implements TransfersPublicService {
   private externalTransfers: ExternalTransferController
@@ -190,12 +191,21 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
   public async saveTransferState(transfer: FullTransfer, state: TransferState) {
     if (transfer.state !== state) {
       transfer.state = state
-      
+      const data: Prisma.TransferUpdateInput = { state }
+
+      // Update hash and user if provided, as well.
+      if (transfer.hash) {
+        data.hash = transfer.hash
+      }
+      if (transfer.user) {
+        data.user = { connect: { tenantId_id: {
+          id: transfer.user.id,
+          tenantId: this.db().tenantId
+        }}}
+      }
+
       await this.db().transfer.update({
-        data: {
-          state,
-          hash: transfer.hash
-        },
+        data,
         where: {
           tenantId_id: {
             id: transfer.id,
@@ -203,6 +213,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
           }
         }
       })
+
       this.currencyController.emitter.emit("transferStateChanged", transfer, this.currencyController)
     }
   }
@@ -226,6 +237,12 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
     }
 
     this.checkTransferTransition(transfer, state)
+
+    // Update transfer user to the lastest one performing an action on it.
+    // If a transfer is moving from pending to committed, we want it to be attributed to 
+    // the user performing the commit.
+
+    transfer.user = user
 
     // note that state can only be "committed", "rejected" or "deleted" at this point.
 
