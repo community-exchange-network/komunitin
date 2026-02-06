@@ -29,8 +29,8 @@ export const initPushQueue = () => {
     // Send the push notification using Web Push protocol
     try {
       if (job.name === JOB_NAME_SEND_PUSH) {
-        const { subscription, message, code, subscriptionId, userId, eventId } = job.data;
-        await sendWebPush(subscription, message, code, { subscriptionId, userId, eventId });
+        const { subscription, message, code, subscriptionId, userId, eventId, actorUserId } = job.data;
+        await sendWebPush(subscription, message, code, { subscriptionId, userId, eventId, actorUserId })
       } else {
         throw internalError(`Unknown job name: ${job.name}`);
       }
@@ -154,7 +154,7 @@ export const sendPushToUsers = async <T extends EnrichedEvent>(
 
     // Send to all subscriptions
     for (const subscription of subscriptions) {
-      await queueWebPush(subscription, message, event.code, delay, { userId: user.id, eventId: event.id });
+      await queueWebPush(subscription, message, event.code, delay, { userId: user.id, eventId: event.id, actorUserId: event.user });
     }
   }
 };
@@ -164,7 +164,7 @@ const queueWebPush = async (
   message: NotificationMessage,
   groupCode: string,
   delay: number,
-  meta: { userId: string; eventId: string }
+  meta: { userId: string; eventId: string; actorUserId: string }
 ): Promise<void> => {
   if (!queue) {
     throw new Error('Push notification queue not initialized');
@@ -182,6 +182,7 @@ const queueWebPush = async (
       subscriptionId: subscription.id,
       userId: meta.userId,
       eventId: meta.eventId,
+      actorUserId: meta.actorUserId,
     },
     {
       delay,
@@ -203,7 +204,7 @@ const sendWebPush = async (
   subscription: { endpoint: string; p256dh: string; auth: string },
   message: NotificationMessage,
   tenantId: string,
-  meta: { subscriptionId: string; userId: string; eventId: string }
+  meta: { subscriptionId: string; userId: string; eventId: string; actorUserId: string }
 ): Promise<void> => {
   const vapidPublicKey = config.PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY;
   const vapidPrivateKey = config.PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY;
@@ -258,6 +259,7 @@ const sendWebPush = async (
     code: tenantId,
     data: message.data,
     actions: message.actions,
+    actor: meta.actorUserId,
   });
 
   try {

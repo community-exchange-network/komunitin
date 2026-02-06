@@ -9,7 +9,7 @@ import { clientsClaim } from 'workbox-core'
 import { Queue } from 'workbox-background-sync'
 // Komunitin
 import { getConfig, setConfig } from "./sw-config"
-import { runAction } from './notification-actions'
+import { getActionRoute, type PushPayload } from '../src/utils/push-notifications'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -72,20 +72,6 @@ registerRoute(
 );
 
 // Setup push notifications handler.
-type PushPayload = {
-  title: string
-  body: string
-  route: string
-  code: string
-  id: string
-  image?: string
-  data?: Record<string, unknown>
-  actions?: {
-    title: string
-    action: string
-  }[]
-}
-
 const parsePushPayload = (event: PushEvent): PushPayload | null => {
   if (!event.data) {
     return null
@@ -138,28 +124,55 @@ const updateNotificationEvent = async (
   }
 }
 
+const getVisibleClients = async () => {
+  const allClients = await self.clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true
+  })
+  return allClients.filter(client => client.visibilityState === 'visible') 
+}
+
+const showPushNotification = async (payload: PushPayload) => {
+  const visibleClients = await getVisibleClients()
+
+  if (visibleClients.length > 0) {
+    visibleClients.forEach(client => {
+      // Send a message to the client to show an in-app notification
+      client.postMessage({
+        type: 'PUSH_MESSAGE_RECEIVED',
+        payload,
+      })
+    })
+  } else {
+    const title = payload.title
+    const route = payload.route || "/"
+    const icon = payload.image ||  new URL('/icons/icon-192x192.png', self.location.origin).toString()
+
+    await self.registration.showNotification(title, {
+      body: payload.body,
+      icon,
+      data: {
+        route,
+        code: payload.code,
+        id: payload.id,
+        ...payload.data
+      },
+      actions: payload.actions,
+      tag: payload.id,
+    } as NotificationOptions)
+  }
+
+}
+
 self.addEventListener("push", (event: PushEvent) => {
   const payload = parsePushPayload(event)
   if (!payload) {
     return
   }
-
-  const title = payload.title
-  const route = payload.route || "/"
-  const icon = payload.image ||  new URL('/icons/icon-192x192.png', self.location.origin).toString()
-
-  const showPromise = self.registration.showNotification(title, {
-    body: payload.body,
-    icon,
-    data: {
-      route,
-      code: payload.code,
-      id: payload.id,
-      ...payload.data
-    },
-    actions: payload.actions,
-    tag: payload.id,
-  } as NotificationOptions)
+  
+  // Show the notification
+  const showPromise = showPushNotification(payload)
+  
   // Notify backend that the notification has been delivered.
   const deliveredPromise = updateNotificationEvent(payload.code, payload.id, {
     delivered: new Date(),
@@ -167,6 +180,28 @@ self.addEventListener("push", (event: PushEvent) => {
 
   event.waitUntil(Promise.allSettled([showPromise, deliveredPromise]))
 })
+
+const openNotificationRoute = async (route?: string): Promise<void> => {
+  const url = new URL(route ?? "/", self.location.origin).toString()
+
+  const windowClients = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  })
+
+  const targetOrigin = new URL(url).origin
+  const match = windowClients.find(c => c.visibilityState === 'visible' && new URL(c.url).origin === targetOrigin) 
+    || windowClients.find(c => new URL(c.url).origin === targetOrigin)
+
+  if (match) {
+    await match.focus()
+    if (match.url !== url) {
+      await match.navigate(url)
+    }
+  } else {
+    await self.clients.openWindow(url)
+  }
+}
 
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
   const data = (event.notification.data || {})
@@ -177,7 +212,8 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
 
   event.notification.close()
 
-  const actionPromise = runAction(event)
+  const route = getActionRoute(event.action, data)
+  const actionPromise = openNotificationRoute(route)
 
   // Notify backend that the notification has been clicked.
   const clickedPromise = updateNotificationEvent(data.code, data.id, {

@@ -59,6 +59,9 @@ importers:
       pino-http:
         specifier: ^11.0.0
         version: 11.0.0
+      qs:
+        specifier: ^6.14.1
+        version: 6.14.1
       redis:
         specifier: ^4.6.14
         version: 4.7.1

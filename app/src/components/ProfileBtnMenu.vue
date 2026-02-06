@@ -46,6 +46,7 @@
           :title="$t('myProfile')"
           :to="`/groups/${groupCode}/members/${myMember?.attributes.code}`"
         />
+        <notifications-menu-item />
         <menu-item
           icon="loyalty"
           :title="$t('myNeeds')"
@@ -97,6 +98,7 @@ import { config } from 'src/utils/config';
 
 import Avatar from "./Avatar.vue";
 import MenuItem from '../components/MenuItem.vue';
+import NotificationsMenuItem from './NotificationsMenuItem.vue';
 
 const store = useStore();
 

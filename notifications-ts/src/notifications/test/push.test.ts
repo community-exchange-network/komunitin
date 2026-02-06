@@ -10,7 +10,7 @@ import { createEvent, setupNotificationsTest, subscribeToPushNotifications } fro
 
 const JOB_NAME_SEND_PUSH = 'send-push-notification';
 
-const { put, pushQueue } = setupNotificationsTest({
+const { put, pushQueue, appNotifications } = setupNotificationsTest({
   useWorker: true,
   usePushQueue: true,
 });
@@ -268,6 +268,45 @@ describe('Push notifications', () => {
       const response = await patchTelemetry(nonExistentId, { delivered: true });
 
       assert.strictEqual(response.status, 404);
+    });
+
+    it('marks related in-app notification as read when push notification is clicked', async () => {
+      const eventId = 'evt-read-' + randomUUID();
+      const userId = 'user-1';
+      const code = 'GRP1';
+
+      // Create a push notification with eventId
+      const pn = await createPushNotification({ eventId, userId });
+
+      // Create a related in-app notification with the same eventId (unread)
+      await prisma.appNotification.create({
+        data: {
+          tenantId: code,
+          userId,
+          eventId,
+          eventName: 'TestEvent',
+          title: 'Test notification',
+          body: 'Test body',
+        },
+      });
+
+      // Verify the in-app notification is initially unread
+      const before = appNotifications.filter(
+        (n: any) => n.eventId === eventId && n.userId === userId
+      );
+      assert.strictEqual(before.length, 1);
+      assert.strictEqual(before[0].readAt, undefined);
+
+      // Click the push notification
+      const response = await patchTelemetry(pn.id, { clicked: true });
+      assert.strictEqual(response.status, 200);
+
+      // Verify the in-app notification is now marked as read
+      const after = appNotifications.filter(
+        (n: any) => n.eventId === eventId && n.userId === userId
+      );
+      assert.strictEqual(after.length, 1);
+      assert.ok(after[0].readAt instanceof Date, 'readAt should be set to a Date');
     });
   });
 });
