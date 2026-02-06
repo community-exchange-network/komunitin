@@ -29,13 +29,12 @@ describe("Transactions", () => {
   it("Loads and searches tansactions", async () => {
     await wrapper.vm.$router.push("/login");
     // Wait for login redirect
-    await flushPromises();
+    await wrapper.vm.$wait();
     // Click transactions link
     await wrapper.get("#menu-transactions").trigger("click");
-    await flushPromises();
+    await wrapper.vm.$wait();
     expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57/transactions");
     // Further wait to load members.
-    await flushPromises();
     await wrapper.vm.$wait();
     const transactions = wrapper.getComponent(TransactionList).findAllComponents(TransactionItem)
     expect(transactions.length).toBe(20);
@@ -72,10 +71,10 @@ describe("Transactions", () => {
   })
   it("creates payment request", async () =>  {
     await wrapper.vm.$router.push("/login");
-    await flushPromises();
+    await wrapper.vm.$wait();
     // Click transactions link
     await wrapper.get("#menu-transactions").trigger("click");
-    await flushPromises();
+    await wrapper.vm.$wait();
 
     // Click "receive" in fab menu
     await wrapper.get(".q-fab").trigger("click");

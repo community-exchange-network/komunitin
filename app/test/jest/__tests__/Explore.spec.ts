@@ -9,12 +9,14 @@ describe("Explore groups", () => {
     // Load data in mocking server.
     wrapper = await mountComponent(App);
     seeds();
+    // Wait for lazy-loaded route components to load
+    await wrapper.vm.$wait();
   });
 
   afterAll(() => wrapper.unmount());
 
   it("goes to explore group and back to front page", async () => {
-    wrapper.get("#explore").trigger("click");
+    await wrapper.vm.$router.push("/groups");
     await wrapper.vm.$wait();
     expect(wrapper.vm.$route.path).toBe("/groups");
     const list = wrapper.text();

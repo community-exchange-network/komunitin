@@ -24,16 +24,17 @@ describe("Member", () => {
   it("Navigation to my account", async () => {
     await wrapper.vm.$router.push("/login");
     // Wait for the login redirect to Home.
-    await flushPromises();
+    await wrapper.vm.$wait();
     // Open profile menu
     await wrapper.findComponent(ProfileBtnMenu).trigger('click');
+    await wrapper.vm.$nextTick();
     // Click members link
     const memberButton = wrapper
       .getComponent(QMenu)
       .findAllComponents(MenuItem)
       .find((item) => item.text().includes("My profile"));
     await memberButton.trigger("click");
-    await flushPromises();
+    await wrapper.vm.$wait();
     expect(wrapper.vm.$route.fullPath).toBe("/groups/GRP0/members/EmilianoLemke57");
     // Wait for content.
     await wrapper.vm.$wait();
@@ -74,8 +75,8 @@ describe("Member", () => {
 
   it("Navigation from Members List", async () => {
     await wrapper.vm.$router.push("/groups/GRP0/needs")
-    // Wait for the login redirect.
-    await flushPromises();
+    // Wait for the page to load.
+    await wrapper.vm.$wait();
     wrapper.get("#menu-members").trigger("click");
     await wrapper.vm.$nextTicks();
     await wrapper.vm.$wait();

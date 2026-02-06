@@ -1,6 +1,6 @@
 import { flushPromises, VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent } from "../utils";
+import { mountComponent, waitFor } from "../utils";
 import MenuDrawer from "../../../src/components/MenuDrawer.vue";
 import { seeds } from "src/server";
 import MemberHeader from "src/components/MemberHeader.vue";
@@ -12,6 +12,8 @@ describe("Front page and login", () => {
   beforeAll(async () => {
     wrapper = await mountComponent(App);
     seeds();
+    // Wait for lazy-loaded route components to load
+    await wrapper.vm.$wait();
   });
   afterAll(() => wrapper.unmount());
 
@@ -26,9 +28,8 @@ describe("Front page and login", () => {
     expect(wrapper.find("#back").isVisible()).toBe(false);
     // Click login button.
     await wrapper.get("#login").trigger("click");
-    // Vue needs an additional nextTick()'s to render the content
-    // got through router.
-    await flushPromises()
+    // Vue needs additional time to render the content got through router.
+    await wrapper.vm.$wait();
     expect(wrapper.vm.$route.path).toBe("/login-mail");
     // Click back
     expect(wrapper.get("#back").isVisible()).toBe(true);
@@ -43,7 +44,7 @@ describe("Front page and login", () => {
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
     // Go to login with mail page.
     wrapper.vm.$router.push("/login-mail");
-    await flushPromises()
+    await wrapper.vm.$wait();
     // Button is disabled since form is empty.
     expect(wrapper.get("button[type='submit']").attributes("disabled"))
       .toBeDefined();
@@ -55,8 +56,9 @@ describe("Front page and login", () => {
       wrapper.get("button[type='submit']").attributes("disabled")
     ).toBeUndefined();
     wrapper.get("button[type='submit']").trigger("click");
-    await wrapper.vm.$wait()
+    await waitFor(() => wrapper.vm.$store.getters.isLoggedIn)
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(true);
+    await waitFor(() => wrapper.vm.$route.path, "/home");
     expect(wrapper.vm.$route.path).toBe("/home");
     // Open profile menu
     await wrapper.findComponent(ProfileBtnMenu).trigger('click');
