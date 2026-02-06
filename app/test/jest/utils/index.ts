@@ -139,42 +139,7 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   wrapper.vm.$q.notify = vi.fn() as any;
   Notify.create = vi.fn() as any;
 
-  // Add more testing features to Vue.
-  app.config.globalProperties.$nextTicks = async function() {
-    await flushPromises();
-    await this.$nextTick();
-    await this.$nextTick();
-    await this.$nextTick();
-    await this.$nextTick();
-  }
-
-  app.config.globalProperties.$wait = async function(time?: number) {
-    await this.$nextTicks();
-    await new Promise((r) => setTimeout(r, time ?? 200));
-  }
-
   return wrapper;
-}
-
-declare module "vue" {
-  interface ComponentCustomProperties {
-    /**
-     * Sometimes the Vue.$nextTick() or Vue.$nextTicks() function is not enough for the content to be completely updated.
-     * Known use cases:
-     *  - Content needing to reach data from a mocked HTTP request.
-     *  - Interact with router.back() feature.
-     * This method waits for two ticks and then for 200 ms or the given time.
-     */
-    $wait(time?: number) : Promise<void>;
-
-    /**
-     * Sometimes the Vue.$nextTick() function is not enough, and you need to wait for more ticks.
-     * 
-     * Known use cases:
-     *  - Wait for rendering the content after triggering an action that changes the current route.
-     */
-    $nextTicks(): Promise<void>;
-  }
 }
 
 /**
@@ -192,22 +157,25 @@ declare module "vue" {
 export const waitFor = async (fn: () => any, expected: any = true, message?: string, timeout = 2000) => {
   const assertionMessage = message ?? (typeof expected === "boolean" ? `Expected condition to be ${expected}` : undefined);
   // 1. Check synchronously.
-  if (fn() === expected) {
-    expect(fn()).toBe(expected);
+  let result = fn();
+  if (result === expected) {
+    expect(result).toBe(expected);
     return;
   }
   // 2. Try flushing promises.
   await flushPromises();
-  if (fn() === expected) {
-    expect(fn()).toBe(expected);
+  result = fn();
+  if (result === expected) {
+    expect(result).toBe(expected);
     return;
   }
   // 3. Poll with timeout.
   const start = Date.now();
   while (Date.now() - start < timeout) {
     await new Promise(r => setTimeout(r, 50));
-    if (fn() === expected) {
-      expect(fn()).toBe(expected);
+    result = fn();
+    if (result === expected) {
+      expect(result).toBe(expected);
       return;
     }
   }
