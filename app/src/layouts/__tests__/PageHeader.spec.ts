@@ -1,4 +1,4 @@
- 
+import { vi } from 'vitest';
 import type { VueWrapper } from "@vue/test-utils";
 import { config, mount } from "@vue/test-utils";
 import type { Store } from "vuex";
@@ -39,17 +39,16 @@ const i18n = createI18n({
 })
 config.global.plugins.unshift([i18n])
 
-jest.mock("../../plugins/Notifications")
-jest.mock("@firebase/messaging");
-jest.mock('vue-router', () => ({
-  useRoute: jest.fn(() => ({
+vi.mock("../../plugins/Notifications")
+vi.mock('vue-router', () => ({
+  useRoute: vi.fn(() => ({
     path: '/test-path',
     meta: {
       rootPage: true
     }
   })),
-  useRouter: jest.fn(() => ({
-    push: jest.fn()
+  useRouter: vi.fn(() => ({
+    push: vi.fn()
   }))
 }))
 
@@ -59,7 +58,7 @@ describe("PageHeader", () => {
   let store : Store<unknown>;
 
   beforeEach(() => {
-    toogleDrawer = jest.fn();
+    toogleDrawer = vi.fn();
     store = createStore({
       state: () => ({
         ui: {

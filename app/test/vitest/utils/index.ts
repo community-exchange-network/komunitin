@@ -52,13 +52,8 @@ class MockNotification {
 }
 
 Object.defineProperty(global, 'Notification', {value: MockNotification})
-vi.mock("../../../src/plugins/Notifications", () => ({
-  default: {
-    getMessaging: vi.fn(() => undefined),
-    requestPermission: vi.fn().mockResolvedValue(false),
-    getToken: vi.fn().mockResolvedValue(""),
-  }
-}));
+vi.mock("../../../src/plugins/Notifications");
+vi.mock("firebase/messaging");
 
 vi.mock("qrcode", () => ({
   toCanvas: vi.fn(),

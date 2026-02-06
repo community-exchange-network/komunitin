@@ -17,7 +17,7 @@ describe("logged in", () => {
     await router.isReady();
     // Router guards are installed after router has its initial push in test environment. 
     // That's why we force a push so the guard is executed.
-    router.push("/login")
+    await router.push("/login")
     await flushPromises()
     await wrapper.vm.$wait()
     expect(wrapper.vm.$route.path).toBe("/home");
