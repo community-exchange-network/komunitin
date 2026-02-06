@@ -238,12 +238,6 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
 
     this.checkTransferTransition(transfer, state)
 
-    // Update transfer user to the lastest one performing an action on it.
-    // If a transfer is moving from pending to committed, we want it to be attributed to 
-    // the user performing the commit.
-
-    transfer.user = user
-
     // note that state can only be "committed", "rejected" or "deleted" at this point.
 
     // Trying to commit the transfer
@@ -255,6 +249,8 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
       if (this.users().isAdmin(user)
         || userHasAccount(user, transfer.payer) 
         || (userHasAccount(user, transfer.payee) && (await this.submitPaymentRequestImmediately(transfer)))) {
+        // We change the transfer user to the one finally commiting the transfer.
+        transfer.user = user
         await this.saveTransferState(transfer, "submitted")
         try {
           const transaction = await this.submitTransfer(transfer, this.users().isAdmin(user))
@@ -279,6 +275,8 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
 
     if (state == "rejected") { 
       if (userHasAccount(user, transfer.payer)) {
+        // Update transfer user to the one rejecting the transfer.
+        transfer.user = user
         await this.saveTransferState(transfer, "rejected")
       } else {
         throw forbidden("User is not allowed to reject this transfer")
