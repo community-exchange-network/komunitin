@@ -35,6 +35,10 @@ notifications/i18n/messages/ca.json @sseerrggii @estevebadia
 app/src/i18n/bg/*.json @cesbg1
 notifications/i18n/messages/bg.json @cesbg1
 
+# Dutch translations - notify Dutch translator
+app/src/i18n/nl/*.json @numblock
+notifications/i18n/messages/nl.json @numblock
+
 # Add more languages as translators join:
 # app/src/i18n/de/*.json @german-translator
 # app/src/i18n/it/*.json @italian-translator
@@ -45,7 +49,7 @@ notifications/i18n/messages/bg.json @cesbg1
 
 # CES Flavor - English source files
 # Notify translators when CES-specific English strings change
-app/src/i18n/flavors/ces/en/*.json @olivier108 @sseerrggii @cesbg1 @estevebadia
+app/src/i18n/flavors/ces/en/*.json @olivier108 @sseerrggii @cesbg1 @estevebadia @numblock
 
 # CES Flavor - French translations
 app/src/i18n/flavors/ces/fr/*.json @olivier108
@@ -58,6 +62,9 @@ app/src/i18n/flavors/ces/ca/*.json @sseerrggii @estevebadia
 
 # CES Flavor - Bulgarian translations
 app/src/i18n/flavors/ces/bg/*.json @cesbg1
+
+# CES Flavor - Dutch translations
+app/src/i18n/flavors/ces/nl/*.json @numblock
 
 # Other flavors (add as needed):
 # app/src/i18n/flavors/[OTHER_FLAVOR]/en/*.json @olivier108 @sseerrggii @cesbg1 @estevebadia
