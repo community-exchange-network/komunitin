@@ -29,8 +29,8 @@ describe("SelectLang", () => {
     await waitFor(() => wrapper.findAllComponents(QItem).length > 0, true, "Language dropdown should open");
     const items = wrapper.findAllComponents(QItem);
     const catalan = items.find(item => item.text().includes("Català"));
-    expect(catalan).toBeDefined();
-    await catalan!.trigger("click");
+    if (!catalan) throw new Error("Catalan option not found in dropdown");
+    await catalan.trigger("click");
     
     // Wait for async locale change
     await waitFor(() => i18n.global.locale.value === "ca", true, "Locale should change to Catalan");
