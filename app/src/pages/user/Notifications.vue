@@ -59,7 +59,9 @@ let markReadTimer: ReturnType<typeof setTimeout> | undefined;
 onMounted(() => {
   markReadTimer = setTimeout(() => {
     const code = myGroup.value?.attributes?.code;
-    store.dispatch("notifications/markAllRead", { group: code })
+    if (code) {
+      store.dispatch("notifications/markAllRead", { group: code })
+    }
   }, 2000);
 });
 

@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useI18n } from "vue-i18n";
 
@@ -41,5 +41,5 @@ const fetchUnreadCount = async () => {
   }
 };
 
-fetchUnreadCount();
+onMounted(fetchUnreadCount);
 </script>

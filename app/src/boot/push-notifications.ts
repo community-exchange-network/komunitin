@@ -37,20 +37,25 @@ const updatePushNotificationEvent = async (
 ): Promise<void> => {
 
   const url = `${config.NOTIFICATIONS_URL}/${code}/push-notifications/${id}`
-  await fetch(url, {
-    method: "PATCH",
-    headers: {
-      Accept: "application/vnd.api+json",
-      "Content-Type": "application/vnd.api+json",
-    },
-    body: JSON.stringify({
-      data: {
-        type: "push-notifications",
-        id,
-        attributes,
+  try {
+    await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        data: {
+          type: "push-notifications",
+          id,
+          attributes,
+        },
+      }),
+    });
+  } catch (err) {
+    // Don't show error to the user.
+    console.error("Failed to update notification event", err)
+  }
 };
 
 const handlePushMessage = (
@@ -119,7 +124,7 @@ const handlePushMessage = (
     color: "onsurface",
     handler: () => {
       // Notify backend of dismiss from in-app notification (as a click with action "dismiss")
-      // This is intentionally diferent from a dismiss on the OS push notification, which is
+      // This is intentionally different from a dismiss on the OS push notification, which is
       // not tracked as a click.
       updatePushNotificationEvent(payload.code, payload.id, {
         clicked: true,
