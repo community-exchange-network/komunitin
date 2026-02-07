@@ -13,6 +13,9 @@ import CreateTransactionSendQR from "src/pages/transactions/CreateTransactionSen
 import NfcTagScanner from "src/components/NfcTagScanner.vue";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
 
+// Payment address URL used in QR, link, and scan tests.
+const PAYMENT_ADDRESS_URL = "http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a"
+
 describe("Transactions", () => {
   let wrapper: VueWrapper;
   
@@ -24,6 +27,23 @@ describe("Transactions", () => {
   afterAll(() => {
     wrapper.unmount();
   });
+
+  /**
+   * Helper: click on SelectAccount input and wait for the account list dropdown to open.
+   * Returns the QMenu component with the accounts.
+   */
+  async function openAccountList(): Promise<VueWrapper> {
+    await wrapper.getComponent(SelectAccount).get('input').trigger("click");
+    await waitFor(
+      () => {
+        const sa = wrapper.findComponent(SelectAccount);
+        return sa.exists() && sa.findComponent(QMenu).exists() ? sa.getComponent(QMenu).findAllComponents(AccountHeader).length > 0 : false;
+      },
+      true,
+      "Account list should open"
+    );
+    return wrapper.getComponent(SelectAccount).getComponent(QMenu);
+  }
 
   
   it("Loads and searches tansactions", async () => {
@@ -96,17 +116,7 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members/EmilianoLemke57/transactions/receive");
     await waitFor(() => wrapper.findComponent(SelectAccount).exists(), true, "SelectAccount should render");
 
-    await wrapper.getComponent(SelectAccount).get('input').trigger("click");
-    await waitFor(
-      () => {
-        const sa = wrapper.findComponent(SelectAccount);
-        return sa.exists() && sa.findComponent(QMenu).exists() ? sa.getComponent(QMenu).findAllComponents(AccountHeader).length > 0 : false;
-      },
-      true,
-      "Account list should open"
-    );
-
-    const dialog = wrapper.getComponent(SelectAccount).getComponent(QMenu)
+    const dialog = await openAccountList();
     const payer = dialog.findAllComponents(AccountHeader)[2]
     expect(payer.text()).toContain("Carol")
     await payer.trigger("click")
@@ -137,17 +147,7 @@ describe("Transactions", () => {
     await wrapper.vm.$router.push("/groups/GRP0/members/EmilianoLemke57/transactions/send")
     await waitFor(() => wrapper.findComponent(SelectAccount).exists(), true, "SelectAccount should render");
 
-    await wrapper.getComponent(SelectAccount).get('input').trigger("click");
-    await waitFor(
-      () => {
-        const sa = wrapper.findComponent(SelectAccount);
-        return sa.exists() && sa.findComponent(QMenu).exists() ? sa.getComponent(QMenu).findAllComponents(AccountHeader).length > 0 : false;
-      },
-      true,
-      "Account list should open"
-    );
-
-    const dialog = wrapper.getComponent(SelectAccount).getComponent(QMenu)
+    const dialog = await openAccountList();
     const payee = dialog.findAllComponents(AccountHeader)[2]
     expect(payee.text()).toContain("Carol")
     await payee.trigger("click")
@@ -171,17 +171,7 @@ describe("Transactions", () => {
     await wrapper.vm.$router.push("/groups/GRP0/members/EmilianoLemke57/transactions/send")
     await waitFor(() => wrapper.findComponent(SelectAccount).exists(), true, "SelectAccount should render");
 
-    await wrapper.getComponent(SelectAccount).get('input').trigger("click");
-    await waitFor(
-      () => {
-        const sa = wrapper.findComponent(SelectAccount);
-        return sa.exists() && sa.findComponent(QMenu).exists() ? sa.getComponent(QMenu).findAllComponents(AccountHeader).length > 0 : false;
-      },
-      true,
-      "Account list should open"
-    );
-
-    const dialog = wrapper.getComponent(SelectAccount).getComponent(QMenu)
+    const dialog = await openAccountList();
     const groups = dialog.getComponent(SelectGroupExpansion)
     await groups.trigger("click")
     // Choose group 1
@@ -225,17 +215,7 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.findComponent(SelectAccount).exists(), true, "SelectAccount should render");
 
     const input = wrapper.getComponent(SelectAccount).get('input')
-    await input.trigger("click");
-    await waitFor(
-      () => {
-        const sa = wrapper.findComponent(SelectAccount);
-        return sa.exists() && sa.findComponent(QMenu).exists() ? sa.getComponent(QMenu).findAllComponents(AccountHeader).length > 0 : false;
-      },
-      true,
-      "Account list should open"
-    );
-
-    const dialog = wrapper.getComponent(SelectAccount).getComponent(QMenu)
+    const dialog = await openAccountList();
     const groups = dialog.getComponent(SelectGroupExpansion)
     await groups.trigger("click")
     
@@ -330,7 +310,7 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.text().includes("Scan the transfer QR code"), true, "QR scan page should load")
     
     await (wrapper.getComponent(CreateTransactionSendQR) as any)
-      .vm.onDetect([{rawValue: "http://localhost:8080/pay?c=http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a&m=Test%20QR%20description&a=120000"}])
+      .vm.onDetect([{rawValue: `http://localhost:8080/pay?c=${PAYMENT_ADDRESS_URL}&m=Test%20QR%20description&a=120000`}])
     await waitFor(() => wrapper.text().includes("$-12.00"), true, "Scanned transfer amount should show")
     expect(wrapper.text()).toContain("Test QR description")
     expect(wrapper.text()).toContain("GRP00004")
@@ -340,7 +320,7 @@ describe("Transactions", () => {
   })
 
   it('Payment link', async () => {
-    await wrapper.vm.$router.push("/pay?c=http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a&m=Test%20QR%20link&a=135000")
+    await wrapper.vm.$router.push(`/pay?c=${PAYMENT_ADDRESS_URL}&m=Test%20QR%20link&a=135000`)
     await waitFor(() => wrapper.text().includes("$-13.50"), true, "Payment link amount should show")
     expect(wrapper.text()).toContain("Test QR link")
     expect(wrapper.text()).toContain("GRP00004")

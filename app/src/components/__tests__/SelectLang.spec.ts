@@ -1,7 +1,7 @@
 
 import SelectLang from "../SelectLang.vue";
 import type { VueWrapper} from "@vue/test-utils";
-import { mountComponent, waitFor } from "../../../test/jest/utils";
+import { mountComponent, waitFor } from "../../../test/vitest/utils";
 import { i18n } from "src/boot/i18n";
 import { QItem } from "quasar";
 

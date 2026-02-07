@@ -2,7 +2,7 @@ import { vi, afterAll, beforeEach, describe, expect, it } from 'vitest';
 import type { VueWrapper } from "@vue/test-utils";
 import { mount } from "@vue/test-utils";
 import { config } from '@vue/test-utils';
-import { quasarPlugin } from "../../../test/jest/utils/quasar-plugin";
+import { quasarPlugin } from "../../../test/vitest/utils/quasar-plugin";
 
 // Install quasar plugin.
 config.global.plugins.unshift(quasarPlugin);

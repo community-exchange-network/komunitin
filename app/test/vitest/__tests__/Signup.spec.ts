@@ -7,41 +7,16 @@ import GroupCard from "../../../src/components/GroupCard.vue";
 import { QBtn, QDialog, QInput, QItem, QSelect } from "quasar";
 import CountryChooser from "src/components/CountryChooser.vue";
 
-// mock quasar.scroll.
+// Mock quasar.scroll used in Signup.vue and SignupMember.vue to scroll to top on step change.
 vi.mock("quasar", async () => {
   const actual = await vi.importActual<typeof import("quasar")>("quasar");
   return {
     ...actual,
     scroll: {
-      getScrollTarget: vi.fn(() => ({
-        scrollTo: vi.fn()
-      })),
+      getScrollTarget: vi.fn(() => ({ scrollTo: vi.fn() })),
     }
   }
 })
-
-// With vitest, the default import of "i18n-iso-countries" does not behave well and
-// thats why we need to mock it.
-vi.mock("i18n-iso-countries", () => ({
-  default: {
-    registerLocale: vi.fn(),
-    getNames: vi.fn(() => ({
-      'IT': 'Italy',
-      'ES': 'Spain',
-      'GR': 'Greece',
-      'AD': 'Andorra'
-    })),
-  },
-  registerLocale: vi.fn(),
-  getNames: vi.fn(() => ({
-    'IT': 'Italy',
-    'ES': 'Spain',
-    'GR': 'Greece',
-    'AD': 'Andorra'
-  })),
-}))
-
-
 
 describe("Signup", () => {
   let wrapper: VueWrapper;
@@ -97,8 +72,8 @@ describe("Signup", () => {
     await waitFor(() => (select.props("options") as any[])?.length > 0, true, "Country options should load");
     await select.trigger("click");
     await waitFor(() => select.findAllComponents(QItem).length > 0, true, "Country dropdown should open");
-    const andorra = select.findAllComponents(QItem).find(i => i.text().includes("Andorra"))!;
-    expect(andorra).toBeDefined();
+    const andorra = select.findAllComponents(QItem).find(i => i.text().includes("Andorra"));
+    if (!andorra) throw new Error("Andorra option not found in dropdown");
     await andorra.trigger("click");
     await flushPromises();
     expect(select.get("input").element.value).toBe("Andorra");
