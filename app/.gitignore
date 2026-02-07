@@ -40,6 +40,7 @@ yarn-error.log*
 
 # Test reports
 /test/jest/coverage
+/coverage
 src/debug.log
 tmp
 
