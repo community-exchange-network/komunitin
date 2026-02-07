@@ -101,13 +101,13 @@ describe('Payment requests', async () => {
   })
 
   it('delete transfer', async () => {
-    // can't delete other's transfer
-    await t.api.delete(`/TEST/transfers/${rejected.id}`, t.user2, 403)
+    // can't delete other's transfer. Note that rejected transfer is now "owned" by user2 since user2 is the one who rejected it.
+    await t.api.delete(`/TEST/transfers/${rejected.id}`, t.user1, 403)
     // can't delete committed transfer
-    await t.api.delete(`/TEST/transfers/${committed.id}`, t.user1, 400)
+    await t.api.delete(`/TEST/transfers/${committed.id}`, t.user2, 400)
 
     // delete rejected.
-    await t.api.delete(`/TEST/transfers/${rejected.id}`, t.user1)
+    await t.api.delete(`/TEST/transfers/${rejected.id}`, t.user2)
     // delete new
     const response = await t.api.post("/TEST/transfers", testTransfer(t.account2.id, t.account1.id, 100, "Draft", "new"), t.user1)
     await t.api.delete(`/TEST/transfers/${response.body.data.id}`, t.user1)

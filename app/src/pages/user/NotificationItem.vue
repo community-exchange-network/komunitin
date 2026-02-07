@@ -1,6 +1,7 @@
 <template>
   <q-item 
     class="q-px-md q-pt-md q-pb-lg"
+    :class="{ 'bg-blue-1': !isRead }"
     :clickable="link !== false"
     :to="link"
   >
@@ -12,13 +13,20 @@
     </q-item-section>
 
     <q-item-section>
-      <q-item-label class="text-weight-medium">{{ notification.attributes.title }}</q-item-label>
+      <q-item-label :class="isRead ? '' : 'text-weight-bold'">{{ notification.attributes.title }}</q-item-label>
       <q-item-label caption lines="3">{{ notification.attributes.body }}</q-item-label>
     </q-item-section>
     <q-item-section side top>
       <q-item-label caption>
         {{ $formatDate(notification.attributes.created) }}
       </q-item-label>
+      <q-icon
+        v-if="!isRead"
+        name="circle"
+        color="primary"
+        size="8px"
+        class="q-mt-xs"
+      />
     </q-item-section>
   </q-item>
 </template>
@@ -32,4 +40,5 @@ const props = defineProps<{
 }>()
 
 const link = computed(() => props.notification.attributes.data?.route ?? false);
+const isRead = computed(() => props.notification.attributes.read !== null);
 </script>

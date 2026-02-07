@@ -76,6 +76,41 @@ const mockTable = (table: any, name: string = 'test', defaults?: (data: any) => 
       }
       return null;
     }),
+    updateMany: test.mock.fn(async (args: any) => {
+      const { where, data } = args as any;
+      let results = [...store];
+      if (where) {
+        for (const [key, value] of Object.entries(where)) {
+          results = results.filter((n: any) => {
+            // Handle null check: both null and undefined should match null
+            if (value === null) {
+              return n[key] === null || n[key] === undefined;
+            }
+            return n[key] === value;
+          });
+        }
+      }
+      let count = 0;
+      for (const item of results) {
+        Object.assign(item, { ...data, updatedAt: new Date() });
+        count++;
+      }
+      return { count };
+    }),
+    count: test.mock.fn(async (args: any) => {
+      let results = [...store];
+      if (args?.where) {
+        for (const [key, value] of Object.entries(args.where)) {
+          results = results.filter((n: any) => {
+            if (value === null) {
+              return n[key] === null || n[key] === undefined;
+            }
+            return n[key] === value;
+          });
+        }
+      }
+      return results.length;
+    }),
     groupBy: test.mock.fn(async (args: any) => {
       const all = await delegate.findMany({ where: args.where });
       const field = args.by[0];

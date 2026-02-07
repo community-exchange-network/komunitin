@@ -102,6 +102,10 @@ async function loadUser(
     commit("location", member.attributes.location?.coordinates)
   }
 
+  // Fetch initial unread notifications count.
+  dispatch("notifications/updateUnreadCount", null, { root: true })
+    .catch(e => console.warn("Failed to fetch unread count", e));
+
   // Renew push notification subscription if permission is already granted
   if (getNotificationPermission() === 'granted') {
     dispatch("subscribe").catch(e => console.warn("Failed to restore subscription", e));

@@ -11,6 +11,27 @@ import { mockRedis } from '../../mocks/redis'
 import { _app } from '../../server'
 import prisma from '../../utils/prisma'
 
+export const createNotification = async (
+  tenantId: string,
+  userId: string,
+  eventId: string,
+  title: string,
+  body: string = '',
+  readAt?: Date
+) => {
+  return prisma.appNotification.create({
+    data: {
+      tenantId,
+      userId,
+      eventId,
+      eventName: eventId,
+      title,
+      body,
+      readAt,
+    }
+  })
+}
+
 export const createEvent = (name: string, payloadId: string, groupId: string, userId: string, eventId: string, dataKey: string = 'transfer') => {
   return {
     name,

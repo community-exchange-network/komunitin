@@ -91,6 +91,7 @@
   "enableLocation": "Abilita posizione",
   "enableNotifications": "Abilita notifiche",
   "dismiss": "Disattiva",
+  "open": "Apri",
   "createTransaction": "Nuovo movimento",
   "enterTransactionData": "Inserisci i dati del movimento",
   "selectPayer": "Da",

@@ -28,7 +28,7 @@ const initI18n = async () => {
         // Use Intl.DurationFormat for duration formatting (from node 23+)
         i18next.services.formatter?.add('duration', (value: Intl.Duration, lng?: string) => {
           const locale = lng ?? i18next.language;
-          return Intl.DurationFormat(locale, {
+          return new Intl.DurationFormat(locale, {
             style: 'short',
           }).format(value);
         });

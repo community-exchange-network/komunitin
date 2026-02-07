@@ -36,7 +36,7 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
 import { isToday, isYesterday, isThisWeek, isThisMonth, format } from 'date-fns';
@@ -52,6 +52,24 @@ const store = useStore();
 
 const myMember = computed(() => store.getters.myMember);
 const myGroup = computed(() => myMember.value.group);
+
+// Mark all notifications as read after a short delay
+let markReadTimer: ReturnType<typeof setTimeout> | undefined;
+
+onMounted(() => {
+  markReadTimer = setTimeout(() => {
+    const code = myGroup.value?.attributes?.code;
+    if (code) {
+      store.dispatch("notifications/markAllRead", { group: code })
+    }
+  }, 2000);
+});
+
+onUnmounted(() => {
+  if (markReadTimer) {
+    clearTimeout(markReadTimer);
+  }
+});
 
 const groupNotifications = (notifications: Notification[]) => {
   const locale = getDateLocale();
