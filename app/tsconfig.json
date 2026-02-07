@@ -1,7 +1,7 @@
 {
   "extends": "./.quasar/tsconfig.json",
   "compilerOptions": {
-    "types": ["node", "resize-observer-browser"],
+    "types": ["node", "resize-observer-browser", "vitest/globals"],
     "allowSyntheticDefaultImports": true,
     // The "./node_modules/@quasar/app-vite/node_modules" is needed in order to
     // resolve the "vite/client" types defined in .quasar/quasar.d.ts. For sure
