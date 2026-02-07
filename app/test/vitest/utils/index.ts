@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { defineComponent } from 'vue';
 import { flushPromises, mount, MountingOptions, VueWrapper } from "@vue/test-utils";
 import { Notify, LocalStorage } from "quasar";
@@ -17,11 +18,11 @@ import { mockToken } from 'src/server/AuthServer';
 import { RouteLocationRaw } from 'vue-router';
 
 // Mock window.scrollTo so it doesn't throw a "Not Implemented" error (by jsdom lib).
-window.scrollTo = jest.fn();
+window.scrollTo = vi.fn() as any;
 
 // Mock navigator.geolocation
 const mockGeolocation = {
-  getCurrentPosition: jest.fn().mockImplementation(success =>
+  getCurrentPosition: vi.fn().mockImplementation(success =>
     Promise.resolve(
       success({
         coords: {
@@ -43,43 +44,52 @@ Object.defineProperty(global.navigator, 'geolocation', {value: mockGeolocation})
 
 // Mock Notification.
 class MockNotification {
-  public static requestPermission = jest.fn().mockImplementation((success) => Promise.resolve(success(false)));
+  public static requestPermission = vi.fn().mockImplementation((success) => Promise.resolve(success(false)));
   public static permission = "default";
 
   constructor(public title: string, public options?: NotificationOptions) {};
-  public addEventListener = jest.fn();
+  public addEventListener = vi.fn();
 }
 
 Object.defineProperty(global, 'Notification', {value: MockNotification})
-jest.mock("../../../src/plugins/Notifications");
-jest.mock("firebase/messaging");
-
-jest.mock("qrcode", () => ({
-  toCanvas: jest.fn(),
-  toDataURL: jest.fn().mockImplementation(() => Promise.resolve("data:image/png;base64,"))
+vi.mock("../../../src/plugins/Notifications", () => ({
+  notifications: {
+    getMessaging: vi.fn(() => undefined),
+    requestPermission: vi.fn().mockResolvedValue(false),
+    getToken: vi.fn().mockResolvedValue(""),
+  }
 }));
-jest.mock("vue-qrcode-reader", () => ({
-  QrcodeStream: jest.fn(),
+
+vi.mock("qrcode", () => {
+  const toDataURL = vi.fn().mockImplementation(() => Promise.resolve("data:image/png;base64,"))
+  return {
+    default: { toCanvas: vi.fn(), toDataURL },
+    toCanvas: vi.fn(),
+    toDataURL
+  }
+});
+vi.mock("vue-qrcode-reader", () => ({
+  QrcodeStream: vi.fn(),
 }))
-jest.mock("@vue-leaflet/vue-leaflet", () => ({
-  LMap: jest.fn(),
-  LTileLayer: jest.fn(),
-  LMarker: jest.fn(),
+vi.mock("@vue-leaflet/vue-leaflet", () => ({
+  LMap: vi.fn(),
+  LTileLayer: vi.fn(),
+  LMarker: vi.fn(),
 }))
 
 
 // Mock Web NFC api
 class MockNDEFReader {
   constructor() {}
-  public scan = jest.fn(() => new Promise(() => {}));
-  public addEventListener = jest.fn();  
+  public scan = vi.fn(() => new Promise(() => {}));
+  public addEventListener = vi.fn();  
 }
 Object.defineProperty(global, "NDEFReader", {value: MockNDEFReader});
 
 // Set a value on scrollHeight property so QInfiniteScrolling doesn't load all resources.
 Object.defineProperty(HTMLDivElement.prototype, "scrollHeight", {configurable: true, value: 1500});
-Object.defineProperty(SVGSVGElement.prototype, "pauseAnimations", {value: jest.fn()});
-Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", {value: jest.fn()});
+Object.defineProperty(SVGSVGElement.prototype, "pauseAnimations", {value: vi.fn()});
+Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", {value: vi.fn()});
 
 
 
@@ -126,57 +136,53 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   }
 
   // Mock $q.notify since it throws an errors in testing environment if we use the actual module.
-  wrapper.vm.$q.notify = jest.fn();
-  Notify.create = jest.fn();
-
-  // Add more testing features to Vue.
-  app.config.globalProperties.$nextTicks = async function() {
-    await flushPromises();
-    await this.$nextTick();
-    await this.$nextTick();
-    await this.$nextTick();
-    await this.$nextTick();
-  }
-
-  app.config.globalProperties.$wait = async function(time?: number) {
-    await this.$nextTicks();
-    await new Promise((r) => setTimeout(r, time ?? 200));
-  }
+  wrapper.vm.$q.notify = vi.fn() as any;
+  Notify.create = vi.fn() as any;
 
   return wrapper;
 }
 
-declare module "vue" {
-  interface ComponentCustomProperties {
-    /**
-     * Sometimes the Vue.$nextTick() or Vue.$nextTicks() function is not enough for the content to be completely updated.
-     * Known use cases:
-     *  - Content needing to reach data from a mocked HTTP request.
-     *  - Interact with router.back() feature.
-     * This method waits for two ticks and then for 200 ms or the given time.
-     */
-    $wait(time?: number) : Promise<void>;
-
-    /**
-     * Sometimes the Vue.$nextTick() function is not enough, and you need to wait for more ticks.
-     * 
-     * Known use cases:
-     *  - Wait for rendering the content after triggering an action that changes the current route.
-     */
-    $nextTicks(): Promise<void>;
-  }
-}
-
 /**
  * Wait for the content of a function to be equal to the expected value, up to a timeout.
+ * 
+ * 1. First checks if the condition already holds synchronously.
+ * 2. Then tries flushing promises (microtasks) to see if the condition resolves.
+ * 3. Falls back to polling every 50ms until timeout.
+ * 
+ * @param fn - Function that returns the current value to check.
+ * @param expected - The expected value (default: true).
+ * @param message - Optional assertion message. Automatically generated if not provided.
+ * @param timeout - Maximum time to wait in ms (default: 2000).
  */
-export const waitFor = async (fn: () => any, expected: any = true, timeout = 1000) => {
+export const waitFor = async (fn: () => any, expected: any = true, message?: string, timeout = 2000) => {
+  const assertionMessage = message ?? (typeof expected === "boolean" ? `Expected condition to be ${expected}` : undefined);
+  // 1. Check synchronously.
+  let result = fn();
+  if (result === expected) {
+    expect(result).toBe(expected);
+    return;
+  }
+  // 2. Try flushing promises.
+  await flushPromises();
+  result = fn();
+  if (result === expected) {
+    expect(result).toBe(expected);
+    return;
+  }
+  // 3. Poll with timeout.
   const start = Date.now();
   while (Date.now() - start < timeout) {
-    if (fn() === expected) {
-      expect(fn()).toBe(expected);
-    }
     await new Promise(r => setTimeout(r, 50));
+    result = fn();
+    if (result === expected) {
+      expect(result).toBe(expected);
+      return;
+    }
   }
-  expect(fn()).toBe(expected);
+  // Final assertion with message.
+  if (assertionMessage) {
+    expect(fn(), assertionMessage).toBe(expected);
+  } else {
+    expect(fn()).toBe(expected);
+  }
 }
