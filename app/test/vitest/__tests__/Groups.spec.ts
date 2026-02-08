@@ -1,7 +1,7 @@
  
 import { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent } from "../utils";
+import { mountComponent, waitFor } from "../utils";
 import { QInnerLoading } from "quasar";
 import GroupCard from "../../../src/components/GroupCard.vue";
 import { seeds } from "../../../src/server";
@@ -21,8 +21,7 @@ describe("Groups", () => {
     await wrapper.vm.$nextTick();
     expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
     // Load.
-    await wrapper.vm.$wait();
-    expect(wrapper.findAllComponents(GroupCard).length).toBe(7);
+    await waitFor(() => wrapper.findAllComponents(GroupCard).length, 7, "Should load 7 groups");
     expect((wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing).toBe(false);
   });
 
@@ -30,7 +29,7 @@ describe("Groups", () => {
     await wrapper.vm.$router.push("/groups/GRP0");
     await wrapper.vm.$nextTick();
     expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.text().includes("6 Computers"), true, "Group page should load offer categories");
     const text = wrapper.text();
     // Title
     expect(text).toContain("Group 0");
@@ -53,8 +52,7 @@ describe("Groups", () => {
     expect(text).toContain("31");
     expect(text).toContain("Explore");
     // Currency card
-    expect(text).toContain("Currency");
-    expect(text).toContain("$");
+    await waitFor(() => wrapper.text().includes("Currency") && wrapper.text().includes("$"), true, "Group page should load currency");
     // Location
     expect(text).toContain("Buckinghamshire");
     // Contact

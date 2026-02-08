@@ -28,20 +28,20 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 
 ## Translations
 
-| English | Catalan (ca) | Spanish (es) | Italian (it) |
-| :--- | :--- | :--- | :--- |
-| **Community** | Comunitat | Comunidad | Comunità |
-| **Currency** | Moneda | Moneda | Valuta |
-| **Member** | Membre | Miembro | Membro |
-| **Account** | Compte | Cuenta | Conto |
-| **Balance** | Saldo | Saldo | Saldo |
-| **Transfer** | Moviment | Movimiento | Movimento |
-| **Send** | Enviar | Enviar | Inviare |
-| **Receive** | Rebre | Recibir | Ricevere |
-| **Move** | Moure | Mover | Spostare |
-| **From / Source** | De / Origen | De / Origen | Da / Origine |
-| **To / Destination** | A / Destinació | A / Destino | A / Destinazione |
-| **Amount** | Quantitat | Cantidad | Importo |
-| **Offer** | Oferta | Oferta | Offerta |
-| **Need** | Necessitat | Necesidad | Necessità |
-| **Value** | Valor | Valor | Valore |
+| English | Catalan (ca) | Spanish (es) | Italian (it) | French (fr) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Community** | Comunitat | Comunidad | Comunità | Communauté |
+| **Currency** | Moneda | Moneda | Valuta | Monnaie |
+| **Member** | Membre | Miembro | Membro | Membre |
+| **Account** | Compte | Cuenta | Conto | Compte |
+| **Balance** | Saldo | Saldo | Saldo | Solde |
+| **Transfer** | Moviment | Movimiento | Movimento | Transfert |
+| **Send** | Enviar | Enviar | Inviare | Envoyer |
+| **Receive** | Rebre | Recibir | Ricevere | Recevoir |
+| **Move** | Moure | Mover | Spostare | Déplacer |
+| **From / Source** | De / Origen | De / Origen | Da / Origine | De / Origine |
+| **To / Destination** | A / Destinació | A / Destino | A / Destinazione | À / Destination |
+| **Amount** | Quantitat | Cantidad | Importo | Montant |
+| **Offer** | Oferta | Oferta | Offerta | Offre |
+| **Need** | Necessitat | Necesidad | Necessità | Besoin |
+| **Value** | Valor | Valor | Valore | Valeur |

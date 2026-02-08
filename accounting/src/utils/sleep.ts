@@ -10,6 +10,7 @@ export const sleep = (milliseconds: number) => new Promise((r) => setTimeout(r, 
  * @param fn The function to execute.
  * @param timeoutMilliseconds The maximum time to retry.
  * @param startIntervalMilliseconds The initial time to wait before retrying (will be doubled each retry).
+ * @param maxIntervalMilliseconds The maximum interval to wait between retries; caps the exponential backoff delay.
  * @returns The function outcome
  */
 export const retry = async <T>(fn: () => Promise<T>, timeoutMilliseconds: number = 30000, startIntervalMilliseconds: number = 200, maxIntervalMilliseconds: number = 10000): Promise<T> => {

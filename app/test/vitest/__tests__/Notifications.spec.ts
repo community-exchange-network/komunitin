@@ -1,6 +1,6 @@
-import { VueWrapper } from "@vue/test-utils";
+import { type VueWrapper } from "@vue/test-utils";
 import App from "src/App.vue";
-import { mountComponent } from "../utils";
+import { mountComponent, waitFor } from "../utils";
 import { seeds } from "src/server";
 import { QBadge, QMenu } from "quasar";
 import ProfileBtnMenu from "src/components/ProfileBtnMenu.vue";
@@ -19,7 +19,7 @@ describe("Notifications", () => {
   it("shows unread badge in profile menu", async () => {
     // Navigate to home (a rootPage) so ProfileBtnMenu renders.
     await wrapper.vm.$router.push("/home");
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.vm.$route.path === "/home");
 
     // Open profile menu.
     const profileButton = wrapper.findComponent(ProfileBtnMenu);
@@ -41,7 +41,7 @@ describe("Notifications", () => {
 
   it("navigates to notifications page and shows items", async () => {
     await wrapper.vm.$router.push("/notifications");
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.vm.$route.path === "/notifications");
 
     // Should display notification items.
     const items = wrapper.findAllComponents(NotificationItem);
@@ -56,7 +56,7 @@ describe("Notifications", () => {
   it("marks all as read after visiting notifications page", async () => {
     // The Notifications page marks all as read after 2 seconds.
     // We already navigated there in the previous test, so wait for the timer.
-    await wrapper.vm.$wait(2500);
+    await new Promise(resolve => setTimeout(resolve, 2500));
 
     // After marking all read, unread count should be 0.
     const unreadCount = wrapper.vm.$store.getters["notifications/unreadCount"];
@@ -64,7 +64,7 @@ describe("Notifications", () => {
 
     // Re-open profile menu to verify badge is gone.
     await wrapper.vm.$router.push("/home");
-    await wrapper.vm.$wait();
+    await waitFor(() => wrapper.vm.$route.path === "/home");
 
     const profileButton = wrapper.findComponent(ProfileBtnMenu);
     await profileButton.trigger("click");
