@@ -52,8 +52,7 @@ describe("Groups", () => {
     expect(text).toContain("31");
     expect(text).toContain("Explore");
     // Currency card
-    expect(text).toContain("Currency");
-    expect(text).toContain("$");
+    await waitFor(() => wrapper.text().includes("Currency") && wrapper.text().includes("$"), true, "Group page should load currency");
     // Location
     expect(text).toContain("Buckinghamshire");
     // Contact

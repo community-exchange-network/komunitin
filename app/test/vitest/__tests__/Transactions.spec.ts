@@ -1,4 +1,4 @@
-import { flushPromises, VueWrapper } from "@vue/test-utils";
+import { flushPromises, type VueWrapper } from "@vue/test-utils";
 import App from "src/App.vue";
 import { mountComponent, waitFor } from "../utils";
 import TransactionList from "src/pages/transactions/TransactionList.vue";
@@ -32,7 +32,7 @@ describe("Transactions", () => {
    * Helper: click on SelectAccount input and wait for the account list dropdown to open.
    * Returns the QMenu component with the accounts.
    */
-  async function openAccountList(): Promise<VueWrapper> {
+  async function openAccountList() {
     await wrapper.getComponent(SelectAccount).get('input').trigger("click");
     await waitFor(
       () => {
