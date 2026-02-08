@@ -9,9 +9,8 @@ Email messages are divided into two categories: *My account* and *Community news
 These emails are tied to events that affect a user directly and that are important to keep a record of. Typical examples include:
 
 - Transfers: sent, received, pending, rejected.
-- Offers/needs lifecycle: about to expire, expired.
-- Account status changes: disabled, suspended, re-activated.
-- Security-related messages: password reset/renewal, sign-in or device changes (when applicable).
+- Offers/needs: expired.
+- Security-related messages: email validation, password reset.
 
 Users can enable/disable *My account* emails from their notification settings. We highly recommend keeping them enabled, since they act as an audit trail for key account actions and security events.
 
@@ -19,7 +18,8 @@ Users can enable/disable *My account* emails from their notification settings. W
 These emails are a periodic newsletter designed to help users keep up with the community without receiving a message for every single event. They include:
 
 - A selection of recent offers/needs.
-- A short account summary (e.g. balance and recent activity highlights).
+- A short account summary with balance and recent activity highlights.
+- An alert box for your account (eg no active offers)
 - Community-level statistics and news.
 
 Users can configure the frequency of *Community news* emails (weekly or monthly) or disable them entirely.
@@ -34,8 +34,8 @@ These notifications inform users about important events related to their account
 
 - Transfers: sent, received, pending, rejected.
 - Offers/needs: about to expire, expired.
-- Account status changes: disabled, suspended, activated.
-- Occasional account “health” nudges (e.g. no active offers/needs).
+- Occasional account health nudges (e.g. no active offers/needs).
+- Welcome message for new members.
 
 Users can enable/disable *My account* push notifications from their notification settings. We highly recommend keeping them enabled to stay informed about critical account activities.
 
@@ -46,10 +46,13 @@ These notifications inform users about community-related updates, such as:
 - New offers published.
 - New needs published.
 
+
 To avoid overwhelming users, new offers/needs are treated differently depending on urgency:
 
 - **Urgent**: offers/needs expiring within 7 days. These generate push notifications immediately when published.
 - **Normal**: everything else. These are batched and sent only occasionally as a digest.
+
+New members are also batched and sent as a digest.
 
 Users can enable/disable *Community news* push notifications independently from *My account* notifications.
 
