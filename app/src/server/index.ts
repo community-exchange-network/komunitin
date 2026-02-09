@@ -62,7 +62,6 @@ const server = new Server({
       this.passthrough(config.NOTIFICATIONS_URL + "/**");
     }
 
-    this.passthrough("/service-worker.js");
     // Load the ZXing WASM file from the CDN required for QR scanning.
     this.passthrough("https://fastly.jsdelivr.net/**");
 
