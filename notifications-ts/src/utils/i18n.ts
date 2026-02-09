@@ -15,7 +15,7 @@ const initI18n = async () => {
       .init({
         lng: 'en', // Default fallback
         fallbackLng: 'en',
-        preload: ['ca', 'en', 'es', 'it'], // Preload languages
+        preload: ['ca', 'en', 'es', 'it', 'fr'], // Preload languages
         ns: ['translation'],
         defaultNS: 'translation',
         backend: {

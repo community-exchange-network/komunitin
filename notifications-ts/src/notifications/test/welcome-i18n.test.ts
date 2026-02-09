@@ -36,6 +36,11 @@ describe('Welcome notification i18n', () => {
         title: `Benvenuto a ${groupName}!`,
         body: `Ciao ${memberName}, il tuo account è ora attivo! Inizia a esplorare offerte e necessità nella tua comunità. Buono scambio!`,
       },
+      {
+        language: 'fr',
+        title: `Bienvenue sur ${groupName} !`,
+        body: `Bonjour ${memberName}, votre compte est maintenant actif ! Commencez a explorer les offres et besoins dans votre communaute. Bon echange !`,
+      },
     ]
 
     for (const { language, title, body } of expectations) {
