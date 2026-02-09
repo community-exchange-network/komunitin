@@ -63,8 +63,6 @@ const server = new Server({
     }
 
     this.passthrough("/service-worker.js");
-    this.passthrough("https://firebaseinstallations.googleapis.com/**");
-    this.passthrough("https://fcmregistrations.googleapis.com/**");
     // Load the ZXing WASM file from the CDN required for QR scanning.
     this.passthrough("https://fastly.jsdelivr.net/**");
 
