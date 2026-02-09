@@ -21,10 +21,10 @@ jobs:
       run: docker build --target komunitin-app-build --tag komunitin-app-build .
 
     - name: Linter
-      run: docker run --rm komunitin-app-build npm run lint
+      run: docker run --rm komunitin-app-build pnpm run lint
 
     - name: Tests
-      run: docker run --rm komunitin-app-build npm run test
+      run: docker run --rm komunitin-app-build pnpm run test
     
     - name: Build production
       run: docker build --tag komunitin/komunitin-app .

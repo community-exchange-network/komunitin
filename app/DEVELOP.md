@@ -18,8 +18,10 @@ cd komunitin/app
 Install the [Quasar framework](https://quasar.dev/), a develompent framework built over [Vue.js](https://vuejs.org/).
 
 ```bash
-npm install -g @quasar/cli
-npm install
+corepack enable
+corepack prepare pnpm@10.26.1 --activate
+pnpm add -g @quasar/cli
+pnpm install
 ```
 ### Install local certificates
  - Install [mkcert](https://github.com/FiloSottile/mkcert#installation)
@@ -40,7 +42,7 @@ Build and launch the development HTTP server, that will make the app accessible 
 
 ```bash
 cp .env.test .env
-npm run dev
+pnpm dev
 ```
 
 ### Run with local services
@@ -49,7 +51,7 @@ npm run dev
 - Run the app with the local services:
 ```bash
 cp .env.local .env
-npm run dev
+pnpm dev
 ```
 
 ### Visual Studio Code
@@ -61,22 +63,22 @@ We use the de development IDE Visual Studio Code. [Follow this page](https://qua
 Launch the [Jest](https://jestjs.io/) testing framework for unit testing with:
 
 ```bash
-npm test
+pnpm test
 ```
 
 ### Mocking API
 
-We use [Mirage](https://miragejs.com/) library for backend API mocking. It is enabled by default in `npm run dev` script.
+We use [Mirage](https://miragejs.com/) library for backend API mocking. It is enabled by default in `pnpm dev` script.
 
 ### Lint
 We use the [ESLint](https://eslint.org/) linter for static code analysis. Launch it with:
 ```bash
-npm run lint
+pnpm lint
 ```
 
 ### Build
 ```bash
-npm run build
+pnpm build
 ```
 
 ### Docker

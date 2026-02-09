@@ -12,7 +12,7 @@
     "test": "vitest run",
     "lint": "eslint --max-warnings 0 \"./src*/**/*.{ts,js,mjs,cjs,vue}\"",
     "lint-fix": "eslint --fix \"./src*/**/*.{ts,js,mjs,cjs,vue}\"",
-    "testAll": "tsc -p tsconfig.json --noEmit && npm run test && npm run lint"
+    "testAll": "tsc -p tsconfig.json --noEmit && pnpm run test && pnpm run lint"
   },
   "dependencies": {
     "@eslint/js": "^9.37.0",
@@ -89,11 +89,10 @@
   },
   "engines": {
     "node": ">= 10.18.1",
-    "npm": ">= 6.13.4",
-    "yarn": ">= 1.21.1"
+    "pnpm": ">= 10.26.1"
   },
   "browserslist": [
     "defaults"
   ],
-  "packageManager": "npm@11.4.2+sha512.f90c1ec8b207b625d6edb6693aef23dacb39c38e4217fe8c46a973f119cab392ac0de23fe3f07e583188dae9fd9108b3845ad6f525b598742bd060ebad60bff3"
+  "packageManager": "pnpm@10.26.1"
 }

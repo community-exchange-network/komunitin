@@ -24,15 +24,20 @@ ENV LOCAL_CA_ROOT=/root/.local/share/mkcert/rootCA.pem
 # Create self-signed certificates.
 RUN mkdir -p tmp/certs && mkcert -cert-file tmp/certs/localhost.pem -key-file tmp/certs/localhost-key.pem localhost
 
-# Copy just package.json (and package-lock.json) so when there's no package changes we don't 
+# Copy just package.json (and pnpm-lock.yaml) so when there's no package changes we don't
 # need to redo the install step.
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
-# Install quasar framework
-RUN npm install -g @quasar/cli
+# Install pnpm and quasar framework
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN mkdir -p $PNPM_HOME
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
+RUN pnpm config set global-bin-dir $PNPM_HOME
+RUN pnpm add -g @quasar/cli
 
 # Install dependencies.
-RUN npm install
+RUN pnpm install
 
 # Copy sources 
 COPY . .
@@ -41,7 +46,7 @@ COPY . .
 ENV FLAVOR=${FLAVOR}
 
 # Build App using the quasar CLI app.
-RUN npm run build
+RUN pnpm run build
 
 # Production image komunitin-app
 
