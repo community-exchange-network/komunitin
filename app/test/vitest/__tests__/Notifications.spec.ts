@@ -44,6 +44,7 @@ describe("Notifications", () => {
     await waitFor(() => wrapper.vm.$route.path === "/notifications");
 
     // Should display notification items.
+    await waitFor(() => wrapper.findComponent(NotificationItem).exists(), true, "Notification items should render");  
     const items = wrapper.findAllComponents(NotificationItem);
     expect(items.length).toBe(5);
 

@@ -28,7 +28,7 @@ function seedNotifications(groupCode: string) {
       // First 3 are unread, last 2 are read.
       read: i >= 3 ? new Date(now - i * 3600 * 1000).toISOString() : null,
       created: new Date(now - i * 86400 * 1000).toISOString(),
-      data: i % 2 === 0 ? { route: "/home" } : null,
+      data: { route: "/home" },
     });
   }
   notificationsByGroup[groupCode] = notifications;

@@ -53,11 +53,12 @@ class MockNotification {
 
 Object.defineProperty(global, 'Notification', {value: MockNotification})
 vi.mock("../../../src/plugins/Notifications", () => ({
-  notifications: {
-    getMessaging: vi.fn(() => undefined),
-    requestPermission: vi.fn().mockResolvedValue(false),
-    getToken: vi.fn().mockResolvedValue(""),
-  }
+  isWebPushCompatible: () => vi.fn(() => false),
+  getNotificationPermission: () => vi.fn(async () => "default"),
+  requestNotificationPermission: vi.fn(async () => "denied"),
+  subscribe: async () => vi.fn(async () => ({endpoint: "", keys: {p256dh: "", auth: ""}})),
+  unsubscribe: vi.fn(async () => {}),
+
 }));
 
 vi.mock("qrcode", () => {
