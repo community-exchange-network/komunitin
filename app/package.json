@@ -88,7 +88,8 @@
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.11.0",
     "vitest": "^4.0.18",
-    "vue-demi": "^0.13.11"
+    "vue-demi": "^0.13.11",
+    "workbox-build": "^7.4.0"
   },
   "engines": {
     "node": ">= 10.18.1",
