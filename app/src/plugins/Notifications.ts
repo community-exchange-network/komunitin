@@ -51,6 +51,20 @@ export const subscribe = async (): Promise<WebPushSubscriptionAttributes> => {
   const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
   let subscription = await registration.pushManager.getSubscription();
+
+  // Since we changed the VAPID key when moving from firebase, we need to check if the existing
+  // subscription's key matches the current VAPID key. We can remove this check after most users
+  // have migrated to the new key.
+  const keysMatch = (a: Uint8Array, b: ArrayBuffer | undefined) => {
+    if (!b || a.length !== b.byteLength) return false;
+    const bArray = new Uint8Array(b);
+    return a.every((byte, index) => byte === bArray[index]);
+  };
+  if (subscription && !keysMatch(convertedVapidKey, subscription?.options.applicationServerKey)) {
+    await subscription.unsubscribe();
+    subscription = null;
+  }
+  
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
