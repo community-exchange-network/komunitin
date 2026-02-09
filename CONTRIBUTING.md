@@ -40,16 +40,21 @@ To contribute code, please follow these steps:
 
 Language files are located in several places in the repository, specifically:
 
-1. `/app/src/i18n/[LANGUAGE_CODE]/index.json`: Strings in the app facing regular users.
-2. `/app/src/i18n/[LANGUAGE_CODE]/admin.json`: Strings in the admin interface.
-3. `/app/src-pwa/i18n/[LANGUAGE_CODE].json`: Strings for push messages.
-4. `/notifications/i18n/messages/[LANGUAGE_CODE].json`: Strings for email notifications.
+1. `app/src/i18n/README.md`: Terminology guidelines for translators.
+2. `app/src/i18n/[LANGUAGE_CODE]/index.json`: Strings in the app facing regular users.
+3. `app/src/i18n/[LANGUAGE_CODE]/admin.json`: Strings in the admin interface.
+4. `app/src/i18n/flavors/[FLAVOR_NAME]/[LANGUAGE_CODE]/*.json`: Override strings for specific flavor.
+5. `notifications/i18n/messages/[LANGUAGE_CODE].json`: Strings for email notifications.
+6. `notifications-ts/src/i18n/[LANGUAGE_CODE].json`: Strings for the newsletter and push notifications.
 
 In order to add or change translations in an existing language, just modify the relevant files.
 
 To add a new language, in addition to adding the files and folders:
-1. Add the new language entry to the langs record in `/app/src/i18n/index.ts`.
-2. Import the new language and add it to the languages array in `/app/src-pwa/i18n/index.ts`.
+1. Add the new language entry to the langs record in `app/src/i18n/index.ts`.
+2. Add the new language to the `LANGUAGES` array in `notifications-ts/src/utils/i18n.ts`.
+3. Add the new language to the terminology guidelines at `app/src/i18n/README.md`.
+4. Add the new language to the `.github/CODEOWNERS` file.
+5. Add the new language to the IntegralCES install [script](https://git.drupalcode.org/project/ices/-/blob/7.x-1.x/install.sh#L34).
 
 Once you have made your changes, please follow the steps for contributing code above.
 

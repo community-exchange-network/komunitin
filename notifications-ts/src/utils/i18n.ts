@@ -3,6 +3,9 @@ import Backend from 'i18next-fs-backend';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// List of supported languages. Must match the available translation files in src/i18n
+const LANGUAGES = ['ca', 'en', 'es', 'fr', 'it'];
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Singleton promise to ensure i18n is initialized only once
@@ -15,7 +18,7 @@ const initI18n = async () => {
       .init({
         lng: 'en', // Default fallback
         fallbackLng: 'en',
-        preload: ['ca', 'en', 'es', 'it', 'fr'], // Preload languages
+        preload: LANGUAGES, // Preload languages
         ns: ['translation'],
         defaultNS: 'translation',
         backend: {
