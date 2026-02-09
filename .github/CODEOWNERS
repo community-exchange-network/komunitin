@@ -1,0 +1,79 @@
+# CODEOWNERS file for Komunitin
+# 
+# This file defines who gets notified when files are changed.
+# Learn more: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# =======================
+# DEFAULT OWNERS
+# =======================
+
+# Default owners for everything in the repo
+* @estevebadia
+
+# =======================
+# TRANSLATION FILES (BASE & FLAVORS)
+# =======================
+
+# English source files - notify all active translators when these change
+# This ensures translators know when new strings are added or modified
+app/src/i18n/en/*.json @olivier108 @sseerrggii @cesbg1 @estevebadia @numblock
+notifications/i18n/messages/en.json @olivier108 @sseerrggii @cesbg1 @estevebadia @numblock
+app/src-pwa/i18n/en-us.json @olivier108 @sseerrggii @cesbg1 @estevebadia @numblock
+
+# French translations - notify French translator
+app/src/i18n/fr/*.json @olivier108
+notifications/i18n/messages/fr.json @olivier108
+app/src-pwa/i18n/fr.json @olivier108
+
+# Spanish translations - notify Spanish translator
+app/src/i18n/es/*.json @sseerrggii
+notifications/i18n/messages/es.json @sseerrggii @estevebadia
+app/src-pwa/i18n/es.json @sseerrggii @estevebadia
+
+
+# Catalan translations - notify Catalan translator
+app/src/i18n/ca/*.json @sseerrggii
+notifications/i18n/messages/ca.json @sseerrggii @estevebadia
+app/src-pwa/i18n/ca.json @sseerrggii @estevebadia
+
+
+# Bulgarian translations - notify Bulgarian translator
+app/src/i18n/bg/*.json @cesbg1
+notifications/i18n/messages/bg.json @cesbg1
+app/src-pwa/i18n/bg.json @cesbg1
+
+# Dutch translations - notify Dutch translator
+app/src/i18n/nl/*.json @numblock
+notifications/i18n/messages/nl.json @numblock
+app/src-pwa/i18n/nl.json @numblock
+
+# Add more languages as translators join:
+# app/src/i18n/de/*.json @german-translator
+
+# CES Flavor - English source files
+# Notify translators when CES-specific English strings change
+app/src/i18n/flavors/ces/en/*.json @olivier108 @sseerrggii @cesbg1 @estevebadia @numblock
+
+# CES Flavor - French translations
+app/src/i18n/flavors/ces/fr/*.json @olivier108
+
+# CES Flavor - Spanish translations
+app/src/i18n/flavors/ces/es/*.json @sseerrggii @estevebadia
+
+# CES Flavor - Catalan translations
+app/src/i18n/flavors/ces/ca/*.json @sseerrggii @estevebadia
+
+# CES Flavor - Bulgarian translations
+app/src/i18n/flavors/ces/bg/*.json @cesbg1
+
+# CES Flavor - Dutch translations
+app/src/i18n/flavors/ces/nl/*.json @numblock
+
+# Other flavors (add as needed):
+# app/src/i18n/flavors/[OTHER_FLAVOR]/en/*.json @olivier108 @sseerrggii @cesbg1 @estevebadia
+# app/src/i18n/flavors/[OTHER_FLAVOR]/fr/*.json @olivier108
+# app/src/i18n/flavors/[OTHER_FLAVOR]/es/*.json @sseerrggii @estevebadia
+# app/src/i18n/flavors/[OTHER_FLAVOR]/ca/*.json @sseerrggii @estevebadia
+# app/src/i18n/flavors/[OTHER_FLAVOR]/bg/*.json @cesbg1
+# app/src/i18n/flavors/[OTHER_FLAVOR]/nl/*.json @numblock
+
