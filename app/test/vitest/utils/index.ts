@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
-import { defineComponent } from 'vue';
-import { flushPromises, mount, MountingOptions, VueWrapper } from "@vue/test-utils";
+import { type defineComponent } from 'vue';
+import { flushPromises, mount, type MountingOptions, type VueWrapper } from "@vue/test-utils";
 import { Notify, LocalStorage } from "quasar";
 import { quasarPlugin, qComponents } from "./quasar-plugin";
 import store from 'src/store/index';
@@ -15,10 +15,33 @@ import bootAuth from '../../../src/boot/auth';
 import { Auth } from '../../../src/plugins/Auth';
 import { auth } from '../../../src/store/me';
 import { mockToken } from 'src/server/AuthServer';
-import { RouteLocationRaw } from 'vue-router';
+import { type RouteLocationRaw } from 'vue-router';
 
 // Mock window.scrollTo so it doesn't throw a "Not Implemented" error (by jsdom lib).
-window.scrollTo = vi.fn() as any;
+window.scrollTo = vi.fn();
+
+// Mock localStorage.
+if (typeof globalThis.localStorage === "undefined") {
+  const store = new Map<string, string>();
+  const mockLocalStorage = {
+    getItem: vi.fn((key: string) => (store.has(key) ? store.get(key) : null)),
+    setItem: vi.fn((key: string, value: string) => {
+      store.set(key, value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      store.delete(key);
+    }),
+    clear: vi.fn(() => {
+      store.clear();
+    }),
+    key: vi.fn((index: number) => Array.from(store.keys())[index] ?? null),
+    get length() {
+      return store.size;
+    },
+  };
+  Object.defineProperty(globalThis, "localStorage", { value: mockLocalStorage });
+  Object.defineProperty(window, "localStorage", { value: mockLocalStorage });
+}
 
 // Mock navigator.geolocation
 const mockGeolocation = {
@@ -94,6 +117,7 @@ Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", {value: vi.f
 
 
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & {login?: true}): Promise<VueWrapper> {
   LocalStorage.clear();
 
@@ -107,7 +131,7 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   process.env.VUE_ROUTER_MODE = "history";
   const router = createRouter();
 
-  const mountOptions: any = {
+  const mountOptions = {
     global: {
       plugins: [store, router, quasarPlugin],
       stubs: {
@@ -137,8 +161,8 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   }
 
   // Mock $q.notify since it throws an errors in testing environment if we use the actual module.
-  wrapper.vm.$q.notify = vi.fn() as any;
-  Notify.create = vi.fn() as any;
+  wrapper.vm.$q.notify = vi.fn();
+  Notify.create = vi.fn();
 
   return wrapper;
 }
@@ -155,6 +179,7 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
  * @param message - Optional assertion message. Automatically generated if not provided.
  * @param timeout - Maximum time to wait in ms (default: 2000).
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const waitFor = async (fn: () => any, expected: any = true, message?: string, timeout = 2000) => {
   const assertionMessage = message ?? (typeof expected === "boolean" ? `Expected condition to be ${expected}` : undefined);
   // 1. Check synchronously.
