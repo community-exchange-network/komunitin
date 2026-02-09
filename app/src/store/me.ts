@@ -212,7 +212,7 @@ export default {
           // Couldn't authorize. Delete credentials so we don't attempt another
           // call next time.
           if (context.state.tokens) {
-            context.dispatch("logout");
+            context.dispatch("logout", { authorizationError: true });
           }
           throw error;
         }
@@ -230,8 +230,8 @@ export default {
     /**
      * Logout current user.
      */
-    logout: async (context: ActionContext<UserState, never>) => {
-      await context.dispatch("unsubscribe");
+    logout: async (context: ActionContext<UserState, never>, payload: { authorizationError?: boolean }) => {
+      await context.dispatch("unsubscribe", { unsubscribeFromServer: !(payload?.authorizationError) });
       await auth.logout();
       context.commit("tokens", undefined);
       context.commit("myUserId", undefined);
@@ -302,14 +302,16 @@ export default {
     /**
      * Unsubscribe from push notifications.
      */
-    unsubscribe: async (context: ActionContext<UserState, never>) => {
+    unsubscribe: async (context: ActionContext<UserState, never>, payload: { unsubscribeFromServer?: boolean }) => {
       const { state, commit, getters } = context;
       // 1. Unsubscribe from Browser
       await unsubscribe();
 
       // 2. Delete from Backend
       const groupCode = getters.myMember.group?.attributes.code;
-      if (state.subscription && groupCode) {
+      const deleteFromBackend = (payload?.unsubscribeFromServer ?? true) && state.subscription && groupCode
+      
+      if (deleteFromBackend) {
         const url = `${config.NOTIFICATIONS_URL}/${groupCode}/subscriptions/${state.subscription.id}`;
         try {
           await apiRequest(context, url, 'delete');
