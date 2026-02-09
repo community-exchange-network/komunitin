@@ -39,7 +39,7 @@ describe('Welcome notification i18n', () => {
       {
         language: 'fr',
         title: `Bienvenue sur ${groupName} !`,
-        body: `Bonjour ${memberName}, votre compte est maintenant actif ! Commencez a explorer les offres et besoins dans votre communaute. Bon echange !`,
+        body: `Bonjour ${memberName}, votre compte est maintenant actif ! Commencez à explorer les offres et besoins dans votre communauté. Bon échange !`,
       },
     ]
 
