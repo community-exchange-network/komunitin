@@ -1065,9 +1065,9 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     // Call API
     try {
       const data = await this.request(context, url);
-      const resource = (Array.isArray(data.data) && data.data.length == 1) 
+      const resource = ((Array.isArray(data.data) && data.data.length == 1) 
         ? data.data[0] 
-        : data.data as T
+        : data.data) as T
       // Commit mutation(s).
       this.setCurrent(context, resource)
       if ('included' in data) {
