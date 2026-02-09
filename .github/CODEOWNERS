@@ -11,7 +11,7 @@
 * @estevebadia
 
 # =======================
-# BASE TRANSLATION FILES
+# TRANSLATION FILES (BASE & FLAVORS)
 # =======================
 
 # English source files - notify all active translators when these change
@@ -47,14 +47,8 @@ app/src/i18n/nl/*.json @numblock
 notifications/i18n/messages/nl.json @numblock
 app/src-pwa/i18n/nl.json @numblock
 
-
 # Add more languages as translators join:
 # app/src/i18n/de/*.json @german-translator
-# app/src/i18n/it/*.json @italian-translator
-
-# =======================
-# FLAVOR-SPECIFIC TRANSLATIONS
-# =======================
 
 # CES Flavor - English source files
 # Notify translators when CES-specific English strings change
@@ -81,20 +75,5 @@ app/src/i18n/flavors/ces/nl/*.json @numblock
 # app/src/i18n/flavors/[OTHER_FLAVOR]/es/*.json @sseerrggii @estevebadia
 # app/src/i18n/flavors/[OTHER_FLAVOR]/ca/*.json @sseerrggii @estevebadia
 # app/src/i18n/flavors/[OTHER_FLAVOR]/bg/*.json @cesbg1
+# app/src/i18n/flavors/[OTHER_FLAVOR]/nl/*.json @numblock
 
-# =======================
-# FLAVOR CONFIGURATION & ASSETS
-# =======================
-
-# CES Flavor - Assets, styles, config
-# Notify CES maintainer for flavor-specific changes
-# app/.env.flavor.ces @estevebadia
-# assets/flavors/ces/ @estevebadia
-# public/flavors/ces/ @estevebadia
-# app/src/css/flavors/ces/ @estevebadia
-
-# Other flavors:
-# app/.env.flavor.[OTHER_FLAVOR] @flavor-maintainer
-# assets/flavors/[OTHER_FLAVOR]/ @flavor-maintainer
-# public/flavors/[OTHER_FLAVOR]/ @flavor-maintainer
-# app/src/css/flavors/[OTHER_FLAVOR]/ @flavor-maintainer
