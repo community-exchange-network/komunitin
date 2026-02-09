@@ -16,9 +16,9 @@
 
 # English source files - notify all active translators when these change
 # This ensures translators know when new strings are added or modified
-app/src/i18n/en/*.json @olivier108 @sseerrggii @cesbg1 @estevebadia @numblock
-notifications/i18n/messages/en.json @olivier108 @sseerrggii @cesbg1 @estevebadia @numblock
-notifications-ts/src/i18n/en.json @olivier108 @sseerrggii @cesbg1 @estevebadia @numblock
+app/src/i18n/en/*.json @olivier108 @cesbg1 @estevebadia @numblock
+notifications/i18n/messages/en.json @olivier108 @cesbg1 @estevebadia @numblock
+notifications-ts/src/i18n/en.json @olivier108 @cesbg1 @estevebadia @numblock
 
 # French translations - notify French translator
 app/src/i18n/fr/*.json @olivier108
@@ -26,14 +26,14 @@ notifications/i18n/messages/fr.json @olivier108
 notifications-ts/src/i18n/fr.json @olivier108
 
 # Spanish translations - notify Spanish translator
-app/src/i18n/es/*.json @sseerrggii
-notifications/i18n/messages/es.json @sseerrggii @estevebadia
-notifications-ts/src/i18n/es.json @sseerrggii @estevebadia
+app/src/i18n/es/*.json @estevebadia
+notifications/i18n/messages/es.json @estevebadia
+notifications-ts/src/i18n/es.json @estevebadia
 
 # Catalan translations - notify Catalan translator
-app/src/i18n/ca/*.json @sseerrggii
-notifications/i18n/messages/ca.json @sseerrggii @estevebadia
-notifications-ts/src/i18n/ca.json @sseerrggii @estevebadia
+app/src/i18n/ca/*.json @estevebadia
+notifications/i18n/messages/ca.json @estevebadia
+notifications-ts/src/i18n/ca.json @estevebadia
 
 # Bulgarian translations - notify Bulgarian translator
 app/src/i18n/bg/*.json @cesbg1
@@ -50,16 +50,16 @@ notifications-ts/src/i18n/nl.json @numblock
 
 # CES Flavor - English source files
 # Notify translators when CES-specific English strings change
-app/src/i18n/flavors/ces/en/*.json @olivier108 @sseerrggii @cesbg1 @estevebadia @numblock
+app/src/i18n/flavors/ces/en/*.json @olivier108 @cesbg1 @estevebadia @numblock
 
 # CES Flavor - French translations
 app/src/i18n/flavors/ces/fr/*.json @olivier108
 
 # CES Flavor - Spanish translations
-app/src/i18n/flavors/ces/es/*.json @sseerrggii @estevebadia
+app/src/i18n/flavors/ces/es/*.json @estevebadia
 
 # CES Flavor - Catalan translations
-app/src/i18n/flavors/ces/ca/*.json @sseerrggii @estevebadia
+app/src/i18n/flavors/ces/ca/*.json @estevebadia
 
 # CES Flavor - Bulgarian translations
 app/src/i18n/flavors/ces/bg/*.json @cesbg1
@@ -68,10 +68,10 @@ app/src/i18n/flavors/ces/bg/*.json @cesbg1
 app/src/i18n/flavors/ces/nl/*.json @numblock
 
 # Other flavors (add as needed):
-# app/src/i18n/flavors/[OTHER_FLAVOR]/en/*.json @olivier108 @sseerrggii @cesbg1 @estevebadia
+# app/src/i18n/flavors/[OTHER_FLAVOR]/en/*.json @olivier108 @cesbg1 @estevebadia
 # app/src/i18n/flavors/[OTHER_FLAVOR]/fr/*.json @olivier108
-# app/src/i18n/flavors/[OTHER_FLAVOR]/es/*.json @sseerrggii @estevebadia
-# app/src/i18n/flavors/[OTHER_FLAVOR]/ca/*.json @sseerrggii @estevebadia
+# app/src/i18n/flavors/[OTHER_FLAVOR]/es/*.json @estevebadia
+# app/src/i18n/flavors/[OTHER_FLAVOR]/ca/*.json @estevebadia
 # app/src/i18n/flavors/[OTHER_FLAVOR]/bg/*.json @cesbg1
 # app/src/i18n/flavors/[OTHER_FLAVOR]/nl/*.json @numblock
 
