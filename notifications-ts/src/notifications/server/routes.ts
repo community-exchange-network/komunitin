@@ -13,7 +13,8 @@ router.post("/:code/notifications/read", userAuth(), markNotificationsRead)
 router.post("/:code/subscriptions", userAuth(), upsertSubscription)
 router.delete("/:code/subscriptions/:id", userAuth(), deleteSubscription)
 
-// Push notification telemetry
+// Push notification telemetry. We are intentionally not authenticating this route
+// because the client might not have a valid token when receiving the push notification.
 router.patch("/:code/push-notifications/:id", updatePushNotification)
 
 
