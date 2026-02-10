@@ -176,7 +176,7 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
  */
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
 /**
- * Show the profile button only on root pages when logged in. 
+ * Show the profile button when the user is logged in.
  */
 const showProfile = computed(() => store.getters.isLoggedIn);
 
@@ -226,7 +226,6 @@ if (process.env.FEAT_HEADER_BALANCE === 'true') {
 
 // Computes whether there is a button on the left of the title, to help adjusting the title padding.
 const inlineLeftButton = computed(() => {
-  console.info("inlineLeftButton", !toValue(showBalance) && (showBack.value || showMenu.value))
   return !toValue(showBalance) && (showBack.value || showMenu.value)
 })
 
