@@ -5,7 +5,7 @@ const redisUrl = new URL(config.REDIS_URL);
 
 export const connection: ConnectionOptions = {
   host: redisUrl.hostname,
-  port: parseInt(redisUrl.port),
+  port: redisUrl.port !== '' ? parseInt(redisUrl.port) : undefined,
   password: redisUrl.password || undefined,
   username: redisUrl.username || undefined,
 };
