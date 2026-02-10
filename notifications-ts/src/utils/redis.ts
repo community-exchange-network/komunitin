@@ -10,7 +10,7 @@ redis.on('error', (err) => logger.error(err, 'Redis client error'));
 
 // Connect function to be called at application startup
 export const connectRedis = async () => {
-  while (true) {
+  while (!redis.isOpen) {
     try {
       if (!redis.isOpen) {
         await redis.connect();
