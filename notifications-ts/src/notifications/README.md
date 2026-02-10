@@ -30,7 +30,7 @@ Some notifications are not triggered by immediate backend events but are generat
 
 The following notifications are implemented:
 
-### Transactions
+### Transfers
 - **Transfer Sent**: Notifies the payer when a transfer is successfully committed.
 - **Transfer Received**: Notifies the payee when they receive a transfer.
 - **Transfer Pending**: Notifies the recipient when a transfer requires acceptance.
@@ -39,11 +39,16 @@ The following notifications are implemented:
 
 ### Posts (Offers/Needs)
 - **New Post**: Single post notification (if not grouped into a digest).
+- **New Posts Digest**: Aggregated notification for multiple new posts (see Digests below).
 - **Post Expires Soon**: Reminder to the author when their post is about to expire.
-- **Member Expired Posts**: Summarized reminder for a member about their expired posts.
+- **Post Expired**: Notification when a post has expired.
+- **Member Expired Posts**: Reminder to a member when they have posts that have expired.
+- **Member Has No Posts**: Notification to a member when they have no active offers and negative balance or needs and positive balance.
 
 ### Community
 - **New Member**: Single new member notification (if not grouped into a digest).
+- **New Members Digest**: Aggregated notification for multiple new members (see Digests below).
+- **Welcome**: Sent to new members when they join.
 
 ## Digests
 
