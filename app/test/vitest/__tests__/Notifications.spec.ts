@@ -48,16 +48,19 @@ describe("Notifications", () => {
     const items = wrapper.findAllComponents(NotificationItem);
     expect(items.length).toBe(5);
 
-    // Unread notifications should have bold title (no 'read' attribute).
+    // Check that we have unread notifications (title has class "text-weight-bold")
+    const unreadItems = items.filter(item => item.classes("bg-active"));
+    expect(unreadItems.length).toBe(3);
+    
     const text = wrapper.text();
     // Just check that we see some notification content rendered.
     expect(text.length).toBeGreaterThan(0);
   });
 
   it("marks all as read after visiting notifications page", async () => {
-    // The Notifications page marks all as read after 2 seconds.
-    // We already navigated there in the previous test, so wait for the timer.
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    // The Notifications page marks all as read after a while.
+    const items = wrapper.findAllComponents(NotificationItem);
+    await waitFor(() => items.filter(item => item.classes("bg-active")).length, 0, "All notifications should be marked as read")  
 
     // After marking all read, unread count should be 0.
     const unreadCount = wrapper.vm.$store.getters["notifications/unreadCount"];

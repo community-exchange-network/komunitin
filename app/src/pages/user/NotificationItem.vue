@@ -1,7 +1,7 @@
 <template>
   <q-item 
     class="q-px-md q-pt-md q-pb-lg"
-    :class="{ 'bg-blue-1': !isRead }"
+    :class="{ 'bg-active': !isRead }"
     :clickable="link !== false"
     :to="link"
   >
