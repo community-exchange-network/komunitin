@@ -65,10 +65,8 @@ const isPushCompatible = computed(() => isWebPushCompatible())
 const isPermissionGranted = computed(() => permission.value === 'granted')
 const isPermissionDenied = computed(() => permission.value === 'denied')
 
-const isSubscribed = computed(() => store.getters.isSubscribed)
-
 const isPushEnabled = computed(
-  () => isPushCompatible.value && isPermissionGranted.value && isSubscribed.value,
+  () => isPushCompatible.value && isPermissionGranted.value,
 )
 
 const requestPermission = async () => {
