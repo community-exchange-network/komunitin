@@ -20,29 +20,6 @@ import { type RouteLocationRaw } from 'vue-router';
 // Mock window.scrollTo so it doesn't throw a "Not Implemented" error (by jsdom lib).
 window.scrollTo = vi.fn();
 
-// Mock localStorage.
-if (typeof globalThis.localStorage === "undefined") {
-  const store = new Map<string, string>();
-  const mockLocalStorage = {
-    getItem: vi.fn((key: string) => (store.has(key) ? store.get(key) : null)),
-    setItem: vi.fn((key: string, value: string) => {
-      store.set(key, value);
-    }),
-    removeItem: vi.fn((key: string) => {
-      store.delete(key);
-    }),
-    clear: vi.fn(() => {
-      store.clear();
-    }),
-    key: vi.fn((index: number) => Array.from(store.keys())[index] ?? null),
-    get length() {
-      return store.size;
-    },
-  };
-  Object.defineProperty(globalThis, "localStorage", { value: mockLocalStorage });
-  Object.defineProperty(window, "localStorage", { value: mockLocalStorage });
-}
-
 // Mock navigator.geolocation
 const mockGeolocation = {
   getCurrentPosition: vi.fn().mockImplementation(success =>
@@ -63,18 +40,18 @@ const mockGeolocation = {
   )
 };
 
-Object.defineProperty(global.navigator, 'geolocation', {value: mockGeolocation});
+Object.defineProperty(global.navigator, 'geolocation', { value: mockGeolocation });
 
 // Mock Notification.
 class MockNotification {
   public static requestPermission = vi.fn().mockImplementation((success) => Promise.resolve(success(false)));
   public static permission = "default";
 
-  constructor(public title: string, public options?: NotificationOptions) {};
+  constructor(public title: string, public options?: NotificationOptions) { };
   public addEventListener = vi.fn();
 }
 
-Object.defineProperty(global, 'Notification', {value: MockNotification})
+Object.defineProperty(global, 'Notification', { value: MockNotification })
 
 vi.mock("qrcode", () => {
   const toDataURL = vi.fn().mockImplementation(() => Promise.resolve("data:image/png;base64,"))
@@ -96,21 +73,21 @@ vi.mock("@vue-leaflet/vue-leaflet", () => ({
 
 // Mock Web NFC api
 class MockNDEFReader {
-  constructor() {}
-  public scan = vi.fn(() => new Promise(() => {}));
-  public addEventListener = vi.fn();  
+  constructor() { }
+  public scan = vi.fn(() => new Promise(() => { }));
+  public addEventListener = vi.fn();
 }
-Object.defineProperty(global, "NDEFReader", {value: MockNDEFReader});
+Object.defineProperty(global, "NDEFReader", { value: MockNDEFReader });
 
 // Set a value on scrollHeight property so QInfiniteScrolling doesn't load all resources.
-Object.defineProperty(HTMLDivElement.prototype, "scrollHeight", {configurable: true, value: 1500});
-Object.defineProperty(SVGSVGElement.prototype, "pauseAnimations", {value: vi.fn()});
-Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", {value: vi.fn()});
+Object.defineProperty(HTMLDivElement.prototype, "scrollHeight", { configurable: true, value: 1500 });
+Object.defineProperty(SVGSVGElement.prototype, "pauseAnimations", { value: vi.fn() });
+Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", { value: vi.fn() });
 
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & {login?: true}): Promise<VueWrapper> {
+export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true }): Promise<VueWrapper> {
   LocalStorage.clear();
 
   // Login state. We must do that before createStore().
@@ -142,10 +119,10 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
 
   const wrapper = mount(component, mountOptions)
   const app = wrapper["__app"];
-  
+
   // Call boot files.
   const boots = [bootErrors, bootI18n, bootAuth]
-  const redirect = (url:RouteLocationRaw) => {window.location.href = url.toString()};
+  const redirect = (url: RouteLocationRaw) => { window.location.href = url.toString() };
   for (const boot of boots) {
     await boot({
       app, router, urlPath: "", publicPath: "", redirect
