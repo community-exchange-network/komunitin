@@ -178,7 +178,7 @@ const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersist
 /**
  * Show the profile button only on root pages when logged in. 
  */
-const showProfile = computed(() => route.meta.rootPage && store.getters.isLoggedIn);
+const showProfile = computed(() => store.getters.isLoggedIn);
 
 /**
  * Show the log-out button when user is logged in but not in 'complete' status (ie pending). 
