@@ -21,5 +21,15 @@ services:
     networks:
       - default
 
+  db-notifications:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - default
+
 volumes:
   db-data:
+  redis-data:

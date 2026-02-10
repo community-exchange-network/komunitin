@@ -11,14 +11,3 @@ config({ path: `.env.flavor.${flavor}` })
 process.env.MOCK_ENVIRONMENT = "test"
 process.env.APP_VERSION = packageJson.version
 
-// Global mocks that need to be registered before any module loads.
-vi.mock("firebase/messaging", () => ({
-  onMessage: vi.fn(),
-  getMessaging: vi.fn(),
-  getToken: vi.fn(),
-  isSupported: vi.fn().mockResolvedValue(false),
-}));
-vi.mock("firebase/app", () => ({
-  initializeApp: vi.fn(),
-  getApps: vi.fn(() => []),
-}));

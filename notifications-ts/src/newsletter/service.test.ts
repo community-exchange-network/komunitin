@@ -1,32 +1,44 @@
 import { test, describe, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { server } from '../mocks/server';
-import { runNewsletter } from './service';
 import { http, HttpResponse } from 'msw';
 // Mock nodemailer to prevent actual email sending
 import nodemailer from 'nodemailer';
 import prisma from '../utils/prisma';
 import { mockDate, restoreDate } from '../mocks/date';
+import { mockDb } from '../mocks/prisma';
+import { mockRedis } from '../mocks/redis';
 
 // Mock nodemailer
 const sendMailMock = test.mock.fn((_options: any) => Promise.resolve({ messageId: 'mock-id' }));
-// Mock Prisma
-// @ts-ignore
-prisma.newsletterLog.create = test.mock.fn(async () => ({ id: 'log-id' }));
-// @ts-ignore
-prisma.newsletterLog.findMany = test.mock.fn(async () => []);
-// eslint-disable-next-line
-// @ts-ignore
 nodemailer.createTransport = test.mock.fn(() => ({
   sendMail: sendMailMock
-}));
+})) as any;
+
+// Mock Prisma
+const { newsletterLog } = mockDb();
+
+const { reset: resetRedis } = mockRedis();
 
 describe('Newsletter Cron Job', () => {
-  before(() => server.listen());
+  let runNewsletter: (options?: { forceSend?: boolean }) => Promise<void>;
+  before(async () => {
+    // We need to delay import until mocks (redis) are set up.
+    const newsletterModule = await import('../newsletter/service');
+    runNewsletter = newsletterModule.runNewsletter;
+    server.listen({ onUnhandledRequest: 'bypass' })
+  });
   after(() => server.close());
+  
   beforeEach(() => {
     server.resetHandlers();
     sendMailMock.mock.resetCalls();
+    newsletterLog.length = 0;
+    // @ts-ignore
+    prisma.newsletterLog.create.mock.resetCalls();
+    // @ts-ignore
+    prisma.newsletterLog.findMany.mock.resetCalls();
+    resetRedis();
   });
 
   afterEach(() => {
@@ -40,9 +52,6 @@ describe('Newsletter Cron Job', () => {
     await runNewsletter();
 
     // Verify emails were sent
-    // We expect 3 groups * 5 members = 15 emails roughly, but filtered by user settings.
-    // Our mock user settings have 'weekly' group emails.
-    // The exact count depends on the mock data generation.
     assert.ok(sendMailMock.mock.calls.length > 0, 'Should send at least one email');
 
     const firstCall = sendMailMock.mock.calls[0];
@@ -53,12 +62,6 @@ describe('Newsletter Cron Job', () => {
     assert.ok(emailOptions.html, 'Email should have HTML content');
 
     // Check DB Log
-    // Should be 1 log entry (since there is 1 member in mock data with users)
-    // The previous test sent multiple emails but now we log once per MEMBER.
-    // In mock data, there's 1 group and members. Let's see how many members.
-    // Mock handler returns 2 members for group 0? Or 1?
-    // Let's assume 1 log call for now, and verify recipients.
-
     assert.ok(
       // @ts-ignore
       prisma.newsletterLog.create.mock.calls.length >= 1,
@@ -77,7 +80,6 @@ describe('Newsletter Cron Job', () => {
     assert.ok(logData.content, 'Log should have content');
 
     // Check if content contains expected mocked data parts
-    // TODO
     // Verify Account Section in Log
     assert.ok(logData.content.account, 'Log should have account');
     // If our mock account has balance (random), and transfers (mocked), it should produce some data.

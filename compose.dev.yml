@@ -54,6 +54,9 @@ services:
   
   notifications-ts:
     command: pnpm dev
+    ports:
+      - "2023:2023"
+      - "9223:9229"
     volumes:
       - ./notifications-ts/src:/app/src
       - ./notifications-ts/prisma:/app/prisma

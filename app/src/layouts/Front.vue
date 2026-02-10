@@ -46,7 +46,7 @@
       <q-btn
         flat
         type="a"
-        href="https://docs.komunitin.org"
+        :href="docsUrl"
         target="__blank"
         :label="$t('documentation')"
       />
@@ -60,7 +60,7 @@
       <q-btn
         flat
         type="a"
-        href="https://docs.komunitin.org/project/new-community"
+        :href="`${docsUrl}/project/new-community`"
         target="__blank"
         :label="$t('newGroup')"
       />
@@ -74,6 +74,9 @@ import FitText from '../components/FitText.vue';
 import selectLang from '../components/SelectLang.vue';
 import bgImage from 'assets/home_background-700.jpg';
 import { useRoute, useRouter } from 'vue-router';
+import { config } from '../utils/config';
+
+const docsUrl = config.DOCS_URL
 
 const route = useRoute();
 const router = useRouter();

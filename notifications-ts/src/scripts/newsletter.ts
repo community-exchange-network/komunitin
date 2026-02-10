@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { runNewsletter } from '../newsletter/service';
 import logger from '../utils/logger';
+import { connectRedis } from '../utils/redis';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -33,6 +34,7 @@ Options:
   }
 
   logger.info('Starting manual newsletter run...');
+  await connectRedis();
 
   if (groupCode) logger.info({ groupCode }, 'Filtering by group');
   if (memberCode) logger.info({ memberCode }, 'Filtering by member');

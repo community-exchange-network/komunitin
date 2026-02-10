@@ -16,7 +16,14 @@ const createMember = (id: string, lat?: number, lon?: number): Member => ({
     } : undefined,
     name: `Member ${id}`,
     image: 'img',
-    description: 'desc'
+    description: 'desc',
+    code: `member-${id}`,
+    created: new Date().toISOString()    
+  },
+  relationships: {
+    account: { data: { type: 'accounts', id: `account-${id}` } },
+    needs: { meta: { count: 0 } },
+    offers: { meta: { count: 0 } }
   }
 });
 

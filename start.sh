@@ -43,14 +43,16 @@ set +a
 
 # Start the services
 if [ "$up" = true ]; then
-
 if [ "$public" = true ]; then
-  docker compose -f compose.yml -f compose.public.yml up -d --build
+  docker compose -f compose.yml -f compose.public.yml up -d --build --remove-orphans
 elif [ "$dev" = true ]; then
-  docker compose -f compose.yml -f compose.dev.yml up -d --build
+  docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans
 else
-  docker compose up -d --build
+  docker compose up -d --build --remove-orphans
 fi
+
+# cleanup old images and volumes
+docker system prune -f
 
 echo "Waiting for the services to start..."
 sleep 10

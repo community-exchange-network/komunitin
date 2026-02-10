@@ -42,6 +42,7 @@ export default defineConfig((ctx) => {
       "auth",
       "gtm",
       "store",
+      "push-notifications",
       ...(process.env.MOCK_ENABLE === "true" ? ["mirage"]: [])
     ],
 

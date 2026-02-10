@@ -18,6 +18,7 @@
     >
       {{ title }}
     </q-item-section>
+    <slot />
   </q-item>
 </template>
 

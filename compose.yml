@@ -16,7 +16,8 @@ services:
       ACCOUNTING_URL: ${KOMUNITIN_ACCOUNTING_URL}
       NOTIFICATIONS_URL: ${KOMUNITIN_NOTIFICATIONS_URL}
       FEEDBACK_URL: ${KOMUNITIN_FEEDBACK_URL}
-      PUSH_SERVER_KEY: ${PUSH_SERVER_KEY}
+      DOCS_URL: ${KOMUNITIN_DOCS_URL}
+      PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: ${PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY}
       GTAG_ID: ${GTAG_ID}
       
 
@@ -122,6 +123,8 @@ services:
     build:
       context: ../ices
     restart: unless-stopped
+    expose:
+      - "2029"
     ports:
       - "2029:2029"
     depends_on:
@@ -145,8 +148,11 @@ services:
     build:
       context: ./notifications-ts
     restart: unless-stopped
+    ports:
+      - "2023:2023"
     depends_on:
       - db-notifications-ts
+      - db-notifications
     environment:
       KOMUNITIN_AUTH_URL: http://integralces:2029/oauth2
       KOMUNITIN_SOCIAL_URL: http://integralces:2029/ces/api/social
@@ -154,13 +160,24 @@ services:
       KOMUNITIN_ACCOUNTING_URL: http://accounting:2025
       KOMUNITIN_APP_URL: ${KOMUNITIN_APP_URL}
       DATABASE_URL: postgresql://notifications:notifications@db-notifications-ts:5432/notifications?schema=public
+      REDIS_URL: redis://db-notifications:6379
+      AUTH_JWKS_URL: http://integralces:2029/.well-known/jwks.json
+      AUTH_JWT_ISSUER: ${ICES_URL}/
+      AUTH_JWT_AUDIENCE: "komunitin-app,komunitin-notifications"
+
       NOTIFICATIONS_CLIENT_ID: komunitin-notifications
       NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
+
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       APP_EMAIL: ${APP_EMAIL}
+
+      PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: ${PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY}
+      PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY: ${PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY}
+      
+      PORT: 2023
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

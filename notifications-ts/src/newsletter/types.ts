@@ -68,7 +68,7 @@ export interface LogContent {
 
 export interface HistoryLog {
   memberId: string;
-  groupId: string;
+  tenantId: string;
   sentAt: Date;
   content: LogContent;
   recipients: unknown;

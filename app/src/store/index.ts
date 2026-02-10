@@ -2,6 +2,7 @@ import type { Store } from "vuex";
 import { createStore } from "vuex";
 import type { ResourcesState } from "./resources";
 import { Resources } from "./resources";
+import { NotificationResources } from "./notifications";
 import { config } from "src/utils/config";
 import type {
   User,
@@ -18,7 +19,8 @@ import type {
   Transfer,
   GroupSettings,
   CurrencySettings,
-  Trustline
+  Trustline,
+  Notification
 } from "src/store/model";
 // Import logged-in user module
 import type { UserState } from "./me";
@@ -104,6 +106,10 @@ const transfers = new Resources<Transfer, unknown>("transfers", accountingUrl);
 
 const trustlines = new Resources<Trustline, unknown>("trustlines", accountingUrl);
 
+
+const notificationsUrl = config.NOTIFICATIONS_URL;
+const notifications = new NotificationResources("notifications", notificationsUrl);
+
 const modules = {
     // Logged-in user module
     me,
@@ -133,7 +139,10 @@ const modules = {
     accounts,
     "account-settings": accountSettings,
     transfers,
-    trustlines
+    trustlines,
+
+    // Notifications API resource module.
+    notifications,
   }
 
 if (process.env.FEAT_TOPUP === "true") {
@@ -198,6 +207,7 @@ declare module 'vue' {
     accountSettings: ResourcesState<AccountSettings>
     transfers: ResourcesState<Transfer>
     trustlines: ResourcesState<Trustline>
+    notifications: ResourcesState<Notification>
   }
   interface ComponentCustomProperties {
     $store: Store<State>

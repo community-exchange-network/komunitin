@@ -8,7 +8,7 @@ import type {
   ResourceIdentifierObject,
   ResourceObject
 } from "src/store/model";
-import { type AuthService, request } from "../composables/useApiFetch";
+import { apiRequest } from "./request";
 
 export const DEFAULT_PAGE_SIZE = 20
 
@@ -349,17 +349,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     // the next page of a list, where we're given the absolute url directly from the API.
     url = this.absoluteUrl(url)
 
-    const auth: AuthService = {
-      accessToken: () => context.rootGetters['accessToken'],
-      refresh: () => context.dispatch("authorize", { force: true }, { root: true })
-    }
-
-    const options = {
-      method: method?.toUpperCase() ?? "GET",
-      body: data ?? undefined,
-    }
-
-    return request<T>(url, options, auth)
+    return apiRequest(context, url, method, data)
 
   }
 
@@ -1075,9 +1065,9 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     // Call API
     try {
       const data = await this.request(context, url);
-      const resource = (Array.isArray(data.data) && data.data.length == 1) 
+      const resource = ((Array.isArray(data.data) && data.data.length == 1) 
         ? data.data[0] 
-        : data.data as T
+        : data.data) as T
       // Commit mutation(s).
       this.setCurrent(context, resource)
       if ('included' in data) {
