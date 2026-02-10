@@ -96,8 +96,7 @@
     "workbox-build": "^7.4.0"
   },
   "engines": {
-    "node": ">= 10.18.1",
-    "yarn": ">= 1.21.1"
+    "node": ">= 10.18.1"
   },
   "browserslist": [
     "defaults"
