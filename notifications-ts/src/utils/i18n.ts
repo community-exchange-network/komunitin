@@ -51,11 +51,17 @@ export const tzDate = (timezone: string, date: Date = new Date()): Date => {
 const normalizeCoordinate = (coord: number | string, halfRange: number): number|null => {
   const num = typeof coord === 'string' ? parseFloat(coord) : coord;
   if (isNaN(num)) return null
-  // Normalize the coordinate to be within the range [-halfRange, halfRange]
-  const min = -halfRange;
-  const max = halfRange;
-  const range = max - min;
-  return ((num - min) % range + range) % range + min;
+  if (num >= -halfRange && num <= halfRange) {
+    // Don't normalize if already within the valid range including the boundaries.
+    return num;
+  } else {
+    // Normalize the coordinate to be within the range [-halfRange, halfRange). We've
+    // seen some coordinates offset by exactly 360 degrees.
+    const min = -halfRange;
+    const max = halfRange;
+    const range = max - min;
+    return ((num - min) % range + range) % range + min;
+  }
 }
 
 /***
@@ -70,6 +76,11 @@ export const timezone = (coordinates: number[]|string[]): string|null => {
   const lon = normalizeCoordinate(coordinates[0], 180);
 
   if (lat === null || lon === null) {
+    return null;
+  }
+
+  if (lat === 0 && lon === 0) {
+    // This [0,0] is in practice used for unknown location.
     return null;
   }
   try {
