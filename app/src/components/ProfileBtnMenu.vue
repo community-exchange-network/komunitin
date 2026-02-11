@@ -6,11 +6,14 @@
     :aria-label="$t('profile')"
     @click.stop
   >
+    
     <avatar
+      class="profile-btn"
       size="md"
       :img-src="myMember?.attributes.image"
       :text="myMember?.attributes.name || ''"
     />
+    
 
     <q-menu
       fit
@@ -110,3 +113,8 @@ const feedbackURL = config.FEEDBACK_URL;
 
 
 </script>
+<style lang="scss" scoped>
+.profile-btn {
+  outline: 1px solid rgba($onprimary, 0.2); 
+}
+</style>

@@ -1,4 +1,4 @@
-import { VueWrapper } from "@vue/test-utils";
+import { type VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
 import {

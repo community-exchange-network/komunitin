@@ -2,7 +2,7 @@
   <q-header>
     <div
       id="header"
-      class="bg-primary flex row justify-between items-center q-pt-sm q-pb-xs q-pl-sm q-pr-md"
+      class="bg-primary flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md"
       :class="showBalance ? 'wrap' : 'q-pt-xs no-wrap'"
       :style="`height: ${computedHeight}px;`"
     >
@@ -10,6 +10,7 @@
         <q-btn
           v-if="showBack"
           id="back"
+          class="q-ml-sm q-mr-xs"
           flat
           round
           icon="arrow_back"
@@ -19,6 +20,7 @@
         <q-btn
           v-if="showMenu"
           id="menu"
+          class="q-ml-sm q-mr-xs"
           flat
           round
           icon="menu"
@@ -57,7 +59,7 @@
       <q-toolbar
         class="no-wrap"
         style="max-width: none; min-width: 0;flex: 1 1 0%; padding-right: 0;"
-        :style="showBalance ? 'padding-left:18px;' : 'padding-left:0;'"
+        :class="inlineLeftButton ? 'q-pl-none' : 'q-pl-md'"
       >
         <q-toolbar-title v-if="!searchActive">
           {{ title }}
@@ -174,9 +176,9 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
  */
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
 /**
- * Show the profile button only on root pages when logged in. 
+ * Show the profile button when the user is logged in.
  */
-const showProfile = computed(() => route.meta.rootPage && store.getters.isLoggedIn);
+const showProfile = computed(() => store.getters.isLoggedIn);
 
 /**
  * Show the log-out button when user is logged in but not in 'complete' status (ie pending). 
@@ -222,6 +224,10 @@ if (process.env.FEAT_HEADER_BALANCE === 'true') {
   }
 }
 
+// Computes whether there is a button on the left of the title, to help adjusting the title padding.
+const inlineLeftButton = computed(() => {
+  return !toValue(showBalance) && (showBack.value || showMenu.value)
+})
 
 const clearSearchText = () => {
   searchText.value = ""

@@ -1,8 +1,7 @@
 
-import tz from '@photostructure/tz-lookup';
 import { Group } from '../clients/komunitin/types';
 import logger from '../utils/logger';
-import { tzDate } from '../utils/i18n';
+import { tzDate, timezone } from '../utils/i18n';
 
 const NEWSLETTER_SEND_DAY = 0; // Sunday
 const NEWSLETTER_SEND_HOUR = 15; // at 3:30 PM
@@ -10,18 +9,12 @@ const NEWSLETTER_SEND_HOUR = 15; // at 3:30 PM
 export const shouldProcessGroup = (group: Group, isManualRun: boolean): boolean => {
   if (isManualRun) return true;
 
-  let timeZone = 'UTC';
-  const coords = group.attributes.location?.coordinates;
+  const coordinates = group.attributes.location?.coordinates;
 
-  if (coords && coords.length === 2 && !(coords[0] === 0 && coords[1] === 0)) {
-    try {
-      const [lon, lat] = coords;
-      timeZone = tz(lat, lon);
-    } catch (err) {
-      logger.warn({ err, group: group.attributes.code }, 'Failed to determine timezone from coordinates, defaulting to UTC timezone');
-    }
-  } else {
-    logger.warn({ group: group.attributes.code }, 'Group has invalid coordinates, defaulting to UTC timezone');
+  let timeZone = timezone(coordinates)
+  if (timeZone === null) {
+    timeZone = 'UTC';
+    logger.warn({ coordinates, group: group.attributes.code }, 'Failed to determine timezone from coordinates, defaulting to UTC timezone');
   }
 
   // Build a date object in local time zone

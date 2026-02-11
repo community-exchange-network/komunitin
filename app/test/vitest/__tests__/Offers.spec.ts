@@ -1,5 +1,5 @@
  
-import { VueWrapper, flushPromises } from "@vue/test-utils";
+import { type VueWrapper, flushPromises } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
 import { QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
