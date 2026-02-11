@@ -9,7 +9,7 @@ Komunitin is an open-source system for community exchange currencies. It is a **
 | **App** (PWA frontend) | `app/` | TypeScript + Vue 3 | Quasar/Vite | 2030 |
 | **Accounting** | `accounting/` | TypeScript | Node.js 22, Express, Prisma, Stellar blockchain | 2025 |
 | **Notifications (TS)** | `notifications-ts/` | TypeScript | Node.js 24, Express, Prisma, BullMQ, Redis | 2023 |
-| **Notifications (Go, deprecated)** | `notifications/` | Go 1.24 | gorilla/mux, Redis | 2028 |
+| **Notifications (Go, legacy)** | `notifications/` | Go 1.24 | gorilla/mux, Redis | 2028 |
 
 An external dependency **IntegralCES** (Drupal, cloned separately) provides the social/auth API at port 2029.
 
@@ -66,16 +66,17 @@ pnpm run dev            # tsx watch with debugger
 - **Reset DB**: `pnpm reset-db` (runs `prisma migrate reset --force`).
 
 ### Notifications Go (`notifications/`)
-This service is deprecated and will be removed in favor of the TypeScript version.
+
+This service is still receiving events and sending transactional emails, but these features will be migrated to the TypeScript version (`notifications-ts/`) and this Go service will be deprecated. No new features should be added here.
 
 ### Notifications TS (`notifications-ts/`)
 
 ```bash
 cd notifications-ts
 pnpm install
-pnpm typecheck          # tsc --noEmit
-pnpm test               # node --experimental-test-module-mocks --test
-pnpm test-one <file>    # run a single test file
+pnpm typecheck          # check typings
+pnpm test               # run all tests
+pnpm test-one <pattern> # run selected test file(s)
 pnpm run build          # tsc + unbuild
 pnpm run dev            # tsx watch with debugger
 ```
@@ -132,7 +133,7 @@ Each service has its own `Dockerfile` and may have a standalone `compose.yaml`/`
 
 ### Accounting
 
-- **API style**: JSON:API (using `ts-japi` serializer), endpoints prefixed wtih community code (e.g., `/:code/accounts`).
+- **API style**: JSON:API (using `ts-japi` serializer), endpoints prefixed with community code (e.g., `/:code/accounts`).
 - **Blockchain**: Stellar SDK for ledger operations (local network for dev/test, testnet for staging).
 - **Auth**: OAuth2 JWT bearer tokens validated via `express-oauth2-jwt-bearer`.
 - **DB**: Prisma with PostgreSQL. Row Level Security (RLS) is used for isolating communities (=tenants).
@@ -182,8 +183,8 @@ komunitin/
 ├── notifications-ts/      # TypeScript notifications service
 │   ├── src/               # Service source
 │   |   ├── newsletter/    # Newsletter service
-│   |   └── notifications/ # Notifications service
-|   |   └── ...            # utils, clients, i18n, mocks, etc.
+│   |   ├── notifications/ # Notifications service
+│   |   └── ...            # utils, clients, i18n, mocks, etc.
 │   └── prisma/            # Prisma schema and migrations
 ├── docs/                  # GitBook documentation
 ├── compose.yml            # Main Docker Compose
