@@ -66,7 +66,7 @@ Object.defineProperty(globalThis.navigator, 'geolocation', { value: mockGeolocat
 
 // Mock Notification.
 class MockNotification {
-  public static requestPermission = vi.fn().mockImplementation((success) => Promise.resolve(success(false)));
+  public static requestPermission = vi.fn(() => Promise.resolve("denied"));
   public static permission = "default";
 
   constructor(public title: string, public options?: NotificationOptions) { };
