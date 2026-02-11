@@ -3,7 +3,7 @@
   "compilerOptions": {
     // Extending Quasar's default ["esnext", "dom", "dom.iterable"].
     "lib": ["esnext", "dom", "dom.iterable", "webworker"],
-    "types": ["node", "resize-observer-browser", "vitest/globals"],
+    "types": ["node", "resize-observer-browser", "vite/client", "vitest/globals"],
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true
   },
