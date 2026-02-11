@@ -138,7 +138,7 @@ services:
       MAILERSEND_API_KEY: ${MAILERSEND_API_KEY}
       CES_USER_GOOGLE_MAPS_KEY: ${GOOGLE_MAPS_KEY}
     volumes:
-      - "integralces-files:/var/www/html/sites/default"
+      - "integralces-sites:/var/www/html/sites"
       - "../ices:/var/www/html/sites/all/modules/ices"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -204,5 +204,5 @@ volumes:
   db-integralces:
   db-notifications:
   db-notifications-ts:
-  integralces-files:
+  integralces-sites:
 
