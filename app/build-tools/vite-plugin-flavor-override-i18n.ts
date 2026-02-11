@@ -1,7 +1,7 @@
 import { existsSync } from "fs"
 import { readFile } from "fs/promises"
 import { sep } from "path"
-import { type Plugin } from "vite"
+import type { Plugin } from "vite"
 
 interface FlavorOverrideI18nOptions {
   flavor: string

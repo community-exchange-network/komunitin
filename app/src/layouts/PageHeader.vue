@@ -25,7 +25,7 @@
           round
           icon="menu"
           :aria-label="$t('menu')"
-          @click="$store.dispatch('toogleDrawer')"
+          @click="store.dispatch('toogleDrawer')"
         />
         <profile-btn-menu
           v-if="showProfile"
@@ -126,7 +126,6 @@
  *  - If balance prop is set to true, shows a section with the logged in account 
  * balance. This section shrinks on scroll.
  *  - If search prop is set to true, provides a search box that emits the `search` event.
- *  - If profile prop is set to true, shows a profile button and menu.
  *  - Provides a slot #buttons to be able to customize the right toolbar buttons 
  * depending on the page content.
  */
@@ -143,13 +142,11 @@ const props = withDefaults(defineProps<{
   search?: boolean;
   balance?: boolean;
   back?: string;
-  profile?: boolean;
 }>(), {
   title: "",
   search: false,
   balance: false,
   back: "",
-  profile: false,
 })
 
 const emit = defineEmits<{
@@ -176,14 +173,14 @@ const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExi
  */
 const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersistent)
 /**
- * Show the profile button when the user is logged in.
+ * Show the profile button when the user is logged in (and not pending, not superadmin).
  */
-const showProfile = computed(() => store.getters.isLoggedIn);
+const showProfile = computed(() => store.getters.isLoggedIn && store.getters.isComplete && !store.getters.isSuperadmin);
 
 /**
- * Show the log-out button when user is logged in but not in 'complete' status (ie pending). 
+ * Show the log-out button when user is logged and is either pending or superadmin. 
  */
-const showLogOut = computed(() => store.getters.isLoggedIn && !store.getters.isComplete)
+const showLogOut = computed(() => store.getters.isLoggedIn && (!store.getters.isComplete || store.getters.isSuperadmin))
 
 
 /**

@@ -1,6 +1,6 @@
 import { existsSync, watch, cpSync, writeFileSync } from "fs"
 import { resolve } from "path"
-import { type Plugin } from "vite"
+import type { Plugin } from "vite"
 
 interface FlavorOverrideOptions {
   flavor: string

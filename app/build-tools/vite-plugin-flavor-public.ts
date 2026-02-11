@@ -1,6 +1,6 @@
 import { cpSync, rmSync, existsSync } from 'fs'
 import {join} from 'path'
-import { type Plugin } from "vite"
+import type { Plugin } from "vite"
 
 
 interface FlavorPublicOptions {
