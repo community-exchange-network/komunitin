@@ -1,6 +1,6 @@
 import { existsSync } from "fs"
 import { dirname, resolve, sep } from "path"
-import { type Plugin } from "vite"
+import type { Plugin } from "vite"
 
 interface FlavorAssetsOptions {
   flavor: string
