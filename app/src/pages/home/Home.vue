@@ -3,7 +3,6 @@
       search
       :title="$t('home')"
       balance
-      profile
       @search="query = $event"
     />
   <q-page-container>
