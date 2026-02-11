@@ -126,7 +126,6 @@
  *  - If balance prop is set to true, shows a section with the logged in account 
  * balance. This section shrinks on scroll.
  *  - If search prop is set to true, provides a search box that emits the `search` event.
- *  - If profile prop is set to true, shows a profile button and menu.
  *  - Provides a slot #buttons to be able to customize the right toolbar buttons 
  * depending on the page content.
  */
