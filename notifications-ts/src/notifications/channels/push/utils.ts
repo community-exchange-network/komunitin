@@ -1,5 +1,5 @@
 import logger from "../../../utils/logger";
-import initI18n, { tzDate } from "../../../utils/i18n";
+import initI18n, { tzDate, timezone } from "../../../utils/i18n";
 import prisma from "../../../utils/prisma";
 import { EnrichedEvent } from "../../enriched-events";
 import { MessageContext, NotificationMessage } from "../../messages";
@@ -8,7 +8,6 @@ import { Queue } from "bullmq";
 import { User, UserSettings } from "../../../clients/komunitin/types";
 import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from "../../../utils/cached-resources";
 import { KomunitinClient } from "../../../clients/komunitin/client";
-import tz from '@photostructure/tz-lookup';
 import { Prisma, PushSubscription } from '@prisma/client';
 import webpush from 'web-push';
 import { config } from "../../../config";
@@ -49,23 +48,24 @@ const getUserTimezone = async (user: User, settings: UserSettings, groupCode: st
   const client = new KomunitinClient();
   const members = await getCachedGroupMembersWithUsers(client, groupCode, Infinity);
   const member = members.find(mwu => mwu.users.some(u => u.user.id === user.id))?.member;
+  
   let coordinates = member?.attributes.location?.coordinates;
-  if (!coordinates || coordinates.length !== 2 || coordinates[0] === 0 && coordinates[1] === 0) {
-    // Fallback to group coordinates
+  let tz: string | null = null;
+  if (coordinates) {
+    tz = timezone(coordinates);
+  }
+  if (tz === null) {
     const groups = await getCachedActiveGroups(client, Infinity);
     const group = groups.find(g => g.attributes.code === groupCode);
     coordinates = group?.attributes.location?.coordinates;
+    if (coordinates) {
+      tz = timezone(coordinates);
+    }
   }
-  if (!coordinates || coordinates.length !== 2 || coordinates[0] === 0 && coordinates[1] === 0) {
-    return null;
+  if (tz === null) {
+    logger.warn({ user: user.id, group: groupCode, coordinates }, 'Failed to determine timezone for user.');
   }
-  try {
-    const timezone = tz(coordinates[1], coordinates[0]); // lat, lon, reverse order from GeoJSON
-    return timezone;
-  } catch (err) {
-    logger.warn({ err, userId: user.id }, 'Failed to get timezone from coordinates');
-    return null;
-  }
+  return tz;
 }
 
 const shouldSendPushNotificationToUser = (notificationClass: NotificationClass, settings: UserSettings): boolean => {

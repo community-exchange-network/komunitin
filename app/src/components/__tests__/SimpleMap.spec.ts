@@ -18,6 +18,6 @@ describe("SimpleMap", () => {
 
   it("Html generated", async () => {
     await wrapper.vm.$nextTick();
-    expect(wrapper.html()).toContain("anonymous-stub");
+    expect(wrapper.html()).toContain("mock-stub");
   });
 });

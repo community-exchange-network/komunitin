@@ -20,7 +20,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.notifications-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=2028"
-      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.rule=Host(`notifications.${KOMUNITIN_DOMAIN}`) && PathRegexp(`/{code:[a-zA-Z0-9]+}/events`)"
+      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.rule=Host(`notifications.${KOMUNITIN_DOMAIN}`) && Path(`/events`)"
       - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
       - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.tls=true"
       - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
