@@ -6,7 +6,7 @@
 # Build stage
 
 
-FROM node:20 AS komunitin-app-build
+FROM node:22 AS komunitin-app-build
 
 ARG FLAVOR=komunitin 
 
