@@ -178,12 +178,12 @@ const showMenu = computed(() => !showBack.value && !store.state.ui.drawerPersist
 /**
  * Show the profile button when the user is logged in.
  */
-const showProfile = computed(() => store.getters.isLoggedIn);
+const showProfile = computed(() => store.getters.isLoggedIn && store.getters.isComplete && !store.getters.isSuperadmin);
 
 /**
  * Show the log-out button when user is logged in but not in 'complete' status (ie pending). 
  */
-const showLogOut = computed(() => store.getters.isLoggedIn && !store.getters.isComplete)
+const showLogOut = computed(() => store.getters.isLoggedIn && (!store.getters.isComplete || store.getters.isSuperadmin))
 
 
 /**
