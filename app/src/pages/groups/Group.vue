@@ -54,9 +54,19 @@
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
-              class="text-onsurface-m ellipsis-3-lines"
+              class="text-onsurface-m"
+              :class="isDescriptionOpen ? '' : 'ellipsis-3-lines'"
               v-html="md2html(group.attributes.description)"
             />
+
+            <q-btn
+              flat
+              no-caps
+              style="margin-left:auto;"
+              @click="toggleDescription"
+              >
+              more...
+            </q-btn>
           </div>
         </div>
         <!-- sub-page navigation -->
@@ -176,13 +186,15 @@ export default defineComponent({
     }
   },
   setup() {
-    const ready = ref(false)
+    const ready = ref(false);
+    const isDescriptionOpen = ref(false);
     return {
       link(link: string): string {
         return link.replace(/(https|http):\/\//, "");
       },
       md2html,
-      ready
+      ready,
+      isDescriptionOpen
     }
   },
   data() {
@@ -263,6 +275,9 @@ export default defineComponent({
         items.push(this.$t("andMoreCategories").toString());
       }
       return items;
+    },
+    toggleDescription():void {
+      this.isDescriptionOpen = !this.isDescriptionOpen
     }
   }
 });
