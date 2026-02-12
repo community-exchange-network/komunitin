@@ -28,7 +28,7 @@ import { useLeafletSettings } from "../composables/leaflet";
 const props = withDefaults(defineProps<{
   center: [number, number],
   zoom?: number
-  bounds?: LatLngBounds,
+  bounds?: LatLngBounds|LatLngExpression[],
   marker?: [number, number],
   interactive?: boolean
 }>(), {
