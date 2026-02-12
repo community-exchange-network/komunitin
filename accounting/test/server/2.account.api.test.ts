@@ -207,6 +207,11 @@ describe('Accounts endpoints', async () => {
     assert.equal(lines[1][3], 'TEST0001')
     assert.equal(lines[2][3], 'TEST1000')
     assert.equal(lines[3][3], 'TEST2000')
+    
+    // Check numeric format:
+    assert.equal(lines[1][5], '0.00')
+    assert.equal(lines[1][6], '0.10')
+    assert.equal(lines[1][7], '10.00')
   })
   
   it('user cannot delete other accounts', async () => {

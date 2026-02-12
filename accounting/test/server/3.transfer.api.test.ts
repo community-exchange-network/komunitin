@@ -265,7 +265,7 @@ describe('Transfer endpoints', async () => {
     assert.deepEqual(lines[0], ['id','created','updated','state','amount','description','hash','authorization','payer.id','payer.code','payee.id','payee.code','user.id'])
     const first = lines[1]
     assert.equal(first[3], 'committed')
-    assert.equal(first[4], '100')
+    assert.equal(first[4], '0.01')
     assert.equal(first[5], 'User transfer')
     assert.equal(first[8], t.account1.id)
     assert.equal(first[9], t.account1.attributes.code)
@@ -285,7 +285,7 @@ describe('Transfer endpoints', async () => {
     const first2 = lines2[1]
     assert.equal(first2[0], t.account1.attributes.code)
     assert.equal(first2[1], t.account2.attributes.code)
-    assert.equal(first2[2], '40')
+    assert.equal(first2[2], '0.004')
     
   })
     

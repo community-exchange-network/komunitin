@@ -7,6 +7,7 @@ import { config } from "src/config"
 import { badRequest, inactiveCurrency } from "src/utils/error"
 import { format as formatcsv } from "@fast-csv/format"
 import { BaseService, CurrencyService } from "../controller"
+import type { CSVMapperFactory } from "./csv-mappers"
 
 /**
  * Helper for general async route handlers
@@ -141,7 +142,7 @@ export function currencyInputHandlerMultiple<T extends Dictionary<any>, D extend
 /**
  * Helper for route handlers that exports a collection of resources within a currency as CSV.
  */
-export function currencyCollectionCsvHandler<T>(controller: BaseService, fn: CurrencyCollectionHandler<T>, paramOptions: CollectionParamsOptions, csvMapper: (item: T) => Record<string, string|number|boolean|null>, options: CurrencyHandlerOptions = {}) {
+export function currencyCollectionCsvHandler<T>(controller: BaseService, fn: CurrencyCollectionHandler<T>, paramOptions: CollectionParamsOptions, createCsvMapper: CSVMapperFactory<T>, options: CurrencyHandlerOptions = {}) {
   const status = options.status ?? 200
   const checkActive = options.checkActive ?? true
   return asyncHandler(async (req, res) => {
@@ -174,6 +175,9 @@ export function currencyCollectionCsvHandler<T>(controller: BaseService, fn: Cur
     // Create the CSV stream
     const stream = formatcsv({headers: true})
     stream.pipe(res)
+
+    // Build the CSV mapper
+    const csvMapper = createCsvMapper(currencyController.model)
 
     // Fetch data in batches and write to the CSV stream
     const BATCH_SIZE = 200
