@@ -383,6 +383,11 @@ const loading = ref(true)
 const members = ref([])
 const hasNext = ref(false)
 
+// API filter out non active members/accounts by default, so we explicitly include 
+// them all both in main request and in csv download.
+const memberStatuses = ["active", "disabled", "suspended"]
+const accountStatuses = ["active", "disabled", "suspended"]
+
 const load = async (scope: {pagination: Pagination, filter?: string}) => {  
   loading.value = true
   // Wait for the pending requests to be loaded, since otherwise the store
@@ -396,10 +401,6 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
   const group = props.code
   const pageSize = rowsPerPage
 
-  // Explicit allow disabled & suspended members/accounts
-  const memberStatuses = ["active", "disabled", "suspended"]
-  const accountStatuses = ["active", "disabled", "suspended"]
-  
   try {
     // Since data is splitted in two APIs, we need to call first the one that sorts the data.
     const socialFields = ['name']
@@ -533,7 +534,10 @@ const acceptMember = async (member: Member & {group: Group}) => {
 }
 
 const {download} = useAccountsCsv({
-  code: props.code
+  code: props.code,
+  filter: {
+    status: accountStatuses
+  }
 })
 
 

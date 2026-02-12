@@ -5,24 +5,26 @@ import { useStore } from "vuex"
 import { checkFetchResponse } from "../KError"
 
 // Extract filename from simple Content-Disposition header: attachment; filename="<name>"
-function attachmentFilename(res: Response, defaultName: string): string {
-  const header = res.headers.get("content-disposition")
-  if (!header) return defaultName
-  const match = header.match(/attachment;\s*filename="?([^";]+)"?/i)
-  return match?.[1] || defaultName
+function attachmentFilename(res: Response, filename?: string): string {
+  if (!filename) {
+    const header = res.headers.get("content-disposition")
+    const match = header.match(/attachment;\s*filename="?([^";]+)"?/i)
+    filename = match?.[1] || "download.csv"
+  }
+  return filename
 }
 
 /**
  * Download a file from a URL using a Bearer token.
  */
-export async function downloadFile(url: string, token: string, defaultName = "download"): Promise<void> {
+export async function downloadFile(url: string, token: string, filename?: string): Promise<void> {
   const res = await fetch(url, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` }
   })
 
   await checkFetchResponse(res)
-  const suggestedName = attachmentFilename(res, defaultName)
+  filename = attachmentFilename(res, filename)
 
   const blob = await res.blob()
 
@@ -36,7 +38,7 @@ export async function downloadFile(url: string, token: string, defaultName = "do
   try {
     const a = document.createElement("a")
     a.href = objectUrl
-    a.download = suggestedName || defaultName
+    a.download = filename
     a.style.display = "none"
     document.body.appendChild(a)
     a.click()
@@ -45,6 +47,22 @@ export async function downloadFile(url: string, token: string, defaultName = "do
     URL.revokeObjectURL(objectUrl)
   }
 }
+
+const filterParams = (params: URLSearchParams, filter: Record<string, string | string[]> | undefined): URLSearchParams => {
+  if (filter) {
+    Object.entries(filter).forEach(([key, value]) => {
+      if (!(value === undefined || value === null || value === "")) {
+        if (Array.isArray(value)) { 
+          value = value.join(",") 
+        } 
+        params.set(`filter[${key}]`, value) 
+      }
+    })
+  }
+  return params
+}
+
+
 
 export const useTransfersCsv = (opts: {
   code: MaybeRefOrGetter<string>,
@@ -60,17 +78,15 @@ export const useTransfersCsv = (opts: {
     const params = new URLSearchParams()
 
     const code = toValue(opts.code)
-    const from = toValue(opts.from)
-    const to = toValue(opts.to)
-    const query = toValue(opts.query)
-    const account = toValue(opts.account)
+    const filter = {
+      from: toValue(opts.from)?.toISOString(),
+      to: toValue(opts.to)?.toISOString(),
+      search: toValue(opts.query),
+      account: toValue(opts.account)
+    }
+    filterParams(params, filter)
 
-    if (from) params.set("filter[from]", from.toISOString())
-    if (to) params.set("filter[to]", to.toISOString())
-    if (query) params.set("filter[search]", query)
-    if (account) params.set("filter[account]", account)
-
-    const url = `${base}/${code}/transfers.csv?${params.toString()}`
+    const url = `${base}/${code}/transfers.csv` + (params.size > 0 ? `?${params.toString()}` : "")
     const token = store.getters.accessToken
     await downloadFile(url, token, "transfers.csv")
   }
@@ -79,14 +95,19 @@ export const useTransfersCsv = (opts: {
 }
 
 export const useAccountsCsv = (opts: {
-  code: MaybeRefOrGetter<string>
+  code: MaybeRefOrGetter<string>,
+  filter?: MaybeRefOrGetter<Record<string, string | string[]>>
 }) => {
   const store = useStore()
 
   const download = async () => {
     const base = config.ACCOUNTING_URL
     const code = toValue(opts.code)
-    const url = `${base}/${code}/accounts.csv`
+    
+    const params = new URLSearchParams()
+    filterParams(params, toValue(opts.filter))
+
+    const url = `${base}/${code}/accounts.csv` + (params.size > 0 ? `?${params.toString()}` : "")
     const token = store.getters.accessToken
     await downloadFile(url, token, "accounts.csv")
   }
