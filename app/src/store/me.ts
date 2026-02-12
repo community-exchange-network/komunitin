@@ -308,8 +308,8 @@ export default {
       await unsubscribe();
 
       // 2. Delete from Backend
-      const groupCode = getters.myMember.group?.attributes.code;
-      const deleteFromBackend = (payload?.unsubscribeFromServer ?? true) && state.subscription && groupCode
+      const groupCode = getters.myMember?.group?.attributes.code;
+      const deleteFromBackend = (payload?.unsubscribeFromServer ?? true) && state.subscription && groupCode !== undefined;
       
       if (deleteFromBackend) {
         const url = `${config.NOTIFICATIONS_URL}/${groupCode}/subscriptions/${state.subscription.id}`;
