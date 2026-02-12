@@ -12,6 +12,7 @@ import { AccountSerializer, AccountSettingsSerializer, CurrencySerializer, Curre
 import { Validators } from './validation';
 import routeCache from 'route-cache'
 import { BaseService } from '../controller';
+import { createAccountCSVMapper, createTransferCSVMapper } from './csv-mappers';
 
 export function getRoutes(controller: BaseService) {
   const router = Router()
@@ -99,18 +100,7 @@ export function getRoutes(controller: BaseService) {
     }, {
       filter: ["status"],
       sort: ["code", "balance", "creditLimit", "maximumBalance", "created", "updated"],
-    }, (account) => ({
-      'id': account.id,
-      'created': account.created.toISOString(),
-      'updated': account.updated.toISOString(),
-      'code': account.code,
-      'status': account.status,
-      'balance': account.balance ?? '',
-      'creditLimit': account.creditLimit?.toString() ?? '',
-      'maximumBalance': account.maximumBalance?.toString() ?? '',
-      'key': account.key,
-      'user.id': account.users && account.users.length > 0 ? account.users[0].id : '',
-    }), {checkActive: false})
+    }, createAccountCSVMapper, {checkActive: false})
   )
 
   // Get account. No auth required to get an account having its id. We need that for
@@ -197,25 +187,7 @@ export function getRoutes(controller: BaseService) {
     }, {
       filter: ["payer", "payee", "account", "search", "from", "to"],
       sort: ["created", "updated"]
-    }, (transfer: Transfer) => {
-      const payer = transfer.externalPayer ? transfer.externalPayer.resource : transfer.payer
-      const payee = transfer.externalPayee ? transfer.externalPayee.resource : transfer.payee
-      return {
-        'id': transfer.id,
-        'created': transfer.created.toISOString(),
-        'updated': transfer.updated.toISOString(),
-        'state': transfer.state,
-        'amount': transfer.amount.toString(),
-        'description': transfer.meta.description || '',
-        'hash': transfer.hash || '',
-        'authorization': transfer.authorization?.type || '',
-        'payer.id': payer.id,
-        'payer.code': payer.code,
-        'payee.id': payee.id,
-        'payee.code': payee.code,
-        'user.id': transfer.user.id
-      }
-    }, {checkActive: false})
+    }, createTransferCSVMapper, {checkActive: false})
   )
 
   router.post('/:code/trustlines', userAuth([Scope.Accounting, Scope.Superadmin]), checkExact(Validators.isCreateTrustline()),
