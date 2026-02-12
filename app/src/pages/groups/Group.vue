@@ -61,12 +61,12 @@
 
             <q-btn
               flat
-              no-caps
+              round
+              dense
+              :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
               style="margin-left:auto;"
               @click="toggleDescription"
-              >
-              more...
-            </q-btn>
+              />
           </div>
         </div>
         <!-- sub-page navigation -->
