@@ -2,6 +2,7 @@
   <div>
     <page-header
       :title="group ? group.attributes.name : ''"
+      :back="own ? '' : '/groups'"
     >
       <template #buttons>
         <contact-button
@@ -121,7 +122,14 @@
                 class="simple-map"
                 :center="center"
                 :marker="marker"
-              />
+                :bounds="memberMarkers"
+              >
+              <l-marker 
+                v-for="(memberMarker, i) of memberMarkers"
+                :key="i"
+                :lat-lng="memberMarker"
+                />
+              </simple-map>
               <q-card-section class="group-footer-card text-onsurface-m">
                 <q-icon name="place" />
                 {{ group.attributes.location.name }}
@@ -149,11 +157,12 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
+import { LMarker } from "@vue-leaflet/vue-leaflet";
+import type { LatLngExpression } from "leaflet";
 
 import md2html from "../../plugins/Md2html";
 
 import PageHeader from "../../layouts/PageHeader.vue";
-
 import Avatar from '../../components/Avatar.vue';
 import ContactButton from "../../components/ContactButton.vue";
 import ShareButton from "../../components/ShareButton.vue";
@@ -162,7 +171,7 @@ import SocialNetworkList from "../../components/SocialNetworkList.vue";
 import FloatingBtn from "../../components/FloatingBtn.vue";
 import FitText from '../../components/FitText.vue';
 
-import type { Group, Contact, Category, Currency } from "../../store/model";
+import type { Group, Contact, Category, Currency, Member } from "../../store/model";
 
 /**
  * Page for Group details.
@@ -177,7 +186,8 @@ export default defineComponent({
     ContactButton,
     SocialNetworkList,
     PageHeader,
-    FloatingBtn
+    FloatingBtn,
+    LMarker,
   },
   props: {
     code: {
@@ -188,13 +198,15 @@ export default defineComponent({
   setup() {
     const ready = ref(false);
     const isDescriptionOpen = ref(false);
+    const map = ref();
     return {
       link(link: string): string {
         return link.replace(/(https|http):\/\//, "");
       },
       md2html,
       ready,
-      isDescriptionOpen
+      isDescriptionOpen,
+      map
     }
   },
   data() {
@@ -206,7 +218,7 @@ export default defineComponent({
     isLoggedIn(): boolean {
       return this.$store.getters.isLoggedIn
     },
-    group(): Group & { contacts: Contact[]; categories: Category[]; currency: Currency } {
+    group(): Group & { contacts: Contact[]; categories: Category[]; currency: Currency; members? : Member[] } {
       return this.$store.getters["groups/current"];
     },
     currency(): Currency {
@@ -231,6 +243,11 @@ export default defineComponent({
     marker(): [number, number] | undefined {
       return this.center
     },
+    memberMarkers(): LatLngExpression[] {
+      console.log('accessing memberMarkers - members:', this.group?.members?.length);
+      return this.group?.members?.map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
+        .filter(Boolean) || [];
+    },
     isLoading(): boolean {
       return !(this.ready || this.currency && this.group && this.group.contacts && this.group.categories);
     }
@@ -254,7 +271,7 @@ export default defineComponent({
     async fetchGroup(code: string) {
       return this.$store.dispatch("groups/load", {
         group: code,
-        include: "currency,contacts,categories"
+        include: `currency,contacts,categories${this.own ? ',members' : ''}`
       });
     },
     // Categories info.
@@ -278,7 +295,7 @@ export default defineComponent({
     },
     toggleDescription():void {
       this.isDescriptionOpen = !this.isDescriptionOpen
-    }
+    },
   }
 });
 </script>
