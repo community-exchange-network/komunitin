@@ -1,6 +1,7 @@
 {
   "topup": "Top Up",
   "topupTitle": "Top Up Your Account",
+  "deposit": "Deposit",
   "topupDepositAmount": "Deposit Amount",
   "topupAmountToDeposit": "Amount to Deposit",
   "topupAmountToDepositHint": "Enter the amount in { currency }.",
@@ -45,6 +46,7 @@
   "topupDepositCurrency": "Deposit Currency",
   "topupRate": "Conversion Rate",
   "topupRateHint": "Set the rate as a fraction n/d. For example, if 8 {receiveCurrency} = 15 {depositCurrency}, set it to 8/15.",
+  "topupRateInvalid": "Invalid rate format. Use n or n/d (e.g., 8/15).",
   "topupMinAmount": "Minimum Amount",
   "topupMinAmountHint": "Minimum amount allowed for a single top up.",
   "topupMaxAmount": "Maximum Amount",

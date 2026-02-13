@@ -105,12 +105,29 @@ const contacts = computed({
 
 const { t } = useI18n()
 
+const translateNetworkLabel = (key: string) => {
+  switch (key) {
+    case "email": return t("email")
+    case "phone": return t("phone")
+    case "website": return t("website")
+    default: return key
+  }
+}
+
+const translateNetworkIdLabel = (key: string) => {
+  switch (key) {
+    case "username": return t("username")
+    case "phone": return t("phone")
+    default: return key
+  }
+}
+
 const getNetworkLabel = (key: string) => {
   const network = getNetwork(key)
   if (!network) {
     return key
   } else if (network.translateLabel) {
-    return t(network.label)
+    return translateNetworkLabel(network.label)
   } else {
     return network.label
   }
@@ -121,9 +138,9 @@ const getNetworkIdLabel = (key: string) => {
   if (!network) {
     return key
   } else if (network.idLabel) {
-    return network.translateIdLabel ? t(network.idLabel) : network.idLabel
+    return network.translateIdLabel ? translateNetworkIdLabel(network.idLabel) : network.idLabel
   } else {
-    return network.translateLabel ? t(network.label) : network.label
+    return network.translateLabel ? translateNetworkLabel(network.label) : network.label
   }
 }
 

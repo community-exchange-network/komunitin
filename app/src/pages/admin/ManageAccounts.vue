@@ -288,6 +288,29 @@ const settingsKeys = [
   'onPaymentCreditLimit',
   'nfcTags'
 ]
+type SettingsKey = typeof settingsKeys[number]
+
+const settingsLabel = (key: SettingsKey) => {
+  switch (key) {
+    case "allowPayments": return t("allowPayments")
+    case "allowPaymentRequests": return t("allowPaymentRequests")
+    case "allowSimplePayments": return t("allowSimplePayments")
+    case "allowSimplePaymentRequests": return t("allowSimplePaymentRequests")
+    case "allowQrPayments": return t("allowQrPayments")
+    case "allowQrPaymentRequests": return t("allowQrPaymentRequests")
+    case "allowMultiplePayments": return t("allowMultiplePayments")
+    case "allowMultiplePaymentRequests": return t("allowMultiplePaymentRequests")
+    case "allowTagPayments": return t("allowTagPayments")
+    case "allowTagPaymentRequests": return t("allowTagPaymentRequests")
+    case "acceptPaymentsAutomatically": return t("acceptPaymentsAutomatically")
+    case "enableAcceptPaymentsAfter2w": return t("enableAcceptPaymentsAfter2w")
+    case "allowExternalPayments": return t("allowExternalPayments")
+    case "allowExternalPaymentRequests": return t("allowExternalPaymentRequests")
+    case "acceptExternalPaymentsAutomatically": return t("acceptExternalPaymentsAutomatically")
+    case "onPaymentCreditLimit": return t("onPaymentCreditLimit")
+    case "nfcTags": return t("nfcTags")
+  }
+}
 
 const columns = [
   {name: 'image', field: (m: ExtendedMember) => m.attributes.image, label: '', align: 'center', required: true},
@@ -347,7 +370,7 @@ const columns = [
     return {
       name: key,
       field: settingsField(key),
-      label: t(key),
+      label: settingsLabel(key),
       align: 'center',
       format: settingsFormat(key),
       classes: settingsClasses(key)

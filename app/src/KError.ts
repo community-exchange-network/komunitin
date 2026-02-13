@@ -113,3 +113,54 @@ export default class KError extends Error {
     }
   }
 }
+
+export function translateKError(t: (key: string) => unknown, error: KError | KErrorCode | string): string {
+  const code = typeof error === "string" ? error : error.code;
+
+  switch (code) {
+    case KErrorCode.Unauthorized: return String(t("ErrorUnauthorized"));
+    case KErrorCode.Forbidden: return String(t("ErrorForbidden"));
+    case KErrorCode.NotFound: return String(t("ErrorNotFound"));
+    case KErrorCode.NotImplemented: return String(t("ErrorNotImplemented"));
+    case KErrorCode.TransactionError: return String(t("ErrorTransactionError"));
+    case KErrorCode.InsufficientBalance: return String(t("ErrorInsufficientBalance"));
+    case KErrorCode.InsufficientMaximumBalance: return String(t("ErrorInsufficientMaximumBalance"));
+    case KErrorCode.NoTrustPath: return String(t("ErrorNoTrustPath"));
+    case KErrorCode.InvalidPassword: return String(t("ErrorInvalidPassword"));
+    case KErrorCode.DuplicatedEmail: return String(t("ErrorDuplicatedEmail"));
+    case KErrorCode.BadRequest: return String(t("ErrorBadRequest"));
+    case KErrorCode.UnknownServer: return String(t("ErrorUnknownServer"));
+    case KErrorCode.Unknown: return String(t("ErrorUnknown"));
+    case KErrorCode.IncorrectRequest: return String(t("ErrorIncorrectRequest"));
+    case KErrorCode.ServerNoResponse: return String(t("ErrorServerNoResponse"));
+    case KErrorCode.ServerBadResponse: return String(t("ErrorServerBadResponse"));
+    case KErrorCode.ResourceNotFound: return String(t("ErrorResourceNotFound"));
+    case KErrorCode.UnknownVueError: return String(t("ErrorUnknownVueError"));
+    case KErrorCode.UnknownScript: return String(t("ErrorUnknownScript"));
+    case KErrorCode.ErrorHandling: return String(t("ErrorErrorHandling"));
+    case KErrorCode.PositionTimeout: return String(t("ErrorPositionTimeout"));
+    case KErrorCode.PositionUnavailable: return String(t("ErrorPositionUnavailable"));
+    case KErrorCode.PositionPermisionDenied: return String(t("ErrorPositionPermisionDenied"));
+    case KErrorCode.NotificationsPermissionDenied: return String(t("ErrorNotificationsPermissionDenied"));
+    case KErrorCode.VueWarning: return String(t("ErrorVueWarning"));
+    case KErrorCode.IncorrectCredentials: return String(t("ErrorIncorrectCredentials"));
+    case KErrorCode.AuthNoCredentials: return String(t("ErrorAuthNoCredentials"));
+    case KErrorCode.RequestError: return String(t("ErrorRequestError"));
+    case KErrorCode.InvalidTransferState: return String(t("ErrorInvalidTransferState"));
+    case KErrorCode.InvalidTransfersCSVFile: return String(t("ErrorInvalidTransfersCSVFile"));
+    case KErrorCode.QRCodeError: return String(t("ErrorQRCodeError"));
+    case KErrorCode.NFCReadError: return String(t("ErrorNFCReadError"));
+    case KErrorCode.NFCUnavailable: return String(t("ErrorNFCUnavailable"));
+    case KErrorCode.ExternalPaymentNotAllowed: return String(t("ErrorExternalPaymentNotAllowed"));
+    case KErrorCode.InvalidAmount: return String(t("ErrorInvalidAmount"));
+    case KErrorCode.DescriptionRequired: return String(t("ErrorDescriptionRequired"));
+    case KErrorCode.AccountNotFound: return String(t("ErrorAccountNotFound"));
+    case KErrorCode.AccountIsNotYours: return String(t("ErrorAccountIsNotYours"));
+    case KErrorCode.CamNotAllowed: return String(t("ErrorCamNotAllowed"));
+    case KErrorCode.CamNotFound: return String(t("ErrorCamNotFound"));
+    case KErrorCode.CamNotReadable: return String(t("ErrorCamNotReadable"));
+    case KErrorCode.CamUnknown: return String(t("ErrorCamUnknown"));
+    case KErrorCode.ScriptError: return String(t("ErrorScriptError"));
+    default: return String(t("ErrorUnknown"));
+  }
+}

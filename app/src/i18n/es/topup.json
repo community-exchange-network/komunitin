@@ -1,6 +1,7 @@
 {
   "topup": "Recarga",
   "topupTitle": "Recarga tu cuenta",
+  "deposit": "Aportación",
   "topupDepositAmount": "Aportación",
   "topupAmountToDeposit": "Cantidad a aportar",
   "topupAmountToDepositHint": "Introduce la cantidad en { currency }.",
@@ -35,7 +36,6 @@
   "topupRetry": "Reintentar recarga",
   "topupGoToTransfer": "Ir al movimiento",
   "topupShowPaymentDetails": "Detalles",
-
   "topupSettings": "Configuración de recargas",
   "topupSettingsText": "Configura cómo los usuarios pueden recargar sus cuentas utilizando métodos de pago externos.",
   "topupEnable": "Habilitar recargas",
@@ -45,11 +45,12 @@
   "topupDepositCurrency": "Moneda de depósito",
   "topupRate": "Tasa de conversión",
   "topupRateHint": "Establece la tasa como una fracción n/d. Por ejemplo, si 8 {receiveCurrency} = 15 {depositCurrency}, ponlo a 8/15.",
+  "topupRateInvalid": "Formato de tasa no válido. Usa n o n/d (p. ej., 8/15).",
   "topupMinAmount": "Cantidad mínima",
   "topupMinAmountHint": "Cantidad mínima permitida para una sola recarga.",
   "topupMaxAmount": "Cantidad máxima",
-  "topupMaxAmountHint": "Cantidad máxima permitida para una sola recarga.",
   "topupMollieApiKey": "Clave API de Mollie",
   "topupMollieApiKeyHint": "Introduce la clave API de Mollie. Déjalo vacío para mantener la actual.",
+  "topupMaxAmountHint": "Cantidad máxima permitida para una sola recarga.",
   "topupSourceAccount": "Cuenta de origen"
 }

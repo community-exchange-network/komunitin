@@ -1,6 +1,7 @@
 import js from '@eslint/js'
 import globals from 'globals'
 import pluginVue from 'eslint-plugin-vue'
+import pluginVueI18n from '@intlify/eslint-plugin-vue-i18n'
 import pluginQuasar from '@quasar/app-vite/eslint'
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
 
@@ -22,6 +23,7 @@ export default defineConfigWithVueTs(
 
   pluginQuasar.configs.recommended(),
   js.configs.recommended,
+  ...pluginVueI18n.configs['flat/recommended'],
 
   /**
    * https://eslint.vuejs.org
@@ -46,7 +48,35 @@ export default defineConfigWithVueTs(
       ],
     }
   },
+  {
+    rules: {
+      '@intlify/vue-i18n/no-dynamic-keys': 'error',
+      '@intlify/vue-i18n/no-missing-keys': 'error',
+      '@intlify/vue-i18n/no-missing-keys-in-other-locales': 'error',
+      '@intlify/vue-i18n/no-raw-text': 'off',
+      '@intlify/vue-i18n/no-unused-keys': [ 'error', {
+        src: './src',
+        extensions: ['.js', '.ts', '.vue']
+      } ]
+    },
+    settings: {
+      'vue-i18n': {
+        localeDir: {
+          pattern: './src/i18n/{ca,en-us,es,fr,it}/*.json',
+          localeKey: 'path',
+          localePattern: '^.*\\/src\\/i18n\\/(?<locale>[^/]+)\\/[^/]+\\.json$'
+        }
+      }
+    }
+  },
   vueTsConfigs.recommendedTypeChecked,
+  {
+    files: ['**/*.json'],
+    extends: [vueTsConfigs.disableTypeChecked],
+    rules: {
+      '@typescript-eslint/no-unused-expressions': 'off'
+    }
+  },
 
   {
     languageOptions: {

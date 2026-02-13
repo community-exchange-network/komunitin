@@ -1,6 +1,6 @@
 import type { ComponentPublicInstance } from 'vue';
 
-import KError, { KErrorCode } from '../KError';
+import KError, { KErrorCode, translateKError } from '../KError';
 import { Notify } from 'quasar'
 import { boot } from 'quasar/wrappers';
 import {i18n} from './i18n'
@@ -13,7 +13,7 @@ import {i18n} from './i18n'
  */
 function getLocalizedMessage(error: KError): string {
   const {t} = i18n.global
-  return t(error.getTranslationKey()).toString();
+  return translateKError(t, error);
 }
 
 
