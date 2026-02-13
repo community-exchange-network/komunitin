@@ -382,6 +382,12 @@
   "enableAccountConfirmText": "Tu cuenta y tus datos serán visibles de nuevo y podrás hacer y recibir moneda.",
 
   "accountStatusUpdated": "Estado de la cuenta actualizado con éxito.",
+  "filters": "Filtros",
+  "startDate": "Inicio",
+  "endDate": "Fin",
+  "showFilters": "Mostrar filtros",
+  "hideFilters": "Ocultar filtros",
+  "close": "Cerrar",
   "loggingOut": "Cerrando sesión...",
   "loggedOut": "Has cerrado la sesión y no recibirás más notificaciones hasta que vuelvas a iniciar sesión.",
   "unsubscribed": "Te has dado de baja",

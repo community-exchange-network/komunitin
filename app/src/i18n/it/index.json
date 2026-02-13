@@ -381,6 +381,12 @@
   "enableAccount": "Riattiva account",
   "enableAccountConfirmText": "Il tuo account e i tuoi dati saranno di nuovo visibili e potrai inviare e ricevere.",
   "accountStatusUpdated": "Stato dell'account aggiornato con successo.",
+  "filters": "Filtri",
+  "startDate": "Inizio",
+  "endDate": "Fine",
+  "showFilters": "Mostra filtri",
+  "hideFilters": "Nascondi filtri",
+  "close": "Chiudi",
 
   "ErrorUnknown": "Errore: Sconosciuto",
   "ErrorIncorrectRequest": "Errore: Richiesta non corretta",
