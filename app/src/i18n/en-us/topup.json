@@ -36,7 +36,6 @@
   "topupRetry": "Retry Top Up",
   "topupGoToTransfer": "Go to Transfer",
   "topupShowPaymentDetails": "Details",
-
   "topupSettings": "Top Up Settings",
   "topupSettingsText": "Configure how users can top up their accounts using external payment methods.",
   "topupEnable": "Enable Top Ups",
@@ -50,8 +49,8 @@
   "topupMinAmount": "Minimum Amount",
   "topupMinAmountHint": "Minimum amount allowed for a single top up.",
   "topupMaxAmount": "Maximum Amount",
+  "topupMaxAmountHint": "Maximum amount allowed for a single top up.",
   "topupMollieApiKey": "Mollie API Key",
   "topupMollieApiKeyHint": "Enter the Mollie API Key. Leave empty to keep the current one.",
-  "topupMaxAmountHint": "Maximum amount allowed for a single top up.",
   "topupSourceAccount": "Source Account"
 }

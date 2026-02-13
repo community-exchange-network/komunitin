@@ -49,8 +49,8 @@
   "topupMinAmount": "Cantidad mínima",
   "topupMinAmountHint": "Cantidad mínima permitida para una sola recarga.",
   "topupMaxAmount": "Cantidad máxima",
+  "topupMaxAmountHint": "Cantidad máxima permitida para una sola recarga.",
   "topupMollieApiKey": "Clave API de Mollie",
   "topupMollieApiKeyHint": "Introduce la clave API de Mollie. Déjalo vacío para mantener la actual.",
-  "topupMaxAmountHint": "Cantidad máxima permitida para una sola recarga.",
   "topupSourceAccount": "Cuenta de origen"
 }
