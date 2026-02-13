@@ -164,9 +164,9 @@ export function useCurrencyStatsFormattedValue(
     if (data) {
       if (opt.value === "amount") {
         if (opt.currency) {
-          value.value = formatCurrency(data, opt.currency, {decimals: false})
+          value.value = formatCurrency(data, opt.currency, {decimals: false, compact: true})
         } else {
-          value.value = formatGlobalCurrency(data, {decimals: false})
+          value.value = formatGlobalCurrency(data, {decimals: false, compact: true})
         }
       } else {
         value.value = data.toString()
