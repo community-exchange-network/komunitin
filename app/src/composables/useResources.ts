@@ -13,16 +13,19 @@ export interface UseResourcesConfig {
   immediate?: boolean;
 }
 
-export const useResources = (type: string, options: LoadListPayload, config?: UseResourcesConfig) => {
+export const useResources = <T extends ResourceObject = ResourceObject>(type: string, options: LoadListPayload, config?: UseResourcesConfig) => {
   const store = useStore();
-  const resources = computed(() => store.getters[`${type}/currentList`] ?? []);
+  const resources = computed<T[]>(() => store.getters[`${type}/currentList`] ?? []);
   const loading = ref(false);
-  const load = async (search?: string) => {
+  const lastOptions = ref<LoadListPayload>({ ...options });
+
+  const load = async (overrides: Partial<LoadListPayload> = {}) => {
+    const currentOptions = { ...options, ...overrides };
+    lastOptions.value = currentOptions;
     loading.value = true;
     try {
       await store.dispatch(type + "/loadList", {
-        ...options,
-        ...(search ? { search } : {}),
+        ...currentOptions,
       });
     } finally {
       loading.value = false;
@@ -31,12 +34,12 @@ export const useResources = (type: string, options: LoadListPayload, config?: Us
   const loadNext = async () => {
     try {
       loading.value = true;
-      await store.dispatch(`${type}/loadNext`, options);
+      await store.dispatch(`${type}/loadNext`, lastOptions.value);
     } finally {
       loading.value = false;
     }
   };
-  const hasNext = computed(() => store.getters[`${type}/hasNext`]);
+  const hasNext = computed<boolean | undefined>(() => store.getters[`${type}/hasNext`]);
 
   // initially load the first page
   if (config?.immediate ?? true) {
@@ -47,17 +50,17 @@ export const useResources = (type: string, options: LoadListPayload, config?: Us
 };
 
 export type UseResourceOptions = Omit<LoadByIdPayload, 'id'> & {
-  // Use undefined for loading resources without id: currency, currency settings, group etc.
+  // Use undefined (or don't set) for loading resources without id: currency, currency settings, group etc.
   // Use null for not loading any resource.
-  id: MaybeRefOrGetter<string> | undefined | null;
+  id?: MaybeRefOrGetter<string> | null;
 }
   
 
 export const useResource = <T extends ResourceObject = ResourceObject>(type: string, options: UseResourceOptions, config?: UseResourcesConfig) => {
   const store = useStore()
   
-  const id = ref<string>(toValue(options.id))
-  const resource = computed<T>(() => id.value ? store.getters[`${type}/one`](id.value) : null)
+  const id = ref<string|null|undefined>(toValue(options.id))
+  const resource = computed<T | null>(() => id.value ? store.getters[`${type}/one`](id.value) : null)
 
   const loading = ref(false)
 
