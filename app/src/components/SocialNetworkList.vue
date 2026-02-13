@@ -62,10 +62,19 @@ const contactName = (network: string): string => {
 
 const { t } = useI18n();
 
+const translateNetworkLabel = (key: string): string => {
+  switch (key) {
+    case "email": return t("email");
+    case "phone": return t("phone");
+    case "website": return t("website");
+    default: return key;
+  }
+}
+
 const networkLabel = (key: string): string => {
   const network = getNetwork(key);
   if (network && network.label) {
-    return network.translateLabel ? t(network.label) : network.label;
+    return network.translateLabel ? translateNetworkLabel(network.label) : network.label;
   }
   return "";
 }

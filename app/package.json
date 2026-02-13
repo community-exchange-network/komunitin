@@ -10,8 +10,8 @@
     "dev": "quasar dev -m pwa",
     "build": "quasar build -m pwa",
     "test": "vitest run",
-    "lint": "eslint --max-warnings 0 \"./src*/**/*.{ts,js,mjs,cjs,vue}\"",
-    "lint-fix": "eslint --fix \"./src*/**/*.{ts,js,mjs,cjs,vue}\"",
+    "lint": "eslint --max-warnings 0 \"./src*/**/*.{ts,js,mjs,cjs,vue,json}\"",
+    "lint-fix": "eslint --fix \"./src*/**/*.{ts,js,mjs,cjs,vue,json}\"",
     "testAll": "tsc -p tsconfig.json --noEmit && pnpm run test && pnpm run lint"
   },
   "dependencies": {
@@ -61,6 +61,7 @@
   },
   "devDependencies": {
     "@electron/typescript-definitions": "^8.9.6",
+    "@intlify/eslint-plugin-vue-i18n": "^4.1.1",
     "@quasar/app-vite": "^2.0.0",
     "@stylistic/eslint-plugin": "^2.9.0",
     "@types/clamp-js": "^0.7.3",

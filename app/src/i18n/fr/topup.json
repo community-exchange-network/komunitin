@@ -1,6 +1,7 @@
 {
   "topup": "Rechargement",
   "topupTitle": "Rechargez votre compte",
+  "deposit": "Dépôt",
   "topupDepositAmount": "Montant du dépôt",
   "topupAmountToDeposit": "Montant à déposer",
   "topupAmountToDepositHint": "Entrez le montant en {currency}.",
@@ -35,7 +36,6 @@
   "topupRetry": "Réessayer le rechargement",
   "topupGoToTransfer": "Aller à l'échange",
   "topupShowPaymentDetails": "Détails",
-
   "topupSettings": "Paramètres de rechargement",
   "topupSettingsText": "Configurez comment les utilisateurs peuvent recharger leurs comptes en utilisant des méthodes de paiement externes.",
   "topupEnable": "Activer les rechargements",
@@ -45,11 +45,12 @@
   "topupDepositCurrency": "Monnaie de dépôt",
   "topupRate": "Taux de conversion",
   "topupRateHint": "Définissez le taux sous forme de fraction n/d. Par exemple, si 8 {receiveCurrency} = 15 {depositCurrency}, définissez-le à 8/15.",
+  "topupRateInvalid": "Format de taux invalide. Utilisez n ou n/d (par ex., 8/15).",
   "topupMinAmount": "Montant minimum",
   "topupMinAmountHint": "Montant minimum autorisé pour un seul rechargement.",
   "topupMaxAmount": "Montant maximum",
+  "topupMaxAmountHint": "Montant maximum autorisé pour un seul rechargement.",
   "topupMollieApiKey": "Clé API Mollie",
   "topupMollieApiKeyHint": "Entrez la clé API Mollie. Laissez vide pour conserver celle actuelle.",
-  "topupMaxAmountHint": "Montant maximum autorisé pour un seul rechargement.",
   "topupSourceAccount": "Compte source"
 }

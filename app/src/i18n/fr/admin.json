@@ -78,6 +78,10 @@
   "offersAndNeeds": "Offres et besoins",
   "marketplace": "Place de marché",
   "marketplaceText": "Définissez les paramètres pour les offres et besoins au sein de votre communauté.",
+  "enableGroupEmail": "Activer la newsletter de la communauté",
+  "enableGroupEmailHint": "Activer l'envoi périodique de newsletters avec les dernières offres, besoins et statistiques aux membres de la communauté.",
+  "defaultGroupEmailFrequency": "Fréquence par défaut de la newsletter",
+  "defaultGroupEmailFrequencyHint": "Fréquence par défaut d'envoi des newsletters de la communauté aux nouveaux membres. Les membres peuvent modifier ce paramètre dans les réglages de leur compte.",
   "categoriesText": "Les offres et besoins sont organisés en catégories. Définissez les catégories qui seront disponibles dans votre communauté.",
   "deleteCategoryConfirmation": "Êtes-vous sûr de vouloir supprimer la catégorie {name} ?",
   "addCategory": "Ajouter une catégorie",
@@ -116,5 +120,6 @@
   "disableGroup": "Désactiver la communauté",
   "groupStatus": "État de la communauté",
   "groupStatusText": "Zone dangereuse.",
-  "groupStatusUpdated": "État de la communauté mis à jour avec succès."
+  "groupStatusUpdated": "État de la communauté mis à jour avec succès.",
+  "refresh": "Actualiser"
 }

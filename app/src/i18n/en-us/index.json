@@ -63,7 +63,7 @@
   "profile": "Profile",
   "bio": "Bio",
   "location": "Location",
-  "shareMember":"Check {member}",
+  "shareMember": "Check {member}",
   "updatedAt": "Updated {date}",
   "expiresAt": "Expires {date}",
   "price": "Value",
@@ -397,7 +397,6 @@
   "yesterday": "Yesterday",
   "thisWeek": "This week",
   "thisMonth": "This month",
-  
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",
   "ErrorServerNoResponse": "Error: Server do not respond",
@@ -416,7 +415,6 @@
   "ErrorNotImplemented": "Error: Not Implemented",
   "ErrorInvalidTransferState": "Error: Invalid Transfer State",
   "ErrorBadRequest": "Error: Data validation failed in server",
-  
   "ErrorAuthNoCredentials": "Incorrect email or password",
   "ErrorInvalidPassword": "The password is not correct",
   "ErrorInsufficientBalance": "Insufficient balance",
@@ -434,6 +432,13 @@
   "ErrorAccountNotFound": "Account not found",
   "ErrorAccountIsNotYours": "The specified account is not your current active account.",
   "ErrorInvalidAmount": "Invalid amount. Enter a positive number.",
-  "ErrorDescriptionRequired": "Transfer description is required."
-
+  "ErrorDescriptionRequired": "Transfer description is required.",
+  "ErrorUnauthorized": "Unauthorized.",
+  "ErrorForbidden": "Forbidden.",
+  "ErrorNotFound": "Not found.",
+  "ErrorDuplicatedEmail": "This email is already in use.",
+  "ErrorRequestError": "Request error.",
+  "ErrorQRCodeError": "Error reading QR code.",
+  "ErrorExternalPaymentNotAllowed": "External payments are not allowed for this account.",
+  "ErrorScriptError": "Unexpected script error."
 }
