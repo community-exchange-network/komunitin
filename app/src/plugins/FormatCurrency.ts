@@ -1,5 +1,6 @@
 import type { Currency } from "src/store/model";
 import { i18n } from "../boot/i18n";
+import type { NumberOptions } from "vue-i18n";
 
 export interface CurrencyFormat {
   /**
@@ -14,6 +15,10 @@ export interface CurrencyFormat {
    * Whether to use the currency symbol. Default to true.
    */
   symbol?: boolean;
+  /**
+   * Whether to use a compact notation for large numbers (e.g. 1.2K instead of 1,200). Default to false.
+   */
+  compact?: boolean;
 }
 
 export interface CurrencyParse {
@@ -68,12 +73,18 @@ function formatCurrencyAmount(amount: number, currencyOptions: {scale: number, d
     amount = amount / 10 ** currencyOptions.scale;
   }
 
-  let amountString = doDecimals
-    ? n(amount, {
-      minimumFractionDigits: currencyOptions.decimals,
-      maximumFractionDigits: currencyOptions.decimals,
-    })
-    : n(amount);
+  const options: NumberOptions = {}
+  
+  if (doDecimals) {
+    options.minimumFractionDigits = currencyOptions.decimals
+    options.maximumFractionDigits = currencyOptions.decimals
+  }
+
+  if (formatOptions?.compact) {
+    options.notation = 'compact'
+  }
+
+  let amountString = n(amount, options)
 
   if (doSymbol) {
     const sampleCurrency = n(1, {style: 'currency', currency: 'USD'})
