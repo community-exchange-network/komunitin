@@ -6,15 +6,18 @@ import AccountHeader from "src/components/AccountHeader.vue";
 import SelectAccount from "src/components/SelectAccount.vue";
 import PageHeader from "src/layouts/PageHeader.vue";
 import { seeds } from "src/server";
-import { QFabAction, QList, QMenu } from "quasar";
+import { QFabAction, QInput, QList, QMenu } from "quasar";
 import SelectGroupExpansion from "src/components/SelectGroupExpansion.vue";
 import GroupHeader from "src/components/GroupHeader.vue";
 import CreateTransactionSendQR from "src/pages/transactions/CreateTransactionSendQR.vue";
 import NfcTagScanner from "src/components/NfcTagScanner.vue";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
+import DateField from "src/components/DateField.vue";
+import { addDays, format } from "date-fns";
 
 // Payment address URL used in QR, link, and scan tests.
 const PAYMENT_ADDRESS_URL = "http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a"
+const TRANSFERS_ROUTE = "/groups/GRP0/members/EmilianoLemke57/transactions"
 
 describe("Transactions", () => {
   let wrapper: VueWrapper;
@@ -52,7 +55,7 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.vm.$route.path, "/home");
     // Click transactions link
     await wrapper.get("#menu-transactions").trigger("click");
-    await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members/EmilianoLemke57/transactions");
+    await waitFor(() => wrapper.vm.$route.fullPath, TRANSFERS_ROUTE);
     // Wait for transactions to load.
     await waitFor(
       () => {
@@ -82,6 +85,46 @@ describe("Transactions", () => {
       "Should find 2 transactions matching 'object'"
     );
   });
+
+  it("Filters transfers", async () => {
+    await wrapper.vm.$router.push("/home");
+    await waitFor(() => wrapper.vm.$route.path, "/home");
+    await wrapper.get("#menu-transactions").trigger("click");
+    await waitFor(() => wrapper.vm.$route.fullPath, TRANSFERS_ROUTE);
+
+    const transactionCount = () => wrapper.getComponent(TransactionList).findAllComponents(TransactionItem).length;
+
+    await waitFor(() => transactionCount() >= 20, true, "Should load transactions before filtering");
+    
+    // Open filters
+    await wrapper.get("button[title='Show filters']").trigger("click");
+
+    const setDateFilter = async (index: number, date: string) => {
+      const dateField = wrapper.getComponent(TransactionList).findAllComponents(DateField)[index];
+      const input = dateField.findComponent(QInput).get('input');
+      await input.setValue(date);
+      // Send enter keyup
+      await input.trigger("keyup.enter");
+      await waitFor(() => format(dateField.vm.modelValue, "MM/dd/yyyy"), date, "Date filter should update model value");
+    };
+
+    // Use "start" filter
+    const yesterday = format(addDays(new Date(), -1), "MM/dd/yyyy")
+    await setDateFilter(0, yesterday);
+    await waitFor(() => {
+      const count = transactionCount();
+      return count < 20 && count > 0;
+    } , true, "Start date filter should reduce transfer count");
+
+    const beforeFiltering = transactionCount();
+
+    // Use "end" filter
+    await setDateFilter(1, yesterday);
+    await waitFor(() => {
+      const count = transactionCount();
+      return count < beforeFiltering && count > 0;
+    }, true, "End date filter should reduce transfer count");
+  })
   it("renders single transaction", async () => {
     await wrapper.vm.$router.push("/groups/GRP0/transactions/55fc265b-c391-4482-8d3c-096c7dc55aa9");
     await waitFor(() => wrapper.text().includes("Cloned executive service-desk"), true, "Transaction details should load");
@@ -101,7 +144,7 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.vm.$route.path, "/home");
     // Click transactions link
     await wrapper.get("#menu-transactions").trigger("click");
-    await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members/EmilianoLemke57/transactions");
+    await waitFor(() => wrapper.vm.$route.fullPath, TRANSFERS_ROUTE);
 
     // Click "receive" in fab menu
     await wrapper.get(".q-fab").trigger("click");
@@ -286,7 +329,7 @@ describe("Transactions", () => {
     }
     await wrapper.get("button[name='confirm']").trigger("click")
     
-    await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members/EmilianoLemke57/transactions")
+    await waitFor(() => wrapper.vm.$route.fullPath, TRANSFERS_ROUTE)
     await waitFor(() => wrapper.text().includes("Test multi 1"), true, "Transactions should show after redirect");
     expect(wrapper.text()).toContain(`Test multi 4`)
   })
