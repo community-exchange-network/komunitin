@@ -113,7 +113,12 @@ last5years.setHours(0, 0, 0, 0)
 
 const {t} = useI18n()
 
-const periodOptions = [
+type PeriodOption = {
+  label: string, 
+  value: { from?: Date, to?: Date }
+}
+
+const periodOptions: PeriodOption[] = [
   {label: t('24hours'), value: { from: last24h } },
   {label: t('7days'), value: { from: last7days } },
   {label: t('30days'), value: { from: last30days } },
