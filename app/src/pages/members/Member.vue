@@ -167,6 +167,6 @@ const hashTab = computed(() => {
 })
 
 const onTabChange = (tab: string | number) => {  
-  router.push({hash: `#${tab}`})
+  router.replace({hash: `#${tab}`})
 }
 </script>
