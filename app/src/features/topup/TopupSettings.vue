@@ -43,11 +43,11 @@ const store = useStore()
 const { t } = useI18n()
 
 const {resource: currency} = useResource<Currency>('currencies', {
-  group: props.code,
+  group: props.code
 })
 
 const {resource: topupSettings} = useResource<TopupSettings>('topup-settings', {
-  group: props.code,
+  group: props.code
 })
 
 const ready = computed(() => {

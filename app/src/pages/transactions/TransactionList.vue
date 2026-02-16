@@ -54,6 +54,9 @@
           v-model="endDate"
           :label="$t('endDate')"
           clearable
+          :options="{
+            min: startDate
+          }"
         />
       </div>      
     </q-drawer>

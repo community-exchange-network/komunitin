@@ -131,7 +131,11 @@ const loadNextResources = async (index: number, done: (stop?: boolean) => void) 
 const isEmpty = computed(() => resources.value.length === 0 && !loading.value && hasNext.value === false);
 
 const loadResources = async () => {
-  await load(props.query);
+  await load({
+    search: props.query,
+    filter: props.filter,
+    sort: props.sort,
+  });
   currentPage.value = 0;
   emit("page-loaded", currentPage.value);
 }

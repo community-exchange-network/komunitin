@@ -1,23 +1,23 @@
 import type { Ref } from "vue";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { type LoadListPayload } from "../store/resources";
 import { useResources, type UseResourcesConfig } from "./useResources";
 import { type ResourceObject } from "../store/model";
 
-export const useMergedResources = (
+export const useMergedResources = <T extends ResourceObject = ResourceObject>(
   types: string[],
   options: LoadListPayload,
   config?: UseResourcesConfig
 ) => {
   // Call useResources for each type.
-  const typeResources: Ref<ResourceObject[]>[] = [];
+  const typeResources: Ref<T[]>[] = [];
   const typeLoadNexts: (() => Promise<void>)[] = [];
-  const typeHasNexts: Ref<boolean>[] = [];
+  const typeHasNexts: Ref<boolean | undefined>[] = [];
   const typeLoadings: Ref<boolean>[] = [];
-  const typeLoads: ((search?: string) => Promise<void>)[] = [];
+  const typeLoads: ((overrides?: Partial<LoadListPayload>) => Promise<void>)[] = [];
   
   for (const type of types) {
-    const { resources, loadNext, hasNext, load, loading } = useResources(type, options, config);
+    const { resources, loadNext, hasNext, load, loading } = useResources<T>(type, options, config);
     typeResources.push(resources);
     typeLoadNexts.push(loadNext);
     typeHasNexts.push(hasNext);
@@ -25,18 +25,24 @@ export const useMergedResources = (
     typeLoadings.push(loading);
   }
 
+  const lastOptions = ref<LoadListPayload>({ ...options });
+
   // Determine sort field and order
-  const sortField = options.sort?.startsWith("-") 
-    ? options.sort.substring(1) 
-    : (options.sort || "");
-  const isDescending = options.sort?.startsWith("-") || false;
+  const sortField = computed(() => {
+    const sort = lastOptions.value.sort;
+    return sort?.startsWith("-") ? sort.substring(1) : (sort || "");
+  });
+  const isDescending = computed(() => {
+    const sort = lastOptions.value.sort;
+    return sort?.startsWith("-") || false;
+  });
 
   // Merge resources in a single resources array.
-  const resources = computed(() => {
+  const resources = computed<T[]>(() => {
     // This indexs array has an entry for each type. Each entry indicates the
     // index of the next item to be taken from that type's resources array.
     const indexs = new Array(types.length).fill(0);
-    const resources = [];
+    const resources: T[] = [];
 
     // This function checks if there are more items to merge without fetching
     // new pages. The condition is that, for all types:
@@ -69,11 +75,11 @@ export const useMergedResources = (
           } else {
             // change best candidate if current type has a better item based on sort field
             const best = typeResources[bestIndex].value[indexs[bestIndex]];
-            const bestValue = best.attributes?.[sortField];
+            const bestValue = best.attributes?.[sortField.value];
             const candidate = typeResources[i].value[indexs[i]];
-            const candidateValue = candidate.attributes?.[sortField];
-            if ((isDescending && candidateValue > bestValue)
-              || (!isDescending && candidateValue < bestValue)) {
+            const candidateValue = candidate.attributes?.[sortField.value];
+            if ((isDescending.value && candidateValue > bestValue)
+              || (!isDescending.value && candidateValue < bestValue)) {
               bestIndex = i;
             }
           }
@@ -109,9 +115,12 @@ export const useMergedResources = (
     : (typeHasNexts.some((hasNext) => hasNext.value === undefined) ? undefined : false);
   });
 
-  const load = async (search?: string) => {
-    // Call load for each type.
-    const promises = typeLoads.map((load) => load(search));
+  const load = async (overrides: Partial<LoadListPayload> = {}) => {
+    const currentOptions = { ...options, ...overrides };
+    lastOptions.value = currentOptions;
+
+    // Call load for each type with the same overrides.
+    const promises = typeLoads.map((load) => load(overrides));
     await Promise.all(promises);
   };
 

@@ -57,7 +57,7 @@ We use the de development IDE Visual Studio Code. [Follow this page](https://qua
 
 ### Test
 
-Launch the [Jest](https://jestjs.io/) testing framework for unit testing with:
+Run the app tests. Tests are executed using [vitest](https://vitest.dev/) framework and with mocked backend services.
 
 ```bash
 pnpm test

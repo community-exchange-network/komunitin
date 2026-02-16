@@ -374,16 +374,29 @@ export default {
     // Account transfers.
     server.get(`${urlAccounting}/:currency/transfers`,
       (schema: any, request: any) => {
-        if (request.queryParams["filter[account]"]) {
-          // Custom filtering.
-          const accountId = request.queryParams["filter[account]"];
-          let transfers = schema.transfers.where((transfer: any) => transfer.payerId == accountId || transfer.payeeId == accountId);
-          transfers = search(transfers, request);
-          transfers = sort(transfers, request);
-          return transfers;
-        } else {
+        if (!request.queryParams["filter[account]"]) {
           throw new Error("Unexpected request!");
         }
+        
+        let transfers = schema.transfers.where((transfer: any) => {
+          let keep = true
+          if (request.queryParams["filter[account]"]) {
+            // Custom filtering.
+            const accountId = request.queryParams["filter[account]"];
+            keep &&= (transfer.payerId == accountId || transfer.payeeId == accountId);
+          }
+          if (request.queryParams["filter[from]"]) {
+            keep &&= transfer.updated >= request.queryParams["filter[from]"]
+          }
+          if (request.queryParams["filter[to]"]) {
+            keep &&= transfer.updated <= request.queryParams["filter[to]"]
+          }
+          return keep;
+        })
+
+        transfers = search(transfers, request);
+        transfers = sort(transfers, request);
+        return transfers;
       }
     );
     // Single transfer
