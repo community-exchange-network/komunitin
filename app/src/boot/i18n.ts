@@ -31,9 +31,9 @@ export const i18n = createI18n({
 });
 
 /**
- * THe current date locale.
+ * The current date locale.
  */
-let dateLocale = undefined as Locale | undefined;
+let dateLocale: Locale | undefined = undefined;
 
 /**
  * Return the date-fns Locale object for other operations than formatDate.
@@ -135,7 +135,7 @@ export default boot(async ({ app }) => {
   app.config.globalProperties.$formatDate = (date: string) =>
     formatRelative(new Date(date), new Date(), { locale: dateLocale })
 
-  // Initially set the current locale.ç
+  // Initially set the current locale.
   const lang = await getCurrentLocale(Quasar)
   const isAdmin = store.getters.isAdmin || store.getters.isSuperadmin
   await setCurrentLocale(Quasar, lang, isAdmin)
