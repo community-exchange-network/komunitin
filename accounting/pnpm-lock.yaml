@@ -55,7 +55,7 @@ importers:
         version: 10.1.0
       qs:
         specifier: ^6.14.2
-        version: 6.14.2
+        version: 6.15.0
       route-cache:
         specifier: ^0.7.0
         version: 0.7.0
@@ -1772,8 +1772,8 @@ packages:
     resolution: {integrity: sha512-+38qI9SOr8tfZ4QmJNplMUxqjbe7LKvvZgWdExBOmd+egZTtjLB67Gu0HRX3u/XOq7UU2Nx6nsjvS16Z9uwfpg==}
     engines: {node: '>=0.6'}
 
-  qs@6.14.2:
-    resolution: {integrity: sha512-V/yCWTTF7VJ9hIh18Ugr2zhJMP01MY7c5kh4J870L7imm6/DIzBsNLTXzMwUA3yZ5b/KBqLx8Kp3uRvd7xSe3Q==}
+  qs@6.15.0:
+    resolution: {integrity: sha512-mAZTtNCeetKMH+pSjrb76NAM8V9a05I9aBZOHztWy/UqcJdQYNsf59vrRKWnojAT9Y+GbIvoTBC++CPHqpDBhQ==}
     engines: {node: '>=0.6'}
 
   quick-format-unescaped@4.0.4:
@@ -4295,7 +4295,7 @@ snapshots:
     dependencies:
       side-channel: 1.1.0
 
-  qs@6.14.2:
+  qs@6.15.0:
     dependencies:
       side-channel: 1.1.0
 
@@ -4549,7 +4549,7 @@ snapshots:
       formidable: 3.5.1
       methods: 1.1.2
       mime: 2.6.0
-      qs: 6.14.2
+      qs: 6.15.0
     transitivePeerDependencies:
       - supports-color
 
