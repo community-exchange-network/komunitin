@@ -108,6 +108,13 @@ describe("Transactions", () => {
       await waitFor(() => format(dateField.vm.modelValue, "MM/dd/yyyy"), date, "Date filter should update model value");
     };
 
+    const clearDateFilter = async (index: number) => {
+      const dateField = wrapper.getComponent(TransactionList).findAllComponents(DateField)[index];
+      const clearBtn = dateField.find("[aria-label='Clear']");
+      await clearBtn.trigger("click");
+      await waitFor(() => dateField.vm.modelValue, null, "Date filter should be cleared");
+    }
+
     // Use "start" filter
     const yesterday = format(addDays(new Date(), -1), "MM/dd/yyyy")
     await setDateFilter(0, yesterday);
@@ -124,6 +131,11 @@ describe("Transactions", () => {
       const count = transactionCount();
       return count < beforeFiltering && count > 0;
     }, true, "End date filter should reduce transfer count");
+
+    // Clear both filters
+    await clearDateFilter(0);
+    await clearDateFilter(1);
+    await waitFor(() => transactionCount() >= 20, true, "Should load all transactions after clearing filters");
   })
   it("renders single transaction", async () => {
     await wrapper.vm.$router.push("/groups/GRP0/transactions/55fc265b-c391-4482-8d3c-096c7dc55aa9");
