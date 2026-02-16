@@ -105,7 +105,7 @@ describe("Transactions", () => {
       await input.setValue(date);
       // Send enter keyup
       await input.trigger("keyup.enter");
-      await waitFor(() => format(dateField.vm.modelValue, "MM/dd/yyyy"), date, "Date filter should update model value");
+      await waitFor(() => dateField.vm.modelValue ? format(dateField.vm.modelValue, "MM/dd/yyyy") : null, date, "Date filter should update model value");
     };
 
     const clearDateFilter = async (index: number) => {
@@ -116,7 +116,7 @@ describe("Transactions", () => {
     }
 
     // Use "start" filter
-    const yesterday = format(addDays(new Date(), -1), "MM/dd/yyyy")
+    const yesterday = format(addDays(new Date(), -1), "MM/dd/yyyy");
     await setDateFilter(0, yesterday);
     await waitFor(() => {
       const count = transactionCount();
