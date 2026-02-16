@@ -106,9 +106,5 @@ export const waitFor = async (fn: () => any, expected: any = true, message?: str
     }
   }
   // Final assertion with message.
-  if (assertionMessage) {
-    expect(fn(), assertionMessage).toBe(expected);
-  } else {
-    expect(fn()).toBe(expected);
-  }
+  expect(fn(), assertionMessage).toBe(expected);
 }
