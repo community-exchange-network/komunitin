@@ -231,7 +231,11 @@ export default {
      * Logout current user.
      */
     logout: async (context: ActionContext<UserState, never>, payload: { authorizationError?: boolean }) => {
-      await context.dispatch("unsubscribe", { unsubscribeFromServer: !(payload?.authorizationError) });
+      // Give max 2 seconds for the unsubscription to complete, but don't block logout.
+      const unsubscribe = context.dispatch("unsubscribe", { unsubscribeFromServer: !(payload?.authorizationError) });
+      const maxWait = new Promise(resolve => setTimeout(resolve, 2000));
+      await Promise.race([unsubscribe, maxWait]).catch(e => console.error(e));
+
       await auth.logout();
       context.commit("tokens", undefined);
       context.commit("myUserId", undefined);
@@ -304,27 +308,42 @@ export default {
      */
     unsubscribe: async (context: ActionContext<UserState, never>, payload: { unsubscribeFromServer?: boolean }) => {
       const { state, commit, getters } = context;
-      // 1. Unsubscribe from Browser
-      await unsubscribe();
-
-      // 2. Delete from Backend
-      const groupCode = getters.myMember?.group?.attributes.code;
-      const deleteFromBackend = (payload?.unsubscribeFromServer ?? true) && state.subscription && groupCode !== undefined;
       
-      if (deleteFromBackend) {
-        const url = `${config.NOTIFICATIONS_URL}/${groupCode}/subscriptions/${state.subscription.id}`;
-        try {
-          await apiRequest(context, url, 'delete');
-        } catch (error) {
-          if (error instanceof KError && error.code === KErrorCode.NotFound) {
-            // Ignore not found errors
-          } else {
-            throw error;
+      // Get data before clearing local state.
+      const subscription = state.subscription;
+      const groupCode = getters.myMember?.group?.attributes.code;
+
+      // Remove subscription from local state.
+      commit("subscription", undefined);
+
+      const promises = [];
+
+      // Unsubscribe from browser.
+      promises.push(unsubscribe());
+      
+      // Delete from Backend
+      const deleteFromServer = (payload?.unsubscribeFromServer ?? true) && subscription && groupCode !== undefined;
+      
+      if (deleteFromServer) {
+        const url = `${config.NOTIFICATIONS_URL}/${groupCode}/subscriptions/${subscription.id}`;
+        const serverPromise = async () => {
+          try {
+            await apiRequest(context, url, 'delete');
+          } catch (error) {
+            // Swallow not found errors.
+            if (!(error instanceof KError && error.code === KErrorCode.NotFound)) {
+              throw error;
+            }
           }
         }
+        promises.push(serverPromise());
       }
-      // 3. Remove from Vuex store
-      commit("subscription", undefined);
+      const results = await Promise.allSettled(promises);
+      // Handle errors
+      const rejected = results.find(r => r.status === 'rejected');
+      if (rejected) {
+        throw new KError(KErrorCode.ScriptError, "Failed to unsubscribe from notifications", rejected.reason);
+      }
     }
   }
 } as Module<UserState, never>;
