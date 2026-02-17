@@ -232,9 +232,11 @@ export default {
      */
     logout: async (context: ActionContext<UserState, never>, payload: { authorizationError?: boolean }) => {
       // Give max 2 seconds for the unsubscription to complete, but don't block logout.
-      const unsubscribe = context.dispatch("unsubscribe", { unsubscribeFromServer: !(payload?.authorizationError) });
+      const unsubscribePromise = context.dispatch("unsubscribe", {
+        unsubscribeFromServer: !(payload?.authorizationError)
+      }).catch(e => console.error(e));
       const maxWait = new Promise(resolve => setTimeout(resolve, 2000));
-      await Promise.race([unsubscribe, maxWait]).catch(e => console.error(e));
+      await Promise.race([unsubscribePromise, maxWait]);
 
       await auth.logout();
       context.commit("tokens", undefined);
@@ -305,6 +307,7 @@ export default {
     },
     /**
      * Unsubscribe from push notifications.
+     * This function does not throw if the unsubscription fails, but only logs the error in the console.
      */
     unsubscribe: async (context: ActionContext<UserState, never>, payload: { unsubscribeFromServer?: boolean }) => {
       const { state, commit, getters } = context;
@@ -319,7 +322,7 @@ export default {
       const promises = [];
 
       // Unsubscribe from browser.
-      promises.push(unsubscribe());
+      promises.push(unsubscribe().catch(e => console.error("Failed to unsubscribe from browser notifications", e)));
       
       // Delete from Backend
       const deleteFromServer = (payload?.unsubscribeFromServer ?? true) && subscription && groupCode !== undefined;
@@ -336,14 +339,9 @@ export default {
             }
           }
         }
-        promises.push(serverPromise());
+        promises.push(serverPromise().catch(e => console.error("Failed to unsubscribe from server notifications", e)));
       }
-      const results = await Promise.allSettled(promises);
-      // Handle errors
-      const rejected = results.find(r => r.status === 'rejected');
-      if (rejected) {
-        throw new KError(KErrorCode.ScriptError, "Failed to unsubscribe from notifications", rejected.reason);
-      }
+      await Promise.allSettled(promises);
     }
   }
 } as Module<UserState, never>;

@@ -1,11 +1,19 @@
-import { VueWrapper } from "@vue/test-utils";
-import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
-import MenuDrawer from "../../../src/components/MenuDrawer.vue";
-import { seeds } from "src/server";
-import MemberHeader from "src/components/MemberHeader.vue";
+import type { VueWrapper } from "@vue/test-utils";
 import { QList, QMenu } from "quasar";
 import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
+import { seeds } from "src/server";
+import App from "../../../src/App.vue";
+import { mountComponent, testLogin, waitFor } from "../utils";
+
+const mockUnsubscribe = vi.fn(() => Promise.resolve());
+
+vi.mock("src/plugins/Notifications", async () => {
+  const actual = await vi.importActual("../../../src/plugins/Notifications");
+  return {
+    ...actual,
+    unsubscribe: () => mockUnsubscribe(),
+  };
+});
 
 describe("Front page and login", () => {
   let wrapper: VueWrapper;
@@ -13,9 +21,12 @@ describe("Front page and login", () => {
     wrapper = await mountComponent(App);
     seeds();
     // Wait for lazy-loaded route components to load.
-    await waitFor(() => wrapper.text().includes("explore"), true, "Initial front page should load");
+    await waitFor(() => wrapper.text().includes("explore"), true, "Initial front page should load");1
   });
   afterAll(() => wrapper.unmount());
+  beforeEach(() => {
+    mockUnsubscribe.mockReset();
+  });
 
   it("has explore and login buttons", () => {
     const html = wrapper.html();
@@ -67,5 +78,19 @@ describe("Front page and login", () => {
       .trigger("click");
     await waitFor(() => wrapper.vm.$route.path, "/");
   });
+
+  it("lag in unsubscription should not block logout", async() => {
+    // Mock the browser unsubscribe() to take a long time.
+    mockUnsubscribe.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 5000)));
+    testLogin();
+    // logout
+    await wrapper.vm.$router.push("/logout");
+    // after 1 sec it should still be logging out, since the unsubscription is taking a long time.
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    expect(wrapper.vm.$route.path).toBe("/logout");
+    // But after additional 1.5 sec max, it should complete logout.
+    await waitFor(() => wrapper.vm.$route.path === "/", true, "Should navigate back to front page after logout", 1500)
+    expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
+  })
   
 });

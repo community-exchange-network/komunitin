@@ -17,14 +17,18 @@ import { auth } from '../../../src/store/me';
 import { mockToken } from 'src/server/AuthServer';
 import { type RouteLocationRaw } from 'vue-router';
 
+export function testLogin() {
+  // This call actually saves the mocked token in LocalStorage.
+  auth.processTokenResponse(mockToken(Auth.SCOPES));
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true }): Promise<VueWrapper> {
   LocalStorage.clear();
 
   // Login state. We must do that before createStore().
   if (options?.login) {
-    // This call actually saves the mocked token in LocalStorage.
-    auth.processTokenResponse(mockToken(Auth.SCOPES));
+    testLogin();  
   }
 
   // Set the router mode to "history", as we have in our Quasar config file.
