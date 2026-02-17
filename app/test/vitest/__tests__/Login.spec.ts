@@ -21,7 +21,7 @@ describe("Front page and login", () => {
     wrapper = await mountComponent(App);
     seeds();
     // Wait for lazy-loaded route components to load.
-    await waitFor(() => wrapper.text().includes("explore"), true, "Initial front page should load");1
+    await waitFor(() => wrapper.text().includes("explore"), true, "Initial front page should load");
   });
   afterAll(() => wrapper.unmount());
   beforeEach(() => {
