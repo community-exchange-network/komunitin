@@ -34,10 +34,10 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
   const { recipient, member, account, bestOffers, bestNeeds, group, currency, stats, accountSection, appUrl } = ctx;
   const i18n = await initI18n();
 
-  
   const lng = recipient.language;
-  const subject = i18n.t('newsletter.subject', { lng, group: group.attributes.name });
-  const greetingName = member.attributes.name.trim();
+  const groupName = group.attributes.name;
+  const groupCode = group.attributes.code;
+  const subject = i18n.t('newsletter.subject', { lng, group: groupName });
 
   // Prepare view data
   const balance = account.attributes.balance;
@@ -54,7 +54,7 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
   // Helper to build full URLs
   const buildUrl = (path: string) => {
     // Replace :code placeholder with actual group code
-    const resolvedPath = path.replace(':code', group.attributes.code);
+    const resolvedPath = path.replace(':code', groupCode);
     return `${appUrl}${resolvedPath}`;
   };
 
@@ -75,15 +75,22 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
       ? `${appUrl}/unsubscribe?token=${recipient.unsubscribeToken}`
       : undefined,
     appUrl,
-    group,
-    member,
+    appName: i18n.t('app_name', { lng }),
+    group: {
+      name: groupName,
+      code: groupCode,
+      image: group.attributes.image,
+      initial: groupName.charAt(0).toUpperCase(),
+    },
+    member: {
+      code: member.attributes.code,
+      name: member.attributes.name,
+    },
     subject,
-    greetingName,
     formattedBalance,
     balanceAdvice,
     activitySummary,
     accountAlert,
-    groupNameInitial: group.attributes.name.charAt(0).toUpperCase(),
     bestOffers: bestOffers.map(mapItemToTemplateItem),
     bestNeeds: bestNeeds.map(mapItemToTemplateItem),
     stats,

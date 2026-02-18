@@ -21,18 +21,28 @@ export interface NewsletterTemplateItem extends ProcessedItem {
   distanceLabel?: string;
 }
 
+export interface NewsletterTemplateGroup {
+  name: string;
+  code: string;
+  image?: string;
+  initial: string;
+}
+
+export interface NewsletterTemplateMember {
+  code: string;
+  name: string;
+}
+
 export interface NewsletterTemplateContext extends TemplateContext {
   unsubscribeUrl?: string;
   appUrl: string;
-  group: Group;
-  member: Member;
+  group: NewsletterTemplateGroup;
+  member: NewsletterTemplateMember;
   subject: string;
-  greetingName: string;
   formattedBalance: string;
   balanceAdvice: string;
   activitySummary: string | null;
   accountAlert: NewsletterTemplateAlert | null;
-  groupNameInitial: string;
   bestOffers: NewsletterTemplateItem[];
   bestNeeds: NewsletterTemplateItem[];
   stats: Stats;

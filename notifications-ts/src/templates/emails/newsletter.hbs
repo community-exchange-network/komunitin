@@ -4,7 +4,7 @@
 <!-- Greeting -->
 {{#> section }}
   <div style="font-size: 20px; color: #333; margin-bottom: 10px;">
-    {{t "newsletter.hello" name=greetingName}}
+    {{t "newsletter.hello" name=member.name}}
   </div>
   <div style="font-size: 15px; color: #666; line-height: 1.6;">
     {{t "newsletter.intro"}}
@@ -18,7 +18,7 @@
     <table width="100%" border="0" cellspacing="0" cellpadding="0">
       <tr>
         <td style="font-size: 17px; font-weight: 600; color: #333;">{{t "newsletter.offers_header"}}</td>
-        <td align="right"><a href="{{appUrl}}/groups/{{group.attributes.code}}/offers"
+        <td align="right"><a href="{{appUrl}}/groups/{{group.code}}/offers"
             style="font-size: 13px; color: #888888; text-decoration: none;">{{t
             "newsletter.all_offers"}} →</a></td>
       </tr>
@@ -77,7 +77,7 @@
     <table width="100%" border="0" cellspacing="0" cellpadding="0">
       <tr>
         <td style="font-size: 17px; font-weight: 600; color: #333;">{{t "newsletter.needs_header"}}</td>
-        <td align="right"><a href="{{appUrl}}/groups/{{group.attributes.code}}/needs"
+        <td align="right"><a href="{{appUrl}}/groups/{{group.code}}/needs"
             style="font-size: 13px; color: #888888; text-decoration: none;">{{t
             "newsletter.all_needs"}} →</a></td>
       </tr>
@@ -139,7 +139,7 @@
       </a>
     </div>
     <div style="text-align: center; margin-top: 18px;">
-      <a href="{{appUrl}}/groups/{{group.attributes.code}}/offers/new"
+      <a href="{{appUrl}}/groups/{{group.code}}/offers/new"
         style="color: #72A310; font-size: 14px; font-weight: 600; text-decoration: none;">
         {{t "newsletter.cta_secondary"}}
       </a>
@@ -173,7 +173,7 @@
               {{/if}}
               {{balanceAdvice}}
               <div style="margin-top: 5px;">
-                <a href="{{appUrl}}/groups/{{group.attributes.code}}/members/{{member.attributes.code}}/transactions"
+                <a href="{{appUrl}}/groups/{{group.code}}/members/{{member.code}}/transactions"
                   style="color: #33691e; font-weight: bold; text-decoration: none; font-size: 12px;">
                   {{t "newsletter.view_movements"}}
                 </a>
@@ -209,7 +209,7 @@
   <td class="mobile-pad" style="padding: 25px 30px; border-top: 1px solid #eeeeee;">
     <h3
       style="text-align: center; color: #757575; margin: 0 0 22px 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px;">
-      {{t "newsletter.stats_title" group=group.attributes.name}}
+      {{t "newsletter.stats_title" group=group.name}}
     </h3>
     <table width="100%" border="0" cellspacing="0" cellpadding="0">
       <tr>
@@ -245,5 +245,5 @@
     </table>
   </td>
 </tr>
-{{> footer reason=(t "newsletter.footer_reason") settings=(t "newsletter.manage_subscription") unsubscribe=(t "newsletter.unsubscribe")}}
+{{> footer reason=(t "newsletter.footer_reason" group=group.name appName=appName) settingsLabel=(t "newsletter.manage_subscription") unsubscribeLabel=(t "newsletter.unsubscribe")}}
 {{/main}}
