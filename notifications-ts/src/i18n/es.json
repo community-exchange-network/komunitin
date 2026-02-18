@@ -44,7 +44,7 @@
     "stats_exchanges": "Movimientos",
     "stats_active_accounts": "Cuentas activas",
     "stats_new_members": "Nuevos miembros",
-    "footer_reason": "Recibes este correo como miembro activo de <strong>Komunitin</strong>.",
+    "footer_reason": "Recibes este correo porque estás suscrito al boletín de {{group}} en {{appName}}.",
     "manage_subscription": "Configuración de la cuenta",
     "unsubscribe": "Darse de baja del boletín"
   },

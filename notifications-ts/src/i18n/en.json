@@ -44,7 +44,7 @@
     "stats_exchanges": "Transfers",
     "stats_active_accounts": "Active Accounts",
     "stats_new_members": "New Members",
-    "footer_reason": "You are receiving this email as an active member of <strong>Komunitin</strong>.",
+    "footer_reason": "You are receiving this email because you are subscribed to the newsletter of {{group}} in {{appName}}.",
     "manage_subscription": "Account settings",
     "unsubscribe": "Unsubscribe from newsletter"
   },
