@@ -68,7 +68,13 @@ export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
   currency: Currency;
   users: Array<{ user: User; settings: UserSettings }>;
 };
-  
+
+export type EnrichedUserEvent = NotificationEvent & {
+  name: 'UserRequestedEmailValidation' | 'UserRequestedPasswordReset';
+  // user is already taken.
+  target: { user: User; settings: UserSettings };
+  token: string;
+};
 
 export type EnrichedEvent =
   | EnrichedGroupEvent
@@ -77,4 +83,5 @@ export type EnrichedEvent =
   | EnrichedTransferEvent
   | EnrichedPostsPublishedDigestEvent
   | EnrichedMembersJoinedDigestEvent
-  | EnrichedMemberHasNoPostsEvent;
+  | EnrichedMemberHasNoPostsEvent
+  | EnrichedUserEvent;

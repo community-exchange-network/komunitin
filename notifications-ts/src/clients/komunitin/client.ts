@@ -201,6 +201,11 @@ export class KomunitinClient {
     return res.data;
   }
 
+  public async getUser(userId: string): Promise<User> {
+    const res = await this.get('social', `/users/${userId}`);
+    return res.data;
+  }
+
   public async getUserSettings(userId: string): Promise<UserSettings> {
     const res = await this.get('social', `/users/${userId}/settings`);
     return res.data;
