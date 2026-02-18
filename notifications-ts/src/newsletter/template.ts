@@ -1,32 +1,12 @@
-import fs from 'fs/promises';
-import Handlebars from 'handlebars';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { formatAmount } from '../utils/format';
 import initI18n from '../utils/i18n';
-import logger from '../utils/logger';
 import { NewsletterContext } from './types';
+import { renderTemplate } from '../utils/email-template';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Helper to truncate text
 const truncate = (str: string, length: number) => {
   return str.length > length ? str.substring(0, length) + '...' : str;
-};
-
-let templateCache: Handlebars.TemplateDelegate | null = null;
-
-const loadTemplate = async () => {
-  if (templateCache) return templateCache;
-  try {
-    const templatePath = path.join(__dirname, 'templates', 'newsletter.hbs');
-    const source = await fs.readFile(templatePath, 'utf-8');
-    templateCache = Handlebars.compile(source);
-    return templateCache;
-  } catch (err) {
-    logger.error({ err }, 'Failed to load newsletter template');
-    throw err;
-  }
 };
 
 export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<string> => {
@@ -35,14 +15,8 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
 
   
   const lng = recipient.language;
-  const unknownMemberName = i18n.t('newsletter.unknown_member', { lng });
-
-  // Register 't' helper for this render
-  Handlebars.registerHelper('t', (key, options) => {
-    return i18n.t(key, { lng, ...options.hash });
-  });
-
-  const template = await loadTemplate();
+  const subject = i18n.t('newsletter.subject', { lng, group: group.attributes.name });
+  const greetingName = ctx.member.attributes.name.trim();
 
   // Prepare view data
   const balance = account.attributes.balance;
@@ -84,16 +58,18 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
 
   const viewData = {
     ...ctx,
+    subject,
+    greetingName,
     formattedBalance,
     balanceText,
     activityText,
     alert: alertData,
-    groupInitial: group.attributes.name?.charAt(0).toUpperCase() || '?',
+    groupInitial: group.attributes.name.charAt(0).toUpperCase(),
     bestOffers: bestOffers.map(item => ({
       ...item,
       description: truncate(item.description || '', 80),
       title: truncate(item.title || '', 40),
-      authorName: item.author?.name?.trim() ? item.author.name : unknownMemberName,
+      authorName: item?.author?.name ?? "",
       formattedDistance: formatDistance(item.distance),
       link: item.link
     })),
@@ -101,11 +77,13 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
       ...item,
       description: truncate(item.description || '', 80),
       title: truncate(item.title || '', 40),
-      authorName: item.author?.name?.trim() ? item.author.name : unknownMemberName,
+      authorName: item?.author?.name ?? "",
       formattedDistance: formatDistance(item.distance),
       link: item.link
     })),
   };
 
-  return template(viewData);
+  const html = await renderTemplate('newsletter', viewData);
+
+  return html;
 };
