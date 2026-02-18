@@ -268,12 +268,11 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
         // Send Email
         const lng = userSettings.attributes.language || 'en';
         const subject = i18n.t('newsletter.subject', { lng, group: group.attributes.name });
-        const unsubscribeUrl = `${config.KOMUNITIN_SOCIAL_PUBLIC_URL}/users/me/unsubscribe?token=${unsubscribeToken}`;
         await mailer.sendEmail({
           to: user.attributes.email,
           subject,
           html,
-          unsubscribeUrl
+          token: unsubscribeToken
         })
         logger.info({ user: user.id }, 'Newsletter sent');
         sentRecipients.push({ userId: user.id, email: user.attributes.email });

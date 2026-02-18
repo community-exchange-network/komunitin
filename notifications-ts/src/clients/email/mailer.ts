@@ -1,10 +1,11 @@
 import nodemailer from 'nodemailer';
 import { config } from '../../config';
 import logger from '../../utils/logger';
+import { convert as htmlToText } from 'html-to-text';
 import * as fs from 'fs';
 import * as path from 'path';
 
-function saveEmail(message: EmailMessage): void {
+function saveEmail(message: EmailOptions): void {
   const outputDir = './tmp/emails';
   const datetime = new Date().toISOString().replace(/[:.]/g, '-');
   const filename = `${message.to}-${datetime}.html`;
@@ -17,13 +18,15 @@ function saveEmail(message: EmailMessage): void {
   logger.info({ filepath, to: message.to }, 'Email saved to file (dev mode)');
 }
 
-export type EmailMessage = {
+export type EmailOptions = {
   from?: string;
   to: string;
   subject: string;
   html: string;
-  unsubscribeUrl?: string;
+  text?: string;
+  token?: string;
 };
+
 
 export class Mailer {
   private transporter: nodemailer.Transporter | null = null;
@@ -42,7 +45,18 @@ export class Mailer {
     }
   }
 
-  public async sendEmail(message: EmailMessage): Promise<void> {
+  /**
+   * Sends an email using the configured SMTP transporter. 
+   * 
+   * If DEV_SAVE_NEWSLETTERS is enabled, the email content will also be saved to a local file.
+   * If SMTP is not configured, the method will log a warning and skip sending the email.
+   * If a token is provided, List-Unsubscribe headers will be added for one-click unsubscribe functionality.
+   * If text is not provided, it will be auto-generated from the HTML content.
+   * 
+   * @param message 
+   * @returns 
+   */
+  public async sendEmail(message: EmailOptions): Promise<void> {
     if (config.DEV_SAVE_NEWSLETTERS) {
       saveEmail(message);
     }
@@ -51,18 +65,22 @@ export class Mailer {
       logger.warn({ to: message.to }, 'SMTP not configured, skipping email send');
       return;
     }
+
+    const text = message.text ?? htmlToText(message.html);
     
     const mailOptions: nodemailer.SendMailOptions = {
       from: config.APP_EMAIL,
       to: message.to,
       subject: message.subject,
       html: message.html,
+      text,
     };
 
     // Add List-Unsubscribe headers for one-click unsubscribe (RFC 8058)
-    if (message.unsubscribeUrl) {
+    if (message.token) {
+      const unsubscribeUrl = `${config.KOMUNITIN_SOCIAL_PUBLIC_URL}/users/me/unsubscribe?token=${message.token}`;
       mailOptions.headers = {
-        'List-Unsubscribe': `<${message.unsubscribeUrl}>`,
+        'List-Unsubscribe': `<${unsubscribeUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       };
     }
