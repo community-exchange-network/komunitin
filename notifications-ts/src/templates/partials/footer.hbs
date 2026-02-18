@@ -1,0 +1,15 @@
+<tr>
+  <td
+    style="padding: 35px 30px; background-color: #333333; color: #9e9e9e; font-size: 12px; text-align: center; line-height: 1.7;">
+    <img src="{{appUrl}}/logos/logo-200.png" alt="Komunitin" width="100" style="margin-bottom: 18px;">
+    <p style="margin: 0 0 12px 0;">{{{reason}}}</p>
+    <p style="margin: 0;">
+      <a href="{{appUrl}}/settings" style="color: #9e9e9e; text-decoration: underline;">{{settings}}</a>
+      &nbsp;·&nbsp;
+      {{#if recipient.unsubscribeToken}}
+      <a href="{{appUrl}}/unsubscribe?token={{recipient.unsubscribeToken}}"
+        style="color: #9e9e9e; text-decoration: underline;">{{unsubscribe}}</a>
+      {{/if}}
+    </p>
+  </td>
+</tr>
