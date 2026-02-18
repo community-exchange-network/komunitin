@@ -9,7 +9,6 @@ import path from 'path';
 
 
 import initI18n from './i18n';
-import { Group } from '../clients/komunitin/types';
 
 const templateCache = new Map<string, Handlebars.TemplateDelegate>();
 const templateDir = fileURLToPath(new URL('../templates', import.meta.url));
@@ -76,14 +75,10 @@ const loadTemplate = async (name: string): Promise<Handlebars.TemplateDelegate> 
 }
 
 export interface TemplateContext {
-  appUrl: string;
-  recipient: {
-    userId: string;
-    email: string;
-    language: string;
-    unsubscribeToken?: string;
-  }
-  group: Group;
+  // Lang code to use for translations.
+  language: string;
+
+  // Template-specific variables
   [key: string]: unknown;
 }
 
@@ -92,7 +87,7 @@ export const renderTemplate = async (name: string, context: TemplateContext): Pr
   const template = await loadTemplate(name);
   
   // Translation setup
-  const lng = context.recipient.language;
+  const lng = context.language;
   const i18n = await initI18n();
   const helpers = {
     t: (key: string, options: any) => {

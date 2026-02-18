@@ -6,8 +6,8 @@
     <p style="margin: 0;">
       <a href="{{appUrl}}/settings" style="color: #9e9e9e; text-decoration: underline;">{{settings}}</a>
       &nbsp;·&nbsp;
-      {{#if recipient.unsubscribeToken}}
-      <a href="{{appUrl}}/unsubscribe?token={{recipient.unsubscribeToken}}"
+      {{#if unsubscribeUrl}}
+      <a href="{{unsubscribeUrl}}"
         style="color: #9e9e9e; text-decoration: underline;">{{unsubscribe}}</a>
       {{/if}}
     </p>

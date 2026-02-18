@@ -1,6 +1,16 @@
 {{#> main }}
 {{> header }}
-{{> intro greeting=(t "newsletter.hello" name=greetingName) text=(t "newsletter.intro")}}
+
+<!-- Greeting -->
+{{#> section }}
+  <div style="font-size: 20px; color: #333; margin-bottom: 10px;">
+    {{t "newsletter.hello" name=greetingName}}
+  </div>
+  <div style="font-size: 15px; color: #666; line-height: 1.6;">
+    {{t "newsletter.intro"}}
+  </div>
+{{/section}}
+
 <!-- Best Offers -->
 {{#if bestOffers}}
 <tr>
@@ -9,7 +19,7 @@
       <tr>
         <td style="font-size: 17px; font-weight: 600; color: #333;">{{t "newsletter.offers_header"}}</td>
         <td align="right"><a href="{{appUrl}}/groups/{{group.attributes.code}}/offers"
-            style="font-size: 13px; color: #888888; text-decoration: none; font-weight: 500;">{{t
+            style="font-size: 13px; color: #888888; text-decoration: none;">{{t
             "newsletter.all_offers"}} →</a></td>
       </tr>
     </table>
@@ -42,11 +52,11 @@
                 {{else}}
                 <span style="font-size: 14px; vertical-align: middle; margin-right: 2px;">👤</span>
                 {{/if}}
-                <span style="vertical-align: middle;">{{authorName}}</span>
-                {{#if formattedDistance}}
+                <span style="vertical-align: middle;">{{authorDisplayName}}</span>
+                {{#if distanceLabel}}
                 <span style="vertical-align: middle; margin: 0 3px;">·</span>
                 <span style="font-size: 14px; vertical-align: middle; color: #e53935;">📍</span> <span
-                  style="vertical-align: middle;">{{formattedDistance}}</span>
+                  style="vertical-align: middle;">{{distanceLabel}}</span>
                 {{/if}}
               </div>
             </div>
@@ -68,7 +78,7 @@
       <tr>
         <td style="font-size: 17px; font-weight: 600; color: #333;">{{t "newsletter.needs_header"}}</td>
         <td align="right"><a href="{{appUrl}}/groups/{{group.attributes.code}}/needs"
-            style="font-size: 13px; color: #888888; text-decoration: none; font-weight: 500;">{{t
+            style="font-size: 13px; color: #888888; text-decoration: none;">{{t
             "newsletter.all_needs"}} →</a></td>
       </tr>
     </table>
@@ -101,11 +111,11 @@
                 {{else}}
                 <span style="font-size: 14px; vertical-align: middle; margin-right: 2px;">👤</span>
                 {{/if}}
-                <span style="vertical-align: middle;">{{authorName}}</span>
-                {{#if formattedDistance}}
+                <span style="vertical-align: middle;">{{authorDisplayName}}</span>
+                {{#if distanceLabel}}
                 <span style="vertical-align: middle; margin: 0 3px;">·</span>
                 <span style="font-size: 14px; vertical-align: middle; color: #e53935;">📍</span> <span
-                  style="vertical-align: middle;">{{formattedDistance}}</span>
+                  style="vertical-align: middle;">{{distanceLabel}}</span>
                 {{/if}}
               </div>
             </div>
@@ -158,10 +168,10 @@
           <td class="dashboard-col" width="65%"
             style="vertical-align: middle; border-left: 1px solid #dcedc8; padding-left: 20px;">
             <div style="font-size: 14px; color: #558b2f; line-height: 1.4;">
-              {{#if activityText}}
-              <div style="margin-bottom: 6px; font-weight: 600;">{{activityText}}</div>
+              {{#if activitySummary}}
+              <div style="margin-bottom: 6px; font-weight: 600;">{{activitySummary}}</div>
               {{/if}}
-              {{balanceText}}
+              {{balanceAdvice}}
               <div style="margin-top: 5px;">
                 <a href="{{appUrl}}/groups/{{group.attributes.code}}/members/{{member.attributes.code}}/transactions"
                   style="color: #33691e; font-weight: bold; text-decoration: none; font-size: 12px;">
@@ -174,18 +184,18 @@
       </table>
     </div>
 
-    {{#if alert}}
+    {{#if accountAlert}}
     <div
       style="margin-top: 18px; background-color: #fff8e1; border: 1px solid #ffecb3; border-radius: 8px; padding: 18px;">
       <table width="100%" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="30" valign="top" style="font-size: 24px; line-height: 1;">⚠️</td>
           <td valign="top" style="padding-left: 15px;">
-            <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; color: #ef6c00;">{{alert.title}}</div>
-            <div style="font-size: 14px; color: #333; margin-bottom: 12px; line-height: 1.5;">{{alert.text}}</div>
+            <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; color: #ef6c00;">{{accountAlert.title}}</div>
+            <div style="font-size: 14px; color: #333; margin-bottom: 12px; line-height: 1.5;">{{accountAlert.text}}</div>
             <div>
-              <a href="{{alert.actionUrl}}"
-                style="background-color: #ff8f00; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block;">{{alert.actionText}}</a>
+              <a href="{{accountAlert.actionUrl}}"
+                style="background-color: #ff8f00; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block;">{{accountAlert.actionText}}</a>
             </div>
           </td>
         </tr>
