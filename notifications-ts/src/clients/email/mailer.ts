@@ -4,18 +4,26 @@ import logger from '../../utils/logger';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export function saveNewsletter(memberCode: string, html: string): void {
-  const outputDir = './tmp/newsletters';
+function saveEmail(message: EmailMessage): void {
+  const outputDir = './tmp/emails';
   const datetime = new Date().toISOString().replace(/[:.]/g, '-');
-  const filename = `${memberCode}-${datetime}.html`;
+  const filename = `${message.to}-${datetime}.html`;
   const filepath = path.join(outputDir, filename);
   
   // Ensure directory exists
   fs.mkdirSync(outputDir, { recursive: true });
-  fs.writeFileSync(filepath, html);
+  fs.writeFileSync(filepath, message.html);
   
-  logger.info({ filepath, memberCode }, 'Newsletter saved to file (dev mode)');
+  logger.info({ filepath, to: message.to }, 'Email saved to file (dev mode)');
 }
+
+export type EmailMessage = {
+  from?: string;
+  to: string;
+  subject: string;
+  html: string;
+  unsubscribeUrl?: string;
+};
 
 export class Mailer {
   private transporter: nodemailer.Transporter | null = null;
@@ -34,32 +42,36 @@ export class Mailer {
     }
   }
 
-  public async sendNewsletter(to: string, subject: string, html: string, unsubscribeUrl?: string): Promise<void> {
+  public async sendEmail(message: EmailMessage): Promise<void> {
+    if (config.DEV_SAVE_NEWSLETTERS) {
+      saveEmail(message);
+    }
+    
     if (!this.transporter) {
-      logger.warn({ to }, 'SMTP not configured, skipping email send');
+      logger.warn({ to: message.to }, 'SMTP not configured, skipping email send');
       return;
     }
-
+    
     const mailOptions: nodemailer.SendMailOptions = {
       from: config.APP_EMAIL,
-      to,
-      subject,
-      html,
+      to: message.to,
+      subject: message.subject,
+      html: message.html,
     };
 
     // Add List-Unsubscribe headers for one-click unsubscribe (RFC 8058)
-    if (unsubscribeUrl) {
+    if (message.unsubscribeUrl) {
       mailOptions.headers = {
-        'List-Unsubscribe': `<${unsubscribeUrl}>`,
+        'List-Unsubscribe': `<${message.unsubscribeUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       };
     }
 
     try {
       const info = await this.transporter.sendMail(mailOptions);
-      logger.info({ messageId: info.messageId, to }, 'Newsletter sent');
+      logger.info({ messageId: info.messageId, to: message.to }, 'Email sent');
     } catch (error) {
-      logger.error({ err: error, to }, 'Failed to send newsletter');
+      logger.error({ err: error, to: message.to }, 'Failed to send email');
       throw error;
     }
   }

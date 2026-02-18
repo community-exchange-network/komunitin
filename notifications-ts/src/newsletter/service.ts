@@ -1,5 +1,5 @@
 import { KomunitinClient } from '../clients/komunitin/client';
-import { Mailer, saveNewsletter } from '../clients/email/mailer';
+import { Mailer } from '../clients/email/mailer';
 import { generateNewsletterHtml } from './template';
 import logger from '../utils/logger';
 import { config } from '../config';
@@ -265,15 +265,16 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       const html = await generateNewsletterHtml(context);
 
       try {
-        // Dev mode: save to file
-        if (config.DEV_SAVE_NEWSLETTERS) {
-          saveNewsletter(member.attributes.code, html);
-        }
         // Send Email
         const lng = userSettings.attributes.language || 'en';
         const subject = i18n.t('newsletter.subject', { lng, group: group.attributes.name });
         const unsubscribeUrl = `${config.KOMUNITIN_SOCIAL_PUBLIC_URL}/users/me/unsubscribe?token=${unsubscribeToken}`;
-        await mailer.sendNewsletter(user.attributes.email, subject, html, unsubscribeUrl);
+        await mailer.sendEmail({
+          to: user.attributes.email,
+          subject,
+          html,
+          unsubscribeUrl
+        })
         logger.info({ user: user.id }, 'Newsletter sent');
         sentRecipients.push({ userId: user.id, email: user.attributes.email });
       } catch (err) {
