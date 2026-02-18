@@ -1,9 +1,12 @@
-<!-- Greeting -->
+<!-- Greeting and text body -->
 {{#> section }}
-  <div style="font-size: 24px; color: #333; margin-bottom: 10px; font-weight: 500;">
-    {{greeting}}
-  </div>
-  <div style="font-size: 15px; color: #666; line-height: 1.6;">
-    {{text}}
+  <div style="font-size: 15px; line-height: 1.6;">
+    {{#if greeting}}
+    <p style="color: #333333;">{{greeting}}</p>
+    {{/if}}
+
+    {{#each paragraphs}}
+    <p style="color: #555555;">{{{this}}}</p>
+    {{/each}}
   </div>
 {{/section}}
