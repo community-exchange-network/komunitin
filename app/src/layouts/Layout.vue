@@ -33,7 +33,7 @@
             >
               <q-route-tab :to="{ name: 'Home' }" name="home" icon="home" :label="t('home')" />
               <q-route-tab :to="{ name: 'TransactionList', params: { code: groupCode, memberCode: myMember.attributes.code}}" name="account" icon="account_balance_wallet" :label="t('transactions')" />
-              <q-route-tab :to="{ name: 'MemberList', params: { code: groupCode }}" name="group" icon="people" :label="t('members')" />
+              <q-route-tab :to="{ name: 'Group', params: { code: groupCode }}" name="group" icon="people" :label="t('group')" />
             </q-tabs>
           </q-toolbar>
         </q-footer>
