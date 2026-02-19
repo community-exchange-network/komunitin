@@ -198,7 +198,6 @@ export default defineComponent({
   setup() {
     const ready = ref(false);
     const isDescriptionOpen = ref(false);
-    const map = ref();
     return {
       link(link: string): string {
         return link.replace(/(https|http):\/\//, "");
@@ -206,7 +205,6 @@ export default defineComponent({
       md2html,
       ready,
       isDescriptionOpen,
-      map
     }
   },
   data() {
@@ -244,7 +242,6 @@ export default defineComponent({
       return this.center
     },
     memberMarkers(): LatLngExpression[] {
-      console.log('accessing memberMarkers - members:', this.group?.members?.length);
       return this.group?.members?.map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
         .filter(Boolean) || [];
     },
@@ -271,7 +268,7 @@ export default defineComponent({
     async fetchGroup(code: string) {
       return this.$store.dispatch("groups/load", {
         group: code,
-        include: `currency,contacts,categories${this.own ? ',members' : ''}`
+        include: `currency,contacts,categories${this.isLoggedIn ? ',members' : ''}`
       });
     },
     // Categories info.
