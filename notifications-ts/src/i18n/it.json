@@ -50,6 +50,7 @@
   },
   "offer": "Offerta",
   "need": "Necessità",
+  "app_name": "Komunitin",
   "notifications": {
     "post_expired_title": "{{type}} scaduta",
     "post_expired_body": "La tua {{type}} '{{excerpt}}' è scaduta ed è ora nascosta, ma puoi riattivarla.",
