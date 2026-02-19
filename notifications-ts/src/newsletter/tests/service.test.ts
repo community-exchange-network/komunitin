@@ -2,18 +2,13 @@ import { test, describe, before, after, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert';
 import { server } from '../../mocks/server';
 import { http, HttpResponse } from 'msw';
-// Mock nodemailer to prevent actual email sending
-import nodemailer from 'nodemailer';
 import prisma from '../../utils/prisma';
 import { mockDate, restoreDate } from '../../mocks/date';
 import { mockDb } from '../../mocks/prisma';
 import { mockRedis } from '../../mocks/redis';
+import { mockEmail } from '../../mocks/email';
 
-// Mock nodemailer
-const sendMailMock = test.mock.fn((_options: any) => Promise.resolve({ messageId: 'mock-id' }));
-nodemailer.createTransport = test.mock.fn(() => ({
-  sendMail: sendMailMock
-})) as any;
+const email = mockEmail();
 
 // Mock Prisma
 const { newsletterLog } = mockDb();
@@ -32,7 +27,7 @@ describe('Newsletter Cron Job', () => {
   
   beforeEach(() => {
     server.resetHandlers();
-    sendMailMock.mock.resetCalls();
+    email.reset();
     newsletterLog.length = 0;
     // @ts-ignore
     prisma.newsletterLog.create.mock.resetCalls();
@@ -52,10 +47,9 @@ describe('Newsletter Cron Job', () => {
     await runNewsletter();
 
     // Verify emails were sent
-    assert.ok(sendMailMock.mock.calls.length > 0, 'Should send at least one email');
+    assert.ok(email.sentEmails.length > 0, 'Should send at least one email');
 
-    const firstCall = sendMailMock.mock.calls[0];
-    const emailOptions = firstCall.arguments[0] as any;
+    const emailOptions = email.sentEmails[0];
 
     assert.ok(emailOptions.to, 'Email should have a recipient');
     assert.ok(emailOptions.subject, 'Email should have a subject');
@@ -102,14 +96,14 @@ describe('Newsletter Cron Job', () => {
       })
     );
 
-    sendMailMock.mock.resetCalls();
+    email.reset();
     // @ts-ignore
     prisma.newsletterLog.create.mock.resetCalls();
 
     await runNewsletter();
 
     // Verify no emails were sent
-    assert.strictEqual(sendMailMock.mock.calls.length, 0, 'Should not send any emails when enableGroupEmail is false');
+    assert.strictEqual(email.sentEmails.length, 0, 'Should not send any emails when enableGroupEmail is false');
     
     // Verify no logs were created
     assert.strictEqual(

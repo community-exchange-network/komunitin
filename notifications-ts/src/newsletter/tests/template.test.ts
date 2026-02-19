@@ -15,12 +15,12 @@ import assert from 'node:assert';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import nodemailer from 'nodemailer';
 import prisma from '../../utils/prisma';
 import { server } from '../../mocks/server';
 import { mockDate, restoreDate } from '../../mocks/date';
 import { mockDb } from '../../mocks/prisma';
 import { mockRedis } from '../../mocks/redis';
+import { mockEmail } from '../../mocks/email';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const snapshotDir = path.join(__dirname, 'snapshots');
@@ -37,13 +37,8 @@ function assertOrUpdate(actual: string, snapshotFile: string, message: string) {
   }
 }
 
-// Mock nodemailer before importing the service (which constructs the Mailer)
-const sendMailMock = test.mock.fn((_options: any) => Promise.resolve({ messageId: 'mock-id' }));
-nodemailer.createTransport = test.mock.fn(() => ({
-  sendMail: sendMailMock,
-})) as any;
-
-// Mock Prisma and Redis
+// Mock nodemailer, Prisma and Redis
+const email = mockEmail();
 const { newsletterLog } = mockDb();
 const { reset: resetRedis } = mockRedis();
 
@@ -60,7 +55,7 @@ describe('Newsletter Template Snapshots', () => {
 
   beforeEach(() => {
     server.resetHandlers();
-    sendMailMock.mock.resetCalls();
+    email.reset();
     newsletterLog.length = 0;
     // @ts-ignore
     prisma.newsletterLog.create.mock.resetCalls();
@@ -79,8 +74,8 @@ describe('Newsletter Template Snapshots', () => {
 
     await runNewsletter({ groupCode: 'GRP1', memberCode: 'userGRP10' });
 
-    assert.strictEqual(sendMailMock.mock.calls.length, 1, 'Should send exactly one email for the target member');
-    const emailOptions = sendMailMock.mock.calls[0].arguments[0] as any;
+    assert.strictEqual(email.sentEmails.length, 1, 'Should send exactly one email for the target member');
+    const emailOptions = email.lastEmail();
 
     assertOrUpdate(
       emailOptions.html,
@@ -95,8 +90,8 @@ describe('Newsletter Template Snapshots', () => {
 
     await runNewsletter({ groupCode: 'GRP1', memberCode: 'userGRP10' });
 
-    assert.strictEqual(sendMailMock.mock.calls.length, 1, 'Should send exactly one email for the target member');
-    const emailOptions = sendMailMock.mock.calls[0].arguments[0] as any;
+    assert.strictEqual(email.sentEmails.length, 1, 'Should send exactly one email for the target member');
+    const emailOptions = email.lastEmail();
 
     assertOrUpdate(
       emailOptions.text,
