@@ -70,7 +70,7 @@ export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
 };
 
 export type EnrichedUserEvent = NotificationEvent & {
-  name: 'UserRequestedEmailValidation' | 'UserRequestedPasswordReset';
+  name: 'ValidationEmailRequested' | 'PasswordResetRequested';
   // user is already taken.
   target: { user: User; settings: UserSettings };
   token: string;

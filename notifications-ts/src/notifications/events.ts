@@ -16,8 +16,8 @@ export const EVENT_NAME = {
   PostsPublishedDigest: 'PostsPublishedDigest',
   MembersJoinedDigest: 'MembersJoinedDigest',
   MemberHasNoPosts: 'MemberHasNoPosts',
-  UserRequestedEmailValidation: 'UserRequestedEmailValidation',
-  UserRequestedPasswordReset: 'UserRequestedPasswordReset',
+  ValidationEmailRequested: 'ValidationEmailRequested',
+  PasswordResetRequested: 'PasswordResetRequested',
 
 } as const;
 
@@ -81,8 +81,8 @@ export type GroupEvent = NotificationEvent & {
 
 export type UserEvent = NotificationEvent & {
   name: 
-    | typeof EVENT_NAME.UserRequestedEmailValidation
-    | typeof EVENT_NAME.UserRequestedPasswordReset;
+    | typeof EVENT_NAME.ValidationEmailRequested
+    | typeof EVENT_NAME.PasswordResetRequested;
   data: {
     // That should usually be the same as the user field, 
     // but we keep it separate in case we want to trigger 

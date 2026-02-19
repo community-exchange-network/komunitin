@@ -92,8 +92,8 @@ export const dispatchEvent = async (event: NotificationEvent): Promise<void> => 
     case EVENT_NAME.GroupActivated:
       return handleGroupEvent(event as GroupEvent);
 
-    case EVENT_NAME.UserRequestedEmailValidation:
-    case EVENT_NAME.UserRequestedPasswordReset:
+    case EVENT_NAME.ValidationEmailRequested:
+    case EVENT_NAME.PasswordResetRequested:
       return handleUserEvent(event as UserEvent);
 
     default:

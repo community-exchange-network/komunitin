@@ -13,10 +13,10 @@ export const initEmailChannel = (): (() => void) => {
 
 
     // User events
-    eventBus.on(EVENT_NAME.UserRequestedEmailValidation, async (event: EnrichedUserEvent) => 
+    eventBus.on(EVENT_NAME.ValidationEmailRequested, async (event: EnrichedUserEvent) => 
       handleEmailEvent(event, [event.target], "message", ctxValidationEmail
     )),
-    eventBus.on(EVENT_NAME.UserRequestedPasswordReset, async (event: EnrichedUserEvent) => 
+    eventBus.on(EVENT_NAME.PasswordResetRequested, async (event: EnrichedUserEvent) => 
       handleEmailEvent(event, [event.target], "message", ctxPasswordReset
     )),
   ];
