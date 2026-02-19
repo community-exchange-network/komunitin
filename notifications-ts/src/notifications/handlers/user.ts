@@ -22,7 +22,7 @@ export const handleUserEvent = async (event: UserEvent) => {
 
   if (event.code) {
     const group = await getCachedGroup(client, event.code);
-    enrichedEvent.group = group;
+    enrichedEvent.group = group.data;
   }
 
   // Emit the enriched event for the email channel to consume
