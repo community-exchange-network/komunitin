@@ -24,8 +24,7 @@ export type SentEmail = {
   to: string;
   subject: string;
   html: string;
-  /** Auto-generated plain-text conversion of the HTML */
-  text?: string;
+  text: string;
   headers?: Record<string, string>;
 };
 

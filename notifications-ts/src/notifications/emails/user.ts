@@ -65,7 +65,7 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
       }
     },
 
-    postscript: t('emails.validate_email_postscript'),
+    postscript: t('emails.safely_ignore'),
     reason: t('emails.validate_email_reason', { appName: t('app_name') })
   }
 
@@ -75,8 +75,31 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
 
 export const ctxPasswordReset = (event: EnrichedUserEvent, ctx: MessageContext): EmailTemplateContext => {
   const { t } = ctx;
+  const common = ctxCommon(event, ctx);
+  
   const data = {
+    ...common,
+    subject: t('emails.reset_password_subject', { name: common.group.name }),
+    
+    label: {
+      icon: '🔑',
+      iconBg: '#FEF3C7',
+      text: t('emails.reset_password_label'),
+    },
+    
+    greeting: t('emails.hello'),
+    paragraphs: [t('emails.reset_password_text', { name: common.group.name })],
+    
+    cta: {
+      main: {
+        text: t('emails.reset_password_cta'),
+        url: `${common.appUrl}/set-password?token=${event.token}`
+      }
+    },
 
-  } as EmailTemplateContext; // TODO
+    postscript: t('emails.safely_ignore'),
+    reason: t('emails.reset_password_reason', { appName: t('app_name') })
+
+  } as EmailTemplateContext;
   return data;
 }
