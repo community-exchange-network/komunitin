@@ -246,7 +246,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     for (const { user, settings: userSettings } of recipientsToProcess) {
       let unsubscribeToken: string | undefined;
       try {
-        unsubscribeToken = await getAuthCode(user.id);
+        unsubscribeToken = await getAuthCode(user.id, ['komunitin_social']);
       } catch (err) {
         logger.error({ err, user: user.id }, 'Failed to get unsubscribe token. Aborting sending to this user.');
         //abort
