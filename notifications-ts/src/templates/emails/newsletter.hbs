@@ -2,14 +2,16 @@
 {{> header }}
 
 <!-- Greeting -->
-{{#> section }}
-  <div style="font-size: 20px; color: #333; margin-bottom: 10px;">
+<tr>
+  <td class="mobile-pad" style="padding: 30px 30px 25px 30px;">
+    <div style="font-size: 20px; color: #333; margin-bottom: 10px;">
     {{t "newsletter.hello" name=member.name}}
-  </div>
-  <div style="font-size: 15px; color: #666; line-height: 1.6;">
-    {{t "newsletter.intro"}}
-  </div>
-{{/section}}
+    </div>
+    <div style="font-size: 15px; color: #666; line-height: 1.6;">
+      {{t "newsletter.intro"}}
+    </div>
+  </td>
+</tr>
 
 <!-- Best Offers -->
 {{#if bestOffers}}

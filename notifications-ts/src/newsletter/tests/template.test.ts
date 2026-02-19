@@ -6,9 +6,8 @@
  * rendering logic changes.
  *
  * Snapshots live in snapshots/newsletter.html and snapshots/newsletter.txt.
- * To regenerate them after an intentional template change, delete the snapshot files
- * and re-run this test with the UPDATE_SNAPSHOTS=1 env var, or manually copy the
- * output printed to the console.
+ * To regenerate them after an intentional template change, run:
+ * UPDATE_SNAPSHOTS=1 pnpm test-one src/newsletter/tests/template.test.ts
  */
 import { test, describe, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
@@ -94,7 +93,7 @@ describe('Newsletter Template Snapshots', () => {
     const emailOptions = email.lastEmail();
 
     assertOrUpdate(
-      emailOptions.text,
+      emailOptions.text!,
       'newsletter.txt',
       'Generated plain-text does not match the snapshot. If the template was intentionally changed, ' +
         'update the snapshot file at src/newsletter/tests/snapshots/newsletter.txt',
