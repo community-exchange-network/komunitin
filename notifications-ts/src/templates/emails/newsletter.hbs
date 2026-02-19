@@ -35,7 +35,7 @@
           <a href="{{link}}" style="display: block; text-decoration: none; color: inherit;">
             {{#if image}}
             <img class="card-image" src="{{image}}" alt="{{title}}" width="100%" height="120"
-              style="display: block; border-radius: 8px 8px 0 0;">
+              style="display: block; border-radius: 8px 8px 0 0;" aria-hidden="true">
             {{/if}}
             <div style="padding: 14px;">
               <div
@@ -48,14 +48,14 @@
               <div style="margin-top: 10px; font-size: 12px; color: #999;">
                 {{#if author.image}}
                 <img src="{{author.image}}" width="16" height="16"
-                  style="border-radius: 50%; vertical-align: middle; margin-right: 4px;">
+                  style="border-radius: 50%; vertical-align: middle; margin-right: 4px;" aria-hidden="true">
                 {{else}}
-                <span style="font-size: 14px; vertical-align: middle; margin-right: 2px;">👤</span>
+                <span style="font-size: 14px; vertical-align: middle; margin-right: 2px;" aria-hidden="true">👤</span>
                 {{/if}}
                 <span style="vertical-align: middle;">{{authorDisplayName}}</span>
                 {{#if distanceLabel}}
                 <span style="vertical-align: middle; margin: 0 3px;">·</span>
-                <span style="font-size: 14px; vertical-align: middle; color: #e53935;">📍</span> <span
+                <span style="font-size: 14px; vertical-align: middle; color: #e53935;" aria-hidden="true">📍</span> <span
                   style="vertical-align: middle;">{{distanceLabel}}</span>
                 {{/if}}
               </div>
@@ -94,7 +94,7 @@
           <a href="{{link}}" style="display: block; text-decoration: none; color: inherit;">
             {{#if image}}
             <img class="card-image" src="{{image}}" alt="{{title}}" width="100%" height="120"
-              style="display: block; border-radius: 8px 8px 0 0;">
+              style="display: block; border-radius: 8px 8px 0 0;" aria-hidden="true">
             {{/if}}
             <div style="padding: 14px;">
               <div
@@ -107,14 +107,14 @@
               <div style="margin-top: 10px; font-size: 12px; color: #999;">
                 {{#if author.image}}
                 <img src="{{author.image}}" width="16" height="16"
-                  style="border-radius: 50%; vertical-align: middle; margin-right: 4px;">
+                  style="border-radius: 50%; vertical-align: middle; margin-right: 4px;" aria-hidden="true">
                 {{else}}
-                <span style="font-size: 14px; vertical-align: middle; margin-right: 2px;">👤</span>
+                <span style="font-size: 14px; vertical-align: middle; margin-right: 2px;" aria-hidden="true">👤</span>
                 {{/if}}
                 <span style="vertical-align: middle;">{{authorDisplayName}}</span>
                 {{#if distanceLabel}}
                 <span style="vertical-align: middle; margin: 0 3px;">·</span>
-                <span style="font-size: 14px; vertical-align: middle; color: #e53935;">📍</span> <span
+                <span style="font-size: 14px; vertical-align: middle; color: #e53935;" aria-hidden="true">📍</span> <span
                   style="vertical-align: middle;">{{distanceLabel}}</span>
                 {{/if}}
               </div>

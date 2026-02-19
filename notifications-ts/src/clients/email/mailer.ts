@@ -66,7 +66,12 @@ export class Mailer {
       return;
     }
 
-    const text = message.text ?? htmlToText(message.html);
+    const text = message.text ?? htmlToText(message.html, {
+      selectors: [{
+        selector: '[aria-hidden="true"]',
+        format: 'skip'
+      }]
+    });
     
     const mailOptions: nodemailer.SendMailOptions = {
       from: config.APP_EMAIL,
