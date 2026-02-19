@@ -99,5 +99,22 @@
     "action_hide": "Nascondi",
     "action_create_offer": "Crea offerta",
     "action_create_need": "Crea necessità"
+  },
+  "emails": {
+    "welcome_to": "Benvenuto su {{name}}!",
+    "hello": "Ciao,",
+    "safely_ignore": "Se non hai richiesto questa email, puoi tranquillamente ignorarla.",
+
+    "validate_email_subject": "Conferma la tua email e registrati su {{name}}",
+    "validate_email_label": "Conferma la tua email",
+    "validate_email_text": "Clicca sul pulsante seguente per confermare il tuo indirizzo email. Verrai reindirizzato al modulo di registrazione di {{name}}.",
+    "validate_email_cta": "Completa la registrazione",
+    "validate_email_reason": "Ricevi questa email perché si sta creando un account con questo indirizzo email su {{appName}}.",
+
+    "reset_password_subject": "Reimposta la tua password per {{name}}",
+    "reset_password_label": "Reimposta password",
+    "reset_password_text": "Clicca sul pulsante qui sotto per reimpostare la tua password. Poi potrai scegliere una nuova password per il tuo account su {{name}}.",
+    "reset_password_cta": "Reimposta password",
+    "reset_password_reason": "Ricevi questa email perché è stato richiesto il reset della password per questo indirizzo email su {{appName}}."
   }
 }

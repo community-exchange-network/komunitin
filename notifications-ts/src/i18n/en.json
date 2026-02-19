@@ -107,15 +107,15 @@
 
     "validate_email_subject": "Confirm your email and sign up to {{name}}",
     "validate_email_label": "Confirm your email",
-    "validate_email_text": "Please confirm your email address by clicking the button below. You will be directed to the sign up form for {{name}}.",
+    "validate_email_text": "Please click the button below to confirm your email address. You will be directed to the sign up form for {{name}}.",
     "validate_email_cta": "Complete sign up",
-    "validate_email_reason": "You are receiving this email because someone is creating an account with this email address on {{appName}}.",
+    "validate_email_reason": "You are receiving this email because an account is being created with this email address on {{appName}}.",
 
     "reset_password_subject": "Reset your password for {{name}}",
     "reset_password_label": "Reset password",
-    "reset_password_text": "Please reset your password by clicking the button below. You will then be able to choose a new password for your account on {{name}}.",
+    "reset_password_text": "Please click the button below to reset your password. Then you will be able to choose a new password for your account on {{name}}.",
     "reset_password_cta": "Reset password",
-    "reset_password_reason": "You are receiving this email because someone requested a password reset for this email address on {{appName}}."
+    "reset_password_reason": "You are receiving this email because a password reset has been requested for this email address on {{appName}}."
 
   }
 }

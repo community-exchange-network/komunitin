@@ -99,5 +99,22 @@
     "action_hide": "Ocultar",
     "action_create_offer": "Crear oferta",
     "action_create_need": "Crear necesidad"
+  },
+  "emails": {
+    "welcome_to": "¡Bienvenido a {{name}}!",
+    "hello": "Hola,",
+    "safely_ignore": "Si no solicitaste este correo, puedes ignorarlo sin problema.",
+
+    "validate_email_subject": "Confirma tu correo y regístrate en {{name}}",
+    "validate_email_label": "Confirma tu correo",
+    "validate_email_text": "Haz clic en el siguiente botón para confirmar tu dirección de correo. Serás dirigido al formulario de registro de {{name}}.",
+    "validate_email_cta": "Completar el registro",
+    "validate_email_reason": "Recibes este correo porque se está creando una cuenta con esta dirección de correo en {{appName}}.",
+
+    "reset_password_subject": "Restablece tu contraseña de {{name}}",
+    "reset_password_label": "Restablecer contraseña",
+    "reset_password_text": "Haz clic en el siguiente botón para restablecer tu contraseña. Después podrás elegir una nueva contraseña para tu cuenta en {{name}}.",
+    "reset_password_cta": "Restablecer contraseña",
+    "reset_password_reason": "Recibes este correo porque se ha solicitado un restablecimiento de contraseña para esta dirección de correo en {{appName}}."
   }
 }

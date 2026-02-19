@@ -99,5 +99,22 @@
     "action_hide": "Amaga",
     "action_create_offer": "Crea oferta",
     "action_create_need": "Crea necessitat"
+  },
+  "emails": {
+    "welcome_to": "Benvingut/da a {{name}}!",
+    "hello": "Hola,",
+    "safely_ignore": "Si no has sol·licitat aquest correu, el pots ignorar sense problemes.",
+
+    "validate_email_subject": "Confirma el teu correu i registra't a {{name}}",
+    "validate_email_label": "Confirma el teu correu",
+    "validate_email_text": "Fes clic al botó següent per confirmar la teva adreça de correu. Se't redirigirà al formulari de registre de {{name}}.",
+    "validate_email_cta": "Completa el registre",
+    "validate_email_reason": "Reps aquest correu perquè s'està creant un compte amb aquesta adreça de correu a {{appName}}.",
+
+    "reset_password_subject": "Restableix la teva contrasenya de {{name}}",
+    "reset_password_label": "Restableix la contrasenya",
+    "reset_password_text": "Fes clic al botó següent per restablir la teva contrasenya. Després podràs triar una contrasenya nova per al teu compte a {{name}}.",
+    "reset_password_cta": "Restableix la contrasenya",
+    "reset_password_reason": "Reps aquest correu perquè s'ha sol·licitat restablir la contrasenya d'aquesta adreça de correu a {{appName}}."
   }
 }
