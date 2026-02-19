@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { describe, test } from 'node:test';
-import { getAccountSectionData } from './account-algorithm';
-import { Currency, Member, Need, Offer } from '../clients/komunitin/types';
+import { getAccountSectionData } from '../account-algorithm';
+import { Currency, Member, Need, Offer } from '../../clients/komunitin/types';
 
 // Helpers
 const createMember = (attrs: any = {}): Member => ({

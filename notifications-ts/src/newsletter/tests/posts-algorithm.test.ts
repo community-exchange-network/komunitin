@@ -1,10 +1,10 @@
 
 import assert from 'node:assert';
 import { describe, test } from 'node:test';
-import { getDistance, Item, selectBestItems } from './posts-algorithm';
-import { HistoryLog } from './types';
-import { Member } from '../clients/komunitin/types';
-import { SeededRandom } from '../utils/seededRandom';
+import { getDistance, Item, selectBestItems } from '../posts-algorithm';
+import { HistoryLog } from '../types';
+import { Member } from '../../clients/komunitin/types';
+import { SeededRandom } from '../../utils/seededRandom';
 
 // Helpers
 const createMember = (id: string, lat?: number, lon?: number): Member => ({

@@ -1,9 +1,9 @@
 
 import { test, describe, afterEach, it } from 'node:test';
 import assert from 'node:assert';
-import { shouldSendNewsletter, shouldProcessGroup } from './frequency';
-import { Group } from '../clients/komunitin/types';
-import { mockDate, restoreDate } from '../mocks/date';
+import { shouldSendNewsletter, shouldProcessGroup } from '../frequency';
+import { Group } from '../../clients/komunitin/types';
+import { mockDate, restoreDate } from '../../mocks/date';
 
 describe('Frequency Logic', () => {
   const now = new Date('2025-01-15T12:00:00Z'); // Wednesday
