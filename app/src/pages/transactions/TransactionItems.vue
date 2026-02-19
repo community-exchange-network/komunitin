@@ -87,6 +87,12 @@ const transferLoaded = ref<Record<string, boolean>>({})
 
 const fetchMembers = async (page: number) => {
   const transfers = store.getters["transfers/page"](page);
+  if (!transfers) {
+    // It could be possible that this function is called due to an outdated page-load event,
+    // if the query changed before the page load completed. In this case, we're trying to get
+    // the transfers for the updated query which will return undefined until the 2nd load completes.
+    return;
+  }
   const accountIds = new Set<string>();
   transfers
     .forEach((transfer: ExtendedTransfer) => {
