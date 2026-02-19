@@ -1,24 +1,20 @@
 import { config } from "../../config";
 import { NewsletterTemplateGroup } from "../../newsletter/types";
-import { type EnrichedUserEvent } from "../enriched-events";
+import { EnrichedEvent, type EnrichedUserEvent } from "../enriched-events";
 import { type MessageContext } from "../messages";
 import { EmailTemplateContext } from "./types";
 
-export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext): EmailTemplateContext => {
+
+type CommonEmailTemplateContext = Pick<EmailTemplateContext, 'appUrl' | 'appName' | 'group' | 'language'>;
+
+const ctxCommon = (event: EnrichedEvent, ctx: MessageContext): CommonEmailTemplateContext => {
   const { t } = ctx;
 
   const appUrl = config.KOMUNITIN_APP_URL ?? ""
-
-  // If the event is not associated to any group, this means that the user is
-  // validating their email when creating a new group. Otherwise, they are 
-  // validating their email to join an existing group.
-  const ctaUrl = (event.code) 
-    ? `${appUrl}/groups/${event.code}/signup-member?token=${event.token}`
-    : `${appUrl}/groups/new?token=${event.token}`;
-
+  const appName = t('app_name');
 
   const group: NewsletterTemplateGroup = {
-    name: event.group?.attributes.name ?? t('app_name'),
+    name: event.group?.attributes.name ?? appName,
     code: event.group?.attributes.code ?? '',
     initial: '',
     image: event.group?.attributes.image,
@@ -28,10 +24,30 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
   const data = {
     language: ctx.locale,
     appUrl,
-    appName: t('app_name'),
-    group,
+    appName,
+    group
+  }
 
-    subject: t('emails.validate_email_subject', { name: group.name }),
+  return data
+}
+
+export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext): EmailTemplateContext => {
+  const { t } = ctx;
+
+  const common = ctxCommon(event, ctx);
+
+  const appUrl = common.appUrl;
+
+  // If the event is not associated to any group, this means that the user is
+  // validating their email when creating a new group. Otherwise, they are 
+  // validating their email to join an existing group.
+  const ctaUrl = (event.code) 
+    ? `${appUrl}/groups/${event.code}/signup-member?token=${event.token}`
+    : `${appUrl}/groups/new?token=${event.token}`;
+
+  const data = {
+    ...common,
+    subject: t('emails.validate_email_subject', { name: common.group.name }),
 
     label: {
       icon: '✉️',
@@ -39,8 +55,8 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
       text: t('emails.validate_email_label'),
     },
 
-    greeting: t('emails.welcome_to', { name: group.name }),
-    paragraphs: [t('emails.validate_email_text')],
+    greeting: t('emails.welcome_to', { name: common.group.name }),
+    paragraphs: [t('emails.validate_email_text', { name: common.group.name })],
 
     cta: {
       main: {
@@ -50,7 +66,7 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
     },
 
     postscript: t('emails.validate_email_postscript'),
-    reason: t('emails.validate_email_reason', { group: group.name, appName: t('app_name') })
+    reason: t('emails.validate_email_reason', { appName: t('app_name') })
   }
 
   return data
@@ -59,5 +75,8 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
 
 export const ctxPasswordReset = (event: EnrichedUserEvent, ctx: MessageContext): EmailTemplateContext => {
   const { t } = ctx;
-  return {} as EmailTemplateContext; // TODO
+  const data = {
+
+  } as EmailTemplateContext; // TODO
+  return data;
 }

@@ -1,6 +1,6 @@
 import { KomunitinClient } from "../../clients/komunitin/client";
 import { getAuthCode } from "../../clients/komunitin/getAuthCode";
-import { getCachedActiveGroups, getCachedGroup } from "../../utils/cached-resources";
+import { getCachedGroup } from "../../utils/cached-resources";
 import { EnrichedUserEvent } from "../enriched-events";
 import { eventBus } from "../event-bus";
 import { UserEvent } from "../events";
