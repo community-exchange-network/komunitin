@@ -44,7 +44,7 @@
     "stats_exchanges": "Transferts",
     "stats_active_accounts": "Comptes actifs",
     "stats_new_members": "Nouveaux membres",
-    "footer_reason": "Vous recevez cet email car vous êtes abonné à la newsletter de {{group}} sur {{appName}}.",
+    "footer_reason": "Vous recevez cet email car vous êtes abonné(e) à la newsletter de {{group}} sur {{appName}}.",
     "manage_subscription": "Paramètres du compte",
     "unsubscribe": "Se désabonner de la newsletter"
   },

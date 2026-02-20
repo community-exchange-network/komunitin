@@ -44,7 +44,7 @@
     "stats_exchanges": "Movimientos",
     "stats_active_accounts": "Cuentas activas",
     "stats_new_members": "Nuevos miembros",
-    "footer_reason": "Recibes este correo porque estás suscrito al boletín de {{group}} en {{appName}}.",
+    "footer_reason": "Recibes este correo porque estás suscrito/a al boletín de {{group}} en {{appName}}.",
     "manage_subscription": "Configuración de la cuenta",
     "unsubscribe": "Darse de baja del boletín"
   },
@@ -85,7 +85,7 @@
     "and_more_posts": "Y {{count}} más",
     "check_member_profiles_one": "Consulta su perfil",
     "check_member_profiles_other": "Consulta sus perfiles",
-    "welcome_new_member_title": "¡Bienvenido a {{groupName}}!",
+    "welcome_new_member_title": "¡Bienvenido/a a {{groupName}}!",
     "welcome_new_member_body": "Hola {{name}}, tu cuenta ya está activa! Empieza a explorar ofertas y necesidades en tu comunidad. ¡Feliz intercambio!",
     "member_no_offers_title": "No tienes ninguna oferta activa",
     "member_no_offers_body": "Publica una oferta para ayudar a los demás y aumentar tu saldo de {{balance}}. ¿Qué puedes ofrecer?",
@@ -101,7 +101,7 @@
     "action_create_need": "Crear necesidad"
   },
   "emails": {
-    "welcome_to": "¡Bienvenido a {{name}}!",
+    "welcome_to": "¡Bienvenido/a a {{name}}!",
     "hello": "Hola,",
     "safely_ignore": "Si no solicitaste este correo, puedes ignorarlo sin problema.",
 
