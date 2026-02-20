@@ -309,6 +309,7 @@ describe('MembersJoinedDigest notifications', () => {
     const notif = appNotifications.find(n => n.userId === recipientUserId);
 
     // Body: check_member_profiles_other
+    assert.match(notif.title, /Zero1|Zero2|Zero3|Zero4/);
     assert.ok(notif.body);
     // Just ensure it's not empty or crashing
     assert.notEqual(notif.body, '');
