@@ -2,9 +2,10 @@
 
 We use consistent terminology across the app to ensure clarity and alignment with our values. Our word choices aim to:
 
-1.  **Be intuitive** - Easy for users to understand
+1.  **Be intuitive** - Natural and easy for users to understand
 2.  **Avoid financial jargon** - No "money", "payment", "pay", "payer", "payee"
 3.  **Use send/receive metaphor** - Frame interactions as sending and receiving currency units
+4.  **Be inclusive** - Avoid gendered language and terms that may exclude certain users
 
 ## Core Terms 
 
