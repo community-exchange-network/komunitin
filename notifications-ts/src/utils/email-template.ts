@@ -59,7 +59,11 @@ const initializeTemplates = async () => {
 
 // Initialize templates on startup, keeping the promise so we can check 
 // if it's done before rendering.
-const initializePromise = initializeTemplates().catch(err => {
+const initializePromise = initializeTemplates();
+
+// Catch and log the error to prevent an unhandled rejection crash at module load,
+// but keep the original promise so that awaiting it later will still throw the error.
+initializePromise.catch(err => {
   console.error('Error initializing templates', err);
 });
 
