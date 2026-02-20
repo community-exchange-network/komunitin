@@ -1,0 +1,38 @@
+<tr>
+  <td class="header"
+    style="background-color: #f3f8e5; padding: 25px 30px 25px 30px; border-top: 4px solid #72A310; border-bottom: 1px solid #c5e1a5;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td width="60" valign="middle" aria-hidden="true">
+          {{#if group.image}}
+          <img src="{{group.image}}" alt="{{group.name}}" width="50" height="50"
+            style="border-radius: 50%; background-color: #ffffff;">
+          {{else}}
+          <!--[if mso]>
+            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" style="height:50px;v-text-anchor:middle;width:50px;" arcsize="50%" fillcolor="#72A310">
+            <w:anchorlock/>
+            <center style="color:#ffffff;font-family:sans-serif;font-size:24px;font-weight:bold;">{{group.initial}}</center>
+            </v:roundrect>
+            <![endif]-->
+          <!--[if !mso]><!-->
+          <table width="50" height="50" cellpadding="0" cellspacing="0" border="0"
+            style="border-radius: 50%; background-color: #72A310;">
+            <tr>
+              <td align="center" valign="middle"
+                style="color: #ffffff; font-size: 32px; font-weight: bold; font-family: sans-serif;">{{group.initial}}
+              </td>
+            </tr>
+          </table>
+          <!--<![endif]-->
+          {{/if}}
+        </td>
+        <td valign="middle" style="padding-left: 15px;">
+          <div style="font-size: 24px; font-weight: bold; color: #333;">{{group.name}}</div>
+          <div style="font-size: 13px; color: #888; margin-top: 3px;">
+            {{group.code}}
+          </div>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>

@@ -10,7 +10,6 @@
     "section_offer": "OFFER",
     "section_need": "NEED",
     "user_placeholder": "👤 {{name}}",
-    "unknown_member": "Unknown member",
     "cta_main": "EXPLORE THE LATEST OFFERS AND NEEDS",
     "cta_secondary": "Have a product or skill to offer? Post it",
     "account_title": "👤 My Account",
@@ -45,12 +44,13 @@
     "stats_exchanges": "Transfers",
     "stats_active_accounts": "Active Accounts",
     "stats_new_members": "New Members",
-    "footer_reason": "You are receiving this email as an active member of <strong>Komunitin</strong>.",
+    "footer_reason": "You are receiving this email because you are subscribed to the newsletter of {{group}} in {{appName}}.",
     "manage_subscription": "Account settings",
     "unsubscribe": "Unsubscribe from newsletter"
   },
   "offer": "Offer",
   "need": "Need",
+  "app_name": "Komunitin",
   "notifications": {
     "post_expired_title": "{{type}} expired",
     "post_expired_body": "Your {{type}} '{{excerpt}}' has expired and is hidden now, but you can reactivate it.",
@@ -99,5 +99,23 @@
     "action_hide": "Hide",
     "action_create_offer": "Create offer",
     "action_create_need": "Create need"
+  },
+  "emails": {
+    "welcome_to": "Welcome to {{name}}!",
+    "hello": "Hello,",
+    "safely_ignore": "If you didn't request this email, you can safely ignore it.",
+
+    "validate_email_subject": "Confirm your email and sign up to {{name}}",
+    "validate_email_label": "Confirm your email",
+    "validate_email_text": "Please click the button below to confirm your email address. You will be directed to the sign up form for {{name}}.",
+    "validate_email_cta": "Complete sign up",
+    "validate_email_reason": "You are receiving this email because an account is being created with this email address on {{appName}}.",
+
+    "reset_password_subject": "Reset your password for {{name}}",
+    "reset_password_label": "Reset password",
+    "reset_password_text": "Please click the button below to reset your password. Then you will be able to choose a new password for your account on {{name}}.",
+    "reset_password_cta": "Reset password",
+    "reset_password_reason": "You are receiving this email because a password reset has been requested for this email address on {{appName}}."
+
   }
 }

@@ -1,11 +1,12 @@
 import { setTimeout as delay } from 'timers/promises';
 import logger from '../utils/logger';
 import { createEventsStream } from './event-stream';
-import { EVENT_NAME, EventName, GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent } from './events';
+import { EVENT_NAME, EventName, GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent, UserEvent } from './events';
 import { handleGroupEvent } from './handlers/group';
 import { handleMemberEvent } from './handlers/member';
 import { handlePostEvent } from './handlers/post';
 import { handleTransferEvent } from './handlers/transfer';
+import { handleUserEvent } from './handlers/user';
 import { initInAppChannel } from './channels/app';
 import { initPushChannel } from './channels/push';
 import { initEmailChannel } from './channels/email';
@@ -90,6 +91,10 @@ export const dispatchEvent = async (event: NotificationEvent): Promise<void> => 
     case EVENT_NAME.GroupRequested:
     case EVENT_NAME.GroupActivated:
       return handleGroupEvent(event as GroupEvent);
+
+    case EVENT_NAME.ValidationEmailRequested:
+    case EVENT_NAME.PasswordResetRequested:
+      return handleUserEvent(event as UserEvent);
 
     default:
       logger.info({ eventName: event.name }, 'No notification handler for event type');

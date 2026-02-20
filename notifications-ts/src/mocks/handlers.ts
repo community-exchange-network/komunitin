@@ -43,6 +43,13 @@ export const handlers = [
     const settings = db.userSettings.find(s => s.id === user.relationships.settings.data.id);
     return HttpResponse.json({ data: user, included: settings ? [settings] : [] });
   }),
+
+  http.get(`${SOCIAL_URL}/users/:id/settings`, ({ params }) => {
+    const { id } = params;
+    const settings = db.userSettings.find(s => s.id === `${id}-settings`);
+    if (!settings) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ data: settings });
+  }),
   
   http.get(`${SOCIAL_URL}/users`, ({ request }) => {
     const url = new URL(request.url);

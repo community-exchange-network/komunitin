@@ -116,7 +116,7 @@ const pushNotificationDelay = (priority: PushPriority, timezone: string | null):
 export const sendPushToUsers = async <T extends EnrichedEvent>(
   event: T,
   users: Array<{ user: User; settings: UserSettings }>,
-  builder: (ctx: MessageContext, event: T) => NotificationMessage | null,
+  builder: (event: T, ctx: MessageContext) => NotificationMessage | null,
   notificationClass: NotificationClass,
   priority: PushPriority = 'normal'
 ) => {
@@ -127,7 +127,7 @@ export const sendPushToUsers = async <T extends EnrichedEvent>(
     const t = i18n.getFixedT(locale);
 
     // build message for this user
-    const message = builder({ t, locale }, event);
+    const message = builder(event, { t, locale });
 
     // Skip if builder returns null (message should not be sent)
     if (!message) {

@@ -10,7 +10,6 @@
     "section_offer": "OFERTA",
     "section_need": "NECESSITAT",
     "user_placeholder": "👤 {{name}}",
-    "unknown_member": "Membre desconegut",
     "cta_main": "EXPLORA LES ÚLTIMES OFERTES I NECESSITATS",
     "cta_secondary": "Tens alguna cosa o habilitat per oferir? Publica una oferta",
     "account_title": "👤 El meu Compte",
@@ -45,12 +44,13 @@
     "stats_exchanges": "Moviments",
     "stats_active_accounts": "Comptes Actius",
     "stats_new_members": "Nous membres",
-    "footer_reason": "Reps aquest correu com a membre actiu de <strong>Komunitin</strong>.",
+    "footer_reason": "Reps aquest correu perquè estàs subscrit/a al butlletí de {{group}} a {{appName}}.",
     "manage_subscription": "Configuració del compte",
     "unsubscribe": "Donar-se de baixa del butlletí"
   },
   "offer": "Oferta",
   "need": "Necessitat",
+  "app_name": "Komunitin",
   "notifications": {
     "post_expired_title": "{{type}} caducada",
     "post_expired_body": "La teva {{type}} '{{excerpt}}' ha caducat i ja no és visible, però pots reactivar-la.",
@@ -85,7 +85,7 @@
     "and_more_posts": "I {{count}} més",
     "check_member_profiles_one": "Consulta el seu perfil",
     "check_member_profiles_other": "Consulta els seus perfils",
-    "welcome_new_member_title": "Benvingut a {{groupName}}!",
+    "welcome_new_member_title": "Benvingut/da a {{groupName}}!",
     "welcome_new_member_body": "Hola {{name}}, el teu compte ja és actiu! Ja pots explorar ofertes i necessitats a la teva comunitat. Feliç intercanvi!",
     "member_no_offers_title": "No tens cap oferta activa",
     "member_no_offers_body": "Publica una oferta per ajudar als altres i augmentar el teu saldo de {{balance}}. Què pots oferir?",
@@ -99,5 +99,22 @@
     "action_hide": "Amaga",
     "action_create_offer": "Crea oferta",
     "action_create_need": "Crea necessitat"
+  },
+  "emails": {
+    "welcome_to": "Benvingut/da a {{name}}!",
+    "hello": "Hola,",
+    "safely_ignore": "Si no has sol·licitat aquest correu, el pots ignorar sense problemes.",
+
+    "validate_email_subject": "Confirma el teu correu i registra't a {{name}}",
+    "validate_email_label": "Confirma el teu correu",
+    "validate_email_text": "Fes clic al botó següent per confirmar la teva adreça de correu. Se't redirigirà al formulari de registre de {{name}}.",
+    "validate_email_cta": "Completa el registre",
+    "validate_email_reason": "Reps aquest correu perquè s'està creant un compte amb aquesta adreça de correu a {{appName}}.",
+
+    "reset_password_subject": "Restableix la teva contrasenya de {{name}}",
+    "reset_password_label": "Restableix la contrasenya",
+    "reset_password_text": "Fes clic al botó següent per restablir la teva contrasenya. Després podràs triar una contrasenya nova per al teu compte a {{name}}.",
+    "reset_password_cta": "Restableix la contrasenya",
+    "reset_password_reason": "Reps aquest correu perquè s'ha sol·licitat restablir la contrasenya d'aquesta adreça de correu a {{appName}}."
   }
 }

@@ -10,7 +10,6 @@
     "section_offer": "OFFERTA",
     "section_need": "NECESSITÀ",
     "user_placeholder": "👤 {{name}}",
-    "unknown_member": "Membro sconosciuto",
     "cta_main": "ESPLORA LE ULTIME OFFERTE E NECESSITÀ",
     "cta_secondary": "Hai qualcosa o una competenza da offrire? Pubblica un'offerta",
     "account_title": "👤 Il mio conto",
@@ -45,12 +44,13 @@
     "stats_exchanges": "Movimenti",
     "stats_active_accounts": "Conti attivi",
     "stats_new_members": "Nuovi membri",
-    "footer_reason": "Ricevi questa email come membro attivo di <strong>Komunitin</strong>.",
+    "footer_reason": "Ricevi questa email perché sei iscritto/a alla newsletter di {{group}} su {{appName}}.",
     "manage_subscription": "Impostazioni dell'account",
     "unsubscribe": "Annulla l'iscrizione alla newsletter"
   },
   "offer": "Offerta",
   "need": "Necessità",
+  "app_name": "Komunitin",
   "notifications": {
     "post_expired_title": "{{type}} scaduta",
     "post_expired_body": "La tua {{type}} '{{excerpt}}' è scaduta ed è ora nascosta, ma puoi riattivarla.",
@@ -85,7 +85,7 @@
     "and_more_posts": "E altri {{count}}",
     "check_member_profiles_one": "Controlla il suo profilo",
     "check_member_profiles_other": "Controlla i loro profili",
-    "welcome_new_member_title": "Benvenuto a {{groupName}}!",
+    "welcome_new_member_title": "Benvenuto/a a {{groupName}}!",
     "welcome_new_member_body": "Ciao {{name}}, il tuo account è ora attivo! Inizia a esplorare offerte e necessità nella tua comunità. Buono scambio!",
     "member_no_offers_title": "Non hai offerte attive",
     "member_no_offers_body": "Crea un'offerta per aiutare gli altri e far crescere il tuo saldo di {{balance}}. Cosa puoi offrire?",
@@ -99,5 +99,22 @@
     "action_hide": "Nascondi",
     "action_create_offer": "Crea offerta",
     "action_create_need": "Crea necessità"
+  },
+  "emails": {
+    "welcome_to": "Benvenuto/a su {{name}}!",
+    "hello": "Ciao,",
+    "safely_ignore": "Se non hai richiesto questa email, puoi tranquillamente ignorarla.",
+
+    "validate_email_subject": "Conferma la tua email e registrati su {{name}}",
+    "validate_email_label": "Conferma la tua email",
+    "validate_email_text": "Clicca sul pulsante seguente per confermare il tuo indirizzo email. Verrai reindirizzato al modulo di registrazione di {{name}}.",
+    "validate_email_cta": "Completa la registrazione",
+    "validate_email_reason": "Ricevi questa email perché si sta creando un account con questo indirizzo email su {{appName}}.",
+
+    "reset_password_subject": "Reimposta la tua password per {{name}}",
+    "reset_password_label": "Reimposta password",
+    "reset_password_text": "Clicca sul pulsante qui sotto per reimpostare la tua password. Poi potrai scegliere una nuova password per il tuo account su {{name}}.",
+    "reset_password_cta": "Reimposta password",
+    "reset_password_reason": "Ricevi questa email perché è stato richiesto il reset della password per questo indirizzo email su {{appName}}."
   }
 }

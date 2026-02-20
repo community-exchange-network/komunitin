@@ -23,17 +23,17 @@ describe('Welcome notification i18n', () => {
       },
       {
         language: 'ca',
-        title: `Benvingut a ${groupName}!`,
+        title: `Benvingut/da a ${groupName}!`,
         body: `Hola ${memberName}, el teu compte ja és actiu! Ja pots explorar ofertes i necessitats a la teva comunitat. Feliç intercanvi!`,
       },
       {
         language: 'es',
-        title: `¡Bienvenido a ${groupName}!`,
+        title: `¡Bienvenido/a a ${groupName}!`,
         body: `Hola ${memberName}, tu cuenta ya está activa! Empieza a explorar ofertas y necesidades en tu comunidad. ¡Feliz intercambio!`,
       },
       {
         language: 'it',
-        title: `Benvenuto a ${groupName}!`,
+        title: `Benvenuto/a a ${groupName}!`,
         body: `Ciao ${memberName}, il tuo account è ora attivo! Inizia a esplorare offerte e necessità nella tua comunità. Buono scambio!`,
       },
       {

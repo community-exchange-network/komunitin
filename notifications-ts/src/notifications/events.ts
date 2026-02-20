@@ -16,6 +16,9 @@ export const EVENT_NAME = {
   PostsPublishedDigest: 'PostsPublishedDigest',
   MembersJoinedDigest: 'MembersJoinedDigest',
   MemberHasNoPosts: 'MemberHasNoPosts',
+  ValidationEmailRequested: 'ValidationEmailRequested',
+  PasswordResetRequested: 'PasswordResetRequested',
+
 } as const;
 
 export type EventName = (typeof EVENT_NAME)[keyof typeof EVENT_NAME];
@@ -73,5 +76,18 @@ export type GroupEvent = NotificationEvent & {
     | typeof EVENT_NAME.GroupActivated;
   data: {
     group: string; // group code
+  };
+};
+
+export type UserEvent = NotificationEvent & {
+  name: 
+    | typeof EVENT_NAME.ValidationEmailRequested
+    | typeof EVENT_NAME.PasswordResetRequested;
+  data: {
+    // That should usually be the same as the user field, 
+    // but we keep it separate in case we want to trigger 
+    // an email validation for a different user than the 
+    // one who triggered the event.
+    user: string;
   };
 };

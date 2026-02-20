@@ -1,7 +1,51 @@
 import { Account, Group, Currency, Member } from '../clients/komunitin/types';
+import { TemplateContext } from '../utils/email-template';
 export interface Stats {
   exchanges: number;
+  activeAccounts: number;
   newMembers: number;
+}
+
+export interface NewsletterTemplateAlert {
+  title: string;
+  text: string;
+  actionText: string;
+  actionUrl: string;
+  type: string;
+}
+
+export interface NewsletterTemplateItem extends ProcessedItem {
+  title: string;
+  description: string;
+  authorDisplayName: string;
+  distanceLabel?: string;
+}
+
+export interface NewsletterTemplateGroup {
+  name: string;
+  code: string;
+  image?: string;
+  initial: string;
+}
+
+export interface NewsletterTemplateMember {
+  code: string;
+  name: string;
+}
+
+export interface NewsletterTemplateContext extends TemplateContext {
+  unsubscribeUrl?: string;
+  appUrl: string;
+  group: NewsletterTemplateGroup;
+  member: NewsletterTemplateMember;
+  subject: string;
+  formattedBalance: string;
+  balanceAdvice: string;
+  activitySummary: string | null;
+  accountAlert: NewsletterTemplateAlert | null;
+  bestOffers: NewsletterTemplateItem[];
+  bestNeeds: NewsletterTemplateItem[];
+  stats: Stats;
 }
 
 export interface AccountAlert {

@@ -68,7 +68,15 @@ export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
   currency: Currency;
   users: Array<{ user: User; settings: UserSettings }>;
 };
-  
+
+export type EnrichedUserEvent = NotificationEvent & {
+  name: 'ValidationEmailRequested' | 'PasswordResetRequested';
+  // user is already taken.
+  target: { user: User; settings: UserSettings };
+  token: string;
+  // Some user events may not be associated to any group (eg email validation when creating a new group).
+  group?: Group;
+};
 
 export type EnrichedEvent =
   | EnrichedGroupEvent
@@ -77,4 +85,5 @@ export type EnrichedEvent =
   | EnrichedTransferEvent
   | EnrichedPostsPublishedDigestEvent
   | EnrichedMembersJoinedDigestEvent
-  | EnrichedMemberHasNoPostsEvent;
+  | EnrichedMemberHasNoPostsEvent
+  | EnrichedUserEvent;

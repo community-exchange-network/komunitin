@@ -10,7 +10,6 @@
     "section_offer": "OFFRE",
     "section_need": "BESOIN",
     "user_placeholder": "👤 {{name}}",
-    "unknown_member": "Membre inconnu",
     "cta_main": "DÉCOUVREZ LES DERNIÈRES OFFRES ET BESOINS",
     "cta_secondary": "Vous avez un produit ou une compétence à offrir ? Publiez une offre",
     "account_title": "👤 Mon compte",
@@ -45,12 +44,13 @@
     "stats_exchanges": "Transferts",
     "stats_active_accounts": "Comptes actifs",
     "stats_new_members": "Nouveaux membres",
-    "footer_reason": "Vous recevez cet email en tant que membre actif de <strong>Komunitin</strong>.",
+    "footer_reason": "Vous recevez cet email car vous êtes abonné(e) à la newsletter de {{group}} sur {{appName}}.",
     "manage_subscription": "Paramètres du compte",
     "unsubscribe": "Se désabonner de la newsletter"
   },
   "offer": "Offre",
   "need": "Besoin",
+  "app_name": "Komunitin",
   "notifications": {
     "post_expired_title": "{{type}} expiré",
     "post_expired_body": "Votre {{type}} '{{excerpt}}' a expiré et est maintenant caché, mais vous pouvez la réactiver.",
@@ -99,5 +99,22 @@
     "action_hide": "Masquer",
     "action_create_offer": "Créer une offre",
     "action_create_need": "Créer un besoin"
+  },
+  "emails": {
+    "welcome_to": "Bienvenue sur {{name}} !",
+    "hello": "Bonjour,",
+    "safely_ignore": "Si vous n'avez pas demandé cet email, vous pouvez l'ignorer en toute sécurité.",
+
+    "validate_email_subject": "Confirmez votre email et inscrivez-vous sur {{name}}",
+    "validate_email_label": "Confirmez votre email",
+    "validate_email_text": "Veuillez cliquer sur le bouton suivant pour confirmer votre adresse email. Vous serez redirigé vers le formulaire d'inscription de {{name}}.",
+    "validate_email_cta": "Finaliser l'inscription",
+    "validate_email_reason": "Vous recevez cet email car un compte est en cours de création avec cette adresse email sur {{appName}}.",
+
+    "reset_password_subject": "Réinitialisez votre mot de passe pour {{name}}",
+    "reset_password_label": "Réinitialiser le mot de passe",
+    "reset_password_text": "Veuillez cliquer sur le bouton ci-dessous pour réinitialiser votre mot de passe. Vous pourrez ensuite choisir un nouveau mot de passe pour votre compte sur {{name}}.",
+    "reset_password_cta": "Réinitialiser le mot de passe",
+    "reset_password_reason": "Vous recevez cet email car une réinitialisation du mot de passe a été demandée pour cette adresse email sur {{appName}}."
   }
 }

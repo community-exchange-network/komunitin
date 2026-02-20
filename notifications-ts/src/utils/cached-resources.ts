@@ -17,24 +17,27 @@ export type MemberWithUsers = {
 /**
  * Get active groups from cache or API
  */
-export const getCachedActiveGroups = (client: KomunitinClient, ttl: number = DEFAULT_TTL) => {
-  return cache.get('groups:active', async () => client.getGroups({ 'filter[status]': 'active' }), ttl);
+export const getCachedActiveGroups = async (client: KomunitinClient, ttl: number = DEFAULT_TTL) => {
+  return await cache.get('groups:active', async () => client.getGroups({ 'filter[status]': 'active' }), ttl);
 }
 
+export const getCachedGroup = async (client: KomunitinClient, groupCode: string, ttl: number = DEFAULT_TTL) => {
+  return await cache.get(`group:${groupCode}`, async () => client.getGroup(groupCode), ttl);
+}
 /**
  * Get a currency from cache or API
  */
-export const getCachedCurrency = (client: KomunitinClient, groupCode: string, ttl: number = DEFAULT_TTL) => {
-  return cache.get(`currency:${groupCode}`, async () => client.getCurrency(groupCode), ttl);
+export const getCachedCurrency = async (client: KomunitinClient, groupCode: string, ttl: number = DEFAULT_TTL) => {
+  return await cache.get(`currency:${groupCode}`, async () => client.getCurrency(groupCode), ttl);
 };
 
 /**
  * Get group members with their users from cache or API
  */
-export const getCachedGroupMembersWithUsers = (client: KomunitinClient, groupCode: string, ttl: number = DEFAULT_TTL) => {
+export const getCachedGroupMembersWithUsers = async (client: KomunitinClient, groupCode: string, ttl: number = DEFAULT_TTL) => {
   const key = `group:${groupCode}:members`;
 
-  return cache.get(key, async () => {
+  return await cache.get(key, async () => {
     const members = await client.getMembers(groupCode);
     const result: MemberWithUsers[] = [];
 

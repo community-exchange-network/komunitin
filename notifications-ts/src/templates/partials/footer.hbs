@@ -1,0 +1,17 @@
+<tr>
+  <td
+    style="padding: 35px 30px; background-color: #333333; color: #9e9e9e; font-size: 12px; text-align: center; line-height: 1.7;">
+    <img src="{{appUrl}}/logos/logo-200.png" alt="{{appName}}" width="100" style="margin-bottom: 18px;">
+    <p style="margin: 0 0 12px 0;">{{{reason}}}</p>
+    <p style="margin: 0;">
+      {{#if settingsLabel}}
+      <a href="{{appUrl}}/settings" style="color: #9e9e9e; text-decoration: underline;">{{settingsLabel}}</a>
+      {{/if}}
+      {{#if unsubscribeUrl}}
+      &nbsp;·&nbsp;
+      <a href="{{unsubscribeUrl}}"
+        style="color: #9e9e9e; text-decoration: underline;">{{unsubscribeLabel}}</a>
+      {{/if}}
+    </p>
+  </td>
+</tr>
