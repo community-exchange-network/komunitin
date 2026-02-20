@@ -3,6 +3,7 @@ import { TemplateContext } from "../../utils/email-template";
 
 
 export interface EmailTemplateContext extends TemplateContext {
+  appName: string;
   appUrl: string;
   subject: string;
   // header
