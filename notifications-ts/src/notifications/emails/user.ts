@@ -1,7 +1,35 @@
-import { type EnrichedUserEvent } from "../enriched-events";
+import { config } from "../../config";
+import { NewsletterTemplateGroup } from "../../newsletter/types";
+import { EnrichedEvent, type EnrichedUserEvent } from "../enriched-events";
 import { type MessageContext } from "../messages";
 import { EmailTemplateContext } from "./types";
-import { ctxCommon } from "./utils";
+
+
+type CommonEmailTemplateContext = Pick<EmailTemplateContext, 'appUrl' | 'appName' | 'group' | 'language'>;
+
+const ctxCommon = (event: EnrichedEvent, ctx: MessageContext): CommonEmailTemplateContext => {
+  const { t } = ctx;
+
+  const appUrl = config.KOMUNITIN_APP_URL ?? ""
+  const appName = t('app_name');
+
+  const group: NewsletterTemplateGroup = {
+    name: event.group?.attributes.name ?? appName,
+    code: event.group?.attributes.code ?? '',
+    initial: '',
+    image: event.group?.attributes.image,
+  };
+  group.initial = (group.code ?? group.name).charAt(0).toUpperCase();
+
+  const data = {
+    language: ctx.locale,
+    appUrl,
+    appName,
+    group
+  }
+
+  return data
+}
 
 export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext): EmailTemplateContext => {
   const { t } = ctx;

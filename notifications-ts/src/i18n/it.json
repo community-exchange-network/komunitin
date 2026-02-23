@@ -102,11 +102,8 @@
   },
   "emails": {
     "welcome_to": "Benvenuto/a su {{name}}!",
-    "hello_name": "Ciao {{name}},",
     "hello": "Ciao,",
     "safely_ignore": "Se non hai richiesto questa email, puoi tranquillamente ignorarla.",
-    "happy_exchange": "Buono scambio!",
-    "reason_active_member": "Ricevi questa email come membro attivo di {{groupName}} su {{appName}}.",
 
     "validate_email_subject": "Conferma la tua email e registrati su {{name}}",
     "validate_email_label": "Conferma la tua email",
@@ -118,13 +115,6 @@
     "reset_password_label": "Reimposta password",
     "reset_password_text": "Clicca sul pulsante qui sotto per reimpostare la tua password. Poi potrai scegliere una nuova password per il tuo account su {{name}}.",
     "reset_password_cta": "Reimposta password",
-    "reset_password_reason": "Ricevi questa email perché è stato richiesto il reset della password per questo indirizzo email su {{appName}}.",
-
-    "welcome_subject": "Benvenuto/a su {{name}}!",
-    "welcome_label": "Benvenuto/a",
-    "welcome_text_1": "Sei stato/a accettato/a come membro di <strong>{{groupName}}</strong>. Il numero del tuo conto è <strong>{{code}}</strong>.",
-    "welcome_text_2": "Ora puoi accedere a <strong>{{appName}}</strong> per esplorare gli altri membri della tua comunità e le loro offerte e necessità. Prenditi un minuto per completare il tuo profilo con contatti, descrizione e foto. Puoi anche completare le tue offerte e necessità con una descrizione dettagliata e immagini.",
-    "welcome_cta_main": "Esplora offerte e necessità",
-    "welcome_cta_secondary": "Controlla il contatto della tua comunità"
+    "reset_password_reason": "Ricevi questa email perché è stato richiesto il reset della password per questo indirizzo email su {{appName}}."
   }
 }

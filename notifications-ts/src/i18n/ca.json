@@ -102,11 +102,8 @@
   },
   "emails": {
     "welcome_to": "Benvingut/da a {{name}}!",
-    "hello_name": "Hola {{name}},",
     "hello": "Hola,",
     "safely_ignore": "Si no has sol·licitat aquest correu, el pots ignorar sense problemes.",
-    "happy_exchange": "Feliç intercanvi!",
-    "reason_active_member": "Reps aquest correu com a membre actiu de {{groupName}} a {{appName}}.",
 
     "validate_email_subject": "Confirma el teu correu i registra't a {{name}}",
     "validate_email_label": "Confirma el teu correu",
@@ -118,13 +115,6 @@
     "reset_password_label": "Restableix la contrasenya",
     "reset_password_text": "Fes clic al botó següent per restablir la teva contrasenya. Després podràs triar una contrasenya nova per al teu compte a {{name}}.",
     "reset_password_cta": "Restableix la contrasenya",
-    "reset_password_reason": "Reps aquest correu perquè s'ha sol·licitat restablir la contrasenya d'aquesta adreça de correu a {{appName}}.",
-
-    "welcome_subject": "Benvingut/da a {{name}}!",
-    "welcome_label": "Benvinguda",
-    "welcome_text_1": "Has estat acceptat/da com a membre de <strong>{{groupName}}</strong>. El teu número de compte és <strong>{{code}}</strong>.",
-    "welcome_text_2": "Ara pots iniciar sessió a <strong>{{appName}}</strong> per explorar altres membres de la teva comunitat i les seves ofertes i necessitats. Dedica un minut a completar el teu perfil amb dades de contacte rellevants, descripció i foto. També pots completar les teves ofertes i necessitats amb una descripció detallada i imatges.",
-    "welcome_cta_main": "Explora ofertes i necessitats",
-    "welcome_cta_secondary": "Preguntes? Consulta el contacte de la teva comunitat"
+    "reset_password_reason": "Reps aquest correu perquè s'ha sol·licitat restablir la contrasenya d'aquesta adreça de correu a {{appName}}."
   }
 }

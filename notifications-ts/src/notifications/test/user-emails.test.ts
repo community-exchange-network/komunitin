@@ -27,23 +27,6 @@ const createUserEvent = (groupCode: string, eventName: string, eventId: string) 
   return {user, eventData};
 }
 
-const createMemberEvent = (groupCode: string, eventName: string, eventId: string) => {
-  const member = createMember({ groupCode });
-  const userId = getUserIdForMember(member.id);
-  const user = db.users.find(u => u.id === userId)!;
-
-  const eventData = createEvent(
-    eventName,
-    member.id,
-    groupCode,
-    userId,
-    eventId,
-    'member'
-  );
-
-  return { user, eventData };
-}
-
 describe('User emails', () => {
   beforeEach(() => {
     email.reset();
@@ -102,32 +85,5 @@ describe('User emails', () => {
     // Plain text (auto-converted from HTML) also carries the link
     assert.ok(msg.text?.includes(expectedUrl), 'Plain text should contain reset password URL with token');
     
-  });
-
-  it('should send welcome email when member joins', async () => {
-    const { user, eventData } = createMemberEvent('GRP1', 'MemberJoined', 'test-event-member-joined');
-
-    await put(eventData);
-
-    assert.strictEqual(email.sentEmails.length, 1, 'Should send exactly one welcome email');
-    const msg = email.lastEmail();
-
-    assert.strictEqual(msg.to, user.attributes.email);
-
-    assert.ok(
-      msg.subject.includes('Welcome to Group GRP1!'),
-      `Subject should contain welcome title. Got: "${msg.subject}"`
-    );
-
-    assert.ok(msg.html.includes('Welcome'));
-    assert.ok(msg.text?.includes('Welcome'));
-
-    const expectedMainUrl = '/home';
-    assert.ok(msg.html.includes(expectedMainUrl), 'HTML should contain welcome main CTA URL');
-    assert.ok(msg.text?.includes(expectedMainUrl), 'Plain text should contain welcome main CTA URL');
-
-    const expectedSecondaryUrl = '/groups/GRP1';
-    assert.ok(msg.html.includes(expectedSecondaryUrl), 'HTML should contain group URL');
-    assert.ok(msg.text?.includes(expectedSecondaryUrl), 'Plain text should contain group URL');
   });
 });
