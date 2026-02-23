@@ -13,6 +13,7 @@ const { appNotifications, syntheticQueue: queue } = setupNotificationsTest({
 
 describe('MembersJoinedDigest notifications', () => {
   let runDigest: () => Promise<void>;
+  const oneDayAgoIso = () => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   before(async () => {
     const digestModule = await import('../synthetic/digest-cron')
@@ -173,7 +174,7 @@ describe('MembersJoinedDigest notifications', () => {
     createOffer({
       id: 'offer-other', code: 'OFFO', groupCode,
       memberId: otherMember.id,
-      attributes: { created: new Date(Date.now() - 86400000).toISOString() }
+      attributes: { created: oneDayAgoIso() }
     });
 
     const recipientUserId = getUserIdForMember(recipientMember.id);
@@ -309,9 +310,53 @@ describe('MembersJoinedDigest notifications', () => {
     const notif = appNotifications.find(n => n.userId === recipientUserId);
 
     // Body: check_member_profiles_other
+    assert.match(notif.title, /Zero1|Zero2|Zero3|Zero4/);
     assert.ok(notif.body);
     // Just ensure it's not empty or crashing
     assert.notEqual(notif.body, '');
+  })
+
+  it('g) digest does not include self member in title/body content', async () => {
+    recipientMember.attributes.name = 'Self Member';
+    recipientMember.attributes.created = oneDayAgoIso();
+    recipientMember.attributes.updated = recipientMember.attributes.created;
+
+    createTestMember({ name: 'Peer Member', daysAgo: 1, offers: 1 });
+    createOffer({
+      id: 'offer-self-member',
+      code: 'SELF1',
+      groupCode,
+      memberId: recipientMember.id,
+      attributes: {
+        name: 'Self Offer',
+        created: oneDayAgoIso()
+      }
+    });
+
+    const recipientUserId = getUserIdForMember(recipientMember.id);
+
+    await runDigest();
+
+    const notif = appNotifications.find(n => n.userId === recipientUserId);
+    assert.ok(notif);
+    assert.match(notif.title, /Peer Member/);
+    assert.doesNotMatch(notif.title, /Self Member/);
+    assert.match(notif.body, /Offer · Offer 1/);
+    assert.doesNotMatch(notif.body, /Self Offer/);
+  })
+
+  it('h) does not send members digest to self when only self is new in window', async () => {
+    recipientMember.attributes.created = oneDayAgoIso();
+    recipientMember.attributes.updated = recipientMember.attributes.created;
+
+    const recipientUserId = getUserIdForMember(recipientMember.id);
+
+    await runDigest();
+
+    const membersDigestNotifications = appNotifications.filter(
+      n => n.userId === recipientUserId && n.eventName === EVENT_NAME.MembersJoinedDigest
+    );
+    assert.equal(membersDigestNotifications.length, 0);
   })
 
 })

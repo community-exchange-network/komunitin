@@ -205,6 +205,14 @@ export const buildMembersJoinedDigestMessage = (
   const extraPostsCount = totalPostCount - featuredPostCount;
   
   const featuredMembers = featuredEntries.map(entry => entry.member);
+  
+  // Fill with additional members even if they don't have posts.
+  for (const member of members) {
+    if (featuredMembers.length < 2 && !featuredMembers.some(m => m.id === member.id)) {
+      featuredMembers.push(member);
+    }
+  }
+
   const extraMembersCount = Math.max(0, members.length - featuredMembers.length);
 
   const route = members.length === 1
