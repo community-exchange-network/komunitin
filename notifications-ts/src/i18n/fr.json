@@ -102,8 +102,11 @@
   },
   "emails": {
     "welcome_to": "Bienvenue sur {{name}} !",
+    "hello_name": "Bonjour {{name}},",
     "hello": "Bonjour,",
     "safely_ignore": "Si vous n'avez pas demandé cet email, vous pouvez l'ignorer en toute sécurité.",
+    "happy_exchange": "Bon échange !",
+    "reason_active_member": "Vous recevez cet email en tant que membre actif de {{groupName}} sur {{appName}}.",
 
     "validate_email_subject": "Confirmez votre email et inscrivez-vous sur {{name}}",
     "validate_email_label": "Confirmez votre email",
@@ -115,6 +118,13 @@
     "reset_password_label": "Réinitialiser le mot de passe",
     "reset_password_text": "Veuillez cliquer sur le bouton ci-dessous pour réinitialiser votre mot de passe. Vous pourrez ensuite choisir un nouveau mot de passe pour votre compte sur {{name}}.",
     "reset_password_cta": "Réinitialiser le mot de passe",
-    "reset_password_reason": "Vous recevez cet email car une réinitialisation du mot de passe a été demandée pour cette adresse email sur {{appName}}."
+    "reset_password_reason": "Vous recevez cet email car une réinitialisation du mot de passe a été demandée pour cette adresse email sur {{appName}}.",
+
+    "welcome_subject": "Bienvenue sur {{name}} !",
+    "welcome_label": "Bienvenue",
+    "welcome_text_1": "Vous avez été accepté(e) comme membre de <strong>{{groupName}}</strong>. Votre numéro de compte est <strong>{{code}}</strong>.",
+    "welcome_text_2": "Vous pouvez maintenant vous connecter à <strong>{{appName}}</strong> pour explorer les autres membres de votre communauté et leurs offres et besoins. Prenez une minute pour compléter votre profil avec des coordonnées, une description et une photo. Vous pouvez aussi compléter vos offres et besoins avec une description détaillée et des images.",
+    "welcome_cta_main": "Explorer les offres et besoins",
+    "welcome_cta_secondary": "Consultez le contact de votre communauté"
   }
 }

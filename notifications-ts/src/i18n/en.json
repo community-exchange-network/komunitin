@@ -102,8 +102,11 @@
   },
   "emails": {
     "welcome_to": "Welcome to {{name}}!",
+    "hello_name": "Hello {{name}},",
     "hello": "Hello,",
     "safely_ignore": "If you didn't request this email, you can safely ignore it.",
+    "happy_exchange": "Happy exchange!",
+    "reason_active_member": "You are receiving this email as an active member of {{groupName}} on {{appName}}.",
 
     "validate_email_subject": "Confirm your email and sign up to {{name}}",
     "validate_email_label": "Confirm your email",
@@ -115,7 +118,13 @@
     "reset_password_label": "Reset password",
     "reset_password_text": "Please click the button below to reset your password. Then you will be able to choose a new password for your account on {{name}}.",
     "reset_password_cta": "Reset password",
-    "reset_password_reason": "You are receiving this email because a password reset has been requested for this email address on {{appName}}."
+    "reset_password_reason": "You are receiving this email because a password reset has been requested for this email address on {{appName}}.",
 
+    "welcome_subject": "Welcome to {{name}}!",
+    "welcome_label": "Welcome",
+    "welcome_text_1": "You have been accepted as a member of <strong>{{groupName}}</strong>. Your account number is <strong>{{code}}</strong>.",
+    "welcome_text_2": "You can now sign in to <strong>{{appName}}</strong> to explore other members in your community and their offers and needs. Please take a minute to complete your profile with relevant contact details, description and photo. You can also complete your offers and needs with a detailed description and images.",
+    "welcome_cta_main": "Explore offers & needs",
+    "welcome_cta_secondary": "Quesionts? Check your community contact"
   }
 }

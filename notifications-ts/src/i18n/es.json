@@ -102,8 +102,11 @@
   },
   "emails": {
     "welcome_to": "¡Bienvenido/a a {{name}}!",
+    "hello_name": "Hola {{name}},",
     "hello": "Hola,",
     "safely_ignore": "Si no solicitaste este correo, puedes ignorarlo sin problema.",
+    "happy_exchange": "¡Feliz intercambio!",
+    "reason_active_member": "Recibes este correo como miembro activo de {{groupName}} en {{appName}}.",
 
     "validate_email_subject": "Confirma tu correo y regístrate en {{name}}",
     "validate_email_label": "Confirma tu correo",
@@ -115,6 +118,13 @@
     "reset_password_label": "Restablecer contraseña",
     "reset_password_text": "Haz clic en el siguiente botón para restablecer tu contraseña. Después podrás elegir una nueva contraseña para tu cuenta en {{name}}.",
     "reset_password_cta": "Restablecer contraseña",
-    "reset_password_reason": "Recibes este correo porque se ha solicitado un restablecimiento de contraseña para esta dirección de correo en {{appName}}."
+    "reset_password_reason": "Recibes este correo porque se ha solicitado un restablecimiento de contraseña para esta dirección de correo en {{appName}}.",
+
+    "welcome_subject": "¡Bienvenido/a a {{name}}!",
+    "welcome_label": "Bienvenido/a",
+    "welcome_text_1": "Has sido aceptado/a como miembro de <strong>{{groupName}}</strong>. Tu número de cuenta es <strong>{{code}}</strong>.",
+    "welcome_text_2": "Ahora puedes iniciar sesión en <strong>{{appName}}</strong> para explorar a otros miembros de tu comunidad y sus ofertas y necesidades. Tómate un minuto para completar tu perfil con datos de contacto relevantes, descripción y foto. También puedes completar tus ofertas y necesidades con una descripción detallada e imágenes.",
+    "welcome_cta_main": "Explorar ofertas y necesidades",
+    "welcome_cta_secondary": "Preguntas? Consulta el contacto de tu comunidad"
   }
 }
