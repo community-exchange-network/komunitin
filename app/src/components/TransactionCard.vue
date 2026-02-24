@@ -2,33 +2,18 @@
   <q-card 
     flat 
     bordered
+    :class="[$q.screen.gt.sm ? 'q-px-xs' : '']"
   >
-    <q-card-section>
-      <!-- payer -->
-      <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
-        {{ $t("payer") }}
-      </div>
-      <account-header
-        :account="transfer.payer"
-        :address="transfer.attributes.meta.creditCommons?.payerAddress"
-      />
-    </q-card-section>
-    <q-separator />
-    <q-card-section>
-      <!-- payee -->
-      <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
-        {{ $t("payee") }}
-      </div>
-      <account-header
-        :account="transfer.payee"
-        :address="transfer.attributes.meta.creditCommons?.payeeAddress"
-      />
-    </q-card-section>
-    <q-separator />
-    <q-card-section class="text-center">
+    <q-card-section >
       <!-- main section -->
+      <div class="text-overline text-uppercase text-onsurface-d">
+        {{ $t("transaction") }}
+      </div>
+      <div class="text-body1 q-my-sm text-onsurface-m">
+        {{ transfer.attributes.meta.description }}
+      </div>
       <div
-        class="text-h4"
+        class="text-h5"
         :class="positive ? 'positive-amount' : 'negative-amount'"
       >
         {{ FormatCurrency((positive ? 1 : -1) * transfer.attributes.amount, myCurrency) }}
@@ -39,40 +24,57 @@
           ({{ FormatCurrency((positive ? 1 : -1) * otherAmount, otherCurrency) }})
         </span>
       </div>
-      <div class="text-subtitle1 text-onsurface-m">
-        {{ $formatDate(transfer.attributes.updated) }}
-      </div>
-      <div class="text-body1">
-        {{ transfer.attributes.meta.description }}
-      </div>
     </q-card-section>
-    <q-separator />
-    <q-card-section class="text-body2">
-      <!-- details -->
-      <div>
-        <span class="text-onsurface-d">{{ $t("state") }}</span><span class="q-pl-sm">{{ state }}</span>
+    <q-separator inset />
+    <q-card-section>
+      <!-- payer -->
+      <div class="text-overline text-uppercase text-onsurface-d">
+        {{ $t("payer") }}
       </div>
+      <transaction-card-account
+        :account="transfer.payer"
+        :address="transfer.attributes.meta.creditCommons?.payerAddress"
+        :group="otherCurrency ? payerGroup : undefined"
+      />
+      <!-- payee -->
+      <div class="text-overline text-uppercase text-onsurface-d q-pt-md">
+        {{ $t("payee") }}
+      </div>
+      <transaction-card-account
+        v-if="transfer.payee"
+        :account="transfer.payee"
+        :address="transfer.attributes.meta.creditCommons?.payeeAddress"
+        :group="otherCurrency ? payeeGroup : undefined"
+      />
+    </q-card-section>
+    <q-separator v-if="!props.hideMeta" inset/>
+    <q-card-section v-if="!props.hideMeta" class="row items-center justify-between">
+      <span class="text-caption text-onsurface-m text-weight-medium" style="font-size: 14px;">{{ $formatDate(transfer.attributes.updated) }}</span>
+      <transaction-status-chip :status="transfer.attributes.state" class="q-ma-none"/>
+    </q-card-section>
+    
+    <!--q-card-section class="text-body2 q-pl-md q-ml-md">
       <div v-if="payerGroup">
         <span class="text-onsurface-d">{{ otherCurrency ? $t('payerGroup') : $t("group") }}</span><span class="q-pl-sm">{{ payerGroup.attributes.name }}</span>
       </div>
       <div v-if="otherCurrency">
         <span class="text-onsurface-d">{{ $t('payeeGroup') }}</span><span class="q-pl-sm">{{ payeeGroup.attributes.name }}</span>
       </div>
-    </q-card-section>
+    </q-card-section -->
     <slot />
   </q-card>
 </template>
 <script setup lang="ts">
-import KError, { KErrorCode } from "src/KError";
 import { computed } from "vue";
-import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
-import AccountHeader from "./AccountHeader.vue"
+import TransactionStatusChip from "./TransactionStatusChip.vue"
+import TransactionCardAccount from "./TransactionCardAccount.vue";
 import FormatCurrency, { convertCurrency } from "../plugins/FormatCurrency"
 import type { Currency, ExtendedTransfer, Group } from "src/store/model";
 
 const props = defineProps<{
   transfer: ExtendedTransfer
+  hideMeta?: boolean
 }>()
 
 // Store
@@ -84,29 +86,6 @@ const myAccount = store.getters.myAccount
 const positive = computed(() => {
   return props.transfer.payer.id != myAccount.id;
 });
-
-const { t } = useI18n()
-
-const state = computed(() => {
-  const state = props.transfer.attributes.state
-  switch (state) {
-    case "new":
-      return t("new").toString();
-    case "pending":
-      return t("pending").toString();
-    case "accepted":
-      return t("accepted").toString();
-    case "committed":
-      return t("committed").toString();
-    case "rejected":
-      return t("rejected").toString();
-    case "failed":
-      return t("failed").toString();
-    case "deleted":
-      return t("deleted").toString();
-  }
-  throw new KError(KErrorCode.InvalidTransferState);
-})
 
 const payerGroup = computed(() => (props.transfer.payer.currency as Currency & {group: Group}).group)
 const payeeGroup = computed(() => (props.transfer.payee?.currency as undefined | Currency & {group: Group})?.group)

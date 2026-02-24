@@ -5,9 +5,12 @@
         {{ $t('confirmTransaction') }}
       </div>
     </div>
-    <transaction-card :transfer="transfer">
-      <q-separator />
-      <q-card-actions class="justify-end">
+    <transaction-card 
+      :transfer="transfer"
+      hide-meta
+    >
+      <q-separator inset />
+      <q-card-actions class="justify-end q-pa-md">
         <q-btn 
           :label="$t('back')"
           color="primary"
