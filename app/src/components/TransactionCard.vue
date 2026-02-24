@@ -16,12 +16,12 @@
         class="text-h5"
         :class="positive ? 'positive-amount' : 'negative-amount'"
       >
-        {{ FormatCurrency((positive ? 1 : -1) * transfer.attributes.amount, myCurrency) }}
+        {{ FormatCurrency(transfer.attributes.amount, myCurrency) }}
         <span 
           v-if="otherCurrency && otherAmount" 
           class="text-h5 text-onsurface-m"
         >
-          ({{ FormatCurrency((positive ? 1 : -1) * otherAmount, otherCurrency) }})
+          ({{ FormatCurrency(otherAmount, otherCurrency) }})
         </span>
       </div>
     </q-card-section>

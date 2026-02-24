@@ -1,6 +1,6 @@
 <template>
   <account-header
-    class="q-pl-none"
+    class="q-px-none"
     :account="account"
     :address="address"
   >
