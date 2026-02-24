@@ -150,7 +150,7 @@ const overrideCaption = computed(() => {
     margin-top: -12px;
   }
   .pending {
-    background-color: $light-error;
+    background-color: $light-warning;
     .top-right-label{
       color: $error;
     }
