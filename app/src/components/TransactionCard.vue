@@ -9,19 +9,19 @@
       <div class="text-overline text-uppercase text-onsurface-d">
         {{ $t("transaction") }}
       </div>
-      <div class="text-body1 q-my-sm text-onsurface-m">
+      <div class="text-body1 q-my-sm text-onsurface">
         {{ transfer.attributes.meta.description }}
       </div>
       <div
-        class="text-h5"
+        class="text-h5 flex justify-between"
         :class="positive ? 'positive-amount' : 'negative-amount'"
       >
-        {{ FormatCurrency(transfer.attributes.amount, myCurrency) }}
+        <span>{{ FormatCurrency(transfer.attributes.amount, myCurrency) }}</span>
         <span 
           v-if="otherCurrency && otherAmount" 
-          class="text-h5 text-onsurface-m"
+          class="text-h6 text-onsurface-m"
         >
-          ({{ FormatCurrency(otherAmount, otherCurrency) }})
+          {{ FormatCurrency(otherAmount, otherCurrency) }}
         </span>
       </div>
     </q-card-section>
@@ -50,24 +50,15 @@
     <q-separator v-if="!props.hideMeta" inset/>
     <q-card-section v-if="!props.hideMeta" class="row items-center justify-between">
       <span class="text-caption text-onsurface-m text-weight-medium" style="font-size: 14px;">{{ $formatDate(transfer.attributes.updated) }}</span>
-      <transaction-status-chip :status="transfer.attributes.state" class="q-ma-none"/>
+      <transaction-status-badge :status="transfer.attributes.state" class="q-ma-none"/>
     </q-card-section>
-    
-    <!--q-card-section class="text-body2 q-pl-md q-ml-md">
-      <div v-if="payerGroup">
-        <span class="text-onsurface-d">{{ otherCurrency ? $t('payerGroup') : $t("group") }}</span><span class="q-pl-sm">{{ payerGroup.attributes.name }}</span>
-      </div>
-      <div v-if="otherCurrency">
-        <span class="text-onsurface-d">{{ $t('payeeGroup') }}</span><span class="q-pl-sm">{{ payeeGroup.attributes.name }}</span>
-      </div>
-    </q-card-section -->
     <slot />
   </q-card>
 </template>
 <script setup lang="ts">
 import { computed } from "vue";
 import { useStore } from "vuex";
-import TransactionStatusChip from "./TransactionStatusChip.vue"
+import TransactionStatusBadge from "./TransactionStatusBadge.vue"
 import TransactionCardAccount from "./TransactionCardAccount.vue";
 import FormatCurrency, { convertCurrency } from "../plugins/FormatCurrency"
 import type { Currency, ExtendedTransfer, Group } from "src/store/model";

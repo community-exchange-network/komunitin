@@ -1,9 +1,5 @@
 <template>
-  <q-chip
-    :color="color"
-    text-color="white"
-    :label="label"
-  />
+  <div class="badge text-white" :class="`bg-${color}`">{{ label }}</div>
 </template>
 <script setup lang="ts">
 import { useTransferStatus } from "../composables/transferStatus";
@@ -15,3 +11,11 @@ const props = defineProps<{
 
 const { color, label } = useTransferStatus(() => props.status);
 </script>
+<style lang="scss" scoped>
+.badge {
+  font-size: 14px;
+  padding: 4px 12px;
+  border-radius: 16px;
+}
+
+</style>
