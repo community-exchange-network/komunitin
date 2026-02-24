@@ -11,6 +11,7 @@
   "receive": "I Provided",
   "transactions": "Trades",
   "transaction": "Trade",
+  "pleaseReviewTransfer": "Please accept or reject this trade.",
   "payer": "Who received this?",
   "payee": "Who provided this?",
   "selectPayer": "Who received this?",

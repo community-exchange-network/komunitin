@@ -397,6 +397,7 @@
   "yesterday": "Ayer",
   "thisWeek": "Esta semana",
   "thisMonth": "Este mes",
+  "pleaseReviewTransfer": "Por favor, acepta o rechaza este movimiento.",
 
   "ErrorAuthNoCredentials": "Email o password incorrectos",
   "ErrorInvalidPassword": "Contraseña incorrecta",
