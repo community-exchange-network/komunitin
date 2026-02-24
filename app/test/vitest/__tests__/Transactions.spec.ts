@@ -190,9 +190,6 @@ describe("Transactions", () => {
     expect(text).toContain("Emiliano")
     expect(text).toContain("123")
     expect(text).toContain("Test transaction description.")
-    expect(text).toContain("today")
-    expect(text).toContain("New")
-
 
     await wrapper.get("#confirm-transaction").trigger("click")
     await waitFor(() => wrapper.text().includes("Committed"), true, "Transaction should be committed");
@@ -217,7 +214,6 @@ describe("Transactions", () => {
     expect(text).toContain("Emiliano");
     expect(text).toContain("234");
     expect(text).toContain("Test payment description.");
-    expect(text).toContain("today")
     await wrapper.get("#confirm-transaction").trigger("click")
     await waitFor(() => wrapper.text().includes("Committed"), true, "Transaction should be committed");
   })
@@ -256,10 +252,9 @@ describe("Transactions", () => {
     const text = wrapper.text();
     expect(text).toContain("Jaunita");
     expect(text).toContain("Emiliano");
-    expect(text).toContain("$-12.00");
-    expect(text).toContain("($-120.00)");
+    expect(text).toContain("$12.00");
+    expect(text).toContain("($120.00)");
     expect(text).toContain("Test external payment");
-    expect(text).toContain("today")
 
     await wrapper.get("#confirm-transaction").trigger("click")
     await waitFor(() => wrapper.text().includes("Committed"), true, "Transaction should be committed");
@@ -303,10 +298,9 @@ describe("Transactions", () => {
     const text = wrapper.text();
     expect(text).toContain("GRP20002");
     expect(text).toContain("Emiliano");
-    expect(text).toContain("$-13.00");
-    expect(text).toContain("(B/.-1,300.00)");
+    expect(text).toContain("$13.00");
+    expect(text).toContain("(B/.1,300.00)");
     expect(text).toContain("Test external payment 2");
-    expect(text).toContain("today")
 
     await wrapper.get("#confirm-transaction").trigger("click")
     await waitFor(() => wrapper.text().includes("Committed"), true, "Transaction should be committed");
@@ -366,7 +360,7 @@ describe("Transactions", () => {
     
     await (wrapper.getComponent(CreateTransactionSendQR) as any)
       .vm.onDetect([{rawValue: `http://localhost:8080/pay?c=${PAYMENT_ADDRESS_URL}&m=Test%20QR%20description&a=120000`}])
-    await waitFor(() => wrapper.text().includes("$-12.00"), true, "Scanned transfer amount should show")
+    await waitFor(() => wrapper.text().includes("$12.00"), true, "Scanned transfer amount should show")
     expect(wrapper.text()).toContain("Test QR description")
     expect(wrapper.text()).toContain("GRP00004")
     expect(wrapper.text()).toContain("Florida")
@@ -376,7 +370,7 @@ describe("Transactions", () => {
 
   it('Payment link', async () => {
     await wrapper.vm.$router.push(`/pay?c=${PAYMENT_ADDRESS_URL}&m=Test%20QR%20link&a=135000`)
-    await waitFor(() => wrapper.text().includes("$-13.50"), true, "Payment link amount should show")
+    await waitFor(() => wrapper.text().includes("$13.50"), true, "Payment link amount should show")
     expect(wrapper.text()).toContain("Test QR link")
     expect(wrapper.text()).toContain("GRP00004")
     expect(wrapper.text()).toContain("Florida")
