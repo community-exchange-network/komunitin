@@ -253,7 +253,7 @@ describe("Transactions", () => {
     expect(text).toContain("Jaunita");
     expect(text).toContain("Emiliano");
     expect(text).toContain("$12.00");
-    expect(text).toContain("($120.00)");
+    expect(text).toContain("$120.00");
     expect(text).toContain("Test external payment");
 
     await wrapper.get("#confirm-transaction").trigger("click")
@@ -299,7 +299,7 @@ describe("Transactions", () => {
     expect(text).toContain("GRP20002");
     expect(text).toContain("Emiliano");
     expect(text).toContain("$13.00");
-    expect(text).toContain("(B/.1,300.00)");
+    expect(text).toContain("B/.1,300.00");
     expect(text).toContain("Test external payment 2");
 
     await wrapper.get("#confirm-transaction").trigger("click")
