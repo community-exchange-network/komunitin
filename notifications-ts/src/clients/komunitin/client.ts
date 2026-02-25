@@ -38,7 +38,7 @@ export class KomunitinClient {
     }
   }
 
-  private async fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  private async fetchWithAuth(url: string, options: RequestInit = {}) {
     let token = await this.auth.getAccessToken();
 
     const makeRequest = async (t: string) => {
@@ -61,11 +61,15 @@ export class KomunitinClient {
       response = await makeRequest(token);
     }
 
-    return response;
+    if (!response.ok) {
+      logger.error({ status: response.status, url }, 'API request failed');
+    }
+
+    return response.json()
   }
 
   public async fetch(url: string, options: RequestInit = {}): Promise<any> {
-    const response = await this.fetchWithAuth(url, options);
+    const response = await this.fetchRaw(url, options);
     if (!response.ok) {
       throw new Error(`API Error ${response.status}: ${response.statusText} at ${url}`);
     }
@@ -81,7 +85,8 @@ export class KomunitinClient {
 
   // Generic JSON:API fetcher to handle types later or specific resources
   private async get(service: 'social' | 'accounting', path: string): Promise<any> {
-    return this.fetch(this.getUrl(service, path));
+    const url = this.getUrl(service, path);
+    return await this.fetchWithAuth(url);
   }
 
   // Helper for pagination
@@ -92,7 +97,7 @@ export class KomunitinClient {
     let allData: T[] = [];
 
     while (url) {
-      const body = await this.fetch(url) as any;
+      const body = await this.fetchWithAuth(url) as any;
       if (body.data) {
         allData = allData.concat(body.data);
       }
@@ -133,7 +138,7 @@ export class KomunitinClient {
     // Fetch users with settings included
     const query = new URLSearchParams({ 'filter[members]': memberId, include: 'settings' }).toString();
     const url = this.getUrl('social', `/users?${query}`);
-    const body = await this.fetch(url) as any;
+    const body = await this.fetchWithAuth(url) as any;
     const users = body.data as User[];
     const included = body.included || [];
     
