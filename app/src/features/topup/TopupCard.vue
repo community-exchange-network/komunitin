@@ -15,7 +15,7 @@
         </span>
       </div>
     </q-card-section>
-    <q-separator />
+    
     <q-card-section>
       <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
         {{ t("receive") }}
@@ -27,20 +27,16 @@
         </span>
       </div>
     </q-card-section>
-    <q-separator />
+    
     <q-card-section>
       <div class="q-pl-md">
         <div class="row items-center justify-between">
-          <span class="text-body2 text-onsurface-m text-weight-regular">{{ t('topupStatus') }}</span>
+          <span class="text-body2 text-onsurface-m text-weight-regular">{{ $formatDate(topup.attributes.created) }}</span>
           <div>
-            <q-chip
-              :color="statusColor"
-              text-color="white"
-              size="md"
-            >
-              <q-spinner v-if="polling" size="16px" class="q-mr-sm" color="white"/>
+            <pill-badge :color="statusColor" >
+              <q-spinner v-if="polling" size="16px" class="q-mr-sm"/>
               {{ statusLabel }}
-            </q-chip>
+            </pill-badge>
           </div>
         </div>
         
@@ -73,6 +69,7 @@ import { type Topup} from "./model"
 import { useI18n } from "vue-i18n"
 import formatCurrency from '../../plugins/FormatCurrency';
 import AccountHeader from "../../components/AccountHeader.vue";
+import PillBadge from "../../components/PillBadge.vue";
 import type { Account, Currency } from "../../store/model";
 import { computed, ref } from "vue";
 
@@ -110,12 +107,12 @@ const statusLabel = computed(() => {
 const statusColor = computed(() => {
   switch (props.topup.attributes.status) {
     case "transfer_completed":
-      return "positive"
+      return "green"
     case "transfer_failed":
     case "canceled":
-      return "negative"
+      return "red"
     default:
-      return "warning"
+      return "light-blue"
   }
 })
 
