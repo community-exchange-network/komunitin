@@ -7,7 +7,6 @@
     </div>
     <transaction-card 
       :transfer="transfer"
-      hide-meta
     >
       <q-separator inset />
       <q-card-actions class="justify-end q-pa-md">

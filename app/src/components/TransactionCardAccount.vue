@@ -1,20 +1,18 @@
 <template>
   <account-header
-    class="q-px-none"
     :account="account"
     :address="address"
+    class="transfer-account-item"
   >
     <template #extra v-if="group">
       <q-item-section>
-        <q-item-label lines="1" class="text-right text-onsurface-m">
+        <q-item-label lines="2" class="text-right text-caption text-onsurface-d">
           {{ group.attributes.name }}
         </q-item-label>
-        <q-item-label lines="1" caption class="text-right">
-          {{ group.attributes.code }}
-        </q-item-label>
       </q-item-section>
-      <q-item-section avatar>
+      <q-item-section side style="padding-left: 8px;">
         <avatar
+          size="md"
           :img-src="group.attributes.image"
           :text="group.attributes.code"
         />
@@ -32,5 +30,10 @@ defineProps<{
   address?: string,
   group?: Group
 }>()
-
 </script>
+<style scoped lang="scss">
+.transfer-account-item {
+  margin: 0 -16px;
+  border-radius: $generic-border-radius;
+}
+</style>

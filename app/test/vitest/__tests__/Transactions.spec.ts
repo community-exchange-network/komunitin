@@ -146,7 +146,7 @@ describe("Transactions", () => {
     expect(text).toContain("Oleta");
     expect(text).toContain("GRP00003");
     expect(text).toContain("$68.73");
-    expect(text).toContain("today at");
+    expect(text).toContain("Today at");
     expect(text).toContain("Cloned executive service-desk");
     expect(text).toContain("Committed");
     expect(text).toContain("Group 0");

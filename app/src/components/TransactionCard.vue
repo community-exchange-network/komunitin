@@ -2,55 +2,59 @@
   <q-card 
     flat 
     bordered
-    :class="[$q.screen.gt.sm ? 'q-px-xs' : '']"
   >
-    <q-card-section >
+    <q-card-section 
+      class="q-pb-lg"
+      :class="[$q.screen.gt.xs ? 'q-px-lg' : '']"
+    >
       <!-- main section -->
       <div class="text-overline text-uppercase text-onsurface-d">
         {{ $t("transaction") }}
       </div>
-      <div class="text-body1 q-my-sm text-onsurface">
+      <div class="text-body1 text-onsurface q-mt-sm text-weight-medium">
         {{ transfer.attributes.meta.description }}
       </div>
       <div
-        class="text-h5 flex justify-between"
+        class="text-h5 flex justify-between q-mt-xs"
         :class="positive ? 'positive-amount' : 'negative-amount'"
       >
         <span>{{ FormatCurrency(transfer.attributes.amount, myCurrency) }}</span>
         <span 
           v-if="otherCurrency && otherAmount" 
-          class="text-h6 text-onsurface-m"
+          class="text-h6 text-onsurface-m text-weight-regular"
         >
           {{ FormatCurrency(otherAmount, otherCurrency) }}
         </span>
       </div>
     </q-card-section>
-    <q-separator inset />
-    <q-card-section>
-      <!-- payer -->
-      <div class="text-overline text-uppercase text-onsurface-d">
-        {{ $t("payer") }}
-      </div>
-      <transaction-card-account
-        :account="transfer.payer"
-        :address="transfer.attributes.meta.creditCommons?.payerAddress"
-        :group="otherCurrency ? payerGroup : undefined"
-      />
-      <!-- payee -->
-      <div class="text-overline text-uppercase text-onsurface-d q-pt-md">
-        {{ $t("payee") }}
-      </div>
-      <transaction-card-account
-        v-if="transfer.payee"
-        :account="transfer.payee"
-        :address="transfer.attributes.meta.creditCommons?.payeeAddress"
-        :group="otherCurrency ? payeeGroup : undefined"
-      />
+    <q-card-section class="q-pt-sm q-pb-lg" :class="[$q.screen.gt.xs ? 'q-px-lg' : 'q-px-md']">
+      <!-- dotted line connecting the two avatars -->
+      <div class="relative-position">
+        <div class="avatar-connector" />
+        <!-- payer -->
+        <div class="text-overline text-uppercase text-onsurface-d q-pl-xl q-ml-sm"  style="margin-bottom: -10px;">
+          {{ $t("payer") }}
+        </div>
+        <transaction-card-account
+          :account="transfer.payer"
+          :address="transfer.attributes.meta.creditCommons?.payerAddress"
+          :group="otherCurrency ? payerGroup : undefined"
+        />
+        <!-- payee -->
+        <div class="text-overline text-uppercase text-onsurface-d q-pt-sm q-pl-xl q-ml-sm" style="margin-bottom: -10px;">
+          {{ $t("payee") }}
+        </div>
+        <transaction-card-account
+          v-if="transfer.payee"
+          :account="transfer.payee"
+          :address="transfer.attributes.meta.creditCommons?.payeeAddress"
+          :group="otherCurrency ? payeeGroup : undefined"
+        />
+        </div>
     </q-card-section>
-    <q-separator v-if="!props.hideMeta" inset/>
-    <q-card-section v-if="!props.hideMeta" class="row items-center justify-between">
-      <span class="text-caption text-onsurface-m text-weight-medium" style="font-size: 14px;">{{ $formatDate(transfer.attributes.updated) }}</span>
-      <transaction-status-badge :status="transfer.attributes.state" class="q-ma-none"/>
+    <q-card-section class="row items-center justify-between q-pt-sm q-pb-lg" :class="[$q.screen.gt.xs ? 'q-px-lg' : 'q-px-md']">
+      <span class="text-caption text-onsurface-m" style="font-size: 14px;">{{ capitalize($formatDate(transfer.attributes.updated)) }}</span>
+      <pill-badge :color="statusColor" >{{ statusLabel }}</pill-badge>
     </q-card-section>
     <slot />
   </q-card>
@@ -58,14 +62,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useStore } from "vuex";
-import TransactionStatusBadge from "./TransactionStatusBadge.vue"
 import TransactionCardAccount from "./TransactionCardAccount.vue";
+import PillBadge from "./PillBadge.vue";
 import FormatCurrency, { convertCurrency } from "../plugins/FormatCurrency"
 import type { Currency, ExtendedTransfer, Group } from "src/store/model";
+import { useTransferStatus } from "src/composables/transferStatus";
 
 const props = defineProps<{
   transfer: ExtendedTransfer
-  hideMeta?: boolean
 }>()
 
 // Store
@@ -102,4 +106,22 @@ const otherAmount = computed(() => {
   return null;
 })
 
+const capitalize = (str: string) => {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+const { color: statusColor, label: statusLabel } = useTransferStatus(props.transfer.attributes.state)
+
+
 </script>
+
+<style scoped lang="scss">
+.avatar-connector {
+  position: absolute;
+  left: 19px;
+  top: 60px;
+  bottom: 48px;
+  border-left: 2px dotted rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+</style>

@@ -18,7 +18,7 @@
         </div>
         <transaction-card :transfer="transfer">
           <div v-if="isPendingMe">
-            <q-separator inset />
+            <q-separator />
             <q-card-actions class="justify-end q-pa-md">
               <q-btn 
                 :label="t('reject')"

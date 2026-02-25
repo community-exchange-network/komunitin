@@ -150,9 +150,9 @@ const overrideCaption = computed(() => {
     margin-top: -12px;
   }
   .pending {
-    background-color: $light-warning;
+    background-color: $orange-1;
     .top-right-label{
-      color: $error;
+      color: $orange-10;
     }
   }
   .rejected, .failed {
