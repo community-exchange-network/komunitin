@@ -6,10 +6,10 @@ import { useI18n } from "vue-i18n"
 type T = ReturnType<typeof useI18n>['t']
 
 const STATUS_MAP = {
-  active: { color: 'green', icon: 'visibility', label: (t: T) => t('active'), text: (t) => t('activeAccountText') },
-  disabled: { color: 'grey', icon: 'visibility_off', label: (t: T) => t('disabled'), text: (t) => t('disabledAccountText') },
-  pending: { color: 'light-blue', icon: 'hourglass_empty', label: (t: T) => t('pending'), text: (t) => t('pendingAccountText') },
-  suspended: { color: 'deep-orange', icon: 'block', label: (t: T) => t('suspended'), text: (t) => t('suspendedAccountText') },
+  active: { color: 'green', icon: 'visibility', label: (t: T) => t('active'), text: (t: T) => t('activeAccountText') },
+  disabled: { color: 'grey', icon: 'visibility_off', label: (t: T) => t('disabled'), text: (t: T) => t('disabledAccountText') },
+  pending: { color: 'light-blue', icon: 'hourglass_empty', label: (t: T) => t('pending'), text: (t: T) => t('pendingAccountText') },
+  suspended: { color: 'deep-orange', icon: 'block', label: (t: T) => t('suspended'), text: (t: T) => t('suspendedAccountText') },
 }
 
 export const useAccountStatus = (status: MaybeRefOrGetter<MemberState>) => {
