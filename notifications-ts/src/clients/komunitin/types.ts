@@ -133,6 +133,14 @@ export interface UserSettings {
   };
 }
 
+export interface ExternalResource {
+  id: string;
+  type: string;
+  meta: {
+    external: true;
+    href: string;
+  };
+}
 export interface Account {
   id: string;
   attributes: {
