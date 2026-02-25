@@ -1,8 +1,11 @@
 <template>
   <div 
-    class="text-caption text-weight-medium pill" 
+    class="text-caption text-weight-medium pill flex items-center" 
     :class="`bg-${bg} text-${text}`"
-  ><slot /></div>
+  >
+    <q-icon v-if="icon" :name="icon" size="xs" class="q-mr-sm" />
+    <slot />
+  </div>
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
@@ -20,16 +23,17 @@ const colors = {
 
 const props = defineProps<{
   color: keyof typeof colors,
+  icon?: string,
 }>();
-
-const text = computed(() => colors[props.color].text);
-const bg = computed(() => colors[props.color].bg);
+const option = computed(() => colors[props.color] ?? colors['blue-grey']);
+const text = computed(() => option.value.text);
+const bg = computed(() => option.value.bg);
 
 </script>
 <style lang="scss" scoped>
 .pill {
-  padding: 4px 12px;
-  line-height: 16px;
+  padding: 2px 12px;
+  height: 24px;
   border-radius: 16px;
   letter-spacing: 0.06em;
 }

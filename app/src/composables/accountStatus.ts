@@ -1,4 +1,4 @@
-import type { MaybeRefOrGetter} from "vue";
+import type { MaybeRefOrGetter } from "vue";
 import { computed, toValue } from "vue"
 import type { MemberState } from "../store/model"
 import { useI18n } from "vue-i18n"
@@ -6,10 +6,10 @@ import { useI18n } from "vue-i18n"
 type T = ReturnType<typeof useI18n>['t']
 
 const STATUS_MAP = {
-  active:    { color: 'positive', icon: 'visibility',      label: (t: T) => t('active'),    text: (t) => t('activeAccountText') },
-  disabled:  { color: 'grey',     icon: 'visibility_off',  label: (t: T) => t('disabled'),  text: (t) => t('disabledAccountText') },
-  pending:   { color: 'info',     icon: 'hourglass_empty', label: (t: T) => t('pending'),   text: (t) => t('pendingAccountText') },
-  suspended: { color: 'warning',  icon: 'block',           label: (t: T) => t('suspended'), text: (t) => t('suspendedAccountText') },
+  active: { color: 'green', icon: 'visibility', label: (t: T) => t('active'), text: (t) => t('activeAccountText') },
+  disabled: { color: 'grey', icon: 'visibility_off', label: (t: T) => t('disabled'), text: (t) => t('disabledAccountText') },
+  pending: { color: 'light-blue', icon: 'hourglass_empty', label: (t: T) => t('pending'), text: (t) => t('pendingAccountText') },
+  suspended: { color: 'deep-orange', icon: 'block', label: (t: T) => t('suspended'), text: (t) => t('suspendedAccountText') },
 }
 
 export const useAccountStatus = (status: MaybeRefOrGetter<MemberState>) => {
@@ -17,9 +17,9 @@ export const useAccountStatus = (status: MaybeRefOrGetter<MemberState>) => {
 
   const entry = computed(() => STATUS_MAP[toValue(status)])
   const color = computed(() => entry.value?.color ?? 'blue-grey')
-  const icon  = computed(() => entry.value?.icon ?? 'help')
+  const icon = computed(() => entry.value?.icon ?? 'help')
   const label = computed(() => entry.value?.label(t) ?? toValue(status))
-  const text  = computed(() => entry.value?.text(t) ?? '')
+  const text = computed(() => entry.value?.text(t) ?? '')
 
   return { color, icon, label, text }
 }
