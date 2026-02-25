@@ -4,7 +4,7 @@ import type { EmailTemplateContext } from "./types";
 import { config } from "../../config";
 import type { NewsletterTemplateGroup } from "../../newsletter/types";
 
-type CommonEmailTemplateContext = Pick<EmailTemplateContext, 'appUrl' | 'appName' | 'group' | 'language' | 'reason'>;
+type CommonEmailTemplateContext = Pick<EmailTemplateContext, 'appUrl' | 'appName' | 'group' | 'language' | 'reason' | 'settingsLabel'>;
 
 export const ctxCommon = (event: EnrichedEvent, ctx: MessageContext): CommonEmailTemplateContext => {
   const { t } = ctx;
@@ -25,7 +25,8 @@ export const ctxCommon = (event: EnrichedEvent, ctx: MessageContext): CommonEmai
     appUrl,
     appName,
     group,
-    reason: t('emails.reason_active_member', {groupName: group.name, appName})
+    reason: t('emails.reason_active_member', {groupName: group.name, appName}),
+    settingsLabel: t('emails.settings'),
   }
 
   return data

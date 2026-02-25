@@ -20,3 +20,11 @@ export const formatAmount = (amount: number, currency: Currency, locale: string 
     })
     .join('');
 };
+
+export const formatDate = (isoDate: string, locale: string = 'en'): string => {
+  const date = new Date(isoDate);
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+};

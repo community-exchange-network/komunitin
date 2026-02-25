@@ -16,7 +16,7 @@ export const handleEmailEvent = async <T extends EnrichedEvent>(
   event: T,
   users: Array<{ user: any; settings: any }>,
   templateName: string,
-  buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext) => {
+  buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null) => {
   const i18n = await initI18n();
   
   for (const { user, settings } of users) {

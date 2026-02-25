@@ -45,7 +45,6 @@
     "stats_active_accounts": "Active Accounts",
     "stats_new_members": "New Members",
     "footer_reason": "You are receiving this email because you are subscribed to the newsletter of {{group}} in {{appName}}.",
-    "manage_subscription": "Account settings",
     "unsubscribe": "Unsubscribe from newsletter"
   },
   "offer": "Offer",
@@ -125,6 +124,41 @@
     "welcome_text_1": "You have been accepted as a member of <strong>{{groupName}}</strong>. Your account number is <strong>{{code}}</strong>.",
     "welcome_text_2": "You can now sign in to <strong>{{appName}}</strong> to explore other members in your community and their offers and needs. Please take a minute to complete your profile with relevant contact details, description and photo. You can also complete your offers and needs with a detailed description and images.",
     "welcome_cta_main": "Explore offers & needs",
-    "welcome_cta_secondary": "Quesionts? Check your community contact"
+    "welcome_cta_secondary": "Questions? Check your community contact",
+    "transfer_title": "Transfer",
+    "transfer_from": "From",
+    "transfer_to": "To",
+
+    "transfer_sent_subject": "You sent {{amount}}",
+    "transfer_sent_label": "Transfer sent",
+    "transfer_sent_text": "You have sent {{amount}} to {{recipient}}.",
+
+    "transfer_received_subject": "You received {{amount}}",
+    "transfer_received_label": "Transfer received",
+    "transfer_received_text": "You received {{amount}} from {{sender}}.",
+
+    "transfer_pending_subject": "Transfer pending",
+    "transfer_pending_label": "Transfer pending",
+    "transfer_pending_text": "{{sender}} has requested a transfer of {{amount}}. Please accept or reject it.",
+    "transfer_pending_subtext": "It is very important to keep the balances up to date. Please take action as soon as possible.",
+
+    "transfer_rejected_subject": "Transfer rejected",
+    "transfer_rejected_label": "Transfer rejected",
+    "transfer_rejected_text": "{{name}} rejected the transfer request of {{amount}}.",
+    "transfer_rejected_subtext": "If you think this is a mistake, please contact them to accept a new transfer, or contact the community administrators if necessary.",
+
+    "transfer_view_cta": "View transfer",
+    "transfer_respond_cta": "Accept or reject",
+
+    "settings": "Account settings",
+    "current_balance": "Your current balance is {{balance}}.",
+
+    "transfer_state_new": "New",
+    "transfer_state_pending": "Pending",
+    "transfer_state_accepted": "Accepted",
+    "transfer_state_committed": "Committed",
+    "transfer_state_rejected": "Rejected",
+    "transfer_state_failed": "Failed",
+    "transfer_state_deleted": "Deleted"
   }
 }

@@ -1,0 +1,188 @@
+import { formatAmount, formatDate } from "../../utils/format";
+import { EnrichedTransferEvent } from "../enriched-events";
+import { type MessageContext } from "../messages";
+import { EmailTemplateContext, TransferTemplateContext, TransferTemplateMember } from "./types";
+import { ctxCommon } from "./utils";
+
+// -- Colors matching the web app --
+
+// Amount colors
+const POSITIVE_AMOUNT_COLOR = '#72A310'; // $primary (green)
+const NEGATIVE_AMOUNT_COLOR = '#2f7989'; // $kblue
+
+// Status pill colors (matching PillBadge in the Vue app)
+const STATUS_COLORS: Record<string, { color: string; bgColor: string }> = {
+  new:       { color: '#01579B', bgColor: '#E1F5FE' }, // light-blue
+  pending:   { color: '#E65100', bgColor: '#FFF3E0' }, // orange
+  accepted:  { color: '#004D40', bgColor: '#E0F2F1' }, // teal
+  committed: { color: '#1B5E20', bgColor: '#E8F5E9' }, // green
+  rejected:  { color: '#B71C1C', bgColor: '#FFEBEE' }, // red
+  failed:    { color: '#BF360C', bgColor: '#FBE9E7' }, // deep-orange
+  deleted:   { color: '#212121', bgColor: '#F5F5F5' }, // grey
+};
+
+// -- Helpers --
+
+const buildTransferMember = (
+  member: EnrichedTransferEvent['payer']['member'],
+  account: EnrichedTransferEvent['payer']['account'],
+): TransferTemplateMember => ({
+  name: member.attributes.name,
+  code: account.attributes.code,
+  image: member.attributes.image ?? undefined,
+  initial: member.attributes.name.charAt(0).toUpperCase(),
+});
+
+const buildTransferCard = (
+  event: EnrichedTransferEvent,
+  ctx: MessageContext,
+  isPositive: boolean,
+): TransferTemplateContext => {
+  const { transfer, currency, payer, payee } = event;
+  const { t, locale } = ctx;
+
+  const meta = transfer.attributes.meta as unknown as { description?: string } | undefined;
+  const description = (typeof meta === 'object' && meta?.description) ? meta.description : '';
+  const state = transfer.attributes.state;
+  const statusColors = STATUS_COLORS[state] ?? STATUS_COLORS['committed'];
+
+  return {
+    description,
+    amount: formatAmount(transfer.attributes.amount, currency, locale),
+    amountColor: isPositive ? POSITIVE_AMOUNT_COLOR : NEGATIVE_AMOUNT_COLOR,
+    payer: buildTransferMember(payer.member, payer.account),
+    payee: buildTransferMember(payee.member, payee.account),
+    date: formatDate(transfer.attributes.updated ?? transfer.attributes.created, locale),
+    status: {
+      label: t(`emails.transfer_state_${state}`),
+      color: statusColors.color,
+      bgColor: statusColors.bgColor,
+    },
+  };
+};
+
+const transferRoute = (code: string, transferId: string): string => {
+  return `/groups/${code}/transactions/${transferId}`;
+};
+
+const buildBalanceLine = (
+  balance: number,
+  currency: EnrichedTransferEvent['currency'],
+  ctx: MessageContext,
+): { html: string } => {
+  const { t, locale } = ctx;
+  const formatted = formatAmount(balance, currency, locale);
+  const color = balance >= 0 ? POSITIVE_AMOUNT_COLOR : NEGATIVE_AMOUNT_COLOR;
+  const coloredAmount = `<span style="color: ${color};">${formatted}</span>`;
+  const html = t('emails.current_balance', { balance: coloredAmount, interpolation: { escapeValue: false } });
+  return { html };
+};
+
+// -- Context builders for 4 transfer email scenarios --
+
+/**
+ * Email context for the payer when a transfer is committed.
+ */
+export const ctxTransferSent = (
+  event: EnrichedTransferEvent,
+  ctx: MessageContext,
+): EmailTemplateContext => {
+  const { t, locale } = ctx;
+  const common = ctxCommon(event, ctx);
+  const { transfer, currency, payer, payee, code } = event;
+  const amount = formatAmount(transfer.attributes.amount, currency, locale);
+
+  return {
+    ...common,
+    subject: t('emails.transfer_sent_subject', { amount }),
+    label: { icon: '🙏', iconBg: '#E8F5E9', text: t('emails.transfer_sent_label') },
+    greeting: t('emails.hello_name', { name: payer.member.attributes.name }),
+    paragraphs: [t('emails.transfer_sent_text', { amount, recipient: payee.member.attributes.name })],
+    transfer: buildTransferCard(event, ctx, false),
+    cta: { main: { text: t('emails.transfer_view_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
+    balanceLine: buildBalanceLine(payer.account.attributes.balance, currency, ctx),
+  };
+};
+
+/**
+ * Email context for the payee when a transfer is committed.
+ */
+export const ctxTransferReceived = (
+  event: EnrichedTransferEvent,
+  ctx: MessageContext,
+): EmailTemplateContext => {
+  const { t, locale } = ctx;
+  const common = ctxCommon(event, ctx);
+  const { transfer, currency, payer, payee, code } = event;
+  const amount = formatAmount(transfer.attributes.amount, currency, locale);
+
+  return {
+    ...common,
+    subject: t('emails.transfer_received_subject', { amount }),
+    label: { icon: '🎉', iconBg: '#E8F5E9', text: t('emails.transfer_received_label') },
+    greeting: t('emails.hello_name', { name: payee.member.attributes.name }),
+    paragraphs: [t('emails.transfer_received_text', { amount, sender: payer.member.attributes.name })],
+    transfer: buildTransferCard(event, ctx, true),
+    cta: { main: { text: t('emails.transfer_view_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
+    balanceLine: buildBalanceLine(payee.account.attributes.balance, currency, ctx),
+  };
+};
+
+/**
+ * Email context for the payer when a transfer is pending (needs acceptance).
+ */
+export const ctxTransferPending = (
+  event: EnrichedTransferEvent,
+  ctx: MessageContext,
+): EmailTemplateContext | null => {
+  const { t, locale } = ctx;
+  const common = ctxCommon(event, ctx);
+  const { transfer, currency, payer, payee, code } = event;
+
+  if (transfer.attributes.state !== 'pending') {
+    return null;
+  }
+
+  const amount = formatAmount(transfer.attributes.amount, currency, locale);
+
+  return {
+    ...common,
+    subject: t('emails.transfer_pending_subject'),
+    label: { icon: '⏳', iconBg: '#FFF3E0', text: t('emails.transfer_pending_label') },
+    greeting: t('emails.hello_name', { name: payer.member.attributes.name }),
+    paragraphs: [
+      t('emails.transfer_pending_text', { amount, sender: payee.member.attributes.name }),
+      t('emails.transfer_pending_subtext'),
+    ],
+    transfer: buildTransferCard(event, ctx, false),
+    cta: { main: { text: t('emails.transfer_respond_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
+    balanceLine: buildBalanceLine(payer.account.attributes.balance, currency, ctx),
+  };
+};
+
+/**
+ * Email context for the payee when a transfer is rejected.
+ */
+export const ctxTransferRejected = (
+  event: EnrichedTransferEvent,
+  ctx: MessageContext,
+): EmailTemplateContext => {
+  const { t, locale } = ctx;
+  const common = ctxCommon(event, ctx);
+  const { transfer, currency, payer, payee, code } = event;
+  const amount = formatAmount(transfer.attributes.amount, currency, locale);
+
+  return {
+    ...common,
+    subject: t('emails.transfer_rejected_subject'),
+    label: { icon: '❌', iconBg: '#FFEBEE', text: t('emails.transfer_rejected_label') },
+    greeting: t('emails.hello_name', { name: payee.member.attributes.name }),
+    paragraphs: [
+      t('emails.transfer_rejected_text', { amount, name: payer.member.attributes.name }),
+      t('emails.transfer_rejected_subtext'),
+    ],
+    transfer: buildTransferCard(event, ctx, false),
+    cta: { main: { text: t('emails.transfer_view_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
+    balanceLine: buildBalanceLine(payee.account.attributes.balance, currency, ctx),
+  };
+};

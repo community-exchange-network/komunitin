@@ -45,7 +45,6 @@
     "stats_active_accounts": "Comptes actifs",
     "stats_new_members": "Nouveaux membres",
     "footer_reason": "Vous recevez cet email car vous êtes abonné(e) à la newsletter de {{group}} sur {{appName}}.",
-    "manage_subscription": "Paramètres du compte",
     "unsubscribe": "Se désabonner de la newsletter"
   },
   "offer": "Offre",
@@ -125,6 +124,41 @@
     "welcome_text_1": "Vous avez été accepté(e) comme membre de <strong>{{groupName}}</strong>. Votre numéro de compte est <strong>{{code}}</strong>.",
     "welcome_text_2": "Vous pouvez maintenant vous connecter à <strong>{{appName}}</strong> pour explorer les autres membres de votre communauté et leurs offres et besoins. Prenez une minute pour compléter votre profil avec des coordonnées, une description et une photo. Vous pouvez aussi compléter vos offres et besoins avec une description détaillée et des images.",
     "welcome_cta_main": "Explorer les offres et besoins",
-    "welcome_cta_secondary": "Consultez le contact de votre communauté"
+    "welcome_cta_secondary": "Consultez le contact de votre communauté",
+    "transfer_title": "Transfert",
+    "transfer_from": "De",
+    "transfer_to": "À",
+
+    "transfer_sent_subject": "Vous avez envoyé {{amount}}",
+    "transfer_sent_label": "Transfert envoyé",
+    "transfer_sent_text": "Vous avez envoyé {{amount}} à {{recipient}}.",
+
+    "transfer_received_subject": "Vous avez reçu {{amount}}",
+    "transfer_received_label": "Transfert reçu",
+    "transfer_received_text": "Vous avez reçu {{amount}} de {{sender}}.",
+
+    "transfer_pending_subject": "Transfert en attente",
+    "transfer_pending_label": "Transfert en attente",
+    "transfer_pending_text": "{{sender}} a demandé un transfert de {{amount}}. Merci d'accepter ou de refuser.",
+    "transfer_pending_subtext": "Il est très important de maintenir les soldes à jour. Merci d'agir dès que possible.",
+
+    "transfer_rejected_subject": "Transfert refusé",
+    "transfer_rejected_label": "Transfert refusé",
+    "transfer_rejected_text": "{{name}} a refusé la demande de transfert de {{amount}}.",
+    "transfer_rejected_subtext": "Si vous pensez qu'il s'agit d'une erreur, veuillez les contacter pour accepter un nouveau transfert, ou contactez les administrateurs de la communauté si nécessaire.",
+
+    "transfer_view_cta": "Voir le transfert",
+    "transfer_respond_cta": "Accepter ou refuser",
+
+    "settings": "Paramètres du compte",
+    "current_balance": "Votre solde actuel est de {{balance}}.",
+
+    "transfer_state_new": "Nouveau",
+    "transfer_state_pending": "En attente",
+    "transfer_state_accepted": "Accepté",
+    "transfer_state_committed": "Confirmé",
+    "transfer_state_rejected": "Refusé",
+    "transfer_state_failed": "Échoué",
+    "transfer_state_deleted": "Supprimé"
   }
 }

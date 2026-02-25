@@ -45,7 +45,6 @@
     "stats_active_accounts": "Conti attivi",
     "stats_new_members": "Nuovi membri",
     "footer_reason": "Ricevi questa email perché sei iscritto/a alla newsletter di {{group}} su {{appName}}.",
-    "manage_subscription": "Impostazioni dell'account",
     "unsubscribe": "Annulla l'iscrizione alla newsletter"
   },
   "offer": "Offerta",
@@ -125,6 +124,41 @@
     "welcome_text_1": "Sei stato/a accettato/a come membro di <strong>{{groupName}}</strong>. Il numero del tuo conto è <strong>{{code}}</strong>.",
     "welcome_text_2": "Ora puoi accedere a <strong>{{appName}}</strong> per esplorare gli altri membri della tua comunità e le loro offerte e necessità. Prenditi un minuto per completare il tuo profilo con contatti, descrizione e foto. Puoi anche completare le tue offerte e necessità con una descrizione dettagliata e immagini.",
     "welcome_cta_main": "Esplora offerte e necessità",
-    "welcome_cta_secondary": "Controlla il contatto della tua comunità"
+    "welcome_cta_secondary": "Controlla il contatto della tua comunità",
+    "transfer_title": "Movimento",
+    "transfer_from": "Da",
+    "transfer_to": "A",
+
+    "transfer_sent_subject": "Hai inviato {{amount}}",
+    "transfer_sent_label": "Movimento inviato",
+    "transfer_sent_text": "Hai inviato {{amount}} a {{recipient}}.",
+
+    "transfer_received_subject": "Hai ricevuto {{amount}}",
+    "transfer_received_label": "Movimento ricevuto",
+    "transfer_received_text": "Hai ricevuto {{amount}} da {{sender}}.",
+
+    "transfer_pending_subject": "Movimento in sospeso",
+    "transfer_pending_label": "Movimento in sospeso",
+    "transfer_pending_text": "{{sender}} ha richiesto un movimento di {{amount}}. Per favore accettalo o rifiutalo.",
+    "transfer_pending_subtext": "È molto importante mantenere i saldi aggiornati. Per favore, agisci il prima possibile.",
+
+    "transfer_rejected_subject": "Movimento rifiutato",
+    "transfer_rejected_label": "Movimento rifiutato",
+    "transfer_rejected_text": "{{name}} ha rifiutato la richiesta di movimento di {{amount}}.",
+    "transfer_rejected_subtext": "Se ritieni che si tratti di un errore, contattali per accettare un nuovo movimento, o contatta gli amministratori della comunità se necessario.",
+
+    "transfer_view_cta": "Visualizza movimento",
+    "transfer_respond_cta": "Accetta o rifiuta",
+
+    "settings": "Impostazioni dell'account",
+    "current_balance": "Il tuo saldo attuale è {{balance}}.",
+
+    "transfer_state_new": "Nuovo",
+    "transfer_state_pending": "In sospeso",
+    "transfer_state_accepted": "Accettato",
+    "transfer_state_committed": "Confermato",
+    "transfer_state_rejected": "Rifiutato",
+    "transfer_state_failed": "Fallito",
+    "transfer_state_deleted": "Eliminato"
   }
 }

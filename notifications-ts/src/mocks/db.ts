@@ -368,6 +368,7 @@ export const createTransfers = (code: string) => {
         attributes: {
           amount: faker.number.int({ min: 10, max: 100 }),
           created: faker.date.recent({ days: 15 }).toISOString(),
+          updated: new Date().toISOString(),
           state: 'committed',
           meta: { description: `Transfer from ${payer.attributes.name} to ${payee.attributes.name}` }
         },
