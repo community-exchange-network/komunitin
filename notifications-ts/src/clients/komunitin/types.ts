@@ -160,7 +160,7 @@ export interface Transfer {
   id: string;
   attributes: {
     amount: number;
-    meta: string;
+    meta: Record<string, any>;
     created: string;
     updated: string;
     state: string;

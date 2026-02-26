@@ -1,3 +1,4 @@
+import { Account, ExternalResource, Member, Transfer } from "../../clients/komunitin/types";
 import { formatAmount, formatDate } from "../../utils/format";
 import { EnrichedTransferEvent } from "../enriched-events";
 import { type MessageContext } from "../messages";
@@ -22,16 +23,34 @@ const STATUS_COLORS: Record<string, { color: string; bgColor: string }> = {
 };
 
 // -- Helpers --
+const buildTransferMember = (event: EnrichedTransferEvent, who: "payer" | "payee"): TransferTemplateMember => {
+  const account = event[who].account;
+  const member = event[who].member;
+  const transfer = event.transfer;
 
-const buildTransferMember = (
-  member: EnrichedTransferEvent['payer']['member'],
-  account: EnrichedTransferEvent['payer']['account'],
-): TransferTemplateMember => ({
-  name: member.attributes.name,
-  code: account.attributes.code,
-  image: member.attributes.image ?? undefined,
-  initial: member.attributes.name.charAt(0).toUpperCase(),
-});
+  // Compute display name and code.
+  let name = "", code = "";
+  if (member) {
+    name = member.attributes.name;
+    if ('attributes' in account) {
+      code = account.attributes.code;
+    }
+  } else if ('attributes' in account) {
+    name = account.attributes.code
+  } else if (transfer.attributes.meta.creditCommons) {
+    if (account.id === transfer.relationships.payer.data.id) {
+      name = transfer.attributes.meta.creditCommons?.payerAddress
+    } else if (account.id === transfer.relationships.payee.data.id) {
+      name = transfer.attributes.meta.creditCommons?.payeeAddress
+    }
+  }
+  return {
+    name,
+    code,
+    image: member?.attributes.image ?? undefined,
+    initial: name.charAt(0).toUpperCase(),
+  }
+};
 
 const buildTransferCard = (
   event: EnrichedTransferEvent,
@@ -50,8 +69,8 @@ const buildTransferCard = (
     description,
     amount: formatAmount(transfer.attributes.amount, currency, locale),
     amountColor: isPositive ? POSITIVE_AMOUNT_COLOR : NEGATIVE_AMOUNT_COLOR,
-    payer: buildTransferMember(payer.member, payer.account),
-    payee: buildTransferMember(payee.member, payee.account),
+    payer: buildTransferMember(event, "payer"),
+    payee: buildTransferMember(event, "payee"),
     date: formatDate(transfer.attributes.updated ?? transfer.attributes.created, locale),
     status: {
       label: t(`emails.transfer_state_${state}`),
@@ -89,18 +108,20 @@ export const ctxTransferSent = (
 ): EmailTemplateContext => {
   const { t, locale } = ctx;
   const common = ctxCommon(event, ctx);
-  const { transfer, currency, payer, payee, code } = event;
+  const { transfer, currency, payer, code } = event;
   const amount = formatAmount(transfer.attributes.amount, currency, locale);
+
+  const transferCard = buildTransferCard(event, ctx, false);
 
   return {
     ...common,
     subject: t('emails.transfer_sent_subject', { amount }),
     label: { icon: '🙏', iconBg: '#E8F5E9', text: t('emails.transfer_sent_label') },
-    greeting: t('emails.hello_name', { name: payer.member.attributes.name }),
-    paragraphs: [t('emails.transfer_sent_text', { amount, recipient: payee.member.attributes.name })],
-    transfer: buildTransferCard(event, ctx, false),
+    greeting: t('emails.hello_name', { name: payer.member!.attributes.name }),
+    paragraphs: [t('emails.transfer_sent_text', { amount, recipient: transferCard.payee.name })],
+    transfer: transferCard,
     cta: { main: { text: t('emails.transfer_view_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
-    balanceLine: buildBalanceLine(payer.account.attributes.balance, currency, ctx),
+    balanceLine: buildBalanceLine((payer.account as Account).attributes.balance, currency, ctx),
   };
 };
 
@@ -113,18 +134,20 @@ export const ctxTransferReceived = (
 ): EmailTemplateContext => {
   const { t, locale } = ctx;
   const common = ctxCommon(event, ctx);
-  const { transfer, currency, payer, payee, code } = event;
+  const { transfer, currency, payee, code } = event;
   const amount = formatAmount(transfer.attributes.amount, currency, locale);
+
+  const transferCard = buildTransferCard(event, ctx, true);
 
   return {
     ...common,
     subject: t('emails.transfer_received_subject', { amount }),
     label: { icon: '🎉', iconBg: '#E8F5E9', text: t('emails.transfer_received_label') },
-    greeting: t('emails.hello_name', { name: payee.member.attributes.name }),
-    paragraphs: [t('emails.transfer_received_text', { amount, sender: payer.member.attributes.name })],
-    transfer: buildTransferCard(event, ctx, true),
+    greeting: t('emails.hello_name', { name: payee.member!.attributes.name }),
+    paragraphs: [t('emails.transfer_received_text', { amount, sender: transferCard.payer.name })],
+    transfer: transferCard,
     cta: { main: { text: t('emails.transfer_view_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
-    balanceLine: buildBalanceLine(payee.account.attributes.balance, currency, ctx),
+    balanceLine: buildBalanceLine((payee.account as Account).attributes.balance, currency, ctx),
   };
 };
 
@@ -144,19 +167,20 @@ export const ctxTransferPending = (
   }
 
   const amount = formatAmount(transfer.attributes.amount, currency, locale);
+  const transferCard = buildTransferCard(event, ctx, false);
 
   return {
     ...common,
     subject: t('emails.transfer_pending_subject'),
     label: { icon: '⏳', iconBg: '#FFF3E0', text: t('emails.transfer_pending_label') },
-    greeting: t('emails.hello_name', { name: payer.member.attributes.name }),
+    greeting: t('emails.hello_name', { name: payer.member!.attributes.name }),
     paragraphs: [
-      t('emails.transfer_pending_text', { amount, sender: payee.member.attributes.name }),
+      t('emails.transfer_pending_text', { amount, sender: transferCard.payee.name }),
       t('emails.transfer_pending_subtext'),
     ],
-    transfer: buildTransferCard(event, ctx, false),
+    transfer: transferCard,
     cta: { main: { text: t('emails.transfer_respond_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
-    balanceLine: buildBalanceLine(payer.account.attributes.balance, currency, ctx),
+    balanceLine: buildBalanceLine((payer.account as Account).attributes.balance, currency, ctx),
   };
 };
 
@@ -172,17 +196,19 @@ export const ctxTransferRejected = (
   const { transfer, currency, payer, payee, code } = event;
   const amount = formatAmount(transfer.attributes.amount, currency, locale);
 
+  const transferCard = buildTransferCard(event, ctx, false);
+
   return {
     ...common,
     subject: t('emails.transfer_rejected_subject'),
     label: { icon: '❌', iconBg: '#FFEBEE', text: t('emails.transfer_rejected_label') },
-    greeting: t('emails.hello_name', { name: payee.member.attributes.name }),
+    greeting: t('emails.hello_name', { name: payee.member!.attributes.name }),
     paragraphs: [
-      t('emails.transfer_rejected_text', { amount, name: payer.member.attributes.name }),
+      t('emails.transfer_rejected_text', { amount, name: transferCard.payer.name }),
       t('emails.transfer_rejected_subtext'),
     ],
-    transfer: buildTransferCard(event, ctx, false),
+    transfer: transferCard,
     cta: { main: { text: t('emails.transfer_view_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
-    balanceLine: buildBalanceLine(payee.account.attributes.balance, currency, ctx),
+    balanceLine: buildBalanceLine((payee.account as Account).attributes.balance, currency, ctx),
   };
 };

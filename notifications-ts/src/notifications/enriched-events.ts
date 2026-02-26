@@ -1,20 +1,22 @@
 import { GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent } from "./events"
-import { Account, Member, User, Group, Currency, Transfer, UserSettings, Need, Offer } from "../clients/komunitin/types";
+import { Account, Member, User, Group, Currency, Transfer, UserSettings, Need, Offer, ExternalResource } from "../clients/komunitin/types";
+
+export type EnrichedTransferEventAccountData = {
+  // In case of external transfers, the account or other related data 
+  // may not be accessible. 
+  account: Account | ExternalResource;
+  member: Member | null;
+  currency: Currency | null;
+  group: Group | null;
+  users: Array<{ user: User; settings: UserSettings }>;
+}
 
 export type EnrichedTransferEvent = TransferEvent & {
   group: Group;
   currency: Currency;
   transfer: Transfer
-  payer: {
-    account: Account;
-    member: Member;
-    users: Array<{ user: User; settings: UserSettings }>;
-  };
-  payee: {
-    account: Account;
-    member: Member;
-    users: Array<{ user: User; settings: UserSettings }>;
-  };
+  payer: EnrichedTransferEventAccountData;
+  payee: EnrichedTransferEventAccountData;
 };
 
 export type EnrichedPostEvent = PostEvent & {
