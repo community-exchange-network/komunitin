@@ -4,7 +4,7 @@ import { after, afterEach, before, beforeEach } from 'node:test'
 import supertest from 'supertest'
 import { generateKeys, signJwt } from '../../mocks/auth'
 import { resetDb } from '../../mocks/db'
-import handlers from '../../mocks/handlers'
+import handlers, { externalHandlers } from '../../mocks/handlers'
 import { mockDb } from '../../mocks/prisma'
 import { createQueue } from '../../mocks/queue'
 import { mockRedis } from '../../mocks/redis'
@@ -84,6 +84,7 @@ type SetupNotificationsTestReturnBase = {
   put: ReturnType<typeof mockRedis>['put'] | null;
   pushQueue: ReturnType<typeof createQueue> | null;
   syntheticQueue: ReturnType<typeof createQueue> | null;
+  server: ReturnType<typeof setupServer> | null;
 };
 
 type SetupNotificationsTestReturn<T extends SetupNotificationsTestOptions> =
@@ -106,7 +107,7 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
     resetDb: shouldResetDb = true,
   } = options;
 
-  const server = useServer ? setupServer(...handlers) : null;
+  const server = useServer ? setupServer(...handlers, ...externalHandlers) : null;
   const redis = useMockRedis ? mockRedis() : null;
   const put = redis?.put ?? null;
 
@@ -183,6 +184,7 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
     appNotifications,
     pushQueue,
     syntheticQueue,
+    server,
   } as SetupNotificationsTestReturn<T>;
 }
 
