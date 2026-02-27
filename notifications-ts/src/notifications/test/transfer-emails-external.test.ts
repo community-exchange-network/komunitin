@@ -93,6 +93,23 @@ describe("External transfer emails", () => {
       `HTML should contain external member name "${externalMemberName}"`
     );
 
+    // Both local and external group names must appear in the transfer card.
+    assert.ok(
+      msg.html.includes("Group GRP1"),
+      "HTML should contain local group name 'Group GRP1'"
+    );
+    assert.ok(
+      msg.html.includes(`Group ${externalGroupCode}`),
+      `HTML should contain external group name "Group ${externalGroupCode}"`
+    );
+
+    // otherAmount must appear: both currencies have the same rate so the EXT
+    // symbol suffices as a proxy for the formatted amount being present.
+    assert.ok(
+      msg.html.includes("EXT"),
+      "HTML should contain external currency symbol for otherAmount"
+    );
+
     // No email must go to any address that is not the local user's.
     for (const sent of email.sentEmails) {
       assert.strictEqual(
@@ -146,6 +163,22 @@ describe("External transfer emails", () => {
       "HTML must not contain member name when member is inaccessible"
     );
 
+    // Local and external group names must still appear.
+    assert.ok(
+      msg.html.includes("Group GRP1"),
+      "HTML should contain local group name 'Group GRP1'"
+    );
+    assert.ok(
+      msg.html.includes(`Group ${externalGroupCode}`),
+      `HTML should contain external group name "Group ${externalGroupCode}"`
+    );
+
+    // otherAmount must appear (EXT currency is accessible).
+    assert.ok(
+      msg.html.includes("EXT"),
+      "HTML should contain external currency symbol for otherAmount"
+    );
+
     // No email to external addresses.
     assert.strictEqual(email.sentEmails.length, 1);
   });
@@ -185,6 +218,28 @@ describe("External transfer emails", () => {
     assert.ok(
       msg.html.includes(externalAccountCode),
       `HTML should contain external account code "${externalAccountCode}" as display name`
+    );
+
+    // Local group name appears; external group is inaccessible, so the currency
+    // fallback label should appear instead.
+    assert.ok(
+      msg.html.includes("Group GRP1"),
+      "HTML should contain local group name 'Group GRP1'"
+    );
+    const extCurrencyFallback = `${externalGroupCode} Currency (EXT)`;
+    assert.ok(
+      msg.html.includes(extCurrencyFallback),
+      `HTML should contain currency fallback "${extCurrencyFallback}" when group is inaccessible`
+    );
+    assert.ok(
+      !msg.html.includes(`Group ${externalGroupCode}`),
+      "HTML must not contain external group object name when group is inaccessible"
+    );
+
+    // otherAmount must still appear (external currency IS accessible).
+    assert.ok(
+      msg.html.includes("EXT"),
+      "HTML should contain external currency symbol for otherAmount"
     );
 
     // No email to external addresses.
@@ -227,6 +282,21 @@ describe("External transfer emails", () => {
     assert.ok(
       msg.html.includes(ccPayeeAddress),
       `HTML should contain creditCommons payee address "${ccPayeeAddress}"`
+    );
+
+    // Local group should still be shown for the local payer side.
+    assert.ok(
+      msg.html.includes("Group GRP1"),
+      "HTML should contain local group name 'Group GRP1'"
+    );
+
+    // No otherAmount: external currency is entirely inaccessible.
+    // Verify the external currency symbol does NOT appear in the amount section.
+    // (EXT is the currency symbol for all external test currencies, but EXTD is
+    //  inaccessible, so "EXT" must not appear anywhere.)
+    assert.ok(
+      !msg.html.includes(">EXT"),
+      "HTML must not contain external currency symbol when currency is inaccessible"
     );
 
     // No email to external addresses.
