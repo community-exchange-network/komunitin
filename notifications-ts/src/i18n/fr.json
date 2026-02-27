@@ -159,6 +159,17 @@
     "transfer_state_committed": "Confirmé",
     "transfer_state_rejected": "Refusé",
     "transfer_state_failed": "Échoué",
-    "transfer_state_deleted": "Supprimé"
+    "transfer_state_deleted": "Supprimé",
+
+    "hello_admin": "Bonjour administrateur/rice,",
+    "member_requested_subject": "Nouvelle demande de membre dans {{groupName}}",
+    "member_requested_label": "Demande d'adhésion",
+    "member_requested_text": "<strong>{{memberName}}</strong> vient de demander à rejoindre <strong>{{groupName}}</strong>.",
+    "member_requested_detail_name": "Nom :",
+    "member_requested_detail_email": "E-mail :",
+    "member_requested_detail_town": "Ville :",
+    "member_requested_subtext": "Veuillez examiner la demande et l'accepter ou la supprimer dès que possible.",
+    "member_requested_cta": "Examiner les demandes",
+    "reason_admin": "Vous recevez cet e-mail en tant qu'administrateur/rice de {{groupName}} sur {{appName}}."
   }
 }

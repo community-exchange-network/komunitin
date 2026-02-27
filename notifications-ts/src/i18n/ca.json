@@ -159,6 +159,17 @@
     "transfer_state_committed": "Confirmat",
     "transfer_state_rejected": "Rebutjat",
     "transfer_state_failed": "Fallit",
-    "transfer_state_deleted": "Eliminat"
+    "transfer_state_deleted": "Eliminat",
+
+    "hello_admin": "Hola administrador/a,",
+    "member_requested_subject": "Nova sol·licitud de membre a {{groupName}}",
+    "member_requested_label": "Sol·licitud de membre",
+    "member_requested_text": "<strong>{{memberName}}</strong> acaba de sol·licitar unir-se a <strong>{{groupName}}</strong>.",
+    "member_requested_detail_name": "Nom:",
+    "member_requested_detail_email": "Correu electrònic:",
+    "member_requested_detail_town": "Localitat:",
+    "member_requested_subtext": "Si us plau, reviseu la sol·licitud i accepteu-la o elimineu-la com més aviat millor.",
+    "member_requested_cta": "Revisar sol·licituds",
+    "reason_admin": "Rebeu aquest correu com a administrador/a de {{groupName}} a {{appName}}."
   }
 }

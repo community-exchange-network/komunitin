@@ -209,6 +209,15 @@ export class KomunitinClient {
     return res.data;
   }
 
+  public async getUserWithSettings(userId: string): Promise<{ user: User; settings: UserSettings }> {
+    const res = await this.get('social', `/users/${userId}?include=settings`);
+    const user = res.data as User;
+    const included = res.included || [];
+    const settingsId = user.relationships.settings.data.id;
+    const settings = included.find((r: any) => r.type === 'user-settings' && r.id === settingsId) as UserSettings;
+    return { user, settings };
+  }
+
   public async getUserSettings(userId: string): Promise<UserSettings> {
     const res = await this.get('social', `/users/${userId}/settings`);
     return res.data;

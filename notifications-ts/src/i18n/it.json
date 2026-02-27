@@ -159,6 +159,17 @@
     "transfer_state_committed": "Confermato",
     "transfer_state_rejected": "Rifiutato",
     "transfer_state_failed": "Fallito",
-    "transfer_state_deleted": "Eliminato"
+    "transfer_state_deleted": "Eliminato",
+
+    "hello_admin": "Ciao amministratore/rice,",
+    "member_requested_subject": "Nuova richiesta di membro in {{groupName}}",
+    "member_requested_label": "Richiesta di adesione",
+    "member_requested_text": "<strong>{{memberName}}</strong> ha appena richiesto di unirsi a <strong>{{groupName}}</strong>.",
+    "member_requested_detail_name": "Nome:",
+    "member_requested_detail_email": "Email:",
+    "member_requested_detail_town": "Città:",
+    "member_requested_subtext": "Esamina la richiesta e accettala o eliminala il prima possibile.",
+    "member_requested_cta": "Esamina le richieste",
+    "reason_admin": "Ricevi questa email in quanto amministratore/rice di {{groupName}} su {{appName}}."
   }
 }

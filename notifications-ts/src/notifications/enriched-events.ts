@@ -38,6 +38,11 @@ export type EnrichedMemberHasExpiredPostsEvent = EnrichedMemberEvent & {
   expiredNeeds: Need[];
 };
 
+export type EnrichedMemberRequestedEvent = EnrichedMemberEvent & {
+  name: 'MemberRequested';
+  adminUsers: Array<{ user: User; settings: UserSettings }>;
+};
+
 export type EnrichedGroupEvent = GroupEvent & {
   group: Group;
   adminUsers: Array<{ user: User; settings: UserSettings }>;
@@ -83,6 +88,7 @@ export type EnrichedUserEvent = NotificationEvent & {
 export type EnrichedEvent =
   | EnrichedGroupEvent
   | EnrichedMemberEvent
+  | EnrichedMemberRequestedEvent
   | EnrichedPostEvent
   | EnrichedTransferEvent
   | EnrichedPostsPublishedDigestEvent

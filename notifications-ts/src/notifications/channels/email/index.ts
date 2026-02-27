@@ -1,7 +1,7 @@
 import logger from '../../../utils/logger';
 import { ctxPasswordReset, ctxValidationEmail } from '../../emails/user';
-import { ctxWelcomeEmail } from '../../emails/member';
-import { EnrichedTransferEvent, EnrichedMemberEvent, EnrichedUserEvent } from '../../enriched-events';
+import { ctxWelcomeEmail, ctxMemberRequestedEmail } from '../../emails/member';
+import { EnrichedTransferEvent, EnrichedMemberEvent, EnrichedMemberRequestedEvent, EnrichedUserEvent } from '../../enriched-events';
 import { ctxTransferSent, ctxTransferReceived, ctxTransferPending, ctxTransferRejected } from '../../emails/transfer';
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
@@ -15,6 +15,9 @@ export const initEmailChannel = (): (() => void) => {
     // Member events
     eventBus.on(EVENT_NAME.MemberJoined, async (event: EnrichedMemberEvent) => 
       handleEmailEvent(event, event.users, "message", ctxWelcomeEmail
+    )),
+    eventBus.on(EVENT_NAME.MemberRequested, async (event: EnrichedMemberRequestedEvent) => 
+      handleEmailEvent(event, event.adminUsers, "message", ctxMemberRequestedEmail
     )),
 
     // User events

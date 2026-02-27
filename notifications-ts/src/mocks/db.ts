@@ -66,6 +66,32 @@ export const createGroup = (code: string) => {
 
   const id = `group-${code}`;
   const currencyCode = code;
+  const adminUserId = `admin-${code}`;
+
+  // Admin user for the group
+  db.users.push({
+    type: 'users',
+    id: adminUserId,
+    attributes: { email: `admin-${code.toLowerCase()}@example.com`, created: new Date().toISOString(), updated: new Date().toISOString() },
+    relationships: {
+      settings: { data: { type: 'user-settings', id: `${adminUserId}-settings` } },
+      members: { data: [] }
+    }
+  });
+
+  db.userSettings.push({
+    type: 'user-settings',
+    id: `${adminUserId}-settings`,
+    attributes: {
+      language: 'en',
+      komunitin: true,
+      emails: { group: 'weekly', myAccount: true },
+      notifications: { myAccount: true, group: true }
+    },
+    relationships: {
+      user: { data: { type: 'users', id: adminUserId } }
+    }
+  });
 
   // Group
   db.groups.push({
@@ -79,6 +105,7 @@ export const createGroup = (code: string) => {
       location: { type: 'Point', coordinates: [2.1734, 41.3851] }
     },
     relationships: {
+      admins: { data: [{ id: adminUserId, type: 'users' }] },
       currency: { links: { related: `${ACCOUNTING_URL}/${code}/currency` } }
     }
   });

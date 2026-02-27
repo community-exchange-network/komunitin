@@ -159,6 +159,17 @@
     "transfer_state_committed": "Committed",
     "transfer_state_rejected": "Rejected",
     "transfer_state_failed": "Failed",
-    "transfer_state_deleted": "Deleted"
+    "transfer_state_deleted": "Deleted",
+
+    "hello_admin": "Hello admin,",
+    "member_requested_subject": "New member request in {{groupName}}",
+    "member_requested_label": "Membership request",
+    "member_requested_text": "<strong>{{memberName}}</strong> has just requested to join <strong>{{groupName}}</strong>.",
+    "member_requested_detail_name": "Name:",
+    "member_requested_detail_email": "Email:",
+    "member_requested_detail_town": "Town:",
+    "member_requested_subtext": "Please review the request and accept or delete it as soon as possible.",
+    "member_requested_cta": "Review requests",
+    "reason_admin": "You are receiving this email as an administrator of {{groupName}} on {{appName}}."
   }
 }
