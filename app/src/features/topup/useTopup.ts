@@ -76,6 +76,8 @@ export const useCreateTopup = (options: { account: MaybeRef<AccountWithSettingsA
         depositCurrency: settings.value.depositCurrency as "EUR",
         receiveAmount: amountToReceive.value,
         status: 'new',
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
         meta: {
           description: t('topupDescription', { account: account.attributes.code })
         }

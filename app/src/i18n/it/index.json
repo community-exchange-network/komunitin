@@ -415,6 +415,7 @@
   "yesterday": "Ieri",
   "thisWeek": "Questa settimana",
   "thisMonth": "Questo mese",
+  "pleaseReviewTransfer": "Per favore, accetta o rifiuta questo movimento.",
 
   "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
   "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",
