@@ -30,6 +30,10 @@ describe("External transfer emails", () => {
     email.reset();
   });
 
+  const countOccurrences = (haystack: string, needle: string): number => {
+    return haystack.split(needle).length - 1;
+  };
+
   /**
    * Helper: fire a TransferCommitted event for the given transfer and wait for
    * the worker to process it.
@@ -97,6 +101,10 @@ describe("External transfer emails", () => {
     assert.ok(
       msg.html.includes("Group GRP1"),
       "HTML should contain local group name 'Group GRP1'"
+    );
+    assert.ok(
+      countOccurrences(msg.html, "Group GRP1") >= 2,
+      "HTML should contain local group name in transfer card (not only footer text)"
     );
     assert.ok(
       msg.html.includes(`Group ${externalGroupCode}`),
@@ -169,6 +177,10 @@ describe("External transfer emails", () => {
       "HTML should contain local group name 'Group GRP1'"
     );
     assert.ok(
+      countOccurrences(msg.html, "Group GRP1") >= 2,
+      "HTML should contain local group name in transfer card (not only footer text)"
+    );
+    assert.ok(
       msg.html.includes(`Group ${externalGroupCode}`),
       `HTML should contain external group name "Group ${externalGroupCode}"`
     );
@@ -225,6 +237,10 @@ describe("External transfer emails", () => {
     assert.ok(
       msg.html.includes("Group GRP1"),
       "HTML should contain local group name 'Group GRP1'"
+    );
+    assert.ok(
+      countOccurrences(msg.html, "Group GRP1") >= 2,
+      "HTML should contain local group name in transfer card (not only footer text)"
     );
     const extCurrencyFallback = `${externalGroupCode} Currency (EXT)`;
     assert.ok(
@@ -288,6 +304,10 @@ describe("External transfer emails", () => {
     assert.ok(
       msg.html.includes("Group GRP1"),
       "HTML should contain local group name 'Group GRP1'"
+    );
+    assert.ok(
+      countOccurrences(msg.html, "Group GRP1") >= 2,
+      "HTML should contain local group name in transfer card (not only footer text)"
     );
 
     // No otherAmount: external currency is entirely inaccessible.

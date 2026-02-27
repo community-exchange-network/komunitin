@@ -1,7 +1,8 @@
-import { Account, Currency, Group } from "../../clients/komunitin/types";
+import { Account, Currency } from "../../clients/komunitin/types";
 import { formatAmount, formatDate } from "../../utils/format";
-import { EnrichedTransferEvent, EnrichedTransferEventAccountData } from "../enriched-events";
+import { EnrichedTransferEvent } from "../enriched-events";
 import { type MessageContext } from "../messages";
+import { getTransferPartyGroupName, getTransferPartyName, isExternalTransfer, isExternalTransferSide } from "../messages/transfer-members";
 import { EmailTemplateContext, TransferTemplateContext, TransferTemplateMember } from "./types";
 import { ctxCommon } from "./utils";
 
@@ -44,56 +45,32 @@ const buildTransferMemberGroup = (
   event: EnrichedTransferEvent,
   who: "payer" | "payee",
 ): TransferTemplateMember['group'] => {
-  // A side is external when its currency code differs from the local one,
-  // or when the currency cannot be fetched at all.
-  const isExternalSide = (side: EnrichedTransferEventAccountData) =>
-    !side.currency || side.currency.id !== event.currency.id;
-
   // Only cross-community transfers get group badges.
-  if (!isExternalSide(event.payer) && !isExternalSide(event.payee)) {
+  if (!isExternalTransfer(event)) {
     return undefined;
   }
 
   const side = event[who];
-  if (side.group) {
-    return {
-      name: side.group.attributes.name,
-      image: side.group.attributes.image ?? undefined,
-      initial: side.group.attributes.name.charAt(0).toUpperCase(),
-    };
+  const name = getTransferPartyGroupName(event, who);
+
+  if (!name) {
+    // No group name available at all, dont show badge.
+    return undefined;
   }
-  if (side.currency) {
-    const { name, symbol } = side.currency.attributes;
-    return { 
-      name: `${name} (${symbol})`,
-      image: undefined, 
-      initial: symbol.charAt(0).toUpperCase()
-    };
-  }
-  return undefined;
+
+  return {
+    name,
+    image: side.group?.attributes.image ?? undefined,
+    initial: name.charAt(0).toUpperCase(),
+  };
 };
 
 const buildTransferMember = (event: EnrichedTransferEvent, who: "payer" | "payee"): TransferTemplateMember => {
   const account = event[who].account;
   const member = event[who].member;
-  const transfer = event.transfer;
+  const name = getTransferPartyName(event, who);
+  const code = member && 'attributes' in account ? account.attributes.code : "";
 
-  // Compute display name and code.
-  let name = "", code = "";
-  if (member) {
-    name = member.attributes.name;
-    if ('attributes' in account) {
-      code = account.attributes.code;
-    }
-  } else if ('attributes' in account) {
-    name = account.attributes.code
-  } else if (transfer.attributes.meta.creditCommons) {
-    if (account.id === transfer.relationships.payer.data.id) {
-      name = transfer.attributes.meta.creditCommons?.payerAddress
-    } else if (account.id === transfer.relationships.payee.data.id) {
-      name = transfer.attributes.meta.creditCommons?.payeeAddress
-    }
-  }
   return {
     name,
     code,
