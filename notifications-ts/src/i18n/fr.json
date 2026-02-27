@@ -170,6 +170,12 @@
     "member_requested_detail_town": "Ville :",
     "member_requested_subtext": "Veuillez examiner la demande et l'accepter ou la supprimer dès que possible.",
     "member_requested_cta": "Examiner les demandes",
-    "reason_admin": "Vous recevez cet e-mail en tant qu'administrateur/rice de {{groupName}} sur {{appName}}."
+    "reason_admin": "Vous recevez cet e-mail en tant qu'administrateur/rice de {{groupName}} sur {{appName}}.",
+
+    "group_activated_subject": "Votre communauté {{groupName}} a été activée !",
+    "group_activated_label": "Communauté activée",
+    "group_activated_text": "Félicitations ! Votre communauté <strong>{{groupName}}</strong> a été activée et est prête.",
+    "group_activated_subtext": "Vous pouvez maintenant vous connecter à <strong>{{appName}}</strong> et configurer les paramètres de la communauté et de la monnaie, y compris les méthodes de transfert autorisées, les limites de crédit et les catégories pour les offres et les besoins. Ensuite, invitez des membres et commencez à échanger. Bonne chance pour faire grandir votre communauté !",
+    "group_activated_cta": "Configurer votre communauté"
   }
 }

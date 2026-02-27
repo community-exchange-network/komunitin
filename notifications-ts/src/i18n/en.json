@@ -170,6 +170,12 @@
     "member_requested_detail_town": "Town:",
     "member_requested_subtext": "Please review the request and accept or delete it as soon as possible.",
     "member_requested_cta": "Review requests",
-    "reason_admin": "You are receiving this email as an administrator of {{groupName}} on {{appName}}."
+    "reason_admin": "You are receiving this email as an administrator of {{groupName}} on {{appName}}.",
+
+    "group_activated_subject": "Your community {{groupName}} has been activated!",
+    "group_activated_label": "Community activated",
+    "group_activated_text": "Congratulations! Your community <strong>{{groupName}}</strong> has been activated and is ready to go.",
+    "group_activated_subtext": "You can now sign in to <strong>{{appName}}</strong> and configure the community and currency settings, including allowed transfer methods, credit limits, and categories for offers and needs. After that, invite members and start trading. Good luck making your community grow!",
+    "group_activated_cta": "Configure your community"
   }
 }

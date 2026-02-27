@@ -170,6 +170,12 @@
     "member_requested_detail_town": "Localitat:",
     "member_requested_subtext": "Si us plau, reviseu la sol·licitud i accepteu-la o elimineu-la com més aviat millor.",
     "member_requested_cta": "Revisar sol·licituds",
-    "reason_admin": "Rebeu aquest correu com a administrador/a de {{groupName}} a {{appName}}."
+    "reason_admin": "Rebeu aquest correu com a administrador/a de {{groupName}} a {{appName}}.",
+
+    "group_activated_subject": "La vostra comunitat {{groupName}} ha estat activada!",
+    "group_activated_label": "Comunitat activada",
+    "group_activated_text": "Felicitats! La vostra comunitat <strong>{{groupName}}</strong> ha estat activada i ja està a punt.",
+    "group_activated_subtext": "Ara podeu iniciar sessió a <strong>{{appName}}</strong> i configurar els paràmetres de la comunitat i la moneda, incloent els mètodes de transferència permesos, els límits de crèdit i les categories per a ofertes i necessitats. Després, convideu membres i comenceu a intercanviar. Bona sort fent créixer la vostra comunitat!",
+    "group_activated_cta": "Configura la teva comunitat"
   }
 }

@@ -170,6 +170,12 @@
     "member_requested_detail_town": "Localidad:",
     "member_requested_subtext": "Por favor, revisa la solicitud y acéptala o elimínala lo antes posible.",
     "member_requested_cta": "Revisar solicitudes",
-    "reason_admin": "Recibes este correo como administrador/a de {{groupName}} en {{appName}}."
+    "reason_admin": "Recibes este correo como administrador/a de {{groupName}} en {{appName}}.",
+
+    "group_activated_subject": "¡Tu comunidad {{groupName}} ha sido activada!",
+    "group_activated_label": "Comunidad activada",
+    "group_activated_text": "¡Enhorabuena! Tu comunidad <strong>{{groupName}}</strong> ha sido activada y está lista.",
+    "group_activated_subtext": "Ahora puedes iniciar sesión en <strong>{{appName}}</strong> y configurar los ajustes de la comunidad y la moneda, incluyendo los métodos de transferencia permitidos, los límites de crédito y las categorías para ofertas y necesidades. Después, invita a miembros y empieza a intercambiar. ¡Buena suerte haciendo crecer tu comunidad!",
+    "group_activated_cta": "Configura tu comunidad"
   }
 }
