@@ -176,6 +176,14 @@
     "group_activated_label": "Community activated",
     "group_activated_text": "Congratulations! Your community <strong>{{groupName}}</strong> has been activated and is ready to go.",
     "group_activated_subtext": "You can now sign in to <strong>{{appName}}</strong> and configure the community and currency settings, including allowed transfer methods, credit limits, and categories for offers and needs. After that, invite members and start trading. Good luck making your community grow!",
-    "group_activated_cta": "Configure your community"
+    "group_activated_cta": "Configure your community",
+
+    "_comment": "Superadmin emails are always sent in English. No need to translate the following keys:",
+    "reason_superadmin": "You are receiving this email as the server administrator of {{appName}}.",
+    "group_requested_subject": "New community requested: {{groupName}}",
+    "group_requested_label": "Community requested",
+    "group_requested_text": "A new community <strong>{{groupName}}</strong> has just been requested.",
+    "group_requested_subtext": "Please review the request and activate or delete the community as soon as possible.",
+    "group_requested_cta": "Review communities"
   }
 }

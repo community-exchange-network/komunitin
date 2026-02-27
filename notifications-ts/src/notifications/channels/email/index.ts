@@ -1,12 +1,12 @@
 import logger from '../../../utils/logger';
 import { ctxPasswordReset, ctxValidationEmail } from '../../emails/user';
 import { ctxWelcomeEmail, ctxMemberRequestedEmail } from '../../emails/member';
-import { ctxGroupActivatedEmail } from '../../emails/group';
+import { ctxGroupActivatedEmail, ctxGroupRequestedEmail } from '../../emails/group';
 import { EnrichedTransferEvent, EnrichedMemberEvent, EnrichedMemberRequestedEvent, EnrichedGroupEvent, EnrichedUserEvent } from '../../enriched-events';
 import { ctxTransferSent, ctxTransferReceived, ctxTransferPending, ctxTransferRejected } from '../../emails/transfer';
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
-import { handleEmailEvent } from './utils';
+import { handleEmailEvent, handleSuperadminEmailEvent } from './utils';
 
 export const initEmailChannel = (): (() => void) => {
   logger.info('Initializing email notification channel');
@@ -22,6 +22,9 @@ export const initEmailChannel = (): (() => void) => {
     )),
 
     // Group events
+    eventBus.on(EVENT_NAME.GroupRequested, async (event: EnrichedGroupEvent) =>
+      handleSuperadminEmailEvent(event, "message", ctxGroupRequestedEmail)
+    ),
     eventBus.on(EVENT_NAME.GroupActivated, async (event: EnrichedGroupEvent) => 
       handleEmailEvent(event, event.adminUsers, "message", ctxGroupActivatedEmail
     )),
