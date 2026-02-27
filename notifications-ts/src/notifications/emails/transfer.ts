@@ -1,6 +1,6 @@
-import { Account, ExternalResource, Member, Transfer } from "../../clients/komunitin/types";
+import { Account, Currency, Group } from "../../clients/komunitin/types";
 import { formatAmount, formatDate } from "../../utils/format";
-import { EnrichedTransferEvent } from "../enriched-events";
+import { EnrichedTransferEvent, EnrichedTransferEventAccountData } from "../enriched-events";
 import { type MessageContext } from "../messages";
 import { EmailTemplateContext, TransferTemplateContext, TransferTemplateMember } from "./types";
 import { ctxCommon } from "./utils";
@@ -23,6 +23,56 @@ const STATUS_COLORS: Record<string, { color: string; bgColor: string }> = {
 };
 
 // -- Helpers --
+
+/**
+ * Convert a transfer amount from the local currency to another currency,
+ * using the exchange rates stored on each currency (both expressed against
+ * a common base).
+ */
+const convertAmount = (amount: number, from: Currency, to: Currency): number =>
+  amount * (from.attributes.rate.n / from.attributes.rate.d) * (to.attributes.rate.d / to.attributes.rate.n);
+
+/**
+ * Build the group badge shown on each side of the transfer card.
+ *  - Returns undefined for internal (same-community) transfers.
+ *  - For the local side: use the local group data (never null).
+ *  - For the external side: prefer the fetched group object; fall back to the
+ *    currency name + symbol when the group is unavailable, or omit entirely
+ *    when neither is accessible.
+ */
+const buildTransferMemberGroup = (
+  event: EnrichedTransferEvent,
+  who: "payer" | "payee",
+): TransferTemplateMember['group'] => {
+  // A side is external when its currency code differs from the local one,
+  // or when the currency cannot be fetched at all.
+  const isExternalSide = (side: EnrichedTransferEventAccountData) =>
+    !side.currency || side.currency.id !== event.currency.id;
+
+  // Only cross-community transfers get group badges.
+  if (!isExternalSide(event.payer) && !isExternalSide(event.payee)) {
+    return undefined;
+  }
+
+  const side = event[who];
+  if (side.group) {
+    return {
+      name: side.group.attributes.name,
+      image: side.group.attributes.image ?? undefined,
+      initial: side.group.attributes.name.charAt(0).toUpperCase(),
+    };
+  }
+  if (side.currency) {
+    const { name, symbol } = side.currency.attributes;
+    return { 
+      name: `${name} (${symbol})`,
+      image: undefined, 
+      initial: symbol.charAt(0).toUpperCase()
+    };
+  }
+  return undefined;
+};
+
 const buildTransferMember = (event: EnrichedTransferEvent, who: "payer" | "payee"): TransferTemplateMember => {
   const account = event[who].account;
   const member = event[who].member;
@@ -49,6 +99,7 @@ const buildTransferMember = (event: EnrichedTransferEvent, who: "payer" | "payee
     code,
     image: member?.attributes.image ?? undefined,
     initial: name.charAt(0).toUpperCase(),
+    group: buildTransferMemberGroup(event, who),
   }
 };
 
@@ -65,10 +116,17 @@ const buildTransferCard = (
   const state = transfer.attributes.state;
   const statusColors = STATUS_COLORS[state] ?? STATUS_COLORS['committed'];
 
+  // Compute otherAmount: amount expressed in the external (non-local) currency.
+  const externalCurrency = [payer.currency,payee.currency].find(c => c && c.id !== currency.id);
+  const otherAmount = externalCurrency
+    ? formatAmount(convertAmount(transfer.attributes.amount, currency, externalCurrency), externalCurrency, locale)
+    : undefined;
+
   return {
     description,
     amount: formatAmount(transfer.attributes.amount, currency, locale),
     amountColor: isPositive ? POSITIVE_AMOUNT_COLOR : NEGATIVE_AMOUNT_COLOR,
+    otherAmount,
     payer: buildTransferMember(event, "payer"),
     payee: buildTransferMember(event, "payee"),
     date: formatDate(transfer.attributes.updated ?? transfer.attributes.created, locale),

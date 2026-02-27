@@ -66,6 +66,7 @@ export interface Need {
 }
 
 export interface Currency {
+  id: string;
   attributes: {
     code: string;
     name: string;
