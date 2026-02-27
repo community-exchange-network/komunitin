@@ -396,6 +396,7 @@
   "yesterday": "Yesterday",
   "thisWeek": "This week",
   "thisMonth": "This month",
+  "pleaseReviewTransfer": "Please accept or reject this transfer.",
   
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",
