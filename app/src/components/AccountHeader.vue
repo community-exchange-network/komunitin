@@ -7,6 +7,7 @@
       :account="account"
       :address="address"
     />
+    <slot name="extra"/>
   </q-item>
 </template>
 <script setup lang="ts">

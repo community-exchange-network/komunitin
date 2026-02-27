@@ -127,7 +127,7 @@ Each service has its own `Dockerfile` and may have a standalone `compose.yaml`/`
 - **Error handling**: Custom `KError` class (in `src/KError.ts`) with `KErrorCode` enum. Throw `KError` for expected errors; use `$handleError` injected function for recoverable errors.
 - **Async**: Always use `async/await`, not raw Promises.
 - **CSS**: Prefer Quasar utility classes over custom CSS. Custom styles use scoped SCSS. Color variables defined in `src/css/quasar.variables.sass`.
-- **i18n**: vue-i18n. Language files in `src/i18n/<lang>/`.  Flavor overrides in `src/i18n/flavors/<flavor>/<lang>/`. Terminology guidelines in `src/i18n/README.md` for the whole project. Must be read and followed for baseline lang strings, flavors may override them.
+- **i18n**: vue-i18n. Language files in `src/i18n/<lang>/`.  Flavor overrides in `src/i18n/flavors/<flavor>/<lang>/`. Terminology guidelines in `src/i18n/README.md` for the whole project. Must be read and followed for baseline lang strings, flavors may override them. Use always static keys (e.g., `t('account')`) instead of dynamic keys (e.g., `t(key)`).
 - **Type imports**: Use `import type { ... }` for type-only imports (enforced by ESLint rule `@typescript-eslint/consistent-type-imports`).
 - **Testing**: Don't use browser tests nor unit tests, but simulate user interactions in node using jsdom on the full app.
 

@@ -1,6 +1,6 @@
 <template>
   <div class="row justify-center">
-    <div class="q-py-lg q-px-md col-12 col-sm-8 col-md-6">
+    <div class="q-py-lg q-px-md col-12 col-sm-8 col-lg-6">
       <create-transaction-single-form 
         v-if="state !== 'loading'"
         v-show="state === 'define'"

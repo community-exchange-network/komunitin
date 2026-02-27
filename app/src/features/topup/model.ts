@@ -29,8 +29,8 @@ export interface Topup extends ResourceObject {
       description?: string
     }
     
-    created: Date
-    updated: Date
+    created: string
+    updated: string
   }
 }
 

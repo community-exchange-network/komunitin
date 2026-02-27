@@ -388,6 +388,7 @@
   "loggedOut": "Vous avez été déconnecté et vous ne recevrez plus de notifications jusqu'à ce que vous vous reconnectiez.",
   "create": "Créer",
   "backToTransfers": "Retour aux échanges",
+  "pleaseReviewTransfer": "Veuillez accepter ou rejeter ce transfert.",
   
   "ErrorUnknown": "Erreur : Inconnue",
   "ErrorIncorrectRequest": "Erreur : Requête incorrecte",

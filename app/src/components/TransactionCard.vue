@@ -3,73 +3,70 @@
     flat 
     bordered
   >
-    <q-card-section>
-      <!-- payer -->
-      <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
-        {{ $t("payer") }}
-      </div>
-      <account-header
-        :account="transfer.payer"
-        :address="transfer.attributes.meta.creditCommons?.payerAddress"
-      />
-    </q-card-section>
-    <q-separator />
-    <q-card-section>
-      <!-- payee -->
-      <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
-        {{ $t("payee") }}
-      </div>
-      <account-header
-        :account="transfer.payee"
-        :address="transfer.attributes.meta.creditCommons?.payeeAddress"
-      />
-    </q-card-section>
-    <q-separator />
-    <q-card-section class="text-center">
+    <q-card-section 
+      class="q-pb-lg"
+      :class="[$q.screen.gt.xs ? 'q-px-lg' : '']"
+    >
       <!-- main section -->
-      <div
-        class="text-h4"
-        :class="positive ? 'positive-amount' : 'negative-amount'"
-      >
-        {{ FormatCurrency((positive ? 1 : -1) * transfer.attributes.amount, myCurrency) }}
-        <span 
-          v-if="otherCurrency && otherAmount" 
-          class="text-h5 text-onsurface-m"
-        >
-          ({{ FormatCurrency((positive ? 1 : -1) * otherAmount, otherCurrency) }})
-        </span>
+      <div class="text-overline text-uppercase text-onsurface-d">
+        {{ $t("transaction") }}
       </div>
-      <div class="text-subtitle1 text-onsurface-m">
-        {{ $formatDate(transfer.attributes.updated) }}
-      </div>
-      <div class="text-body1">
+      <div class="text-body1 text-onsurface q-mt-sm text-weight-medium">
         {{ transfer.attributes.meta.description }}
       </div>
+      <div
+        class="text-h5 flex justify-between q-mt-xs"
+        :class="positive ? 'positive-amount' : 'negative-amount'"
+      >
+        <span>{{ FormatCurrency(transfer.attributes.amount, myCurrency) }}</span>
+        <span 
+          v-if="otherCurrency && otherAmount" 
+          class="text-h6 text-onsurface-m text-weight-regular"
+        >
+          {{ FormatCurrency(otherAmount, otherCurrency) }}
+        </span>
+      </div>
     </q-card-section>
-    <q-separator />
-    <q-card-section class="text-body2">
-      <!-- details -->
-      <div>
-        <span class="text-onsurface-d">{{ $t("state") }}</span><span class="q-pl-sm">{{ state }}</span>
-      </div>
-      <div v-if="payerGroup">
-        <span class="text-onsurface-d">{{ otherCurrency ? $t('payerGroup') : $t("group") }}</span><span class="q-pl-sm">{{ payerGroup.attributes.name }}</span>
-      </div>
-      <div v-if="otherCurrency">
-        <span class="text-onsurface-d">{{ $t('payeeGroup') }}</span><span class="q-pl-sm">{{ payeeGroup.attributes.name }}</span>
-      </div>
+    <q-card-section class="q-pt-sm q-pb-lg" :class="[$q.screen.gt.xs ? 'q-px-lg' : 'q-px-md']">
+      <!-- dotted line connecting the two avatars -->
+      <div class="relative-position">
+        <div class="avatar-connector" />
+        <!-- payer -->
+        <div class="text-overline text-uppercase text-onsurface-d q-pl-xl q-ml-sm"  style="margin-bottom: -10px;">
+          {{ $t("payer") }}
+        </div>
+        <transaction-card-account
+          :account="transfer.payer"
+          :address="transfer.attributes.meta.creditCommons?.payerAddress"
+          :group="otherCurrency ? payerGroup : undefined"
+        />
+        <!-- payee -->
+        <div class="text-overline text-uppercase text-onsurface-d q-pt-sm q-pl-xl q-ml-sm" style="margin-bottom: -10px;">
+          {{ $t("payee") }}
+        </div>
+        <transaction-card-account
+          v-if="transfer.payee"
+          :account="transfer.payee"
+          :address="transfer.attributes.meta.creditCommons?.payeeAddress"
+          :group="otherCurrency ? payeeGroup : undefined"
+        />
+        </div>
+    </q-card-section>
+    <q-card-section class="row items-center justify-between q-pt-sm q-pb-lg" :class="[$q.screen.gt.xs ? 'q-px-lg' : 'q-px-md']">
+      <span class="text-caption text-onsurface-m" style="font-size: 14px;">{{ capitalize($formatDate(transfer.attributes.updated)) }}</span>
+      <pill-badge :color="statusColor" >{{ statusLabel }}</pill-badge>
     </q-card-section>
     <slot />
   </q-card>
 </template>
 <script setup lang="ts">
-import KError, { KErrorCode } from "src/KError";
 import { computed } from "vue";
-import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
-import AccountHeader from "./AccountHeader.vue"
+import TransactionCardAccount from "./TransactionCardAccount.vue";
+import PillBadge from "./PillBadge.vue";
 import FormatCurrency, { convertCurrency } from "../plugins/FormatCurrency"
 import type { Currency, ExtendedTransfer, Group } from "src/store/model";
+import { useTransferStatus } from "src/composables/transferStatus";
 
 const props = defineProps<{
   transfer: ExtendedTransfer
@@ -84,29 +81,6 @@ const myAccount = store.getters.myAccount
 const positive = computed(() => {
   return props.transfer.payer.id != myAccount.id;
 });
-
-const { t } = useI18n()
-
-const state = computed(() => {
-  const state = props.transfer.attributes.state
-  switch (state) {
-    case "new":
-      return t("new").toString();
-    case "pending":
-      return t("pending").toString();
-    case "accepted":
-      return t("accepted").toString();
-    case "committed":
-      return t("committed").toString();
-    case "rejected":
-      return t("rejected").toString();
-    case "failed":
-      return t("failed").toString();
-    case "deleted":
-      return t("deleted").toString();
-  }
-  throw new KError(KErrorCode.InvalidTransferState);
-})
 
 const payerGroup = computed(() => (props.transfer.payer.currency as Currency & {group: Group}).group)
 const payeeGroup = computed(() => (props.transfer.payee?.currency as undefined | Currency & {group: Group})?.group)
@@ -132,4 +106,22 @@ const otherAmount = computed(() => {
   return null;
 })
 
+const capitalize = (str: string) => {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+const { color: statusColor, label: statusLabel } = useTransferStatus(props.transfer.attributes.state)
+
+
 </script>
+
+<style scoped lang="scss">
+.avatar-connector {
+  position: absolute;
+  left: 19px;
+  top: 60px;
+  bottom: 48px;
+  border-left: 2px dotted rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+</style>
