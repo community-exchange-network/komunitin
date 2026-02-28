@@ -88,7 +88,7 @@ docker system prune -f
 
 ## Database Backups
 
-Both the accounting and notifications databases support automated backups using [WAL-G](https://github.com/wal-g/wal-g) with any S3-compatible storage provider (AWS S3, Google Cloud Storage, MinIO, etc.).
+Both the accounting and notifications databases support automated backups using [WAL-G](https://github.com/wal-g/wal-g) with any S3-compatible storage provider.
 
 ### How it works
 - **Continuous WAL archiving**: All PostgreSQL Write-Ahead Log (WAL) files are continuously pushed to S3 storage, enabling point-in-time recovery.
@@ -98,21 +98,7 @@ Both the accounting and notifications databases support automated backups using 
 
 ### Configuration
 
-Set the following variables in your `.env` file (see `.env.public.template` for descriptions):
-
-```
-DB_BACKUP_ENABLE=true
-S3_BACKUP_BUCKET=s3://your-bucket-name
-S3_ACCESS_KEY=your-hmac-access-key
-S3_SECRET_KEY=your-hmac-secret-key
-S3_ENDPOINT=https://storage.googleapis.com
-S3_REGION=auto
-```
-
-The `S3_ENDPOINT` and `S3_REGION` values depend on your provider:
-- **Google Cloud Storage**: `S3_ENDPOINT=https://storage.googleapis.com`, `S3_REGION=auto`
-- **AWS S3**: `S3_ENDPOINT=https://s3.<region>.amazonaws.com`, `S3_REGION=<region>` (e.g., `us-east-1`)
-- **MinIO**: `S3_ENDPOINT=http://your-minio-host:9000`, `S3_REGION=us-east-1`
+Set the `S3_*` and `DB_BACKUP_ENABLE` variables in your `.env` file. See `.env.public.template` for descriptions.
 
 ### Restoring a backup
 
