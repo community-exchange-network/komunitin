@@ -62,7 +62,7 @@ export class KomunitinClient {
     }
 
     if (!response.ok) {
-      logger.error({ status: response.status, url }, 'API request failed');
+      throw new Error(`API Error ${response.status}: ${response.statusText} at ${url}`);
     }
 
     return response.json()
