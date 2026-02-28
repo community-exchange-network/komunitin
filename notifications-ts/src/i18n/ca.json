@@ -45,7 +45,6 @@
     "stats_active_accounts": "Comptes Actius",
     "stats_new_members": "Nous membres",
     "footer_reason": "Reps aquest correu perquè estàs subscrit/a al butlletí de {{group}} a {{appName}}.",
-    "manage_subscription": "Configuració del compte",
     "unsubscribe": "Donar-se de baixa del butlletí"
   },
   "offer": "Oferta",
@@ -102,8 +101,11 @@
   },
   "emails": {
     "welcome_to": "Benvingut/da a {{name}}!",
+    "hello_name": "Hola {{name}},",
     "hello": "Hola,",
     "safely_ignore": "Si no has sol·licitat aquest correu, el pots ignorar sense problemes.",
+    "happy_exchange": "Feliç intercanvi!",
+    "reason_active_member": "Reps aquest correu com a membre actiu de {{groupName}} a {{appName}}.",
 
     "validate_email_subject": "Confirma el teu correu i registra't a {{name}}",
     "validate_email_label": "Confirma el teu correu",
@@ -115,6 +117,65 @@
     "reset_password_label": "Restableix la contrasenya",
     "reset_password_text": "Fes clic al botó següent per restablir la teva contrasenya. Després podràs triar una contrasenya nova per al teu compte a {{name}}.",
     "reset_password_cta": "Restableix la contrasenya",
-    "reset_password_reason": "Reps aquest correu perquè s'ha sol·licitat restablir la contrasenya d'aquesta adreça de correu a {{appName}}."
+    "reset_password_reason": "Reps aquest correu perquè s'ha sol·licitat restablir la contrasenya d'aquesta adreça de correu a {{appName}}.",
+
+    "welcome_subject": "Benvingut/da a {{name}}!",
+    "welcome_label": "Benvinguda",
+    "welcome_text_1": "Has estat acceptat/da com a membre de <strong>{{groupName}}</strong>. El teu número de compte és <strong>{{code}}</strong>.",
+    "welcome_text_2": "Ara pots iniciar sessió a <strong>{{appName}}</strong> per explorar altres membres de la teva comunitat i les seves ofertes i necessitats. Dedica un minut a completar el teu perfil amb dades de contacte rellevants, descripció i foto. També pots completar les teves ofertes i necessitats amb una descripció detallada i imatges.",
+    "welcome_cta_main": "Explora ofertes i necessitats",
+    "welcome_cta_secondary": "Preguntes? Consulta el contacte de la teva comunitat",
+    "transfer_title": "Moviment",
+    "transfer_from": "De",
+    "transfer_to": "A",
+
+    "transfer_sent_subject": "Has enviat {{amount}}",
+    "transfer_sent_label": "Moviment enviat",
+    "transfer_sent_text": "Has enviat {{amount}} a {{recipient}}.",
+
+    "transfer_received_subject": "Has rebut {{amount}}",
+    "transfer_received_label": "Moviment rebut",
+    "transfer_received_text": "Has rebut {{amount}} de {{sender}}.",
+
+    "transfer_pending_subject": "Sol·licitud pendent",
+    "transfer_pending_label": "Moviment pendent",
+    "transfer_pending_text": "{{sender}} ha sol·licitat un moviment de {{amount}}. Si us plau accepta'l o rebutja'l.",
+    "transfer_pending_subtext": "És molt important mantenir els saldos al dia. Si us plau, actua el més aviat possible.",
+
+    "transfer_rejected_subject": "Sol·licitud rebutjada",
+    "transfer_rejected_label": "Moviment rebutjat",
+    "transfer_rejected_text": "{{name}} ha rebutjat la sol·licitud de moviment de {{amount}}.",
+    "transfer_rejected_subtext": "Si creus que es tracta d'un error, contacta amb la persona per acceptar un nou moviment, o amb els administradors de la comunitat si cal.",
+
+    "transfer_view_cta": "Veure moviment",
+    "transfer_respond_cta": "Acceptar o rebutjar",
+
+    "settings": "Configuració del compte",
+    "current_balance": "El teu saldo actual és {{balance}}.",
+
+    "transfer_state_new": "Nou",
+    "transfer_state_pending": "Pendent",
+    "transfer_state_accepted": "Acceptat",
+    "transfer_state_committed": "Confirmat",
+    "transfer_state_rejected": "Rebutjat",
+    "transfer_state_failed": "Fallit",
+    "transfer_state_deleted": "Eliminat",
+
+    "hello_admin": "Hola administrador/a,",
+    "member_requested_subject": "Nova sol·licitud de membre a {{groupName}}",
+    "member_requested_label": "Sol·licitud de membre",
+    "member_requested_text": "<strong>{{memberName}}</strong> acaba de sol·licitar unir-se a <strong>{{groupName}}</strong>.",
+    "member_requested_detail_name": "Nom:",
+    "member_requested_detail_email": "Correu electrònic:",
+    "member_requested_detail_town": "Localitat:",
+    "member_requested_subtext": "Si us plau, reviseu la sol·licitud i accepteu-la o elimineu-la com més aviat millor.",
+    "member_requested_cta": "Revisar sol·licituds",
+    "reason_admin": "Rebeu aquest correu com a administrador/a de {{groupName}} a {{appName}}.",
+
+    "group_activated_subject": "La vostra comunitat {{groupName}} ha estat activada!",
+    "group_activated_label": "Comunitat activada",
+    "group_activated_text": "Felicitats! La vostra comunitat <strong>{{groupName}}</strong> ha estat activada i ja està a punt.",
+    "group_activated_subtext": "Ara podeu iniciar sessió a <strong>{{appName}}</strong> i configurar els paràmetres de la comunitat i la moneda, incloent els mètodes de transferència permesos, els límits de crèdit i les categories per a ofertes i necessitats. Després, convideu membres i comenceu a intercanviar. Bona sort fent créixer la vostra comunitat!",
+    "group_activated_cta": "Configura la teva comunitat"
   }
 }

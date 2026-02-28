@@ -66,6 +66,7 @@ export interface Need {
 }
 
 export interface Currency {
+  id: string;
   attributes: {
     code: string;
     name: string;
@@ -133,6 +134,14 @@ export interface UserSettings {
   };
 }
 
+export interface ExternalResource {
+  id: string;
+  type: string;
+  meta: {
+    external: true;
+    href: string;
+  };
+}
 export interface Account {
   id: string;
   attributes: {
@@ -152,7 +161,7 @@ export interface Transfer {
   id: string;
   attributes: {
     amount: number;
-    meta: string;
+    meta: Record<string, any>;
     created: string;
     updated: string;
     state: string;

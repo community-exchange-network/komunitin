@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { Member } from '../clients/komunitin/types';
-import { ACCOUNTING_URL } from './handlers';
+import { ACCOUNTING_URL, EXTERNAL_URL } from './handlers';
 
 const IN_30_DAYS = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000);
 const IN_90_DAYS = new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000);
@@ -17,6 +17,11 @@ export const db = {
   offers: [] as any[],
   needs: [] as any[],
   transfers: [] as any[],
+  // External transfer support
+  externalAccountRefs: [] as any[], // ExternalResource objects included in transfers
+  externalAccounts: [] as any[],   // Account data served by external server
+  externalCurrencies: [] as any[], // Currency data served by external server
+  blockedPaths: new Set<string>(), // social paths that should return 404 (e.g. 'EXTGRP3')
 };
 
 export const resetDb = () => {
@@ -30,6 +35,10 @@ export const resetDb = () => {
   db.offers.length = 0;
   db.needs.length = 0;
   db.transfers.length = 0;
+  db.externalAccountRefs.length = 0;
+  db.externalAccounts.length = 0;
+  db.externalCurrencies.length = 0;
+  db.blockedPaths.clear();
 };
 
 export const getUserIdForMember = (memberId: string) => {
@@ -57,6 +66,32 @@ export const createGroup = (code: string) => {
 
   const id = `group-${code}`;
   const currencyCode = code;
+  const adminUserId = `admin-${code}`;
+
+  // Admin user for the group
+  db.users.push({
+    type: 'users',
+    id: adminUserId,
+    attributes: { email: `admin-${code.toLowerCase()}@example.com`, created: new Date().toISOString(), updated: new Date().toISOString() },
+    relationships: {
+      settings: { data: { type: 'user-settings', id: `${adminUserId}-settings` } },
+      members: { data: [] }
+    }
+  });
+
+  db.userSettings.push({
+    type: 'user-settings',
+    id: `${adminUserId}-settings`,
+    attributes: {
+      language: 'en',
+      komunitin: true,
+      emails: { group: 'weekly', myAccount: true },
+      notifications: { myAccount: true, group: true }
+    },
+    relationships: {
+      user: { data: { type: 'users', id: adminUserId } }
+    }
+  });
 
   // Group
   db.groups.push({
@@ -70,6 +105,7 @@ export const createGroup = (code: string) => {
       location: { type: 'Point', coordinates: [2.1734, 41.3851] }
     },
     relationships: {
+      admins: { data: [{ id: adminUserId, type: 'users' }] },
       currency: { links: { related: `${ACCOUNTING_URL}/${code}/currency` } }
     }
   });
@@ -345,6 +381,171 @@ export const createNeeds = (code: string) => {
   });
 };
 
+/**
+ * Create an external transfer where the local account is the payer and an
+ * external account (ExternalResource) is the payee.
+ *
+ * @param opts.localGroupCode  Local group to use as payer (will call createMembers)
+ * @param opts.externalGroupCode  Group code on the external server, used as
+ *   currency code and in account href.
+ * @param opts.externalAccountAccessible  Whether the external server returns the account.
+ * @param opts.externalCurrencyAccessible  Whether the external server returns the currency.
+ * @param opts.externalMemberAccessible  Whether the social server returns a member
+ *   for the external account (requires externalAccountAccessible to be true).
+ * @param opts.externalGroupAccessible  Whether the social server returns a group for the
+ *   external currency code. When false the group path is added to db.blockedPaths.
+ * @param opts.creditCommonsPayeeAddress  When set the transfer meta will include a
+ *   creditCommons object with this as the payeeAddress.
+ */
+export const createExternalTransfer = (opts: {
+  localGroupCode: string;
+  externalGroupCode: string;
+  externalAccountAccessible: boolean;
+  externalCurrencyAccessible: boolean;
+  externalMemberAccessible: boolean;
+  externalGroupAccessible: boolean;
+  creditCommonsPayeeAddress?: string;
+}) => {
+  const members = createMembers(opts.localGroupCode);
+  const localMember = members[0];
+  const localAccount = db.accounts.find(a => a.id === localMember.relationships.account.data.id)!;
+
+  const extGroupCode = opts.externalGroupCode;
+  const extAccountId = `ext-account-${extGroupCode.toLowerCase()}`;
+  const extAccountHref = `${EXTERNAL_URL}/${extGroupCode}/accounts/${extAccountId}`;
+
+  // ExternalResource included in the transfer response
+  const externalRef = {
+    id: extAccountId,
+    type: 'accounts',
+    meta: {
+      external: true,
+      href: extAccountHref,
+    },
+  };
+  db.externalAccountRefs.push(externalRef);
+
+  const meta: Record<string, any> = opts.creditCommonsPayeeAddress
+    ? {
+        creditCommons: {
+          payerAddress: `${opts.localGroupCode}/${localAccount.attributes.code}`,
+          payeeAddress: opts.creditCommonsPayeeAddress,
+        },
+      }
+    : { description: `External transfer to ${extGroupCode}` };
+
+  const transfer = {
+    type: 'transfers',
+    id: `transfer-ext-${extGroupCode.toLowerCase()}`,
+    attributes: {
+      amount: 100,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      state: 'committed',
+      meta,
+    },
+    relationships: {
+      payer: { data: { type: 'accounts', id: localAccount.id } },
+      payee: { data: { type: 'accounts', id: extAccountId } },
+    },
+  };
+  db.transfers.push(transfer);
+
+  // External account data served by the external server
+  if (opts.externalAccountAccessible) {
+    db.externalAccounts.push({
+      groupCode: extGroupCode,
+      id: extAccountId,
+      data: {
+        type: 'accounts',
+        id: extAccountId,
+        attributes: {
+          code: `ext-user-${extGroupCode.toLowerCase()}`,
+          balance: 500,
+          status: 'active',
+          creditLimit: 0,
+          maximumBalance: false,
+        },
+        relationships: {
+          currency: { data: { type: 'currencies', id: `currency-${extGroupCode}` } },
+        },
+      },
+    });
+  }
+
+  // External currency data served by the external server
+  if (opts.externalCurrencyAccessible) {
+    db.externalCurrencies.push({
+      groupCode: extGroupCode,
+      data: {
+        type: 'currencies',
+        id: `currency-${extGroupCode}`,
+        attributes: {
+          code: extGroupCode,
+          name: `${extGroupCode} Currency`,
+          namePlural: `${extGroupCode} Credits`,
+          symbol: 'EXT',
+          decimals: 2,
+          scale: 2,
+          rate: { n: 100, d: 1 },
+        },
+      },
+    });
+  }
+
+  // Member on the (local) social server for the external account.
+  // We push directly to db.members WITHOUT adding to db.accounts, so that the
+  // transfer handler still classifies the payee account as external (lack of an
+  // entry in db.accounts prevents it from being found as a "local" account).
+  if (opts.externalMemberAccessible && opts.externalAccountAccessible) {
+    createGroup(extGroupCode);
+    const extMemberId = `member-${extAccountId}`;
+    db.members.push({
+      type: 'members',
+      id: extMemberId,
+      attributes: {
+        code: `ext-user-${extGroupCode.toLowerCase()}`,
+        name: `External Member ${extGroupCode}`,
+        image: null,
+        location: { type: 'Point', coordinates: [0, 0] },
+        description: '',
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      },
+      relationships: {
+        account: {
+          data: { type: 'accounts', id: extAccountId },
+          links: { related: `${EXTERNAL_URL}/${extGroupCode}/accounts/${extAccountId}` },
+        },
+        user: { data: { type: 'users', id: `user-${extMemberId}` } },
+        group: { data: { type: 'groups', id: `group-${extGroupCode}` } },
+        needs: { meta: { count: 0 } },
+        offers: { meta: { count: 0 } },
+      },
+    });
+  }
+
+  // Block the group path so getCachedGroup throws for the external currency code
+  if (!opts.externalGroupAccessible) {
+    db.blockedPaths.add(extGroupCode);
+  }
+
+  const localUser = db.users.find(u =>
+    u.relationships.members.data.some((r: any) => r.id === localMember.id)
+  )!;
+
+  return {
+    transfer,
+    localGroupCode: opts.localGroupCode,
+    localAccountId: localAccount.id,
+    localMember,
+    localUser,
+    extAccountId,
+    externalGroupCode: extGroupCode,
+    externalRef,
+  };
+};
+
 export const createTransfers = (code: string) => {
   const members = createMembers(code);
   
@@ -368,6 +569,7 @@ export const createTransfers = (code: string) => {
         attributes: {
           amount: faker.number.int({ min: 10, max: 100 }),
           created: faker.date.recent({ days: 15 }).toISOString(),
+          updated: new Date().toISOString(),
           state: 'committed',
           meta: { description: `Transfer from ${payer.attributes.name} to ${payee.attributes.name}` }
         },

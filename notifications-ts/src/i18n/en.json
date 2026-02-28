@@ -45,7 +45,6 @@
     "stats_active_accounts": "Active Accounts",
     "stats_new_members": "New Members",
     "footer_reason": "You are receiving this email because you are subscribed to the newsletter of {{group}} in {{appName}}.",
-    "manage_subscription": "Account settings",
     "unsubscribe": "Unsubscribe from newsletter"
   },
   "offer": "Offer",
@@ -102,8 +101,11 @@
   },
   "emails": {
     "welcome_to": "Welcome to {{name}}!",
+    "hello_name": "Hello {{name}},",
     "hello": "Hello,",
     "safely_ignore": "If you didn't request this email, you can safely ignore it.",
+    "happy_exchange": "Happy exchange!",
+    "reason_active_member": "You are receiving this email as an active member of {{groupName}} on {{appName}}.",
 
     "validate_email_subject": "Confirm your email and sign up to {{name}}",
     "validate_email_label": "Confirm your email",
@@ -115,7 +117,73 @@
     "reset_password_label": "Reset password",
     "reset_password_text": "Please click the button below to reset your password. Then you will be able to choose a new password for your account on {{name}}.",
     "reset_password_cta": "Reset password",
-    "reset_password_reason": "You are receiving this email because a password reset has been requested for this email address on {{appName}}."
+    "reset_password_reason": "You are receiving this email because a password reset has been requested for this email address on {{appName}}.",
 
+    "welcome_subject": "Welcome to {{name}}!",
+    "welcome_label": "Welcome",
+    "welcome_text_1": "You have been accepted as a member of <strong>{{groupName}}</strong>. Your account number is <strong>{{code}}</strong>.",
+    "welcome_text_2": "You can now sign in to <strong>{{appName}}</strong> to explore other members in your community and their offers and needs. Please take a minute to complete your profile with relevant contact details, description and photo. You can also complete your offers and needs with a detailed description and images.",
+    "welcome_cta_main": "Explore offers & needs",
+    "welcome_cta_secondary": "Questions? Check your community contact",
+    "transfer_title": "Transfer",
+    "transfer_from": "From",
+    "transfer_to": "To",
+
+    "transfer_sent_subject": "You sent {{amount}}",
+    "transfer_sent_label": "Transfer sent",
+    "transfer_sent_text": "You have sent {{amount}} to {{recipient}}.",
+
+    "transfer_received_subject": "You received {{amount}}",
+    "transfer_received_label": "Transfer received",
+    "transfer_received_text": "You received {{amount}} from {{sender}}.",
+
+    "transfer_pending_subject": "Transfer pending",
+    "transfer_pending_label": "Transfer pending",
+    "transfer_pending_text": "{{sender}} has requested a transfer of {{amount}}. Please accept or reject it.",
+    "transfer_pending_subtext": "It is very important to keep the balances up to date. Please take action as soon as possible.",
+
+    "transfer_rejected_subject": "Transfer rejected",
+    "transfer_rejected_label": "Transfer rejected",
+    "transfer_rejected_text": "{{name}} rejected the transfer request of {{amount}}.",
+    "transfer_rejected_subtext": "If you think this is a mistake, please contact them to accept a new transfer, or contact the community administrators if necessary.",
+
+    "transfer_view_cta": "View transfer",
+    "transfer_respond_cta": "Accept or reject",
+
+    "settings": "Account settings",
+    "current_balance": "Your current balance is {{balance}}.",
+
+    "transfer_state_new": "New",
+    "transfer_state_pending": "Pending",
+    "transfer_state_accepted": "Accepted",
+    "transfer_state_committed": "Committed",
+    "transfer_state_rejected": "Rejected",
+    "transfer_state_failed": "Failed",
+    "transfer_state_deleted": "Deleted",
+
+    "hello_admin": "Hello admin,",
+    "member_requested_subject": "New member request in {{groupName}}",
+    "member_requested_label": "Membership request",
+    "member_requested_text": "<strong>{{memberName}}</strong> has just requested to join <strong>{{groupName}}</strong>.",
+    "member_requested_detail_name": "Name:",
+    "member_requested_detail_email": "Email:",
+    "member_requested_detail_town": "Town:",
+    "member_requested_subtext": "Please review the request and accept or delete it as soon as possible.",
+    "member_requested_cta": "Review requests",
+    "reason_admin": "You are receiving this email as an administrator of {{groupName}} on {{appName}}.",
+
+    "group_activated_subject": "Your community {{groupName}} has been activated!",
+    "group_activated_label": "Community activated",
+    "group_activated_text": "Congratulations! Your community <strong>{{groupName}}</strong> has been activated and is ready to go.",
+    "group_activated_subtext": "You can now sign in to <strong>{{appName}}</strong> and configure the community and currency settings, including allowed transfer methods, credit limits, and categories for offers and needs. After that, invite members and start trading. Good luck making your community grow!",
+    "group_activated_cta": "Configure your community",
+
+    "_comment": "Superadmin emails are always sent in English. No need to translate the following keys:",
+    "reason_superadmin": "You are receiving this email as the server administrator of {{appName}}.",
+    "group_requested_subject": "New community requested: {{groupName}}",
+    "group_requested_label": "Community requested",
+    "group_requested_text": "A new community <strong>{{groupName}}</strong> has just been requested.",
+    "group_requested_subtext": "Please review the request and activate or delete the community as soon as possible.",
+    "group_requested_cta": "Review communities"
   }
 }

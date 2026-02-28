@@ -10,50 +10,70 @@ export class KomunitinClient {
     this.auth = AuthProvider.getInstance();
   }
 
-  private async fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  private async fetchRaw(url: string, options: RequestInit = {}): Promise<Response> {
     const maxRetries = 3;
-    let lastError;
+    let attempt = 1;
 
-    for (let i = 0; i < maxRetries; i++) {
+    while (true) {
       try {
-        let token = await this.auth.getAccessToken();
-
-        const makeRequest = async (t: string) => {
-          return fetch(url, {
-            ...options,
-            headers: {
-              ...options.headers,
-              'Authorization': `Bearer ${t}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/vnd.api+json',
-            },
-          });
-        };
-
-        let response = await makeRequest(token);
-
-        // Handle 401: Refresh token and retry once
-        if (response.status === 401) {
-          logger.warn('Received 401 from API, refreshing token and retrying...');
-          this.auth.forceRefresh();
-          token = await this.auth.getAccessToken();
-          response = await makeRequest(token);
-        }
-
-        return response;
+        return await fetch(url, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/vnd.api+json',
+            ...options.headers,
+          },
+        });
       } catch (error: any) {
-        lastError = error;
-        const isNetworkError = error.message.includes('fetch failed') || error.message.includes('other side closed');
+        const isNetworkError = error.message?.includes('fetch failed') || error.message?.includes('other side closed');
 
-        if (isNetworkError && i < maxRetries - 1) {
-          logger.warn({ err: error.message, attempt: i + 1 }, 'Network error, retrying...');
-          await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-          continue;
+        if (!isNetworkError || attempt >= maxRetries) {
+          throw error;
         }
-        throw error;
+
+        logger.warn({ err: error.message, attempt }, 'Network error, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        attempt++;
       }
     }
-    throw lastError;
+  }
+
+  private async fetchWithAuth(url: string, options: RequestInit = {}) {
+    let token = await this.auth.getAccessToken();
+
+    const makeRequest = async (t: string) => {
+      return this.fetchRaw(url, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${t}`,
+          ...options.headers,
+        },
+      });
+    };
+
+    let response = await makeRequest(token);
+
+    // Handle 401: Refresh token and retry once
+    if (response.status === 401) {
+      logger.warn('Received 401 from API, refreshing token and retrying...');
+      this.auth.forceRefresh();
+      token = await this.auth.getAccessToken();
+      response = await makeRequest(token);
+    }
+
+    if (!response.ok) {
+      throw new Error(`API Error ${response.status}: ${response.statusText} at ${url}`);
+    }
+
+    return response.json()
+  }
+
+  public async fetch(url: string, options: RequestInit = {}): Promise<any> {
+    const response = await this.fetchRaw(url, options);
+    if (!response.ok) {
+      throw new Error(`API Error ${response.status}: ${response.statusText} at ${url}`);
+    }
+    return response.json();
   }
 
   private getUrl(service: 'social' | 'accounting', path: string): string {
@@ -64,15 +84,9 @@ export class KomunitinClient {
   // --- Public Methods ---
 
   // Generic JSON:API fetcher to handle types later or specific resources
-  public async get(service: 'social' | 'accounting', path: string): Promise<any> {
+  private async get(service: 'social' | 'accounting', path: string): Promise<any> {
     const url = this.getUrl(service, path);
-    const res = await this.fetchWithAuth(url);
-
-    if (!res.ok) {
-      throw new Error(`API Error ${res.status}: ${res.statusText} at ${url}`);
-    }
-
-    return res.json();
+    return await this.fetchWithAuth(url);
   }
 
   // Helper for pagination
@@ -83,12 +97,7 @@ export class KomunitinClient {
     let allData: T[] = [];
 
     while (url) {
-      const res = await this.fetchWithAuth(url);
-      if (!res.ok) {
-        throw new Error(`API Error ${res.status}: ${res.statusText} at ${url}`);
-      }
-
-      const body = await res.json() as any;
+      const body = await this.fetchWithAuth(url) as any;
       if (body.data) {
         allData = allData.concat(body.data);
       }
@@ -129,13 +138,7 @@ export class KomunitinClient {
     // Fetch users with settings included
     const query = new URLSearchParams({ 'filter[members]': memberId, include: 'settings' }).toString();
     const url = this.getUrl('social', `/users?${query}`);
-    const res = await this.fetchWithAuth(url);
-    
-    if (!res.ok) {
-      throw new Error(`API Error ${res.status}: ${res.statusText} at ${url}`);
-    }
-    
-    const body = await res.json() as any;
+    const body = await this.fetchWithAuth(url) as any;
     const users = body.data as User[];
     const included = body.included || [];
     
@@ -204,6 +207,15 @@ export class KomunitinClient {
   public async getUser(userId: string): Promise<User> {
     const res = await this.get('social', `/users/${userId}`);
     return res.data;
+  }
+
+  public async getUserWithSettings(userId: string): Promise<{ user: User; settings: UserSettings }> {
+    const res = await this.get('social', `/users/${userId}?include=settings`);
+    const user = res.data as User;
+    const included = res.included || [];
+    const settingsId = user.relationships.settings.data.id;
+    const settings = included.find((r: any) => r.type === 'user-settings' && r.id === settingsId) as UserSettings;
+    return { user, settings };
   }
 
   public async getUserSettings(userId: string): Promise<UserSettings> {

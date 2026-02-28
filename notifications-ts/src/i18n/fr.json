@@ -45,7 +45,6 @@
     "stats_active_accounts": "Comptes actifs",
     "stats_new_members": "Nouveaux membres",
     "footer_reason": "Vous recevez cet email car vous êtes abonné(e) à la newsletter de {{group}} sur {{appName}}.",
-    "manage_subscription": "Paramètres du compte",
     "unsubscribe": "Se désabonner de la newsletter"
   },
   "offer": "Offre",
@@ -102,8 +101,11 @@
   },
   "emails": {
     "welcome_to": "Bienvenue sur {{name}} !",
+    "hello_name": "Bonjour {{name}},",
     "hello": "Bonjour,",
     "safely_ignore": "Si vous n'avez pas demandé cet email, vous pouvez l'ignorer en toute sécurité.",
+    "happy_exchange": "Bon échange !",
+    "reason_active_member": "Vous recevez cet email en tant que membre actif de {{groupName}} sur {{appName}}.",
 
     "validate_email_subject": "Confirmez votre email et inscrivez-vous sur {{name}}",
     "validate_email_label": "Confirmez votre email",
@@ -115,6 +117,65 @@
     "reset_password_label": "Réinitialiser le mot de passe",
     "reset_password_text": "Veuillez cliquer sur le bouton ci-dessous pour réinitialiser votre mot de passe. Vous pourrez ensuite choisir un nouveau mot de passe pour votre compte sur {{name}}.",
     "reset_password_cta": "Réinitialiser le mot de passe",
-    "reset_password_reason": "Vous recevez cet email car une réinitialisation du mot de passe a été demandée pour cette adresse email sur {{appName}}."
+    "reset_password_reason": "Vous recevez cet email car une réinitialisation du mot de passe a été demandée pour cette adresse email sur {{appName}}.",
+
+    "welcome_subject": "Bienvenue sur {{name}} !",
+    "welcome_label": "Bienvenue",
+    "welcome_text_1": "Vous avez été accepté(e) comme membre de <strong>{{groupName}}</strong>. Votre numéro de compte est <strong>{{code}}</strong>.",
+    "welcome_text_2": "Vous pouvez maintenant vous connecter à <strong>{{appName}}</strong> pour explorer les autres membres de votre communauté et leurs offres et besoins. Prenez une minute pour compléter votre profil avec des coordonnées, une description et une photo. Vous pouvez aussi compléter vos offres et besoins avec une description détaillée et des images.",
+    "welcome_cta_main": "Explorer les offres et besoins",
+    "welcome_cta_secondary": "Consultez le contact de votre communauté",
+    "transfer_title": "Transfert",
+    "transfer_from": "De",
+    "transfer_to": "À",
+
+    "transfer_sent_subject": "Vous avez envoyé {{amount}}",
+    "transfer_sent_label": "Transfert envoyé",
+    "transfer_sent_text": "Vous avez envoyé {{amount}} à {{recipient}}.",
+
+    "transfer_received_subject": "Vous avez reçu {{amount}}",
+    "transfer_received_label": "Transfert reçu",
+    "transfer_received_text": "Vous avez reçu {{amount}} de {{sender}}.",
+
+    "transfer_pending_subject": "Transfert en attente",
+    "transfer_pending_label": "Transfert en attente",
+    "transfer_pending_text": "{{sender}} a demandé un transfert de {{amount}}. Merci d'accepter ou de refuser.",
+    "transfer_pending_subtext": "Il est très important de maintenir les soldes à jour. Merci d'agir dès que possible.",
+
+    "transfer_rejected_subject": "Transfert refusé",
+    "transfer_rejected_label": "Transfert refusé",
+    "transfer_rejected_text": "{{name}} a refusé la demande de transfert de {{amount}}.",
+    "transfer_rejected_subtext": "Si vous pensez qu'il s'agit d'une erreur, veuillez les contacter pour accepter un nouveau transfert, ou contactez les administrateurs de la communauté si nécessaire.",
+
+    "transfer_view_cta": "Voir le transfert",
+    "transfer_respond_cta": "Accepter ou refuser",
+
+    "settings": "Paramètres du compte",
+    "current_balance": "Votre solde actuel est de {{balance}}.",
+
+    "transfer_state_new": "Nouveau",
+    "transfer_state_pending": "En attente",
+    "transfer_state_accepted": "Accepté",
+    "transfer_state_committed": "Confirmé",
+    "transfer_state_rejected": "Refusé",
+    "transfer_state_failed": "Échoué",
+    "transfer_state_deleted": "Supprimé",
+
+    "hello_admin": "Bonjour administrateur/rice,",
+    "member_requested_subject": "Nouvelle demande de membre dans {{groupName}}",
+    "member_requested_label": "Demande d'adhésion",
+    "member_requested_text": "<strong>{{memberName}}</strong> vient de demander à rejoindre <strong>{{groupName}}</strong>.",
+    "member_requested_detail_name": "Nom :",
+    "member_requested_detail_email": "E-mail :",
+    "member_requested_detail_town": "Ville :",
+    "member_requested_subtext": "Veuillez examiner la demande et l'accepter ou la supprimer dès que possible.",
+    "member_requested_cta": "Examiner les demandes",
+    "reason_admin": "Vous recevez cet e-mail en tant qu'administrateur/rice de {{groupName}} sur {{appName}}.",
+
+    "group_activated_subject": "Votre communauté {{groupName}} a été activée !",
+    "group_activated_label": "Communauté activée",
+    "group_activated_text": "Félicitations ! Votre communauté <strong>{{groupName}}</strong> a été activée et est prête.",
+    "group_activated_subtext": "Vous pouvez maintenant vous connecter à <strong>{{appName}}</strong> et configurer les paramètres de la communauté et de la monnaie, y compris les méthodes de transfert autorisées, les limites de crédit et les catégories pour les offres et les besoins. Ensuite, invitez des membres et commencez à échanger. Bonne chance pour faire grandir votre communauté !",
+    "group_activated_cta": "Configurer votre communauté"
   }
 }
