@@ -12,13 +12,15 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: accounting
       POSTGRES_APP_PASSWORD: accounting
-  # Backup configuration
-  #   WALG_GS_PREFIX: gs://dev-komunitin-backup/db-accounting
+  # S3 backup configuration (uncomment to enable)
+  #   WALG_ENABLE: "true"
+  #   WALG_S3_PREFIX: s3://your-bucket/db-accounting
   #   WALG_COMPRESSION_METHOD: zstd
-  #   GOOGLE_APPLICATION_CREDENTIALS: "/opt/komunitin-project-backup-credentials.json"
-  #
-  # volumes:
-  #   - "./komunitin-project-backup-credentials.json:/opt/komunitin-project-backup-credentials.json:ro"
+  #   AWS_ACCESS_KEY_ID: your-access-key
+  #   AWS_SECRET_ACCESS_KEY: your-secret-key
+  #   AWS_ENDPOINT: https://storage.googleapis.com
+  #   AWS_REGION: us-east-1
+  #   AWS_S3_FORCE_PATH_STYLE: "true"
   stellar:
     image: stellar/quickstart
     container_name: stellar

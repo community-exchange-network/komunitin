@@ -2,5 +2,4 @@
 .pnpm-store/
 .vscode/settings.json
 .vscode/chrome
-accounting/komunitin-project-backup-credentials.json
 app/src/css/override.variables.sass

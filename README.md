@@ -37,7 +37,7 @@ Copy the `.env.dev.template` to `.env`. That should be enough for quickly starti
 
 In order to have everything working (mailing, push notifications, backups, analytics...) you need to additionally:
  - set all the required API keys in the .env file.
- - copy your firebase credentials service account file to  `notifications/komunitin-project-firebase-adminsdk.json` and `accounting/komunitin-project-backup-credentials.json`.
+ - copy your firebase credentials service account file to  `notifications/komunitin-project-firebase-adminsdk.json`.
 
 ### Start
 Then you can run the start script with the options `--up` to start the containers, `--ices` to install the IntegralCES site, `--dev` to start the debuggers and other development utils and `--demo` to seed the system with demo data.
