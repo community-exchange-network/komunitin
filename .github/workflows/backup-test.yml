@@ -6,40 +6,40 @@ on:
     - cron: '0 4 * * *' # Runs daily at 4 AM UTC
 
 jobs:
-  test-backup:
+  test-backup-accounting:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Pull the db-accounting image from Docker Hub
     - name: Pull db-accounting image
       run: |
         docker pull komunitin/komunitin-db-accounting:latest
 
-    - name: Restore database from lastest backup
+    - name: Restore accounting database from latest backup
       run: |
-        printf "%s" '${{ secrets.DB_TEST_GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY }}' > /tmp/google-service-account-key.json
         docker run -d \
         --name db-accounting \
         -e POSTGRES_USER=postgres \
         -e POSTGRES_PASSWORD=postgres \
-        -e WALG_GS_PREFIX=${{ secrets.DB_TEST_GOOGLE_CLOUD_STORAGE_BUCKET }}/db-accounting \
-        -e GOOGLE_APPLICATION_CREDENTIALS=/opt/google-service-account-key.json \
+        -e WALG_S3_PREFIX=${{ secrets.DB_TEST_S3_BUCKET }}/db-accounting \
         -e WALG_COMPRESSION_METHOD=zstd \
-        -v /tmp/google-service-account-key.json:/opt/google-service-account-key.json:ro \
+        -e AWS_ACCESS_KEY_ID=${{ secrets.DB_TEST_S3_ACCESS_KEY }} \
+        -e AWS_SECRET_ACCESS_KEY=${{ secrets.DB_TEST_S3_SECRET_KEY }} \
+        -e AWS_ENDPOINT=${{ secrets.DB_TEST_S3_ENDPOINT }} \
+        -e AWS_REGION=${{ secrets.DB_TEST_S3_REGION }} \
+        -e AWS_S3_FORCE_PATH_STYLE=true \
         --user postgres \
         --entrypoint /bin/bash \
         komunitin/komunitin-db-accounting:latest \
         /usr/local/bin/restore_backup.sh
 
-    - name: Wait for the DB to start and restore.
+    - name: Wait for the accounting DB to start and restore
       run: |
         sleep 30
-    - name: Print docker logs
+    - name: Print accounting docker logs
       run: |
         docker logs db-accounting
 
-    # Step 4: Check that it got restored
-    - name: Verify database restoration  
+    - name: Verify accounting database restoration
       run: |
         echo "Checking for recent transfers in the restored database..."
         count=$(docker exec db-accounting psql -U postgres -d accounting -t -A -c "SELECT COUNT(*) FROM \"Transfer\" WHERE created > NOW() - INTERVAL '24 hours';")
@@ -48,4 +48,48 @@ jobs:
           exit 1
         else
           echo "SUCCESS: Database restoration verified with $count transfers in the last 24 hours"
+        fi
+
+  test-backup-notifications:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Pull db-accounting image
+      run: |
+        docker pull komunitin/komunitin-db-accounting:latest
+
+    - name: Restore notifications database from latest backup
+      run: |
+        docker run -d \
+        --name db-notifications \
+        -e POSTGRES_USER=postgres \
+        -e POSTGRES_PASSWORD=postgres \
+        -e WALG_S3_PREFIX=${{ secrets.DB_TEST_S3_BUCKET }}/db-notifications \
+        -e WALG_COMPRESSION_METHOD=zstd \
+        -e AWS_ACCESS_KEY_ID=${{ secrets.DB_TEST_S3_ACCESS_KEY }} \
+        -e AWS_SECRET_ACCESS_KEY=${{ secrets.DB_TEST_S3_SECRET_KEY }} \
+        -e AWS_ENDPOINT=${{ secrets.DB_TEST_S3_ENDPOINT }} \
+        -e AWS_REGION=${{ secrets.DB_TEST_S3_REGION }} \
+        -e AWS_S3_FORCE_PATH_STYLE=true \
+        --user postgres \
+        --entrypoint /bin/bash \
+        komunitin/komunitin-db-accounting:latest \
+        /usr/local/bin/restore_backup.sh
+
+    - name: Wait for the notifications DB to start and restore
+      run: |
+        sleep 30
+    - name: Print notifications docker logs
+      run: |
+        docker logs db-notifications
+
+    - name: Verify notifications database restoration
+      run: |
+        echo "Checking for push subscriptions in the restored database..."
+        count=$(docker exec db-notifications psql -U postgres -d notifications -t -A -c "SELECT COUNT(*) FROM \"PushSubscription\";")
+        if [ "$count" -eq 0 ]; then
+          echo "ERROR: No push subscriptions found in restored database"
+          exit 1
+        else
+          echo "SUCCESS: Database restoration verified with $count push subscriptions"
         fi
