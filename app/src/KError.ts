@@ -1,66 +1,79 @@
 import type { ErrorResponse } from "./store/model";
 
-export enum KErrorCode {
+/**
+ * Single source of truth for error codes and their translation keys.
+ * 
+ * To add a new error code, add an entry here and add the corresponding
+ * translation to all locale files under src/i18n. That's it — the
+ * KErrorCode type is derived from this record automatically.
+ */
+export const errorTranslationKeys = {
   // Shared server errors codes.
-  Unauthorized = "Unauthorized",
-  Forbidden = "Forbidden",
-  NotFound = "NotFound",
-  NotImplemented = "NotImplemented",
+  Unauthorized: 'ErrorUnauthorized',
+  Forbidden: 'ErrorForbidden',
+  NotFound: 'ErrorNotFound',
+  NotImplemented: 'ErrorNotImplemented',
 
   // Accounting service error codes.
-  TransactionError = "TransactionError",
-  InsufficientBalance = "InsufficientBalance",
-  InsufficientMaximumBalance = "InsufficientMaximumBalance",
-  NoTrustPath = "NoTrustPath",
+  TransactionError: 'ErrorTransactionError',
+  InsufficientBalance: 'ErrorInsufficientBalance',
+  InsufficientMaximumBalance: 'ErrorInsufficientMaximumBalance',
+  NoTrustPath: 'ErrorNoTrustPath',
 
   // Social service error codes.
-  InvalidPassword = "InvalidPassword", 
-  DuplicatedEmail = "DuplicatedEmail",
-  BadRequest = "BadRequest",
+  InvalidPassword: 'ErrorInvalidPassword',
+  DuplicatedEmail: 'ErrorDuplicatedEmail',
+  BadRequest: 'ErrorBadRequest',
 
   // There are more server errors but we're not identifying them and
   // they are all piped to UnknownServer.
-  UnknownServer = "UnknownServer",
+  UnknownServer: 'ErrorUnknownServer',
 
   // Client errors codes.
-  Unknown = "Unknown",
-  IncorrectRequest = "IncorrectRequest",
-  ServerNoResponse = "ServerNoResponse",
-  ServerBadResponse = "ServerBadResponse",
-  ResourceNotFound = "ResourceNotFound",
-  UnknownVueError = "UnknownVueError",
-  UnknownScript = "UnknownScript",
-  ErrorHandling = "ErrorHandling",
-  PositionTimeout = "PositionTimeout",
-  PositionUnavailable = "PositionUnavailable",
-  PositionPermisionDenied = "PositionPermisionDenied",
-  NotificationsPermissionDenied = "NotificationsPermissionDenied",
-  VueWarning = "VueWarning",
-  IncorrectCredentials = "IncorrectCredentials",
-  AuthNoCredentials = "AuthNoCredentials",
-  RequestError = "RequestError",
-  InvalidTransferState = "InvalidTransferState",
-  InvalidTransfersCSVFile = "InvalidTransfersCSVFile",
-  QRCodeError = "QRCodeError",
-  NFCReadError = "NFCReadError",
-  NFCUnavailable = "NFCUnavailable",
-  ExternalPaymentNotAllowed = "ExternalPaymentNotAllowed",
-  InvalidAmount = "InvalidAmount",
-  DescriptionRequired = "DescriptionRequired",
-  AccountNotFound = "AccountNotFound",
-  AccountIsNotYours = "AccountIsNotYours",
-  CamNotAllowed = "CamNotAllowed",
-  CamNotFound = "CamNotFound",
-  CamNotReadable = "CamNotReadable",
-  CamUnknown = "CamUnknown",
+  Unknown: 'ErrorUnknown',
+  IncorrectRequest: 'ErrorIncorrectRequest',
+  ServerNoResponse: 'ErrorServerNoResponse',
+  ServerBadResponse: 'ErrorServerBadResponse',
+  ResourceNotFound: 'ErrorResourceNotFound',
+  UnknownVueError: 'ErrorUnknownVueError',
+  UnknownScript: 'ErrorUnknownScript',
+  ErrorHandling: 'ErrorErrorHandling',
+  PositionTimeout: 'ErrorPositionTimeout',
+  PositionUnavailable: 'ErrorPositionUnavailable',
+  PositionPermisionDenied: 'ErrorPositionPermisionDenied',
+  NotificationsPermissionDenied: 'ErrorNotificationsPermissionDenied',
+  VueWarning: 'ErrorVueWarning',
+  IncorrectCredentials: 'ErrorIncorrectCredentials',
+  AuthNoCredentials: 'ErrorAuthNoCredentials',
+  RequestError: 'ErrorRequestError',
+  InvalidTransferState: 'ErrorInvalidTransferState',
+  InvalidTransfersCSVFile: 'ErrorInvalidTransfersCSVFile',
+  QRCodeError: 'ErrorQRCodeError',
+  NFCReadError: 'ErrorNFCReadError',
+  NFCUnavailable: 'ErrorNFCUnavailable',
+  ExternalPaymentNotAllowed: 'ErrorExternalPaymentNotAllowed',
+  InvalidAmount: 'ErrorInvalidAmount',
+  DescriptionRequired: 'ErrorDescriptionRequired',
+  AccountNotFound: 'ErrorAccountNotFound',
+  AccountIsNotYours: 'ErrorAccountIsNotYours',
+  CamNotAllowed: 'ErrorCamNotAllowed',
+  CamNotFound: 'ErrorCamNotFound',
+  CamNotReadable: 'ErrorCamNotReadable',
+  CamUnknown: 'ErrorCamUnknown',
 
-  /**
-   * This condition should not happen and it indicates a programming bug
-   * that needs to be solved by the development team. Use it to assert complex
-   * conditions.
-   */
-  ScriptError = "ScriptError",
-}
+  // This condition should not happen and it indicates a programming bug
+  // that needs to be solved by the development team. Use it to assert complex
+  // conditions.
+  ScriptError: 'ErrorScriptError',
+} as const satisfies Record<string, string>
+
+/** Error code type — derived from the errorTranslationKeys keys. */
+export type KErrorCode = keyof typeof errorTranslationKeys
+
+/** Runtime KErrorCode values. Use as KErrorCode.Unauthorized, etc. */
+export const KErrorCode: { readonly [K in KErrorCode]: K } = Object.fromEntries(
+  Object.keys(errorTranslationKeys).map(k => [k, k])
+) as { readonly [K in KErrorCode]: K }
 
 /**
  * @param response The fetch response.
