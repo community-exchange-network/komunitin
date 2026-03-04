@@ -7,13 +7,78 @@ import {i18n} from './i18n'
 
 
 /**
- * Get the localized message for the error.
+ * Map of error codes to their translation functions.
+ * 
+ * Each entry maps a KErrorCode to a function that returns the localized message
+ * using static translation keys. The functions are called lazily so the current
+ * locale is always used.
+ */
+const errorMessages: Record<KErrorCode, (t: (key: string) => string) => string> = {
+  [KErrorCode.Unauthorized]: (t) => t('ErrorUnauthorized'),
+  [KErrorCode.Forbidden]: (t) => t('ErrorForbidden'),
+  [KErrorCode.NotFound]: (t) => t('ErrorNotFound'),
+  [KErrorCode.NotImplemented]: (t) => t('ErrorNotImplemented'),
+  [KErrorCode.TransactionError]: (t) => t('ErrorTransactionError'),
+  [KErrorCode.InsufficientBalance]: (t) => t('ErrorInsufficientBalance'),
+  [KErrorCode.InsufficientMaximumBalance]: (t) => t('ErrorInsufficientMaximumBalance'),
+  [KErrorCode.NoTrustPath]: (t) => t('ErrorNoTrustPath'),
+  [KErrorCode.InvalidPassword]: (t) => t('ErrorInvalidPassword'),
+  [KErrorCode.DuplicatedEmail]: (t) => t('ErrorDuplicatedEmail'),
+  [KErrorCode.BadRequest]: (t) => t('ErrorBadRequest'),
+  [KErrorCode.UnknownServer]: (t) => t('ErrorUnknownServer'),
+  [KErrorCode.Unknown]: (t) => t('ErrorUnknown'),
+  [KErrorCode.IncorrectRequest]: (t) => t('ErrorIncorrectRequest'),
+  [KErrorCode.ServerNoResponse]: (t) => t('ErrorServerNoResponse'),
+  [KErrorCode.ServerBadResponse]: (t) => t('ErrorServerBadResponse'),
+  [KErrorCode.ResourceNotFound]: (t) => t('ErrorResourceNotFound'),
+  [KErrorCode.UnknownVueError]: (t) => t('ErrorUnknownVueError'),
+  [KErrorCode.UnknownScript]: (t) => t('ErrorUnknownScript'),
+  [KErrorCode.ErrorHandling]: (t) => t('ErrorErrorHandling'),
+  [KErrorCode.PositionTimeout]: (t) => t('ErrorPositionTimeout'),
+  [KErrorCode.PositionUnavailable]: (t) => t('ErrorPositionUnavailable'),
+  [KErrorCode.PositionPermisionDenied]: (t) => t('ErrorPositionPermisionDenied'),
+  [KErrorCode.NotificationsPermissionDenied]: (t) => t('ErrorNotificationsPermissionDenied'),
+  [KErrorCode.VueWarning]: (t) => t('ErrorVueWarning'),
+  [KErrorCode.IncorrectCredentials]: (t) => t('ErrorIncorrectCredentials'),
+  [KErrorCode.AuthNoCredentials]: (t) => t('ErrorAuthNoCredentials'),
+  [KErrorCode.RequestError]: (t) => t('ErrorRequestError'),
+  [KErrorCode.InvalidTransferState]: (t) => t('ErrorInvalidTransferState'),
+  [KErrorCode.InvalidTransfersCSVFile]: (t) => t('ErrorInvalidTransfersCSVFile'),
+  [KErrorCode.QRCodeError]: (t) => t('ErrorQRCodeError'),
+  [KErrorCode.NFCReadError]: (t) => t('ErrorNFCReadError'),
+  [KErrorCode.NFCUnavailable]: (t) => t('ErrorNFCUnavailable'),
+  [KErrorCode.ExternalPaymentNotAllowed]: (t) => t('ErrorExternalPaymentNotAllowed'),
+  [KErrorCode.InvalidAmount]: (t) => t('ErrorInvalidAmount'),
+  [KErrorCode.DescriptionRequired]: (t) => t('ErrorDescriptionRequired'),
+  [KErrorCode.AccountNotFound]: (t) => t('ErrorAccountNotFound'),
+  [KErrorCode.AccountIsNotYours]: (t) => t('ErrorAccountIsNotYours'),
+  [KErrorCode.CamNotAllowed]: (t) => t('ErrorCamNotAllowed'),
+  [KErrorCode.CamNotFound]: (t) => t('ErrorCamNotFound'),
+  [KErrorCode.CamNotReadable]: (t) => t('ErrorCamNotReadable'),
+  [KErrorCode.CamUnknown]: (t) => t('ErrorCamUnknown'),
+  [KErrorCode.ScriptError]: (t) => t('ErrorScriptError'),
+}
+
+/**
+ * Get the localized user-facing message for the given error.
+ * 
+ * Uses a static mapping from error codes to translation keys, avoiding dynamic
+ * key construction and enabling static analysis of translation usage.
  * 
  * @param error The error.
  */
-function getLocalizedMessage(error: KError): string {
-  const {t} = i18n.global
-  return t(error.getTranslationKey()).toString();
+export function getUserErrorMessage(error: KError): string {
+  try {
+    const { t } = i18n.global
+    const code = error.code as KErrorCode
+    if (code in errorMessages) {
+      return errorMessages[code](t as (key: string) => string)
+    }
+    return (t as (key: string) => string)('ErrorUnknown')
+  } catch {
+    // Fallback when i18n is not available (e.g. during test teardown).
+    return error.code
+  }
 }
 
 
@@ -36,7 +101,7 @@ function showError(error: KError) {
     Notify.create({
       color: 'negative',
       position: 'top',
-      message: getLocalizedMessage(error),
+      message: getUserErrorMessage(error),
       actions: [
         { icon: 'close', color: 'white', round: true }
       ]

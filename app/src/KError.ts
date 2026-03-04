@@ -93,13 +93,6 @@ export default class KError extends Error {
     this.debugInfo = debugInfo !== undefined ? debugInfo : null;
   }
   /**
-   * Return the localized message.
-   */
-  getTranslationKey(): string {
-    return "Error" + this.code;
-  }
-
-  /**
   * Get a KError from a fetch error.
   * @param error The error.
   */

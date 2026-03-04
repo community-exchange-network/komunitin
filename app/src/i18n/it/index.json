@@ -404,6 +404,16 @@
   "ErrorVueWarning": "Avviso VUE",
   "ErrorIncorrectCredentials": "Errore: email o password errate",
   "ErrorNotImplemented": "Errore: non implementato",
+  "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
+  "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",
+  "ErrorUnauthorized": "Errore: Accesso non autorizzato",
+  "ErrorForbidden": "Errore: Accesso vietato",
+  "ErrorNotFound": "Errore: Non trovato",
+  "ErrorDuplicatedEmail": "Questa email è già in uso",
+  "ErrorRequestError": "Errore: La richiesta è fallita",
+  "ErrorQRCodeError": "Errore nella lettura del codice QR",
+  "ErrorExternalPaymentNotAllowed": "I pagamenti esterni non sono consentiti per questa valuta",
+  "ErrorScriptError": "Si è verificato un errore imprevisto",
 
   "loggingOut": "Disconnessione in corso...",
   "loggedOut": "Sei stato disconnesso e non riceverai ulteriori notifiche finché non effettuerai nuovamente l'accesso.",
@@ -417,9 +427,6 @@
   "thisMonth": "Questo mese",
   "pleaseReviewTransfer": "Per favore, accetta o rifiuta questo movimento.",
 
-  "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
-  "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",
-  
   "ErrorAuthNoCredentials": "Email o password errate",
   "ErrorInvalidPassword": "La password non è corretta",
   "ErrorInsufficientBalance": "Credito insufficiente",

@@ -28,6 +28,7 @@
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import KError, { KErrorCode } from 'src/KError';
+import { getUserErrorMessage } from 'src/boot/errors';
 import DialogFormBtn from 'src/components/DialogFormBtn.vue';
 import { readCSV } from 'src/plugins/Files';
 import { normalizeAccountCode, parseAmount } from 'src/plugins/FormatCurrency';
@@ -156,7 +157,7 @@ const importFile = async () => {
       fileErrorMessage.value = t("ErrorInvalidTransfersCSVFile")
     }
     if (error?.cause instanceof KError) {
-      fileErrorMessage.value += ". " + t(error.cause.getTranslationKey())
+      fileErrorMessage.value += ". " + getUserErrorMessage(error.cause)
     }
     // Rethrow anyway to prevent the dialog from closing.
     throw error
