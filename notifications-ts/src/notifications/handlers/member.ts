@@ -2,7 +2,7 @@ import { EVENT_NAME, MemberEvent } from '../events';
 import { KomunitinClient } from '../../clients/komunitin/client';
 import logger from '../../utils/logger';
 import { eventBus } from '../event-bus';
-import { EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent } from '../enriched-events';
+import { EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMemberRequestedEvent } from '../enriched-events';
 
 export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
   logger.info({ event }, 'Handling member event');
@@ -29,6 +29,15 @@ export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
     member,
     users: usersWithSettings,
   };
+
+  // For MemberRequested, fetch admin users with settings
+  if (event.name === EVENT_NAME.MemberRequested) {
+    const adminUserIds = group.relationships.admins.data.map(admin => admin.id);
+    const adminUsers = await Promise.all(
+      adminUserIds.map(id => client.getUserWithSettings(id))
+    );
+    (enrichedEvent as EnrichedMemberRequestedEvent).adminUsers = adminUsers;
+  }
 
   // Fetch expired offers and needs if applicable
   if (event.name === EVENT_NAME.MemberHasExpiredPosts) {

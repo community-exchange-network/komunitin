@@ -1,6 +1,32 @@
 import { NewsletterTemplateGroup } from "../../newsletter/types";
 import { TemplateContext } from "../../utils/email-template";
 
+export interface TransferTemplateMember {
+  name: string;
+  code: string;
+  image?: string;
+  initial: string;
+  group?: {
+    name: string;
+    image?: string;
+    initial: string;
+  };
+}
+
+export interface TransferTemplateContext {
+  description: string;
+  amount: string;
+  amountColor: string;
+  otherAmount?: string;
+  payer: TransferTemplateMember;
+  payee: TransferTemplateMember;
+  date: string;
+  status: {
+    label: string;
+    color: string;
+    bgColor: string;
+  };
+}
 
 export interface EmailTemplateContext extends TemplateContext {
   appName: string;
@@ -24,6 +50,12 @@ export interface EmailTemplateContext extends TemplateContext {
       url: string;
     }
   },
+  // transfer card (optional)
+  transfer?: TransferTemplateContext;
+  // balance line (optional, shown after CTA)
+  balanceLine?: {
+    html: string;
+  };
   // postscript
   postscript?: string;
   // footer

@@ -1,35 +1,7 @@
-import { config } from "../../config";
-import { NewsletterTemplateGroup } from "../../newsletter/types";
-import { EnrichedEvent, type EnrichedUserEvent } from "../enriched-events";
+import { type EnrichedUserEvent } from "../enriched-events";
 import { type MessageContext } from "../messages";
 import { EmailTemplateContext } from "./types";
-
-
-type CommonEmailTemplateContext = Pick<EmailTemplateContext, 'appUrl' | 'appName' | 'group' | 'language'>;
-
-const ctxCommon = (event: EnrichedEvent, ctx: MessageContext): CommonEmailTemplateContext => {
-  const { t } = ctx;
-
-  const appUrl = config.KOMUNITIN_APP_URL ?? ""
-  const appName = t('app_name');
-
-  const group: NewsletterTemplateGroup = {
-    name: event.group?.attributes.name ?? appName,
-    code: event.group?.attributes.code ?? '',
-    initial: '',
-    image: event.group?.attributes.image,
-  };
-  group.initial = (group.code ?? group.name).charAt(0).toUpperCase();
-
-  const data = {
-    language: ctx.locale,
-    appUrl,
-    appName,
-    group
-  }
-
-  return data
-}
+import { ctxCommon } from "./utils";
 
 export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext): EmailTemplateContext => {
   const { t } = ctx;
@@ -56,7 +28,10 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
     },
 
     greeting: t('emails.welcome_to', { name: common.group.name }),
-    paragraphs: [t('emails.validate_email_text', { name: common.group.name })],
+    paragraphs: [t('emails.validate_email_text', {
+      name: common.group.name,
+      interpolation: { escapeValue: true },
+    })],
 
     cta: {
       main: {
@@ -66,7 +41,11 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
     },
 
     postscript: t('emails.safely_ignore'),
-    reason: t('emails.validate_email_reason', { appName: t('app_name') })
+    // Rendered through {{{reason}}} in templates/partials/footer.hbs.
+    reason: t('emails.validate_email_reason', {
+      appName: t('app_name'),
+      interpolation: { escapeValue: true },
+    })
   }
 
   return data
@@ -88,7 +67,10 @@ export const ctxPasswordReset = (event: EnrichedUserEvent, ctx: MessageContext):
     },
     
     greeting: t('emails.hello'),
-    paragraphs: [t('emails.reset_password_text', { name: common.group.name })],
+    paragraphs: [t('emails.reset_password_text', {
+      name: common.group.name,
+      interpolation: { escapeValue: true },
+    })],
     
     cta: {
       main: {
@@ -98,7 +80,10 @@ export const ctxPasswordReset = (event: EnrichedUserEvent, ctx: MessageContext):
     },
 
     postscript: t('emails.safely_ignore'),
-    reason: t('emails.reset_password_reason', { appName: t('app_name') })
+    reason: t('emails.reset_password_reason', {
+      appName: t('app_name'),
+      interpolation: { escapeValue: true },
+    })
 
   } as EmailTemplateContext;
   return data;

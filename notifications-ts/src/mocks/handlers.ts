@@ -8,6 +8,7 @@ faker.seed(123);
 export const SOCIAL_URL = 'http://social.test';
 export const ACCOUNTING_URL = 'http://accounting.test';
 export const AUTH_URL = 'http://auth.test';
+export const EXTERNAL_URL = 'http://external.test';
 
 // -- Handlers --
 
@@ -75,6 +76,10 @@ export const handlers = [
 
   http.get(`${SOCIAL_URL}/:groupCode`, ({ params }) => {
     const { groupCode } = params;
+    // Block the group path if requested by a test (simulates inaccessible external group)
+    if (db.blockedPaths.has(groupCode as string)) {
+      return HttpResponse.json(null, { status: 404 });
+    }
     createGroup(groupCode as string);
     let group = db.groups.find(g => g.attributes.code === groupCode);
     
@@ -262,8 +267,8 @@ export const handlers = [
      const payerId = transfer.relationships.payer.data.id;
      const payeeId = transfer.relationships.payee.data.id;
      const included = [
-         db.accounts.find(a => a.id === payerId),
-         db.accounts.find(a => a.id === payeeId)
+         db.accounts.find(a => a.id === payerId) || db.externalAccountRefs.find((r: any) => r.id === payerId),
+         db.accounts.find(a => a.id === payeeId) || db.externalAccountRefs.find((r: any) => r.id === payeeId),
      ].filter(Boolean);
      
      return HttpResponse.json({ data: transfer, included });
@@ -307,3 +312,21 @@ export const handlers = [
 ];
 
 export default handlers;
+
+// Extra handlers for external server (http://external.test)
+// These simulate a remote Komunitin instance's accounting API.
+export const externalHandlers = [
+  http.get(`${EXTERNAL_URL}/:groupCode/accounts/:id`, ({ params }) => {
+    const { id } = params;
+    const entry = db.externalAccounts.find((a: any) => a.id === id);
+    if (!entry) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ data: entry.data });
+  }),
+
+  http.get(`${EXTERNAL_URL}/:groupCode/currency`, ({ params }) => {
+    const { groupCode } = params;
+    const entry = db.externalCurrencies.find((c: any) => c.groupCode === groupCode);
+    if (!entry) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ data: entry.data });
+  }),
+];

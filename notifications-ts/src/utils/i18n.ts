@@ -26,7 +26,10 @@ const initI18n = async () => {
           loadPath: path.join(__dirname, '../i18n/{{lng}}.json'),
         },
         interpolation: {
-          escapeValue: false, // Handlebars scrubs HTML
+          // We dont HTML-escape values in t() function since 
+          // 1) i18n is being used for notifications that are not HTML and
+          // 2) in email HTML templates is Handlebars that does its own escaping.
+          escapeValue: false,
         },
       }).then(() => {
         // Use Intl.DurationFormat for duration formatting (from node 23+)

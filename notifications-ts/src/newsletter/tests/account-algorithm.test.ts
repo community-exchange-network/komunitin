@@ -24,6 +24,7 @@ const createAccount = (balance: number) => ({
 });
 
 const createCurrency = (): Currency => ({
+  id: 'test',
   attributes: {
     code: 'TEST',
     name: 'Test Coin',
