@@ -73,7 +73,7 @@ export const errorMessages = {
    * conditions.
    */
   ScriptError: (t: TranslateFn) => t('ErrorScriptError'),
-} satisfies Record<string, (t: TranslateFn) => string>
+} as const satisfies Record<string, (t: TranslateFn) => string>
 
 /** Error code type — derived from the errorMessages keys. */
 export type KErrorCode = keyof typeof errorMessages
