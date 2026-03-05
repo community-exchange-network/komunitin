@@ -28,7 +28,10 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
     },
 
     greeting: t('emails.welcome_to', { name: common.group.name }),
-    paragraphs: [t('emails.validate_email_text', { name: common.group.name })],
+    paragraphs: [t('emails.validate_email_text', {
+      name: common.group.name,
+      interpolation: { escapeValue: true },
+    })],
 
     cta: {
       main: {
@@ -38,7 +41,11 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
     },
 
     postscript: t('emails.safely_ignore'),
-    reason: t('emails.validate_email_reason', { appName: t('app_name') })
+    // Rendered through {{{reason}}} in templates/partials/footer.hbs.
+    reason: t('emails.validate_email_reason', {
+      appName: t('app_name'),
+      interpolation: { escapeValue: true },
+    })
   }
 
   return data
@@ -60,7 +67,10 @@ export const ctxPasswordReset = (event: EnrichedUserEvent, ctx: MessageContext):
     },
     
     greeting: t('emails.hello'),
-    paragraphs: [t('emails.reset_password_text', { name: common.group.name })],
+    paragraphs: [t('emails.reset_password_text', {
+      name: common.group.name,
+      interpolation: { escapeValue: true },
+    })],
     
     cta: {
       main: {
@@ -70,7 +80,10 @@ export const ctxPasswordReset = (event: EnrichedUserEvent, ctx: MessageContext):
     },
 
     postscript: t('emails.safely_ignore'),
-    reason: t('emails.reset_password_reason', { appName: t('app_name') })
+    reason: t('emails.reset_password_reason', {
+      appName: t('app_name'),
+      interpolation: { escapeValue: true },
+    })
 
   } as EmailTemplateContext;
   return data;

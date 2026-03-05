@@ -11,13 +11,22 @@ export const ctxMemberRequestedEmail = (event: EnrichedMemberRequestedEvent, ctx
   const memberEmail = event.users[0]?.user.attributes.email ?? '';
   const memberTown = event.member.attributes.address?.addressLocality ?? '';
 
-  // Build member details paragraph with available info
+  // Rendered through {{{this}}} in templates/partials/intro.hbs, so force interpolation escaping here.
   const detailLines = [
-    `<strong>${t('emails.member_requested_detail_name')}</strong> ${memberName}`,
-    `<strong>${t('emails.member_requested_detail_email')}</strong> ${memberEmail}`,
+    t('emails.member_requested_detail_name', {
+      memberName,
+      interpolation: { escapeValue: true },
+    }),
+    t('emails.member_requested_detail_email', {
+      memberEmail,
+      interpolation: { escapeValue: true },
+    }),
   ];
   if (memberTown) {
-    detailLines.push(`<strong>${t('emails.member_requested_detail_town')}</strong> ${memberTown}`);
+    detailLines.push(t('emails.member_requested_detail_town', {
+      memberTown,
+      interpolation: { escapeValue: true },
+    }));
   }
   const detailsParagraph = detailLines.join('<br/>');
 
@@ -33,7 +42,11 @@ export const ctxMemberRequestedEmail = (event: EnrichedMemberRequestedEvent, ctx
 
     greeting: t('emails.hello_admin'),
     paragraphs: [
-      t('emails.member_requested_text', { memberName, groupName: common.group.name }),
+      t('emails.member_requested_text', {
+        memberName,
+        groupName: common.group.name,
+        interpolation: { escapeValue: true },
+      }),
       detailsParagraph,
       t('emails.member_requested_subtext'),
     ],
@@ -44,7 +57,12 @@ export const ctxMemberRequestedEmail = (event: EnrichedMemberRequestedEvent, ctx
         url: `${common.appUrl}/groups/${common.group.code}/admin/accounts`
       }
     },
-    reason: t('emails.reason_admin', { groupName: common.group.name, appName: common.appName }),
+    // Rendered through {{{reason}}} in templates/partials/footer.hbs.
+    reason: t('emails.reason_admin', {
+      groupName: common.group.name,
+      appName: common.appName,
+      interpolation: { escapeValue: true },
+    }),
   };
 };
 
@@ -66,7 +84,11 @@ export const ctxWelcomeEmail = (event: EnrichedMemberEvent, ctx: MessageContext)
 
     greeting: t('emails.hello_name', { name: memberName }),
     paragraphs: [
-      t('emails.welcome_text_1', { groupName: common.group.name, code: event.member.attributes.code }),
+      t('emails.welcome_text_1', {
+        groupName: common.group.name,
+        code: event.member.attributes.code,
+        interpolation: { escapeValue: true },
+      }),
       t('emails.welcome_text_2', { appName: common.appName}),
       t('emails.happy_exchange')
     ],

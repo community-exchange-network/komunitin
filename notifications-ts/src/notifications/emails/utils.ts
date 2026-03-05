@@ -25,7 +25,12 @@ export const ctxCommon = (event: EnrichedEvent, ctx: MessageContext): CommonEmai
     appUrl,
     appName,
     group,
-    reason: t('emails.reason_active_member', {groupName: group.name, appName}),
+    // Rendered through {{{reason}}} in templates/partials/footer.hbs.
+    reason: t('emails.reason_active_member', {
+      groupName: group.name,
+      appName,
+      interpolation: { escapeValue: true },
+    }),
     settingsLabel: t('emails.settings'),
   }
 

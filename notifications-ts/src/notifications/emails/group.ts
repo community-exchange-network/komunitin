@@ -19,7 +19,10 @@ export const ctxGroupActivatedEmail = (event: EnrichedGroupEvent, ctx: MessageCo
 
     greeting: t('emails.hello_admin'),
     paragraphs: [
-      t('emails.group_activated_text', { groupName }),
+      t('emails.group_activated_text', {
+        groupName,
+        interpolation: { escapeValue: true },
+      }),
       t('emails.group_activated_subtext', { appName: common.appName }),
     ],
 
@@ -29,7 +32,12 @@ export const ctxGroupActivatedEmail = (event: EnrichedGroupEvent, ctx: MessageCo
         url: `${common.appUrl}/groups/${common.group.code}/admin`
       }
     },
-    reason: t('emails.reason_admin', { groupName, appName: common.appName }),
+    // Rendered through {{{reason}}} in templates/partials/footer.hbs.
+    reason: t('emails.reason_admin', {
+      groupName,
+      appName: common.appName,
+      interpolation: { escapeValue: true },
+    }),
   };
 };
 
@@ -51,7 +59,10 @@ export const ctxGroupRequestedEmail = (event: EnrichedGroupEvent, ctx: MessageCo
 
     greeting: t('emails.hello_admin'),
     paragraphs: [
-      t('emails.group_requested_text', { groupName }),
+      t('emails.group_requested_text', {
+        groupName,
+        interpolation: { escapeValue: true },
+      }),
       t('emails.group_requested_subtext'),
     ],
 
@@ -61,6 +72,9 @@ export const ctxGroupRequestedEmail = (event: EnrichedGroupEvent, ctx: MessageCo
         url: adminUrl,
       }
     },
-    reason: t('emails.reason_superadmin', { appName: common.appName }),
+    reason: t('emails.reason_superadmin', {
+      appName: common.appName,
+      interpolation: { escapeValue: true },
+    }),
   };
 };

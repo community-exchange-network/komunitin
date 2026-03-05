@@ -121,4 +121,52 @@ describe('MemberRequested emails', () => {
     const expectedUrl = '/groups/GRP2/admin/accounts';
     assert.ok(msg.html.includes(expectedUrl), 'HTML should contain the admin accounts URL');
   });
+
+  it('should escape malicious member values in email html output', async () => {
+    const groupCode = 'GRP1';
+    const member = createMember({
+      groupCode,
+      name: '<img src=x onerror=alert(1)>',
+      attributes: {
+        address: {
+          streetAddress: '123 Main St',
+          addressLocality: '<script>alert(2)</script>',
+          postalCode: '08001',
+          addressRegion: 'Catalonia',
+          addressCountry: 'ES',
+        }
+      }
+    });
+    const userId = getUserIdForMember(member.id);
+
+    const memberUser = db.users.find(u => u.id === userId);
+    assert.ok(memberUser, 'Member user should exist');
+    memberUser.attributes.email = 'attacker+<svg/onload=alert(3)>@example.com';
+
+    const eventData = createEvent(
+      'MemberRequested',
+      member.id,
+      groupCode,
+      userId,
+      'test-member-requested-malicious',
+      'member'
+    );
+
+    await put(eventData);
+
+    assert.strictEqual(email.sentEmails.length, 1, 'Should send exactly one email');
+    const msg = email.lastEmail();
+
+    assert.ok(!msg.html.includes('<img src=x onerror=alert(1)>'), 'Raw image tag should not appear in HTML');
+    assert.ok(!msg.html.includes('<script>alert(2)</script>'), 'Raw script tag should not appear in HTML');
+    assert.ok(!msg.html.includes('<svg/onload=alert(3)>'), 'Raw svg payload should not appear in HTML');
+
+    const hasEscapedName = /(&lt;|&#x3C;|&#60;)img/.test(msg.html);
+    const hasEscapedTown = /(&lt;|&#x3C;|&#60;)script/.test(msg.html) && msg.html.includes('alert(2)');
+    const hasEscapedEmail = /attacker\+(&lt;|&#x3C;|&#60;)svg/.test(msg.html);
+
+    assert.ok(hasEscapedName, 'Name should be HTML-escaped');
+    assert.ok(hasEscapedTown, 'Town should be HTML-escaped');
+    assert.ok(hasEscapedEmail, 'Email should be HTML-escaped');
+  });
 });

@@ -153,7 +153,11 @@ export const ctxTransferSent = (
     subject: t('emails.transfer_sent_subject', { amount }),
     label: { icon: '🙏', iconBg: '#E8F5E9', text: t('emails.transfer_sent_label') },
     greeting: t('emails.hello_name', { name: payer.member!.attributes.name }),
-    paragraphs: [t('emails.transfer_sent_text', { amount, recipient: transferCard.payee.name })],
+    paragraphs: [t('emails.transfer_sent_text', {
+      amount,
+      recipient: transferCard.payee.name,
+      interpolation: { escapeValue: true },
+    })],
     transfer: transferCard,
     cta: { main: { text: t('emails.transfer_view_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
     balanceLine: buildBalanceLine((payer.account as Account).attributes.balance, currency, ctx),
@@ -179,7 +183,11 @@ export const ctxTransferReceived = (
     subject: t('emails.transfer_received_subject', { amount }),
     label: { icon: '🎉', iconBg: '#E8F5E9', text: t('emails.transfer_received_label') },
     greeting: t('emails.hello_name', { name: payee.member!.attributes.name }),
-    paragraphs: [t('emails.transfer_received_text', { amount, sender: transferCard.payer.name })],
+    paragraphs: [t('emails.transfer_received_text', {
+      amount,
+      sender: transferCard.payer.name,
+      interpolation: { escapeValue: true },
+    })],
     transfer: transferCard,
     cta: { main: { text: t('emails.transfer_view_cta'), url: `${common.appUrl}${transferRoute(code, transfer.id)}` } },
     balanceLine: buildBalanceLine((payee.account as Account).attributes.balance, currency, ctx),
@@ -210,7 +218,11 @@ export const ctxTransferPending = (
     label: { icon: '⏳', iconBg: '#FFF3E0', text: t('emails.transfer_pending_label') },
     greeting: t('emails.hello_name', { name: payer.member!.attributes.name }),
     paragraphs: [
-      t('emails.transfer_pending_text', { amount, sender: transferCard.payee.name }),
+      t('emails.transfer_pending_text', {
+        amount,
+        sender: transferCard.payee.name,
+        interpolation: { escapeValue: true },
+      }),
       t('emails.transfer_pending_subtext'),
     ],
     transfer: transferCard,
@@ -239,7 +251,11 @@ export const ctxTransferRejected = (
     label: { icon: '❌', iconBg: '#FFEBEE', text: t('emails.transfer_rejected_label') },
     greeting: t('emails.hello_name', { name: payee.member!.attributes.name }),
     paragraphs: [
-      t('emails.transfer_rejected_text', { amount, name: transferCard.payer.name }),
+      t('emails.transfer_rejected_text', {
+        amount,
+        name: transferCard.payer.name,
+        interpolation: { escapeValue: true },
+      }),
       t('emails.transfer_rejected_subtext'),
     ],
     transfer: transferCard,
