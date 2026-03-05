@@ -1,78 +1,86 @@
 import type { ErrorResponse } from "./store/model";
 
+type TranslateFn = (key: string) => string
+
 /**
- * Single source of truth for error codes and their translation keys.
+ * Single source of truth for error codes and their user-facing messages.
  * 
- * To add a new error code, add an entry here and add the corresponding
- * translation to all locale files under src/i18n. That's it — the
- * KErrorCode type is derived from this record automatically.
+ * Each key is an error code (and becomes a member of KErrorCode); each value
+ * is a function that receives the i18n `t` helper and returns the translated
+ * message using a **static** translation key so that linters and IDEs can
+ * trace every key back to the locale files.
+ * 
+ * To add a new error, add one entry here and the matching key in every locale
+ * file under src/i18n.
  */
-export const errorTranslationKeys = {
+export const errorMessages = {
   // Shared server errors codes.
-  Unauthorized: 'ErrorUnauthorized',
-  Forbidden: 'ErrorForbidden',
-  NotFound: 'ErrorNotFound',
-  NotImplemented: 'ErrorNotImplemented',
+  Unauthorized: (t: TranslateFn) => t('ErrorUnauthorized'),
+  Forbidden: (t: TranslateFn) => t('ErrorForbidden'),
+  NotFound: (t: TranslateFn) => t('ErrorNotFound'),
+  NotImplemented: (t: TranslateFn) => t('ErrorNotImplemented'),
 
   // Accounting service error codes.
-  TransactionError: 'ErrorTransactionError',
-  InsufficientBalance: 'ErrorInsufficientBalance',
-  InsufficientMaximumBalance: 'ErrorInsufficientMaximumBalance',
-  NoTrustPath: 'ErrorNoTrustPath',
+  TransactionError: (t: TranslateFn) => t('ErrorTransactionError'),
+  InsufficientBalance: (t: TranslateFn) => t('ErrorInsufficientBalance'),
+  InsufficientMaximumBalance: (t: TranslateFn) => t('ErrorInsufficientMaximumBalance'),
+  NoTrustPath: (t: TranslateFn) => t('ErrorNoTrustPath'),
 
   // Social service error codes.
-  InvalidPassword: 'ErrorInvalidPassword',
-  DuplicatedEmail: 'ErrorDuplicatedEmail',
-  BadRequest: 'ErrorBadRequest',
+  InvalidPassword: (t: TranslateFn) => t('ErrorInvalidPassword'),
+  DuplicatedEmail: (t: TranslateFn) => t('ErrorDuplicatedEmail'),
+  BadRequest: (t: TranslateFn) => t('ErrorBadRequest'),
 
   // There are more server errors but we're not identifying them and
   // they are all piped to UnknownServer.
-  UnknownServer: 'ErrorUnknownServer',
+  UnknownServer: (t: TranslateFn) => t('ErrorUnknownServer'),
 
   // Client errors codes.
-  Unknown: 'ErrorUnknown',
-  IncorrectRequest: 'ErrorIncorrectRequest',
-  ServerNoResponse: 'ErrorServerNoResponse',
-  ServerBadResponse: 'ErrorServerBadResponse',
-  ResourceNotFound: 'ErrorResourceNotFound',
-  UnknownVueError: 'ErrorUnknownVueError',
-  UnknownScript: 'ErrorUnknownScript',
-  ErrorHandling: 'ErrorErrorHandling',
-  PositionTimeout: 'ErrorPositionTimeout',
-  PositionUnavailable: 'ErrorPositionUnavailable',
-  PositionPermisionDenied: 'ErrorPositionPermisionDenied',
-  NotificationsPermissionDenied: 'ErrorNotificationsPermissionDenied',
-  VueWarning: 'ErrorVueWarning',
-  IncorrectCredentials: 'ErrorIncorrectCredentials',
-  AuthNoCredentials: 'ErrorAuthNoCredentials',
-  RequestError: 'ErrorRequestError',
-  InvalidTransferState: 'ErrorInvalidTransferState',
-  InvalidTransfersCSVFile: 'ErrorInvalidTransfersCSVFile',
-  QRCodeError: 'ErrorQRCodeError',
-  NFCReadError: 'ErrorNFCReadError',
-  NFCUnavailable: 'ErrorNFCUnavailable',
-  ExternalPaymentNotAllowed: 'ErrorExternalPaymentNotAllowed',
-  InvalidAmount: 'ErrorInvalidAmount',
-  DescriptionRequired: 'ErrorDescriptionRequired',
-  AccountNotFound: 'ErrorAccountNotFound',
-  AccountIsNotYours: 'ErrorAccountIsNotYours',
-  CamNotAllowed: 'ErrorCamNotAllowed',
-  CamNotFound: 'ErrorCamNotFound',
-  CamNotReadable: 'ErrorCamNotReadable',
-  CamUnknown: 'ErrorCamUnknown',
+  Unknown: (t: TranslateFn) => t('ErrorUnknown'),
+  IncorrectRequest: (t: TranslateFn) => t('ErrorIncorrectRequest'),
+  ServerNoResponse: (t: TranslateFn) => t('ErrorServerNoResponse'),
+  ServerBadResponse: (t: TranslateFn) => t('ErrorServerBadResponse'),
+  ResourceNotFound: (t: TranslateFn) => t('ErrorResourceNotFound'),
+  UnknownVueError: (t: TranslateFn) => t('ErrorUnknownVueError'),
+  UnknownScript: (t: TranslateFn) => t('ErrorUnknownScript'),
+  ErrorHandling: (t: TranslateFn) => t('ErrorErrorHandling'),
+  PositionTimeout: (t: TranslateFn) => t('ErrorPositionTimeout'),
+  PositionUnavailable: (t: TranslateFn) => t('ErrorPositionUnavailable'),
+  PositionPermisionDenied: (t: TranslateFn) => t('ErrorPositionPermisionDenied'),
+  NotificationsPermissionDenied: (t: TranslateFn) => t('ErrorNotificationsPermissionDenied'),
+  VueWarning: (t: TranslateFn) => t('ErrorVueWarning'),
+  IncorrectCredentials: (t: TranslateFn) => t('ErrorIncorrectCredentials'),
+  AuthNoCredentials: (t: TranslateFn) => t('ErrorAuthNoCredentials'),
+  RequestError: (t: TranslateFn) => t('ErrorRequestError'),
+  InvalidTransferState: (t: TranslateFn) => t('ErrorInvalidTransferState'),
+  InvalidTransfersCSVFile: (t: TranslateFn) => t('ErrorInvalidTransfersCSVFile'),
+  QRCodeError: (t: TranslateFn) => t('ErrorQRCodeError'),
+  NFCReadError: (t: TranslateFn) => t('ErrorNFCReadError'),
+  NFCUnavailable: (t: TranslateFn) => t('ErrorNFCUnavailable'),
+  ExternalPaymentNotAllowed: (t: TranslateFn) => t('ErrorExternalPaymentNotAllowed'),
+  InvalidAmount: (t: TranslateFn) => t('ErrorInvalidAmount'),
+  DescriptionRequired: (t: TranslateFn) => t('ErrorDescriptionRequired'),
+  AccountNotFound: (t: TranslateFn) => t('ErrorAccountNotFound'),
+  AccountIsNotYours: (t: TranslateFn) => t('ErrorAccountIsNotYours'),
+  CamNotAllowed: (t: TranslateFn) => t('ErrorCamNotAllowed'),
+  CamNotFound: (t: TranslateFn) => t('ErrorCamNotFound'),
+  CamNotReadable: (t: TranslateFn) => t('ErrorCamNotReadable'),
+  CamUnknown: (t: TranslateFn) => t('ErrorCamUnknown'),
 
-  // This condition should not happen and it indicates a programming bug
-  // that needs to be solved by the development team. Use it to assert complex
-  // conditions.
-  ScriptError: 'ErrorScriptError',
-} as const satisfies Record<string, string>
+  /**
+   * This condition should not happen and it indicates a programming bug
+   * that needs to be solved by the development team. Use it to assert complex
+   * conditions.
+   */
+  ScriptError: (t: TranslateFn) => t('ErrorScriptError'),
+} satisfies Record<string, (t: TranslateFn) => string>
 
-/** Error code type — derived from the errorTranslationKeys keys. */
-export type KErrorCode = keyof typeof errorTranslationKeys
+/** Error code type — derived from the errorMessages keys. */
+export type KErrorCode = keyof typeof errorMessages
 
 /** Runtime KErrorCode values. Use as KErrorCode.Unauthorized, etc. */
 export const KErrorCode: { readonly [K in KErrorCode]: K } = Object.fromEntries(
-  Object.keys(errorTranslationKeys).map(k => [k, k])
+  Object.keys(errorMessages).map(k => [k, k])
 ) as { readonly [K in KErrorCode]: K }
 
 /**

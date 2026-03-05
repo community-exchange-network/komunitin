@@ -1,6 +1,6 @@
 import type { ComponentPublicInstance } from 'vue';
 
-import KError, { KErrorCode, errorTranslationKeys } from '../KError';
+import KError, { KErrorCode, errorMessages } from '../KError';
 import { Notify } from 'quasar'
 import { boot } from 'quasar/wrappers';
 import {i18n} from './i18n'
@@ -9,8 +9,8 @@ import {i18n} from './i18n'
 /**
  * Get the localized user-facing message for the given error.
  * 
- * Uses the errorTranslationKeys mapping (defined in KError.ts) to look up
- * the translation key for the given error code.
+ * Uses the errorMessages mapping (defined in KError.ts) which calls `t()`
+ * with static translation keys, enabling linters and IDEs to trace every key.
  * 
  * @param error The error.
  */
@@ -18,10 +18,10 @@ export function getUserErrorMessage(error: KError): string {
   try {
     const { t } = i18n.global
     const code = error.code as KErrorCode
-    if (code in errorTranslationKeys) {
-      return (t as (key: string) => string)(errorTranslationKeys[code])
+    if (code in errorMessages) {
+      return errorMessages[code](t as (key: string) => string)
     }
-    return (t as (key: string) => string)(errorTranslationKeys.Unknown)
+    return errorMessages.Unknown(t as (key: string) => string)
   } catch {
     // Fallback when i18n is not available (e.g. during test teardown).
     return error.code
