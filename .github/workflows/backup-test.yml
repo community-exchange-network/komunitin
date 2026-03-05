@@ -87,11 +87,15 @@ jobs:
 
     - name: Verify notifications database restoration
       run: |
-        echo "Checking for push subscriptions in the restored database..."
-        count=$(docker exec db-notifications psql -U postgres -d notifications -t -A -c "SELECT COUNT(*) FROM \"PushSubscription\";")
+        echo "Checking for recent records in the restored notifications database..."
+        count=$(docker exec db-notifications psql -U postgres -d notifications -t -A -c "
+          SELECT
+            (SELECT COUNT(*) FROM \"PushSubscription\" WHERE \"updatedAt\" > NOW() - INTERVAL '24 hours') +
+            (SELECT COUNT(*) FROM \"AppNotification\" WHERE \"createdAt\" > NOW() - INTERVAL '24 hours');
+        ")
         if [ "$count" -eq 0 ]; then
-          echo "ERROR: No push subscriptions found in restored database"
+          echo "ERROR: No recent records found in PushSubscription.updatedAt or AppNotification.createdAt within the last 24 hours"
           exit 1
         else
-          echo "SUCCESS: Database restoration verified with $count push subscriptions"
+          echo "SUCCESS: Database restoration verified with $count recent records in the last 24 hours"
         fi
