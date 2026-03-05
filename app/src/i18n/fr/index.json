@@ -408,7 +408,15 @@
   "ErrorNotImplemented": "Erreur : Non implémenté",
   "ErrorInvalidTransferState": "Erreur : État d'échange invalide",
   "ErrorBadRequest": "Erreur : Échec de validation des données sur le serveur",
-  
+  "ErrorUnauthorized": "Erreur : Accès non autorisé",
+  "ErrorForbidden": "Erreur : Accès interdit",
+  "ErrorNotFound": "Erreur : Non trouvé",
+  "ErrorDuplicatedEmail": "Cette adresse courriel est déjà utilisée",
+  "ErrorRequestError": "Erreur : La requête a échoué",
+  "ErrorQRCodeError": "Erreur de lecture du code QR",
+  "ErrorExternalPaymentNotAllowed": "Les paiements externes ne sont pas autorisés pour cette monnaie",
+  "ErrorScriptError": "Une erreur inattendue s'est produite",
+
   "ErrorAuthNoCredentials": "Courriel ou mot de passe incorrect",
   "ErrorInvalidPassword": "Le mot de passe n'est pas correct",
   "ErrorInsufficientBalance": "Solde insuffisant",

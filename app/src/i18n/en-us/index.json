@@ -416,7 +416,15 @@
   "ErrorNotImplemented": "Error: Not Implemented",
   "ErrorInvalidTransferState": "Error: Invalid Transfer State",
   "ErrorBadRequest": "Error: Data validation failed in server",
-  
+  "ErrorUnauthorized": "Error: Unauthorized access",
+  "ErrorForbidden": "Error: Access forbidden",
+  "ErrorNotFound": "Error: Not found",
+  "ErrorDuplicatedEmail": "This email is already in use",
+  "ErrorRequestError": "Error: Request failed",
+  "ErrorQRCodeError": "Error reading the QR code",
+  "ErrorExternalPaymentNotAllowed": "External payments are not allowed for this currency",
+  "ErrorScriptError": "An unexpected error occurred",
+
   "ErrorAuthNoCredentials": "Incorrect email or password",
   "ErrorInvalidPassword": "The password is not correct",
   "ErrorInsufficientBalance": "Insufficient balance",
