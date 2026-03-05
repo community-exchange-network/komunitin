@@ -27,7 +27,7 @@ describe("Groups", () => {
     expect((wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing).toBe(false);
   });
 
-  it ("Renders group page", async () => {
+  it("Renders group page", async () => {
     await wrapper.vm.$router.push("/groups/GRP0");
     await wrapper.vm.$nextTick();
     expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
@@ -47,8 +47,8 @@ describe("Groups", () => {
       const isMapCard = card.findComponent(SimpleMap)?.exists();
       expect(isMembersCard || isStatsCard || isMapCard).toBe(true);
     });
-    // FIXME: Members should not show on map, only group center
-    // expect(wrapper.findAllComponents({ name: 'LMarker' }).length).toEqual(1);
+    // Members should not show on map, only group center
+    expect(wrapper.findAllComponents({ name: 'LMarker' }).length).toEqual(1);
     // Location
     expect(text).toContain("Buckinghamshire");
     // Contact
@@ -67,10 +67,10 @@ describe("Groups", () => {
     await wrapper.vm.$nextTick();
     await wrapper.get("button[type='submit']").trigger("click");
     await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true, "User should be logged in");
+    
     await wrapper.vm.$router.push("/groups/GRP0");
-    await flushPromises();
-    await wrapper.vm.$nextTick();
-    // FIXME: Members should show on map
-    // expect(wrapper.findAllComponents({ name: 'LMarker' }).length).toEqual(30);
+    await waitFor(() => wrapper.vm.$store.getters["groups/current"].members?.length > 0, true, "Api should finish loading");
+    // Members should show on map
+    expect(wrapper.findAllComponents({ name: 'LMarker' }).length).toEqual(31);
   });
 });

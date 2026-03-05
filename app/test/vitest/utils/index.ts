@@ -16,6 +16,7 @@ import { Auth } from '../../../src/plugins/Auth';
 import { auth } from '../../../src/store/me';
 import { mockToken } from 'src/server/AuthServer';
 import { type RouteLocationRaw } from 'vue-router';
+import { name } from 'faker';
 
 export function testLogin() {
   // This call actually saves the mocked token in LocalStorage.
@@ -40,7 +41,10 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
       plugins: [store, router, quasarPlugin],
       stubs: {
         // stub map components since they throw errors in test environment.
-        LMap: true,
+        LMap: {
+          name: "LMap",
+          template: "<div><slot/></div>",
+        },
         LTileLayer: true,
         LMarker: true,
         // stub camera component

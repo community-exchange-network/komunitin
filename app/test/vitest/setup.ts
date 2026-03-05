@@ -89,9 +89,9 @@ vi.mock("vue-qrcode-reader", () => ({
 }))
 
 vi.mock("@vue-leaflet/vue-leaflet", () => ({
-  LMap: vi.fn(),
-  LTileLayer: vi.fn(),
-  LMarker: vi.fn(),
+  LMap: () => {},
+  LTileLayer:() => {},
+  LMarker: () => {},
 }))
 
 // Mock Web NFC api
