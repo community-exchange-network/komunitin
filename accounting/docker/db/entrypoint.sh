@@ -21,6 +21,9 @@ if [ "$WALG_ENABLE" = "true" ]; then
   AWS_REGION=${AWS_REGION}
   AWS_S3_FORCE_PATH_STYLE=${AWS_S3_FORCE_PATH_STYLE}
 EOF
+  # And set permissions so only the postgres user can read it
+  chown postgres:postgres /usr/local/bin/wal-g.env
+  chmod 600 /usr/local/bin/wal-g.env
 
   # Start cron in background
   cron

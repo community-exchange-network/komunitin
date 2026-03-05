@@ -70,13 +70,13 @@ services:
       POSTGRES_APP_USER: accounting
       POSTGRES_APP_PASSWORD: accounting
       WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
-      WALG_S3_PREFIX: ${S3_BACKUP_BUCKET}/db-accounting
+      WALG_S3_PREFIX: ${S3_PREFIX}/db-accounting
       WALG_COMPRESSION_METHOD: zstd
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
       AWS_ENDPOINT: ${S3_ENDPOINT}
       AWS_REGION: ${S3_REGION}
-      AWS_S3_FORCE_PATH_STYLE: "true"
+      AWS_S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
 
     volumes:
       - db-accounting:/var/lib/postgresql/data
@@ -195,13 +195,13 @@ services:
       POSTGRES_APP_USER: notifications
       POSTGRES_APP_PASSWORD: notifications
       WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
-      WALG_S3_PREFIX: ${S3_BACKUP_BUCKET}/db-notifications
+      WALG_S3_PREFIX: ${S3_PREFIX}/db-notifications
       WALG_COMPRESSION_METHOD: zstd
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
       AWS_ENDPOINT: ${S3_ENDPOINT}
-      AWS_REGION: ${S3_REGION}
-      AWS_S3_FORCE_PATH_STYLE: "true"
+      AWS_REGION: ${S3_REGION:-us-east-1}
+      AWS_S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
     volumes:
       - db-notifications-ts:/var/lib/postgresql/data
 
