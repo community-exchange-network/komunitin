@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/handlers"
 	"github.com/komunitin/komunitin/notifications/events"
-	"github.com/komunitin/komunitin/notifications/mails"
 )
 
 func main() {
@@ -17,8 +15,8 @@ func main() {
 	// Subscriptions service is now implemented in the notifications-ts folder.
 	//notifications.InitService()
 
-	log.Println("Starting mailer service...")
-	go mails.Mailer(context.Background())
+	//log.Println("Starting mailer service...")
+	//go mails.Mailer(context.Background())
 
 	// Notifications worker is now implemented in the notifications-ts folder.
 	//log.Println("Starting notifier service...")

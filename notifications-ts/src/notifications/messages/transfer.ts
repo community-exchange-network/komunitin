@@ -1,5 +1,6 @@
 import { formatAmount } from "../../utils/format";
 import { EnrichedTransferEvent } from "../enriched-events";
+import { getTransferPartyDisplayName } from "./transfer-members";
 import { MessageContext, NotificationActions, NotificationMessage } from "./types";
 
 const transferRoute = (code: string, transferId: string): string => {
@@ -21,13 +22,13 @@ export const buildTransferSentMessage = (
     title: t('notifications.transfer_sent_title'),
     body: t('notifications.transfer_sent_body', {
       amount: formatAmount(amount, currency, locale),
-      recipient: payee.member.attributes.name,
+      recipient: getTransferPartyDisplayName(event, 'payee'),
     }),
     actions: [{
       title: t('notifications.action_view'),
       action: NotificationActions.OPEN_ROUTE,
     }],
-    image: payee.member.attributes.image,
+    image: payee.member?.attributes.image,
     route,
   };
 };
@@ -47,13 +48,13 @@ export const buildTransferReceivedMessage = (
     title: t('notifications.transfer_received_title'),
     body: t('notifications.transfer_received_body', {
       amount: formatAmount(amount, currency, locale),
-      sender: payer.member.attributes.name,
+      sender: getTransferPartyDisplayName(event, 'payer'),
     }),
     actions: [{
       title: t('notifications.action_view'),
       action: NotificationActions.OPEN_ROUTE,
     }],
-    image: payer.member.attributes.image,
+    image: payer.member?.attributes.image,
     route,
   };
 };
@@ -79,9 +80,9 @@ export const buildTransferPendingMessage = (
     title: t('notifications.transfer_pending_title'),
     body: t('notifications.transfer_pending_body', {
       amount: formatAmount(amount, currency, locale),
-      sender: payee.member.attributes.name,
+      sender: getTransferPartyDisplayName(event, 'payee'),
     }),
-    image: payee.member.attributes.image,
+    image: payee.member?.attributes.image,
     route,
     actions: [{
       title: t('notifications.action_respond'),
@@ -108,13 +109,13 @@ export const buildTransferRejectedMessage = (
     title: t('notifications.transfer_rejected_title') ,
     body: t('notifications.transfer_rejected_body', {
       amount: formatAmount(amount, currency, locale),
-      name: payer.member.attributes.name,
+      name: getTransferPartyDisplayName(event, 'payer'),
     }),
     actions: [{
       title: t('notifications.action_view'),
       action: NotificationActions.OPEN_ROUTE,
     }],
-    image: payer.member.attributes.image,
+    image: payer.member?.attributes.image,
     route,
   };
 };
@@ -138,7 +139,7 @@ export const buildTransferStillPendingMessage = (
     title: t('notifications.transfer_still_pending_title'),
     body: t('notifications.transfer_still_pending_body', {
       amount: formatAmount(amount, currency, locale),
-      name: payee.member.attributes.name,
+      name: getTransferPartyDisplayName(event, 'payee'),
       duration: {
         days: elapsedDays,
       },
@@ -147,7 +148,7 @@ export const buildTransferStillPendingMessage = (
       title: t('notifications.action_respond'),
       action: NotificationActions.OPEN_ROUTE,
     }],
-    image: payee.member.attributes.image,
+    image: payee.member?.attributes.image,
     route,
   };
 };
