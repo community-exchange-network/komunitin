@@ -10,15 +10,15 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: notifications
       POSTGRES_APP_PASSWORD: notifications
-      # S3 backup configuration (uncomment to enable)
-      # WALG_ENABLE: "true"
-      # WALG_S3_PREFIX: s3://your-bucket/db-notifications
+      # # Backup configuration
+      # WALG_ENABLE: true
+      # WALG_S3_PREFIX: s3://your-bucket/db-accounting
       # WALG_COMPRESSION_METHOD: zstd
       # AWS_ACCESS_KEY_ID: your-access-key
       # AWS_SECRET_ACCESS_KEY: your-secret-key
-      # AWS_ENDPOINT: https://storage.googleapis.com
-      # AWS_REGION: us-east-1
-      # AWS_S3_FORCE_PATH_STYLE: "true"
+      # AWS_ENDPOINT: https://s3.gra.io.cloud.ovh.net
+      # AWS_REGION: gra
+      # AWS_S3_FORCE_PATH_STYLE: false
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:
