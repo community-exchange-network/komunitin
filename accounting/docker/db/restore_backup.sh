@@ -25,8 +25,8 @@ if [ "$(whoami)" != "postgres" ]; then
 fi
 
 # Check if WAL-G environment variables are set
-if [ -z "$WALG_GS_PREFIX" ] && [ -z "$WALG_S3_PREFIX" ]; then
-    echo "ERROR: WAL-G environment variables are not set."
+if [ -z "$WALG_S3_PREFIX" ]; then
+    echo "ERROR: WALG_S3_PREFIX environment variable is not set."
     exit 1
 fi
 

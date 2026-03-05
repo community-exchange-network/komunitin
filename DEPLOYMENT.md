@@ -27,7 +27,6 @@ git clone https://git.drupalcode.org/project/ices.git
 ## Configuration
  - Change directory to the komunitin folder.
  - Copy the file `.env.public.template` to `.env` and edit all the variables to match your setup.
- - Copy your Firebase service account credentials file to `accounting/komunitin-project-backup-credentials.json` for accounting backups to Google Cloud Storage.
 
 ## Reverse proxy 
 The public deployment uses the [Traefik](https://traefik.io) reverse proxy to forward the traffic to the different services. The proxy is provided separately because its configuration may vary depending on the server setup.
@@ -85,4 +84,42 @@ To clean up unused docker resources you can run after updating the system:
 
 ```bash
 docker system prune -f
+```
+
+## Database Backups
+
+Both the accounting and notifications databases support automated backups using [WAL-G](https://github.com/wal-g/wal-g) with any S3-compatible storage provider.
+
+### How it works
+- **Continuous WAL archiving**: All PostgreSQL Write-Ahead Log (WAL) files are continuously pushed to S3 storage, enabling point-in-time recovery.
+- **Daily full backups**: A cron job creates a full backup every day at 2:02 AM.
+- **Automatic cleanup**: Old backups are pruned daily at 3:03 AM, retaining the 7 most recent full backups.
+- **Single bucket**: Both databases share the same S3 bucket, organized in separate folders (`db-accounting/` and `db-notifications/`).
+
+### Configuration
+
+Set the `S3_*` and `DB_BACKUP_ENABLE` variables in your `.env` file. See `.env.public.template` for descriptions.
+
+### Restoring a backup
+
+To restore the latest backup for the accounting database:
+
+```bash
+docker compose run --user postgres --entrypoint /bin/bash db-accounting /usr/local/bin/restore_backup.sh
+```
+
+To restore with point-in-time recovery to a specific timestamp:
+
+```bash
+docker compose run --user postgres --entrypoint /bin/bash db-accounting /usr/local/bin/restore_backup.sh "2025-07-09 10:25:00"
+```
+
+The same commands work for `db-notifications-ts` by replacing the service name.
+
+### Manual backup
+
+To manually trigger a full backup:
+
+```bash
+docker compose exec db-accounting su -c "/usr/local/bin/create_backup.sh" postgres
 ```
