@@ -23,7 +23,7 @@
           class="q-ml-sm q-mr-xs"
           flat
           round
-          icon="menu"
+          icon="sym_r_menu"
           :aria-label="$t('menu')"
           @click="store.dispatch('toogleDrawer')"
         />
@@ -82,13 +82,13 @@
           <template #append>
             <q-icon
               v-if="searchText === ''"
-              name="search"
+              name="sym_r_search"
               class="cursor-pointer"
               @click="searchActive = false"
             />
             <q-icon
               v-else
-              name="clear"
+              name="sym_r_clear"
               class="cursor-pointer"
               @click="clearSearchText"
             />
@@ -98,14 +98,14 @@
           v-if="search && !searchActive"
           flat
           round
-          icon="search"
+          icon="sym_r_search"
           @click="searchActive = true"
         />
         <!-- slot for right buttons -->
         <slot name="buttons" >
           <q-btn
             v-if="showLogOut"
-            icon="logout"
+            icon="sym_r_logout"
             flat
             round
             to="/logout"
