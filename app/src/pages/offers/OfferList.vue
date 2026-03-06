@@ -8,7 +8,7 @@
     <template #after>
       <floating-btn
         :label="$t('createOffer')"
-        icon="add"
+        icon="sym_r_add"
         color="kblue"
         :to="`/groups/${code}/offers/new`"
       />

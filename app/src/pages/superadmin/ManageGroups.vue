@@ -31,7 +31,7 @@
         <template #body-cell-actions="props">
           <q-td :props="props">
             <q-btn
-              icon="edit"
+              icon="sym_r_edit"
               color="icon-dark"
               flat
               round
@@ -39,28 +39,28 @@
             />
             <template v-if="props.row.status !== 'pending'">
               <q-btn
-                icon="settings"
+                icon="sym_r_settings"
                 color="icon-dark"
                 flat
                 round
                 @click="settings(props.row)"
               />
               <q-btn
-                icon="manage_accounts"
+                icon="sym_r_manage_accounts"
                 color="icon-dark"
                 flat
                 round
                 :to="`/groups/${props.row.code}/admin/accounts`"
               />
               <q-btn
-                icon="list_alt"
+                icon="sym_r_list_alt"
                 color="icon-dark"
                 flat
                 round
                 :to="`/groups/${props.row.code}/admin/transactions`"
               />
               <q-btn
-                icon="insert_chart"
+                icon="sym_r_insert_chart"
                 color="icon-dark"
                 flat
                 round
@@ -69,7 +69,7 @@
             </template>
             <template v-else>
               <confirm-btn
-                icon="check_circle"
+                icon="sym_r_check_circle"
                 color="green"
                 btn-color="icon-dark"
                 flat

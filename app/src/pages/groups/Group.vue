@@ -7,14 +7,14 @@
       <template #buttons>
         <contact-button
           v-if="!isLoading && group"
-          icon="message"
+          icon="sym_r_message"
           round
           flat
           :contacts="group.contacts"
         />
         <share-button
           v-if="group"
-          icon="share"
+          icon="sym_r_share"
           flat
           round
           :title="$t('checkTheExchangeCommunityGroup', {group: group.attributes.name})"
@@ -66,7 +66,7 @@
               flat
               round
               dense
-              :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
+              :icon="isDescriptionOpen ? 'sym_r_keyboard_arrow_up' : 'sym_r_keyboard_arrow_down'"
               style="margin-left:auto;"
               @click="toggleDescription"
             />
@@ -82,7 +82,7 @@
             class="col-6"
           >
             <nav-card
-              icon="people"
+              icon="sym_r_people"
               :label="membersLabel"
             />
           </router-link>
@@ -92,7 +92,7 @@
             class="col-6"
           >
             <nav-card
-              icon="insert_chart"
+              icon="sym_r_insert_chart"
               :label="$t('statistics')"
             />
           </router-link>
@@ -119,7 +119,7 @@
                 />
               </simple-map>
               <q-card-section class="group-footer-card text-onsurface-m">
-                <q-icon name="place" />
+                <q-icon name="sym_r_place" />
                 {{ group.attributes.location.name }}
               </q-card-section>
             </q-card>
@@ -133,7 +133,7 @@
           <floating-btn
             v-if="!isLoggedIn"
             :label="$t('signUp')"
-            icon="add"
+            icon="sym_r_add"
             color="primary"
             :to="`/groups/${group.attributes.code}/signup`"
           />

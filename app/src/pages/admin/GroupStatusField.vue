@@ -10,7 +10,7 @@
   </div>
   <confirm-btn
     v-if="isActive"
-    icon="delete"
+    icon="sym_r_delete"
     outline
     :label="t('disableGroup')"
     color="negative"
@@ -26,7 +26,7 @@
   </confirm-btn>
   <confirm-btn
     v-if="isDisabled"
-    icon="check_circle"
+    icon="sym_r_check_circle"
     :label="t('enableGroup')"
     color="positive"
     :loading="loading"

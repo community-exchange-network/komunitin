@@ -50,7 +50,7 @@
     >
       <q-btn
         v-if="canEdit"
-        icon="edit"
+        icon="sym_r_edit"
         flat
         round
         color="icon-dark"

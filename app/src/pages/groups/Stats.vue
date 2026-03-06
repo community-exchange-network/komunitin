@@ -15,7 +15,7 @@
             <stats-card
               value="amount"
               class="full-height"
-              icon="today"
+              icon="sym_r_today"
               :title="t('dailyVolume')"
               :text="t('dailyVolumeText')"
               :currency="currency"
@@ -26,7 +26,7 @@
             <stats-card
               value="amount"
               class="full-height"
-              icon="calendar_month"
+              icon="sym_r_calendar_month"
               :title="t('monthlyVolume')"
               :text="t('monthlyVolumeText')"
               :currency="currency"
@@ -37,7 +37,7 @@
             <stats-card
               value="amount"
               class="full-height"
-              icon="sunny"
+              icon="sym_r_sunny"
               :title="t('yearlyVolume')"
               :text="t('yearlyVolumeText')"
               :currency="currency"
@@ -48,7 +48,7 @@
             <stats-card
               value="amount"
               class="full-height"
-              icon="all_inclusive"
+              icon="sym_r_all_inclusive"
               :currency="currency"
               :title="t('allTimeVolume')"
               :text="t('allTimeVolumeText')"
@@ -57,7 +57,7 @@
         </div>
         <div class="q-mt-md">
           <stats-chart 
-            icon="show_chart"
+            icon="sym_r_show_chart"
             value="amount"
             :title="t('volumeChart')"
             :text="t('volumeChartText')"
@@ -69,7 +69,7 @@
         </div>
         <div class="q-mt-md">
           <stats-chart 
-            icon="show_chart"
+            icon="sym_r_show_chart"
             value="accounts"
             :title="t('activeAccountsChart')"
             :text="t('activeAccountsChartText')"

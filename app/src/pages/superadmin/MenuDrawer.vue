@@ -11,12 +11,12 @@
     {{ $t('administration') }}
   </div>
   <menu-item
-    icon="supervisor_account"
+    icon="sym_r_supervisor_account"
     title="Manage Groups"
     to="/superadmin/groups"
   />
   <menu-item
-    icon="sync_alt"
+    icon="sym_r_sync_alt"
     title="Migrations"
     to="/superadmin/migrations"
   />

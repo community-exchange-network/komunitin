@@ -30,7 +30,7 @@
       color="transparent"
       text-color="onoutside"
       :label="$t('sendResetLink')"
-      icon="send"
+      icon="sym_r_send"
       type="submit"
       :disabled="v$.$invalid"
       :loading="isLoading"

@@ -13,7 +13,7 @@
           class="q-ml-sm q-mr-xs"
           flat
           round
-          icon="arrow_back"
+          icon="sym_r_arrow_back"
           :aria-label="$t('back')"
           @click="goUp"
         />

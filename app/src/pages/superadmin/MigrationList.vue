@@ -10,7 +10,7 @@
           class="q-mb-md col-6"
         />
         <q-btn
-          icon="refresh"
+          icon="sym_r_refresh"
           color="icon-dark"
           flat
           round
@@ -24,7 +24,7 @@
           List of migrations
         </div>
         <q-btn 
-          icon="add" 
+          icon="sym_r_add" 
           label="New Migration" 
           unelevated
           color="primary" 

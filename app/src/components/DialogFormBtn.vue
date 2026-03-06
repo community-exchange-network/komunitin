@@ -18,7 +18,7 @@
             <q-btn
               flat
               round
-              icon="close"
+              icon="sym_r_close"
               style="margin-top: -8px; margin-right: -8px;"
               @click="showDialog = false"
             />

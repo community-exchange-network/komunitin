@@ -45,34 +45,34 @@
         <q-separator />
 
         <menu-item
-          icon="account_circle"
+          icon="sym_r_account_circle"
           :title="$t('myProfile')"
           :to="`/groups/${groupCode}/members/${myMember?.attributes.code}`"
         />
         <notifications-menu-item />
         <menu-item
-          icon="loyalty"
+          icon="sym_r_loyalty"
           :title="$t('myNeeds')"
           :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#needs`"
         />
         <menu-item
-          icon="local_offer"
+          icon="sym_r_local_offer"
           :title="$t('myOffers')"
           :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#offers`"
         />
         <menu-item
-          icon="edit"
+          icon="sym_r_edit"
           :title="$t('editProfile')"
           to="/profile"
         />
         <menu-item  
-          icon="settings"
+          icon="sym_r_settings"
           :title="$t('settings')"
           to="/settings"
         />
         <menu-item
           id="user-menu-logout"
-          icon="logout"
+          icon="sym_r_logout"
           :title="$t('logout')"
           to="/logout"
         />
@@ -80,13 +80,13 @@
         <q-separator />
 
         <menu-item
-          icon="info"
+          icon="sym_r_info"
           :title="$t('about')"
           href="https://github.com/komunitin/komunitin"
           />
         <menu-item 
           v-if="feedbackURL"
-          icon="feedback"
+          icon="sym_r_feedback"
           :title="$t('feedback')"
           :href="feedbackURL"
         />

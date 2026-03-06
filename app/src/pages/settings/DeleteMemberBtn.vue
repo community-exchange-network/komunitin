@@ -1,7 +1,7 @@
 <template>
   <delete-btn
     outline
-    icon="delete"
+    icon="sym_r_delete"
     :round="false"
     :flat="false"
     :label="$t('deleteAccount')"

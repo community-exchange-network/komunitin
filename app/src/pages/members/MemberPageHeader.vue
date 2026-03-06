@@ -74,23 +74,23 @@
       >
         <q-tab
           name="profile"
-          icon="account_circle"
+          icon="sym_r_account_circle"
           :label="$t('profile')"
         />
         <q-tab
           name="needs"
-          icon="loyalty"
+          icon="sym_r_loyalty"
           :label="$t('nNeeds', nNeeds ?? 0)"
         />
         <q-tab
           name="offers"
-          icon="local_offer"
+          icon="sym_r_local_offer"
           :label="$t('nOffers', nOffers ?? 0)"
         />
         <q-tab
           v-if="transactions"
           name="transactions"
-          icon="account_balance_wallet"
+          icon="sym_r_account_balance_wallet"
           :label="$t('transactions')"
         />
       </q-tabs>

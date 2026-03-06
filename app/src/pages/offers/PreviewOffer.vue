@@ -8,7 +8,7 @@
       <floating-btn 
         :label="$t('publishOffer')"
         color="kblue"
-        icon="publish"
+        icon="sym_r_publish"
         @click="publish(offer)"
       />
     </template>

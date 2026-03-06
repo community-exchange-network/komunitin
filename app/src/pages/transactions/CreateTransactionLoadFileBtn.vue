@@ -4,7 +4,7 @@
     :text="$t('importFileText')"
     :submit="importFile"
     :valid="!!file"
-    icon="attach_file"
+    icon="sym_r_attach_file"
   >
     <template #default>
       <q-file 

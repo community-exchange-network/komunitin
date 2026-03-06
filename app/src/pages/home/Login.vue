@@ -6,7 +6,7 @@
       color="primary"
       text-color="onprimary"
       :label="$t('findYourLocalGroup')"
-      icon="explore"
+      icon="sym_r_explore"
       :to="{ name: 'GroupList' }"
       class="full-width"
     />
@@ -20,7 +20,7 @@
       text-color="onoutside"
       :label="$t('logIn')"
       :to="{ name: 'LoginMail' }"
-      icon="account_circle"
+      icon="sym_r_account_circle"
       class="full-width"
     />
   </div>

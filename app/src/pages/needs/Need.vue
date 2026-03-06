@@ -9,7 +9,7 @@
           v-if="canEdit"
           round
           flat
-          icon="edit"
+          icon="sym_r_edit"
           :to="`/groups/${code}/needs/${needCode}/edit`"
           :title="$t('editNeed')"
         />

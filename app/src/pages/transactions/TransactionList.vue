@@ -10,7 +10,7 @@
         <q-btn
           flat
           round
-          :icon="filterDrawer ? 'filter_list_off' : 'filter_list'"
+          :icon="filterDrawer ? 'sym_r_filter_list_off' : 'sym_r_filter_list'"
           :title="filterDrawer ? $t('hideFilters') : $t('showFilters')"
           @click="filterDrawer = !filterDrawer"
         />
@@ -18,7 +18,7 @@
           v-if="store.getters.isAdmin"  
           flat
           round
-          icon="download"
+          icon="sym_r_download"
           :title="$t('downloadCSV')"
           @click="download"
         />

@@ -4,7 +4,7 @@
     :offset="q.screen.gt.sm ? [24,24]: [16,16]"
   >
     <q-fab 
-      icon="add" 
+      icon="sym_r_add" 
       color="primary"
       v-bind="$attrs"
       direction="up"

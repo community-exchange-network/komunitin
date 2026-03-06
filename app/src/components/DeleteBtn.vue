@@ -1,6 +1,6 @@
 <template>
   <confirm-btn
-    icon="delete"
+    icon="sym_r_delete"
     :label="t('delete')"
     round
     flat

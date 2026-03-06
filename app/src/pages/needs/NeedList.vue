@@ -9,7 +9,7 @@
     <template #after>
       <floating-btn
         :label="$t('createNeed')"
-        icon="add"
+        icon="sym_r_add"
         color="kred"
         :to="`/groups/${code}/needs/new`"
       />

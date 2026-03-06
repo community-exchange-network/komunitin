@@ -14,14 +14,14 @@
     <q-separator />
 
     <menu-item 
-    icon="home" 
+    icon="sym_r_home" 
     :title="$t('home')" 
     to="/home" 
     />
 
     <menu-item 
       id="menu-transactions" 
-      icon="account_balance_wallet"
+      icon="sym_r_account_balance_wallet"
       :title="$t('transactions')" 
       :to="`/groups/${groupCode}/members/${myMember.attributes.code}/transactions`"
     />
@@ -30,26 +30,26 @@
     
     <menu-item
       id="menu-needs"
-      icon="loyalty"
+      icon="sym_r_loyalty"
       :title="$t('needs')"
       :to="`/groups/${groupCode}/needs`"
     />
     <menu-item
       id="menu-offers"
-      icon="local_offer"
+      icon="sym_r_local_offer"
       :title="$t('offers')"
       :to="`/groups/${groupCode}/offers`"
     />
     <menu-item
       id="menu-members"
-      icon="people"
+      icon="sym_r_people"
       :title="$t('members')"
       :to="`/groups/${groupCode}/members`"
     />
     <menu-item
       v-if="!isLegacyAccounting"  
       id="menu-stats"
-      icon="insert_chart"
+      icon="sym_r_insert_chart"
       :title="$t('statistics')"
       :to="`/groups/${groupCode}/stats`"
     />
@@ -61,22 +61,22 @@
         {{ $t('administration') }}
       </div>
       <menu-item
-        icon="edit"
+        icon="sym_r_edit"
         :title="$t('editGroup')"
         :to="`/groups/${groupCode}/admin/edit`"
       />
       <menu-item
-        icon="settings"
+        icon="sym_r_settings"
         :title="$t('groupSettings')"
         :to="`/groups/${groupCode}/admin/settings`"
       />
       <menu-item
-        icon="manage_accounts"
+        icon="sym_r_manage_accounts"
         :title="$t('manageMembers')"
         :to="`/groups/${groupCode}/admin/accounts`"
       />
       <menu-item
-        icon="list_alt"
+        icon="sym_r_list_alt"
         :title="$t('transactions')"
         :to="`/groups/${groupCode}/admin/transactions`"
       />
@@ -85,7 +85,7 @@
     <q-separator />
 
     <menu-item
-      icon="group_work"
+      icon="sym_r_group_work"
       :title="$t('otherGroups')"
       to="/groups"
     />

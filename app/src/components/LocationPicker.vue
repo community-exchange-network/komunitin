@@ -24,7 +24,7 @@
           size="md"
           type="button"
           title="Set current location"
-          icon="my_location"
+          icon="sym_r_my_location"
           @click.stop="locate"
         />
       </div>
