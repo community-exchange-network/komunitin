@@ -46,7 +46,7 @@
         :rules="[() => !v$.concept.$invalid || $t('ErrorDescriptionRequired')]"
       >
         <template #append>
-          <q-icon name="notes" />
+          <q-icon name="sym_r_notes" />
         </template>
       </q-input>
       <q-input 

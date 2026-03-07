@@ -4,7 +4,7 @@
     class="text-onsurface-m banner"
   >
     <template #avatar>
-      <q-icon name="verified_user" />
+      <q-icon name="sym_r_verified_user" />
     </template>
     {{ bannerText }}
     <template #action>

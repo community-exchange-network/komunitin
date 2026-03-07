@@ -31,7 +31,7 @@
         :rules="[(v) => !!v || $t('offerTitleRequired')]"
       >
         <template #append>
-          <q-icon name="lightbulb" />
+          <q-icon name="sym_r_lightbulb" />
         </template>
       </q-input>
       <q-input 
@@ -46,7 +46,7 @@
         :rules="[(v) => (!!v && v.length >= 10) || $t('offerDescriptionRequired')]"
       >
         <template #append>
-          <q-icon name="notes" />
+          <q-icon name="sym_r_notes" />
         </template>
       </q-input>
       <q-input

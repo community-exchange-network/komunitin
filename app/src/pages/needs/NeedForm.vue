@@ -27,7 +27,7 @@
         :rules="[() => !v$.description.$invalid || $t('needDescriptionRequired')]"
       >
         <template #append>
-          <q-icon name="notes" />
+          <q-icon name="sym_r_notes" />
         </template>
       </q-input>
       <select-category

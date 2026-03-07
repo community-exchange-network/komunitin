@@ -23,7 +23,7 @@
       :rules="[(v) => !!v || $t('nameRequired')]"
     >
       <template #append>
-        <q-icon name="person" />
+        <q-icon name="sym_r_person" />
       </template>
     </q-input>
     <q-input 
@@ -37,7 +37,7 @@
       input-style="min-height: 100px;"
     >
       <template #append>
-        <q-icon name="notes" />
+        <q-icon name="sym_r_notes" />
       </template>
     </q-input>
     <q-input
@@ -51,7 +51,7 @@
       disable
     >
       <template #append>
-        <q-icon name="email" />
+        <q-icon name="sym_r_email" />
       </template>
     </q-input>
     <div 

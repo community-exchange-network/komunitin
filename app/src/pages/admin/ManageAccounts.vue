@@ -98,7 +98,7 @@
               style="min-width: 200px"
             >
               <template #append>
-                <q-icon name="search" />
+                <q-icon name="sym_r_search" />
               </template>
             </q-input>
             <div class="row q-gutter-x-md">

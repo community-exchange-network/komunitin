@@ -9,7 +9,7 @@
     @focus="scan"
   >
     <template #append>
-      <q-icon name="nfc" />
+      <q-icon name="sym_r_nfc" />
     </template>
     <q-dialog 
       v-model="scanning"

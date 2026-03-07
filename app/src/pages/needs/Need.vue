@@ -89,7 +89,7 @@
               :marker="need.member.attributes.location.coordinates"
             />
             <div class="text-onsurface-m">
-              <q-icon name="place" />
+              <q-icon name="sym_r_place" />
               {{ need.member.attributes.location.name }}
             </div>
           </template>

@@ -7,7 +7,7 @@
       debounce="300"
     >
       <template #append>
-        <q-icon name="search" />
+        <q-icon name="sym_r_search" />
       </template>
     </q-input>
     <q-icon-picker

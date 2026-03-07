@@ -4,7 +4,7 @@
     class="text-onsurface-m banner"
   >
     <template #avatar>
-      <q-icon name="notifications" />
+      <q-icon name="sym_r_notifications" />
     </template>
 
     {{ text }}

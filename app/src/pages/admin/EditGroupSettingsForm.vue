@@ -218,7 +218,7 @@
           <q-item-label caption>{{ $t('topupSettingsText') }}</q-item-label>
         </q-item-section>
         <q-item-section side>
-          <q-icon name="chevron_right" />
+          <q-icon name="sym_r_chevron_right" />
         </q-item-section>
       </q-item>
       
