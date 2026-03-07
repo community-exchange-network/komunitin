@@ -16,8 +16,8 @@
       />
       <floating-btn-menu 
         :actions="actions" 
-        color="white"
-        text-color="primary"
+        color="primary"
+        text-color="white"
       />
     </q-page>
   </q-page-container>
@@ -52,3 +52,20 @@ const actions = computed<FABAction[]>(() => [{
 }])
 
 </script>
+
+<style lang="scss" scoped>
+.my-down-shadow {
+  /* box-shadow: [X-offset] [Y-offset] [Blur] [Spread] [Color] */
+  /* 1. X-offset: 0 (keeps it centered) */
+  /* 2. Y-offset: 20px (pushes it down) */
+  /* 3. Blur: 25px (softens the edge) */
+  /* 4. Spread: -10px (hides it from the top/sides) */
+  /* 5. Color: rgba(226, 232, 240, 0.5) (Slate-200 at 50% opacity) */
+  
+  box-shadow: 0 20px 25px -10px rgba(226, 232, 240, 0.5) !important;
+  
+  /* Optional: Add a second layer for more 'XL' depth */
+  /* box-shadow: 0 20px 25px -10px rgba(226, 232, 240, 0.5), 
+                0 8px 10px -6px rgba(226, 232, 240, 0.3) !important; */
+}
+</style>

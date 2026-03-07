@@ -15,7 +15,7 @@
   </q-avatar>
 </template>
 <script setup lang="ts">
-import { colors } from "quasar";
+import { colors, getCssVar } from "quasar";
 import { computed } from "vue";
 
 const props = withDefaults(defineProps<{
@@ -32,6 +32,7 @@ const bgColor = computed(() => {
   if (props.imgSrc) {
     return "#FFF";
   }
+  return getCssVar('secondary');
   const seed = Math.abs(props.text.split("").reduce(
     (hash: number, b: string) => (((hash << 5) - hash) + b.charCodeAt(0)*997), 0)); 
   const rgb = colors.hsvToRgb({h: seed % 360, s: 80, v:80});
