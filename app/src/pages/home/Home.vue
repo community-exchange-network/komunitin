@@ -41,12 +41,12 @@ const code = computed(() => myMember?.value.group.attributes.code)
 const { t } = useI18n()
 const actions = computed<FABAction[]>(() => [{
   label: t('createNeed'),
-  icon: 'loyalty',
+  icon: 'sym_r_loyalty',
   color: 'kred',
   to: `/groups/${code.value}/needs/new`
 }, {
   label: t('createOffer'),
-  icon: 'local_offer',
+  icon: 'sym_r_local_offer',
   color: 'kblue',
   to: `/groups/${code.value}/offers/new`
 }])

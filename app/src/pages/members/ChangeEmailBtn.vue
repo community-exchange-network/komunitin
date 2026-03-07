@@ -78,7 +78,7 @@ const changeEmail = async () => {
     Notify.create({
       message: t('emailChanged', {email: email.value}),
       color: 'positive',
-      icon: 'check'
+      icon: 'sym_r_check'
     })
   } catch (error) {
     if (error instanceof KError && error.code == KErrorCode.InvalidPassword) {
