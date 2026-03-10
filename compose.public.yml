@@ -13,19 +13,10 @@ services:
     networks:
       - proxy
   
+  # Legacy Go notifications service - disabled. Events are now handled by notifications-ts.
   notifications:
-    ports: !reset []
-    expose:
-      - "2028"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.notifications-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=2028"
-      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.rule=Host(`notifications.${KOMUNITIN_DOMAIN}`) && Path(`/events`)"
-      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
-      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.tls=true"
-      - "traefik.http.routers.notifications-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
-    networks:
-      - proxy
+    deploy:
+      replicas: 0
   
   notifications-ts:
     ports: !reset []
