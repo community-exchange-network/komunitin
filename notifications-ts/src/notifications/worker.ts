@@ -1,6 +1,5 @@
-import { setTimeout as delay } from 'timers/promises';
 import logger from '../utils/logger';
-import { createEventsStream } from './event-stream';
+import { startEventWorker } from '../events/event-queue';
 import { EVENT_NAME, EventName, GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent, UserEvent } from './events';
 import { handleGroupEvent } from './handlers/group';
 import { handleMemberEvent } from './handlers/member';
@@ -17,7 +16,7 @@ type WorkerHandle = {
 };
 
 /** 
- * Run the notifications worker that listens to the event stream,
+ * Run the notifications worker that listens to the event queue,
  * then it calls to the appropriate handlers based on event type
  * (transfer, post, member, group). The handlers will in turn use
  * the event bus to notify the different channels (in-app, push, email).
@@ -29,41 +28,23 @@ export const runNotificationsWorker = async (): Promise<WorkerHandle> => {
   const stopEmailChannel = initEmailChannel();
   const stopSyntheticEvents = initSyntheticEvents();
 
-  const stream = await createEventsStream();
-  let stopped = false;
-
-  const loop = (async () => {
-    while (!stopped) {
-      try {
-        const event = await stream.getNext();
-        await dispatchEvent(event).catch((err) => {
-          logger.error({ err, event }, 'Error handling notification event');
-        });
-        await stream.ack(event.id);
-      } catch (err) {
-        if (stopped) {
-          break;
-        }
-        logger.error({ err }, 'Error reading notifications stream, retrying');
-        await delay(1000);
-      }
+  const stopEventWorker = startEventWorker(async (event) => {
+    try {
+      await dispatchEvent(event);
+    } catch (err) {
+      logger.error({ err, event }, 'Error handling notification event');
     }
-  })();
-
-  loop.catch((err) => logger.error({ err }, 'Notifications worker crashed'));
+  });
 
   return {
     stop: async () => {
-      stopped = true;
       // Close channels (remove listeners)
       stopAppChannel();
       stopPushChannel();
       stopEmailChannel();
       stopSyntheticEvents();
-      // Close stream
-      await stream.close();
-      // Wait for loop to end, swallowing errors.
-      await loop.catch(() => undefined);
+      // Close event worker
+      await stopEventWorker();
     },
   };
 };

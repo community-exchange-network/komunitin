@@ -8,7 +8,7 @@ The system follows an event-driven architecture designed to decouple event detec
 
 ### Workflow
 
-1.  **Event Source**: The `worker` listens to an event stream via `event-stream.ts`.
+1.  **Event Source**: External services POST events to the `/events` HTTP endpoint (`server/events.controller.ts`), which are queued via BullMQ (`event-queue.ts`). The `worker` processes events from this queue.
 2.  **Dispatch**: Events are routed to specific handlers (`handlers/*.ts`) based on their type (e.g., `transfer`, `post`, `member`).
 3.  **Enrichment**: Handlers fetch necessary context from the API (User, Group, Member details) and create `EnrichedEvent` objects.
 4.  **Distribution**: Enriched events are emitted to the `EventBus`.
