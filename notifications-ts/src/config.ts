@@ -11,6 +11,8 @@ const envSchema = z.object({
   AUTH_JWKS_URL: z.string().url().default('https://komunitin.org/.well-known/jwks.json'),
   NOTIFICATIONS_CLIENT_ID: z.string().min(1),
   NOTIFICATIONS_CLIENT_SECRET: z.string().min(1),
+  NOTIFICATIONS_EVENTS_USERNAME: z.string().min(1).default('komunitin'),
+  NOTIFICATIONS_EVENTS_PASSWORD: z.string().min(1),
   REDIS_URL: z.string().url().default('redis://db-notifications:6379'),
   // If left empty, no email will be sent
   SMTP_HOST: z.string().optional(),
