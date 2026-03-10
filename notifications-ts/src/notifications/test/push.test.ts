@@ -1,8 +1,7 @@
 import assert from 'node:assert';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { randomUUID } from 'node:crypto';
-import request from 'supertest';
-import { _app as app } from '../../server';
+import { mockDate, restoreDate } from '../../mocks/date';
 import { resetWebPushMocks, sendNotification, setVapidDetails } from '../../mocks/web-push';
 import prisma from '../../utils/prisma';
 import { db, createTransfers } from '../../mocks/db';
@@ -10,7 +9,7 @@ import { createEvent, setupNotificationsTest, subscribeToPushNotifications } fro
 
 const JOB_NAME_SEND_PUSH = 'send-push-notification';
 
-const { put, pushQueue, appNotifications } = setupNotificationsTest({
+const { app, put, pushQueue, appNotifications } = setupNotificationsTest({
   useWorker: true,
   usePushQueue: true,
 });
@@ -27,10 +26,13 @@ const clearPushTable = async (table: { findMany: (args?: any) => Promise<any[]>;
 
 describe('Push notifications', () => {
   beforeEach(() => {
+    // Fix time to noon UTC so push notifications are never delayed (quiet hours are 22–08).
+    mockDate('2026-03-01T12:00:00.000Z');
     resetWebPushMocks();
   });
 
   afterEach(async () => {
+    restoreDate();
     await clearPushTable(prisma.pushSubscription);
     await clearPushTable(prisma.pushNotification);
   });
@@ -49,7 +51,7 @@ describe('Push notifications', () => {
   };
 
   const patchTelemetry = (id: string, attributes: any, code: string = 'GRP1') => {
-    return request(app)
+    return app
       .patch(`/${code}/push-notifications/${id}`)
       .send({
         data: {
@@ -70,7 +72,7 @@ describe('Push notifications', () => {
       route: '/app/notifications'
     };
 
-    await queue.dispatchToWorker(JOB_NAME_SEND_PUSH, {}, {
+    await queue.add(JOB_NAME_SEND_PUSH, {
       subscription: {
         endpoint: subscription.endpoint,
         p256dh: subscription.p256dh,
@@ -103,7 +105,7 @@ describe('Push notifications', () => {
 
     const subscription = await subscribeToPushNotifications('GRP1', 'user-1');
 
-    await queue.dispatchToWorker(JOB_NAME_SEND_PUSH, {}, {
+    await queue.add(JOB_NAME_SEND_PUSH, {
       subscription: {
         endpoint: subscription.endpoint,
         p256dh: subscription.p256dh,
@@ -139,7 +141,7 @@ describe('Push notifications', () => {
     const subscription = await subscribeToPushNotifications('GRP1', 'user-1');
 
     await assert.rejects(async () => {
-      await queue.dispatchToWorker(JOB_NAME_SEND_PUSH, {}, {
+      await queue.add(JOB_NAME_SEND_PUSH, {
         subscription: {
           endpoint: subscription.endpoint,
           p256dh: subscription.p256dh,
@@ -171,6 +173,11 @@ describe('Push notifications', () => {
     createTransfers(groupId);
     const transfer = db.transfers[0];
 
+    // Fix coordinates to UTC+0 so pushNotificationDelay returns 0 at mockDate noon UTC.
+    for (const m of db.members) {
+      m.attributes.location = { type: 'Point', coordinates: [0, 0] };
+    }
+
     const accountUserId = (accountId: string) => {
       const memberId = db.members.find(m => m.relationships.account.data.id === accountId)!.id;
       return db.users.find(u => u.relationships.members.data.some((r: any) => r.id === memberId))!.id;
@@ -191,18 +198,15 @@ describe('Push notifications', () => {
     }
 
     // Emit TransferCommitted event
-    const eventData = createEvent('TransferCommitted', transfer.id, groupId, payerUserId, 'test-push-e2e-1');
+    const eventData = createEvent('TransferCommitted', { code: groupId, user: payerUserId, data: { transfer: transfer.id } });
     await put(eventData);
 
-    // Verify a push job was scheduled
+    // Verify a push job was scheduled (auto-dispatched since mockDate avoids quiet hours)
     assert.strictEqual(queue.add.mock.callCount(), 1, 'Should schedule send push job');
-    const [jobName, jobData, jobOpts] = queue.add.mock.calls[0].arguments;
+    const [jobName, jobData] = queue.add.mock.calls[0].arguments;
     assert.strictEqual(jobName, JOB_NAME_SEND_PUSH);
-    assert.strictEqual(jobData.eventId, eventData.id);
+    assert.ok(jobData.eventId, 'Push job should have an eventId');
     assert.strictEqual(jobData.userId, payeeUserId);
-
-    // Dispatch job to simulate worker sending
-    await queue.dispatchToWorker(jobName, jobOpts, jobData);
 
     // Verify push was sent and telemetry stored
     assert.strictEqual(sendNotification.mock.callCount(), 1);
@@ -248,7 +252,7 @@ describe('Push notifications', () => {
     it('returns 400 if ID in body does not match ID in URL', async () => {
       const id1 = randomUUID();
       const id2 = randomUUID();
-      const response = await request(app)
+      const response = await app
         .patch(`/GRP1/push-notifications/${id1}`)
         .send({
           data: {

@@ -32,14 +32,7 @@ describe('MemberRequested emails', () => {
     });
     const userId = getUserIdForMember(member.id);
 
-    const eventData = createEvent(
-      'MemberRequested',
-      member.id,
-      groupCode,
-      userId,
-      'test-member-requested-1',
-      'member'
-    );
+    const eventData = createEvent('MemberRequested', { code: groupCode, user: userId, data: { member: member.id } });
 
     await put(eventData);
 
@@ -97,14 +90,7 @@ describe('MemberRequested emails', () => {
     });
     const userId = getUserIdForMember(member.id);
 
-    const eventData = createEvent(
-      'MemberRequested',
-      member.id,
-      groupCode,
-      userId,
-      'test-member-requested-2',
-      'member'
-    );
+    const eventData = createEvent('MemberRequested', { code: groupCode, user: userId, data: { member: member.id } });
 
     await put(eventData);
 
@@ -143,14 +129,7 @@ describe('MemberRequested emails', () => {
     assert.ok(memberUser, 'Member user should exist');
     memberUser.attributes.email = 'attacker+<svg/onload=alert(3)>@example.com';
 
-    const eventData = createEvent(
-      'MemberRequested',
-      member.id,
-      groupCode,
-      userId,
-      'test-member-requested-malicious',
-      'member'
-    );
+    const eventData = createEvent('MemberRequested', { code: groupCode, user: userId, data: { member: member.id } });
 
     await put(eventData);
 

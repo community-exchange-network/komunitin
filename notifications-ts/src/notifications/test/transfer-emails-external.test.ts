@@ -42,15 +42,8 @@ describe("External transfer emails", () => {
     transferId: string,
     localGroupCode: string,
     localUserId: string,
-    eventId: string
   ) => {
-    const eventData = createEvent(
-      "TransferCommitted",
-      transferId,
-      localGroupCode,
-      localUserId,
-      eventId
-    );
+    const eventData = createEvent("TransferCommitted", { code: localGroupCode, user: localUserId, data: { transfer: transferId } });
     await put(eventData);
   };
 
@@ -72,7 +65,6 @@ describe("External transfer emails", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-ext-all-accessible"
     );
 
     // Only 1 email: to the local payer. The external payee has users:[] so
@@ -146,7 +138,6 @@ describe("External transfer emails", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-ext-no-member"
     );
 
     assert.strictEqual(
@@ -213,7 +204,6 @@ describe("External transfer emails", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-ext-account-currency-only"
     );
 
     assert.strictEqual(
@@ -282,7 +272,6 @@ describe("External transfer emails", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-ext-cc-nothing-accessible"
     );
 
     assert.strictEqual(

@@ -24,14 +24,7 @@ describe('GroupRequested emails', () => {
     const adminUser = db.users.find(u => u.id === `admin-${groupCode}`);
     assert.ok(adminUser, 'Admin user should exist');
 
-    const eventData = createEvent(
-      'GroupRequested',
-      groupCode,
-      groupCode,
-      adminUser.id,
-      'test-group-requested-1',
-      'group'
-    );
+    const eventData = createEvent('GroupRequested', { code: groupCode, user: adminUser.id, data: { group: groupCode } });
 
     await put(eventData);
 
