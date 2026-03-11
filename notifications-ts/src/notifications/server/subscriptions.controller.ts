@@ -74,18 +74,15 @@ export const upsertSubscription = async (req: Request, res: Response, next: Next
     res.status(200).json(response)
   } catch (err) {
     if (err instanceof z.ZodError) {
-      next(
-        badRequest('Input validation failed', {
-          cause: err,
-          details: {
-            errors: err.errors.map(e => ({
-              source: e.path,
-              message: e.message,
-            })),
-          }
-        })
-      )
-      return
+      err = badRequest(err.message, {
+        cause: err,
+        details: {
+          errors: err.errors.map(e => ({
+            source: e.path,
+            message: e.message,
+          })),
+        }
+      })
     }
     next(err)
   }
