@@ -1,14 +1,9 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { mockEmail } from "../../mocks/email";
 import { createMember, db, getUserIdForMember } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
-// mockEmail must be imported before setupNotificationsTest so that
-// nodemailer.createTransport is patched before the worker (and Mailer) loads.
-const email = mockEmail();
-
-const { put } = setupNotificationsTest({ useWorker: true });
+const { put, email } = setupNotificationsTest({ useWorker: true });
 
 const createUserAndMember = (groupCode: string) => {
   const member = createMember({ groupCode });

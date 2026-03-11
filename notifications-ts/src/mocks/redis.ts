@@ -39,6 +39,10 @@ export const mockRedis = () => {
   return {
     reset: () => {
       kvStore.clear();
+      connectMock.mock.resetCalls();
+      disconnectMock.mock.resetCalls();
+      getMock.mock.resetCalls();
+      setMock.mock.resetCalls();
     },
     mocks: {
       connectMock,

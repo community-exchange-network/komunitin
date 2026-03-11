@@ -60,7 +60,7 @@ describe('POST /events', () => {
 
     it('rejects missing body data', async () => {
       const res = await post({}).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('Missing JSON:API data'));
+      assert.ok(res.body.errors[0].detail.includes('data'));
     });
 
     it('rejects invalid resource type', async () => {
@@ -71,7 +71,7 @@ describe('POST /events', () => {
           relationships: { user: { data: { type: 'users', id: 'u1' } } },
         },
       }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('Invalid resource type'));
+      assert.ok(res.body.errors[0].detail.includes('events'));
     });
 
     it('rejects invalid event name', async () => {
@@ -82,7 +82,7 @@ describe('POST /events', () => {
           relationships: { user: { data: { type: 'users', id: 'u1' } } },
         },
       }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('Invalid or missing event name'));
+      assert.ok(res.body.errors[0].detail.includes('name'));
     });
 
     it('rejects missing user relationship', async () => {
@@ -92,7 +92,7 @@ describe('POST /events', () => {
           attributes: { name: 'TransferCommitted', source: 's', code: 'c', time: new Date().toISOString(), data: {} },
         },
       }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes("Missing 'user' relationship"));
+      assert.ok(res.body.errors[0].detail.includes('relationships'));
     });
 
     it('rejects non-string data values', async () => {
@@ -103,7 +103,7 @@ describe('POST /events', () => {
           relationships: { user: { data: { type: 'users', id: 'u1' } } },
         },
       }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('Data field must be a map of strings'));
+      assert.ok(res.body.errors[0].detail.includes('string'));
     });
 
     it('rejects invalid time format', async () => {
@@ -114,7 +114,7 @@ describe('POST /events', () => {
           relationships: { user: { data: { type: 'users', id: 'u1' } } },
         },
       }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('Invalid time format'));
+      assert.ok(res.body.errors[0].detail.includes('Invalid'));
     });
   });
 

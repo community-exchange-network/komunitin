@@ -1,19 +1,14 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 import { mockDate, restoreDate } from '../../mocks/date'
-import { mockEmail } from '../../mocks/email'
 import { resetWebPushMocks, sendNotification } from '../../mocks/web-push'
 import { createMember, getUserIdForMember } from '../../mocks/db'
 import prisma from '../../utils/prisma'
 import { createEventBody, setupNotificationsTest, subscribeToPushNotifications } from './utils'
 
-// mockEmail must be imported before setupNotificationsTest so that
-// nodemailer.createTransport is patched at construction time.
-const email = mockEmail()
-
 const credentials = Buffer.from('testuser:testpass').toString('base64')
 
-const { app, appNotifications, pushQueue } = setupNotificationsTest({
+const { app, appNotifications, pushQueue, email } = setupNotificationsTest({
   useWorker: true,
   usePushQueue: true,
 })

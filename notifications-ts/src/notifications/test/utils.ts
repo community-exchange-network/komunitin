@@ -8,6 +8,7 @@ import handlers, { externalHandlers } from '../../mocks/handlers'
 import { mockDb } from '../../mocks/prisma'
 import { createQueue } from '../../mocks/queue'
 import { mockRedis } from '../../mocks/redis'
+import { mockEmail } from '../../mocks/email'
 import prisma from '../../utils/prisma'
 import type { EventName, NotificationEvent } from '../events'
 import { randomUUID } from 'node:crypto'
@@ -115,6 +116,7 @@ type SetupNotificationsTestOptions = {
 type SetupNotificationsTestReturnBase = {
   /** Supertest agent for the Express app. Available after before() hook runs. */
   app: supertest.Agent;
+  email: ReturnType<typeof mockEmail>;
   appNotifications: any[];
   /** Add an event to the queue and wait for it to be processed (when useWorker is true). */
   put: (event: NotificationEvent) => Promise<any>;
@@ -144,9 +146,7 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
   } = options;
 
   const server = useServer ? setupServer(...handlers, ...externalHandlers) : null;
-  if (useMockRedis) {
-    mockRedis();
-  }
+  const redisMock = useMockRedis ? mockRedis() : null;
 
   const eventsQueue = createQueue('events');
 
@@ -154,6 +154,7 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
   const syntheticQueue = useSyntheticQueue ? createQueue('synthetic-events') : null;
 
   const { appNotification: appNotifications } = mockDb();
+  const email = mockEmail();
 
   // addEvent and app are lazy-loaded in before() to ensure mocks are set up first.
   let addEventFn: ((event: NotificationEvent) => Promise<any>) | null = null;
@@ -171,6 +172,7 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
 
   const result = {
     app: appProxy,
+    email,
     put: async (event: NotificationEvent) => {
       if (!addEventFn) {
         throw new Error('put() called before before() hook ran');
@@ -218,6 +220,12 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
   beforeEach(async () => {
     if (shouldResetDb) {
       resetDb()
+    }
+
+    email.reset()
+
+    if (redisMock) {
+      redisMock.reset()
     }
 
     appNotifications.length = 0
