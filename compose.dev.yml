@@ -28,11 +28,7 @@ services:
       MOCK_ACCOUNTING: ${KOMUNITIN_APP_MOCK}
       MOCK_SOCIAL: ${KOMUNITIN_APP_MOCK}
       MOCK_NOTIFICATIONS: ${KOMUNITIN_APP_MOCK}
-  # Legacy Go notifications service - disabled. Events are now handled by notifications-ts.
-  notifications:
-    deploy:
-      replicas: 0
-  
+
   accounting:
     command: pnpm dev
     ports:

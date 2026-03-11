@@ -13,11 +13,6 @@ services:
     networks:
       - proxy
   
-  # Legacy Go notifications service - disabled. Events are now handled by notifications-ts.
-  notifications:
-    deploy:
-      replicas: 0
-  
   notifications-ts:
     ports: !reset []
     expose:
