@@ -18,15 +18,8 @@ describe("External transfer in-app notifications", () => {
     transferId: string,
     localGroupCode: string,
     localUserId: string,
-    eventId: string,
   ) => {
-    const eventData = createEvent(
-      "TransferCommitted",
-      transferId,
-      localGroupCode,
-      localUserId,
-      eventId,
-    );
+    const eventData = createEvent("TransferCommitted", { code: localGroupCode, user: localUserId, data: { transfer: transferId } });
     await put(eventData);
   };
 
@@ -45,7 +38,6 @@ describe("External transfer in-app notifications", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-app-ext-all-accessible",
     );
 
     assert.strictEqual(appNotifications.length, 1);
@@ -74,7 +66,6 @@ describe("External transfer in-app notifications", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-app-ext-no-member",
     );
 
     assert.strictEqual(appNotifications.length, 1);
@@ -103,7 +94,6 @@ describe("External transfer in-app notifications", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-app-ext-account-currency-only",
     );
 
     assert.strictEqual(appNotifications.length, 1);
@@ -134,7 +124,6 @@ describe("External transfer in-app notifications", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-app-ext-cc-nothing-accessible",
     );
 
     assert.strictEqual(appNotifications.length, 1);
@@ -143,11 +132,11 @@ describe("External transfer in-app notifications", () => {
     assert.strictEqual(notification.userId, localUser.id);
     assert.ok(
       notification.body.includes(ccPayeeAddress),
-      "Body should include creditCommons payee address",
+      "Body should include creditCommons payee address"
     );
     assert.ok(
       !notification.body.includes("(Group "),
-      "Body should not include a group suffix when group is inaccessible",
+      "Body should not include a group suffix when group is inaccessible"
     );
   });
 });

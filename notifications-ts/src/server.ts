@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import qs from 'qs'
 import { config } from './config'
 import notificationsRouter from './notifications/server/routes'
+import eventsRouter from './events/server/routes'
 import { errorHandler } from './server/errors'
 import { httpLogger } from './server/http-logger'
 import logger from './utils/logger'
@@ -31,6 +32,8 @@ app.use(express.json({
 app.use(httpLogger)
 
 app.use(notificationsRouter)
+
+app.use(eventsRouter)
 
 app.get('/health', (req, res) => {
   res.send('OK')

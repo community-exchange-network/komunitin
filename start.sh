@@ -83,7 +83,7 @@ if [ "$ices" = true ]; then
   docker compose exec integralces drush vset ces_komunitin_app_url $KOMUNITIN_APP_URL
   docker compose exec integralces drush vset ces_komunitin_accounting_url $KOMUNITIN_ACCOUNTING_URL
   docker compose exec integralces drush vset ces_komunitin_accounting_url_internal http://accounting:2025
-  docker compose exec integralces drush vset ces_komunitin_notifications_url_internal http://notifications:2028
+  docker compose exec integralces drush vset ces_komunitin_notifications_url_internal http://notifications-ts:2023
 else
   echo "Updating IntegralCES"
   docker compose exec integralces drush updatedb -y

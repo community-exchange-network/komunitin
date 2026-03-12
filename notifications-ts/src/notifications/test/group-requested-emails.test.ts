@@ -1,14 +1,9 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { mockEmail } from "../../mocks/email";
 import { createGroup, db } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
-// mockEmail must be imported before setupNotificationsTest so that
-// nodemailer.createTransport is patched before the worker (and Mailer) loads.
-const email = mockEmail();
-
-const { put } = setupNotificationsTest({ useWorker: true });
+const { put, email } = setupNotificationsTest({ useWorker: true });
 
 describe('GroupRequested emails', () => {
   beforeEach(() => {
@@ -24,14 +19,7 @@ describe('GroupRequested emails', () => {
     const adminUser = db.users.find(u => u.id === `admin-${groupCode}`);
     assert.ok(adminUser, 'Admin user should exist');
 
-    const eventData = createEvent(
-      'GroupRequested',
-      groupCode,
-      groupCode,
-      adminUser.id,
-      'test-group-requested-1',
-      'group'
-    );
+    const eventData = createEvent('GroupRequested', { code: groupCode, user: adminUser.id, data: { group: groupCode } });
 
     await put(eventData);
 

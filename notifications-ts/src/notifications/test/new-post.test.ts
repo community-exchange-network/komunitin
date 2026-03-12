@@ -34,7 +34,7 @@ describe('New post notifications (URGENT)', () => {
       }
     })
 
-    const eventData = createEvent('OfferPublished', offer.id, groupCode, authorUserId, 'test-offer-published-1', 'offer')
+    const eventData = createEvent('OfferPublished', { code: groupCode, user: authorUserId, data: { offer: offer.id } })
 
     await put(eventData)
 
@@ -75,7 +75,7 @@ describe('New post notifications (URGENT)', () => {
       }
     })
 
-    const eventData = createEvent('OfferPublished', offer.id, groupCode, authorUserId, 'test-offer-published-2', 'offer')
+    const eventData = createEvent('OfferPublished', { code: groupCode, user: authorUserId, data: { offer: offer.id } })
 
     await put(eventData)
     await new Promise(resolve => setTimeout(resolve, 500))
@@ -107,7 +107,7 @@ describe('New post notifications (URGENT)', () => {
       }
     })
 
-    const eventData = createEvent('NeedPublished', need.id, groupCode, authorUserId, 'test-need-published-1', 'need')
+    const eventData = createEvent('NeedPublished', { code: groupCode, user: authorUserId, data: { need: need.id } })
 
     await put(eventData)
     await new Promise(resolve => setTimeout(resolve, 1000))

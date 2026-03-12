@@ -31,7 +31,7 @@ describe('App notifications', () => {
   it('should process a TransferCommitted event and generate notifications', async () => {
     const { groupId, transfer, payerUserId, payeeUserId } = setupTestTransfer()
 
-    const eventData = createEvent('TransferCommitted', transfer.id, groupId, payerUserId, 'test-event-001')
+    const eventData = createEvent('TransferCommitted', { code: groupId, user: payerUserId, data: { transfer: transfer.id } })
 
     // Put event and wait for processing
     await put(eventData)
@@ -58,7 +58,7 @@ describe('App notifications', () => {
     // Ensure transfer is pending
     transfer.attributes.state = 'pending'
 
-    const eventData = createEvent('TransferPending', transfer.id, groupId, payeeUserId, 'test-event-002')
+    const eventData = createEvent('TransferPending', { code: groupId, user: payeeUserId, data: { transfer: transfer.id } })
 
     // Put event and wait for processing
     await put(eventData)
@@ -79,7 +79,7 @@ describe('App notifications', () => {
   it('should process a TransferRejected event and generate notification', async () => {
     const { groupId, transfer, payerUserId, payeeUserId } = setupTestTransfer()
 
-    const eventData = createEvent('TransferRejected', transfer.id, groupId, payerUserId, 'test-event-003')
+    const eventData = createEvent('TransferRejected', { code: groupId, user: payerUserId, data: { transfer: transfer.id } })
 
     // Put event and wait for processing
     await put(eventData)
@@ -105,7 +105,7 @@ describe('App notifications', () => {
     // Reset queue mock calls
     queue.resetMocks()
 
-    const eventData = createEvent('TransferPending', transfer.id, groupId, payeeUserId, 'test-event-pending-1')
+    const eventData = createEvent('TransferPending', { code: groupId, user: payeeUserId, data: { transfer: transfer.id } })
 
     // 1. Emit Pending Event
     await put(eventData)
@@ -155,7 +155,7 @@ describe('App notifications', () => {
     // Reset queue mock calls
     queue.resetMocks()
 
-    const eventPending = createEvent('TransferPending', transfer.id, groupId, payeeUserId, 'test-event-pending-2')
+    const eventPending = createEvent('TransferPending', { code: groupId, user: payeeUserId, data: { transfer: transfer.id } })
 
     // 1. Emit Pending Event -> Should schedule job
     await put(eventPending)
@@ -184,7 +184,7 @@ describe('App notifications', () => {
     // Update transfer state to committed conceptually (though the handler for cancelled doesn't check state, 
     // it just cancels the job)
 
-    const eventCommitted = createEvent('TransferCommitted', transfer.id, groupId, payerUserId, 'test-event-committed-1')
+    const eventCommitted = createEvent('TransferCommitted', { code: groupId, user: payerUserId, data: { transfer: transfer.id } })
     await put(eventCommitted)
 
     // 4. Verify getJob called with correct ID

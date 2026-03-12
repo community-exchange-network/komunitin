@@ -1,14 +1,12 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
-import supertest from 'supertest'
 import { signJwt } from '../../mocks/auth'
-import { _app } from '../../server'
 import { createNotification, setupNotificationsTest } from './utils'
 
 const uid = (c: string) => [8,4,4,4,12].map(len => c.repeat(len)).join('-')
 
 describe('Notifications API', () => {
-  const { appNotifications } = setupNotificationsTest()
+  const { app, appNotifications } = setupNotificationsTest()
 
   describe('GET /:code/notifications', () => {
     it('Returns notifications for authenticated user', async () => {
@@ -19,7 +17,7 @@ describe('Notifications API', () => {
       await createNotification(groupCode, userId, 'evt-1', 'Test notification 1', 'Body 1')
       await createNotification(groupCode, userId, 'evt-2', 'Test notification 2', 'Body 2', new Date())
 
-      const res = await supertest(_app)
+      const res = await app
         .get(`/${groupCode}/notifications`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200)
@@ -39,7 +37,7 @@ describe('Notifications API', () => {
       const userId = uid('2')
       const token = await signJwt(userId, ['komunitin_social'])
 
-      const res = await supertest(_app)
+      const res = await app
         .get(`/${groupCode}/notifications`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200)
@@ -55,7 +53,7 @@ describe('Notifications API', () => {
       await createNotification('GRP1', userId, 'evt-grp1', 'GRP1 notification', 'Body GRP1')
       await createNotification('GRP2', userId, 'evt-grp2', 'GRP2 notification', 'Body GRP2')
 
-      const res = await supertest(_app)
+      const res = await app
         .get(`/GRP1/notifications`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200)
@@ -65,7 +63,7 @@ describe('Notifications API', () => {
     })
 
     it('Rejects unauthorized requests', async () => {
-      await supertest(_app)
+      await app
         .get(`/GRP1/notifications`)
         .expect(400)
     })
@@ -81,7 +79,7 @@ describe('Notifications API', () => {
       await createNotification(groupCode, userId, 'evt-unread-2', 'Unread 2', 'Body 2')
       await createNotification(groupCode, userId, 'evt-read-1', 'Already read', 'Body read', new Date('2024-01-01'))
 
-      const res = await supertest(_app)
+      const res = await app
         .post(`/${groupCode}/notifications/read`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200)
@@ -104,7 +102,7 @@ describe('Notifications API', () => {
       await createNotification('GRP1', userId, 'evt-grp1-1', 'GRP1 notification', 'Body GRP1')
       await createNotification('GRP2', userId, 'evt-grp2-1', 'GRP2 notification', 'Body GRP2')
 
-      const res = await supertest(_app)
+      const res = await app
         .post(`/GRP1/notifications/read`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200)
@@ -128,7 +126,7 @@ describe('Notifications API', () => {
       await createNotification('GRP1', userA, 'evt-user-a', 'User A notification', 'Body A')
       await createNotification('GRP1', userB, 'evt-user-b', 'User B notification', 'Body B')
 
-      const res = await supertest(_app)
+      const res = await app
         .post(`/GRP1/notifications/read`)
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200)
@@ -151,7 +149,7 @@ describe('Notifications API', () => {
 
       await createNotification(groupCode, userId, 'evt-already-read', 'Already read', 'Body', new Date())
 
-      const res = await supertest(_app)
+      const res = await app
         .post(`/${groupCode}/notifications/read`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200)
@@ -164,7 +162,7 @@ describe('Notifications API', () => {
       const userId = uid('9')
       const token = await signJwt(userId, ['komunitin_social'])
 
-      const res = await supertest(_app)
+      const res = await app
         .post(`/${groupCode}/notifications/read`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200)
@@ -173,7 +171,7 @@ describe('Notifications API', () => {
     })
 
     it('Rejects unauthorized requests', async () => {
-      await supertest(_app)
+      await app
         .post(`/GRP1/notifications/read`)
         .expect(400)
     })
