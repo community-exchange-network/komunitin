@@ -9,20 +9,12 @@ import { createEvent, setupNotificationsTest, subscribeToPushNotifications } fro
 
 const JOB_NAME_SEND_PUSH = 'send-push-notification';
 
-const { app, put, pushQueue, appNotifications } = setupNotificationsTest({
+const { app, put, pushQueue, appNotifications, pushNotifications, pushSubscriptions } = setupNotificationsTest({
   useWorker: true,
   usePushQueue: true,
 });
 
 const queue = pushQueue!;
-
-const listPushNotifications = () => prisma.pushNotification.findMany();
-const listPushSubscriptions = () => prisma.pushSubscription.findMany();
-
-const clearPushTable = async (table: { findMany: (args?: any) => Promise<any[]>; delete: (args: any) => Promise<any> }) => {
-  const items = await table.findMany();
-  await Promise.all(items.map((item: any) => table.delete({ where: { id: item.id } })));
-};
 
 describe('Push notifications', () => {
   beforeEach(() => {
@@ -31,10 +23,8 @@ describe('Push notifications', () => {
     resetWebPushMocks();
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     restoreDate();
-    await clearPushTable(prisma.pushSubscription);
-    await clearPushTable(prisma.pushNotification);
   });
 
   const createPushNotification = (overrides: any = {}) => {
@@ -88,7 +78,6 @@ describe('Push notifications', () => {
     assert.equal(setVapidDetails.mock.callCount(), 1);
     assert.equal(sendNotification.mock.callCount(), 1);
 
-    const pushNotifications = await listPushNotifications();
     assert.equal(pushNotifications.length, 1);
     assert.equal(pushNotifications[0].tenantId, 'GRP1');
     assert.equal(pushNotifications[0].userId, 'user-1');
@@ -123,10 +112,7 @@ describe('Push notifications', () => {
       eventId: 'evt-2',
     });
 
-    const subscriptions = await listPushSubscriptions();
-    const pushNotifications = await listPushNotifications();
-
-    assert.equal(subscriptions.length, 0);
+    assert.equal(pushSubscriptions.length, 0);
     assert.equal(pushNotifications.length, 1);
     assert.equal(pushNotifications[0].deliveredAt, undefined);
   });
@@ -160,10 +146,7 @@ describe('Push notifications', () => {
       });
     });
 
-    const subscriptions = await listPushSubscriptions();
-    const pushNotifications = await listPushNotifications();
-
-    assert.equal(subscriptions.length, 1);
+    assert.equal(pushSubscriptions.length, 1);
     assert.equal(pushNotifications.length, 1);
   });
 
@@ -211,7 +194,6 @@ describe('Push notifications', () => {
     // Verify push was sent and telemetry stored
     assert.strictEqual(sendNotification.mock.callCount(), 1);
 
-    const pushNotifications = await listPushNotifications();
     assert.strictEqual(pushNotifications.length, 1);
     assert.strictEqual(pushNotifications[0].tenantId, groupId);
     assert.strictEqual(pushNotifications[0].userId, payeeUserId);
@@ -226,7 +208,6 @@ describe('Push notifications', () => {
       assert.strictEqual(response.status, 200);
       assert.ok(response.body.data.attributes.delivered);
 
-      const pushNotifications = await listPushNotifications();
       const stored = pushNotifications.find((n: any) => n.id === pn.id);
       assert.ok(stored?.deliveredAt instanceof Date);
     });
@@ -243,7 +224,6 @@ describe('Push notifications', () => {
       assert.ok(response.body.data.attributes.clicked);
       assert.strictEqual(response.body.data.attributes.clickaction, 'open_app');
 
-      const pushNotifications = await listPushNotifications();
       const stored = pushNotifications.find((n: any) => n.id === pn.id);
       assert.ok(stored?.clickedAt instanceof Date);
       assert.strictEqual(stored?.clickedAction, 'open_app');

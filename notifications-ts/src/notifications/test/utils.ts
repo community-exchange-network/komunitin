@@ -118,6 +118,8 @@ type SetupNotificationsTestReturnBase = {
   app: supertest.Agent;
   email: ReturnType<typeof mockEmail>;
   appNotifications: any[];
+  pushSubscriptions: any[];
+  pushNotifications: any[];
   /** Add an event to the queue and wait for it to be processed (when useWorker is true). */
   put: (event: NotificationEvent) => Promise<any>;
   eventsQueue: ReturnType<typeof createQueue>;
@@ -153,7 +155,11 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
   const pushQueue = usePushQueue ? createQueue('push-notifications') : null;
   const syntheticQueue = useSyntheticQueue ? createQueue('synthetic-events') : null;
 
-  const { appNotification: appNotifications } = mockDb();
+  const {
+    appNotification: appNotifications,
+    pushSubscription: pushSubscriptions,
+    pushNotification: pushNotifications,
+  } = mockDb();
   const email = mockEmail();
 
   // addEvent and app are lazy-loaded in before() to ensure mocks are set up first.
@@ -181,6 +187,8 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
     },
     eventsQueue,
     appNotifications,
+    pushSubscriptions,
+    pushNotifications,
     pushQueue,
     syntheticQueue,
     server,
@@ -229,6 +237,8 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
     }
 
     appNotifications.length = 0
+    pushSubscriptions.length = 0
+    pushNotifications.length = 0
 
     eventsQueue.resetMocks()
 

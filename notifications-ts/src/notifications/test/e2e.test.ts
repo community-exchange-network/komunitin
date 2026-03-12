@@ -25,13 +25,6 @@ describe('End-to-end: HTTP event to all channels', () => {
     restoreDate()
   })
 
-  afterEach(async () => {
-    const subs = await prisma.pushSubscription.findMany()
-    await Promise.all(subs.map(s => prisma.pushSubscription.delete({ where: { id: s.id } })))
-    const pns = await prisma.pushNotification.findMany()
-    await Promise.all(pns.map(p => prisma.pushNotification.delete({ where: { id: p.id } })))
-  })
-
   it('MemberJoined event via HTTP triggers in-app, push, and email', async () => {
     const groupId = 'GRP1'
     // Use fixed coordinates (UTC+0) so pushNotificationDelay returns 0 at noon UTC.
