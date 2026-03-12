@@ -3,6 +3,9 @@ import Backend from 'i18next-fs-backend';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import tzLookup from '@photostructure/tz-lookup';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { config } from '../config';
 
 // List of supported languages. Must match the available translation files in src/i18n
 const LANGUAGES = ['ca', 'en', 'es', 'fr', 'it'];
@@ -12,44 +15,67 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Singleton promise to ensure i18n is initialized only once
 let initI18nPromise: Promise<i18n> | null = null;
 
+const applyFlavorOverrides = async (i18nInstance: i18n, flavor: string) => {
+  const flavorDir = path.join(__dirname, '../i18n/flavors', flavor);
+  if (existsSync(flavorDir)) {
+    for (const language of LANGUAGES) {
+      const overridePath = path.join(flavorDir, `${language}.json`);
+      if (!existsSync(overridePath)) {
+        continue;
+      }
+
+      const overrideContent = await readFile(overridePath, 'utf8');
+      const overrideMessages = JSON.parse(overrideContent);
+
+      i18nInstance.addResourceBundle(language, 'translation', overrideMessages, true, true);
+    }
+  }
+};
+
+const createI18n = async () => {
+  await i18next.use(Backend).init({
+    lng: 'en', // Default fallback
+    fallbackLng: 'en',
+    preload: LANGUAGES, // Preload languages
+    ns: ['translation'],
+    defaultNS: 'translation',
+    backend: {
+      loadPath: path.join(__dirname, '../i18n/{{lng}}.json'),
+    },
+    interpolation: {
+      // We dont HTML-escape values in t() function since 
+      // 1) i18n is being used for notifications that are not HTML and
+      // 2) in email HTML templates is Handlebars that does its own escaping.
+      escapeValue: false,
+    },
+  })
+  await applyFlavorOverrides(i18next, config.FLAVOR);
+  // Use Intl.DurationFormat for duration formatting (from node 23+)
+  i18next.services.formatter?.add('duration', (value: Intl.Duration, lng?: string) => {
+    const locale = lng ?? i18next.language;
+    return new Intl.DurationFormat(locale, {
+      style: 'short',
+    }).format(value);
+  });
+  return i18next;
+}
+
 // Initialize i18next
 const initI18n = async () => {
   if (initI18nPromise === null) {
-    initI18nPromise = i18next.use(Backend)
-      .init({
-        lng: 'en', // Default fallback
-        fallbackLng: 'en',
-        preload: LANGUAGES, // Preload languages
-        ns: ['translation'],
-        defaultNS: 'translation',
-        backend: {
-          loadPath: path.join(__dirname, '../i18n/{{lng}}.json'),
-        },
-        interpolation: {
-          // We dont HTML-escape values in t() function since 
-          // 1) i18n is being used for notifications that are not HTML and
-          // 2) in email HTML templates is Handlebars that does its own escaping.
-          escapeValue: false,
-        },
-      }).then(() => {
-        // Use Intl.DurationFormat for duration formatting (from node 23+)
-        i18next.services.formatter?.add('duration', (value: Intl.Duration, lng?: string) => {
-          const locale = lng ?? i18next.language;
-          return new Intl.DurationFormat(locale, {
-            style: 'short',
-          }).format(value);
-        });
-        return i18next;
-      });
+    initI18nPromise = createI18n();
   }
   return await initI18nPromise;
 };
+
+export const resetI18n = () => {
+  initI18nPromise = null;
+}
 
 export const tzDate = (timezone: string, date: Date = new Date()): Date => {
   const localTimeStr = date.toLocaleString('en-US', { timeZone: timezone, hour12: false });
   return new Date(localTimeStr);
 }
-
 
 const normalizeCoordinate = (coord: number | string, halfRange: number): number|null => {
   const num = typeof coord === 'string' ? parseFloat(coord) : coord;
