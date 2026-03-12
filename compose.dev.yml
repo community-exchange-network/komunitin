@@ -28,15 +28,7 @@ services:
       MOCK_ACCOUNTING: ${KOMUNITIN_APP_MOCK}
       MOCK_SOCIAL: ${KOMUNITIN_APP_MOCK}
       MOCK_NOTIFICATIONS: ${KOMUNITIN_APP_MOCK}
-  notifications:
-    build: 
-      target: notifications-dev
-    ports:
-      - "2028:2028"
-      - "40000:40000"
-    volumes:
-      - ./notifications:/opt/notifications
-  
+
   accounting:
     command: pnpm dev
     ports:

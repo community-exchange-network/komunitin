@@ -15,15 +15,10 @@
 
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { mockEmail } from "../../mocks/email";
 import { createExternalTransfer, db } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
-// mockEmail must be imported before setupNotificationsTest so that
-// nodemailer.createTransport is patched before the Mailer is constructed.
-const email = mockEmail();
-
-const { put } = setupNotificationsTest({ useWorker: true });
+const { put, email } = setupNotificationsTest({ useWorker: true });
 
 describe("External transfer emails", () => {
   beforeEach(() => {
@@ -42,15 +37,8 @@ describe("External transfer emails", () => {
     transferId: string,
     localGroupCode: string,
     localUserId: string,
-    eventId: string
   ) => {
-    const eventData = createEvent(
-      "TransferCommitted",
-      transferId,
-      localGroupCode,
-      localUserId,
-      eventId
-    );
+    const eventData = createEvent("TransferCommitted", { code: localGroupCode, user: localUserId, data: { transfer: transferId } });
     await put(eventData);
   };
 
@@ -72,7 +60,6 @@ describe("External transfer emails", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-ext-all-accessible"
     );
 
     // Only 1 email: to the local payer. The external payee has users:[] so
@@ -146,7 +133,6 @@ describe("External transfer emails", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-ext-no-member"
     );
 
     assert.strictEqual(
@@ -213,7 +199,6 @@ describe("External transfer emails", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-ext-account-currency-only"
     );
 
     assert.strictEqual(
@@ -282,7 +267,6 @@ describe("External transfer emails", () => {
       transfer.id,
       localGroupCode,
       localUser.id,
-      "test-ext-cc-nothing-accessible"
     );
 
     assert.strictEqual(

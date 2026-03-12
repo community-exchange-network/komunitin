@@ -8,8 +8,15 @@ import handlers, { externalHandlers } from '../../mocks/handlers'
 import { mockDb } from '../../mocks/prisma'
 import { createQueue } from '../../mocks/queue'
 import { mockRedis } from '../../mocks/redis'
-import { _app } from '../../server'
+import { mockEmail } from '../../mocks/email'
 import prisma from '../../utils/prisma'
+import type { EventName, NotificationEvent } from '../events'
+import { randomUUID } from 'node:crypto'
+
+// Lazy-load the Express app to ensure mocks (especially utils/queue) are
+// registered before the server module graph (which includes event-queue → BullMQ)
+// is evaluated. Returns a supertest agent for the app.
+export const getApp = async () => supertest((await import('../../server'))._app)
 
 export const createNotification = async (
   tenantId: string,
@@ -32,15 +39,41 @@ export const createNotification = async (
   })
 }
 
-export const createEvent = (name: string, payloadId: string, groupId: string, userId: string, eventId: string, dataKey: string = 'transfer') => {
+/**
+ * Create event data in the format expected by addEvent / the events queue.
+ */
+export const createEvent = (name: EventName, params: { code: string; user: string; data: Record<string, string> }): NotificationEvent => {
   return {
+    id: randomUUID(),
     name,
-    time: new Date().toISOString(),
-    data: JSON.stringify({ [dataKey]: payloadId }),
+    time: new Date(),
+    data: params.data,
     source: 'mock-accounting',
-    code: groupId,
-    user: userId,
-    id: eventId
+    code: params.code,
+    user: params.user,
+  }
+}
+
+/**
+ * Create a JSON:API event body for the POST /events endpoint.
+ */
+export const createEventBody = (name: EventName, params: { code: string; user: string; data: Record<string, string> }) => {
+  return {
+    data: {
+      type: 'events',
+      attributes: {
+        name,
+        source: 'mock-accounting',
+        code: params.code,
+        time: new Date().toISOString(),
+        data: params.data,
+      },
+      relationships: {
+        user: {
+          data: { type: 'users', id: params.user },
+        },
+      },
+    },
   }
 }
 
@@ -54,7 +87,8 @@ export const verifyNotification = async (
   const expectedBody = typeof expected === 'string' ? undefined : expected.body;
 
   const token = await signJwt(userId, ['komunitin_social'])
-  const response = await supertest(_app)
+  const app = await getApp()
+  const response = await app
     .get(`/${groupId}/notifications`)
     .set('Authorization', `Bearer ${token}`)
     .expect(200)
@@ -80,8 +114,15 @@ type SetupNotificationsTestOptions = {
 };
 
 type SetupNotificationsTestReturnBase = {
+  /** Supertest agent for the Express app. Available after before() hook runs. */
+  app: supertest.Agent;
+  email: ReturnType<typeof mockEmail>;
   appNotifications: any[];
-  put: ReturnType<typeof mockRedis>['put'] | null;
+  pushSubscriptions: any[];
+  pushNotifications: any[];
+  /** Add an event to the queue and wait for it to be processed (when useWorker is true). */
+  put: (event: NotificationEvent) => Promise<any>;
+  eventsQueue: ReturnType<typeof createQueue>;
   pushQueue: ReturnType<typeof createQueue> | null;
   syntheticQueue: ReturnType<typeof createQueue> | null;
   server: ReturnType<typeof setupServer> | null;
@@ -89,7 +130,6 @@ type SetupNotificationsTestReturnBase = {
 
 type SetupNotificationsTestReturn<T extends SetupNotificationsTestOptions> =
   SetupNotificationsTestReturnBase &
-  (T['useMockRedis'] extends false ? { put: null } : { put: NonNullable<SetupNotificationsTestReturnBase['put']> }) &
   (T['usePushQueue'] extends true ? { pushQueue: NonNullable<SetupNotificationsTestReturnBase['pushQueue']> } : {}) &
   (T['useSyntheticQueue'] extends true ? { syntheticQueue: NonNullable<SetupNotificationsTestReturnBase['syntheticQueue']> } : {});
 
@@ -108,19 +148,63 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
   } = options;
 
   const server = useServer ? setupServer(...handlers, ...externalHandlers) : null;
-  const redis = useMockRedis ? mockRedis() : null;
-  const put = redis?.put ?? null;
+  const redisMock = useMockRedis ? mockRedis() : null;
+
+  const eventsQueue = createQueue('events');
 
   const pushQueue = usePushQueue ? createQueue('push-notifications') : null;
   const syntheticQueue = useSyntheticQueue ? createQueue('synthetic-events') : null;
 
-  const { appNotification: appNotifications } = mockDb();
+  const {
+    appNotification: appNotifications,
+    pushSubscription: pushSubscriptions,
+    pushNotification: pushNotifications,
+  } = mockDb();
+  const email = mockEmail();
+
+  // addEvent and app are lazy-loaded in before() to ensure mocks are set up first.
+  let addEventFn: ((event: NotificationEvent) => Promise<any>) | null = null;
+
+  // Use a Proxy so that destructured `app` delegates to the real supertest agent
+  // once it's loaded in the before() hook. Without this, `const { app } = setup`
+  // would capture the initial `null` and never update.
+  let _app: supertest.Agent | null = null;
+  const appProxy = new Proxy({} as supertest.Agent, {
+    get(_, prop) {
+      if (!_app) throw new Error('app accessed before before() hook ran');
+      return (_app as any)[prop];
+    },
+  });
+
+  const result = {
+    app: appProxy,
+    email,
+    put: async (event: NotificationEvent) => {
+      if (!addEventFn) {
+        throw new Error('put() called before before() hook ran');
+      }
+      return addEventFn(event);
+    },
+    eventsQueue,
+    appNotifications,
+    pushSubscriptions,
+    pushNotifications,
+    pushQueue,
+    syntheticQueue,
+    server,
+  };
 
   let runNotificationsWorker: (() => Promise<{ stop: () => Promise<void> }>) | null = null;
   let worker: { stop: () => Promise<void> } | null = null;
   let stopAppChannel: (() => void) | null = null;
 
   before(async () => {
+    // Lazy-load event-queue and server after mocks are registered.
+    const eventQueueModule = await import('../../events/event-queue');
+    addEventFn = eventQueueModule.addEvent;
+    
+    _app = await getApp();
+
     if (useWorker) {
       const workerModule = await import('../worker')
       runNotificationsWorker = workerModule.runNotificationsWorker
@@ -146,7 +230,17 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
       resetDb()
     }
 
+    email.reset()
+
+    if (redisMock) {
+      redisMock.reset()
+    }
+
     appNotifications.length = 0
+    pushSubscriptions.length = 0
+    pushNotifications.length = 0
+
+    eventsQueue.resetMocks()
 
     if (pushQueue) {
       pushQueue.resetMocks()
@@ -179,13 +273,7 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
     }
   })
 
-  return {
-    put,
-    appNotifications,
-    pushQueue,
-    syntheticQueue,
-    server,
-  } as SetupNotificationsTestReturn<T>;
+  return result as SetupNotificationsTestReturn<T>;
 }
 
 export const subscribeToPushNotifications = (groupCode: string, userId: string) => {

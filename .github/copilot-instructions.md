@@ -9,7 +9,7 @@ Komunitin is an open-source system for community exchange currencies. It is a **
 | **App** (PWA frontend) | `app/` | TypeScript + Vue 3 | Quasar/Vite | 2030 |
 | **Accounting** | `accounting/` | TypeScript | Node.js 22, Express, Prisma, Stellar blockchain | 2025 |
 | **Notifications (TS)** | `notifications-ts/` | TypeScript | Node.js 24, Express, Prisma, BullMQ, Redis | 2023 |
-| **Notifications (Go, legacy)** | `notifications/` | Go 1.24 | gorilla/mux, Redis | 2028 |
+| **Notifications (Go, deprecated)** | `notifications/` | Go 1.24 | gorilla/mux, Redis | 2028 |
 
 An external dependency **IntegralCES** (Drupal, cloned separately) provides the social/auth API at port 2029.
 

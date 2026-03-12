@@ -28,36 +28,6 @@ services:
       - "6379"
     volumes:
       - db-notifications:/data
-  
-  notifications:
-    build:
-      context: ./notifications
-    depends_on:
-      - db-notifications
-    restart: unless-stopped
-    ports:
-      - "2028:2028"
-    environment:
-      KOMUNITIN_ACCOUNTING_URL: http://accounting:2025
-      KOMUNITIN_SOCIAL_URL: http://integralces:2029/ces/api/social
-      KOMUNITIN_AUTH_URL: http://integralces:2029/oauth2
-      KOMUNITIN_APP_URL: ${KOMUNITIN_APP_URL}
-      NOTIFICATIONS_CLIENT_ID: komunitin-notifications
-      NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
-      NOTIFICATIONS_EVENTS_USERNAME: komunitin
-      NOTIFICATIONS_EVENTS_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
-      MAILERSEND_API_KEY: ${MAILERSEND_API_KEY}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-      ADMIN_EMAIL: ${ADMIN_EMAIL}
-      APP_EMAIL: ${APP_EMAIL}
-      SEND_MAILS: true
-    volumes:
-      - "./notifications/komunitin-project-firebase-adminsdk.json:/opt/notifications/komunitin-project-firebase-adminsdk.json:ro"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   db-accounting:
     build:
@@ -101,7 +71,7 @@ services:
       AUTH_JWKS_URL: http://integralces:2029/.well-known/jwks.json
       AUTH_JWT_ISSUER: ${ICES_URL}/
       AUTH_JWT_AUDIENCE: "komunitin-app,komunitin-notifications"
-      NOTIFICATIONS_API_URL: http://notifications:2028
+      NOTIFICATIONS_API_URL: http://notifications-ts:2023
       API_BASE_URL: ${KOMUNITIN_ACCOUNTING_URL}
       APP_URL: ${KOMUNITIN_APP_URL}
       NOTIFICATIONS_API_USERNAME: komunitin
@@ -135,7 +105,7 @@ services:
     environment:
       NOTIFICATIONS_CLIENT_ID: komunitin-notifications
       NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
-      NOTIFICATIONS_API_URL: http://notifications:2028
+      NOTIFICATIONS_API_URL: http://notifications-ts:2023
       NOTIFICATIONS_EVENTS_USERNAME: komunitin
       NOTIFICATIONS_EVENTS_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
       MAILERSEND_API_KEY: ${MAILERSEND_API_KEY}
@@ -179,6 +149,9 @@ services:
 
       PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: ${PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY}
       PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY: ${PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY}
+
+      NOTIFICATIONS_EVENTS_USERNAME: komunitin
+      NOTIFICATIONS_EVENTS_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
       
       PORT: 2023
     extra_hosts:

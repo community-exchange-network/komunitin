@@ -42,7 +42,7 @@ describe('Post notifications', () => {
       created: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString(),
       expires: new Date(Date.now() - 1000).toISOString()
     })
-    const eventData = createEvent('OfferExpired', offer.id, groupId, userId, 'test-offer-expired-1', 'offer')
+    const eventData = createEvent('OfferExpired', { code: groupId, user: userId, data: { offer: offer.id } })
 
     await put(eventData)
 
@@ -66,7 +66,7 @@ describe('Post notifications', () => {
       created: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       expires: new Date(Date.now() - 1000).toISOString()
     })
-    const eventData = createEvent('NeedExpired', need.id, groupId, userId, 'test-need-expired-1', 'need')
+    const eventData = createEvent('NeedExpired', { code: groupId, user: userId, data: { need: need.id } })
 
     await put(eventData)
 

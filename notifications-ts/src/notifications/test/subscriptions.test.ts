@@ -1,12 +1,17 @@
 import { setupServer } from 'msw/node'
 import assert from 'node:assert'
 import { after, before, beforeEach, describe, it } from 'node:test'
-import supertest from 'supertest'
 import { generateKeys, signJwt } from '../../mocks/auth'
 import handlers from '../../mocks/handlers'
 import { mockDb } from '../../mocks/prisma'
-import { _app } from '../../server'
+import { getApp } from './utils'
 import prisma from '../../utils/prisma'
+
+let app: Awaited<ReturnType<typeof getApp>>
+
+before(async () => {
+  app = await getApp()
+})
 
 const server = setupServer(...handlers)
 
@@ -59,7 +64,7 @@ describe('Subscriptions API', () => {
     const endpoint = 'https://example.com/endpoint/1'
     const body = makeSubscriptionBody(userId, endpoint, { foo: 'bar' })
 
-    const res = await supertest(_app)
+    const res = await app
       .post(`/${groupCode}/subscriptions`)
       .set('Authorization', `Bearer ${token}`)
       .send(body)
@@ -79,7 +84,7 @@ describe('Subscriptions API', () => {
     const endpoint = 'https://example.com/endpoint/unauth'
     const body = makeSubscriptionBody('22222222-2222-2222-2222-222222222222', endpoint)
 
-    await supertest(_app)
+    await app
       .post(`/${groupCode}/subscriptions`)
       .send(body)
       .expect(400)
@@ -93,7 +98,7 @@ describe('Subscriptions API', () => {
 
     const body = makeSubscriptionBody(userB, 'https://example.com/endpoint/forbidden')
 
-    await supertest(_app)
+    await app
       .post(`/${groupCode}/subscriptions`)
       .set('Authorization', `Bearer ${token}`)
       .send(body)
@@ -110,7 +115,7 @@ describe('Subscriptions API', () => {
     // create subscription directly in the mocked store
     const created = await createSubscription({ tenantId: groupCode, userId, endpoint: 'https://example.com/delete-me' })
 
-    await supertest(_app)
+    await app
       .delete(`/${groupCode}/subscriptions/${created.id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(204)
@@ -127,7 +132,7 @@ describe('Subscriptions API', () => {
 
     const created = await createSubscription({ tenantId: groupCode, userId: owner, endpoint: 'https://example.com/delete-other' })
 
-    const res = await supertest(_app)
+    const res = await app
       .delete(`/${groupCode}/subscriptions/${created.id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(403)
@@ -148,7 +153,7 @@ describe('Subscriptions API', () => {
 
     const groupCode = 'GRP1'
 
-    await supertest(_app)
+    await app
       .post(`/${groupCode}/subscriptions`)
       .set('Authorization', `Bearer ${token}`)
       .send(body)

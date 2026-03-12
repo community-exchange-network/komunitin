@@ -1,14 +1,9 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { mockEmail } from "../../mocks/email";
 import { createMember, db, getUserIdForMember } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
-// mockEmail must be imported before setupNotificationsTest so that
-// nodemailer.createTransport is patched before the worker (and Mailer) loads.
-const email = mockEmail();
-
-const { put } = setupNotificationsTest({ useWorker: true });
+const { put, email } = setupNotificationsTest({ useWorker: true });
 
 describe('MemberRequested emails', () => {
   beforeEach(() => {
@@ -32,14 +27,7 @@ describe('MemberRequested emails', () => {
     });
     const userId = getUserIdForMember(member.id);
 
-    const eventData = createEvent(
-      'MemberRequested',
-      member.id,
-      groupCode,
-      userId,
-      'test-member-requested-1',
-      'member'
-    );
+    const eventData = createEvent('MemberRequested', { code: groupCode, user: userId, data: { member: member.id } });
 
     await put(eventData);
 
@@ -97,14 +85,7 @@ describe('MemberRequested emails', () => {
     });
     const userId = getUserIdForMember(member.id);
 
-    const eventData = createEvent(
-      'MemberRequested',
-      member.id,
-      groupCode,
-      userId,
-      'test-member-requested-2',
-      'member'
-    );
+    const eventData = createEvent('MemberRequested', { code: groupCode, user: userId, data: { member: member.id } });
 
     await put(eventData);
 
@@ -143,14 +124,7 @@ describe('MemberRequested emails', () => {
     assert.ok(memberUser, 'Member user should exist');
     memberUser.attributes.email = 'attacker+<svg/onload=alert(3)>@example.com';
 
-    const eventData = createEvent(
-      'MemberRequested',
-      member.id,
-      groupCode,
-      userId,
-      'test-member-requested-malicious',
-      'member'
-    );
+    const eventData = createEvent('MemberRequested', { code: groupCode, user: userId, data: { member: member.id } });
 
     await put(eventData);
 
