@@ -25,6 +25,8 @@ const envSchema = z.object({
   PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: z.string().optional(),
   PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY: z.string().optional(),
 
+  FLAVOR: z.string().default('komunitin'),
+
   DEV_SAVE_NEWSLETTERS: z.coerce.boolean().optional().default(false),
   PORT: z.coerce.number().int().positive().default(2023),
 });
