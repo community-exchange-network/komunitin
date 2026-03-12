@@ -1,48 +1,16 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { mockEmail } from "../../mocks/email";
 import { createMember, db, getUserIdForMember } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
-// mockEmail must be imported before setupNotificationsTest so that
-// nodemailer.createTransport is patched before the worker (and Mailer) loads.
-const email = mockEmail();
+const { put, email } = setupNotificationsTest({ useWorker: true });
 
-const { put } = setupNotificationsTest({ useWorker: true });
-
-const createUserEvent = (groupCode: string, eventName: string, eventId: string) => {
+const createUserAndMember = (groupCode: string) => {
   const member = createMember({ groupCode });
   const userId = getUserIdForMember(member.id);
   const user = db.users.find(u => u.id === userId)!;
-
-  const eventData = createEvent(
-    eventName,
-    userId,
-    groupCode,
-    userId,
-    eventId,
-    'user'
-  );
-
-  return {user, eventData};
-}
-
-const createMemberEvent = (groupCode: string, eventName: string, eventId: string) => {
-  const member = createMember({ groupCode });
-  const userId = getUserIdForMember(member.id);
-  const user = db.users.find(u => u.id === userId)!;
-
-  const eventData = createEvent(
-    eventName,
-    member.id,
-    groupCode,
-    userId,
-    eventId,
-    'member'
-  );
-
-  return { user, eventData };
-}
+  return { member, user };
+};
 
 describe('User emails', () => {
   beforeEach(() => {
@@ -50,7 +18,8 @@ describe('User emails', () => {
   });
 
   it('should send validation email', async () => {
-    const {user, eventData} = createUserEvent('GRP1', 'ValidationEmailRequested', 'test-event-validation-email');
+    const { user } = createUserAndMember('GRP1');
+    const eventData = createEvent('ValidationEmailRequested', { code: 'GRP1', user: user.id, data: { user: user.id } });
 
     await put(eventData);
 
@@ -75,7 +44,8 @@ describe('User emails', () => {
   });
 
   it('should send reset password email', async () => {
-    const {user, eventData} = createUserEvent('GRP1', 'PasswordResetRequested', 'test-event-reset-password');
+    const { user } = createUserAndMember('GRP1');
+    const eventData = createEvent('PasswordResetRequested', { code: 'GRP1', user: user.id, data: { user: user.id } });
 
     await put(eventData);
 
@@ -105,7 +75,8 @@ describe('User emails', () => {
   });
 
   it('should send welcome email when member joins', async () => {
-    const { user, eventData } = createMemberEvent('GRP1', 'MemberJoined', 'test-event-member-joined');
+    const { member, user } = createUserAndMember('GRP1');
+    const eventData = createEvent('MemberJoined', { code: 'GRP1', user: user.id, data: { member: member.id } });
 
     await put(eventData);
 

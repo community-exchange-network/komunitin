@@ -16,7 +16,7 @@ describe('MemberJoined notifications', () => {
     const member = createMember({ groupCode: groupId, name: 'Ada Lovelace' })
     const userId = getUserIdForMember(member.id)
 
-    const eventData = createEvent('MemberJoined', member.id, groupId, userId, 'test-member-joined-1', 'member')
+    const eventData = createEvent('MemberJoined', { code: groupId, user: userId, data: { member: member.id } })
 
     await put(eventData)
 

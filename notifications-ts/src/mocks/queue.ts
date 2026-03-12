@@ -18,6 +18,12 @@ export class MockQueue {
       }
     };
     this.jobs.set(jobId, job);
+
+    // Auto-dispatch to worker when there is no delay (synchronous for test determinism)
+    if (this.worker && !opts?.delay) {
+      await this.worker(job);
+    }
+
     return job;
   });
 
@@ -70,7 +76,8 @@ export const createWorker = (name: string, worker: any) => {
   const queue = createQueue(name);
   queue.worker = worker;
   return {
-    close: async () => {}
+    close: async () => {},
+    on: () => {},
   }
 }
 

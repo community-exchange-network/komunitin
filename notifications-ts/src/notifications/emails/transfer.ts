@@ -181,7 +181,7 @@ export const ctxTransferReceived = (
   return {
     ...common,
     subject: t('emails.transfer_received_subject', { amount }),
-    label: { icon: '🎉', iconBg: '#E8F5E9', text: t('emails.transfer_received_label') },
+    label: { icon: '🤝', iconBg: '#E8F5E9', text: t('emails.transfer_received_label') },
     greeting: t('emails.hello_name', { name: payee.member!.attributes.name }),
     paragraphs: [t('emails.transfer_received_text', {
       amount,

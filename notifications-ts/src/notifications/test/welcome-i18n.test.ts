@@ -52,7 +52,7 @@ describe('Welcome notification i18n', () => {
         settings.attributes.language = language
       }
 
-      const eventData = createEvent('MemberJoined', member.id, groupCode, userId, `test-welcome-${language}`, 'member')
+      const eventData = createEvent('MemberJoined', { code: groupCode, user: userId, data: { member: member.id } })
       await put(eventData)
 
       assert.equal(appNotifications.length, 1)

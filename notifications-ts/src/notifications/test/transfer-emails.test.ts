@@ -1,14 +1,9 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { mockEmail } from "../../mocks/email";
 import { createTransfers, db } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
-// mockEmail must be imported before setupNotificationsTest so that
-// nodemailer.createTransport is patched before the worker (and Mailer) loads.
-const email = mockEmail();
-
-const { put } = setupNotificationsTest({ useWorker: true });
+const { put, email } = setupNotificationsTest({ useWorker: true });
 
 const setupTestTransfer = () => {
   const groupId = 'GRP1';
@@ -46,7 +41,7 @@ describe('Transfer emails', () => {
   it('should send transfer committed emails (sent + received)', async () => {
     const { groupId, transfer, payerUserId, payerUser, payeeUser, payerMember, payeeMember } = setupTestTransfer();
 
-    const eventData = createEvent('TransferCommitted', transfer.id, groupId, payerUserId, 'test-email-committed');
+    const eventData = createEvent('TransferCommitted', { code: groupId, user: payerUserId, data: { transfer: transfer.id } });
     await put(eventData);
 
     // Should send 2 emails: one to payer (sent), one to payee (received)
@@ -93,7 +88,7 @@ describe('Transfer emails', () => {
     const { groupId, transfer, payeeUserId, payerUser, payeeMember } = setupTestTransfer();
     transfer.attributes.state = 'pending';
 
-    const eventData = createEvent('TransferPending', transfer.id, groupId, payeeUserId, 'test-email-pending');
+    const eventData = createEvent('TransferPending', { code: groupId, user: payeeUserId, data: { transfer: transfer.id } });
     await put(eventData);
 
     // Only payer gets the email (they need to accept/reject)
@@ -125,7 +120,7 @@ describe('Transfer emails', () => {
     const { groupId, transfer, payerUserId, payeeUser, payerMember } = setupTestTransfer();
     transfer.attributes.state = 'rejected';
 
-    const eventData = createEvent('TransferRejected', transfer.id, groupId, payerUserId, 'test-email-rejected');
+    const eventData = createEvent('TransferRejected', { code: groupId, user: payerUserId, data: { transfer: transfer.id } });
     await put(eventData);
 
     // Only payee gets the email
@@ -155,7 +150,7 @@ describe('Transfer emails', () => {
     // Transfer is committed (default state), not pending
     transfer.attributes.state = 'committed';
 
-    const eventData = createEvent('TransferPending', transfer.id, groupId, payeeUserId, 'test-email-pending-skip');
+    const eventData = createEvent('TransferPending', { code: groupId, user: payeeUserId, data: { transfer: transfer.id } });
     await put(eventData);
 
     // No email should be sent since transfer is not pending
