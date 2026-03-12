@@ -54,7 +54,7 @@ docker compose -f compose.yml -f compose.dev.yml up -d
 The published services are:
  - Komunitin app: [https://localhost:2030](https://localhost:2030)
  - Accounting service: [http://localhost:2025](http://localhost:2025)
- - Notifications service: [http://localhost:2028](http://localhost:2028)
+ - Notifications service: [http://localhost:2023](http://localhost:2023)
  - IntegralCES: [http://localhost:2029](http://localhost:2029)
 
 You can now try Komunitin at [https://localhost:2030](http://localhost:2030) with the email `noether@komunitin.org` and password `komunitin`.
