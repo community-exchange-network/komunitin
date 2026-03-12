@@ -56,7 +56,9 @@ export const startEventWorker = (processor: (event: NotificationEvent) => Promis
 
   return async () => {
     await worker.close();
-    await getEventsQueue().close();
-    eventsQueue = undefined;
+    if (eventsQueue) {
+      await eventsQueue.close();
+      eventsQueue = undefined;
+    }
   };
 };
