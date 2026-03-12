@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { randomUUID, timingSafeEqual } from 'crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { config } from '../../config';
 import { unauthorized, badRequest } from '../../utils/error';
