@@ -2,7 +2,7 @@
   <div>
     <page-header
       :title="group ? group.attributes.name : ''"
-      :back="own ? '' : '/groups'" 
+      :back="own ? '' : '/groups'"
     >
       <template #buttons>
         <contact-button
@@ -36,76 +36,83 @@
           class="row q-col-gutter-md"
         >
           <!-- image -->
-          <div class="col-12 col-sm-6 col-md-4">
-            <q-img :src="group.attributes.image" />
+          <div class="col-4 q-px-md">
+            <div class="q-mx-auto" style="max-width: 152px; line-height: 0;">
+              <fit-text update>
+                <avatar
+                  size="inherit"
+                  :text="group.attributes.name"
+                  :img-src="group.attributes.image"
+                />
+              </fit-text>
+            </div>
           </div>
+
           <!-- description -->
-          <div class="col-12 col-sm-6 col-md-8">
+          <div class="col column">
             <div class="text-h6">
               {{ group.attributes.code }}
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
               class="text-onsurface-m"
+              :class="isDescriptionOpen ? '' : 'ellipsis-3-lines'"
               v-html="md2html(group.attributes.description)"
             />
-            <!-- eslint-enable vue/no-v-html -->
-            <q-separator spaced />
-            <div class="k-inset-actions-md">
-              <q-btn
-                type="a"
-                flat
-                no-caps
-                :href="group.attributes.website"
-                target="_blank"
-                icon="link"
-                :label="link(group.attributes.website)"
-                color="onsurface-m"
+
+            <q-btn
+              flat
+              round
+              dense
+              :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
+              style="margin-left:auto;"
+              @click="toggleDescription"
               />
-            </div>
           </div>
-          <!-- explore -->
-          <div class="col-12 col-sm-6 relative-position">
-            <group-stats
-              :title="$t('offers')"
-              icon="local_offer"
-              :content="group.relationships.offers.meta.count"
-              :href="code + '/offers'"
-              :items="offersItems"
-            />
-          </div>
+        </div>
+        <!-- sub-page navigation -->
+        <nav
+          v-if="group"
+          class="row q-col-gutter-md q-py-md"
+        >
+          <router-link :to="`/groups/${code}/members`" 
+            style="text-decoration: none; color: inherit; height: fit-content;"
+            class="col-6"
+            >
+            <q-card 
+              flat
+              class="transition-all bg-active text-onsurface-m"
+            >
+              <q-card-section class="text-center">
+                <q-icon name="people" size="sm"/>
+                <div class="text-body2 text-weight-medium">
+                  {{ $t('members') }}
+                </div>
+              </q-card-section>
+            </q-card>
+          </router-link>
 
-          <div class="col-12 col-sm-6 relative-position">
-            <group-stats
-              :title="$t('needs')"
-              icon="loyalty"
-              :content="group.relationships.needs.meta.count"
-              :href="code + '/needs'"
-              :items="needsItems"
-            />
-          </div>
-
-          <div class="col-12 col-sm-6 relative-position">
-            <!-- Not providing member types for the moment, as the Social Api does not give it -->
-            <group-stats
-              :title="$t('members')"
-              icon="account_circle"
-              :content="group.relationships.members.meta.count"
-              :href="code + '/members'"
-              :items="[]"
-            />
-          </div>
-
-          <div class="col-12 col-sm-6 relative-position">
-            <group-stats
-              v-if="currency"
-              :title="$t('currency')"
-              icon="monetization_on"
-              :content="currency.attributes.symbol"
-              :href="code + '/stats'"
-              :items="currencyItems"
-            />
-          </div>
+          <router-link :to="`/groups/${code}/stats`" 
+            style="text-decoration: none; color: inherit; height: fit-content;"
+            class="col-6"
+            >
+            <q-card 
+              flat
+              class="transition-all bg-active text-onsurface-m"
+            >
+              <q-card-section class="text-center">
+                <q-icon name="insert_chart" size="sm"/>
+                <div class="text-body2 text-weight-medium">
+                  {{ $t('statistics') }}
+                </div>
+              </q-card-section>
+            </q-card>
+          </router-link>
+        </nav>
+        <div
+          v-if="group"
+          class="row q-col-gutter-md"
+        >
           <div class="col-12 col-sm-6 col-lg-8">
             <q-card
               square
@@ -115,7 +122,14 @@
                 class="simple-map"
                 :center="center"
                 :marker="marker"
-              />
+                :bounds="memberMarkers"
+              >
+              <l-marker 
+                v-for="(memberMarker, i) of memberMarkers"
+                :key="i"
+                :lat-lng="memberMarker"
+                />
+              </simple-map>
               <q-card-section class="group-footer-card text-onsurface-m">
                 <q-icon name="place" />
                 {{ group.attributes.location.name }}
@@ -143,19 +157,21 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
+import { LMarker } from "@vue-leaflet/vue-leaflet";
+import type { LatLngExpression } from "leaflet";
 
 import md2html from "../../plugins/Md2html";
 
 import PageHeader from "../../layouts/PageHeader.vue";
-
+import Avatar from '../../components/Avatar.vue';
 import ContactButton from "../../components/ContactButton.vue";
-import GroupStats from "../../components/GroupStats.vue";
 import ShareButton from "../../components/ShareButton.vue";
 import SimpleMap from "../../components/SimpleMap.vue";
 import SocialNetworkList from "../../components/SocialNetworkList.vue";
 import FloatingBtn from "../../components/FloatingBtn.vue";
+import FitText from '../../components/FitText.vue';
 
-import type { Group, Contact, Category, Currency } from "../../store/model";
+import type { Group, Contact, Category, Currency, Member } from "../../store/model";
 
 /**
  * Page for Group details.
@@ -163,13 +179,15 @@ import type { Group, Contact, Category, Currency } from "../../store/model";
 export default defineComponent({
   name: "Group",
   components: {
+    FitText,
+    Avatar,
     SimpleMap,
     ShareButton,
     ContactButton,
-    GroupStats,
     SocialNetworkList,
     PageHeader,
-    FloatingBtn
+    FloatingBtn,
+    LMarker,
   },
   props: {
     code: {
@@ -178,13 +196,15 @@ export default defineComponent({
     }
   },
   setup() {
-    const ready = ref(false)
+    const ready = ref(false);
+    const isDescriptionOpen = ref(false);
     return {
       link(link: string): string {
         return link.replace(/(https|http):\/\//, "");
       },
       md2html,
-      ready
+      ready,
+      isDescriptionOpen,
     }
   },
   data() {
@@ -196,7 +216,7 @@ export default defineComponent({
     isLoggedIn(): boolean {
       return this.$store.getters.isLoggedIn
     },
-    group(): Group & { contacts: Contact[]; categories: Category[]; currency: Currency } {
+    group(): Group & { contacts: Contact[]; categories: Category[]; currency: Currency; members? : Member[] } {
       return this.$store.getters["groups/current"];
     },
     currency(): Currency {
@@ -221,6 +241,10 @@ export default defineComponent({
     marker(): [number, number] | undefined {
       return this.center
     },
+    memberMarkers(): LatLngExpression[] {
+      return this.group?.members?.map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
+        .filter(Boolean) || [];
+    },
     isLoading(): boolean {
       return !(this.ready || this.currency && this.group && this.group.contacts && this.group.categories);
     }
@@ -244,7 +268,7 @@ export default defineComponent({
     async fetchGroup(code: string) {
       return this.$store.dispatch("groups/load", {
         group: code,
-        include: "currency,contacts,categories"
+        include: `currency,contacts,categories${this.isLoggedIn ? ',members' : ''}`
       });
     },
     // Categories info.
@@ -265,7 +289,10 @@ export default defineComponent({
         items.push(this.$t("andMoreCategories").toString());
       }
       return items;
-    }
+    },
+    toggleDescription():void {
+      this.isDescriptionOpen = !this.isDescriptionOpen
+    },
   }
 });
 </script>
