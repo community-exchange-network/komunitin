@@ -16,7 +16,6 @@ import { Auth } from '../../../src/plugins/Auth';
 import { auth } from '../../../src/store/me';
 import { mockToken } from 'src/server/AuthServer';
 import { type RouteLocationRaw } from 'vue-router';
-import { name } from 'faker';
 
 export function testLogin() {
   // This call actually saves the mocked token in LocalStorage.
