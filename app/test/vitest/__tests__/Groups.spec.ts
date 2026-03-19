@@ -48,7 +48,7 @@ describe("Groups", () => {
       expect(isMembersCard || isStatsCard || isMapCard).toBe(true);
     });
     // Members should not show on map, only group center
-    expect(wrapper.findAllComponents(LMarker).length).toEqual(1);
+    expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(1);
     // Location
     expect(text).toContain("Buckinghamshire");
     // Contact
@@ -71,6 +71,6 @@ describe("Groups", () => {
     await wrapper.vm.$router.push("/groups/GRP0");
     await waitFor(() => wrapper.vm.$store.getters["groups/current"].members?.length > 0, true, "Api should finish loading");
     // Members should show on map
-    expect(wrapper.findAllComponents(LMarker).length).toEqual(31);
+    expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(31);
   });
 });
