@@ -1,8 +1,8 @@
 import assert from 'node:assert'
 import { afterEach, describe, it } from 'node:test'
-import { createNeed, createOffer, getUserIdForMember } from '../../mocks/db'
 import { mockDate, restoreDate } from '../../mocks/date'
-import { createEvent, daysAgo, hoursAgo, setupNotificationsTest } from './utils'
+import { createNeed, createOffer, getUserIdForMember } from '../../mocks/db'
+import { createEvent, daysAgo, setupNotificationsTest } from './utils'
 
 const { put, email, appNotifications } = setupNotificationsTest({ useWorker: true })
 
@@ -14,7 +14,6 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
   it('sends an email for recently expired posts with featured post and additional expired items', async () => {
     mockDate('2026-01-13T00:00:00.000Z')
     const groupCode = 'GRP1'
-    const now = Date.now()
 
     const featuredOffer = createOffer({
       groupCode,
@@ -74,7 +73,6 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
   it('does not send email for MemberHasExpiredPosts event', async () => {
     mockDate('2026-01-13T00:00:00.000Z')
     const groupCode = 'GRP1'
-    const now = Date.now()
 
     const offer = createOffer({
       groupCode,
@@ -104,7 +102,6 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
   it('does not send email when member has no posts expired in last 48h', async () => {
     mockDate('2026-01-13T00:00:00.000Z')
     const groupCode = 'GRP1'
-    const now = Date.now()
 
     const offer = createOffer({
       groupCode,

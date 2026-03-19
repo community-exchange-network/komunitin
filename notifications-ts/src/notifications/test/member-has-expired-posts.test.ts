@@ -1,9 +1,8 @@
 import assert from 'node:assert'
-import { describe, it, before, beforeEach, afterEach } from 'node:test'
-import { createOffer, createNeed, getUserIdForMember, db } from '../../mocks/db'
+import { afterEach, before, beforeEach, describe, it } from 'node:test'
 import { mockDate, restoreDate } from '../../mocks/date'
+import { createNeed, createOffer, db, getUserIdForMember } from '../../mocks/db'
 import { daysAgo, hoursAgo, setupNotificationsTest, verifyNotification } from './utils'
-import { da } from '@faker-js/faker'
 
 const { appNotifications, syntheticQueue: queue } = setupNotificationsTest({
   useAppChannel: true,
