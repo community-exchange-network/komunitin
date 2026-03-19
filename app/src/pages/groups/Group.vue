@@ -171,7 +171,7 @@ import SocialNetworkList from "../../components/SocialNetworkList.vue";
 import FloatingBtn from "../../components/FloatingBtn.vue";
 import FitText from '../../components/FitText.vue';
 
-import type { Group, Contact, Category, Currency, Member } from "../../store/model";
+import type { Group, Contact, Member } from "../../store/model";
 
 /**
  * Page for Group details.
@@ -213,24 +213,11 @@ export default defineComponent({
     isLoggedIn(): boolean {
       return this.$store.getters.isLoggedIn
     },
-    group(): Group & { contacts: Contact[]; categories: Category[]; currency: Currency; members?: Member[] } {
+    group(): Group & { contacts: Contact[]; members?: Member[] } {
       return this.$store.getters["groups/current"];
-    },
-    currency(): Currency {
-      return this.group?.currency;
     },
     own(): boolean {
       return this.group && this.$store.getters["myMember"] && this.group.id == this.$store.getters["myMember"].group.id
-    },
-    currencyItems(): string[] {
-      return [];
-      // FIXME: https://github.com/komunitin/komunitin/issues/81
-    },
-    offersItems(): string[] {
-      return this.group.categories ? this.buildCategoryItems("offers") : []
-    },
-    needsItems(): string[] {
-      return this.group.categories ? this.buildCategoryItems("needs") : []
     },
     center(): [number, number] | undefined {
       return this.group?.attributes.location.coordinates;
@@ -243,7 +230,7 @@ export default defineComponent({
         .filter(Boolean) || [];
     },
     isLoading(): boolean {
-      return !(this.ready || this.currency && this.group && this.group.contacts && this.group.categories);
+      return !(this.ready || this.group && this.group.contacts);
     }
   },
   created() {
@@ -265,27 +252,8 @@ export default defineComponent({
     async fetchGroup(code: string) {
       return this.$store.dispatch("groups/load", {
         group: code,
-        include: `currency,contacts,categories${this.isLoggedIn ? ',members' : ''}`
+        include: `contacts${this.isLoggedIn ? ',members' : ''}`
       });
-    },
-    // Categories info.
-    buildCategoryItems(type: "offers" | "needs"): string[] {
-      // Copy original array not to modify it when sorting.
-      const items: string[] = this.group.categories
-        .slice()
-        .sort(
-          (a, b) =>
-            b.relationships[type].meta.count - a.relationships[type].meta.count
-        )
-        .slice(0, 4)
-        .map(
-          category =>
-            `${category.relationships[type].meta.count} ${category.attributes.name}`
-        );
-      if (this.group.categories.length > 4) {
-        items.push(this.$t("andMoreCategories").toString());
-      }
-      return items;
     },
     toggleDescription():void {
       this.isDescriptionOpen = !this.isDescriptionOpen
