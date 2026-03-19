@@ -226,8 +226,8 @@ export default defineComponent({
       return this.center
     },
     memberMarkers(): LatLngExpression[] {
-      return this.group?.members?.map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
-        .filter(Boolean) || [];
+      return (this.group?.members ?? []).map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
+        .filter(Boolean) as LatLngExpression[];
     },
     isLoading(): boolean {
       return !(this.ready || this.group && this.group.contacts);
