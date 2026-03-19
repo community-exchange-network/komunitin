@@ -88,7 +88,7 @@ export interface ProcessedItem {
   title?: string;
   description: string;
   image?: string;
-  type: 'offer' | 'need';
+  type: 'offers' | 'needs';
   author: {
     name: string;
     image?: string;

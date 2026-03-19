@@ -24,8 +24,8 @@ const mapItemToTemplateItem = (item: ProcessedItem, t: TFunction): NewsletterTem
   description: truncateText(item.description || '', 80),
   authorDisplayName: item.author?.name ?? '',
   distanceLabel: formatDistanceLabel(item.distance),
-  typeLabel: item.type === 'offer' ? t('offer') : t('need'),
-  accentColor: item.type === 'offer' ? '#2f7989' : '#9d3130',
+  typeLabel: item.type === 'offers' ? t('offer') : t('need'),
+  accentColor: item.type === 'offers' ? '#2f7989' : '#9d3130',
   showAuthor: true,
 });
 
