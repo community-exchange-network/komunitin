@@ -7,8 +7,6 @@
     "all_offers": "toutes les offres",
     "needs_header": "🙋 Pouvez-vous aider pour cela ?",
     "all_needs": "tous les besoins",
-    "section_offer": "OFFRE",
-    "section_need": "BESOIN",
     "user_placeholder": "👤 {{name}}",
     "cta_main": "DÉCOUVREZ LES DERNIÈRES OFFRES ET BESOINS",
     "cta_secondary": "Vous avez un produit ou une compétence à offrir ? Publiez une offre",
@@ -176,6 +174,16 @@
     "group_activated_label": "Communauté activée",
     "group_activated_text": "Félicitations ! Votre communauté <strong>{{groupName}}</strong> a été activée et est prête.",
     "group_activated_subtext": "Vous pouvez maintenant vous connecter à <strong>{{appName}}</strong> et configurer les paramètres de la communauté et de la monnaie, y compris les méthodes de transfert autorisées, les limites de crédit et les catégories pour les offres et les besoins. Ensuite, invitez des membres et commencez à échanger. Bonne chance pour faire grandir votre communauté !",
-    "group_activated_cta": "Configurer votre communauté"
+    "group_activated_cta": "Configurer votre communauté",
+
+    "expired_posts_subject": "Votre {{type}} a expiré {{time, relativetime}}",
+    "expired_posts_label": "Publication expirée",
+    "expired_posts_text": "Votre {{type}} \"{{title}}\" n'est plus visible parce qu'elle a expiré {{time, relativetime}}. Si elle est encore valable, vous pouvez simplement prolonger sa date d'expiration ou en profiter pour la mettre à jour. Si elle n'est plus disponible, vous pouvez la masquer ou la supprimer complètement pour ne plus recevoir de rappels.",
+    "expired_posts_other_text": "Vous avez aussi {{count}} autres publications expirées à revoir.",
+    "expired_posts_cta": "Modifier votre {{type}}",
+    "expired_posts_cta_secondary": "Voir vos {{type}}",
+    "expired_posts_postscript": "Tenir vos publications à jour est vital pour le bon fonctionnement de la communauté. Merci pour votre collaboration !",
+    "expired_posts_more_title": "Autres publications expirées",
+    "expired_posts_expired_ago": "Expiré {{time, relativetime}}"
   }
 }

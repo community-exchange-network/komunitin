@@ -14,12 +14,30 @@ export interface NewsletterTemplateAlert {
   type: string;
 }
 
-export interface NewsletterTemplateItem extends ProcessedItem {
-  title: string;
+/**
+ * Type for the post card template (shared with notification emails).
+ */
+export interface TemplatePostItem {
+  title?: string;
+  image?: string;
   description: string;
-  authorDisplayName: string;
+  link?: string;
+  typeLabel: string;
+  accentColor: string;
+  showAuthor?: boolean;
+  author?: {
+    name: string;
+    image?: string;
+  };
+  authorDisplayName?: string;
   distanceLabel?: string;
+  expiryLabel?: string;
 }
+
+// For newsletter use, we require some fields to be defined.
+export type NewsletterTemplateItem = TemplatePostItem 
+  & Pick<Required<TemplatePostItem>, 'link' | 'author' | 'authorDisplayName'>
+  & { showAuthor: true };
 
 export interface NewsletterTemplateGroup {
   name: string;
@@ -70,6 +88,7 @@ export interface ProcessedItem {
   title?: string;
   description: string;
   image?: string;
+  type: 'offer' | 'need';
   author: {
     name: string;
     image?: string;

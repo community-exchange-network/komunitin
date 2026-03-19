@@ -2,7 +2,8 @@ import assert from 'node:assert'
 import { describe, it, before, beforeEach, afterEach } from 'node:test'
 import { createOffer, createNeed, getUserIdForMember, db } from '../../mocks/db'
 import { mockDate, restoreDate } from '../../mocks/date'
-import { setupNotificationsTest, verifyNotification } from './utils'
+import { daysAgo, hoursAgo, setupNotificationsTest, verifyNotification } from './utils'
+import { da } from '@faker-js/faker'
 
 const { appNotifications, syntheticQueue: queue } = setupNotificationsTest({
   useAppChannel: true,
@@ -12,6 +13,7 @@ const { appNotifications, syntheticQueue: queue } = setupNotificationsTest({
 describe('Member has expired posts (synthetic cron)', () => {
   let runPostExpirationCron: () => Promise<void>;
   let runNotifyMemberHasExpiredPosts: (data: any) => Promise<void>;
+  let runNotifyMemberHasExpiredPostsRecently: (data: any) => Promise<void>;
 
   before(async () => {
     const { initPostEvents } = await import('../synthetic/post')
@@ -19,6 +21,7 @@ describe('Member has expired posts (synthetic cron)', () => {
 
     runPostExpirationCron = postHandlers['post-expiration-cron'];
     runNotifyMemberHasExpiredPosts = postHandlers['notify-member-has-expired-posts'];
+    runNotifyMemberHasExpiredPostsRecently = postHandlers['notify-member-has-expired-posts-recently'];
 
   })
 
@@ -34,7 +37,6 @@ describe('Member has expired posts (synthetic cron)', () => {
     const groupCode = 'GRP1'
 
     const DAY = 24 * 60 * 60 * 1000
-    const now = Date.now()
 
     const offer = createOffer({
       groupCode,
@@ -42,8 +44,8 @@ describe('Member has expired posts (synthetic cron)', () => {
       code: 'OFFEREXPRD',
       attributes: {
         name: 'Old expired offer',
-        created: new Date(now - 40 * DAY).toISOString(),
-        expires: new Date(now - 1 * DAY).toISOString(),
+        created: daysAgo(40),
+        expires: daysAgo(1),
       },
     })
 
@@ -56,10 +58,15 @@ describe('Member has expired posts (synthetic cron)', () => {
     // Expired 1 day ago => reminder should be delayed until the 7-day boundary => 6 days
     const jobId = `member-has-expired-posts-${memberId}`
     const job = await queue.getJob(jobId)
+    const recentJobId = `member-has-expired-posts-recently-${memberId}`
+    const recentJob = await queue.getJob(recentJobId)
 
     assert.ok(job, 'Expected the expired-posts job to be queued')
     assert.equal(job.name, 'notify-member-has-expired-posts')
     assert.equal(job.opts.delay, 6 * DAY)
+    assert.ok(recentJob, 'Expected the recently-expired-posts job to be queued')
+    assert.equal(recentJob.name, 'notify-member-has-expired-posts-recently')
+    assert.equal(recentJob.opts.delay, 0)
 
     // 2) Process the job and verify notification via HTTP endpoint
     await runNotifyMemberHasExpiredPosts({ data: job.data } )
@@ -76,12 +83,51 @@ describe('Member has expired posts (synthetic cron)', () => {
     await runPostExpirationCron()
 
     const jobAfter = await queue.getJob(jobId)
+    const recentJobAfter = await queue.getJob(recentJobId)
     assert.ok(jobAfter, 'Expected the expired-posts job to still exist after rescheduling')
+    assert.ok(recentJobAfter, 'Expected the recently-expired-posts job to still exist after rescheduling')
     assert.equal(jobAfter.opts.delay, 6 * DAY)
+    assert.equal(recentJobAfter.opts.delay, 0)
 
     // Because this job is scheduled with replace=true, the second run removes and re-adds it.
-    assert.equal(queue.add.mock.callCount(), 2)
+    assert.equal(queue.add.mock.callCount(), 4)
     assert.equal(appNotifications.length, 1)
+  })
+
+  it('schedules a 24h recently-expired event and does not create in-app notifications for that event', async () => {
+    const groupCode = 'GRP1'
+    const DAY = 24 * 60 * 60 * 1000
+    
+    const offer = createOffer({
+      groupCode,
+      id: 'offer-expired-12h-ago',
+      code: 'OFFERRECENT',
+      attributes: {
+        name: 'Recent expired offer',
+        created: daysAgo(30),
+        expires: hoursAgo(12),
+      },
+    })
+
+    const memberId = offer.relationships.member.data.id
+    const recentJobId = `member-has-expired-posts-recently-${memberId}`
+    const regularJobId = `member-has-expired-posts-${memberId}`
+
+    await runPostExpirationCron()
+
+    const recentJob = await queue.getJob(recentJobId)
+    const regularJob = await queue.getJob(regularJobId)
+
+    assert.ok(recentJob, 'Expected recently-expired job to be queued')
+    assert.equal(recentJob.name, 'notify-member-has-expired-posts-recently')
+    assert.equal(recentJob.opts.delay, 12 * 60 * 60 * 1000)
+
+    assert.ok(regularJob, 'Expected regular expired-posts reminder to also be queued')
+    assert.equal(regularJob.opts.delay, 6.5 * DAY)
+
+    appNotifications.length = 0
+    await runNotifyMemberHasExpiredPostsRecently({ data: recentJob.data })
+    assert.equal(appNotifications.length, 0, 'In-app channel should ignore MemberHasExpiredPostsRecently')
   })
 
   it('ensures a more recent expiration supersedes older ones for the same member', async () => {
@@ -123,8 +169,8 @@ describe('Member has expired posts (synthetic cron)', () => {
       memberId, // Same member
       attributes: {
         name: 'New offer (yesterday)',
-        created: new Date(now - 30 * DAY).toISOString(),
-        expires: new Date(now - 1 * DAY).toISOString(),
+        created: daysAgo(30),
+        expires: hoursAgo(24),
       },
     })
 
@@ -138,8 +184,8 @@ describe('Member has expired posts (synthetic cron)', () => {
     assert.equal(job2.opts.delay, 6 * DAY)
     assert.equal(job2.data.id, newOffer.id, 'Expected the job to be related to the new offer')
 
-    // Ensure only one job exists in the mock storage (idempotency/replacement)
-    assert.equal(queue.add.mock.callCount(), 2, 'Should have called add twice (once for each cron run)')
+    // First run queues only the regular reminder. Second run queues regular + recently-expired.
+    assert.equal(queue.add.mock.callCount(), 3, 'Should have called add three times across both runs')
   })
 
   it('updates notification text as more expired posts (offers and needs) are added', async () => {
@@ -168,7 +214,7 @@ describe('Member has expired posts (synthetic cron)', () => {
       code: 'NEED1',
       attributes: {
         content: 'Need 1 content',
-        expires: new Date(now - 1 * DAY - 1000).toISOString(),
+        expires: daysAgo(1),
       },
     })
     const memberId = need1.relationships.member.data.id
@@ -183,7 +229,7 @@ describe('Member has expired posts (synthetic cron)', () => {
 
     // SCENARIO 2: An expired offer (featured, 1 day ago) + 1 expired need (older, 2 days ago)
     // Make need1 older
-    db.needs.find((n: any) => n.id === 'need-1').attributes.expires = new Date(now - 2 * DAY).toISOString()
+    db.needs.find((n: any) => n.id === 'need-1').attributes.expires = daysAgo(2)
     // Add a more recent offer
     createOffer({
       groupCode,
@@ -210,8 +256,8 @@ describe('Member has expired posts (synthetic cron)', () => {
     // Total: 5 items. 4 "more".
 
     // Refresh existing:
-    db.needs.find((n: any) => n.id === 'need-1').attributes.expires = new Date(now - 2 * DAY).toISOString()
-    db.offers.find((o: any) => o.id === 'offer-1').attributes.expires = new Date(now - 5 * DAY).toISOString()
+    db.needs.find((n: any) => n.id === 'need-1').attributes.expires = daysAgo(2)
+    db.offers.find((o: any) => o.id === 'offer-1').attributes.expires = daysAgo(5)
 
     // Add new ones:
     createNeed({
@@ -221,11 +267,11 @@ describe('Member has expired posts (synthetic cron)', () => {
       memberId,
       attributes: {
         content: 'Need Featured content',
-        expires: new Date(now - 1 * DAY).toISOString(), // Most recent
+        expires: daysAgo(1), // Most recent
       },
     })
     // Move Offer 1 to be older than Need Featured
-    db.offers.find((o: any) => o.id === 'offer-1').attributes.expires = new Date(now - 1 * DAY - 1000).toISOString()
+    db.offers.find((o: any) => o.id === 'offer-1').attributes.expires = hoursAgo(25)
 
     createNeed({
       groupCode,
@@ -234,7 +280,7 @@ describe('Member has expired posts (synthetic cron)', () => {
       memberId,
       attributes: {
         content: 'Need 2 content',
-        expires: new Date(now - 3 * DAY).toISOString(),
+        expires: daysAgo(3),
       },
     })
     createOffer({
@@ -244,7 +290,7 @@ describe('Member has expired posts (synthetic cron)', () => {
       memberId,
       attributes: {
         name: 'Offer 2',
-        expires: new Date(now - 4 * DAY).toISOString(),
+        expires: daysAgo(4),
       },
     })
 

@@ -1,4 +1,4 @@
-import { NewsletterTemplateGroup } from "../../newsletter/types";
+import { NewsletterTemplateGroup, TemplatePostItem } from "../../newsletter/types";
 import { TemplateContext } from "../../utils/email-template";
 
 export interface TransferTemplateMember {
@@ -48,13 +48,11 @@ export interface EmailTemplateContext extends TemplateContext {
     main: {
       text: string;
       url: string;
+    },
+    secondary?: {
+      text: string;
+      url: string;
     }
-  },
-  // transfer card (optional)
-  transfer?: TransferTemplateContext;
-  // balance line (optional, shown after CTA)
-  balanceLine?: {
-    html: string;
   };
   // postscript
   postscript?: string;
@@ -63,4 +61,16 @@ export interface EmailTemplateContext extends TemplateContext {
   settingsLabel?: string;
   unsubscribeLabel?: string;
   unsubscribeUrl?: string;
+}
+
+export interface TransferEmailTemplateContext extends EmailTemplateContext {
+  transfer: TransferTemplateContext;
+  balanceLine: string;
+}
+
+
+export interface PostEmailTemplateContext extends EmailTemplateContext {
+  featuredPost: TemplatePostItem;
+  otherPosts?: TemplatePostItem[];
+  otherPostsTitle?: string;
 }

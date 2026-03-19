@@ -25,6 +25,7 @@ const SCHEDULER_NAME_POST_EXPIRATION_CRON = 'scheduler-post-expirations-cron';
 
 const JOB_NAME_NOTIFY_POST_EXPIRES_SOON = 'notify-post-expires-soon';
 const JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS = 'notify-member-has-expired-posts';
+const JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS_RECENTLY = 'notify-member-has-expired-posts-recently';
 
 
 // Data in the job queue for notifying about post expiry
@@ -50,7 +51,29 @@ const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpi
     const DAY = 24 * 60 * 60 * 1000;
 
     const timeSinceExpiry = now - expiryTime;
+    const jobData = {
+      code: groupCode,
+      type: info.type,
+      id: info.id,
+      memberId,
+    }
 
+    // Schedule 24-hour reminder (for email channel)
+    if (timeSinceExpiry <= DAY) {
+      const delay24h = Math.max(0, DAY - timeSinceExpiry);
+      await queueJob<NotifyExpiryData>(
+        queue,
+        JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS_RECENTLY,
+        `member-has-expired-posts-recently-${memberId}`,
+        jobData,
+        {
+          replace: true,
+          delay: delay24h,
+        }
+      );
+    }
+
+    // Schedule 7-day, 30-day, and then every 90-day reminder (for in-app and push channels)
     let delay = 0;
 
     if (timeSinceExpiry < 7 * DAY) {
@@ -72,12 +95,7 @@ const processMemberExpiries = async (queue: Queue, groupCode: string, memberExpi
         queue,
         JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS,
         `member-has-expired-posts-${memberId}`,
-        {
-          code: groupCode,
-          type: info.type,
-          id: info.id,
-          memberId,
-        },
+        jobData,
         {
           replace: true,
           delay
@@ -208,6 +226,18 @@ const handleNotifyMemberHasExpiredPosts = async (job: Job<NotifyExpiryData>) => 
   });
 };
 
+const handleNotifyMemberHasExpiredPostsRecently = async (job: Job<NotifyExpiryData>) => {
+  const { code, memberId } = job.data;
+
+  await dispatchSyntheticEvent({
+    name: EVENT_NAME.MemberHasExpiredPostsRecently,
+    code,
+    data: {
+      member: memberId
+    }
+  });
+};
+
 const schedulePostExpirationCheck = async (queue: Queue) => {
   await queue.upsertJobScheduler(
     SCHEDULER_NAME_POST_EXPIRATION_CRON,
@@ -236,6 +266,7 @@ export const initPostEvents = (queue: Queue) => {
       [JOB_NAME_POST_EXPIRATION_CRON]: () => handleCheckExpiringJob(queue),
       [JOB_NAME_NOTIFY_POST_EXPIRES_SOON]: (job: Job<NotifyExpiryData>) => handleNotifyPostExpiresSoon(job),
       [JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS]: (job: Job<NotifyExpiryData>) => handleNotifyMemberHasExpiredPosts(job),
+      [JOB_NAME_NOTIFY_MEMBER_HAS_EXPIRED_POSTS_RECENTLY]: (job: Job<NotifyExpiryData>) => handleNotifyMemberHasExpiredPostsRecently(job),
     },
     stop: async () => {
       await stopPostExpirationCheck(queue);

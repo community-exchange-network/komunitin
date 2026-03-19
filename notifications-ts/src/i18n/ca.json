@@ -7,8 +7,6 @@
     "all_offers": "totes les ofertes",
     "needs_header": "🙋 Pots ajudar amb això?",
     "all_needs": "totes les necessitats",
-    "section_offer": "OFERTA",
-    "section_need": "NECESSITAT",
     "user_placeholder": "👤 {{name}}",
     "cta_main": "EXPLORA LES ÚLTIMES OFERTES I NECESSITATS",
     "cta_secondary": "Tens alguna cosa o habilitat per oferir? Publica una oferta",
@@ -48,7 +46,9 @@
     "unsubscribe": "Donar-se de baixa del butlletí"
   },
   "offer": "Oferta",
+  "offers": "Ofertes",
   "need": "Necessitat",
+  "needs": "Necessitats",
   "app_name": "Komunitin",
   "notifications": {
     "post_expired_title": "{{type}} caducada",
@@ -176,6 +176,16 @@
     "group_activated_label": "Comunitat activada",
     "group_activated_text": "Felicitats! La vostra comunitat <strong>{{groupName}}</strong> ha estat activada i ja està a punt.",
     "group_activated_subtext": "Ara podeu iniciar sessió a <strong>{{appName}}</strong> i configurar els paràmetres de la comunitat i la moneda, incloent els mètodes de transferència permesos, els límits de crèdit i les categories per a ofertes i necessitats. Després, convideu membres i comenceu a intercanviar. Bona sort fent créixer la vostra comunitat!",
-    "group_activated_cta": "Configura la teva comunitat"
+    "group_activated_cta": "Configura la teva comunitat",
+
+    "expired_posts_subject": "La teva {{type}} va caducar {{time, relativetime}}",
+    "expired_posts_label": "{{type}} caducada",
+    "expired_posts_text": "La teva {{type}} \"{{title}}\" ja no és visible perquè va caducar {{time, relativetime}}. Si encara és vigent pots simplement allargar la data de caducitat o aprofitar per posar-la al dia. Si ja no està disponible, pots amagar-la o esborrar-la completament per deixar de rebre recordatoris.",
+    "expired_posts_other_text": "També tens {{count}} publicacions caducades més per revisar.",
+    "expired_posts_cta": "Edita la teva {{type}}",
+    "expired_posts_cta_secondary": "Ves a les teves {{type}}",
+    "expired_posts_postscript": "Mantenir les teves publicacions al dia és vital pel bon funcionament de la comunitat. Gràcies per la teva col·laboració!",
+    "expired_posts_more_title": "Altres publicacions caducades",
+    "expired_posts_expired_ago": "Caducada {{time, relativetime}}"
   }
 }
