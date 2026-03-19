@@ -199,9 +199,6 @@ export default defineComponent({
     const ready = ref(false);
     const isDescriptionOpen = ref(false);
     return {
-      link(link: string): string {
-        return link.replace(/(https|http):\/\//, "");
-      },
       md2html,
       ready,
       isDescriptionOpen,
@@ -216,7 +213,7 @@ export default defineComponent({
     isLoggedIn(): boolean {
       return this.$store.getters.isLoggedIn
     },
-    group(): Group & { contacts: Contact[]; categories: Category[]; currency: Currency; members? : Member[] } {
+    group(): Group & { contacts: Contact[]; categories: Category[]; currency: Currency; members?: Member[] } {
       return this.$store.getters["groups/current"];
     },
     currency(): Currency {
