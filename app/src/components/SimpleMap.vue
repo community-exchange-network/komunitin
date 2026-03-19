@@ -28,6 +28,9 @@ import { useLeafletSettings } from "../composables/leaflet";
 const props = withDefaults(defineProps<{
   center: [number, number],
   zoom?: number
+  // bounds prop is directly forwarded to LMap. You can directly pass the list of points you need to be
+  visible and it will compute the bounding box. Note however that this prop requires the coordinates 
+  in reversed order (lat, lng) compared to marker and center (lng, lat).
   bounds?: LatLngBounds|LatLngExpression[],
   marker?: [number, number],
   interactive?: boolean
