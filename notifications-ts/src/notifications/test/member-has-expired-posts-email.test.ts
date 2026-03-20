@@ -1,12 +1,28 @@
 import assert from 'node:assert'
-import { afterEach, describe, it } from 'node:test'
+import { afterEach, before, describe, it } from 'node:test'
 import { mockDate, restoreDate } from '../../mocks/date'
-import { createNeed, createOffer, getUserIdForMember } from '../../mocks/db'
+import { createNeed, createOffer, db, getUserIdForMember } from '../../mocks/db'
 import { createEvent, daysAgo, setupNotificationsTest } from './utils'
 
-const { put, email, appNotifications } = setupNotificationsTest({ useWorker: true })
+const { put, email, appNotifications, syntheticQueue: queue } = setupNotificationsTest({
+  useWorker: true,
+  useSyntheticQueue: true,
+})
 
 describe('MemberHasExpiredPostsRecently email notifications', () => {
+  let runPostExpirationCron: () => Promise<void>
+  let runNotifyMemberHasExpiredPosts: (data: { data: any }) => Promise<void>
+  let runNotifyMemberHasExpiredPostsRecently: (data: { data: any }) => Promise<void>
+
+  before(async () => {
+    const { initPostEvents } = await import('../synthetic/post')
+    const { handlers: postHandlers } = initPostEvents(queue as any)
+
+    runPostExpirationCron = postHandlers['post-expiration-cron']
+    runNotifyMemberHasExpiredPosts = postHandlers['notify-member-has-expired-posts']
+    runNotifyMemberHasExpiredPostsRecently = postHandlers['notify-member-has-expired-posts-recently']
+  })
+
   afterEach(() => {
     restoreDate()
   })
@@ -126,5 +142,47 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
     await put(event)
 
     assert.equal(email.sentEmails.length, 0)
+  })
+
+  it('does not send notifications if offer expiry is extended before synthetic events are processed', async () => {
+    mockDate('2026-01-13T00:00:00.000Z')
+    const groupCode = 'GRP1'
+    const DAY = 24 * 60 * 60 * 1000
+
+    const offer = createOffer({
+      groupCode,
+      id: 'offer-expired-extended-before-send',
+      code: 'OFFEXTENDED',
+      attributes: {
+        name: 'Soon-to-be-extended offer',
+        created: daysAgo(5),
+        expires: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+      },
+    })
+
+    const memberId = offer.relationships.member.data.id
+
+    await runPostExpirationCron()
+
+    const recentJobId = `member-has-expired-posts-recently-${memberId}`
+    const regularJobId = `member-has-expired-posts-${memberId}`
+    const recentJob = await queue.getJob(recentJobId)
+    const regularJob = await queue.getJob(regularJobId)
+
+    assert.ok(recentJob, 'Expected MemberHasExpiredPostsRecently synthetic job to be queued')
+    assert.ok(regularJob, 'Expected MemberHasExpiredPosts synthetic job to be queued')
+    assert.equal(recentJob.opts.delay, 12 * 60 * 60 * 1000)
+    assert.equal(regularJob.opts.delay, 6.5 * DAY)
+
+    // Member extends the offer before the synthetic jobs fire.
+    const dbOffer = db.offers.find((o: any) => o.id === offer.id)
+    assert.ok(dbOffer)
+    dbOffer.attributes.expires = new Date(Date.now() + 7 * DAY).toISOString()
+
+    await runNotifyMemberHasExpiredPostsRecently({ data: recentJob.data })
+    await runNotifyMemberHasExpiredPosts({ data: regularJob.data })
+
+    assert.equal(email.sentEmails.length, 0)
+    assert.equal(appNotifications.length, 0)
   })
 })
