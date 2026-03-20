@@ -3,6 +3,8 @@ import { afterEach, before, describe, it } from 'node:test'
 import { mockDate, restoreDate } from '../../mocks/date'
 import { createNeed, createOffer, db, getUserIdForMember } from '../../mocks/db'
 import { createEvent, daysAgo, setupNotificationsTest } from './utils'
+import { NotifyExpiryData } from '../synthetic/post'
+import { Job } from 'bullmq/dist/esm/classes/job'
 
 const { put, email, appNotifications, syntheticQueue: queue } = setupNotificationsTest({
   useWorker: true,
@@ -11,8 +13,8 @@ const { put, email, appNotifications, syntheticQueue: queue } = setupNotificatio
 
 describe('MemberHasExpiredPostsRecently email notifications', () => {
   let runPostExpirationCron: () => Promise<void>
-  let runNotifyMemberHasExpiredPosts: (data: { data: any }) => Promise<void>
-  let runNotifyMemberHasExpiredPostsRecently: (data: { data: any }) => Promise<void>
+  let runNotifyMemberHasExpiredPosts: (job: Job<NotifyExpiryData>) => Promise<void>
+  let runNotifyMemberHasExpiredPostsRecently: (job: Job<NotifyExpiryData>) => Promise<void>
 
   before(async () => {
     const { initPostEvents } = await import('../synthetic/post')
@@ -179,8 +181,8 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
     assert.ok(dbOffer)
     dbOffer.attributes.expires = new Date(Date.now() + 7 * DAY).toISOString()
 
-    await runNotifyMemberHasExpiredPostsRecently({ data: recentJob.data })
-    await runNotifyMemberHasExpiredPosts({ data: regularJob.data })
+    await runNotifyMemberHasExpiredPostsRecently(recentJob)
+    await runNotifyMemberHasExpiredPosts(regularJob)
 
     assert.equal(email.sentEmails.length, 0)
     assert.equal(appNotifications.length, 0)
