@@ -6,6 +6,16 @@ To deploy Komunitin in production you need a linux server with:
  - Docker and Docker Compose installed.
  - Git installed.
  - [`jq`](https://jqlang.org/) CLI util installed (only required if adding demo data).
+ 
+ **Note**: To ensure docker containers shut down gracefully during system shutdown make sure you have the following line, under [Service] section, in docker service file, usually found at /lib/systemd/system/docker.service.
+
+ExecStop=/usr/bin/docker stop $(/usr/bin/docker ps -q)
+
+After making changes, reload the systemd configuration by executing
+"sudo systemctl daemon-reload"
+
+Also ensure your application inside the container can handle the SIGTERM signal. 
+
 
 There are no specified minimum hardware requirements, but a minimal VPS server has proven to work as a starting point (eg: 1CPU, 2GB RAM, 20GB HDD).
 
