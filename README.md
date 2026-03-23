@@ -25,15 +25,6 @@ Before starting, be sure you have
  - [docker](https://docs.docker.com/engine/install/)
  - the cli util [jq](https://jqlang.org/) installed. 
 
-**Note**: To ensure docker containers shut down gracefully during system shutdown make sure you have the following line, under [Service] section, in docker service file, usually found at /lib/systemd/system/docker.service.
-
-ExecStop=/usr/bin/docker stop $(/usr/bin/docker ps -q)
-
-After making changes, reload the systemd configuration by executing
-"sudo systemctl daemon-reload"
-
-Also ensure your application inside the container can handle the SIGTERM signal. 
-
 You need the peer dependency IntegralCES. Clone it in the same parent folder as Komunitin.
 
 ```bash
