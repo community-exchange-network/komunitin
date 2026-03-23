@@ -174,19 +174,21 @@ export const ctxMemberExpiredPostsEmail = (
     subject: t('emails.expired_posts_subject', {
       type: featuredType,
       time,
-      range,
-      count: expiredPosts.length,
-      countMore: expiredPosts.length - 1,
+      range
     }),
     label: {
       icon: '⏰',
       iconBg: '#FFF3E0',
-      text: t('emails.expired_posts_label'),
+      text: t('emails.expired_posts_label', {
+        type: featuredType
+      }),
     },
     greeting: t('emails.hello_name', { name: event.member.attributes.name }),
     paragraphs: [
       t('emails.expired_posts_text', {
         type: featuredType.toLocaleLowerCase(ctx.locale),
+        time,
+        range,
         title: excerptPost(featuredPost),
       }),
       ...(otherPosts.length > 0
@@ -195,12 +197,12 @@ export const ctxMemberExpiredPostsEmail = (
     ],
     cta: {
       main: {
-        text: t('emails.expired_posts_cta'),
+        text: t('emails.expired_posts_cta', { type: featuredType }),
         url: `${common.appUrl}/groups/${event.code}/${featuredPost.type}/${featuredPost.attributes.code}/edit` 
       },
       secondary: {
         text: t('emails.expired_posts_cta_secondary', { type: featuredTypePlural }),
-        url: `${common.appUrl}/groups/${event.code}/${featuredPost.type}`
+        url: `${common.appUrl}/groups/${event.code}/members/${event.member.attributes.code}#${featuredPost.type}`
       }
     },
     postscript: t('emails.expired_posts_postscript'),
