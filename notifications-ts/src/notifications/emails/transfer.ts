@@ -3,7 +3,7 @@ import { formatAmount, formatDate } from "../../utils/format";
 import { EnrichedTransferEvent } from "../enriched-events";
 import { type MessageContext } from "../messages";
 import { getTransferPartyGroupName, getTransferPartyName, isExternalTransfer, isExternalTransferSide } from "../messages/transfer-members";
-import { EmailTemplateContext, TransferTemplateContext, TransferTemplateMember } from "./types";
+import { TransferEmailTemplateContext, TransferTemplateContext, TransferTemplateMember } from "./types";
 import { ctxCommon } from "./utils";
 
 // -- Colors matching the web app --
@@ -123,13 +123,13 @@ const buildBalanceLine = (
   balance: number,
   currency: EnrichedTransferEvent['currency'],
   ctx: MessageContext,
-): { html: string } => {
+): string  => {
   const { t, locale } = ctx;
   const formatted = formatAmount(balance, currency, locale);
   const color = balance >= 0 ? POSITIVE_AMOUNT_COLOR : NEGATIVE_AMOUNT_COLOR;
   const coloredAmount = `<span style="color: ${color};">${formatted}</span>`;
   const html = t('emails.current_balance', { balance: coloredAmount, interpolation: { escapeValue: false } });
-  return { html };
+  return html;
 };
 
 // -- Context builders for 4 transfer email scenarios --
@@ -140,7 +140,7 @@ const buildBalanceLine = (
 export const ctxTransferSent = (
   event: EnrichedTransferEvent,
   ctx: MessageContext,
-): EmailTemplateContext => {
+): TransferEmailTemplateContext => {
   const { t, locale } = ctx;
   const common = ctxCommon(event, ctx);
   const { transfer, currency, payer, code } = event;
@@ -170,7 +170,7 @@ export const ctxTransferSent = (
 export const ctxTransferReceived = (
   event: EnrichedTransferEvent,
   ctx: MessageContext,
-): EmailTemplateContext => {
+): TransferEmailTemplateContext => {
   const { t, locale } = ctx;
   const common = ctxCommon(event, ctx);
   const { transfer, currency, payee, code } = event;
@@ -200,7 +200,7 @@ export const ctxTransferReceived = (
 export const ctxTransferPending = (
   event: EnrichedTransferEvent,
   ctx: MessageContext,
-): EmailTemplateContext | null => {
+): TransferEmailTemplateContext | null => {
   const { t, locale } = ctx;
   const common = ctxCommon(event, ctx);
   const { transfer, currency, payer, payee, code } = event;
@@ -237,7 +237,7 @@ export const ctxTransferPending = (
 export const ctxTransferRejected = (
   event: EnrichedTransferEvent,
   ctx: MessageContext,
-): EmailTemplateContext => {
+): TransferEmailTemplateContext => {
   const { t, locale } = ctx;
   const common = ctxCommon(event, ctx);
   const { transfer, currency, payer, payee, code } = event;

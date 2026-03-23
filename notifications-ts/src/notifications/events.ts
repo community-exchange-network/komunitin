@@ -8,6 +8,7 @@ export const EVENT_NAME = {
   OfferExpired: 'OfferExpired',
   PostExpiresSoon: 'PostExpiresSoon',
   MemberHasExpiredPosts: 'MemberHasExpiredPosts',
+  MemberHasExpiredPostsRecently: 'MemberHasExpiredPostsRecently',
   MemberJoined: 'MemberJoined',
   MemberRequested: 'MemberRequested',
   GroupRequested: 'GroupRequested',
@@ -65,6 +66,7 @@ export type MemberEvent = NotificationEvent & {
     | typeof EVENT_NAME.MemberJoined 
     | typeof EVENT_NAME.MemberRequested 
     | typeof EVENT_NAME.MemberHasExpiredPosts
+    | typeof EVENT_NAME.MemberHasExpiredPostsRecently
   data: {
     member: string; // member id
   };

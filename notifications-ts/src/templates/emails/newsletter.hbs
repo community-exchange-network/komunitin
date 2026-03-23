@@ -32,37 +32,8 @@
     <table width="100%" border="0" cellspacing="0" cellpadding="0">
       <tr>
         {{#each bestOffers}}
-        <td class="column" width="32%"
-          style="border: 1px solid #e8e8e8; border-radius: 8px; vertical-align: top; background-color: #ffffff; overflow: hidden;">
-          <a href="{{link}}" style="display: block; text-decoration: none; color: inherit;">
-            {{#if image}}
-            <img class="card-image" src="{{image}}" alt="{{title}}" width="100%" height="120"
-              style="display: block; border-radius: 8px 8px 0 0;" aria-hidden="true">
-            {{/if}}
-            <div style="padding: 14px;">
-              <div
-                style="color: #2f7989; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase;">
-                {{t "newsletter.section_offer"}}
-              </div>
-              <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #333; font-weight: 600; line-height: 1.3;">{{title}}
-              </h4>
-              <p style="margin: 0; font-size: 13px; color: #666; line-height: 1.5;">{{description}}</p>
-              <div style="margin-top: 10px; font-size: 12px; color: #999;">
-                {{#if author.image}}
-                <img src="{{author.image}}" width="16" height="16"
-                  style="border-radius: 50%; vertical-align: middle; margin-right: 4px;" aria-hidden="true">
-                {{else}}
-                <span style="font-size: 14px; vertical-align: middle; margin-right: 2px;" aria-hidden="true">👤</span>
-                {{/if}}
-                <span style="vertical-align: middle;">{{authorDisplayName}}</span>
-                {{#if distanceLabel}}
-                <span style="vertical-align: middle; margin: 0 3px;">·</span>
-                <span style="font-size: 14px; vertical-align: middle; color: #e53935;" aria-hidden="true">📍</span> <span
-                  style="vertical-align: middle;">{{distanceLabel}}</span>
-                {{/if}}
-              </div>
-            </div>
-          </a>
+        <td class="column" width="32%" style="vertical-align: top;">
+          {{> post-item-card this}}
         </td>
         {{#unless @last}}<td class="spacer" width="2%">&nbsp;</td>{{/unless}}
         {{/each}}
@@ -91,37 +62,8 @@
     <table width="100%" border="0" cellspacing="0" cellpadding="0">
       <tr>
         {{#each bestNeeds}}
-        <td class="column" width="32%"
-          style="border: 1px solid #e8e8e8; border-radius: 8px; vertical-align: top; background-color: #ffffff; overflow: hidden;">
-          <a href="{{link}}" style="display: block; text-decoration: none; color: inherit;">
-            {{#if image}}
-            <img class="card-image" src="{{image}}" alt="{{title}}" width="100%" height="120"
-              style="display: block; border-radius: 8px 8px 0 0;" aria-hidden="true">
-            {{/if}}
-            <div style="padding: 14px;">
-              <div
-                style="color: #9d3130; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase;">
-                {{t "newsletter.section_need"}}
-              </div>
-              <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #333; font-weight: 600; line-height: 1.3;">{{title}}
-              </h4>
-              <p style="margin: 0; font-size: 13px; color: #666; line-height: 1.5;">{{description}}</p>
-              <div style="margin-top: 10px; font-size: 12px; color: #999;">
-                {{#if author.image}}
-                <img src="{{author.image}}" width="16" height="16"
-                  style="border-radius: 50%; vertical-align: middle; margin-right: 4px;" aria-hidden="true">
-                {{else}}
-                <span style="font-size: 14px; vertical-align: middle; margin-right: 2px;" aria-hidden="true">👤</span>
-                {{/if}}
-                <span style="vertical-align: middle;">{{authorDisplayName}}</span>
-                {{#if distanceLabel}}
-                <span style="vertical-align: middle; margin: 0 3px;">·</span>
-                <span style="font-size: 14px; vertical-align: middle; color: #e53935;" aria-hidden="true">📍</span> <span
-                  style="vertical-align: middle;">{{distanceLabel}}</span>
-                {{/if}}
-              </div>
-            </div>
-          </a>
+        <td class="column" width="32%" style="vertical-align: top;">
+          {{> post-item-card this}}
         </td>
         {{#unless @last}}<td class="spacer" width="2%">&nbsp;</td>{{/unless}}
         {{/each}}

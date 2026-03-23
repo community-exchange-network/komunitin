@@ -1,0 +1,55 @@
+{{#if link}}
+<a href="{{link}}" style="display: block; text-decoration: none; color: inherit;">
+{{/if}}
+<table width="100%" border="0" cellspacing="0" cellpadding="0"
+  style="border: 1px solid #e8e8e8; border-radius: 8px; vertical-align: top; background-color: #ffffff; overflow: hidden;">
+  {{#if image}}
+  <tr>
+    <td>
+      <img class="card-image" src="{{image}}" alt="{{title}}" width="100%" height="{{#if imageHeight}}{{imageHeight}}{{else}}120{{/if}}"
+        style="display: block; border-radius: 8px 8px 0 0; object-fit: cover;" aria-hidden="true">
+    </td>
+  </tr>
+  {{/if}}
+  <tr>
+    <td style="padding: 14px;">
+      <div
+        style="color: {{accentColor}}; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase;">
+        {{typeLabel}}
+      </div>
+      <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #333; font-weight: 600; line-height: 1.3;">{{title}}</h4>
+
+      {{#if description}}
+      <p style="margin: 0; font-size: 13px; color: #666; line-height: 1.5;">{{description}}</p>
+      {{/if}}
+
+      {{#if showAuthor}}
+      <div style="margin-top: 10px; font-size: 12px; color: #999;">
+        {{#if author.image}}
+        <img src="{{author.image}}" width="16" height="16"
+          style="border-radius: 50%; vertical-align: middle; margin-right: 4px;" aria-hidden="true">
+        {{else}}
+        <span style="font-size: 14px; vertical-align: middle; margin-right: 2px;" aria-hidden="true">👤</span>
+        {{/if}}
+        <span style="vertical-align: middle;">{{authorDisplayName}}</span>
+        {{#if distanceLabel}}
+        <span style="vertical-align: middle; margin: 0 3px;">·</span>
+        <span style="font-size: 14px; vertical-align: middle;" aria-hidden="true">📍</span>
+        <span style="vertical-align: middle;">{{distanceLabel}}</span>
+        {{/if}}
+      </div>
+      {{/if}}
+
+      {{#if expiryLabel}}
+      <div style="margin-top: 10px;">
+        <span style="display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; background-color: #fde8e8; color: #c0392b;">
+          {{expiryLabel}}
+        </span>
+      </div>
+      {{/if}}
+    </td>
+  </tr>
+</table>
+{{#if link}}
+</a>
+{{/if}}
