@@ -15,4 +15,4 @@ RUN pnpm prisma generate
 
 RUN pnpm run build
 
-CMD ["pnpm", "start"]
+CMD ["node", "dist/index.mjs"]
