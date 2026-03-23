@@ -1,7 +1,43 @@
-import type { EnrichedMemberEvent, EnrichedMemberRequestedEvent } from "../enriched-events";
+import type { Need, Offer } from "../../clients/komunitin/types";
+import { config } from "../../config";
+import type { TemplatePostItem } from "../../newsletter/types";
+import { getTimeAgoParams } from "../../utils/format";
+import type { EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMemberRequestedEvent } from "../enriched-events";
 import type { MessageContext } from "../messages";
-import type { EmailTemplateContext } from "./types";
+import { excerptPost } from "../messages/post";
+import type { EmailTemplateContext, PostEmailTemplateContext } from "./types";
 import { ctxCommon } from "./utils";
+
+const DAY = 24 * 60 * 60 * 1000;
+
+const isExpired = (post: Offer | Need): boolean => new Date(post.attributes.expires).getTime() <= Date.now();
+
+const getExpiredPosts = (event: EnrichedMemberHasExpiredPostsEvent): Array<Offer | Need> => {
+  const expiredOffers = (event.expiredOffers || []).filter(isExpired);
+  const expiredNeeds = (event.expiredNeeds || []).filter(isExpired);
+  return [...expiredOffers, ...expiredNeeds].sort(
+    (a, b) => new Date(b.attributes.expires).getTime() - new Date(a.attributes.expires).getTime()
+  );
+};
+
+const buildPostTemplateItem = (event: EnrichedMemberHasExpiredPostsEvent, post: Offer | Need, ctx: MessageContext): TemplatePostItem => {
+  const { t } = ctx;
+  const typeLabel = post.type === 'offers' ? t('offer') : t('need');
+  const title = excerptPost(post);
+  const image = post.attributes.images?.[0];
+  const expiresAt = new Date(post.attributes.expires);
+  const { time, range } = getTimeAgoParams(expiresAt);
+
+  return {
+    typeLabel,
+    title,
+    description: post.attributes.content,
+    image,
+    expiryLabel: t('emails.expired_posts_expired_ago', { time, range }),
+    link: `${config.KOMUNITIN_APP_URL}/groups/${event.code}/${post.type}/${post.attributes.code}/edit`,
+    accentColor: post.type === 'offers' ? '#2f7989' : '#9d3130',
+  };
+};
 
 export const ctxMemberRequestedEmail = (event: EnrichedMemberRequestedEvent, ctx: MessageContext): EmailTemplateContext => {
   const { t } = ctx;
@@ -107,3 +143,73 @@ export const ctxWelcomeEmail = (event: EnrichedMemberEvent, ctx: MessageContext)
 
   return data
 }
+
+export const ctxMemberExpiredPostsEmail = (
+  event: EnrichedMemberHasExpiredPostsEvent,
+  ctx: MessageContext
+): PostEmailTemplateContext | null => {
+  const { t } = ctx;
+  const common = ctxCommon(event, ctx);
+
+  const expiredPosts = getExpiredPosts(event);
+  if (expiredPosts.length === 0) {
+    return null;
+  }
+  const featuredPost = expiredPosts[0];
+  // getExpiredPosts already sorts by expiry date desc, so the first one is the last expired post.
+  // Check that one of the triggering posts is already expired (user has not adressed the expiration yet).
+  const lastExpiredAt = new Date(featuredPost.attributes.expires).getTime();
+  const elapsed = Date.now() - lastExpiredAt;
+  if (elapsed > 2 * DAY) {
+    return null;
+  }
+
+  const otherPosts = expiredPosts.slice(1).map(post => buildPostTemplateItem(event, post, ctx));
+  const featuredType = featuredPost.type === 'offers' ? t('offer') : t('need');
+  const { time, range } = getTimeAgoParams(new Date(featuredPost.attributes.expires));
+  const featuredTypePlural = featuredPost.type === 'offers' ? t('offers') : t('needs');
+
+  return {
+    ...common,
+    subject: t('emails.expired_posts_subject', {
+      type: featuredType,
+      time,
+      range
+    }),
+    label: {
+      icon: '⏰',
+      iconBg: '#FFF3E0',
+      text: t('emails.expired_posts_label', {
+        type: featuredType
+      }),
+    },
+    greeting: t('emails.hello_name', { name: event.member.attributes.name }),
+    paragraphs: [
+      t('emails.expired_posts_text', {
+        type: featuredType.toLocaleLowerCase(ctx.locale),
+        time,
+        range,
+        title: excerptPost(featuredPost),
+      }),
+      ...(otherPosts.length > 0
+        ? [t('emails.expired_posts_other_text', { count: otherPosts.length })]
+        : []),
+    ],
+    cta: {
+      main: {
+        text: t('emails.expired_posts_cta', { type: featuredType }),
+        url: `${common.appUrl}/groups/${event.code}/${featuredPost.type}/${featuredPost.attributes.code}/edit` 
+      },
+      secondary: {
+        text: t('emails.expired_posts_cta_secondary', { type: featuredTypePlural }),
+        url: `${common.appUrl}/groups/${event.code}/members/${event.member.attributes.code}#${featuredPost.type}`
+      }
+    },
+    postscript: t('emails.expired_posts_postscript'),
+    featuredPost: buildPostTemplateItem(event, featuredPost, ctx),
+    otherPosts: otherPosts.length > 0 ? otherPosts : undefined,
+    otherPostsTitle: otherPosts.length > 0
+      ? t('emails.expired_posts_more_title')
+      : undefined,
+  };
+};

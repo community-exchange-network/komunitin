@@ -40,7 +40,10 @@ export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
   }
 
   // Fetch expired offers and needs if applicable
-  if (event.name === EVENT_NAME.MemberHasExpiredPosts) {
+  if (
+    event.name === EVENT_NAME.MemberHasExpiredPosts
+    || event.name === EVENT_NAME.MemberHasExpiredPostsRecently
+  ) {
     const [expiredOffers, expiredNeeds] = await Promise.all([
       client.getOffers(event.code, { "filter[member]": memberId, "filter[expired]": "true" }),
       client.getNeeds(event.code, { "filter[member]": memberId, "filter[expired]": "true" }),

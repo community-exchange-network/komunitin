@@ -7,8 +7,6 @@
     "all_offers": "todas las ofertas",
     "needs_header": "🙋 ¿Puedes ayudar con esto?",
     "all_needs": "todas las necesidades",
-    "section_offer": "OFERTA",
-    "section_need": "NECESIDAD",
     "user_placeholder": "👤 {{name}}",
     "cta_main": "EXPLORA LAS ÚLTIMAS OFERTAS Y NECESIDADES",
     "cta_secondary": "¿Tienes algo o alguna habilidad para ofrecer? Publica una oferta",
@@ -176,6 +174,16 @@
     "group_activated_label": "Comunidad activada",
     "group_activated_text": "¡Enhorabuena! Tu comunidad <strong>{{groupName}}</strong> ha sido activada y está lista.",
     "group_activated_subtext": "Ahora puedes iniciar sesión en <strong>{{appName}}</strong> y configurar los ajustes de la comunidad y la moneda, incluyendo los métodos de transferencia permitidos, los límites de crédito y las categorías para ofertas y necesidades. Después, invita a miembros y empieza a intercambiar. ¡Buena suerte haciendo crecer tu comunidad!",
-    "group_activated_cta": "Configura tu comunidad"
+    "group_activated_cta": "Configura tu comunidad",
+
+    "expired_posts_subject": "Tu {{type}} caducó {{time, relativetime}}",
+    "expired_posts_label": "{{type}} caducada",
+    "expired_posts_text": "Tu {{type}} \"{{title}}\" ya no es visible porque caducó {{time, relativetime}}. Si todavía sigue vigente, puedes simplemente alargar la fecha de caducidad o aprovechar para ponerla al día. Si ya no está disponible, puedes ocultarla o borrarla por completo para dejar de recibir recordatorios.",
+    "expired_posts_other_text": "Además tienes {{count}} publicaciones caducadas más por revisar.",
+    "expired_posts_cta": "Edita tu {{type}}",
+    "expired_posts_cta_secondary": "Ve a tus {{type}}",
+    "expired_posts_postscript": "Mantener tus publicaciones al día es vital para el buen funcionamiento de la comunidad. Gracias por tu colaboración.",
+    "expired_posts_more_title": "Otras publicaciones caducadas",
+    "expired_posts_expired_ago": "Caducó {{time, relativetime}}"
   }
 }

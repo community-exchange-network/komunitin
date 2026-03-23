@@ -1,0 +1,16 @@
+{{#> main }}
+  {{> header }}
+  {{> label label }}
+  {{> intro }}
+  <tr>
+    <td class="mobile-pad" style="padding: 0 30px 15px 30px;">
+    {{> post-item-card featuredPost imageHeight="240" }}
+    </td>
+  </tr>
+  {{> cta cta }}
+  {{#if otherPosts }}
+    {{> expired-list }}
+  {{/if}}
+  {{> postscript }}
+  {{> footer }}
+{{/main}}

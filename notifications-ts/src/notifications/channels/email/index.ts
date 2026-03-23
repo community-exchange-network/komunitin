@@ -1,8 +1,8 @@
 import logger from '../../../utils/logger';
 import { ctxPasswordReset, ctxValidationEmail } from '../../emails/user';
-import { ctxWelcomeEmail, ctxMemberRequestedEmail } from '../../emails/member';
+import { ctxWelcomeEmail, ctxMemberRequestedEmail, ctxMemberExpiredPostsEmail } from '../../emails/member';
 import { ctxGroupActivatedEmail, ctxGroupRequestedEmail } from '../../emails/group';
-import { EnrichedTransferEvent, EnrichedMemberEvent, EnrichedMemberRequestedEvent, EnrichedGroupEvent, EnrichedUserEvent } from '../../enriched-events';
+import { EnrichedTransferEvent, EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMemberRequestedEvent, EnrichedGroupEvent, EnrichedUserEvent } from '../../enriched-events';
 import { ctxTransferSent, ctxTransferReceived, ctxTransferPending, ctxTransferRejected } from '../../emails/transfer';
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
@@ -19,6 +19,9 @@ export const initEmailChannel = (): (() => void) => {
     )),
     eventBus.on(EVENT_NAME.MemberRequested, async (event: EnrichedMemberRequestedEvent) => 
       handleEmailEvent(event, event.adminUsers, "message", ctxMemberRequestedEmail
+    )),
+    eventBus.on(EVENT_NAME.MemberHasExpiredPostsRecently, async (event: EnrichedMemberHasExpiredPostsEvent) =>
+      handleEmailEvent(event, event.users, "post", ctxMemberExpiredPostsEmail
     )),
 
     // Group events

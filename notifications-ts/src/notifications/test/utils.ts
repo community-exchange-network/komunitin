@@ -287,3 +287,11 @@ export const subscribeToPushNotifications = (groupCode: string, userId: string) 
     }
   })
 }
+
+export const daysAgo = (days: number, date: Date = new Date()) => {
+  return new Date(date.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+export const hoursAgo = (hours: number, date: Date = new Date()) => {
+  return new Date(date.getTime() - hours * 60 * 60 * 1000).toISOString();
+}

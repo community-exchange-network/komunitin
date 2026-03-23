@@ -1,4 +1,4 @@
-import { formatAmount } from '../utils/format';
+import { formatAmount, truncateText } from '../utils/format';
 import initI18n from '../utils/i18n';
 import type {
   NewsletterContext,
@@ -8,12 +8,8 @@ import type {
   ProcessedItem,
 } from './types';
 import { renderTemplate } from '../utils/email-template';
+import { TFunction } from 'i18next';
 
-
-// Helper to truncate text
-const truncateText = (str: string, length: number): string => {
-  return str.length > length ? str.substring(0, length) + '...' : str;
-};
 
 const formatDistanceLabel = (km: number | undefined): string | undefined => {
   if (km === undefined || km >= 100) return undefined;
@@ -22,12 +18,15 @@ const formatDistanceLabel = (km: number | undefined): string | undefined => {
   return `${Math.round(km / 5) * 5} km`;
 };
 
-const mapItemToTemplateItem = (item: ProcessedItem): NewsletterTemplateItem => ({
+const mapItemToTemplateItem = (item: ProcessedItem, t: TFunction): NewsletterTemplateItem => ({
   ...item,
   title: truncateText(item.title || '', 40),
   description: truncateText(item.description || '', 80),
   authorDisplayName: item.author?.name ?? '',
   distanceLabel: formatDistanceLabel(item.distance),
+  typeLabel: item.type === 'offers' ? t('offer') : t('need'),
+  accentColor: item.type === 'offers' ? '#2f7989' : '#9d3130',
+  showAuthor: true,
 });
 
 export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<string> => {
@@ -91,8 +90,8 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
     balanceAdvice,
     activitySummary,
     accountAlert,
-    bestOffers: bestOffers.map(mapItemToTemplateItem),
-    bestNeeds: bestNeeds.map(mapItemToTemplateItem),
+    bestOffers: bestOffers.map((item) => mapItemToTemplateItem(item, i18n.t)),
+    bestNeeds: bestNeeds.map((item) => mapItemToTemplateItem(item, i18n.t)),
     stats,
   };
 
