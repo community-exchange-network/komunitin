@@ -22,4 +22,4 @@ RUN pnpm prisma generate
 RUN pnpm run build
 
 # Run accounting service
-CMD ["pnpm", "start"]
+CMD ["node", "--enable-source-maps", "bundle/index.js"]
