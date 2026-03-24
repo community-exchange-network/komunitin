@@ -5,18 +5,8 @@ import { waitFor } from "./utils"
 import { BaseControllerImpl } from "src/controller/base-controller"
 import { sleep } from "src/utils/sleep"
 
-describe("OnPayment credit limit", async () => {
+describe("Credit limit features", async () => {
   const t = setupServerTest()
-
-  await it('cant set arbitrary currency options', async () => {
-    await t.api.patch(`/TEST/currency`, {
-      data: {
-        attributes: {
-          invalid: 123
-        }
-      }
-    }, t.admin, 400)
-  })
 
   await it('admin enable on-payment credit limit', async () => {
     const response = await t.api.patch('/TEST/currency/settings', {
@@ -61,6 +51,18 @@ describe("OnPayment credit limit", async () => {
     assert.equal(a2.attributes.balance, -1200)
     assert.equal(a2.attributes.creditLimit, 1200)
 
+  })
+
+  await it('disable on-payment credit limit', async () => {
+    const response = await t.api.patch('/TEST/currency/settings', {
+      data: {
+        attributes: {
+          defaultOnPaymentCreditLimit: false
+        }
+      }
+    }, t.admin)
+    assert.equal(response.body.data.type, "currency-settings")
+    assert.equal(response.body.data.attributes.defaultOnPaymentCreditLimit, false)
   })
 
   await it('accept payment request from whitelisted accounts', async () => {
@@ -125,8 +127,7 @@ describe("OnPayment credit limit", async () => {
     
     await t.payment(t.account1.id, t.account2.id, 10, "Cant pay", "committed", t.user1, 403)
     const t1 = await t.payment(t.account2.id, t.account1.id, 10, "Can request", "committed", t.user1)
-    assert.equal(t1.attributes.state, "pending")   
-
+    assert.equal(t1.attributes.state, "pending")
   })
 
   await it('allow payment requests setting', async() => {

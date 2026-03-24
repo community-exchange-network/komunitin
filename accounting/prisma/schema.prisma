@@ -128,9 +128,11 @@ model Account {
   // Account settings defined by currency admin and the user.
   settings Json?
 
-  // These three fields are just a cache from the Stellar network.
-  balance        BigInt
+  // These fields need to be updated atomically with ledger updates.
   creditLimit    BigInt
+  // creditLimit + balance = ledger balance
+  balance        BigInt
+  // creditLimit + maximumBalance = ledger trustline limit.
   maximumBalance BigInt?
 
   created DateTime @default(now())

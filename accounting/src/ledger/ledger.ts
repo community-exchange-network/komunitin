@@ -309,9 +309,16 @@ export interface LedgerCurrency {
    * 
    * All updates are done in a single transaction.
    * 
+   * @param data
+   *  - lines: the list of trustlines from this currency to external assets with their limits.
+   *  - currentExternalTraderInitialCredit: the initial credit for the external trader account before update.  
    * @param keys 
    */
-  reconcileExternalState(lines: ExternalTrustline[],
+  reconcileExternalState(
+    data: {
+      lines: ExternalTrustline[],
+      currentExternalTraderInitialCredit: string,
+    },
     keys: {
       sponsor: KeyPair,
       externalTrader: KeyPair,
@@ -422,11 +429,6 @@ export interface LedgerAccount {
   update(): Promise<void>
 
   /**
-   * Return the current amount of credit.
-   */
-  credit(): Promise<string>
-
-  /**
    * Update the balance in this account from the credit account.
    * 
    * The credit key is required when increasing the credit, while the account (or admin)
@@ -434,8 +436,15 @@ export interface LedgerAccount {
    * 
    * When increasing the credit, the issuer key may be required as well if the credit
    * account does not have enough balance.
+   * 
+   * @param newCredit The new credit amount.
+   * @param currentCredit The current credit amount as known by the caller (from the DB).
+   * @param keys The keys required to sign the transaction.
    */
-  updateCredit(amount: string, keys: {
+  updateCredit(data: {
+    newCredit: string, 
+    currentCredit: string
+  }, keys: {
     sponsor: KeyPair,
     credit?: KeyPair,
     account?: KeyPair,
