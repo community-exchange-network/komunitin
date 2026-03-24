@@ -104,7 +104,7 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       throw forbidden("User is not allowed to update this account")
     }
     // Only admins can update certain fields.
-    if (data.code || data.creditLimit || data.maximumBalance || data.users || data.status === AccountStatus.Suspended) {
+    if (data.code !== undefined || data.creditLimit !== undefined || data.maximumBalance !== undefined || data.users !== undefined || data.status === AccountStatus.Suspended) {
       await this.users().checkAdmin(ctx)
     }
 
@@ -130,11 +130,7 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
 
       if (data.status && data.status !== status) {
         if (status === AccountStatus.Active && isDisabledOrSuspended(data.status)) {
-          // Disable account.
-          if (data.status === AccountStatus.Suspended && !this.users().isAdmin(user)) {
-            throw forbidden("Only admins can suspend accounts")
-          }
-        
+          // Disable account. Already checked admin access for suspended status.
           const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
           await ledgerAccount.disable({
             admin: await this.keys().adminKey(),
@@ -155,11 +151,9 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
             disabledAccountsPool: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
             sponsor: await this.keys().sponsorKey()
           })
-        } else if (account.status === AccountStatus.Disabled && data.status === AccountStatus.Suspended) {
-          if (!this.users().isAdmin(user)) {
-            throw forbidden("Only admins can suspend accounts")
-          }
-        } else if (account.status === AccountStatus.Suspended && data.status === AccountStatus.Disabled) {
+        } else if (status === AccountStatus.Disabled && data.status === AccountStatus.Suspended) {
+          // Already checked admin access for suspended status.
+        } else if (status === AccountStatus.Suspended && data.status === AccountStatus.Disabled) {
           // Don't need to check admin access again, since only admins can update suspended accounts.
         } else {
           throw badRequest(`Invalid status change from ${status} to ${data.status}`)
