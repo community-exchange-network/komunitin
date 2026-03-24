@@ -1,6 +1,6 @@
 import { AccountKind, Prisma } from "@prisma/client";
 
-import { Account, AccountSettings, AccountStatus, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
+import { Account, AccountRecord, AccountSettings, AccountStatus, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
 import { CollectionOptions } from "src/server/request";
 import { Context, systemContext } from "src/utils/context";
 import { deriveKey, exportKey } from "src/utils/crypto";
@@ -103,141 +103,170 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
     )) {
       throw forbidden("User is not allowed to update this account")
     }
-
-    if (data.status && data.status !== account.status) {
-      const isDisabledOrSuspended = (status: AccountStatus) => [AccountStatus.Disabled, AccountStatus.Suspended].includes(status)
-
-      if (account.status === AccountStatus.Active && isDisabledOrSuspended(data.status)) {
-        // Disable account.
-        if (data.status === AccountStatus.Suspended && !this.users().isAdmin(user)) {
-          throw forbidden("Only admins can suspend accounts")
-        }
-        // Ensure the currency has the disabled accounts pool created.
-        await this.currencyController.createDisabledAccountsPool()    
-        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-        await ledgerAccount.disable({
-          admin: await this.keys().adminKey(),
-          sponsor: await this.keys().sponsorKey()
-        })
-      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status) && data.status === AccountStatus.Active) {
-        // Don't need to check admin access again, since only admins can update suspended accounts.
-        
-        await this.currencyController.ledger.enableAccount({
-          balance: this.currencyController.toStringAmount(account.balance + account.creditLimit),
-          credit: this.currencyController.toStringAmount(account.creditLimit),
-          maximumBalance: account.maximumBalance 
-            ? this.currencyController.toStringAmount(account.maximumBalance + account.creditLimit) 
-            : undefined,
-        }, {
-          account: await this.keys().retrieveKey(account.key),
-          issuer: await this.keys().issuerKey(),
-          disabledAccountsPool: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
-          sponsor: await this.keys().sponsorKey()
-        })
-      } else if (account.status === AccountStatus.Disabled && data.status === AccountStatus.Suspended) {
-        if (!this.users().isAdmin(user)) {
-          throw forbidden("Only admins can suspend accounts")
-        }
-      } else if (account.status === AccountStatus.Suspended && data.status === AccountStatus.Disabled) {
-        // Don't need to check admin access again, since only admins can update suspended accounts.
-      } else {
-        throw badRequest(`Invalid status change from ${account.status} to ${data.status}`)
-      }
-    }
-
-    if (data.code || data.creditLimit || data.maximumBalance || data.users) {
+    // Only admins can update certain fields.
+    if (data.code || data.creditLimit || data.maximumBalance || data.users || data.status === AccountStatus.Suspended) {
       await this.users().checkAdmin(ctx)
     }
-    
-    // code, creditLimit and maximumBalance can be updated
+
+    const isDisabledOrSuspended = (status: AccountStatus) => [AccountStatus.Disabled, AccountStatus.Suspended].includes(status)
+    // Ensure the currency has the disabled accounts pool created. Do it outside the main transaction.
+    if (data.status !== undefined && account.status === AccountStatus.Active && isDisabledOrSuspended(data.status)) {
+      await this.currencyController.createDisabledAccountsPool()      // Ensure the currency has the disabled accounts pool created.
+    }
+
+    // Check code availability before entering the transaction. DB unique constraint still enforces correctness.
     if (data.code && data.code !== account.code) {
       await this.checkFreeCode(data.code)
     }
-    // Update maximum balance, either on maximum balance or credit limit change.
-    const newMaxBalance = data.maximumBalance !== undefined ? data.maximumBalance : account.maximumBalance
-    const newCreditLimit = data.creditLimit !== undefined ? data.creditLimit : account.creditLimit
-    if ((newMaxBalance !== account.maximumBalance) || (newMaxBalance && newCreditLimit !== account.creditLimit)) {
-      if (account.status === AccountStatus.Active) {
-        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
-        const ledgerMaximumBalance = newMaxBalance 
-          ? this.currencyController.toStringAmount(newMaxBalance + newCreditLimit)
-          : undefined // no limit
-          
-        await ledgerAccount.updateMaximumBalance(ledgerMaximumBalance, {
-          sponsor: await this.keys().sponsorKey(),
-          // Note that we can't sign with the admin key because this logic is used also for the
-          // external trader account, which does not have the admin key as signer.
-          account: await this.keys().retrieveKey(account.key)
-        })
-      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
-        throw badRequest("Cannot update maximum balance of disabled or suspended accounts. Enable the account first.")
-      }
-    }
 
-    // Update credit limit
-    if (newCreditLimit !== account.creditLimit) {
-      if (account.status === AccountStatus.Active) {
-        const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+    // Wrap the whole update in a transaction to ensure consistency between ledger and DB.
+    // Use the tenant extension transaction() to ensure FOR UPDATE row locks persist for
+    // the whole transaction, bypassing the per-query wrapper transactions.
+    await this.db().transaction(async (tx) => {
+      // get the critical data for the update with a "FOR UPDATE" lock.
+      const [record] = await tx.$queryRaw`SELECT * FROM "Account" WHERE id = ${data.id} FOR UPDATE` as AccountRecord[]
+      const lockedAccount = recordToAccount(record, this.currency())
+      const { creditLimit, maximumBalance, balance, status } = lockedAccount
 
-        await ledgerAccount.updateCredit(this.currencyController.toStringAmount(newCreditLimit), {
-          sponsor: await this.keys().sponsorKey(),
-          credit: newCreditLimit > account.creditLimit ? await this.keys().creditKey() : undefined,
-          issuer: newCreditLimit > account.creditLimit ? await this.keys().issuerKey() : undefined,
-          account: newCreditLimit < account.creditLimit ? await this.keys().retrieveKey(account.key) : undefined
-        })
-      } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(account.status)) {
-        throw badRequest("Cannot update credit limit of disabled or suspended accounts. Enable the account first.")
-      }
-    }
-
-    const updateData = {
-      code: data.code,
-      creditLimit: data.creditLimit,
-      maximumBalance: data.maximumBalance,
-      status: data.status,
-    } as Prisma.AccountUpdateInput
-    
-    if (data.users) {
-      const newUserIds = data.users.map(u => u.id)
-      const currentUserIds = account.users?.map(u => u.id) || []
-
-      const usersToAdd = newUserIds.filter(id => !currentUserIds.includes(id))
-      const usersToRemove = currentUserIds.filter(id => !newUserIds.includes(id))
-
-      if (usersToAdd.length || usersToRemove.length) {
-        const userOperations = {} as Prisma.AccountUpdateInput['users']
-        if (usersToRemove.length) {
-          userOperations!.deleteMany = {
-            userId: { in: usersToRemove },
-            tenantId: this.db().tenantId
+      if (data.status && data.status !== status) {
+        if (status === AccountStatus.Active && isDisabledOrSuspended(data.status)) {
+          // Disable account.
+          if (data.status === AccountStatus.Suspended && !this.users().isAdmin(user)) {
+            throw forbidden("Only admins can suspend accounts")
           }
+        
+          const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+          await ledgerAccount.disable({
+            admin: await this.keys().adminKey(),
+            sponsor: await this.keys().sponsorKey()
+          })
+        } else if ([AccountStatus.Disabled, AccountStatus.Suspended].includes(status) && data.status === AccountStatus.Active) {
+          // Don't need to check admin access again, since only admins can update suspended accounts.
+          
+          await this.currencyController.ledger.enableAccount({
+            balance: this.currencyController.toStringAmount(balance + creditLimit),
+            credit: this.currencyController.toStringAmount(creditLimit),
+            maximumBalance: maximumBalance 
+              ? this.currencyController.toStringAmount(maximumBalance + creditLimit) 
+              : undefined,
+          }, {
+            account: await this.keys().retrieveKey(account.key),
+            issuer: await this.keys().issuerKey(),
+            disabledAccountsPool: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
+            sponsor: await this.keys().sponsorKey()
+          })
+        } else if (account.status === AccountStatus.Disabled && data.status === AccountStatus.Suspended) {
+          if (!this.users().isAdmin(user)) {
+            throw forbidden("Only admins can suspend accounts")
+          }
+        } else if (account.status === AccountStatus.Suspended && data.status === AccountStatus.Disabled) {
+          // Don't need to check admin access again, since only admins can update suspended accounts.
+        } else {
+          throw badRequest(`Invalid status change from ${status} to ${data.status}`)
         }
-        if (usersToAdd.length) {
-          userOperations!.create = usersToAdd.map(id => ({
-            user: {
-              connectOrCreate: {
-                where: {
-                  tenantId_id: {
-                    id,
-                    tenantId: this.db().tenantId
-                  }
-                },
-                create: { id }
-              }
-            }
-          }))
-        }
-        updateData.users = userOperations
       }
-    }
-    // Update db.
-    const updated = await this.db().account.update({
-      data: updateData,
-      where: { id: account.id },
-      select: { id: true }
-    })
 
-    return this.getAccount(ctx, updated.id)
+      // Update maximum balance, either on maximum balance or credit limit change.
+      const newMaxBalance = data.maximumBalance !== undefined ? data.maximumBalance : maximumBalance
+      const newCreditLimit = data.creditLimit !== undefined ? data.creditLimit as number: creditLimit
+      if ((newMaxBalance !== maximumBalance) || (newMaxBalance && newCreditLimit !== creditLimit)) {
+        if (isDisabledOrSuspended(status)) {
+          throw badRequest("Cannot update maximum balance of disabled or suspended accounts. Enable the account first.")
+        }
+        if (status === AccountStatus.Active) {
+          const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+          const ledgerMaximumBalance = newMaxBalance 
+            ? this.currencyController.toStringAmount(newMaxBalance + newCreditLimit)
+            : undefined // no limit
+            
+          await ledgerAccount.updateMaximumBalance(ledgerMaximumBalance, {
+            sponsor: await this.keys().sponsorKey(),
+            // Note that we can't sign with the admin key because this logic is used also for the
+            // external trader account, which does not have the admin key as signer.
+            account: await this.keys().retrieveKey(account.key)
+          })
+        }
+      }
+
+      // Update credit limit
+      if (newCreditLimit !== creditLimit) {
+        if (isDisabledOrSuspended(status)) {
+          throw badRequest("Cannot update credit limit of disabled or suspended accounts. Enable the account first.")
+        } 
+        if (status === AccountStatus.Active) {
+          const ledgerAccount = await this.currencyController.ledger.getAccount(account.key)
+
+          await ledgerAccount.updateCredit({
+            newCredit: this.currencyController.toStringAmount(newCreditLimit),
+            currentCredit: this.currencyController.toStringAmount(creditLimit)
+          }, {
+            sponsor: await this.keys().sponsorKey(),
+            credit: newCreditLimit > creditLimit ? await this.keys().creditKey() : undefined,
+            issuer: newCreditLimit > creditLimit ? await this.keys().issuerKey() : undefined,
+            account: newCreditLimit < creditLimit ? await this.keys().retrieveKey(account.key) : undefined
+          })
+        }
+      }
+
+      const updateData: Prisma.AccountUpdateInput = {}
+
+      if (data.creditLimit !== undefined && data.creditLimit !== creditLimit) {
+        updateData.creditLimit = data.creditLimit
+      }
+      if (data.maximumBalance !== undefined && data.maximumBalance !== maximumBalance) {
+        updateData.maximumBalance = data.maximumBalance === false ? null : data.maximumBalance
+      }
+      if (data.status && data.status !== status) {
+        updateData.status = data.status
+      }
+      if (data.code && data.code !== account.code) {
+        updateData.code = data.code
+      }
+
+      if (data.users) {
+        const newUserIds = data.users.map(u => u.id)
+        const currentUserIds = account.users?.map(u => u.id) || []
+
+        const usersToAdd = newUserIds.filter(id => !currentUserIds.includes(id))
+        const usersToRemove = currentUserIds.filter(id => !newUserIds.includes(id))
+
+        if (usersToAdd.length || usersToRemove.length) {
+          const userOperations = {} as Prisma.AccountUpdateInput['users']
+          if (usersToRemove.length) {
+            userOperations!.deleteMany = {
+              userId: { in: usersToRemove },
+              tenantId: this.db().tenantId
+            }
+          }
+          if (usersToAdd.length) {
+            userOperations!.create = usersToAdd.map(id => ({
+              user: {
+                connectOrCreate: {
+                  where: {
+                    tenantId_id: {
+                      id,
+                      tenantId: this.db().tenantId
+                    }
+                  },
+                  create: { id }
+                }
+              }
+            }))
+          }
+          updateData.users = userOperations
+        }
+      }
+
+      // Update account in DB once, only if there are actual changes.
+      if (Object.keys(updateData).length) {
+        await tx.account.update({
+          data: updateData,
+          where: { id: account.id },
+        })
+      }
+    }, { timeout: 60000 }) // End of transaction
+
+    return this.getAccount(ctx, account.id)
   }
 
   filterAccount(user: User|undefined, account: FullAccount): Account {
