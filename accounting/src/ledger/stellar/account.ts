@@ -32,9 +32,15 @@ export class StellarAccount implements LedgerAccount {
       const loaded = await this.loadPromise
       // If we already have a loaded account, we update the sequence number of the new one
       // just in case the current account increased the sequence number while we were loading
-      // the new one.
-      if (this.account !== undefined && this.account.sequenceNumber() > loaded.sequenceNumber()) {
-        loaded.sequence = this.account.sequenceNumber()
+      // the new one. We must use incrementSequenceNumber() rather than setting .sequence
+      // directly, because AccountResponse.sequence is a plain property that is independent
+      // from _baseAccount.sequence used by sequenceNumber() and TransactionBuilder.
+      if (this.account !== undefined) {
+        const localSeq = BigInt(this.account.sequenceNumber())
+        const loadedSeq = BigInt(loaded.sequenceNumber())
+        for (let seq = loadedSeq; seq < localSeq; seq++) {
+          loaded.incrementSequenceNumber()
+        }
       }
       this.account = loaded
     } finally {
