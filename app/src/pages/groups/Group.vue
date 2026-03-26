@@ -177,7 +177,7 @@ import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
 
 import type { Group, Contact, Member } from '../../store/model';
-import { useResources } from 'src/composables/useResources';
+import { useAllResources } from 'src/composables/useResources';
 
 const props = defineProps<{ code: string }>()
 
@@ -207,18 +207,15 @@ const loadGroup = async (code: string) => store.dispatch('groups/load', { group:
 
 const {
   resources: members,
-  hasNext: hasNextMembers,
-  loadNext: loadNextMembers,
-  load: loadMembers,
-} = useResources('members', { group: props.code }, { immediate: false });
+  loadAll: loadAllMembers,
+} = useAllResources('members', { group: props.code, pageSize: 2 }, { immediate: false });
+
 const fetchData = async (code: string) => {
   isLoading.value = true;
   await loadGroup(code);
   if (isLoggedIn.value) {
-    await loadMembers();
-    while (hasNextMembers.value) {
-      await loadNextMembers();
-    }
+    await loadAllMembers();
+    console.log(members.value);
   }
   isLoading.value = false;
 };

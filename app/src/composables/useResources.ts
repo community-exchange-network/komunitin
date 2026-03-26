@@ -108,3 +108,22 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
   return { resource, load, update, loading }
 
 }
+
+export const useAllResources = <T extends ResourceObject = ResourceObject>(
+  type: string,
+  options: LoadListPayload,
+  config?: UseResourcesConfig
+) => {
+  const allResources = ref<T[]>(null);
+  const { resources, hasNext, loadNext, load, loading } = useResources(type, options, config);
+
+  const loadAll = async () => {
+    await load();
+    while (hasNext.value) {
+      await loadNext();
+    }
+    allResources.value = resources.value as T[];
+  }
+
+  return { resources: allResources, loadAll, loading };
+};
