@@ -177,15 +177,14 @@ import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
 
 import type { Group, Contact, Member } from '../../store/model';
+import { useResources } from 'src/composables/useResources';
 
-const props = defineProps({
-  code: { type: String, required: true },
-});
-
-const ready = ref(false);
-const isDescriptionOpen = ref(false);
+const props = defineProps<{ code: string }>()
 
 const store = useStore();
+
+const isLoading = ref(false);
+const isDescriptionOpen = ref(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
 const group = computed<Group & { contacts: Contact[] }>(() => store.getters['groups/current']);
@@ -194,36 +193,35 @@ const own = computed(
 );
 const center = computed(() => group.value?.attributes.location.coordinates);
 const marker = computed(() => center.value);
-const memberMarkers = computed<LatLngExpression[]>(
-  () =>
-    (group.value?.members ?? [])
-      .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
-      .filter(Boolean) as LatLngExpression[]
-);
-const isLoading = computed(() => !(ready.value || (group.value && group.value.contacts)));
-
-const fetchGroup = async (code: string) => {
-  return store.dispatch('groups/load', {
-    group: code,
-    include: `contacts${isLoggedIn.value ? ',members' : ''}`,
-  });
-};
-
-const fetchData = async (code: string) => {
-  await fetchGroup(code);
-  ready.value = true;
-};
+const memberMarkers = computed<LatLngExpression[]>(() => {
+  return (members.value ?? [])
+    .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
+    .filter(Boolean) as LatLngExpression[];
+});
 
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;
 };
 
-// If I just call the fetch functions in created or mounted hook, then navigation from
-// `/groups/GRP1` to `/groups/GRP2` doesn't trigger the action since the
-// component is reused. If I otherwise add the `watch` Vue component member, the
-// tests fail and give "You may have an infinite update loop in a component
-// render function". So that's the way I found to make it work.
-//
-// https://router.vuejs.org/guide/essentials/dynamic-matching.html#reacting-to-params-changes
+const loadGroup = async (code: string) => store.dispatch('groups/load', { group: code, include: 'contacts' });
+
+const {
+  resources: members,
+  hasNext: hasNextMembers,
+  loadNext: loadNextMembers,
+  load: loadMembers,
+} = useResources('members', { group: props.code }, { immediate: false });
+const fetchData = async (code: string) => {
+  isLoading.value = true;
+  await loadGroup(code);
+  if (isLoggedIn.value) {
+    await loadMembers();
+    while (hasNextMembers.value) {
+      await loadNextMembers();
+    }
+  }
+  isLoading.value = false;
+};
+
 watch(() => props.code, fetchData, { immediate: true });
 </script>
