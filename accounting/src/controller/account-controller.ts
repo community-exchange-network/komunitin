@@ -119,9 +119,55 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       await this.checkFreeCode(data.code)
     }
 
-    // Wrap the whole update in a transaction to ensure consistency between ledger and DB.
-    // Use the tenant extension transaction() to ensure FOR UPDATE row locks persist for
-    // the whole transaction, bypassing the per-query wrapper transactions.
+    // Update the non-ledger fields first, so in case of failure we don't have changes in the ledger.
+    const updateData: Prisma.AccountUpdateInput = {}
+    if (data.code !== undefined && data.code !== account.code) {
+      updateData.code = data.code
+    }
+
+    if (data.users !== undefined) {
+      const newUserIds = data.users.map(u => u.id)
+      const currentUserIds = account.users?.map(u => u.id) || []
+
+      const usersToAdd = newUserIds.filter(id => !currentUserIds.includes(id))
+      const usersToRemove = currentUserIds.filter(id => !newUserIds.includes(id))
+
+      if (usersToAdd.length || usersToRemove.length) {
+        const userOperations = {} as Prisma.AccountUpdateInput['users']
+        if (usersToRemove.length) {
+          userOperations!.deleteMany = {
+            userId: { in: usersToRemove },
+            tenantId: this.db().tenantId
+          }
+        }
+        if (usersToAdd.length) {
+          userOperations!.create = usersToAdd.map(id => ({
+            user: {
+              connectOrCreate: {
+                where: {
+                  tenantId_id: {
+                    id,
+                    tenantId: this.db().tenantId
+                  }
+                },
+                create: { id }
+              }
+            }
+          }))
+        }
+        updateData.users = userOperations
+      }
+    }
+
+    if (Object.keys(updateData).length) {
+      await this.db().account.update({
+        data: updateData,
+        where: { id: account.id },
+      })
+    }
+
+    // Wrap the updates involving the ledger in a transaction to ensure consistency 
+    // between ledger and DB.
     await this.db().transaction(async (tx) => {
       // get the critical data for the update with a "FOR UPDATE" lock.
       const [record] = await tx.$queryRaw`SELECT * FROM "Account" WHERE id = ${data.id} FOR UPDATE` as AccountRecord[]
@@ -213,44 +259,6 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       if (data.status && data.status !== status) {
         updateData.status = data.status
       }
-      if (data.code && data.code !== account.code) {
-        updateData.code = data.code
-      }
-
-      if (data.users) {
-        const newUserIds = data.users.map(u => u.id)
-        const currentUserIds = account.users?.map(u => u.id) || []
-
-        const usersToAdd = newUserIds.filter(id => !currentUserIds.includes(id))
-        const usersToRemove = currentUserIds.filter(id => !newUserIds.includes(id))
-
-        if (usersToAdd.length || usersToRemove.length) {
-          const userOperations = {} as Prisma.AccountUpdateInput['users']
-          if (usersToRemove.length) {
-            userOperations!.deleteMany = {
-              userId: { in: usersToRemove },
-              tenantId: this.db().tenantId
-            }
-          }
-          if (usersToAdd.length) {
-            userOperations!.create = usersToAdd.map(id => ({
-              user: {
-                connectOrCreate: {
-                  where: {
-                    tenantId_id: {
-                      id,
-                      tenantId: this.db().tenantId
-                    }
-                  },
-                  create: { id }
-                }
-              }
-            }))
-          }
-          updateData.users = userOperations
-        }
-      }
-
       // Update account in DB once, only if there are actual changes.
       if (Object.keys(updateData).length) {
         await tx.account.update({
