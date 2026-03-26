@@ -156,74 +156,74 @@
 </template>
 
 <script setup lang="ts">
-  /**
-   * Page for Group details.
-   */
-  import { computed, ref, watch } from 'vue';
-  import { useStore } from 'vuex';
+/**
+ * Page for Group details.
+ */
+import { computed, ref, watch } from 'vue';
+import { useStore } from 'vuex';
 
-  import { LMarker } from '@vue-leaflet/vue-leaflet';
-  import type { LatLngExpression } from 'leaflet';
+import { LMarker } from '@vue-leaflet/vue-leaflet';
+import type { LatLngExpression } from 'leaflet';
 
-  import md2html from '../../plugins/Md2html';
+import md2html from '../../plugins/Md2html';
 
-  import PageHeader from '../../layouts/PageHeader.vue';
-  import Avatar from '../../components/Avatar.vue';
-  import ContactButton from '../../components/ContactButton.vue';
-  import ShareButton from '../../components/ShareButton.vue';
-  import SimpleMap from '../../components/SimpleMap.vue';
-  import SocialNetworkList from '../../components/SocialNetworkList.vue';
-  import FloatingBtn from '../../components/FloatingBtn.vue';
-  import FitText from '../../components/FitText.vue';
+import PageHeader from '../../layouts/PageHeader.vue';
+import Avatar from '../../components/Avatar.vue';
+import ContactButton from '../../components/ContactButton.vue';
+import ShareButton from '../../components/ShareButton.vue';
+import SimpleMap from '../../components/SimpleMap.vue';
+import SocialNetworkList from '../../components/SocialNetworkList.vue';
+import FloatingBtn from '../../components/FloatingBtn.vue';
+import FitText from '../../components/FitText.vue';
 
-  import type { Group, Contact, Member } from '../../store/model';
+import type { Group, Contact, Member } from '../../store/model';
 
-  const props = defineProps({
-    code: { type: String, required: true },
+const props = defineProps({
+  code: { type: String, required: true },
+});
+
+const ready = ref(false);
+const isDescriptionOpen = ref(false);
+
+const store = useStore();
+
+const isLoggedIn = computed(() => store.getters.isLoggedIn);
+const group = computed<Group & { contacts: Contact[] }>(() => store.getters['groups/current']);
+const own = computed(
+  () => group.value && store.getters['myMember'] && group.value.id == store.getters['myMember'].group.id
+);
+const center = computed(() => group.value?.attributes.location.coordinates);
+const marker = computed(() => center.value);
+const memberMarkers = computed<LatLngExpression[]>(
+  () =>
+    (group.value?.members ?? [])
+      .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
+      .filter(Boolean) as LatLngExpression[]
+);
+const isLoading = computed(() => !(ready.value || (group.value && group.value.contacts)));
+
+const fetchGroup = async (code: string) => {
+  return store.dispatch('groups/load', {
+    group: code,
+    include: `contacts${isLoggedIn.value ? ',members' : ''}`,
   });
+};
 
-  const ready = ref(false);
-  const isDescriptionOpen = ref(false);
+const fetchData = async (code: string) => {
+  await fetchGroup(code);
+  ready.value = true;
+};
 
-  const store = useStore();
+const toggleDescription = () => {
+  isDescriptionOpen.value = !isDescriptionOpen.value;
+};
 
-  const isLoggedIn = computed(() => store.getters.isLoggedIn);
-  const group = computed<Group & { contacts: Contact[] }>(() => store.getters['groups/current']);
-  const own = computed(
-    () => group.value && store.getters['myMember'] && group.value.id == store.getters['myMember'].group.id
-  );
-  const center = computed(() => group.value?.attributes.location.coordinates);
-  const marker = computed(() => center.value);
-  const memberMarkers = computed<LatLngExpression[]>(
-    () =>
-      (group.value?.members ?? [])
-        .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
-        .filter(Boolean) as LatLngExpression[]
-  );
-  const isLoading = computed(() => !(ready.value || (group.value && group.value.contacts)));
-
-  const fetchGroup = async (code: string) => {
-    return store.dispatch('groups/load', {
-      group: code,
-      include: `contacts${isLoggedIn.value ? ',members' : ''}`,
-    });
-  };
-
-  const fetchData = async (code: string) => {
-    await fetchGroup(code);
-    ready.value = true;
-  };
-
-  const toggleDescription = () => {
-    isDescriptionOpen.value = !isDescriptionOpen.value;
-  };
-
-  // If I just call the fetch functions in created or mounted hook, then navigation from
-  // `/groups/GRP1` to `/groups/GRP2` doesn't trigger the action since the
-  // component is reused. If I otherwise add the `watch` Vue component member, the
-  // tests fail and give "You may have an infinite update loop in a component
-  // render function". So that's the way I found to make it work.
-  //
-  // https://router.vuejs.org/guide/essentials/dynamic-matching.html#reacting-to-params-changes
-  watch(() => props.code, fetchData, { immediate: true });
+// If I just call the fetch functions in created or mounted hook, then navigation from
+// `/groups/GRP1` to `/groups/GRP2` doesn't trigger the action since the
+// component is reused. If I otherwise add the `watch` Vue component member, the
+// tests fail and give "You may have an infinite update loop in a component
+// render function". So that's the way I found to make it work.
+//
+// https://router.vuejs.org/guide/essentials/dynamic-matching.html#reacting-to-params-changes
+watch(() => props.code, fetchData, { immediate: true });
 </script>
