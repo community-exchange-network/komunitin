@@ -13,5 +13,5 @@ module.exports = {
   singleAttributePerLine: true,
   // Keep the closing `>` on its own line when attributes are multiline.
   bracketSameLine: false,
-  vueIndentScriptAndStyle: true,
+  vueIndentScriptAndStyle: false,
 };
