@@ -50,7 +50,25 @@ function forTenant(tenantId: string) {
       },
       client: {
         // Make the tenantId easily available for the client.
-        tenantId: tenantId
+        tenantId: tenantId,
+        // Run an interactive transaction on the base Prisma client and set the
+        // tenant context once, so row locks (FOR UPDATE) are held for the whole
+        // transaction instead of being released by per-query wrapper transactions.
+        transaction: ((...args: Parameters<PrismaClient["$transaction"]>) => {
+          const rlsQuery = Prisma.sql`SELECT set_config('app.current_tenant_id', ${tenantId}, TRUE)`
+          const [arg, options] = args as [any, any]
+          
+          // Case for array of queries.
+          if (Array.isArray(arg)) {
+            return prisma.$transaction([prisma.$executeRaw(rlsQuery), ...arg], options)
+          }
+          
+          // Case for interactive transaction.
+          return prisma.$transaction(async (tx) => {
+            await tx.$executeRaw(rlsQuery)
+            return arg(tx)
+          }, options)
+        }) as PrismaClient["$transaction"],
       }
     })
   );

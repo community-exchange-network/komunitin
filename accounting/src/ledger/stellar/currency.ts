@@ -1048,7 +1048,7 @@ export class StellarCurrency implements LedgerCurrency {
   /**
    * Implements {@link LedgerCurrency#reconcileExternalState}
    */
-  async reconcileExternalState(lines: ExternalTrustline[], keys: { sponsor: Keypair, credit: KeyPair, issuer: KeyPair, externalTrader: Keypair, externalIssuer: Keypair }) {
+  async reconcileExternalState({lines, currentExternalTraderInitialCredit}: { lines: ExternalTrustline[], currentExternalTraderInitialCredit: string }, keys: { sponsor: Keypair, credit: KeyPair, issuer: KeyPair, externalTrader: Keypair, externalIssuer: Keypair }) {
     logger.debug(`Reconciling external state for currency ${this.config.code}`)
     
     const account = await this.externalTraderAccount()
@@ -1070,7 +1070,7 @@ export class StellarCurrency implements LedgerCurrency {
     )
     // Compute the total hour balance required to back all offers.
     const localAssetInitialCredit = Big(this.config.externalTraderInitialCredit ?? 0)
-    const existingLocalAssetInitialCredit = Big(await account.credit())
+    const existingLocalAssetInitialCredit = Big(currentExternalTraderInitialCredit)
     const localAssetMaximumBalance = Big(this.config.externalTraderMaximumBalance)
     const localAssetTrustline = findTrustline(this.asset())
     const existingLocalAssetBalance = Big(localAssetTrustline?.balance ?? 0)

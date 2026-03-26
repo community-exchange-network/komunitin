@@ -124,6 +124,7 @@ jobs:
 
     - name: Run tests
       run: |
+        pnpm typecheck
         pnpm reset-db
         pnpm test
 

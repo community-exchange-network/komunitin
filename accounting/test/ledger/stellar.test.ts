@@ -125,7 +125,9 @@ describe('Creates stellar elements', async () => {
   await it('should be able to disable and re-enable an account', async () => {
     const account = await currency.getAccount(accountKey.publicKey())
     const balance = account.balance()
-    const credit = await account.credit()
+    // Credit is tracked externally (DB), not read from the ledger.
+    // This account was created with initialCredit "1000" and no credit changes since.
+    const credit = "1000.0000000"
 
     const disabledAccountsPoolKey = (await currency.createAccount({ initialCredit: "0" }, {
       sponsor,
@@ -159,8 +161,6 @@ describe('Creates stellar elements', async () => {
 
     const enabled = await currency.getAccount(accountKey.publicKey())
     assert.equal(enabled.balance(), balance)
-    assert.equal(await enabled.credit(), credit)
-
   })
 
   await it.skip('should be able to perform path payments', async () => {
@@ -181,10 +181,13 @@ describe('Creates stellar elements', async () => {
     })
 
     await assert.doesNotReject(
-      currency2.reconcileExternalState([{
-        limit: "10",
-        externalIssuerKey: currencyKeys.externalIssuer.publicKey()
-      }], {
+      currency2.reconcileExternalState({
+        lines: [{
+          limit: "10",
+          externalIssuerKey: currencyKeys.externalIssuer.publicKey()
+        }], 
+        currentExternalTraderInitialCredit: "1000.0000000"}
+      , {
         sponsor,
         externalTrader: currency2Keys.externalTrader,
         externalIssuer: currency2Keys.externalIssuer,

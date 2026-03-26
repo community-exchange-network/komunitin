@@ -243,6 +243,7 @@ export class CurrencyControllerImpl implements CurrencyService {
           id: this.model.externalAccount.id
         }
       })
+      // this.model.externalAccount is updated below.
     }
 
     const record = await this.db.currency.update({
@@ -545,8 +546,12 @@ export class CurrencyControllerImpl implements CurrencyService {
       }
     }))
     
-    // Delegate to ledger layer
-    await this.ledger.reconcileExternalState(lines, {
+    // Delegate to ledger layer.
+    const currentExternalTraderInitialCredit = this.toStringAmount(this.model.externalAccount.creditLimit)
+    await this.ledger.reconcileExternalState({
+      lines, 
+      currentExternalTraderInitialCredit
+    }, {
       sponsor: await this.keys.sponsorKey(),
       externalTrader: await this.keys.externalTraderKey(),
       externalIssuer: await this.keys.externalIssuerKey(),

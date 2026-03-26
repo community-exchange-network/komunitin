@@ -11,7 +11,6 @@ export class StellarAccount implements LedgerAccount {
   // account address = public key.
   private accountId: string
 
-  // Use getStellarAccount() instead.
   private account: Horizon.AccountResponse | undefined
 
   private loadPromise: Promise<Horizon.AccountResponse> | undefined
@@ -32,9 +31,15 @@ export class StellarAccount implements LedgerAccount {
       const loaded = await this.loadPromise
       // If we already have a loaded account, we update the sequence number of the new one
       // just in case the current account increased the sequence number while we were loading
-      // the new one.
-      if (this.account !== undefined && this.account.sequenceNumber() > loaded.sequenceNumber()) {
-        loaded.sequence = this.account.sequenceNumber()
+      // the new one. We must use incrementSequenceNumber() rather than setting .sequence
+      // directly, because AccountResponse.sequence is a plain property that is independent
+      // from _baseAccount.sequence used by sequenceNumber() and TransactionBuilder.
+      if (this.account !== undefined) {
+        const localSeq = BigInt(this.account.sequenceNumber())
+        const loadedSeq = BigInt(loaded.sequenceNumber())
+        for (let seq = loadedSeq; seq < localSeq; seq++) {
+          loaded.incrementSequenceNumber()
+        }
       }
       this.account = loaded
     } finally {
@@ -42,69 +47,20 @@ export class StellarAccount implements LedgerAccount {
     }
   }
 
-  private stellarAccount() {
-    if (this.account === undefined) {
-      throw internalError("Account not found")
-    }
-    return this.account
-  }
-
-  /**
-   * Return all payments made from/to this account with the local asset.
-   */
-  async transfers(): Promise<LedgerTransfer[]> {
-    const transfers = [] as LedgerTransfer[]
-    const localAsset = this.currency.asset()
-    let result = await this.stellarAccount().payments({
-      limit: 20,
-    })
-    do {
-      transfers
-        .push(...result.records
-          .filter((r) => r.type === "payment")
-          .filter(r => (r.asset_type === "credit_alphanum4" || r.asset_type === "credit_alphanum12"))
-          .filter(r => r.asset_code === localAsset.code && r.asset_issuer === localAsset.issuer)
-          .map((r) => ({
-            amount: r.amount,
-            asset: new Asset(r.asset_code as string, r.asset_issuer),
-            payer: r.from,
-            payee: r.to,
-            hash: r.transaction_hash
-          })))
-      result = await result.next()
-    } while (result.records.length > 0);
-
-    return transfers;
-  }
-
-  /**
-   * Implements LedgerAccount.credit()
-   * 
-   * Note that this call requires fetching and parsing all payments to this account.
-   */
-  async credit(): Promise<string> {
-    const transfers = await this.transfers()
-    const positive = transfers
-      .filter(t => t.payer == this.currency.data.creditPublicKey)
-      .reduce((amount, transfer) => Big(transfer.amount).add(amount), Big(0))
-    const negative = transfers
-      .filter(t => t.payee == this.currency.data.creditPublicKey)
-      .reduce((amount, transfer) => Big(transfer.amount).add(amount), Big(0))
-    return positive.sub(negative).toString()
-  }
-
   /**
    *  Implements LedgerAccount.updateCredit()
    */
-  async updateCredit(amount: string, keys: {
+  async updateCredit({ newCredit, currentCredit }: {
+    newCredit: string, 
+    currentCredit: string}, 
+  keys: {
     account?: Keypair,
     credit?: Keypair,
     issuer?: Keypair,
     sponsor: Keypair
   }) {
-    const currentCredit = await this.credit()
-    if (!Big(amount).eq(currentCredit)) {
-      const diff = Big(amount).sub(currentCredit)
+    if (!Big(newCredit).eq(currentCredit)) {
+      const diff = Big(newCredit).sub(currentCredit)
       if (diff.lt(0)) {
         if (!keys.account) {
           throw internalError("Required account key when reducing the credit")
@@ -136,7 +92,7 @@ export class StellarAccount implements LedgerAccount {
         const keyPairs = this.currency.signerKeys(keys, signers)
         await this.currency.ledger.submitTransaction(builder, keyPairs, keys.sponsor)
       }
-      logger.info(`Account ${this.accountId} credit updated from ${currentCredit} to ${amount}`)
+      logger.info(`Account ${this.accountId} credit updated from ${currentCredit} to ${newCredit}`)
       return diff.toString()
     }
     return "0"
