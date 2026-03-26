@@ -67,7 +67,7 @@
               :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
               style="margin-left:auto;"
               @click="toggleDescription"
-              />
+            />
           </div>
         </div>
         <!-- sub-page navigation -->
@@ -78,8 +78,8 @@
           <router-link :to="`/groups/${code}/members`" 
             style="text-decoration: none; color: inherit; height: fit-content;"
             class="col-6"
-            >
-            <q-card 
+          >
+            <q-card
               flat
               class="transition-all bg-active text-onsurface-m"
             >
@@ -95,8 +95,8 @@
           <router-link :to="`/groups/${code}/stats`" 
             style="text-decoration: none; color: inherit; height: fit-content;"
             class="col-6"
-            >
-            <q-card 
+          >
+            <q-card
               flat
               class="transition-all bg-active text-onsurface-m"
             >
@@ -124,10 +124,10 @@
                 :marker="marker"
                 :bounds="memberMarkers"
               >
-              <l-marker 
-                v-for="(memberMarker, i) of memberMarkers"
-                :key="i"
-                :lat-lng="memberMarker"
+                <l-marker
+                  v-for="(memberMarker, i) of memberMarkers"
+                  :key="i"
+                  :lat-lng="memberMarker"
                 />
               </simple-map>
               <q-card-section class="group-footer-card text-onsurface-m">
@@ -155,109 +155,75 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref } from "vue";
-import { LMarker } from "@vue-leaflet/vue-leaflet";
-import type { LatLngExpression } from "leaflet";
+<script setup lang="ts">
+  /**
+   * Page for Group details.
+   */
+  import { computed, ref, watch } from 'vue';
+  import { useStore } from 'vuex';
 
-import md2html from "../../plugins/Md2html";
+  import { LMarker } from '@vue-leaflet/vue-leaflet';
+  import type { LatLngExpression } from 'leaflet';
 
-import PageHeader from "../../layouts/PageHeader.vue";
-import Avatar from '../../components/Avatar.vue';
-import ContactButton from "../../components/ContactButton.vue";
-import ShareButton from "../../components/ShareButton.vue";
-import SimpleMap from "../../components/SimpleMap.vue";
-import SocialNetworkList from "../../components/SocialNetworkList.vue";
-import FloatingBtn from "../../components/FloatingBtn.vue";
-import FitText from '../../components/FitText.vue';
+  import md2html from '../../plugins/Md2html';
 
-import type { Group, Contact, Member } from "../../store/model";
+  import PageHeader from '../../layouts/PageHeader.vue';
+  import Avatar from '../../components/Avatar.vue';
+  import ContactButton from '../../components/ContactButton.vue';
+  import ShareButton from '../../components/ShareButton.vue';
+  import SimpleMap from '../../components/SimpleMap.vue';
+  import SocialNetworkList from '../../components/SocialNetworkList.vue';
+  import FloatingBtn from '../../components/FloatingBtn.vue';
+  import FitText from '../../components/FitText.vue';
 
-/**
- * Page for Group details.
- */
-export default defineComponent({
-  name: "Group",
-  components: {
-    FitText,
-    Avatar,
-    SimpleMap,
-    ShareButton,
-    ContactButton,
-    SocialNetworkList,
-    PageHeader,
-    FloatingBtn,
-    LMarker,
-  },
-  props: {
-    code: {
-      type: String,
-      required: true
-    }
-  },
-  setup() {
-    const ready = ref(false);
-    const isDescriptionOpen = ref(false);
-    return {
-      md2html,
-      ready,
-      isDescriptionOpen,
-    }
-  },
-  data() {
-    return {
-      socialButtonsView: false
-    };
-  },
-  computed: {
-    isLoggedIn(): boolean {
-      return this.$store.getters.isLoggedIn
-    },
-    group(): Group & { contacts: Contact[]; members?: Member[] } {
-      return this.$store.getters["groups/current"];
-    },
-    own(): boolean {
-      return this.group && this.$store.getters["myMember"] && this.group.id == this.$store.getters["myMember"].group.id
-    },
-    center(): [number, number] | undefined {
-      return this.group?.attributes.location.coordinates;
-    },
-    marker(): [number, number] | undefined {
-      return this.center
-    },
-    memberMarkers(): LatLngExpression[] {
-      return (this.group?.members ?? []).map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
-        .filter(Boolean) as LatLngExpression[];
-    },
-    isLoading(): boolean {
-      return !(this.ready || this.group && this.group.contacts);
-    }
-  },
-  created() {
-    // If I just call the fetch functions in created or mounted hook, then navigation from
-    // `/groups/GRP1` to `/groups/GRP2` doesn't trigger the action since the
-    // component is reused. If I otherwise add the `watch` Vue component member, the
-    // tests fail and give "You may have an infinite update loop in a component
-    // render function". So that's the way I found to make it work.
-    //
-    // https://router.vuejs.org/guide/essentials/dynamic-matching.html#reacting-to-params-changes
-    this.$watch("code", this.fetchData, { immediate: true });
-  },
-  methods: {
-    async fetchData(code: string) {
-      await this.fetchGroup(code);
-      this.ready = true
-    },
-    // Group info.
-    async fetchGroup(code: string) {
-      return this.$store.dispatch("groups/load", {
-        group: code,
-        include: `contacts${this.isLoggedIn ? ',members' : ''}`
-      });
-    },
-    toggleDescription():void {
-      this.isDescriptionOpen = !this.isDescriptionOpen
-    },
-  }
-});
+  import type { Group, Contact, Member } from '../../store/model';
+
+  const props = defineProps({
+    code: { type: String, required: true },
+  });
+
+  const ready = ref(false);
+  const isDescriptionOpen = ref(false);
+
+  const store = useStore();
+
+  const isLoggedIn = computed(() => store.getters.isLoggedIn);
+  const group = computed<Group & { contacts: Contact[] }>(() => store.getters['groups/current']);
+  const own = computed(
+    () => group.value && store.getters['myMember'] && group.value.id == store.getters['myMember'].group.id
+  );
+  const center = computed(() => group.value?.attributes.location.coordinates);
+  const marker = computed(() => center.value);
+  const memberMarkers = computed<LatLngExpression[]>(
+    () =>
+      (group.value?.members ?? [])
+        .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
+        .filter(Boolean) as LatLngExpression[]
+  );
+  const isLoading = computed(() => !(ready.value || (group.value && group.value.contacts)));
+
+  const fetchGroup = async (code: string) => {
+    return store.dispatch('groups/load', {
+      group: code,
+      include: `contacts${isLoggedIn.value ? ',members' : ''}`,
+    });
+  };
+
+  const fetchData = async (code: string) => {
+    await fetchGroup(code);
+    ready.value = true;
+  };
+
+  const toggleDescription = () => {
+    isDescriptionOpen.value = !isDescriptionOpen.value;
+  };
+
+  // If I just call the fetch functions in created or mounted hook, then navigation from
+  // `/groups/GRP1` to `/groups/GRP2` doesn't trigger the action since the
+  // component is reused. If I otherwise add the `watch` Vue component member, the
+  // tests fail and give "You may have an infinite update loop in a component
+  // render function". So that's the way I found to make it work.
+  //
+  // https://router.vuejs.org/guide/essentials/dynamic-matching.html#reacting-to-params-changes
+  watch(() => props.code, fetchData, { immediate: true });
 </script>
