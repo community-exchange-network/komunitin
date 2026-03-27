@@ -40,7 +40,10 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
       plugins: [store, router, quasarPlugin],
       stubs: {
         // stub map components since they throw errors in test environment.
-        LMap: true,
+        LMap: {
+          name: "LMap",
+          template: "<div><slot/></div>",
+        },
         LTileLayer: true,
         LMarker: true,
         // stub camera component
