@@ -17,7 +17,7 @@
     "stats_active_accounts": "Active Users",
     "stats_new_members": "New Users"
   },
-  "app_name": "CES",
+  "app_name": "Community Exchange System",
   "notifications": {
     "transfer_sent_title": "Trade recorded — service received",
     "transfer_sent_body": "A trade was recorded. You received a service worth {{amount}} from {{recipient}}.",
