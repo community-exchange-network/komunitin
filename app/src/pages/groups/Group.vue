@@ -205,7 +205,7 @@ const toggleDescription = () => {
 
 const loadGroup = async (code: string) => store.dispatch('groups/load', { group: code, include: 'contacts' });
 
-const options = computed(() => ({ group: props.code }));
+const options = computed(() => ({ group: props.code, include: 'account' }));
 
 const {
   resources: members,
