@@ -55,12 +55,14 @@
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
+              ref="descriptionRef"
               class="text-onsurface-m"
               :class="isDescriptionOpen ? '' : 'ellipsis-3-lines'"
               v-html="md2html(group.attributes.description)"
             />
 
             <q-btn
+              v-if="canToggleDescription"
               flat
               round
               dense
@@ -159,7 +161,7 @@
 /**
  * Page for Group details.
  */
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
 import { useStore } from 'vuex';
 
 import { LMarker } from '@vue-leaflet/vue-leaflet';
@@ -185,6 +187,8 @@ const store = useStore();
 
 const isLoading = ref(false);
 const isDescriptionOpen = ref(false);
+const descriptionRef = ref<HTMLElement | null>(null);
+const canToggleDescription = ref(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
 const group = computed<Group & { contacts: Contact[] }>(() => store.getters['groups/current']);
@@ -212,6 +216,23 @@ const {
   loadAll: loadAllMembers,
 } = useAllResources('members', options, { immediate: false });
 
+const calculateDescriptionOverflow = async ( maxLines = 3 ) => {
+  await nextTick();
+
+  const el = descriptionRef.value;
+  if (!el) {
+    canToggleDescription.value = false;
+    return;
+  }
+
+  const style = window.getComputedStyle(el);
+  const lineHeight = Number.isFinite(parseFloat(style.lineHeight)) ? parseFloat(style.lineHeight) : 20;
+  const maxHeight = lineHeight * maxLines;
+
+  canToggleDescription.value = el.scrollHeight > maxHeight + 1;
+
+};
+
 const fetchData = async (code: string) => {
   isLoading.value = true;
   await loadGroup(code);
@@ -221,5 +242,5 @@ const fetchData = async (code: string) => {
   isLoading.value = false;
 };
 
-watch(() => props.code, fetchData, { immediate: true });
+watch(() => props.code, () => { fetchData(props.code); calculateDescriptionOverflow(); }, { immediate: true });
 </script>
