@@ -6,7 +6,7 @@
     >
       <template #buttons>
         <contact-button
-          v-if="group"
+          v-if="!isLoading && group"
           icon="message"
           round
           flat
