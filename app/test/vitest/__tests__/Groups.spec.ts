@@ -69,7 +69,7 @@ describe("Groups", () => {
     await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true, "User should be logged in");
     
     await wrapper.vm.$router.push("/groups/GRP0");
-    await waitFor(() => wrapper.vm.$store.getters["groups/current"].members?.length > 0, true, "Api should finish loading");
+    await waitFor(() => wrapper.vm.$store.getters["members/currentList"]?.length === 31, true, "Api should finish loading");
     // Members should show on map
     expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(31);
   });
