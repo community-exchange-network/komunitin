@@ -81,34 +81,20 @@
             style="text-decoration: none; color: inherit; height: fit-content;"
             class="col-6"
           >
-            <q-card
-              flat
-              class="transition-all bg-active text-onsurface-m"
-            >
-              <q-card-section class="text-center">
-                <q-icon name="people" size="sm"/>
-                <div class="text-body2 text-weight-medium">
-                  {{ $t('members') }}
-                </div>
-              </q-card-section>
-            </q-card>
+            <nav-card
+              icon="people"
+              :label="membersLabel"
+            />
           </router-link>
 
           <router-link :to="`/groups/${code}/stats`" 
             style="text-decoration: none; color: inherit; height: fit-content;"
             class="col-6"
           >
-            <q-card
-              flat
-              class="transition-all bg-active text-onsurface-m"
-            >
-              <q-card-section class="text-center">
-                <q-icon name="insert_chart" size="sm"/>
-                <div class="text-body2 text-weight-medium">
-                  {{ $t('statistics') }}
-                </div>
-              </q-card-section>
-            </q-card>
+            <nav-card
+              icon="insert_chart"
+              :label="$t('statistics')"
+            />
           </router-link>
         </nav>
         <div
@@ -177,13 +163,16 @@ import SimpleMap from '../../components/SimpleMap.vue';
 import SocialNetworkList from '../../components/SocialNetworkList.vue';
 import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
+import NavCard from '../../components/NavCard.vue';
 
 import type { Group, Contact, Member } from '../../store/model';
 import { useAllResources } from 'src/composables/useResources';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{ code: string }>()
 
 const store = useStore();
+const { t } = useI18n() 
 
 const isLoading = ref(false);
 const isDescriptionOpen = ref(false);
@@ -202,6 +191,7 @@ const memberMarkers = computed<LatLngExpression[]>(() => {
     .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
     .filter(Boolean) as LatLngExpression[];
 });
+const membersLabel = computed(() => `${t('members')} ${(isLoggedIn.value && members.value?.length) ? `(${members.value.length})` : ''}`);
 
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;
