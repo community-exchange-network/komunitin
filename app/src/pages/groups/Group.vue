@@ -205,17 +205,18 @@ const toggleDescription = () => {
 
 const loadGroup = async (code: string) => store.dispatch('groups/load', { group: code, include: 'contacts' });
 
+const options = computed(() => ({ group: props.code, pageSize: 2 }));
+
 const {
   resources: members,
   loadAll: loadAllMembers,
-} = useAllResources('members', { group: props.code, pageSize: 2 }, { immediate: false });
+} = useAllResources('members', options, { immediate: false });
 
 const fetchData = async (code: string) => {
   isLoading.value = true;
   await loadGroup(code);
   if (isLoggedIn.value) {
     await loadAllMembers();
-    console.log(members.value);
   }
   isLoading.value = false;
 };
