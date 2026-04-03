@@ -13,14 +13,14 @@ export interface UseResourcesConfig {
   immediate?: boolean;
 }
 
-export const useResources = <T extends ResourceObject = ResourceObject>(type: string, options: LoadListPayload, config?: UseResourcesConfig) => {
+export const useResources = <T extends ResourceObject = ResourceObject>(type: string, options: MaybeRefOrGetter<LoadListPayload>, config?: UseResourcesConfig) => {
   const store = useStore();
   const resources = computed<T[]>(() => store.getters[`${type}/currentList`] ?? []);
   const loading = ref(false);
-  const lastOptions = ref<LoadListPayload>({ ...options });
+  const lastOptions = ref<LoadListPayload>({ ...toValue(options) });
 
   const load = async (overrides: Partial<LoadListPayload> = {}) => {
-    const currentOptions = { ...options, ...overrides };
+    const currentOptions = { ...toValue(options), ...overrides };
     lastOptions.value = currentOptions;
     loading.value = true;
     try {
@@ -108,3 +108,27 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
   return { resource, load, update, loading }
 
 }
+
+export const useAllResources = <T extends ResourceObject = ResourceObject>(
+  type: string,
+  options: MaybeRefOrGetter<LoadListPayload>,
+  config?: UseResourcesConfig
+) => {
+  const allResources = ref<T[]>(null);
+  const { resources, hasNext, loadNext, load, loading } = useResources(type, options, config);
+
+  const loadAll = async () => {
+    await load();
+    while (hasNext.value) {
+      await loadNext();
+    }
+    allResources.value = resources.value as T[];
+  };
+
+  // Load all resources immediately if configured
+  if (config?.immediate ?? true) {
+    loadAll();
+  }
+
+  return { resources: allResources, loadAll, loading };
+};

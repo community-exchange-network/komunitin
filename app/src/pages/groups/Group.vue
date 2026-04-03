@@ -2,11 +2,11 @@
   <div>
     <page-header
       :title="group ? group.attributes.name : ''"
-      :back="own ? '' : '/groups'" 
+      :back="own ? '' : '/groups'"
     >
       <template #buttons>
         <contact-button
-          v-if="group"
+          v-if="!isLoading && group"
           icon="message"
           round
           flat
@@ -36,76 +36,71 @@
           class="row q-col-gutter-md"
         >
           <!-- image -->
-          <div class="col-12 col-sm-6 col-md-4">
-            <q-img :src="group.attributes.image" />
+          <div class="col-4 q-px-md">
+            <div class="q-mx-auto" style="max-width: 152px; line-height: 0;">
+              <fit-text update>
+                <avatar
+                  size="inherit"
+                  :text="group.attributes.name"
+                  :img-src="group.attributes.image"
+                />
+              </fit-text>
+            </div>
           </div>
+
           <!-- description -->
-          <div class="col-12 col-sm-6 col-md-8">
+          <div class="col column">
             <div class="text-h6">
               {{ group.attributes.code }}
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
+              ref="descriptionRef"
               class="text-onsurface-m"
+              :class="isDescriptionOpen ? '' : 'ellipsis-3-lines'"
               v-html="md2html(group.attributes.description)"
             />
-            <!-- eslint-enable vue/no-v-html -->
-            <q-separator spaced />
-            <div class="k-inset-actions-md">
-              <q-btn
-                type="a"
-                flat
-                no-caps
-                :href="group.attributes.website"
-                target="_blank"
-                icon="link"
-                :label="link(group.attributes.website)"
-                color="onsurface-m"
-              />
-            </div>
-          </div>
-          <!-- explore -->
-          <div class="col-12 col-sm-6 relative-position">
-            <group-stats
-              :title="$t('offers')"
-              icon="local_offer"
-              :content="group.relationships.offers.meta.count"
-              :href="code + '/offers'"
-              :items="offersItems"
-            />
-          </div>
 
-          <div class="col-12 col-sm-6 relative-position">
-            <group-stats
-              :title="$t('needs')"
-              icon="loyalty"
-              :content="group.relationships.needs.meta.count"
-              :href="code + '/needs'"
-              :items="needsItems"
+            <q-btn
+              v-if="canToggleDescription"
+              flat
+              round
+              dense
+              :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
+              style="margin-left:auto;"
+              @click="toggleDescription"
             />
           </div>
+        </div>
+        <!-- sub-page navigation -->
+        <nav
+          v-if="group"
+          class="row q-col-gutter-md q-py-md"
+        >
+          <router-link :to="`/groups/${code}/members`" 
+            style="text-decoration: none; color: inherit; height: fit-content;"
+            class="col-6"
+          >
+            <nav-card
+              icon="people"
+              :label="membersLabel"
+            />
+          </router-link>
 
-          <div class="col-12 col-sm-6 relative-position">
-            <!-- Not providing member types for the moment, as the Social Api does not give it -->
-            <group-stats
-              :title="$t('members')"
-              icon="account_circle"
-              :content="group.relationships.members.meta.count"
-              :href="code + '/members'"
-              :items="[]"
+          <router-link :to="`/groups/${code}/stats`" 
+            style="text-decoration: none; color: inherit; height: fit-content;"
+            class="col-6"
+          >
+            <nav-card
+              icon="insert_chart"
+              :label="$t('statistics')"
             />
-          </div>
-
-          <div class="col-12 col-sm-6 relative-position">
-            <group-stats
-              v-if="currency"
-              :title="$t('currency')"
-              icon="monetization_on"
-              :content="currency.attributes.symbol"
-              :href="code + '/stats'"
-              :items="currencyItems"
-            />
-          </div>
+          </router-link>
+        </nav>
+        <div
+          v-if="group"
+          class="row q-col-gutter-md"
+        >
           <div class="col-12 col-sm-6 col-lg-8">
             <q-card
               square
@@ -115,7 +110,14 @@
                 class="simple-map"
                 :center="center"
                 :marker="marker"
-              />
+                :bounds="memberMarkers"
+              >
+                <l-marker
+                  v-for="(memberMarker, i) of memberMarkers"
+                  :key="i"
+                  :lat-lng="memberMarker"
+                />
+              </simple-map>
               <q-card-section class="group-footer-card text-onsurface-m">
                 <q-icon name="place" />
                 {{ group.attributes.location.name }}
@@ -141,131 +143,94 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref } from "vue";
-
-import md2html from "../../plugins/Md2html";
-
-import PageHeader from "../../layouts/PageHeader.vue";
-
-import ContactButton from "../../components/ContactButton.vue";
-import GroupStats from "../../components/GroupStats.vue";
-import ShareButton from "../../components/ShareButton.vue";
-import SimpleMap from "../../components/SimpleMap.vue";
-import SocialNetworkList from "../../components/SocialNetworkList.vue";
-import FloatingBtn from "../../components/FloatingBtn.vue";
-
-import type { Group, Contact, Category, Currency } from "../../store/model";
-
+<script setup lang="ts">
 /**
  * Page for Group details.
  */
-export default defineComponent({
-  name: "Group",
-  components: {
-    SimpleMap,
-    ShareButton,
-    ContactButton,
-    GroupStats,
-    SocialNetworkList,
-    PageHeader,
-    FloatingBtn
-  },
-  props: {
-    code: {
-      type: String,
-      required: true
-    }
-  },
-  setup() {
-    const ready = ref(false)
-    return {
-      link(link: string): string {
-        return link.replace(/(https|http):\/\//, "");
-      },
-      md2html,
-      ready
-    }
-  },
-  data() {
-    return {
-      socialButtonsView: false
-    };
-  },
-  computed: {
-    isLoggedIn(): boolean {
-      return this.$store.getters.isLoggedIn
-    },
-    group(): Group & { contacts: Contact[]; categories: Category[]; currency: Currency } {
-      return this.$store.getters["groups/current"];
-    },
-    currency(): Currency {
-      return this.group?.currency;
-    },
-    own(): boolean {
-      return this.group && this.$store.getters["myMember"] && this.group.id == this.$store.getters["myMember"].group.id
-    },
-    currencyItems(): string[] {
-      return [];
-      // FIXME: https://github.com/komunitin/komunitin/issues/81
-    },
-    offersItems(): string[] {
-      return this.group.categories ? this.buildCategoryItems("offers") : []
-    },
-    needsItems(): string[] {
-      return this.group.categories ? this.buildCategoryItems("needs") : []
-    },
-    center(): [number, number] | undefined {
-      return this.group?.attributes.location.coordinates;
-    },
-    marker(): [number, number] | undefined {
-      return this.center
-    },
-    isLoading(): boolean {
-      return !(this.ready || this.currency && this.group && this.group.contacts && this.group.categories);
-    }
-  },
-  created() {
-    // If I just call the fetch functions in created or mounted hook, then navigation from
-    // `/groups/GRP1` to `/groups/GRP2` doesn't trigger the action since the
-    // component is reused. If I otherwise add the `watch` Vue component member, the
-    // tests fail and give "You may have an infinite update loop in a component
-    // render function". So that's the way I found to make it work.
-    //
-    // https://router.vuejs.org/guide/essentials/dynamic-matching.html#reacting-to-params-changes
-    this.$watch("code", this.fetchData, { immediate: true });
-  },
-  methods: {
-    async fetchData(code: string) {
-      await this.fetchGroup(code);
-      this.ready = true
-    },
-    // Group info.
-    async fetchGroup(code: string) {
-      return this.$store.dispatch("groups/load", {
-        group: code,
-        include: "currency,contacts,categories"
-      });
-    },
-    // Categories info.
-    buildCategoryItems(type: "offers" | "needs"): string[] {
-      // Copy original array not to modify it when sorting.
-      const items: string[] = this.group.categories
-        .slice()
-        .sort(
-          (a, b) =>
-            b.relationships[type].meta.count - a.relationships[type].meta.count
-        )
-        .slice(0, 4)
-        .map(
-          category =>
-            `${category.relationships[type].meta.count} ${category.attributes.name}`
-        );
-      if (this.group.categories.length > 4) {
-        items.push(this.$t("andMoreCategories").toString());
-      }
-      return items;
-    }
-  }
+import { computed, ref, watch, nextTick } from 'vue';
+import { useStore } from 'vuex';
+
+import { LMarker } from '@vue-leaflet/vue-leaflet';
+import type { LatLngExpression } from 'leaflet';
+
+import md2html from '../../plugins/Md2html';
+
+import PageHeader from '../../layouts/PageHeader.vue';
+import Avatar from '../../components/Avatar.vue';
+import ContactButton from '../../components/ContactButton.vue';
+import ShareButton from '../../components/ShareButton.vue';
+import SimpleMap from '../../components/SimpleMap.vue';
+import SocialNetworkList from '../../components/SocialNetworkList.vue';
+import FloatingBtn from '../../components/FloatingBtn.vue';
+import FitText from '../../components/FitText.vue';
+import NavCard from '../../components/NavCard.vue';
+
+import type { Group, Contact, Member } from '../../store/model';
+import { useAllResources } from 'src/composables/useResources';
+import { useI18n } from 'vue-i18n';
+
+const props = defineProps<{ code: string }>()
+
+const store = useStore();
+const { t } = useI18n() 
+
+const isLoading = ref(false);
+const isDescriptionOpen = ref(false);
+const descriptionRef = ref<HTMLElement | null>(null);
+const canToggleDescription = ref(false);
+
+const isLoggedIn = computed(() => store.getters.isLoggedIn);
+const group = computed<Group & { contacts: Contact[] }>(() => store.getters['groups/current']);
+const own = computed(
+  () => group.value && store.getters['myMember'] && group.value.id == store.getters['myMember'].group.id
+);
+const center = computed(() => group.value?.attributes.location.coordinates);
+const marker = computed(() => center.value);
+const memberMarkers = computed<LatLngExpression[]>(() => {
+  return (members.value ?? [])
+    .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
+    .filter(Boolean) as LatLngExpression[];
 });
+const membersLabel = computed(() => `${t('members')} ${(isLoggedIn.value && members.value?.length) ? `(${members.value.length})` : ''}`);
+
+const toggleDescription = () => {
+  isDescriptionOpen.value = !isDescriptionOpen.value;
+};
+
+const loadGroup = async (code: string) => store.dispatch('groups/load', { group: code, include: 'contacts' });
+
+const options = computed(() => ({ group: props.code, include: 'account' }));
+
+const {
+  resources: members,
+  loadAll: loadAllMembers,
+} = useAllResources('members', options, { immediate: false });
+
+const calculateDescriptionOverflow = async ( maxLines = 3 ) => {
+  await nextTick();
+
+  const el = descriptionRef.value;
+  if (!el) {
+    canToggleDescription.value = false;
+    return;
+  }
+
+  const style = window.getComputedStyle(el);
+  const lineHeight = Number.isFinite(parseFloat(style.lineHeight)) ? parseFloat(style.lineHeight) : 20;
+  const maxHeight = lineHeight * maxLines;
+
+  canToggleDescription.value = el.scrollHeight > maxHeight + 1;
+
+};
+
+const fetchData = async (code: string) => {
+  isLoading.value = true;
+  await loadGroup(code);
+  if (isLoggedIn.value) {
+    await loadAllMembers();
+  }
+  isLoading.value = false;
+};
+
+watch(() => props.code, () => { fetchData(props.code); calculateDescriptionOverflow(); }, { immediate: true });
 </script>
