@@ -138,6 +138,46 @@ describe('POST /events', () => {
       assert.strictEqual(data.relationships.user.data.type, 'users');
     });
 
+    it('accepts ValidationEmailRequested with null code', async () => {
+      const body = createEventBody('ValidationEmailRequested', {
+        code: null,
+        user: 'user-42',
+        data: { user: 'user-42', token: 'token-123' },
+      });
+
+      const res = await app
+        .post('/events')
+        .set('Content-Type', 'application/vnd.api+json')
+        .set('Authorization', `Basic ${credentials}`)
+        .send(body)
+        .expect(201);
+
+      const { data } = res.body;
+      assert.strictEqual(data.attributes.name, 'ValidationEmailRequested');
+      assert.strictEqual(data.attributes.code, null);
+      assert.strictEqual(data.relationships.user.data.id, 'user-42');
+    });
+
+    it('accepts PasswordResetRequested with null code', async () => {
+      const body = createEventBody('PasswordResetRequested', {
+        code: null,
+        user: 'user-42',
+        data: { user: 'user-42', token: 'token-456' },
+      });
+
+      const res = await app
+        .post('/events')
+        .set('Content-Type', 'application/vnd.api+json')
+        .set('Authorization', `Basic ${credentials}`)
+        .send(body)
+        .expect(201);
+
+      const { data } = res.body;
+      assert.strictEqual(data.attributes.name, 'PasswordResetRequested');
+      assert.strictEqual(data.attributes.code, null);
+      assert.strictEqual(data.relationships.user.data.id, 'user-42');
+    });
+
     it('enqueues the event in the BullMQ events queue', async () => {
       const body = createEventBody('MemberJoined', { code: 'GRP1', user: 'user-1', data: { member: 'member-1' } });
       await app

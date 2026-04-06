@@ -47,11 +47,7 @@ export const handleNotificationForUsers = async <T extends EnrichedEvent>(
       continue;
     }
 
-    await createNotification(
-      event,
-      user,
-      message
-    );
+    await createNotification(event, user, message);
     notificationCount++;
   }
 

@@ -16,7 +16,7 @@ const createEventSchema = z.object({
     attributes: z.object({
       name: z.enum(eventNameValues),
       source: z.string(),
-      code: z.string(),
+      code: z.string().nullable(),
       time: z.coerce.date(),
       data: z.record(z.string()).default({}),
     }),
