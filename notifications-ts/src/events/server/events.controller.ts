@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { config } from '../../config';
 import { unauthorized, badRequest } from '../../utils/error';
 import { addEvent } from '../event-queue';
-import type { EventName } from '../../notifications/events';
+import type { AnyNotificationEvent, EventName } from '../../notifications/events';
 import { EVENT_NAME } from '../../notifications/events';
 import { serializeEvent } from './events.serialize';
 
@@ -80,7 +80,7 @@ export const createEvent = async (req: Request, res: Response, next: NextFunctio
       time: attributes.time,
       data: attributes.data,
       user: relationships.user.data.id,
-    };
+    } as AnyNotificationEvent;
 
     await addEvent(event);
 

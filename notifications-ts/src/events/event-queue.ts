@@ -12,7 +12,7 @@ type EventJobData = Omit<AnyNotificationEvent, 'time'> & { time: string };
 const jobToEvent = (job: Job<EventJobData>): AnyNotificationEvent => ({
   ...job.data,
   time: new Date(job.data.time),
-})
+} as AnyNotificationEvent);
 const eventToJobData = (event: AnyNotificationEvent): EventJobData => ({
   ...event,
   time: event.time.toISOString(),

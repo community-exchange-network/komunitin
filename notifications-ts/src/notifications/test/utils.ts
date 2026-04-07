@@ -51,7 +51,7 @@ export const createEvent = (name: EventName, params: { code: string | null; user
     source: 'mock-accounting',
     code: params.code,
     user: params.user,
-  }
+  } as AnyNotificationEvent;
 }
 
 /**
