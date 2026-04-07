@@ -102,7 +102,7 @@ const auth = new Auth()
 const resendEmail = async () => {
   loading.value = true
   try {
-    await auth.resendValidationEmail(credentials.value.email, "")
+    await auth.resendValidationEmail(credentials.value.email, null)
   } finally {
     loading.value = false
   }
