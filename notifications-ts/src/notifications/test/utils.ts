@@ -1,17 +1,17 @@
 import { setupServer } from 'msw/node'
 import assert from 'node:assert'
+import { randomUUID } from 'node:crypto'
 import { after, afterEach, before, beforeEach } from 'node:test'
 import supertest from 'supertest'
 import { generateKeys, signJwt } from '../../mocks/auth'
 import { resetDb } from '../../mocks/db'
+import { mockEmail } from '../../mocks/email'
 import handlers, { externalHandlers } from '../../mocks/handlers'
 import { mockDb } from '../../mocks/prisma'
 import { createQueue } from '../../mocks/queue'
 import { mockRedis } from '../../mocks/redis'
-import { mockEmail } from '../../mocks/email'
 import prisma from '../../utils/prisma'
-import type { EventName, NotificationEvent } from '../events'
-import { randomUUID } from 'node:crypto'
+import type { AnyNotificationEvent, EventName } from '../events'
 
 // Lazy-load the Express app to ensure mocks (especially utils/queue) are
 // registered before the server module graph (which includes event-queue → BullMQ)
@@ -42,7 +42,7 @@ export const createNotification = async (
 /**
  * Create event data in the format expected by addEvent / the events queue.
  */
-export const createEvent = (name: EventName, params: { code: string; user: string; data: Record<string, string> }): NotificationEvent => {
+export const createEvent = (name: EventName, params: { code: string | null; user: string; data: Record<string, string> }): AnyNotificationEvent => {
   return {
     id: randomUUID(),
     name,
@@ -51,13 +51,13 @@ export const createEvent = (name: EventName, params: { code: string; user: strin
     source: 'mock-accounting',
     code: params.code,
     user: params.user,
-  }
+  } as AnyNotificationEvent;
 }
 
 /**
  * Create a JSON:API event body for the POST /events endpoint.
  */
-export const createEventBody = (name: EventName, params: { code: string; user: string; data: Record<string, string> }) => {
+export const createEventBody = (name: EventName, params: { code: string | null; user: string; data: Record<string, string> }) => {
   return {
     data: {
       type: 'events',
@@ -121,7 +121,7 @@ type SetupNotificationsTestReturnBase = {
   pushSubscriptions: any[];
   pushNotifications: any[];
   /** Add an event to the queue and wait for it to be processed (when useWorker is true). */
-  put: (event: NotificationEvent) => Promise<any>;
+  put: (event: AnyNotificationEvent) => Promise<any>;
   eventsQueue: ReturnType<typeof createQueue>;
   pushQueue: ReturnType<typeof createQueue> | null;
   syntheticQueue: ReturnType<typeof createQueue> | null;
@@ -163,7 +163,7 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
   const email = mockEmail();
 
   // addEvent and app are lazy-loaded in before() to ensure mocks are set up first.
-  let addEventFn: ((event: NotificationEvent) => Promise<any>) | null = null;
+  let addEventFn: ((event: AnyNotificationEvent) => Promise<any>) | null = null;
 
   // Use a Proxy so that destructured `app` delegates to the real supertest agent
   // once it's loaded in the before() hook. Without this, `const { app } = setup`
@@ -179,7 +179,7 @@ export function setupNotificationsTest<T extends SetupNotificationsTestOptions =
   const result = {
     app: appProxy,
     email,
-    put: async (event: NotificationEvent) => {
+    put: async (event: AnyNotificationEvent) => {
       if (!addEventFn) {
         throw new Error('put() called before before() hook ran');
       }

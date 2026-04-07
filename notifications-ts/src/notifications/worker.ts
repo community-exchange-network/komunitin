@@ -1,6 +1,6 @@
 import logger from '../utils/logger';
 import { startEventWorker } from '../events/event-queue';
-import { EVENT_NAME, EventName, GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent, UserEvent } from './events';
+import { AnyNotificationEvent, EVENT_NAME, EventName, GroupEvent, MemberEvent, PostEvent, TransferEvent, UserEvent } from './events';
 import { handleGroupEvent } from './handlers/group';
 import { handleMemberEvent } from './handlers/member';
 import { handlePostEvent } from './handlers/post';
@@ -49,7 +49,7 @@ export const runNotificationsWorker = async (): Promise<WorkerHandle> => {
   };
 };
 
-export const dispatchEvent = async (event: NotificationEvent): Promise<void> => {
+export const dispatchEvent = async (event: AnyNotificationEvent): Promise<void> => {
   switch (event.name as EventName) {
     case EVENT_NAME.TransferCommitted:
     case EVENT_NAME.TransferPending:

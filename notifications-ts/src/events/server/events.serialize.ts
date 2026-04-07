@@ -1,6 +1,6 @@
-import type { NotificationEvent } from "../../notifications/events";
+import type { AnyNotificationEvent } from "../../notifications/events";
 
-export const serializeEvent = (event: NotificationEvent) => {
+export const serializeEvent = (event: AnyNotificationEvent) => {
   return {
     type: 'events',
     id: event.id,

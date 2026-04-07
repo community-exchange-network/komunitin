@@ -185,25 +185,10 @@ export const createMember = (opts: {
   db.members.push(member);
 
   // User
-  db.users.push({
-    type: 'users',
+  createUser({
     id: userId,
-    attributes: { email: `${userCode}@example.com` },
-    relationships: {
-      settings: { data: { type: 'user-settings', id: `${userId}-settings` } },
-      members: { data: [{ type: 'members', id: id }] }
-    }
-  });
-
-  // Settings
-  db.userSettings.push({
-    type: 'user-settings',
-    id: `${userId}-settings`,
-    attributes: {
-      language: 'en',
-      emails: { group: 'weekly', myAccount: true },
-      notifications: { myAccount: true, group: true }
-    }
+    email: `${userCode}@example.com`,
+    memberIds: [id],
   });
 
   // Account
@@ -223,6 +208,35 @@ export const createMember = (opts: {
 
   return member;
 };
+
+export const createUser = (opts: {
+  id: string;
+  email: string;
+  memberIds?: string[];
+}) => {
+  const user = {
+    type: 'users',
+    id: opts.id,
+    attributes: { email: opts.email },
+    relationships: {
+      settings: { data: { type: 'user-settings', id: `${opts.id}-settings` } },
+      members: { data: (opts.memberIds || []).map(id => ({ type: 'members', id })) }
+    }
+  };
+  db.users.push(user);
+
+  db.userSettings.push({
+    type: 'user-settings',
+    id: `${opts.id}-settings`,
+    attributes: {
+      language: 'en',
+      emails: { group: 'weekly', myAccount: true },
+      notifications: { myAccount: true, group: true }
+    }
+  });
+
+  return user;
+}
 
 export const createMembers = (code: string) => {
   createGroup(code);

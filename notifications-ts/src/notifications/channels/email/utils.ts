@@ -1,5 +1,5 @@
 import initI18n from "../../../utils/i18n";
-import { EnrichedEvent } from "../../enriched-events";
+import { AnyEnrichedEvent } from "../../enriched-events";
 import { MessageContext } from "../../messages";
 import { Mailer } from "../../../clients/email/mailer";
 import { EmailTemplateContext } from "../../emails/types";
@@ -14,7 +14,7 @@ export type EmailMessage = {
   html: string;
 };
 
-const buildAndSendEmail = async <T extends EnrichedEvent>(
+const buildAndSendEmail = async <T extends AnyEnrichedEvent>(
   event: T,
   to: string,
   locale: string,
@@ -29,7 +29,7 @@ const buildAndSendEmail = async <T extends EnrichedEvent>(
   }
 }
 
-export const handleEmailEvent = async <T extends EnrichedEvent>(
+export const handleEmailEvent = async <T extends AnyEnrichedEvent>(
   event: T,
   users: Array<{ user: any; settings: any }>,
   templateName: string,
@@ -44,7 +44,7 @@ export const handleEmailEvent = async <T extends EnrichedEvent>(
  * Send an email to the server superadmin (ADMIN_EMAIL env var), always in English.
  * Used for system-level events like GroupRequested that are not tied to a specific user.
  */
-export const handleSuperadminEmailEvent = async <T extends EnrichedEvent>(
+export const handleSuperadminEmailEvent = async <T extends AnyEnrichedEvent>(
   event: T,
   templateName: string,
   buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null) => {

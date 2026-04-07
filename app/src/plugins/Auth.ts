@@ -157,11 +157,13 @@ export class Auth {
     this.checkResponse(response)
   }
 
-  public async resendValidationEmail(email: string, code: string): Promise<void> {
+  public async resendValidationEmail(email: string, code: string|null): Promise<void> {
     const params = new URLSearchParams()
     params.append("email", email)
     params.append("client_id", this.clientId)
-    params.append("group", code)
+    if (code !== null) {
+      params.append("group", code)
+    }
 
     const response = await fetch(config.AUTH_URL + "/resend-validation", {
       method: "POST",

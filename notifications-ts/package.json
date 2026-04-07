@@ -27,7 +27,7 @@
     "dotenv": "^16.3.1",
     "express": "^5.2.1",
     "express-oauth2-jwt-bearer": "^1.7.2",
-    "handlebars": "^4.7.8",
+    "handlebars": "^4.7.9",
     "helmet": "^8.1.0",
     "html-to-text": "^9.0.5",
     "i18next": "^25.7.3",
