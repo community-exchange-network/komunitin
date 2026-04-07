@@ -27,13 +27,9 @@ To contribute issues, please follow these guidelines:
 To contribute code, please follow these steps:
 
 1.  Fork the repository.
-
 2.  Create a new branch for your changes.
-
 3.  Add tests for your new code.
-
 4.  Ensure that all existing tests pass.
-
 5.  Submit a pull request with your changes to the `master` branch.
 
 ## Contributing Translations
@@ -44,8 +40,7 @@ Language files are located in several places in the repository, specifically:
 2. `app/src/i18n/[LANGUAGE_CODE]/index.json`: Strings in the app facing regular users.
 3. `app/src/i18n/[LANGUAGE_CODE]/admin.json`: Strings in the admin interface.
 4. `app/src/i18n/flavors/[FLAVOR_NAME]/[LANGUAGE_CODE]/*.json`: Override strings for specific flavor.
-5. `notifications/i18n/messages/[LANGUAGE_CODE].json`: Strings for email notifications.
-6. `notifications-ts/src/i18n/[LANGUAGE_CODE].json`: Strings for the newsletter and push notifications.
+5. `notifications-ts/src/i18n/[LANGUAGE_CODE].json`: Strings for emails and notifications.
 
 In order to add or change translations in an existing language, just modify the relevant files.
 
@@ -66,6 +61,7 @@ Komunitin supports different "flavors" to customize the application. The flavor 
 3. **Public files**: You can customize public files including `favicon.ico` by placing them in the `public/flavors/[FLAVOR_NAME]/` directory.
 4. **Styles**: You can customize styles by modifying the `app/src/css/flavors/[FLAVOR_NAME]/override.variables.sass`. This file lets you override Quasar variables for your flavor, and it is automatically copied to `src/css/override.variables.sass` by the build plugin.
 5. **Language strings**: You can override language strings by placing JSON files in the `app/src/i18n/flavors/[FLAVOR_NAME]/[LANGUAGE_CODE]/` directory. The files should have the same names as the base language files (e.g., `index.json`, `admin.json`). The flavor-specific strings will override the base strings when the specified flavor is active.
+6. **Emails and notifications strings**: You can override email and notification strings by placing JSON files in the `notifications-ts/src/i18n/flavors/[FLAVOR_NAME]/[LANGUAGE_CODE].json` files.
 
 ## Community Note
 
