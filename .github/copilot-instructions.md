@@ -8,7 +8,7 @@ Komunitin is an open-source system for community exchange currencies. It is a **
 |---|---|---|---|---|
 | **App** (PWA frontend) | `app/` | TypeScript + Vue 3 | Quasar/Vite | 2030 |
 | **Accounting** | `accounting/` | TypeScript | Node.js 22, Express, Prisma, Stellar blockchain | 2025 |
-| **Notifications (TS)** | `notifications-ts/` | TypeScript | Node.js 24, Express, Prisma, BullMQ, Redis | 2023 |
+| **Notifications** | `notifications-ts/` | TypeScript | Node.js 24, Express, Prisma, BullMQ, Redis | 2023 |
 
 An external dependency **IntegralCES** (Drupal, cloned separately) provides the social/auth API at port 2029.
 
@@ -82,14 +82,13 @@ pnpm run dev            # tsx watch with debugger
 
 ## CI / GitHub Actions
 
-The single CI workflow is `.github/workflows/build.yml`. It runs on every push to `master` and every PR. Four parallel build jobs:
+The single CI workflow is `.github/workflows/build.yml`. It runs on every push to `master` and every PR. Three parallel build jobs:
 
 1. **build-app**: Docker build → lint → test → Docker image → publish.
-2. **build-notifications**: Docker build → `go test ./...` → Docker image → publish.
-3. **build-notifications-ts**: Docker compose for DB services → pnpm install → `pnpm typecheck && pnpm test` → Docker image → publish.
-4. **build-accounting**: Docker compose for DB → pnpm install → `pnpm reset-db && pnpm test` → Docker image → publish.
+2. **build-notifications-ts**: Docker compose for DB services → pnpm install → `pnpm typecheck && pnpm test` → Docker image → publish.
+3. **build-accounting**: Docker compose for DB → pnpm install → `pnpm reset-db && pnpm test` → Docker image → publish.
 
-After all four jobs pass, `update-server` deploys to demo/staging/preview servers.
+After all three jobs pass, `update-server` deploys to demo/staging/preview servers.
 
 ## Docker / Docker Compose
 
