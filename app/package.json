@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@electron/typescript-definitions": "^8.9.6",
-    "@quasar/app-vite": "^2.0.0",
+    "@quasar/app-vite": "^2.6.0",
     "@stylistic/eslint-plugin": "^2.9.0",
     "@types/clamp-js": "^0.7.3",
     "@types/faker": "^4.1.12",
