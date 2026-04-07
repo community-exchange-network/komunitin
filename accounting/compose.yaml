@@ -1,7 +1,7 @@
 services:
   db:
     build:
-      context: ./docker/db
+      context: ../shared/docker/db
     container_name: db
     restart: unless-stopped
     ports:

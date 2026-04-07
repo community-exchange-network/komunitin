@@ -21,7 +21,7 @@ jobs:
     steps:
     - name: Pull db-accounting image
       run: |
-        docker pull komunitin/komunitin-db-accounting:latest
+        docker pull komunitin/komunitin-db:latest
 
     - name: Restore accounting database from latest backup
       run: |
@@ -38,7 +38,7 @@ jobs:
         -e AWS_S3_FORCE_PATH_STYLE=$AWS_S3_FORCE_PATH_STYLE \
         --user postgres \
         --entrypoint /bin/bash \
-        komunitin/komunitin-db-accounting:latest \
+        komunitin/komunitin-db:latest \
         /usr/local/bin/restore_backup.sh
 
     - name: Wait for the accounting DB to start and restore
@@ -65,7 +65,7 @@ jobs:
     steps:
     - name: Pull database image
       run: |
-        docker pull komunitin/komunitin-db-accounting:latest
+        docker pull komunitin/komunitin-db:latest
 
     - name: Restore notifications database from latest backup
       run: |
@@ -82,7 +82,7 @@ jobs:
         -e AWS_S3_FORCE_PATH_STYLE=$AWS_S3_FORCE_PATH_STYLE \
         --user postgres \
         --entrypoint /bin/bash \
-        komunitin/komunitin-db-accounting:latest \
+        komunitin/komunitin-db:latest \
         /usr/local/bin/restore_backup.sh
 
     - name: Wait for the notifications DB to start and restore

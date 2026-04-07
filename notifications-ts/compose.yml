@@ -1,7 +1,7 @@
 services:
   db:
     build:
-      context: ../accounting/docker/db
+      context: ../shared/docker/db
     ports:
       - "5433:5432"
     environment:
