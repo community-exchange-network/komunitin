@@ -97,6 +97,9 @@ export default defineConfig((ctx) => {
     build: {
       
       vueRouterMode: "history", // available values: 'hash', 'history'
+      target: {
+        browser: ["es2022", "chrome115", "firefox115", "safari15.4"],
+      },
       analyze: true,
       // Quasar overrides boolean true to 'inline' internally, we use the string to 
       // bypass that. See https://github.com/quasarframework/quasar/issues/14589.
