@@ -1,4 +1,4 @@
-import { GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent } from "./events"
+import { GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent, UserEvent } from "./events"
 import { Account, Member, User, Group, Currency, Transfer, UserSettings, Need, Offer, ExternalResource } from "../clients/komunitin/types";
 
 export type EnrichedTransferEventAccountData = {
@@ -76,8 +76,7 @@ export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
   users: Array<{ user: User; settings: UserSettings }>;
 };
 
-export type EnrichedUserEvent = NotificationEvent & {
-  name: 'ValidationEmailRequested' | 'PasswordResetRequested';
+export type EnrichedUserEvent = UserEvent & {
   // user is already taken.
   target: { user: User; settings: UserSettings };
   token: string;
@@ -93,5 +92,6 @@ export type EnrichedEvent =
   | EnrichedTransferEvent
   | EnrichedPostsPublishedDigestEvent
   | EnrichedMembersJoinedDigestEvent
-  | EnrichedMemberHasNoPostsEvent
-  | EnrichedUserEvent;
+  | EnrichedMemberHasNoPostsEvent;
+
+export type AnyEnrichedEvent = EnrichedEvent | EnrichedUserEvent;

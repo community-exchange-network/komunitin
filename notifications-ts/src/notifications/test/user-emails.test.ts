@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { createMember, db, getUserIdForMember } from "../../mocks/db";
+import { createMember, createUser, db, getUserIdForMember } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
 const { put, email } = setupNotificationsTest({ useWorker: true });
@@ -101,4 +101,26 @@ describe('User emails', () => {
     assert.ok(msg.html.includes(expectedSecondaryUrl), 'HTML should contain group URL');
     assert.ok(msg.text?.includes(expectedSecondaryUrl), 'Plain text should contain group URL');
   });
+
+  it('should send validation email without group code', async () => {
+    const user = createUser({ id: 'user-no-group', email: 'user-no-group@example.com' });
+    const eventData = createEvent('ValidationEmailRequested', { code: null, user: user.id, data: { user: user.id } });
+
+    await put(eventData);
+    
+    assert.strictEqual(email.sentEmails.length, 1, 'Should send exactly one validation email');
+    const msg = email.lastEmail();
+    assert.strictEqual(msg.to, user.attributes.email);
+
+    assert.ok(
+      msg.text.includes('/groups/new?token=mock-unsubscribe-token'),
+      'Validation email without group code should contain URL for creating new group with token'
+    );
+
+    assert.ok(
+      msg.text.includes('Confirm your email'),
+      'Validation email without group code should have correct subject and content'
+    );
+
+  })
 });

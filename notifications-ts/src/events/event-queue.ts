@@ -1,19 +1,19 @@
 import type { Job } from 'bullmq';
 import { createQueue, createWorker } from '../utils/queue';
 import logger from '../utils/logger';
-import type { NotificationEvent } from '../notifications/events';
+import type { AnyNotificationEvent } from '../notifications/events';
 
 const QUEUE_NAME = 'events';
 
 /**
  * In the queue the date field must be serialized as a string.
  */
-type EventJobData = Omit<NotificationEvent, 'time'> & { time: string };
-const jobToEvent = (job: Job<EventJobData>): NotificationEvent => ({
+type EventJobData = Omit<AnyNotificationEvent, 'time'> & { time: string };
+const jobToEvent = (job: Job<EventJobData>): AnyNotificationEvent => ({
   ...job.data,
   time: new Date(job.data.time),
-})
-const eventToJobData = (event: NotificationEvent): EventJobData => ({
+} as AnyNotificationEvent);
+const eventToJobData = (event: AnyNotificationEvent): EventJobData => ({
   ...event,
   time: event.time.toISOString(),
 });
@@ -31,7 +31,7 @@ const getEventsQueue = () => {
  * Add an event to the BullMQ events queue.
  * Called by the events HTTP endpoint.
  */
-export const addEvent = async (event: NotificationEvent) => {
+export const addEvent = async (event: AnyNotificationEvent) => {
   const queue = getEventsQueue();
   return queue.add(event.name, eventToJobData(event));
 };
@@ -40,7 +40,7 @@ export const addEvent = async (event: NotificationEvent) => {
  * Start the BullMQ worker that processes events from the queue.
  * Returns a stop function to gracefully shut down.
  */
-export const startEventWorker = (processor: (event: NotificationEvent) => Promise<void>) => {
+export const startEventWorker = (processor: (event: AnyNotificationEvent) => Promise<void>) => {
   const worker = createWorker<EventJobData>(
     QUEUE_NAME,
     async (job: Job<EventJobData>) => {

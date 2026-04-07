@@ -4,22 +4,29 @@ import { z } from 'zod';
 import { config } from '../../config';
 import { unauthorized, badRequest } from '../../utils/error';
 import { addEvent } from '../event-queue';
-import type { EventName } from '../../notifications/events';
+import type { AnyNotificationEvent, EventName } from '../../notifications/events';
 import { EVENT_NAME } from '../../notifications/events';
 import { serializeEvent } from './events.serialize';
 
 const eventNameValues = Object.values(EVENT_NAME) as [EventName, ...EventName[]];
+const nullableCodeEventNames = new Set<EventName>([
+  EVENT_NAME.ValidationEmailRequested,
+  EVENT_NAME.PasswordResetRequested,
+]);
 
 const createEventSchema = z.object({
   data: z.object({
     type: z.literal('events').optional(),
     attributes: z.object({
-      name: z.enum(eventNameValues),
-      source: z.string(),
-      code: z.string(),
-      time: z.coerce.date(),
-      data: z.record(z.string()).default({}),
-    }),
+        name: z.enum(eventNameValues),
+        source: z.string(),
+        code: z.string().nullable(),
+        time: z.coerce.date(),
+        data: z.record(z.string()).default({}),
+      }).refine((attributes) => !(attributes.code === null && !nullableCodeEventNames.has(attributes.name)), {
+        message: 'code is required for this event type',
+        path: ['code'],
+      }),
     relationships: z.object({
       user: z.object({
         data: z.object({
@@ -73,7 +80,7 @@ export const createEvent = async (req: Request, res: Response, next: NextFunctio
       time: attributes.time,
       data: attributes.data,
       user: relationships.user.data.id,
-    };
+    } as AnyNotificationEvent;
 
     await addEvent(event);
 

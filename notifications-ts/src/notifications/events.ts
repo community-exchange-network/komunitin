@@ -23,15 +23,23 @@ export const EVENT_NAME = {
 } as const;
 
 export type EventName = (typeof EVENT_NAME)[keyof typeof EVENT_NAME];
+type UserEventName =
+  | typeof EVENT_NAME.ValidationEmailRequested
+  | typeof EVENT_NAME.PasswordResetRequested;
+type NotificationEventName = Exclude<EventName, UserEventName>;
 
-export type NotificationEvent = {
+type BaseEvent = {
   id: string;
   name: EventName;
   source: string;
-  code: string;
   time: Date;
   data: Record<string, any>;
   user: string;
+};
+
+export type NotificationEvent = BaseEvent & {
+  name: NotificationEventName;
+  code: string;
 };
 
 export type TransferEvent = NotificationEvent & {
@@ -81,10 +89,9 @@ export type GroupEvent = NotificationEvent & {
   };
 };
 
-export type UserEvent = NotificationEvent & {
-  name: 
-    | typeof EVENT_NAME.ValidationEmailRequested
-    | typeof EVENT_NAME.PasswordResetRequested;
+export type UserEvent = BaseEvent & {
+  name: UserEventName;
+  code: string | null;
   data: {
     // That should usually be the same as the user field, 
     // but we keep it separate in case we want to trigger 
@@ -93,3 +100,5 @@ export type UserEvent = NotificationEvent & {
     user: string;
   };
 };
+
+export type AnyNotificationEvent = NotificationEvent | UserEvent;
