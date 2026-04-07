@@ -12,13 +12,16 @@ export const ctxCommon = (event: AnyEnrichedEvent, ctx: MessageContext): CommonE
   const appUrl = config.KOMUNITIN_APP_URL ?? ""
   const appName = t('app_name');
 
+  const name = event.group?.attributes.name ?? appName;
+  const code = event.group?.attributes.code ?? '';
+  const initial = (code ?? appName).charAt(0).toUpperCase();
+
   const group: NewsletterTemplateGroup = {
-    name: event.group?.attributes.name ?? appName,
-    code: event.group?.attributes.code ?? '',
-    initial: '',
+    name,
+    code,
+    initial,
     image: event.group?.attributes.image,
   };
-  group.initial = (group.code ?? group.name).charAt(0).toUpperCase();
 
   const data = {
     language: ctx.locale,
