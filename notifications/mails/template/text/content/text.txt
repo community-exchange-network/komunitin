@@ -1,5 +1,0 @@
-{{define "content"}}
-{{.Text}}
-{{if .Subtext}}{{.Subtext}}
-{{end}}
-{{end}}
