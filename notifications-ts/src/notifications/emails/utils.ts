@@ -14,7 +14,7 @@ export const ctxCommon = (event: AnyEnrichedEvent, ctx: MessageContext): CommonE
 
   const name = event.group?.attributes.name ?? appName;
   const code = event.group?.attributes.code ?? '';
-  const initial = (code ?? appName).charAt(0).toUpperCase();
+  const initial = (code ? code : appName).charAt(0).toUpperCase();
 
   const group: NewsletterTemplateGroup = {
     name,
