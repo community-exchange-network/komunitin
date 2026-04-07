@@ -116,6 +116,18 @@ describe('POST /events', () => {
       }).expect(400);
       assert.ok(res.body.errors[0].detail.includes('Invalid'));
     });
+
+    it('rejects null code for non-user events', async () => {
+      const res = await post({
+        data: {
+          type: 'events',
+          attributes: { name: 'TransferCommitted', source: 's', code: null, time: new Date().toISOString(), data: {} },
+          relationships: { user: { data: { type: 'users', id: 'u1' } } },
+        },
+      }).expect(400);
+
+      assert.ok(res.body.errors[0].detail.includes('code'));
+    });
   });
 
   describe('Successful event creation', () => {
