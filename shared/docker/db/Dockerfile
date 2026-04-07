@@ -17,7 +17,7 @@ RUN set -ex && \
     tar -xzf wal-g.tar.gz && \
     mv wal-g-pg-ubuntu-$UBUNTU_VERSION-$ARCH wal-g
 
-FROM postgres:16 AS komunitin-db-accounting
+FROM postgres:16 AS komunitin-db
 
 # Install cron
 RUN set -ex && \
