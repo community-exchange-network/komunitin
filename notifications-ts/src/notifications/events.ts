@@ -101,7 +101,4 @@ export type UserEvent = BaseEvent & {
   };
 };
 
-export type AnyNotificationEvent = BaseEvent & {
-  name: EventName;
-  code: string | null;
-};
+export type AnyNotificationEvent = NotificationEvent | UserEvent;
