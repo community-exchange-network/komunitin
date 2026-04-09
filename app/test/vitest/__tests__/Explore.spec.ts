@@ -1,6 +1,7 @@
 import { VueWrapper } from "@vue/test-utils";
 import {
   QCard,
+  QInnerLoading,
 } from "quasar";
 import App from "../../../src/App.vue";
 import SimpleMap from '../../../src/components/SimpleMap.vue';
@@ -29,6 +30,8 @@ describe("Explore groups", () => {
     expect(list).toContain("GRP6");
     await wrapper.get("[href='/groups/GRP1']").trigger("click");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP1");
+    await waitFor(() => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing, false, "Should finish loading");
+    
     const group = wrapper.text();
     expect(group).toContain("GRP1");
     // Check cards present.

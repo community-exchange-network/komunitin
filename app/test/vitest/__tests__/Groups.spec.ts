@@ -31,7 +31,7 @@ describe("Groups", () => {
     await wrapper.vm.$router.push("/groups/GRP0");
     await wrapper.vm.$nextTick();
     expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
-    // await waitFor(() => wrapper.text().includes("6 Computers"), true, "Group page should load offer categories");
+    await waitFor(() => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing, false, "Should finish loading");
     const text = wrapper.text();
     // Title
     expect(text).toContain("Group 0");
