@@ -41,7 +41,7 @@
               <template v-if="showBalances" #side>
                 <div class="column items-end">
                   <div
-                    v-if="member && member.account"
+                    v-if="member.account"
                     class="col currency text-h6"
                     :class="
                       member.account.attributes.balance >= 0
