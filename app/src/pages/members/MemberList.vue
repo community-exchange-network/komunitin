@@ -72,18 +72,18 @@ import FormatCurrency from "../../plugins/FormatCurrency";
 import PageHeader from "../../layouts/PageHeader.vue";
 import ResourceCards from "../ResourceCards.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
-import { useCurrencySettings } from "../../composables/currencySettings";
 import { useStore } from "vuex";
+import { useResource } from 'src/composables/useResources';
 
 const props = defineProps<{
   code: string
 }>();
 
 const store = useStore();
-const currencySettings = useCurrencySettings(props.code);
+const { resource: currency } = useResource('currencies', { group: props.code, include: 'settings' });
 
 const showBalances = computed(() => 
-  currencySettings.value?.attributes.defaultHideBalance !== true
+  currency.settings?.value?.attributes.defaultHideBalance !== true
   || store.getters.isAdmin
 );
 
