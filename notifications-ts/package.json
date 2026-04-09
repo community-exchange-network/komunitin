@@ -33,7 +33,7 @@
     "i18next": "^25.7.3",
     "i18next-fs-backend": "^2.6.1",
     "node-cron": "^3.0.3",
-    "nodemailer": "^8.0.4",
+    "nodemailer": "^8.0.5",
     "pg": "^8.16.3",
     "pino": "^8.16.2",
     "pino-http": "^11.0.0",
