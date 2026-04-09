@@ -166,13 +166,13 @@ import FitText from '../../components/FitText.vue';
 import NavCard from '../../components/NavCard.vue';
 
 import type { Group, Contact, Member } from '../../store/model';
-import { useAllResources } from 'src/composables/useResources';
+import { useAllResources, useResource } from 'src/composables/useResources';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps<{ code: string }>()
+const props = defineProps<{ code: string }>();
 
 const store = useStore();
-const { t } = useI18n() 
+const { t } = useI18n();
 
 const isLoading = ref(false);
 const isDescriptionOpen = ref(false);
@@ -180,7 +180,10 @@ const descriptionRef = ref<HTMLElement | null>(null);
 const canToggleDescription = ref(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
-const group = computed<Group & { contacts: Contact[] }>(() => store.getters['groups/current']);
+const groupOptions = computed(() => ({ group: props.code, include: 'contacts' }));
+const { resource: group, load: loadGroup } = useResource<Group & { contacts: Contact[] }>('groups', groupOptions, {
+  immediate: false,
+});
 const own = computed(
   () => group.value && store.getters['myMember'] && group.value.id == store.getters['myMember'].group.id
 );
@@ -191,22 +194,18 @@ const memberMarkers = computed<LatLngExpression[]>(() => {
     .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
     .filter(Boolean) as LatLngExpression[];
 });
-const membersLabel = computed(() => `${t('members')} ${(isLoggedIn.value && members.value?.length) ? `(${members.value.length})` : ''}`);
+const membersLabel = computed(
+  () => `${t('members')} ${isLoggedIn.value && members.value?.length ? `(${members.value.length})` : ''}`
+);
+
+
+const memberOptions = computed(() => ({ group: props.code }));
+const { resources: members, loadAll: loadAllMembers } = useAllResources('members', memberOptions, { immediate: false });
 
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;
 };
-
-const loadGroup = async (code: string) => store.dispatch('groups/load', { group: code, include: 'contacts' });
-
-const options = computed(() => ({ group: props.code }));
-
-const {
-  resources: members,
-  loadAll: loadAllMembers,
-} = useAllResources('members', options, { immediate: false });
-
-const calculateDescriptionOverflow = async ( maxLines = 3 ) => {
+const calculateDescriptionOverflow = async (maxLines = 3) => {
   await nextTick();
 
   const el = descriptionRef.value;
@@ -220,17 +219,23 @@ const calculateDescriptionOverflow = async ( maxLines = 3 ) => {
   const maxHeight = lineHeight * maxLines;
 
   canToggleDescription.value = el.scrollHeight > maxHeight + 1;
-
 };
 
-const fetchData = async (code: string) => {
+const fetchData = async () => {
   isLoading.value = true;
-  await loadGroup(code);
+  await loadGroup();
   if (isLoggedIn.value) {
     await loadAllMembers();
   }
   isLoading.value = false;
 };
 
-watch(() => props.code, () => { fetchData(props.code); calculateDescriptionOverflow(); }, { immediate: true });
+watch(
+  () => props.code,
+  () => {
+    fetchData();
+    calculateDescriptionOverflow();
+  },
+  { immediate: true }
+);
 </script>

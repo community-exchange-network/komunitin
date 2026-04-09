@@ -56,7 +56,7 @@ export type UseResourceOptions = Omit<LoadByIdPayload, 'id'> & {
 }
   
 
-export const useResource = <T extends ResourceObject = ResourceObject>(type: string, options: UseResourceOptions, config?: UseResourcesConfig) => {
+export const useResource = <T extends ResourceObject = ResourceObject>(type: string, options: MaybeRefOrGetter<UseResourceOptions>, config?: UseResourcesConfig) => {
   const store = useStore()
   
   const id = ref<string|null|undefined>(toValue(options.id))
@@ -71,7 +71,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     loading.value = true
     try {
       await store.dispatch(type + '/load', {
-        ...options,
+        ...toValue(options),
         id: id.value
       })
 
@@ -91,7 +91,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     try {
       await store.dispatch(type + '/update', {
         id: id.value,
-        group: options.group,
+        group: toValue(options.group),
         resource: data
       })
     } finally {
