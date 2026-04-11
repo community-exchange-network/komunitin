@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap');
 // App global CSS classes beyond default Quasar classes.
 
 // 1. Custom background colors
@@ -31,8 +32,6 @@
 .bg-icon-dark {
   background: $icon-dark;
 }
-
-
 
 // 2. custom foreground colors
 .text-onprimary {
@@ -77,8 +76,18 @@
 .negative-amount {
   color: $negative-amount;
 }
-// 3. General purpose helper classes
 
+// 3. Custom typography classes
+.text-serif {
+  font-family: $display-serif-family;
+}
+
+.text-overline {
+  letter-spacing: 1.5px;
+  line-height: 1.5rem;
+}
+
+// 4. General purpose helper classes
 // Align flat button content with the start of the content, as with card action buttons.
 .k-inset-actions-md {
   margin-left: -8px;
@@ -93,9 +102,4 @@
   &.text-onoutside-m:hover {
     color: $onoutside;
   }
-  // 4. Overwrite typography defaults
-}
-.text-overline {
-  letter-spacing: 1.5px;
-  line-height: 1.5rem;
 }
