@@ -2,10 +2,7 @@
   <q-card
     v-if="offer"
     v-card-click-to="`/groups/${code}/offers/${offer.attributes.code}`"
-    bordered
     :class="{isHidden, isExpired}"
-    class="my-down-shadow"
-    style="border-radius: 20px; border-color: #F1F5F9;"
   >
     <!-- Header -->
     <member-header :member="offer.member">
