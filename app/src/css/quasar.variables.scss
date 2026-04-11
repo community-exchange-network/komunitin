@@ -7,83 +7,81 @@
 // We are following here the Material Design Color System guidelines
 // and conventions (https://material.io/design/color/the-color-system.html)
 
-@import url('https://fonts.googleapis.com')
-$typography-font-family: 'Inter', sans-serif !default
+@import url('https://fonts.googleapis.com');
 
 // Background colors
 
 // The main color of the app, the one in top bars
-$primary: #EBA55D
-$secondary: #689AD1
-$accent: #8A715D
+$primary: #EBA55D;
+$secondary: #689AD1;
+$accent: #8A715D;
 
 // Secondary colors
-$kblue: #2f7989
-$kyellow: #c29c14
-$kred: #9d3130
+$kblue: #2f7989;
+$kyellow: #c29c14;
+$kred: #9d3130;
 
 
 // Color for surface elements, such as cards and navbar
-$surface   : #ffffff
+$surface: #ffffff;
 // App background color.
-$background: #f6f7f8
-$light-background: #F8F7F5
+$background: #f6f7f8;
+$light-background: #F8F7F5;
 // Error color.
-$error     : #B00020
-$light-error: rgba($error, 0.12)
+$error: #B00020;
+$light-error: rgba($error, 0.12);
 
 // Warning color.
-$warning   : #F2C037
+$warning: #F2C037;
 
 // Outside background.
-$outside   : #312D21
+$outside: #312D21;
 
 // Menu active background item
 // This is rgba($primary, .12) over #fff background.
-$active: #f3f8e5
+$active: #f3f8e5;
 
 
 // Text colors
 
 // Color for text on primary background / high emphasis
-$onprimary : #FFFFFF
-$onprimary-m: rgba(255,255,255,0.74)
+$onprimary: #FFFFFF;
+$onprimary-m: rgba(255,255,255,0.74);
 
 // Color for text on secondary background / high emphasis
-$onsecondary: #FFFFFF
+$onsecondary: #FFFFFF;
 
 // Color for text on outside background / high emphasis
-$onoutside: #ffffff
+$onoutside: #ffffff;
 // Color for text on outside background / medium emphasis
-$onoutside-m: rgba(255,255,255,0.74)
+$onoutside-m: rgba(255,255,255,0.74);
 
 // Color for text on surface / high emphasis
-$onsurface: rgba(0,0,0,0.87)
+$onsurface: rgba(0,0,0,0.87);
 // Color for text on surface / medium emphasis
-$onsurface-m: rgba(0,0,0,.63)
+$onsurface-m: rgba(0,0,0,.63);
 // Color for text on surface / disabled
-$onsurface-d: rgba(0,0,0,.38)
+$onsurface-d: rgba(0,0,0,.38);
 
 // Icon colors
-$icon-dark: rgba(0,0,0,.54)
-$icon-dark-inactive: rgba(0,0,0,.26)
-$icon-light: #FFFFFF
-$icon-light-inactive: rgba(0,0,0,.3)
+$icon-dark: rgba(0,0,0,.54);
+$icon-dark-inactive: rgba(0,0,0,.26);
+$icon-light: #FFFFFF;
+$icon-light-inactive: rgba(0,0,0,.3);
 
-.material-symbols-rounded
-  font-variation-settings: 'FILL' 1, 'wght' 800, 'opsz' 40 !important
-
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 1, 'wght' 800, 'opsz' 40 !important;
+}
 // Informative colors
-$positive  : #21ba45
-$negative  : $error
-$info      : #31CCEC
+$positive: #21ba45;
+$negative: $error;
+$info: #31CCEC;
 
 // Currency  colors
-$positive-amount : $primary
-$negative-amount : $kblue
+$positive-amount: $primary;
+$negative-amount: $kblue;
 
 // Sizes
-$header-height: 64px
+$header-height: 64px;
 
-@import override.variables.sass
-
+@import "override.variables.scss";
