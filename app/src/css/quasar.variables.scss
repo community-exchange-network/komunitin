@@ -1,88 +1,10 @@
 // Quasar Sass (& SCSS) Variables
 // --------------------------------------------------
-
 // These variables and Quasar's own ones (https://quasar.dev/style/sass-scss-variables) 
 // will be available in .vue/.scss/.sass files
 
 // We are following here the Material Design Color System guidelines
 // and conventions (https://material.io/design/color/the-color-system.html)
-
-// Background colors
-
-// The main color of the app, the one in top bars
-$primary: #EBA55D;
-$secondary: #689AD1;
-$accent: #8A715D;
-
-// Secondary colors
-$kblue: #2f7989;
-$kyellow: #c29c14;
-$kred: #9d3130;
-
-
-// Color for surface elements, such as cards
-$surface   : #ffffff
-// App background color.
-$background: #ffffff
-$light-background: rgba(0,0,0,0.02)
-// Error color.
-$error: #B00020;
-$light-error: rgba($error, 0.12);
-
-// Warning color.
-$warning: #F2C037;
-
-// Outside background.
-$outside: #312D21;
-
-// Menu active background item
-// This is rgba($primary, .12) over #fff background.
-$active: #f3f8e5;
-
-
-// Text colors
-
-// Color for text on primary background / high emphasis
-$onprimary: #FFFFFF;
-$onprimary-m: rgba(255,255,255,0.74);
-
-// Color for text on secondary background / high emphasis
-$onsecondary: #FFFFFF;
-
-// Color for text on outside background / high emphasis
-$onoutside: #ffffff;
-// Color for text on outside background / medium emphasis
-$onoutside-m: rgba(255,255,255,0.74);
-
-// Color for text on surface / high emphasis
-$onsurface: rgba(0,0,0,0.87);
-// Color for text on surface / medium emphasis
-$onsurface-m: rgba(0,0,0,.63);
-// Color for text on surface / disabled
-$onsurface-d: rgba(0,0,0,.38);
-
-// Icon colors
-$icon-dark: rgba(0,0,0,.54);
-$icon-dark-inactive: rgba(0,0,0,.26);
-$icon-light: #FFFFFF;
-$icon-light-inactive: rgba(0,0,0,.3);
-
-.material-symbols-rounded {
-  font-variation-settings: 'FILL' 1, 'wght' 800, 'opsz' 40 !important;
-}
-// Informative colors
-$positive: #21ba45;
-$negative: $error;
-$info: #31CCEC;
-
-// Currency  colors
-$positive-amount: $primary;
-$negative-amount: $kblue;
-
-// Sizes
-$header-height: 64px;
-
-@import "override.variables.scss";
 
 // ============================================================
 //  Commons — Quasar SCSS Theme
@@ -97,30 +19,42 @@ $header-height: 64px;
 //  three-colour palette. The remaining semantic roles are
 //  assigned to the closest Commons tone.
 //
-//  Commons name     Hex        Quasar role
-//  ─────────────────────────────────────────
-//  Ember            #C17A3A    $primary
-//  Grove            #3D6E5A    $secondary
-//  Wheat            #E8C87A    $accent
-//  Soil (dark)      #2A2118    $dark
-//  Parchment        #FDFAF4    $dark-page (light bg in dark mode)
 
-$primary   : #C17A3A;   // Ember
-$secondary : #3D6E5A;   // Grove
-$accent    : #E8C87A;   // Wheat
+$ember          : #C17A3A;
+$ember-light    : #D9975A;
+$ember-dark     : #8F5520;
 
-$dark      : #2A2118;   // Soil dark — used for dark surfaces (hero card bg)
-$dark-page : #1E1A14;   // Soil — darkest text/page bg in dark mode
+$grove          : #3D6E5A;
+$grove-light    : #5A9478;
+
+$wheat          : #E8C87A;
+$wheat-soft     : #F2DFA8;   // accent muted — chip active bg etc.
+
+$parchment      : #FDFAF4;   // app background
+$linen          : #F5EFE4;   // filter bar background
+$linen-dark     : #F0E8DA;   // summary bar, card hover
+
+$soil           : #1E1A14;
+$soil-dark      : #2A2118;  
+$soil-secondary : #5C5043;
+$soil-muted     : #9A8878;
+
+$primary   : $ember;   // Ember
+$secondary : $grove;   // Grove
+$accent    : $wheat;   // Wheat
+
+$dark      : $soil-dark;    // Soil dark — used for dark surfaces (hero card bg)
+$dark-page : $soil;         // Soil — darkest text/page bg in dark mode
 
 // ── Semantic / feedback colours ──────────────────────────────
 //
 //  These are kept close to Quasar defaults but warm-shifted
 //  to harmonise with the earthy palette.
 
-$positive  : #3D6E5A;   // Grove — success maps to our secondary green
-$negative  : #C0392B;   // Standard red, no palette equivalent
-$info      : #C17A3A;   // Ember — info reuses primary (warm, not cold blue)
-$warning   : #E8C87A;   // Wheat — natural amber for warnings
+$positive  : $grove;        // Grove — success maps to our secondary green
+$negative  : #C0392B;     // Standard red, no palette equivalent
+$info      : $ember;        // Ember — info reuses primary (warm, not cold blue)
+$warning   : $wheat;        // Wheat — natural amber for warnings
 
 // ── Surface & separator colours ──────────────────────────────
 
@@ -159,13 +93,39 @@ $button-push-border-radius    : 14px;
 
 // ── Shadows ──────────────────────────────────────────────────
 //
-//  Commons uses warm-tinted shadows (Ember dark at low opacity)
-//  rather than pure black. We override the shadow colour used
-//  by the elevation system.
+//  Commons uses warm-tinted, centered shadows. We override every
+//  Quasar `shadow-n` token so all elevations spread equally on
+//  every side (`x: 0`, `y: 0`) and only depth changes by level.
+//  `shadow-2` is intentionally aligned with the previous default:
+//  `0 0 14px rgba(30,26,20,0.08)`.
 
-$shadow-color : #1E1A14;  // Soil — warm dark shadow base
-$shadow-2: 0 2px 14px rgba(30,26,20,0.08) !default;
+$shadow-color : $soil;  // Soil — warm dark shadow base
 
+// Quasar elevation overrides (shadow-1 ... shadow-24)
+$shadow-1  : 0 0 10px rgba(30, 26, 20, 0.08) !default;
+$shadow-2  : 0 0 14px rgba(30, 26, 20, 0.08) !default;
+$shadow-3  : 0 0 18px rgba(30, 26, 20, 0.08) !default;
+$shadow-4  : 0 0 22px rgba(30, 26, 20, 0.08) !default;
+$shadow-5  : 0 0 26px rgba(30, 26, 20, 0.08) !default;
+$shadow-6  : 0 0 30px rgba(30, 26, 20, 0.08) !default;
+$shadow-7  : 0 0 34px rgba(30, 26, 20, 0.08) !default;
+$shadow-8  : 0 0 38px rgba(30, 26, 20, 0.08) !default;
+$shadow-9  : 0 0 42px rgba(30, 26, 20, 0.08) !default;
+$shadow-10 : 0 0 46px rgba(30, 26, 20, 0.08) !default;
+$shadow-11 : 0 0 50px rgba(30, 26, 20, 0.08) !default;
+$shadow-12 : 0 0 54px rgba(30, 26, 20, 0.08) !default;
+$shadow-13 : 0 0 58px rgba(30, 26, 20, 0.08) !default;
+$shadow-14 : 0 0 62px rgba(30, 26, 20, 0.08) !default;
+$shadow-15 : 0 0 66px rgba(30, 26, 20, 0.08) !default;
+$shadow-16 : 0 0 70px rgba(30, 26, 20, 0.08) !default;
+$shadow-17 : 0 0 74px rgba(30, 26, 20, 0.08) !default;
+$shadow-18 : 0 0 78px rgba(30, 26, 20, 0.08) !default;
+$shadow-19 : 0 0 82px rgba(30, 26, 20, 0.08) !default;
+$shadow-20 : 0 0 86px rgba(30, 26, 20, 0.08) !default;
+$shadow-21 : 0 0 90px rgba(30, 26, 20, 0.08) !default;
+$shadow-22 : 0 0 94px rgba(30, 26, 20, 0.08) !default;
+$shadow-23 : 0 0 98px rgba(30, 26, 20, 0.08) !default;
+$shadow-24 : 0 0 102px rgba(30, 26, 20, 0.08) !default;
 
 // ── Toolbar / Header ─────────────────────────────────────────
 //
@@ -277,52 +237,64 @@ $rating-grade-color : #E8C87A;  // Wheat — natural amber star colour
 //   throughout your component files once this file is loaded)
 // ============================================================
 
-// Palette extensions
-$ember          : #C17A3A;
-$ember-light    : #D9975A;
-$ember-dark     : #8F5520;
-
-$grove          : #3D6E5A;
-$grove-light    : #5A9478;
-
-$wheat          : #E8C87A;
-$wheat-soft     : #F2DFA8;   // accent muted — chip active bg etc.
-
-$parchment      : #FDFAF4;   // app background
-$linen          : #F5EFE4;   // filter bar background
-$linen-dark     : #F0E8DA;   // summary bar, card hover
-
-$soil           : #1E1A14;   // primary text
-$soil-secondary : #5C5043;   // secondary text
-$soil-muted     : #9A8878;   // muted text / placeholder
-
-$card-bg        : #FFFFFF;   // pure white card surfaces
 $divider        : rgba(30, 26, 20, 0.08);
 $chip-border    : #C8B89A;
 
 // Typography scale (display sizes, complementing Quasar's $headings)
 $display-serif-family : 'Lora', Georgia, 'Times New Roman', serif;
 
-// Hero card
-$hero-bg        : $ember-dark;
-$hero-shadow    : 0 4px 20px rgba(143, 85, 32, 0.35);
+// Color for surface elements, such as cards and navbar
+$surface: #ffffff;
 
-// Card
-$card-radius    : 18px;
-$card-shadow    : 0 2px 14px rgba(30, 26, 20, 0.08);
+// Secondary colors
+$kblue: $secondary; //offers
+$kred: $primary; //wants
+$kyellow: #c29c14;
 
-// Chip
-$chip-radius            : 20px;
-$chip-inactive-bg       : rgba(30, 26, 20, 0.08);
-$chip-active-bg         : $grove;
-$chip-active-color      : #fff;
+// App background color.
+$background: $linen;
+$light-background: $parchment;
+// Outside background.
+$outside: #312D21;
+// Error color.
+$error: #B00020;
+$light-error: rgba($error, 0.12);
 
-// FAB
-$fab-bg         : $ember;
-$fab-color      : #fff;
-$fab-shadow     : 0 4px 20px rgba(193, 122, 58, 0.35);
-$fab-radius     : 22px;
+$active: rgba(193, 122, 58, 0.10);  // Ember at 10% — selected/active row tint
+$pending: rgba(193, 122, 58, 0.12);  // Ember at 12% — pending badge
 
-// Bottom nav
-$bottom-nav-bg      : $card-bg;
-$bottom-nav-height  : 62px;   // 10px top + 34px content + 18px bottom;
+// Text colors
+
+// Color for text on primary background / high emphasis
+$onprimary: #FFFFFF;
+$onprimary-m: rgba(255,255,255,0.74);
+
+// Color for text on secondary background / high emphasis
+$onsecondary: #FFFFFF;
+
+// Color for text on outside background / high emphasis
+$onoutside: #ffffff;
+// Color for text on outside background / medium emphasis
+$onoutside-m: rgba(255,255,255,0.74);
+
+// Color for text on surface / high emphasis
+$onsurface: rgba(30, 26, 20, 0.87); // Soil at 87% — high emphasis text on light bg
+// Color for text on surface / medium emphasis
+$onsurface-m: rgba(30, 26, 20, 0.60); // Soil at 60% — medium emphasis text on light bg
+// Color for text on surface / disabled
+$onsurface-d: rgba(30, 26, 20, 0.38); // Soil at 38% — disabled text on light bg
+
+// Currency  colors
+$positive-amount: $primary;
+$negative-amount: $secondary;
+
+// Icon colors
+$icon-dark: rgba(0,0,0,.54);
+$icon-dark-inactive: rgba(0,0,0,.26);
+$icon-light: #FFFFFF;
+$icon-light-inactive: rgba(0,0,0,.3);
+
+// Sizes
+$header-height: 64px;
+
+// @import "override.variables.scss";
