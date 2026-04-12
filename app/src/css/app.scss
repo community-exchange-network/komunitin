@@ -6,7 +6,7 @@
   background: $surface;
 }
 .bg-background {
-  background: $parchment;
+  background: $background;
 }
 .bg-light {
   background: $light-background;
@@ -81,13 +81,22 @@
 .text-serif {
   font-family: $display-serif-family;
 }
-
 .text-overline {
   letter-spacing: 1.5px;
   line-height: 1.5rem;
 }
 
-// 4. General purpose helper classes
+// 4. Custom icon weights and fills
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 1, 'wght' 800, 'opsz' 40 !important;
+}
+
+// 5. Custom shadows
+.kshadow {
+  box-shadow: $kshadow;
+}
+
+// 6. General purpose helper classes
 // Align flat button content with the start of the content, as with card action buttons.
 .k-inset-actions-md {
   margin-left: -8px;

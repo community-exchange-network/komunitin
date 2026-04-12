@@ -1,88 +1,10 @@
 // Quasar Sass (& SCSS) Variables
 // --------------------------------------------------
-
 // These variables and Quasar's own ones (https://quasar.dev/style/sass-scss-variables) 
 // will be available in .vue/.scss/.sass files
 
 // We are following here the Material Design Color System guidelines
 // and conventions (https://material.io/design/color/the-color-system.html)
-
-// Background colors
-
-// The main color of the app, the one in top bars
-$primary: #EBA55D;
-$secondary: #689AD1;
-$accent: #8A715D;
-
-// Secondary colors
-$kblue: #2f7989;
-$kyellow: #c29c14;
-$kred: #9d3130;
-
-
-// Color for surface elements, such as cards and navbar
-$surface: #ffffff;
-// App background color.
-$background: #f6f7f8;
-$light-background: #F8F7F5;
-// Error color.
-$error: #B00020;
-$light-error: rgba($error, 0.12);
-
-// Warning color.
-$warning: #F2C037;
-
-// Outside background.
-$outside: #312D21;
-
-// Menu active background item
-// This is rgba($primary, .12) over #fff background.
-$active: #f3f8e5;
-
-
-// Text colors
-
-// Color for text on primary background / high emphasis
-$onprimary: #FFFFFF;
-$onprimary-m: rgba(255,255,255,0.74);
-
-// Color for text on secondary background / high emphasis
-$onsecondary: #FFFFFF;
-
-// Color for text on outside background / high emphasis
-$onoutside: #ffffff;
-// Color for text on outside background / medium emphasis
-$onoutside-m: rgba(255,255,255,0.74);
-
-// Color for text on surface / high emphasis
-$onsurface: rgba(0,0,0,0.87);
-// Color for text on surface / medium emphasis
-$onsurface-m: rgba(0,0,0,.63);
-// Color for text on surface / disabled
-$onsurface-d: rgba(0,0,0,.38);
-
-// Icon colors
-$icon-dark: rgba(0,0,0,.54);
-$icon-dark-inactive: rgba(0,0,0,.26);
-$icon-light: #FFFFFF;
-$icon-light-inactive: rgba(0,0,0,.3);
-
-.material-symbols-rounded {
-  font-variation-settings: 'FILL' 1, 'wght' 800, 'opsz' 40 !important;
-}
-// Informative colors
-$positive: #21ba45;
-$negative: $error;
-$info: #31CCEC;
-
-// Currency  colors
-$positive-amount: $primary;
-$negative-amount: $kblue;
-
-// Sizes
-$header-height: 64px;
-
-@import "override.variables.scss";
 
 // ============================================================
 //  Commons — Quasar SCSS Theme
@@ -164,8 +86,7 @@ $button-push-border-radius    : 14px;
 //  by the elevation system.
 
 $shadow-color : #1E1A14;  // Soil — warm dark shadow base
-$shadow-2: 0 2px 14px rgba(30,26,20,0.08) !default;
-
+$kshadow: 0 2px 14px rgba(30,26,20,0.08) !default; // Soil at 8% — card shadow
 
 // ── Toolbar / Header ─────────────────────────────────────────
 //
@@ -292,37 +213,69 @@ $parchment      : #FDFAF4;   // app background
 $linen          : #F5EFE4;   // filter bar background
 $linen-dark     : #F0E8DA;   // summary bar, card hover
 
-$soil           : #1E1A14;   // primary text
-$soil-secondary : #5C5043;   // secondary text
-$soil-muted     : #9A8878;   // muted text / placeholder
+$soil           : rgba(30, 26, 20, 0.87);  // high emphasis
+$soil-secondary : rgba(30, 26, 20, 0.60);  // medium emphasis
+$soil-muted     : rgba(30, 26, 20, 0.38);  // disabled / hint
 
-$card-bg        : #FFFFFF;   // pure white card surfaces
 $divider        : rgba(30, 26, 20, 0.08);
 $chip-border    : #C8B89A;
 
 // Typography scale (display sizes, complementing Quasar's $headings)
 $display-serif-family : 'Lora', Georgia, 'Times New Roman', serif;
 
-// Hero card
-$hero-bg        : $ember-dark;
-$hero-shadow    : 0 4px 20px rgba(143, 85, 32, 0.35);
+// Color for surface elements, such as cards and navbar
+$surface: #ffffff;
 
-// Card
-$card-radius    : 18px;
-$card-shadow    : 0 2px 14px rgba(30, 26, 20, 0.08);
+// Secondary colors
+$kblue: $secondary; //offers
+$kred: $primary; //wants
+$kyellow: #c29c14;
 
-// Chip
-$chip-radius            : 20px;
-$chip-inactive-bg       : rgba(30, 26, 20, 0.08);
-$chip-active-bg         : $grove;
-$chip-active-color      : #fff;
+// App background color.
+$background: $linen;
+$light-background: $parchment;
+// Outside background.
+$outside: #312D21;
+// Error color.
+$error: #B00020;
+$light-error: rgba($error, 0.12);
 
-// FAB
-$fab-bg         : $ember;
-$fab-color      : #fff;
-$fab-shadow     : 0 4px 20px rgba(193, 122, 58, 0.35);
-$fab-radius     : 22px;
+// Menu active background item
+// This is rgba($primary, .12) over #fff background.
+$active: #f3f8e5;
 
-// Bottom nav
-$bottom-nav-bg      : $card-bg;
-$bottom-nav-height  : 62px;   // 10px top + 34px content + 18px bottom;
+// Text colors
+
+// Color for text on primary background / high emphasis
+$onprimary: #FFFFFF;
+$onprimary-m: rgba(255,255,255,0.74);
+
+// Color for text on secondary background / high emphasis
+$onsecondary: #FFFFFF;
+
+// Color for text on outside background / high emphasis
+$onoutside: #ffffff;
+// Color for text on outside background / medium emphasis
+$onoutside-m: rgba(255,255,255,0.74);
+
+// Color for text on surface / high emphasis
+$onsurface: $soil;
+// Color for text on surface / medium emphasis
+$onsurface-m: $soil-secondary;
+// Color for text on surface / disabled
+$onsurface-d: $soil-muted;
+
+// Currency  colors
+$positive-amount: $primary;
+$negative-amount: $secondary;
+
+// Icon colors
+$icon-dark: rgba(0,0,0,.54);
+$icon-dark-inactive: rgba(0,0,0,.26);
+$icon-light: #FFFFFF;
+$icon-light-inactive: rgba(0,0,0,.3);
+
+// Sizes
+$header-height: 64px;
+
+// @import "override.variables.scss";
