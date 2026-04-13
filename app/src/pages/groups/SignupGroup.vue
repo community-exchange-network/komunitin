@@ -21,7 +21,7 @@
           color="primary"
           :label="$t('learnMore')"
           :href="`${docsUrl}/project/new-community`"
-          target="__blank"
+          target="_blank"
         />
       </template> 
     </q-banner>

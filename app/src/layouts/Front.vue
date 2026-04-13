@@ -59,7 +59,6 @@
       />
       <q-btn
         flat
-        type="a"
         to="/signup-group"
         :label="$t('newGroup')"
       />
