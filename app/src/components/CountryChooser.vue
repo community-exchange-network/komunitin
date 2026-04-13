@@ -32,7 +32,9 @@ onMounted(async () => {
   const list = await localeDefinition.loadCountries() as LocaleData
   registerLocale(list)
   const names = getNames(list.locale)
-  countryList.value = Object.entries(names).map(([value, label]) => ({value, label}))
+  countryList.value = Object.entries(names)
+    .map(([value, label]) => ({ value, label }))
+    .sort((left, right) => left.label.localeCompare(right.label, list.locale))
 })
 
 </script>
