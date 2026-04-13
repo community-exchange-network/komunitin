@@ -416,6 +416,8 @@
   "thisWeek": "Questa settimana",
   "thisMonth": "Questo mese",
   "pleaseReviewTransfer": "Per favore, accetta o rifiuta questo movimento.",
+  "createGroupBanner": "Leggi attentamente la documentazione prima di richiedere una nuova comunità. Se vuoi solo provare l'app, puoi usare il sito dimostrativo. Richiedendo una nuova comunità accetti i termini di utilizzo di questo servizio e riconosci le tue responsabilità come amministratore della comunità.",
+  "learnMore": "Scopri di più",
 
   "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
   "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",

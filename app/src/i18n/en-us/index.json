@@ -397,7 +397,8 @@
   "thisWeek": "This week",
   "thisMonth": "This month",
   "pleaseReviewTransfer": "Please accept or reject this transfer.",
-  
+  "createGroupBanner": "Please thoroughly read the documentation before requesting a new community. If you just want to test the app, you can use the demo site. By requesting a new community you accept the terms of use of this service and you acknowledge your responsibilities as a community administrator.",
+  "learnMore": "Learn more",
   "ErrorUnknown": "Error: Unknown",
   "ErrorIncorrectRequest": "Error: Incorrect request",
   "ErrorServerNoResponse": "Error: Server do not respond",

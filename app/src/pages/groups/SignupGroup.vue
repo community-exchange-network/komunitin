@@ -4,6 +4,27 @@
     back="/groups"
   />
   <q-page-container class="row justify-center">
+    <q-banner class="text-onsurface-m banner" v-show="showDocsBanner">
+      <template #avatar>
+        <q-icon name="info" />
+      </template>
+      {{ $t('createGroupBanner') }}
+      <template #action>
+        <q-btn
+          flat
+          color="primary"
+          :label="$t('dismiss')"
+          @click="showDocsBanner = false"
+        />
+        <q-btn
+          flat
+          color="primary"
+          :label="$t('learnMore')"
+          :href="`${docsUrl}/project/new-community`"
+          target="__blank"
+        />
+      </template> 
+    </q-banner>
     <q-page       
       padding
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
@@ -36,6 +57,9 @@ import KError, { KErrorCode } from "src/KError";
 import { Notify } from "quasar";
 import { useI18n } from "vue-i18n";
 import { Auth } from "src/plugins/Auth";
+import { config } from "../../utils/config"
+
+const docsUrl = config.DOCS_URL
 
 const page = ref("credentials")
 const credentials = ref({
@@ -49,6 +73,8 @@ const loading = ref(false)
 const store = useStore()
 const locale = useLocale()
 const { t } = useI18n()
+
+const showDocsBanner = ref(true)
 
 const createAdmin = async () => {
   loading.value = true
@@ -109,3 +135,8 @@ const resendEmail = async () => {
 }
 
 </script>
+<style lang="scss" scoped>
+.banner {
+  border-bottom: solid 1px $separator-color;
+}
+</style>
