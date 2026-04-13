@@ -17,32 +17,26 @@
 # English source files - notify all active translators when these change
 # This ensures translators know when new strings are added or modified
 app/src/i18n/en/*.json @olivier108 @cesbg1 @estevebadia @numblock
-notifications/i18n/messages/en.json @olivier108 @cesbg1 @estevebadia @numblock
 notifications-ts/src/i18n/en.json @olivier108 @cesbg1 @estevebadia @numblock
 
 # French translations - notify French translator
 app/src/i18n/fr/*.json @olivier108
-notifications/i18n/messages/fr.json @olivier108
 notifications-ts/src/i18n/fr.json @olivier108
 
 # Spanish translations - notify Spanish translator
 app/src/i18n/es/*.json @estevebadia
-notifications/i18n/messages/es.json @estevebadia
 notifications-ts/src/i18n/es.json @estevebadia
 
 # Catalan translations - notify Catalan translator
 app/src/i18n/ca/*.json @estevebadia
-notifications/i18n/messages/ca.json @estevebadia
 notifications-ts/src/i18n/ca.json @estevebadia
 
 # Bulgarian translations - notify Bulgarian translator
 app/src/i18n/bg/*.json @cesbg1
-notifications/i18n/messages/bg.json @cesbg1
 notifications-ts/src/i18n/bg.json @cesbg1
 
 # Dutch translations - notify Dutch translator
 app/src/i18n/nl/*.json @numblock
-notifications/i18n/messages/nl.json @numblock
 notifications-ts/src/i18n/nl.json @numblock
 
 # Add more languages as translators join:

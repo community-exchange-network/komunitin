@@ -2,14 +2,13 @@
 
 ## Project Overview
 
-Komunitin is an open-source system for community exchange currencies. It is a **monorepo** containing four microservices and shared Docker Compose orchestration:
+Komunitin is an open-source system for community exchange currencies. It is a **monorepo** containing three microservices and shared Docker Compose orchestration:
 
 | Service | Directory | Language | Runtime | Port |
 |---|---|---|---|---|
 | **App** (PWA frontend) | `app/` | TypeScript + Vue 3 | Quasar/Vite | 2030 |
 | **Accounting** | `accounting/` | TypeScript | Node.js 22, Express, Prisma, Stellar blockchain | 2025 |
-| **Notifications (TS)** | `notifications-ts/` | TypeScript | Node.js 24, Express, Prisma, BullMQ, Redis | 2023 |
-| **Notifications (Go, deprecated)** | `notifications/` | Go 1.24 | gorilla/mux, Redis | 2028 |
+| **Notifications** | `notifications-ts/` | TypeScript | Node.js 24, Express, Prisma, BullMQ, Redis | 2023 |
 
 An external dependency **IntegralCES** (Drupal, cloned separately) provides the social/auth API at port 2029.
 
@@ -65,10 +64,6 @@ pnpm run dev            # tsx watch with debugger
 - **Local dev dependencies**: Start DB and local Stellar via `cp .env.test .env && docker compose up -d`.
 - **Reset DB**: `pnpm reset-db` (runs `prisma migrate reset --force`).
 
-### Notifications Go (`notifications/`)
-
-This service is still receiving events and sending transactional emails, but these features will be migrated to the TypeScript version (`notifications-ts/`) and this Go service will be deprecated. No new features should be added here.
-
 ### Notifications TS (`notifications-ts/`)
 
 ```bash
@@ -87,14 +82,13 @@ pnpm run dev            # tsx watch with debugger
 
 ## CI / GitHub Actions
 
-The single CI workflow is `.github/workflows/build.yml`. It runs on every push to `master` and every PR. Four parallel build jobs:
+The single CI workflow is `.github/workflows/build.yml`. It runs on every push to `master` and every PR. Three parallel build jobs:
 
 1. **build-app**: Docker build → lint → test → Docker image → publish.
-2. **build-notifications**: Docker build → `go test ./...` → Docker image → publish.
-3. **build-notifications-ts**: Docker compose for DB services → pnpm install → `pnpm typecheck && pnpm test` → Docker image → publish.
-4. **build-accounting**: Docker compose for DB → pnpm install → `pnpm reset-db && pnpm test` → Docker image → publish.
+2. **build-notifications-ts**: Docker compose for DB services → pnpm install → `pnpm typecheck && pnpm test` → Docker image → publish.
+3. **build-accounting**: Docker compose for DB → pnpm install → `pnpm reset-db && pnpm test` → Docker image → publish.
 
-After all four jobs pass, `update-server` deploys to demo/staging/preview servers.
+After all three jobs pass, `update-server` deploys to demo/staging/preview servers.
 
 ## Docker / Docker Compose
 
@@ -147,9 +141,6 @@ Each service has its own `Dockerfile` and may have a standalone `compose.yaml`/`
 - **Auth**: OAuth2 JWT bearer tokens.
 - **i18n**: i18next with filesystem backend.
 
-### Notifications Go
-Deprecated
-
 ## Directory Structure
 
 ```
@@ -179,7 +170,6 @@ komunitin/
 │   ├── prisma/            # Prisma schema and migrations
 │   ├── cli/               # CLI scripts (migration, trust setup)
 │   └── openapi/           # Generated OpenAPI spec
-├── notifications/         # Go notifications service
 ├── notifications-ts/      # TypeScript notifications service
 │   ├── src/               # Service source
 │   |   ├── newsletter/    # Newsletter service
