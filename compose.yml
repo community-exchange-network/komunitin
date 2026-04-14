@@ -116,7 +116,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-
   notifications-ts:
     build:
       context: ./notifications-ts
@@ -145,7 +144,9 @@ services:
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
+      
       APP_EMAIL: ${APP_EMAIL}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
 
       PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: ${PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY}
       PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY: ${PUSH_NOTIFICATIONS_VAPID_PRIVATE_KEY}

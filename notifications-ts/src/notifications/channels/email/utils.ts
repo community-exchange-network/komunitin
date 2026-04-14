@@ -49,10 +49,6 @@ export const handleSuperadminEmailEvent = async <T extends AnyEnrichedEvent>(
   templateName: string,
   buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null) => {
   const adminEmail = config.ADMIN_EMAIL;
-  if (!adminEmail) {
-    logger.warn({ event: event.name }, 'ADMIN_EMAIL not configured, skipping superadmin email');
-    return;
-  }
   await buildAndSendEmail(event, adminEmail, 'en', templateName, buildContext);
 }
 

@@ -19,9 +19,9 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
+  
   APP_EMAIL: z.string(),
-  // Superadmin email for system-level notifications (e.g. GroupRequested)
-  ADMIN_EMAIL: z.string().email().optional(),
+  ADMIN_EMAIL: z.string(),
 
   // If left empty, push notifications will be disabled
   PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: z.string().optional(),
