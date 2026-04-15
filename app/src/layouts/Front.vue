@@ -59,9 +59,7 @@
       />
       <q-btn
         flat
-        type="a"
-        :href="`${docsUrl}/project/new-community`"
-        target="__blank"
+        to="/signup-group"
         :label="$t('newGroup')"
       />
     </q-footer>

@@ -398,6 +398,8 @@
   "thisWeek": "Esta semana",
   "thisMonth": "Este mes",
   "pleaseReviewTransfer": "Por favor, acepta o rechaza este movimiento.",
+  "createGroupBanner": "Por favor, lee detenidamente la documentación antes de solicitar una nueva comunidad. Si solo quieres probar la app, puedes usar el sitio de demostración. Al solicitar una nueva comunidad aceptas los términos de uso de este servicio y reconoces tus responsabilidades como administrador de la comunidad.",
+  "learnMore": "Más información",
 
   "ErrorAuthNoCredentials": "Email o password incorrectos",
   "ErrorInvalidPassword": "Contraseña incorrecta",

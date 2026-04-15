@@ -397,6 +397,8 @@
   "thisWeek": "Aquesta setmana",
   "thisMonth": "Aquest mes",
   "pleaseReviewTransfer": "Si us plau, accepta o rebutja aquest moviment.",
+  "createGroupBanner": "Si us plau, llegeix bé la documentació abans de sol·licitar una nova comunitat. Si només vols provar l'app, pots utilitzar el lloc de demostració. En sol·licitar una nova comunitat acceptes els termes d'ús d'aquest servei i reconeixes les teves responsabilitats com a administrador de la comunitat.",
+  "learnMore": "Més informació",
 
   "ErrorAuthNoCredentials": "Email o contrasenya incorrectes",
   "ErrorInvalidPassword": "Contrasenya incorrecta",

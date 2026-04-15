@@ -389,6 +389,8 @@
   "create": "Créer",
   "backToTransfers": "Retour aux échanges",
   "pleaseReviewTransfer": "Veuillez accepter ou rejeter ce transfert.",
+  "createGroupBanner": "Veuillez lire attentivement la documentation avant de demander une nouvelle communauté. Si vous voulez simplement tester l'application, vous pouvez utiliser le site de démonstration. En demandant une nouvelle communauté, vous acceptez les conditions d'utilisation de ce service et reconnaissez vos responsabilités en tant qu'administrateur de la communauté.",
+  "learnMore": "En savoir plus",
   
   "ErrorUnknown": "Erreur : Inconnue",
   "ErrorIncorrectRequest": "Erreur : Requête incorrecte",
