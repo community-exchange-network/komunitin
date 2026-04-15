@@ -16,7 +16,6 @@
   "createNeed": "Create want",
   "enterNeedData": "What do you want?",
   "needFormHelpText": "Fill the details of your new want",
-  "needFormHelpText": "Fill the details of your new want.",
   "uploadNeedImagesHint": "Adding a picture to a want makes it more attractive",
   "needDescriptionHint": "Provide here all the details for other members to understand your want",
   "needCategoryHint": "Select the category that best describes your want",
@@ -27,7 +26,7 @@
   "needPublished": "Your want has been published!",
   "editNeed": "Edit want",
   "needPublishedHint": "Make this want visible to other members",
-  "deleteNeed": "Do you want to delete the want {name}?"
+  "deleteNeed": "Do you want to delete the want {name}?",
   "needDeleted": "The want has been deleted",
   "transactionPayerHint": "Select the user who received the service.",
   "createTransaction": "Record a trade",
