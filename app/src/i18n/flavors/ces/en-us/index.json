@@ -29,7 +29,6 @@
   "needPublishedHint": "Make this want visible to other members",
   "deleteNeed": "Do you want to delete the want {name}?"
   "needDeleted": "The want has been deleted",
-  
   "transactionPayerHint": "Select the user who received the service.",
   "createTransaction": "Record a trade",
   "enterTransactionData": "Enter information about the trade",
