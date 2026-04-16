@@ -83,7 +83,7 @@ const store = useStore();
 const { resource: currency } = useResource('currencies', { group: props.code, include: 'settings' });
 
 const showBalances = computed(() => 
-  currency.settings?.value?.attributes.defaultHideBalance !== true
+  currency.value?.settings?.value?.attributes.defaultHideBalance !== true
   || store.getters.isAdmin
 );
 

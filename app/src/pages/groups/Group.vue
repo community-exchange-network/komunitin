@@ -223,18 +223,21 @@ const calculateDescriptionOverflow = async (maxLines = 3) => {
 
 const fetchData = async () => {
   isLoading.value = true;
-  await loadGroup();
-  if (isLoggedIn.value) {
-    await loadAllMembers();
+  try {
+    await loadGroup();
+    if (isLoggedIn.value) {
+      await loadAllMembers();
+    }
+  } finally {
+    isLoading.value = false;
   }
-  isLoading.value = false;
 };
 
 watch(
   () => props.code,
-  () => {
-    fetchData();
-    calculateDescriptionOverflow();
+  async () => {
+    await fetchData();
+    await calculateDescriptionOverflow();
   },
   { immediate: true }
 );

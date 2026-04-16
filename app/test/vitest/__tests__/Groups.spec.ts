@@ -1,7 +1,6 @@
  
 import { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { LMarker } from '@vue-leaflet/vue-leaflet';
 import { mountComponent, waitFor } from "../utils";
 import { QInnerLoading, QCard } from "quasar";
 import SimpleMap from '../../../src/components/SimpleMap.vue';
@@ -71,6 +70,8 @@ describe("Groups", () => {
     await wrapper.vm.$router.push("/groups/GRP0");
     await waitFor(() => wrapper.vm.$store.getters["members/currentList"]?.length === 31, true, "Api should finish loading");
     // Members should show on map
+    // There should really be 32 markers (1 group marker + 31 member markers),
+    // but one of the members has no location data and is filtered out on the page
     expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(31);
   });
 });
