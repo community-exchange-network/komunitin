@@ -12,6 +12,8 @@
       :vertical-actions-align="q.screen.gt.sm ? 'center': 'right'"
       v-model="expanded"
       :hide-label="expanded"
+      unelevated
+      class="kshadow"
     >
       <q-fab-action
         v-for="action in actions" 
