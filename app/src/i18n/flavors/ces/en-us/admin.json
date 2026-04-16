@@ -2,7 +2,7 @@
     "manageMembers": "Manage Users",
     "move": "Record",
     "currencyValue": "Unit Value",
-    "currencyValueHint": "The value of your units in relation to the reference HOUR. It is used to calculate the exchange rate between your units and others. Use the notation n/d. Eg, if you set 1/10, it means that 10 of your units are equivalent to 1 HOUR.",
+    "currencyValueHint": "The value of your units in relation to the reference HOUR (one average hour of labour). It is used to calculate the exchange rate between your units and others. Use the notation n/d. Examples: if your unit is 1 hour of labour (time bank), set 1/1 — meaning 1 of your units equals 1 HOUR. If your unit is worth a fraction of an hour, set 1/10 — meaning 10 of your units equal 1 HOUR.",
     "invalidCurrencyValue": "Invalid unit value. Please use the notation n/d.",
     "initialCredit": "Initial Maximum Commitment",
     "creditLimit": "Maximum Commitment",
