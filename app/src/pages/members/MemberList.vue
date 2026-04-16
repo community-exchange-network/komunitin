@@ -38,7 +38,7 @@
               :member="member"
               :to="`/groups/${code}/members/${member.attributes.code}`"
             >
-              <template v-if="showBalances" #side>
+              <template v-if="showBalances && member.account?.attributes?.balance" #side>
                 <div class="column items-end">
                   <div
                     v-if="member.account"
