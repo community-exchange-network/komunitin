@@ -2,7 +2,7 @@
   <q-header>
     <div
       id="header"
-      class="bg-background flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-onsurface-m"
+      class="bg-light flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-onsurface-m"
       :class="showBalance ? 'wrap' : 'q-pt-xs no-wrap'"
       :style="`height: ${computedHeight}px;`"
     >
