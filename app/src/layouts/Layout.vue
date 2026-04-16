@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-background column full-height">
+  <div class="bg-light column full-height">
     <div
       id="container"
       class="q-mx-auto"
@@ -30,6 +30,7 @@
               switch-indicator
               narrow-indicator
               no-caps
+              align="justify"
             >
               <q-route-tab class="nav-tab" :to="{ name: 'Home' }" name="home" icon="home" :label="t('home')" />
               <q-route-tab class="nav-tab" :to="{ name: 'TransactionList', params: { code: groupCode, memberCode: myMember.attributes.code}}" name="account" icon="swap_horiz" :label="t('transactions')" />
@@ -100,6 +101,10 @@ const isRootPage = computed(() => route.meta.rootPage === true)
   &.without-drawer {
     @include wrap-main-container(1024px);
   }
+}
+
+.nav-tab {
+  flex: 1 1 0; /* Forces all tabs to grow and shrink equally */
 }
 
 </style>
