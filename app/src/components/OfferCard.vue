@@ -2,10 +2,8 @@
   <q-card
     v-if="offer"
     v-card-click-to="`/groups/${code}/offers/${offer.attributes.code}`"
-    bordered
     :class="{isHidden, isExpired}"
-    class="my-down-shadow"
-    style="border-radius: 20px; border-color: #F1F5F9;"
+    class="kshadow"
   >
     <!-- Header -->
     <member-header :member="offer.member">
@@ -136,18 +134,4 @@ export default defineComponent({
   .isHidden, .isExpired {
     opacity: 0.54;
   }
-.my-down-shadow {
-  /* box-shadow: [X-offset] [Y-offset] [Blur] [Spread] [Color] */
-  /* 1. X-offset: 0 (keeps it centered) */
-  /* 2. Y-offset: 20px (pushes it down) */
-  /* 3. Blur: 25px (softens the edge) */
-  /* 4. Spread: -10px (hides it from the top/sides) */
-  /* 5. Color: rgba(226, 232, 240, 0.5) (Slate-200 at 50% opacity) */
-  
-  box-shadow: 0 20px 25px -10px rgba(226, 232, 240, 0.5) !important;
-  
-  /* Optional: Add a second layer for more 'XL' depth */
-  /* box-shadow: 0 20px 25px -10px rgba(226, 232, 240, 0.5), 
-                0 8px 10px -6px rgba(226, 232, 240, 0.3) !important; */
-}
 </style>
