@@ -2,7 +2,6 @@
   <q-card
     flat
     class="transition-all bg-active text-onsurface-m q-hoverable cursor-pointer"
-    tabindex="0"
   >
     <span class="q-focus-helper"></span>
     <q-card-section class="text-center">

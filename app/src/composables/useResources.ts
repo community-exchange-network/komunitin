@@ -114,7 +114,7 @@ export const useAllResources = <T extends ResourceObject = ResourceObject>(
   options: MaybeRefOrGetter<LoadListPayload>,
   config?: UseResourcesConfig
 ) => {
-  const allResources = ref<T[]>(null);
+  const allResources = ref<T[]>([]);
   const { resources, hasNext, loadNext, load, loading } = useResources(type, options, config);
 
   const loadAll = async () => {

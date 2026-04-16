@@ -90,7 +90,7 @@ vi.mock("vue-qrcode-reader", () => ({
 
 vi.mock("@vue-leaflet/vue-leaflet", () => ({
   LMap: () => {},
-  LTileLayer:() => {},
+  LTileLayer: () => {},
   LMarker: () => {},
 }))
 
