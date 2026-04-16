@@ -1,11 +1,15 @@
 {
     "manageMembers": "Manage Users",
     "move": "Record",
-  "currencyValue": "Unit Value",
-  "currencyValueHint": "The value of your units in relation to the reference HOUR. It is used to calculate the exchange rate between your units and others. Use the notation n/d. Eg, if you set 1/10, it means that 10 of your units are equivalent to 1 HOUR.",
-  "invalidCurrencyValue": "Invalid unit value. Please use the notation n/d.",
-  "initialCredit": "Initial Maximum Commitment",
-  "creditLimit": "Maximum Commitment",
-  "maximumBalance": "Maximum Accumulation"
- 
+    "currencyValue": "Unit Value",
+    "currencyValueHint": "The value of your units in relation to the reference HOUR. It is used to calculate the exchange rate between your units and others. Use the notation n/d. Eg, if you set 1/10, it means that 10 of your units are equivalent to 1 HOUR.",
+    "invalidCurrencyValue": "Invalid unit value. Please use the notation n/d.",
+    "initialCredit": "Initial Maximum Commitment",
+    "creditLimit": "Maximum Commitment",
+    "maximumBalance": "Maximum Accumulation",
+    "minNeeds": "Minimum Wants",
+    "minNeedsHint": "Minimum number of wants that a member must create during sign up.",
+    "offersAndNeeds": "Offers and Wants",
+    "marketplaceText": "Define the settings for the offers and wants within your community.",
+    "categoriesText": "Offers and wants are organized in categories. Define the categories that will be available in your community."
 }
