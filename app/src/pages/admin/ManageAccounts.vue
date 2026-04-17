@@ -6,7 +6,7 @@
       <q-btn
         flat
         round
-        icon="download"
+        icon="sym_r_download"
         :title="$t('downloadCSV')"
         @click="download"
       />
@@ -50,7 +50,7 @@
               <q-btn
                 color="primary"
                 flat
-                icon="how_to_reg"
+                icon="sym_r_how_to_reg"
                 :label="$t('accept')"
                 :loading="loadingAcceptMember"
                 @click.stop="acceptMember(member)"
@@ -98,7 +98,7 @@
               style="min-width: 200px"
             >
               <template #append>
-                <q-icon name="search" />
+                <q-icon name="sym_r_search" />
               </template>
             </q-input>
             <div class="row q-gutter-x-md">
@@ -139,7 +139,7 @@
                 flat
                 dense
                 round
-                :icon="isFullscreen ? 'fullscreen_exit' : 'fullscreen'"
+                :icon="sisFullscreen ? 'fullscreen_exit' : 'fullscreen'"
                 @click="isFullscreen = !isFullscreen"
               />
             </div>
@@ -147,7 +147,7 @@
         </template>
         <template #pagination="scope">
           <q-btn
-            icon="chevron_left"
+            icon="sym_r_chevron_left"
             flat
             dense
             round
@@ -155,7 +155,7 @@
             @click="scope.prevPage"
           />
           <q-btn
-            icon="chevron_right"
+            icon="sym_r_chevron_right"
             flat
             dense
             round
@@ -196,7 +196,7 @@
               dense
               round
               color="icon-dark"
-              icon="edit"
+              icon="sym_r_edit"
               :to="`/groups/${scope.row.group.attributes.code}/admin/members/${scope.row.attributes.code}/profile`" 
             />
             <q-btn
@@ -204,7 +204,7 @@
               dense
               round
               color="icon-dark"
-              icon="settings"
+              icon="sym_r_settings"
               :to="`/groups/${scope.row.group.attributes.code}/admin/members/${scope.row.attributes.code}/settings`"
             />
           </q-td>

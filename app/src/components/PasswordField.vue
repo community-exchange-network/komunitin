@@ -11,7 +11,7 @@
   >
     <template #append>
       <q-icon
-        :name="isPwd ? 'visibility' : 'visibility_off'"
+        :name="isPwd ? 'sym_r_visibility' : 'sym_r_visibility_off'"
         class="cursor-pointer"
         @click="isPwd = !isPwd"
       />

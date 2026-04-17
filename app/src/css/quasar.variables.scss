@@ -1,0 +1,281 @@
+// Quasar Sass (& SCSS) Variables
+// --------------------------------------------------
+// These variables and Quasar's own ones (https://quasar.dev/style/sass-scss-variables) 
+// will be available in .vue/.scss/.sass files
+
+// We are following here the Material Design Color System guidelines
+// and conventions (https://material.io/design/color/the-color-system.html)
+
+// ============================================================
+//  Commons — Quasar SCSS Theme
+//  Design: Community currency/exchange app
+//  Palette: Ember · Grove · Wheat · Linen · Parchment · Soil
+// ============================================================
+
+
+// ── Brand colours ────────────────────────────────────────────
+//
+//  Quasar's $primary, $secondary, $accent map directly to our
+//  three-colour palette. The remaining semantic roles are
+//  assigned to the closest Commons tone.
+//
+//  Commons name     Hex        Quasar role
+//  ─────────────────────────────────────────
+//  Ember            #C17A3A    $primary
+//  Grove            #3D6E5A    $secondary
+//  Wheat            #E8C87A    $accent
+//  Soil (dark)      #2A2118    $dark
+//  Parchment        #FDFAF4    $dark-page (light bg in dark mode)
+
+$primary   : #C17A3A;   // Ember
+$secondary : #3D6E5A;   // Grove
+$accent    : #E8C87A;   // Wheat
+
+$dark      : #2A2118;   // Soil dark — used for dark surfaces (hero card bg)
+$dark-page : #1E1A14;   // Soil — darkest text/page bg in dark mode
+
+// ── Semantic / feedback colours ──────────────────────────────
+//
+//  These are kept close to Quasar defaults but warm-shifted
+//  to harmonise with the earthy palette.
+
+$positive  : #3D6E5A;   // Grove — success maps to our secondary green
+$negative  : #C0392B;   // Standard red, no palette equivalent
+$info      : #C17A3A;   // Ember — info reuses primary (warm, not cold blue)
+$warning   : #E8C87A;   // Wheat — natural amber for warnings
+
+// ── Surface & separator colours ──────────────────────────────
+
+$separator-color      : rgba(30, 26, 20, 0.08);   // Soil at 8% — warm divider
+$separator-dark-color : rgba(255, 255, 255, 0.12); // standard dark mode
+
+// ── Typography ───────────────────────────────────────────────
+//
+//  Display / headings: Lora (serif) — loaded via Google Fonts.
+//  Body / UI:          Inter — loaded via Google Fonts.
+//  Quasar exposes a single font-family variable; we set Inter
+//  as the base and apply Lora via component-level overrides.
+
+$typography-font-family: 'Inter', '-apple-system', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+$body-font-size         : 14px;
+$body-line-height       : 1.5;
+
+// ── Spacing ──────────────────────────────────────────────────
+//
+//  Base unit stays at 16px (Quasar default) — our component
+//  spacing uses multiples of 8px which aligns naturally.
+
+$space-base   : 16px;
+$space-x-base : $space-base;
+$space-y-base : $space-base;
+
+// ── Border radius ────────────────────────────────────────────
+//
+//  Commons uses generous rounding: cards at 18–20px, chips at
+//  20px (pill), buttons at 22px. Quasar's generic radius is
+//  used for small elements (checkboxes, inputs, badges).
+
+$generic-border-radius        : 8px;   // inputs, dropdowns, tooltips
+$button-border-radius         : 8px;
+$button-push-border-radius    : 14px;
+
+// ── Shadows ──────────────────────────────────────────────────
+//
+//  Commons uses warm-tinted shadows (Ember dark at low opacity)
+//  rather than pure black. We override the shadow colour used
+//  by the elevation system.
+
+$shadow-color : #1E1A14;  // Soil — warm dark shadow base
+$kshadow: 0 2px 14px rgba(30,26,20,0.08) !default; // Soil at 8% — card shadow
+
+// ── Toolbar / Header ─────────────────────────────────────────
+//
+//  The top nav is 62px tall (14px top padding + 34px content
+//  + 14px bottom padding). Quasar's toolbar variables drive
+//  QHeader / QToolbar height.
+
+$toolbar-min-height         : 62px;
+$toolbar-padding            : 0 20px;
+$toolbar-title-font-size    : 20px;
+$toolbar-title-font-weight  : 600;
+$toolbar-title-letter-spacing: -0.3px;
+$toolbar-title-padding      : 0 14px;
+
+// ── Buttons ──────────────────────────────────────────────────
+
+$button-font-size    : 14px;
+$button-font-weight  : 600;
+$button-line-height  : 1.715em;
+$button-padding      : 12px 18px;
+
+// ── Chips ────────────────────────────────────────────────────
+//
+//  Commons chips: 12px font, pill shape (border-radius 20px),
+//  compact height. Quasar's chip variables map closely.
+
+$chip-font-size     : 12px;
+$chip-height        : 1.75em;    // ~21px at 12px base — compact but not tiny
+$chip-dense-height  : 1.4em;
+
+// ── Inputs & Fields ──────────────────────────────────────────
+
+$input-font-size    : 13px;
+$input-text-color   : rgba(30, 26, 20, 0.87);   // Soil at 87%
+$input-label-color  : rgba(30, 26, 20, 0.6);    // Soil at 60% — text-muted
+
+$field-label-font-size    : 13px;
+$field-bottom-font-size   : 11px;
+
+// ── Avatar ───────────────────────────────────────────────────
+//
+//  The user avatar in the nav is 34px with Lora serif initial.
+
+$avatar-font-size         : 34px;
+$avatar-content-font-size : 0.41em;  // ~14px at 34px base
+
+// ── Table hover & selected ───────────────────────────────────
+//
+//  Reuses our Linen Dark hover colour.
+
+$table-hover-background    : rgba(30, 26, 20, 0.04);  // barely-there warm wash
+$table-selected-background : rgba(193, 122, 58, 0.08); // faint Ember tint
+
+// ── Menu / Dropdown ──────────────────────────────────────────
+
+$menu-background  : #FFFFFF;   // bgCard — pure white dropdowns
+$menu-box-shadow  : 0 4px 20px rgba(30, 26, 20, 0.14);
+
+// ── Tooltip ──────────────────────────────────────────────────
+
+$tooltip-background   : #2A2118;   // Soil dark
+$tooltip-color        : #FDFAF4;   // Parchment — warm white text
+$tooltip-border-radius: 8px;
+$tooltip-padding      : 6px 12px;
+$tooltip-fontsize     : 12px;
+
+// ── Layout ───────────────────────────────────────────────────
+
+$layout-border  : 1px solid rgba(30, 26, 20, 0.08);  // warm divider
+$layout-shadow  : 0 0 10px 2px rgba(30, 26, 20, 0.08), 0 0 10px rgba(30, 26, 20, 0.12);
+
+// ── Z-index ──────────────────────────────────────────────────
+//
+//  Kept at Quasar defaults. Our sticky layers use:
+//    nav:            z 100  → maps within $z-marginals range
+//    filter bar:     z 90
+//    filter summary: z 80
+//  These sit below Quasar's drawer/menu layers as expected.
+
+$z-fab       : 990;
+$z-side      : 1000;
+$z-marginals : 2000;
+
+// ── Animation ────────────────────────────────────────────────
+//
+//  Commons uses a 0.3s ease fadeUp for card entrances and
+//  0.15s for micro-interactions (chips, hover states).
+
+$animate-duration : .3s;
+$animate-delay    : .15s;
+
+$generic-hover-transition : .15s cubic-bezier(.25, .8, .5, 1);
+
+// ── Separator ────────────────────────────────────────────────
+//
+//  Already defined above under Surface colours, repeated here
+//  for component-level overrides that reference it directly.
+//
+//  $separator-color : rgba(30, 26, 20, 0.08)  — see above
+
+// ── Rating ───────────────────────────────────────────────────
+
+$rating-grade-color : #E8C87A;  // Wheat — natural amber star colour
+
+
+// ============================================================
+//  Additional Commons design tokens
+//  (not Quasar variables, but available as SCSS variables
+//   throughout your component files once this file is loaded)
+// ============================================================
+
+// Palette extensions
+$ember          : #C17A3A;
+$ember-light    : #D9975A;
+$ember-dark     : #8F5520;
+
+$grove          : #3D6E5A;
+$grove-light    : #5A9478;
+
+$wheat          : #E8C87A;
+$wheat-soft     : #F2DFA8;   // accent muted — chip active bg etc.
+
+$parchment      : #FDFAF4;   // app background
+$linen          : #F5EFE4;   // filter bar background
+$linen-dark     : #F0E8DA;   // summary bar, card hover
+
+$soil           : rgba(30, 26, 20, 0.87);  // high emphasis
+$soil-secondary : rgba(30, 26, 20, 0.60);  // medium emphasis
+$soil-muted     : rgba(30, 26, 20, 0.38);  // disabled / hint
+
+$divider        : rgba(30, 26, 20, 0.08);
+$chip-border    : #C8B89A;
+
+// Typography scale (display sizes, complementing Quasar's $headings)
+$display-serif-family : 'Lora', Georgia, 'Times New Roman', serif;
+
+// Color for surface elements, such as cards and navbar
+$surface: #ffffff;
+
+// Secondary colors
+$kblue: $secondary; //offers
+$kred: $primary; //wants
+$kyellow: #c29c14;
+
+// App background color.
+$background: $linen;
+$light-background: $parchment;
+// Outside background.
+$outside: #312D21;
+// Error color.
+$error: #B00020;
+$light-error: rgba($error, 0.12);
+
+// Menu active background item
+// This is rgba($primary, .12) over #fff background.
+$active: #f3f8e5;
+
+// Text colors
+
+// Color for text on primary background / high emphasis
+$onprimary: #FFFFFF;
+$onprimary-m: rgba(255,255,255,0.74);
+
+// Color for text on secondary background / high emphasis
+$onsecondary: #FFFFFF;
+
+// Color for text on outside background / high emphasis
+$onoutside: #ffffff;
+// Color for text on outside background / medium emphasis
+$onoutside-m: rgba(255,255,255,0.74);
+
+// Color for text on surface / high emphasis
+$onsurface: $soil;
+// Color for text on surface / medium emphasis
+$onsurface-m: $soil-secondary;
+// Color for text on surface / disabled
+$onsurface-d: $soil-muted;
+
+// Currency  colors
+$positive-amount: $primary;
+$negative-amount: $secondary;
+
+// Icon colors
+$icon-dark: rgba(0,0,0,.54);
+$icon-dark-inactive: rgba(0,0,0,.26);
+$icon-light: #FFFFFF;
+$icon-light-inactive: rgba(0,0,0,.3);
+
+// Sizes
+$header-height: 64px;
+
+// @import "override.variables.scss";

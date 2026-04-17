@@ -24,7 +24,7 @@
               :class="sign > 0 ? 'positive-amount' : 'negative-amount'"
             >
               <q-icon
-                :name="sign > 0 ? 'trending_up' : 'trending_down'"
+                :name="sign > 0 ? 'sym_r_trending_up' : 'sym_r_trending_down'"
               />
               {{ change }}
             </div>

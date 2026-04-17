@@ -61,7 +61,7 @@ const changePassword = async () => {
     Notify.create({
       message: t('passwordChanged'),
       color: 'positive',
-      icon: 'check'
+      icon: 'sym_r_check'
     })
   } catch (error) {
     if (error instanceof KError && error.code == KErrorCode.InvalidPassword) {

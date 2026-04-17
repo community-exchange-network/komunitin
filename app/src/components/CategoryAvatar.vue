@@ -50,10 +50,10 @@ export default defineComponent({
       return this.type == 'need' ? 'kred' : 'kblue';
     },
     icon(): string {
-      return this.category.attributes.icon ?? this.defaultIcon;
+      return this.category.attributes.icon ? `sym_r_${this.category.attributes.icon}` : this.defaultIcon;
     },
     defaultIcon(): string {
-      return this.type == 'need' ? "loyalty" : "local_offer";
+      return this.type == 'need' ? "sym_r_loyalty" : "sym_r_local_offer";
     }
   }
 })

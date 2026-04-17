@@ -1,6 +1,6 @@
 <template>
   <menu-item
-    icon="notifications"
+    icon="sym_r_notifications"
     :title="t('notifications')"
     to="/notifications"
   >

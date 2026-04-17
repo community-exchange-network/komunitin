@@ -38,7 +38,7 @@
           <q-btn
             flat
             round
-            icon="edit"
+            icon="sym_r_edit"
             color="onsurface-m"
             @click="edit(slot.row)"
           />
@@ -74,7 +74,7 @@
           <q-btn
             flat
             round
-            icon="close"
+            icon="sym_r_close"
             style="margin-top: -8px; margin-right: -8px;"
             @click="showDialog = false"
           />

@@ -1,8 +1,8 @@
 <template>
-  <div class="bg-outside column full-height">
+  <div class="bg-light column full-height">
     <div
       id="container"
-      class="q-mx-auto bg-surface"
+      class="q-mx-auto"
       :class="drawerExists ? 'with-drawer' : 'without-drawer'"
     >
       <q-layout
@@ -23,17 +23,18 @@
         </q-drawer>
         <router-view />
         <q-footer class="lt-md" v-if="myMember && isRootPage">
-          <q-toolbar>
+          <q-toolbar class="bg-surface text-primary">
             <q-tabs 
               breakpoint="1024" 
               class="full-width"
               switch-indicator
               narrow-indicator
               no-caps
+              align="justify"
             >
-              <q-route-tab :to="{ name: 'Home' }" name="home" icon="home" :label="t('home')" />
-              <q-route-tab :to="{ name: 'TransactionList', params: { code: groupCode, memberCode: myMember.attributes.code}}" name="account" icon="account_balance_wallet" :label="t('transactions')" />
-              <q-route-tab :to="{ name: 'Group', params: { code: groupCode }}" name="group" icon="people" :label="t('group')" />
+              <q-route-tab class="nav-tab" :to="{ name: 'Home' }" name="home" icon="sym_r_home" :label="t('home')" />
+              <q-route-tab class="nav-tab" :to="{ name: 'TransactionList', params: { code: groupCode, memberCode: myMember.attributes.code}}" name="account" icon="sym_r_swap_horiz" :label="t('transactions')" />
+              <q-route-tab class="nav-tab" :to="{ name: 'Group', params: { code: groupCode }}" name="group" icon="sym_r_people" :label="t('group')" />
             </q-tabs>
           </q-toolbar>
         </q-footer>
@@ -100,6 +101,10 @@ const isRootPage = computed(() => route.meta.rootPage === true)
   &.without-drawer {
     @include wrap-main-container(1024px);
   }
+}
+
+.nav-tab {
+  flex: 1 1 0; /* Forces all tabs to grow and shrink equally */
 }
 
 </style>

@@ -48,7 +48,7 @@ export default defineConfig((ctx) => {
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
     css: [
-      "app.sass",
+      "app.scss",
     ],
 
     vendor: {
@@ -64,14 +64,14 @@ export default defineConfig((ctx) => {
       // 'themify',
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
 
-      "roboto-font", // optional, you are not bound to it
-      "material-icons" // optional, you are not bound to it
+      // "roboto-font", // optional, you are not bound to it
+      "material-symbols-rounded" // optional, you are not bound to it
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework
     framework: {
       all: "auto",
-      iconSet: "material-icons", // Quasar icon set
+      iconSet: "material-symbols-rounded", // Quasar icon set
       lang: "en-US", // Quasar language pack
 
 

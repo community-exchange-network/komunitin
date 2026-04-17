@@ -4,7 +4,7 @@
     :offset="q.screen.gt.sm ? [24,24]: [16,16]"
   >
     <q-fab 
-      icon="add" 
+      icon="sym_r_add" 
       color="primary"
       v-bind="$attrs"
       direction="up"
@@ -12,6 +12,8 @@
       :vertical-actions-align="q.screen.gt.sm ? 'center': 'right'"
       v-model="expanded"
       :hide-label="expanded"
+      unelevated
+      class="kshadow"
     >
       <q-fab-action
         v-for="action in actions" 

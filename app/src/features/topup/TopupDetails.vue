@@ -23,7 +23,7 @@
             class="col"
             color="primary"
             unelevated
-            icon="refresh"
+            icon="sym_r_refresh"
             :label="t('topupRetry')"
             :loading="loading"
             @click="retry"

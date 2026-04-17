@@ -33,7 +33,7 @@
           <q-btn
             v-if="scope.canAddFiles"
             type="a"
-            icon="add"
+            icon="sym_r_add"
             round
             dense
             flat
@@ -43,7 +43,7 @@
           </q-btn>
           <q-btn
             v-if="scope.isUploading"
-            icon="clear"
+            icon="sym_r_clear"
             round
             dense
             flat 

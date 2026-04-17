@@ -120,7 +120,7 @@
 
       <!-- Migration not found -->
       <div v-else class="text-center q-pa-xl">
-        <q-icon name="error_outline" size="4em" color="grey" class="q-mb-md" />
+        <q-icon name="sym_r_error_outline" size="4em" color="grey" class="q-mb-md" />
         <div class="text-h6 text-grey">Migration not found</div>
         <div class="text-subtitle2 text-grey q-mb-lg">
           The migration with ID "{{ id }}" could not be found.

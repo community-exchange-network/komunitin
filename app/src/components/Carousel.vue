@@ -23,7 +23,7 @@
       update
       class="placeholder"
     >
-      <q-icon name="no_photography" />
+      <q-icon name="sym_r_no_photography" />
     </fit-text>
     <div
       v-if="thumbnails && (images.length > 1)"

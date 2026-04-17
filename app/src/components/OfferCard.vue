@@ -2,9 +2,8 @@
   <q-card
     v-if="offer"
     v-card-click-to="`/groups/${code}/offers/${offer.attributes.code}`"
-    flat
-    bordered
     :class="{isHidden, isExpired}"
+    class="kshadow"
   >
     <!-- Header -->
     <member-header :member="offer.member">
@@ -28,7 +27,7 @@
     <!-- offer title and description -->
     <q-card-section>
       <span class="text-uppercase text-onsurface-m text-overline">{{$t('offer')}}</span>
-      <div class="text-h6">
+      <div class="text-h6 text-weight-bold">
         {{ offer.attributes.name }}
       </div>
       <!-- TODO: Add price -->
@@ -50,7 +49,7 @@
     >
       <q-btn
         v-if="canEdit"
-        icon="edit"
+        icon="sym_r_edit"
         flat
         round
         color="icon-dark"

@@ -7,7 +7,7 @@
     @click="onClick"
   >
     <template #side>
-      <q-icon name="expand_more" />
+      <q-icon name="sym_r_expand_more" />
     </template>
   </group-header>
   <div style="overflow: hidden;">

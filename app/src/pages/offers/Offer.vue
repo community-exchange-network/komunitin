@@ -9,7 +9,7 @@
           v-if="canEdit"
           round
           flat
-          icon="edit"
+          icon="sym_r_edit"
           :to="`/groups/${code}/offers/${offerCode}/edit`"
           :title="$t('editOffer')"
         />
@@ -97,7 +97,7 @@
               :marker="offer.member.attributes.location.coordinates"
             />
             <div class="text-onsurface-m">
-              <q-icon name="place" />
+              <q-icon name="sym_r_place" />
               {{ offer.member.attributes.location.name }}
             </div>
           </template>

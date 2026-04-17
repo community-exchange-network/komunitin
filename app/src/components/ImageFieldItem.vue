@@ -27,7 +27,7 @@
         dense
         flat
         color="white"
-        icon="close"
+        icon="sym_r_close"
         @click="emit('remove:file', file)"
       />
     </div>

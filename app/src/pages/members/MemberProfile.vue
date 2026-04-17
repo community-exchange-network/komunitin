@@ -22,7 +22,7 @@
           :center="member.attributes.location.coordinates"
           :marker="member.attributes.location.coordinates"
         />
-        <div><q-icon name="place" />{{ member.attributes.location.name }}</div>
+        <div><q-icon name="sym_r_place" />{{ member.attributes.location.name }}</div>
       </div>
     </div>
     <!-- CONTACT -->

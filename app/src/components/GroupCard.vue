@@ -9,7 +9,7 @@
     <group-header :group="group">
       <template #side>
         <share-button
-          icon="share"
+          icon="sym_r_share"
           flat
           round
           color="icon-dark"

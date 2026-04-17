@@ -4,7 +4,7 @@
     :text="$t('importFileText')"
     :submit="importFile"
     :valid="!!file"
-    icon="attach_file"
+    icon="sym_r_attach_file"
   >
     <template #default>
       <q-file 
@@ -18,7 +18,7 @@
         :error="!!fileErrorMessage"
       >
         <template #append>
-          <q-icon name="attach_file" />
+          <q-icon name="sym_r_attach_file" />
         </template>
       </q-file>
     </template>

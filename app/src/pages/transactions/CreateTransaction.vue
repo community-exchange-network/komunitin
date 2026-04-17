@@ -17,28 +17,28 @@
           :to="`/groups/${code}/members/${myMemberCode}/transactions/${direction}`"
           :replace="true"
           :label="$t('enterData')"
-          icon="edit"
+          icon="sym_r_edit"
         />
         <q-route-tab
           v-if="showTabs.includes('qr')"
           :to="`/groups/${code}/members/${myMemberCode}/transactions/${direction}/qr`"
           :replace="true"
           :label="$t('qrCode')"
-          icon="qr_code"
+          icon="sym_r_qr_code"
         />
         <q-route-tab
           v-if="showTabs.includes('nfc')"
           :to="`/groups/${code}/members/${myMemberCode}/transactions/${direction}/nfc`"
           :replace="true"
           :label="$t('nfcTag')"
-          icon="nfc"
+          icon="sym_r_nfc"
         />
         <q-route-tab
           v-if="showTabs.includes('multiple')"
           :to="`/groups/${code}/members/${myMemberCode}/transactions/${direction}/multiple`"
           :replace="true"
           :label="$t('multiple')"
-          icon="list"
+          icon="sym_r_list"
         />
       </q-tabs>
       <router-view />

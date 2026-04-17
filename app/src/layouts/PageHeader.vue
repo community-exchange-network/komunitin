@@ -2,7 +2,7 @@
   <q-header>
     <div
       id="header"
-      class="bg-primary flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md"
+      class="bg-light flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-onsurface-m"
       :class="showBalance ? 'wrap' : 'q-pt-xs no-wrap'"
       :style="`height: ${computedHeight}px;`"
     >
@@ -13,7 +13,7 @@
           class="q-ml-sm q-mr-xs"
           flat
           round
-          icon="arrow_back"
+          icon="sym_r_arrow_back"
           :aria-label="$t('back')"
           @click="goUp"
         />
@@ -23,7 +23,7 @@
           class="q-ml-sm q-mr-xs"
           flat
           round
-          icon="menu"
+          icon="sym_r_menu"
           :aria-label="$t('menu')"
           @click="store.dispatch('toogleDrawer')"
         />
@@ -39,13 +39,13 @@
         style="min-width: 100%; max-width: 100%;"
       > 
         <div 
-          class="text-body2 text-onprimary-m"
+          class="text-body2"
           :style="`font-size: ${0.875*balanceScaleFactor}rem; line-height: ${1.25*balanceScaleFactor}rem;`"
         >
           {{ $t('balance') }}
         </div>
         <div 
-          class="text-h3 text-onprimary-m"
+          class="text-h3"
           :style="`font-size: ${3*balanceScaleFactor}rem; line-height: ${3.125*balanceScaleFactor}rem`"
         >
           {{
@@ -61,7 +61,9 @@
         style="max-width: none; min-width: 0;flex: 1 1 0%; padding-right: 0;"
         :class="inlineLeftButton ? 'q-pl-none' : 'q-pl-md'"
       >
-        <q-toolbar-title v-if="!searchActive">
+        <q-toolbar-title 
+          v-if="!searchActive"
+          class="text-serif text-primary text-bold">
           {{ title }}
         </q-toolbar-title>
         <q-input
@@ -80,13 +82,13 @@
           <template #append>
             <q-icon
               v-if="searchText === ''"
-              name="search"
+              name="sym_r_search"
               class="cursor-pointer"
               @click="searchActive = false"
             />
             <q-icon
               v-else
-              name="clear"
+              name="sym_r_clear"
               class="cursor-pointer"
               @click="clearSearchText"
             />
@@ -96,14 +98,14 @@
           v-if="search && !searchActive"
           flat
           round
-          icon="search"
+          icon="sym_r_search"
           @click="searchActive = true"
         />
         <!-- slot for right buttons -->
         <slot name="buttons" >
           <q-btn
             v-if="showLogOut"
-            icon="logout"
+            icon="sym_r_logout"
             flat
             round
             to="/logout"

@@ -13,7 +13,7 @@
           dense
           round
           color="onoutside"
-          icon="arrow_back"
+          icon="sym_r_arrow_back"
           :aria-label="$t('back')"
           @click="goBack"
         />

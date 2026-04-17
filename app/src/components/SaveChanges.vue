@@ -21,7 +21,7 @@
     <q-btn
       v-if="isError"
       :label="$t('retryNow')"
-      icon="refresh"
+      icon="sym_r_refresh"
       flat
       @click="retry"
     />

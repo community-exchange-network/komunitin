@@ -38,7 +38,7 @@ function showError(error: KError) {
       position: 'top',
       message: getLocalizedMessage(error),
       actions: [
-        { icon: 'close', color: 'white', round: true }
+        { icon: 'sym_r_close', color: 'white', round: true }
       ]
     });
   }

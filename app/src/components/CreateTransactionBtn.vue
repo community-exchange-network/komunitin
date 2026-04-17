@@ -65,17 +65,17 @@ function setAction(enable: boolean, action: Pick<FABAction, 'label' | 'icon' | '
 watch([showMakePayment, showRequestPayment, showTransfer, myMember],() => {
   setAction(showMakePayment.value, {
     label: t('send'),
-    icon: 'arrow_upward',
+    icon: 'sym_r_arrow_upward',
     to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/send`,
   })
   setAction(showRequestPayment.value, {
     label: t('receive'),
-    icon: 'arrow_downward',
+    icon: 'sym_r_arrow_downward',
     to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/receive`,
   })
   setAction(showTransfer.value, {
     label: t('move'),
-    icon: 'arrow_forward',
+    icon: 'sym_r_arrow_forward',
     to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/transfer`,
   })
 }, {immediate: true})
@@ -88,7 +88,7 @@ if (process.env.FEAT_TOPUP === 'true') {
   watch([showTopup, myMember], () => {
     setAction(showTopup.value, {
       label: t('topup'),
-      icon: 'add',
+      icon: 'sym_r_add',
       to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/topup`,
     })
   }, {immediate: true})

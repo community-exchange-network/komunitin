@@ -7,13 +7,13 @@
       <template #buttons>
         <contact-button
           v-if="!isMe && member.contacts"
-          icon="message"
+          icon="sym_r_message"
           round
           flat
           :contacts="member.contacts"
         />
         <share-button
-          icon="share"
+          icon="sym_r_share"
           flat
           round
           :title="$t('shareMember', { member: member.attributes.name })"
@@ -21,21 +21,21 @@
         />
         <q-btn
           v-if="canEdit"
-          icon="edit"
+          icon="sym_r_edit"
           flat
           round
           :to="editProfileUrl"
         />
         <q-btn
           v-if="canEdit"
-          icon="settings"
+          icon="sym_r_settings"
           flat
           round
           :to="settingsUrl"
         />
         <q-btn
           v-if="isMe && !isComplete"
-          icon="logout"
+          icon="sym_r_logout"
           flat
           round
           to="/logout"
@@ -70,7 +70,7 @@
             />
             <floating-btn
               v-if="isMe"
-              icon="add"
+              icon="sym_r_add"
               color="kred"
               :to="`/groups/${code}/needs/new`"
               :label="$t('createNeed')"
@@ -86,7 +86,7 @@
             />
             <floating-btn
               v-if="isMe"
-              icon="add"
+              icon="sym_r_add"
               color="kblue"
               :to="`/groups/${code}/offers/new`"
               :label="$t('createOffer')"

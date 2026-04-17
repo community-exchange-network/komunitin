@@ -4,7 +4,7 @@
     class="text-onsurface-m banner"
   >
     <template #avatar>
-      <q-icon name="location_on" />
+      <q-icon name="sym_r_location_on" />
     </template>
 
     {{ isDenied ? $t("deniedLocationText") : $t("enableLocationText") }}

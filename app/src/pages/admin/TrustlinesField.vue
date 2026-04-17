@@ -49,7 +49,7 @@
               rounded
               dense
               flat
-              icon="edit"
+              icon="sym_r_edit"
               @click="editTrustline(trustline)"
             />
           </template>
@@ -60,7 +60,7 @@
       <q-btn
         flat
         color="primary"
-        icon="refresh"
+        icon="sym_r_refresh"
         :label="$t('refresh')"
         :loading="syncTrustlinesLoading"
         @click="syncTrustlines()"
@@ -68,7 +68,7 @@
       <q-btn
         flat
         color="primary"
-        icon="add"
+        icon="sym_r_add"
         :label="$t('addTrustline')"
         @click="addTrustline()"
       />
@@ -85,7 +85,7 @@
             <q-btn
               flat
               round
-              icon="close"
+              icon="sym_r_close"
               style="margin-top: -8px; margin-right: -8px;"
               @click="showDialog = false"
             />

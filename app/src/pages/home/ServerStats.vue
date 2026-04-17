@@ -25,7 +25,7 @@
               :title="t('monthlyActiveAccounts')"
               :text="t('monthlyActiveAccountsText')"
               :period="30*24*60*60"
-              icon="group"
+              icon="sym_r_group"
               :parameters="{minTransactions: 1}"
             />
           </div>
@@ -36,7 +36,7 @@
               :title="t('yearlyActiveAccounts')"
               :text="t('yearlyActiveAccountsText')"
               :period="365*24*60*60"
-              icon="group"
+              icon="sym_r_group"
               :parameters="{minTransactions: 1}"
             />
           </div>
@@ -47,7 +47,7 @@
               :title="t('monthlyTransactions')"
               :text="t('monthlyTransactionsText')"
               :period="30*24*60*60"
-              icon="swap_horiz"
+              icon="sym_r_swap_horiz"
             />
           </div>
           <div class="col-12 col-sm-6 col-lg-3">
@@ -57,7 +57,7 @@
               :title="t('yearlyTransactions')"
               :text="t('yearlyTransactionsText')"
               :period="365*24*60*60"
-              icon="swap_horiz"
+              icon="sym_r_swap_horiz"
             />
           </div>
         </div>

@@ -20,7 +20,7 @@
         v-if="contact.attributes.type !== 'email'" 
         flat
         round
-        icon="delete"
+        icon="sym_r_delete"
         @click="deleteContact(contact)"
       />
     </template>

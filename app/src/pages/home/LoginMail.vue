@@ -16,7 +16,7 @@
       autocomplete="username"
     >
       <template #append>
-        <q-icon name="mail" />
+        <q-icon name="sym_r_mail" />
       </template>
     </q-input>
     <password-field 
@@ -37,7 +37,7 @@
       color="transparent"
       text-color="onoutside"
       :label="$t('logIn')"
-      icon="account_circle"
+      icon="sym_r_account_circle"
       :disabled="loginDisabled"
       type="submit"
     />
