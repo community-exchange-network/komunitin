@@ -24,8 +24,7 @@ const LOCALE_KEY = "lang";
 
 /**
  * Build per-locale fallback map from LocaleDefinition.fallbackLocale fields.
- * For example, { "en-gb": ["en-us", "en-us"] } means en-gb falls back to en-us, 
- * then to the global default en-us.
+ * For example, { "en-gb": ["en-us"] } means en-gb falls back to en-us.
  * 
  * vue-i18n uses this to resolve missing keys: if en-gb doesn't have a key,
  * it looks in en-us before giving up.

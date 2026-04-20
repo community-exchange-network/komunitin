@@ -97,8 +97,8 @@ export const DEFAULT_LANG = "en-us";
  * Return locale if it is a defined language for this app,
  * or the default language code (English) instead.
  * 
- * Handles sub-locales by matching the base language first, then
- * mapping unmatched sub-locales to the closest defined locale
+ * Handles locales by first attempting exact match, then base language match,
+ * then mapping unmatched sub-locales to the closest defined locale
  * (e.g., en-IE -> en-gb, fr-CA -> fr).
  * **/
 export function normalizeLocale(locale: string): LangName {
