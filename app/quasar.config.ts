@@ -13,6 +13,7 @@ import { vitePluginFlavorOverrideSassVariables } from './build-tools/vite-plugin
 // See issue https://github.com/quasarframework/quasar/issues/17917
 import { config } from "dotenv"
 import { vitePluginFlavorOverrideI18n } from "./build-tools/vite-plugin-flavor-override-i18n"
+import { getBackgroundColor, getThemeColor } from "./build-tools/manifest-utils"
 config()
 
 const APP_VERSION = process.env.npm_package_version || "0.0.0"
@@ -163,7 +164,14 @@ export default defineConfig((ctx) => {
     // https://quasar.dev/quasar-cli/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'InjectManifest', // 'GenerateSW' or 'InjectManifest'
-      
+
+      extendManifestJson(manifest) {
+        manifest.name = process.env.PRODUCT_NAME || "Komunitin"
+        manifest.short_name = process.env.PRODUCT_NAME
+        manifest.description = process.env.PRODUCT_DESCRIPTION
+        manifest.theme_color = getThemeColor(FLAVOR)
+        manifest.background_color = getBackgroundColor(FLAVOR)
+      }
     },
   };
 });
