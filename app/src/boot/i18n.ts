@@ -27,7 +27,8 @@ const LOCALE_KEY = "lang";
  */
 export const i18n = createI18n({
   locale: undefined,
-  legacy: false
+  legacy: false,
+  fallbackLocale: DEFAULT_LANG
 });
 
 /**

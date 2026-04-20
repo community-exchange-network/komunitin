@@ -35,6 +35,14 @@ const langs = {
     loadDateFNS: async () => (await import("date-fns/locale/en-US")).enUS,
     loadCountries: async () => (await import("i18n-iso-countries/langs/en.json")).default
   } as LocaleDefinition,
+  "en-gb": {
+    label: "English (UK)",
+    loadMessages: async () => (await import("src/i18n/en-us/index.json")).default,
+    loadAdminMessages: async () => (await import("src/i18n/en-us/admin.json")).default,
+    loadQuasar: async () => (await import("quasar/lang/en-GB")).default,
+    loadDateFNS: async () => (await import("date-fns/locale/en-GB")).enGB,
+    loadCountries: async () => (await import("i18n-iso-countries/langs/en.json")).default
+  } as LocaleDefinition,
   "es": {
     label: "Español",
     loadMessages: async () => (await import("src/i18n/es/index.json")).default,
@@ -65,6 +73,9 @@ if (process.env.FEAT_TOPUP === 'true') {
   langs["en-us"].features = {
     topup: async () => (await import("src/i18n/en-us/topup.json")).default as never
   }
+  langs["en-gb"].features = {
+    topup: async () => (await import("src/i18n/en-us/topup.json")).default as never
+  }
   langs["ca"].features = {
     topup: async () => (await import("src/i18n/ca/topup.json")).default as never
   }
@@ -85,9 +96,27 @@ export const DEFAULT_LANG = "en-us";
 /**
  * Return locale if it is a defined language for this app,
  * or the default language code (English) instead.
+ * 
+ * Handles sub-locales by matching the base language first, then
+ * mapping unmatched sub-locales to the closest defined locale
+ * (e.g., en-IE -> en-gb, fr-CA -> fr).
  * **/
 export function normalizeLocale(locale: string): LangName {
-  return (locale in langs) ? locale as LangName : DEFAULT_LANG;
+  const lower = locale.toLowerCase();
+  // Exact match (e.g., "en-us", "en-gb", "es", "ca")
+  if (lower in langs) return lower as LangName;
+  // Try base language (e.g., "es" from "es-ar", "fr" from "fr-ca")
+  const base = lower.split('-')[0];
+  if (base in langs) return base as LangName;
+  // For sub-locales (with region code), find the best matching locale.
+  if (lower.includes('-')) {
+    // For English specifically, non-US sub-locales (en-ie, en-au, etc.) map to en-gb.
+    if (base === 'en' && 'en-gb' in langs) return 'en-gb' as LangName;
+    // For other languages, find any locale starting with the base language.
+    const match = (Object.keys(langs) as LangName[]).find(k => k.split('-')[0] === base);
+    if (match) return match;
+  }
+  return DEFAULT_LANG;
 }
 
 export function getLocaleDefinition(locale: string): LocaleDefinition {
