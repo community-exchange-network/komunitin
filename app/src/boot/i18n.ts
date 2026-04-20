@@ -23,12 +23,41 @@ declare module "vue" {
 const LOCALE_KEY = "lang";
 
 /**
- * Export vue-i18 instance for use outside components.
+ * Build per-locale fallback map from LocaleDefinition.fallbackLocale fields.
+ * For example, { "en-gb": ["en-us", "en-us"] } means en-gb falls back to en-us, 
+ * then to the global default en-us.
+ * 
+ * vue-i18n uses this to resolve missing keys: if en-gb doesn't have a key,
+ * it looks in en-us before giving up.
+ */
+function buildFallbackLocale(): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const [locale, definition] of Object.entries(langs)) {
+    if (definition.fallbackLocale) {
+      // Per-locale chain, with global default as last resort.
+      map[locale] = [definition.fallbackLocale];
+      if (definition.fallbackLocale !== DEFAULT_LANG) {
+        map[locale].push(DEFAULT_LANG);
+      }
+    }
+  }
+  return map;
+}
+
+/**
+ * Export vue-i18n instance for use outside components.
  */
 export const i18n = createI18n({
   locale: undefined,
   legacy: false,
-  fallbackLocale: DEFAULT_LANG
+  fallbackLocale: {
+    ...buildFallbackLocale(),
+    default: [DEFAULT_LANG],
+  },
+  // Silence fallback warnings since sub-locales (e.g. en-gb) are expected 
+  // to fall back to their parent locale for most strings.
+  missingWarn: false,
+  fallbackWarn: false,
 });
 
 /**
@@ -74,6 +103,22 @@ async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: strin
   const setI18nLocale = async (locale: LangName) => {
     const definition = langs[locale]
     if (i18n.global.locale.value !== locale) {
+      // If this locale has a fallback, ensure the fallback's messages are loaded first
+      // so vue-i18n can resolve missing keys.
+      if (definition.fallbackLocale) {
+        const fbLocale = definition.fallbackLocale as LangName;
+        const fbDefinition = langs[fbLocale];
+        if (fbDefinition && !i18n.global.availableLocales.includes(fbLocale)) {
+          const fbMessages = await fbDefinition.loadMessages();
+          i18n.global.setLocaleMessage(fbLocale, fbMessages);
+          if (fbDefinition.features) {
+            for (const featureName in fbDefinition.features) {
+              const featureMessages = await fbDefinition.features[featureName]();
+              i18n.global.mergeLocaleMessage(fbLocale, featureMessages);
+            }
+          }
+        }
+      }
       const messages = await definition.loadMessages();
       // Load core user messages
       i18n.global.setLocaleMessage(locale, messages);
@@ -89,6 +134,15 @@ async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: strin
     if (admin) {
       const adminMessages = await definition.loadAdminMessages();
       i18n.global.mergeLocaleMessage(locale, adminMessages);
+      // Also load fallback admin messages so they can be resolved.
+      if (definition.fallbackLocale) {
+        const fbLocale = definition.fallbackLocale as LangName;
+        const fbDefinition = langs[fbLocale];
+        if (fbDefinition) {
+          const fbAdminMessages = await fbDefinition.loadAdminMessages();
+          i18n.global.mergeLocaleMessage(fbLocale, fbAdminMessages);
+        }
+      }
     }
   }
 

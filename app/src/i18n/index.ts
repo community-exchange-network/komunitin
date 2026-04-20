@@ -10,6 +10,8 @@ import type { QuasarLanguage } from "quasar"
 
 export interface LocaleDefinition {
   label: string,
+  /** Per-locale fallback chain for vue-i18n message resolution (e.g., en-gb → en-us). */
+  fallbackLocale?: string,
   loadMessages: () => Promise<never>,
   loadAdminMessages: () => Promise<never>,
   loadQuasar: () => Promise<QuasarLanguage>,
@@ -37,8 +39,9 @@ const langs = {
   } as LocaleDefinition,
   "en-gb": {
     label: "English (UK)",
-    loadMessages: async () => (await import("src/i18n/en-us/index.json")).default,
-    loadAdminMessages: async () => (await import("src/i18n/en-us/admin.json")).default,
+    fallbackLocale: "en-us",
+    loadMessages: async () => (await import("src/i18n/en-gb/index.json")).default,
+    loadAdminMessages: async () => (await import("src/i18n/en-gb/admin.json")).default,
     loadQuasar: async () => (await import("quasar/lang/en-GB")).default,
     loadDateFNS: async () => (await import("date-fns/locale/en-GB")).enGB,
     loadCountries: async () => (await import("i18n-iso-countries/langs/en.json")).default
@@ -71,9 +74,6 @@ const langs = {
 
 if (process.env.FEAT_TOPUP === 'true') {
   langs["en-us"].features = {
-    topup: async () => (await import("src/i18n/en-us/topup.json")).default as never
-  }
-  langs["en-gb"].features = {
     topup: async () => (await import("src/i18n/en-us/topup.json")).default as never
   }
   langs["ca"].features = {
