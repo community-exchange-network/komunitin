@@ -24,14 +24,16 @@ const readSassVariables = (filePath: string): Record<string, string> => {
   return sassVariables
 }
 
-export const getThemeColor = (flavor: string): string => {
+export const getThemeColors = (flavor: string): { primary: string | undefined, background: string | undefined } => {
   const defaultSassVariables = readSassVariables("src/css/quasar.variables.sass")
   const flavorSassVariables = readSassVariables(`src/css/flavors/${flavor}/override.variables.sass`)
-  return flavorSassVariables["primary"] || defaultSassVariables["primary"] || "#000000"
-}
 
-export const getBackgroundColor = (flavor: string): string => {
-  const defaultSassVariables = readSassVariables("src/css/quasar.variables.sass")
-  const flavorSassVariables = readSassVariables(`src/css/flavors/${flavor}/override.variables.sass`)
-  return flavorSassVariables["background"] || defaultSassVariables["background"] || "#ffffff"
+  const getVariable = (name: string): string | undefined => {
+    return flavorSassVariables[name] || defaultSassVariables[name]
+  }
+  
+  return {
+    primary: getVariable("primary"),
+    background: getVariable("background"),
+  } 
 }
