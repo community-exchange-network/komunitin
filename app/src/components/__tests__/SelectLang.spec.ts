@@ -63,7 +63,7 @@ describe("SelectLang", () => {
   it("Date format should be different across languages", async () => {
     await setLocale("en-us");
     await waitFor(() => i18n.global.locale.value, "en-us", "Locale should be en-us");
-    const date = new Date("2024-01-31T12:00:00Z");
+    const date = new Date(2024, 0, 31, 12, 0, 0);
     const enUsDatePicker = mountDatePicker(date);
     const output = enUsDatePicker.get("input").element.value;
     // In English (US) locale, the date format should be "MM/DD/YYYY".
