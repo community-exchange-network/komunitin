@@ -43,7 +43,9 @@ function buildFallbackLocale(): Record<string, string[]> {
       fallbacks.push(fallback);
       currentLocale = fallback;
     }
-    map[locale] = fallbacks;
+    if (fallbacks.length > 0) {
+      map[locale] = fallbacks;
+    }
   }
 
   return map;
@@ -57,6 +59,8 @@ export const i18n = createI18n({
   legacy: false,
   fallbackLocale: {
     ...buildFallbackLocale()
+    // We don't set a global english fallback because we're not loading english messages by default.
+    // Languages that want to fallback to english should set it explicitly in their LocaleDefinition.fallbackLocale field.
   },
 });
 
@@ -71,6 +75,8 @@ let dateLocale: Locale | undefined = undefined;
 export const getDateLocale = () => dateLocale;
 
 let globalLocale = DEFAULT_LANG
+
+const loadedAdminLocales = new Set<string>();
 
 /**
  * Return the user locale based on previous session or browser.
@@ -98,32 +104,34 @@ export async function setLocale(locale: string, admin=false) {
 }
 
 async function loadLocaleMessages(locale: LangName, admin=false) {
-  if (i18n.global.availableLocales.includes(locale)) {
-    return;
-  }
   const definition = langs[locale]
 
   // Recursively load fallback locale messages.
   if (definition.fallbackLocale) {
     await loadLocaleMessages(definition.fallbackLocale as LangName, admin)
   }
-  // Load this locale's messages.
-  if (definition.loadMessages !== undefined) {
-    const messages = await definition.loadMessages();
-    i18n.global.setLocaleMessage(locale, messages);
-  }
-  
-  // Load feature messages.
-  if (definition.features) {
-    for (const featureName in definition.features) {
-      const featureMessages = await definition.features[featureName]();
-      i18n.global.mergeLocaleMessage(locale, featureMessages);
+
+  if (!i18n.global.availableLocales.includes(locale)) {
+    // Load this locale's messages.
+    if (definition.loadMessages !== undefined) {
+      const messages = await definition.loadMessages();
+      i18n.global.setLocaleMessage(locale, messages);
+    }
+    
+    // Load feature messages.
+    if (definition.features) {
+      for (const featureName in definition.features) {
+        const featureMessages = await definition.features[featureName]();
+        i18n.global.mergeLocaleMessage(locale, featureMessages);
+      }
     }
   }
+
   // Load admin messages.
-  if (admin && definition.loadAdminMessages !== undefined) {
+  if (admin && !loadedAdminLocales.has(locale) && definition.loadAdminMessages !== undefined) {
     const adminMessages = await definition.loadAdminMessages();
     i18n.global.mergeLocaleMessage(locale, adminMessages);
+    loadedAdminLocales.add(locale);
   }
 }
 
@@ -131,8 +139,8 @@ async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: strin
   globalLocale = locale
   // Set VueI18n lang.
   const setI18nLocale = async (locale: LangName) => {
+    await loadLocaleMessages(locale, admin)
     if (i18n.global.locale.value !== locale) {
-      await loadLocaleMessages(locale, admin)
       i18n.global.locale.value = locale;
     }
   }
