@@ -1,5 +1,7 @@
 
 import SelectLang from "../SelectLang.vue";
+import DateField from "../DateField.vue";
+
 import type { VueWrapper} from "@vue/test-utils";
 import { mountComponent, waitFor } from "../../../test/vitest/utils";
 import { i18n } from "src/boot/i18n";
@@ -16,6 +18,10 @@ describe("SelectLang", () => {
     wrapper = await mountComponent(SelectLang);
   });
   afterAll(() => wrapper.unmount());
+
+  const chooseLanguage = async (lang: string) => {
+    //...
+  }
 
   it("Check language change", async () => {
     expect(wrapper.text()).toContain("Language");
@@ -38,5 +44,10 @@ describe("SelectLang", () => {
     expect(wrapper.vm.$q.lang.isoName).toBe("ca");
     // Check emit
     expect(wrapper.emitted('language-change')).toBeTruthy();
+  });
+
+  it("Date picker should be localized", async () => {
+    
+
   });
 });

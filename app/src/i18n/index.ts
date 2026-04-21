@@ -10,10 +10,9 @@ import type { QuasarLanguage } from "quasar"
 
 export interface LocaleDefinition {
   label: string,
-  /** Per-locale fallback chain for vue-i18n message resolution (e.g., en-gb → en-us). */
   fallbackLocale?: string,
-  loadMessages: () => Promise<never>,
-  loadAdminMessages: () => Promise<never>,
+  loadMessages?: () => Promise<never>,
+  loadAdminMessages?: () => Promise<never>,
   loadQuasar: () => Promise<QuasarLanguage>,
   loadDateFNS: () => Promise<Locale>,
   loadCountries: () => Promise<never>
@@ -30,7 +29,7 @@ const langs = {
     loadCountries: async () => (await import("i18n-iso-countries/langs/ca.json")).default
   } as LocaleDefinition,
   "en-us": {
-    label: "English",
+    label: "English (US)",
     loadMessages: async () => (await import("src/i18n/en-us/index.json")).default,
     loadAdminMessages: async () => (await import("src/i18n/en-us/admin.json")).default,
     loadQuasar: async () => (await import("quasar/lang/en-US")).default,
@@ -40,8 +39,6 @@ const langs = {
   "en-gb": {
     label: "English (UK)",
     fallbackLocale: "en-us",
-    loadMessages: async () => (await import("src/i18n/en-gb/index.json")).default,
-    loadAdminMessages: async () => (await import("src/i18n/en-gb/admin.json")).default,
     loadQuasar: async () => (await import("quasar/lang/en-GB")).default,
     loadDateFNS: async () => (await import("date-fns/locale/en-GB")).enGB,
     loadCountries: async () => (await import("i18n-iso-countries/langs/en.json")).default
@@ -93,30 +90,9 @@ export default langs as Record<LangName, LocaleDefinition>
  * Default to english language.
  */
 export const DEFAULT_LANG = "en-us";
-/**
- * Return locale if it is a defined language for this app,
- * or the default language code (English) instead.
- * 
- * Handles locales by first attempting exact match, then base language match,
- * then mapping unmatched sub-locales to the closest defined locale
- * (e.g., en-IE -> en-gb, fr-CA -> fr).
- * **/
+
 export function normalizeLocale(locale: string): LangName {
-  const lower = locale.toLowerCase();
-  // Exact match (e.g., "en-us", "en-gb", "es", "ca")
-  if (lower in langs) return lower as LangName;
-  // Try base language (e.g., "es" from "es-ar", "fr" from "fr-ca")
-  const base = lower.split('-')[0];
-  if (base in langs) return base as LangName;
-  // For sub-locales (with region code), find the best matching locale.
-  if (lower.includes('-')) {
-    // For English specifically, non-US sub-locales (en-ie, en-au, etc.) map to en-gb.
-    if (base === 'en' && 'en-gb' in langs) return 'en-gb' as LangName;
-    // For other languages, find any locale starting with the base language.
-    const match = (Object.keys(langs) as LangName[]).find(k => k.split('-')[0] === base);
-    if (match) return match;
-  }
-  return DEFAULT_LANG;
+  return (locale in langs) ? locale as LangName : DEFAULT_LANG;
 }
 
 export function getLocaleDefinition(locale: string): LocaleDefinition {
