@@ -5,6 +5,8 @@ import vitePluginChecker from 'vite-plugin-checker'
 import { vitePluginFlavorPublic } from './build-tools/vite-plugin-flavor-public'
 import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets'
 import { vitePluginFlavorOverrideSassVariables } from './build-tools/vite-plugin-flavor-override-sass-variables'
+import { vitePluginFlavorOverrideI18n } from "./build-tools/vite-plugin-flavor-override-i18n"
+import { getThemeColors } from "./build-tools/manifest-utils"
 
 // Quasar loads .env files, but they are not available in quasar.config.ts. They are only
 // available in the app code. So we need to load them ourselves here. Also, we pass the 
@@ -12,7 +14,6 @@ import { vitePluginFlavorOverrideSassVariables } from './build-tools/vite-plugin
 // Quasar converts "true" to true and this is not consistent with runtime replacement.
 // See issue https://github.com/quasarframework/quasar/issues/17917
 import { config } from "dotenv"
-import { vitePluginFlavorOverrideI18n } from "./build-tools/vite-plugin-flavor-override-i18n"
 config()
 
 const APP_VERSION = process.env.npm_package_version || "0.0.0"
@@ -163,7 +164,15 @@ export default defineConfig((ctx) => {
     // https://quasar.dev/quasar-cli/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'InjectManifest', // 'GenerateSW' or 'InjectManifest'
-      
+
+      extendManifestJson(manifest) {
+        manifest.name = process.env.PRODUCT_NAME || "Komunitin"
+        manifest.short_name = process.env.PRODUCT_NAME
+        manifest.description = process.env.PRODUCT_DESCRIPTION
+        const colors = getThemeColors(FLAVOR)
+        manifest.theme_color = colors.primary
+        manifest.background_color = colors.background
+      }
     },
   };
 });
