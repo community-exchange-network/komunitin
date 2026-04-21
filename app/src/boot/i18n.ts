@@ -139,8 +139,8 @@ async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: strin
 
   // Set Quasar lang.
   const setQuasarLang = async (locale: LangName) => {
-    const messages = await langs[locale].loadQuasar()
-    $q.lang.set(messages);
+    const quasarLanguage = await langs[locale].loadQuasar()
+    $q.lang.set(quasarLanguage);
   }
 
   // Set date-fns lang.

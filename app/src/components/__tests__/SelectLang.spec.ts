@@ -1,11 +1,12 @@
 
 import SelectLang from "../SelectLang.vue";
-import DateField from "../DateField.vue";
 
-import type { VueWrapper} from "@vue/test-utils";
+import { mount, type VueWrapper } from "@vue/test-utils";
 import { mountComponent, waitFor } from "../../../test/vitest/utils";
-import { i18n } from "src/boot/i18n";
+import { i18n, setLocale } from "src/boot/i18n";
 import { QItem } from "quasar";
+import DatePicker from "../DateField.vue";
+import { quasarPlugin } from "../../../test/vitest/utils/quasar-plugin";
 
 /**
  * This test uses the global Vue variable in order to properly interact 
@@ -14,14 +15,40 @@ import { QItem } from "quasar";
  * **/
 describe("SelectLang", () => {
   let wrapper: VueWrapper;
-  beforeAll(async () => {
+
+  beforeEach(async () => {
+    await setLocale("en-us");
     wrapper = await mountComponent(SelectLang);
   });
-  afterAll(() => wrapper.unmount());
 
-  const chooseLanguage = async (lang: string) => {
-    //...
+  afterEach(() => wrapper.unmount());
+
+  const chooseLanguage = async (code: string, label: string) => {
+    // Open the dropdown and click on the target language option.
+    await wrapper.get("button").trigger("click");
+    await waitFor(() => wrapper.findAllComponents(QItem).length > 0, true, "Language dropdown should open");
+    const items = wrapper.findAllComponents(QItem);
+    const item = items.find(item => item.text().includes(label));
+    if (!item) throw new Error(`${label} option not found in dropdown`);
+    await item.trigger("click");
+    // Wait for async locale change
+    await waitFor(() => i18n.global.locale.value === code, true, "Locale should change to " + code + " (was " + i18n.global.locale.value + ")");
+    await waitFor(() => wrapper.vm.$q.lang.isoName.toLowerCase() === code, true, "Quasar language should change to " + code + " (was " + wrapper.vm.$q.lang.isoName + ")");
+    // Check emit
+    expect(wrapper.emitted('language-change')).toBeTruthy();
   }
+
+  const mountDatePicker = (date: Date) => {
+    return mount(DatePicker, {
+      props: {
+        modelValue: date,
+        label: "Date",
+      },
+      global: {
+        plugins: [i18n, quasarPlugin],
+      },
+    });
+  };
 
   it("Check language change", async () => {
     expect(wrapper.text()).toContain("Language");
@@ -30,24 +57,31 @@ describe("SelectLang", () => {
     // Check language on quasar.
     expect(wrapper.vm.$q.lang.isoName).toBe("en-US");
     
-    // Open the dropdown and click on Catalan.
-    await wrapper.get("button").trigger("click");
-    await waitFor(() => wrapper.findAllComponents(QItem).length > 0, true, "Language dropdown should open");
-    const items = wrapper.findAllComponents(QItem);
-    const catalan = items.find(item => item.text().includes("Català"));
-    if (!catalan) throw new Error("Catalan option not found in dropdown");
-    await catalan.trigger("click");
-    
-    // Wait for async locale change
-    await waitFor(() => i18n.global.locale.value === "ca", true, "Locale should change to Catalan");
-    // Check language changed on quasar.
-    expect(wrapper.vm.$q.lang.isoName).toBe("ca");
-    // Check emit
-    expect(wrapper.emitted('language-change')).toBeTruthy();
+    await chooseLanguage("ca", "Català");
   });
 
-  it("Date picker should be localized", async () => {
-    
+  it("Date format should be different across languages", async () => {
+    await setLocale("en-us");
+    await waitFor(() => i18n.global.locale.value, "en-us", "Locale should be en-us");
+    const date = new Date("2024-01-31T12:00:00Z");
+    const enUsDatePicker = mountDatePicker(date);
+    const output = enUsDatePicker.get("input").element.value;
+    // In English (US) locale, the date format should be "MM/DD/YYYY".
+    expect(output).toBe("01/31/2024");
+    enUsDatePicker.unmount();
 
+    await setLocale("en-gb");
+    await waitFor(() => i18n.global.locale.value, "en-gb", "Locale should be en-gb");
+    const enGbDatePicker = mountDatePicker(date);
+    // In English (UK) locale, the date format should be "DD/MM/YYYY".
+    expect(enGbDatePicker.get("input").element.value).toBe("31/01/2024");
+    enGbDatePicker.unmount();
+  });
+
+  it("Should load fallback locale messages", async () => {
+    await setLocale("en-gb");
+    await waitFor(() => i18n.global.locale.value, "en-gb", "Locale should be en-gb");
+    // en-gb does not have its own messages, but should fallback to en-us.
+    expect(wrapper.vm.$t('signUp')).toBe("Sign up");
   });
 });
