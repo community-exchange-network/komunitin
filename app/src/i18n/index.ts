@@ -91,8 +91,27 @@ export default langs as Record<LangName, LocaleDefinition>
  */
 export const DEFAULT_LANG = "en-us";
 
+/**
+ * Return a normalized locale (e.g "en-us") from a given locale string (e.g "en_US").
+ * If the given locale is not supported, return the default locale ("en-us").
+ */
 export function normalizeLocale(locale: string): LangName {
-  return (locale in langs) ? locale as LangName : DEFAULT_LANG;
+  const normalized = locale.toLowerCase().replace("_", "-");
+  if (normalized in langs) {
+    return normalized as LangName;
+  }
+  // try just the language part (e.g "en" from "en-GB")
+  const languagePart = normalized.split("-")[0];
+  if (languagePart in langs) {
+    return languagePart as LangName;
+  }
+  // try a defined regional locale from the same language (e.g "en-us" for "en-GB")
+  const regionalLocale = Object.keys(langs).find(l => l.startsWith(languagePart + "-"));
+  if (regionalLocale) {
+    return regionalLocale as LangName;
+  }
+  // Fallback to default language.
+  return DEFAULT_LANG;
 }
 
 export function getLocaleDefinition(locale: string): LocaleDefinition {
