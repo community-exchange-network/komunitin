@@ -45,8 +45,8 @@ importers:
         specifier: ^25.7.3
         version: 25.7.3(typescript@5.9.3)
       i18next-fs-backend:
-        specifier: ^2.6.1
-        version: 2.6.1
+        specifier: ^2.6.4
+        version: 2.6.4
       node-cron:
         specifier: ^3.0.3
         version: 3.0.3
@@ -1794,8 +1794,8 @@ packages:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
 
-  i18next-fs-backend@2.6.1:
-    resolution: {integrity: sha512-eYWTX7QT7kJ0sZyCPK6x1q+R63zvNKv2D6UdbMf15A8vNb2ZLyw4NNNZxPFwXlIv/U+oUtg8SakW6ZgJZcoqHQ==}
+  i18next-fs-backend@2.6.4:
+    resolution: {integrity: sha512-lzbUnowXYd5RFO8flpQhd9khYWNgrzwtxHw1kktJCiTRBaAEiLB2t9EPSXRj8qlC7WcEgFDIsmBUixyludcznw==}
 
   i18next@25.7.3:
     resolution: {integrity: sha512-2XaT+HpYGuc2uTExq9TVRhLsso+Dxym6PWaKpn36wfBmTI779OQ7iP/XaZHzrnGyzU4SHpFrTYLKfVyBfAhVNA==}
@@ -4775,7 +4775,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  i18next-fs-backend@2.6.1: {}
+  i18next-fs-backend@2.6.4: {}
 
   i18next@25.7.3(typescript@5.9.3):
     dependencies:
