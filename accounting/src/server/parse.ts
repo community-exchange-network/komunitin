@@ -1,7 +1,7 @@
 import {matchedData, validationResult} from "express-validator"
 import {Request} from "express"
 import {badRequest} from "../utils/error"
-import { RelatedResource } from "src/model/resource"
+import { RelatedResource } from "../model/resource"
 
 export type Resource = {
   id?: string

@@ -1,7 +1,7 @@
-import { config } from 'src/config';
-import { ExternalResource } from 'src/model/resource';
-import { Stats } from 'src/model/stats';
-import { Trustline } from 'src/model/trustline';
+import { config } from '../config';
+import { ExternalResource } from '../model/resource';
+import { Stats } from '../model/stats';
+import { Trustline } from '../model/trustline';
 import { Linker, Metaizer, Relator, Serializer, SerializerOptions } from 'ts-japi';
 import { Account, AccountSettings, Currency, CurrencySettings, FullAccount, Transfer, User } from '../model';
 /*

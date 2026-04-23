@@ -1,4 +1,4 @@
-import { AtLeast } from "src/utils/types"
+import { AtLeast } from "../utils/types"
 import { FullAccount, Account, AccountRecord, recordToAccount } from "./account"
 import { Transfer as TransferRecord, ExternalTransfer as ExternalTransferRecord } from "@prisma/client"
 import { Currency, User } from "."

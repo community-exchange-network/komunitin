@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { privilegedDb, tenantDb } from "src/controller/multitenant";
-import { logger } from "src/utils/logger";
+import { privilegedDb, tenantDb } from "../../src/controller/multitenant";
+import { logger } from "../../src/utils/logger";
 
 
 export const pseudoRandomGenerator = (seed: number = 12032025) => {

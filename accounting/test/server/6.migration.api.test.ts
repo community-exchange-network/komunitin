@@ -1,8 +1,8 @@
 import { describe, it } from "node:test"
 import assert from "node:assert"
 import { setupServerTest } from "./setup"
-import { Scope } from "src/server/auth"
-import { fixUrl } from "src/utils/net"
+import { Scope } from "../../src/server/auth"
+import { fixUrl } from "../../src/utils/net"
 
 /**
  * Not part of the CI/CD pipeline because it requires a local IntegralCES instance.

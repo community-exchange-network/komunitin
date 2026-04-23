@@ -1,7 +1,7 @@
-import { User } from "src/model"
-import { Context } from "src/utils/context"
+import { User } from "../model"
+import { Context } from "../utils/context"
 import { CurrencyControllerImpl } from "./currency-controller"
-import { forbidden } from "src/utils/error"
+import { forbidden } from "../utils/error"
 import { AbstractCurrencyController } from "./abstract-currency-controller"
 
 export class UserController extends AbstractCurrencyController {

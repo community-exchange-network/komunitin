@@ -2,10 +2,10 @@
 import { InvalidTokenError, auth as authJwt, scopeIncludesAny } from "express-oauth2-jwt-bearer"
 import { config } from "../config"
 import { NextFunction, Request, Response } from "express"
-import { fixUrl } from "src/utils/net"
-import { logger } from "src/utils/logger"
-import { unauthorized } from "src/utils/error"
-import { verifyExternalToken } from "src/controller/external-jwt"
+import { fixUrl } from "../utils/net"
+import { logger } from "../utils/logger"
+import { unauthorized } from "../utils/error"
+import { verifyExternalToken } from "../controller/external-jwt"
 
 export enum Scope {
   Accounting = "komunitin_accounting",

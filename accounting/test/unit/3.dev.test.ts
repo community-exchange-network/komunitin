@@ -1,9 +1,9 @@
 import { describe, it } from "node:test"
 import assert from "node:assert"
-import { createStellarLedger, StellarLedger } from "src/ledger/stellar"
+import { createStellarLedger, StellarLedger } from "../../src/ledger/stellar"
 import { Asset, Keypair } from "@stellar/stellar-sdk"
-import { friendbot } from "src/ledger/stellar/friendbot"
-import { config } from "src/config"
+import { friendbot } from "../../src/ledger/stellar/friendbot"
+import { config } from "../../src/config"
 
 /**
  * This is a development test that is not part of the CI/CD pipeline.

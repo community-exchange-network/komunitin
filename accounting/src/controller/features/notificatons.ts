@@ -1,10 +1,10 @@
 import { CurrencyPublicService, BaseService } from "..";
-import { systemContext } from "src/utils/context";
-import { config } from "src/config";
-import { FullTransfer, User } from "src/model";
+import { systemContext } from "../../utils/context";
+import { config } from "../../config";
+import { FullTransfer, User } from "../../model";
 import { Relator, Serializer } from "ts-japi";
-import { UserSerializer } from "src/server/serialize";
-import { fixUrl } from "src/utils/net";
+import { UserSerializer } from "../../server/serialize";
+import { fixUrl } from "../../utils/net";
 
 export enum EventName {
   TransferCommitted = "TransferCommitted",

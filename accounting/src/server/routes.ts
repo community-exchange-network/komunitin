@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { checkExact, oneOf } from 'express-validator';
-import { AccountSettings, CreateCurrency, InputAccount, InputTransfer, Transfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from 'src/model';
-import { InputTrustline, UpdateTrustline } from 'src/model/trustline';
-import { context } from 'src/utils/context';
-import { badRequest } from 'src/utils/error';
+import { AccountSettings, CreateCurrency, InputAccount, InputTransfer, Transfer, UpdateAccount, UpdateCurrency, UpdateTransfer } from '../model';
+import { InputTrustline, UpdateTrustline } from '../model/trustline';
+import { context } from '../utils/context';
+import { badRequest } from '../utils/error';
 import { anyAuth, externalAuth, noAuth, Scope, userAuth } from './auth';
 import { asyncHandler, currencyCollectionCsvHandler, currencyCollectionHandler, currencyHandler, currencyInputHandler, currencyInputHandlerMultiple, currencyResourceHandler } from './handlers';
 import { input } from './parse';

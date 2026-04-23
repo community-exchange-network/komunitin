@@ -1,5 +1,5 @@
 import { Account as AccountRecord, AccountTag as AccountTagRecord, Prisma, AccountKind as PrismaAccountKind, User as UserRecord } from '@prisma/client'
-import { Optional, WithRequired } from 'src/utils/types'
+import { Optional, WithRequired } from '../utils/types'
 import { Currency } from './currency'
 import { User } from './user'
 

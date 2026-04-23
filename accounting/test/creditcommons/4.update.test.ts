@@ -1,8 +1,8 @@
 import {describe, it} from "node:test"
 import assert from "node:assert"
 import { setupServerTest, TestSetupWithCurrency } from "../server/setup"
-import { setConfig } from "src/config"
-import { sleep } from "src/utils/sleep"
+import { setConfig } from "../../src/config"
+import { sleep } from "../../src/utils/sleep"
 import { generateCcTransaction } from "./api.data"
 
 describe('receive', async () => {

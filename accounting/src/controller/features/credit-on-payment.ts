@@ -1,5 +1,5 @@
-import { FullTransfer } from "src/model";
-import { systemContext } from "src/utils/context";
+import { FullTransfer } from "../../model";
+import { systemContext } from "../../utils/context";
 import { CurrencyPublicService, BaseService } from "..";
 import { logger } from "../../utils/logger";
 

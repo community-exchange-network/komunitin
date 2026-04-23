@@ -1,4 +1,4 @@
-import { Context } from "src/utils/context"
+import { Context } from "../utils/context"
 import { ApiMigration, CreateMigration, MigrationLogEntry, Migration, MigrationStatus, UpdateMigration } from "./migration"
 import { notFound } from "../utils/error"
 import { EventEmitter } from "events"

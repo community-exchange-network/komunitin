@@ -1,6 +1,6 @@
-import { Context } from "src/utils/context";
-import { AccountStatsOptions, StatsOptions } from "src/server/request";
-import { Stats, StatsInterval } from "src/model/stats";
+import { Context } from "../utils/context";
+import { AccountStatsOptions, StatsOptions } from "../server/request";
+import { Stats, StatsInterval } from "../model/stats";
 import { Prisma } from "@prisma/client";
 import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant";
 import { StatsPublicService } from "./api";

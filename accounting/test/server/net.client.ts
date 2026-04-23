@@ -1,9 +1,9 @@
-import { Scope } from "src/server/auth"
+import { Scope } from "../../src/server/auth"
 import { Express } from "express"
 import request, { Response, Request } from "supertest"
 import assert from "node:assert"
 import { token } from "./auth.mock"
-import { config } from "src/config"
+import { config } from "../../src/config"
 
 /**
  * Normalize URL for test comparison

@@ -55,7 +55,7 @@ pnpm test-unit          # tsx --test test/unit/*.ts
 pnpm test-ledger        # tsx --test test/ledger/*.ts  (needs local Stellar)
 pnpm test-server        # resets DB then runs API tests (needs DB + Stellar)
 pnpm test-one <file>    # run a single test file
-pnpm run build          # esbuild bundle
+pnpm run build          # tsc + unbuild
 pnpm run dev            # tsx watch with debugger
 ```
 

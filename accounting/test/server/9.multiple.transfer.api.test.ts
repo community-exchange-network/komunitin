@@ -3,9 +3,9 @@ import assert from "node:assert"
 
 import { setupServerTest } from './setup'
 import { testTransfer } from "./api.data"
-import { setConfig } from "src/config"
-import { logger } from "src/utils/logger"
-import { sleep } from "src/utils/sleep"
+import { setConfig } from "../../src/config"
+import { logger } from "../../src/utils/logger"
+import { sleep } from "../../src/utils/sleep"
 
 describe('Runs multiple transfers in parallel', async () => {
   // Wait for other tests/requests to stop counting in Horizon rate limit.
