@@ -31,7 +31,7 @@
     "helmet": "^8.1.0",
     "html-to-text": "^9.0.5",
     "i18next": "^25.7.3",
-    "i18next-fs-backend": "^2.6.1",
+    "i18next-fs-backend": "^2.6.4",
     "node-cron": "^3.0.3",
     "nodemailer": "^8.0.5",
     "pg": "^8.16.3",
