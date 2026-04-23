@@ -63,6 +63,19 @@ Komunitin supports different "flavors" to customize the application. The flavor 
 5. **Language strings**: You can override language strings by placing JSON files in the `app/src/i18n/flavors/[FLAVOR_NAME]/[LANGUAGE_CODE]/` directory. The files should have the same names as the base language files (e.g., `index.json`, `admin.json`). The flavor-specific strings will override the base strings when the specified flavor is active.
 6. **Emails and notifications strings**: You can override email and notification strings by placing JSON files in the `notifications-ts/src/i18n/flavors/[FLAVOR_NAME]/[LANGUAGE_CODE].json` files.
 
+## AI Assistance
+
+We welcome AI assistance either in code, documentation or issues, but they do not replace human responsibility.
+
+* **Human supervision is required:** AI agents must not autonomously open issues or pull requests without human supervision. All contributions must be authored by a human even if co-authored with AI.
+
+* **Humans are fully accountable:** Anyone posting AI-assisted content must fully understand it and takes 100% responsibility for correctness, licensing, and project impact.
+
+* **Verification is mandatory:** Do not copy-paste AI output without checking it. Readers and reviewers also have access to AI tools, so unverified output adds little value and can waste readers time.
+
+* **AI-Attribution is encouraged:** When easy and reasonable, note AI assistance. This helps transparency, but is not enforced.
+
+
 ## Community Note
 
 Komunitin is a community-maintained project, and there is no company behind it. Please understand that it may take us some time to respond to your inquiries or review your pull requests.
