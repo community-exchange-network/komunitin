@@ -65,13 +65,13 @@ Komunitin supports different "flavors" to customize the application. The flavor 
 
 ## AI Assistance
 
-We welcome AI assistance either in code, documentation or issues, but they do not replace human responsibility.
+We welcome AI assistance in code, documentation, or issues, but it does not replace human responsibility.
 
 * **Human supervision is required:** AI agents must not autonomously open issues or pull requests without human supervision. All contributions must be authored by a human even if co-authored with AI.
 
-* **Humans are fully accountable:** Anyone posting AI-assisted content must fully understand it and takes 100% responsibility for correctness, licensing, and project impact.
+* **Humans are fully accountable:** Anyone posting AI-assisted content must fully understand it and take 100% responsibility for correctness, licensing, and project impact.
 
-* **Verification is mandatory:** Do not copy-paste AI output without checking it. Readers and reviewers also have access to AI tools, so unverified output adds little value and can waste readers time.
+* **Verification is mandatory:** Do not copy-paste AI output without checking it. Readers and reviewers also have access to AI tools, so unverified output adds little value and can waste readers' time.
 
 * **AI-Attribution is encouraged:** For transparency, please label AI-assisted content (issues, commits, pull requests) accordingly when possible and reasonable.
 
