@@ -10,8 +10,9 @@ import type { QuasarLanguage } from "quasar"
 
 export interface LocaleDefinition {
   label: string,
-  loadMessages: () => Promise<never>,
-  loadAdminMessages: () => Promise<never>,
+  fallbackLocale?: string,
+  loadMessages?: () => Promise<never>,
+  loadAdminMessages?: () => Promise<never>,
   loadQuasar: () => Promise<QuasarLanguage>,
   loadDateFNS: () => Promise<Locale>,
   loadCountries: () => Promise<never>
@@ -28,11 +29,18 @@ const langs = {
     loadCountries: async () => (await import("i18n-iso-countries/langs/ca.json")).default
   } as LocaleDefinition,
   "en-us": {
-    label: "English",
+    label: "English (US)",
     loadMessages: async () => (await import("src/i18n/en-us/index.json")).default,
     loadAdminMessages: async () => (await import("src/i18n/en-us/admin.json")).default,
     loadQuasar: async () => (await import("quasar/lang/en-US")).default,
     loadDateFNS: async () => (await import("date-fns/locale/en-US")).enUS,
+    loadCountries: async () => (await import("i18n-iso-countries/langs/en.json")).default
+  } as LocaleDefinition,
+  "en-gb": {
+    label: "English (UK)",
+    fallbackLocale: "en-us",
+    loadQuasar: async () => (await import("quasar/lang/en-GB")).default,
+    loadDateFNS: async () => (await import("date-fns/locale/en-GB")).enGB,
     loadCountries: async () => (await import("i18n-iso-countries/langs/en.json")).default
   } as LocaleDefinition,
   "es": {
@@ -82,12 +90,28 @@ export default langs as Record<LangName, LocaleDefinition>
  * Default to english language.
  */
 export const DEFAULT_LANG = "en-us";
+
 /**
- * Return locale if it is a defined language for this app,
- * or the default language code (English) instead.
- * **/
+ * Return a normalized locale (e.g "en-us") from a given locale string (e.g "en_US").
+ * If the given locale is not supported, return the default locale ("en-us").
+ */
 export function normalizeLocale(locale: string): LangName {
-  return (locale in langs) ? locale as LangName : DEFAULT_LANG;
+  const normalized = locale.toLowerCase().replace("_", "-");
+  if (normalized in langs) {
+    return normalized as LangName;
+  }
+  // try just the language part (e.g "en" from "en-GB")
+  const languagePart = normalized.split("-")[0];
+  if (languagePart in langs) {
+    return languagePart as LangName;
+  }
+  // try a defined regional locale from the same language (e.g "en-us" for "en-GB")
+  const regionalLocale = Object.keys(langs).find(l => l.startsWith(languagePart + "-"));
+  if (regionalLocale) {
+    return regionalLocale as LangName;
+  }
+  // Fallback to default language.
+  return DEFAULT_LANG;
 }
 
 export function getLocaleDefinition(locale: string): LocaleDefinition {
