@@ -73,8 +73,7 @@ We welcome AI assistance either in code, documentation or issues, but they do no
 
 * **Verification is mandatory:** Do not copy-paste AI output without checking it. Readers and reviewers also have access to AI tools, so unverified output adds little value and can waste readers time.
 
-* **AI-Attribution is encouraged:** When easy and reasonable, note AI assistance. This helps transparency, but is not enforced.
-
+* **AI-Attribution is encouraged:** For transparency, please label AI-assisted content (issues, commits, pull requests) accordingly when possible and reasonable.
 
 ## Community Note
 
