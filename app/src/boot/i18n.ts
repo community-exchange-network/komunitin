@@ -1,15 +1,15 @@
-import { boot } from "quasar/wrappers";
-import { createI18n } from "vue-i18n";
-import type {LangName} from "src/i18n";
-import langs, { DEFAULT_LANG, normalizeLocale} from "src/i18n";
-import type { QSingletonGlobals, QVueGlobals } from "quasar";
-import { useQuasar, Quasar } from "quasar";
-import LocalStorage from "../plugins/LocalStorage";
 import type { Locale } from "date-fns";
 import { formatRelative } from "date-fns";
-import { ref, watch } from "vue";
-import { useStore } from "vuex";
+import type { QSingletonGlobals, QVueGlobals } from "quasar";
+import { Quasar, useQuasar } from "quasar";
+import { boot } from "quasar/wrappers";
+import type { LangName } from "src/i18n";
+import langs, { DEFAULT_LANG, normalizeLocale } from "src/i18n";
 import store from "src/store";
+import { ref, watch } from "vue";
+import { createI18n } from "vue-i18n";
+import { useStore } from "vuex";
+import LocalStorage from "../plugins/LocalStorage";
 
 declare module "vue" {
   interface ComponentCustomProperties {
@@ -23,11 +23,45 @@ declare module "vue" {
 const LOCALE_KEY = "lang";
 
 /**
- * Export vue-i18 instance for use outside components.
+ * Build per-locale fallback map from LocaleDefinition.fallbackLocale fields.
+ * For example, { "en-gb": ["en-us"] } means en-gb falls back to en-us.
+ * 
+ * vue-i18n uses this to resolve missing keys: if en-gb doesn't have a key,
+ * it looks in en-us before giving up.
+ */
+function buildFallbackLocale(): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const locale of Object.keys(langs)) {
+    const fallbacks: string[] = [];
+    let currentLocale = locale as LangName;
+    while (langs[currentLocale].fallbackLocale) {
+      const fallback = langs[currentLocale].fallbackLocale as LangName;
+      if (fallbacks.includes(fallback) || fallback === locale || !langs[fallback]) {
+        // Circular fallback or invalid fallback, stop processing.
+        break;
+      }
+      fallbacks.push(fallback);
+      currentLocale = fallback;
+    }
+    if (fallbacks.length > 0) {
+      map[locale] = fallbacks;
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Export vue-i18n instance for use outside components.
  */
 export const i18n = createI18n({
   locale: undefined,
-  legacy: false
+  legacy: false,
+  fallbackLocale: {
+    ...buildFallbackLocale()
+    // We don't set a global english fallback because we're not loading english messages by default.
+    // Languages that want to fallback to english should set it explicitly in their LocaleDefinition.fallbackLocale field.
+  },
 });
 
 /**
@@ -41,6 +75,8 @@ let dateLocale: Locale | undefined = undefined;
 export const getDateLocale = () => dateLocale;
 
 let globalLocale = DEFAULT_LANG
+
+const loadedAdminLocales = new Set<string>();
 
 /**
  * Return the user locale based on previous session or browser.
@@ -67,34 +103,52 @@ export async function setLocale(locale: string, admin=false) {
   await setCurrentLocale(Quasar, lang, admin)
 }
 
+async function loadLocaleMessages(locale: LangName, admin=false) {
+  const definition = langs[locale]
+
+  // Recursively load fallback locale messages.
+  if (definition.fallbackLocale) {
+    await loadLocaleMessages(definition.fallbackLocale as LangName, admin)
+  }
+
+  if (!i18n.global.availableLocales.includes(locale)) {
+    // Load this locale's messages.
+    if (definition.loadMessages !== undefined) {
+      const messages = await definition.loadMessages();
+      i18n.global.setLocaleMessage(locale, messages);
+    }
+    
+    // Load feature messages.
+    if (definition.features) {
+      for (const featureName in definition.features) {
+        const featureMessages = await definition.features[featureName]();
+        i18n.global.mergeLocaleMessage(locale, featureMessages);
+      }
+    }
+  }
+
+  // Load admin messages.
+  if (admin && !loadedAdminLocales.has(locale) && definition.loadAdminMessages !== undefined) {
+    const adminMessages = await definition.loadAdminMessages();
+    i18n.global.mergeLocaleMessage(locale, adminMessages);
+    loadedAdminLocales.add(locale);
+  }
+}
+
 async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: string, admin=false) {
   globalLocale = locale
   // Set VueI18n lang.
   const setI18nLocale = async (locale: LangName) => {
-    const definition = langs[locale]
+    await loadLocaleMessages(locale, admin)
     if (i18n.global.locale.value !== locale) {
-      const messages = await definition.loadMessages();
-      // Load core user messages
-      i18n.global.setLocaleMessage(locale, messages);
-      // Load feature messages
-      if (definition.features) {
-        for (const featureName in definition.features) {
-          const featureMessages = await definition.features[featureName]();
-          i18n.global.mergeLocaleMessage(locale, featureMessages);
-        }
-      }
       i18n.global.locale.value = locale;
-    }
-    if (admin) {
-      const adminMessages = await definition.loadAdminMessages();
-      i18n.global.mergeLocaleMessage(locale, adminMessages);
     }
   }
 
   // Set Quasar lang.
   const setQuasarLang = async (locale: LangName) => {
-    const messages = await langs[locale].loadQuasar()
-    $q.lang.set(messages);
+    const quasarLanguage = await langs[locale].loadQuasar()
+    $q.lang.set(quasarLanguage);
   }
 
   // Set date-fns lang.
