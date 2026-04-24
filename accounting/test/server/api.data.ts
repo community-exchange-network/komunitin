@@ -1,4 +1,4 @@
-import { Scope } from "src/server/auth"
+import { Scope } from "../../src/server/auth"
 import { CreditCommonsNode } from "../../src/model/creditCommons"
 
 export const testCurrency = (props?: any) => {

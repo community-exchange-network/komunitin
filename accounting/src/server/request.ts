@@ -1,5 +1,5 @@
 import {Request} from "express"
-import { badRequest, internalError } from "src/utils/error"
+import { badRequest, internalError } from "../utils/error"
 
 // We use the the classic limit-offset pagination. This is the strategy that 
 // offers more flexibility since we can order the dataset by any field. The

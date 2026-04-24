@@ -1,8 +1,8 @@
 import { Keypair } from "@stellar/stellar-sdk"
 import { SignJWT, decodeJwt, jwtVerify } from "jose"
-import { config } from "src/config"
-import { importEd25519RawPrivateKey, importEd25519RawPublicKey } from "src/utils/crypto"
-import { unauthorized } from "src/utils/error"
+import { config } from "../config"
+import { importEd25519RawPrivateKey, importEd25519RawPublicKey } from "../utils/crypto"
+import { unauthorized } from "../utils/error"
 
 export const verifyExternalToken = async (token: string) => {
   const claims = decodeJwt(token)

@@ -1,6 +1,6 @@
-import { ExternalResource as ExternalResourceRecord } from "@prisma/client"
+import { type ExternalResource as ExternalResourceRecord } from "@prisma/client"
 
-export { ExternalResourceRecord}
+export type { ExternalResourceRecord }
 
 export interface ResourceIdentifier {
   id: string

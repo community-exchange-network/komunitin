@@ -1,9 +1,9 @@
-import { Account as AccountRecord, AccountTag as AccountTagRecord, Prisma, AccountKind as PrismaAccountKind, User as UserRecord } from '@prisma/client'
-import { Optional, WithRequired } from 'src/utils/types'
+import { type Account as AccountRecord, type AccountTag as AccountTagRecord, type Prisma, type AccountKind as PrismaAccountKind, type User as UserRecord } from '@prisma/client'
+import { Optional, WithRequired } from '../utils/types'
 import { Currency } from './currency'
 import { User } from './user'
 
-export { AccountRecord }
+export type { AccountRecord }
 
 export enum AccountStatus {
   Active = "active",

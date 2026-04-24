@@ -1,6 +1,8 @@
-import { Serializer } from "ts-japi"
+import TsJapi from "ts-japi"
 import { projection } from "../server/serialize"
 import { ApiMigration, MigrationData } from "./migration"
+
+const { Serializer } = TsJapi
 
 export const MigrationSerializer = new Serializer<ApiMigration>("migrations", {
   version: null,

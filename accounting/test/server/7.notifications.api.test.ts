@@ -2,7 +2,7 @@ import { describe, it } from "node:test"
 import { setupServerTest } from './setup'
 import assert from "node:assert"
 import { clearEvents, getEvents } from "./net.mock"
-import { Scope } from "src/server/auth"
+import { Scope } from "../../src/server/auth"
 import { testAccount } from "./api.data"
 import { waitFor } from "./utils"
 

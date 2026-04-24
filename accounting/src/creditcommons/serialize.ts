@@ -1,6 +1,8 @@
-import { CreditCommonsNode, CreditCommonsTransaction } from 'src/model/creditCommons';
-import { projection } from 'src/server/serialize';
-import { Serializer } from 'ts-japi';
+import { CreditCommonsNode, CreditCommonsTransaction } from '../model/creditCommons';
+import { projection } from '../server/serialize';
+import TsJapi from 'ts-japi';
+
+const { Serializer } = TsJapi
 
 export const CreditCommonsNodeSerializer = new Serializer<CreditCommonsNode>("creditCommonsNodes", {
   version: null,

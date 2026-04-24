@@ -4,10 +4,10 @@ import assert from "node:assert"
 import { Ledger, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyKeys, PathQuote } from "../../src/ledger"
 import { createStellarLedger, StellarLedger } from "../../src/ledger/stellar"
 import { Keypair } from "@stellar/stellar-sdk"
-import { initUpdateExternalOffers } from "src/ledger/update-external-offers"
-import { friendbot } from "src/ledger/stellar/friendbot"
-import { config } from "src/config"
-import { logger } from "src/utils/logger"
+import { initUpdateExternalOffers } from "../../src/ledger/update-external-offers"
+import { friendbot } from "../../src/ledger/stellar/friendbot"
+import { config } from "../../src/config"
+import { logger } from "../../src/utils/logger"
 
 /**
  * Test the Stellar ledger implementation using the real Stellar testnet.

@@ -1,7 +1,9 @@
-import { Relator, Serializer } from "ts-japi";
+import TsJapi from "ts-japi";
 import { Topup, AccountTopupSettings, TopupSettings } from "./model";
 import { AccountSerializer, projection, TransferSerializer, UserSerializer } from "../server/serialize";
 import { Account, Transfer, User } from "../model";
+
+const { Relator, Serializer } = TsJapi
 
 export const TopupSerializer = new Serializer<Topup>("topups", {
   version: null,

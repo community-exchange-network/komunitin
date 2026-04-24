@@ -1,6 +1,6 @@
 import assert from "node:assert"
-import { logger } from "src/utils/logger"
-import { sleep } from "src/utils/sleep"
+import { logger } from "../../src/utils/logger"
+import { sleep } from "../../src/utils/sleep"
 
 export async function waitFor(fn: () => Promise<Boolean>, msg = "timeout", timeout = 5000, interval = 200) {
   const start = Date.now()

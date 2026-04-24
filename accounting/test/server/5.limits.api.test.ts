@@ -2,8 +2,8 @@ import { describe, it } from "node:test"
 import assert from "node:assert"
 import { setupServerTest } from "./setup"
 import { waitFor } from "./utils"
-import { BaseControllerImpl } from "src/controller/base-controller"
-import { sleep } from "src/utils/sleep"
+import { BaseControllerImpl } from "../../src/controller/base-controller"
+import { sleep } from "../../src/utils/sleep"
 
 describe("Credit limit features", async () => {
   const t = setupServerTest()

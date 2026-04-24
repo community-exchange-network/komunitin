@@ -1,11 +1,11 @@
-import { AccountKind, Prisma } from "@prisma/client";
+import { AccountKind, type Prisma } from "@prisma/client";
 
-import { Account, AccountRecord, AccountSettings, AccountStatus, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "src/model";
-import { CollectionOptions } from "src/server/request";
-import { Context, systemContext } from "src/utils/context";
-import { deriveKey, exportKey } from "src/utils/crypto";
-import { badRequest, forbidden, notFound, unauthorized } from "src/utils/error";
-import { WithRequired } from "src/utils/types";
+import { type Account, type AccountRecord, type AccountSettings, AccountStatus, type FullAccount, type InputAccount, recordToAccount, type Tag, type UpdateAccount, type User, userHasAccount } from "../model";
+import { CollectionOptions } from "../server/request";
+import { Context, systemContext } from "../utils/context";
+import { deriveKey, exportKey } from "../utils/crypto";
+import { badRequest, forbidden, notFound, unauthorized } from "../utils/error";
+import { WithRequired } from "../utils/types";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
 import { AccountsService } from "./api";
 import { CurrencyControllerImpl } from "./currency-controller";

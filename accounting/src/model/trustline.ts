@@ -1,6 +1,6 @@
+import { type Trustline as TrustlineRecord } from "@prisma/client"
 import { Currency } from "./currency"
-import { ExternalResource, ExternalResourceIdentifier, recordToExternalResource } from "./resource"
-import { Trustline as TrustlineRecord, ExternalResource as ExternalResourceRecord } from "@prisma/client"
+import { ExternalResource, ExternalResourceIdentifier } from "./resource"
 
 export interface Trustline {
   id: string

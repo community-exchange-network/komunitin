@@ -2,7 +2,7 @@ import { describe, it } from "node:test"
 import assert from "node:assert"
 import { setupServerTest } from "./setup"
 import { testTransfer } from "./api.data"
-import { logger } from "src/utils/logger"
+import { logger } from "../../src/utils/logger"
 
 /**
  * This test checks that concurrent transfers still work without channel accounts.

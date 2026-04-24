@@ -1,9 +1,12 @@
-import { config } from 'src/config';
-import { ExternalResource } from 'src/model/resource';
-import { Stats } from 'src/model/stats';
-import { Trustline } from 'src/model/trustline';
-import { Linker, Metaizer, Relator, Serializer, SerializerOptions } from 'ts-japi';
+import { config } from '../config';
+import { ExternalResource } from '../model/resource';
+import { Stats } from '../model/stats';
+import { Trustline } from '../model/trustline';
+import TsJapi from 'ts-japi';
+import type { SerializerOptions } from 'ts-japi';
 import { Account, AccountSettings, Currency, CurrencySettings, FullAccount, Transfer, User } from '../model';
+
+const { Linker, Metaizer, Relator, Serializer } = TsJapi
 /*
 // Patch BigInt prototype so it correclty serializes to JSON as a number.
 // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON#using_json_numbers
@@ -203,7 +206,6 @@ export const StatsSerializer = new Serializer<Stats>("stats", {
   version: null,
   projection: projection<Stats>(['values', 'from', 'to', 'interval']),
 })
-
 
 
 

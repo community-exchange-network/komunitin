@@ -1,11 +1,13 @@
 {
 	"name": "komunitin-accounting",
 	"version": "0.0.1",
+	"type": "module",
+	"main": "dist/index.mjs",
 	"author": "Esteve Badia",
 	"license": "AGPL-3.0-only",
 	"scripts": {
-		"build": "esbuild src/index.ts --bundle --sourcemap --platform=node --outdir=bundle",
-		"start": "node --enable-source-maps bundle/index.js",
+		"build": "pnpm typecheck && unbuild",
+		"start": "node dist/index.mjs",
 		"dev": "tsx --inspect=0.0.0.0:9229 --watch src/index.ts | pino-pretty",
 		"reset-db": "prisma migrate reset --force",
 		"test-ledger": "tsx --test test/ledger/*.ts",
@@ -49,7 +51,6 @@
 		"@types/route-cache": "^0.5.5",
 		"@types/supertest": "^6.0.2",
 		"@types/uuid": "^9.0.8",
-		"esbuild": "^0.25.0",
 		"express-oas-generator": "^1.0.46",
 		"msw": "^2.12.4",
 		"pino-pretty": "^11.0.0",
@@ -58,6 +59,7 @@
 		"tsx": "^4.7.3",
 		"typed-emitter": "^2.1.0",
 		"typescript": "^5.4.5",
+		"unbuild": "^3.6.1",
 		"uuid": "^9.0.1"
 	}
 }

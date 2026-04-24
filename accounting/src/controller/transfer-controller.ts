@@ -1,14 +1,14 @@
-import { FullAccount, InputTransfer, recordToTransfer, recordToTransferWithAccounts, FullTransfer, TransferAuthorization, TransferState, UpdateTransfer, User, userHasAccount, Transfer } from "src/model";
-import { badRequest, forbidden, notFound, notImplemented } from "src/utils/error";
+import { FullAccount, InputTransfer, recordToTransfer, recordToTransferWithAccounts, FullTransfer, TransferAuthorization, TransferState, UpdateTransfer, User, userHasAccount, Transfer } from "../model";
+import { badRequest, forbidden, notFound, notImplemented } from "../utils/error";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
 
-import { CollectionOptions } from "src/server/request";
-import { Context, systemContext } from "src/utils/context";
-import { logger } from "src/utils/logger";
+import { CollectionOptions } from "../server/request";
+import { Context, systemContext } from "../utils/context";
+import { logger } from "../utils/logger";
 import { CurrencyControllerImpl } from "./currency-controller";
 import { ExternalTransferController } from "./external-transfer-controller";
 import { includeRelations, whereFilter } from "./query";
-import { TransfersPublicService } from "src/controller";
+import { TransfersPublicService } from "./";
 import { type Prisma } from "@prisma/client";
 
 export class TransferControllerImpl  extends AbstractCurrencyController implements TransfersPublicService {

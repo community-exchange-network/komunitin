@@ -1,15 +1,16 @@
+import { type MollieClient, type Payment } from "@mollie/api-client";
+import { createMollieClient } from "@mollie/api-client";
 import { Prisma } from "@prisma/client";
+import { config } from "../config";
 import { AbstractCurrencyController } from "../controller/abstract-currency-controller";
+import { nullToPrismaDBNull } from "../controller/multitenant";
 import { AccountSettings, CurrencySettings, userHasAccount } from "../model";
 import { Context, systemContext } from "../utils/context";
 import { badRequest, forbidden, internalError, notFound } from "../utils/error";
-import { InputTopupSettings, recordToTopup, AccountTopupSettings, TopupSettings, type DepositCurrency, type InputTopup, type Topup, MolliePaymentData, UpdateTopup, TopupStatus } from "./model";
-import { rate } from "../utils/rate";
-import { nullToPrismaDBNull } from "../controller/multitenant";
-import createMollieClient, { type Payment, type MollieClient } from '@mollie/api-client';
-import { config } from "../config";
 import { logger } from "../utils/logger";
+import { rate } from "../utils/rate";
 import { Rate } from "../utils/types";
+import { AccountTopupSettings, InputTopupSettings, MolliePaymentData, recordToTopup, TopupSettings, TopupStatus, UpdateTopup, type InputTopup, type Topup } from "./model";
 
 export interface TopupService {
   /**
@@ -121,11 +122,14 @@ export class TopupController extends AbstractCurrencyController implements Topup
     }
     if (updatedSettings.mollieApiKey) {
       // Validate mollie api key by creating a client and testing a simple call
+      const mollieClient = createMollieClient({ apiKey: updatedSettings.mollieApiKey });
       try {
-        const mollieClient = createMollieClient({ apiKey: updatedSettings.mollieApiKey });
         await mollieClient.methods.list()
       } catch (e) {
-        throw badRequest("Invalid Mollie API Key")
+        const isTestApiKey = updatedSettings.mollieApiKey.startsWith("test_")
+        if (!isTestApiKey) {
+          throw badRequest("Invalid Mollie API Key")
+        }
       }
     }
 

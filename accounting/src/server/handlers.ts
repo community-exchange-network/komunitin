@@ -1,13 +1,16 @@
 import { NextFunction, Request, Response } from "express"
 import { CollectionOptions, CollectionParamsOptions, ResourceOptions, ResourceParamsOptions, StatsOptions, accountStatsParams, collectionParams, resourceParams, statsParams } from "./request"
-import { Context, context } from "src/utils/context"
-import { DataDocument, Dictionary, Linker, Paginator, Serializer } from "ts-japi"
+import { Context, context } from "../utils/context"
+import TsJapi from "ts-japi"
+import type { DataDocument, Dictionary, Serializer } from "ts-japi"
 import { input, Resource } from "./parse"
-import { config } from "src/config"
-import { badRequest, inactiveCurrency } from "src/utils/error"
+import { config } from "../config"
+import { badRequest, inactiveCurrency } from "../utils/error"
 import { format as formatcsv } from "@fast-csv/format"
 import { BaseService, CurrencyService } from "../controller"
 import type { CSVMapperFactory } from "./csv-mappers"
+
+const { Linker, Paginator } = TsJapi
 
 /**
  * Helper for general async route handlers

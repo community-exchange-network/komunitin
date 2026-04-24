@@ -1,8 +1,8 @@
 import { Keypair } from "@stellar/stellar-sdk";
 import Big from "big.js";
 import type { KeyObject } from "node:crypto";
-import { externalResourceToIdentifier, recordToExternalResource } from "src/model/resource";
-import { InputTrustline, Trustline, UpdateTrustline, recordToTrustline } from "src/model/trustline";
+import { externalResourceToIdentifier, recordToExternalResource } from "../model/resource";
+import { InputTrustline, Trustline, UpdateTrustline, recordToTrustline } from "../model/trustline";
 import TypedEmitter from "typed-emitter";
 import { CurrencyPublicService, CurrencyService, ServiceEvents } from ".";
 import { CreditCommonsController, CreditCommonsControllerImpl } from "../creditcommons/credit-commons-controller";

@@ -2,7 +2,7 @@ import { Keypair } from "@stellar/stellar-sdk"
 import { CurrencyControllerImpl } from "./currency-controller"
 import { AbstractCurrencyController } from "./abstract-currency-controller"
 import type { KeyObject } from "node:crypto";
-import { decrypt, encrypt } from "src/utils/crypto";
+import { decrypt, encrypt } from "../utils/crypto";
 import { TenantPrismaClient } from "./multitenant";
 
 

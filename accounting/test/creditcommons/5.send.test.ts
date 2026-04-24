@@ -1,9 +1,9 @@
 import {describe, it} from "node:test"
 import assert from "node:assert"
 import { setupServerTest } from "../server/setup"
-import { config } from "src/config"
-import { CreditCommonsNode } from "src/model/creditCommons"
-import { logger } from "src/utils/logger"
+import { config } from "../../src/config"
+import { CreditCommonsNode } from "../../src/model/creditCommons"
+import { logger } from "../../src/utils/logger"
 import { testCurrency, userAuth, testCreditCommonsNeighbour } from "../server/api.data"
 
 describe('send', async () => {

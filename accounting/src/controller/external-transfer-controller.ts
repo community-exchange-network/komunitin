@@ -1,14 +1,14 @@
-import { FullAccount, Currency, InputTransfer, FullTransfer, TransferState, UpdateTransfer, User, userHasAccount, Account } from "src/model";
+import { FullAccount, Currency, InputTransfer, FullTransfer, TransferState, UpdateTransfer, User, userHasAccount, Account } from "../model";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
 import { isExternalResourceIdentifier } from "./external-resource-controller";
-import { Context } from "src/utils/context";
-import { badRequest, forbidden, internalError, noTrustPath } from "src/utils/error";
-import { ExternalResource, ExternalResourceIdentifier } from "src/model/resource";
-import { AtLeast, WithRequired } from "src/utils/types";
-import { TransferSerializer } from "src/server/serialize";
+import { Context } from "../utils/context";
+import { badRequest, forbidden, internalError, noTrustPath } from "../utils/error";
+import { ExternalResource, ExternalResourceIdentifier } from "../model/resource";
+import { AtLeast, WithRequired } from "../utils/types";
+import { TransferSerializer } from "../server/serialize";
 import { createExternalToken } from "./external-jwt";
-import { config } from "src/config";
-import { mount } from "src/server/parse";
+import { config } from "../config";
+import { mount } from "../server/parse";
 import { toStringAmount } from "./currency-controller";
 
 type ExternalPayeeTransfer = WithRequired<FullTransfer, "externalPayee">

@@ -1,7 +1,7 @@
 import { retry } from "../../utils/sleep"
 import { logger } from "../../utils/logger"
-import { internalError } from "src/utils/error"
-import { fixUrl } from "src/utils/net"
+import { internalError } from "../../utils/error"
+import { fixUrl } from "../../utils/net"
 
 export const friendbot = async (url: string, publicKey: string) => {
   try {

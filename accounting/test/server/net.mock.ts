@@ -1,7 +1,7 @@
 import { Express } from "express"
 import { http, HttpResponse, passthrough, RequestHandler } from "msw"
 import { setupServer, SetupServerApi } from 'msw/node'
-import { logger } from "src/utils/logger"
+import { logger } from "../../src/utils/logger"
 import request from "supertest"
 import TestAgent from "supertest/lib/agent"
 import { config } from "../../src/config"

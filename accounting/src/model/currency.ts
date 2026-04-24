@@ -1,12 +1,12 @@
 
+import { type Currency as CurrencyRecord, type Prisma } from "@prisma/client";
 import { LedgerCurrencyState } from "../ledger";
 import { AtLeast, Optional, Rate } from "../utils/types";
-import { Currency as CurrencyRecord, Prisma } from "@prisma/client"
-import { User } from "./user";
-import { FullAccount, AccountRecord, recordToAccount } from "./account";
+import { type AccountRecord, FullAccount, recordToAccount } from "./account";
+import { type User } from "./user";
 
 
-export { CurrencyRecord }
+export type { CurrencyRecord };
 
 export type CurrencySettings = {
   /**

@@ -3,12 +3,12 @@ import { v4 as uuid } from "uuid"
 import { AbstractCurrencyController } from "../controller/abstract-currency-controller"
 import { Context } from "../utils/context"
 import { CreditCommonsNode, CreditCommonsTransaction, CreditCommonsEntry } from "../model/creditCommons"
-import { badRequest, notImplemented, unauthorized, noTrustPath, notFound, forbidden } from "src/utils/error"
-import { FullTransfer, InputTransfer, TransferMeta } from "src/model/transfer"
-import { systemContext } from "src/utils/context"
-import { Transfer } from "src/model"
+import { badRequest, notImplemented, unauthorized, noTrustPath, notFound, forbidden } from "../utils/error"
+import { FullTransfer, InputTransfer, TransferMeta } from "../model/transfer"
+import { systemContext } from "../utils/context"
+import { Transfer } from "../model"
 import { logger } from "../utils/logger"
-import { config } from 'src/config'
+import { config } from '../config'
 
 function formatDateTime(d: Date) {
   const year = ('0000'+(d.getUTCFullYear())).slice(-4)

@@ -1,7 +1,7 @@
 import { generateKeyPairSync } from "node:crypto"
 import { SignJWT, JSONWebKeySet } from "jose"
 import { config } from "../../src/config"
-import { Scope } from "src/server/auth"
+import { Scope } from "../../src/server/auth"
 
 const keys = generateKeyPairSync("rsa", {
   modulusLength: 2048,

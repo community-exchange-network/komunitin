@@ -1,12 +1,11 @@
-import { AtLeast } from "src/utils/types"
-import { FullAccount, Account, AccountRecord, recordToAccount } from "./account"
-import { Transfer as TransferRecord, ExternalTransfer as ExternalTransferRecord } from "@prisma/client"
-import { Currency, User } from "."
-import { ExternalResource, ExternalResourceRecord, recordToExternalResource, RelatedResource } from "./resource"
-import { Prisma } from "@prisma/client";
+import { type ExternalTransfer as ExternalTransferRecord, type Prisma, type Transfer as TransferRecord } from "@prisma/client"
+import { type Currency, type User } from "."
 import { internalError } from "../utils/error"
+import { AtLeast } from "../utils/types"
+import { type Account, type AccountRecord, type FullAccount, recordToAccount } from "./account"
+import { type ExternalResource, type ExternalResourceRecord, recordToExternalResource, type RelatedResource } from "./resource"
 
-export { TransferRecord }
+export type { TransferRecord }
 
 export type TransferRecordWithAccounts = TransferRecord & {
   payer: AccountRecord,

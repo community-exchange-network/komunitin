@@ -1,8 +1,8 @@
-import { mount } from "src/server/parse";
-import { ExternalResource, ExternalResourceIdentifier, recordToExternalResource, RelatedResource } from "src/model/resource";
-import { Context } from "src/utils/context";
+import { mount } from "../server/parse";
+import { ExternalResource, ExternalResourceIdentifier, recordToExternalResource, RelatedResource } from "../model/resource";
+import { Context } from "../utils/context";
 import { AbstractCurrencyController } from "./abstract-currency-controller";
-import { internalError } from "src/utils/error";
+import { internalError } from "../utils/error";
 import { fixUrl } from "../utils/net";
 
 

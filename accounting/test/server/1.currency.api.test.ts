@@ -1,7 +1,7 @@
 import {describe, it} from "node:test"
 import assert from "node:assert"
 import {validate as isUuid} from "uuid"
-import { Scope } from "src/server/auth"
+import { Scope } from "../../src/server/auth"
 import { setupServerTest } from "./setup"
 
 describe('Currencies endpoints', async () => {

@@ -2,8 +2,8 @@
 import { Keypair } from "@stellar/stellar-sdk"
 import { describe, it } from "node:test"
 import assert from "node:assert"
-import { importEd25519RawPrivateKey } from "src/utils/crypto"
-import { createExternalToken, verifyExternalToken } from "src/controller/external-jwt"
+import { importEd25519RawPrivateKey } from "../../src/utils/crypto"
+import { createExternalToken, verifyExternalToken } from "../../src/controller/external-jwt"
 
 
 describe('Crypto', async () => {

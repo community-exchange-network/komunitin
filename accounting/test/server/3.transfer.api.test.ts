@@ -1,7 +1,7 @@
 import { describe, it } from "node:test"
 import assert from "node:assert"
 import {  norl } from "./net.client"
-import { Scope } from "src/server/auth"
+import { Scope } from "../../src/server/auth"
 import { validate as isUuid } from "uuid"
 import { setupServerTest } from "./setup"
 

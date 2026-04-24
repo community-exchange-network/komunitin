@@ -1,6 +1,6 @@
 import { BASE_FEE, FeeBumpTransaction, Horizon, Keypair, Memo, MemoType, NetworkError, Networks, Operation, Transaction, TransactionBuilder } from "@stellar/stellar-sdk"
 import { EventEmitter } from "node:events"
-import { rateLimitRunner } from "src/utils/ratelimit"
+import { rateLimitRunner } from "../../utils/ratelimit"
 import TypedEmitter from "typed-emitter"
 import { insufficientBalance, insufficientMaximumBalance, internalError, KError, notImplemented, transactionError } from "../../utils/error"
 import { logger } from "../../utils/logger"
