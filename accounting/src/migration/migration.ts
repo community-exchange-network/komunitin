@@ -1,5 +1,5 @@
-import { Migration as MigrationRecord } from "@prisma/client"
-import { Account, AccountSettings, Currency, CurrencySettings, FullAccount, Transfer } from "../model"
+import { type Migration as MigrationRecord } from "@prisma/client"
+import { AccountSettings, Currency, CurrencySettings, FullAccount, Transfer } from "../model"
 
 export interface MigrationLogEntry {
   time: string, // ISO 8601 format

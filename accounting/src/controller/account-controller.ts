@@ -1,6 +1,6 @@
-import { AccountKind, Prisma } from "@prisma/client";
+import { AccountKind, type Prisma } from "@prisma/client";
 
-import { Account, AccountRecord, AccountSettings, AccountStatus, FullAccount, InputAccount, recordToAccount, Tag, UpdateAccount, User, userHasAccount } from "../model";
+import { type Account, type AccountRecord, type AccountSettings, AccountStatus, type FullAccount, type InputAccount, recordToAccount, type Tag, type UpdateAccount, type User, userHasAccount } from "../model";
 import { CollectionOptions } from "../server/request";
 import { Context, systemContext } from "../utils/context";
 import { deriveKey, exportKey } from "../utils/crypto";

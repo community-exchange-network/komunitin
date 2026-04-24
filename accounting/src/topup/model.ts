@@ -1,8 +1,8 @@
-import { User, Account, Transfer } from "../model"
-import { RelatedResource } from "../model/resource"
-import { Topup as TopupRecord } from "@prisma/client"
-import { AtLeast, Rate } from "../utils/types"
 import { PaymentStatus } from "@mollie/api-client"
+import { type Topup as TopupRecord } from "@prisma/client"
+import { Account, Transfer, User } from "../model"
+import { RelatedResource } from "../model/resource"
+import { AtLeast, Rate } from "../utils/types"
 
 export type DepositCurrency = "EUR"
 export type TopupStatus = 
