@@ -60,6 +60,6 @@
 		"typed-emitter": "^2.1.0",
 		"typescript": "^5.4.5",
 		"unbuild": "^3.6.1",
-		"uuid": "^9.0.1"
+		"uuid": "^14.0.0"
 	}
 }
