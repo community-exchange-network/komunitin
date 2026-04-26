@@ -114,7 +114,7 @@ describe('New post notifications (URGENT)', () => {
 
     assert.equal(appNotifications.length, 5)
     const notification = appNotifications[0]
-    assert.equal(notification.title, `New Need from ${authorMember.attributes.name}`)
+    assert.equal(notification.title, `New Want from ${authorMember.attributes.name}`)
     assert.equal(notification.body, 'I need some help urgently!')
   })
 })
