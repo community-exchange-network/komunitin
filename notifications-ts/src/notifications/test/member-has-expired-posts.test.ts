@@ -246,7 +246,7 @@ describe('Member has expired posts (synthetic cron)', () => {
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expired 1 day ago and 1 more',
     })
-    assert.equal(notification.body, 'Your offer "Offer 1" was hidden 1 day ago. Extend it to make it visible again. You have expired 1 need more to review.')
+    assert.equal(notification.body, 'Your offer "Offer 1" was hidden 1 day ago. Extend it to make it visible again. You have expired 1 want more to review.')
 
     // SCENARIO 3: An expired need (featured, 1 day ago) + 2 expired needs + 2 expired offers
     // Featured (Need F, 1d)
