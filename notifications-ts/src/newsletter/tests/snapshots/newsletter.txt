@@ -34,7 +34,7 @@ Member GRP1-2
 
 [http://app.test/groups/GRP1/offers/ABEHLHZ2]
 
-🙋 Can you help with this? all needs → [http://app.test/groups/GRP1/needs]
+🙋 Can you help with this? all wants → [http://app.test/groups/GRP1/needs]
 
 Want
 
