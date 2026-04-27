@@ -248,10 +248,10 @@ describe('MembersJoinedDigest notifications', () => {
 
     assert.match(notif.title, /Member B/);
     assert.match(notif.body, /Offer · Offer 1/);
-    assert.match(notif.body, /Need · /);
+    assert.match(notif.body, /Want · /);
   })
 
-  it('c) one member with no offers nor needs but with description', async () => {
+  it('c) one member with no offers nor wants but with description', async () => {
     createTestMember({ name: 'Member C', daysAgo: 1, description: 'Simulated description of Member C' });
 
     const recipientUserId = getUserIdForMember(recipientMember.id);
