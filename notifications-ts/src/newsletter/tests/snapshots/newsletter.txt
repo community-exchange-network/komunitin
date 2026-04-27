@@ -36,7 +36,7 @@ Member GRP1-2
 
 🙋 Can you help with this? all needs → [http://app.test/groups/GRP1/needs]
 
-Need
+Want
 
 ORIENTAL ALUMINUM TOWELS
 
@@ -45,7 +45,7 @@ Arcesso excepturi spiculum cohibeo. Claudeo veniam utrum aequitas arcus sublime�
 Member GRP1-2
 
 [http://app.test/groups/GRP1/needs/4RZNB2AK]  
-Need
+Want
 
 FANTASTIC PLASTIC BALL
 
@@ -54,7 +54,7 @@ Aeger brevis vinum deserunt natus centum decerno. Ea adnuo administratio spolia�
 Member GRP1-3
 
 [http://app.test/groups/GRP1/needs/0VFZJFZR]  
-Need
+Want
 
 HANDCRAFTED PLASTIC MOUSE
 
@@ -64,7 +64,7 @@ Member GRP1-1
 
 [http://app.test/groups/GRP1/needs/S0AJJKLL]
 
-EXPLORE THE LATEST OFFERS AND NEEDS [http://app.test/home]
+EXPLORE THE LATEST OFFERS AND WANTS [http://app.test/home]
 Have a product or skill to offer? Post it
 [http://app.test/groups/GRP1/offers/new]
 
