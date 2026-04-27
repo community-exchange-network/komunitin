@@ -30,7 +30,7 @@ describe("Explore groups", () => {
     expect(group).toContain("GRP1");
     // Check cards present.
     expect(group).toContain("Offers");
-    expect(group).toContain("Needs");
+    expect(group).toContain("Wants");
     expect(group).toContain("Members");
     expect(group).toContain("Currency");
     // Go back home
