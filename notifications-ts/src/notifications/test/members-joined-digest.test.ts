@@ -239,7 +239,7 @@ describe('MembersJoinedDigest notifications', () => {
     assert.doesNotMatch(notif.body, /more posts/);
   })
 
-  it('b) one member with 1 offer 1 need', async () => {
+  it('b) one member with 1 offer 1 want', async () => {
     createTestMember({ name: 'Member B', daysAgo: 1, offers: 1, needs: 1 });
 
     const recipientUserId = getUserIdForMember(recipientMember.id);
