@@ -44,7 +44,7 @@ describe("Groups", () => {
     expect(text).toContain("30");
     expect(text).toContain("6 Computers");
     // Needs card
-    expect(text).toContain("Needs");
+    expect(text).toContain("Wants");
     expect(text).toContain("4");
     expect(text).toContain("1 Computers");
     // Members card
