@@ -41,9 +41,10 @@ export default defineConfig((ctx) => {
       "errors",
       "i18n",
       "auth",
-      "gtm",
       "store",
       "push-notifications",
+      ...(process.env.FEAT_GTM === "true" ? ["gtm"] : []),
+      ...(process.env.FEAT_MATOMO === "true" ? ["matomo"] : []),
       ...(process.env.MOCK_ENABLE === "true" ? ["mirage"]: [])
     ],
 
