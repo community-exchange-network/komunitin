@@ -96,4 +96,3 @@ Group GRP1 in Komunitin.
 
 Account settings [http://app.test/settings]  ·  Unsubscribe from newsletter
 [http://app.test/unsubscribe?token=mock-unsubscribe-token]
-
