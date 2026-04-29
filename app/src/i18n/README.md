@@ -24,8 +24,8 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 | **To / Destination** | Target of a transfer | Use "To" in labels, "destination" in longer text. Was "payee" |
 | **Amount** | Quantity of currency in a transfer | |
 | **Offer** | A good or service a member provides | |
-| **Need** | A good or service a member is seeking | |
-| **Value** | Price of an offer or need | Was "price" |
+| **Want** | A good or service a member is seeking | |
+| **Value** | Price of an offer or want | Was "price" |
 
 ## Translations
 
@@ -44,5 +44,5 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 | **To / Destination** | A / Destinació | A / Destino | A / Destinazione | À / Destination |
 | **Amount** | Quantitat | Cantidad | Importo | Montant |
 | **Offer** | Oferta | Oferta | Offerta | Offre |
-| **Need** | Necessitat | Necesidad | Necessità | Besoin |
+| **Want** | Necessitat | Necesidad | Necessità | Demande |
 | **Value** | Valor | Valor | Valore | Valeur |
