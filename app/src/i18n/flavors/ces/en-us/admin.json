@@ -6,10 +6,5 @@
     "invalidCurrencyValue": "Invalid unit value. Please use the notation n/d.",
     "initialCredit": "Initial Maximum Commitment",
     "creditLimit": "Maximum Commitment",
-    "maximumBalance": "Maximum Accumulation",
-    "minNeeds": "Minimum Wants",
-    "minNeedsHint": "Minimum number of wants that a member must create during sign up.",
-    "offersAndNeeds": "Offers and Wants",
-    "marketplaceText": "Define the settings for the offers and wants within your community.",
-    "categoriesText": "Offers and wants are organized in categories. Define the categories that will be available in your community."
+    "maximumBalance": "Maximum Accumulation"
 }
