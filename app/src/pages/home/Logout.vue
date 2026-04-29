@@ -5,8 +5,9 @@
 import { useI18n } from 'vue-i18n'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
-import { onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useRedirectQuery } from '../../composables/useRedirectQuery'
 
 const { t } = useI18n()
 const quasar = useQuasar()
@@ -17,12 +18,8 @@ quasar.loading.show({
 
 const store = useStore()
 const router = useRouter()
-const route = useRoute()
 
-const redirect = computed(() => {
-  // The boot handler will redirect logged in users from "/" to their group home.
-  return (typeof route.query.redirect == "string") ? route.query.redirect : "/";
-})
+const redirect = useRedirectQuery()
 
 onMounted(async () => {
   await store.dispatch('logout')

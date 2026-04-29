@@ -40,7 +40,12 @@ export default boot(({ router }) => {
       // Prevent non-superadmin users from accessing superadmin pages.
       if (to.path.startsWith("/superadmin") && !store.getters.isSuperadmin) {
         // Help users trying to access superadmin pages by redirecting them to the correct login page.
-        return "/logout?redirect=/superadmin/groups";
+        return {
+          path: "/logout",
+          query: {
+            redirect: to.path
+          }
+        }
       }
       
       return true

@@ -55,7 +55,8 @@ import KError, { KErrorCode } from '../../KError';
 import { useQuasar } from "quasar";
 import { useStore } from "vuex";
 import { useI18n } from "vue-i18n";
-import { useRouter, useRoute } from "vue-router";
+import { useRouter } from "vue-router";
+import { useRedirectQuery } from "../../composables/useRedirectQuery";
 
 
 const email = ref('')
@@ -70,17 +71,13 @@ const v$ = useVuelidate({
 const $q = useQuasar()
 const store = useStore()
 const router = useRouter()
-const route = useRoute()
 const { t } = useI18n()
 
 const loginDisabled = computed(() => {
   return v$.value.$invalid;
 })
 
-const redirect = computed(() => {
-  // The boot handler will redirect logged in users from "/" to their group home.
-  return (typeof route.query.redirect == "string") ? route.query.redirect : "/";
-})
+const redirect = useRedirectQuery()
 
 const isSuperadmin = computed(() => {
   return redirect.value.startsWith("/superadmin")
