@@ -300,6 +300,10 @@ export class StellarLedger implements Ledger {
     return (error.response && error.response.status == 404)
   }
 
+  public hasPendingTransaction(accountId: string): boolean {
+    return this.concurrentTransactions[accountId] !== undefined
+  }
+
   /**
    * Submit a transaction with exponential backoff network retry, starting at 200 ms 
    * by default.
