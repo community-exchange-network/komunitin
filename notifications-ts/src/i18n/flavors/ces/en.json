@@ -8,8 +8,7 @@
     "activity_count_one": "You recorded one trade this past month.",
     "activity_count_other": "You recorded {{count}} trades this past month.",
     "alert_no_offers_negative_text": "You have no offers published. Surely you have a skill or service that could be useful to the community. Posting your offers can help you improve your standing.",
-    "alert_no_needs_positive_text": "You have a positive standing and no needs published. Think about what you might need and publish it so other users can connect with you.",
-    "alert_no_needs_text": "You have no needs published. Publishing your needs helps other users connect with you.",
+    "alert_no_needs_positive_text": "You have a positive standing and no wants published. Think about what you might need and publish it so other users can connect with you.",
     "alert_no_image_text": "A profile picture helps other users recognise you and builds more trust.",
     "alert_no_location_text": "If you add your location to your profile, other users will know where you are and it will be easier to connect. It doesn't need to be very precise.",
     "alert_expired_offers_text": "You have {{count}} expired offers and they are no longer visible to other users. Update them if you still want to offer them, or hide them if they are no longer valid.",
@@ -38,7 +37,7 @@
   "emails": {
     "reason_active_member": "You are receiving this email as an active user of {{groupName}} on {{appName}}.",
     "welcome_text_1": "You have been accepted as a user of <strong>{{groupName}}</strong>. Your account number is <strong>{{code}}</strong>.",
-    "welcome_text_2": "You can now sign in to <strong>{{appName}}</strong> to explore other users in your community and their offers and needs. Please take a minute to complete your profile with relevant contact details, description and photo. You can also complete your offers and needs with a detailed description and images.",
+    "welcome_text_2": "You can now sign in to <strong>{{appName}}</strong> to explore other users in your community and their offers and wants. Please take a minute to complete your profile with relevant contact details, description and photo. You can also complete your offers and wants with a detailed description and images.",
     "transfer_title": "Trade",
     "transfer_sent_subject": "Service received — {{amount}} recorded",
     "transfer_sent_label": "Service received",
@@ -61,6 +60,6 @@
     "transfer_state_committed": "Recorded",
     "member_requested_subject": "New user request in {{groupName}}",
     "member_requested_label": "User request",
-    "group_activated_subtext": "You can now sign in to <strong>{{appName}}</strong> and configure the community and currency settings, including allowed trade methods, credit limits, and categories for offers and needs. After that, invite users and start trading. Good luck making your community grow!"
+    "group_activated_subtext": "You can now sign in to <strong>{{appName}}</strong> and configure the community and currency settings, including allowed trade methods, credit limits, and categories for offers and wants. After that, invite users and start trading. Good luck making your community grow!"
   }
 }
