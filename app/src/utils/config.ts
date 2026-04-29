@@ -21,7 +21,7 @@ declare global {
   }
 }
 
-function getValue(key: string, buildTimeValue: string | boolean): string | boolean {
+function getValue(key: string, buildTimeValue: string | boolean | undefined): string | boolean | undefined {
   if (typeof window !== 'undefined' && window.__KOMUNITIN_APP_CONFIG__?.[key]) {
     // 1. Try runtime config (Docker injected)
     return window.__KOMUNITIN_APP_CONFIG__[key];
@@ -31,12 +31,12 @@ function getValue(key: string, buildTimeValue: string | boolean): string | boole
   }
 }
 
-function getBoolean(key: string, buildTimeValue: string | boolean): boolean {
+function getBoolean(key: string, buildTimeValue: string | boolean | undefined): boolean {
   const value = getValue(key, buildTimeValue);
   return typeof value === 'string' ? value === 'true' : Boolean(value);
 }
 
-function getString(key: string, buildTimeValue: string | boolean): string {
+function getString(key: string, buildTimeValue: string | boolean | undefined): string {
   const value = getValue(key, buildTimeValue);
   return value !== undefined ? String(value) : ""
 }
@@ -62,6 +62,8 @@ export const config = {
   NOTIFICATIONS_URL: getString('NOTIFICATIONS_URL', process.env.NOTIFICATIONS_URL),
   PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: getString('PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY', process.env.PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY),
   GTAG_ID: getString('GTAG_ID', process.env.GTAG_ID),
+  MATOMO_URL: getString('MATOMO_URL', process.env.MATOMO_URL),
+  MATOMO_SITE_ID: getString('MATOMO_SITE_ID', process.env.MATOMO_SITE_ID),
   FEEDBACK_URL: getString('FEEDBACK_URL', process.env.FEEDBACK_URL),
   DOCS_URL: getString('DOCS_URL', process.env.DOCS_URL)
 };
