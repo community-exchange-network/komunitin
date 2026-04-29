@@ -43,6 +43,7 @@ describe("Stellar account sequence handling", async () => {
 
     // Return from horizon with the original seq = 10. Horizon still does not 
     // count the concurrent transaction build.
+    assert.ok(resolveLoaded, "Expected update() to call loadAccount().")
     resolveLoaded?.(fakeHorizonAccount(10n))
     await updatePromise
 
@@ -96,5 +97,5 @@ describe("Stellar account sequence handling", async () => {
     assert.equal(refreshedAccount.sequenceNumber(), "11")
   })
 
-  
+
 })
