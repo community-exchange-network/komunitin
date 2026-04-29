@@ -37,6 +37,11 @@ export default boot(({ router }) => {
           return "/groups";
         }
       }
+      // Prevent non-superadmin users from accessing superadmin pages.
+      if (to.path.startsWith("/superadmin") && !store.getters.isSuperadmin) {
+        // Help users trying to access superadmin pages by redirecting them to the correct login page.
+        return "/logout?redirect=/superadmin/groups";
+      }
       
       return true
     } catch {

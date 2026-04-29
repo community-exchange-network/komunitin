@@ -23,7 +23,9 @@
       v-model="pass" 
       dark
     />
-    <div class="row justify-end q-mt-xs">
+    <div class="row q-mt-xs"
+    :class="isSuperadmin ? 'justify-between' : 'justify-end'">
+      <div v-if="isSuperadmin" class="text-warning text-weight-medium">Superadmin</div>
       <router-link
         to="/forgot-password" 
         class="text-onoutside-m link"
