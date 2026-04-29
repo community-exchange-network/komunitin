@@ -300,6 +300,17 @@ export class StellarLedger implements Ledger {
     return (error.response && error.response.status == 404)
   }
 
+  /**  
+   * Returns whether there is a pending transaction currently being submitted  
+   * with the given account as the transaction source.  
+   *  
+   * "pending transaction" here means a locally tracked submission attempt that 
+   * has not completed yet.
+   */  
+  public hasPendingTransaction(accountId: string): boolean {
+    return this.concurrentTransactions[accountId] !== undefined
+  }
+
   /**
    * Submit a transaction with exponential backoff network retry, starting at 200 ms 
    * by default.

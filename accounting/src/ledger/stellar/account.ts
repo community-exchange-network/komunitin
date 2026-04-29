@@ -21,6 +21,8 @@ export class StellarAccount implements LedgerAccount {
   }
 
   public async update() {
+    const startingSeq = this.account === undefined ? undefined : BigInt(this.account.sequenceNumber())
+    const hasPendingTransaction = this.currency.ledger.hasPendingTransaction(this.accountId)
     // We use the loadPromise to avoid multiple parallel calls to loadAccount().
     // Indeed, if we call load() before the previous call to loadAccount() is finished,
     // it will just wait for the previous promise and use the same result.
@@ -29,16 +31,20 @@ export class StellarAccount implements LedgerAccount {
     }
     try {
       const loaded = await this.loadPromise
-      // If we already have a loaded account, we update the sequence number of the new one
-      // just in case the current account increased the sequence number while we were loading
-      // the new one. We must use incrementSequenceNumber() rather than setting .sequence
-      // directly, because AccountResponse.sequence is a plain property that is independent
-      // from _baseAccount.sequence used by sequenceNumber() and TransactionBuilder.
-      if (this.account !== undefined) {
+      // Transaction builder increments the account sequence number speculatively assuming they will succeed.
+      // So in case we're building transactions in parallel, we may have a local sequence number that is higher
+      // than the one returned by loadAccount(). But it could also happen that the local cached account is stale
+      // at a higher sequence number due to a failed transaction. So we choose the local sequence number if it is
+      // higher than the loaded one and either:
+      // - There was a pending transaction at the beginning of the refresh
+      // - The local sequence number has been updated during the refresh
+      if (this.account !== undefined && startingSeq !== undefined) {
         const localSeq = BigInt(this.account.sequenceNumber())
-        const loadedSeq = BigInt(loaded.sequenceNumber())
-        for (let seq = loadedSeq; seq < localSeq; seq++) {
-          loaded.incrementSequenceNumber()
+        if (hasPendingTransaction || localSeq > startingSeq) {
+          const loadedSeq = BigInt(loaded.sequenceNumber())
+          for (let seq = loadedSeq; seq < localSeq; seq++) {
+            loaded.incrementSequenceNumber()
+          }
         }
       }
       this.account = loaded
