@@ -44,5 +44,5 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 | **To / Destination** | A / Destinació | A / Destino | A / Destinazione | À / Destination |
 | **Amount** | Quantitat | Cantidad | Importo | Montant |
 | **Offer** | Oferta | Oferta | Offerta | Offre |
-| **Want** | Necessitat | Necesidad | Necessità | Demande |
+| **Want** | Necessitat | Necesidad | Necessità | Besoin |
 | **Value** | Valor | Valor | Valore | Valeur |
