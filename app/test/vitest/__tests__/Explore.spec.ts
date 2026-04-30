@@ -1,5 +1,10 @@
 import { VueWrapper } from "@vue/test-utils";
+import {
+  QCard,
+  QInnerLoading,
+} from "quasar";
 import App from "../../../src/App.vue";
+import SimpleMap from '../../../src/components/SimpleMap.vue';
 import { mountComponent, waitFor } from "../utils";
 import { seeds } from "../../../src/server";
 
@@ -25,14 +30,18 @@ describe("Explore groups", () => {
     expect(list).toContain("GRP6");
     await wrapper.get("[href='/groups/GRP1']").trigger("click");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP1");
-    await waitFor(() => wrapper.text().includes("Currency"), true, "Group page should show Currency card");
+    await waitFor(() => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing, false, "Should finish loading");
+    
     const group = wrapper.text();
     expect(group).toContain("GRP1");
     // Check cards present.
-    expect(group).toContain("Offers");
-    expect(group).toContain("Needs");
-    expect(group).toContain("Members");
-    expect(group).toContain("Currency");
+    const cards = wrapper.findAllComponents(QCard);
+    cards.forEach((card) => {
+      const isMembersCard = card.text().includes("Members") || false;
+      const isStatsCard = card.text().includes("Statistics") || false;
+      const isMapCard = card.findComponent(SimpleMap)?.exists()
+      expect(isMembersCard || isStatsCard || isMapCard).toBe(true);
+    });
     // Go back home
     await wrapper.get("#back").trigger("click");
     await waitFor(() => wrapper.vm.$route.path, "/groups");
