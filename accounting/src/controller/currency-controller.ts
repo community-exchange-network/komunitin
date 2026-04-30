@@ -40,7 +40,7 @@ export function toIntegerAmount(currency: {scale: number}, amount: string) {
 }
 
 export const defaultCurrencySettings = (currency: CreateCurrency) => ({
-  defaultInitialCreditLimit: 250,
+  defaultInitialCreditLimit: 250 * 10 ** currency.scale,
   defaultInitialMaximumBalance: false as number | false,
   defaultAllowPayments: true,
   defaultAllowPaymentRequests: true,
