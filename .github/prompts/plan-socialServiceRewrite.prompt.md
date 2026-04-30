@@ -80,7 +80,7 @@ Group {
   longitude   Float?
   
   address     Json?        // Structured address: { street, postalCode, city, region, country }
-  settings    Json?        // Merged from GroupSettings: { requireAcceptTerms, minOffers, minNeeds, allowAnonymousMemberList, enableGroupEmail, defaultGroupEmailFrequency }
+  settings    Json?        // GroupSettings: { requireAcceptTerms, minOffers, minNeeds, allowAnonymousMemberList, enableGroupEmail, defaultGroupEmailFrequency }
   contacts    Json?        // Embedded contacts array: [{ type: 'whatsapp', value: '+34...' }]
   
   created     DateTime @default(now())
@@ -99,12 +99,11 @@ User {
   id       String @id  // matches auth provider's sub claim (UUID)
   name     String
   email    String @unique
-  settings Json?       // Merged from UserSettings: { language, komunitin, notifyMyAccount, notifyGroup, emailMyAccount, emailGroup }
+  settings Json?       // UserSettings: { language, komunitin, notifyMyAccount, notifyGroup, emailMyAccount, emailGroup }
   created  DateTime @default(now())
   updated  DateTime @updatedAt
   
   members  Member[]
-  adminOf  GroupAdminUser[]
 }
 ```
 Note: This table is global (cross-tenant) because a single user can have multiple memberships in different groups. Regular users can only see their own record. Admins can see all users that have a membership in their group(s).
@@ -234,7 +233,8 @@ Category {
 ```
 
 ### 2.2 — PostGIS Spatial Index
-- Add PostGIS extension via migration: `CREATE EXTENSION IF NOT EXISTS postgis`
+- Enable PostGIS and pgvector during DB bootstrap in the social DB container (superuser-only step), not from app-run migrations.
+- Keep social migrations assuming extensions already exist; optionally add a migration precondition check.
 - Create spatial index on `Member.location` and `Group.location` columns
 - Raw SQL for distance queries: `ST_DWithin()`, `ST_Distance()`, `ORDER BY geography <-> point`
 

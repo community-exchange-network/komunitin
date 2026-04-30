@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "Komunitin Social Service (Node.js/TypeScript)",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/index.mjs",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch --inspect=0.0.0.0:9229 src/index.ts",
-    "build": "pnpm typecheck && node --import tsx/esm build.mjs",
-    "start": "node dist/index.js",
-    "test": "node --experimental-test-module-mocks --env-file=.env.test --import tsx --test src/**/*.test.ts",
+    "build": "pnpm typecheck && unbuild",
+    "start": "node dist/index.mjs",
+    "test": "node --experimental-test-module-mocks --env-file=.env.test --import tsx --test ./**/*.test.ts",
     "test-one": "node --experimental-test-module-mocks --env-file=.env.test --import tsx --test"
   },
   "keywords": [],
@@ -34,6 +34,7 @@
     "pino-pretty": "^10.3.0",
     "supertest": "^7.1.0",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "unbuild": "^3.6.1"
   }
 }
