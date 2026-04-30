@@ -3,9 +3,8 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "rootDir": "./src",
+    "rootDir": "./",
     "outDir": "./dist",
-    "baseUrl": "./src",
     "skipLibCheck": true,
     "noImplicitAny": false
   },
