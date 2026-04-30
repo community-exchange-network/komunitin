@@ -63,7 +63,7 @@
       >
         <q-toolbar-title 
           v-if="!searchActive"
-          class="text-primary text-bold">
+          class="text-serif text-primary text-bold">
           {{ title }}
         </q-toolbar-title>
         <q-input
