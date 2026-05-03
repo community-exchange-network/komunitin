@@ -3,6 +3,12 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project overview
+Komunitin is a monorepo containing a community currency wallet and marketplace. It has three main services:
+
+- **`app/`** — Vue 3 PWA frontend (Quasar framework, TypeScript)
+- **`accounting/`** — Accounting backend (Express, Prisma/PostgreSQL, Stellar blockchain)
+- **`notifications-ts/`** — Notifications backend (Express, Prisma/PostgreSQL, Redis/BullMQ)
+
 CES2 is the next-generation platform for the Community Exchange System (CES), 
 built by the Community Exchange Network (CEN). It is a Vue.js/Quasar/TypeScript 
 frontend (this repo) paired with IntegralCES (Drupal 7) as the social API backend 
@@ -11,7 +17,6 @@ and a TypeScript accounting service.
 Two build flavors exist:
 - `ces` — Community Exchange System branding, Matomo analytics, no GTM
 - `komunitin` — Komunitin branding, GTM analytics, no Matomo
-
 
 
 ## Key commands
@@ -34,19 +39,11 @@ This system *records* social activity — it does not transfer money.
 - Use "community standing" not "balance"  
 - Credits flow *inverse* to service flow
 
-## Production
+## CES2 Production 
 - URL: https://app.ces.community
 - Server: Hostinger VPS, openSUSE, Docker/Traefik
 - Deploy: GitHub Actions at community-exchange-network/ces2-deployment
 - Never edit compose.yml on server — all config in .env only
-
-## Overview
-
-Komunitin is a monorepo containing a community currency wallet and marketplace. It has three main services:
-
-- **`app/`** — Vue 3 PWA frontend (Quasar framework, TypeScript)
-- **`accounting/`** — Accounting backend (Express, Prisma/PostgreSQL, Stellar blockchain)
-- **`notifications-ts/`** — Notifications backend (Express, Prisma/PostgreSQL, Redis/BullMQ)
 
 The system also depends on **IntegralCES** (a legacy Drupal backend for social APIs), cloned separately as a peer directory.
 
