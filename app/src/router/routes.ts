@@ -159,9 +159,6 @@ const routes: RouteRecordRaw[] = [
         props: true,
         name: 'MemberList',
         component: () => import('../pages/members/MemberList.vue'),
-        meta: {
-          rootPage: true
-        }
       },
       {
         path: '/groups/:code/members/:memberCode',
@@ -335,9 +332,6 @@ const routes: RouteRecordRaw[] = [
         props: true,
         name: 'Stats',
         component: () => import('../pages/groups/Stats.vue'),
-        meta: {
-          rootPage: true
-        }
       },
       {
         path: '/groups/:code/admin',
