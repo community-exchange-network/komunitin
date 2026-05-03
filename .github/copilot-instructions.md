@@ -12,6 +12,15 @@ Komunitin is an open-source system for community exchange currencies. It is a **
 
 An external dependency **IntegralCES** (Drupal, cloned separately) provides the social/auth API at port 2029.
 
+## CES Philosophy (important for terminology)
+
+This system *records* social activity — it does not transfer money. When working on any flavor, use the correct terminology:
+- Use "trade" not "transaction"
+- Use "community standing" not "balance"
+- Credits flow *inverse* to service flow (the recipient of a service gains credits, the provider loses them)
+
+The `src/i18n/README.md` file contains the full terminology guidelines and must be read and followed for baseline language strings. Flavors may override them.
+
 ## Package Manager
 
 All TypeScript/Node.js projects use **pnpm**. Do **not** use npm or yarn.
@@ -89,6 +98,13 @@ The single CI workflow is `.github/workflows/build.yml`. It runs on every push t
 3. **build-accounting**: Docker compose for DB → pnpm install → `pnpm reset-db && pnpm test` → Docker image → publish.
 
 After all three jobs pass, `update-server` deploys to demo/staging/preview servers.
+
+## Production
+
+- **URL**: https://app.ces.community
+- **Server**: Hostinger VPS, openSUSE, Docker + Traefik
+- **Deploy**: GitHub Actions at `community-exchange-network/ces2-deployment`
+- **Important**: Never edit `compose.yml` on the server — all configuration must go in `.env` only
 
 ## Docker / Docker Compose
 
