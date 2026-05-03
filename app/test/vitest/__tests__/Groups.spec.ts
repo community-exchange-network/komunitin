@@ -71,8 +71,7 @@ describe("Groups", () => {
     expect(text).toContain("Kaci.Donnelly31@yahoo.com");
     expect(text).toContain("Amir_Mann");
     expect(text).toContain("186-667-337");
-  })
-});
+  });
 
   it("Renders group members on map if logged in", async () => {
     // Log in 'manually'
