@@ -167,7 +167,7 @@ const route = useRoute()
 /**
  * Show the back button.
  */
-const showBack = computed(() => !route.meta.rootPage || !store.getters.drawerExists)
+const showBack = computed(() => !!props.back || !route.meta.rootPage || !store.getters.drawerExists)
 /**
  * Show the menu button.
  */

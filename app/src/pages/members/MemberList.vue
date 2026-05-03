@@ -3,7 +3,6 @@
     <page-header
       search
       :title="$t('members')"
-      balance
       @search="query = $event"
     />
     <q-page-container>
@@ -39,9 +38,10 @@
               :member="member"
               :to="`/groups/${code}/members/${member.attributes.code}`"
             >
-              <template v-if="showBalances" #side>
+              <template v-if="showBalances && member.account?.attributes?.balance" #side>
                 <div class="column items-end">
                   <div
+                    v-if="member.account"
                     class="col currency text-h6"
                     :class="
                       member.account.attributes.balance >= 0
@@ -72,18 +72,18 @@ import FormatCurrency from "../../plugins/FormatCurrency";
 import PageHeader from "../../layouts/PageHeader.vue";
 import ResourceCards from "../ResourceCards.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
-import { useCurrencySettings } from "../../composables/currencySettings";
 import { useStore } from "vuex";
+import { useResource } from 'src/composables/useResources';
 
 const props = defineProps<{
   code: string
 }>();
 
 const store = useStore();
-const currencySettings = useCurrencySettings(props.code);
+const { resource: currency } = useResource('currencies', { group: props.code, include: 'settings' });
 
 const showBalances = computed(() => 
-  currencySettings.value?.attributes.defaultHideBalance !== true
+  currency.value?.settings?.value?.attributes.defaultHideBalance !== true
   || store.getters.isAdmin
 );
 
