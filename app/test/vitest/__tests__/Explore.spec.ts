@@ -35,9 +35,8 @@ describe("Explore groups", () => {
     const group = wrapper.text();
     expect(group).toContain("GRP1");
     // Check cards present.
-    expect(group).toContain("Offers");
-    expect(group).toContain("Wants");
-    expect(group).toContain("Members");
+    expect(group).toContain("Users");
+    expect(group).toContain("Statistics");
     expect(group).toContain("Currency");
     const cards = wrapper.findAllComponents(QCard);
     cards.forEach((card) => {
