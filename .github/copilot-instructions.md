@@ -99,7 +99,7 @@ The single CI workflow is `.github/workflows/build.yml`. It runs on every push t
 
 After all three jobs pass, `update-server` deploys to demo/staging/preview servers.
 
-## Production
+## CES Production
 
 - **URL**: https://app.ces.community
 - **Server**: Hostinger VPS, openSUSE, Docker + Traefik
