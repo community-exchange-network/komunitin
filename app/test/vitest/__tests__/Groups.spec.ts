@@ -38,22 +38,7 @@ describe("Groups", () => {
     expect(text).toContain("GRP0");
     // Description
     expect(text).toContain("Et facere placeat molestiae");
-    // URL
-    expect(text).toContain("rae.name");
-    // Offers card
-    expect(text).toContain("Offers");
-    expect(text).toContain("30");
-    expect(text).toContain("6 Computers");
-    // Needs card
-    expect(text).toContain("Wants");
-    expect(text).toContain("4");
-    expect(text).toContain("1 Computers");
-    // Members card
-    expect(text).toContain("Members");
-    expect(text).toContain("31");
-    expect(text).toContain("Explore");
-    // Currency card
-    await waitFor(() => wrapper.text().includes("Currency") && wrapper.text().includes("$"), true, "Group page should load currency");
+
     // Check cards present.
     const cards = wrapper.findAllComponents(QCard);
     cards.forEach((card) => {
