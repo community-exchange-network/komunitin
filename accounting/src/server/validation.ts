@@ -138,8 +138,8 @@ export namespace Validators {
           if (attributes.externalTraderMaximumBalance !== undefined && !isNonNegativeIntOrFalse(attributes.externalTraderMaximumBalance)) {
             throw new Error("externalTraderMaximumBalance must be a non-negative integer or false")
           }
-          return true
         }
+        return true
       }).customSanitizer(value => ({
         ...value,
         attributes: {
