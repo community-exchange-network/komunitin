@@ -195,7 +195,6 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: social
       POSTGRES_APP_PASSWORD: social
-      POSTGRES_APP_DB: social
       POSTGRES_APP_EXTENSIONS: postgis,vector
       WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
       WALG_S3_PREFIX: ${S3_PREFIX}/db-social
