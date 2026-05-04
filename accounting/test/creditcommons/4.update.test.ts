@@ -1,14 +1,12 @@
-import {describe, it} from "node:test"
 import assert from "node:assert"
-import { setupServerTest, TestSetupWithCurrency } from "../server/setup"
-import { setConfig } from "../../src/config"
-import { sleep } from "../../src/utils/sleep"
+import { describe, it } from "node:test"
+import { setupServerTest } from "../server/setup"
 import { generateCcTransaction } from "./api.data"
 
 describe('receive', async () => {
 
   // This calls /TEST/creditCommonsNodes and adds a trunkward neighbour 'trunk' with last-hash 'trunk':
-  const t = setupServerTest(true, true, 100000)
+  const t = setupServerTest(true, true)
 
   it('Checks the last-hash header', async () => {
     const ccTransaction = generateCcTransaction('non-existing')

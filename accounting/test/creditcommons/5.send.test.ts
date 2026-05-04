@@ -9,7 +9,7 @@ import { testCurrency, userAuth, testCreditCommonsNeighbour } from "../server/ap
 describe('send', async () => {
 
   // This calls /TEST/creditCommonsNodes and adds a trunkward neighbour 'trunk' with last-hash 'trunk':
-  const t = setupServerTest(true, true, 100000)
+  const t = setupServerTest(true, true)
 
   logger.level = "debug"
   const eAdminAuth = userAuth("10")

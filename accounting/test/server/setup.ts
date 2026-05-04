@@ -35,10 +35,9 @@ export interface TestSetupWithCurrency extends TestSetup {
 export function setupServerTest(createData: false): TestSetup;
 export function setupServerTest(createData: true): TestSetupWithCurrency;
 export function setupServerTest(createData: true, graftCreditCommons: boolean): TestSetupWithCurrency;
-export function setupServerTest(createData: true, graftCreditCommons: boolean, defaultInitialCreditLimit: number): TestSetupWithCurrency;
 export function setupServerTest(): TestSetupWithCurrency;
 
-export function setupServerTest(createData: boolean = true, graftCreditCommons: boolean = false, defaultInitialCreditLimit: number = 1000): TestSetupWithCurrency {
+export function setupServerTest(createData: boolean = true, graftCreditCommons: boolean = false): TestSetupWithCurrency {
   const test = {
     app: undefined as any as ExpressExtended,
     api: undefined as any as TestApiClient,
