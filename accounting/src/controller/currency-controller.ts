@@ -53,7 +53,8 @@ function niceAmountFromHours(hours: number, currency: CreateCurrency) {
   // This is rounding to the nearest 5*10^(d-1), where d is the number of digits.
   const magnitude = Big(10).pow(Math.floor(Math.log10(value.abs().toNumber())))
   const rounded = value.times(2).div(magnitude).round(0, Big.roundHalfUp).div(2).times(magnitude)
-  return rounded.toNumber()
+  // Final rounding for edge cases (magnitude = 1).
+  return rounded.round(0, Big.roundHalfUp).toNumber()
 }
 
 export const defaultCurrencySettings = (currency: CreateCurrency) => ({
