@@ -79,7 +79,8 @@ describe('Currencies endpoints', async () => {
     const response2 = await t.api.get('/TES2/currency?include=settings')
     const settings = response2.body.included.find((i: any) => i.type === "currency-settings")
     assert.equal(settings.attributes.defaultInitialMaximumBalance, 5000)
-    assert.equal(settings.attributes.defaultInitialCreditLimit, 0)
+    // 12h * 10 (rate) * 10^4 (scale) = 1_200_000 -(rounding)-> 1_000_000
+    assert.equal(settings.attributes.defaultInitialCreditLimit, 1000000)
   })
 
   await it('repeated code', async () => badPost({code: "TES1"}))
