@@ -113,7 +113,7 @@
   "accept": "Accept",
   "reject": "Reject",
   "createNeed": "Create want",
-  "enterNeedData": "What do you want?",
+  "enterNeedData": "What do you need?",
   "needFormHelpText": "Fill the details of your new want.",
   "uploadImages": "Add images",
   "uploadNeedImagesHint": "Adding a picture to a want makes it more attractive",
