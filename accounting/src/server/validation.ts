@@ -84,7 +84,6 @@ export namespace Validators {
     body(`${path}.rate`).exists(),
     body(`${path}.rate.n`).exists(),
     body(`${path}.rate.d`).exists(),
-    body(`${path}.settings.defaultInitialCreditLimit`).default(0)
   ]
 
   const isCollectionRelationship = (path: string, name: string, type: string) => [
@@ -118,15 +117,35 @@ export namespace Validators {
     // validation so we should switch to a more flexible library.
     body("included.*")
       .if(value => typeof value === 'object' && value.type === "currency-settings")
-      .customSanitizer(value => {
-        return {
-          ...value,
-          attributes: {
-            ...value.attributes,
-            defaultInitialCreditLimit: value.attributes.defaultInitialCreditLimit || 0
+      .custom(value => {
+        const attributes = value.attributes
+        if (attributes) {
+          if (attributes.defaultInitialCreditLimit !== undefined && (!Number.isInteger(attributes.defaultInitialCreditLimit) || attributes.defaultInitialCreditLimit < 0)) {
+            throw new Error("defaultInitialCreditLimit must be a non-negative integer")
           }
+          if (attributes.defaultInitialMaximumBalance !== undefined && !isNonNegativeIntOrFalse(attributes.defaultInitialMaximumBalance)) {
+            throw new Error("defaultInitialMaximumBalance must be a non-negative integer or false")
+          }
+          if (attributes.defaultAcceptPaymentsAfter !== undefined && !isNonNegativeIntOrFalse(attributes.defaultAcceptPaymentsAfter)) {
+            throw new Error("defaultAcceptPaymentsAfter must be a non-negative integer or false")
+          }
+          if (attributes.defaultOnPaymentCreditLimit !== undefined && !isNonNegativeIntOrFalse(attributes.defaultOnPaymentCreditLimit)) {
+            throw new Error("defaultOnPaymentCreditLimit must be a non-negative integer or false")
+          }
+          if (attributes.externalTraderCreditLimit !== undefined && (!Number.isInteger(attributes.externalTraderCreditLimit) || attributes.externalTraderCreditLimit < 0)) {
+            throw new Error("externalTraderCreditLimit must be a non-negative integer")
+          }
+          if (attributes.externalTraderMaximumBalance !== undefined && !isNonNegativeIntOrFalse(attributes.externalTraderMaximumBalance)) {
+            throw new Error("externalTraderMaximumBalance must be a non-negative integer or false")
+          }
+          return true
         }
-      })
+      }).customSanitizer(value => ({
+        ...value,
+        attributes: {
+          ...value.attributes,
+        }
+      }))
   ]
 
   export const isUpdateCurrency = () => [

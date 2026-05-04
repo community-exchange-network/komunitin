@@ -39,8 +39,25 @@ export function toIntegerAmount(currency: {scale: number}, amount: string) {
   return Big(amount).times(Big(10).pow(currency.scale)).round(0, Big.roundDown).toNumber()
 }
 
+/**
+ * Return a nice rounded amount (eg 15000 or 500, not 12345 or 498), given an amount
+ * in hours and a currency with a rate. Use this function to define defaults such as
+ * initial credit limit or maximum balance, so that they have a sound value and look 
+ * nice in the UI.
+ * */
+function niceAmountFromHours(hours: number, currency: CreateCurrency) {
+  // Convert hours to local currency
+  const value = Big(hours).times(Big(10).pow(currency.scale)).times(Big(currency.rate.d)).div(Big(currency.rate.n))
+  // Keep one leading digit and optionally a trailing 5: 1000, 1500, 2000, ...
+  
+  // This is rounding to the nearest 5*10^(d-1), where d is the number of digits.
+  const magnitude = Big(10).pow(Math.floor(Math.log10(value.abs().toNumber())))
+  const rounded = value.times(2).div(magnitude).round(0, Big.roundHalfUp).div(2).times(magnitude)
+  return rounded.toNumber()
+}
+
 export const defaultCurrencySettings = (currency: CreateCurrency) => ({
-  defaultInitialCreditLimit: Math.round(12 * 10 ** currency.scale * currency.rate.d / currency.rate.n), // 12 hours initial Credit Limit
+  defaultInitialCreditLimit: niceAmountFromHours(12, currency), // 12 hours initial Credit Limit
   defaultInitialMaximumBalance: false as number | false,
   defaultAllowPayments: true,
   defaultAllowPaymentRequests: true,
@@ -65,8 +82,8 @@ export const defaultCurrencySettings = (currency: CreateCurrency) => ({
   defaultAllowExternalPaymentRequests: false,
   defaultAcceptExternalPaymentsAutomatically: false,
 
-  externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit ?? 0,
-  externalTraderMaximumBalance: 1000 * 10 ** currency.scale * currency.rate.d / currency.rate.n // Default to 1000 hours in local currency.
+  externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit ?? niceAmountFromHours(12, currency), // Default to the credit limit setting or 12 hours in local currency.
+  externalTraderMaximumBalance: niceAmountFromHours(1000, currency) // Default to 1000 hours in local currency.
 })
 
 export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
