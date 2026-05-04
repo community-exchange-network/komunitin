@@ -82,7 +82,7 @@ export const defaultCurrencySettings = (currency: CreateCurrency) => ({
   defaultAllowExternalPaymentRequests: false,
   defaultAcceptExternalPaymentsAutomatically: false,
 
-  externalTraderCreditLimit: currency.settings.defaultInitialCreditLimit ?? niceAmountFromHours(12, currency), // Default to the credit limit setting or 12 hours in local currency.
+  externalTraderCreditLimit: currency.settings?.defaultInitialCreditLimit ?? niceAmountFromHours(12, currency), // Default to the credit limit setting or 12 hours in local currency.
   externalTraderMaximumBalance: niceAmountFromHours(1000, currency) // Default to 1000 hours in local currency.
 })
 
