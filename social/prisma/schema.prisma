@@ -1,0 +1,193 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  runtime             = "nodejs"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// This model is cross-tenant
+model User {
+  id       String   @id @db.Uuid
+  email    String   @unique
+  name     String?  @db.VarChar(255)
+  settings Json?
+  created  DateTime @default(now())
+  updated  DateTime @updatedAt
+
+  members MemberUser[]
+  admins  GroupAdminUser[]
+}
+
+model Group {
+  // Each Group is a tenant.
+  tenantId    String @unique @default(dbgenerated("(current_setting('app.current_tenant_id', true))::text")) @db.VarChar(31)
+  id          String @id @default(uuid()) @db.Uuid
+  name        String @db.VarChar(255)
+  description String @default("") @db.Text
+  status      String @default("pending") @db.VarChar(31) // GroupStatus
+  access      String @default("public") @db.VarChar(31) // Access
+  image       Json? // Image
+  address     Json? // Address
+
+  // We have latitude and longitude for prisma support and then we have a computed
+  // geography column for PostGIS spatial queries created via raw SQL migration.
+  latitude  Float?
+  longitude Float?
+  // Computed in SQL migration as GENERATED ALWAYS ... STORED.
+  location  Unsupported("geography(Point, 4326)")?
+
+  contacts Json? // Contact[]
+
+  settings Json? // GroupSettings
+  meta     Json? // GroupMeta
+
+  // Currency id in accounting service.
+  currencyId String?
+
+  created DateTime  @default(now())
+  updated DateTime  @updatedAt
+  deleted DateTime?
+
+  members    Member[]
+  categories Category[]
+  posts      Post[]
+  admins     GroupAdminUser[]
+
+  @@unique([id, tenantId])
+  @@index([location], type: Gist, map: "Group_location_gix")
+}
+
+model GroupAdminUser {
+  tenantId String @default(dbgenerated("(current_setting('app.current_tenant_id', true))::text")) @db.VarChar(31)
+  groupId  String @db.Uuid
+  userId   String @db.Uuid
+  role     String @default("admin") @db.VarChar(31)
+
+  group Group @relation(fields: [groupId, tenantId], references: [id, tenantId])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@id([groupId, userId])
+  @@index([tenantId, userId])
+}
+
+model Member {
+  tenantId    String @default(dbgenerated("(current_setting('app.current_tenant_id', true))::text")) @db.VarChar(31)
+  id          String @id @default(uuid()) @db.Uuid
+  code        String @db.VarChar(255)
+  name        String @db.VarChar(255)
+  type        String @default("personal") @db.VarChar(31)
+  state       String @default("draft") @db.VarChar(31)
+  access      String @default("public") @db.VarChar(31)
+  description String @default("") @db.Text
+  image       Json? // Image
+  address     Json? // Address
+
+  // We have latitude and longitude for prisma support and then we have a computed
+  // geography column for PostGIS spatial queries created via raw SQL migration.
+  latitude  Float?
+  longitude Float?
+  // Computed in SQL migration as GENERATED ALWAYS ... STORED.
+  location  Unsupported("geography(Point, 4326)")?
+
+  contacts Json? // Contact[]
+
+  meta Json? // MemberMeta
+
+  // Account id in accounting service.
+  accountId String? @db.Uuid
+
+  created DateTime  @default(now())
+  updated DateTime  @updatedAt
+  deleted DateTime?
+
+  groupId String @db.Uuid
+  group   Group  @relation(fields: [groupId, tenantId], references: [id, tenantId])
+
+  posts Post[]
+  users MemberUser[]
+
+  @@unique([tenantId, code])
+  @@unique([id, tenantId])
+  @@index([tenantId, groupId, state])
+  @@index([location], type: Gist, map: "Member_location_gix")
+}
+
+model MemberUser {
+  tenantId String @default(dbgenerated("(current_setting('app.current_tenant_id', true))::text")) @db.VarChar(31)
+  memberId String @db.Uuid
+  userId   String @db.Uuid
+  role     String @default("admin") @db.VarChar(31)
+
+  member Member @relation(fields: [memberId, tenantId], references: [id, tenantId])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@id([memberId, userId])
+  @@index([tenantId, userId])
+}
+
+model Category {
+  tenantId String @default(dbgenerated("(current_setting('app.current_tenant_id', true))::text")) @db.VarChar(31)
+  id       String @id @default(uuid()) @db.Uuid
+  code     String @db.VarChar(255)
+  name     String @db.VarChar(255)
+  access   String @default("public") @db.VarChar(31)
+
+  icon Json? // Icon
+  meta Json? // CategoryMeta
+
+  created DateTime @default(now())
+  updated DateTime @updatedAt
+
+  groupId String @db.Uuid
+  group   Group  @relation(fields: [groupId, tenantId], references: [id, tenantId])
+  posts   Post[]
+
+  @@unique([tenantId, code])
+  @@unique([id, tenantId])
+  @@index([tenantId, groupId])
+}
+
+model Post {
+  tenantId    String    @default(dbgenerated("(current_setting('app.current_tenant_id', true))::text")) @db.VarChar(31)
+  id          String    @id @default(uuid()) @db.Uuid
+  type        String    @db.VarChar(31) // PostType
+  code        String    @db.VarChar(255)
+  title       String?   @db.VarChar(255)
+  description String    @default("") @db.Text
+  images      Json?     // Image[]
+  value       String?   @db.VarChar(255)
+  status      String    @default("draft") @db.VarChar(31)
+  access      String    @default("public") @db.VarChar(31)
+  
+  // We have latitude and longitude for prisma support and then we have a computed
+  // geography column for PostGIS spatial queries created via raw SQL migration.
+  latitude    Float?
+  longitude   Float?
+  // Computed in SQL migration as GENERATED ALWAYS ... STORED.
+  location    Unsupported("geography(Point, 4326)")?
+  
+  expires     DateTime
+  deleted     DateTime?
+  created     DateTime  @default(now())
+  updated     DateTime  @updatedAt
+
+  memberId   String    @db.Uuid
+  member     Member    @relation(fields: [memberId, tenantId], references: [id, tenantId])
+  categoryId String?   @db.Uuid
+  category   Category? @relation(fields: [categoryId, tenantId], references: [id, tenantId])
+  groupId    String    @db.Uuid
+  group      Group     @relation(fields: [groupId, tenantId], references: [id, tenantId])
+
+  @@unique([tenantId, code])
+  @@index([tenantId, type, categoryId])
+  @@index([tenantId, memberId])
+  @@index([tenantId, status])
+  @@index([tenantId, expires])
+  @@index([tenantId, updated])
+  @@index([location], type: Gist, map: "Post_location_gix")
+}
