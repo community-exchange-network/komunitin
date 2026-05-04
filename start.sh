@@ -41,6 +41,12 @@ set -a
 . .env
 set +a
 
+# Create .env files required by compose.dev.yml volume mounts if they don't exist.
+# Docker creates empty directories in their place if the host files are missing,
+# which causes the services to fail to start.
+[ -f app/.env ] || cp app/.env.test app/.env
+touch accounting/.env notifications-ts/.env
+
 # Start the services
 if [ "$up" = true ]; then
 if [ "$public" = true ]; then
