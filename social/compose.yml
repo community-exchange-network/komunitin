@@ -1,7 +1,7 @@
 services:
   db-social:
     build:
-      context: ./shared/docker/db
+      context: ../shared/docker/db
       args:
         INSTALL_POSTGIS: "true"
         INSTALL_PGVECTOR: "true"
