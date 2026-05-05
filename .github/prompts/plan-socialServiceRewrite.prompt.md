@@ -1,536 +1,404 @@
-# Plan: Social Service Rewrite (Roadmap)
+# Plan: Social Service Rewrite (Remaining Roadmap)
 
 ## TL;DR
 
-Rewrite the legacy PHP/Drupal social service as a standalone TypeScript microservice (`social/`) using the same stack as `accounting/` and `notifications-ts/` (Node.js, Express, Prisma, PostgreSQL with RLS, Zod, ts-japi). The service manages groups, members, offers/needs/posts, categories, contacts, users, and user/group settings — exposing a JSON:API-compliant REST API. Multi-tenancy is enforced via Postgres Row Level Security keyed on group code. File storage uses S3-compatible object storage. Events are published to the notifications service. All API endpoints are thoroughly tested.
+Keep rewriting the legacy PHP/Drupal social service as a standalone TypeScript microservice (`social/`) using the same stack as `accounting/` and `notifications-ts/` (Node.js, Express, Prisma, PostgreSQL with RLS, Zod, ts-japi). The remaining work is no longer project scaffolding or initial database setup: those foundations already exist. The work ahead is to finish the service behavior, API surface, auth integration, frontend migration, and deployment wiring.
+
+The key boundary is:
+
+- **Auth service owns identity and credentials**: registration, password storage, email verification, password reset, token issuance, email uniqueness, and auth-related emails.
+- **Social service owns the user projection and domain relations**: name, email mirror, settings, members, group admin links, access control, and all group-scoped social data.
+
+`social` must never accept or persist credentials. It only trusts the JWT subject (`sub`) as the canonical user id and maintains a local user projection for domain use.
 
 ---
 
-## Phase 1: Project Scaffolding & Infrastructure
+## Current Baseline
 
-### 1.1 — Initialize `social/` directory
-- Create `social/` at repo root with same layout as `accounting/`:
-  - `src/`, `test/`, `prisma/`, `Dockerfile`, `compose.yaml`, `package.json`, `tsconfig.json`, `pnpm-workspace.yaml`
-- `package.json` dependencies (mirror `notifications-ts`): `express@5`, `@prisma/client`, `@prisma/adapter-pg`, `helmet`, `cors`, `pino`, `pino-http`, `qs`, `zod`, `express-oauth2-jwt-bearer`, `ts-japi`, `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`
-- Dev dependencies: `tsx`, `typescript`, `supertest`, `@types/express`, `@types/supertest`, `@types/cors`, `msw` (optional), `esbuild`
-- `tsconfig.json` — strict mode, ESM, same as `accounting/tsconfig.json`
-- `pnpm-workspace.yaml` with approved native packages
+These items are already in place and are intentionally **not** tracked as remaining tasks in this plan:
 
-### 1.2 — Docker & Compose
-- `Dockerfile` — Node.js 24 (align with `notifications-ts`), pnpm, prisma generate, esbuild bundle
-- `compose.yaml` — PostgreSQL (with PostGIS extension for geo queries) + MinIO (S3-compatible) for local dev
-- Add `social` service block to root `compose.yml`, `compose.dev.yml`
-- Port: **2028** (next available after accounting=2025)
+- `social/` workspace exists with `src/`, `test/`, `prisma/`, `package.json`, `tsconfig.json`, `pnpm-workspace.yaml`, and compose for local DB dependencies.
+- Initial Express app exists with config loading, middleware skeleton, logging, error handling, and a health endpoint.
+- Prisma schema exists for `User`, `Group`, `GroupAdminUser`, `Member`, `MemberUser`, `Category`, and `Post`.
+- Initial migrations already cover base schema, PostGIS computed location columns, and row-level security groundwork.
+- Basic test wiring exists with at least a health test.
 
-### 1.3 — Config (`src/config.ts`)
-- Zod-validated env schema (pattern from `notifications-ts/src/config.ts`):
+This roadmap starts from that baseline.
+
+---
+
+## Auth / Social Boundary
+
+### Auth Service Responsibilities
+
+- Create identities from email and password.
+- Enforce email uniqueness and password policy.
+- Send verification and password reset emails.
+- Verify email ownership.
+- Issue and refresh JWTs.
+- Expose auth-specific flows such as register, login, reset password, resend validation, and token exchange.
+
+### Social Service Responsibilities
+
+- Maintain a local `User` projection keyed by auth `sub`.
+- Store non-credential user data: `name`, `email` mirror, `settings`.
+- Manage `Member`, `MemberUser`, and `GroupAdminUser` relations.
+- Enforce tenant-scoped access to group data.
+- Expose social onboarding flows after the user is authenticated.
+
+### Hard Rules For The Boundary
+
+- Social endpoints must not accept `password`, password reset tokens, validation tokens, or any other credential material.
+- Social does not create identities anonymously.
+- Auth remains the source of truth for whether a person exists as an authenticated identity.
+- Social mirrors user email only as domain data needed for the app and notifications.
+- `User.id` in social must equal the JWT `sub` claim.
+
+### Recommended User Lifecycle
+
+**Member signup**
+
+1. Frontend calls the **auth service** to register an identity with `email` and `password`.
+2. Auth sends the validation email.
+3. User validates the email and obtains a token through the auth flow.
+4. Frontend calls an authenticated **social** bootstrap endpoint to create or upsert the social `User` projection from the JWT subject.
+5. Frontend calls social to create a draft `Member` in the selected group.
+6. User fills profile data.
+7. User applies by moving the member from `draft` to `pending`.
+8. Admin approves by moving the member from `pending` to `active`.
+
+**Group founder signup**
+
+1. Frontend calls the **auth service** to register the founder identity.
+2. User verifies the email and authenticates.
+3. Frontend bootstraps the social `User` projection.
+4. Frontend calls social to create a pending group request and attach the founder as the initial admin user relation.
+5. Founder member creation remains optional and should be an explicit social step, not an implicit auth side effect.
+
+### API Consequences
+
+- Remove public social signup via `POST /users`.
+- Add an authenticated idempotent bootstrap endpoint such as `POST /users/me/bootstrap`.
+- Keep `GET /users/me`, `GET /users/:id`, and `PATCH /users/:id` for social profile and settings only.
+- Keep member creation and onboarding in social as authenticated domain operations.
+- Move password reset and validation-email events out of social. If those events are needed in notifications, they should originate from auth or from an auth-to-notifications integration.
+
+---
+
+## Remaining Phase 1: Service Foundation Completion
+
+### 1.1 — Complete Runtime Wiring
+
+- Expand `src/config.ts` to include all required runtime env vars:
   - `DATABASE_URL`, `PORT`, `API_BASE_URL`
   - `AUTH_JWKS_URL`, `AUTH_JWT_ISSUER`, `AUTH_JWT_AUDIENCE`
   - `NOTIFICATIONS_API_URL`, `NOTIFICATIONS_EVENTS_USERNAME`, `NOTIFICATIONS_EVENTS_PASSWORD`
   - `S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_URL`
-  - `FILES_MAX_SIZE` (default 2MB), `FILES_ALLOWED_TYPES`
-  
-### 1.4 — Express Server (`src/server.ts`, `src/app.ts`)
-- Reuse exact middleware stack from `accounting/src/server/app.ts`:
-  - `helmet()`, `cors()`, `express.json({ type: ['application/vnd.api+json', 'application/json'] })`
-  - Custom query parser with `qs.parse({ comma: true })`
+  - `FILES_MAX_SIZE`, `FILES_ALLOWED_TYPES`
+- Add Prisma client initialization and request-scoped DB helpers.
+- Add the production `Dockerfile` and bundle flow.
+
+### 1.2 — Complete Server Middleware And Auth
+
+- Reuse the same effective middleware stack as `accounting/src/server/app.ts`:
+  - `helmet()`
+  - `cors()`
+  - `express.json({ type: ['application/vnd.api+json', 'application/json'] })`
+  - `qs` query parser with comma support
   - Pino HTTP logger
-  - JSON:API content-type on response
-  - Global error handler → JSON:API error format
-- Auth middleware: `express-oauth2-jwt-bearer` with same `userAuth()`, `noAuth()`, `anyAuth()` helpers from accounting
-- Context extraction: `context(req)` → `{ type, userId }` (pattern from `accounting/src/utils/context.ts`)
+  - JSON:API content type on responses
+  - global JSON:API error handler
+- Add JWT middleware using `express-oauth2-jwt-bearer`.
+- Add helpers equivalent to `userAuth()`, `noAuth()`, and `anyAuth()`.
+- Add request context extraction with at least `{ type, userId, scopes }` derived from the JWT.
 
-### 1.5 — Multi-Tenancy via RLS (`src/server/multitenant.ts`)
-- Copy `tenantDb()`, `privilegedDb()`, `bypassRLS()`, `forTenant()` from `accounting/src/controller/multitenant.ts` — same Prisma extension pattern
-- Tenant = group code (4-char, e.g., "GRP0")
-- Each request scoped via `/:code/*` route param → `tenantDb(prisma, code)`
+### 1.3 — Complete Multi-Tenant DB Access
 
-### 1.6 — Shared Utilities
-- `src/utils/error.ts` — `KError`, `KErrorCode` enum, `errorHandler`, `asyncHandler` (reuse from accounting)
-- `src/utils/logger.ts` — Pino logger
-- `src/utils/parse.ts` — JSON:API `mount()` / `input()` for deserialization
-- `src/server/serialize.ts` — ts-japi serializer definitions
-- `src/server/validation.ts` — Zod schemas for request validation (unlike accounting that uses express-validator, we use Zod like notifications-ts)
+- Implement `tenantDb()`, `privilegedDb()`, `bypassRLS()`, and `forTenant()` in `src/server/multitenant.ts`.
+- Scope tenant-aware requests from `/:code/*` using the group code as tenant id.
+- Ensure cross-tenant reads are allowed only for privileged scopes and explicit internal flows.
 
----
+### 1.4 — Complete Shared Utilities
 
-## Phase 2: Data Model (Prisma Schema)
+- Add JSON:API parse helpers.
+- Add ts-japi serializer definitions.
+- Add Zod-based request validation helpers.
+- Normalize error mapping to stable JSON:API error objects.
 
-### 2.1 — Prisma Schema (`prisma/schema.prisma`)
+### 1.5 — Complete Test Foundation
 
-All models include `tenantId` with RLS default. The tenant is the group code.
-
-Obs: user is the person (authentication identity), member is the profile within a group, a user can have multiple members in different groups. There is a 1-to-1 relationship between member and account from accounting service.
-
-**Group** — The community. This is also the "tenant" definition.
-```
-Group {
-  id          String @id @default(uuid())
-  tenantId    String @default(dbgenerated) @db.VarChar(31) 
-  // Group "code" is the tenant id, so we don't need a separate code field.
-  name        String @db.VarChar(255)
-  description String @db.Text
-  status      String @default("pending") @db.VarChar(31) // 'pending', 'active', 'disabled', 'deleted'
-  image       Json?        // S3 URL { key, url, mime }
-  access      String @default("public") @db.VarChar(31)  // 'public', 'group', 'private'
-  
-  // Explicit latitude/longitude for easy Prisma writes, PostGIS indexed column created via raw SQL
-  // ADD COLUMN location geography(Point, 4326) GENERATED ALWAYS AS (ST_MakePoint(longitude, latitude)) STORED;
-  latitude    Float?
-  longitude   Float?
-  
-  address     Json?        // Structured address: { street, postalCode, city, region, country }
-  settings    Json?        // GroupSettings: { requireAcceptTerms, minOffers, minNeeds, allowAnonymousMemberList, enableGroupEmail, defaultGroupEmailFrequency }
-  contacts    Json?        // Embedded contacts array: [{ type: 'whatsapp', value: '+34...' }]
-  
-  created     DateTime @default(now())
-  updated     DateTime @updatedAt
-  
-  members     Member[]
-  categories  Category[]
-  posts       Post[]
-  admins      GroupAdminUser[]
-}
-```
-
-**User** — The person (authentication identity).
-```
-User {
-  id       String @id  // matches auth provider's sub claim (UUID)
-  name     String
-  email    String @unique
-  settings Json?       // UserSettings: { language, komunitin, notifyMyAccount, notifyGroup, emailMyAccount, emailGroup }
-  created  DateTime @default(now())
-  updated  DateTime @updatedAt
-  
-  members  Member[]
-}
-```
-Note: This table is global (cross-tenant) because a single user can have multiple memberships in different groups. Regular users can only see their own record. Admins can see all users that have a membership in their group(s).
-
-**GroupAdminUser** — Junction for group ↔ user admin relationship
-```
-GroupAdminUser {
-  tenantId String @default(dbgenerated) @db.VarChar(31)
-  groupId  String
-  userId   String
-  role     String @default("admin") @db.VarChar(31)
-  
-  group Group @relation(...)
-  user  User  @relation(...)
-  
-  @@id([groupId, userId])
-}
-```
-
-**Member** — The participant in a group. Managed by one or more users.
-```
-Member {
-  id          String @id @default(uuid())
-  tenantId    String @default(dbgenerated) @db.VarChar(31)
-  code        String @db.VarChar(63)
-  name        String @db.VarChar(255)
-  type        String @default("personal") @db.VarChar(31) // 'personal', 'business', 'public'
-  status      String @default("draft") @db.VarChar(31)    // 'draft', 'pending', 'active', 'disabled', 'suspended', 'deleted'
-  access      String @default("public") @db.VarChar(31)   // 'public', 'group', 'private'
-  description String? @db.Text
-  image       Json?        // S3 URL { key, url, mime }
-  
-  // Explicit latitude/longitude for easy Prisma writes, PostGIS indexed column created via raw SQL
-  // ADD COLUMN location geography(Point, 4326) GENERATED ALWAYS AS (ST_MakePoint(longitude, latitude)) STORED;
-  latitude    Float?
-  longitude   Float?
-  
-  address     Json?        // Structured address: { street, postalCode, city, region, country }
-  contacts    Json?        // Embedded contacts array: [{ type: 'whatsapp', value: '+34...' }]
-  
-  created     DateTime @default(now())
-  updated     DateTime @updatedAt
-  
-  groupId     String
-  group       Group @relation(...)
-  posts       Post[]
-  users       MemberUser[]
-  
-  @@unique([tenantId, code])
-}
-```
-
-**MemberUser** — Junction for member ↔ user relationship
-```
-MemberUser {
-  tenantId  String @default(dbgenerated) @db.VarChar(31)
-  memberId  String
-  userId    String
-  role      String @default("admin") @db.VarChar(31)
-  
-  member Member @relation(...)
-  user   User   @relation(...)
-  
-  @@id([memberId, userId])
-}
-```
-
-**Post** — Unified table for offers, needs, events, announcements (future)
-```
-Post {
-  id          String @id @default(uuid())
-  tenantId    String @default(dbgenerated) @db.VarChar(31)
-
-  type        String @db.VarChar(31)      // Discriminator: 'offer', 'need' (extensible via Zod)
-  code        String @db.VarChar(63)
-  title       String? @db.VarChar(255)    // Offers have title, needs may not
-  content     String? @db.Text
-  images      Json?                       // Array of S3 URLs { key, url, mime }
-  state       String @default("published") @db.VarChar(31) // 'hidden', 'published', 'deleted'
-  access      String @default("public") @db.VarChar(31)    // 'public', 'group', 'private'
-  expires     DateTime?
-
-  // Explicit latitude/longitude for easy Prisma writes, PostGIS indexed column created via raw SQL
-  // ADD COLUMN location geography(Point, 4326) GENERATED ALWAYS AS (ST_MakePoint(longitude, latitude)) STORED;
-  latitude    Float?
-  longitude   Float?
-  data        Json?      // Flexible JSON field for future extensions
-
-  created     DateTime @default(now())
-  updated     DateTime @updatedAt
-
-  memberId    String
-  member      Member @relation(...)
-  categoryId  String?
-  category    Category? @relation(...)
-  groupId     String
-  group       Group @relation(...)
-  
-  @@unique([tenantId, code])
-  @@index([tenantId, type])
-  @@index([tenantId, type, categoryId])
-  @@index([tenantId, memberId])
-}
-```
-
-Note: Offers and Needs are the same model `Post` with a `type` discriminator. The API exposes them as separate resource types `/offers` and `/needs` for backward compat.
-
-**Category**
-```
-Category {
-  id          String @id @default(uuid())
-  tenantId    String @default(dbgenerated) @db.VarChar(31)
-  code        String @db.VarChar(63)
-  name        String @db.VarChar(255)
-  description String? @db.Text
-  icon        String? @db.VarChar(63)
-  access      String @default("public") @db.VarChar(31) // 'public', 'group', 'private'
-  created     DateTime @default(now())
-  updated     DateTime @updatedAt
-  
-  groupId     String
-  group       Group @relation(...)
-  posts       Post[]
-  
-  @@unique([tenantId, code])
-}
-```
-
-### 2.2 — PostGIS Spatial Index
-- Enable PostGIS and pgvector during DB bootstrap in the social DB container (superuser-only step), not from app-run migrations.
-- Keep social migrations assuming extensions already exist; optionally add a migration precondition check.
-- Create spatial index on `Member.location` and `Group.location` columns
-- Raw SQL for distance queries: `ST_DWithin()`, `ST_Distance()`, `ORDER BY geography <-> point`
-
-### 2.3 — RLS Migration
-- Apply same pattern as `accounting/prisma/migrations/20240711163943_row_level_security/migration.sql`:
-  - `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` on all tenant-scoped tables
-  - `tenant_isolation_policy`: `USING ("tenantId" = current_setting('app.current_tenant_id', TRUE)::text)`
-  - `bypass_rls_policy`: `USING (current_setting('app.bypass_rls', TRUE)::text = 'on')`
-- **User** table is cross-tenant. Regular users can only see their own record. Group Admins can see all users that have a membership in their group(s).
-  - `user_isolation_policy`: `USING (id = current_setting('app.current_user_id', TRUE)::uuid)`
-  - `admin_tenant_isolation_policy`: check if target user has a membership in any group where current user is admin
-  
-
-### 2.4 — Application-Level Enums
-Instead of using inflexible PostgreSQL `ENUM` types, all state and type fields (e.g. `PostType`, `MemberState`) are modeled as `String @db.VarChar(31)`.
-The actual enum boundaries and constraints are strictly enforced in the application layer using Zod schemas (`src/server/validation.ts`). This allows adding new types (like `event` or `announcement`) without requiring database schema migrations.
+- Expand `test/` to include shared setup, DB reset helpers, JWT fixtures, and app boot helpers.
+- Keep the existing health test and extend the suite around real routes.
 
 ---
 
-## Phase 3: JSON:API Serialization & Validation
+## Remaining Phase 2: User Projection And Auth Integration
 
-### 3.1 — ts-japi Serializers (`src/server/serialize.ts`)
-Define serializers for each resource type matching the frontend `model.ts` contracts:
+### 2.1 — User Model Contract
 
-- `GroupSerializer` — type "groups", attributes: code, name, status, description, image, website, access, latitude, longitude, address, settings, contacts, created, updated. Relations: members (collection with count), categories (collection), offers (collection), needs (collection), currency (external link to accounting), posts (collection).
-- `MemberSerializer` — type "members", attributes: code, name, type, state, access, description, image, latitude, longitude, address, contacts, created, updated, deletedAt. Relations: group (to-one), offers (collection), needs (collection), account (external link to accounting).
-- `OfferSerializer` — type "offers" (backed by Post where type=offer). Attributes: code, name, content, images, price, state, access, expires, latitude, longitude, data, created, updated, deletedAt. Relations: category (to-one), member (to-one).
-- `NeedSerializer` — type "needs" (backed by Post where type=need). Attributes: code, content, images, state, access, expires, latitude, longitude, data, created, updated, deletedAt. Relations: category (to-one), member (to-one).
-- `CategorySerializer` — type "categories". Attributes: code, name, description, icon, cpa, access, created, updated. Relations: group (to-one), offers (collection), needs (collection).
-- `UserSerializer` — type "users". Attributes: email, settings, created, updated. Relations: members (embedded links).
+The social `User` record is a projection of an authenticated identity and must contain only:
 
-### 3.2 — Zod Request Schemas (`src/server/validation.ts`)
-Define input validation schemas using Zod:
+- `id` = auth `sub`
+- `email`
+- `name`
+- `settings`
+- timestamps
 
-- `CreateGroupSchema` — validates group creation input (code, name, description, etc.)
-- `UpdateGroupSchema` — partial update (all optional)
-- `CreateMemberSchema` — name, type, contacts, group relationship
-- `UpdateMemberSchema` — partial
-- `CreatePostSchema` — type, content, images, category relationship, member relationship
-- `UpdatePostSchema` — partial
-- `CreateCategorySchema` — code, name, icon
-- `CreateUserSchema` — email, password(forwarded to auth), member relationship
-- `UpdateUserSchema` — settings
-- `PaginationSchema` — `page[size]`, `page[after]`
-- `FilterSchema` — `filter[field]` → parsed into Prisma `where` clauses
-- `GeoPositionSchema` — `geo-position=lon,lat` → validated coordinates
+No credential data belongs in the model.
 
----
+### 2.2 — User Endpoints
 
-## Phase 4: API Endpoints
+Implement:
 
-### 4.1 — Route Structure (`src/server/routes.ts`)
+- `POST /users/me/bootstrap`
+  - authenticated
+  - idempotent
+  - creates or updates the local `User` projection from JWT claims and optional onboarding payload such as `name`, `language`, or initial settings
+- `GET /users/me`
+- `GET /users/:id`
+- `PATCH /users/:id`
 
-All group-scoped routes under `/:code/*`. Auth context extracted per request.
+Constraints:
 
-**Public (no auth)**:
-- `GET /groups` — list active groups (paginated, filterable by status)
-- `GET /:code` — get single group (by code)
-- `GET /:code/members` — list members (if `allowAnonymousMemberList`, returns minimal data)
-- `GET /:code/categories` — list categories
-- `GET /:code/offers` — list published offers (paginated, geo-sorted, filterable)
-- `GET /:code/needs` — list published needs
-- `POST /users` — signup (create user + member draft)
+- `PATCH /users/:id` only updates social-owned fields such as `name` and `settings`.
+- Email changes should not be handled directly in social unless there is an explicit synchronized flow with auth. Prefer auth as the initiator of email changes.
 
-**Authenticated (bearer JWT, scope `komunitin_social`)**:
-- `GET /users/me` — current user with included members
-- `GET /users/:id` — get user (self or admin)
-- `PATCH /users/:id` — update user (including settings)
-- `GET /:code/members/:id` — get member details
-- `POST /:code/members` — create member (admin only, or via signup)
-- `PATCH /:code/members/:id` — update member (self or admin)
-- `DELETE /:code/members/:id` — delete member (admin)
-- `POST /:code/offers` — create offer
-- `PATCH /:code/offers/:id` — update offer (owner or admin)
-- `DELETE /:code/offers/:id` — delete offer
-- `POST /:code/needs` — create need
-- `PATCH /:code/needs/:id` — update need
-- `DELETE /:code/needs/:id` — delete need
-- `POST /:code/categories` — create category (admin)
-- `PATCH /:code/categories/:id` — update category (admin)
-- `DELETE /:code/categories/:id` — delete category (admin)
-- `PATCH /:code` — update group (including settings, admin)
+### 2.3 — User Access Rules
 
-**Service-to-service (scope `komunitin_social_read_all`)**:
-- All GET endpoints with full data access across tenants
+- Regular users can read and edit their own social user record.
+- Group admins can read user records for users who have memberships in their groups.
+- Service accounts with read-all scope can read across tenants.
+- Only privileged internal flows may upsert arbitrary users.
 
-**File uploads**:
-- `POST /files` — upload image(s) to S3, returns file JSON references. Bearer auth. Multipart form-data. Validates size, type, dimensions.
+### 2.4 — Schema And Validation Cleanup
 
-### 4.2 — Query Parameters (matching frontend expectations)
-- **Pagination**: `page[size]=20` (default), `page[after]=N` (cursor offset)
-- **Filtering**: `filter[code]=X`, `filter[state]=active`, `filter[search]=text`, `filter[category]=catId`, `filter[member]=memberId`
-- **Sorting**: `sort=field` or `sort=-field` (descending). Special: `sort=location` with `geo-position`
-- **Geolocation**: `geo-position=lon,lat` — triggers PostGIS distance calculation, auto-sorts by distance if no explicit sort
-- **Includes**: `include=group,account` — relationships to embed in response
-- **Search**: `filter[search]=term` — full-text search on name, description, address fields using `ILIKE` for simplicity initially.
-
-### 4.3 — Access Control Logic (`src/server/access.ts`)
-- **Anonymous**: Read public groups, categories, published offers/needs, member list (if allowed by group settings)
-- **Authenticated user**: Read own full data, update own member/settings, CRUD own offers/needs, change own member state (draft→pending)
-- **Group admin**: Full CRUD on members/categories/settings/group, approve members (pending→active), disable members
-- **Superadmin**: Full access (scope `komunitin_superadmin`)
-- **Service accounts**: Read-all scope for notifications/accounting service integration
+- Remove `password` from all social request schemas.
+- Replace `CreateUserSchema` with `BootstrapUserSchema` and `UpdateUserSchema`.
+- Ensure the Prisma schema and serializers reflect the social-only user contract.
 
 ---
 
-## Phase 5: Controller / Business Logic
+## Remaining Phase 3: Groups And Categories
 
-### 5.1 — Service Architecture (`src/controller/`)
-Follow accounting's pattern:
+### 3.1 — Groups
 
-```
-src/controller/
-  base-service.ts       — Interface & factory (createService)
-  group-controller.ts   — Group CRUD, settings
-  member-controller.ts  — Member CRUD, state transitions, signup
-  post-controller.ts    — Offer/Need CRUD (unified, filtered by type)
-  category-controller.ts
-  user-controller.ts    — User CRUD, settings
-  file-controller.ts    — S3 upload, image processing
-  events.ts             — Event emission to notifications
-```
+- Implement `GET /groups` for active public groups with pagination and filters.
+- Implement `GET /:code` for a single group.
+- Implement `PATCH /:code` for admin-managed group updates.
+- Implement group settings updates within the same admin-owned flow or a dedicated settings relation.
 
-### 5.2 — Member State Machine
-State transitions with authorization:
-- `draft` → `pending`: user (self-apply)
-- `pending` → `active`: admin (approve)
-- `pending` → `disabled`: admin (reject)
+### 3.2 — Categories
+
+- Implement `GET /:code/categories`.
+- Implement admin CRUD for categories.
+- Add serializers and validation for category payloads.
+
+### 3.3 — Founder / Group Request Flow
+
+- Define the group request flow explicitly in social.
+- Decide whether pending group requests are represented as `Group(status='pending')` directly or through a separate request record.
+- Attach the founder through `GroupAdminUser` after the authenticated bootstrap step.
+
+---
+
+## Remaining Phase 4: Members And Onboarding
+
+### 4.1 — Member CRUD
+
+- Implement authenticated member creation under `/:code/members`.
+- Implement `GET /:code/members/:id`, `PATCH /:code/members/:id`, and admin delete/disable flows.
+- Support ownership and admin checks through `MemberUser` and `GroupAdminUser`.
+
+### 4.2 — Member State Machine
+
+- `draft` → `pending`: user self-apply
+- `pending` → `active`: admin approve
+- `pending` → `disabled`: admin reject
 - `active` → `suspended`: admin
 - `active` → `disabled`: admin
 - `suspended` → `active`: admin
-- `disabled` → `active`: admin (re-enable)
+- `disabled` → `active`: admin re-enable
 - `active` → `deleted`: admin or self
 
-### 5.3 — Signup Flow
-1. `POST /users` — creates User (email + password forwarded to auth service) + Member (state=draft) + triggers `ValidationEmailRequested` event
-2. User validates email via auth service
-3. `PATCH /:code/members/:id` — user fills profile
-4. `PATCH /:code/members/:id` with `state: "pending"` — user applies
-5. Event `MemberRequested` sent to notifications
-6. Admin `PATCH /:code/members/:id` with `state: "active"` — approved
-7. Event `MemberJoined` sent
+### 4.3 — Member Onboarding Flow
 
-### 5.4 — Events to Notifications (`src/controller/events.ts`)
-Pattern from `accounting/src/controller/features/notificatons.ts`:
-- HTTP POST to `{NOTIFICATIONS_API_URL}/events` with Basic auth
-- Event types: `MemberJoined`, `MemberRequested`, `OfferPublished`, `NeedPublished`, `OfferExpired`, `NeedExpired`, `GroupActivated`, `ValidationEmailRequested`, `PasswordResetRequested`, `MemberDisabled`, `MemberSuspended`
-- Event payload: JSON:API document with `{ name, source, code, data: { member?, offer?, need? }, relationships: { user } }`
+Implement the social part of onboarding only after auth bootstrap:
 
-### 5.5 — File Upload (`src/controller/file-controller.ts`)
-- Accept multipart form-data (use `multer` or `busboy`)
-- Validate: file size ≤ 2MB, image types (jpeg, png, gif, webp)
-- Upload to S3 bucket with path: `{groupCode}/{resourceType}/{uuid}.{ext}`
-- Return file reference JSON: `{ "key": "path/uuid.jpg", "url": "https://...", "mime": "image/jpeg" }`
-- Optional: generate thumbnails (future)
+1. `POST /users/me/bootstrap`
+2. `POST /:code/members` to create draft member
+3. `PATCH /:code/members/:id` for profile completion
+4. `PATCH /:code/members/:id` with `state: "pending"` to apply
+5. Admin approval to `active`
 
-### 5.6 — Geolocation Queries
-- Store as PostGIS `geography(Point, 4326)` column
-- Distance query: `SELECT *, ST_Distance(location, ST_MakePoint($lon, $lat)::geography) AS distance FROM "Member" ORDER BY distance`
-- Use Prisma `$queryRaw` for geo queries, then map results back to Prisma types
-- Create spatial index: `CREATE INDEX member_location_idx ON "Member" USING GIST (location)`
+### 4.4 — Member Queries
+
+- Public member listing subject to `allowAnonymousMemberList`.
+- Authenticated member detail with access-controlled fields.
+- Geolocation filtering and sorting using PostGIS.
 
 ---
 
-## Phase 6: Testing
+## Remaining Phase 5: Offers, Needs, And Categories Integration
 
-### 6.1 — Test Infrastructure (`test/`)
-- Node.js built-in test runner (same as `notifications-ts` and `accounting`)
-- `test/setup.ts` — shared test setup:
-  - Spin up Express app with in-memory config
-  - `clearDb()` — reset database between test suites
-  - Mock JWT auth (generate test tokens with configurable claims/scopes)
-  - Mock S3 client (intercept uploads, return fake URLs)
-  - Mock notifications endpoint (capture sent events)
-- `supertest` for HTTP assertions
+### 5.1 — Post CRUD
 
-### 6.2 — Test Suites
-- `test/groups.ts` — CRUD groups, embedded settings, admin management
-- `test/members.ts` — CRUD, state transitions, signup flow, geolocation filtering/sorting
-- `test/offers.ts` — CRUD offers, pagination, filtering by category/member/search
-- `test/needs.ts` — CRUD needs
-- `test/categories.ts` — CRUD categories
-- `test/users.ts` — Signup, get user, update embedded settings
-- `test/files.ts` — Image upload, validation, S3 integration
-- `test/access.ts` — Authorization tests (anonymous, user, admin, service)
-- `test/events.ts` — Verify correct events sent for each state change
+- Implement unified post controller logic over `Post` with `type` discriminator.
+- Expose backward-compatible `/offers` and `/needs` endpoints.
+- Support create, update, delete, list, search, filter, include, and pagination.
 
-### 6.3 — CI Integration
-- Add `build-social` job to `.github/workflows/build.yml`
-- Docker compose for DB (Postgres+PostGIS) + MinIO
-- `pnpm install && pnpm reset-db && pnpm test`
+### 5.2 — Query Features
+
+- `page[size]`, `page[after]`
+- `filter[code]`, `filter[state]`, `filter[search]`, `filter[category]`, `filter[member]`
+- `sort=field`, `sort=-field`, `sort=location`
+- `geo-position=lon,lat`
+- `include=group,account`
+
+### 5.3 — Geolocation Queries
+
+- Use PostGIS distance queries for sort and proximity filters.
+- Use Prisma raw SQL only where Prisma query builder is insufficient.
 
 ---
 
-## Phase 7: Integration & Deployment
+## Remaining Phase 6: Files And Notifications
 
-### 7.1 — Frontend Migration
-- Update `app/.env*` to point `SOCIAL_URL` to new service
-- Update `app/src/server/` if any endpoint contracts change (goal: minimize changes)
-- The file upload endpoint should match the existing contract (`POST /files` with `files[file]` field) or the app uploader composable must be updated
+### 6.1 — File Uploads
 
-### 7.2 — Docker Compose Integration
-- Add `social` service to root `compose.yml`
-- Wire up environment variables, network, health checks
-- Update `start.sh` for social service initialization
+- Implement `POST /files` with bearer auth.
+- Validate allowed image types and file size.
+- Upload to S3-compatible storage.
+- Return stable file reference objects.
 
-### 7.3 — Data Migration (from Drupal)
-- `cli/migrate.sh` script to extract data from Drupal MySQL/MariaDB and import into new PostgreSQL schema
-- Map Drupal pseudo-UUIDs to real UUIDs
-- Migrate file references from Drupal filesystem to S3
+### 6.2 — Social Domain Events
+
+The social service should emit only social-domain events such as:
+
+- `MemberRequested`
+- `MemberJoined`
+- `MemberDisabled`
+- `MemberSuspended`
+- `OfferPublished`
+- `NeedPublished`
+- `OfferExpired`
+- `NeedExpired`
+- `GroupActivated`
+
+Do **not** emit auth-owned events such as:
+
+- `ValidationEmailRequested`
+- `PasswordResetRequested`
+
+Those belong to auth or a separate integration owned by auth.
+
+### 6.3 — Event Delivery
+
+- POST to `{NOTIFICATIONS_API_URL}/events` with Basic auth.
+- Keep event payloads JSON:API-shaped and anchored on social resource ids.
+
+---
+
+## Remaining Phase 7: Testing, Frontend Migration, And Deployment
+
+### 7.1 — API And Access Tests
+
+- Add test suites for groups, categories, members, offers, needs, users, files, access rules, and events.
+- Add explicit tests for user bootstrap and auth/social boundary behavior.
+- Add RLS isolation tests across group tenants.
+
+### 7.2 — Frontend Migration
+
+- Refactor frontend signup so credentials go only to auth.
+- Remove flows where the app sends `password` through generic social `users/create` calls.
+- Update the app to call social bootstrap after verified auth.
+- Keep or adapt the existing member onboarding UI so it starts after authenticated bootstrap.
+
+### 7.3 — Deployment Wiring
+
+- Add the `social` service to root `compose.yml` and `compose.dev.yml`.
+- Wire env vars, networks, health checks, and dependencies.
+- Update `start.sh`.
+- Add `build-social` to `.github/workflows/build.yml`.
+
+### 7.4 — Data Migration
+
+- Add `cli/migrate.sh` to import legacy Drupal data.
+- Map legacy identifiers to stable UUIDs.
+- Migrate file references to S3.
 
 ---
 
 ## Relevant Files (Reference Patterns)
 
 ### Accounting (primary template)
-- `accounting/src/server/app.ts` — Express setup, middleware stack
-- `accounting/src/server/routes.ts` — Route handler factories (`currencyResourceHandler`, `currencyCollectionHandler`)
-- `accounting/src/server/auth.ts` — JWT auth middleware (`userAuth`, `noAuth`, `anyAuth`)
+
+- `accounting/src/server/app.ts` — Express setup and middleware stack
+- `accounting/src/server/auth.ts` — JWT auth middleware helpers
 - `accounting/src/server/serialize.ts` — ts-japi serializer definitions
-- `accounting/src/server/parse.ts` — JSON:API deserialization (`mount()`, `input()`)
-- `accounting/src/controller/multitenant.ts` — RLS via Prisma extensions (`tenantDb()`, `privilegedDb()`)
-- `accounting/src/controller/features/notificatons.ts` — Event publishing to notifications
+- `accounting/src/server/parse.ts` — JSON:API deserialization helpers
+- `accounting/src/controller/multitenant.ts` — Prisma RLS helpers
+- `accounting/src/controller/features/notificatons.ts` — event publishing to notifications
 - `accounting/src/utils/error.ts` — `KError`, `KErrorCode`
-- `accounting/src/utils/context.ts` — Auth context extraction
-- `accounting/prisma/schema.prisma` — RLS-enabled schema
-- `accounting/prisma/migrations/20240711163943_row_level_security/migration.sql` — RLS SQL template
+- `accounting/src/utils/context.ts` — auth context extraction
 
 ### Notifications-TS (secondary reference)
+
 - `notifications-ts/src/config.ts` — Zod config validation pattern
 - `notifications-ts/src/server.ts` — Express 5 setup
 - `notifications-ts/src/utils/prisma.ts` — PrismaPg adapter usage
 
-### Frontend (API contracts)
-- `app/src/store/model.ts` — All TypeScript interfaces the API must match
-- `app/src/store/resources.ts` — Generic JSON:API client (pagination, filtering, includes)
-- `app/src/store/index.ts` — Store module definitions with endpoint patterns
-- `app/src/composables/uploader.ts` — File upload contract
+### Frontend (API contracts and migration points)
+
+- `app/src/store/model.ts` — API contracts the new service must satisfy
+- `app/src/store/resources.ts` — generic JSON:API client used by current flows
+- `app/src/store/index.ts` — store module definitions with endpoint patterns
+- `app/src/plugins/Auth.ts` — current auth boundary and likely place for new auth registration/bootstrap sequencing
+- `app/src/pages/members/Signup.vue` — current member signup entry point to refactor away from social password posting
+- `app/src/pages/groups/SignupGroup.vue` — current founder signup entry point to refactor away from social password posting
 
 ### PHP Legacy (behavior reference)
-- `ices/ces_komunitin/ces_komunitin.api.social.inc` — Endpoint routing, access control
-- `ices/ces_komunitin/includes/Member.php` — Member data shape, state machine
-- `ices/ces_komunitin/ces_komunitin.notifications.inc` — Event types and payloads
+
+- `ices/ces_komunitin/ces_komunitin.api.social.inc` — endpoint routing and access control
+- `ices/ces_komunitin/includes/Member.php` — member data shape and state machine
+- `ices/ces_komunitin/ces_komunitin.notifications.inc` — legacy event types and payloads
 
 ---
 
 ## Verification
 
-1. **Lint**: `pnpm run lint` passes with 0 warnings (ESLint strict)
-2. **Typecheck**: `pnpm run typecheck` passes
-3. **Unit tests**: Each controller function tested in isolation
-4. **API tests**: Full endpoint coverage with supertest — CRUD for all resources, pagination, filtering, geo queries, auth, access control, error cases
-5. **Event tests**: Verify notifications service receives correct events on state changes
-6. **File tests**: Upload, size/type validation, S3 mock
-7. **RLS tests**: Verify tenant isolation — group A cannot see group B's data
-8. **Frontend smoke test**: Point app at new service, verify member list, offers, signup flow work
-9. **CI**: `build-social` job green on PR
+1. `pnpm run typecheck` passes in `social/`.
+2. `pnpm test` passes in `social/`.
+3. User bootstrap tests prove social never accepts credentials and uses JWT `sub` as `User.id`.
+4. API tests cover CRUD, filters, pagination, geo queries, includes, and error cases.
+5. Access tests cover anonymous, user, admin, service account, and superadmin flows.
+6. RLS tests prove tenant isolation.
+7. Frontend smoke tests verify member signup, group founder signup, and profile completion against the new boundary.
+8. CI passes with `build-social` enabled.
 
 ---
 
 ## Decisions
 
-- **Post table unification**: Offers and Needs share a single `Post` table with `type` discriminator. API exposes them as separate `/offers` and `/needs` endpoints for backward compatibility. Future types (Events, Announcements) just add enum values.
-- **User is cross-tenant**: The `User` and `UserSettings` tables are NOT under RLS — a user exists globally and can have members in multiple groups.
-- **PostGIS for geo**: Use PostGIS extension for proper spatial indexing and distance queries, rather than application-level Haversine math. This enables `geo-position` query parameter with server-side distance sorting.
-- **S3 for files**: Use S3-compatible storage (MinIO in dev, AWS S3 or equivalent in production) instead of local filesystem. This supports horizontal scaling.
-- **Zod over express-validator**: Use Zod for request validation (consistent with `notifications-ts`) rather than `express-validator` (used in `accounting`). Zod schemas can be shared between validation and TypeScript types.
-- **Node.js 24**: Use same runtime as `notifications-ts` for latest features.
-- **Auth is external**: No password storage. Auth service (separate) handles credentials, issues JWTs. Social service only validates JWTs.
-- **MemberUser junction**: Supports the one-user-many-members and one-member-many-users pattern. Primary use: a user owns their personal member, but could also manage a business member.
-- **Contact as separate table**: Contacts are embedded in the member/group JSON:API response but stored in a separate table for proper normalization. This matches the current frontend model.
-
----
-
-## Future Considerations (Architecture Prep, Not Implemented Now)
-
-1. **ActivityPub Federation**: The `Post` model with unified schema maps well to ActivityPub `Note`/`Article` objects. `Member` maps to `Actor`. The `code` on groups enables addressing (`@member@group.komunitin.org`). Consider adding an `apId` (ActivityPub ID) nullable field to Post, Member, Group now to avoid migrations later.
-2. **Semantic Search with Embeddings**: The `Post.content` and `Member.description` fields can later have PGVector embeddings added as a parallel column. Consider installing `pgvector` extension alongside PostGIS in the dev compose. The search implementation can start with `ILIKE`/`tsvector` and be upgraded to vector similarity search later.
-3. **File processing pipeline**: Initial implementation does direct S3 upload. Future: add a processing queue (BullMQ) for image resizing, thumbnail generation, EXIF stripping, and content validation.
+- **Post table unification**: Offers and Needs share a single `Post` table with a `type` discriminator.
+- **Auth-first signup**: Signup begins in auth, not in social.
+- **User is a social projection**: Social stores a domain projection of the authenticated identity, not the identity itself.
+- **JWT subject is canonical**: `User.id` equals auth `sub`.
+- **Credentials never enter social**: Passwords, reset tokens, and validation tokens are out of scope for this service.
+- **User is cross-tenant**: A user may have memberships in multiple groups; access is controlled by self/admin rules, not by tenant ownership alone.
+- **PostGIS for geo**: Use PostGIS for spatial indexing and distance queries.
+- **S3 for files**: Use S3-compatible storage instead of local filesystem.
+- **Zod over express-validator**: Use Zod for validation consistency with `notifications-ts`.
 
 ---
 
 ## Iteration Roadmap
 
-This plan is too large to implement in one shot. Suggested iteration order:
+**Iteration 1 — Runtime Completion**: Finish auth middleware, context extraction, multi-tenant Prisma helpers, serializers, validation, Dockerfile, and test setup. Goal: authenticated and tenant-aware empty route skeletons work end to end.
 
-**Iteration 1 — Foundation**: Phases 1.1–1.5, 2.1–2.4, 4.1 (route skeleton), 6.1 (test setup). Goal: Express server boots, connects to DB with RLS, serves empty JSON:API responses.
+**Iteration 2 — User Projection And Group Basics**: Implement user bootstrap, `GET /users/me`, `PATCH /users/:id`, groups listing/detail/update, and categories. Goal: verified auth can bootstrap a social user and read group data.
 
-**Iteration 2 — Groups & Categories**: Group CRUD + settings + categories CRUD + serialization + tests. Goal: `GET /groups`, `GET /:code`, `GET /:code/categories` work.
+**Iteration 3 — Members And Onboarding**: Implement member CRUD, state machine, onboarding flow, and access rules. Goal: auth-first signup reaches a draft member and admin approval flow.
 
-**Iteration 3 — Members**: Member CRUD + state machine + contacts + geolocation + tests. Goal: Full member lifecycle including geo queries.
+**Iteration 4 — Posts**: Implement offers and needs CRUD, filters, pagination, search, and geo queries. Goal: public and authenticated post flows work.
 
-**Iteration 4 — Offers & Needs**: Post CRUD (offers/needs) + filtering + pagination + search + tests. Goal: Full CRUD with pagination and filtering.
-
-**Iteration 5 — Users & Auth**: User/settings endpoints + signup flow + access control + tests. Goal: Complete auth integration.
-
-**Iteration 6 — Files & Events**: S3 file upload + event publishing + tests. Goal: Image upload works, notifications receive events.
-
-**Iteration 7 — Integration**: Frontend migration, Docker compose, CI, data migration script. Goal: End-to-end working system.
+**Iteration 5 — Files, Events, And Integration**: Implement file uploads, domain events, frontend migration, compose wiring, CI, and data migration script. Goal: end-to-end replacement path is viable.
