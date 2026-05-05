@@ -23,6 +23,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      express-oauth2-jwt-bearer:
+        specifier: ^1.8.0
+        version: 1.8.0
       helmet:
         specifier: ^8.1.0
         version: 8.1.0
@@ -38,6 +41,9 @@ importers:
       qs:
         specifier: ^6.15.0
         version: 6.15.0
+      ts-japi:
+        specifier: ^1.12.3
+        version: 1.12.3
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -60,6 +66,9 @@ importers:
       '@types/supertest':
         specifier: ^6.0.3
         version: 6.0.3
+      jose:
+        specifier: ^6.2.3
+        version: 6.2.3
       pino-pretty:
         specifier: ^10.3.0
         version: 10.3.1
@@ -1191,6 +1200,10 @@ packages:
     resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
     engines: {node: '>=0.8.x'}
 
+  express-oauth2-jwt-bearer@1.8.0:
+    resolution: {integrity: sha512-Zh9Il764hoI7RYEjEhzfI5ttgHZlaWfkFXP4UkRkoRBxSniq245ZskNb2dySogH8F92FVs1/bLcFhsMsDgqkvA==}
+    engines: {node: ^12.19.0 || ^14.15.0 || ^16.13.0 || ^18.12.0 || ^20.2.0 || ^22.1.0 || ^24.0.0}
+
   express@5.2.1:
     resolution: {integrity: sha512-hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw==}
     engines: {node: '>= 18'}
@@ -1372,6 +1385,12 @@ packages:
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
+
+  jose@4.15.9:
+    resolution: {integrity: sha512-1vUQX+IdDMVPj4k8kOxgUqlcK518yluMuGZwqlr44FS1ppZB/5GWh4rZG89erpOBOJjU/OBsnCVFfapsRz6nEA==}
+
+  jose@6.2.3:
+    resolution: {integrity: sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==}
 
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
@@ -2064,6 +2083,10 @@ packages:
   toidentifier@1.0.1:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
     engines: {node: '>=0.6'}
+
+  ts-japi@1.12.3:
+    resolution: {integrity: sha512-hLbsujER6DOQWizHRKDLQHulkywc6y3uHxzb3cY/uL6XEiVbj6BT6Dbo4npn2T0107fpW1d0ozLDtGZqXLxGlQ==}
+    engines: {node: '>=24'}
 
   tsx@4.21.0:
     resolution: {integrity: sha512-5C1sg4USs1lfG0GFb2RLXsdpXqBSEhAaA/0kPL01wxzpMqLILNxIxIOKiILz+cdg/pLnOUxFYOR5yhHU666wbw==}
@@ -3100,6 +3123,10 @@ snapshots:
 
   events@3.3.0: {}
 
+  express-oauth2-jwt-bearer@1.8.0:
+    dependencies:
+      jose: 4.15.9
+
   express@5.2.1:
     dependencies:
       accepts: 2.0.0
@@ -3295,6 +3322,10 @@ snapshots:
   jiti@1.21.7: {}
 
   jiti@2.6.1: {}
+
+  jose@4.15.9: {}
+
+  jose@6.2.3: {}
 
   joycon@3.1.1: {}
 
@@ -4015,6 +4046,8 @@ snapshots:
       picomatch: 4.0.4
 
   toidentifier@1.0.1: {}
+
+  ts-japi@1.12.3: {}
 
   tsx@4.21.0:
     dependencies:
