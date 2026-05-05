@@ -150,7 +150,7 @@ No credential data belongs in the model.
 
 Implement:
 
-- `POST /users/me/bootstrap`
+- `POST /users
   - authenticated
   - idempotent
   - creates or updates the local `User` projection from JWT claims and optional onboarding payload such as `name`, `language`, or initial settings
@@ -173,7 +173,6 @@ Constraints:
 ### 2.4 — Schema And Validation Cleanup
 
 - Remove `password` from all social request schemas.
-- Replace `CreateUserSchema` with `BootstrapUserSchema` and `UpdateUserSchema`.
 - Ensure the Prisma schema and serializers reflect the social-only user contract.
 
 ---
@@ -224,7 +223,7 @@ Constraints:
 
 Implement the social part of onboarding only after auth bootstrap:
 
-1. `POST /users/me/bootstrap`
+1. `POST /users/me`
 2. `POST /:code/members` to create draft member
 3. `PATCH /:code/members/:id` for profile completion
 4. `PATCH /:code/members/:id` with `state: "pending"` to apply
