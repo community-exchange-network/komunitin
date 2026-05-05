@@ -6,6 +6,7 @@ import { errorHandler } from './server/errors'
 import { httpLogger } from './server/http-logger'
 import { config } from './config'
 import logger from './utils/logger'
+import userRoutes from './features/users/routes'
 
 const app = express()
 
@@ -32,10 +33,11 @@ app.use((req, res, next) => {
 
 app.use(httpLogger)
 
-// Dummy endpoint — replace with real routes in subsequent iterations
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' })
 })
+
+app.use('/', userRoutes)
 
 app.use(errorHandler)
 

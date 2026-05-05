@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler } from 'express'
+import { UnauthorizedError } from 'express-oauth2-jwt-bearer'
 import logger from '../utils/logger'
-import { KError, internalError } from '../utils/error'
+import { KError, badRequest, forbidden, internalError, unauthorized } from '../utils/error'
 
 interface JsonApiErrorObject {
   errors: {
@@ -22,6 +23,23 @@ const toJsonApiError = (kerror: KError): JsonApiErrorObject => ({
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   logger.error(err)
-  const kerror = err instanceof KError ? err : internalError(err?.message ?? 'Unexpected error', { cause: err })
+  let kerror: KError
+
+  if (err instanceof KError) {
+    kerror = err
+  } else if (err instanceof UnauthorizedError) {
+    if (err.status === 400) {
+      kerror = badRequest(err.message, { cause: err })
+    } else if (err.status === 401) {
+      kerror = unauthorized(err.message, { cause: err })
+    } else if (err.status === 403) {
+      kerror = forbidden(err.message, { cause: err })
+    } else {
+      kerror = internalError(err.message, { cause: err })
+    }
+  } else {
+    kerror = internalError(err?.message ?? 'Unexpected error', { cause: err })
+  }
+
   res.status(kerror.getStatus()).json(toJsonApiError(kerror))
 }
