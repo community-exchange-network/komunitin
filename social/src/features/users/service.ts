@@ -1,5 +1,5 @@
 import prisma from '../../utils/prisma'
-import { Prisma } from '../../generated/prisma/client'
+import { User as DbUser } from '../../generated/prisma/client'
 import type { User, UserSettings, CreateUserInput } from './types'
 import { badRequest, notFound } from '../../utils/error'
 
@@ -10,7 +10,7 @@ const castSettings = (settings: unknown): UserSettings | null => {
   return settings as UserSettings
 }
 
-const toUser = (user: Prisma.UserModel): User => {
+const toUser = (user: DbUser): User => {
   return {
     id: user.id,
     email: user.email,

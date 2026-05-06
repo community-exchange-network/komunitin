@@ -7,6 +7,7 @@ import { httpLogger } from './server/http-logger'
 import { config } from './config'
 import logger from './utils/logger'
 import userRoutes from './features/users/routes'
+import { groupsRoutes, tenantGroupRoutes } from './features/groups/routes'
 
 const app = express()
 
@@ -38,6 +39,8 @@ app.get('/health', (req, res) => {
 })
 
 app.use('/', userRoutes)
+app.use('/', groupsRoutes)
+app.use('/:code', tenantGroupRoutes)
 
 app.use(errorHandler)
 

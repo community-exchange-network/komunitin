@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { jsonApiDocumentSchema, jsonApiResourceSchema } from '../../server/jsonapi-schema'
 
 export const userSettingsAttributesSchema = z.object({
   language: z.string().optional(),
@@ -14,11 +15,7 @@ export const userSettingsAttributesSchema = z.object({
 
 export type UserSettings = z.infer<typeof userSettingsAttributesSchema>
 
-const userSettingsSchema = z.object({
-  type: z.literal('user-settings'),
-  id: z.string().optional(),
-  attributes: userSettingsAttributesSchema,
-}).strict()
+const userSettingsSchema = jsonApiResourceSchema('user-settings', userSettingsAttributesSchema)
 
 const userAttributesSchema = z.object({
   email: z.email().optional(),
@@ -27,15 +24,8 @@ const userAttributesSchema = z.object({
 
 export type UserAttributes = z.infer<typeof userAttributesSchema>
 
-const userSchema = z.object({
-  type: z.literal('users'),
-  id: z.string().optional(),
-  attributes: userAttributesSchema.optional(),
-}).strict()
+const userSchema = jsonApiResourceSchema('users', userAttributesSchema)
 
-export const createUserBodySchema = z.object({
-  data: userSchema,
-  included: z.array(userSettingsSchema).optional(),
-}).strict()
+export const createUserBodySchema = jsonApiDocumentSchema(userSchema, userSettingsSchema)
 
 export type CreateUserBody = z.infer<typeof createUserBodySchema>
