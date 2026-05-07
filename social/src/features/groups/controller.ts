@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express'
-import { getAuthUserId, getOptionalAuthUserId, isSuperadmin } from '../../server/auth'
+import { getAuthContext, getOptionalAuthContext } from '../../server/context'
 import { include } from '../../server/request'
 import { getValidatedBody } from '../../server/validation'
 import type { CreateGroupBody, PatchGroupBody } from './schema'
@@ -7,18 +7,18 @@ import { serializeGroup, serializeGroups, serializeGroupSettings } from './seria
 import { createGroup, getGroupByCode, listGroups, patchGroupByCode } from './service'
 
 export const postGroups: RequestHandler = async (req, res) => {
-  const authUserId = getAuthUserId(req)
+  const ctx = getAuthContext(req)
   const body = getValidatedBody<CreateGroupBody>(req)
 
   const attributes = body.data.attributes
   const settings = body.included?.find((resource) => resource.type === 'group-settings')?.attributes
   const currency = body.included?.find((resource) => resource.type === 'currencies')?.attributes
 
-  const group = await createGroup({
+  const group = await createGroup(ctx, {
     attributes,
     settings,
     currency,
-  }, authUserId)
+  })
 
   const inc = include(req, ['settings'])
   const payload = await serializeGroup(group, inc)
@@ -26,17 +26,18 @@ export const postGroups: RequestHandler = async (req, res) => {
 }
 
 export const getGroups: RequestHandler = async (req, res) => {
-  const groups = await listGroups()
+  const ctx = getOptionalAuthContext(req)
+  const groups = await listGroups(ctx)
   const inc = include(req, ['settings'])
   const payload = await serializeGroups(groups, inc)
   res.status(200).json(payload)
 }
 
 export const getGroupByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getOptionalAuthContext(req)
   const code = Array.isArray(req.params.code) ? req.params.code[0] : req.params.code
-  const authUserId = getOptionalAuthUserId(req)
 
-  const group = await getGroupByCode(code, authUserId, isSuperadmin(req))
+  const group = await getGroupByCode(ctx, code)
 
   const inc = include(req, ['settings'])
 
@@ -45,20 +46,21 @@ export const getGroupByCodeRoute: RequestHandler = async (req, res) => {
 }
 
 export const getGroupSettingsByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getOptionalAuthContext(req)
   const code = Array.isArray(req.params.code) ? req.params.code[0] : req.params.code
-  const authUserId = getAuthUserId(req)
-  const group = await getGroupByCode(code, authUserId, isSuperadmin(req))
+
+  const group = await getGroupByCode(ctx, code)
 
   const payload = await serializeGroupSettings(group)
   res.status(200).json(payload)
 }
 
 export const patchGroupByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
   const code = Array.isArray(req.params.code) ? req.params.code[0] : req.params.code
-  const authUserId = getAuthUserId(req)
   const body = getValidatedBody<PatchGroupBody>(req)
 
-  const group = await patchGroupByCode(code, body.data.attributes, authUserId, isSuperadmin(req))
+  const group = await patchGroupByCode(ctx, code, body.data.attributes)
 
   const payload = await serializeGroup(group)
   res.status(200).json(payload)

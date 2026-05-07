@@ -5,6 +5,7 @@ import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
 import { Address, Location, PatchGroupAttributes } from './schema'
 import type { CreateGroupInput, Group } from './types'
+import { OptionalAuthContext, AuthContext } from '../../server/context'
 
 
 const toLocation = (group: DbGroup): Location | null => {
@@ -35,7 +36,7 @@ const toGroup = (group: DbGroup): Group => {
  * Create a pending new group with the given attributes. The creating user will be set as group admin. 
  * The group will need to be activated by a superadmin before it becomes visible and usable.
  */
-export const createGroup = async (input: CreateGroupInput, authUserId: string): Promise<Group> => {
+export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Promise<Group> => {
   const db = tenantDb(prisma, input.attributes.code)
 
   const existing = await db.group.findFirst()
@@ -73,7 +74,7 @@ export const createGroup = async (input: CreateGroupInput, authUserId: string): 
       data: {
         tenantId: attributes.code,
         groupId: created.id,
-        userId: authUserId,
+        userId: ctx.userId,
         role: 'admin',
       }
     })
@@ -110,11 +111,11 @@ const isGroupMember = async (code: string, userId: string): Promise<boolean> => 
   return Boolean(relation)
 }
 
-const canAccessGroup = async (group: Group, userId?: string, isSuperAdmin = false): Promise<boolean> => {
-  const isAdmin = async () => userId ? await isGroupAdmin(group.code, group.id, userId) : false
-  const isMember = async() => userId ? await isGroupMember(group.code, userId) : false
+const canAccessGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
+  const isAdmin = async () => ctx.userId ? await isGroupAdmin(group.code, group.id, ctx.userId) : false
+  const isMember = async() => ctx.userId ? await isGroupMember(group.code, ctx.userId) : false
 
-  return isSuperAdmin
+  return ctx.isSuperadmin
     || (group.status === 'active' && group.access === 'public')
     || (group.status === 'active' && group.access === 'group' && await isMember()) 
     || await isAdmin()
@@ -123,7 +124,7 @@ const canAccessGroup = async (group: Group, userId?: string, isSuperAdmin = fals
 /**
  * Return all groups accessible to the given user.
  */
-export const listGroups = async (authUserId?: string, isSuperadmin = false): Promise<Group[]> => {
+export const listGroups = async (ctx: OptionalAuthContext): Promise<Group[]> => {
   const db = privilegedDb(prisma)
   const groups = await db.group.findMany({
     orderBy: {
@@ -132,10 +133,11 @@ export const listGroups = async (authUserId?: string, isSuperadmin = false): Pro
   })
 
   const accessibleGroups: Group[] = []
-  for (const group of groups) {
-    const allowed = await canAccessGroup(toGroup(group), authUserId, isSuperadmin)
+  for (const dbGroup of groups) {
+    const group = toGroup(dbGroup)
+    const allowed = await canAccessGroup(ctx, group)
     if (allowed) {
-      accessibleGroups.push(toGroup(group))
+      accessibleGroups.push(group)
     }
   }
 
@@ -143,25 +145,26 @@ export const listGroups = async (authUserId?: string, isSuperadmin = false): Pro
 }
 
 export const getGroupByCode = async (
+  ctx: OptionalAuthContext,
   code: string,
-  authUserId?: string,
-  callerIsSuperadmin = false,
 ): Promise<Group> => {
   const db = tenantDb(prisma, code)
-  const group = await db.group.findFirst()
-  if (!group) {
+  const dbGroup = await db.group.findFirst()
+  if (!dbGroup) {
     throw notFound('Group not found')
   }
+  
+  const group = toGroup(dbGroup)
 
-  const allowed = await canAccessGroup(group as Group, authUserId, callerIsSuperadmin)
+  const allowed = await canAccessGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have access to this group')
   }
 
-  return toGroup(group)
+  return group
 }
 
-export const patchGroupByCode = async (code: string, attributes: PatchGroupAttributes, authUserId: string, isSuperadmin = false): Promise<Group> => {
+export const patchGroupByCode = async (ctx: AuthContext, code: string, attributes: PatchGroupAttributes): Promise<Group> => {
   const db = tenantDb(prisma, code)
   const group = await db.group.findFirst()
 
@@ -169,13 +172,13 @@ export const patchGroupByCode = async (code: string, attributes: PatchGroupAttri
     throw notFound('Group not found')
   }
 
-  const isAdmin = await isGroupAdmin(code, group.id, authUserId)
-  if (!isAdmin && !isSuperadmin) {
+  const isAdmin = await isGroupAdmin(code, group.id, ctx.userId)
+  if (!isAdmin && !ctx.isSuperadmin) {
     throw forbidden('Only group admins can update this group')
   }
 
   if (typeof attributes.status === 'string') {
-    if (!isSuperadmin || attributes.status !== 'active' || group.status !== 'pending') {
+    if (!ctx.isSuperadmin || attributes.status !== 'active' || group.status !== 'pending') {
       throw badRequest('Status transition is not allowed')
     }
 
