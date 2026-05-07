@@ -27,7 +27,7 @@ describe('MemberJoined notifications', () => {
 
     await verifyNotification(userId, groupId, notification.id, {
       title: 'Welcome to Group GRP1!',
-      body: 'Hi Ada Lovelace, your account is now active! Start exploring offers and needs in your community. Happy exchange!',
+      body: 'Hi Ada Lovelace, your account is now active! Start exploring offers and wants in your community. Happy exchange!',
     })
   })
 })

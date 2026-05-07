@@ -19,7 +19,7 @@ describe('Welcome notification i18n', () => {
       {
         language: 'en',
         title: `Welcome to ${groupName}!`,
-        body: `Hi ${memberName}, your account is now active! Start exploring offers and needs in your community. Happy exchange!`,
+        body: `Hi ${memberName}, your account is now active! Start exploring offers and wants in your community. Happy exchange!`,
       },
       {
         language: 'ca',
