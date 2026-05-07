@@ -23,7 +23,7 @@
         :text-color="action.textColor"
         :disable="action.disable"
         :to="action.to"
-        class="q-pa-md"
+        class="q-pa-md shadow-2"
         style="margin-right: 0"
       />
     </q-fab>
