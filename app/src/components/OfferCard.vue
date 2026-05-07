@@ -3,7 +3,6 @@
     v-if="offer"
     v-card-click-to="`/groups/${code}/offers/${offer.attributes.code}`"
     :class="{isHidden, isExpired}"
-    class="kshadow"
   >
     <!-- Header -->
     <member-header :member="offer.member">
