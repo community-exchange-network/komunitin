@@ -22,8 +22,8 @@ The Komunitin system is made of several microservices:
 ## Development with Docker
 ### Requirements
 Before starting, be sure you have:
- - [docker](https://docs.docker.com/engine/install/) (use `docker compose` v2, not `docker-compose`)
- - the cli util [jq](https://jqlang.org/) — on Ubuntu/Debian: `sudo apt install jq`
+ - [docker](https://docs.docker.com/engine/install/)
+ - the cli util [jq](https://jqlang.org/)
 
 Clone Komunitin and its peer dependency IntegralCES **side by side in the same parent folder**:
 
@@ -42,15 +42,6 @@ Copy the `.env.dev.template` to `.env`:
 cp .env.dev.template .env
 ```
 
-Open `.env` and replace the placeholder values marked `replace-this-by-*`:
-
-| Variable | What to put |
-|---|---|
-| `ICES_ADMIN_PASSWORD` | Any secure password |
-| `KOMUNITIN_NOTIFICATIONS_SECRET` | Any secure password |
-| `KOMUNITIN_ACCOUNTING_MASTER_PASSWORD` | Any secure password |
-| `KOMUNITIN_ACCOUNTING_MASTER_PASSWORD_SALT` | Any random string |
-
 In order to have everything working (mailing, push notifications, backups, analytics...) you need to carefully configure the environment variables in the `.env` file. You can find more details about the configuration in the `.env.public.template` file.
 
 ### Start
@@ -60,7 +51,7 @@ Then you can run the start script with the options `--up` to start the container
 ./start.sh --up --ices --dev --demo
 ```
 
-> **Note**: The first build downloads and compiles everything from scratch — expect it to take 10–20 minutes.
+> The first build downloads and compiles everything from scratch — expect it to take some minutes.
 
 After installing for the first time, if you want just to start the containers in `dev` mode without re-installing you can run:
 
