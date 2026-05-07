@@ -25,7 +25,7 @@
       </template>
     </page-header>
     <q-page-container>
-      <q-page>
+      <q-page class="q-px-md q-pt-md">
         <transaction-items
           :code="props.code"
           :member="myMember"
