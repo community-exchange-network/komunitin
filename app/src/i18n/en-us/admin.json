@@ -3,7 +3,7 @@
   "editGroup": "Edit Community",
   "editGroupText": "Define the main attributes of your exchange community.",
   "currencyValue": "Currency Value",
-  "currencyValueHint": "The value of your currency in relation to the reference currency HOUR. It is used to calculate the exchange rate between your currency and others. Use the notation n/d. Eg, if you set 1/10, it means that 10 units of your currency are equivalent to 1 HOUR.",
+  "currencyValueHint": "The value of your currency in relation to the reference currency HOUR. It is used to calculate the conversion rate between your currency and others. Use the notation n/d. Eg, if you set 1/10, it means that 10 units of your currency are equivalent to 1 HOUR.",
   "invalidCurrencyValue": "Invalid currency value. Please use the notation n/d.",
   "groupSettings": "Community Settings",
   "categories": "Categories",
