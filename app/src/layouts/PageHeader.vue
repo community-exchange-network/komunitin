@@ -69,11 +69,12 @@
         <q-input
           v-if="searchActive"
           v-model="searchText"
-          dark
           dense
-          standout
-          class="q-mr-xs search-box"
-          type="search"
+          outlined
+          rounded
+          bg-color="white"
+          class="q-mr-xs search-box input-borderless"
+          type="search" 
           debounce="250"
           autofocus
           @update:model-value="onUpdateSearchText"
