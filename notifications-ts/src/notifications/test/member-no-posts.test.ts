@@ -96,7 +96,7 @@ describe('MemberHasNoPosts notifications', () => {
     assert.equal(notification.title, `You have a balance of ${expectedBalance}`)
     assert.equal(
       notification.body,
-      'Post a need to help others connect with you and use your balance. What do you need?'
+      'Post a want to help others connect with you and use your balance. What do you need?'
     )
 
     assert.equal(pushQueue.add.mock.callCount(), 1)

@@ -78,7 +78,7 @@ describe("Home", () => {
     await fab.trigger('click');
     const actions = fab.findAll('.q-btn')
     const offerBtn = actions.find(action => action.text().includes('Create offer'));
-    const needBtn = actions.find(action => action.text().includes('Create need'));
+    const needBtn = actions.find(action => action.text().includes('Create want'));
     expect(offerBtn).toBeDefined();
     expect(needBtn).toBeDefined();
   })
@@ -99,7 +99,7 @@ describe("Home", () => {
     
     const myProfileBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My profile'));
     const myOffersBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My offers'));
-    const myNeedsBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My needs'));
+    const myNeedsBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My wants'));
     const logOutBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Log out'));
 
     expect(myProfileBtn).toBeDefined();

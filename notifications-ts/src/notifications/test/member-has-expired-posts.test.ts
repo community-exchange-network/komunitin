@@ -222,8 +222,8 @@ describe('Member has expired posts (synthetic cron)', () => {
     let notification = await getNotification(memberId)
     assert.ok(notification)
     await verifyNotification(userId, groupCode, notification.id, {
-      title: 'Need expired 1 day ago',
-      body: 'Your need "Need 1 content" was hidden 1 day ago. Extend it to make it visible again.',
+      title: 'Want expired 1 day ago',
+      body: 'Your want "Need 1 content" was hidden 1 day ago. Extend it to make it visible again.',
     })
 
     // SCENARIO 2: An expired offer (featured, 1 day ago) + 1 expired need (older, 2 days ago)
@@ -246,7 +246,7 @@ describe('Member has expired posts (synthetic cron)', () => {
     await verifyNotification(userId, groupCode, notification.id, {
       title: 'Offer expired 1 day ago and 1 more',
     })
-    assert.equal(notification.body, 'Your offer "Offer 1" was hidden 1 day ago. Extend it to make it visible again. You have expired 1 need more to review.')
+    assert.equal(notification.body, 'Your offer "Offer 1" was hidden 1 day ago. Extend it to make it visible again. You have expired 1 want more to review.')
 
     // SCENARIO 3: An expired need (featured, 1 day ago) + 2 expired needs + 2 expired offers
     // Featured (Need F, 1d)
@@ -296,8 +296,8 @@ describe('Member has expired posts (synthetic cron)', () => {
     notification = await getNotification(memberId)
     assert.ok(notification)
     await verifyNotification(userId, groupCode, notification.id, {
-      title: 'Need expired 1 day ago and 4 more',
-      body: 'Your need "Need Featured content" was hidden 1 day ago. Extend it to make it visible again. You have expired 2 offers and 2 needs more to review.',
+      title: 'Want expired 1 day ago and 4 more',
+      body: 'Your want "Need Featured content" was hidden 1 day ago. Extend it to make it visible again. You have expired 2 offers and 2 wants more to review.',
     })
   })
 })

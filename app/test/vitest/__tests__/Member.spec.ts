@@ -45,7 +45,7 @@ describe("Member", () => {
     expect(text).toContain("Max $500");
     // Tabs
     expect(text).toContain("Profile");
-    expect(text).toContain("1 Need");
+    expect(text).toContain("1 Want");
     expect(text).toContain("3 Offers");
     expect(wrapper.findAllComponents(QTab).length).toBe(3);
     // Bio
@@ -88,7 +88,7 @@ describe("Member", () => {
     expect(text).toContain("$208.42");
     expect(text).toContain("Voluptates totam quaerat eius aut odio adipisci");
     expect(text).toContain("@yahoo.com");
-    expect(text).toContain("No Needs");
+    expect(text).toContain("No Wants");
     expect(text).toContain("3 Offers");
 
     const tabs = wrapper.findAllComponents(QTab);

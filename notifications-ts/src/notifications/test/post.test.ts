@@ -82,6 +82,6 @@ describe('Post notifications', () => {
 
     assert.equal(actions[1].title, 'Extend 7 days')
 
-    await verifyNotification(userId, groupId, notification.id, "Need expired")
+    await verifyNotification(userId, groupId, notification.id, "Want expired")
   })
 })
