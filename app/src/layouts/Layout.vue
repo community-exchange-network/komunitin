@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-light column full-height">
+  <div class="bg-background column full-height">
     <div
       id="container"
       class="q-mx-auto"
@@ -23,7 +23,7 @@
         </q-drawer>
         <router-view />
         <q-footer class="lt-md" v-if="myMember && isRootPage">
-          <q-toolbar class="bg-background text-primary">
+          <q-toolbar class="bg-surface text-primary">
             <q-tabs 
               breakpoint="1024" 
               class="full-width"
