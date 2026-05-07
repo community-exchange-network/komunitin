@@ -24,6 +24,7 @@ export default defineConfig((ctx) => {
       "i18n",
       "store",
       { path: "push-notifications", server: false },
+      "icons",
       ...(environment.FEAT_GTM === "true" ? [{ path: "gtm", server: false as const }] : []),
       ...(environment.FEAT_MATOMO === "true" ? [{ path: "matomo", server: false as const }] : []),
       ...(environment.MOCK_ENABLE === "true" ? [{ path: "mirage", server: false as const }] : []),
@@ -46,12 +47,12 @@ export default defineConfig((ctx) => {
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
 
       // "roboto-font", // optional, you are not bound to it
-      "material-icons" // optional, you are not bound to it
+      "material-symbols-rounded" // optional, you are not bound to it
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework
     framework: {
-      iconSet: "material-icons", // Quasar icon set
+      iconSet: "material-symbols-rounded", // Quasar icon set
       lang: "en-US", // Quasar language pack
 
 
