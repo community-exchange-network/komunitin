@@ -22,8 +22,17 @@ export const getJwks = () => {
   return jwks
 }
 
-export const signJwt = async (userId: string, email = 'user@example.org') => {
-  return await new SignJWT({ email })
+export const signJwt = async (
+  userId: string,
+  email = 'user@example.org',
+  scope?: string | string[],
+) => {
+  const payload: Record<string, unknown> = { email }
+  if (scope) {
+    payload.scope = Array.isArray(scope) ? scope.join(' ') : scope
+  }
+
+  return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'RS256', kid: 'test-key-id' })
     .setIssuedAt()
     .setIssuer('https://komunitin.org')
