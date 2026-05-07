@@ -1,19 +1,18 @@
-import { Router, ErrorRequestHandler } from 'express'
+import { ErrorRequestHandler, Router, type RequestHandler } from 'express'
 import { checkExact } from 'express-validator'
-import { CreditCommonsNode, CreditCommonsTransaction } from '../model'
 import { BaseService } from '../controller'
-import { Scope, userAuth, lastHashAuth, noAuth } from '../server/auth'
-import { currencyInputHandler, currencyResourceHandler, asyncHandler} from '../server/handlers'
-import { context } from '../utils/context'
-import { CreditCommonsValidators } from './validation'
-import { logger } from '../utils/logger'
+import { CreditCommonsNode } from '../model'
+import { lastHashAuth, noAuth, Scope, userAuth } from '../server/auth'
 import { getKError } from '../server/errors'
+import { asyncHandler, currencyInputHandler, currencyResourceHandler } from '../server/handlers'
+import { context } from '../utils/context'
+import { logger } from '../utils/logger'
+import { CreditCommonsValidators } from './validation'
 
 import {
-  CreditCommonsNodeSerializer,
   CreditCommonsMessageSerializer,
-  CreditCommonsTransactionSerializer
-} from './serialize';
+  CreditCommonsNodeSerializer
+} from './serialize'
 
 export const ccErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
   logger.error(err)
@@ -21,6 +20,19 @@ export const ccErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
   const errorObj = { errors: [ kerror.message ] }
   res.status(kerror.getStatus()).json(errorObj)
 }
+
+const forceCcJsonContentType: RequestHandler = (_req, res, next) => {
+  const setHeader = res.setHeader.bind(res)
+  res.setHeader = ((name, value) => {
+    if (name.toLowerCase() === 'content-type') {
+      value = 'application/json'
+    }
+
+    return setHeader(name, value)
+  }) as typeof res.setHeader
+  next()
+}
+
 /**
  * Implements the routes for the credit commons federation protocol
  * https://gitlab.com/credit-commons/cc-php-lib/-/blob/master/docs/credit-commons-openapi3.yml
@@ -42,6 +54,8 @@ export function getRoutes(controller: BaseService) {
       return await currencyController.creditCommons.createNode(ctx, data)
     }, CreditCommonsNodeSerializer, {status: 201}),
   )
+
+  router.use('/:code/cc', forceCcJsonContentType)
 
   /**
    * Retrieve a welcome message. Requires last-hash auth.
