@@ -31,7 +31,7 @@ describe('last-hash auth', async () => {
       "/TEST/cc/",
       { user: null, scopes: [], ccNode: 'trunk', lastHash: 'trunk' },
       200, "application/json")
-    assert.equal(response.body.data.attributes.message, 'Welcome to the Credit Commons federation protocol.')
+    assert.equal(response.body.message, 'Welcome to the Credit Commons federation protocol.')
   })
   
 
