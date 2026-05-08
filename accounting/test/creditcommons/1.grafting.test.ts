@@ -23,6 +23,7 @@ describe('grafting', async () => {
       "application/json")
     // note that this error will come from a CC API route:
     assert.equal(response.text, '{"errors":["This currency has not (yet) been grafted onto any CreditCommons tree."]}')
+    assert.equal(response.header['content-type'], 'application/json')
   })
   it('requires authn', async () => {
     const response = await t.api.post(
