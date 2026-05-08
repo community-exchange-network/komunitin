@@ -2,15 +2,6 @@
 
 These guidelines apply when writing or modifying language strings for the CES flavor.
 
-## Flavor language files
-
-| Service | Default strings | CES overrides |
-|---|---|---|
-| App (Vue frontend) | `app/src/i18n/en-us/` | `app/src/i18n/flavors/ces/en-us/` |
-| Notifications | `notifications-ts/src/i18n/en.json` | `notifications-ts/src/i18n/flavors/ces/en.json` |
-
-CES flavor files only need to include keys that differ from the default.
-
 ## Philosophy
 
 CES records social activity, not financial transactions. Key principle: *"This is just people doing favors and keeping records."*
@@ -23,7 +14,7 @@ CES records social activity, not financial transactions. Key principle: *"This i
 
 | Komunitin default | CES flavor |
 |---|---|
-| Transfer / Transaction | **Trade** |
+| Transfer | **Trade** |
 | Send | **I Received** |
 | Receive | **I Provided** |
 | Balance | **Community Standing** |
@@ -48,7 +39,7 @@ When writing UI copy or notification text, always frame from the perspective of 
 The CES flavor uses deliberately different terminology from the Komunitin default. When translating CES flavor strings, do **not** use the same words as the default Komunitin translation for your language — the differences are intentional.
 
 Pay particular attention to:
-- **Trade** — do not translate as the word used for "transfer" or "transaction" in the default
+- **Trade** — do not translate as the word used for "transfer" in the default
 - **Community Standing** — do not translate as the word used for "balance"
 - **I Received / I Provided** — these replace "Send / Receive" and reflect the real-world action, not the currency movement. The translation must preserve this perspective.
 - **User** — do not translate as the word used for "member"
