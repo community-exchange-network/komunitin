@@ -29,9 +29,14 @@
           caption
           class="col top-right-label"
         >
-          <span v-if="transfer.attributes.state == 'pending'">
+          <q-badge
+            color="pending" 
+            text-color="primary"
+            v-if="transfer.attributes.state == 'pending'"
+            class="badge-square text-uppercase text-weight-bold text-badge"
+            >
             {{ $t("pending") }}
-          </span>
+          </q-badge>
           <span v-else-if="transfer.attributes.state == 'rejected'">
             {{ $t("rejected") }}
           </span>
@@ -150,15 +155,16 @@ const overrideCaption = computed(() => {
     margin-top: -12px;
   }
   .pending {
-    background-color: $orange-1;
-    .top-right-label{
-      color: $orange-10;
-    }
+    background-color: $light-background;
   }
   .rejected, .failed {
     background: $light-background;
     .positive-amount, .negative-amount, .section-extra {
       color: $onsurface-d;
     }
+  }
+  .text-badge {
+    font-size: 0.625rem;
+    line-height: 0.8rem;
   }
 </style>
