@@ -7,22 +7,22 @@ describe('last-hash auth', async () => {
   const t = setupServerTest(true, true)
 
   it('Requires the cc-node header', async () => {
-    const response = await t.api.get("/TEST/cc/", undefined, 401)
+    const response = await t.api.get("/TEST/cc/", undefined, 401, "application/json")
     assert.equal(response.text, '{"errors":["cc-node header is required."]}')
   })
 
   it('Requires the last-hash header', async () => {
-    const response = await t.api.get("/TEST/cc/", { user: null, scopes: [], ccNode: 'trunk' }, 401)
+    const response = await t.api.get("/TEST/cc/", { user: null, scopes: [], ccNode: 'trunk' }, 401, "application/json")
     assert.equal(response.text, '{"errors":["last-hash header is required."]}')
   })
 
   it('Checks the last-hash header', async () => {
-    const response = await t.api.get("/TEST/cc/", { user: null, scopes: [], ccNode: 'trunk', lastHash: 'qwer' }, 401)
+    const response = await t.api.get("/TEST/cc/", { user: null, scopes: [], ccNode: 'trunk', lastHash: 'qwer' }, 401, "application/json")
     assert.equal(response.text, '{"errors":["value of last-hash header \\"qwer\\" does not match our records."]}')
   })
 
   it('Checks the cc-node header', async () => {
-    const response = await t.api.get("/TEST/cc/", { user: null, scopes: [], ccNode: 'bla', lastHash: 'asdf' }, 401)
+    const response = await t.api.get("/TEST/cc/", { user: null, scopes: [], ccNode: 'bla', lastHash: 'asdf' }, 401, "application/json")
     assert.equal(response.text, '{"errors":["cc-node \\"bla\\" is not our trunkward node."]}')
   })
 
@@ -30,8 +30,8 @@ describe('last-hash auth', async () => {
     const response = await t.api.get(
       "/TEST/cc/",
       { user: null, scopes: [], ccNode: 'trunk', lastHash: 'trunk' },
-      200)
-    assert.equal(response.body.data.attributes.message, 'Welcome to the Credit Commons federation protocol.')
+      200, "application/json")
+    assert.equal(response.body.message, 'Welcome to the Credit Commons federation protocol.')
   })
   
 
