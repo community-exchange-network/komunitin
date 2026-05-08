@@ -1,9 +1,10 @@
-import { Group, GroupAdminUser, Member, MemberUser, User } from '../../src/generated/prisma/client'
+import { Category, Group, GroupAdminUser, Member, MemberUser, User } from '../../src/generated/prisma/client'
 import { mockDb } from './prisma'
 
 let groupIdCounter = 0
 let memberIdCounter = 0
 let userCounter = 0
+let categoryIdCounter = 0
 
 export type MockDatabase = NonNullable<ReturnType<typeof mockDb>>
 
@@ -14,6 +15,10 @@ type SeedGroupInput = Partial<Group> & {
 type SeedMemberInput = Partial<Member> & {
   tenantId: string
   userId?: string
+}
+
+type SeedCategoryInput = Partial<Category> & {
+  tenantId: string
 }
 
 const defaultUserData = () => {
@@ -69,6 +74,20 @@ const defaultMemberData = () => {
     created: new Date(),
     updated: new Date(),
     deleted: null,
+  }
+}
+
+const defaultCategoryData = () => {
+  categoryIdCounter++
+  return {
+    id: `category-${categoryIdCounter}`,
+    code: `category-${categoryIdCounter}`,
+    name: `Test Category ${categoryIdCounter}`,
+    access: 'public',
+    icon: null,
+    meta: {},
+    created: new Date(),
+    updated: new Date(),
   }
 }
 
@@ -178,5 +197,21 @@ export const seedMemberUser = (
 
   db.memberUser!.push(relation)
   return relation
+}
+
+export const seedCategory = (
+  db: MockDatabase,
+  data: SeedCategoryInput,
+): Category => {
+  const group = db.group!.find((item) => item.tenantId === data.tenantId)!
+
+  const category = {
+    groupId: group.id,
+    ...defaultCategoryData(),
+    ...data,
+  } as Category
+
+  db.category!.push(category)
+  return category
 }
 

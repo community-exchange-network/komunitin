@@ -2,18 +2,13 @@ import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
 import { Scope } from '../src/server/auth'
-import { signJwt } from './mocks/auth'
+import { auth } from './mocks/auth'
 import { mockDb, resetDb } from './mocks/prisma'
 import { MockDatabase, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
 let app: any
 let db: MockDatabase
-
-const auth = async (subject: string, email: string, scope?: string | string[]) => {
-  const token = await signJwt(subject, email, scope)
-  return { subject, token }
-}
 
 const postGroup = (
   token: string,
@@ -81,7 +76,7 @@ describe('Groups endpoints', () => {
   })
 
   test('POST /groups creates pending group with optional settings include', async () => {
-    const { subject, token } = await auth('user-1', 'owner@example.org')
+    const { subject, token } = await auth('user-1')
 
     const res = await postGroup(token, 'alpha-group', { includeSettings: true })
       .expect(201)
@@ -103,13 +98,13 @@ describe('Groups endpoints', () => {
     assert.ok(adminView.body.data.id.length > 0)
     assert.ok(subject.length > 0)
 
-    const { token: superadminToken } = await auth('superadmin-1', 'owner-superadmin@example.org', Scope.Superadmin)
+    const { token: superadminToken } = await auth('superadmin-1', undefined, Scope.Superadmin)
     await request(app)
       .get('/alpha-group')
       .set('Authorization', `Bearer ${superadminToken}`)
       .expect(200)
 
-    const { token: outsiderToken } = await auth('outsider-1', 'owner-outsider@example.org')
+    const { token: outsiderToken } = await auth('outsider-1')
     await request(app)
       .get('/alpha-group')
       .set('Authorization', `Bearer ${outsiderToken}`)
@@ -117,7 +112,7 @@ describe('Groups endpoints', () => {
   })
 
   test('POST /groups rejects duplicate code', async () => {
-    const { token } = await auth('user-2', 'duplicated@example.org')
+    const { token } = await auth('user-2')
 
     await postGroup(token, 'dupe-code').expect(201)
     await postGroup(token, 'dupe-code').expect(400)
@@ -138,7 +133,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(anonymous.body.data.length, 1)
     assert.strictEqual(anonymous.body.data[0].attributes.code, 'public-active')
 
-    const { token } = await auth('user-3', 'any@example.org')
+    const { token } = await auth('user-3')
     const authenticated = await request(app)
       .get('/groups')
       .set('Authorization', `Bearer ${token}`)
@@ -147,7 +142,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(authenticated.body.data.length, 1)
     assert.strictEqual(authenticated.body.data[0].attributes.code, 'public-active')
 
-    const admin = await auth('admin-3', 'admin-own@example.org')
+    const admin = await auth('admin-3')
     seedGroupAdmin(db, { tenantId: 'admin-owned', userId: admin.subject })
 
     const adminResult = await request(app)
@@ -159,7 +154,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(adminCodes.includes('public-active'), true)
     assert.strictEqual(adminCodes.includes('admin-owned'), true)
 
-    const superadmin = await auth('superadmin-3', 'superadmin-all@example.org', Scope.Superadmin)
+    const superadmin = await auth('superadmin-3', undefined, Scope.Superadmin)
     const superadminResult = await request(app)
       .get('/groups')
       .set('Authorization', `Bearer ${superadmin.token}`)
@@ -205,7 +200,7 @@ describe('Groups endpoints', () => {
   test('GET /:code allows group member and denies non-member for group access', async () => {
     seedGroup(db, { tenantId: 'member-group', status: 'active', access: 'group' })
 
-    const member = await auth('user-5', 'member@example.org')
+    const member = await auth('user-5')
     seedMember(db, { tenantId: 'member-group', userId: member.subject })
 
     const memberResult = await request(app)
@@ -215,20 +210,20 @@ describe('Groups endpoints', () => {
 
     assert.strictEqual(memberResult.body.data.attributes.code, 'member-group')
 
-    const outsider = await auth('user-6', 'outsider@example.org')
+    const outsider = await auth('user-6')
     await request(app)
       .get('/member-group')
       .set('Authorization', `Bearer ${outsider.token}`)
       .expect(403)
 
-    const admin = await auth('admin-6', 'member-group-admin@example.org')
+    const admin = await auth('admin-6')
     seedGroupAdmin(db, { tenantId: 'member-group', userId: admin.subject })
     await request(app)
       .get('/member-group')
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(200)
 
-    const superadmin = await auth('superadmin-6', 'member-group-superadmin@example.org', Scope.Superadmin)
+    const superadmin = await auth('superadmin-6', undefined, Scope.Superadmin)
     await request(app)
       .get('/member-group')
       .set('Authorization', `Bearer ${superadmin.token}`)
@@ -250,7 +245,7 @@ describe('Groups endpoints', () => {
   })
 
   test('GET /:code/settings allows admin and superadmin, denies others for pending public group', async () => {
-    const { subject, token } = await auth('admin-8', 'settings-admin@example.org')
+    const { subject, token } = await auth('admin-8')
     seedGroup(db, {
       tenantId: 'settings-admin-group',
       status: 'pending',
@@ -267,13 +262,13 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.data.type, 'group-settings')
     assert.strictEqual(res.body.data.attributes.enableGroupEmail, true)
 
-    const superadmin = await auth('superadmin-8', 'settings-superadmin@example.org', Scope.Superadmin)
+    const superadmin = await auth('superadmin-8', undefined, Scope.Superadmin)
     await request(app)
       .get('/settings-admin-group/settings')
       .set('Authorization', `Bearer ${superadmin.token}`)
       .expect(200)
 
-    const outsider = await auth('outsider-8', 'settings-outsider@example.org')
+    const outsider = await auth('outsider-8')
     await request(app)
       .get('/settings-admin-group/settings')
       .set('Authorization', `Bearer ${outsider.token}`)
@@ -301,7 +296,7 @@ describe('Groups endpoints', () => {
   })
 
   test('PATCH /:code updates editable attributes for group admin', async () => {
-    const { subject, token } = await auth('admin-9', 'patch-admin@example.org')
+    const { subject, token } = await auth('admin-9')
     seedGroup(db, { tenantId: 'patch-admin', status: 'active', access: 'public' })
     seedGroupAdmin(db, { tenantId: 'patch-admin', userId: subject })
 
@@ -326,7 +321,7 @@ describe('Groups endpoints', () => {
   })
 
   test('PATCH /:code denies admin status transition from pending to active', async () => {
-    const admin = await auth('admin-status-9', 'status-admin@example.org')
+    const admin = await auth('admin-status-9')
     seedGroup(db, { tenantId: 'status-transition', status: 'pending', access: 'public' })
     seedGroupAdmin(db, { tenantId: 'status-transition', userId: admin.subject })
 
@@ -347,7 +342,7 @@ describe('Groups endpoints', () => {
   test('PATCH /:code denies non-admin and allows superadmin for non-status updates', async () => {
     seedGroup(db, { tenantId: 'patch-permissions', status: 'active', access: 'public' })
 
-    const regular = await auth('user-a', 'regular@example.org')
+    const regular = await auth('user-a')
     await request(app)
       .patch('/patch-permissions')
       .set('Authorization', `Bearer ${regular.token}`)
@@ -361,7 +356,7 @@ describe('Groups endpoints', () => {
       })
       .expect(403)
 
-    const superadmin = await auth('superadmin-b', 'root@example.org', Scope.Superadmin)
+    const superadmin = await auth('superadmin-b', undefined, Scope.Superadmin)
     const elevated = await request(app)
       .patch('/patch-permissions')
       .set('Authorization', `Bearer ${superadmin.token}`)
@@ -379,7 +374,7 @@ describe('Groups endpoints', () => {
   })
 
   test('PATCH /:code returns 404 for missing group', async () => {
-    const { token } = await auth('user-c', 'missing@example.org')
+    const { token } = await auth('user-c')
 
     await request(app)
       .patch('/missing-group')
@@ -396,7 +391,7 @@ describe('Groups endpoints', () => {
   })
 
   test('PATCH /:code validates request body', async () => {
-    const { subject, token } = await auth('admin-d', 'schema@example.org')
+    const { subject, token } = await auth('admin-d')
     seedGroup(db, { tenantId: 'schema-group', status: 'active', access: 'public' })
     seedGroupAdmin(db, { tenantId: 'schema-group', userId: subject })
 

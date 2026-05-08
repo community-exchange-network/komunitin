@@ -85,24 +85,26 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
   return toGroup(group)
 }
 
-const isGroupAdmin = async (code: string, groupId: string, userId: string): Promise<boolean> => {
-  const db = tenantDb(prisma, code)
+export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
+  const db = tenantDb(prisma, group.code)
   const relation = await db.groupAdminUser.findFirst({
     where: {
-      groupId,
-      userId,
+      groupId: group.id,
+      userId: ctx.userId,
+
     }
   })
 
   return Boolean(relation)
 }
 
-const isGroupMember = async (code: string, userId: string): Promise<boolean> => {
-  const db = tenantDb(prisma, code)
+export const isGroupMember = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
+  const db = tenantDb(prisma, group.code)
   const relation = await db.memberUser.findFirst({
     where: {
-      userId,
+      userId: ctx.userId,
       member: {
+        groupId: group.id,
         deleted: null,
       },
     }
@@ -111,14 +113,15 @@ const isGroupMember = async (code: string, userId: string): Promise<boolean> => 
   return Boolean(relation)
 }
 
-const canAccessGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
-  const isAdmin = async () => ctx.userId ? await isGroupAdmin(group.code, group.id, ctx.userId) : false
-  const isMember = async() => ctx.userId ? await isGroupMember(group.code, ctx.userId) : false
-
+export const canAccessGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
   return ctx.isSuperadmin
     || (group.status === 'active' && group.access === 'public')
-    || (group.status === 'active' && group.access === 'group' && await isMember()) 
-    || await isAdmin()
+    || (group.status === 'active' && group.access === 'group' && await isGroupMember(ctx, group)) 
+    || await isGroupAdmin(ctx, group)
+}
+
+export const canWriteGroup = async (ctx: AuthContext, group: Group): Promise<boolean> => {
+  return ctx.isSuperadmin || await isGroupAdmin(ctx, group)
 }
 
 /**
@@ -172,9 +175,9 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     throw notFound('Group not found')
   }
 
-  const isAdmin = await isGroupAdmin(code, group.id, ctx.userId)
-  if (!isAdmin && !ctx.isSuperadmin) {
-    throw forbidden('Only group admins can update this group')
+  const allowed = await canWriteGroup(ctx, toGroup(group))
+  if (!allowed) {
+    throw forbidden('You do not have permission to update this group')
   }
 
   if (typeof attributes.status === 'string') {

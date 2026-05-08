@@ -41,3 +41,19 @@ export const signJwt = async (
     .setExpirationTime('2h')
     .sign(privateKey)
 }
+
+let userCounter = 0
+/**
+ * Helper function for tests.
+ */
+export const auth = async (subject?: string, email?: string, scope?: string | string[]) => {
+  if (!subject) {
+    userCounter++
+    subject = `user-${userCounter}`
+  }
+  if (!email) {
+    email = `${subject}@example.org`
+  }
+  const token = await signJwt(subject, email, scope)
+  return { subject, token }
+}
