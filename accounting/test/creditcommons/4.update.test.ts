@@ -10,12 +10,12 @@ describe('receive', async () => {
 
   it('Checks the last-hash header', async () => {
     const ccTransaction = generateCcTransaction('non-existing')
-    const response = await t.api.patch(`/TEST/cc/transaction/${ccTransaction.uuid}/C`, ccTransaction, { user: null, scopes: [], ccNode: 'trunk', lastHash: 'qwer' }, 401)
+    const response = await t.api.patch(`/TEST/cc/transaction/${ccTransaction.uuid}/C`, ccTransaction, { user: null, scopes: [], ccNode: 'trunk', lastHash: 'qwer' }, 401, "application/json")
     assert.equal(response.text, '{"errors":["value of last-hash header \\"qwer\\" does not match our records."]}')
   })
 
   it('Fails if the transaction does not exist', async () => {
-    const result = await t.api.patch(`/TEST/cc/transaction/non-existing/C`, {}, { user: null, scopes: [], ccNode: 'trunk', lastHash: 'trunk' }, 404)
+    const result = await t.api.patch(`/TEST/cc/transaction/non-existing/C`, {}, { user: null, scopes: [], ccNode: 'trunk', lastHash: 'trunk' }, 404, "application/json")
     assert.equal(result.text, '{"errors":["Transfer non-existing not found"]}')
   })
 
@@ -27,8 +27,9 @@ describe('receive', async () => {
       "/TEST/cc/transaction/relay",
       ccTransaction,
       { user: null, scopes: [], ccNode: 'trunk', lastHash: hashBefore },
-      400)
-    const result = await t.api.patch(`/TEST/cc/transaction/${ccTransaction.uuid}/C`, {}, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashAfter }, 500)
+      400,
+      "application/json")
+    const result = await t.api.patch(`/TEST/cc/transaction/${ccTransaction.uuid}/C`, {}, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashAfter }, 500, "application/json")
     assert.equal(result.text, '{"errors":["not implemented yet"]}')
   })
 })

@@ -1,26 +1,35 @@
-import { Router, ErrorRequestHandler } from 'express'
+import { ErrorRequestHandler, Router, type Response } from 'express'
 import { checkExact } from 'express-validator'
-import { CreditCommonsNode, CreditCommonsTransaction } from '../model'
 import { BaseService } from '../controller'
-import { Scope, userAuth, lastHashAuth, noAuth } from '../server/auth'
-import { currencyInputHandler, currencyResourceHandler, asyncHandler} from '../server/handlers'
-import { context } from '../utils/context'
-import { CreditCommonsValidators } from './validation'
-import { logger } from '../utils/logger'
+import { CreditCommonsNode } from '../model'
+import { lastHashAuth, noAuth, Scope, userAuth } from '../server/auth'
 import { getKError } from '../server/errors'
+import { asyncHandler, currencyInputHandler } from '../server/handlers'
+import { context } from '../utils/context'
+import { logger } from '../utils/logger'
+import { CreditCommonsValidators } from './validation'
 
 import {
-  CreditCommonsNodeSerializer,
-  CreditCommonsMessageSerializer,
-  CreditCommonsTransactionSerializer
-} from './serialize';
+  CreditCommonsNodeSerializer
+} from './serialize'
 
 export const ccErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
   logger.error(err)
   const kerror = getKError(err) // from errors.ts
   const errorObj = { errors: [ kerror.message ] }
-  res.status(kerror.getStatus()).json(errorObj)
+  sendCcJson(res, kerror.getStatus(), errorObj)
 }
+
+function sendCcJson(res: Response, status: number, body: unknown, headers: Record<string, string> = {}) {
+  const payload = JSON.stringify(body)
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(payload).toString(),
+    ...headers,
+  })
+  res.end(payload)
+}
+
 /**
  * Implements the routes for the credit commons federation protocol
  * https://gitlab.com/credit-commons/cc-php-lib/-/blob/master/docs/credit-commons-openapi3.yml
@@ -48,10 +57,13 @@ export function getRoutes(controller: BaseService) {
    */
   router.get('/:code/cc/',
     lastHashAuth(),
-    currencyResourceHandler(controller, async (currencyController, ctx) => {
-      // seResponseTrace(req, res)
-      return await currencyController.creditCommons.getWelcome(ctx);
-    }, CreditCommonsMessageSerializer, {}),
+    asyncHandler(async (req, res) => {
+      const ctx = context(req)
+      const currencyController = await controller.getCurrencyController(req.params.code)
+      const response = await currencyController.creditCommons.getWelcome(ctx)
+      sendCcJson(res, 200, response)
+    }),
+   
     ccErrorHandler
   )
 
@@ -64,8 +76,7 @@ export function getRoutes(controller: BaseService) {
       const ctx = context(req)
       const currencyController = await controller.getCurrencyController(req.params.code)
       const response = await currencyController.creditCommons.createTransaction(ctx, req.body)
-      res.setHeader('cc-node-trace', response.trace)
-      res.status(201).json(response.body)
+      sendCcJson(res, 201, response.body, { 'cc-node-trace': response.trace })
     }),
     ccErrorHandler
   )
@@ -94,9 +105,7 @@ export function getRoutes(controller: BaseService) {
       const ctx = context(req)
       const currencyController = await controller.getCurrencyController(req.params.code)
       const response = await currencyController.creditCommons.getAccount(ctx, (req.query as { acc_path: string }).acc_path)
-      res.setHeader('Content-Type', 'application/vnd.api+json')
-      res.setHeader('cc-node-trace', response.trace)
-      res.status(200).json(response.body)
+      sendCcJson(res, 200, response.body, { 'cc-node-trace': response.trace })
     }),
     ccErrorHandler
   )
@@ -110,9 +119,7 @@ export function getRoutes(controller: BaseService) {
       const ctx = context(req)
       const currencyController = await controller.getCurrencyController(req.params.code)
       const response = await currencyController.creditCommons.getAccountHistory(ctx, (req.query as { acc_path: string }).acc_path)
-      res.setHeader('Content-Type', 'application/vnd.api+json')
-      res.setHeader('cc-node-trace', response.trace)
-      res.status(200).json(response.body)
+      sendCcJson(res, 200, response.body, { 'cc-node-trace': response.trace })
     }),
     ccErrorHandler
   )
@@ -125,8 +132,7 @@ export function getRoutes(controller: BaseService) {
     const ctx = context(req)
     const currencyController = await controller.getCurrencyController(req.params.code)
     const response = await currencyController.creditCommons.getAccountAddresses(ctx, req.params.id)
-    res.setHeader('Content-Type', 'application/json')
-    res.status(200).json(response)
+    sendCcJson(res, 200, response)
   }))
 
   return router

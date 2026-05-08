@@ -38,6 +38,7 @@ describe("Groups", () => {
     expect(text).toContain("GRP0");
     // Description
     expect(text).toContain("Et facere placeat molestiae");
+
     // Check cards present.
     const cards = wrapper.findAllComponents(QCard);
     cards.forEach((card) => {

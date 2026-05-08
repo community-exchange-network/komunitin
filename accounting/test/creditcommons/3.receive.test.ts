@@ -10,7 +10,7 @@ describe('receive', async () => {
 
   it('Checks the last-hash header', async () => {
     const ccTransaction = generateCcTransaction()
-    const response = await t.api.post("/TEST/cc/transaction/relay", ccTransaction, { user: null, scopes: [], ccNode: 'trunk', lastHash: 'qwer' }, 401)
+    const response = await t.api.post("/TEST/cc/transaction/relay", ccTransaction, { user: null, scopes: [], ccNode: 'trunk', lastHash: 'qwer' }, 401, "application/json")
     assert.equal(response.text, '{"errors":["value of last-hash header \\"qwer\\" does not match our records."]}')
   })
 
@@ -23,7 +23,7 @@ describe('receive', async () => {
     assert.equal(t.account0.attributes.balance, 0)
     t.account2 = (await t.api.get(`/TEST/accounts/${t.account2.id}`, t.user2)).body.data
     assert.equal(t.account2.attributes.balance, 0)
-    const accountStatusBefore = await t.api.get(`/TEST/cc/account?acc_path=TEST0002`, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashBefore }, 200)
+    const accountStatusBefore = await t.api.get(`/TEST/cc/account?acc_path=TEST0002`, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashBefore }, 200, "application/json")
     assert.deepEqual(accountStatusBefore.body, {
       balance: 0,
       entries: 0,
@@ -33,7 +33,7 @@ describe('receive', async () => {
       pending: 0,
       trades: 0
     })
-    const accountHistoryBefore = await t.api.get(`/TEST/cc/account/history?acc_path=TEST0002`, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashBefore }, 200)
+    const accountHistoryBefore = await t.api.get(`/TEST/cc/account/history?acc_path=TEST0002`, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashBefore }, 200, "application/json")
     assert.deepEqual(accountHistoryBefore.body, {
       data: {},
       meta: {
@@ -48,7 +48,8 @@ describe('receive', async () => {
       "/TEST/cc/transaction/relay",
       ccTransaction,
       { user: null, scopes: [], ccNode: 'trunk', lastHash: hashBefore },
-      201)
+      201,
+      "application/json")
     assert.equal(JSON.stringify(response.body.data, null, 2), JSON.stringify(ccTransaction.entries, null, 2))
     const expectedNetGain = (.01) * 10000
     // Check balances after
@@ -56,7 +57,7 @@ describe('receive', async () => {
     assert.equal(t.account0.attributes.balance, -expectedNetGain)
     t.account2 = (await t.api.get(`/TEST/accounts/${t.account2.id}`, t.user2)).body.data
     assert.equal(t.account2.attributes.balance, expectedNetGain)
-    const accountStatusAfter = await t.api.get(`/TEST/cc/account?acc_path=TEST0002`, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashAfter }, 200)
+    const accountStatusAfter = await t.api.get(`/TEST/cc/account?acc_path=TEST0002`, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashAfter }, 200, "application/json")
     assert.deepEqual(accountStatusAfter.body, {
       balance: 0.01,
       entries: 1,
@@ -66,7 +67,7 @@ describe('receive', async () => {
       pending: 0,
       trades: 1
     })
-    const accountHistoryAfter = await t.api.get(`/TEST/cc/account/history?acc_path=TEST0002`, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashAfter }, 200)
+    const accountHistoryAfter = await t.api.get(`/TEST/cc/account/history?acc_path=TEST0002`, { user: null, scopes: [], ccNode: 'trunk', lastHash: hashAfter }, 200, "application/json")
     const transDates = Object.keys(accountHistoryAfter.body.data)
     assert.equal(transDates.length, 1)
     assert.deepEqual(accountHistoryAfter.body, {
