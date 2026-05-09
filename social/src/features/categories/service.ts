@@ -4,6 +4,8 @@ import { type AuthContext, type OptionalAuthContext } from '../../server/context
 import { tenantDb } from '../../server/multitenant'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
+import type { CollectionParams } from '../../server/request'
+import { whereFilter, orderBySort } from '../../server/query'
 import { canWriteGroup, getGroupByCode, isGroupAdmin, isGroupMember } from '../groups/service'
 import type { Group } from '../groups/types'
 import type { Category, CreateCategoryInput, PatchCategoryInput } from './types'
@@ -33,14 +35,15 @@ const getCategory = async (code: string, id: string): Promise<Category> => {
   return toCategory(category)
 }
 
-export const listCategories = async (ctx: OptionalAuthContext, code: string): Promise<Category[]> => {
+export const listCategories = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Category[]> => {
   const group = await getGroupByCode(ctx, code)
+  const filterWhere = whereFilter(params.filters)
 
   const db = tenantDb(prisma, code)
+
   const categories = await db.category.findMany({
-    orderBy: {
-      created: 'desc',
-    },
+    where: filterWhere,
+    orderBy: orderBySort(params.sort),
   })
 
   const visibleCategories: Category[] = []
@@ -51,7 +54,7 @@ export const listCategories = async (ctx: OptionalAuthContext, code: string): Pr
     }
   }
 
-  return visibleCategories
+  return visibleCategories.slice(params.pagination.cursor, params.pagination.cursor + params.pagination.size)
 }
 
 export const createCategory = async (ctx: AuthContext, code: string, input: CreateCategoryInput): Promise<Category> => {

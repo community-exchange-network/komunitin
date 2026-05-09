@@ -1,5 +1,6 @@
 import TsJapi from 'ts-japi'
 import { config } from '../../config'
+import { SerializerOptions } from '../../server/jsonapi-serialize'
 import type { GroupSettings } from './schema'
 import type { Group } from './types'
 
@@ -62,12 +63,13 @@ const GroupSerializer = new Serializer<Group>('groups', {
 })
 
 
-export const serializeGroup = async (group: Group, include: string[] = []) => {
-  return GroupSerializer.serialize(group, { include })
+export const serializeGroup = async (group: Group, options?: SerializerOptions<Group>) => {
+  return GroupSerializer.serialize(group, options)
 }
 
-export const serializeGroups = async (groups: Group[], include: string[] = []) => {
-  return GroupSerializer.serialize(groups, { include })
+
+export const serializeGroups = async (groups: Group[], options?: SerializerOptions<Group>) => {
+  return GroupSerializer.serialize(groups, options)
 }
 
 export const serializeGroupSettings = async (group: Group) => {

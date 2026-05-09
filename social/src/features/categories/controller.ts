@@ -4,13 +4,23 @@ import { getValidatedBody } from '../../server/validation'
 import type { CreateCategoryBody, PatchCategoryBody } from './schema'
 import { serializeCategories, serializeCategory } from './serialize'
 import { createCategory, deleteCategory, listCategories, patchCategory } from './service'
-import { getCode, getParam } from '../../server/request'
+import { getCollectionParams, getCode, getParam } from '../../server/request'
+import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
 
 export const getCategoriesRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
-  const categories = await listCategories(ctx, code)
-  const payload = await serializeCategories(categories)
+  const params = getCollectionParams(req, {
+    filter: ['code', 'name', 'access'],
+    sort: ['created', 'updated', 'name', 'code'],
+  })
+
+  const categories = await listCategories(ctx, code, params)
+  
+  const payload = await serializeCategories(categories, 
+    getCollectionSerializerOptions(req.path, params, categories.length)
+  )
+
   res.status(200).json(payload)
 }
 

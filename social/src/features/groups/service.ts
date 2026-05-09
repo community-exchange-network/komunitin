@@ -3,6 +3,8 @@ import { Group as DbGroup } from '../../generated/prisma/client'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
+import type { CollectionParams } from '../../server/request'
+import { whereFilter, orderBySort } from '../../server/query'
 import { Address, Location, PatchGroupAttributes } from './schema'
 import type { CreateGroupInput, Group } from './types'
 import { OptionalAuthContext, AuthContext } from '../../server/context'
@@ -127,12 +129,14 @@ export const canWriteGroup = async (ctx: AuthContext, group: Group): Promise<boo
 /**
  * Return all groups accessible to the given user.
  */
-export const listGroups = async (ctx: OptionalAuthContext): Promise<Group[]> => {
+export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<Group[]> => {
   const db = privilegedDb(prisma)
+
+  const filterWhere = whereFilter(params.filters)
+
   const groups = await db.group.findMany({
-    orderBy: {
-      created: 'desc'
-    }
+    where: filterWhere,
+    orderBy: orderBySort(params.sort),
   })
 
   const accessibleGroups: Group[] = []
@@ -144,7 +148,7 @@ export const listGroups = async (ctx: OptionalAuthContext): Promise<Group[]> => 
     }
   }
 
-  return accessibleGroups 
+  return accessibleGroups.slice(params.pagination.cursor, params.pagination.cursor + params.pagination.size)
 }
 
 export const getGroupByCode = async (

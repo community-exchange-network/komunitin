@@ -85,6 +85,42 @@ describe('Categories endpoints', () => {
     assert.strictEqual(superadminRes.body.data.length, 3)
   })
 
+  test('GET /:code/categories applies pagination, sorting and filtering generically', async () => {
+    seedGroup(db, { tenantId: 'cats-query', status: 'active', access: 'public' })
+    seedCategory(db, { tenantId: 'cats-query', code: 'a', name: 'Alpha', access: 'public' })
+    seedCategory(db, { tenantId: 'cats-query', code: 'b', name: 'Bravo', access: 'group' })
+    seedCategory(db, { tenantId: 'cats-query', code: 'c', name: 'Charlie', access: 'private' })
+
+    const admin = await auth('admin-query')
+    seedGroupAdmin(db, { tenantId: 'cats-query', userId: admin.subject })
+
+    const firstPage = await request(app)
+      .get('/cats-query/categories?sort=name&page[size]=1')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(firstPage.body.data.length, 1)
+    assert.strictEqual(firstPage.body.data[0].attributes.name, 'Alpha')
+    assert.strictEqual(typeof firstPage.body.links.self, 'string')
+    assert.strictEqual(typeof firstPage.body.links.next, 'string')
+
+    const secondPage = await request(app)
+      .get('/cats-query/categories?sort=name&page[size]=1&page[after]=1')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(secondPage.body.data.length, 1)
+    assert.strictEqual(secondPage.body.data[0].attributes.name, 'Bravo')
+
+    const filtered = await request(app)
+      .get('/cats-query/categories?filter[access]=private')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(filtered.body.data.length, 1)
+    assert.strictEqual(filtered.body.data[0].attributes.code, 'c')
+  })
+
   test('GET /:code/categories enforces group-level access for non-public groups', async () => {
     seedGroup(db, { tenantId: 'cats-group-access', status: 'active', access: 'group' })
     seedCategory(db, { tenantId: 'cats-group-access', code: 'pub', access: 'public' })

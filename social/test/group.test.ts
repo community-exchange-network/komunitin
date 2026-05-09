@@ -169,6 +169,37 @@ describe('Groups endpoints', () => {
     assert.strictEqual(superadminCodes.includes('admin-owned'), true)
   })
 
+  test('GET /groups applies pagination, sorting and filtering generically', async () => {
+    seedGroup(db, { tenantId: 'aa-group', name: 'Alpha Group', status: 'active', access: 'public' })
+    seedGroup(db, { tenantId: 'bb-group', name: 'Bravo Group', status: 'active', access: 'public' })
+    seedGroup(db, { tenantId: 'cc-group', name: 'Charlie Group', status: 'pending', access: 'public' })
+
+    const firstPage = await request(app)
+      .get('/groups?sort=name&page[size]=1')
+      .expect(200)
+
+    assert.strictEqual(firstPage.body.data.length, 1)
+    assert.strictEqual(firstPage.body.data[0].attributes.name, 'Alpha Group')
+    assert.strictEqual(typeof firstPage.body.links.self, 'string')
+    assert.strictEqual(typeof firstPage.body.links.next, 'string')
+
+    const secondPage = await request(app)
+      .get('/groups?sort=name&page[size]=1&page[after]=1')
+      .expect(200)
+
+    assert.strictEqual(secondPage.body.data.length, 1)
+    assert.strictEqual(secondPage.body.data[0].attributes.name, 'Bravo Group')
+
+    const superadmin = await auth('superadmin-query', undefined, Scope.Superadmin)
+    const filtered = await request(app)
+      .get('/groups?filter[status]=pending')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .expect(200)
+
+    assert.strictEqual(filtered.body.data.length, 1)
+    assert.strictEqual(filtered.body.data[0].attributes.code, 'cc-group')
+  })
+
   test('GET /groups?include=settings includes settings relationship data', async () => {
     seedGroup(db, {
       tenantId: 'settings-group',

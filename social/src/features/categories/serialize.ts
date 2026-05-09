@@ -1,5 +1,6 @@
 import TsJapi from 'ts-japi'
 import { config } from '../../config'
+import { SerializerOptions } from '../../server/jsonapi-serialize'
 import type { Category } from './types'
 
 const { Linker, Serializer } = TsJapi
@@ -20,10 +21,10 @@ const CategorySerializer = new Serializer<Category>('categories', {
   },
 })
 
-export const serializeCategory = async (category: Category) => {
-  return CategorySerializer.serialize(category)
+export const serializeCategory = async (category: Category, options?: SerializerOptions<Category>) => {
+  return CategorySerializer.serialize(category, options)
 }
 
-export const serializeCategories = async (categories: Category[]) => {
-  return CategorySerializer.serialize(categories)
+export const serializeCategories = async (categories: Category[], options?: SerializerOptions<Category>) => {
+  return CategorySerializer.serialize(categories, options)
 }
