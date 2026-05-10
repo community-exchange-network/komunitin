@@ -1,4 +1,6 @@
 import { exportJWK, generateKeyPair, SignJWT } from 'jose'
+import { toUuid } from './utils'
+import { seedUser } from './seed'
 
 let privateKey: any
 let jwks: any
@@ -54,6 +56,13 @@ export const auth = async (subject?: string, email?: string, scope?: string | st
   if (!email) {
     email = `${subject}@example.org`
   }
-  const token = await signJwt(subject, email, scope)
-  return { subject, token }
+  const id = toUuid(subject)
+  
+  const token = await signJwt(id, email, scope)
+  await seedUser({
+    id,
+    email,
+    name: "Test User"
+  })
+  return { id, token, email }
 }

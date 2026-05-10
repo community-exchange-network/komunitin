@@ -1,11 +1,12 @@
-import { slugify } from '../../utils/format'
+import z from 'zod'
 import type { Category as DbCategory } from '../../generated/prisma/client'
 import { type AuthContext, type OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { badRequest, forbidden, notFound } from '../../utils/error'
-import prisma from '../../utils/prisma'
+import { orderBySort, whereFilter } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
-import { whereFilter, orderBySort } from '../../server/query'
+import { badRequest, forbidden, notFound } from '../../utils/error'
+import { slugify } from '../../utils/format'
+import prisma from '../../utils/prisma'
 import { canWriteGroup, getGroupByCode, isGroupAdmin, isGroupMember } from '../groups/service'
 import type { Group } from '../groups/types'
 import type { Category, CreateCategoryInput, PatchCategoryInput } from './types'
@@ -22,10 +23,15 @@ const toCategory = (dbCategory: DbCategory): Category => {
 }
 
 const getCategory = async (code: string, id: string): Promise<Category> => {
+  const validation = z.uuid().safeParse(id)
+  if (!validation.success) {
+    throw notFound('Category not found')
+  }
+  
   const db = tenantDb(prisma, code)
 
   const category = await db.category.findFirst({
-    where: { id: id },
+    where: { id },
   })
 
   if (!category) {

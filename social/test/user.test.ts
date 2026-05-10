@@ -3,15 +3,14 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { signJwt } from './mocks/auth'
 import { setupTestServer, teardownTestServer } from './mocks/server'
-import { uuid } from './mocks/utils'
-import { mockDb, resetDb } from './mocks/prisma'
+import { toUuid } from './mocks/utils'
+import { resetDb } from './mocks/seed'
 
 let app: any
 
 before(async () => {
   const server = await setupTestServer()
   app = server.app
-  mockDb()
 })
 
 after(async () => {
@@ -19,8 +18,8 @@ after(async () => {
 })
 
 describe('Users endpoints', () => {
-  beforeEach(() => {
-    resetDb()
+  beforeEach(async () => {
+    await resetDb()
   })
 
   test('POST /users requires JWT', async () => {
@@ -31,7 +30,7 @@ describe('Users endpoints', () => {
   })
 
   test('POST /users creates authenticated user with optional settings include', async () => {
-    const subject = uuid('1')
+    const subject = toUuid('1')
     const token = await signJwt(subject, 'first@example.org')
 
     const res = await request(app)
@@ -66,7 +65,7 @@ describe('Users endpoints', () => {
   })
 
   test('POST /users rejects credential fields', async () => {
-    const subject = uuid('2')
+    const subject = toUuid('2')
     const token = await signJwt(subject, 'second@example.org')
 
     await request(app)
@@ -85,7 +84,7 @@ describe('Users endpoints', () => {
   })
 
   test('GET /users/me returns authenticated user', async () => {
-    const subject = uuid('3')
+    const subject = toUuid('3')
     const token = await signJwt(subject, 'third@example.org')
 
     await request(app)
@@ -112,8 +111,8 @@ describe('Users endpoints', () => {
   })
 
   test('GET /users/:id denies cross-user access', async () => {
-    const ownerSubject = uuid('4')
-    const otherSubject = uuid('5')
+    const ownerSubject = toUuid('4')
+    const otherSubject = toUuid('5')
     const ownerToken = await signJwt(ownerSubject, 'owner@example.org')
     const otherToken = await signJwt(otherSubject, 'other@example.org')
 
@@ -135,7 +134,7 @@ describe('Users endpoints', () => {
   })
 
   test('GET /users/:id returns self user', async () => {
-    const subject = uuid('6')
+    const subject = toUuid('6')
     const token = await signJwt(subject, 'self@example.org')
 
     await request(app)

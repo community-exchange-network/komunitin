@@ -65,7 +65,7 @@ export type GroupSettings = z.infer<typeof groupSettingsAttributesSchema>
 // Currency schema is defined and validated by accounting service. 
 // So we dont define it here. We just validate its overall size is reasonable.
 export const currencyAttributesSchema = z.object().loose().refine((data) => {
-  JSON.stringify(data).length < 10000
+  return JSON.stringify(data).length < 10000
 })
 
 const groupSettingsSchema = jsonApiResourceSchema('group-settings', groupSettingsAttributesSchema)

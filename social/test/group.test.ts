@@ -3,13 +3,10 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { Scope } from '../src/server/auth'
 import { auth } from './mocks/auth'
-import { mockDb, resetDb } from './mocks/prisma'
-import { MockDatabase, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
+import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedUser } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
 let app: any
-let db: MockDatabase
-
 const postGroup = (
   token: string,
   code: string,
@@ -48,7 +45,6 @@ const postGroup = (
 before(async () => {
   const server = await setupTestServer()
   app = server.app
-  db = mockDb()
 })
 
 after(async () => {
@@ -56,8 +52,8 @@ after(async () => {
 })
 
 describe('Groups endpoints', () => {
-  beforeEach(() => {
-    resetDb()
+  beforeEach(async () => {
+    await resetDb()
   })
 
   test('POST /groups requires JWT', async () => {
@@ -76,7 +72,7 @@ describe('Groups endpoints', () => {
   })
 
   test('POST /groups creates pending group with optional settings include', async () => {
-    const { subject, token } = await auth('user-1')
+    const { id: subject, token } = await auth('user-1')
 
     const res = await postGroup(token, 'alpha-group', { includeSettings: true })
       .expect(201)
@@ -113,17 +109,16 @@ describe('Groups endpoints', () => {
 
   test('POST /groups rejects duplicate code', async () => {
     const { token } = await auth('user-2')
-
     await postGroup(token, 'dupe-code').expect(201)
     await postGroup(token, 'dupe-code').expect(400)
   })
 
   test('GET /groups returns only active public groups', async () => {
-    seedGroup(db, { tenantId: 'public-active', status: 'active', access: 'public' })
-    seedGroup(db, { tenantId: 'public-pending', status: 'pending', access: 'public' })
-    seedGroup(db, { tenantId: 'group-active', status: 'active', access: 'group' })
-    seedGroup(db, { tenantId: 'private-active', status: 'active', access: 'private' })
-    seedGroup(db, { tenantId: 'admin-owned', status: 'pending', access: 'private' })
+    await seedGroup({ tenantId: 'public-active', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'public-pending', status: 'pending', access: 'public' })
+    await seedGroup({ tenantId: 'group-active', status: 'active', access: 'group' })
+    await seedGroup({ tenantId: 'private-active', status: 'active', access: 'private' })
+    await seedGroup({ tenantId: 'admin-owned', status: 'pending', access: 'private' })
 
     const anonymous = await request(app)
       .get('/groups')
@@ -143,7 +138,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(authenticated.body.data[0].attributes.code, 'public-active')
 
     const admin = await auth('admin-3')
-    seedGroupAdmin(db, { tenantId: 'admin-owned', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'admin-owned', userId: admin.id })
 
     const adminResult = await request(app)
       .get('/groups')
@@ -170,9 +165,9 @@ describe('Groups endpoints', () => {
   })
 
   test('GET /groups applies pagination, sorting and filtering generically', async () => {
-    seedGroup(db, { tenantId: 'aa-group', name: 'Alpha Group', status: 'active', access: 'public' })
-    seedGroup(db, { tenantId: 'bb-group', name: 'Bravo Group', status: 'active', access: 'public' })
-    seedGroup(db, { tenantId: 'cc-group', name: 'Charlie Group', status: 'pending', access: 'public' })
+    await seedGroup({ tenantId: 'aa-group', name: 'Alpha Group', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'bb-group', name: 'Bravo Group', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'cc-group', name: 'Charlie Group', status: 'pending', access: 'public' })
 
     const firstPage = await request(app)
       .get('/groups?sort=name&page[size]=1')
@@ -201,7 +196,7 @@ describe('Groups endpoints', () => {
   })
 
   test('GET /groups?include=settings includes settings relationship data', async () => {
-    seedGroup(db, {
+    await seedGroup({
       tenantId: 'settings-group',
       status: 'active',
       access: 'public',
@@ -218,7 +213,7 @@ describe('Groups endpoints', () => {
   })
 
   test('GET /:code allows anonymous access to active public groups', async () => {
-    seedGroup(db, { tenantId: 'public-one', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'public-one', status: 'active', access: 'public' })
 
     const res = await request(app)
       .get('/public-one')
@@ -229,10 +224,10 @@ describe('Groups endpoints', () => {
   })
 
   test('GET /:code allows group member and denies non-member for group access', async () => {
-    seedGroup(db, { tenantId: 'member-group', status: 'active', access: 'group' })
+    await seedGroup({ tenantId: 'member-group', status: 'active', access: 'group' })
 
     const member = await auth('user-5')
-    seedMember(db, { tenantId: 'member-group', userId: member.subject })
+    await seedMember({ tenantId: 'member-group', userId: member.id })
 
     const memberResult = await request(app)
       .get('/member-group')
@@ -248,7 +243,7 @@ describe('Groups endpoints', () => {
       .expect(403)
 
     const admin = await auth('admin-6')
-    seedGroupAdmin(db, { tenantId: 'member-group', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'member-group', userId: admin.id })
     await request(app)
       .get('/member-group')
       .set('Authorization', `Bearer ${admin.token}`)
@@ -268,7 +263,7 @@ describe('Groups endpoints', () => {
   })
 
   test('GET /:code/settings is public endpoint', async () => {
-    seedGroup(db, { tenantId: 'settings-auth', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'settings-auth', status: 'active', access: 'public' })
 
     await request(app)
       .get('/settings-auth/settings')
@@ -276,14 +271,14 @@ describe('Groups endpoints', () => {
   })
 
   test('GET /:code/settings allows admin and superadmin, denies others for pending public group', async () => {
-    const { subject, token } = await auth('admin-8')
-    seedGroup(db, {
+    const { id: subject, token } = await auth('admin-8')
+    await seedGroup({
       tenantId: 'settings-admin-group',
       status: 'pending',
       access: 'public',
       settings: { enableGroupEmail: true },
     })
-    seedGroupAdmin(db, { tenantId: 'settings-admin-group', userId: subject })
+    await seedGroupAdmin({ tenantId: 'settings-admin-group', userId: subject })
 
     const res = await request(app)
       .get('/settings-admin-group/settings')
@@ -311,7 +306,7 @@ describe('Groups endpoints', () => {
   })
 
   test('PATCH /:code requires JWT', async () => {
-    seedGroup(db, { tenantId: 'patch-auth', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'patch-auth', status: 'active', access: 'public' })
 
     await request(app)
       .patch('/patch-auth')
@@ -327,9 +322,9 @@ describe('Groups endpoints', () => {
   })
 
   test('PATCH /:code updates editable attributes for group admin', async () => {
-    const { subject, token } = await auth('admin-9')
-    seedGroup(db, { tenantId: 'patch-admin', status: 'active', access: 'public' })
-    seedGroupAdmin(db, { tenantId: 'patch-admin', userId: subject })
+    const { id: subject, token } = await auth('admin-9')
+    await seedGroup({ tenantId: 'patch-admin', status: 'active', access: 'public' })
+    await seedGroupAdmin({ tenantId: 'patch-admin', userId: subject })
 
     const res = await request(app)
       .patch('/patch-admin')
@@ -353,8 +348,8 @@ describe('Groups endpoints', () => {
 
   test('PATCH /:code denies admin status transition from pending to active', async () => {
     const admin = await auth('admin-status-9')
-    seedGroup(db, { tenantId: 'status-transition', status: 'pending', access: 'public' })
-    seedGroupAdmin(db, { tenantId: 'status-transition', userId: admin.subject })
+    await seedGroup({ tenantId: 'status-transition', status: 'pending', access: 'public' })
+    await seedGroupAdmin({ tenantId: 'status-transition', userId: admin.id })
 
     await request(app)
       .patch('/status-transition')
@@ -371,7 +366,7 @@ describe('Groups endpoints', () => {
   })
 
   test('PATCH /:code denies non-admin and allows superadmin for non-status updates', async () => {
-    seedGroup(db, { tenantId: 'patch-permissions', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'patch-permissions', status: 'active', access: 'public' })
 
     const regular = await auth('user-a')
     await request(app)
@@ -422,9 +417,9 @@ describe('Groups endpoints', () => {
   })
 
   test('PATCH /:code validates request body', async () => {
-    const { subject, token } = await auth('admin-d')
-    seedGroup(db, { tenantId: 'schema-group', status: 'active', access: 'public' })
-    seedGroupAdmin(db, { tenantId: 'schema-group', userId: subject })
+    const { id: subject, token } = await auth('admin-d')
+    await seedGroup({ tenantId: 'schema-group', status: 'active', access: 'public' })
+    await seedGroupAdmin({ tenantId: 'schema-group', userId: subject })
 
     await request(app)
       .patch('/schema-group')

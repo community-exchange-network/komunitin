@@ -1,217 +1,250 @@
-import { Category, Group, GroupAdminUser, Member, MemberUser, User } from '../../src/generated/prisma/client'
-import { mockDb } from './prisma'
+import { Prisma } from '../../src/generated/prisma/client'
+import type { Category, Group, GroupAdminUser, Member, MemberUser, User } from '../../src/generated/prisma/client'
+import { privilegedDb } from '../../src/server/multitenant'
+import prisma from '../../src/utils/prisma'
+import { toUuid } from './utils'
 
-let groupIdCounter = 0
-let memberIdCounter = 0
+let groupCounter = 0
+let memberCounter = 0
 let userCounter = 0
-let categoryIdCounter = 0
+let categoryCounter = 0
 
-export type MockDatabase = NonNullable<ReturnType<typeof mockDb>>
-
-type SeedGroupInput = Partial<Group> & {
+type SeedGroupInput = Omit<Partial<Group>, 'tenantId'> & {
   tenantId: string
 }
 
-type SeedMemberInput = Partial<Member> & {
+type SeedMemberInput = Omit<Partial<Member>, 'tenantId' | 'groupId'> & {
   tenantId: string
   userId?: string
 }
 
-type SeedCategoryInput = Partial<Category> & {
+type SeedCategoryInput = Omit<Partial<Category>, 'tenantId' | 'groupId'> & {
   tenantId: string
 }
+
+const db = () => privilegedDb(prisma)
 
 const defaultUserData = () => {
   userCounter++
   return {
-    id: `user-${userCounter}`,
-    email: `user-${userCounter}@example.com`,
-    settings: {},
-    created: new Date(),
-    updated: new Date(),
+    id: toUuid(`seed-user-${userCounter}`),
+    email: `seed-user-${userCounter}@example.org`,
   }
 }
 
 const defaultGroupData = () => {
-  groupIdCounter++
+  groupCounter++
   return {
-    id: `group-${groupIdCounter}`,
-    name: `Test Group ${groupIdCounter}`,
-    description: `Description for Test Group ${groupIdCounter}`,
+    name: `Test Group ${groupCounter}`,
+    description: `Description for Test Group ${groupCounter}`,
     status: 'active',
     access: 'public',
-    image: null,
-    address: null,
-    contacts: null,
-    latitude: null,
-    longitude: null,
-    meta: {},
-    settings: {},
-    created: new Date(),
-    updated: new Date(),
-    deleted: null,
-    currencyId: `currency-${groupIdCounter}`,
   }
 }
 
 const defaultMemberData = () => {
-  memberIdCounter++
+  memberCounter++
   return {
-    id: `member-${memberIdCounter}`,
-    code: `member-${memberIdCounter}`,
-    name: `Test Member ${memberIdCounter}`,
+    code: `member-${memberCounter}`,
+    name: `Test Member ${memberCounter}`,
     type: 'personal',
     state: 'active',
     access: 'public',
-    description: `Description for Test Member ${memberIdCounter}`,
-    image: null,
-    address: null,
-    contacts: null,
-    latitude: null,
-    longitude: null,
-    meta: {},
-    accountId: `account-${memberIdCounter}`,
-    created: new Date(),
-    updated: new Date(),
-    deleted: null,
+    description: `Description for Test Member ${memberCounter}`,
   }
 }
 
 const defaultCategoryData = () => {
-  categoryIdCounter++
+  categoryCounter++
   return {
-    id: `category-${categoryIdCounter}`,
-    code: `category-${categoryIdCounter}`,
-    name: `Test Category ${categoryIdCounter}`,
+    code: `category-${categoryCounter}`,
+    name: `Test Category ${categoryCounter}`,
     access: 'public',
-    icon: null,
-    meta: {},
-    created: new Date(),
-    updated: new Date(),
   }
 }
 
-export const seedUser = (db: MockDatabase, data?: Partial<User>): User => {
-  const user = {
-    ...defaultUserData(),
-    ...data,
-  } as User
+const getGroupByTenant = async (tenantId: string) => {
+  const group = await db().group.findFirst({
+    where: { tenantId },
+  })
 
-  db.user!.push(user)
-  return user
+  if (!group) {
+    throw new Error(`Seed group first for tenant ${tenantId}`)
+  }
+
+  return group
 }
 
-export const seedGroup = (
-  db: MockDatabase,
-  data: SeedGroupInput,
-): Group => {
+const toNullableJson = (value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
 
-  const group = {
-    ...defaultGroupData(),
-    ...data,
-  } as Group
+  if (value === null) {
+    return Prisma.JsonNull
+  }
 
-  db.group!.push(group)
+  return value as Prisma.InputJsonValue
+}
 
-  seedGroupAdmin(db, {
-    tenantId: group.tenantId,
+export const resetDb = async () => {
+  await prisma.$executeRawUnsafe(
+    'TRUNCATE TABLE "Post", "Category", "MemberUser", "GroupAdminUser", "Member", "Group", "User" RESTART IDENTITY CASCADE'
+  )
+}
+
+export const seedUser = async (data: Partial<User> = {}): Promise<User> => {
+  const defaults = defaultUserData()
+  const id = toUuid(data.id ?? defaults.id)
+  const input = {
+    email: data.email ?? defaults.email,
+    name: data.name,
+    settings: toNullableJson(data.settings), 
+  }
+  
+  return db().user.upsert({
+    where: { id },
+    create: {
+      id,
+      ...input
+    },
+    update: input,
+  })
+}
+
+export const seedGroup = async (data: SeedGroupInput): Promise<Group> => {
+  const defaults = defaultGroupData()
+
+  const group = await db().group.create({
+    data: {
+      ...(data.id ? { id: toUuid(data.id) } : {}),
+      tenantId: data.tenantId,
+      name: data.name ?? defaults.name,
+      description: data.description ?? defaults.description,
+      status: data.status ?? defaults.status,
+      access: data.access ?? defaults.access,
+      image: toNullableJson(data.image),
+      address: toNullableJson(data.address),
+      contacts: toNullableJson(data.contacts),
+      latitude: data.latitude,
+      longitude: data.longitude,
+      meta: toNullableJson(data.meta),
+      settings: toNullableJson(data.settings),
+      deleted: data.deleted,
+      currencyId: data.currencyId,
+    },
+  })
+
+  await seedGroupAdmin({
+    tenantId: data.tenantId,
   })
 
   return group
 }
 
-/**
- * Seed group first.
- */
-export const seedGroupAdmin = (
-  db: MockDatabase,
-  data: {
-    tenantId: string
-    userId?: string
-  }
-): GroupAdminUser => {
-  // find group
-  const group = db.group!.find((item) => item.tenantId === data.tenantId)!
-  const userId = data.userId ?? `group-admin-${groupIdCounter}`
+export const seedGroupAdmin = async (data: { tenantId: string; userId?: string }): Promise<GroupAdminUser> => {
+  const group = await getGroupByTenant(data.tenantId)
+  const userId = toUuid(data.userId ?? `seed-group-admin-${data.tenantId}`)
 
-  // Ensure user exists
-  if (!db.user!.find((u) => u.id === userId)) {
-    seedUser(db, { id: userId })
-  }
-    
-  
-  const relation: GroupAdminUser = {
-    groupId: group.id,
-    role: 'admin',
-    userId,
-    ...data,
+  await seedUser({
+    id: userId,
+  })
+
+  const existing = await db().groupAdminUser.findFirst({
+    where: {
+      groupId: group.id,
+      userId,
+    },
+  })
+
+  if (existing) {
+    return existing
   }
 
-  db.groupAdminUser!.push(relation)
-  return relation
+  return db().groupAdminUser.create({
+    data: {
+      tenantId: group.tenantId,
+      groupId: group.id,
+      userId,
+      role: 'admin',
+    },
+  })
 }
 
-export const seedMember = (
-  db: MockDatabase,
-  data: SeedMemberInput,
-): Member => {
-  
-  const group = db.group!.find((item) => item.tenantId === data.tenantId)!
+export const seedMember = async (data: SeedMemberInput): Promise<Member> => {
+  const group = await getGroupByTenant(data.tenantId)
+  const defaults = defaultMemberData()
+  const {userId, ...input} = data
 
-  const member = {
-    groupId: group.id,
-    ...defaultMemberData(),
-    ...data,
-  } as Member
+  const member = await db().member.create({
+    data: {
+      ...defaults,
+      ...input,
+      ...(data.id ? { id: toUuid(data.id) } : {}),
+      groupId: group.id,
+      image: toNullableJson(data.image),
+      address: toNullableJson(data.address),
+      contacts: toNullableJson(data.contacts),
+      meta: toNullableJson(data.meta),
+      accountId: data.accountId ? toUuid(data.accountId) : undefined,
+    },
+  })
 
-  db.member!.push(member)
-
-  seedMemberUser(db, {
+  await seedMemberUser({
     tenantId: data.tenantId,
     memberId: member.id,
-    userId: data.userId,
+    userId,
   })
 
   return member
 }
 
-export const seedMemberUser = (
-  db: MockDatabase,
+export const seedMemberUser = async (
   data: Partial<MemberUser> & {
     tenantId: string
     memberId: string
   }
-): MemberUser => {
-  const userId = data.userId ?? `member-user-${memberIdCounter}`
+): Promise<MemberUser> => {
+  const userId = toUuid(data.userId ?? `seed-member-user-${data.memberId}`)
 
-  // Ensure user exists
-  if (!db.user!.find((u) => u.id === userId)) {
-    seedUser(db, { id: userId })
+  await seedUser({
+    id: userId,
+  })
+
+  const existing = await db().memberUser.findFirst({
+    where: {
+      memberId: toUuid(data.memberId),
+      userId,
+    },
+  })
+
+  if (existing) {
+    return existing
   }
 
-  const relation: MemberUser = {
-    role: 'admin',
-    ...data,
-    userId,
-  }
-
-  db.memberUser!.push(relation)
-  return relation
+  return db().memberUser.create({
+    data: {
+      tenantId: data.tenantId,
+      memberId: toUuid(data.memberId),
+      userId,
+      role: data.role ?? 'admin',
+    },
+  })
 }
 
-export const seedCategory = (
-  db: MockDatabase,
-  data: SeedCategoryInput,
-): Category => {
-  const group = db.group!.find((item) => item.tenantId === data.tenantId)!
+export const seedCategory = async (data: SeedCategoryInput): Promise<Category> => {
+  const group = await getGroupByTenant(data.tenantId)
+  const defaults = defaultCategoryData()
 
-  const category = {
-    groupId: group.id,
-    ...defaultCategoryData(),
-    ...data,
-  } as Category
-
-  db.category!.push(category)
-  return category
+  return db().category.create({
+    data: {
+      ...defaults,
+      ...data,
+      ...(data.id ? { id: toUuid(data.id) } : {}),
+      groupId: group.id,
+      icon: toNullableJson(data.icon),
+      meta: toNullableJson(data.meta),
+    },
+  })
 }
 

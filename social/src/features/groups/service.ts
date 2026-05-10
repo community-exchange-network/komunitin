@@ -88,6 +88,10 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
 }
 
 export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
+  if (!ctx.userId) {
+    return false
+  }
+
   const db = tenantDb(prisma, group.code)
   const relation = await db.groupAdminUser.findFirst({
     where: {
@@ -101,6 +105,10 @@ export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Group): Prom
 }
 
 export const isGroupMember = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
+  if (!ctx.userId) {
+    return false
+  }
+
   const db = tenantDb(prisma, group.code)
   const relation = await db.memberUser.findFirst({
     where: {

@@ -3,18 +3,14 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { Scope } from '../src/server/auth'
 import { auth } from './mocks/auth'
-import { mockDb, resetDb } from './mocks/prisma'
-import { MockDatabase, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
+import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
 let app: any
-let db: MockDatabase
-
 
 before(async () => {
   const server = await setupTestServer()
   app = server.app
-  db = mockDb()
 })
 
 after(async () => {
@@ -22,15 +18,15 @@ after(async () => {
 })
 
 describe('Categories endpoints', () => {
-  beforeEach(() => {
-    resetDb()
+  beforeEach(async () => {
+    await resetDb()
   })
 
   test('GET /:code/categories allows anonymous for active public group and only returns public categories', async () => {
-    seedGroup(db, { tenantId: 'cats-public', status: 'active', access: 'public' })
-    seedCategory(db, { tenantId: 'cats-public', code: 'pub', access: 'public' })
-    seedCategory(db, { tenantId: 'cats-public', code: 'grp', access: 'group' })
-    seedCategory(db, { tenantId: 'cats-public', code: 'prv', access: 'private' })
+    await seedGroup({ tenantId: 'cats-public', status: 'active', access: 'public' })
+    await seedCategory({ tenantId: 'cats-public', code: 'pub', access: 'public' })
+    await seedCategory({ tenantId: 'cats-public', code: 'grp', access: 'group' })
+    await seedCategory({ tenantId: 'cats-public', code: 'prv', access: 'private' })
 
     const res = await request(app)
       .get('/cats-public/categories')
@@ -41,13 +37,13 @@ describe('Categories endpoints', () => {
   })
 
   test('GET /:code/categories returns public and group categories for group members', async () => {
-    seedGroup(db, { tenantId: 'cats-member', status: 'active', access: 'public' })
-    seedCategory(db, { tenantId: 'cats-member', code: 'pub', access: 'public' })
-    seedCategory(db, { tenantId: 'cats-member', code: 'grp', access: 'group' })
-    seedCategory(db, { tenantId: 'cats-member', code: 'prv', access: 'private' })
+    await seedGroup({ tenantId: 'cats-member', status: 'active', access: 'public' })
+    await seedCategory({ tenantId: 'cats-member', code: 'pub', access: 'public' })
+    await seedCategory({ tenantId: 'cats-member', code: 'grp', access: 'group' })
+    await seedCategory({ tenantId: 'cats-member', code: 'prv', access: 'private' })
 
     const member = await auth('member-1')
-    seedMember(db, { tenantId: 'cats-member', userId: member.subject })
+    await seedMember({ tenantId: 'cats-member', userId: member.id })
 
     const res = await request(app)
       .get('/cats-member/categories')
@@ -61,13 +57,13 @@ describe('Categories endpoints', () => {
   })
 
   test('GET /:code/categories returns all categories for group admins and superadmins', async () => {
-    seedGroup(db, { tenantId: 'cats-admin', status: 'active', access: 'public' })
-    seedCategory(db, { tenantId: 'cats-admin', code: 'pub', access: 'public' })
-    seedCategory(db, { tenantId: 'cats-admin', code: 'grp', access: 'group' })
-    seedCategory(db, { tenantId: 'cats-admin', code: 'prv', access: 'private' })
+    await seedGroup({ tenantId: 'cats-admin', status: 'active', access: 'public' })
+    await seedCategory({ tenantId: 'cats-admin', code: 'pub', access: 'public' })
+    await seedCategory({ tenantId: 'cats-admin', code: 'grp', access: 'group' })
+    await seedCategory({ tenantId: 'cats-admin', code: 'prv', access: 'private' })
 
     const admin = await auth('admin-1')
-    seedGroupAdmin(db, { tenantId: 'cats-admin', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'cats-admin', userId: admin.id })
 
     const adminRes = await request(app)
       .get('/cats-admin/categories')
@@ -86,13 +82,13 @@ describe('Categories endpoints', () => {
   })
 
   test('GET /:code/categories applies pagination, sorting and filtering generically', async () => {
-    seedGroup(db, { tenantId: 'cats-query', status: 'active', access: 'public' })
-    seedCategory(db, { tenantId: 'cats-query', code: 'a', name: 'Alpha', access: 'public' })
-    seedCategory(db, { tenantId: 'cats-query', code: 'b', name: 'Bravo', access: 'group' })
-    seedCategory(db, { tenantId: 'cats-query', code: 'c', name: 'Charlie', access: 'private' })
+    await seedGroup({ tenantId: 'cats-query', status: 'active', access: 'public' })
+    await seedCategory({ tenantId: 'cats-query', code: 'a', name: 'Alpha', access: 'public' })
+    await seedCategory({ tenantId: 'cats-query', code: 'b', name: 'Bravo', access: 'group' })
+    await seedCategory({ tenantId: 'cats-query', code: 'c', name: 'Charlie', access: 'private' })
 
     const admin = await auth('admin-query')
-    seedGroupAdmin(db, { tenantId: 'cats-query', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'cats-query', userId: admin.id })
 
     const firstPage = await request(app)
       .get('/cats-query/categories?sort=name&page[size]=1')
@@ -122,15 +118,15 @@ describe('Categories endpoints', () => {
   })
 
   test('GET /:code/categories enforces group-level access for non-public groups', async () => {
-    seedGroup(db, { tenantId: 'cats-group-access', status: 'active', access: 'group' })
-    seedCategory(db, { tenantId: 'cats-group-access', code: 'pub', access: 'public' })
+    await seedGroup({ tenantId: 'cats-group-access', status: 'active', access: 'group' })
+    await seedCategory({ tenantId: 'cats-group-access', code: 'pub', access: 'public' })
 
     await request(app)
       .get('/cats-group-access/categories')
       .expect(403)
 
     const member = await auth('member-2')
-    seedMember(db, { tenantId: 'cats-group-access', userId: member.subject })
+    await seedMember({ tenantId: 'cats-group-access', userId: member.id })
 
     await request(app)
       .get('/cats-group-access/categories')
@@ -139,8 +135,8 @@ describe('Categories endpoints', () => {
   })
 
   test('GET /:code/categories denies non-admin for pending groups and allows admin and superadmin', async () => {
-    seedGroup(db, { tenantId: 'cats-pending', status: 'pending', access: 'public' })
-    seedCategory(db, { tenantId: 'cats-pending', code: 'pending-pub', access: 'public' })
+    await seedGroup({ tenantId: 'cats-pending', status: 'pending', access: 'public' })
+    await seedCategory({ tenantId: 'cats-pending', code: 'pending-pub', access: 'public' })
 
     await request(app)
       .get('/cats-pending/categories')
@@ -153,7 +149,7 @@ describe('Categories endpoints', () => {
       .expect(403)
 
     const admin = await auth('admin-pending')
-    seedGroupAdmin(db, { tenantId: 'cats-pending', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'cats-pending', userId: admin.id })
 
     await request(app)
       .get('/cats-pending/categories')
@@ -174,7 +170,7 @@ describe('Categories endpoints', () => {
   })
 
   test('POST /:code/categories requires JWT', async () => {
-    seedGroup(db, { tenantId: 'cats-post-auth', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'cats-post-auth', status: 'active', access: 'public' })
 
     await request(app)
       .post('/cats-post-auth/categories')
@@ -191,9 +187,9 @@ describe('Categories endpoints', () => {
   })
 
   test('POST /:code/categories allows group admin and persists attributes', async () => {
-    seedGroup(db, { tenantId: 'cats-post-admin', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'cats-post-admin', status: 'active', access: 'public' })
     const admin = await auth('admin-post')
-    seedGroupAdmin(db, { tenantId: 'cats-post-admin', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'cats-post-admin', userId: admin.id })
 
     const res = await request(app)
       .post('/cats-post-admin/categories')
@@ -223,10 +219,10 @@ describe('Categories endpoints', () => {
   })
 
   test('POST /:code/categories allows superadmin and denies non-admin users', async () => {
-    seedGroup(db, { tenantId: 'cats-post-perms', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'cats-post-perms', status: 'active', access: 'public' })
 
     const regular = await auth('regular-post')
-    seedMember(db, { tenantId: 'cats-post-perms', userId: regular.subject })
+    await seedMember({ tenantId: 'cats-post-perms', userId: regular.id })
 
     await request(app)
       .post('/cats-post-perms/categories')
@@ -259,9 +255,9 @@ describe('Categories endpoints', () => {
   })
 
   test('POST /:code/categories validates body and rejects duplicate code', async () => {
-    seedGroup(db, { tenantId: 'cats-post-schema', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'cats-post-schema', status: 'active', access: 'public' })
     const admin = await auth('admin-schema')
-    seedGroupAdmin(db, { tenantId: 'cats-post-schema', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'cats-post-schema', userId: admin.id })
 
     await request(app)
       .post('/cats-post-schema/categories')
@@ -326,8 +322,8 @@ describe('Categories endpoints', () => {
   })
 
   test('PATCH /:code/categories/:category requires JWT', async () => {
-    seedGroup(db, { tenantId: 'cats-patch-auth', status: 'active', access: 'public' })
-    const category = seedCategory(db, { tenantId: 'cats-patch-auth', code: 'cat-one' })
+    await seedGroup({ tenantId: 'cats-patch-auth', status: 'active', access: 'public' })
+    const category = await seedCategory({ tenantId: 'cats-patch-auth', code: 'cat-one' })
 
     await request(app)
       .patch(`/cats-patch-auth/categories/${category.id}`)
@@ -343,11 +339,11 @@ describe('Categories endpoints', () => {
   })
 
   test('PATCH /:code/categories/:category allows admin', async () => {
-    seedGroup(db, { tenantId: 'cats-patch-admin', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'cats-patch-admin', status: 'active', access: 'public' })
     const admin = await auth('admin-patch')
-    seedGroupAdmin(db, { tenantId: 'cats-patch-admin', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'cats-patch-admin', userId: admin.id })
 
-    const category = seedCategory(db, {
+    const category = await seedCategory({
       tenantId: 'cats-patch-admin',
       code: 'cat-by-id',
       name: 'Before Id',
@@ -374,10 +370,10 @@ describe('Categories endpoints', () => {
   })
 
   test('PATCH /:code/categories/:category denies non-admin and allows superadmin', async () => {
-    seedGroup(db, { tenantId: 'cats-patch-perms', status: 'active', access: 'public' })
-    const category = seedCategory(db, { tenantId: 'cats-patch-perms', code: 'cat-patch' })
+    await seedGroup({ tenantId: 'cats-patch-perms', status: 'active', access: 'public' })
+    const category = await seedCategory({ tenantId: 'cats-patch-perms', code: 'cat-patch' })
     const regular = await auth('regular-patch')
-    seedMember(db, { tenantId: 'cats-patch-perms', userId: regular.subject })
+    await seedMember({ tenantId: 'cats-patch-perms', userId: regular.id })
 
     await request(app)
       .patch(`/cats-patch-perms/categories/${category.id}`)
@@ -408,9 +404,9 @@ describe('Categories endpoints', () => {
   })
 
   test('PATCH /:code/categories/:category validates body and returns 404 for missing category', async () => {
-    seedGroup(db, { tenantId: 'cats-patch-errors', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'cats-patch-errors', status: 'active', access: 'public' })
     const admin = await auth('admin-patch-errors')
-    seedGroupAdmin(db, { tenantId: 'cats-patch-errors', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'cats-patch-errors', userId: admin.id })
 
     await request(app)
       .patch('/cats-patch-errors/categories/missing')
@@ -440,8 +436,8 @@ describe('Categories endpoints', () => {
   })
 
   test('DELETE /:code/categories/:category requires JWT', async () => {
-    seedGroup(db, { tenantId: 'cats-delete-auth', status: 'active', access: 'public' })
-    const category = seedCategory(db, { tenantId: 'cats-delete-auth', code: 'cat-delete-auth' })
+    await seedGroup({ tenantId: 'cats-delete-auth', status: 'active', access: 'public' })
+    const category = await seedCategory({ tenantId: 'cats-delete-auth', code: 'cat-delete-auth' })
 
     await request(app)
       .delete(`/cats-delete-auth/categories/${category.id}`)
@@ -449,15 +445,15 @@ describe('Categories endpoints', () => {
   })
 
   test('DELETE /:code/categories/:category denies non-admin and allows admin', async () => {
-    seedGroup(db, { tenantId: 'cats-delete-admin', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'cats-delete-admin', status: 'active', access: 'public' })
     const admin = await auth('admin-delete')
-    seedGroupAdmin(db, { tenantId: 'cats-delete-admin', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'cats-delete-admin', userId: admin.id })
 
-    const first = seedCategory(db, { tenantId: 'cats-delete-admin', code: 'cat-delete-first' })
-    const second = seedCategory(db, { tenantId: 'cats-delete-admin', code: 'cat-delete-second' })
+    const first = await seedCategory({ tenantId: 'cats-delete-admin', code: 'cat-delete-first' })
+    const second = await seedCategory({ tenantId: 'cats-delete-admin', code: 'cat-delete-second' })
 
     const regular = await auth('regular-delete')
-    seedMember(db, { tenantId: 'cats-delete-admin', userId: regular.subject })
+    await seedMember({ tenantId: 'cats-delete-admin', userId: regular.id })
 
     const superadmin = await auth('superadmin-delete', undefined, Scope.Superadmin)
 
@@ -487,9 +483,9 @@ describe('Categories endpoints', () => {
   })
 
   test('DELETE /:code/categories/:category returns 404 for missing category or group', async () => {
-    seedGroup(db, { tenantId: 'cats-delete-errors', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'cats-delete-errors', status: 'active', access: 'public' })
     const admin = await auth('admin-delete-errors')
-    seedGroupAdmin(db, { tenantId: 'cats-delete-errors', userId: admin.subject })
+    await seedGroupAdmin({ tenantId: 'cats-delete-errors', userId: admin.id })
 
     await request(app)
       .delete('/cats-delete-errors/categories/missing')
