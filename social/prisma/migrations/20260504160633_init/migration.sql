@@ -108,7 +108,7 @@ CREATE TABLE "Post" (
     "access" VARCHAR(31) NOT NULL DEFAULT 'public',
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
-    "expires" TIMESTAMP(3) NOT NULL,
+    "expires" TIMESTAMP(3),
     "deleted" TIMESTAMP(3),
     "created" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" TIMESTAMP(3) NOT NULL,

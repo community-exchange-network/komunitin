@@ -171,7 +171,7 @@ model Post {
   // Computed in SQL migration as GENERATED ALWAYS ... STORED.
   location    Unsupported("geography(Point, 4326)")?
   
-  expires     DateTime
+  expires     DateTime?
   deleted     DateTime?
   created     DateTime  @default(now())
   updated     DateTime  @updatedAt
