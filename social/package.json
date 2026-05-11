@@ -5,10 +5,6 @@
   "type": "module",
   "main": "dist/index.mjs",
   "scripts": {
-    "prisma:validate": "prisma validate",
-    "prisma:generate": "prisma generate",
-    "migrate:status": "prisma migrate status",
-    "reset-db": "prisma migrate reset --force",
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch --inspect=0.0.0.0:9229 src/index.ts",
     "build": "pnpm typecheck && unbuild",
