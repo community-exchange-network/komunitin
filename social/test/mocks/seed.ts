@@ -48,7 +48,7 @@ const defaultMemberData = () => {
     code: `member-${memberCounter}`,
     name: `Test Member ${memberCounter}`,
     type: 'personal',
-    state: 'active',
+    status: 'active',
     access: 'public',
     description: `Description for Test Member ${memberCounter}`,
   }

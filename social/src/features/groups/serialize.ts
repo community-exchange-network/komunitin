@@ -1,6 +1,8 @@
 import TsJapi from 'ts-japi'
 import { config } from '../../config'
 import { SerializerOptions } from '../../server/jsonapi-serialize'
+import type { Member } from '../members/types'
+import { MemberSerializer } from '../members/serialize'
 import type { GroupSettings } from './schema'
 import type { Group } from './types'
 
@@ -55,7 +57,12 @@ const GroupSerializer = new Serializer<Group>('groups', {
         groupId: group.id,
         ...group.settings,
       }
-    }, GroupSettingsSerializer, { relatedName: 'settings' })
+    }, GroupSettingsSerializer, { relatedName: 'settings' }),
+    members: new Relator<Group, Member>(
+      async (group) => group.members,
+      MemberSerializer,
+      { relatedName: 'members' }
+    )
   },
   linkers: {
     resource: new Linker((group) => `${config.API_BASE_URL}/${group.code}`)

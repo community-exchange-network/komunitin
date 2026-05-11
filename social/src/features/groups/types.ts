@@ -1,4 +1,5 @@
 import type { Group as DbGroup } from '../../generated/prisma/client'
+import type { Member } from '../members/types'
 import type { Access, CreateGroupAttributes, GroupSettings, Contact, Address, Location } from './schema'
 
 // Input types derived from request schema
@@ -17,6 +18,8 @@ export interface Group extends DbGroup {
   settings: GroupSettings | null
   contacts: Contact[] | null
   meta: GroupMeta | null
+  
+  members?: Member[] // included when group is fetched with members
 }
 
 export type GroupMeta = {

@@ -81,7 +81,7 @@ model Member {
   code        String @db.VarChar(255)
   name        String @db.VarChar(255)
   type        String @default("personal") @db.VarChar(31)
-  state       String @default("draft") @db.VarChar(31)
+  status       String @default("draft") @db.VarChar(31)
   access      String @default("public") @db.VarChar(31)
   description String @default("") @db.Text
   image       Json? // Image
@@ -113,7 +113,7 @@ model Member {
 
   @@unique([tenantId, code])
   @@unique([id, tenantId])
-  @@index([tenantId, groupId, state])
+  @@index([tenantId, groupId, status])
   @@index([location], type: Gist, map: "Member_location_gix")
 }
 

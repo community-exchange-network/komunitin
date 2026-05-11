@@ -9,6 +9,7 @@ import logger from './utils/logger'
 import userRoutes from './features/users/routes'
 import { groupsRoutes, tenantGroupRoutes } from './features/groups/routes'
 import { tenantCategoryRoutes } from './features/categories/routes'
+import { tenantMemberRoutes } from './features/members/routes'
 
 const app = express()
 
@@ -43,6 +44,7 @@ app.use('/', userRoutes)
 app.use('/', groupsRoutes)
 app.use('/:code', tenantGroupRoutes)
 app.use('/:code', tenantCategoryRoutes)
+app.use('/:code', tenantMemberRoutes)
 
 app.use(errorHandler)
 

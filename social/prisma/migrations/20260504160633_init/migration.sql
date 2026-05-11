@@ -50,7 +50,7 @@ CREATE TABLE "Member" (
     "code" VARCHAR(255) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "type" VARCHAR(31) NOT NULL DEFAULT 'personal',
-    "state" VARCHAR(31) NOT NULL DEFAULT 'draft',
+    "status" VARCHAR(31) NOT NULL DEFAULT 'draft',
     "access" VARCHAR(31) NOT NULL DEFAULT 'public',
     "description" TEXT NOT NULL DEFAULT '',
     "image" JSONB,
@@ -132,7 +132,7 @@ CREATE UNIQUE INDEX "Group_id_tenantId_key" ON "Group"("id", "tenantId");
 CREATE INDEX "GroupAdminUser_tenantId_userId_idx" ON "GroupAdminUser"("tenantId", "userId");
 
 -- CreateIndex
-CREATE INDEX "Member_tenantId_groupId_state_idx" ON "Member"("tenantId", "groupId", "state");
+CREATE INDEX "Member_tenantId_groupId_status_idx" ON "Member"("tenantId", "groupId", "status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Member_tenantId_code_key" ON "Member"("tenantId", "code");

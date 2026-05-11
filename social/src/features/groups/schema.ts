@@ -4,12 +4,12 @@ import { jsonApiDocumentSchema, jsonApiResourceSchema } from '../../server/jsona
 export const accessSchema = z.enum(['public', 'group', 'private'])
 export type Access = z.infer<typeof accessSchema>
 
-const imageSchema = z.object({
+export const imageSchema = z.object({
   url: z.url(),
   alt: z.string().optional(),
 }).strict()
 
-const addressSchema = z.object({
+export const addressSchema = z.object({
   streetAddress: z.string().optional(),
   addressLocality: z.string().optional(),
   postalCode: z.string().optional(),
@@ -18,16 +18,16 @@ const addressSchema = z.object({
 }).strict()
 export type Address = z.infer<typeof addressSchema>
 
-const contactTypeSchema = z.enum(['phone', 'email', 'telegram', 'whatsapp', 'website'])
+export const contactTypeSchema = z.enum(['phone', 'email', 'telegram', 'whatsapp', 'website'])
 
-const contactSchema = z.object({
+export const contactSchema = z.object({
   type: contactTypeSchema,
   value: z.string(),
 }).strict()
 
 export type Contact = z.infer<typeof contactSchema>
 
-const locationSchema = z.object({
+export const locationSchema = z.object({
   name: z.string().optional(),
   type: z.literal('Point'),
   coordinates: z.tuple([z.number(), z.number()]),

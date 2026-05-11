@@ -8,18 +8,28 @@ import { whereFilter, orderBySort } from '../../server/query'
 import { Address, Location, PatchGroupAttributes } from './schema'
 import type { CreateGroupInput, Group } from './types'
 import { OptionalAuthContext, AuthContext } from '../../server/context'
+import { listMembers } from '../members/service'
+import { GroupUpdateInput } from '../../generated/prisma/models'
 
+type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
-const toLocation = (group: DbGroup): Location | null => {
-  if (group.longitude === null || group.latitude === null) {
+export const toLocation = (entity: WithAddressAndCoords): Location | null => {
+  if (entity.longitude === null || entity.latitude === null) {
     return null
   }
-  const address = group.address as Address | null
+  const address = entity.address as Address | null
 
   return {
     name: address?.addressLocality || address?.addressRegion || address?.addressCountry || undefined,
     type: 'Point',
-    coordinates: [group.longitude, group.latitude],
+    coordinates: [entity.longitude, entity.latitude],
+  }
+}
+
+export const fromLocation = (location?: Location | null): { latitude: number|null; longitude: number|null } => {
+  return {
+    latitude: location?.coordinates[1] ?? null,
+    longitude: location?.coordinates[0] ?? null,
   }
 }
 
@@ -45,6 +55,7 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
   if (existing) {
     throw badRequest('A group with this code already exists')
   }
+  const location = fromLocation(input.attributes.location)
 
   const group = await db.transaction(async (tx) => {
     const attributes = input.attributes
@@ -59,8 +70,8 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
       address: attributes.address,
       contacts: attributes.contacts,
 
-      latitude: attributes.location?.coordinates[1],
-      longitude: attributes.location?.coordinates[0],
+      latitude: location.latitude,
+      longitude: location.longitude,
       
       settings: input.settings,
       meta: {
@@ -97,7 +108,6 @@ export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Group): Prom
     where: {
       groupId: group.id,
       userId: ctx.userId,
-
     }
   })
 
@@ -162,6 +172,9 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
 export const getGroupByCode = async (
   ctx: OptionalAuthContext,
   code: string,
+  options?: {
+    includeMembers?: boolean
+  },
 ): Promise<Group> => {
   const db = tenantDb(prisma, code)
   const dbGroup = await db.group.findFirst()
@@ -174,6 +187,14 @@ export const getGroupByCode = async (
   const allowed = await canAccessGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have access to this group')
+  }
+
+  if (options?.includeMembers) {
+    const members = await listMembers(ctx, code)
+    return {
+      ...group,
+      members,
+    }
   }
 
   return group
@@ -202,9 +223,18 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     throw badRequest('Group activation is not implemented yet')
   }
 
+  const { location, ...rest } = attributes
+  const data: GroupUpdateInput = rest
+
+  if (attributes.location !== undefined) {
+    const location = fromLocation(attributes.location)
+    data.latitude = location.latitude
+    data.longitude = location.longitude
+  }
+
   const updated = await db.group.update({
     where: { id: group.id },
-    data: attributes,
+    data,
   })
 
   return toGroup(updated)
