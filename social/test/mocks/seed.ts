@@ -1,5 +1,5 @@
 import { Prisma } from '../../src/generated/prisma/client'
-import type { Category, Group, GroupAdminUser, Member, MemberUser, User } from '../../src/generated/prisma/client'
+import type { Category, Group, GroupAdminUser, Member, MemberUser, Post, User } from '../../src/generated/prisma/client'
 import { privilegedDb } from '../../src/server/multitenant'
 import prisma from '../../src/utils/prisma'
 import { toUuid } from './utils'
@@ -8,6 +8,7 @@ let groupCounter = 0
 let memberCounter = 0
 let userCounter = 0
 let categoryCounter = 0
+let postCounter = 0
 
 type SeedGroupInput = Omit<Partial<Group>, 'tenantId'> & {
   tenantId: string
@@ -16,6 +17,11 @@ type SeedGroupInput = Omit<Partial<Group>, 'tenantId'> & {
 type SeedMemberInput = Omit<Partial<Member>, 'tenantId' | 'groupId'> & {
   tenantId: string
   userId?: string
+}
+
+type SeedPostInput = Omit<Partial<Post>, 'tenantId' | 'groupId' | 'memberId'> & {
+  tenantId: string
+  memberId: string
 }
 
 type SeedCategoryInput = Omit<Partial<Category>, 'tenantId' | 'groupId'> & {
@@ -63,6 +69,18 @@ const defaultCategoryData = () => {
   }
 }
 
+const defaultPostData = () => {
+  postCounter++
+  return {
+    code: `post-${postCounter}`,
+    type: 'offers',
+    title: `Test Post ${postCounter}`,
+    description: `Description for Test Post ${postCounter}`,
+    status: 'public',
+    access: 'public',
+  }
+}
+
 const getGroupByTenant = async (tenantId: string) => {
   const group = await db().group.findFirst({
     where: { tenantId },
@@ -88,6 +106,11 @@ const toNullableJson = (value: unknown): Prisma.InputJsonValue | Prisma.Nullable
 }
 
 export const resetDb = async () => {
+  groupCounter = 0
+  memberCounter = 0
+  userCounter = 0
+  categoryCounter = 0
+  postCounter = 0
   await prisma.$executeRawUnsafe(
     'TRUNCATE TABLE "Post", "Category", "MemberUser", "GroupAdminUser", "Member", "Group", "User" RESTART IDENTITY CASCADE'
   )
@@ -245,6 +268,24 @@ export const seedCategory = async (data: SeedCategoryInput): Promise<Category> =
       icon: toNullableJson(data.icon),
       meta: toNullableJson(data.meta),
     },
+  })
+}
+
+export const seedPost = async (data: SeedPostInput): Promise<Post> => {
+  const group = await getGroupByTenant(data.tenantId)
+  const defaults = defaultPostData()
+  const { expires, ...rest } = data
+
+  return db().post.create({
+    data: {
+      ...defaults,
+      ...rest,
+      ...(data.id ? { id: toUuid(data.id) } : {}),
+      ...(expires ? { expires } : {}),
+      memberId: toUuid(data.memberId),
+      groupId: group.id,
+      images: toNullableJson(data.images),
+    } as any,
   })
 }
 

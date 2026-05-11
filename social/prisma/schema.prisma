@@ -160,7 +160,6 @@ model Post {
   title       String?   @db.VarChar(255)
   description String    @default("") @db.Text
   images      Json?     // Image[]
-  value       String?   @db.VarChar(255)
   status      String    @default("draft") @db.VarChar(31)
   access      String    @default("public") @db.VarChar(31)
   
@@ -170,6 +169,9 @@ model Post {
   longitude   Float?
   // Computed in SQL migration as GENERATED ALWAYS ... STORED.
   location    Unsupported("geography(Point, 4326)")?
+
+  // Type-specific data stored as JSON.
+  data        Json?
   
   expires     DateTime?
   deleted     DateTime?

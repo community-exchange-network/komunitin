@@ -1,0 +1,88 @@
+import type { RequestHandler } from 'express'
+import { getAuthContext, getOptionalAuthContext } from '../../server/context'
+import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
+import { getCollectionParams, getCode, getParam } from '../../server/request'
+import { getValidatedBody } from '../../server/validation'
+import type { CreatePostBody, PatchPostBody } from './schema'
+import { serializePost, serializePosts } from './serialize'
+import { createPost, deletePost, getPost, listPosts, patchPost } from './service'
+import { CreatePostInput } from './types'
+
+export const getPostsRoute: RequestHandler = async (req, res) => {
+  const ctx = getOptionalAuthContext(req)
+  const code = getCode(req)
+  const params = getCollectionParams(req, {
+    filter: ['code', 'type', 'status', 'access', 'member', 'category'],
+    sort: ['created', 'updated', 'expires'],
+  })
+
+  const posts = await listPosts(ctx, code, params)
+
+  const payload = await serializePosts(
+    posts,
+    getCollectionSerializerOptions(req.path, params, posts.length)
+  )
+
+  res.status(200).json(payload)
+}
+
+export const getPostRoute: RequestHandler = async (req, res) => {
+  const ctx = getOptionalAuthContext(req)
+  const code = getCode(req)
+  const postId = getParam(req, 'post')
+
+  const post = await getPost(ctx, code, postId)
+
+  const payload = await serializePost(post)
+  res.status(200).json(payload)
+}
+
+export const postPostsRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+  const body = getValidatedBody<CreatePostBody>(req)
+
+  const categoryId = body.data.relationships.category?.data?.id ?? null
+  const memberId = body.data.relationships.member.data.id
+  
+  const data = {
+    ...body.data.attributes,
+    type: body.data.type,
+    categoryId,
+    memberId,
+  } as CreatePostInput
+
+  const post = await createPost(ctx, code, data)
+
+  const payload = await serializePost(post)
+  res.status(201).json(payload)
+}
+
+export const patchPostRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+  const postId = getParam(req, 'post')
+  const body = getValidatedBody<PatchPostBody>(req)
+
+  const categoryId = body.data.relationships?.category?.data?.id ?? (
+    body.data.relationships?.category !== undefined ? null : undefined
+  )
+
+  const post = await patchPost(ctx, code, postId, {
+    ...body.data.attributes,
+    type: body.data.type,
+    ...(categoryId !== undefined ? { categoryId } : {}),
+  })
+
+  const payload = await serializePost(post)
+  res.status(200).json(payload)
+}
+
+export const deletePostRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+  const postId = getParam(req, 'post')
+
+  await deletePost(ctx, code, postId)
+  res.status(204).send()
+}

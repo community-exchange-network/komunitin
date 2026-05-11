@@ -98,7 +98,7 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
   return toGroup(group)
 }
 
-export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
+export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Pick<Group, 'id' | 'code'>): Promise<boolean> => {
   if (!ctx.userId) {
     return false
   }
@@ -114,7 +114,7 @@ export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Group): Prom
   return Boolean(relation)
 }
 
-export const isGroupMember = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
+export const isGroupMember = async (ctx: OptionalAuthContext, group: Pick<Group, 'id' | 'code'>): Promise<boolean> => {
   if (!ctx.userId) {
     return false
   }

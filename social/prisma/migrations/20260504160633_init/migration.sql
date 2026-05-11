@@ -103,7 +103,7 @@ CREATE TABLE "Post" (
     "title" VARCHAR(255),
     "description" TEXT NOT NULL DEFAULT '',
     "images" JSONB,
-    "value" VARCHAR(255),
+    "data" JSONB,
     "status" VARCHAR(31) NOT NULL DEFAULT 'draft',
     "access" VARCHAR(31) NOT NULL DEFAULT 'public',
     "latitude" DOUBLE PRECISION,

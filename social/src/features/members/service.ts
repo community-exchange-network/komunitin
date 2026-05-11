@@ -11,7 +11,7 @@ import type { Group } from '../groups/types'
 import { type MemberStatus, type PatchMemberAttributes } from './schema'
 import type { CreateMemberInput, Member, PatchMemberInput } from './types'
 
-const toMember = (member: DbMember): Member => {
+export const toMember = (member: DbMember): Member => {
   return {
     ...member,
     location: toLocation(member),
@@ -39,7 +39,7 @@ const getMemberById = async (code: string, id: string): Promise<Member> => {
   return toMember(member)
 }
 
-const isMemberUser = async (ctx: OptionalAuthContext, member: Member, role?: 'admin' ): Promise<boolean> => {
+export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member, 'id' | 'tenantId'>, role?: 'admin' ): Promise<boolean> => {
   if (!ctx.userId) {
     return false
   }

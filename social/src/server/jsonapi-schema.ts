@@ -1,20 +1,30 @@
-import { z, type ZodType } from 'zod'
+import { z, type ZodType, type ZodOptional, type ZodObject, } from 'zod'
+
 
 /**
  * From Zod schema for attributes to JSON:API resource object schema
  * (add support for relationships & others when needed).
  */
+
 export const jsonApiResourceSchema = <
   TType extends string,
   TAttributes extends ZodType,
+  TRelationships extends ZodType = ZodOptional<ZodObject<{}>>,
 >(
   type: TType,
   attributesSchema: TAttributes,
-) => z.object({
-  type: z.literal(type).default(type),
-  id: z.string().optional(),
-  attributes: attributesSchema,
-}).strict()
+  relationshipsSchema?: TRelationships,
+) => {
+  if (!relationshipsSchema) {
+    relationshipsSchema = z.object({}).strict().optional() as unknown as TRelationships
+  }
+  return z.object({
+    type: z.literal(type).default(type),
+    id: z.uuid().optional(),
+    attributes: attributesSchema,
+    relationships: relationshipsSchema,
+  }).strict()
+}
 
 /**
  * From Data and optional included schemas to JSON:API document schema.
@@ -47,3 +57,26 @@ export function jsonApiDocumentSchema<
     } : {})
   }).strict()
 }
+
+export function jsonApiToOneRelationshipSchema<TType extends string>(
+  type: TType,
+) {
+  return z.object({
+    data: z.object({
+      type: z.literal(type).default(type),
+      id: z.uuid(),
+    }),
+  })
+}
+
+export function jsonApiToOneNullableRelationshipSchema<TType extends string>(
+  type: TType,
+) {
+  return z.object({
+    data: z.object({
+      type: z.literal(type).default(type),
+      id: z.uuid(),
+    }).nullable(),
+  })
+}
+
