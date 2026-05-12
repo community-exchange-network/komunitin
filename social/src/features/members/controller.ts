@@ -19,7 +19,7 @@ export const getMembersRoute: RequestHandler = async (req, res) => {
 
   const payload = await serializeMembers(
     members,
-    getCollectionSerializerOptions(req.path, params, members.length)
+    getCollectionSerializerOptions(req.url, params, members.length)
   )
 
   res.status(200).json(payload)

@@ -46,7 +46,7 @@ const groupEditableAttributesSchema = z.object({
 }).strict()
 
 const createGroupAttributesSchema = groupEditableAttributesSchema.extend({
-  code: z.string().trim().min(1).max(63),
+  code: z.string().trim().min(1).max(31),
   name: z.string().trim().min(1).max(255),
 })
 export type CreateGroupAttributes = z.infer<typeof createGroupAttributesSchema>

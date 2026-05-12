@@ -18,7 +18,7 @@ export const getCategoriesRoute: RequestHandler = async (req, res) => {
   const categories = await listCategories(ctx, code, params)
   
   const payload = await serializeCategories(categories, 
-    getCollectionSerializerOptions(req.path, params, categories.length)
+    getCollectionSerializerOptions(req.url, params, categories.length)
   )
 
   res.status(200).json(payload)

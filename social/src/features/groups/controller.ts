@@ -36,7 +36,7 @@ export const getGroups: RequestHandler = async (req, res) => {
 
   const groups = await listGroups(ctx, params)
   
-  const payload = await serializeGroups(groups, getCollectionSerializerOptions(req.path, params, groups.length))
+  const payload = await serializeGroups(groups, getCollectionSerializerOptions(req.url, params, groups.length))
 
   res.status(200).json(payload)
 }

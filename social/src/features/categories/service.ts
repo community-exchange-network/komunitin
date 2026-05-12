@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 import type { Category as DbCategory } from '../../generated/prisma/client'
 import { type AuthContext, type OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
@@ -71,21 +71,20 @@ export const createCategory = async (ctx: AuthContext, code: string, input: Crea
   }
 
   const db = tenantDb(prisma, code)
+  
+  const categoryCode = input.code?.trim() || slugify(input.name)
+
   const existing = await db.category.findFirst({
-    where: { code: input.code },
+    where: { code: categoryCode },
   })
 
   if (existing) {
     throw badRequest('A category with this code already exists')
   }
 
-  if (!input.code) {
-    input.code = slugify(input.name)
-  }
-
   const created = await db.category.create({
     data: {
-      code: input.code,
+      code: categoryCode,
       name: input.name,
       access: input.access ?? group.access,
       icon: input.icon as any,

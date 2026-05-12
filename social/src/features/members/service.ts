@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 import type { Member as DbMember } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
@@ -121,21 +121,28 @@ const buildMemberCode = (groupCode: string, index: number): string => {
 
 const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   const db = tenantDb(prisma, groupCode)
-
   // Get all existing codes from the DB.
-  const existingCodes = await db.member.findMany({
+  const members = await db.member.findMany({
     select: {
       code: true,
     },
-  }).then(members => members.map(m => m.code))
-
-  // Find the first available code by incrementing an index until we find a free code.
-  let index = 0
-  while (existingCodes.includes(buildMemberCode(groupCode, index))) {
+    where: {
+      code: { startsWith: groupCode },
+    }
+  })
+  const existingCodes = members.map(m => m.code.substring(groupCode.length))
+    .filter(code => /^\d+$/.test(code)) // Only consider numeric codes
+    .map(code => parseInt(code))
+    .sort()
+  
+  // Find the first gap in the sequence of existing codes.
+  const candidate = existingCodes.length > 0 ? existingCodes[0] + 1 : 0
+  let index = 1
+  while (index < existingCodes.length && existingCodes[index] === candidate) {
     index++
   }
 
-  return buildMemberCode(groupCode, index)
+  return buildMemberCode(groupCode, candidate)
 }
 
 export const listMembers = async (ctx: OptionalAuthContext, code: string, params?: CollectionParams): Promise<Member[]> => {

@@ -5,8 +5,8 @@ import { CollectionParams, PaginationOptions } from "./request"
 
 const { Linker, Paginator } = TsJapi
 
-const getPaginationLinks = (path: string, pagination: PaginationOptions, resultLength: number, totalCount?: number) => {
-  const base = new URL(path, config.API_BASE_URL)
+const getPaginationLinks = (url: string, pagination: PaginationOptions, resultLength: number, totalCount?: number) => {
+  const base = new URL(url, config.API_BASE_URL)
   
   const withPagination = (cursor: number) => {
     const url = new URL(base.toString())
@@ -24,9 +24,11 @@ const getPaginationLinks = (path: string, pagination: PaginationOptions, resultL
   return { first, prev, self, next, last }
 }
 
-
-export const getCollectionSerializerOptions = <T extends Dictionary<any>>(path:string, collectionOptions: CollectionParams, resultLength: number, totalCount?: number): SerializerOptions<T> => {
-  const paginationLinks = getPaginationLinks(path, collectionOptions.pagination, resultLength, totalCount)
+/**
+ * @param url Use Request.url here to generate correct pagination links.
+ */
+export const getCollectionSerializerOptions = <T extends Dictionary<any>>(url:string, collectionOptions: CollectionParams, resultLength: number, totalCount?: number): SerializerOptions<T> => {
+  const paginationLinks = getPaginationLinks(url, collectionOptions.pagination, resultLength, totalCount)
   return {  
     linkers: {
       paginator: new Paginator(() => paginationLinks),
