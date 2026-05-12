@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import { optionalUserAuth, userAuth } from '../../server/auth'
 import { validateBody } from '../../server/validation'
-import { createGroupBodySchema, patchGroupBodySchema } from './schema'
-import { getGroupByCodeRoute, getGroupSettingsByCodeRoute, getGroups, patchGroupByCodeRoute, postGroups } from './controller'
+import { createGroupBodySchema, patchGroupBodySchema, patchGroupSettingsBodySchema } from './schema'
+import { getGroupByCodeRoute, getGroupSettingsByCodeRoute, getGroups, patchGroupByCodeRoute, patchGroupSettingsByCodeRoute, postGroups } from './controller'
 
 // To be mounted at /
 export const groupsRoutes = Router()
@@ -14,3 +14,4 @@ export const tenantGroupRoutes = Router({ mergeParams: true })
 tenantGroupRoutes.get('/', optionalUserAuth(), getGroupByCodeRoute)
 tenantGroupRoutes.patch('/', userAuth(), validateBody(patchGroupBodySchema), patchGroupByCodeRoute)
 tenantGroupRoutes.get('/settings', optionalUserAuth(), getGroupSettingsByCodeRoute)
+tenantGroupRoutes.patch('/settings', userAuth(), validateBody(patchGroupSettingsBodySchema), patchGroupSettingsByCodeRoute)

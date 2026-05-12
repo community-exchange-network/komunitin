@@ -195,6 +195,57 @@ describe('Groups endpoints', () => {
     assert.strictEqual(filtered.body.data[0].attributes.code, 'cc-group')
   })
 
+  test('GET /groups filters by code', async () => {
+    await seedGroup({ tenantId: 'code-one', name: 'Code One', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'code-two', name: 'Code Two', status: 'active', access: 'public' })
+
+    const res = await request(app)
+      .get('/groups?filter[code]=code-one')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'code-one')
+
+    const multiRes = await request(app)
+      .get('/groups?filter[code]=code-one,code-two')
+      .expect(200)
+
+    assert.strictEqual(multiRes.body.data.length, 2)
+    const codes = multiRes.body.data.map((group: any) => group.attributes.code)
+    assert.strictEqual(codes.includes('code-one'), true)
+    assert.strictEqual(codes.includes('code-two'), true)
+  })
+
+  test.todo('GET /groups search by name', async () => {
+    await seedGroup({ tenantId: 'search-alpha', name: 'Alpha Search', status: 'active', access: 'public' })
+    await seedGroup({ tenantId: 'search-bravo', name: 'Bravo Search', status: 'active', access: 'public' })
+    
+    const res = await request(app)
+      .get('/groups?filter[search]=alpha')
+      .expect(200)
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'search-alpha')
+  })
+
+  test.todo('GET /groups sorts by distance when location provided', async () => {
+    await seedGroup({ tenantId: 'loc-alpha', name: 'Alpha Location', status: 'active', access: 'public', latitude: 40.7128, longitude: -74.0060 })
+    await seedGroup({ tenantId: 'loc-bravo', name: 'Bravo Location', status: 'active', access: 'public', latitude: 34.0522, longitude: -118.2437 })
+    
+    const res = await request(app)
+      .get('/groups?near=41.8781,-87.6298&sort=distance')
+      .expect(200)
+    assert.strictEqual(res.body.data.length, 2)
+    assert.strictEqual(res.body.data[0].attributes.code, 'loc-alpha')
+    assert.strictEqual(res.body.data[1].attributes.code, 'loc-bravo')
+
+    const res2 = await request(app)
+      .get('/groups?near=34.0522,-118.2437&sort=distance')
+      .expect(200)
+    assert.strictEqual(res2.body.data.length, 2)
+    assert.strictEqual(res2.body.data[0].attributes.code, 'loc-bravo')
+    assert.strictEqual(res2.body.data[1].attributes.code, 'loc-alpha')
+  })
+
   test('GET /groups paginates after visibility filtering', async () => {
     await seedGroup({ tenantId: 'hidden-group', name: 'Alpha Hidden', status: 'active', access: 'private' })
     await seedGroup({ tenantId: 'visible-group', name: 'Bravo Visible', status: 'active', access: 'public' })
@@ -316,6 +367,24 @@ describe('Groups endpoints', () => {
       .get('/settings-admin-group/settings')
       .expect(403)
   })
+
+  test('GET /:code?include=settings includes settings', async () => {
+    await seedGroup({
+      tenantId: 'settings-include-group',
+      status: 'active',
+      access: 'public',
+      settings: { defaultGroupEmailFrequency: 'weekly' },
+    })
+
+    const res = await request(app)
+      .get('/settings-include-group?include=settings')
+      .expect(200)
+
+    assert.ok(Array.isArray(res.body.included))
+    assert.strictEqual(res.body.included[0].type, 'group-settings')
+    assert.strictEqual(res.body.included[0].attributes.defaultGroupEmailFrequency, 'weekly')
+  })
+
 
   test('PATCH /:code requires JWT', async () => {
     await seedGroup({ tenantId: 'patch-auth', status: 'active', access: 'public' })
@@ -445,5 +514,51 @@ describe('Groups endpoints', () => {
         }
       })
       .expect(400)
+  })
+
+  test('PATCH /:code/settings is forbidden for non-admin group members', async () => {
+    await seedGroup({ tenantId: 'settings-forbidden-group', status: 'active', access: 'public' })
+    const member = await auth('user-e')
+    await seedMember({ tenantId: 'settings-forbidden-group', userId: member.id })
+
+    await request(app)
+      .patch('/settings-forbidden-group/settings')
+      .set('Authorization', `Bearer ${member.token}`)
+      .send({
+        data: {
+          type: 'group-settings',
+          attributes: {
+            defaultGroupEmailFrequency: 'weekly',
+          }
+        }
+      })
+      .expect(403)
+  })
+
+  test('PATCH /:code/settings allows updating settings', async () => {
+    const { id: subject, token } = await auth('admin-e')
+    await seedGroup({
+      tenantId: 'settings-patch-group',
+      status: 'active',
+      access: 'public',
+      settings: { defaultGroupEmailFrequency: 'weekly' },
+    })
+    await seedGroupAdmin({ tenantId: 'settings-patch-group', userId: subject })
+
+    const res = await request(app)
+      .patch('/settings-patch-group/settings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        data: {
+          type: 'group-settings',
+          attributes: {
+            defaultGroupEmailFrequency: 'monthly',
+          }
+        }
+      })
+      .expect(200)
+
+    assert.strictEqual(res.body.data.type, 'group-settings')
+    assert.strictEqual(res.body.data.attributes.defaultGroupEmailFrequency, 'monthly')
   })
 })

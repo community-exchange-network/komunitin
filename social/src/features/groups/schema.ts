@@ -75,6 +75,7 @@ const patchGroupAttributesSchema = groupEditableAttributesSchema.extend({
   status: z.string().optional(),
 })
 export type PatchGroupAttributes = z.infer<typeof patchGroupAttributesSchema>
+export type PatchGroupSettingsAttributes = z.infer<typeof groupSettingsAttributesSchema>
 
 export const createGroupBodySchema = jsonApiDocumentSchema(
   jsonApiResourceSchema('groups', createGroupAttributesSchema),
@@ -85,5 +86,10 @@ export const patchGroupBodySchema = jsonApiDocumentSchema(
   jsonApiResourceSchema('groups', patchGroupAttributesSchema),
 )
 
+export const patchGroupSettingsBodySchema = jsonApiDocumentSchema(
+  jsonApiResourceSchema('group-settings', groupSettingsAttributesSchema),
+)
+
 export type CreateGroupBody = z.infer<typeof createGroupBodySchema>
 export type PatchGroupBody = z.infer<typeof patchGroupBodySchema>
+export type PatchGroupSettingsBody = z.infer<typeof patchGroupSettingsBodySchema>

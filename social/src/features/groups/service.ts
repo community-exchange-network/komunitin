@@ -5,7 +5,7 @@ import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
 import type { CollectionParams } from '../../server/request'
 import { whereFilter, orderBySort } from '../../server/query'
-import { Address, Location, PatchGroupAttributes } from './schema'
+import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
 import type { CreateGroupInput, Group } from './types'
 import { OptionalAuthContext, AuthContext } from '../../server/context'
 import { listMembers } from '../members/service'
@@ -191,7 +191,11 @@ const buildReadableGroupWhere = (ctx: OptionalAuthContext): Prisma.GroupWhereInp
 export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<Group[]> => {
   const db = privilegedDb(prisma)
 
-  const filterWhere = whereFilter(params.filters)
+  const { code, ...filters} = params.filters
+  if (code) {
+    filters.tenantId = code
+  }
+  const filterWhere = whereFilter(filters)
 
   const groups = await db.group.findMany({
     where: {
@@ -271,6 +275,39 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
   const updated = await db.group.update({
     where: { id: group.id },
     data,
+  })
+
+  return toGroup(updated)
+}
+
+export const patchGroupSettingsByCode = async (
+  ctx: AuthContext,
+  code: string,
+  attributes: PatchGroupSettingsAttributes,
+): Promise<Group> => {
+  const db = tenantDb(prisma, code)
+  const group = await db.group.findFirst()
+
+  if (!group) {
+    throw notFound('Group not found')
+  }
+
+  const allowed = await canWriteGroup(ctx, toGroup(group))
+  if (!allowed) {
+    throw forbidden('You do not have permission to update this group')
+  }
+
+  const currentSettings = group.settings as Prisma.JsonObject || {}
+  const mergedSettings: Prisma.InputJsonObject = {
+    ...currentSettings,
+    ...attributes,
+  }
+
+  const updated = await db.group.update({
+    where: { id: group.id },
+    data: {
+      settings: mergedSettings,
+    },
   })
 
   return toGroup(updated)
