@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { Member as DbMember } from '../../generated/prisma/client'
+import { Prisma, type Member as DbMember } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { orderBySort, whereFilter } from '../../server/query'
@@ -69,6 +69,43 @@ const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): P
     || await isMemberUser(ctx, member, "admin")  
     || await isGroupAdmin(ctx, group)
     
+}
+
+const buildReadableMemberWhere = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+): Promise<Prisma.MemberWhereInput | null> => {
+  // Superadmins, and group admins can read all members
+  if (ctx.isSuperadmin || await isGroupAdmin(ctx, group)) {
+    return {}
+  }
+
+  const visibilityWhere: Prisma.MemberWhereInput[] = []
+
+  // For active groups, add active members visible to the public or the group
+  if (group.status === 'active') {
+    const isMember = await isGroupMember(ctx, group)
+    visibilityWhere.push({
+      status: 'active',
+      access: isMember ? { in: ['public', 'group'] } : 'public',
+    })
+  }
+  // Add own members
+  if (ctx.userId) {
+    visibilityWhere.push({
+      users: {
+        some: {
+          userId: ctx.userId,
+        },
+      },
+    })
+  }
+
+  if (visibilityWhere.length === 0) {
+    return null
+  }
+
+  return { OR: visibilityWhere }
 }
 
 const validateStatusTransition = async (
@@ -149,28 +186,26 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
   const filterWhere = params ? whereFilter(params.filters) : {}
+  const visibilityWhere = await buildReadableMemberWhere(ctx, group)
+
+  if (visibilityWhere === null) {
+    return []
+  }
 
   const members = await db.member.findMany({
     where: {
-      ...filterWhere,
-      deleted: null,
+      AND: [
+        filterWhere,
+        { deleted: null },
+        visibilityWhere,
+      ],
     },
     orderBy: params ? orderBySort(params.sort) : { created: 'asc' },
+    skip: params?.pagination.cursor,
+    take: params?.pagination.size,
   })
 
-  const visibleMembers: Member[] = []
-  for (const dbMember of members) {
-    const member = toMember(dbMember)
-    if (await canReadMember(ctx, group, member)) {
-      visibleMembers.push(member)
-    }
-  }
-
-  if (!params) {
-    return visibleMembers
-  }
-
-  return visibleMembers.slice(params.pagination.cursor, params.pagination.cursor + params.pagination.size)
+  return members.map(toMember)
 }
 
 export const getMember = async (ctx: OptionalAuthContext, code: string, id: string): Promise<Member> => {

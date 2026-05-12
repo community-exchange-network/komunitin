@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { Category as DbCategory } from '../../generated/prisma/client'
+import { Prisma, type Category as DbCategory } from '../../generated/prisma/client'
 import { type AuthContext, type OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { orderBySort, whereFilter } from '../../server/query'
@@ -11,18 +11,29 @@ import { canWriteGroup, getGroupByCode, isGroupAdmin, isGroupMember } from '../g
 import type { Group } from '../groups/types'
 import type { Category, CreateCategoryInput, PatchCategoryInput } from './types'
 
-const canAccessCategory = async (ctx: OptionalAuthContext, group: Group, category: Category): Promise<boolean> => {
-  return ctx.isSuperadmin
-    || (group.status === 'active' && category.access === 'public')
-    || (group.status === 'active' && category.access === 'group' && await isGroupMember(ctx, group))
-    || await isGroupAdmin(ctx, group)
-}
-
 const toCategory = (dbCategory: DbCategory): Category => {
   return dbCategory as Category
 }
 
-const getCategory = async (code: string, id: string): Promise<Category> => {
+const buildReadableCategoryWhere = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+): Promise<Prisma.CategoryWhereInput | null> => {
+  if (ctx.isSuperadmin || await isGroupAdmin(ctx, group)) {
+    return {}
+  }
+
+  const groupMember = await isGroupMember(ctx, group)
+  if (groupMember) {
+    return { access: { in: ['public', 'group'] } }
+  } else if (group.status === 'active') {
+    return { access: 'public' }
+  } else {
+    return null
+  }
+}
+
+const getCategoryById = async (code: string, id: string): Promise<Category> => {
   const validation = z.uuid().safeParse(id)
   if (!validation.success) {
     throw notFound('Category not found')
@@ -44,23 +55,24 @@ const getCategory = async (code: string, id: string): Promise<Category> => {
 export const listCategories = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Category[]> => {
   const group = await getGroupByCode(ctx, code)
   const filterWhere = whereFilter(params.filters)
+  const visibilityWhere = await buildReadableCategoryWhere(ctx, group)
+
+  if (visibilityWhere === null) {
+    return []
+  }
 
   const db = tenantDb(prisma, code)
 
   const categories = await db.category.findMany({
-    where: filterWhere,
+    where: {
+      AND: [filterWhere, visibilityWhere],
+    },
     orderBy: orderBySort(params.sort),
+    skip: params.pagination.cursor,
+    take: params.pagination.size,
   })
 
-  const visibleCategories: Category[] = []
-  for (const dbCategory of categories) {
-    const category = toCategory(dbCategory)
-    if (await canAccessCategory(ctx, group, category)) {
-      visibleCategories.push(category)
-    }
-  }
-
-  return visibleCategories.slice(params.pagination.cursor, params.pagination.cursor + params.pagination.size)
+  return categories.map(toCategory)
 }
 
 export const createCategory = async (ctx: AuthContext, code: string, input: CreateCategoryInput): Promise<Category> => {
@@ -109,7 +121,7 @@ export const patchCategory = async (
     throw forbidden('You do not have permission to update categories in this group')
   }
 
-  const category = await getCategory(code, id)
+  const category = await getCategoryById(code, id)
 
   const db = tenantDb(prisma, code)
 
@@ -140,7 +152,7 @@ export const deleteCategory = async (
   }
 
   const db = tenantDb(prisma, code)
-  const category = await getCategory(code, id)
+  const category = await getCategoryById(code, id)
 
   await db.category.delete({
     where: {

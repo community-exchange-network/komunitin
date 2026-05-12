@@ -195,6 +195,18 @@ describe('Groups endpoints', () => {
     assert.strictEqual(filtered.body.data[0].attributes.code, 'cc-group')
   })
 
+  test('GET /groups paginates after visibility filtering', async () => {
+    await seedGroup({ tenantId: 'hidden-group', name: 'Alpha Hidden', status: 'active', access: 'private' })
+    await seedGroup({ tenantId: 'visible-group', name: 'Bravo Visible', status: 'active', access: 'public' })
+
+    const res = await request(app)
+      .get('/groups?sort=name&page[size]=1')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'visible-group')
+  })
+
   test('GET /groups?include=settings includes settings relationship data', async () => {
     await seedGroup({
       tenantId: 'settings-group',

@@ -117,6 +117,19 @@ describe('Categories endpoints', () => {
     assert.strictEqual(filtered.body.data[0].attributes.code, 'c')
   })
 
+  test('GET /:code/categories paginates after visibility filtering', async () => {
+    await seedGroup({ tenantId: 'cats-page', status: 'active', access: 'public' })
+    await seedCategory({ tenantId: 'cats-page', code: 'hidden', name: 'Alpha', access: 'private' })
+    await seedCategory({ tenantId: 'cats-page', code: 'visible', name: 'Bravo', access: 'public' })
+
+    const res = await request(app)
+      .get('/cats-page/categories?sort=name&page[size]=1')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'visible')
+  })
+
   test('GET /:code/categories enforces group-level access for non-public groups', async () => {
     await seedGroup({ tenantId: 'cats-group-access', status: 'active', access: 'group' })
     await seedCategory({ tenantId: 'cats-group-access', code: 'pub', access: 'public' })

@@ -338,6 +338,19 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'b')
   })
 
+  test('GET /:code/members paginates after visibility filtering', async () => {
+    await seedGroup({ tenantId: 'members-page', status: 'active', access: 'public' })
+    await seedMember({ tenantId: 'members-page', code: 'hidden', name: 'Alpha', status: 'draft', access: 'public' })
+    await seedMember({ tenantId: 'members-page', code: 'visible', name: 'Bravo', status: 'active', access: 'public' })
+
+    const res = await request(app)
+      .get('/members-page/members?sort=name&page[size]=1')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'visible')
+  })
+
   test('PATCH /:code/members/:member returns 404 for unknown id', async () => {
     await seedGroup({ tenantId: 'members-missing', status: 'active', access: 'public' })
     const admin = await auth('members-missing-admin')

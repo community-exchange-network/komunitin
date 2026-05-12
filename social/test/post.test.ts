@@ -207,6 +207,22 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].type, 'offers')
   })
 
+  test('GET /:code/posts paginates after visibility filtering', async () => {
+    await seedGroup({ tenantId: 'posts-page', status: 'active', access: 'public' })
+    const owner = await auth('posts-page-owner')
+    const member = await seedMember({ tenantId: 'posts-page', status: 'active', userId: owner.id })
+
+    await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'a-hidden', type: 'offers', status: 'draft', access: 'public' })
+    await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'b-visible', type: 'offers', status: 'published', access: 'public' })
+
+    const res = await request(app)
+      .get('/posts-page/posts?sort=code&page[size]=1')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'b-visible')
+  })
+
   test('GET /:code/posts/:post returns a single post', async () => {
     await seedGroup({ tenantId: 'posts-get-one', status: 'active', access: 'public' })
     const user = await auth('posts-get-one-user')

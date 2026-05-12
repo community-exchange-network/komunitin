@@ -1,5 +1,5 @@
 import { InputJsonObject } from '@prisma/client/runtime/client'
-import { Group as DbGroup } from '../../generated/prisma/client'
+import { Prisma, Group as DbGroup } from '../../generated/prisma/client'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
@@ -133,15 +133,56 @@ export const isGroupMember = async (ctx: OptionalAuthContext, group: Pick<Group,
   return Boolean(relation)
 }
 
-export const canAccessGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
+export const canReadGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
   return ctx.isSuperadmin
     || (group.status === 'active' && group.access === 'public')
-    || (group.status === 'active' && group.access === 'group' && await isGroupMember(ctx, group)) 
+    || await isGroupMember(ctx, group)
     || await isGroupAdmin(ctx, group)
 }
 
 export const canWriteGroup = async (ctx: AuthContext, group: Group): Promise<boolean> => {
   return ctx.isSuperadmin || await isGroupAdmin(ctx, group)
+}
+
+const buildReadableGroupWhere = (ctx: OptionalAuthContext): Prisma.GroupWhereInput => {
+  // Superadmins can access all groups
+  if (ctx.isSuperadmin) {
+    return {}
+  }
+
+  // public active groups are accessible to everyone.
+  const visibilityWhere: Prisma.GroupWhereInput[] = [{
+    status: 'active',
+    access: 'public',
+  }]
+
+  if (!ctx.userId) {
+    return visibilityWhere[0]
+  }
+
+  // groups are always accessible to group members
+  visibilityWhere.push({
+    members: {
+      some: {
+        deleted: null,
+        users: {
+          some: {
+            userId: ctx.userId,
+          },
+        },
+      },
+    },
+  })
+  // groups where the user is an admin
+  visibilityWhere.push({
+    admins: {
+      some: {
+        userId: ctx.userId,
+      },
+    },
+  })
+
+  return { OR: visibilityWhere }
 }
 
 /**
@@ -153,20 +194,15 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
   const filterWhere = whereFilter(params.filters)
 
   const groups = await db.group.findMany({
-    where: filterWhere,
+    where: {
+      AND: [filterWhere, buildReadableGroupWhere(ctx)],
+    },
     orderBy: orderBySort(params.sort),
+    skip: params.pagination.cursor,
+    take: params.pagination.size,
   })
 
-  const accessibleGroups: Group[] = []
-  for (const dbGroup of groups) {
-    const group = toGroup(dbGroup)
-    const allowed = await canAccessGroup(ctx, group)
-    if (allowed) {
-      accessibleGroups.push(group)
-    }
-  }
-
-  return accessibleGroups.slice(params.pagination.cursor, params.pagination.cursor + params.pagination.size)
+  return groups.map(toGroup)
 }
 
 export const getGroupByCode = async (
@@ -184,7 +220,7 @@ export const getGroupByCode = async (
   
   const group = toGroup(dbGroup)
 
-  const allowed = await canAccessGroup(ctx, group)
+  const allowed = await canReadGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have access to this group')
   }
