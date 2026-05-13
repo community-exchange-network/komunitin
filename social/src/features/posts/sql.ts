@@ -15,6 +15,15 @@ import { Group } from '../groups/types'
 
 const postTable = sqlTable('Post', 'p')
 const postColumn = (column: string) => sqlColumn('p', column)
+const memberTable = sqlTable('Member', 'm')
+const memberColumn = (column: string) => sqlColumn('m', column)
+
+const searchablePostFrom = Prisma.sql`
+  ${postTable}
+  INNER JOIN ${memberTable}
+    ON ${memberColumn('id')} = ${postColumn('memberId')}
+   AND ${memberColumn('tenantId')} = ${postColumn('tenantId')}
+`
 
 const postColumns: SqlColumnMap = {
   id: postColumn('id'),
@@ -27,7 +36,6 @@ const postColumns: SqlColumnMap = {
   created: postColumn('created'),
   updated: postColumn('updated'),
   expires: postColumn('expires'),
-  search: postColumn('search'),
 }
 
 const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): Promise<Prisma.Sql | null> => {
@@ -75,9 +83,13 @@ export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group
   if (readableWhere === null) {
     return []
   }
+
+  const hasSearch = params.filters.search !== undefined
+
   return await findCollectionIds(db, {
-    from: postTable,
+    from: hasSearch ? searchablePostFrom : postTable,
     columns: postColumns,
+    search: hasSearch ? [postColumn('search'), memberColumn('search')] : postColumn('search'),
     params,
     where: [
       Prisma.sql`${postColumn('deleted')} IS NULL`,

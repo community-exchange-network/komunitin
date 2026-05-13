@@ -25,7 +25,6 @@ const groupColumns: SqlColumnMap = {
   access: groupColumn('access'),
   created: groupColumn('created'),
   updated: groupColumn('updated'),
-  search: groupColumn('search')
 }
 
 /**
@@ -98,6 +97,7 @@ export const findGroupIds = async (ctx: OptionalAuthContext, db: DbClient, param
   return findCollectionIds(db, {
     from: groupTable,
     columns: groupColumns,
+    search: groupColumn('search'),
     params,
     where: [buildReadableGroupWhere(ctx)],
   })

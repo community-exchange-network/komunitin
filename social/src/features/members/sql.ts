@@ -25,7 +25,6 @@ const memberColumns: SqlColumnMap = {
   access: memberColumn('access'),
   created: memberColumn('created'),
   updated: memberColumn('updated'),
-  search: memberColumn('search'),
 }
 
 const buildReadableMemberWhere = async (ctx: OptionalAuthContext, group: Group): Promise<Prisma.Sql | null> => {
@@ -86,6 +85,7 @@ export const findMemberIds = async (
   return await findCollectionIds(db, {
     from: memberTable,
     columns: memberColumns,
+    search: memberColumn('search'),
     params,
     where: [
       Prisma.sql`${memberColumn('deleted')} IS NULL`,

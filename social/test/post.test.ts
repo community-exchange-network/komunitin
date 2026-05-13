@@ -207,7 +207,7 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].type, 'offers')
   })
 
-  test('GET /:code/posts supports search across post data and related member fields', async () => {
+  test('GET /:code/posts supports search across post data and member search fields', async () => {
     await seedGroup({ tenantId: 'posts-search', status: 'active', access: 'public' })
     const owner = await auth('posts-search-owner')
     const member = await seedMember({
@@ -256,19 +256,24 @@ describe('Posts endpoints', () => {
     assert.strictEqual(byTitle.body.data.length, 1)
     assert.strictEqual(byTitle.body.data[0].attributes.code, 'offer-bike')
 
-    /*
     const byMemberName = await request(app)
       .get('/posts-search/posts?filter[search]=olivia')
       .expect(200)
 
     assert.strictEqual(byMemberName.body.data.length, 2)
 
+    const byMemberCode = await request(app)
+      .get('/posts-search/posts?filter[search]=member-alpha')
+      .expect(200)
+
+    assert.strictEqual(byMemberCode.body.data.length, 2)
+
     const byMemberAddress = await request(app)
       .get('/posts-search/posts?filter[search]=riverdale')
       .expect(200)
 
     assert.strictEqual(byMemberAddress.body.data.length, 2)
-    */
+
     const byDescription = await request(app)
       .get('/posts-search/posts?filter[search]=tune')
       .expect(200)

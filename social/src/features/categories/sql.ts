@@ -21,7 +21,6 @@ const categoryColumns: SqlColumnMap = {
   access: categoryColumn('access'),
   created: categoryColumn('created'),
   updated: categoryColumn('updated'),
-  search: categoryColumn('search'),
 }
 
 const buildReadableCategoryWhere = async (ctx: OptionalAuthContext, group: Group) => {
@@ -55,6 +54,7 @@ export const findCategoriesIds = async (ctx: OptionalAuthContext, db: DbClient, 
   return await findCollectionIds(db, {
     from: categoryTable,
     columns: categoryColumns,
+    search: categoryColumn('search'),
     params,
     where: [readableWhere],
   })

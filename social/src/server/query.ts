@@ -1,11 +1,10 @@
 import { Prisma, PrismaClient } from '../generated/prisma/client'
 import { DbClient } from './multitenant'
 import type { CollectionParams, FilterOptions, SortOptions } from './request'
-import { buildTrigramSearch } from './search'
+import { buildTrigramSearch, type SearchSource } from './search'
 
 export type SqlColumnMap = {
   id: Prisma.Sql,
-  search: Prisma.Sql,
   [key: string]: Prisma.Sql
 }
 
@@ -16,6 +15,7 @@ type CollectionIdRow = {
 type CollectionQueryInput = {
   from: Prisma.Sql,
   columns: SqlColumnMap,
+  search?: SearchSource,
   params: CollectionParams,
   where?: Prisma.Sql[],
 }
@@ -123,6 +123,7 @@ const buildOrderBy = (sort: SortOptions[], columns: SqlColumnMap) => {
 const buildCollectionIdQuery = ({
   from,
   columns,
+  search,
   params,
   where
 }: CollectionQueryInput): Prisma.Sql => {
@@ -136,8 +137,8 @@ const buildCollectionIdQuery = ({
   where.push(...buildFilterWhere(filters, columns))
 
   // search
-  if (query) {
-    const trigramSearch = buildTrigramSearch(columns.search, query)
+  if (query && search) {
+    const trigramSearch = buildTrigramSearch(search, query)
     if (trigramSearch) {
       where.push(trigramSearch.where)
       if (params.sort[0]?.isDefault) {
