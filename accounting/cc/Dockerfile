@@ -31,9 +31,8 @@ RUN git checkout insert-my-node
 RUN composer install
 WORKDIR /workspaces/cc-server/vendor/credit-commons
 RUN rm -rf cc-php-lib
-# until https://gitlab.com/credit-commons/cc-php-lib/-/merge_requests/7 is merged:
-# RUN git clone https://gitlab.com/credit-commons/cc-php-lib
-RUN git clone https://gitlab.com/michielbdejong/cc-php-lib
+
+RUN git clone https://gitlab.com/credit-commons/cc-php-lib
 WORKDIR /workspaces/cc-server/vendor/credit-commons/cc-php-lib
 RUN git checkout 0.9.x
 RUN composer install
