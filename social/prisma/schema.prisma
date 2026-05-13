@@ -54,7 +54,7 @@ model Group {
   deleted DateTime?
 
   // Computed in SQL migration as GENERATED ALWAYS ... STORED.
-  search      String @default(dbgenerated()) @db.Text @ignore
+  search String @default(dbgenerated()) @ignore @db.Text
 
   members    Member[]
   categories Category[]
@@ -84,7 +84,7 @@ model Member {
   code        String @db.VarChar(255)
   name        String @db.VarChar(255)
   type        String @default("personal") @db.VarChar(31)
-  status       String @default("draft") @db.VarChar(31)
+  status      String @default("draft") @db.VarChar(31)
   access      String @default("public") @db.VarChar(31)
   description String @default("") @db.Text
   image       Json? // Image
@@ -107,6 +107,9 @@ model Member {
   created DateTime  @default(now())
   updated DateTime  @updatedAt
   deleted DateTime?
+
+  // Computed in SQL migration as GENERATED ALWAYS ... STORED.
+  search String @default(dbgenerated()) @ignore @db.Text
 
   groupId String @db.Uuid
   group   Group  @relation(fields: [groupId, tenantId], references: [id, tenantId])
@@ -146,6 +149,9 @@ model Category {
   created DateTime @default(now())
   updated DateTime @updatedAt
 
+  // Computed in SQL migration as GENERATED ALWAYS ... STORED.
+  search String @default(dbgenerated()) @ignore @db.Text
+
   groupId String @db.Uuid
   group   Group  @relation(fields: [groupId, tenantId], references: [id, tenantId])
   posts   Post[]
@@ -156,30 +162,33 @@ model Category {
 }
 
 model Post {
-  tenantId    String    @default(dbgenerated("(current_setting('app.current_tenant_id', true))::text")) @db.VarChar(31)
-  id          String    @id @default(uuid()) @db.Uuid
-  type        String    @db.VarChar(31) // PostType
-  code        String    @db.VarChar(255)
-  title       String?   @db.VarChar(255)
-  description String    @default("") @db.Text
-  images      Json?     // Image[]
-  status      String    @default("draft") @db.VarChar(31)
-  access      String    @default("public") @db.VarChar(31)
-  
+  tenantId    String  @default(dbgenerated("(current_setting('app.current_tenant_id', true))::text")) @db.VarChar(31)
+  id          String  @id @default(uuid()) @db.Uuid
+  type        String  @db.VarChar(31) // PostType
+  code        String  @db.VarChar(255)
+  title       String? @db.VarChar(255)
+  description String  @default("") @db.Text
+  images      Json? // Image[]
+  status      String  @default("draft") @db.VarChar(31)
+  access      String  @default("public") @db.VarChar(31)
+
   // We have latitude and longitude for prisma support and then we have a computed
   // geography column for PostGIS spatial queries created via raw SQL migration.
-  latitude    Float?
-  longitude   Float?
+  latitude  Float?
+  longitude Float?
   // Computed in SQL migration as GENERATED ALWAYS ... STORED.
-  location    Unsupported("geography(Point, 4326)")?
+  location  Unsupported("geography(Point, 4326)")?
 
   // Type-specific data stored as JSON.
-  data        Json?
-  
-  expires     DateTime?
-  deleted     DateTime?
-  created     DateTime  @default(now())
-  updated     DateTime  @updatedAt
+  data Json?
+
+  expires DateTime?
+  deleted DateTime?
+  created DateTime  @default(now())
+  updated DateTime  @updatedAt
+
+  // Maintained by SQL triggers.
+  search String @default(dbgenerated()) @ignore @db.Text
 
   memberId   String    @db.Uuid
   member     Member    @relation(fields: [memberId, tenantId], references: [id, tenantId])

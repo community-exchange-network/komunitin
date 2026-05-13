@@ -4,13 +4,13 @@ import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
 import type { CollectionParams } from '../../server/request'
-import { reorderByIds, type CollectionIdRow } from '../../server/query'
+import { reorderByIds } from '../../server/query'
 import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
 import type { CreateGroupInput, Group } from './types'
 import { OptionalAuthContext, AuthContext } from '../../server/context'
 import { listMembers } from '../members/service'
 import { GroupUpdateInput } from '../../generated/prisma/models'
-import { buildListGroupsQuery } from './sql'
+import { findGroupIds } from './sql'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -150,19 +150,15 @@ export const canWriteGroup = async (ctx: AuthContext, group: Group): Promise<boo
  */
 export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<Group[]> => {
   const db = privilegedDb(prisma)
-
-  const rows = await db.$queryRaw<CollectionIdRow[]>(buildListGroupsQuery(ctx, params))
-  const ids = rows.map(({ id }) => id)
-
+  
+  const ids = await findGroupIds(ctx, db, params)
   if (ids.length === 0) {
     return []
   }
 
   const groups = await db.group.findMany({
     where: {
-      id: {
-        in: ids,
-      },
+      id: { in: ids },
     },
   })
 
@@ -171,10 +167,7 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
 
 export const getGroupByCode = async (
   ctx: OptionalAuthContext,
-  code: string,
-  options?: {
-    includeMembers?: boolean
-  },
+  code: string
 ): Promise<Group> => {
   const db = tenantDb(prisma, code)
   const dbGroup = await db.group.findFirst()
@@ -187,14 +180,6 @@ export const getGroupByCode = async (
   const allowed = await canReadGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have access to this group')
-  }
-
-  if (options?.includeMembers) {
-    const members = await listMembers(ctx, code)
-    return {
-      ...group,
-      members,
-    }
   }
 
   return group

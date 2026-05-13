@@ -117,6 +117,42 @@ describe('Categories endpoints', () => {
     assert.strictEqual(filtered.body.data[0].attributes.code, 'c')
   })
 
+  test('GET /:code/categories supports search across code, name and meta.description', async () => {
+    await seedGroup({ tenantId: 'cats-search', status: 'active', access: 'public' })
+    await seedCategory({
+      tenantId: 'cats-search',
+      code: 'food',
+      name: 'Food Services',
+      access: 'public',
+      meta: {
+        description: 'Fresh organic produce and meals',
+      },
+    })
+    await seedCategory({
+      tenantId: 'cats-search',
+      code: 'transport',
+      name: 'Transport',
+      access: 'public',
+      meta: {
+        description: 'Ride sharing',
+      },
+    })
+
+    const byCode = await request(app)
+      .get('/cats-search/categories?filter[search]=food')
+      .expect(200)
+
+    assert.strictEqual(byCode.body.data.length, 1)
+    assert.strictEqual(byCode.body.data[0].attributes.code, 'food')
+
+    const byMetaDescription = await request(app)
+      .get('/cats-search/categories?filter[search]=organic')
+      .expect(200)
+
+    assert.strictEqual(byMetaDescription.body.data.length, 1)
+    assert.strictEqual(byMetaDescription.body.data[0].attributes.code, 'food')
+  })
+
   test('GET /:code/categories paginates after visibility filtering', async () => {
     await seedGroup({ tenantId: 'cats-page', status: 'active', access: 'public' })
     await seedCategory({ tenantId: 'cats-page', code: 'hidden', name: 'Alpha', access: 'private' })

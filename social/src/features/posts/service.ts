@@ -1,9 +1,9 @@
 import z from 'zod'
-import { Prisma, type Post as DbPost, type Member as DbMember } from '../../generated/prisma/client'
+import { type Member as DbMember, type Post as DbPost } from '../../generated/prisma/client'
 import { PostUpdateInput } from '../../generated/prisma/models'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { orderBySort, whereFilter } from '../../server/query'
+import { reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { slugify } from '../../utils/format'
@@ -13,6 +13,7 @@ import type { Group } from '../groups/types'
 import { getMember, isMemberUser, toMember } from '../members/service'
 import type { PostStatus } from './schema'
 import type { CreatePostInput, NeedData, OfferData, PatchPostInput, Post } from './types'
+import { findPostsIds } from './sql'
 
 const toPost = (dbPost: DbPost & {member: DbMember}): Post => {
   const { latitude, longitude, data, member, ...post} = dbPost
@@ -69,45 +70,6 @@ const canWritePost = async (ctx: AuthContext, group: Group, post: Post): Promise
     || await isPostOwner(ctx, post)
 }
 
-const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): Promise<Prisma.PostWhereInput | null> => {
-  // Superadmins and group admins can read all posts
-  if (ctx.isSuperadmin || await isGroupAdmin(ctx, group)) {
-    return {}
-  }
-  
-  const visibilityWhere: Prisma.PostWhereInput[] = []
-
-  if (group.status === 'active') {
-    // Add posts visible to the public or to the group
-    const isMember = await isGroupMember(ctx, group)
-    visibilityWhere.push({
-      access: isMember ? { in: ['public', 'group'] } : 'public',
-      status: 'published',
-    })
-  }
-
-  // Add own posts
-  if (ctx.userId) {
-    visibilityWhere.push({
-      member: {
-        is: {
-          users: {
-            some: {
-              userId: ctx.userId,
-            },
-          },
-        },
-      },
-    })
-  }
-
-  if (visibilityWhere.length === 0) {
-    return null
-  }
-
-  return { OR: visibilityWhere }
-}
-
 const validateStatusTransition = async (
   ctx: AuthContext,
   group: Group,
@@ -145,30 +107,22 @@ const findFreePostCode = async (code: string, baseCode: string): Promise<string>
 export const listPosts = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Post[]> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
-  const filterWhere = whereFilter(params.filters)
-  const visibilityWhere = await buildReadablePostWhere(ctx, group)
-  
-  if (visibilityWhere === null) {
+
+  const ids = await findPostsIds(ctx, db, group, params)
+  if (ids.length === 0) {
     return []
   }
 
   const posts = await db.post.findMany({
     where: {
-      AND: [
-        filterWhere,
-        { deleted: null },
-        visibilityWhere,
-      ],
+      id: { in: ids },
     },
     include: {
       member: true
     },
-    orderBy: orderBySort(params.sort),
-    skip: params.pagination.cursor,
-    take: params.pagination.size,
   })
 
-  return posts.map(toPost)
+  return reorderByIds(posts, ids).map(toPost)
 }
 
 export const getPost = async (ctx: OptionalAuthContext, code: string, id: string): Promise<Post> => {

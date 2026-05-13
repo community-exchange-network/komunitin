@@ -19,7 +19,6 @@ export interface Group extends DbGroup {
   contacts: Contact[] | null
   meta: GroupMeta | null
   
-  members?: Member[] // included when group is fetched with members
 }
 
 export type GroupMeta = {

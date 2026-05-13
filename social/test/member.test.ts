@@ -304,22 +304,6 @@ describe('Members endpoints', () => {
       .expect(403)
   })
 
-  test('GET /:code?include=members includes active public members', async () => {
-    await seedGroup({ tenantId: 'members-include', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-include', code: 'inc-public', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-include', code: 'inc-group', status: 'active', access: 'group' })
-    await seedMember({ tenantId: 'members-include', code: 'inc-pending', status: 'pending', access: 'public' })
-
-    const res = await request(app)
-      .get('/members-include?include=members')
-      .expect(200)
-
-    assert.ok(Array.isArray(res.body.included))
-    assert.strictEqual(res.body.included.length, 1)
-    assert.strictEqual(res.body.included[0].type, 'members')
-    assert.strictEqual(res.body.included[0].attributes.code, 'inc-public')
-  })
-
   test('GET /:code/members supports filtering and sorting', async () => {
     await seedGroup({ tenantId: 'members-query', status: 'active', access: 'public' })
     const admin = await auth('members-query-admin')
@@ -336,6 +320,50 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'b')
+  })
+
+  test('GET /:code/members supports search across text and JSON scalar values', async () => {
+    await seedGroup({ tenantId: 'members-search', status: 'active', access: 'public' })
+    await seedMember({
+      tenantId: 'members-search',
+      code: 'alpha-code',
+      name: 'Alpha Person',
+      status: 'active',
+      access: 'public',
+      address: {
+        addressLocality: 'Riverdale',
+      },
+      contacts: [
+        { type: 'email', value: 'alpha@example.org' },
+      ],
+    })
+    await seedMember({
+      tenantId: 'members-search',
+      code: 'bravo-code',
+      name: 'Bravo Person',
+      status: 'active',
+      access: 'public',
+    })
+
+    const byName = await request(app)
+      .get('/members-search/members?filter[search]=alpha')
+      .expect(200)
+
+    assert.strictEqual(byName.body.data.length, 1)
+    assert.strictEqual(byName.body.data[0].attributes.code, 'alpha-code')
+
+    const byAddressValue = await request(app)
+      .get('/members-search/members?filter[search]=riverdale')
+      .expect(200)
+
+    assert.strictEqual(byAddressValue.body.data.length, 1)
+    assert.strictEqual(byAddressValue.body.data[0].attributes.code, 'alpha-code')
+
+    const byAddressKey = await request(app)
+      .get('/members-search/members?filter[search]=addressLocality')
+      .expect(200)
+
+    assert.strictEqual(byAddressKey.body.data.length, 0)
   })
 
   test('GET /:code/members paginates after visibility filtering', async () => {

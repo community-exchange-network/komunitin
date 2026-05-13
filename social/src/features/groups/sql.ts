@@ -1,7 +1,8 @@
 import { Prisma } from '../../generated/prisma/client'
 import type { OptionalAuthContext } from '../../server/context'
+import { DbClient } from '../../server/multitenant'
 import {
-  buildCollectionIdQuery,
+  findCollectionIds,
   sqlAnd,
   sqlColumn,
   sqlOr,
@@ -93,8 +94,8 @@ const buildReadableGroupWhere = (ctx: OptionalAuthContext): Prisma.Sql => {
  * Build SQL query to list groups, taking into account the user's permissions and the provided 
  * collection parameters for filtering, sorting, and pagination.
  */
-export const buildListGroupsQuery = (ctx: OptionalAuthContext, params: CollectionParams): Prisma.Sql => {
-  return buildCollectionIdQuery({
+export const findGroupIds = async (ctx: OptionalAuthContext, db: DbClient, params: CollectionParams): Promise<string[]> => {
+  return findCollectionIds(db, {
     from: groupTable,
     columns: groupColumns,
     params,

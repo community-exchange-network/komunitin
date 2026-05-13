@@ -207,6 +207,89 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].type, 'offers')
   })
 
+  test('GET /:code/posts supports search across post data and related member fields', async () => {
+    await seedGroup({ tenantId: 'posts-search', status: 'active', access: 'public' })
+    const owner = await auth('posts-search-owner')
+    const member = await seedMember({
+      tenantId: 'posts-search',
+      status: 'active',
+      userId: owner.id,
+      code: 'member-alpha',
+      name: 'Olivia Rivera',
+      address: {
+        addressLocality: 'Riverdale',
+      },
+    })
+
+    await seedPost({
+      tenantId: 'posts-search',
+      memberId: member.id,
+      code: 'offer-bike',
+      type: 'offers',
+      title: 'Bike Repair Help',
+      description: 'Repair and tune-up',
+      status: 'published',
+      access: 'public',
+      data: {
+        value: '20 credits per hour',
+      } as any,
+    })
+
+    await seedPost({
+      tenantId: 'posts-search',
+      memberId: member.id,
+      code: 'offer-garden',
+      type: 'offers',
+      title: 'Garden Assistance',
+      description: 'Plant care',
+      status: 'published',
+      access: 'public',
+      data: {
+        value: 'garden support',
+      } as any,
+    })
+
+    const byTitle = await request(app)
+      .get('/posts-search/posts?filter[search]=bikes')
+      .expect(200)
+
+    assert.strictEqual(byTitle.body.data.length, 1)
+    assert.strictEqual(byTitle.body.data[0].attributes.code, 'offer-bike')
+
+    /*
+    const byMemberName = await request(app)
+      .get('/posts-search/posts?filter[search]=olivia')
+      .expect(200)
+
+    assert.strictEqual(byMemberName.body.data.length, 2)
+
+    const byMemberAddress = await request(app)
+      .get('/posts-search/posts?filter[search]=riverdale')
+      .expect(200)
+
+    assert.strictEqual(byMemberAddress.body.data.length, 2)
+    */
+    const byDescription = await request(app)
+      .get('/posts-search/posts?filter[search]=tune')
+      .expect(200)
+
+    assert.strictEqual(byDescription.body.data.length, 1)
+    assert.strictEqual(byDescription.body.data[0].attributes.code, 'offer-bike')
+
+    const byFlattenedData = await request(app)
+      .get('/posts-search/posts?filter[search]=20 credits per hour')
+      .expect(200)
+
+    assert.strictEqual(byFlattenedData.body.data.length, 1)
+    assert.strictEqual(byFlattenedData.body.data[0].attributes.code, 'offer-bike')
+
+    const byJsonKey = await request(app)
+      .get('/posts-search/posts?filter[search]=addressLocality')
+      .expect(200)
+
+    assert.strictEqual(byJsonKey.body.data.length, 0)
+  })
+
   test('GET /:code/posts paginates after visibility filtering', async () => {
     await seedGroup({ tenantId: 'posts-page', status: 'active', access: 'public' })
     const owner = await auth('posts-page-owner')

@@ -58,11 +58,6 @@ const GroupSerializer = new Serializer<Group>('groups', {
         ...group.settings,
       }
     }, GroupSettingsSerializer, { relatedName: 'settings' }),
-    members: new Relator<Group, Member>(
-      async (group) => group.members,
-      MemberSerializer,
-      { relatedName: 'members' }
-    )
   },
   linkers: {
     resource: new Linker((group) => `${config.API_BASE_URL}/${group.code}`)

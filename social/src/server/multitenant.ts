@@ -1,7 +1,8 @@
 import { Prisma, type PrismaClient } from '../generated/prisma/client'
 
-export type PrivilegedPrismaClient = ReturnType<typeof privilegedDb>
-export type TenantPrismaClient = ReturnType<typeof tenantDb>
+export type PrivilegedDbClient = ReturnType<typeof privilegedDb>
+export type TenantDbClient = ReturnType<typeof tenantDb>
+export type DbClient = PrivilegedDbClient | TenantDbClient
 
 export function privilegedDb(prisma: PrismaClient) {
   return prisma.$extends(bypassRLS())

@@ -195,7 +195,7 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: social
       POSTGRES_APP_PASSWORD: social
-      POSTGRES_APP_EXTENSIONS: postgis,vector,pg_trgm,btree_gin
+      POSTGRES_APP_EXTENSIONS: postgis,vector,pg_trgm,btree_gin,unaccent
       WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
       WALG_S3_PREFIX: ${S3_PREFIX}/db-social
       WALG_COMPRESSION_METHOD: zstd

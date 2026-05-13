@@ -12,7 +12,7 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const params = getCollectionParams(req, {
-    filter: ['code', 'type', 'status', 'access', 'member', 'category'],
+    filter: ['code', 'type', 'status', 'access', 'member', 'category', 'search'],
     sort: ['created', 'updated', 'expires'],
   })
 

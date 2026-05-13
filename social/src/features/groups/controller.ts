@@ -44,9 +44,9 @@ export const getGroups: RequestHandler = async (req, res) => {
 export const getGroupByCodeRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
-  const include = getInclude(req, ['settings', 'members'])
+  const include = getInclude(req, ['settings'])
 
-  const group = await getGroupByCode(ctx, code, { includeMembers: include.includes('members') })
+  const group = await getGroupByCode(ctx, code)
 
   const payload = await serializeGroup(group, { include })
   res.status(200).json(payload)

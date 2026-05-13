@@ -1,4 +1,5 @@
-import { Prisma } from '../generated/prisma/client'
+import { Prisma, PrismaClient } from '../generated/prisma/client'
+import { DbClient } from './multitenant'
 import type { CollectionParams, FilterOptions, SortOptions } from './request'
 import { buildTrigramSearch } from './search'
 
@@ -8,11 +9,11 @@ export type SqlColumnMap = {
   [key: string]: Prisma.Sql
 }
 
-export type CollectionIdRow = {
+type CollectionIdRow = {
   id: string
 }
 
-type CollectionIdQueryInput = {
+type CollectionQueryInput = {
   from: Prisma.Sql,
   columns: SqlColumnMap,
   params: CollectionParams,
@@ -75,7 +76,7 @@ export const sqlColumn = (tableAlias: string, column: string): Prisma.Sql => {
  * If a filter value is array or comma-separated string, it will be treated as an "IN" condition.
  * Otherwise, it will be treated as an equality condition.
  */
-export const buildFilterWhere = (filter: FilterOptions, columns: SqlColumnMap): Prisma.Sql[] => {
+const buildFilterWhere = (filter: FilterOptions, columns: SqlColumnMap): Prisma.Sql[] => {
   const where: Prisma.Sql[] = []
 
   for (const [key, rawValue] of Object.entries(filter)) {
@@ -104,7 +105,7 @@ export const buildFilterWhere = (filter: FilterOptions, columns: SqlColumnMap): 
 /**
  * Build SQL ORDER BY clause from sort options (excluding the "ORDER BY" keyword).
  */
-export const buildOrderBy = (sort: SortOptions[], columns: SqlColumnMap) => {
+const buildOrderBy = (sort: SortOptions[], columns: SqlColumnMap) => {
   const dir = (order: 'asc' | 'desc') => {
     return order === 'desc' ? Prisma.raw('DESC') : Prisma.raw('ASC')
   }
@@ -119,12 +120,12 @@ export const buildOrderBy = (sort: SortOptions[], columns: SqlColumnMap) => {
 /**
  * Build a full SQL query that selects IDs from SQL fragments for filtering, sorting, and pagination.
  */
-export const buildCollectionIdQuery = ({
+const buildCollectionIdQuery = ({
   from,
   columns,
   params,
   where
-}: CollectionIdQueryInput): Prisma.Sql => {
+}: CollectionQueryInput): Prisma.Sql => {
   // sort
   let orderBy = buildOrderBy(params.sort, columns)
 
@@ -165,6 +166,23 @@ export const buildCollectionIdQuery = ({
 }
 
 /**
+ * 
+ * @param db 
+ * @param input 
+ * @returns 
+ */
+export const findCollectionIds = async (db: DbClient, input: CollectionQueryInput): Promise<string[]> => {
+  const idQuery = buildCollectionIdQuery(input)
+  const rows = await db.$queryRaw<CollectionIdRow[]>(idQuery)
+  
+  if (rows.length === 0) {
+    return []
+  }
+  const ids = rows.map(({ id }) => id)
+  return ids
+}
+
+/**
  * Reorder an array of rows based on the order of their IDs in the provided list.
  * 
  * Use this function after hydrating rows from the database to ensure the order matches 
@@ -176,39 +194,4 @@ export const reorderByIds = <Row extends { id: string }>(rows: Row[], ids: strin
   return ids
     .map((id) => rowsById.get(id))
     .filter((row): row is Row => row !== undefined)
-}
-
-
-/**
- * To be deleted after completing the migration to raw SQL for collections.
- */
-export const whereFilter = (filter: FilterOptions) => {
-  const where: Record<string, any> = {}
-
-  for (const [key, rawValue] of Object.entries(filter)) {
-    const values = Array.isArray(rawValue) ? rawValue : rawValue.split(',')
-    const cleaned = values.map((value) => value.trim()).filter((value) => value.length > 0)
-
-    if (cleaned.length === 0) {
-      continue
-    }
-
-    if (cleaned.length > 1) {
-      where[key] = { in: cleaned }
-    } else {
-      where[key] = cleaned[0]
-    }
-  }
-
-  return where
-}
-
-/**
- * To be deleted after completing the migration to raw SQL for collections.
- */
-export const orderBySort = (sort: SortOptions[]) => {
-  return sort.reduce((acc, sortOption) => {
-    acc[sortOption.field] = sortOption.order
-    return acc
-  }, {} as Record<string, SortOptions['order']>)
 }

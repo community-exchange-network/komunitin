@@ -11,7 +11,7 @@ export const getMembersRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const params = getCollectionParams(req, {
-    filter: ['code', 'name', 'type', 'status', 'access'],
+    filter: ['code', 'name', 'type', 'status', 'access', 'search'],
     sort: ['created', 'updated', 'name', 'code'],
   })
 

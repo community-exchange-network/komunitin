@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { Prisma, type Member as DbMember } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { orderBySort, whereFilter } from '../../server/query'
+import { reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
@@ -10,6 +10,7 @@ import { getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../grou
 import type { Group } from '../groups/types'
 import { type MemberStatus, type PatchMemberAttributes } from './schema'
 import type { CreateMemberInput, Member, PatchMemberInput } from './types'
+import { findMemberIds } from './sql'
 
 export const toMember = (member: DbMember): Member => {
   return {
@@ -69,43 +70,6 @@ const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): P
     || await isMemberUser(ctx, member, "admin")  
     || await isGroupAdmin(ctx, group)
     
-}
-
-const buildReadableMemberWhere = async (
-  ctx: OptionalAuthContext,
-  group: Group,
-): Promise<Prisma.MemberWhereInput | null> => {
-  // Superadmins, and group admins can read all members
-  if (ctx.isSuperadmin || await isGroupAdmin(ctx, group)) {
-    return {}
-  }
-
-  const visibilityWhere: Prisma.MemberWhereInput[] = []
-
-  // For active groups, add active members visible to the public or the group
-  if (group.status === 'active') {
-    const isMember = await isGroupMember(ctx, group)
-    visibilityWhere.push({
-      status: 'active',
-      access: isMember ? { in: ['public', 'group'] } : 'public',
-    })
-  }
-  // Add own members
-  if (ctx.userId) {
-    visibilityWhere.push({
-      users: {
-        some: {
-          userId: ctx.userId,
-        },
-      },
-    })
-  }
-
-  if (visibilityWhere.length === 0) {
-    return null
-  }
-
-  return { OR: visibilityWhere }
 }
 
 const validateStatusTransition = async (
@@ -182,30 +146,22 @@ const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   return buildMemberCode(groupCode, candidate)
 }
 
-export const listMembers = async (ctx: OptionalAuthContext, code: string, params?: CollectionParams): Promise<Member[]> => {
+export const listMembers = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Member[]> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
-  const filterWhere = params ? whereFilter(params.filters) : {}
-  const visibilityWhere = await buildReadableMemberWhere(ctx, group)
-
-  if (visibilityWhere === null) {
+  
+  const ids = await findMemberIds(ctx, db, group, params)
+  
+  if (ids.length === 0) {
     return []
   }
 
   const members = await db.member.findMany({
     where: {
-      AND: [
-        filterWhere,
-        { deleted: null },
-        visibilityWhere,
-      ],
+      id: { in: ids },
     },
-    orderBy: params ? orderBySort(params.sort) : { created: 'asc' },
-    skip: params?.pagination.cursor,
-    take: params?.pagination.size,
   })
-
-  return members.map(toMember)
+  return reorderByIds(members, ids).map(toMember)
 }
 
 export const getMember = async (ctx: OptionalAuthContext, code: string, id: string): Promise<Member> => {
