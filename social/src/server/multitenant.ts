@@ -21,7 +21,7 @@ function bypassRLS() {
             query(args),
           ])
           return result
-        },
+        }
       },
     })
   )

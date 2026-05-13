@@ -4,12 +4,13 @@ import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
 import type { CollectionParams } from '../../server/request'
-import { whereFilter, orderBySort } from '../../server/query'
+import { reorderByIds, type CollectionIdRow } from '../../server/query'
 import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
 import type { CreateGroupInput, Group } from './types'
 import { OptionalAuthContext, AuthContext } from '../../server/context'
 import { listMembers } from '../members/service'
 import { GroupUpdateInput } from '../../generated/prisma/models'
+import { buildListGroupsQuery } from './sql'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -144,69 +145,28 @@ export const canWriteGroup = async (ctx: AuthContext, group: Group): Promise<boo
   return ctx.isSuperadmin || await isGroupAdmin(ctx, group)
 }
 
-const buildReadableGroupWhere = (ctx: OptionalAuthContext): Prisma.GroupWhereInput => {
-  // Superadmins can access all groups
-  if (ctx.isSuperadmin) {
-    return {}
-  }
-
-  // public active groups are accessible to everyone.
-  const visibilityWhere: Prisma.GroupWhereInput[] = [{
-    status: 'active',
-    access: 'public',
-  }]
-
-  if (!ctx.userId) {
-    return visibilityWhere[0]
-  }
-
-  // groups are always accessible to group members
-  visibilityWhere.push({
-    members: {
-      some: {
-        deleted: null,
-        users: {
-          some: {
-            userId: ctx.userId,
-          },
-        },
-      },
-    },
-  })
-  // groups where the user is an admin
-  visibilityWhere.push({
-    admins: {
-      some: {
-        userId: ctx.userId,
-      },
-    },
-  })
-
-  return { OR: visibilityWhere }
-}
-
 /**
  * Return all groups accessible to the given user.
  */
 export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<Group[]> => {
   const db = privilegedDb(prisma)
 
-  const { code, ...filters} = params.filters
-  if (code) {
-    filters.tenantId = code
+  const rows = await db.$queryRaw<CollectionIdRow[]>(buildListGroupsQuery(ctx, params))
+  const ids = rows.map(({ id }) => id)
+
+  if (ids.length === 0) {
+    return []
   }
-  const filterWhere = whereFilter(filters)
 
   const groups = await db.group.findMany({
     where: {
-      AND: [filterWhere, buildReadableGroupWhere(ctx)],
+      id: {
+        in: ids,
+      },
     },
-    orderBy: orderBySort(params.sort),
-    skip: params.pagination.cursor,
-    take: params.pagination.size,
   })
 
-  return groups.map(toGroup)
+  return reorderByIds(groups, ids).map(toGroup)
 }
 
 export const getGroupByCode = async (

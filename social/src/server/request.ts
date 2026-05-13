@@ -19,7 +19,7 @@ export type SortOptions = {
 export type CollectionParams = {
   pagination: PaginationOptions
   filters: FilterOptions
-  sort: SortOptions
+  sort: SortOptions[]
   include: string[]
 }
 
@@ -81,27 +81,33 @@ export const getFilters = (req: Request, fields: string[]): FilterOptions => {
   return filter
 }
 
-export const getSort = (req: Request, fields: string[], defaultDesc = false): SortOptions => {
+export const getSort = (req: Request, fields: string[], defaultDesc = false): SortOptions[] => {
   if (fields.length === 0) {
     throw internalError('Provide at least one sort field')
   }
 
   const sort = req.query.sort
-  if (typeof sort === 'string') {
-    const desc = sort.startsWith('-')
-    const field = desc ? sort.slice(1) : sort
+  const sortArray = typeof sort === 'string' ? [sort] : Array.isArray(sort) ? sort : []
+
+  const sortOptions: SortOptions[] = []
+  for (const sortField of sortArray) {
+    if (typeof sortField !== 'string') {
+      continue
+    }
+    const desc = sortField.startsWith('-')
+    const field = desc ? sortField.slice(1) : sortField
     if (fields.includes(field)) {
-      return {
-        field,
-        order: desc ? 'desc' : 'asc',
-      }
+      sortOptions.push({ field, order: desc ? 'desc' : 'asc' })
     }
   }
-
-  return {
-    field: fields[0],
-    order: defaultDesc ? 'desc' : 'asc',
+  if (sortOptions.length === 0) {
+    sortOptions.push({
+      field: fields[0],
+      order: defaultDesc ? 'desc' : 'asc',
+    })
   }
+
+  return sortOptions
 }
 
 export const getInclude = (req: Request, relationships: string[]) => {
