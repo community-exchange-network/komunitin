@@ -2,13 +2,11 @@ import { Prisma } from '../../generated/prisma/client'
 import type { OptionalAuthContext } from '../../server/context'
 import {
   buildCollectionIdQuery,
-  buildFilterWhere,
-  buildOrderBy,
   sqlAnd,
   sqlColumn,
   sqlOr,
   sqlTable,
-  type SqlColumnMap,
+  type SqlColumnMap
 } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
 
@@ -16,23 +14,17 @@ const groupTable = sqlTable('Group', 'g')
 const groupColumn = (column: string) => sqlColumn('g', column)
 
 /**
- * Maps API parameters to SQL columns for filtering groups.
+ * Maps API parameters to SQL columns for filtering, sorting, and searching groups.
  */
-const groupFilterColumns: SqlColumnMap = {
+const groupColumns: SqlColumnMap = {
+  id: groupColumn('id'),
   code: groupColumn('tenantId'),
   name: groupColumn('name'),
   status: groupColumn('status'),
   access: groupColumn('access'),
-}
-
-/**
- * Maps API parameters to SQL columns for sorting groups.
- */
-const groupSortColumns: SqlColumnMap = {
   created: groupColumn('created'),
   updated: groupColumn('updated'),
-  name: groupColumn('name'),
-  code: groupColumn('tenantId'),
+  search: groupColumn('search')
 }
 
 /**
@@ -104,15 +96,8 @@ const buildReadableGroupWhere = (ctx: OptionalAuthContext): Prisma.Sql => {
 export const buildListGroupsQuery = (ctx: OptionalAuthContext, params: CollectionParams): Prisma.Sql => {
   return buildCollectionIdQuery({
     from: groupTable,
-    idColumn: groupColumn('id'),
-    where: [
-      ...buildFilterWhere(params.filters, groupFilterColumns),
-      buildReadableGroupWhere(ctx),
-    ],
-    orderBy: buildOrderBy(params.sort, groupSortColumns),
-    pagination: {
-      skip: params.pagination.cursor,
-      take: params.pagination.size,
-    },
+    columns: groupColumns,
+    params,
+    where: [buildReadableGroupWhere(ctx)],
   })
 }

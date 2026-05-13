@@ -14,6 +14,7 @@ export type FilterOptions = Record<string, string | string[]>
 export type SortOptions = {
   field: string
   order: 'asc' | 'desc'
+  isDefault?: boolean
 }
 
 export type CollectionParams = {
@@ -104,6 +105,7 @@ export const getSort = (req: Request, fields: string[], defaultDesc = false): So
     sortOptions.push({
       field: fields[0],
       order: defaultDesc ? 'desc' : 'asc',
+      isDefault: true
     })
   }
 

@@ -1,21 +1,22 @@
 import { Prisma } from '../generated/prisma/client'
-import type { FilterOptions, SortOptions } from './request'
+import type { CollectionParams, FilterOptions, SortOptions } from './request'
+import { buildTrigramSearch } from './search'
 
-export type SqlColumnMap = Record<string, Prisma.Sql>
+export type SqlColumnMap = {
+  id: Prisma.Sql,
+  search: Prisma.Sql,
+  [key: string]: Prisma.Sql
+}
 
 export type CollectionIdRow = {
   id: string
 }
 
 type CollectionIdQueryInput = {
-  from: Prisma.Sql
-  idColumn: Prisma.Sql
-  where: Prisma.Sql[]
-  orderBy: Prisma.Sql
-  pagination: {
-    skip: number
-    take: number
-  }
+  from: Prisma.Sql,
+  columns: SqlColumnMap,
+  params: CollectionParams,
+  where?: Prisma.Sql[],
 }
 
 const quoteIdentifier = (identifier: string) => `"${identifier.replaceAll('"', '""')}"`
@@ -78,6 +79,11 @@ export const buildFilterWhere = (filter: FilterOptions, columns: SqlColumnMap): 
   const where: Prisma.Sql[] = []
 
   for (const [key, rawValue] of Object.entries(filter)) {
+    const column = columns[key]
+    if (!column) {
+      continue
+    }
+
     const values = Array.isArray(rawValue) ? rawValue : rawValue.split(',')
     const cleaned = values.map((value) => value.trim()).filter((value) => value.length > 0)
 
@@ -85,7 +91,6 @@ export const buildFilterWhere = (filter: FilterOptions, columns: SqlColumnMap): 
       continue
     }
 
-    const column = columns[key]
     if (cleaned.length > 1) {
       where.push(Prisma.sql`${column} IN (${Prisma.join(cleaned)})`)
     } else {
@@ -116,22 +121,46 @@ export const buildOrderBy = (sort: SortOptions[], columns: SqlColumnMap) => {
  */
 export const buildCollectionIdQuery = ({
   from,
-  idColumn,
-  where,
-  orderBy,
-  pagination,
+  columns,
+  params,
+  where
 }: CollectionIdQueryInput): Prisma.Sql => {
+  // sort
+  let orderBy = buildOrderBy(params.sort, columns)
+
+  if (where === undefined) {
+    where = []
+  }
+  const { search: query, ...filters } = params.filters
+  where.push(...buildFilterWhere(filters, columns))
+
+  // search
+  if (query) {
+    const trigramSearch = buildTrigramSearch(columns.search, query)
+    if (trigramSearch) {
+      where.push(trigramSearch.where)
+      if (params.sort[0]?.isDefault) {
+        orderBy = trigramSearch.sort
+      }
+    }
+  }
+
   const whereClause = where.length > 0
     ? Prisma.sql`WHERE ${sqlAnd(where)}`
     : Prisma.sql``
+  
+
+  // pagination
+  const skip = params.pagination.cursor
+  const take = params.pagination.size
 
   return Prisma.sql`
-    SELECT ${idColumn} AS "id"
+    SELECT ${columns.id} AS "id"
     FROM ${from}
     ${whereClause}
     ORDER BY ${orderBy}
-    OFFSET ${pagination.skip}
-    LIMIT ${pagination.take}
+    OFFSET ${skip}
+    LIMIT ${take}
   `
 }
 

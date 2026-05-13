@@ -53,6 +53,9 @@ model Group {
   updated DateTime  @updatedAt
   deleted DateTime?
 
+  // Computed in SQL migration as GENERATED ALWAYS ... STORED.
+  search      String @default(dbgenerated()) @db.Text @ignore
+
   members    Member[]
   categories Category[]
   posts      Post[]

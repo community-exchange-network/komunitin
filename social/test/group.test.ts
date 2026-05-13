@@ -216,7 +216,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(codes.includes('code-two'), true)
   })
 
-  test.todo('GET /groups search by name', async () => {
+  test('GET /groups search by name', async () => {
     await seedGroup({ tenantId: 'search-alpha', name: 'Alpha Search', status: 'active', access: 'public' })
     await seedGroup({ tenantId: 'search-bravo', name: 'Bravo Search', status: 'active', access: 'public' })
     
@@ -225,6 +225,33 @@ describe('Groups endpoints', () => {
       .expect(200)
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'search-alpha')
+  })
+
+  test('GET /groups search includes JSON values but not JSON keys', async () => {
+    await seedGroup({
+      tenantId: 'search-json',
+      name: 'JSON Search',
+      status: 'active',
+      access: 'public',
+      address: {
+        addressLocality: 'Riverdale',
+        streetAddress: '42 Main Street',
+      },
+      contacts: [
+        { type: 'email', value: 'hello@example.org' },
+      ],
+    })
+
+    const valueRes = await request(app)
+      .get('/groups?filter[search]=riverdale')
+      .expect(200)
+    assert.strictEqual(valueRes.body.data.length, 1)
+    assert.strictEqual(valueRes.body.data[0].attributes.code, 'search-json')
+
+    const keyRes = await request(app)
+      .get('/groups?filter[search]=addressLocality')
+      .expect(200)
+    assert.strictEqual(keyRes.body.data.length, 0)
   })
 
   test.todo('GET /groups sorts by distance when location provided', async () => {
