@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express'
 import { getAuthContext, getOptionalAuthContext } from '../../server/context'
 import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
-import { getCode, getCollectionParams, getInclude } from '../../server/request'
+import { getCode, getCollectionParams, getResourceParams } from '../../server/request'
 import { getValidatedBody } from '../../server/validation'
 import type { CreateGroupBody, PatchGroupBody, PatchGroupSettingsBody } from './schema'
 import { serializeGroup, serializeGroups, serializeGroupSettings } from './serialize'
@@ -20,9 +20,8 @@ export const postGroups: RequestHandler = async (req, res) => {
     settings,
     currency,
   })
-
-  const include = getInclude(req, ['settings'])
-  const payload = await serializeGroup(group, { include })
+  const params = getResourceParams(req, { include: ['settings'] })
+  const payload = await serializeGroup(group, params)
   res.status(201).json(payload)
 }
 
@@ -44,11 +43,11 @@ export const getGroups: RequestHandler = async (req, res) => {
 export const getGroupByCodeRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
-  const include = getInclude(req, ['settings'])
+  const params = getResourceParams(req, { include: ['settings'] })
 
   const group = await getGroupByCode(ctx, code)
 
-  const payload = await serializeGroup(group, { include })
+  const payload = await serializeGroup(group, params)
   res.status(200).json(payload)
 }
 

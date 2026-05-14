@@ -6,7 +6,7 @@ export const validateBody = <T>(schema: z.ZodType<T>): RequestHandler => {
   return (req, res, next) => {
     const parsed = schema.safeParse(req.body)
     if (!parsed.success) {
-      next(badRequest('Invalid request body', { details: z.formatError(parsed.error) }))
+      next(badRequest('Invalid request body', { details: parsed.error }))
       return
     }
 

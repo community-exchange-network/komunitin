@@ -1,5 +1,6 @@
 import { Request } from "express"
-import { internalError } from '../utils/error'
+import { z } from 'zod'
+import { badRequest } from '../utils/error'
 
 const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 200
@@ -36,6 +37,87 @@ export type CollectionParamsOptions = {
   include?: string[]
 }
 
+export type ResourceParams = {
+  include: string[]
+}
+
+export type ResourceParamsOptions = {
+  include?: string[]
+}
+
+const includeParamSchema = (include: string[]) => {
+  return z.preprocess((value) => typeof value === 'string' ? [value] : value, z.array(z.enum(include))).default([])
+}
+
+const pageParamSchema = z.object({
+  size: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
+  after: z.coerce.number().int().min(0).default(0),
+}).prefault({}).transform(({ after, size }) => ({
+  cursor: after,
+  size,
+}));
+
+const filterParamSchema = (fields: string[]) => {
+  return z.partialRecord(z.enum(fields), z.union([z.string(), z.array(z.string())]))
+    .default({})
+    .transform((filter): FilterOptions => {
+      const normalized: FilterOptions = {}
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined) {
+          normalized[key] = value
+        }
+      }
+
+      return normalized
+    })
+}
+
+const sortParamSchema = (fields: string[]) => {
+  return z.preprocess((value) => typeof value === 'string' ? [value] : value, z.array(z.string())
+    .transform((arr) => arr.map((item) => {
+      const desc = item.startsWith('-')
+      const field = desc ? item.slice(1) : item
+      return { field, order: desc ? 'desc' as const : 'asc' as const, isDefault: false }
+    })).refine((arr) => arr.every((item) => fields.includes(item.field)), {
+      message: `Sort fields must be one of: ${fields.join(', ')}`
+    })).default([{
+      field: fields[0],
+      order: 'asc',
+      isDefault: true,
+    }])
+}
+
+const nearParamSchema = z.array(z.coerce.number()).length(2).refine(([lat, lng]) => lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180, {
+  message: 'Invalid near parameter. Latitude must be between -90 and 90, and longitude must be between -180 and 180.'
+}).transform(([latitude, longitude]) => ({ latitude, longitude })).optional()
+
+const collectionParamsSchema = (options: CollectionParamsOptions) => { 
+  return z.object({
+    page: pageParamSchema,
+    filter: filterParamSchema(options.filter ?? []),
+    sort: sortParamSchema(options.sort),
+    include: includeParamSchema(options.include ?? []),
+    near: nearParamSchema,
+  }).refine((data) => !(data.sort.some((s) => s.field === 'distance') && !data.near), {
+    message: 'Sorting by distance requires the "near" parameter to be provided.'
+  }).transform(({page, filter, sort, include, near}) => ({
+    pagination: page,
+    filters: filter,
+    sort,
+    include,
+    near,
+  }))
+}
+
+const resourceParamsSchema = (options: ResourceParamsOptions) => {
+  return z.object({
+    include: includeParamSchema(options.include ?? []),
+  })
+}
+
+/**
+ * Get a path parameter from the request.
+ */
 export const getParam = (req: Request, name: string): string => {
   const value = req.params[name]
   const param = Array.isArray(value) ? value[0] : value
@@ -50,106 +132,21 @@ export const getCode = (req: Request): string => {
   return getParam(req, 'code')
 }
 
-export const getNear = (req: Request): GeoPoint | undefined => {
-  const near = req.query.near
-  if (!near || !Array.isArray(near) || near.length !== 2 || !near.every((part) => typeof part === 'string')) {
-    return undefined
-  }
-  const [latitudeValue, longitudeValue] = near
-  const latitude = Number.parseFloat(latitudeValue)
-  const longitude = Number.parseFloat(longitudeValue)
-
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)) {
-    return undefined
-  }
-
-  return { latitude, longitude }
-}
-
-export const getPagination = (req: Request): PaginationOptions => {
-  let size = DEFAULT_PAGE_SIZE
-  let cursor = 0
-
-  const page = req.query.page as any
-  if (page) {
-    if (page.size) {
-      const inputSize = parseInt(page.size)
-      if (inputSize > 0 && inputSize <= MAX_PAGE_SIZE) {
-        size = inputSize
-      }
-    }
-    if (page.after) {
-      const inputAfter = parseInt(page.after)
-      if (inputAfter >= 0) {
-        cursor = inputAfter
-      }
-    }
-  }
-
-  return { cursor, size }
-}
-
-export const getFilters = (req: Request, fields: string[]): FilterOptions => {
-  const filter = {} as FilterOptions
-  if (req.query.filter) {
-    const queryFilters = req.query.filter as Record<string, string | string[]>
-    for (const field of fields) {
-      const value = queryFilters[field]
-      if (typeof value === 'string' || (Array.isArray(value) && value.every((v) => typeof v === 'string'))) {
-        filter[field] = value
-      }
-    }
-  }
-
-  return filter
-}
-
-export const getSort = (req: Request, fields: string[], defaultDesc = false): SortOptions[] => {
-  if (fields.length === 0) {
-    throw internalError('Provide at least one sort field')
-  }
-
-  const sort = req.query.sort
-  const sortArray = typeof sort === 'string' ? [sort] : Array.isArray(sort) ? sort : []
-
-  const sortOptions: SortOptions[] = []
-  for (const sortField of sortArray) {
-    if (typeof sortField !== 'string') {
-      continue
-    }
-    const desc = sortField.startsWith('-')
-    const field = desc ? sortField.slice(1) : sortField
-    if (fields.includes(field)) {
-      sortOptions.push({ field, order: desc ? 'desc' : 'asc' })
-    }
-  }
-  if (sortOptions.length === 0) {
-    sortOptions.push({
-      field: fields[0],
-      order: defaultDesc ? 'desc' : 'asc',
-      isDefault: true
-    })
-  }
-
-  return sortOptions
-}
-
-export const getInclude = (req: Request, relationships: string[]) => {
-  const include: string[] = []
-  if (typeof req.query.include == 'string') {
-    include.push(req.query.include)
-  } else if (Array.isArray(req.query.include)) {
-    include.push(...(req.query.include.filter((item): item is string => typeof item === 'string')))
-  }
-  return relationships.filter(r => include.includes(r))
-}
-
 export const getCollectionParams = (req: Request, options: CollectionParamsOptions): CollectionParams => {
-  return {
-    pagination: getPagination(req),
-    filters: getFilters(req, options.filter ?? []),
-    sort: getSort(req, options.sort),
-    include: getInclude(req, options.include ?? []),
-    near: getNear(req),
+  const result = collectionParamsSchema(options).safeParse(req.query)
+  if (!result.success) {
+    throw badRequest('Invalid query parameters', { details: result.error.issues })
   }
+
+  return result.data
+}
+
+export const getResourceParams = (req: Request, options: ResourceParamsOptions): ResourceParams => {
+  const result = resourceParamsSchema(options).safeParse(req.query)
+  if (!result.success) {
+    throw badRequest('Invalid query parameters', { details: result.error.issues })
+  }
+
+  return result.data
+  
 }

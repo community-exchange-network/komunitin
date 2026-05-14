@@ -300,15 +300,34 @@ describe('Posts endpoints', () => {
     const owner = await auth('posts-page-owner')
     const member = await seedMember({ tenantId: 'posts-page', status: 'active', userId: owner.id })
 
-    await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'a-hidden', type: 'offers', status: 'draft', access: 'public' })
-    await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'b-visible', type: 'offers', status: 'published', access: 'public' })
+    await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'a-hidden', type: 'offers', status: 'draft', access: 'public', created: new Date('2026-05-13') })
+    await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'b-visible', type: 'offers', status: 'published', access: 'public', created: new Date('2026-05-14') })
 
     const res = await request(app)
-      .get('/posts-page/posts?sort=code&page[size]=1')
+      .get('/posts-page/posts?sort=created&page[size]=1')
       .expect(200)
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'b-visible')
+  })
+
+  test('GET /:code/posts supports reverse sorting by update date', async () => {
+    await seedGroup({ tenantId: 'posts-sort', status: 'active', access: 'public' })
+    const owner = await auth('posts-sort-owner')
+    const member = await seedMember({ tenantId: 'posts-sort', status: 'active', userId: owner.id })
+
+    await seedPost({ tenantId: 'posts-sort', memberId: member.id, code: 'third', type: 'offers', status: 'published', access: 'public', created: new Date('2026-05-13'), updated: new Date('2026-05-15') })
+    await seedPost({ tenantId: 'posts-sort', memberId: member.id, code: 'first', type: 'offers', status: 'published', access: 'public', created: new Date('2026-05-15'), updated: new Date('2026-05-13') })
+    await seedPost({ tenantId: 'posts-sort', memberId: member.id, code: 'second', type: 'offers', status: 'published', access: 'public', created: new Date('2026-05-14'), updated: new Date('2026-05-14') })
+
+    const res = await request(app)
+      .get('/posts-sort/posts?sort=-updated')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 3)
+    assert.strictEqual(res.body.data[0].attributes.code, 'third')
+    assert.strictEqual(res.body.data[1].attributes.code, 'second')
+    assert.strictEqual(res.body.data[2].attributes.code, 'first')
   })
 
   test('GET /:code/posts/:post returns a single post', async () => {

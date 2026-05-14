@@ -43,6 +43,6 @@ const UserSerializer = new Serializer<User>('users', {
   }
 })
 
-export const serializeUser = async (user: User, include: string[] = []) => {
-  return UserSerializer.serialize(user, { include })
+export const serializeUser = async (user: User, params: {include: string[]}) => {
+  return UserSerializer.serialize(user, params)
 }

@@ -5,7 +5,7 @@ import { getValidatedBody } from '../../server/validation'
 import { serializeUser } from './serialize'
 import type { CreateUserBody } from './schema'
 import { createUser, getUserById } from './service'
-import { getInclude } from '../../server/request'
+import { getResourceParams } from '../../server/request'
 
 export const postUsers: RequestHandler = async (req, res) => {
   const authUserId = getAuthUserId(req)
@@ -20,8 +20,8 @@ export const postUsers: RequestHandler = async (req, res) => {
     settings: userSettings,
   })
 
-  const inc = getInclude(req, ['settings'])
-  const payload = await serializeUser(user, inc)
+  const params = getResourceParams(req, { include: ['settings'] })
+  const payload = await serializeUser(user, params)
   res.status(200).json(payload)
 }
 
@@ -29,8 +29,8 @@ export const getUsersMe: RequestHandler = async (req, res) => {
   const authUserId = getAuthUserId(req)
   const user = await getUserById(authUserId)
 
-  const inc = getInclude(req, ['settings'])
-  const payload = await serializeUser(user, inc)
+  const params = getResourceParams(req, { include: ['settings'] })  
+  const payload = await serializeUser(user, params)
   res.status(200).json(payload)
 }
 
@@ -43,7 +43,7 @@ export const getUserByIdRoute: RequestHandler = async (req, res) => {
   }
 
   const user = await getUserById(requestedId)
-  const inc = getInclude(req, ['settings'])
-  const payload = await serializeUser(user, inc)
+  const params = getResourceParams(req, { include: ['settings'] })
+  const payload = await serializeUser(user, params)
   res.status(200).json(payload)
 }
