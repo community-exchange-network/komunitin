@@ -8,6 +8,15 @@ AS $$
   FROM jsonb_path_query(data, '$.** ? (@.type() != "object" && @.type() != "array")') AS value
 $$;
 
+CREATE FUNCTION immutable_unaccent(data text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+AS $$
+  SELECT unaccent(data)
+$$;
+
 CREATE FUNCTION normalize_search_text(data text)
 RETURNS text
 LANGUAGE sql
@@ -16,7 +25,7 @@ RETURNS NULL ON NULL INPUT
 AS $$
   SELECT btrim(
     regexp_replace(
-      unaccent(lower(data)),
+      immutable_unaccent(lower(data)),
       '[[:space:][:punct:]]+',
       ' ',
       'g'
@@ -29,14 +38,11 @@ ALTER TABLE "Group"
   GENERATED ALWAYS AS (
     left(
       normalize_search_text(
-        concat_ws(
-          ' ',
-          "tenantId",
-          "name",
-          jsonb_scalar_values_text("address"),
-          jsonb_scalar_values_text("contacts"),
-          "description"
-        )
+        coalesce("tenantId", '') || ' ' ||
+        coalesce("name", '') || ' ' ||
+        coalesce(jsonb_scalar_values_text("address"), '') || ' ' ||
+        coalesce(jsonb_scalar_values_text("contacts"), '') || ' ' ||
+        coalesce("description", '')
       ),
       512
     )
@@ -50,14 +56,11 @@ ALTER TABLE "Member"
   GENERATED ALWAYS AS (
     left(
       normalize_search_text(
-        concat_ws(
-          ' ',
-          "code",
-          "name",
-          jsonb_scalar_values_text("address"),
-          jsonb_scalar_values_text("contacts"),
-          "description"
-        )
+        coalesce("code", '') || ' ' ||
+        coalesce("name", '') || ' ' ||
+        coalesce(jsonb_scalar_values_text("address"), '') || ' ' ||
+        coalesce(jsonb_scalar_values_text("contacts"), '') || ' ' ||
+        coalesce("description", '')
       ),
       255
     )
@@ -71,12 +74,9 @@ ALTER TABLE "Category"
   GENERATED ALWAYS AS (
     left(
       normalize_search_text(
-        concat_ws(
-          ' ',
-          "code",
-          "name",
-          "meta"->>'description'
-        )
+        coalesce("code", '') || ' ' ||
+        coalesce("name", '') || ' ' ||
+        coalesce("meta"->>'description', '')
       ),
       255
     )
@@ -90,14 +90,11 @@ ALTER TABLE "Post"
   GENERATED ALWAYS AS (
     left(
       normalize_search_text(
-        concat_ws(
-          ' ',
-          "type",
-          "code",
-          "title",
-          "description",
-          jsonb_scalar_values_text("data")
-        )
+        coalesce("type", '') || ' ' ||
+        coalesce("code", '') || ' ' ||
+        coalesce("title", '') || ' ' ||
+        coalesce("description", '') || ' ' ||
+        coalesce(jsonb_scalar_values_text("data"), '')
       ),
       1024
     )
