@@ -150,11 +150,26 @@ const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   return buildMemberCode(groupCode, candidate)
 }
 
+/**
+ * Return all members of a group accessible to the given user.
+ * 
+ * If no status filter is provided, defaults to 'active' members only.
+ */
 export const listMembers = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Member[]> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
   
-  const ids = await findMemberIds(ctx, db, group, params)
+  const defaultFilters = {
+    status: 'active',
+  }
+
+  const ids = await findMemberIds(ctx, db, group, {
+    ...params,
+    filters: {
+      ...defaultFilters,
+      ...params.filters,
+    },
+  })
   
   if (ids.length === 0) {
     return []

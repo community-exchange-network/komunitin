@@ -65,8 +65,15 @@ describe('Members endpoints', () => {
       .set('Authorization', `Bearer ${user.token}`)
       .expect(200)
 
-    assert.strictEqual(list.body.data.length, 1)
-    assert.strictEqual(list.body.data[0].attributes.name, 'Alice Member')
+    assert.strictEqual(list.body.data.length, 0)
+
+    const draftList = await request(app)
+      .get('/members-create/members?filter[status]=draft')
+      .set('Authorization', `Bearer ${user.token}`)
+      .expect(200)
+
+    assert.strictEqual(draftList.body.data.length, 1)
+    assert.strictEqual(draftList.body.data[0].attributes.name, 'Alice Member')
   })
 
   test('POST /:code/members accepts explicit code only if admin', async () => {
@@ -114,7 +121,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'public-active')
   })
 
-  test('GET /:code/members returns own draft member to member user', async () => {
+  test('GET /:code/members defaults to active status and still allows owner to request drafts explicitly', async () => {
     await seedGroup({ tenantId: 'members-list-owner', status: 'active', access: 'public' })
     const owner = await auth('member-owner')
     const outsider = await auth('member-outsider')
@@ -127,13 +134,23 @@ describe('Members endpoints', () => {
       userId: owner.id,
     })
 
-    await request(app)
+    const ownerDefaultRes = await request(app)
       .get('/members-list-owner/members')
       .set('Authorization', `Bearer ${owner.token}`)
       .expect(200)
 
+    assert.strictEqual(ownerDefaultRes.body.data.length, 0)
+
+    const ownerDraftRes = await request(app)
+      .get('/members-list-owner/members?filter[status]=draft')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+
+    assert.strictEqual(ownerDraftRes.body.data.length, 1)
+    assert.strictEqual(ownerDraftRes.body.data[0].attributes.code, 'owner-draft')
+
     const outsiderRes = await request(app)
-      .get('/members-list-owner/members')
+      .get('/members-list-owner/members?filter[status]=draft')
       .set('Authorization', `Bearer ${outsider.token}`)
       .expect(200)
 
@@ -150,7 +167,7 @@ describe('Members endpoints', () => {
     await seedGroupAdmin({ tenantId: 'members-list-admin', userId: admin.id })
 
     const res = await request(app)
-      .get('/members-list-admin/members')
+      .get('/members-list-admin/members?filter[status]=draft,active,pending')
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(200)
 

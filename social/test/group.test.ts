@@ -113,7 +113,7 @@ describe('Groups endpoints', () => {
     await postGroup(token, 'dupe-code').expect(400)
   })
 
-  test('GET /groups returns only active public groups', async () => {
+  test('GET /groups defaults to active status while preserving access rules', async () => {
     await seedGroup({ tenantId: 'public-active', status: 'active', access: 'public' })
     await seedGroup({ tenantId: 'public-pending', status: 'pending', access: 'public' })
     await seedGroup({ tenantId: 'group-active', status: 'active', access: 'group' })
@@ -121,7 +121,7 @@ describe('Groups endpoints', () => {
     await seedGroup({ tenantId: 'admin-owned', status: 'pending', access: 'private' })
 
     const anonymous = await request(app)
-      .get('/groups')
+      .get('/groups?filter[status]=pending,active')
       .expect(200)
 
     assert.strictEqual(Array.isArray(anonymous.body.data), true)
@@ -130,7 +130,7 @@ describe('Groups endpoints', () => {
 
     const { token } = await auth('user-3')
     const authenticated = await request(app)
-      .get('/groups')
+      .get('/groups?filter[status]=pending,active')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
 
@@ -141,7 +141,7 @@ describe('Groups endpoints', () => {
     await seedGroupAdmin({ tenantId: 'admin-owned', userId: admin.id })
 
     const adminResult = await request(app)
-      .get('/groups')
+      .get('/groups?filter[status]=pending,active')
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(200)
 
@@ -156,12 +156,22 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     const superadminCodes = superadminResult.body.data.map((resource: any) => resource.attributes.code)
-    assert.strictEqual(superadminCodes.length, 5)
+    assert.strictEqual(superadminCodes.length, 3)
     assert.strictEqual(superadminCodes.includes('public-active'), true)
-    assert.strictEqual(superadminCodes.includes('public-pending'), true)
+    assert.strictEqual(superadminCodes.includes('public-pending'), false)
     assert.strictEqual(superadminCodes.includes('group-active'), true)
     assert.strictEqual(superadminCodes.includes('private-active'), true)
-    assert.strictEqual(superadminCodes.includes('admin-owned'), true)
+    assert.strictEqual(superadminCodes.includes('admin-owned'), false)
+
+    const superadminPendingResult = await request(app)
+      .get('/groups?filter[status]=active,pending')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .expect(200)
+
+    const superadminPendingCodes = superadminPendingResult.body.data.map((resource: any) => resource.attributes.code)
+    assert.strictEqual(superadminPendingCodes.length, 5)
+    assert.strictEqual(superadminPendingCodes.includes('public-pending'), true)
+    assert.strictEqual(superadminPendingCodes.includes('admin-owned'), true)
   })
 
   test('GET /groups applies pagination, sorting and filtering generically', async () => {

@@ -147,11 +147,24 @@ export const canWriteGroup = async (ctx: AuthContext, group: Group): Promise<boo
 
 /**
  * Return all groups accessible to the given user.
+ * 
+ * If no status filter is provided, defaults to 'active' groups only.
  */
 export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<Group[]> => {
   const db = privilegedDb(prisma)
+
+  const defaultFilters = {
+    status: 'active'
+  }
   
-  const ids = await findGroupIds(ctx, db, params)
+  const ids = await findGroupIds(ctx, db, {
+    ...params,
+    filters: {
+      ...defaultFilters,
+      ...params.filters,
+    }
+  })
+
   if (ids.length === 0) {
     return []
   }
