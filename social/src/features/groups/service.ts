@@ -37,7 +37,7 @@ export const fromLocation = (location?: Location | null): { latitude: number|nul
 /**
  * Map database model to Group type, ready to be serialized and sent in API responses.
  */
-const toGroup = (group: DbGroup): Group => {
+export const toGroup = (group: DbGroup): Group => {
   return {
     ...group,
     code: group.tenantId,

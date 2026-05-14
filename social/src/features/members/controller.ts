@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express'
 import { getAuthContext, getOptionalAuthContext } from '../../server/context'
 import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
-import { getCollectionParams, getCode, getParam } from '../../server/request'
+import { getCollectionParams, getCode, getParam, getResourceParams } from '../../server/request'
 import { getValidatedBody } from '../../server/validation'
 import type { CreateMemberBody, PatchMemberBody } from './schema'
 import { serializeMember, serializeMembers } from './serialize'
@@ -13,6 +13,7 @@ export const getMembersRoute: RequestHandler = async (req, res) => {
   const params = getCollectionParams(req, {
     filter: ['code', 'name', 'type', 'status', 'access', 'search'],
     sort: ['created', 'updated', 'name', 'code'],
+    include: ['group'],
   })
 
   const members = await listMembers(ctx, code, params)
@@ -29,10 +30,11 @@ export const getMemberRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const memberId = getParam(req, 'member')
+  const params = getResourceParams(req, { include: ['group'] })
 
-  const member = await getMember(ctx, code, memberId)
+  const member = await getMember(ctx, code, memberId, params)
 
-  const payload = await serializeMember(member)
+  const payload = await serializeMember(member, params)
   res.status(200).json(payload)
 }
 

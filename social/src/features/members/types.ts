@@ -10,6 +10,7 @@ import type {
   MemberType,
   PatchMemberAttributes,
 } from './schema'
+import type { Group } from '../groups/types'
 
 // Input types derived from request schema
 export type CreateMemberInput = CreateMemberAttributes
@@ -25,6 +26,8 @@ export interface Member extends DbMember {
   location: Location | null
   contacts: Contact[] | null
   meta: MemberMeta
+  // Group is optionally included based on request parameters.
+  group?: Group
 }
 
 export type Image = {

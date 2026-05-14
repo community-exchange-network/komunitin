@@ -1,25 +1,26 @@
 import { z } from 'zod'
-import { Prisma, type Member as DbMember } from '../../generated/prisma/client'
+import { type Member as DbMember, type Group as DbGroup } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
-import type { CollectionParams } from '../../server/request'
+import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
-import { getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
+import { getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { type MemberStatus, type PatchMemberAttributes } from './schema'
 import type { CreateMemberInput, Member, PatchMemberInput } from './types'
 import { findMemberIds } from './sql'
 
-export const toMember = (member: DbMember): Member => {
+export const toMember = (member: DbMember & {group?: DbGroup}): Member => {
   return {
     ...member,
     location: toLocation(member),
+    group: member.group ? toGroup(member.group) : undefined,
   } as Member
 }
 
-const getMemberById = async (code: string, id: string): Promise<Member> => {
+const getMemberById = async (code: string, id: string, params?: ResourceParams): Promise<Member> => {
   const validation = z.uuid().safeParse(id)
   if (!validation.success) {
     throw notFound('Member not found')
@@ -30,6 +31,9 @@ const getMemberById = async (code: string, id: string): Promise<Member> => {
     where: {
       id,
       deleted: null,
+    },
+    include: {
+      group: params?.include.includes('group')
     },
   })
 
@@ -160,13 +164,16 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     where: {
       id: { in: ids },
     },
+    include: {
+      group: params.include.includes('group')
+    }
   })
   return reorderByIds(members, ids).map(toMember)
 }
 
-export const getMember = async (ctx: OptionalAuthContext, code: string, id: string): Promise<Member> => {
+export const getMember = async (ctx: OptionalAuthContext, code: string, id: string, params: ResourceParams): Promise<Member> => {
   const group = await getGroupByCode(ctx, code)
-  const member = await getMemberById(code, id)
+  const member = await getMemberById(code, id, params)
 
   const allowed = await canReadMember(ctx, group, member)
   if (!allowed) {

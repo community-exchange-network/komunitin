@@ -31,7 +31,7 @@ const GroupSettingsSerializer = new Serializer<OutputGroupSettings>('group-setti
   
 })
 
-const GroupSerializer = new Serializer<Group>('groups', {
+export const GroupSerializer = new Serializer<Group>('groups', {
   version: null,
   projection: {
     code: 1,

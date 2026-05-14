@@ -429,4 +429,39 @@ describe('Members endpoints', () => {
       .set('Authorization', `Bearer ${outsider.token}`)
       .expect(403)
   })
+
+  test('GET /:code/members/:member?include=group includes group data', async () => {
+    await seedGroup({ tenantId: 'members-include-group', name: 'Included Group', status: 'active', access: 'public' })
+    const member = await seedMember({
+      tenantId: 'members-include-group',
+      code: 'member-with-group',
+      status: 'active',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/members-include-group/members/${member.id}?include=group`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.attributes.code, 'member-with-group')
+    assert.strictEqual(res.body.included.length, 1)
+    assert.strictEqual(res.body.included[0].type, 'groups')
+    assert.strictEqual(res.body.included[0].attributes.code, 'members-include-group')
+  })
+
+  test('GET /:code/members?filter[code]=x&include=group returns filtered member with group included', async () => {
+    await seedGroup({ tenantId: 'members-filter-include', name: 'Filter Include Group', status: 'active', access: 'public' })
+    await seedMember({tenantId: 'members-filter-include', code: 'match', status: 'active', access: 'public' })
+    await seedMember({tenantId: 'members-filter-include', code: 'other', status: 'active', access: 'public' })
+
+    const res = await request(app)
+      .get('/members-filter-include/members?filter[code]=match&include=group')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'match')
+    assert.strictEqual(res.body.included.length, 1)
+    assert.strictEqual(res.body.included[0].type, 'groups')
+    assert.strictEqual(res.body.included[0].attributes.code, 'members-filter-include')
+  })
 })
