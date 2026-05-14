@@ -1,6 +1,6 @@
-import { Prisma, PrismaClient } from '../generated/prisma/client'
+import { Prisma } from '../generated/prisma/client'
 import { DbClient } from './multitenant'
-import type { CollectionParams, FilterOptions, SortOptions } from './request'
+import { type CollectionParams, type FilterOptions, type GeoPoint, type SortOptions } from './request'
 import { buildTrigramSearch, type SearchSource } from './search'
 
 export type SqlColumnMap = {
@@ -15,6 +15,7 @@ type CollectionIdRow = {
 type CollectionQueryInput = {
   from: Prisma.Sql,
   columns: SqlColumnMap,
+  location?: Prisma.Sql,
   search?: SearchSource,
   params: CollectionParams,
   where?: Prisma.Sql[],
@@ -70,6 +71,15 @@ export const sqlColumn = (tableAlias: string, column: string): Prisma.Sql => {
   return sqlIdentifier(tableAlias, column)
 }
 
+const sqlGeoPoint = (point: GeoPoint): Prisma.Sql => {
+  return Prisma.sql`ST_SetSRID(ST_MakePoint(${point.longitude}, ${point.latitude}), 4326)::geography`
+}
+
+const sqlDistance = (location: Prisma.Sql, point: GeoPoint): Prisma.Sql => {
+  return Prisma.sql`ST_Distance(${location}, ${sqlGeoPoint(point)})`
+}
+
+
 /**
  * Build SQL WHERE clauses from filter options. 
  * 
@@ -105,14 +115,21 @@ const buildFilterWhere = (filter: FilterOptions, columns: SqlColumnMap): Prisma.
 /**
  * Build SQL ORDER BY clause from sort options (excluding the "ORDER BY" keyword).
  */
-const buildOrderBy = (sort: SortOptions[], columns: SqlColumnMap) => {
+const buildOrderBy = (sort: SortOptions[], columns: SqlColumnMap, near?: GeoPoint, location?: Prisma.Sql) => {
   const dir = (order: 'asc' | 'desc') => {
     return order === 'desc' ? Prisma.raw('DESC') : Prisma.raw('ASC')
   }
   
-  const orderBy = sort.map((sortOption) =>
-    Prisma.sql`${columns[sortOption.field]} ${dir(sortOption.order)}`
-  )
+  const orderBy: Prisma.Sql[] = []
+  
+  for (const sortOption of sort) {
+    if (location && near && sortOption.field === 'distance') {
+      const sortExpression = sqlDistance(location, near)
+      orderBy.push(Prisma.sql`${sortExpression} ${dir(sortOption.order)} NULLS LAST`)
+    } else {
+      orderBy.push(Prisma.sql`${columns[sortOption.field]} ${dir(sortOption.order)}`)
+    }
+  }
 
   return Prisma.join(orderBy, ', ')
 }
@@ -123,12 +140,13 @@ const buildOrderBy = (sort: SortOptions[], columns: SqlColumnMap) => {
 const buildCollectionIdQuery = ({
   from,
   columns,
+  location,
   search,
   params,
   where
 }: CollectionQueryInput): Prisma.Sql => {
   // sort
-  let orderBy = buildOrderBy(params.sort, columns)
+  let orderBy = buildOrderBy(params.sort, columns, params.near, location)
 
   if (where === undefined) {
     where = []

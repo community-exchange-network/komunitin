@@ -254,23 +254,28 @@ describe('Groups endpoints', () => {
     assert.strictEqual(keyRes.body.data.length, 0)
   })
 
-  test.todo('GET /groups sorts by distance when location provided', async () => {
+  test('GET /groups sorts by distance when location provided', async () => {
     await seedGroup({ tenantId: 'loc-alpha', name: 'Alpha Location', status: 'active', access: 'public', latitude: 40.7128, longitude: -74.0060 })
     await seedGroup({ tenantId: 'loc-bravo', name: 'Bravo Location', status: 'active', access: 'public', latitude: 34.0522, longitude: -118.2437 })
+    await seedGroup({ tenantId: 'loc-charlie', name: 'Charlie Location', status: 'active', access: 'public' })
     
     const res = await request(app)
       .get('/groups?near=41.8781,-87.6298&sort=distance')
       .expect(200)
-    assert.strictEqual(res.body.data.length, 2)
-    assert.strictEqual(res.body.data[0].attributes.code, 'loc-alpha')
-    assert.strictEqual(res.body.data[1].attributes.code, 'loc-bravo')
+    assert.strictEqual(res.body.data.length, 3)
+    assert.deepStrictEqual(
+      res.body.data.map((group: any) => group.attributes.code),
+      ['loc-alpha', 'loc-bravo', 'loc-charlie']
+    )
 
     const res2 = await request(app)
       .get('/groups?near=34.0522,-118.2437&sort=distance')
       .expect(200)
-    assert.strictEqual(res2.body.data.length, 2)
-    assert.strictEqual(res2.body.data[0].attributes.code, 'loc-bravo')
-    assert.strictEqual(res2.body.data[1].attributes.code, 'loc-alpha')
+    assert.strictEqual(res2.body.data.length, 3)
+    assert.deepStrictEqual(
+      res2.body.data.map((group: any) => group.attributes.code),
+      ['loc-bravo', 'loc-alpha', 'loc-charlie']
+    )
   })
 
   test('GET /groups paginates after visibility filtering', async () => {

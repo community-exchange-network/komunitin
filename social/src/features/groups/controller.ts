@@ -30,7 +30,7 @@ export const getGroups: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const params = getCollectionParams(req, {
     filter: ['code', 'name', 'status', 'access', 'search'],
-    sort: ['created', 'updated', 'name', 'code'],
+    sort: ['created', 'updated', 'name', 'code', 'distance'],
     include: ['settings'],
   })
 

@@ -97,6 +97,7 @@ export const findGroupIds = async (ctx: OptionalAuthContext, db: DbClient, param
   return findCollectionIds(db, {
     from: groupTable,
     columns: groupColumns,
+    location: groupColumn('location'),
     search: groupColumn('search'),
     params,
     where: [buildReadableGroupWhere(ctx)],

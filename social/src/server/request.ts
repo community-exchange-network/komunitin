@@ -4,6 +4,11 @@ import { internalError } from '../utils/error'
 const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 200
 
+export type GeoPoint = {
+  latitude: number
+  longitude: number
+}
+
 export type PaginationOptions = {
   cursor: number
   size: number
@@ -22,6 +27,7 @@ export type CollectionParams = {
   filters: FilterOptions
   sort: SortOptions[]
   include: string[]
+  near?: GeoPoint
 }
 
 export type CollectionParamsOptions = {
@@ -42,6 +48,22 @@ export const getParam = (req: Request, name: string): string => {
 
 export const getCode = (req: Request): string => {
   return getParam(req, 'code')
+}
+
+export const getNear = (req: Request): GeoPoint | undefined => {
+  const near = req.query.near
+  if (!near || !Array.isArray(near) || near.length !== 2 || !near.every((part) => typeof part === 'string')) {
+    return undefined
+  }
+  const [latitudeValue, longitudeValue] = near
+  const latitude = Number.parseFloat(latitudeValue)
+  const longitude = Number.parseFloat(longitudeValue)
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)) {
+    return undefined
+  }
+
+  return { latitude, longitude }
 }
 
 export const getPagination = (req: Request): PaginationOptions => {
@@ -115,9 +137,9 @@ export const getSort = (req: Request, fields: string[], defaultDesc = false): So
 export const getInclude = (req: Request, relationships: string[]) => {
   const include: string[] = []
   if (typeof req.query.include == 'string') {
-    include.push(...(req.query.include.split(",")))
+    include.push(req.query.include)
   } else if (Array.isArray(req.query.include)) {
-    include.push(...(req.query.include as string[]))
+    include.push(...(req.query.include.filter((item): item is string => typeof item === 'string')))
   }
   return relationships.filter(r => include.includes(r))
 }
@@ -128,5 +150,6 @@ export const getCollectionParams = (req: Request, options: CollectionParamsOptio
     filters: getFilters(req, options.filter ?? []),
     sort: getSort(req, options.sort),
     include: getInclude(req, options.include ?? []),
+    near: getNear(req),
   }
 }
