@@ -25,13 +25,15 @@ const createMockFilesState = (): MockFilesState => ({
 
 let state = createMockFilesState()
 
-const readUploadedFile = (requestBody: unknown) => {
-  const file = typeof requestBody === 'object'
+const isFormData = (requestBody: unknown): requestBody is FormData => {
+  return typeof requestBody === 'object'
     && requestBody !== null
     && 'get' in requestBody
     && typeof requestBody.get === 'function'
-    ? requestBody.get(fieldName)
-    : null
+}
+
+const readUploadedFile = (requestBody: unknown) => {
+  const file = isFormData(requestBody) ? requestBody.get(fieldName) : null
 
   if (!(file instanceof File)) {
     throw new Error('Expected uploaded file in mock files endpoint')

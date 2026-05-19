@@ -22,7 +22,10 @@ const resizeDimensions = (width: number, height: number) => {
   }
 }
 
-const webpFilename = (name: string) => `${name.replace(/\.[^.]+$/, '') || DEFAULT_IMAGE_NAME}.webp`
+const webpFilename = (name: string) => {
+  const baseName = name.replace(/\.[^.]+$/, '')
+  return `${baseName || DEFAULT_IMAGE_NAME}.webp`
+}
 
 const createCanvas = (width: number, height: number) => {
   if (typeof OffscreenCanvas !== 'undefined') {
