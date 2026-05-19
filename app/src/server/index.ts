@@ -9,6 +9,7 @@ import AuthServer from "./AuthServer";
 import UUIDIndetityManager from "./UUIDManager";
 import AccountingServer from "./AccountingServer";
 import NotificationsServer from "./NotificationsServer";
+import FilesServer from "./FilesServer";
 import type { AnyFactories, AnyModels } from "miragejs/-types";
 
 // Ensure boolean.
@@ -61,6 +62,7 @@ const server = new Server({
     } else {
       this.passthrough(config.NOTIFICATIONS_URL + "/**");
     }
+    FilesServer.routes(this);
 
     // Load the ZXing WASM file from the CDN required for QR scanning.
     this.passthrough("https://fastly.jsdelivr.net/**");
@@ -95,5 +97,4 @@ function _createAllData(server: Server<Registry<AnyModels, AnyFactories>>): void
   SocialServer.seeds(server);
   AccountingServer.seeds(server);
 }
-
 

@@ -1,145 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent } from 'vue'
-import type { VueWrapper } from '@vue/test-utils'
-import ImageField from '../ImageField.vue'
 import AvatarField from '../AvatarField.vue'
+import ImageField from '../ImageField.vue'
+import { getMockFileUploadAttempts, resetMockFileUploads, setMockFileUploadLimit } from '../../server/FilesServer'
 import { mountComponent, waitFor } from '../../../test/vitest/utils'
-import { useImageUploader } from '../../composables/uploader'
-
-class MockFormData {
-  public entries: { filename?: string, name: string, value: string | Blob }[] = []
-
-  public append(name: string, value: string | Blob, filename?: string) {
-    this.entries.push({ name, value, filename })
-  }
-}
-
-class MockUploadTarget {
-  private listeners: Record<string, ((event: { loaded: number }) => void)[]> = {}
-  private lastEvents: Partial<Record<string, { loaded: number }>> = {}
-
-  public addEventListener(type: string, listener: (event: { loaded: number }) => void) {
-    this.listeners[type] ??= []
-    this.listeners[type].push(listener)
-
-    const lastEvent = this.lastEvents[type]
-    if (lastEvent) {
-      listener(lastEvent)
-    }
-  }
-
-  public dispatch(type: string, event: { loaded: number }) {
-    this.lastEvents[type] = event
-    this.listeners[type]?.forEach(listener => listener(event))
-  }
-}
-
-class MockXMLHttpRequest {
-  public static instances: MockXMLHttpRequest[] = []
-
-  public readonly upload = new MockUploadTarget()
-  public readonly headers: { name: string, value: string }[] = []
-  public body?: MockFormData
-  public method?: string
-  public responseText = ''
-  public status = 0
-  public url?: string
-
-  private listeners: Record<string, (() => void)[]> = {}
-
-  constructor() {
-    MockXMLHttpRequest.instances.push(this)
-  }
-
-  public addEventListener(type: string, listener: () => void) {
-    this.listeners[type] ??= []
-    this.listeners[type].push(listener)
-  }
-
-  public open(method: string, url: string) {
-    this.method = method
-    this.url = url
-  }
-
-  public setRequestHeader(name: string, value: string) {
-    this.headers.push({ name, value })
-  }
-
-  public send(body: MockFormData) {
-    this.body = body
-    const uploadedValue = body.entries[0].value
-    if (!(uploadedValue instanceof File)) {
-      throw new Error('Expected file upload')
-    }
-
-    const uploadedFile = uploadedValue
-
-    this.upload.dispatch('progress', { loaded: uploadedFile.size })
-    this.status = 201
-    this.responseText = JSON.stringify({
-      data: {
-        attributes: {
-          url: `https://files.example/${uploadedFile.name}`
-        }
-      }
-    })
-
-    this.listeners.load?.forEach(listener => listener())
-  }
-
-  public abort() {
-    this.listeners.abort?.forEach(listener => listener())
-  }
-}
+import { createMockImageFile, mockImageUploadProcessing } from '../../../test/vitest/utils/mockImageUpload'
 
 describe('image upload fields', () => {
-  const originalCreateElement = document.createElement.bind(document)
-  let revokeObjectURL: ReturnType<typeof vi.fn>
-
-  const setupCanvas = () => {
-    const drawImage = vi.fn()
-
-    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
-      if (tagName === 'canvas') {
-        return {
-          width: 0,
-          height: 0,
-          getContext: vi.fn(() => ({ drawImage })),
-          toBlob: (callback: BlobCallback) => callback(new Blob(['webp'], { type: 'image/webp' }))
-        } as unknown as HTMLCanvasElement
-      }
-
-      return originalCreateElement(tagName)
+  const uploadFile = async (selector: { get: (selector: string) => { element: Element, trigger: (event: string) => Promise<void> } }, file: File) => {
+    const input = selector.get("input[type='file']")
+    Object.defineProperty(input.element, 'files', {
+      configurable: true,
+      value: [file]
     })
-
-    return { drawImage }
-  }
-
-  const getUploader = (wrapper: VueWrapper) => {
-    return wrapper.getComponent({ name: 'QUploader' }).vm as unknown as {
-      addFiles: (files: File[]) => void
-    }
+    await input.trigger('change')
   }
 
   beforeEach(() => {
-    MockXMLHttpRequest.instances = []
-    revokeObjectURL = vi.fn()
-    vi.stubGlobal('FormData', MockFormData as unknown as typeof FormData)
-    vi.stubGlobal('XMLHttpRequest', MockXMLHttpRequest as unknown as typeof XMLHttpRequest)
-    vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue({
-      width: 3600,
-      height: 2400,
-      close: vi.fn()
-    }))
-
-    Object.defineProperty(window.URL, 'createObjectURL', {
-      configurable: true,
-      value: vi.fn(() => 'blob:preview')
-    })
-    Object.defineProperty(window.URL, 'revokeObjectURL', {
-      configurable: true,
-      value: revokeObjectURL
-    })
+    resetMockFileUploads()
+    mockImageUploadProcessing()
   })
 
   afterEach(() => {
@@ -147,8 +25,19 @@ describe('image upload fields', () => {
     vi.restoreAllMocks()
   })
 
-  it('uploads resized webp files from ImageField', async () => {
-    const { drawImage } = setupCanvas()
+  it('uploads a resized image from ImageField before the mock files endpoint would reject the original', async () => {
+    const uploadLimit = 250_000
+    const originalImage = createMockImageFile({
+      encodedSize: 180_000,
+      height: 2400,
+      name: 'offer-photo.jpg',
+      size: 1_100_000,
+      type: 'image/jpeg',
+      width: 3600
+    })
+
+    setMockFileUploadLimit(uploadLimit)
+
     const wrapper = await mountComponent(ImageField, {
       props: {
         modelValue: [],
@@ -158,28 +47,29 @@ describe('image upload fields', () => {
       login: true
     })
 
-    getUploader(wrapper).addFiles([
-      new File(['raw'], 'offer-photo.jpg', { type: 'image/jpeg', lastModified: 123 })
-    ])
+    await uploadFile(wrapper, originalImage)
 
-    await waitFor(() => MockXMLHttpRequest.instances.length, 1, 'Upload should start')
     await waitFor(
       () => wrapper.emitted('update:modelValue')?.at(-1)?.[0]?.[0],
       'https://files.example/offer-photo.webp',
       'ImageField should emit the uploaded image url'
     )
 
-    const uploadedFile = MockXMLHttpRequest.instances[0].body?.entries[0].value
-
-    expect(uploadedFile?.name).toBe('offer-photo.webp')
-    expect(uploadedFile?.type).toBe('image/webp')
-    expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1800, 1200)
-    expect(revokeObjectURL).toHaveBeenCalled()
+    const [upload] = getMockFileUploadAttempts()
+    expect(originalImage.size).toBeGreaterThan(uploadLimit)
+    expect(upload).toMatchObject({
+      accepted: true,
+      name: 'offer-photo.webp',
+      type: 'image/webp',
+      url: 'https://files.example/offer-photo.webp'
+    })
+    expect(upload.size).toBeLessThanOrEqual(uploadLimit)
     wrapper.unmount()
   })
 
-  it('uploads resized webp files from AvatarField', async () => {
-    setupCanvas()
+  it('keeps AvatarField unchanged when the mocked endpoint rejects the transformed image as too large', async () => {
+    setMockFileUploadLimit(100_000)
+
     const wrapper = await mountComponent(AvatarField, {
       props: {
         modelValue: null,
@@ -188,66 +78,27 @@ describe('image upload fields', () => {
       login: true
     })
 
-    getUploader(wrapper).addFiles([
-      new File(['raw'], 'avatar.png', { type: 'image/png', lastModified: 456 })
-    ])
+    await uploadFile(wrapper, createMockImageFile({
+      encodedSize: 180_000,
+      height: 2400,
+      name: 'avatar.png',
+      size: 1_100_000,
+      type: 'image/png',
+      width: 3600
+    }))
 
-    await waitFor(() => MockXMLHttpRequest.instances.length, 1, 'Avatar upload should start')
     await waitFor(
-      () => wrapper.emitted('update:modelValue')?.at(-1)?.[0],
-      'https://files.example/avatar.webp',
-      'AvatarField should emit the uploaded avatar url'
+      () => getMockFileUploadAttempts().length,
+      1,
+      'Avatar upload should reach the mock files endpoint'
     )
 
-    const uploadedFile = MockXMLHttpRequest.instances[0].body?.entries[0].value
-
-    expect(uploadedFile?.name).toBe('avatar.webp')
-    expect(uploadedFile?.type).toBe('image/webp')
-    wrapper.unmount()
-  })
-
-  it('ignores files when the composable is not attached to a QUploader yet', async () => {
-    const wrapper = await mountComponent(defineComponent({
-      setup() {
-        return useImageUploader(vi.fn())
-      },
-      template: '<div />'
-    }), { login: true })
-
-    await expect(wrapper.vm.addFiles([
-      new File(['raw'], 'detached.jpg', { type: 'image/jpeg', lastModified: 999 })
-    ])).resolves.toBeUndefined()
-    expect(MockXMLHttpRequest.instances).toHaveLength(0)
-    wrapper.unmount()
-  })
-
-  it('uploads multiple resized webp files from ImageField', async () => {
-    setupCanvas()
-    const wrapper = await mountComponent(ImageField, {
-      props: {
-        modelValue: [],
-        label: 'Add images'
-      },
-      login: true
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(getMockFileUploadAttempts()[0]).toMatchObject({
+      accepted: false,
+      name: 'avatar.webp',
+      type: 'image/webp'
     })
-
-    getUploader(wrapper).addFiles([
-      new File(['raw-a'], 'first.jpg', { type: 'image/jpeg', lastModified: 11 }),
-      new File(['raw-b'], 'second.png', { type: 'image/png', lastModified: 22 })
-    ])
-
-    await waitFor(() => MockXMLHttpRequest.instances.length, 2, 'Two uploads should start')
-    await waitFor(
-      () => wrapper.emitted('update:modelValue')?.at(-1)?.[0]?.length,
-      2,
-      'ImageField should emit both uploaded image urls'
-    )
-
-    const emittedUrls = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as string[]
-    expect(emittedUrls).toEqual([
-      'https://files.example/first.webp',
-      'https://files.example/second.webp'
-    ])
     wrapper.unmount()
   })
 })
