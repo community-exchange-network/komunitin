@@ -1,5 +1,6 @@
 const MAX_IMAGE_LONG_SIDE = 1800
 const WEBP_QUALITY = 0.82
+const DEFAULT_IMAGE_NAME = 'image'
 
 interface DecodedImage {
   cleanup: () => void,
@@ -21,7 +22,7 @@ const resizeDimensions = (width: number, height: number) => {
   }
 }
 
-const webpFilename = (name: string) => `${name.replace(/\.[^.]+$/, '') || 'image'}.webp`
+const webpFilename = (name: string) => `${name.replace(/\.[^.]+$/, '') || DEFAULT_IMAGE_NAME}.webp`
 
 const createCanvas = (width: number, height: number) => {
   if (typeof OffscreenCanvas !== 'undefined') {

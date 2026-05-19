@@ -36,7 +36,7 @@ export const mockImageUploadProcessing = () => {
   const originalCreateElement = document.createElement.bind(document)
   let encodedSize = 0
 
-  const createImageBitmapMock = vi.fn(async (file: MockImageFile) => {
+  const mockCreateImageBitmap = vi.fn(async (file: MockImageFile) => {
     encodedSize = file.__mockEncodedSize ?? 0
 
     return {
@@ -45,7 +45,7 @@ export const mockImageUploadProcessing = () => {
       width: file.__mockWidth ?? 1
     }
   })
-  vi.stubGlobal('createImageBitmap', createImageBitmapMock)
+  vi.stubGlobal('createImageBitmap', mockCreateImageBitmap)
 
   vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
     if (tagName !== 'canvas') {

@@ -13,8 +13,17 @@ interface MockFileUploadAttempt {
   url: string
 }
 
-let maxUploadSize = Number.POSITIVE_INFINITY
-let uploadAttempts: MockFileUploadAttempt[] = []
+interface MockFilesState {
+  maxUploadSize: number,
+  uploadAttempts: MockFileUploadAttempt[]
+}
+
+const createMockFilesState = (): MockFilesState => ({
+  maxUploadSize: Number.POSITIVE_INFINITY,
+  uploadAttempts: []
+})
+
+let state = createMockFilesState()
 
 const readUploadedFile = (requestBody: unknown) => {
   const file = typeof requestBody === 'object' && requestBody !== null && 'get' in requestBody
@@ -29,24 +38,23 @@ const readUploadedFile = (requestBody: unknown) => {
 }
 
 export const resetMockFileUploads = () => {
-  maxUploadSize = Number.POSITIVE_INFINITY
-  uploadAttempts = []
+  state = createMockFilesState()
 }
 
 export const setMockFileUploadLimit = (size: number) => {
-  maxUploadSize = size
+  state.maxUploadSize = size
 }
 
-export const getMockFileUploadAttempts = () => uploadAttempts
+export const getMockFileUploadAttempts = () => state.uploadAttempts
 
 export default {
   routes(server: Server) {
     server.post(urlFiles, (_schema, request) => {
       const file = readUploadedFile(request.requestBody)
-      const accepted = file.size <= maxUploadSize
+      const accepted = file.size <= state.maxUploadSize
       const url = `https://files.example/${file.name}`
 
-      uploadAttempts.push({
+      state.uploadAttempts.push({
         accepted,
         name: file.name,
         size: file.size,

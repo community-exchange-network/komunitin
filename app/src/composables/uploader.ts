@@ -36,7 +36,7 @@ type UploadCallback = (url: string) => void
 type QUploaderWithQueue = QUploader & { queuedFiles?: UploadManagedFile[] }
 
 const FIELD_NAME = 'files[file]'
-const isTransformedFile = (file: File): file is UploadManagedFile => (file as UploadManagedFile).__processed === true
+const isTransformedFile = (file: File): file is UploadManagedFile => Boolean((file as UploadManagedFile).__processed)
 const toManagedFile = (file: File) => Object.assign(file, { __processed: true as const }) as UploadManagedFile
 const uploadedUrl = (xhr: XMLHttpRequest) => JSON.parse(xhr.responseText).data.attributes.url as string
 
