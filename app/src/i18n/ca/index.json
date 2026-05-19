@@ -118,6 +118,8 @@
   "enterNeedData": "Què necessites?",
   "needFormHelpText": "Omple els camps següents per a crear una necessitat que es publicarà a la comunitat d'intercanvi.",
   "uploadImages": "Afegeix imatges",
+  "optimizingImages": "Optimitzant imatges…",
+  "uploadingImages": "Pujant imatges…",
   "uploadNeedImagesHint": "Selecciona imatges que ajudin a entendre la teva necessitat.",
   "needDescriptionHint": "Explica la teva necessitat amb detall.",
   "category": "Categoria",

@@ -9,17 +9,13 @@
       flat
       bordered
       class="full-width max-h"
-      auto-upload
       hide-upload-btn
-      :field-name="fieldName"
-      :url="url"
-      :headers="headers"
-      @uploaded="uploaded"
+      @added="addFiles"
     >
       <template #header="scope">
         <div class="row no-wrap items-center q-pa-sm q-gutter-xs">
           <q-spinner
-            v-if="scope.isUploading"
+            v-if="isWorking"
             class="q-uploader__spinner" 
           />
           <div class="col">
@@ -27,7 +23,12 @@
               {{ label }}
             </div>
             <div class="q-uploader__subtitle">
-              {{ scope.uploadSizeLabel }} / {{ scope.uploadProgressLabel }}
+              <template v-if="isProcessing">
+                {{ $t('optimizingImages') }}
+              </template>
+              <template v-else-if="isUploading">
+                {{ $t('uploadingImages') }}
+              </template>
             </div>
           </div>
           <q-btn
@@ -42,12 +43,12 @@
             <q-uploader-add-trigger />
           </q-btn>
           <q-btn
-            v-if="scope.isUploading"
+            v-if="isUploading"
             icon="clear"
             round
             dense
             flat 
-            @click="scope.abort"
+            @click="abortUploads"
           />
         </div>
       </template>
@@ -78,10 +79,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { watch, computed, ref } from 'vue'
 import ImageFieldItem from './ImageFieldItem.vue'
-import { imageFile, useUploaderSettings } from '../composables/uploader'
-import { QUploader } from 'quasar'
+import { imageFile, useImageUploader } from '../composables/uploader'
 
 const props = defineProps<{
   modelValue: string[],
@@ -94,29 +94,38 @@ const emit = defineEmits<{
 }>()
 
 // Set files from modelValue to the QUploader component
-const uploader = ref<QUploader>()
-const uploaderFiles = computed(() => uploader.value?.files || [])
-
 const images = ref<string[]>(props.modelValue)
 
-const imageFiles = computed(() => props.modelValue.map((url: string) => imageFile(url)))
-
-const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
-  const response = JSON.parse(xhr.responseText)
-  const url = response.data.attributes.url
+const {
+  uploader,
+  uploaderFiles,
+  addFiles,
+  abortUploads,
+  isProcessing,
+  isUploading,
+  isWorking
+} = useImageUploader((url: string) => {
   images.value = [...images.value, url]
-  uploader.value?.removeUploadedFiles()
-}
+})
+
+const imageFiles = computed(() => props.modelValue.map((url: string) => imageFile(url)))
 
 const removeImage = (url: string) => {
   images.value = images.value.filter((u: string) => u != url)
 }
 
+watch(() => props.modelValue, (value) => {
+  if (
+    value.length !== images.value.length
+    || value.some((image, index) => image !== images.value[index])
+  ) {
+    images.value = value
+  }
+})
+
 watch(images, (value) => {
   emit("update:modelValue", value)
 })
-
-const { fieldName, url, headers } = useUploaderSettings()
 
 </script>
 <style lang="scss">

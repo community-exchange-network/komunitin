@@ -118,6 +118,8 @@
   "enterNeedData": "Cosa cerchi?",
   "needFormHelpText": "Compila i campi del tuo annuncio.",
   "uploadImages": "Aggiungi immagine",
+  "optimizingImages": "Ottimizzazione immagini…",
+  "uploadingImages": "Caricamento immagini…",
   "uploadNeedImagesHint": "Aggiungi un'immagine per dare più visibilità al tuo annuncio.",
   "title": "Titolo",
   "needDescriptionHint": "Inserisci qui la descrizione del tuo annuncio",

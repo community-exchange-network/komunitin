@@ -5,12 +5,8 @@
     accept="image/*"
     flat
     bordered
-    auto-upload
     hide-upload-btn
-    :url="url"
-    :headers="headers"
-    :field-name="fieldName"
-    @uploaded="uploaded"
+    @added="addFiles"
   >
     <template #header>
       <q-uploader-add-trigger />
@@ -25,11 +21,11 @@
         />
         <div class="avatar-icon">
           <q-circular-progress
-            v-if="file.__status == 'uploading'"
-            :value="file.__progress"
+            v-if="isWorking"
+            :value="file.__progress ?? 0"
             :min="0"
             :max="1"
-            :indeterminate="file.__progress === 0"
+            :indeterminate="isProcessing || file.__progress === 0"
             color="white"
             size="50px"
           />
@@ -45,10 +41,9 @@
   </q-uploader>
 </template>
 <script setup lang="ts">
-import { computed, ref } from "vue"
-import { imageFile, useUploaderSettings } from "../composables/uploader"
+import { computed } from "vue"
+import { imageFile, useImageUploader } from "../composables/uploader"
 import Avatar from "./Avatar.vue"
-import { QUploader } from "quasar"
 
 const props = defineProps<{
   modelValue: string | null,
@@ -59,18 +54,18 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
 
-const uploader = ref<QUploader>()
-const src = computed(() => uploader.value?.files[0]?.__img?.src || props.modelValue)
-const file = computed(() => uploader.value?.files[0] || imageFile(props.modelValue ?? ""))
-
-const { url, headers, fieldName } = useUploaderSettings()
-
-const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
-  const response = JSON.parse(xhr.responseText)
-  const url = response.data.attributes.url
+const {
+  uploader,
+  uploaderFiles,
+  addFiles,
+  isProcessing,
+  isWorking
+} = useImageUploader((url: string) => {
   emit("update:modelValue", url)
-  uploader.value?.removeUploadedFiles()
-}
+})
+
+const src = computed(() => uploaderFiles.value[0]?.__img?.src || props.modelValue)
+const file = computed(() => uploaderFiles.value[0] || imageFile(props.modelValue ?? ""))
 
 </script>
 <style lang="scss" scoped>

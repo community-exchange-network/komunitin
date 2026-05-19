@@ -118,6 +118,8 @@
   "enterNeedData": "Qué necesitas?",
   "needFormHelpText": "Rellena los campos siguientes para crear una necesidad que se publicará en la red de intercambio.",
   "uploadImages": "Añade imágenes",
+  "optimizingImages": "Optimizando imágenes…",
+  "uploadingImages": "Subiendo imágenes…",
   "uploadNeedImagesHint": "Selecciona una o más imágenes que ayuden a explicar la necesidad",
   "title": "Título",
   "needDescriptionHint": "Explica tu necesidad con detalle",
