@@ -34,14 +34,14 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { ImageFile } from '../composables/uploader';
+import type { UploadedImageFile } from '../composables/uploader';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps<{
-  file: ImageFile
+  file: UploadedImageFile
 }>()
 const emit = defineEmits<{
-  (e: 'remove:file', file: ImageFile): void
+  (e: 'remove:file', file: UploadedImageFile): void
 }>()
 </script>
 <style scoped lang="scss">

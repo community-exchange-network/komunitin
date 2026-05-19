@@ -8,7 +8,7 @@ const WEBP_QUALITY = 0.82
 
 type UploadStatus = 'idle' | 'failed' | 'uploading' | 'uploaded'
 
-export interface ImageFile {
+export interface UploadedImageFile {
   name: string,
   __key: string,
   __sizeLabel: string,
@@ -186,10 +186,9 @@ const parseUploadedUrl = (xhr: XMLHttpRequest) => {
   return response.data.attributes.url as string
 }
 
-const markAsProcessed = (file: File) => {
-  const managedFile = file as UploadManagedFile
-  managedFile.__processed = true
-  return managedFile
+const markAsProcessed = (file: UploadManagedFile) => {
+  file.__processed = true
+  return file
 }
 
 const isManagedFile = (file: File): file is UploadManagedFile => {
@@ -294,7 +293,7 @@ export const useImageUploader = (onUploaded: (url: string) => void) => {
       setProcessing(processingKey, true)
 
       try {
-        const transformedFile = markAsProcessed(await transformImageFile(file))
+        const transformedFile = markAsProcessed(await transformImageFile(file) as UploadManagedFile)
 
         const isStillQueued = uploaderFiles.value.some(queuedFile => queuedFile.__key === file.__key)
         if (!isStillQueued) {
@@ -338,7 +337,7 @@ export const useImageUploader = (onUploaded: (url: string) => void) => {
  * @param url URL of the image
  */
 export const imageFile = (url: string) => {
-  const filename = (imageUrl: string) => imageUrl.split('/').pop() || imageUrl
+  const filename = (imagePath: string) => imagePath.split('/').pop() || imagePath
 
   return {
     name: filename(url),
@@ -350,5 +349,5 @@ export const imageFile = (url: string) => {
     __img: {
       src: url
     }
-  } as ImageFile
+  } as UploadedImageFile
 }

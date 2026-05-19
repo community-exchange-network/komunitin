@@ -5,10 +5,10 @@ import AvatarField from '../AvatarField.vue'
 import { mountComponent, waitFor } from '../../../test/vitest/utils'
 
 class MockFormData {
-  public entries: { filename?: string, name: string, value: File }[] = []
+  public entries: { filename?: string, name: string, value: string | Blob }[] = []
 
   public append(name: string, value: string | Blob, filename?: string) {
-    this.entries.push({ name, value: value as File, filename })
+    this.entries.push({ name, value, filename })
   }
 }
 
@@ -58,7 +58,12 @@ class MockXMLHttpRequest {
 
   public send(body: MockFormData) {
     this.body = body
-    const uploadedFile = body.entries[0].value
+    const uploadedValue = body.entries[0].value
+    if (!(uploadedValue instanceof File)) {
+      throw new Error('Expected file upload')
+    }
+
+    const uploadedFile = uploadedValue
 
     this.upload.dispatch('progress', { loaded: uploadedFile.size })
     this.status = 201
