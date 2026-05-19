@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
-import { transformImageFile } from '../uploader'
+import { transformImageFile } from '../image-transform'
 
 describe('transformImageFile', () => {
   const originalCreateElement = document.createElement.bind(document)

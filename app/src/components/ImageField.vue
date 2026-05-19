@@ -109,6 +109,7 @@ const {
 })
 
 const imageFiles = computed(() => props.modelValue.map((url: string) => imageFile(url)))
+const sameImages = (left: string[], right: string[]) => left.length === right.length && left.every((value, index) => value === right[index])
 
 const removeImage = (url: string) => {
   images.value = images.value.filter((u: string) => u != url)
@@ -117,10 +118,7 @@ const removeImage = (url: string) => {
 // Keep local state aligned when the parent replaces the image list after emits
 // or other external updates, while avoiding duplicate update loops.
 watch(() => props.modelValue, (value) => {
-  if (
-    value.length !== images.value.length
-    || value.some((image, index) => image !== images.value[index])
-  ) {
+  if (!sameImages(value, images.value)) {
     images.value = value
   }
 })

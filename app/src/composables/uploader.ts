@@ -1,10 +1,8 @@
 import { computed, ref } from 'vue'
+import type { QUploader } from 'quasar'
 import { config } from 'src/utils/config'
 import { useStore } from 'vuex'
-import type { QUploader } from 'quasar'
-
-const MAX_IMAGE_LONG_SIDE = 1800
-const WEBP_QUALITY = 0.82
+import { transformImageFile } from './image-transform'
 
 type UploadStatus = 'idle' | 'failed' | 'uploading' | 'uploaded'
 
@@ -24,7 +22,7 @@ export interface UploadManagedFile extends File {
   __abort?: () => void,
   __img?: HTMLImageElement,
   __key: string,
-  __processed?: boolean,
+  __processed?: true,
   __progress: number,
   __progressLabel: string,
   __sizeLabel: string,
@@ -33,291 +31,155 @@ export interface UploadManagedFile extends File {
   xhr?: XMLHttpRequest
 }
 
-/**
- * Normalized decoded image data used during client-side image processing.
- * It exposes a canvas-compatible source plus a cleanup hook for any temporary
- * browser resources created while decoding the original file.
- */
-interface DecodedImage {
-  cleanup: () => void,
-  source: CanvasImageSource,
-  height: number,
-  width: number
-}
+type UploadHeader = { name: string, value: string }
+type UploadCallback = (url: string) => void
+type QUploaderWithQueue = QUploader & { queuedFiles?: UploadManagedFile[] }
 
-interface UploaderSettings {
-  fieldName: string,
-  headers: () => { name: string, value: string }[],
-  url: string
-}
+const FIELD_NAME = 'files[file]'
+const isProcessedFile = (file: File): file is UploadManagedFile => (file as UploadManagedFile).__processed === true
+const toManagedFile = (file: File) => Object.assign(file, { __processed: true as const }) as UploadManagedFile
+const uploadedUrl = (xhr: XMLHttpRequest) => JSON.parse(xhr.responseText).data.attributes.url as string
 
-/**
- * Some configuration to use with QUploader component to send files to the
- * backend (currently Drupal).
- */
-export const useUploaderSettings = (): UploaderSettings => {
+const imageHeaders = (token: string): UploadHeader[] => [{ name: 'Authorization', value: `Bearer ${token}` }]
+
+export const useUploaderSettings = () => {
   const store = useStore()
-  const fieldName = 'files[file]'
-  const url = config.FILES_URL
 
-  const headers = () => {
-    const token = store.getters.accessToken
-    return [{ name: 'Authorization', value: `Bearer ${token}` }]
-  }
-
-  return { fieldName, url, headers }
-}
-
-const getImageDimensions = (width: number, height: number) => {
-  if (width <= 0 || height <= 0) {
-    throw new Error('Could not read image dimensions')
-  }
-
-  const longerSide = Math.max(width, height)
-  if (longerSide <= MAX_IMAGE_LONG_SIDE) {
-    return { width, height }
-  }
-
-  const ratio = MAX_IMAGE_LONG_SIDE / longerSide
   return {
-    width: Math.max(1, Math.round(width * ratio)),
-    height: Math.max(1, Math.round(height * ratio))
+    fieldName: FIELD_NAME,
+    url: config.FILES_URL,
+    headers: () => imageHeaders(store.getters.accessToken)
   }
 }
 
-const getImageFilename = (name: string) => {
-  const basename = name.replace(/\.[^.]+$/, '') || 'image'
-  return `${basename}.webp`
+const removeQueuedFile = (uploader: QUploaderWithQueue | undefined, file: UploadManagedFile) => {
+  // QUploader keeps its pending list in a private queue that we must prune when
+  // replacing the original picked file with the transformed one.
+  const index = uploader?.queuedFiles?.findIndex(queuedFile => queuedFile.__key === file.__key) ?? -1
+
+  if (index !== -1) {
+    uploader?.queuedFiles?.splice(index, 1)
+  }
 }
 
-const createCanvas = (width: number, height: number) => {
-  if (typeof OffscreenCanvas !== 'undefined') {
-    return new OffscreenCanvas(width, height)
-  }
+const sendFile = ({
+  file,
+  headers,
+  onUploaded,
+  uploader,
+  url
+}: {
+  file: UploadManagedFile,
+  headers: UploadHeader[],
+  onUploaded: UploadCallback,
+  uploader: QUploaderWithQueue,
+  url: string
+}) => {
+  const form = new FormData()
+  const xhr = new XMLHttpRequest()
 
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  return canvas
-}
+  file.xhr = xhr
+  file.__abort = () => xhr.abort()
 
-const canvasToBlob = async (canvas: OffscreenCanvas | HTMLCanvasElement) => {
-  if ('convertToBlob' in canvas) {
-    return canvas.convertToBlob({ type: 'image/webp', quality: WEBP_QUALITY })
-  }
-
-  return await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(blob => {
-      if (blob) {
-        resolve(blob)
-      } else {
-        reject(new Error('Could not encode image'))
-      }
-    }, 'image/webp', WEBP_QUALITY)
+  xhr.upload.addEventListener('progress', event => {
+    uploader.updateFileStatus(file, 'uploading', Math.min(event.loaded, file.size))
   })
-}
 
-const decodeWithImageBitmap = async (file: File): Promise<DecodedImage> => {
-  const bitmap = await createImageBitmap(file)
-  return {
-    width: bitmap.width,
-    height: bitmap.height,
-    source: bitmap,
-    cleanup: () => bitmap.close()
-  }
-}
-
-const decodeWithImageElement = async (file: File): Promise<DecodedImage> => {
-  const objectUrl = window.URL.createObjectURL(file)
-
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => resolve(img)
-      img.onerror = () => reject(new Error('Could not decode image'))
-      img.src = objectUrl
-    })
-
-    return {
-      width: image.naturalWidth || image.width,
-      height: image.naturalHeight || image.height,
-      source: image,
-      cleanup: () => window.URL.revokeObjectURL(objectUrl)
-    }
-  } catch (error) {
-    window.URL.revokeObjectURL(objectUrl)
-    throw error
-  }
-}
-
-const decodeImage = async (file: File) => {
-  if (typeof createImageBitmap === 'function') {
-    try {
-      return await decodeWithImageBitmap(file)
-    } catch {
-      return decodeWithImageElement(file)
-    }
-  }
-
-  return decodeWithImageElement(file)
-}
-
-export const transformImageFile = async (file: File) => {
-  const decodedImage = await decodeImage(file)
-
-  try {
-    const { width, height } = getImageDimensions(decodedImage.width, decodedImage.height)
-    const canvas = createCanvas(width, height)
-    const context = canvas.getContext('2d')
-
-    if (!context) {
-      throw new Error('Could not create image canvas')
+  xhr.addEventListener('load', () => {
+    if (xhr.status >= 200 && xhr.status < 400) {
+      uploader.updateFileStatus(file, 'uploaded')
+      onUploaded(uploadedUrl(xhr))
+      uploader.removeUploadedFiles()
+      return
     }
 
-    context.drawImage(decodedImage.source, 0, 0, width, height)
+    uploader.updateFileStatus(file, 'failed')
+  })
 
-    const blob = await canvasToBlob(canvas)
-    return new File([blob], getImageFilename(file.name), {
-      type: 'image/webp',
-      lastModified: file.lastModified
-    })
-  } finally {
-    decodedImage.cleanup()
-  }
+  xhr.addEventListener('error', () => {
+    uploader.updateFileStatus(file, 'failed')
+  })
+
+  xhr.addEventListener('abort', () => {
+    uploader.removeFile(file)
+  })
+
+  // XHR is kept here because QUploader needs per-file upload progress and abort
+  // hooks; fetch still does not provide simple upload progress events.
+  xhr.open('POST', url)
+  headers.forEach(header => {
+    xhr.setRequestHeader(header.name, header.value)
+  })
+
+  form.append(FIELD_NAME, file, file.name)
+  removeQueuedFile(uploader, file)
+  uploader.updateFileStatus(file, 'uploading', 0)
+  xhr.send(form)
 }
 
-const parseUploadedUrl = (xhr: XMLHttpRequest) => {
-  const response = JSON.parse(xhr.responseText)
-  return response.data.attributes.url as string
-}
+export const useImageUploader = (onUploaded: UploadCallback) => {
+  const uploader = ref<QUploaderWithQueue>()
+  const pendingTransforms = ref(0)
+  const { headers, url } = useUploaderSettings()
 
-const toManagedFile = (file: File) => {
-  const managedFile = file as UploadManagedFile
-  managedFile.__processed = true
-  return managedFile
-}
-
-const isManagedFile = (file: File): file is UploadManagedFile => {
-  return (file as UploadManagedFile).__processed === true
-}
-
-export const useImageUploader = (onUploaded: (url: string) => void) => {
-  const uploader = ref<QUploader>()
-  const uploaderFiles = computed(() => (uploader.value?.files || []) as UploadManagedFile[])
-  const processingKeys = ref<string[]>([])
-
-  const { url, headers, fieldName } = useUploaderSettings()
-
-  const isProcessing = computed(() => processingKeys.value.length > 0)
+  const uploaderFiles = computed(() => uploader.value?.files as UploadManagedFile[] || [])
+  const isProcessing = computed(() => pendingTransforms.value > 0)
   const isUploading = computed(() => uploaderFiles.value.some(file => file.__status === 'uploading'))
   const isWorking = computed(() => isProcessing.value || isUploading.value)
 
-  const setProcessing = (key: string, active: boolean) => {
-    processingKeys.value = active
-      ? [...processingKeys.value, key]
-      : processingKeys.value.filter(currentKey => currentKey !== key)
-  }
-
-  const removeQueuedFile = (file: UploadManagedFile) => {
-    const queuedFiles = (uploader.value as QUploader & { queuedFiles?: UploadManagedFile[] } | undefined)?.queuedFiles
-    const index = queuedFiles?.findIndex(queuedFile => queuedFile.__key === file.__key) ?? -1
-
-    if (queuedFiles && index !== -1) {
-      queuedFiles.splice(index, 1)
-    }
-  }
-
-  const uploadFile = (file: UploadManagedFile) => {
-    const currentUploader = uploader.value
-    if (!currentUploader || file.__status === 'uploading' || file.__status === 'uploaded') {
+  const uploadProcessedFile = (file: UploadManagedFile) => {
+    if (!uploader.value || file.__status === 'uploading' || file.__status === 'uploaded') {
       return
     }
 
-    const form = new FormData()
-    const xhr = new XMLHttpRequest()
+    sendFile({
+      file,
+      headers: headers(),
+      onUploaded,
+      uploader: uploader.value,
+      url
+    })
+  }
 
-    file.xhr = xhr
-    file.__abort = () => xhr.abort()
+  const processPickedFile = async (file: UploadManagedFile) => {
+    pendingTransforms.value++
 
-    xhr.upload.addEventListener('progress', event => {
-      if (!uploader.value) {
-        return
+    try {
+      const transformedFile = toManagedFile(await transformImageFile(file))
+
+      if (!uploaderFiles.value.some(queuedFile => queuedFile.__key === file.__key)) {
+        return null
       }
 
-      uploader.value.updateFileStatus(file, 'uploading', Math.min(event.loaded, file.size))
-    })
-
-    xhr.addEventListener('load', () => {
-      if (!uploader.value) {
-        return
-      }
-
-      if (xhr.status >= 200 && xhr.status < 400) {
-        uploader.value.updateFileStatus(file, 'uploaded')
-        onUploaded(parseUploadedUrl(xhr))
-        uploader.value.removeUploadedFiles()
-      } else {
-        uploader.value.updateFileStatus(file, 'failed')
-      }
-    })
-
-    xhr.addEventListener('error', () => {
-      uploader.value?.updateFileStatus(file, 'failed')
-    })
-
-    xhr.addEventListener('abort', () => {
       uploader.value?.removeFile(file)
-    })
-
-    xhr.open('POST', url)
-    headers().forEach(header => {
-      xhr.setRequestHeader(header.name, header.value)
-    })
-
-    form.append(fieldName, file, file.name)
-    removeQueuedFile(file)
-    uploader.value.updateFileStatus(file, 'uploading', 0)
-    xhr.send(form)
+      return transformedFile
+    } catch {
+      removeQueuedFile(uploader.value, file)
+      uploader.value?.updateFileStatus(file, 'failed')
+      return null
+    } finally {
+      pendingTransforms.value--
+    }
   }
 
   const addFiles = async (files: readonly File[]) => {
-    const currentUploader = uploader.value
-    if (!currentUploader) {
+    if (!uploader.value) {
       return
     }
 
-    const managedFiles = files.filter(isManagedFile)
-    if (managedFiles.length > 0) {
-      managedFiles.forEach(uploadFile)
+    const processedFiles = files.filter(isProcessedFile)
+    if (processedFiles.length > 0) {
+      processedFiles.forEach(uploadProcessedFile)
       return
     }
 
-    const transformedFiles: UploadManagedFile[] = []
-
-    for (const file of files as UploadManagedFile[]) {
-      const processingKey = file.__key || `${file.name}-${file.lastModified}`
-      setProcessing(processingKey, true)
-
-      try {
-        const transformedFile = toManagedFile(await transformImageFile(file))
-
-        const isStillQueued = uploaderFiles.value.some(queuedFile => queuedFile.__key === file.__key)
-        if (!isStillQueued) {
-          continue
-        }
-
-        currentUploader.removeFile(file)
-        transformedFiles.push(transformedFile)
-      } catch {
-        removeQueuedFile(file)
-        currentUploader.updateFileStatus(file, 'failed')
-      } finally {
-        setProcessing(processingKey, false)
-      }
-    }
+    const transformedFiles = (await Promise.all(
+      (files as UploadManagedFile[]).map(processPickedFile)
+    )).filter((file): file is UploadManagedFile => file !== null)
 
     if (transformedFiles.length > 0) {
-      currentUploader.addFiles(transformedFiles)
+      // Re-adding transformed files lets QUploader keep its preview/list UI.
+      uploader.value.addFiles(transformedFiles)
     }
   }
 
@@ -338,20 +200,14 @@ export const useImageUploader = (onUploaded: (url: string) => void) => {
   }
 }
 
-/**
- * Create an image file object for QUploader component.
- * @param imageUrl URL of the image
- */
-export const imageFile = (imageUrl: string) => {
-  return {
-    name: imageUrl.split('/').pop() || imageUrl,
-    __key: imageUrl,
-    __sizeLabel: '',
-    __progressLabel: '',
-    __progress: 1,
-    __status: 'uploaded',
-    __img: {
-      src: imageUrl
-    }
-  } as UploadedImageFile
-}
+export const imageFile = (imageUrl: string): UploadedImageFile => ({
+  name: imageUrl.split('/').pop() || imageUrl,
+  __key: imageUrl,
+  __sizeLabel: '',
+  __progressLabel: '',
+  __progress: 1,
+  __status: 'uploaded',
+  __img: {
+    src: imageUrl
+  }
+})
