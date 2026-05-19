@@ -36,14 +36,14 @@ export const mockImageUploadProcessing = () => {
   const originalCreateElement = document.createElement.bind(document)
   let encodedSize = 0
 
-  const mockCreateImageBitmap = vi.fn(async (file: MockImageFile) => {
+  const mockCreateImageBitmap = vi.fn(async (file: MockImageFile): Promise<ImageBitmap> => {
     encodedSize = file.__mockEncodedSize ?? 0
 
     return {
       close: vi.fn(),
       height: file.__mockHeight ?? 1,
       width: file.__mockWidth ?? 1
-    }
+    } as ImageBitmap
   })
   vi.stubGlobal('createImageBitmap', mockCreateImageBitmap)
 

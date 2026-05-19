@@ -6,8 +6,8 @@ import { mountComponent, waitFor } from '../../../test/vitest/utils'
 import { createMockImageFile, mockImageUploadProcessing } from '../../../test/vitest/utils/mockImageUpload'
 
 describe('image upload fields', () => {
-  const uploadFile = async (selector: { get: (selector: string) => { element: Element, trigger: (event: string) => Promise<void> } }, file: File) => {
-    const input = selector.get("input[type='file']")
+  const uploadFile = async (wrapper: { get: (selector: string) => { element: Element, trigger: (event: string) => Promise<void> } }, file: File) => {
+    const input = wrapper.get("input[type='file']")
     Object.defineProperty(input.element, 'files', {
       configurable: true,
       value: [file]

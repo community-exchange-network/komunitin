@@ -26,7 +26,10 @@ const createMockFilesState = (): MockFilesState => ({
 let state = createMockFilesState()
 
 const readUploadedFile = (requestBody: unknown) => {
-  const file = typeof requestBody === 'object' && requestBody !== null && 'get' in requestBody
+  const file = typeof requestBody === 'object'
+    && requestBody !== null
+    && 'get' in requestBody
+    && typeof requestBody.get === 'function'
     ? requestBody.get(fieldName)
     : null
 
