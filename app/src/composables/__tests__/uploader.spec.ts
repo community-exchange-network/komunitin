@@ -65,4 +65,60 @@ describe('transformImageFile', () => {
     expect(transformed.type).toBe('image/webp')
     expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1200, 800)
   })
+
+  it('throws when webp encoding fails', async () => {
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      if (tagName === 'canvas') {
+        return {
+          width: 0,
+          height: 0,
+          getContext: vi.fn(() => ({ drawImage: vi.fn() })),
+          toBlob: (callback: BlobCallback) => callback(null)
+        } as unknown as HTMLCanvasElement
+      }
+
+      return originalCreateElement(tagName)
+    })
+
+    const file = new File(['raw-image'], 'broken.jpg', { type: 'image/jpeg' })
+
+    await expect(transformImageFile(file)).rejects.toThrow('Could not encode image')
+  })
+
+  it('falls back to Image decoding when createImageBitmap is unavailable', async () => {
+    const revokeObjectURL = vi.fn()
+    const { drawImage } = createCanvasMock(1000, 500)
+
+    vi.stubGlobal('createImageBitmap', undefined)
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:fallback-image')
+    })
+    Object.defineProperty(window.URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectURL
+    })
+
+    class MockImage {
+      public height = 500
+      public naturalHeight = 500
+      public naturalWidth = 1000
+      public onerror: null | (() => void) = null
+      public onload: null | (() => void) = null
+      public width = 1000
+
+      set src(_value: string) {
+        this.onload?.()
+      }
+    }
+
+    vi.stubGlobal('Image', MockImage as unknown as typeof Image)
+
+    const file = new File(['raw-image'], 'fallback.png', { type: 'image/png', lastModified: 789 })
+    const transformed = await transformImageFile(file)
+
+    expect(transformed.name).toBe('fallback.webp')
+    expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1000, 500)
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:fallback-image')
+  })
 })

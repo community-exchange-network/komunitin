@@ -186,6 +186,12 @@ const parseUploadedUrl = (xhr: XMLHttpRequest) => {
   return response.data.attributes.url as string
 }
 
+const markAsProcessed = (file: File) => {
+  const managedFile = file as UploadManagedFile
+  managedFile.__processed = true
+  return managedFile
+}
+
 const isManagedFile = (file: File): file is UploadManagedFile => {
   return (file as UploadManagedFile).__processed === true
 }
@@ -288,10 +294,7 @@ export const useImageUploader = (onUploaded: (url: string) => void) => {
       setProcessing(processingKey, true)
 
       try {
-        const transformedFile = Object.assign(
-          await transformImageFile(file),
-          { __processed: true }
-        ) as UploadManagedFile
+        const transformedFile = markAsProcessed(await transformImageFile(file))
 
         const isStillQueued = uploaderFiles.value.some(queuedFile => queuedFile.__key === file.__key)
         if (!isStillQueued) {

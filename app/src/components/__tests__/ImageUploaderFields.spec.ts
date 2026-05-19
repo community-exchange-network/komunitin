@@ -31,8 +31,10 @@ class MockXMLHttpRequest {
   public readonly upload = new MockUploadTarget()
   public readonly headers: { name: string, value: string }[] = []
   public body?: MockFormData
+  public method?: string
   public responseText = ''
   public status = 0
+  public url?: string
 
   private listeners: Record<string, (() => void)[]> = {}
 
@@ -46,9 +48,8 @@ class MockXMLHttpRequest {
   }
 
   public open(method: string, url: string) {
-    void method
-    void url
-    return
+    this.method = method
+    this.url = url
   }
 
   public setRequestHeader(name: string, value: string) {
@@ -79,6 +80,7 @@ class MockXMLHttpRequest {
 
 describe('image upload fields', () => {
   const originalCreateElement = document.createElement.bind(document)
+  let revokeObjectURL: ReturnType<typeof vi.fn>
 
   const setupCanvas = () => {
     const drawImage = vi.fn()
@@ -107,6 +109,7 @@ describe('image upload fields', () => {
 
   beforeEach(() => {
     MockXMLHttpRequest.instances = []
+    revokeObjectURL = vi.fn()
     vi.stubGlobal('FormData', MockFormData as unknown as typeof FormData)
     vi.stubGlobal('XMLHttpRequest', MockXMLHttpRequest as unknown as typeof XMLHttpRequest)
     vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue({
@@ -121,7 +124,7 @@ describe('image upload fields', () => {
     })
     Object.defineProperty(window.URL, 'revokeObjectURL', {
       configurable: true,
-      value: vi.fn()
+      value: revokeObjectURL
     })
   })
 
@@ -157,6 +160,7 @@ describe('image upload fields', () => {
     expect(uploadedFile?.name).toBe('offer-photo.webp')
     expect(uploadedFile?.type).toBe('image/webp')
     expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1800, 1200)
+    expect(revokeObjectURL).toHaveBeenCalled()
     wrapper.unmount()
   })
 
