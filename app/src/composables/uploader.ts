@@ -53,8 +53,8 @@ export const useUploaderSettings = () => {
 }
 
 const removeQueuedFile = (uploader: QUploaderWithQueue | undefined, file: UploadManagedFile) => {
-  // QUploader keeps its pending list in a private queue that we must prune when
-  // replacing the original picked file with the transformed one.
+  // QUploader does not expose a public "replace queued file" API, so we prune
+  // its internal pending queue to avoid uploading both original and transformed files.
   const index = uploader?.queuedFiles?.findIndex(queuedFile => queuedFile.__key === file.__key) ?? -1
 
   if (index !== -1) {

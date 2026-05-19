@@ -123,4 +123,34 @@ describe('transformImageFile', () => {
     expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1000, 500)
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:fallback-image')
   })
+
+  it('throws when fallback Image decoding fails', async () => {
+    const revokeObjectURL = vi.fn()
+
+    vi.stubGlobal('createImageBitmap', undefined)
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:broken-fallback-image')
+    })
+    Object.defineProperty(window.URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectURL
+    })
+
+    class MockImage {
+      public onerror: null | (() => void) = null
+      public onload: null | (() => void) = null
+
+      set src(_value: string) {
+        this.onerror?.()
+      }
+    }
+
+    vi.stubGlobal('Image', MockImage as unknown as typeof Image)
+
+    await expect(
+      transformImageFile(new File(['raw-image'], 'broken-fallback.png', { type: 'image/png' }))
+    ).rejects.toThrow('Could not decode image')
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:broken-fallback-image')
+  })
 })
