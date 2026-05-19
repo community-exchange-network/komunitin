@@ -114,6 +114,8 @@ const removeImage = (url: string) => {
   images.value = images.value.filter((u: string) => u != url)
 }
 
+// Keep local state aligned when the parent replaces the image list after emits
+// or other external updates, while avoiding duplicate update loops.
 watch(() => props.modelValue, (value) => {
   if (
     value.length !== images.value.length

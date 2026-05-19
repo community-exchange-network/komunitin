@@ -33,6 +33,11 @@ export interface UploadManagedFile extends File {
   xhr?: XMLHttpRequest
 }
 
+/**
+ * Normalized decoded image data used during client-side image processing.
+ * It exposes a canvas-compatible source plus a cleanup hook for any temporary
+ * browser resources created while decoding the original file.
+ */
 interface DecodedImage {
   cleanup: () => void,
   source: CanvasImageSource,
@@ -186,9 +191,10 @@ const parseUploadedUrl = (xhr: XMLHttpRequest) => {
   return response.data.attributes.url as string
 }
 
-const markAsProcessed = (file: UploadManagedFile) => {
-  file.__processed = true
-  return file
+const toManagedFile = (file: File) => {
+  const managedFile = file as UploadManagedFile
+  managedFile.__processed = true
+  return managedFile
 }
 
 const isManagedFile = (file: File): file is UploadManagedFile => {
@@ -293,7 +299,7 @@ export const useImageUploader = (onUploaded: (url: string) => void) => {
       setProcessing(processingKey, true)
 
       try {
-        const transformedFile = markAsProcessed(await transformImageFile(file) as UploadManagedFile)
+        const transformedFile = toManagedFile(await transformImageFile(file))
 
         const isStillQueued = uploaderFiles.value.some(queuedFile => queuedFile.__key === file.__key)
         if (!isStillQueued) {
@@ -337,10 +343,8 @@ export const useImageUploader = (onUploaded: (url: string) => void) => {
  * @param imageUrl URL of the image
  */
 export const imageFile = (imageUrl: string) => {
-  const filename = (imageSource: string) => imageSource.split('/').pop() || imageSource
-
   return {
-    name: filename(imageUrl),
+    name: imageUrl.split('/').pop() || imageUrl,
     __key: imageUrl,
     __sizeLabel: '',
     __progressLabel: '',

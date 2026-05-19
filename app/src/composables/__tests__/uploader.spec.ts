@@ -5,9 +5,7 @@ describe('transformImageFile', () => {
   const originalCreateElement = document.createElement.bind(document)
   const createCanvasMock = (width: number, height: number) => {
     const drawImage = vi.fn()
-    const toBlob = vi.fn((callback: BlobCallback, type?: string, quality?: number) => {
-      expect(type).toBe('image/webp')
-      expect(quality).toBe(0.82)
+    const toBlob = vi.fn((callback: BlobCallback) => {
       callback(new Blob(['webp'], { type: 'image/webp' }))
     })
 
@@ -41,7 +39,7 @@ describe('transformImageFile', () => {
   })
 
   it('resizes large images to 1800px and converts them to webp', async () => {
-    const { drawImage } = createCanvasMock(1800, 900)
+    const { drawImage, toBlob } = createCanvasMock(1800, 900)
     const file = new File(['raw-image'], 'big-photo.jpg', { type: 'image/jpeg', lastModified: 123 })
 
     const transformed = await transformImageFile(file)
@@ -49,6 +47,7 @@ describe('transformImageFile', () => {
     expect(transformed.name).toBe('big-photo.webp')
     expect(transformed.type).toBe('image/webp')
     expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1800, 900)
+    expect(toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/webp', 0.82)
   })
 
   it('keeps smaller images dimensions while still converting to webp', async () => {
@@ -58,7 +57,7 @@ describe('transformImageFile', () => {
       close: vi.fn()
     }))
 
-    const { drawImage } = createCanvasMock(1200, 800)
+    const { drawImage, toBlob } = createCanvasMock(1200, 800)
     const file = new File(['raw-image'], 'small.png', { type: 'image/png', lastModified: 456 })
 
     const transformed = await transformImageFile(file)
@@ -66,6 +65,7 @@ describe('transformImageFile', () => {
     expect(transformed.name).toBe('small.webp')
     expect(transformed.type).toBe('image/webp')
     expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1200, 800)
+    expect(toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/webp', 0.82)
   })
 
   it('throws when webp encoding fails', async () => {
