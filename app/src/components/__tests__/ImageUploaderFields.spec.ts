@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent } from 'vue'
 import type { VueWrapper } from '@vue/test-utils'
 import ImageField from '../ImageField.vue'
 import AvatarField from '../AvatarField.vue'
 import { mountComponent, waitFor } from '../../../test/vitest/utils'
+import { useImageUploader } from '../../composables/uploader'
 
 class MockFormData {
   public entries: { filename?: string, name: string, value: string | Blob }[] = []
@@ -201,6 +203,51 @@ describe('image upload fields', () => {
 
     expect(uploadedFile?.name).toBe('avatar.webp')
     expect(uploadedFile?.type).toBe('image/webp')
+    wrapper.unmount()
+  })
+
+  it('ignores files when the composable is not attached to a QUploader yet', async () => {
+    const wrapper = await mountComponent(defineComponent({
+      setup() {
+        return useImageUploader(vi.fn())
+      },
+      template: '<div />'
+    }), { login: true })
+
+    await expect(wrapper.vm.addFiles([
+      new File(['raw'], 'detached.jpg', { type: 'image/jpeg', lastModified: 999 })
+    ])).resolves.toBeUndefined()
+    expect(MockXMLHttpRequest.instances).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('uploads multiple resized webp files from ImageField', async () => {
+    setupCanvas()
+    const wrapper = await mountComponent(ImageField, {
+      props: {
+        modelValue: [],
+        label: 'Add images'
+      },
+      login: true
+    })
+
+    getUploader(wrapper).addFiles([
+      new File(['raw-a'], 'first.jpg', { type: 'image/jpeg', lastModified: 11 }),
+      new File(['raw-b'], 'second.png', { type: 'image/png', lastModified: 22 })
+    ])
+
+    await waitFor(() => MockXMLHttpRequest.instances.length, 2, 'Two uploads should start')
+    await waitFor(
+      () => wrapper.emitted('update:modelValue')?.at(-1)?.[0]?.length,
+      2,
+      'ImageField should emit both uploaded image urls'
+    )
+
+    const emittedUrls = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as string[]
+    expect(emittedUrls).toEqual([
+      'https://files.example/first.webp',
+      'https://files.example/second.webp'
+    ])
     wrapper.unmount()
   })
 })
