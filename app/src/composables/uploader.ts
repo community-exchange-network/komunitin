@@ -334,20 +334,20 @@ export const useImageUploader = (onUploaded: (url: string) => void) => {
 
 /**
  * Create an image file object for QUploader component.
- * @param url URL of the image
+ * @param imageUrl URL of the image
  */
-export const imageFile = (url: string) => {
-  const filename = (imagePath: string) => imagePath.split('/').pop() || imagePath
+export const imageFile = (imageUrl: string) => {
+  const filename = (imageSource: string) => imageSource.split('/').pop() || imageSource
 
   return {
-    name: filename(url),
-    __key: url,
+    name: filename(imageUrl),
+    __key: imageUrl,
     __sizeLabel: '',
     __progressLabel: '',
     __progress: 1,
     __status: 'uploaded',
     __img: {
-      src: url
+      src: imageUrl
     }
   } as UploadedImageFile
 }

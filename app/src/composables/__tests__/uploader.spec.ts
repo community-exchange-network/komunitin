@@ -5,7 +5,9 @@ describe('transformImageFile', () => {
   const originalCreateElement = document.createElement.bind(document)
   const createCanvasMock = (width: number, height: number) => {
     const drawImage = vi.fn()
-    const toBlob = vi.fn((callback: BlobCallback) => {
+    const toBlob = vi.fn((callback: BlobCallback, type?: string, quality?: number) => {
+      expect(type).toBe('image/webp')
+      expect(quality).toBe(0.82)
       callback(new Blob(['webp'], { type: 'image/webp' }))
     })
 

@@ -14,13 +14,20 @@ class MockFormData {
 
 class MockUploadTarget {
   private listeners: Record<string, ((event: { loaded: number }) => void)[]> = {}
+  private lastEvents: Partial<Record<string, { loaded: number }>> = {}
 
   public addEventListener(type: string, listener: (event: { loaded: number }) => void) {
     this.listeners[type] ??= []
     this.listeners[type].push(listener)
+
+    const lastEvent = this.lastEvents[type]
+    if (lastEvent) {
+      listener(lastEvent)
+    }
   }
 
   public dispatch(type: string, event: { loaded: number }) {
+    this.lastEvents[type] = event
     this.listeners[type]?.forEach(listener => listener(event))
   }
 }
