@@ -1,16 +1,16 @@
 import { InputJsonObject } from '@prisma/client/runtime/client'
-import { Prisma, Group as DbGroup } from '../../generated/prisma/client'
-import { privilegedDb, tenantDb } from '../../server/multitenant'
-import { badRequest, forbidden, notFound } from '../../utils/error'
-import prisma from '../../utils/prisma'
-import type { CollectionParams } from '../../server/request'
-import { reorderByIds } from '../../server/query'
-import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
-import type { CreateGroupInput, Group } from './types'
-import { OptionalAuthContext, AuthContext } from '../../server/context'
-import { listMembers } from '../members/service'
+import { Group as DbGroup, Prisma } from '../../generated/prisma/client'
 import { GroupUpdateInput } from '../../generated/prisma/models'
+import { AuthContext, OptionalAuthContext } from '../../server/context'
+import { privilegedDb, tenantDb } from '../../server/multitenant'
+import { reorderByIds } from '../../server/query'
+import type { CollectionParams } from '../../server/request'
+import { badRequest, forbidden, notFound } from '../../utils/error'
+import prisma, { toNullableJsonInput } from '../../utils/prisma'
+import { syncResourceFiles } from '../files/service'
+import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
 import { findGroupIds } from './sql'
+import type { CreateGroupInput, Group } from './types'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -56,32 +56,30 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
   if (existing) {
     throw badRequest('A group with this code already exists')
   }
-  const location = fromLocation(input.attributes.location)
+  const attributes = input.attributes
+  const location = fromLocation(attributes.location)
+
+  const createData =  {
+    tenantId: attributes.code,
+    status: 'pending',
+    name: attributes.name,
+    description: attributes.description ?? '',
+    access: attributes.access ?? 'public',
+    image: toNullableJsonInput(attributes.image),
+    address: attributes.address,
+    contacts: attributes.contacts,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    
+    settings: input.settings,
+    meta: {
+      request: {
+        currency: input.currency,
+      }
+    } as InputJsonObject,
+  }
 
   const group = await db.transaction(async (tx) => {
-    const attributes = input.attributes
-    const createData =  {
-      tenantId: attributes.code,
-      status: 'pending',
-
-      name: attributes.name,
-      description: attributes.description ?? '',
-      access: attributes.access ?? 'public',
-      image: attributes.image,
-      address: attributes.address,
-      contacts: attributes.contacts,
-
-      latitude: location.latitude,
-      longitude: location.longitude,
-      
-      settings: input.settings,
-      meta: {
-        request: {
-          currency: input.currency,
-        }
-      } as InputJsonObject,
-    }
-
     const created = await tx.group.create({ data: createData })
 
     await tx.groupAdminUser.create({
@@ -95,6 +93,8 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
 
     return created
   })
+
+  await syncResourceFiles(attributes.code, 'groups', group.id, attributes.image ? [attributes.image.url] : [])
 
   return toGroup(group)
 }
@@ -172,7 +172,7 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
   const groups = await db.group.findMany({
     where: {
       id: { in: ids },
-    },
+    }
   })
 
   return reorderByIds(groups, ids).map(toGroup)
@@ -187,7 +187,7 @@ export const getGroupByCode = async (
   if (!dbGroup) {
     throw notFound('Group not found')
   }
-  
+
   const group = toGroup(dbGroup)
 
   const allowed = await canReadGroup(ctx, group)
@@ -221,8 +221,11 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     throw badRequest('Group activation is not implemented yet')
   }
 
-  const { location, ...rest } = attributes
-  const data: GroupUpdateInput = rest
+  const { location, image, ...rest } = attributes
+  const data: GroupUpdateInput = {
+    ...rest,
+    image: toNullableJsonInput(image),
+  }
 
   if (attributes.location !== undefined) {
     const location = fromLocation(attributes.location)
@@ -234,6 +237,10 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     where: { id: group.id },
     data,
   })
+
+  if (attributes.image !== undefined) {
+    await syncResourceFiles(code, 'groups', group.id, attributes.image ? [attributes.image.url] : [])
+  }
 
   return toGroup(updated)
 }

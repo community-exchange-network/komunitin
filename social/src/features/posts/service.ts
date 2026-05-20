@@ -7,16 +7,18 @@ import { reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { slugify } from '../../utils/format'
-import prisma from '../../utils/prisma'
+import prisma, { toNullableJsonInput } from '../../utils/prisma'
+import { syncResourceFiles } from '../files/service'
 import { fromLocation, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { getMember, isMemberUser, toMember } from '../members/service'
 import type { PostStatus } from './schema'
 import type { CreatePostInput, NeedData, OfferData, PatchPostInput, Post } from './types'
 import { findPostsIds } from './sql'
+import { Member } from '../members/types'
 
-const toPost = (dbPost: DbPost & {member: DbMember}): Post => {
-  const { latitude, longitude, data, member, ...post} = dbPost
+const toPost = (dbPost: DbPost, member: Member): Post => {
+  const { latitude, longitude, data, ...post} = dbPost
   const location = toLocation({
     address: null,
     latitude: dbPost.latitude,
@@ -27,7 +29,7 @@ const toPost = (dbPost: DbPost & {member: DbMember}): Post => {
     ...post,
     ...dataObj,
     location,
-    member: toMember(member)
+    member,
   } as Post
 }
 
@@ -49,7 +51,7 @@ const getPostById = async (code: string, id: string): Promise<Post> => {
     throw notFound('Post not found')
   }
 
-  return toPost(post)
+  return toPost(post, toMember(post.member))
 }
 
 const isPostOwner = async (ctx: OptionalAuthContext, post: Post): Promise<boolean> => {
@@ -122,7 +124,7 @@ export const listPosts = async (ctx: OptionalAuthContext, code: string, params: 
     },
   })
 
-  return reorderByIds(posts, ids).map(toPost)
+  return reorderByIds(posts, ids).map((post) => toPost(post, toMember(post.member)))
 }
 
 export const getPost = async (ctx: OptionalAuthContext, code: string, id: string): Promise<Post> => {
@@ -177,7 +179,7 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
   const group = await getGroupByCode(ctx, code)
 
   // Resolve member
-  const member = await getMember(ctx, code, input.memberId)
+  const member = await getMember(ctx, code, input.memberId, {include: []})
   if (!member) {
     throw badRequest('Member not found')
   }
@@ -224,7 +226,7 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
       code: postCode,
       title: title,
       description: input.description ?? '',
-      images: input.images,
+      images: toNullableJsonInput(input.images),
       status: input.status ?? 'draft',
       access: input.access ?? 'public',
       latitude: coords.latitude,
@@ -234,13 +236,12 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
       memberId: member.id,
       categoryId: input.categoryId ?? null,
       groupId: group.id,
-    },
-    include: {
-      member: true
     }
   })
 
-  return toPost(created)
+  await syncResourceFiles(code, input.type, created.id, (input.images ?? []).map((image) => image.url))
+
+  return toPost(created, member)
 }
 
 export const patchPost = async (ctx: AuthContext, code: string, id: string, input: PatchPostInput): Promise<Post> => {
@@ -276,6 +277,7 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
 
   const updateData: PostUpdateInput = {
     ...rest,
+    images: toNullableJsonInput(input.images),
     data: typeData
   }
 
@@ -302,7 +304,11 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
     }
   })
 
-  return toPost(updated)
+  if (input.images !== undefined) {
+    await syncResourceFiles(code, post.type, post.id, (input.images ?? []).map((image) => image.url))
+  }
+
+  return toPost(updated, toMember(updated.member))
 }
 
 export const deletePost = async (ctx: AuthContext, code: string, id: string): Promise<void> => {
@@ -319,4 +325,6 @@ export const deletePost = async (ctx: AuthContext, code: string, id: string): Pr
     where: { id: post.id },
     data: { deleted: new Date() },
   })
+
+  await syncResourceFiles(code, post.type, post.id, [])
 }

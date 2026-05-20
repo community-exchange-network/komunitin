@@ -1,11 +1,17 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
+import { tenantDb } from '../src/server/multitenant'
+import prisma from '../src/utils/prisma'
 import { auth } from './mocks/auth'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
 let app: any
+const tinyPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=',
+  'base64',
+)
 
 before(async () => {
   const server = await setupTestServer()
@@ -480,5 +486,95 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.included.length, 1)
     assert.strictEqual(res.body.included[0].type, 'groups')
     assert.strictEqual(res.body.included[0].attributes.code, 'members-filter-include')
+  })
+
+  test('POST and PATCH /:code/members sync member image files by URL', async () => {
+    await seedGroup({ tenantId: 'members-files', status: 'active', access: 'public' })
+    const user = await auth('members-files-user')
+    await seedGroupAdmin({ tenantId: 'members-files', userId: user.id })
+
+    const firstUpload = await request(app)
+      .post('/members-files/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .field('resourceType', 'members')
+      .attach('file', tinyPng, { filename: 'member-one.png', contentType: 'image/png' })
+      .expect(201)
+
+    const secondUpload = await request(app)
+      .post('/members-files/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .field('resourceType', 'members')
+      .attach('file', tinyPng, { filename: 'member-two.png', contentType: 'image/png' })
+      .expect(201)
+
+    const firstUrl = firstUpload.body.data.attributes.url
+    const secondUrl = secondUpload.body.data.attributes.url
+    const db = tenantDb(prisma, 'members-files')
+
+    const created = await request(app)
+      .post('/members-files/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            name: 'Member With Image',
+            image: { url: firstUrl, alt: 'Avatar one' },
+          },
+        },
+      })
+      .expect(201)
+
+    const memberId = created.body.data.id
+
+    let files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    let fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(firstUrl)?.resourceId, memberId)
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
+
+    const updated = await request(app)
+      .patch(`/members-files/members/${memberId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            image: { url: secondUrl, alt: 'Avatar two' },
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(updated.body.data.attributes.image.url, secondUrl)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(firstUrl)?.resourceId, null)
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, memberId)
+
+    const cleared = await request(app)
+      .patch(`/members-files/members/${memberId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            image: null,
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(cleared.body.data.attributes.image, null)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
   })
 })

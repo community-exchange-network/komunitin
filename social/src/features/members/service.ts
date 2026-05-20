@@ -1,11 +1,12 @@
 import { z } from 'zod'
-import { type Member as DbMember, type Group as DbGroup } from '../../generated/prisma/client'
+import { Prisma, type Member as DbMember, type Group as DbGroup } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
 import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
-import prisma from '../../utils/prisma'
+import prisma, { toNullableJsonInput } from '../../utils/prisma'
+import { syncResourceFiles } from '../files/service'
 import { getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { type MemberStatus, type PatchMemberAttributes } from './schema'
@@ -183,6 +184,7 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
       group: params.include.includes('group')
     }
   })
+
   return reorderByIds(members, ids).map(toMember)
 }
 
@@ -232,7 +234,7 @@ export const createMember = async (ctx: AuthContext, code: string, input: Create
         status: 'draft',
         access: access,
         description: input.description ?? '',
-        image: input.image,
+        image: toNullableJsonInput(input.image),
         address: input.address,
         contacts: input.contacts,
         meta: input.meta,
@@ -253,6 +255,8 @@ export const createMember = async (ctx: AuthContext, code: string, input: Create
 
     return member
   })
+
+  await syncResourceFiles(code, 'members', created.id, input.image ? [input.image.url] : [])
 
   return toMember(created)
 }
@@ -275,12 +279,10 @@ export const patchMember = async (
     await validateStatusTransition(ctx, group, member, input.status)
   }
 
-  const { location, ...rest } = input
-  const data: PatchMemberAttributes & {
-    latitude?: number
-    longitude?: number
-  } = {
+  const { location, image, ...rest } = input
+  const data: Prisma.MemberUpdateInput = {
     ...rest,
+    image: toNullableJsonInput(image),
   }
 
   if (location) {
@@ -293,14 +295,12 @@ export const patchMember = async (
     where: {
       id: member.id,
     },
-    data: {
-      ...data,
-      image: input.image,
-      address: input.address,
-      contacts: input.contacts,
-      meta: input.meta,
-    },
+    data,
   })
+
+  if (input.image !== undefined) {
+    await syncResourceFiles(code, 'members', member.id, input.image ? [input.image.url] : [])
+  }
 
   return toMember(updated)
 }

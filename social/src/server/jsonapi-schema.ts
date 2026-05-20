@@ -26,6 +26,8 @@ export const jsonApiResourceSchema = <
   }).strict()
 }
 
+export type JsonApiResource<TType extends string, TAttributes, TRelationships = never> = z.infer<ReturnType<typeof jsonApiResourceSchema<TType, ZodType<TAttributes>, ZodType<TRelationships>>>>
+
 /**
  * From Data and optional included schemas to JSON:API document schema.
  */
@@ -58,14 +60,22 @@ export function jsonApiDocumentSchema<
   }).strict()
 }
 
+export type JsonApiDocument<TData extends ZodType, TIncluded = never> = z.infer<ReturnType<typeof jsonApiDocumentSchema<TData, ZodType<TIncluded>>>>
+
+export function jsonApiResourceIdSchema<TType extends string>(type: TType) {
+  return z.object({
+    type: z.literal(type).default(type),
+    id: z.uuid(),
+  })
+}
+
+export type JsonApiResourceId<TType extends string = string> = z.infer<ReturnType<typeof jsonApiResourceIdSchema<TType>>>
+
 export function jsonApiToOneRelationshipSchema<TType extends string>(
   type: TType,
 ) {
   return z.object({
-    data: z.object({
-      type: z.literal(type).default(type),
-      id: z.uuid(),
-    }),
+    data: jsonApiResourceIdSchema(type)
   })
 }
 
@@ -73,10 +83,7 @@ export function jsonApiToOneNullableRelationshipSchema<TType extends string>(
   type: TType,
 ) {
   return z.object({
-    data: z.object({
-      type: z.literal(type).default(type),
-      id: z.uuid(),
-    }).nullable(),
+    data: jsonApiResourceIdSchema(type).nullable(),
   })
 }
 

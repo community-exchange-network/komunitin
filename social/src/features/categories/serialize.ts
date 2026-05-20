@@ -1,6 +1,6 @@
 import TsJapi from 'ts-japi'
 import { config } from '../../config'
-import { SerializerOptions } from '../../server/jsonapi-serialize'
+import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
 import type { Category } from './types'
 
 const { Linker, Serializer } = TsJapi
@@ -17,7 +17,7 @@ const CategorySerializer = new Serializer<Category>('categories', {
     updated: 1,
   },
   linkers: {
-    resource: new Linker((category) => `${config.API_BASE_URL}/${category.tenantId}/categories/${category.id}`),
+    resource: new Linker((category) => getResourceLink("categories", category.tenantId, category.id)),
   },
 })
 
