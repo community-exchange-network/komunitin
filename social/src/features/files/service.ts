@@ -3,7 +3,6 @@ import { FetchHttpHandler } from '@smithy/fetch-http-handler'
 import type { Request } from 'express'
 import { fileTypeFromBuffer } from 'file-type'
 import { randomUUID } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
 import { config } from '../../config'
 import type { File as DbFile } from '../../generated/prisma/client'
 import type { AuthContext } from '../../server/context'
@@ -191,7 +190,7 @@ export const createUploadedFile = async (
 
   // Get file and fields from the multipart request.
   const { fields, file } = await parseUploadMultipart(req, config.UPLOAD_MAX_BYTES)
-  const data = await readFile(file.filepath)
+  const data = file.buffer
 
   // Validate file size and type.
   if (data.length > config.UPLOAD_MAX_BYTES) {
