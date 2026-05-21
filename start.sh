@@ -49,8 +49,7 @@ elif [ "$dev" = true ]; then
   # Create .env files required by compose.dev.yml volume mounts if they don't exist.
   # Docker creates empty directories in their place if the host files are missing,
   # which causes the services to fail to start.
-  [ -f app/.env ] || cp app/.env.test app/.env
-  touch accounting/.env notifications-ts/.env
+  touch -a app/.env accounting/.env notifications-ts/.env
   docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans
 else
   docker compose up -d --build --remove-orphans
