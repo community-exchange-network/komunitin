@@ -30,7 +30,7 @@ export const getResourceLink = (type: "groups" | "members" | "offers" | "needs" 
     case 'groups':
       return `${tenantBase}`
     case 'group-settings':
-      return `${tenantBase}/settings/${id}`
+      return `${tenantBase}/settings`
     case 'members':
       return `${tenantBase}/members/${id}`
     case 'offers':
