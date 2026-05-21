@@ -6,6 +6,9 @@ import { transformImageFile } from './image-transform'
 
 type UploadStatus = 'idle' | 'failed' | 'uploading' | 'uploaded'
 
+// UI model for an image that already exists remotely. It is shown in the same
+// list as in-flight uploads, but it is not a local File and it has no upload
+// lifecycle attached to it anymore.
 export interface UploadedImageFile {
   name: string,
   __key: string,
@@ -18,6 +21,9 @@ export interface UploadedImageFile {
   }
 }
 
+// QUploader augments picked File instances with its own bookkeeping fields.
+// We keep using that runtime shape after transforming the original image so the
+// component can still render previews, progress and abort state for each file.
 export interface UploadManagedFile extends File {
   __abort?: () => void,
   __img?: HTMLImageElement,
@@ -33,16 +39,29 @@ export interface UploadManagedFile extends File {
 
 type UploadHeader = { name: string, value: string }
 type UploadCallback = (url: string) => void
+type UploadedFileResponse = {
+  data: {
+    attributes: {
+      url: string
+    }
+  }
+}
+
+// Minimal QUploader shape that this composable relies on, including the
+// private queuedFiles array that Quasar uses for files picked but not sent yet.
 type QUploaderWithQueue = QUploader & { queuedFiles?: UploadManagedFile[] }
 
 const FIELD_NAME = 'files[file]'
 const isManagedFile = (file: File): file is UploadManagedFile => Boolean((file as UploadManagedFile).__processed)
 const toManagedFile = (file: File) => Object.assign(file, { __processed: true as const }) as UploadManagedFile
-const uploadedUrl = (xhr: XMLHttpRequest) => JSON.parse(xhr.responseText).data.attributes.url as string
+const uploadedUrl = (xhr: XMLHttpRequest) => {
+  const response = JSON.parse(xhr.responseText) as UploadedFileResponse
+  return response.data.attributes.url
+}
 
 const imageHeaders = (token: string): UploadHeader[] => [{ name: 'Authorization', value: `Bearer ${token}` }]
 
-export const useUploaderSettings = () => {
+const useUploaderSettings = () => {
   const store = useStore()
 
   return {
@@ -53,8 +72,9 @@ export const useUploaderSettings = () => {
 }
 
 const removeQueuedFile = (uploader: QUploaderWithQueue | undefined, file: UploadManagedFile) => {
-  // QUploader does not expose a public "replace queued file" API, so we prune
-  // its internal pending queue to avoid uploading both original and transformed files.
+  // After we transform a picked file, QUploader still keeps the original File in
+  // its private pending queue. Removing that stale entry is what lets us replace
+  // the original with the transformed file instead of uploading both versions.
   const index = uploader?.queuedFiles?.findIndex(queuedFile => queuedFile.__key === file.__key) ?? -1
 
   if (index !== -1) {
@@ -117,6 +137,10 @@ const sendFile = ({
   xhr.send(form)
 }
 
+// The composable reports uploads one file at a time because the UI wants each
+// completed image URL as soon as it is available. `addFiles` is still async for
+// the preprocessing step, but returning a single Promise for all uploads would
+// either delay those updates or complicate per-file progress/abort handling.
 export const useImageUploader = (onUploaded: UploadCallback) => {
   const uploader = ref<QUploaderWithQueue>()
   const pendingTransforms = ref(0)

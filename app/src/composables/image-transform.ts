@@ -4,7 +4,7 @@ const DEFAULT_IMAGE_NAME = 'image'
 
 interface DecodedImage {
   cleanup: () => void,
-  source: CanvasImageSource,
+  source: ImageBitmap,
   height: number,
   width: number
 }
@@ -28,21 +28,13 @@ const webpFilename = (name: string) => {
 }
 
 const createCanvas = (width: number, height: number) => {
-  if (typeof OffscreenCanvas !== 'undefined') {
-    return new OffscreenCanvas(width, height)
-  }
-
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   return canvas
 }
 
-const toWebpBlob = async (canvas: OffscreenCanvas | HTMLCanvasElement) => {
-  if ('convertToBlob' in canvas) {
-    return canvas.convertToBlob({ type: 'image/webp', quality: WEBP_QUALITY })
-  }
-
+const toWebpBlob = async (canvas: HTMLCanvasElement) => {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(blob => {
       if (blob) {
@@ -54,7 +46,14 @@ const toWebpBlob = async (canvas: OffscreenCanvas | HTMLCanvasElement) => {
   })
 }
 
-const decodeWithImageBitmap = async (file: File): Promise<DecodedImage> => {
+// We intentionally rely on the modern image-decoding path here instead of
+// keeping legacy fallbacks. If a browser cannot decode/resize uploads with the
+// baseline APIs we support, the caller can surface a friendly upload error.
+const decodeImage = async (file: File): Promise<DecodedImage> => {
+  if (typeof createImageBitmap !== 'function') {
+    throw new Error('This browser does not support image processing for uploads')
+  }
+
   const bitmap = await createImageBitmap(file)
 
   return {
@@ -62,41 +61,6 @@ const decodeWithImageBitmap = async (file: File): Promise<DecodedImage> => {
     height: bitmap.height,
     source: bitmap,
     cleanup: () => bitmap.close()
-  }
-}
-
-const decodeWithImageElement = async (file: File): Promise<DecodedImage> => {
-  const objectUrl = window.URL.createObjectURL(file)
-
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => resolve(img)
-      img.onerror = () => reject(new Error('Could not decode image'))
-      img.src = objectUrl
-    })
-
-    return {
-      width: image.naturalWidth || image.width,
-      height: image.naturalHeight || image.height,
-      source: image,
-      cleanup: () => window.URL.revokeObjectURL(objectUrl)
-    }
-  } catch (error) {
-    window.URL.revokeObjectURL(objectUrl)
-    throw error
-  }
-}
-
-const decodeImage = async (file: File) => {
-  if (typeof createImageBitmap !== 'function') {
-    return decodeWithImageElement(file)
-  }
-
-  try {
-    return await decodeWithImageBitmap(file)
-  } catch {
-    return decodeWithImageElement(file)
   }
 }
 
