@@ -121,24 +121,46 @@ export const syncResourceFiles = async (
   const db = tenantDb(prisma, code)
 
   await db.transaction(async (tx) => {
+    // Find first the ids of files identified by the URLs
+    const existingFiles = await tx.file.findMany({
+      where: {
+        tenantId: code,
+        url: { in: normalizedUrls },
+        resourceType,
+        OR: [
+          { resourceId: null },
+          { resourceId },
+        ]
+      },
+      select: {
+        id: true
+      },
+    })
+    const ids = existingFiles.map((file) => file.id)
+    
+    // Unlink files that are currently linked to the resource but not included in the new URLs
     await tx.file.updateMany({
       where: {
+        tenantId: code,
         resourceType,
         resourceId,
+        id: {notIn: ids}
       },
       data: {
         resourceId: null,
       },
     })
 
-    if (normalizedUrls.length === 0) {
+    if (ids.length === 0) {
       return
     }
-
+    
+    // Link the identified files to the resource (not already linked)
     await tx.file.updateMany({
       where: {
         tenantId: code,
-        url: { in: normalizedUrls },
+        id: { in: ids },
+        resourceId: null,
       },
       data: {
         resourceType,
