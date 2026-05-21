@@ -27,6 +27,7 @@ const trimTrailingSlash = (url: string): string => url.replace(/\/+$/, '')
 // Remove slashes "/" from the start and end of a string.
 const trimSlashes = (value: string): string => value.replace(/^\/+|\/+$/g, '')
 
+// s3://bucket-name/optional/prefix -> bucket-name, optional/prefix
 const uploadPrefixUrl = new URL(config.UPLOAD_S3_PREFIX)
 const uploadBucket = uploadPrefixUrl.hostname
 const uploadBaseKeyPrefix = trimSlashes(uploadPrefixUrl.pathname)
@@ -80,10 +81,11 @@ const extensionFromMime = (mime: string): string => {
 }
 
 const uploadToS3 = async (key: string, contentType: string, data: Buffer): Promise<void> => {
+  const fullKey = uploadBaseKeyPrefix ? `${uploadBaseKeyPrefix}/${key}` : key
   try {
     await s3.send(new PutObjectCommand({
       Bucket: uploadBucket,
-      Key: key,
+      Key: fullKey,
       Body: data,
       ContentType: contentType,
       ContentLength: data.length,
@@ -94,9 +96,11 @@ const uploadToS3 = async (key: string, contentType: string, data: Buffer): Promi
   }
 }
 
+/**
+ * The file S3 key excluding the common prefix.
+ */
 const buildObjectKey = (code: string, folder: string, filename: string): string => {
-  const baseKey = `${code}/${folder}/${filename}`
-  return uploadBaseKeyPrefix ? `${uploadBaseKeyPrefix}/${baseKey}` : baseKey
+  return `${code}/${folder}/${filename}`
 }
 
 const toFile = (dbFile: DbFile): File => {
