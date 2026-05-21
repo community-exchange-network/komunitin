@@ -6,13 +6,13 @@ const adapter = new PrismaPg({ connectionString: config.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
 
 export const toNullableJsonInput = (
-	value: Prisma.InputJsonValue | null | undefined,
+  value: Prisma.InputJsonValue | null | undefined,
 ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined => {
-	if (value === undefined) {
-		return undefined
-	}
+  if (value === undefined) {
+    return undefined
+  }
 
-	return value === null ? Prisma.DbNull : value
+  return value === null ? Prisma.DbNull : value
 }
 
 export default prisma
