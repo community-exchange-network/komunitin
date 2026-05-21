@@ -1,6 +1,8 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
+import { tenantDb } from '../src/server/multitenant'
+import prisma from '../src/utils/prisma'
 import { auth } from './mocks/auth'
 import {
   resetDb,
@@ -15,6 +17,11 @@ import { setupTestServer, teardownTestServer } from './mocks/server'
 import { toUuid } from './mocks/utils'
 
 let app: any
+
+const tinyPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=',
+  'base64',
+)
 
 before(async () => {
   const server = await setupTestServer()
@@ -124,6 +131,83 @@ describe('Posts endpoints', () => {
       .expect(201)
 
     assert.strictEqual(res.body.data.relationships.category.data.id, category.id)
+  })
+
+  test('POST, PATCH and DELETE /:code/posts sync post image files by URL', async () => {
+    await seedGroup({ tenantId: 'posts-files', status: 'active', access: 'public' })
+    const user = await auth('posts-files-user')
+    const member = await seedMember({ tenantId: 'posts-files', status: 'active', userId: user.id })
+
+    const firstUpload = await request(app)
+      .post('/posts-files/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .field('resourceType', 'offers')
+      .attach('file', tinyPng, { filename: 'post-one.png', contentType: 'image/png' })
+      .expect(201)
+
+    const secondUpload = await request(app)
+      .post('/posts-files/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .field('resourceType', 'offers')
+      .attach('file', tinyPng, { filename: 'post-two.png', contentType: 'image/png' })
+      .expect(201)
+
+    const firstUrl = firstUpload.body.data.attributes.url
+    const secondUrl = secondUpload.body.data.attributes.url
+    const db = tenantDb(prisma, 'posts-files')
+
+    const created = await request(app)
+      .post('/posts-files/posts')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send(postInput('offers', {
+        title: 'Offer with images',
+        description: 'Image sync description',
+        images: [{ url: firstUrl, alt: 'Cover image' }],
+      }, member.id))
+      .expect(201)
+
+    const postId = created.body.data.id
+    assert.strictEqual(created.body.data.attributes.images[0].url, firstUrl)
+
+    let files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    let fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(firstUrl)?.resourceId, postId)
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
+
+    const updated = await request(app)
+      .patch(`/posts-files/posts/${postId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'offers',
+          attributes: {
+            images: [{ url: secondUrl, alt: 'Replacement image' }],
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(updated.body.data.attributes.images[0].url, secondUrl)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(firstUrl)?.resourceId, null)
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, postId)
+
+    await request(app)
+      .delete(`/posts-files/posts/${postId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .expect(204)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
   })
 
   test('GET /:code/posts returns only public posts to anonymous users', async () => {

@@ -21,6 +21,31 @@ model User {
 
   members MemberUser[]
   admins  GroupAdminUser[]
+  files   File[] @relation()
+}
+
+model File {
+  tenantId     String   @default(dbgenerated("(current_setting('app.current_tenant_id', true))::text")) @db.VarChar(31)
+  id           String   @id @default(uuid()) @db.Uuid
+  mime         String   @db.VarChar(255)
+  key          String   @db.VarChar(1024)
+  url          String   @db.VarChar(2048)
+  filename     String   @db.VarChar(255)
+  size         Int
+  
+  resourceType String?  @db.VarChar(31)
+  resourceId   String?  @db.Uuid
+  
+  uploaderId   String   @db.Uuid
+  uploader     User @relation(fields: [uploaderId], references: [id])
+
+  created      DateTime @default(now())
+  updated      DateTime @updatedAt
+
+  @@unique([id, tenantId])
+  @@index([tenantId, resourceType, resourceId])
+  @@index([tenantId, uploaderId])
+  @@index([tenantId, url])
 }
 
 model Group {

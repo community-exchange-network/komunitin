@@ -112,7 +112,7 @@ export const resetDb = async () => {
   categoryCounter = 0
   postCounter = 0
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "Post", "Category", "MemberUser", "GroupAdminUser", "Member", "Group", "User" RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE "File", "Post", "Category", "MemberUser", "GroupAdminUser", "Member", "Group", "User" RESTART IDENTITY CASCADE'
   )
 }
 

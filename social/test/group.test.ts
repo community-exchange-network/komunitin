@@ -1,12 +1,19 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
+import { tenantDb } from '../src/server/multitenant'
+import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/auth'
 import { auth } from './mocks/auth'
-import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedUser } from './mocks/seed'
+import { resetDb, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
 let app: any
+const tinyPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=',
+  'base64',
+)
+
 const postGroup = (
   token: string,
   code: string,
@@ -113,7 +120,7 @@ describe('Groups endpoints', () => {
     await postGroup(token, 'dupe-code').expect(400)
   })
 
-  test('GET /groups returns only active public groups', async () => {
+  test('GET /groups defaults to active status while preserving access rules', async () => {
     await seedGroup({ tenantId: 'public-active', status: 'active', access: 'public' })
     await seedGroup({ tenantId: 'public-pending', status: 'pending', access: 'public' })
     await seedGroup({ tenantId: 'group-active', status: 'active', access: 'group' })
@@ -121,7 +128,7 @@ describe('Groups endpoints', () => {
     await seedGroup({ tenantId: 'admin-owned', status: 'pending', access: 'private' })
 
     const anonymous = await request(app)
-      .get('/groups')
+      .get('/groups?filter[status]=pending,active')
       .expect(200)
 
     assert.strictEqual(Array.isArray(anonymous.body.data), true)
@@ -130,7 +137,7 @@ describe('Groups endpoints', () => {
 
     const { token } = await auth('user-3')
     const authenticated = await request(app)
-      .get('/groups')
+      .get('/groups?filter[status]=pending,active')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
 
@@ -141,7 +148,7 @@ describe('Groups endpoints', () => {
     await seedGroupAdmin({ tenantId: 'admin-owned', userId: admin.id })
 
     const adminResult = await request(app)
-      .get('/groups')
+      .get('/groups?filter[status]=pending,active')
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(200)
 
@@ -156,12 +163,22 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     const superadminCodes = superadminResult.body.data.map((resource: any) => resource.attributes.code)
-    assert.strictEqual(superadminCodes.length, 5)
+    assert.strictEqual(superadminCodes.length, 3)
     assert.strictEqual(superadminCodes.includes('public-active'), true)
-    assert.strictEqual(superadminCodes.includes('public-pending'), true)
+    assert.strictEqual(superadminCodes.includes('public-pending'), false)
     assert.strictEqual(superadminCodes.includes('group-active'), true)
     assert.strictEqual(superadminCodes.includes('private-active'), true)
-    assert.strictEqual(superadminCodes.includes('admin-owned'), true)
+    assert.strictEqual(superadminCodes.includes('admin-owned'), false)
+
+    const superadminPendingResult = await request(app)
+      .get('/groups?filter[status]=active,pending')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .expect(200)
+
+    const superadminPendingCodes = superadminPendingResult.body.data.map((resource: any) => resource.attributes.code)
+    assert.strictEqual(superadminPendingCodes.length, 5)
+    assert.strictEqual(superadminPendingCodes.includes('public-pending'), true)
+    assert.strictEqual(superadminPendingCodes.includes('admin-owned'), true)
   })
 
   test('GET /groups applies pagination, sorting and filtering generically', async () => {
@@ -510,6 +527,93 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     assert.strictEqual(elevated.body.data.attributes.name, 'Superadmin updated')
+  })
+
+  test('PATCH /:code syncs group image files by URL', async () => {
+    const admin = await auth('group-files-admin')
+    const group = await seedGroup({ tenantId: 'group-files', status: 'active', access: 'public' })
+    await seedGroupAdmin({ tenantId: 'group-files', userId: admin.id })
+
+    const firstUpload = await request(app)
+      .post('/group-files/files/upload')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .field('resourceType', 'groups')
+      .attach('file', tinyPng, { filename: 'group-one.png', contentType: 'image/png' })
+      .expect(201)
+
+    const secondUpload = await request(app)
+      .post('/group-files/files/upload')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .field('resourceType', 'groups')
+      .attach('file', tinyPng, { filename: 'group-two.png', contentType: 'image/png' })
+      .expect(201)
+
+    const firstUrl = firstUpload.body.data.attributes.url
+    const secondUrl = secondUpload.body.data.attributes.url
+    const db = tenantDb(prisma, 'group-files')
+
+    await request(app)
+      .patch('/group-files')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            image: { url: firstUrl, alt: 'Primary image' },
+          },
+        },
+      })
+      .expect(200)
+
+    let files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    let fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(firstUrl)?.resourceId, group.id)
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
+
+    const replaced = await request(app)
+      .patch('/group-files')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            image: { url: secondUrl, alt: 'Replacement image' },
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(replaced.body.data.attributes.image.url, secondUrl)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(firstUrl)?.resourceId, null)
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, group.id)
+
+    const cleared = await request(app)
+      .patch('/group-files')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            image: null,
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(cleared.body.data.attributes.image, null)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
   })
 
   test('PATCH /:code returns 404 for missing group', async () => {

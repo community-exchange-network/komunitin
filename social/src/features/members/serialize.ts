@@ -1,9 +1,10 @@
 import TsJapi from 'ts-japi'
-import { config } from '../../config'
-import { SerializerOptions } from '../../server/jsonapi-serialize'
+import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
+import { GroupSerializer } from '../groups/serialize'
+import { Group } from '../groups/types'
 import type { Member } from './types'
 
-const { Linker, Serializer } = TsJapi
+const { Linker, Serializer, Relator } = TsJapi
 
 export const MemberSerializer = new Serializer<Member>('members', {
   version: null,
@@ -24,8 +25,11 @@ export const MemberSerializer = new Serializer<Member>('members', {
     updated: 1,
   },
   linkers: {
-    resource: new Linker((member) => `${config.API_BASE_URL}/${member.tenantId}/members/${member.id}`),
+    resource: new Linker((member) => getResourceLink("members", member.tenantId, member.id)),
   },
+  relators: {
+    group: new Relator<Member, Group>(async (member) => member.group, GroupSerializer, { relatedName: 'group' })
+  }
 })
 
 export const serializeMember = async (member: Member, options?: SerializerOptions<Member>) => {

@@ -39,7 +39,7 @@ const groupEditableAttributesSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
   description: z.string().optional(),
   access: accessSchema.optional(),
-  image: imageSchema.optional(),
+  image: imageSchema.nullable().optional(),
   address: addressSchema.optional(),
   contacts: z.array(contactSchema).optional(),
   location: locationSchema.optional(),

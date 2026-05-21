@@ -1,8 +1,7 @@
 import TsJapi from 'ts-japi'
-import { Post } from './types'
-import { SerializerOptions } from '../../server/jsonapi-serialize'
-import { config } from '../../config'
+import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
 import { MemberSerializer } from '../members/serialize'
+import { Post } from './types'
 
 const { Relator, Linker, Serializer, PolymorphicSerializer } = TsJapi
 
@@ -30,7 +29,7 @@ const needProjection = {
 } as const
 
 const linkers = {
-  resource: new Linker((post) => `${config.API_BASE_URL}/${post.tenantId}/posts/${post.id}`),
+  resource: new Linker((post: Post) => getResourceLink(post.type, post.tenantId, post.id)),
 }
 
 const relators = {

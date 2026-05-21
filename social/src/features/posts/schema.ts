@@ -14,7 +14,7 @@ const postEditableAttributesSchema = z.object({
   code: z.string().trim().min(1).max(255).optional(),
   title: z.string().trim().min(1).max(255).optional(),
   description: z.string().min(1).max(16384).optional(),
-  images: z.array(imageSchema).optional(),
+  images: z.array(imageSchema).nullable().optional(),
   status: postStatusSchema.optional(),
   access: accessSchema.optional(),
   location: locationSchema.optional(),

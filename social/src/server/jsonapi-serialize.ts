@@ -24,6 +24,25 @@ const getPaginationLinks = (url: string, pagination: PaginationOptions, resultLe
   return { first, prev, self, next, last }
 }
 
+export const getResourceLink = (type: "groups" | "members" | "offers" | "needs" | "categories" | "files" | "group-settings", code: string, id: string) => {
+  const tenantBase = new URL(`${config.API_BASE_URL}/${code}`)
+  switch (type) {
+    case 'groups':
+      return `${tenantBase}`
+    case 'group-settings':
+      return `${tenantBase}/settings`
+    case 'members':
+      return `${tenantBase}/members/${id}`
+    case 'offers':
+    case 'needs':
+      return `${tenantBase}/posts/${id}`
+    case 'categories':
+      return `${tenantBase}/categories/${id}`
+    case 'files':
+      return `${tenantBase}/files/${id}`
+  }
+}
+
 /**
  * @param url Use Request.url here to generate correct pagination links.
  */

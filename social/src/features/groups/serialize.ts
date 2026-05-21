@@ -1,6 +1,6 @@
 import TsJapi from 'ts-japi'
 import { config } from '../../config'
-import { SerializerOptions } from '../../server/jsonapi-serialize'
+import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
 import type { Member } from '../members/types'
 import { MemberSerializer } from '../members/serialize'
 import type { GroupSettings } from './schema'
@@ -25,13 +25,13 @@ const GroupSettingsSerializer = new Serializer<OutputGroupSettings>('group-setti
     defaultGroupEmailFrequency: 1,
   },
   linkers: {
-    resource: new Linker((settings) => `${config.API_BASE_URL}/${settings.groupCode}/settings`)
+    resource: new Linker((settings) => getResourceLink("group-settings", settings.groupCode, settings.groupId)),
   },
   idKey: 'groupId',
   
 })
 
-const GroupSerializer = new Serializer<Group>('groups', {
+export const GroupSerializer = new Serializer<Group>('groups', {
   version: null,
   projection: {
     code: 1,
@@ -60,7 +60,7 @@ const GroupSerializer = new Serializer<Group>('groups', {
     }, GroupSettingsSerializer, { relatedName: 'settings' }),
   },
   linkers: {
-    resource: new Linker((group) => `${config.API_BASE_URL}/${group.code}`)
+    resource: new Linker((group) => getResourceLink("groups", group.code, group.id)),
   }
 })
 

@@ -1,11 +1,17 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
+import { tenantDb } from '../src/server/multitenant'
+import prisma from '../src/utils/prisma'
 import { auth } from './mocks/auth'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
 let app: any
+const tinyPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=',
+  'base64',
+)
 
 before(async () => {
   const server = await setupTestServer()
@@ -65,8 +71,15 @@ describe('Members endpoints', () => {
       .set('Authorization', `Bearer ${user.token}`)
       .expect(200)
 
-    assert.strictEqual(list.body.data.length, 1)
-    assert.strictEqual(list.body.data[0].attributes.name, 'Alice Member')
+    assert.strictEqual(list.body.data.length, 0)
+
+    const draftList = await request(app)
+      .get('/members-create/members?filter[status]=draft')
+      .set('Authorization', `Bearer ${user.token}`)
+      .expect(200)
+
+    assert.strictEqual(draftList.body.data.length, 1)
+    assert.strictEqual(draftList.body.data[0].attributes.name, 'Alice Member')
   })
 
   test('POST /:code/members accepts explicit code only if admin', async () => {
@@ -114,7 +127,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'public-active')
   })
 
-  test('GET /:code/members returns own draft member to member user', async () => {
+  test('GET /:code/members defaults to active status and still allows owner to request drafts explicitly', async () => {
     await seedGroup({ tenantId: 'members-list-owner', status: 'active', access: 'public' })
     const owner = await auth('member-owner')
     const outsider = await auth('member-outsider')
@@ -127,13 +140,23 @@ describe('Members endpoints', () => {
       userId: owner.id,
     })
 
-    await request(app)
+    const ownerDefaultRes = await request(app)
       .get('/members-list-owner/members')
       .set('Authorization', `Bearer ${owner.token}`)
       .expect(200)
 
+    assert.strictEqual(ownerDefaultRes.body.data.length, 0)
+
+    const ownerDraftRes = await request(app)
+      .get('/members-list-owner/members?filter[status]=draft')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+
+    assert.strictEqual(ownerDraftRes.body.data.length, 1)
+    assert.strictEqual(ownerDraftRes.body.data[0].attributes.code, 'owner-draft')
+
     const outsiderRes = await request(app)
-      .get('/members-list-owner/members')
+      .get('/members-list-owner/members?filter[status]=draft')
       .set('Authorization', `Bearer ${outsider.token}`)
       .expect(200)
 
@@ -150,7 +173,7 @@ describe('Members endpoints', () => {
     await seedGroupAdmin({ tenantId: 'members-list-admin', userId: admin.id })
 
     const res = await request(app)
-      .get('/members-list-admin/members')
+      .get('/members-list-admin/members?filter[status]=draft,active,pending')
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(200)
 
@@ -428,5 +451,130 @@ describe('Members endpoints', () => {
       .get(`/members-linked-user/members/${member.id}`)
       .set('Authorization', `Bearer ${outsider.token}`)
       .expect(403)
+  })
+
+  test('GET /:code/members/:member?include=group includes group data', async () => {
+    await seedGroup({ tenantId: 'members-include-group', name: 'Included Group', status: 'active', access: 'public' })
+    const member = await seedMember({
+      tenantId: 'members-include-group',
+      code: 'member-with-group',
+      status: 'active',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/members-include-group/members/${member.id}?include=group`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.attributes.code, 'member-with-group')
+    assert.strictEqual(res.body.included.length, 1)
+    assert.strictEqual(res.body.included[0].type, 'groups')
+    assert.strictEqual(res.body.included[0].attributes.code, 'members-include-group')
+  })
+
+  test('GET /:code/members?filter[code]=x&include=group returns filtered member with group included', async () => {
+    await seedGroup({ tenantId: 'members-filter-include', name: 'Filter Include Group', status: 'active', access: 'public' })
+    await seedMember({tenantId: 'members-filter-include', code: 'match', status: 'active', access: 'public' })
+    await seedMember({tenantId: 'members-filter-include', code: 'other', status: 'active', access: 'public' })
+
+    const res = await request(app)
+      .get('/members-filter-include/members?filter[code]=match&include=group')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'match')
+    assert.strictEqual(res.body.included.length, 1)
+    assert.strictEqual(res.body.included[0].type, 'groups')
+    assert.strictEqual(res.body.included[0].attributes.code, 'members-filter-include')
+  })
+
+  test('POST and PATCH /:code/members sync member image files by URL', async () => {
+    await seedGroup({ tenantId: 'members-files', status: 'active', access: 'public' })
+    const user = await auth('members-files-user')
+    await seedGroupAdmin({ tenantId: 'members-files', userId: user.id })
+
+    const firstUpload = await request(app)
+      .post('/members-files/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .field('resourceType', 'members')
+      .attach('file', tinyPng, { filename: 'member-one.png', contentType: 'image/png' })
+      .expect(201)
+
+    const secondUpload = await request(app)
+      .post('/members-files/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .field('resourceType', 'members')
+      .attach('file', tinyPng, { filename: 'member-two.png', contentType: 'image/png' })
+      .expect(201)
+
+    const firstUrl = firstUpload.body.data.attributes.url
+    const secondUrl = secondUpload.body.data.attributes.url
+    const db = tenantDb(prisma, 'members-files')
+
+    const created = await request(app)
+      .post('/members-files/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            name: 'Member With Image',
+            image: { url: firstUrl, alt: 'Avatar one' },
+          },
+        },
+      })
+      .expect(201)
+
+    const memberId = created.body.data.id
+
+    let files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    let fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(firstUrl)?.resourceId, memberId)
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
+
+    const updated = await request(app)
+      .patch(`/members-files/members/${memberId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            image: { url: secondUrl, alt: 'Avatar two' },
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(updated.body.data.attributes.image.url, secondUrl)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(firstUrl)?.resourceId, null)
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, memberId)
+
+    const cleared = await request(app)
+      .patch(`/members-files/members/${memberId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            image: null,
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(cleared.body.data.attributes.image, null)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
   })
 })
