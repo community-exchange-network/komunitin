@@ -321,6 +321,7 @@ export interface LedgerCurrency {
     },
     keys: {
       sponsor: KeyPair,
+      issuer: KeyPair,
       externalTrader: KeyPair,
       externalIssuer: KeyPair,
       credit: KeyPair

@@ -189,6 +189,7 @@ describe('Creates stellar elements', async () => {
         currentExternalTraderInitialCredit: "1000.0000000"}
       , {
         sponsor,
+        issuer: currency2Keys.issuer,
         externalTrader: currency2Keys.externalTrader,
         externalIssuer: currency2Keys.externalIssuer,
         credit: currency2Keys.credit
