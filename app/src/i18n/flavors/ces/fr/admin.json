@@ -1,0 +1,3 @@
+{
+    "currencyValueHint": "La valeur de vos unités par rapport à la référence HOUR (une heure de travail moyenne). Elle est utilisée pour calculer le taux de conversion entre vos unités et les autres. Utilisez la notation n/d. Exemples : si votre unité est 1 heure de travail (banque de temps), définissez 1/1 — cela signifie que 1 de vos unités équivaut à 1 HOUR. Si votre unité vaut une fraction d'heure, définissez 1/10 — cela signifie que 10 de vos unités équivalent à 1 HOUR."
+}

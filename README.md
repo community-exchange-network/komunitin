@@ -21,22 +21,28 @@ The Komunitin system is made of several microservices:
 
 ## Development with Docker
 ### Requirements
-Before starting, be sure you have 
+Before starting, be sure you have:
  - [docker](https://docs.docker.com/engine/install/)
- - the cli util [jq](https://jqlang.org/) installed. 
+ - the cli util [jq](https://jqlang.org/)
 
-You need the peer dependency IntegralCES. Clone it in the same parent folder as Komunitin.
+Clone Komunitin and its peer dependency IntegralCES **side by side in the same parent folder**:
 
 ```bash
+cd /your/projects/folder
 git clone https://github.com/komunitin/komunitin.git
 git clone https://git.drupalcode.org/project/ices.git
+cd komunitin
 ```
+
 ### Configuration
 
-Copy the `.env.dev.template` to `.env`. That should be enough for quickly starting a dev environment.
+Copy the `.env.dev.template` to `.env`:
 
-In order to have everything working (mailing, push notifications, backups, analytics...) you need to carefully
-configure the environment variables in the `.env` file. You can find more details about the configuration in the `.env.public.template` file.
+```bash
+cp .env.dev.template .env
+```
+
+In order to have everything working (mailing, push notifications, backups, analytics...) you need to carefully configure the environment variables in the `.env` file. You can find more details about the configuration in the `.env.public.template` file.
 
 ### Start
 Then you can run the start script with the options `--up` to start the containers, `--ices` to install the IntegralCES site, `--dev` to start the debuggers and other development utils and `--demo` to seed the system with demo data.
@@ -45,8 +51,10 @@ Then you can run the start script with the options `--up` to start the container
 ./start.sh --up --ices --dev --demo
 ```
 
+> The first build downloads and compiles everything from scratch — expect it to take some minutes.
+
 After installing for the first time, if you want just to start the containers in `dev` mode without re-installing you can run:
-  
+
 ```bash
 docker compose -f compose.yml -f compose.dev.yml up -d
 ```
@@ -57,7 +65,16 @@ The published services are:
  - Notifications service: [http://localhost:2023](http://localhost:2023)
  - IntegralCES: [http://localhost:2029](http://localhost:2029)
 
-You can now try Komunitin at [https://localhost:2030](http://localhost:2030) with the email `noether@komunitin.org` and password `komunitin`.
+You can now try Komunitin at [https://localhost:2030](https://localhost:2030) with the email `noether@komunitin.org` and password `komunitin`.
+
+### Flavors
+
+The app supports flavors (e.g. `komunitin`, `ces`) configured via `KOMUNITIN_FLAVOR` in `.env`. Changing the flavor requires rebuilding the app image:
+
+```bash
+docker compose -f compose.yml -f compose.dev.yml build app
+docker compose -f compose.yml -f compose.dev.yml up -d app
+```
 
 ## Public deployment
 See the [DEPLOYMENT.md](DEPLOYMENT.md) file for instructions about deploying Komunitin in production.
