@@ -5,6 +5,7 @@ import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/auth'
 import { auth } from './mocks/auth'
+import { getAccountingRequestPaths, resetMockState, seedAccountingCurrency } from './mocks/handlers'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
@@ -61,6 +62,7 @@ after(async () => {
 describe('Groups endpoints', () => {
   beforeEach(async () => {
     await resetDb()
+    resetMockState()
   })
 
   test('POST /groups requires JWT', async () => {
@@ -493,6 +495,129 @@ describe('Groups endpoints', () => {
         }
       })
       .expect(400)
+  })
+
+  test('PATCH /:code activates pending group via accounting create and exposes external currency relationship', async () => {
+    const superadmin = await auth('group-activate-superadmin', undefined, Scope.Superadmin)
+
+    await seedGroup({
+      tenantId: 'activate-group',
+      status: 'pending',
+      access: 'public',
+      meta: {
+        request: {
+          currency: {
+            name: 'Activate Currency',
+          },
+        },
+      },
+    })
+
+    const res = await request(app)
+      .patch('/activate-group')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            status: 'active',
+          }
+        }
+      })
+      .expect(200)
+
+    assert.strictEqual(res.body.data.attributes.status, 'active')
+    assert.strictEqual(res.body.data.relationships.currency.data.type, 'currencies')
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.external, true)
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.href, 'http://localhost:2025/activate-group/currency')
+
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      ['GET /activate-group/currency', 'POST /currencies'],
+    )
+
+    const db = tenantDb(prisma, 'activate-group')
+    const group = await db.group.findFirstOrThrow()
+    assert.strictEqual(group.status, 'active')
+    assert.strictEqual(group.currencyId, res.body.data.relationships.currency.data.id)
+    assert.deepStrictEqual(group.meta, {
+      request: {
+        currency: {
+          name: 'Activate Currency',
+        },
+      },
+    })
+  })
+
+  test('PATCH /:code adopts existing accounting currency without creating a new one', async () => {
+    const superadmin = await auth('group-adopt-superadmin', undefined, Scope.Superadmin)
+    const currency = seedAccountingCurrency('adopt-group')
+
+    await seedGroup({
+      tenantId: 'adopt-group',
+      status: 'pending',
+      access: 'public',
+      meta: {
+        request: {
+          currency: {
+            name: 'Adopt Group Currency',
+          },
+        },
+      },
+    })
+
+    const res = await request(app)
+      .patch('/adopt-group')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            status: 'active',
+          }
+        }
+      })
+      .expect(200)
+
+    assert.strictEqual(res.body.data.relationships.currency.data.id, currency.id)
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      ['GET /adopt-group/currency'],
+    )
+  })
+
+  test('PATCH /:code blocks activation when the group has multiple admins before any accounting call', async () => {
+    const superadmin = await auth('group-multi-admin-superadmin', undefined, Scope.Superadmin)
+    const extraAdmin = await auth('group-multi-admin-extra')
+
+    await seedGroup({
+      tenantId: 'multi-admin-group',
+      status: 'pending',
+      access: 'public',
+      meta: {
+        request: {
+          currency: {
+            name: 'Multi Admin Currency',
+          },
+        },
+      },
+    })
+    await seedGroupAdmin({ tenantId: 'multi-admin-group', userId: extraAdmin.id })
+
+    await request(app)
+      .patch('/multi-admin-group')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            status: 'active',
+          }
+        }
+      })
+      .expect(400)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
   })
 
   test('PATCH /:code denies non-admin and allows superadmin for non-status updates', async () => {

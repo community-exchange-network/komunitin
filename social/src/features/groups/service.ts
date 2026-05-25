@@ -2,6 +2,7 @@ import { InputJsonObject } from '@prisma/client/runtime/client'
 import { Group as DbGroup, Prisma } from '../../generated/prisma/client'
 import { GroupUpdateInput } from '../../generated/prisma/models'
 import { AuthContext, OptionalAuthContext } from '../../server/context'
+import { createAccountingCurrency, getAccountingCurrencyByCode } from '../../server/accounting'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
@@ -10,7 +11,7 @@ import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
 import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
 import { findGroupIds } from './sql'
-import type { CreateGroupInput, Group } from './types'
+import type { CreateGroupInput, Group, GroupMeta } from './types'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -24,6 +25,38 @@ export const toLocation = (entity: WithAddressAndCoords): Location | null => {
     name: address?.addressLocality || address?.addressRegion || address?.addressCountry || undefined,
     type: 'Point',
     coordinates: [entity.longitude, entity.latitude],
+  }
+}
+
+const getGroupMeta = (group: Pick<DbGroup, 'meta'>): GroupMeta => {
+  return (group.meta ?? {}) as GroupMeta
+}
+
+const getRequestedCurrency = (group: Pick<DbGroup, 'meta' | 'tenantId'>) => {
+  return {
+    ...(getGroupMeta(group).request?.currency ?? {}),
+    code: group.tenantId,
+  }
+}
+
+const getGroupAdminUserIds = async (group: Pick<DbGroup, 'id' | 'tenantId'>): Promise<string[]> => {
+  const db = tenantDb(prisma, group.tenantId)
+  const admins = await db.groupAdminUser.findMany({
+    where: {
+      groupId: group.id,
+    },
+    select: {
+      userId: true,
+    },
+  })
+
+  return admins.map((admin) => admin.userId)
+}
+
+export const assertAtMostOneGroupAdmin = async (group: Pick<DbGroup, 'id' | 'tenantId'>): Promise<void> => {
+  const adminUserIds = await getGroupAdminUserIds(group)
+  if (adminUserIds.length > 1) {
+    throw badRequest('Group cannot have more than one admin')
   }
 }
 
@@ -216,9 +249,23 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
       throw badRequest('Status transition is not allowed')
     }
 
-    // Activation must call accounting and be retry-safe before local status updates are allowed.
-    // TODO
-    throw badRequest('Group activation is not implemented yet')
+    const requestedCurrency = getRequestedCurrency(group)
+    const adminUserIds = await getGroupAdminUserIds(group)
+    if (adminUserIds.length !== 1) {
+      throw badRequest('Group must have exactly one admin before activation')
+    }
+    const linkedCurrency = await getAccountingCurrencyByCode(group.tenantId, ctx.authorization)
+      ?? await createAccountingCurrency(requestedCurrency, adminUserIds, ctx.authorization)
+
+    const updated = await db.group.update({
+      where: { id: group.id },
+      data: {
+        status: 'active',
+        currencyId: linkedCurrency.id,
+      },
+    })
+
+    return toGroup(updated)
   }
 
   const { location, image, ...rest } = attributes

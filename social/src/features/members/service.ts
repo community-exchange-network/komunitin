@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { Prisma, type Member as DbMember, type Group as DbGroup } from '../../generated/prisma/client'
+import { createAccount, findAccountByCode } from '../../server/accounting'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
@@ -7,7 +8,7 @@ import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
+import { assertAtMostOneGroupAdmin, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { type MemberStatus, type PatchMemberAttributes } from './schema'
 import type { CreateMemberInput, Member, PatchMemberInput } from './types'
@@ -34,7 +35,7 @@ const getMemberById = async (code: string, id: string, params?: ResourceParams):
       deleted: null,
     },
     include: {
-      group: params?.include.includes('group')
+      group: params?.include.includes('group') ?? false,
     },
   })
 
@@ -151,6 +152,43 @@ const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   return buildMemberCode(groupCode, candidate)
 }
 
+const getMemberUserIds = async (member: Pick<Member, 'id' | 'tenantId'>): Promise<string[]> => {
+  const db = tenantDb(prisma, member.tenantId)
+  const relations = await db.memberUser.findMany({
+    where: {
+      memberId: member.id,
+    },
+    select: {
+      userId: true,
+    },
+  })
+
+  return [...new Set(relations.map((relation) => relation.userId))]
+}
+
+const syncMemberActivationAccount = async (
+  ctx: AuthContext,
+  group: Group,
+  member: Member,
+): Promise<string> => {
+  if (!group.currencyId) {
+    throw badRequest('Group is not linked to an accounting currency')
+  }
+  const currencyCode = group.code
+
+  await assertAtMostOneGroupAdmin(group)
+
+  const userIds = await getMemberUserIds(member)
+  if (userIds.length === 0) {
+    throw badRequest('Member must have at least one user before activation')
+  }
+
+  const account = await findAccountByCode(currencyCode, member.code, ctx.authorization)
+    ?? await createAccount(currencyCode, member.code, userIds, ctx.authorization)
+
+  return account.id
+}
+
 /**
  * Return all members of a group accessible to the given user.
  * 
@@ -181,7 +219,7 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
       id: { in: ids },
     },
     include: {
-      group: params.include.includes('group')
+      group: params.include.includes('group'),
     }
   })
 
@@ -283,6 +321,10 @@ export const patchMember = async (
   const data: Prisma.MemberUpdateInput = {
     ...rest,
     image: toNullableJsonInput(image),
+  }
+
+  if (member.status === 'pending' && input.status === 'active') {
+    data.accountId = await syncMemberActivationAccount(ctx, group, member)
   }
 
   if (location) {

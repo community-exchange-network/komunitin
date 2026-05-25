@@ -3,7 +3,9 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
+import { Scope } from '../src/server/auth'
 import { auth } from './mocks/auth'
+import { getAccountingRequestPaths, resetMockState, seedAccountingAccount, seedAccountingCurrency } from './mocks/handlers'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
@@ -25,6 +27,7 @@ after(async () => {
 describe('Members endpoints', () => {
   beforeEach(async () => {
     await resetDb()
+    resetMockState()
   })
 
   test('POST /:code/members requires JWT', async () => {
@@ -260,10 +263,15 @@ describe('Members endpoints', () => {
   })
 
   test('PATCH /:code/members/:member allows pending to active by admin only', async () => {
-    await seedGroup({ tenantId: 'members-approve', status: 'active', access: 'public' })
+    const currency = seedAccountingCurrency('members-approve')
+    await seedGroup({
+      tenantId: 'members-approve',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
     const owner = await auth('member-approve-owner')
-    const admin = await auth('member-approve-admin')
-    await seedGroupAdmin({ tenantId: 'members-approve', userId: admin.id })
+    const admin = await auth('seed-group-admin-members-approve')
 
     const member = await seedMember({
       tenantId: 'members-approve',
@@ -299,6 +307,92 @@ describe('Members endpoints', () => {
       .expect(200)
 
     assert.strictEqual(approved.body.data.attributes.status, 'active')
+    assert.ok(approved.body.data.attributes.accountId)
+    assert.strictEqual(approved.body.data.relationships.account.data.type, 'accounts')
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.external, true)
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.href, `http://localhost:2025/${currency.code}/accounts/${approved.body.data.attributes.accountId}`)
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
+    )
+  })
+
+  test('PATCH /:code/members/:member adopts existing accounting account by member code', async () => {
+    const currency = seedAccountingCurrency('members-adopt')
+    await seedGroup({
+      tenantId: 'members-adopt',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-adopt-owner')
+    const admin = await auth('seed-group-admin-members-adopt')
+    const account = seedAccountingAccount(currency.code, 'adopt-me', [owner.id])
+
+    const member = await seedMember({
+      tenantId: 'members-adopt',
+      code: 'adopt-me',
+      status: 'pending',
+      userId: owner.id,
+    })
+
+    const approved = await request(app)
+      .patch(`/members-adopt/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(approved.body.data.attributes.accountId, account.id)
+    assert.strictEqual(approved.body.data.relationships.account.data.id, account.id)
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [`GET /${currency.code}/accounts`],
+    )
+  })
+
+  test('PATCH /:code/members/:member blocks activation when the group has multiple admins before any accounting call', async () => {
+    const currency = seedAccountingCurrency('members-multi-admin')
+    await seedGroup({
+      tenantId: 'members-multi-admin',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-multi-admin-owner')
+    const secondAdmin = await auth('member-multi-admin-second-admin')
+    await seedGroupAdmin({ tenantId: 'members-multi-admin', userId: secondAdmin.id })
+
+    const member = await seedMember({
+      tenantId: 'members-multi-admin',
+      code: 'blocked-member',
+      status: 'pending',
+      userId: owner.id,
+    })
+
+    const superadmin = await auth('member-multi-admin-superadmin', undefined, Scope.Superadmin)
+    await request(app)
+      .patch(`/members-multi-admin/members/${member.id}`)
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(400)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
   })
 
   test('PATCH /:code/members/:member denies non-member and non-admin', async () => {
