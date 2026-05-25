@@ -16,7 +16,7 @@ services:
       - ./app/test:/app/test
       - ./app/quasar.config.ts:/app/quasar.config.ts
       - ./app/package.json:/app/package.json
-      - ./app/package-lock.json:/app/package-lock.json
+      - ./app/pnpm-lock.yaml:/app/pnpm-lock.yaml
       - ./app/.env:/app/.env
       - ./app/.env.flavor.komunitin:/app/.env.flavor.komunitin
       - ./app/.env.flavor.ces:/app/.env.flavor.ces

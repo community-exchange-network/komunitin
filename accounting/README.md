@@ -12,6 +12,7 @@ This is the right environment to develop the service and execute tests. Start th
 ```bash
 $ cp .env.test .env
 $ docker compose up -d
+$ pnpm restart-db
 $ pnpm dev
 ```
 
