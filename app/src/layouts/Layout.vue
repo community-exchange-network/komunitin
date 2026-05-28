@@ -13,7 +13,6 @@
         <q-drawer
           v-if="drawerExists"
           v-model="drawerState"
-          bordered
           show-if-above
           :width="256"
           @on-layout="drawerChange"
