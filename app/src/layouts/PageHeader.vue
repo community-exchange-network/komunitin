@@ -74,7 +74,7 @@
           dense
           outlined
           rounded
-          bg-color="white"
+          bg-color="surface-container-h"
           class="q-mr-xs search-box input-borderless"
           type="search" 
           debounce="250"

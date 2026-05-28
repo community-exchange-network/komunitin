@@ -56,7 +56,7 @@ $negative  : #C0392B;     // Standard red, no palette equivalent
 $info      : $ember;        // Ember — info reuses primary (warm, not cold blue)
 $warning   : $wheat;        // Wheat — natural amber for warnings
 
-// ── Surface & separator colours ──────────────────────────────
+// ── Separator colours ──────────────────────────────
 
 $separator-color      : rgba(30, 26, 20, 0.08);   // Soil at 8% — warm divider
 $separator-dark-color : rgba(255, 255, 255, 0.12); // standard dark mode
@@ -245,6 +245,7 @@ $display-serif-family : 'Lora', Georgia, 'Times New Roman', serif;
 
 // Color for surface elements, such as cards and navbar
 $surface: #ffffff;
+$surface-container-h: $linen-dark;
 
 // Secondary colors
 $kblue: $secondary; //offers
