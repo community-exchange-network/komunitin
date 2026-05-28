@@ -110,6 +110,11 @@
 .badge-square {
   border-radius: 4px;
 }
+// Make the drawer have rounded borders on the right side
+aside.q-drawer {
+  border-top-right-radius: $generic-border-radius !important;
+  border-bottom-right-radius: $generic-border-radius !important;
+}
 
 // 6. General purpose helper classes
 // Align flat button content with the start of the content, as with card action buttons.
