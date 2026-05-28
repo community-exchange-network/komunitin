@@ -38,6 +38,12 @@
 .bg-pending {
   background: $pending;
 }
+.bg-rejected {
+  background: $rejected;
+}
+.bg-failed {
+  background: $failed;
+}
 
 // 2. custom foreground colors
 .text-onprimary {
