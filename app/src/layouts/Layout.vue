@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-light column full-height">
+  <div class="column full-height">
     <div
       id="container"
       class="q-mx-auto"
