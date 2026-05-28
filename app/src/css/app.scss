@@ -98,6 +98,10 @@
 }
 
 // 5. Custom component classes
+// 'Actual' app bg, so we can change the html/body bg for better visibility on xl screens
+#q-app #container:first-child {
+  background: $light-background;
+}
 // Remove borders from rounded outlined inputs.
 .input-borderless {
   &.q-field--outlined {
