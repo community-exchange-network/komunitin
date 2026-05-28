@@ -262,7 +262,9 @@ $error: #B00020;
 $light-error: rgba($error, 0.12);
 
 $active: rgba(193, 122, 58, 0.10);  // Ember at 10% — selected/active row tint
-$pending: rgba(193, 122, 58, 0.12);  // Ember at 12% — pending badge
+$pending: rgba(193, 122, 58, 0.12); // Ember at 12% — pending badge
+$rejected: rgba(192, 57, 43, 0.12); // Negative red at 12% — rejected badge
+$failed: rgba(192, 57, 43, 0.20);   // Negative red at 20% — failed badge
 
 // Text colors
 

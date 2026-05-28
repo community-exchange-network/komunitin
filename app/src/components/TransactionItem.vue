@@ -2,7 +2,7 @@
   <q-item
     :to="transfer.id ? `/groups/${code}/transactions/${transfer.id}` : undefined"
     :clickable="!!transfer.id"
-    class="transaction-item"
+    class="transaction-item q-py-md"
     :class="transfer.attributes.state"
   >
     <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col col-sm-4'" class="flex">
@@ -37,18 +37,28 @@
             >
             {{ $t("pending") }}
           </q-badge>
-          <span v-else-if="transfer.attributes.state == 'rejected'">
+          <q-badge
+            color="rejected" 
+            text-color="onsurface-m"
+            v-else-if="transfer.attributes.state == 'rejected'"
+            class="badge-square text-uppercase text-weight-bold text-badge"
+            >
             {{ $t("rejected") }}
-          </span>
-          <span v-else-if="transfer.attributes.state == 'failed'">
+          </q-badge>
+          <q-badge
+            color="failed" 
+            text-color="onsurface-d"
+            v-else-if="transfer.attributes.state == 'failed'"
+            class="badge-square text-uppercase text-weight-bold text-badge"
+            >
             {{ $t("failed") }}
-          </span>
+          </q-badge>
           <span v-else>
             {{ $formatDate(transfer.attributes.updated) }}
           </span>
         </q-item-label>
         <div
-          class="col transaction-amount text-h6"
+          class="col transaction-amount text-subtitle1 text-weight-bold"
           :class="
             signedAmount >= 0
               ? 'positive-amount'
@@ -152,7 +162,7 @@ const overrideCaption = computed(() => {
    * inline with the transaction description and not too low.
    */
   .transaction-amount {
-    margin-top: -12px;
+    margin-top: -6px;
   }
   .pending {
     background-color: $light-background;
