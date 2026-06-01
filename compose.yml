@@ -22,6 +22,48 @@ services:
       MATOMO_URL: ${MATOMO_URL}
       MATOMO_SITE_ID: ${MATOMO_SITE_ID}
 
+  db-auth:
+    build:
+      context: ./shared/docker/db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_APP_USER: auth
+      POSTGRES_APP_PASSWORD: auth
+      WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
+      WALG_S3_PREFIX: ${S3_PREFIX}/db-auth
+      WALG_COMPRESSION_METHOD: zstd
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      AWS_ENDPOINT: ${S3_ENDPOINT}
+      AWS_REGION: ${S3_REGION:-us-east-1}
+      AWS_S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+    volumes:
+      - db-auth:/var/lib/postgresql/data
+
+  auth:
+    build:
+      context: ./auth
+    ports:
+      - "2026:2026"
+    depends_on:
+      - db-auth
+    restart: unless-stopped
+    environment:
+      PORT: 2026
+      DATABASE_URL: postgresql://auth:auth@db-auth:5432/auth?schema=public
+      API_BASE_URL: ${KOMUNITIN_AUTH_URL:-http://auth:2026}
+      ISSUER_URL: ${KOMUNITIN_AUTH_URL:-http://auth:2026}
+      NOTIFICATIONS_URL: http://notifications-ts:2023
+      NOTIFICATIONS_EVENTS_USERNAME: komunitin
+      NOTIFICATIONS_EVENTS_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
+      NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
+      SOCIAL_CLIENT_SECRET: ${KOMUNITIN_SOCIAL_SECRET:-komunitin-social-secret}
+      ACCOUNTING_CLIENT_SECRET: ${KOMUNITIN_ACCOUNTING_SECRET:-komunitin-accounting-secret}
+      COOKIE_SECRET: ${KOMUNITIN_AUTH_COOKIE_SECRET:-change-this-cookie-secret}
+
   db-notifications:
     image: redis:7
     restart: unless-stopped
@@ -209,6 +251,7 @@ services:
 
 volumes:
   db-accounting:
+  db-auth:
   db-integralces:
   db-notifications:
   db-notifications-ts:
