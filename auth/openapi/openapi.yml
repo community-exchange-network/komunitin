@@ -1,0 +1,340 @@
+openapi: 3.1.0
+info:
+  title: Komunitin Auth Service API
+  version: 1.0.0
+  description: OAuth2/OIDC identity service for Komunitin.
+servers:
+  - url: http://localhost:2026
+    description: Local development
+tags:
+  - name: Health
+  - name: Password
+  - name: Email
+  - name: OAuth2
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service and database are healthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '503':
+          description: Service is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+  /token:
+    post:
+      tags: [OAuth2]
+      summary: Exchange OAuth2 credentials for tokens
+      description: |
+        Supports the `password`, `refresh_token`, `client_credentials`, and
+        `urn:ietf:params:oauth:grant-type:token-exchange` grant types.
+        Email action tokens from password reset and email validation flows are
+        not redeemable here and must be sent to their dedicated endpoints.
+      operationId: postToken
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+                username:
+                  type: string
+                password:
+                  type: string
+                scope:
+                  type: string
+                refresh_token:
+                  type: string
+                subject_token:
+                  type: string
+                subject_token_type:
+                  type: string
+      responses:
+        '200':
+          description: Token response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: OAuth2 request error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuth2Error'
+        '401':
+          description: Client authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuth2Error'
+  /reset-password:
+    post:
+      tags: [Password]
+      summary: Request a password reset email
+      operationId: postResetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailPayload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailPayload'
+      responses:
+        '200':
+          description: Reset email queued if the user exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '429':
+          description: Rate limit exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+  /change-password:
+    post:
+      tags: [Password]
+      summary: Change the password using a reset token
+      description: Consumes a single-use password reset action token and does not create an OAuth session.
+      operationId: postChangePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordPayload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordPayload'
+      responses:
+        '200':
+          description: Password updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          description: Invalid or expired token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '429':
+          description: Rate limit exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+  /change-email:
+    post:
+      tags: [Email]
+      summary: Request an email change confirmation
+      operationId: postChangeEmail
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailPayload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailPayload'
+      responses:
+        '200':
+          description: Validation email queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '401':
+          description: Missing or invalid token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '429':
+          description: Rate limit exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+  /change-email/confirm:
+    post:
+      tags: [Email]
+      summary: Confirm an email change or email verification
+      description: Consumes a single-use email action token and does not create an OAuth session.
+      operationId: postConfirmEmailChange
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenPayload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenPayload'
+      responses:
+        '200':
+          description: Email updated or verified.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          description: Invalid or expired token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '429':
+          description: Rate limit exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+  /resend-validation:
+    post:
+      tags: [Email]
+      summary: Resend an email validation message
+      operationId: postResendValidation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailPayload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailPayload'
+      responses:
+        '200':
+          description: Validation email queued if applicable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '429':
+          description: Rate limit exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    StatusResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    TokenResponse:
+      type: object
+      required: [access_token, expires_in, token_type, scope]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        id_token:
+          type: string
+        expires_in:
+          type: integer
+        token_type:
+          type: string
+          enum: [Bearer]
+        scope:
+          type: string
+    OAuth2Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
+    EmailPayload:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    TokenPayload:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    ChangePasswordPayload:
+      type: object
+      required: [token, password]
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+          minLength: 8
+    JsonApiErrors:
+      type: object
+      required: [errors]
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            required: [status, code, title, detail]
+            properties:
+              status:
+                type: string
+              code:
+                type: string
+              title:
+                type: string
+              detail:
+                type: string

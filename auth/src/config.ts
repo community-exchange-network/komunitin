@@ -1,0 +1,22 @@
+import { z } from 'zod'
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().int().positive().default(2026),
+  DATABASE_URL: z.string().default('postgresql://auth:auth@localhost:5435/auth?schema=public'),
+  API_BASE_URL: z.string().default('http://localhost:2026'),
+  ISSUER_URL: z.string().default('http://localhost:2026'),
+  NOTIFICATIONS_URL: z.string().default('http://localhost:2023'),
+  NOTIFICATIONS_EVENTS_USERNAME: z.string().min(1).default('komunitin'),
+  NOTIFICATIONS_EVENTS_PASSWORD: z.string().min(1).default('replace-this-with-a-secure-password'),
+  NOTIFICATIONS_CLIENT_SECRET: z.string().default('replace-this-with-a-secure-password'),
+  SOCIAL_CLIENT_SECRET: z.string().min(1).default('komunitin-social-secret'),
+  ACCOUNTING_CLIENT_SECRET: z.string().min(1).default('komunitin-accounting-secret'),
+  COOKIE_SECRET: z.string().min(1).default('change-this-cookie-secret'),
+  JWKS_ROTATION_INTERVAL_DAYS: z.coerce.number().int().positive().default(90),
+  JWKS_RETENTION_HOURS: z.coerce.number().int().positive().default(24),
+  RATE_LIMIT_MAX_ATTEMPTS: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+})
+
+export const config = envSchema.parse(process.env)
