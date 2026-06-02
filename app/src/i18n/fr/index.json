@@ -149,7 +149,7 @@
   "offerTitleRequired": "Un titre est requis",
   "offerDescriptionHint": "Fournissez ici tous les détails pour que les autres membres comprennent votre offre",
   "offerDescriptionRequired": "Expliquez votre offre avec quelques détails",
-  "offerPriceHint": "Prix de votre offre. Vous pouvez indiquer un montant fixe ou une fourchette.",
+  "offerPriceHint": "Entrez juste un nombre ex '10', ou '15 {symbol}/heure', ou n'importe quel texte comme 'dépend de la pièce' ou 'contactez-moi'",
   "offerPriceRequired": "Une valeur est requise",
   "offerExpirationDateHint": "La date à laquelle votre offre expirera",
   "offerPublishedHint": "Rendre cette offre visible aux autres membres",
