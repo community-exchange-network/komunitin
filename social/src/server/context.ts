@@ -1,6 +1,5 @@
-import { getAuthorizationHeader, getAuthScopes, getAuthToken, getAuthUserId, getOptionalAuthUserId, isSuperadmin } from "./auth"
 import type { Request } from "express"
-import { unauthorized } from "../utils/error"
+import { getAuthScopes, getAuthToken, getAuthUserId, getOptionalAuthUserId, isSuperadmin } from "./auth"
 
 type BaseContext = {
   isSuperadmin: boolean

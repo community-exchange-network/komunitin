@@ -313,7 +313,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(approved.body.data.relationships.account.data.meta.href, `http://localhost:2025/${currency.code}/accounts/${approved.body.data.attributes.accountId}`)
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
-      [`POST /${currency.code}/accounts`],
+      [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
     )
   })
 
@@ -354,7 +354,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(approved.body.data.relationships.account.data.id, account.id)
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
-      [`POST /${currency.code}/accounts`],
+      [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
     )
   })
 
