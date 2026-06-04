@@ -123,8 +123,13 @@
 .badge-square {
   border-radius: 4px;
 }
-// Make the drawer have rounded borders on the right side
-aside.q-drawer {
+// Make menu drawers have rounded borders on the correct side
+// We need to do it this way because we need to target the rendered parent of the q-drawer component
+aside.q-drawer:has(.rounded-drawer-left) {
+  border-top-left-radius: $generic-border-radius !important;
+  border-bottom-left-radius: $generic-border-radius !important;
+}
+aside.q-drawer:has(.rounded-drawer-right) {
   border-top-right-radius: $generic-border-radius !important;
   border-bottom-right-radius: $generic-border-radius !important;
 }
