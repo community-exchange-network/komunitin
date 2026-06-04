@@ -5,7 +5,12 @@ import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/auth'
 import { auth } from './mocks/auth'
-import { getAccountingRequestPaths, resetMockState, seedAccountingCurrency } from './mocks/handlers'
+import {
+  getAccountingRequestPaths,
+  getNotificationsEvents,
+  resetMockState,
+  seedAccountingCurrency,
+} from './mocks/handlers'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
@@ -114,6 +119,12 @@ describe('Groups endpoints', () => {
       .get('/alpha-group')
       .set('Authorization', `Bearer ${outsiderToken}`)
       .expect(403)
+
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'GroupRequested')
+    assert.strictEqual(events[0].data.attributes.code, 'alpha-group')
+    assert.strictEqual(events[0].data.attributes.data.group, 'alpha-group')
   })
 
   test('POST /groups rejects duplicate code', async () => {
@@ -547,6 +558,11 @@ describe('Groups endpoints', () => {
         },
       },
     })
+
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'GroupActivated')
+    assert.strictEqual(events[0].data.attributes.code, 'activate-group')
   })
 
   test('PATCH /:code adopts existing accounting currency without creating a new one', async () => {
@@ -635,6 +651,7 @@ describe('Groups endpoints', () => {
         'PATCH /group-toggle/currency',
       ],
     )
+    assert.strictEqual(getNotificationsEvents().length, 0)
   })
 
   test('PATCH /:code denies non-admin and allows superadmin for non-status updates', async () => {

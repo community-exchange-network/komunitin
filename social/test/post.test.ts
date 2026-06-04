@@ -5,6 +5,12 @@ import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { auth } from './mocks/auth'
 import {
+  getNotificationsEvents,
+  getNotificationsRequests,
+  resetMockState,
+  setNotificationsEventStatus,
+} from './mocks/handlers'
+import {
   resetDb,
   seedCategory,
   seedGroup,
@@ -45,6 +51,7 @@ const postInput = (type: 'offers' | 'needs', attributes: any, memberId: string, 
 describe('Posts endpoints', () => {
   beforeEach(async () => {
     await resetDb()
+    resetMockState()
   })
 
   test('POST /:code/posts requires JWT', async () => {
@@ -86,6 +93,56 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data.attributes.code, 'nice-bicycle')
     assert.strictEqual(res.body.data.attributes.status, 'draft')
     assert.strictEqual(res.body.data.relationships.member.data.id, member.id)
+  })
+
+  test('POST /:code/posts emits OfferPublished when created as published', async () => {
+    await seedGroup({ tenantId: 'posts-create-published', status: 'active', access: 'public' })
+    const user = await auth('posts-create-published-user')
+    const member = await seedMember({ tenantId: 'posts-create-published', status: 'active', userId: user.id })
+
+    await request(app)
+      .post('/posts-create-published/posts')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send(postInput('offers', {
+        title: 'Published Offer',
+        description: 'A published offer',
+        status: 'published',
+      }, member.id))
+      .expect(201)
+
+    const requests = getNotificationsRequests()
+    assert.strictEqual(requests.length, 1)
+    assert.strictEqual(requests[0].method, 'POST')
+    assert.strictEqual(requests[0].path, '/events')
+
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.type, 'events')
+    assert.strictEqual(events[0].data.attributes.name, 'OfferPublished')
+    assert.strictEqual(events[0].data.attributes.source, 'social')
+    assert.strictEqual(events[0].data.attributes.code, 'posts-create-published')
+    assert.strictEqual(typeof events[0].data.attributes.time, 'string')
+    assert.strictEqual(typeof events[0].data.attributes.data.offer, 'string')
+    assert.strictEqual(events[0].data.relationships.user.data.type, 'users')
+    assert.strictEqual(events[0].data.relationships.user.data.id, user.id)
+  })
+
+  test('POST /:code/posts does not emit notification for draft post creation', async () => {
+    await seedGroup({ tenantId: 'posts-create-draft', status: 'active', access: 'public' })
+    const user = await auth('posts-create-draft-user')
+    const member = await seedMember({ tenantId: 'posts-create-draft', status: 'active', userId: user.id })
+
+    await request(app)
+      .post('/posts-create-draft/posts')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send(postInput('offers', {
+        title: 'Draft Offer',
+        description: 'A draft offer',
+      }, member.id))
+      .expect(201)
+
+    assert.strictEqual(getNotificationsRequests().length, 0)
+    assert.strictEqual(getNotificationsEvents().length, 0)
   })
 
   test('POST /:code/posts creates a need', async () => {
@@ -494,6 +551,57 @@ describe('Posts endpoints', () => {
       .expect(200)
 
     assert.strictEqual(res.body.data.attributes.status, 'published')
+
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'OfferPublished')
+  })
+
+  test('PATCH /:code/posts/:post does not emit duplicate event for already published post edits', async () => {
+    await seedGroup({ tenantId: 'posts-no-duplicate-event', status: 'active', access: 'public' })
+    const user = await auth('posts-no-duplicate-event-user')
+    const member = await seedMember({ tenantId: 'posts-no-duplicate-event', status: 'active', userId: user.id })
+    const post = await seedPost({
+      tenantId: 'posts-no-duplicate-event',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      title: 'Original title',
+    })
+
+    await request(app)
+      .patch(`/posts-no-duplicate-event/posts/${post.id}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'offers',
+          attributes: {
+            title: 'Updated title',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(getNotificationsEvents().length, 0)
+  })
+
+  test('POST /:code/posts remains successful when notifications endpoint fails', async () => {
+    setNotificationsEventStatus(500)
+    await seedGroup({ tenantId: 'posts-notifications-fail', status: 'active', access: 'public' })
+    const user = await auth('posts-notifications-fail-user')
+    const member = await seedMember({ tenantId: 'posts-notifications-fail', status: 'active', userId: user.id })
+
+    await request(app)
+      .post('/posts-notifications-fail/posts')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send(postInput('offers', {
+        title: 'Published despite notification failure',
+        description: 'Event delivery fails but write succeeds',
+        status: 'published',
+      }, member.id))
+      .expect(201)
+
+    assert.strictEqual(getNotificationsRequests().length, 3)
   })
 
   test('PATCH /:code/posts/:post rejects invalid status transition', async () => {
