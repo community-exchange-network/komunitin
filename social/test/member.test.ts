@@ -291,7 +291,7 @@ describe('Members endpoints', () => {
           },
         },
       })
-      .expect(400)
+      .expect(403)
 
     const approved = await request(app)
       .patch(`/members-approve/members/${member.id}`)
@@ -313,7 +313,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(approved.body.data.relationships.account.data.meta.href, `http://localhost:2025/${currency.code}/accounts/${approved.body.data.attributes.accountId}`)
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
-      [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
+      [`POST /${currency.code}/accounts`],
     )
   })
 
@@ -354,34 +354,47 @@ describe('Members endpoints', () => {
     assert.strictEqual(approved.body.data.relationships.account.data.id, account.id)
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
-      [`GET /${currency.code}/accounts`],
+      [`POST /${currency.code}/accounts`],
     )
   })
 
-  test('PATCH /:code/members/:member blocks activation when the group has multiple admins before any accounting call', async () => {
-    const currency = seedAccountingCurrency('members-multi-admin')
+  test('PATCH /:code/members/:member allows member admin to disable and reactivate with accounting sync', async () => {
+    const currency = seedAccountingCurrency('members-toggle')
     await seedGroup({
-      tenantId: 'members-multi-admin',
+      tenantId: 'members-toggle',
       status: 'active',
       access: 'public',
       currencyId: currency.id,
     })
 
-    const owner = await auth('member-multi-admin-owner')
-    const secondAdmin = await auth('member-multi-admin-second-admin')
-    await seedGroupAdmin({ tenantId: 'members-multi-admin', userId: secondAdmin.id })
-
+    const owner = await auth('member-toggle-owner')
+    const account = seedAccountingAccount(currency.code, 'toggle-me', [owner.id])
     const member = await seedMember({
-      tenantId: 'members-multi-admin',
-      code: 'blocked-member',
-      status: 'pending',
+      tenantId: 'members-toggle',
+      code: 'toggle-me',
+      status: 'active',
       userId: owner.id,
+      accountId: account.id,
     })
 
-    const superadmin = await auth('member-multi-admin-superadmin', undefined, Scope.Superadmin)
-    await request(app)
-      .patch(`/members-multi-admin/members/${member.id}`)
-      .set('Authorization', `Bearer ${superadmin.token}`)
+    const disabled = await request(app)
+      .patch(`/members-toggle/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'disabled',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(disabled.body.data.attributes.status, 'disabled')
+
+    const reactivated = await request(app)
+      .patch(`/members-toggle/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
       .send({
         data: {
           type: 'members',
@@ -390,9 +403,91 @@ describe('Members endpoints', () => {
           },
         },
       })
-      .expect(400)
+      .expect(200)
 
-    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+    assert.strictEqual(reactivated.body.data.attributes.status, 'active')
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+      ],
+    )
+  })
+
+  test('PATCH /:code/members/:member allows suspend and resume only by group admin', async () => {
+    const currency = seedAccountingCurrency('members-suspend')
+    await seedGroup({
+      tenantId: 'members-suspend',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('members-suspend-owner')
+    const admin = await auth('seed-group-admin-members-suspend')
+    const account = seedAccountingAccount(currency.code, 'suspend-me', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-suspend',
+      code: 'suspend-me',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .patch(`/members-suspend/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'suspended',
+          },
+        },
+      })
+      .expect(403)
+
+    const suspended = await request(app)
+      .patch(`/members-suspend/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'suspended',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(suspended.body.data.attributes.status, 'suspended')
+
+    const resumed = await request(app)
+      .patch(`/members-suspend/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(resumed.body.data.attributes.status, 'active')
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+      ],
+    )
   })
 
   test('PATCH /:code/members/:member denies non-member and non-admin', async () => {

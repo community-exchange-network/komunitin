@@ -494,7 +494,7 @@ describe('Groups endpoints', () => {
           }
         }
       })
-      .expect(400)
+      .expect(403)
   })
 
   test('PATCH /:code activates pending group via accounting create and exposes external currency relationship', async () => {
@@ -586,27 +586,35 @@ describe('Groups endpoints', () => {
     )
   })
 
-  test('PATCH /:code blocks activation when the group has multiple admins before any accounting call', async () => {
-    const superadmin = await auth('group-multi-admin-superadmin', undefined, Scope.Superadmin)
-    const extraAdmin = await auth('group-multi-admin-extra')
-
+  test('PATCH /:code allows group admin to disable and reactivate with accounting sync', async () => {
+    const currency = seedAccountingCurrency('group-toggle')
+    const admin = await auth('group-toggle-admin')
     await seedGroup({
-      tenantId: 'multi-admin-group',
-      status: 'pending',
+      tenantId: 'group-toggle',
+      status: 'active',
       access: 'public',
-      meta: {
-        request: {
-          currency: {
-            name: 'Multi Admin Currency',
-          },
-        },
-      },
+      currencyId: currency.id,
     })
-    await seedGroupAdmin({ tenantId: 'multi-admin-group', userId: extraAdmin.id })
+    await seedGroupAdmin({ tenantId: 'group-toggle', userId: admin.id })
 
-    await request(app)
-      .patch('/multi-admin-group')
-      .set('Authorization', `Bearer ${superadmin.token}`)
+    const disabled = await request(app)
+      .patch('/group-toggle')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            status: 'disabled',
+          }
+        }
+      })
+      .expect(200)
+
+    assert.strictEqual(disabled.body.data.attributes.status, 'disabled')
+
+    const reactivated = await request(app)
+      .patch('/group-toggle')
+      .set('Authorization', `Bearer ${admin.token}`)
       .send({
         data: {
           type: 'groups',
@@ -615,9 +623,18 @@ describe('Groups endpoints', () => {
           }
         }
       })
-      .expect(400)
+      .expect(200)
 
-    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+    assert.strictEqual(reactivated.body.data.attributes.status, 'active')
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        'GET /group-toggle/currency',
+        'PATCH /group-toggle/currency',
+        'GET /group-toggle/currency',
+        'PATCH /group-toggle/currency',
+      ],
+    )
   })
 
   test('PATCH /:code denies non-admin and allows superadmin for non-status updates', async () => {

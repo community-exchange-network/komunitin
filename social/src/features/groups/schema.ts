@@ -71,9 +71,13 @@ export const currencyAttributesSchema = z.object().loose().refine((data) => {
 const groupSettingsSchema = jsonApiResourceSchema('group-settings', groupSettingsAttributesSchema)
 const currencySchema = jsonApiResourceSchema('currencies', currencyAttributesSchema)
 
+const groupStatuses = ['pending', 'active', 'disabled'] as const
+export type GroupStatus = typeof groupStatuses[number]
+
 const patchGroupAttributesSchema = groupEditableAttributesSchema.extend({
-  status: z.string().optional(),
+  status: z.enum(groupStatuses).optional(),
 })
+
 export type PatchGroupAttributes = z.infer<typeof patchGroupAttributesSchema>
 export type PatchGroupSettingsAttributes = z.infer<typeof groupSettingsAttributesSchema>
 

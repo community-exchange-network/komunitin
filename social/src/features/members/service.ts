@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { Prisma, type Member as DbMember, type Group as DbGroup } from '../../generated/prisma/client'
-import { createAccount, findAccountByCode } from '../../server/accounting'
+import { Account, createAccountingClient, getAccountingAccountUrl } from '../../clients/accounting'
+import { Prisma, type Group as DbGroup, type Member as DbMember } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
@@ -8,11 +8,10 @@ import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { assertAtMostOneGroupAdmin, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
+import { getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
-import { type MemberStatus, type PatchMemberAttributes } from './schema'
-import type { CreateMemberInput, Member, PatchMemberInput } from './types'
 import { findMemberIds } from './sql'
+import type { CreateMemberInput, Member, PatchMemberInput } from './types'
 
 export const toMember = (member: DbMember & {group?: DbGroup}): Member => {
   return {
@@ -78,50 +77,6 @@ const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): P
     
 }
 
-const validateStatusTransition = async (
-  ctx: AuthContext,
-  group: Group,
-  member: Member,
-  to: MemberStatus,
-): Promise<void> => {
-  const from = member.status
-
-  if (from === to) {
-    return
-  }
-
-  const admin = ctx.isSuperadmin || await isGroupAdmin(ctx, group)
-  const owner = await isMemberUser(ctx, member)
-
-  if (from === 'draft' && to === 'pending' && (owner || admin)) {
-    return
-  }
-
-  if (from === 'pending' && to === 'active' && admin) {
-    // Account creation in accounting service must happen on approval.
-    // TODO: Implement remote account creation and persist accountId.
-    return
-  }
-
-  if (from === 'active' && to === 'inactive' && (owner || admin)) {
-    return
-  }
-
-  if (from === 'active' && to === 'suspended' && admin) {
-    return
-  }
-
-  if (from === 'inactive' && to === 'active' && (owner || admin)) {
-    return
-  }
-
-  if (from === 'suspended' && to === 'active' && admin) {
-    return
-  }
-
-  throw badRequest('Status transition is not allowed')
-}
-
 const buildMemberCode = (groupCode: string, index: number): string => {
   return `${groupCode}${(index + "") . padStart(4, '0')}`
 }
@@ -166,28 +121,38 @@ const getMemberUserIds = async (member: Pick<Member, 'id' | 'tenantId'>): Promis
   return [...new Set(relations.map((relation) => relation.userId))]
 }
 
-const syncMemberActivationAccount = async (
-  ctx: AuthContext,
-  group: Group,
-  member: Member,
-): Promise<string> => {
-  if (!group.currencyId) {
-    throw badRequest('Group is not linked to an accounting currency')
+/**
+ * Synchronize the account status from the accounting service to the provided status.
+ * 
+ * If the member does not have an account, one will be created. If the account exists 
+ * but has a different status, it will be updated.
+ */
+const syncAccountStatus = async (ctx: AuthContext, member: Member, currencyCode: string, status: Account["status"]): Promise<Account> => {
+  const accounting = createAccountingClient(ctx)
+  
+  // Get or create account.
+  let account: Account
+  if (member.accountId) {
+    account = await accounting.getAccount(currencyCode, member.accountId)
+    if (!account) {
+      throw badRequest(`Linked account ${getAccountingAccountUrl(currencyCode, member.accountId)} for member ${member.id} (${member.code}) not found in accounting service`)
+    }
+  } else {
+    const users = await getMemberUserIds(member)
+    account = await accounting.createAccount(currencyCode, {
+      code: member.code,
+      status
+    }, users)
   }
-  const currencyCode = group.code
 
-  await assertAtMostOneGroupAdmin(group)
-
-  const userIds = await getMemberUserIds(member)
-  if (userIds.length === 0) {
-    throw badRequest('Member must have at least one user before activation')
+  // Update account status if needed.
+  if (account.status !== status) {
+    account = await accounting.updateAccount(currencyCode, account.id, { status })
   }
 
-  const account = await findAccountByCode(currencyCode, member.code, ctx.authorization)
-    ?? await createAccount(currencyCode, member.code, userIds, ctx.authorization)
-
-  return account.id
+  return account
 }
+
 
 /**
  * Return all members of a group accessible to the given user.
@@ -306,15 +271,11 @@ export const patchMember = async (
   input: PatchMemberInput,
 ): Promise<Member> => {
   const group = await getGroupByCode(ctx, code)
-  const member = await getMemberById(code, id)
+  const member = await getMemberById(code, id, { include: ["group"] })
 
   const allowed = await canWriteMember(ctx, group, member)
   if (!allowed) {
     throw forbidden('You do not have permission to update this member')
-  }
-
-  if (typeof input.status === 'string') {
-    await validateStatusTransition(ctx, group, member, input.status)
   }
 
   const { location, image, ...rest } = input
@@ -323,8 +284,36 @@ export const patchMember = async (
     image: toNullableJsonInput(image),
   }
 
-  if (member.status === 'pending' && input.status === 'active') {
-    data.accountId = await syncMemberActivationAccount(ctx, group, member)
+  // Status transition.
+  if (input.status !== undefined && member.status !== input.status) {
+    const from = member.status
+    const to = input.status
+    if (from === 'draft' && to === 'pending'
+      || from === 'active' && to === 'disabled'
+      || from === 'disabled' && to === 'active'
+    ) {
+      // Allowed user transition, no additional checks needed.
+    } else if (from === 'pending' && to === 'active'
+      || from === 'active' && to === 'suspended'
+      || from === 'suspended' && to === 'active'
+    ) {
+      // Allowed admin transition, check if user is admin.
+      if (!(ctx.isSuperadmin || await isGroupAdmin(ctx, group))) {
+        throw forbidden('Only group admins can perform this status transition')
+      }
+    } else {
+      throw badRequest(`Invalid status transition from ${from} to ${to}`)
+    }
+
+    // Status transition approved, handle side effects.
+    if (to === 'active' || to === 'disabled' || to === 'suspended') {
+      const currencyCode = getCurrencyCode(group)
+      const account = await syncAccountStatus(ctx, member, currencyCode, to)
+      if (!member.accountId) {
+        data.accountId = account.id
+      }     
+    }
+    data.status = to
   }
 
   if (location) {

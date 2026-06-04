@@ -1,6 +1,6 @@
 import TsJapi from 'ts-japi'
 import { externalResourceSerializer, getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
-import { getAccountingAccountHref } from '../../server/accounting'
+import { getAccountingAccountUrl } from '../../clients/accounting'
 import { GroupSerializer } from '../groups/serialize'
 import { Group } from '../groups/types'
 import type { Member } from './types'
@@ -38,7 +38,7 @@ export const MemberSerializer = new Serializer<Member>('members', {
 
       return {
         id: member.accountId,
-        href: getAccountingAccountHref(member.tenantId, member.accountId),
+        href: getAccountingAccountUrl(member.tenantId, member.accountId),
       }
     }, ExternalAccountSerializer, { relatedName: 'account' })
   }

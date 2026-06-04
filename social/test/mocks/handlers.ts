@@ -7,6 +7,7 @@ let s3UploadStatus = 200
 type MockCurrency = {
   id: string
   code: string
+  status: 'active' | 'disabled'
 }
 
 type MockAccount = {
@@ -14,6 +15,7 @@ type MockAccount = {
   code: string
   currencyCode: string
   userIds: string[]
+  status: 'active' | 'disabled' | 'suspended' | 'deleted'
 }
 
 type AccountingRequest = {
@@ -31,8 +33,12 @@ export const setS3UploadStatus = (status: number) => {
   s3UploadStatus = status
 }
 
-export const seedAccountingCurrency = (code: string, id = toUuid(`accounting-currency-${code}`)): MockCurrency => {
-  const currency = { id, code }
+export const seedAccountingCurrency = (
+  code: string,
+  id = toUuid(`accounting-currency-${code}`),
+  status: MockCurrency['status'] = 'active',
+): MockCurrency => {
+  const currency = { id, code, status }
   accountingCurrencies.set(code, currency)
   return currency
 }
@@ -42,12 +48,28 @@ export const seedAccountingAccount = (
   code: string,
   userIds: string[] = [],
   id = toUuid(`accounting-account-${currencyCode}-${code}`),
+  status: MockAccount['status'] = 'active',
 ): MockAccount => {
-  const account = { id, code, currencyCode, userIds }
+  const account = { id, code, currencyCode, userIds, status }
   const accounts = accountingAccounts.get(currencyCode) ?? new Map<string, MockAccount>()
   accounts.set(code, account)
   accountingAccounts.set(currencyCode, accounts)
   return account
+}
+
+const findAccountingAccountById = (currencyCode: string, accountId: string): MockAccount | undefined => {
+  const accounts = accountingAccounts.get(currencyCode)
+  if (!accounts) {
+    return undefined
+  }
+
+  for (const account of accounts.values()) {
+    if (account.id === accountId) {
+      return account
+    }
+  }
+
+  return undefined
 }
 
 export const getAccountingRequests = (): AccountingRequest[] => {
@@ -84,6 +106,7 @@ const serializeCurrency = (currency: MockCurrency) => ({
   id: currency.id,
   attributes: {
     code: currency.code,
+    status: currency.status,
   },
 })
 
@@ -92,6 +115,7 @@ const serializeAccount = (account: MockAccount) => ({
   id: account.id,
   attributes: {
     code: account.code,
+    status: account.status,
   },
 })
 
@@ -132,6 +156,7 @@ export const handlers = [
       data?: {
         attributes?: {
           code?: string
+          status?: string
         }
       }
     }
@@ -142,9 +167,46 @@ export const handlers = [
     }
 
     const currency = accountingCurrencies.get(code) ?? seedAccountingCurrency(code)
+
+    const status = body.data?.attributes?.status
+    if (status === 'active' || status === 'disabled') {
+      currency.status = status
+      accountingCurrencies.set(code, currency)
+    }
+
     return HttpResponse.json({
       data: serializeCurrency(currency),
     }, { status: 201 })
+  }),
+  http.patch(`${accountingBaseUrl}/:currencyCode/currency`, async ({ request, params }) => {
+    const unauthorized = requireAccountingAuthorization(request)
+    if (unauthorized) {
+      return unauthorized
+    }
+
+    const currencyCode = String(params.currencyCode)
+    const existing = accountingCurrencies.get(currencyCode)
+    if (!existing) {
+      return jsonApiError(404, `Currency ${currencyCode} not found`)
+    }
+
+    const body = await request.json() as {
+      data?: {
+        attributes?: {
+          status?: string
+        }
+      }
+    }
+
+    const nextStatus = body.data?.attributes?.status
+    if (nextStatus === 'active' || nextStatus === 'disabled') {
+      existing.status = nextStatus
+      accountingCurrencies.set(currencyCode, existing)
+    }
+
+    return HttpResponse.json({
+      data: serializeCurrency(existing),
+    })
   }),
   http.get(`${accountingBaseUrl}/:currencyCode/accounts`, ({ request, params }) => {
     const unauthorized = requireAccountingAuthorization(request)
@@ -171,6 +233,7 @@ export const handlers = [
       data?: {
         attributes?: {
           code?: string
+          status?: string
         }
         relationships?: {
           users?: {
@@ -186,12 +249,66 @@ export const handlers = [
     }
 
     const userIds = body.data?.relationships?.users?.data?.map((user) => user.id) ?? []
+    const status = body.data?.attributes?.status
     const account = accountingAccounts.get(currencyCode)?.get(code)
-      ?? seedAccountingAccount(currencyCode, code, userIds)
+      ?? seedAccountingAccount(
+        currencyCode,
+        code,
+        userIds,
+        toUuid(`accounting-account-${currencyCode}-${code}`),
+        status === 'active' || status === 'disabled' || status === 'suspended' || status === 'deleted' ? status : 'active',
+      )
 
     return HttpResponse.json({
       data: serializeAccount(account),
     }, { status: 201 })
+  }),
+  http.get(`${accountingBaseUrl}/:currencyCode/accounts/:accountId`, ({ request, params }) => {
+    const unauthorized = requireAccountingAuthorization(request)
+    if (unauthorized) {
+      return unauthorized
+    }
+
+    const currencyCode = String(params.currencyCode)
+    const accountId = String(params.accountId)
+    const account = findAccountingAccountById(currencyCode, accountId)
+    if (!account) {
+      return jsonApiError(404, `Account ${accountId} not found`)
+    }
+
+    return HttpResponse.json({
+      data: serializeAccount(account),
+    })
+  }),
+  http.patch(`${accountingBaseUrl}/:currencyCode/accounts/:accountId`, async ({ request, params }) => {
+    const unauthorized = requireAccountingAuthorization(request)
+    if (unauthorized) {
+      return unauthorized
+    }
+
+    const currencyCode = String(params.currencyCode)
+    const accountId = String(params.accountId)
+    const account = findAccountingAccountById(currencyCode, accountId)
+    if (!account) {
+      return jsonApiError(404, `Account ${accountId} not found`)
+    }
+
+    const body = await request.json() as {
+      data?: {
+        attributes?: {
+          status?: string
+        }
+      }
+    }
+
+    const nextStatus = body.data?.attributes?.status
+    if (nextStatus === 'active' || nextStatus === 'disabled' || nextStatus === 'suspended' || nextStatus === 'deleted') {
+      account.status = nextStatus
+    }
+
+    return HttpResponse.json({
+      data: serializeAccount(account),
+    })
   }),
   http.put('http://s3.test/:bucket/:key*', async ({ request }) => {
     if (s3UploadStatus >= 400) {
