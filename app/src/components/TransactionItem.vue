@@ -18,7 +18,7 @@
         :address="secondCreditCommonsAddress"
       />
     </div>
-    <q-item-section class="gt-xs col q-pl-md">
+    <q-item-section class="gt-xs col q-pl-md text-onsurface">
       <q-item-label lines="2">
         {{ description }}
       </q-item-label>

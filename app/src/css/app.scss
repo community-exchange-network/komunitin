@@ -97,6 +97,10 @@
   letter-spacing: 1.5px;
   line-height: 1.5rem;
 }
+.text-caption-sm {
+  font-size: 0.65rem; 
+  line-height: 1rem;
+}
 
 // 4. Custom icon weights and fills
 .material-symbols-rounded {
@@ -117,6 +121,25 @@
     .q-field__control:after {
       border: none !important;
     }
+  }
+}
+// 'Commons' input style: no resting border, but custom border on hover and focus. 
+// Quasar doesn't allow us to achieve this style using component api and scss variables only.
+.commons-input {
+  &.q-field--outlined .q-field__control:before {
+    border: 1.5px solid transparent !important;
+  }
+
+  /* 2. HOVER STATE: Add your custom color and thickness on hover */
+  &.q-field--outlined .q-field__control:hover:before {
+    /* Set your custom thickness and color here */
+    border: 1.5px solid $chip-border !important;
+  }
+
+  /* 3. FOCUS STATE: Ensure Quasar's default active indicator matches your design */
+  &.q-field--focused.q-field--outlined .q-field__control:after {
+    /* Match your hover thickness and color, or style it completely differently */
+    border: 1.5px solid $chip-border !important;
   }
 }
 // Because we set the generic border radius to 8px, we need to override badges to be more square-shaped.

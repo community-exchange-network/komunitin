@@ -3,19 +3,26 @@
     v-model="draftDate"
     :error="hasInputError"
     name="date"
-    :label="label"
+    label-slot
     :hint="hint"
     :placeholder="localFormat"
     outlined
+    bg-color="surface-container-h"
+    color="onsurface-m"
+    class="commons-input"
     required
     @blur="commitDraftDate"
     @keyup.enter="commitDraftDate"
     @clear="commitDraftDate"
   >
+    <template v-slot:label>
+      <span class="text-uppercase text-caption-sm">{{ label }}</span>
+    </template>
     <template #append>
       <q-icon 
         name="event" 
         class="cursor-pointer"
+        color="onsurface-m"
       >
         <q-popup-proxy
           cover
