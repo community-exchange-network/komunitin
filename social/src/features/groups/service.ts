@@ -12,6 +12,7 @@ import { syncResourceFiles } from '../files/service'
 import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
 import { findGroupIds } from './sql'
 import type { CreateGroupInput, Group, GroupMeta } from './types'
+import { createNotificationsClient } from '../../clients/notifications'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -126,6 +127,9 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
   })
 
   await syncResourceFiles(attributes.code, 'groups', group.id, attributes.image ? [attributes.image.url] : [])
+
+  const notifications = createNotificationsClient(ctx)
+  await notifications.notifyGroupRequested(toGroup(group))
 
   return toGroup(group)
 }
@@ -267,6 +271,7 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     ...rest,
     image: toNullableJsonInput(image),
   }
+  let notifyGroupActivated = false
 
   if (attributes.location !== undefined) {
     const location = fromLocation(attributes.location)
@@ -295,6 +300,11 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
         data.currencyId = currency.id
       }
     }
+
+    if (group.status === 'pending' && status === 'active') {
+      notifyGroupActivated = true
+    }
+
     data.status = status
   }
   
@@ -306,6 +316,11 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
 
   if (attributes.image !== undefined) {
     await syncResourceFiles(code, 'groups', group.id, attributes.image ? [attributes.image.url] : [])
+  }
+
+  if (notifyGroupActivated) {
+    const notifications = createNotificationsClient(ctx)
+    await notifications.notifyGroupActivated(toGroup(updated))
   }
 
   return toGroup(updated)
