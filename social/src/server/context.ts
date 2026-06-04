@@ -1,17 +1,20 @@
-import { getAuthUserId, getOptionalAuthUserId, isSuperadmin } from "./auth"
 import type { Request } from "express"
+import { getAuthScopes, getAuthToken, getAuthUserId, getOptionalAuthUserId, isSuperadmin } from "./auth"
 
 type BaseContext = {
   isSuperadmin: boolean
+  scopes: string[]
 }
 
 export type AuthContext = BaseContext & {
   userId: string
+  token: string
 }
 
 export type AnonContext = BaseContext & {
   isSuperadmin: false
   userId?: undefined
+  token?: string
 }
 
 export type OptionalAuthContext = AuthContext | AnonContext
@@ -23,6 +26,8 @@ export const getAuthContext = (req: Request): AuthContext => {
   return {
     userId: getAuthUserId(req),
     isSuperadmin: isSuperadmin(req),
+    token: getAuthToken(req),
+    scopes: getAuthScopes(req),
   }
 }
 
@@ -31,11 +36,18 @@ export const getAuthContext = (req: Request): AuthContext => {
  */
 export const getOptionalAuthContext = (req: Request): OptionalAuthContext => {
   const userId = getOptionalAuthUserId(req)
-  // Using this somewhat weird pattern to satisfy TypeScript.
-  return (userId !== undefined) ? {
-    userId,
-    isSuperadmin: isSuperadmin(req),
-  } : {
+
+  if (userId !== undefined) {
+    return {
+      userId,
+      isSuperadmin: isSuperadmin(req),
+      token: getAuthToken(req),
+      scopes: getAuthScopes(req),
+    }
+  }
+
+  return {
     isSuperadmin: false,
+    scopes: [],
   }
 }

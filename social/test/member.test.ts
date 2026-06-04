@@ -3,7 +3,9 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
+import { Scope } from '../src/server/auth'
 import { auth } from './mocks/auth'
+import { getAccountingRequestPaths, resetMockState, seedAccountingAccount, seedAccountingCurrency } from './mocks/handlers'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
@@ -25,6 +27,7 @@ after(async () => {
 describe('Members endpoints', () => {
   beforeEach(async () => {
     await resetDb()
+    resetMockState()
   })
 
   test('POST /:code/members requires JWT', async () => {
@@ -260,10 +263,15 @@ describe('Members endpoints', () => {
   })
 
   test('PATCH /:code/members/:member allows pending to active by admin only', async () => {
-    await seedGroup({ tenantId: 'members-approve', status: 'active', access: 'public' })
+    const currency = seedAccountingCurrency('members-approve')
+    await seedGroup({
+      tenantId: 'members-approve',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
     const owner = await auth('member-approve-owner')
-    const admin = await auth('member-approve-admin')
-    await seedGroupAdmin({ tenantId: 'members-approve', userId: admin.id })
+    const admin = await auth('seed-group-admin-members-approve')
 
     const member = await seedMember({
       tenantId: 'members-approve',
@@ -283,7 +291,7 @@ describe('Members endpoints', () => {
           },
         },
       })
-      .expect(400)
+      .expect(403)
 
     const approved = await request(app)
       .patch(`/members-approve/members/${member.id}`)
@@ -299,6 +307,187 @@ describe('Members endpoints', () => {
       .expect(200)
 
     assert.strictEqual(approved.body.data.attributes.status, 'active')
+    assert.ok(approved.body.data.attributes.accountId)
+    assert.strictEqual(approved.body.data.relationships.account.data.type, 'accounts')
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.external, true)
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.href, `http://localhost:2025/${currency.code}/accounts/${approved.body.data.attributes.accountId}`)
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
+    )
+  })
+
+  test('PATCH /:code/members/:member adopts existing accounting account by member code', async () => {
+    const currency = seedAccountingCurrency('members-adopt')
+    await seedGroup({
+      tenantId: 'members-adopt',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-adopt-owner')
+    const admin = await auth('seed-group-admin-members-adopt')
+    const account = seedAccountingAccount(currency.code, 'adopt-me', [owner.id])
+
+    const member = await seedMember({
+      tenantId: 'members-adopt',
+      code: 'adopt-me',
+      status: 'pending',
+      userId: owner.id,
+    })
+
+    const approved = await request(app)
+      .patch(`/members-adopt/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(approved.body.data.attributes.accountId, account.id)
+    assert.strictEqual(approved.body.data.relationships.account.data.id, account.id)
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
+    )
+  })
+
+  test('PATCH /:code/members/:member allows member admin to disable and reactivate with accounting sync', async () => {
+    const currency = seedAccountingCurrency('members-toggle')
+    await seedGroup({
+      tenantId: 'members-toggle',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-toggle-owner')
+    const account = seedAccountingAccount(currency.code, 'toggle-me', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-toggle',
+      code: 'toggle-me',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    const disabled = await request(app)
+      .patch(`/members-toggle/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'disabled',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(disabled.body.data.attributes.status, 'disabled')
+
+    const reactivated = await request(app)
+      .patch(`/members-toggle/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(reactivated.body.data.attributes.status, 'active')
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+      ],
+    )
+  })
+
+  test('PATCH /:code/members/:member allows suspend and resume only by group admin', async () => {
+    const currency = seedAccountingCurrency('members-suspend')
+    await seedGroup({
+      tenantId: 'members-suspend',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('members-suspend-owner')
+    const admin = await auth('seed-group-admin-members-suspend')
+    const account = seedAccountingAccount(currency.code, 'suspend-me', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-suspend',
+      code: 'suspend-me',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .patch(`/members-suspend/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'suspended',
+          },
+        },
+      })
+      .expect(403)
+
+    const suspended = await request(app)
+      .patch(`/members-suspend/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'suspended',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(suspended.body.data.attributes.status, 'suspended')
+
+    const resumed = await request(app)
+      .patch(`/members-suspend/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(resumed.body.data.attributes.status, 'active')
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+      ],
+    )
   })
 
   test('PATCH /:code/members/:member denies non-member and non-admin', async () => {

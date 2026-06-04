@@ -13,7 +13,7 @@ export const getMembersRoute: RequestHandler = async (req, res) => {
   const params = getCollectionParams(req, {
     filter: ['code', 'name', 'type', 'status', 'access', 'search'],
     sort: ['created', 'updated', 'name', 'code'],
-    include: ['group'],
+    include: ['group', 'account'],
   })
 
   const members = await listMembers(ctx, code, params)
@@ -30,7 +30,7 @@ export const getMemberRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const memberId = getParam(req, 'member')
-  const params = getResourceParams(req, { include: ['group'] })
+  const params = getResourceParams(req, { include: ['group', 'account'] })
 
   const member = await getMember(ctx, code, memberId, params)
 

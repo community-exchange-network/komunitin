@@ -3,7 +3,12 @@ import TsJapi, { type Dictionary } from "ts-japi"
 import { config } from "../config"
 import { CollectionParams, PaginationOptions } from "./request"
 
-const { Linker, Paginator } = TsJapi
+const { Linker, Metaizer, Paginator, Serializer } = TsJapi
+
+export type ExternalResource = {
+  id: string
+  href: string
+}
 
 const getPaginationLinks = (url: string, pagination: PaginationOptions, resultLength: number, totalCount?: number) => {
   const base = new URL(url, config.API_BASE_URL)
@@ -55,6 +60,19 @@ export const getCollectionSerializerOptions = <T extends Dictionary<any>>(url:st
     },
     include: collectionOptions.include
   }
+}
+
+export const externalResourceSerializer = <T extends ExternalResource>(type: string) => {
+  return new Serializer<T>(type, {
+    version: null,
+    projection: undefined,
+    metaizers: {
+      resource: new Metaizer<[T]>((resource) => ({
+        external: true,
+        href: resource.href,
+      })),
+    },
+  })
 }
 
 export type SerializerOptions<T extends Dictionary<any>> = Partial<TsJapi.SerializerOptions<T>>

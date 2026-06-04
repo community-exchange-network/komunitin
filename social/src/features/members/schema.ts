@@ -16,7 +16,7 @@ export type { Address, Contact, Location }
 export const memberTypeSchema = z.enum(['personal', 'business', 'organization'])
 export type MemberType = z.infer<typeof memberTypeSchema>
 
-export const memberStatusSchema = z.enum(['draft', 'pending', 'active', 'inactive', 'suspended'])
+export const memberStatusSchema = z.enum(['draft', 'pending', 'active', 'disabled', 'suspended', 'deleted'])
 export type MemberStatus = z.infer<typeof memberStatusSchema>
 
 const memberMetaSchema = z.record(z.string(), z.any())

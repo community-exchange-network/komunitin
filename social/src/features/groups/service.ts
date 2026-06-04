@@ -2,15 +2,16 @@ import { InputJsonObject } from '@prisma/client/runtime/client'
 import { Group as DbGroup, Prisma } from '../../generated/prisma/client'
 import { GroupUpdateInput } from '../../generated/prisma/models'
 import { AuthContext, OptionalAuthContext } from '../../server/context'
+import { createAccountingClient, Currency } from '../../clients/accounting'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
-import { badRequest, forbidden, notFound } from '../../utils/error'
+import { badRequest, forbidden, internalError, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
 import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
 import { findGroupIds } from './sql'
-import type { CreateGroupInput, Group } from './types'
+import type { CreateGroupInput, Group, GroupMeta } from './types'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -25,6 +26,36 @@ export const toLocation = (entity: WithAddressAndCoords): Location | null => {
     type: 'Point',
     coordinates: [entity.longitude, entity.latitude],
   }
+}
+
+const getGroupMeta = (group: Pick<DbGroup, 'meta'>): GroupMeta => {
+  return (group.meta ?? {}) as GroupMeta
+}
+
+const getRequestedCurrency = (group: Pick<DbGroup, 'meta' | 'tenantId'>) => {
+  return {
+    ...(getGroupMeta(group).request?.currency ?? {}),
+    code: group.tenantId,
+  }
+}
+
+/**
+ * Return the user IDs of all admins of the given group.
+ * 
+ * In fact there is just only one admin per group for now, but this may change in the future, so we return an array.
+ */
+const getGroupAdminUserIds = async (group: Pick<DbGroup, 'id' | 'tenantId'>): Promise<string[]> => {
+  const db = tenantDb(prisma, group.tenantId)
+  const admins = await db.groupAdminUser.findMany({
+    where: {
+      groupId: group.id,
+    },
+    select: {
+      userId: true,
+    },
+  })
+
+  return admins.map((admin) => admin.userId)
 }
 
 export const fromLocation = (location?: Location | null): { latitude: number|null; longitude: number|null } => {
@@ -198,30 +229,40 @@ export const getGroupByCode = async (
   return group
 }
 
-export const patchGroupByCode = async (ctx: AuthContext, code: string, attributes: PatchGroupAttributes): Promise<Group> => {
-  const db = tenantDb(prisma, code)
-  const group = await db.group.findFirst()
-
-  if (!group) {
-    throw notFound('Group not found')
+const syncCurrencyStatus = async (ctx: AuthContext, group: Group, status: Currency["status"]): Promise<Currency> => {
+  const accounting = createAccountingClient(ctx)
+  const currencyCode = getCurrencyCode(group)
+  let currency = await accounting.findCurrencyByCode(currencyCode)
+  if (!currency) {
+    // Create currency
+    const requestedCurrency = getRequestedCurrency(group)
+    const adminUserIds = await getGroupAdminUserIds(group)
+    
+    currency = await accounting.createCurrency({
+      ...requestedCurrency,
+      code: currencyCode,
+      status: 'active',
+    }, adminUserIds)
   }
+  // Update currency status if needed
+  if (currency.status !== status) {
+    currency = await accounting.updateCurrency(currencyCode, currency.id, {
+      status,
+    })
+  }
+  return currency
+}
 
-  const allowed = await canWriteGroup(ctx, toGroup(group))
+export const patchGroupByCode = async (ctx: AuthContext, code: string, attributes: PatchGroupAttributes): Promise<Group> => {
+  const group = await getGroupByCode(ctx, code)
+
+  const allowed = await canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to update this group')
   }
 
-  if (typeof attributes.status === 'string') {
-    if (!ctx.isSuperadmin || attributes.status !== 'active' || group.status !== 'pending') {
-      throw badRequest('Status transition is not allowed')
-    }
-
-    // Activation must call accounting and be retry-safe before local status updates are allowed.
-    // TODO
-    throw badRequest('Group activation is not implemented yet')
-  }
-
-  const { location, image, ...rest } = attributes
+  // Prepare update data.
+  const { location, image, status, ...rest } = attributes
   const data: GroupUpdateInput = {
     ...rest,
     image: toNullableJsonInput(image),
@@ -233,6 +274,31 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     data.longitude = location.longitude
   }
 
+  // Status transition
+  if (status !== undefined && status !== group.status) {
+    if (status === 'active' && group.status === 'disabled'
+      || status === 'disabled' && group.status === 'active') {
+      // group admins can enable/disable the group.
+    } else if (group.status === 'pending' && status === 'active') {
+      // Only superadmins can activate a group.
+      if (!ctx.isSuperadmin) {
+        throw forbidden('Only superadmins can activate groups')
+      }
+    } else {
+      throw badRequest(`Invalid status transition from ${group.status} to ${status}`)
+    }
+
+    // Handle side effects of status transitions.
+    if (status === 'active' || status === 'disabled') {
+      const currency = await syncCurrencyStatus(ctx, group, status)
+      if (!group.currencyId) {
+        data.currencyId = currency.id
+      }
+    }
+    data.status = status
+  }
+  
+  const db = tenantDb(prisma, code)
   const updated = await db.group.update({
     where: { id: group.id },
     data,
@@ -276,4 +342,8 @@ export const patchGroupSettingsByCode = async (
   })
 
   return toGroup(updated)
+}
+
+export const getCurrencyCode = (group: Group): string => {
+  return group.code
 }
