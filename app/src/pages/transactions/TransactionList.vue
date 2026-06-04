@@ -39,8 +39,8 @@
     </q-page-container>
     <q-drawer 
       v-model="filterDrawer"
-      side="right" 
-      bordered
+      side="right"
+      class="rounded-drawer-left" 
       show-if-above
     >
       <div class="q-pa-md column q-gutter-md">
