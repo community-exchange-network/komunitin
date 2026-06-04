@@ -101,10 +101,12 @@ export const getAuthScopes = (req: Request): string[] => {
   return payload.scope.split(' ')
 }
 
-export const getAuthorizationHeader = (req: Request): string | undefined => {
-  return typeof req.headers.authorization === 'string'
-    ? req.headers.authorization
-    : undefined
+export const getAuthToken = (req: Request): string => {
+  const authorization = req.headers.authorization
+  if (authorization === undefined || !authorization.toLowerCase().startsWith('bearer ')) {
+    throw unauthorized('Missing authorization header')
+  }
+  return authorization.slice(7)
 }
 
 export const hasScope = (req: Request, scope: string): boolean => {

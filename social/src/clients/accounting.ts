@@ -48,15 +48,8 @@ const toError = (status: number, errors: JsonApiError[] | undefined, fallback: s
 
   const details = errors ? { details: errors } : undefined
 
-  if (status === 400) {
-    return badRequest(message, details)
-  }
-  if (status === 401) {
-    return unauthorized(message, details)
-  }
-  if (status === 403) {
-    return forbidden(message, details)
-  }
+  // All errors from the accounting service (authorization, not found, etc) are treated as 
+  // internal errors in the social service, because none of our calls is expected to fail.
 
   return internalError(message, details)
 }
@@ -104,37 +97,33 @@ class AccountingClient {
   private async getAuthorizationToken(): Promise<string> {
     // As of now, we simply forward the user's JWT token to the accounting service for authentication,
     // but we are prepared to implement a token exchange mechanis when the auth service supports it.
-    return this.ctx.authorization
+    return this.ctx.token
   }
 
   private async request(path: string, init: RequestInit, allowNotFound = false): Promise<JsonApiDoc | undefined> {
     const token = await this.getAuthorizationToken()
-    try {
-      const response = await fetchWithRetry(accountingUrl(path), {
-        ...init,
-        headers: {
-          Accept: 'application/vnd.api+json',
-          ...(init.body ? { 'Content-Type': 'application/vnd.api+json' } : {}),
-          Authorization: `Bearer ${token}`,
-          ...init.headers,
-        },
-      })
-      if (allowNotFound && response.status === 404) {
-        return undefined
-      }
-
-      const body = await parseJsonBody<JsonApiDoc>(response)
-
-      if (!response.ok) {
-        throw toError(response.status, body?.errors, 'Accounting service error')
-      }
-
-      return body
-
-    } catch (cause) {
-      // Network or other unexpected error
-      throw internalError('Failed to fetch accounting data', { cause })
+    
+    const response = await fetchWithRetry(accountingUrl(path), {
+      ...init,
+      headers: {
+        Accept: 'application/vnd.api+json',
+        ...(init.body ? { 'Content-Type': 'application/vnd.api+json' } : {}),
+        Authorization: `Bearer ${token}`,
+        ...init.headers,
+      },
+    })
+    
+    if (allowNotFound && response.status === 404) {
+      return undefined
     }
+
+    const body = await parseJsonBody<JsonApiDoc>(response)
+
+    if (!response.ok) {
+      throw toError(response.status, body?.errors, 'Accounting service error')
+    }
+
+    return body
   }
 
   public async findCurrencyByCode(code: string): Promise<Currency | undefined> {
@@ -168,7 +157,7 @@ class AccountingClient {
     return resource as Currency
   }
 
-  public async updateCurrency(currencyCode: string, attributes: Record<string, unknown>): Promise<Currency> {
+  public async updateCurrency(currencyCode: string, currencyId: string, attributes: Record<string, unknown>): Promise<Currency> {
     const response = await this.request(
       `/${currencyCode}/currency`,
       {
@@ -176,7 +165,7 @@ class AccountingClient {
         body: JSON.stringify({
           data: {
             type: 'currencies',
-            id: currencyCode,
+            id: currencyId,
             attributes,
           },
         }),

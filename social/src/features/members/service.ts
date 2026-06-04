@@ -131,17 +131,17 @@ const syncAccountStatus = async (ctx: AuthContext, member: Member, currencyCode:
   const accounting = createAccountingClient(ctx)
   
   // Get or create account.
-  let account: Account
+  let account: Account | undefined
   if (member.accountId) {
     account = await accounting.getAccount(currencyCode, member.accountId)
-    if (!account) {
-      throw badRequest(`Linked account ${getAccountingAccountUrl(currencyCode, member.accountId)} for member ${member.id} (${member.code}) not found in accounting service`)
-    }
   } else {
+    // Just in case the member has an account but the accountId is not set, 
+    // try to find it by code before creating a new one.
+    account = await accounting.findAccountByCode(currencyCode, member.code)
+    
     const users = await getMemberUserIds(member)
     account = await accounting.createAccount(currencyCode, {
       code: member.code,
-      status
     }, users)
   }
 

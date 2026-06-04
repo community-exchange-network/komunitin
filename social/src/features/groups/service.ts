@@ -246,7 +246,7 @@ const syncCurrencyStatus = async (ctx: AuthContext, group: Group, status: Curren
   }
   // Update currency status if needed
   if (currency.status !== status) {
-    currency = await accounting.updateCurrency(currencyCode, {
+    currency = await accounting.updateCurrency(currencyCode, currency.id, {
       status,
     })
   }

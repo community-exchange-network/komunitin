@@ -1,4 +1,4 @@
-import { getAuthorizationHeader, getAuthScopes, getAuthUserId, getOptionalAuthUserId, isSuperadmin } from "./auth"
+import { getAuthorizationHeader, getAuthScopes, getAuthToken, getAuthUserId, getOptionalAuthUserId, isSuperadmin } from "./auth"
 import type { Request } from "express"
 import { unauthorized } from "../utils/error"
 
@@ -9,13 +9,13 @@ type BaseContext = {
 
 export type AuthContext = BaseContext & {
   userId: string
-  authorization: string
+  token: string
 }
 
 export type AnonContext = BaseContext & {
   isSuperadmin: false
   userId?: undefined
-  authorization?: string
+  token?: string
 }
 
 export type OptionalAuthContext = AuthContext | AnonContext
@@ -24,15 +24,10 @@ export type OptionalAuthContext = AuthContext | AnonContext
  * To be used by functions that require an authenticated user.
  */
 export const getAuthContext = (req: Request): AuthContext => {
-  const authorization = getAuthorizationHeader(req)
-  if (!authorization) {
-    throw unauthorized('Missing authorization header')
-  }
-
   return {
     userId: getAuthUserId(req),
     isSuperadmin: isSuperadmin(req),
-    authorization,
+    token: getAuthToken(req),
     scopes: getAuthScopes(req),
   }
 }
@@ -42,25 +37,18 @@ export const getAuthContext = (req: Request): AuthContext => {
  */
 export const getOptionalAuthContext = (req: Request): OptionalAuthContext => {
   const userId = getOptionalAuthUserId(req)
-  const authorization = getAuthorizationHeader(req)
-  const scopes = getAuthScopes(req)
-  // Using this somewhat weird pattern to satisfy TypeScript.
-  if (userId !== undefined) {
-    if (!authorization) {
-      throw unauthorized('Missing authorization header')
-    }
 
+  if (userId !== undefined) {
     return {
       userId,
       isSuperadmin: isSuperadmin(req),
-      authorization,
-      scopes,
+      token: getAuthToken(req),
+      scopes: getAuthScopes(req),
     }
   }
 
   return {
     isSuperadmin: false,
-    authorization,
-    scopes,
+    scopes: [],
   }
 }
