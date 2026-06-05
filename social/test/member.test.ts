@@ -5,7 +5,13 @@ import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/auth'
 import { auth } from './mocks/auth'
-import { getAccountingRequestPaths, resetMockState, seedAccountingAccount, seedAccountingCurrency } from './mocks/handlers'
+import {
+  getAccountingRequestPaths,
+  getNotificationsEvents,
+  resetMockState,
+  seedAccountingAccount,
+  seedAccountingCurrency,
+} from './mocks/handlers'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
@@ -260,6 +266,11 @@ describe('Members endpoints', () => {
       .expect(200)
 
     assert.strictEqual(res.body.data.attributes.status, 'pending')
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'MemberRequested')
+    assert.strictEqual(events[0].data.attributes.code, 'members-submit')
+    assert.strictEqual(typeof events[0].data.attributes.data.member, 'string')
   })
 
   test('PATCH /:code/members/:member allows pending to active by admin only', async () => {
@@ -315,6 +326,10 @@ describe('Members endpoints', () => {
       getAccountingRequestPaths(),
       [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
     )
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'MemberJoined')
+    assert.strictEqual(events[0].data.attributes.code, 'members-approve')
   })
 
   test('PATCH /:code/members/:member adopts existing accounting account by member code', async () => {
@@ -415,6 +430,7 @@ describe('Members endpoints', () => {
         `PATCH /${currency.code}/accounts/${account.id}`,
       ],
     )
+    assert.strictEqual(getNotificationsEvents().length, 0)
   })
 
   test('PATCH /:code/members/:member allows suspend and resume only by group admin', async () => {

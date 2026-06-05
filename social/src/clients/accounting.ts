@@ -1,6 +1,7 @@
 import { config } from '../config'
 import { AuthContext } from '../server/context'
-import { badRequest, forbidden, internalError, unauthorized } from '../utils/error'
+import { internalError } from '../utils/error'
+import { fetchWithRetry } from './utils'
 
 type JsonApiError = {
   status: string
@@ -58,23 +59,6 @@ const parseJsonBody = async <T>(response: Response): Promise<T | undefined> => {
   return response.headers.get('content-type')?.includes('json')
     ? await response.json() as T
     : undefined
-}
-
-
-const fetchWithRetry = async (input: string | URL | Request, init?: RequestInit, retries = 3, retryDelay = 1000): Promise<Response> => {
-  try {
-    return await fetch(input, init)
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      // Don't retry aborted requests
-      throw error
-    }
-    if (retries > 0) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelay))
-      return fetchWithRetry(input, init, retries - 1, retryDelay * 2)
-    }
-    throw error
-  }
 }
 
 // Merge attributes into top-level of resource for convenience.

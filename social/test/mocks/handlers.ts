@@ -25,9 +25,20 @@ type AccountingRequest = {
 }
 
 const accountingBaseUrl = process.env.ACCOUNTING_URL ?? 'http://localhost:2025'
+const notificationsBaseUrl = process.env.NOTIFICATIONS_API_URL ?? 'http://notifications.test'
 let accountingCurrencies = new Map<string, MockCurrency>()
 let accountingAccounts = new Map<string, Map<string, MockAccount>>()
 let accountingRequests: AccountingRequest[] = []
+let notificationsEventStatus = 201
+let notificationsEvents: unknown[] = []
+
+type NotificationsRequest = {
+  method: string
+  path: string
+  authorization: string | null
+}
+
+let notificationsRequests: NotificationsRequest[] = []
 
 export const setS3UploadStatus = (status: number) => {
   s3UploadStatus = status
@@ -80,6 +91,18 @@ export const getAccountingRequestPaths = (): string[] => {
   return accountingRequests.map((entry) => `${entry.method} ${entry.path}`)
 }
 
+export const setNotificationsEventStatus = (status: number) => {
+  notificationsEventStatus = status
+}
+
+export const getNotificationsRequests = (): NotificationsRequest[] => {
+  return [...notificationsRequests]
+}
+
+export const getNotificationsEvents = (): unknown[] => {
+  return [...notificationsEvents]
+}
+
 const jsonApiError = (status: number, detail: string) => {
   return HttpResponse.json({
     errors: [{ status: String(status), detail }],
@@ -124,6 +147,9 @@ export const resetMockState = () => {
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
   accountingRequests = []
+  notificationsEventStatus = 201
+  notificationsEvents = []
+  notificationsRequests = []
 }
 
 export const handlers = [
@@ -309,6 +335,38 @@ export const handlers = [
     return HttpResponse.json({
       data: serializeAccount(account),
     })
+  }),
+  http.post(`${notificationsBaseUrl}/events`, async ({ request }) => {
+    const authorization = request.headers.get('authorization')
+    notificationsRequests.push({
+      method: request.method,
+      path: new URL(request.url).pathname,
+      authorization,
+    })
+
+    if (notificationsEventStatus >= 400) {
+      return HttpResponse.json({
+        errors: [{ status: String(notificationsEventStatus), detail: 'Mock notifications failure' }],
+      }, { status: notificationsEventStatus })
+    }
+
+    const expectedBasic = `Basic ${Buffer.from(`${process.env.NOTIFICATIONS_API_USERNAME}:${process.env.NOTIFICATIONS_API_PASSWORD}`).toString('base64')}`
+    if (authorization !== expectedBasic) {
+      return jsonApiError(401, 'Missing or invalid notifications authorization header')
+    }
+
+    const body = await request.json() as Record<string, unknown>
+    notificationsEvents.push(body)
+
+    return HttpResponse.json({
+      data: {
+        type: 'events',
+        id: 'mock-event-id',
+        attributes: {
+          name: (body.data as any)?.attributes?.name,
+        },
+      },
+    }, { status: 201 })
   }),
   http.put('http://s3.test/:bucket/:key*', async ({ request }) => {
     if (s3UploadStatus >= 400) {
