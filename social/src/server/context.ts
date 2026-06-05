@@ -1,9 +1,9 @@
-import { getAuthorizationHeader, getAuthScopes, getAuthToken, getAuthUserId, getOptionalAuthUserId, isSuperadmin } from "./auth"
+import { getAuthScopes, getAuthToken, getAuthUserId, getOptionalAuthUserId } from "./auth"
 import type { Request } from "express"
-import { unauthorized } from "../utils/error"
 
 type BaseContext = {
   isSuperadmin: boolean
+  isSocialReadAll: boolean
   scopes: string[]
 }
 
@@ -20,15 +20,22 @@ export type AnonContext = BaseContext & {
 
 export type OptionalAuthContext = AuthContext | AnonContext
 
+export const Scope = {
+  Superadmin: 'komunitin_superadmin',
+  SocialReadAll: 'komunitin_social_read_all',
+} as const
+
 /**
  * To be used by functions that require an authenticated user.
  */
 export const getAuthContext = (req: Request): AuthContext => {
+  const scopes = getAuthScopes(req)
   return {
     userId: getAuthUserId(req),
-    isSuperadmin: isSuperadmin(req),
+    isSuperadmin: scopes.includes(Scope.Superadmin),
+    isSocialReadAll: scopes.includes(Scope.SocialReadAll),
     token: getAuthToken(req),
-    scopes: getAuthScopes(req),
+    scopes,
   }
 }
 
@@ -37,18 +44,21 @@ export const getAuthContext = (req: Request): AuthContext => {
  */
 export const getOptionalAuthContext = (req: Request): OptionalAuthContext => {
   const userId = getOptionalAuthUserId(req)
+  const scopes = getAuthScopes(req)
 
   if (userId !== undefined) {
     return {
       userId,
-      isSuperadmin: isSuperadmin(req),
+      isSuperadmin: scopes.includes(Scope.Superadmin),
+      isSocialReadAll: scopes.includes(Scope.SocialReadAll),
       token: getAuthToken(req),
-      scopes: getAuthScopes(req),
+      scopes,
     }
   }
 
   return {
     isSuperadmin: false,
-    scopes: [],
+    isSocialReadAll: false,
+    scopes,
   }
 }

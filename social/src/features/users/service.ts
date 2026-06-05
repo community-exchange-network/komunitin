@@ -1,8 +1,10 @@
 import prisma from '../../utils/prisma'
 import { User as DbUser } from '../../generated/prisma/client'
 import type { User, UserSettings, CreateUserInput } from './types'
-import { badRequest, notFound } from '../../utils/error'
+import { badRequest, forbidden, notFound } from '../../utils/error'
 import { privilegedDb } from '../../server/multitenant'
+import { AuthContext } from '../../server/context'
+import { CollectionParams } from '../../server/request'
 
 const castSettings = (settings: unknown): UserSettings | null => {
   if (!settings || typeof settings !== 'object') {
@@ -52,7 +54,10 @@ export const createUser = async ({
   return toUser(user)
 }
 
-export const getUserById = async (id: string): Promise<User> => {
+export const getUserById = async (ctx: AuthContext, id: string): Promise<User> => {
+  if (ctx.userId !== id && !ctx.isSuperadmin && !ctx.isSocialReadAll) {
+    throw forbidden('You can only access your own user resource')
+  }
   const db = privilegedDb(prisma)
   const user = await db.user.findUnique({ where: { id } })
   if (!user) {
@@ -60,4 +65,59 @@ export const getUserById = async (id: string): Promise<User> => {
   }
 
   return toUser(user)
+}
+
+/**
+ * List users provided a list of member IDs.
+ * 
+ * This feature is used by the notifications service and we request the read_all scope.
+ */
+export const listUsers = async (ctx: AuthContext, params: CollectionParams): Promise<User[]> => {
+  
+  const allowed = ctx.isSuperadmin || ctx.isSocialReadAll
+  
+  if (!allowed) {
+    throw forbidden('You do not have permission to list users')
+  }
+
+  const memberIds = Array.isArray(params.filters.members)
+    ? params.filters.members
+    : params.filters.members
+      ? [params.filters.members]
+      : []
+
+  if (memberIds.length === 0) {
+     return []
+  }
+
+  const db = privilegedDb(prisma)
+  const links = await db.memberUser.findMany({
+    where: {
+      memberId: {
+        in: memberIds,
+      },
+    },
+    select: {
+      userId: true,
+    },
+    distinct: ['userId'],
+  })
+
+  const userIds = links.map((link) => link.userId)
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const users = await db.user.findMany({
+    where: {
+      id: {
+        in: userIds,
+      },
+    },
+    orderBy: {
+      created: 'asc',
+    },
+  })
+
+  return users.map(toUser)
 }

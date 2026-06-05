@@ -1,10 +1,11 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
+import { Scope } from '../src/server/context'
 import { signJwt } from './mocks/auth'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { toUuid } from './mocks/utils'
-import { resetDb } from './mocks/seed'
+import { resetDb, seedGroup, seedMember, seedMemberUser, seedUser } from './mocks/seed'
 
 let app: any
 
@@ -158,5 +159,92 @@ describe('Users endpoints', () => {
 
     assert.strictEqual(res.body.data.id, subject)
     assert.strictEqual(res.body.data.attributes.name, 'Self User')
+  })
+
+  test('GET /users allows read-all scope with filter[members] and include=settings', async () => {
+    const tenantId = 'users-filter-members'
+    await seedGroup({ tenantId, status: 'active', access: 'public' })
+
+    const member = await seedMember({
+      tenantId,
+      status: 'active',
+      access: 'public',
+    })
+
+    const linkedUser = await seedUser({
+      id: 'linked-user',
+    })
+
+    await seedMemberUser({
+      tenantId,
+      memberId: member.id,
+      userId: linkedUser.id,
+    })
+
+    await seedUser({
+      id: linkedUser.id,
+      email: 'linked@example.org',
+      name: 'Linked User',
+      settings: {
+        language: 'en',
+        notifications: { myAccount: true, group: true },
+        emails: { myAccount: false, group: 'weekly' },
+      },
+    })
+
+    const serviceToken = await signJwt(toUuid('service-user'), 'service@example.org', Scope.SocialReadAll)
+
+    const res = await request(app)
+      .get(`/users?filter[members]=${member.id}&include=settings`)
+      .set('Authorization', `Bearer ${serviceToken}`)
+      .expect(200)
+
+    assert.strictEqual(Array.isArray(res.body.data), true)
+    assert.strictEqual(res.body.data.some((resource: any) => resource.id === linkedUser.id), true)
+    const linkedUserResource = res.body.data.find((resource: any) => resource.id === linkedUser.id)
+    assert.strictEqual(linkedUserResource.type, 'users')
+    assert.strictEqual(linkedUserResource.attributes.email, 'linked@example.org')
+
+    assert.strictEqual(Array.isArray(res.body.included), true)
+    const linkedSettings = res.body.included.find((resource: any) => resource.type === 'user-settings' && resource.id === linkedUser.id)
+    assert.ok(linkedSettings)
+    assert.strictEqual(linkedSettings.attributes.language, 'en')
+  })
+
+  test('GET /users requires read-all scope', async () => {
+    const token = await signJwt(toUuid('regular-user'), 'regular@example.org')
+
+    await request(app)
+      .get('/users')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403)
+  })
+
+  test('GET /users/:id allows read-all scope cross-user access', async () => {
+    const ownerSubject = toUuid('owner-user')
+    const ownerToken = await signJwt(ownerSubject, 'owner-2@example.org')
+    const serviceToken = await signJwt(toUuid('service-user-2'), 'service-2@example.org', Scope.SocialReadAll)
+
+    await request(app)
+      .post('/users')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        data: {
+          type: 'users',
+          attributes: {
+            email: 'owner-2@example.org',
+            name: 'Owner 2',
+          }
+        }
+      })
+      .expect(200)
+
+    const res = await request(app)
+      .get(`/users/${ownerSubject}`)
+      .set('Authorization', `Bearer ${serviceToken}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.id, ownerSubject)
+    assert.strictEqual(res.body.data.attributes.email, 'owner-2@example.org')
   })
 })

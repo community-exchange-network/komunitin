@@ -42,10 +42,6 @@ const notificationsUrl = (path: string): string => {
   return `${config.NOTIFICATIONS_API_URL}${path}`
 }
 
-const wait = (ms: number): Promise<void> => {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 class NotificationsClient {
   constructor(readonly ctx: AuthContext) {}
 
