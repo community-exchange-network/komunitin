@@ -12,6 +12,7 @@ import { syncResourceFiles } from '../files/service'
 import { fromLocation, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { getMember, isMemberUser, toMember } from '../members/service'
+import { createNotificationsClient } from '../../clients/notifications'
 import type { PostStatus } from './schema'
 import type { CreatePostInput, NeedData, OfferData, PatchPostInput, Post } from './types'
 import { findPostsIds } from './sql'
@@ -241,6 +242,15 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
 
   await syncResourceFiles(code, input.type, created.id, (input.images ?? []).map((image) => image.url))
 
+  if (created.status === 'published') {
+    const notifications = createNotificationsClient(ctx)
+    if (created.type === 'offers') {
+      await notifications.notifyOfferPublished(code, created)
+    } else {
+      await notifications.notifyNeedPublished(code, created)
+    }
+  }
+
   return toPost(created, member)
 }
 
@@ -306,6 +316,15 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
 
   if (input.images !== undefined) {
     await syncResourceFiles(code, post.type, post.id, (input.images ?? []).map((image) => image.url))
+  }
+
+  if (post.status !== 'published' && updated.status === 'published') {
+    const notifications = createNotificationsClient(ctx)
+    if (updated.type === 'offers') {
+      await notifications.notifyOfferPublished(code, updated)
+    } else {
+      await notifications.notifyNeedPublished(code, updated)
+    }
   }
 
   return toPost(updated, toMember(updated.member))

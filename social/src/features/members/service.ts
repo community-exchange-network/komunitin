@@ -12,6 +12,7 @@ import { getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, 
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, PatchMemberInput } from './types'
+import { createNotificationsClient } from '../../clients/notifications'
 
 export const toMember = (member: DbMember & {group?: DbGroup}): Member => {
   return {
@@ -283,6 +284,8 @@ export const patchMember = async (
     ...rest,
     image: toNullableJsonInput(image),
   }
+  let notifyMemberRequested = false
+  let notifyMemberJoined = false
 
   // Status transition.
   if (input.status !== undefined && member.status !== input.status) {
@@ -306,6 +309,13 @@ export const patchMember = async (
     }
 
     // Status transition approved, handle side effects.
+    if (from === 'draft' && to === 'pending') {
+      notifyMemberRequested = true
+    }
+    if (from === 'pending' && to === 'active') {
+      notifyMemberJoined = true
+    }
+
     if (to === 'active' || to === 'disabled' || to === 'suspended') {
       const currencyCode = getCurrencyCode(group)
       const account = await syncAccountStatus(ctx, member, currencyCode, to)
@@ -331,6 +341,16 @@ export const patchMember = async (
 
   if (input.image !== undefined) {
     await syncResourceFiles(code, 'members', member.id, input.image ? [input.image.url] : [])
+  }
+
+  if (notifyMemberRequested || notifyMemberJoined) {
+    const notifications = createNotificationsClient(ctx)
+    if (notifyMemberRequested) {
+      await notifications.notifyMemberRequested(code, updated)
+    }
+    if (notifyMemberJoined) {
+      await notifications.notifyMemberJoined(code, updated)
+    }
   }
 
   return toMember(updated)
