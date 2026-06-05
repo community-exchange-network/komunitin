@@ -1,5 +1,5 @@
 import type { Request } from "express"
-import { getAuthScopes, getAuthToken, getAuthUserId, getOptionalAuthUserId, isSuperadmin } from "./auth"
+import { getAuthScopes, getAuthToken, getAuthUserId, getOptionalAuthUserId } from "./auth"
 
 type BaseContext = {
   isSuperadmin: boolean
