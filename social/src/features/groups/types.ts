@@ -1,5 +1,5 @@
-import type { Group as DbGroup, GroupAdminUser } from '../../generated/prisma/client'
-import type { Access, CreateGroupAttributes, GroupSettings, Contact, Address, Location, GroupStatus } from './schema'
+import type { Group as DbGroup } from '../../generated/prisma/client'
+import type { Access, Address, Contact, CreateGroupAttributes, GroupSettings, GroupStatus, Location } from './schema'
 
 // Input types derived from request schema
 export interface CreateGroupInput {
