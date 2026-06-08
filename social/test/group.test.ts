@@ -381,18 +381,18 @@ describe('Groups endpoints', () => {
       .expect(200)
   })
 
-  test('GET /:code?include=admins includes group admins relationship', async () => {
+  test('GET /:code includes group admins relationship linkage', async () => {
     await seedGroup({ tenantId: 'group-admins-include', status: 'active', access: 'public' })
     const admin = await auth('group-admins-user')
     await seedGroupAdmin({ tenantId: 'group-admins-include', userId: admin.id })
 
     const res = await request(app)
-      .get('/group-admins-include?include=admins')
+      .get('/group-admins-include')
       .expect(200)
 
     assert.strictEqual(res.body.data.relationships.admins.data.some((resource: any) => resource.id === admin.id), true)
-    assert.strictEqual(Array.isArray(res.body.included), true)
-    assert.strictEqual(res.body.included.some((resource: any) => resource.type === 'users' && resource.id === admin.id), true)
+    // Not including admins as included resources.
+    assert.strictEqual(Array.isArray(res.body.included) && res.body.included.some((resource: any) => resource.type === 'users' && resource.id === admin.id), false)
   })
 
   test('GET /:code allows read-all scope for pending private group', async () => {

@@ -20,7 +20,7 @@ export const postGroups: RequestHandler = async (req, res) => {
     settings,
     currency,
   })
-  const params = getResourceParams(req, { include: ['settings', 'currency', 'admins'] })
+  const params = getResourceParams(req, { include: ['settings', 'currency'] })
   const payload = await serializeGroup(group, params)
   res.status(201).json(payload)
 }
@@ -30,7 +30,7 @@ export const getGroups: RequestHandler = async (req, res) => {
   const params = getCollectionParams(req, {
     filter: ['code', 'name', 'status', 'access', 'search'],
     sort: ['created', 'updated', 'name', 'code', 'distance'],
-    include: ['settings', 'currency', 'admins'],
+    include: ['settings', 'currency'],
   })
 
   const groups = await listGroups(ctx, params)
@@ -43,7 +43,7 @@ export const getGroups: RequestHandler = async (req, res) => {
 export const getGroupByCodeRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
-  const params = getResourceParams(req, { include: ['settings', 'currency', 'admins'] })
+  const params = getResourceParams(req, { include: ['settings', 'currency'] })
 
   const group = await getGroupByCode(ctx, code)
 
