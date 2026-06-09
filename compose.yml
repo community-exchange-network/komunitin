@@ -114,6 +114,7 @@ services:
     volumes:
       - "integralces-sites:/var/www/html/sites"
       - "../ices:/var/www/html/sites/all/modules/ices"
+      - "./integralces/php.ini:/usr/local/etc/php/conf.d/uploads.ini"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
