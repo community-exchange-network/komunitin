@@ -44,6 +44,9 @@
 .bg-failed {
   background: $failed;
 }
+.bg-primary-container {
+  background: $primary-container;
+}
 
 // 2. custom foreground colors
 .text-onprimary {
@@ -69,6 +72,9 @@
 }
 .text-onoutside-m {
   color: $onoutside-m;
+}
+.text-muted {
+  color: $muted;
 }
 .text-icon-dark {
   color: $icon-dark;
