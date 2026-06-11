@@ -44,7 +44,7 @@
       show-if-above
     >
       <div class="column">
-        <div class="q-px-md q-py-sm text-serif text-bold text-subtitle1 text-onsurface-h">{{ $t("filters") }}</div>
+        <div class="q-px-md q-pt-md q-pb-sm text-serif text-bold text-subtitle1 text-onsurface-h">{{ $t("filters") }}</div>
         <q-separator />
         <div class="q-pa-md q-gutter-sm">
           <p class="text-caption-sm text-uppercase text-weight-bold text-onsurface-m">{{ $t("dateRange") }}</p>

@@ -247,6 +247,8 @@ $display-serif-family : 'Lora', Georgia, 'Times New Roman', serif;
 $surface: #ffffff;
 $surface-container-h: $linen-dark;
 
+$primary-container: $ember-dark;
+
 // Secondary colors
 $kblue: $secondary; //offers
 $kred: $primary; //wants
@@ -286,6 +288,8 @@ $onsurface: rgba(30, 26, 20, 0.87); // Soil at 87% — high emphasis text on lig
 $onsurface-m: rgba(30, 26, 20, 0.60); // Soil at 60% — medium emphasis text on light bg
 // Color for text on surface / disabled
 $onsurface-d: rgba(30, 26, 20, 0.38); // Soil at 38% — disabled text on light bg
+
+$muted: $soil-muted;
 
 // Currency  colors
 $positive-amount: $primary;
