@@ -163,15 +163,15 @@ jobs:
         && cd komunitin && git pull
         && docker compose down -v --remove-orphans
         && ./start.sh --up --ices --demo --public"
-    - name: Deploy preview.komunitin.org
+- name: Deploy preview.komunitin.org
       if: github.event_name == 'pull_request'
-      run: > 
-        ssh-keyscan -H preview.komunitin.org >> ~/.ssh/known_hosts &&
-        ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@preview.komunitin.org
-        "cd /opt/preview.komunitin.org
-        && cd ices && git pull && cd ..
-        && cd komunitin && git fetch origin && git checkout origin/${{ github.head_ref }}
-        && docker compose down -v --remove-orphans
+      run: |
+        ssh-keyscan -H preview.komunitin.org >> ~/.ssh/known_hosts
+        ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@preview.komunitin.org \
+        "cd /opt/preview.komunitin.org \
+        && cd ices && git pull && cd .. \
+        && cd komunitin && git fetch origin && git checkout origin/${{ github.head_ref }} \
+        && docker compose down -v --remove-orphans \
         && ./start.sh --up --ices --demo --public"
     - name: Deploy staging.komunitin.org
       if: github.ref == 'refs/heads/master'
