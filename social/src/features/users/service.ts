@@ -81,6 +81,10 @@ export const listUsers = async (ctx: AuthContext, params: CollectionParams): Pro
     throw forbidden('You do not have permission to list users')
   }
 
+  if (!params.filters.members) {
+    throw badRequest('Filtering by member id(s) is required to list users')
+  }
+
   const memberIds = Array.isArray(params.filters.members)
     ? params.filters.members
     : params.filters.members
