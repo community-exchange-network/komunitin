@@ -152,7 +152,7 @@
   "offerTitleRequired": "Entra un títol",
   "offerDescriptionHint": "Explica la teva oferta amb detall",
   "offerDescriptionRequired": "Entra una descripció de la oferta de més de 10 caràcters",
-  "offerPriceHint": "Entra un número ex '10' o '15 ¤/hora', qualsevol text com 'contacta'm' o 'depèn de la peça'",
+  "offerPriceHint": "Entra un número ex '10' o '15 {symbol}/hora', qualsevol text com 'contacta'm' o 'depèn de la peça'",
   "offerPriceRequired": "Entra un valor",
   "offerExpirationDateHint": "Data en la que l'oferta deixarà d'estar activa",
   "offerPublishedHint": "Fa que l'oferta sigui visible per a que els altres membres la vegin",

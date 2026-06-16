@@ -151,7 +151,7 @@
   "offerTitleRequired": "A title is required",
   "offerDescriptionHint": "Provide here all the details for other members to understand your offer",
   "offerDescriptionRequired": "Explain your offer with some detail",
-  "offerPriceHint": "Enter just a number eg '10', or '15 ¤/hour', or anything like 'depends on piece' or 'contact-me'",
+  "offerPriceHint": "Enter just a number eg '10', or '15 {symbol}/hour', or anything like 'depends on piece' or 'contact-me'",
   "offerPriceRequired": "A value is required",
   "offerExpirationDateHint": "The date when your offer will expire",
   "offerPublishedHint": "Make this offer visible to other members",
