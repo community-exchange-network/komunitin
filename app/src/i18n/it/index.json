@@ -153,7 +153,7 @@
   "offerTitleRequired": "Un titolo è richiesto",
   "offerDescriptionHint": "Inserisci qui la descrizione del tuo annuncio.",
   "offerDescriptionRequired": "Spiega la tua offerta con qualche dettaglio",
-  "offerPriceHint": "Inserisci un valore numerico, o 'contattami'",
+  "offerPriceHint": "Inserisci solo un numero es. '10', o '15 {symbol}/ora', o qualsiasi testo come 'dipende dal pezzo' o 'contattami'",
   "offerPriceRequired": "Il valore è obbligatorio",
   "offerExpirationDateHint": "La data oltre la quale il tuo annuncio sarà eliminato",
   "offerPublishedHint": "Rendi visibile l'annuncio agli altri membri",

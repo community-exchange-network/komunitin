@@ -54,7 +54,7 @@
         type="text"
         name="price"
         :label="$t('price')"
-        :hint="$t('offerPriceHint')"
+        :hint="$t('offerPriceHint', { symbol: currency.attributes.symbol })"
         outlined
         :rules="[(v) => !!v || $t('offerPriceRequired')]"
       >

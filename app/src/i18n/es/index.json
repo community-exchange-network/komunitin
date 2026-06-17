@@ -153,7 +153,7 @@
   "offerTitleRequired": "Entra un título",
   "offerDescriptionHint": "Explica tu oferta con detalle",
   "offerDescriptionRequired": "Entra una descripción de la oferta de mínimo 10 caracteres",
-  "offerPriceHint": "Entra sólo un número ej '10', o '15 ¤/hora', cualquier texto como 'contactar' o 'depende de la pieza'",
+  "offerPriceHint": "Entra sólo un número ej '10', o '15 {symbol}/hora', cualquier texto como 'contactar' o 'depende de la pieza'",
   "offerPriceRequired": "Entra un valor",
   "offerExpirationDateHint": "Fecha en la que la oferta dejará de estar activa",
   "offerPublishedHint": "Define si la oferta es visible para que el resto de miembros puedan verla",
