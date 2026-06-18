@@ -33,13 +33,14 @@
 
         <div
           v-if="group"
-          class="row q-col-gutter-md"
+          class="row"
         >
           <!-- image -->
           <div class="col-4 q-px-md">
             <div class="q-mx-auto" style="max-width: 152px; line-height: 0;">
               <fit-text update>
                 <avatar
+                  class="group-avatar"
                   size="inherit"
                   :text="group.attributes.name"
                   :img-src="group.attributes.image"
@@ -50,27 +51,28 @@
 
           <!-- description -->
           <div class="col column">
-            <div class="text-h6">
+            <div class="text-h5 text-serif text-bold">
               {{ group.attributes.code }}
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
               ref="descriptionRef"
               class="text-onsurface-m"
-              :class="isDescriptionOpen ? '' : 'ellipsis-3-lines'"
+              :class="isDescriptionOpen ? '' : 'ellipsis-2-lines'"
               v-html="md2html(group.attributes.description)"
             />
 
-            <q-btn
-              v-if="canToggleDescription"
-              flat
-              round
-              dense
-              :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
-              style="margin-left:auto;"
-              @click="toggleDescription"
-            />
           </div>
+        </div>
+        <div class="row justify-center q-mt-sm">
+          <q-btn
+            v-if="canToggleDescription"
+            flat
+            class="toggle-button"
+            dense
+            :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
+            @click="toggleDescription"
+          />
         </div>
         <!-- sub-page navigation -->
         <nav
@@ -103,7 +105,6 @@
         >
           <div class="col-12 col-sm-6 col-lg-8">
             <q-card
-              square
               flat
             >
               <simple-map
@@ -205,7 +206,7 @@ const { resources: members, loadAll: loadAllMembers } = useAllResources('members
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;
 };
-const calculateDescriptionOverflow = async (maxLines = 3) => {
+const calculateDescriptionOverflow = async (maxLines = 2) => {
   await nextTick();
 
   const el = descriptionRef.value;
@@ -242,3 +243,13 @@ watch(
   { immediate: true }
 );
 </script>
+
+<style lang="scss" scoped>
+.group-avatar {
+  outline: 3px solid white;
+  box-shadow: $shadow-4;
+}
+.toggle-button {
+  background: $background;
+}
+</style>
