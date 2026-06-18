@@ -115,7 +115,7 @@
                 :marker="marker"
                 :bounds="memberMarkers"
               >
-                <l-marker
+                <styled-marker
                   v-for="(memberMarker, i) of memberMarkers"
                   :key="i"
                   :lat-lng="memberMarker"
@@ -153,7 +153,6 @@
 import { computed, ref, watch, nextTick } from 'vue';
 import { useStore } from 'vuex';
 
-import { LMarker } from '@vue-leaflet/vue-leaflet';
 import type { LatLngExpression } from 'leaflet';
 
 import md2html from '../../plugins/Md2html';
@@ -167,6 +166,7 @@ import SocialNetworkList from '../../components/SocialNetworkList.vue';
 import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
 import NavCard from '../../components/NavCard.vue';
+import StyledMarker from 'src/components/StyledMarker.vue';
 
 import type { Group, Contact, Member } from '../../store/model';
 import { useAllResources, useResource } from 'src/composables/useResources';

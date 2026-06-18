@@ -98,7 +98,12 @@
   color: $negative-amount;
 }
 
-// 3. Custom typography classes
+// 3. Custom fill colors
+.fill-primary {
+  fill: $primary;
+}
+
+// 4. Custom typography classes
 .text-serif {
   font-family: $display-serif-family;
 }
@@ -111,12 +116,12 @@
   line-height: 1rem;
 }
 
-// 4. Custom icon weights and fills
+// 5. Custom icon weights and fills
 .material-symbols-rounded {
   font-variation-settings: 'FILL' 1, 'wght' 800, 'opsz' 40 !important;
 }
 
-// 5. Custom component classes
+// 6. Custom component classes
 // 'Actual' app bg, so we can change the html/body bg for better visibility on xl screens
 #q-app #container:first-child {
   background: $light-background;
@@ -166,7 +171,7 @@ aside.q-drawer:has(.rounded-drawer-right) {
   border-bottom-right-radius: $generic-border-radius !important;
 }
 
-// 6. General purpose helper classes
+// 7. General purpose helper classes
 // Align flat button content with the start of the content, as with card action buttons.
 .k-inset-actions-md {
   margin-left: -8px;
