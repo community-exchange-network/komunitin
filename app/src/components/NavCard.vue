@@ -1,15 +1,17 @@
 <template>
   <q-card
-    flat
-    class="transition-all bg-active text-onsurface-m q-hoverable cursor-pointer"
+    class="transition-all bg-white text-onsurface-m q-hoverable cursor-pointer q-py-sm"
   >
     <span class="q-focus-helper"></span>
     <q-card-section class="text-center">
-      <q-icon
-        :name="props.icon"
-        size="sm"
+      <q-avatar 
+        rounded 
+        :color="props.iconColor" 
+        :icon="props.icon"
+        size="lg"
       />
-      <div class="text-body2 text-weight-medium">
+
+      <div class="text-weight-medium text-onsurface q-mt-sm">
         {{ props.label }}
       </div>
     </q-card-section>
@@ -17,5 +19,5 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ label: string, icon: string }>()
+const props = defineProps<{ label: string, icon: string, iconColor: string }>()
 </script>

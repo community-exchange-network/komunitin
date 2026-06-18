@@ -85,6 +85,7 @@
           >
             <nav-card
               icon="people"
+              icon-color="accent-muted"
               :label="membersLabel"
             />
           </router-link>
@@ -94,7 +95,8 @@
             class="col-6"
           >
             <nav-card
-              icon="insert_chart"
+              icon="bar_chart"
+              icon-color="background"
               :label="$t('statistics')"
             />
           </router-link>
