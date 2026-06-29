@@ -118,6 +118,7 @@
   "enterNeedData": "Què necessites?",
   "needFormHelpText": "Omple els camps següents per a crear una necessitat que es publicarà a la comunitat d'intercanvi.",
   "uploadImages": "Afegeix imatges",
+  "imageProcessingError": "No s'ha pogut processar la imatge. Tria una altra imatge.",
   "uploadNeedImagesHint": "Selecciona imatges que ajudin a entendre la teva necessitat.",
   "needDescriptionHint": "Explica la teva necessitat amb detall.",
   "category": "Categoria",
