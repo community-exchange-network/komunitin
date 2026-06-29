@@ -96,7 +96,8 @@ export function getRoutes(controller: BaseService) {
   // Download accounts as CSV
   router.get('/:code/accounts.csv', userAuth([Scope.Accounting, Scope.Superadmin]),
     currencyCollectionCsvHandler(controller, async (currencyController, ctx, params) => {
-      return await currencyController.accounts.getAccounts(ctx, params)
+      const accounts = await currencyController.accounts.getAccounts(ctx, params)
+      return accounts
     }, {
       filter: ["status"],
       sort: ["code", "balance", "creditLimit", "maximumBalance", "created", "updated"],

@@ -1,6 +1,6 @@
 import { Context } from "../utils/context";
 import { AccountStatsOptions, StatsOptions } from "../server/request";
-import { Stats, StatsInterval } from "../model/stats";
+import { AccountsStats, Stats, StatsInterval } from "../model/stats";
 import { Prisma } from "@prisma/client";
 import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant";
 import { StatsPublicService } from "./api";
@@ -385,6 +385,33 @@ export class StatsControllerImpl implements StatsPublicService {
       values
     }
 
+  }
+
+  /**
+   * Return the number of transfers either sent or received by each account in the period provided by the "from" and "to" parameters.
+   * @param ctx 
+   * @param params 
+   */
+  public async getAccountsTransfers(ctx: Context, params: StatsOptions): Promise<AccountsStats> {
+    const { from, to } = params
+    const toDate = to ?? new Date()
+    const fromDate = from ?? this.truncateDate(await this.getFirstAccountDate(), 'P1D')
+
+    const result = await this.db().$queryRaw`
+      SELECT a."id" AS "account", COUNT(t."id") AS "count"
+      FROM "Account" a
+      LEFT JOIN "Transfer" t ON (t."payerId" = a."id" OR t."payeeId" = a."id")
+        AND t."updated" >= ${fromDate} AND t."updated" < ${toDate}
+        AND t."state" = 'committed'
+      ` as Array<{ account: string, count: number }>;
+    
+    const values = Object.fromEntries(result.map(({account, count}) => [account, Number(count)]))
+    
+    return {
+      from: fromDate,
+      to: toDate,
+      values
+    }
   }
 
   
