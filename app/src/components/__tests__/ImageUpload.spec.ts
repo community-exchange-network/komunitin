@@ -65,6 +65,33 @@ function stubDecodedImage(width: number, height: number) {
   return bitmap
 }
 
+function stubFailingFallbackDecode() {
+  const objectUrl = "blob:failed"
+  const createObjectURL = vi.fn(() => objectUrl)
+  const revokeObjectURL = vi.fn()
+
+  class FailingImage {
+    onload: (() => void) | null = null
+    onerror: (() => void) | null = null
+
+    set src(_value: string) {
+      this.onerror?.()
+    }
+  }
+
+  vi.stubGlobal("createImageBitmap", vi.fn(async () => {
+    throw new Error("Bitmap decoding failed")
+  }))
+  vi.stubGlobal("URL", {
+    ...URL,
+    createObjectURL,
+    revokeObjectURL
+  })
+  vi.stubGlobal("Image", FailingImage)
+
+  return { createObjectURL, objectUrl, revokeObjectURL }
+}
+
 describe("image upload utilities", () => {
   beforeEach(() => {
     installCanvasMocks()
@@ -116,31 +143,11 @@ describe("image upload utilities", () => {
   })
 
   it("revokes fallback object urls when image decoding fails", async () => {
-    const createObjectURL = vi.fn(() => "blob:failed")
-    const revokeObjectURL = vi.fn()
-    class FailingImage {
-      onload: (() => void) | null = null
-      onerror: (() => void) | null = null
-
-      set src(_value: string) {
-        this.onerror?.()
-      }
-    }
-
-    vi.stubGlobal("createImageBitmap", vi.fn(async () => {
-      throw new Error("Bitmap decoding failed")
-    }))
-    vi.stubGlobal("URL", {
-      ...URL,
-      createObjectURL,
-      revokeObjectURL
-    })
-    vi.stubGlobal("Image", FailingImage)
-
+    const { createObjectURL, objectUrl, revokeObjectURL } = stubFailingFallbackDecode()
     const original = new File(["original"], "broken.jpg", { type: "image/jpeg" })
 
     await expect(resizeImageToWebp(original)).rejects.toThrow("decode image")
     expect(createObjectURL).toHaveBeenCalledWith(original)
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:failed")
+    expect(revokeObjectURL).toHaveBeenCalledWith(objectUrl)
   })
 })

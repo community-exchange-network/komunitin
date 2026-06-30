@@ -9,7 +9,15 @@ import {
 import { mountComponent, waitFor } from "../../../test/vitest/utils"
 import { createMockImageFile, mockImageUploadProcessing } from "../../../test/vitest/utils/mockImageUpload"
 
-const uploadFile = async (wrapper: Awaited<ReturnType<typeof mountComponent>>, file: File) => {
+type MountedComponent = Awaited<ReturnType<typeof mountComponent>>
+
+const lastUploadedImageUrl = (wrapper: MountedComponent) => {
+  const modelUpdateEvents: [string[]][] = wrapper.emitted("update:modelValue") ?? []
+  const lastImageUrls = modelUpdateEvents.at(-1)?.[0]
+  return lastImageUrls?.at(-1)
+}
+
+const uploadFile = async (wrapper: MountedComponent, file: File) => {
   const input = wrapper.get("input[type='file']")
   Object.defineProperty(input.element, "files", {
     configurable: true,
@@ -53,7 +61,7 @@ describe("image upload fields", () => {
     await uploadFile(wrapper, originalImage)
 
     await waitFor(
-      () => wrapper.emitted("update:modelValue")?.at(-1)?.[0]?.[0],
+      () => lastUploadedImageUrl(wrapper),
       "https://files.example/offer-photo.webp",
       "ImageField should emit the uploaded image url"
     )
