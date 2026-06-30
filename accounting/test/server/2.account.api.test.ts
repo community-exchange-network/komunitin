@@ -4,6 +4,7 @@ import { config } from "../../src/config"
 import { Scope } from "../../src/server/auth"
 import { validate as isUuid } from "uuid"
 import { testCurrency } from "./api.data"
+import { seedCsvStatsTransfers } from "./db"
 import { setupServerTest } from "./setup"
 
 describe('Accounts endpoints', async () => {
@@ -12,6 +13,8 @@ describe('Accounts endpoints', async () => {
   const admin = { user: "1", scopes: [Scope.Accounting] }
   const user2 = { user: "2", scopes: [Scope.Accounting] }
   const user3 = { user: "3", scopes: [Scope.Accounting] }
+
+  const csvRows = (text: string) => text.split('\n').filter(line => line.trim().length > 0).map(line => line.split(','))
 
   before(async () => {
     // Create currency TEST
@@ -199,10 +202,15 @@ describe('Accounts endpoints', async () => {
   })
 
   it('admin can download CSV', async() => {
+    await seedCsvStatsTransfers("TEST", account0.id, account1.id, admin.user)
     const response = await t.api.get(`/TEST/accounts.csv`, admin, 200, 'text/csv')
     assert.equal(response.headers['content-disposition'], 'attachment; filename="accounts.csv"')
-    const lines = response.text.split('\n').filter(line => line.trim().length > 0).map(line => line.split(','))
-    assert.deepEqual(lines[0], ['id', 'created', 'updated', 'code', 'status', 'balance', 'creditLimit', 'maximumBalance', 'key', 'user.id'])
+    const lines = csvRows(response.text)
+    const currentYear = new Date().getUTCFullYear()
+    assert.deepEqual(lines[0], [
+      'id', 'created', 'updated', 'code', 'status', 'balance', 'creditLimit', 'maximumBalance', 'key', 'user.id',
+      `transfers.${currentYear}`, `transfers.${currentYear - 1}`, `transfers.${currentYear - 2}`
+    ])
     assert.equal(lines.length, 4) // header + 3 accounts
     assert.equal(lines[1][3], 'TEST0001')
     assert.equal(lines[2][3], 'TEST1000')
@@ -212,6 +220,34 @@ describe('Accounts endpoints', async () => {
     assert.equal(lines[1][5], '0.00')
     assert.equal(lines[1][6], '0.10')
     assert.equal(lines[1][7], '10.00')
+  })
+
+  it('admin can request yearly transfer stats in accounts CSV fields', async() => {
+    const response = await t.api.get(`/TEST/accounts.csv?csvfields=code,transfers.2025`, admin, 200, 'text/csv')
+    const lines = csvRows(response.text)
+    assert.deepEqual(lines[0], ['code', 'transfers.2025'])
+    assert.deepEqual(Object.fromEntries(lines.slice(1).map(line => [line[0], line[1]])), {
+      TEST0001: "2",
+      TEST1000: "2",
+      TEST2000: "0",
+    })
+  })
+
+  it('admin can request date range transfer stats in accounts CSV fields', async() => {
+    const response = await t.api.get(`/TEST/accounts.csv?csvfields=code,transfers.2024_2025,transfers.2024-06_2024-07,transfers.2024-06-15_2024-06-16`, admin, 200, 'text/csv')
+    const lines = csvRows(response.text)
+    assert.deepEqual(lines[0], ['code', 'transfers.2024_2025', 'transfers.2024-06_2024-07', 'transfers.2024-06-15_2024-06-16'])
+
+    const rows = Object.fromEntries(lines.slice(1).map(line => [line[0], line.slice(1)]))
+    assert.deepEqual(rows.TEST0001, ["2", "1", "1"])
+    assert.deepEqual(rows.TEST1000, ["2", "1", "1"])
+    assert.deepEqual(rows.TEST2000, ["0", "0", "0"])
+  })
+
+  it('rejects invalid transfer stat fields in accounts CSV', async() => {
+    await t.api.get(`/TEST/accounts.csv?csvfields=code,transfers.ytd`, admin, 400)
+    await t.api.get(`/TEST/accounts.csv?csvfields=code,transfers.bad`, admin, 400)
+    await t.api.get(`/TEST/accounts.csv?csvfields=code,transfers_2025`, admin, 400)
   })
   
   it('user cannot delete other accounts', async () => {
