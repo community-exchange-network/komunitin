@@ -83,7 +83,6 @@ import { computed, ref, useTemplateRef, watch } from 'vue'
 import type { QUploader } from 'quasar'
 import ImageFieldItem from './ImageFieldItem.vue'
 import { imageFile, notifyImageError, useImageUploaderProcessing, useUploaderSettings } from '../composables/uploader'
-import type { ImageFile } from '../composables/uploader'
 
 const props = defineProps<{
   modelValue: string[],
@@ -111,8 +110,8 @@ const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
   uploader.value?.removeUploadedFiles()
 }
 
-const failed = ({files}: {files: ImageFile[]}) => {
-  files.forEach(file => uploader.value?.removeFile(file as unknown as File))
+const failed = ({files}: {files: File[]}) => {
+  files.forEach(file => uploader.value?.removeFile(file))
   notifyImageError()
 }
 
