@@ -1,9 +1,9 @@
 
-import { AccountStatsOptions, CollectionOptions, StatsOptions } from "../server/request"
-import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, Transfer, UpdateCurrencySettings, FullAccount, User, TransferState } from "../model"
+import { AccountStatsOptions, CollectionOptions, CsvCollectionOptions, StatsOptions } from "../server/request"
+import { CreateCurrency, Currency, UpdateCurrency, FullTransfer, InputAccount, UpdateAccount, InputTransfer, UpdateTransfer, AccountSettings, CurrencySettings, Account, AccountWithStats, Transfer, UpdateCurrencySettings, FullAccount, User, TransferState } from "../model"
 import { Context } from "../utils/context"
 import { InputTrustline, Trustline, UpdateTrustline } from "../model/trustline"
-import { Stats } from "../model/stats"
+import { AccountsStats, Stats } from "../model/stats"
 import TypedEmitter from "typed-emitter"
 import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant"
 import { UserController } from "./user-controller"
@@ -106,6 +106,7 @@ export interface AccountsPublicService {
   createAccount(ctx: Context, account: InputAccount): Promise<Account>
   getAccount(ctx: Context, id: string): Promise<Account>
   getAccounts(ctx: Context, params: CollectionOptions): Promise<Account[]>
+  getAccountsWithStats(ctx: Context, params: CsvCollectionOptions): Promise<AccountWithStats[]>
   updateAccount(ctx: Context, data: UpdateAccount): Promise<Account>;
   deleteAccount(ctx: Context, id: string): Promise<void>;
 
@@ -153,5 +154,6 @@ export interface TransfersService extends TransfersPublicService {
 export interface StatsPublicService {
   getAmount(ctx: Context, params: StatsOptions): Promise<Stats>
   getAccounts(ctx: Context, params: AccountStatsOptions): Promise<Stats>
+  getAccountsTransfers(ctx: Context, params: StatsOptions): Promise<AccountsStats>
   getTransfers(ctx: Context, params: StatsOptions): Promise<Stats>
 }

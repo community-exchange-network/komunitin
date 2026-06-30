@@ -1,7 +1,7 @@
 import { AccountKind, type Prisma } from "@prisma/client";
 
-import { type Account, type AccountRecord, type AccountSettings, AccountStatus, type FullAccount, type InputAccount, recordToAccount, type Tag, type UpdateAccount, type User, userHasAccount } from "../model";
-import { CollectionOptions } from "../server/request";
+import { type Account, type AccountRecord, type AccountSettings, AccountStatus, type AccountWithStats, type FullAccount, type InputAccount, recordToAccount, type Tag, type UpdateAccount, type User, userHasAccount } from "../model";
+import { CollectionOptions, CsvCollectionOptions, StatsField } from "../server/request";
 import { Context, systemContext } from "../utils/context";
 import { deriveKey, exportKey } from "../utils/crypto";
 import { badRequest, forbidden, notFound, unauthorized } from "../utils/error";
@@ -364,6 +364,37 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       return undefined
     }
     return recordToAccount(record.account, this.currency())
+  }
+
+  async getAccountsTransferStats(ctx: Context, fields: StatsField[]): Promise<Record<string, Record<string, number>>> {
+    const valuesByAccount: Record<string, Record<string, number>> = {}
+    for (const { field, params } of fields) {
+      const stats = await this.currencyController.stats.getAccountsTransfers(ctx, params)
+      for (const [accountId, value] of Object.entries(stats.values)) {
+        valuesByAccount[accountId] = {
+          ...valuesByAccount[accountId],
+          [field]: value
+        }
+      }
+    }
+    return valuesByAccount
+  }
+
+  async getAccountsWithStats(ctx: Context, params: CsvCollectionOptions): Promise<AccountWithStats[]> {
+    const accounts = await this.getAccounts(ctx, params)
+    const statsFields = params.statsFields
+    if (statsFields.length === 0) {
+      return accounts
+    }
+
+    const statsByAccount = await this.getAccountsTransferStats(ctx, statsFields)
+
+    return accounts.map(account => ({
+      ...account,
+      stats: Object.fromEntries(
+        statsFields.map(({ field }) => [field, statsByAccount[account.id]?.[field] ?? 0])
+      )
+    }))
   }
 
   async getAccounts(ctx: Context, params: CollectionOptions): Promise<Account[]> {

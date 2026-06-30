@@ -403,6 +403,7 @@ export class StatsControllerImpl implements StatsPublicService {
       LEFT JOIN "Transfer" t ON (t."payerId" = a."id" OR t."payeeId" = a."id")
         AND t."updated" >= ${fromDate} AND t."updated" < ${toDate}
         AND t."state" = 'committed'
+      GROUP BY a."id"
       ` as Array<{ account: string, count: number }>;
     
     const values = Object.fromEntries(result.map(({account, count}) => [account, Number(count)]))

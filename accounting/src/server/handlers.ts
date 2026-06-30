@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express"
-import { CollectionOptions, CollectionParamsOptions, ResourceOptions, ResourceParamsOptions, StatsOptions, accountStatsParams, collectionParams, resourceParams, statsParams } from "./request"
+import { CollectionOptions, CollectionParamsOptions, CsvCollectionOptions, CsvCollectionParamsOptions, ResourceOptions, ResourceParamsOptions, collectionParams, csvCollectionParams, resourceParams } from "./request"
 import { Context, context } from "../utils/context"
 import TsJapi from "ts-japi"
 import type { DataDocument, Dictionary, Serializer } from "ts-japi"
@@ -145,7 +145,9 @@ export function currencyInputHandlerMultiple<T extends Dictionary<any>, D extend
 /**
  * Helper for route handlers that exports a collection of resources within a currency as CSV.
  */
-export function currencyCollectionCsvHandler<T>(controller: BaseService, fn: CurrencyCollectionHandler<T>, paramOptions: CollectionParamsOptions, createCsvMapper: CSVMapperFactory<T>, options: CurrencyHandlerOptions = {}) {
+type CurrencyCollectionCsvHandler<T> = (controller: CurrencyService, context: Context, params: CsvCollectionOptions) => Promise<T[]>
+type CsvCollectionParams = CsvCollectionParamsOptions | ((req: Request) => CsvCollectionParamsOptions)
+export function currencyCollectionCsvHandler<T>(controller: BaseService, fn: CurrencyCollectionCsvHandler<T>, paramOptions: CsvCollectionParams, createCsvMapper: CSVMapperFactory<T>, options: CurrencyHandlerOptions = {}) {
   const status = options.status ?? 200
   const checkActive = options.checkActive ?? true
   return asyncHandler(async (req, res) => {
@@ -155,15 +157,10 @@ export function currencyCollectionCsvHandler<T>(controller: BaseService, fn: Cur
       await checkActiveCurrency(ctx, currencyController)
     }
 
-    const params = collectionParams(req, paramOptions)
+    const params = csvCollectionParams(req, typeof paramOptions === "function" ? paramOptions(req) : paramOptions)
 
-    const csvfields = Array.isArray(req.query.csvfields) 
-      ? req.query.csvfields as string[] 
-      : (typeof req.query.csvfields === "string" 
-        ? req.query.csvfields.split(",") 
-        : null
-      ) 
-    
+    const csvfields = params.csvfields
+
     // build filename
     const route = req.path.split("/").pop() as string
     const base = route.endsWith(".csv") ? route.slice(0, -4) : route
