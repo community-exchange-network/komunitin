@@ -1,6 +1,11 @@
 export const IMAGE_UPLOAD_MAX_SIDE = 1800
-export const IMAGE_UPLOAD_WEBP_QUALITY = 0.82
+
 export const IMAGE_UPLOAD_WEBP_TYPE = "image/webp"
+export const IMAGE_UPLOAD_WEBP_QUALITY = 0.82
+
+export const IMAGE_UPLOAD_JPEG_TYPE = "image/jpeg"
+export const IMAGE_UPLOAD_JPEG_QUALITY = 0.82
+
 
 export interface ImageUploadOptions {
   maxSide?: number
@@ -35,9 +40,10 @@ export function getResizedImageDimensions(
   }
 }
 
-export function getWebpFileName(fileName: string): string {
+export function getUploadImageFileName(fileName: string, type: string): string {
   const baseName = fileName.replace(/\.[^/.]+$/, "")
-  return `${baseName || "image"}.webp`
+  const extension = type === IMAGE_UPLOAD_WEBP_TYPE ? "webp" : "jpg"
+  return `${baseName || "image"}.${extension}`
 }
 
 export async function resizeImageToWebp(
@@ -67,18 +73,19 @@ export async function resizeImageToWebp(
 
     context.drawImage(decodedImage.source, 0, 0, width, height)
 
-    const blob = await canvasToBlob(
+    let blob = await canvasToBlob(
       canvas,
       IMAGE_UPLOAD_WEBP_TYPE,
       options.quality ?? IMAGE_UPLOAD_WEBP_QUALITY
     )
-
+    
     if (blob.type !== IMAGE_UPLOAD_WEBP_TYPE) {
-      throw new Error("This browser cannot encode WebP images")
+      // Fallback for browsers that don't support WebP encoding.
+      blob = await canvasToBlob(canvas, IMAGE_UPLOAD_JPEG_TYPE, options.quality ?? IMAGE_UPLOAD_JPEG_QUALITY)
     }
 
-    return new File([blob], getWebpFileName(file.name), {
-      type: IMAGE_UPLOAD_WEBP_TYPE,
+    return new File([blob], getUploadImageFileName(file.name, blob.type), {
+      type: blob.type,
       lastModified: file.lastModified
     })
   } finally {
