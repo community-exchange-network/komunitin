@@ -108,11 +108,16 @@ async function decodeImageElement(file: File): Promise<DecodedImage> {
   const src = URL.createObjectURL(file)
   const image = new Image()
 
-  await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve()
-    image.onerror = () => reject(new Error("Could not decode image"))
-    image.src = src
-  })
+  try {
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error("Could not decode image"))
+      image.src = src
+    })
+  } catch (error) {
+    URL.revokeObjectURL(src)
+    throw error
+  }
 
   return {
     source: image,

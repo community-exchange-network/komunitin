@@ -114,4 +114,33 @@ describe("image upload utilities", () => {
     await expect(resizeImageToWebp(original)).rejects.toThrow("WebP")
     expect(bitmap.close).toHaveBeenCalledOnce()
   })
+
+  it("revokes fallback object urls when image decoding fails", async () => {
+    const createObjectURL = vi.fn(() => "blob:failed")
+    const revokeObjectURL = vi.fn()
+    class FailingImage {
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+
+      set src(_value: string) {
+        this.onerror?.()
+      }
+    }
+
+    vi.stubGlobal("createImageBitmap", vi.fn(async () => {
+      throw new Error("Bitmap decoding failed")
+    }))
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL,
+      revokeObjectURL
+    })
+    vi.stubGlobal("Image", FailingImage)
+
+    const original = new File(["original"], "broken.jpg", { type: "image/jpeg" })
+
+    await expect(resizeImageToWebp(original)).rejects.toThrow("decode image")
+    expect(createObjectURL).toHaveBeenCalledWith(original)
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:failed")
+  })
 })
