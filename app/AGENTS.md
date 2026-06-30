@@ -48,8 +48,10 @@ pnpm test
 
 ## Tests
 
-- Tests use Vitest with jsdom. Config is in `vitest.config.ts`; setup and helpers are in `test/vitest/`.
-- Prefer e2e-ish tests that mount the real app with `mountComponent(App)` and simulate user interaction. Use narrower unit tests for complex isolated logic.
-- Use `waitFor(fn, expected, message?, timeout?)` from `test/vitest/utils/index.ts` for async assertions. Do not add arbitrary sleeps.
-- Test files live in `src/**/__tests__/*.{spec,test}.ts` or `test/vitest/__tests__/**/*.{spec,test}.ts`.
+- Tests use Vitest runner with jsdom and MirageJS. Config is in `vitest.config.ts`; setup and helpers are in `test/vitest/`.
+- Prefer e2e-ish tests that mount the full real app with `mountComponent(App)` and simulate user interaction. 
+- Tests are a spec. Should be highly readable. Move mocks, setup and utils to separate files.
+- Use narrower unit tests for complex logic, only if necessary.
+- Test files live in `test/vitest/__tests__/**/*.{spec,test}.ts` (e2e-ish) or `src/**/__tests__/*.{spec,test}.ts` (unit).
+- Use `waitFor(fn, expected, message?, timeout?)` from `test/vitest/utils/index.ts`. Do not add arbitrary sleeps.
 - If Vitest fails because `.quasar/tsconfig.json` is missing, run `pnpm run build` first.
