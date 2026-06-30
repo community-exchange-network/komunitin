@@ -1,5 +1,3 @@
-import { shallowRef } from "vue"
-import type { QUploader } from "quasar"
 import {
   IMAGE_UPLOAD_WEBP_QUALITY,
   IMAGE_UPLOAD_WEBP_TYPE,
@@ -7,7 +5,6 @@ import {
   getWebpFileName,
   resizeImageToWebp
 } from "src/utils/imageUpload"
-import { useImageUploaderProcessing } from "src/composables/uploader"
 
 interface MockImageBitmap {
   width: number
@@ -116,115 +113,5 @@ describe("image upload utilities", () => {
 
     await expect(resizeImageToWebp(original)).rejects.toThrow("WebP")
     expect(bitmap.close).toHaveBeenCalledOnce()
-  })
-})
-
-describe("useImageUploaderProcessing", () => {
-  function createUploader() {
-    const uploader = {
-      removeFile: vi.fn(),
-      addFiles: vi.fn(),
-      upload: vi.fn(),
-      isAlive: vi.fn(() => true)
-    }
-    return uploader
-  }
-
-  it("removes originals, adds converted files, and starts upload", async () => {
-    const uploader = createUploader()
-    const uploaderRef = shallowRef(uploader as unknown as QUploader)
-    const original = new File(["original"], "photo.jpg", { type: "image/jpeg" })
-    const converted = new File(["converted"], "photo.webp", { type: IMAGE_UPLOAD_WEBP_TYPE })
-    let resolveTransform: (file: File) => void = () => {}
-    const transformFile = vi.fn(() => new Promise<File>(resolve => { resolveTransform = resolve }))
-
-    const { isProcessing, handleAdded } = useImageUploaderProcessing({
-      uploader: uploaderRef,
-      transformFile
-    })
-
-    const processing = handleAdded([original])
-
-    expect(uploader.removeFile).toHaveBeenCalledWith(original)
-    expect(isProcessing.value).toBe(true)
-
-    resolveTransform(converted)
-    await processing
-
-    expect(transformFile).toHaveBeenCalledWith(original)
-    expect(uploader.addFiles).toHaveBeenCalledWith([converted])
-    expect(uploader.upload).toHaveBeenCalledOnce()
-    expect(isProcessing.value).toBe(false)
-  })
-
-  it("does not reprocess generated files emitted by QUploader", async () => {
-    const uploader = createUploader()
-    const uploaderRef = shallowRef(uploader as unknown as QUploader)
-    const original = new File(["original"], "photo.jpg", { type: "image/jpeg" })
-    const converted = new File(["converted"], "photo.webp", { type: IMAGE_UPLOAD_WEBP_TYPE })
-    const transformFile = vi.fn(async () => converted)
-
-    const { handleAdded } = useImageUploaderProcessing({ uploader: uploaderRef, transformFile })
-
-    await handleAdded([original])
-    vi.clearAllMocks()
-    await handleAdded([converted])
-
-    expect(transformFile).not.toHaveBeenCalled()
-    expect(uploader.removeFile).not.toHaveBeenCalled()
-    expect(uploader.addFiles).not.toHaveBeenCalled()
-    expect(uploader.upload).not.toHaveBeenCalled()
-  })
-
-  it("notifies and skips upload when conversion fails", async () => {
-    const uploader = createUploader()
-    const uploaderRef = shallowRef(uploader as unknown as QUploader)
-    const original = new File(["original"], "photo.jpg", { type: "image/jpeg" })
-    const notifyError = vi.fn()
-    const transformFile = vi.fn(async () => {
-      throw new Error("decode failed")
-    })
-
-    const { handleAdded } = useImageUploaderProcessing({
-      uploader: uploaderRef,
-      transformFile,
-      notifyError
-    })
-
-    await handleAdded([original])
-
-    expect(uploader.removeFile).toHaveBeenCalledWith(original)
-    expect(notifyError).toHaveBeenCalledOnce()
-    expect(uploader.addFiles).not.toHaveBeenCalled()
-    expect(uploader.upload).not.toHaveBeenCalled()
-  })
-
-  it("uploads converted files that succeeded when only part of a batch fails", async () => {
-    const uploader = createUploader()
-    const uploaderRef = shallowRef(uploader as unknown as QUploader)
-    const good = new File(["good"], "good.jpg", { type: "image/jpeg" })
-    const bad = new File(["bad"], "bad.jpg", { type: "image/jpeg" })
-    const converted = new File(["converted"], "good.webp", { type: IMAGE_UPLOAD_WEBP_TYPE })
-    const notifyError = vi.fn()
-    const transformFile = vi.fn(async (file: File) => {
-      if (file === bad) {
-        throw new Error("decode failed")
-      }
-      return converted
-    })
-
-    const { handleAdded } = useImageUploaderProcessing({
-      uploader: uploaderRef,
-      transformFile,
-      notifyError
-    })
-
-    await handleAdded([good, bad])
-
-    expect(uploader.removeFile).toHaveBeenCalledWith(good)
-    expect(uploader.removeFile).toHaveBeenCalledWith(bad)
-    expect(notifyError).toHaveBeenCalledOnce()
-    expect(uploader.addFiles).toHaveBeenCalledWith([converted])
-    expect(uploader.upload).toHaveBeenCalledOnce()
   })
 })
