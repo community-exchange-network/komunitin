@@ -9,17 +9,18 @@
       flat
       bordered
       class="full-width max-h"
-      auto-upload
       hide-upload-btn
       :field-name="fieldName"
       :url="url"
       :headers="headers"
+      @added="handleAdded"
       @uploaded="uploaded"
+      @failed="failed"
     >
       <template #header="scope">
         <div class="row no-wrap items-center q-pa-sm q-gutter-xs">
           <q-spinner
-            v-if="scope.isUploading"
+            v-if="scope.isUploading || isProcessing"
             class="q-uploader__spinner" 
           />
           <div class="col">
@@ -31,7 +32,7 @@
             </div>
           </div>
           <q-btn
-            v-if="scope.canAddFiles"
+            v-if="scope.canAddFiles && !isProcessing"
             type="a"
             icon="add"
             round
@@ -78,10 +79,10 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
+import type { QUploader } from 'quasar'
 import ImageFieldItem from './ImageFieldItem.vue'
-import { imageFile, useUploaderSettings } from '../composables/uploader'
-import { QUploader } from 'quasar'
+import { imageFile, notifyImageError, useImageUploaderProcessing, useUploaderSettings } from '../composables/uploader'
 
 const props = defineProps<{
   modelValue: string[],
@@ -94,8 +95,9 @@ const emit = defineEmits<{
 }>()
 
 // Set files from modelValue to the QUploader component
-const uploader = ref<QUploader>()
+const uploader = useTemplateRef<QUploader>("uploader")
 const uploaderFiles = computed(() => uploader.value?.files || [])
+const { isProcessing, handleAdded } = useImageUploaderProcessing({ uploader })
 
 const images = ref<string[]>(props.modelValue)
 
@@ -106,6 +108,11 @@ const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
   const url = response.data.attributes.url
   images.value = [...images.value, url]
   uploader.value?.removeUploadedFiles()
+}
+
+const failed = ({files}: {files: File[]}) => {
+  files.forEach(file => uploader.value?.removeFile(file))
+  notifyImageError()
 }
 
 const removeImage = (url: string) => {

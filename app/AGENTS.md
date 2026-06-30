@@ -44,12 +44,15 @@ pnpm test
 
 - Read the terminology guidelines `src/i18n/README.md` and the flavor overrides (`src/i18n/flavors/ces/README.md`) before changing or adding any user-facing string.
 - Keep translation keys static, for example `t('account')`, not `t(key)`.
-- Languages live under `src/i18n/<lang>/`; flavor overrides live under `src/i18n/flavors/<flavor>/<lang>/`.
+- Languages live under `src/i18n/<lang>/index.json` for end-user strings, and `src/i18n/<lang>/admin.json` for community admin strings. Superadmin strings are not translated.
+- Flavor overrides live under `src/i18n/flavors/<flavor>/<lang>/`.
 
 ## Tests
 
-- Tests use Vitest with jsdom. Config is in `vitest.config.ts`; setup and helpers are in `test/vitest/`.
-- Prefer e2e-ish tests that mount the real app with `mountComponent(App)` and simulate user interaction. Use narrower unit tests for complex isolated logic.
-- Use `waitFor(fn, expected, message?, timeout?)` from `test/vitest/utils/index.ts` for async assertions. Do not add arbitrary sleeps.
-- Test files live in `src/**/__tests__/*.{spec,test}.ts` or `test/vitest/__tests__/**/*.{spec,test}.ts`.
+- Tests use Vitest runner with jsdom and MirageJS. Config is in `vitest.config.ts`; setup and helpers are in `test/vitest/`.
+- Prefer e2e-ish tests that mount the full real app with `mountComponent(App)` and simulate user interaction. 
+- Tests are a spec. Should be highly readable. Move mocks, setup and utils to separate files.
+- Use narrower unit tests for complex logic, only if necessary.
+- Test files live in `test/vitest/__tests__/**/*.{spec,test}.ts` (e2e-ish) or `src/**/__tests__/*.{spec,test}.ts` (unit).
+- Use `waitFor(fn, expected, message?, timeout?)` from `test/vitest/utils/index.ts`. Do not add arbitrary sleeps.
 - If Vitest fails because `.quasar/tsconfig.json` is missing, run `pnpm run build` first.

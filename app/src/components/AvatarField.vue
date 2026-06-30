@@ -5,18 +5,18 @@
     accept="image/*"
     flat
     bordered
-    auto-upload
     hide-upload-btn
     :url="url"
     :headers="headers"
     :field-name="fieldName"
+    @added="handleAdded"
     @uploaded="uploaded"
   >
     <template #header>
       <q-uploader-add-trigger />
     </template>
     <template #list>
-      <div @click="uploader?.pickFiles">
+      <div @click="pickFiles">
         <avatar 
           :img-src="src" 
           :text="text"
@@ -25,11 +25,11 @@
         />
         <div class="avatar-icon">
           <q-circular-progress
-            v-if="file.__status == 'uploading'"
-            :value="file.__progress"
+            v-if="isProcessing || file.__status == 'uploading'"
+            :value="isProcessing ? 0 : file.__progress"
             :min="0"
             :max="1"
-            :indeterminate="file.__progress === 0"
+            :indeterminate="isProcessing || file.__progress === 0"
             color="white"
             size="50px"
           />
@@ -45,10 +45,10 @@
   </q-uploader>
 </template>
 <script setup lang="ts">
-import { computed, ref } from "vue"
-import { imageFile, useUploaderSettings } from "../composables/uploader"
+import { computed, useTemplateRef } from "vue"
+import type { QUploader } from "quasar"
+import { imageFile, useImageUploaderProcessing, useUploaderSettings } from "../composables/uploader"
 import Avatar from "./Avatar.vue"
-import { QUploader } from "quasar"
 
 const props = defineProps<{
   modelValue: string | null,
@@ -59,11 +59,18 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
 
-const uploader = ref<QUploader>()
+const uploader = useTemplateRef<QUploader>("uploader")
 const src = computed(() => uploader.value?.files[0]?.__img?.src || props.modelValue)
 const file = computed(() => uploader.value?.files[0] || imageFile(props.modelValue ?? ""))
 
 const { url, headers, fieldName } = useUploaderSettings()
+const { isProcessing, handleAdded } = useImageUploaderProcessing({ uploader })
+
+const pickFiles = (event: Event) => {
+  if (!isProcessing.value) {
+    uploader.value?.pickFiles(event)
+  }
+}
 
 const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
   const response = JSON.parse(xhr.responseText)
