@@ -6,7 +6,7 @@
     :zoom="2"
     :center="center"
   >
-    <l-marker
+    <styled-marker
       v-for="group in groups"
       :key="group.id"
       :lat-lng="reverseCoordinates(group.attributes.location.coordinates)"
@@ -18,16 +18,17 @@
           <div><a :href="`/groups/${group.attributes.code}`">Explore</a></div>
         </div>
       </l-popup>
-    </l-marker>
+    </styled-marker>
   </simple-map>
 </template>
 <script setup lang="ts">
 import SimpleMap from "./SimpleMap.vue";
-import { LMarker, LPopup } from "@vue-leaflet/vue-leaflet";
+import { LPopup } from "@vue-leaflet/vue-leaflet";
 import { computed, } from "vue";
 import type { Group } from "src/store/model";
 import type { LatLngBounds } from "leaflet";
 import { latLngBounds } from "leaflet/dist/leaflet-src.esm";
+import StyledMarker from './StyledMarker.vue';
 
 const props = defineProps<{
   groups?: Group[]

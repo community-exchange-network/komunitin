@@ -2,8 +2,6 @@
   <q-card
     v-if="group"
     v-card-click-to="`/groups/${group.attributes.code}`"
-    flat
-    bordered
   >
     <!-- Header with group avatar, name and short code -->
     <group-header :group="group">

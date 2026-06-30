@@ -428,6 +428,6 @@
   "ErrorAccountNotFound": "Compte non trouvé",
   "ErrorAccountIsNotYours": "Le compte spécifié n'est pas votre compte actif actuel.",
   "ErrorInvalidAmount": "Montant invalide. Entrez un nombre positif.",
-  "ErrorDescriptionRequired": "La description de l'échange est requise."
-  
+  "ErrorDescriptionRequired": "La description de l'échange est requise.",
+  "dateRange": "Période"
 }
