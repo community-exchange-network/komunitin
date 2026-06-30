@@ -114,6 +114,7 @@
   "enterNeedData": "De quoi avez-vous besoin ?",
   "needFormHelpText": "Remplissez les détails de votre nouveau besoin.",
   "uploadImages": "Ajouter des images",
+  "imageUploadError": "Impossible d'envoyer l'image. Choisissez une autre image.",
   "uploadNeedImagesHint": "Ajouter une image à un besoin le rend plus attractif",
   "title": "Titre",
   "needDescriptionHint": "Fournissez ici tous les détails pour que les autres membres comprennent votre besoin",

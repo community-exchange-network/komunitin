@@ -35,10 +35,15 @@ An external dependency **IntegralCES** (Drupal, cloned separately on `../ices`) 
 
 - `compose.yml` is the base stack: app, accounting, notifications-ts, IntegralCES, PostgreSQL databases, and Redis.
 - `compose.dev.yml` adds hot-reload commands, debugger ports, local utility services, and bind mounts for active development.
+- Once the stack is running, you can use docker compose commands to quickly manage services, eg:
+
+  ```bash
+  docker compose -f compose.yml -f compose.dev.yml up -d
+  ```
+
 - `compose.public.yml` and `compose.proxy.yml` are for production.
 - Service-local compose files `accounting/compose.yaml` and `notifications-ts/compose.yml` are dependency-only stacks for developing locally and testing the service in isolation. Develop this way when you don't need to test service interdependence.
 
-Use v2 `docker compose` syntax.
 
 Published local ports in the dev stack:
 
