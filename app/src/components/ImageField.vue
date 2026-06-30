@@ -15,6 +15,7 @@
       :headers="headers"
       @added="handleAdded"
       @uploaded="uploaded"
+      @failed="failed"
     >
       <template #header="scope">
         <div class="row no-wrap items-center q-pa-sm q-gutter-xs">
@@ -81,7 +82,8 @@
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import type { QUploader } from 'quasar'
 import ImageFieldItem from './ImageFieldItem.vue'
-import { imageFile, useImageUploaderProcessing, useUploaderSettings } from '../composables/uploader'
+import { imageFile, notifyImageError, useImageUploaderProcessing, useUploaderSettings } from '../composables/uploader'
+import type { ImageFile } from '../composables/uploader'
 
 const props = defineProps<{
   modelValue: string[],
@@ -107,6 +109,11 @@ const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
   const url = response.data.attributes.url
   images.value = [...images.value, url]
   uploader.value?.removeUploadedFiles()
+}
+
+const failed = ({files}: {files: ImageFile[]}) => {
+  files.forEach(file => uploader.value?.removeFile(file as unknown as File))
+  notifyImageError()
 }
 
 const removeImage = (url: string) => {

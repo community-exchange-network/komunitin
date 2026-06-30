@@ -116,7 +116,7 @@
   "enterNeedData": "What do you need?",
   "needFormHelpText": "Fill the details of your new want.",
   "uploadImages": "Add images",
-  "imageProcessingError": "Could not process image. Please choose another image.",
+  "imageUploadError": "Could not upload image. Please choose another image.",
   "uploadNeedImagesHint": "Adding a picture to a want makes it more attractive",
   "title": "Title",
   "needDescriptionHint": "Provide here all the details for other members to understand your want",

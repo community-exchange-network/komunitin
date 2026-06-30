@@ -118,7 +118,7 @@
   "enterNeedData": "Qué necesitas?",
   "needFormHelpText": "Rellena los campos siguientes para crear una necesidad que se publicará en la red de intercambio.",
   "uploadImages": "Añade imágenes",
-  "imageProcessingError": "No se ha podido procesar la imagen. Elige otra imagen.",
+  "imageUploadError": "No se ha podido subir la imagen. Elige otra imagen.",
   "uploadNeedImagesHint": "Selecciona una o más imágenes que ayuden a explicar la necesidad",
   "title": "Título",
   "needDescriptionHint": "Explica tu necesidad con detalle",

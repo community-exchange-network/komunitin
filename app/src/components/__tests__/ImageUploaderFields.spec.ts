@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { Notify } from "quasar"
 import AvatarField from "../AvatarField.vue"
 import ImageField from "../ImageField.vue"
 import {
@@ -108,6 +109,46 @@ describe("image upload fields", () => {
       accepted: false,
       name: "avatar.webp",
       type: "image/webp"
+    })
+    wrapper.unmount()
+  })
+
+  it("removes ImageField item and notifies when the server rejects the upload", async () => {
+    setMockFileUploadLimit(100_000)
+    const wrapper = await mountComponent(ImageField, {
+      props: {
+        modelValue: [],
+        label: "Add images",
+        hint: "hint"
+      },
+      login: true
+    })
+
+    await uploadFile(wrapper, createMockImageFile({
+      encodedSize: 180_000,
+      height: 2400,
+      name: "too-large.jpg",
+      size: 1_100_000,
+      type: "image/jpeg",
+      width: 3600
+    }))
+
+    await waitFor(
+      () => getMockFileUploadAttempts().length,
+      1,
+      "ImageField upload should reach the mock files endpoint"
+    )
+
+    await waitFor(
+      () => wrapper.findAll(".image-field-item").length,
+      0,
+      "ImageField should remove the rejected upload item"
+    )
+
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined()
+    expect(Notify.create).toHaveBeenCalledWith({
+      type: "negative",
+      message: "Could not upload image. Please choose another image."
     })
     wrapper.unmount()
   })

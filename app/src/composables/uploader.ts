@@ -65,7 +65,7 @@ export interface UseImageUploaderProcessingOptions {
 export const useImageUploaderProcessing = ({
   uploader,
   transformFile = resizeImageToWebp,
-  notifyError = notifyImageProcessingError
+  notifyError = notifyImageError
 }: UseImageUploaderProcessingOptions) => {
   const processedFiles = new WeakSet<File>()
   const processingCount = shallowRef(0)
@@ -113,9 +113,9 @@ export const useImageUploaderProcessing = ({
   return { isProcessing, handleAdded }
 }
 
-function notifyImageProcessingError() {
+export function notifyImageError() {
   Notify.create({
     type: "negative",
-    message: i18n.global.t("imageProcessingError").toString()
+    message: i18n.global.t("imageUploadError").toString()
   })
 }
