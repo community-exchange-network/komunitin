@@ -1,8 +1,10 @@
 import {
+  IMAGE_UPLOAD_JPEG_QUALITY,
+  IMAGE_UPLOAD_JPEG_TYPE,
   IMAGE_UPLOAD_WEBP_QUALITY,
   IMAGE_UPLOAD_WEBP_TYPE,
   getResizedImageDimensions,
-  getWebpFileName,
+  getUploadImageFileName,
   resizeImageToWebp
 } from "src/utils/imageUpload"
 
@@ -16,13 +18,13 @@ const originalGetContext = Object.getOwnPropertyDescriptor(HTMLCanvasElement.pro
 const originalToBlob = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, "toBlob")
 
 let drawImage: ReturnType<typeof vi.fn>
-let toBlobResult: Blob | null
+let toBlobResults: (Blob | null)[]
 let toBlobMimeType: string | undefined
 let toBlobQuality: number | undefined
 
 function installCanvasMocks() {
   drawImage = vi.fn()
-  toBlobResult = new Blob(["webp"], { type: IMAGE_UPLOAD_WEBP_TYPE })
+  toBlobResults = [new Blob(["webp"], { type: IMAGE_UPLOAD_WEBP_TYPE })]
   toBlobMimeType = undefined
   toBlobQuality = undefined
 
@@ -36,7 +38,7 @@ function installCanvasMocks() {
     value: vi.fn((callback: BlobCallback, type?: string, quality?: number) => {
       toBlobMimeType = type
       toBlobQuality = quality
-      callback(toBlobResult)
+      callback(toBlobResults.shift() ?? null)
     })
   })
 }
@@ -109,10 +111,11 @@ describe("image upload utilities", () => {
     expect(getResizedImageDimensions(900, 500)).toEqual({ width: 900, height: 500 })
   })
 
-  it("normalizes file names to webp", () => {
-    expect(getWebpFileName("avatar.jpeg")).toBe("avatar.webp")
-    expect(getWebpFileName("image")).toBe("image.webp")
-    expect(getWebpFileName(".jpg")).toBe("image.webp")
+  it("normalizes upload image file names", () => {
+    expect(getUploadImageFileName("avatar.jpeg", IMAGE_UPLOAD_WEBP_TYPE)).toBe("avatar.webp")
+    expect(getUploadImageFileName("image", IMAGE_UPLOAD_WEBP_TYPE)).toBe("image.webp")
+    expect(getUploadImageFileName(".jpg", IMAGE_UPLOAD_WEBP_TYPE)).toBe("image.webp")
+    expect(getUploadImageFileName("avatar.jpeg", IMAGE_UPLOAD_JPEG_TYPE)).toBe("avatar.jpg")
   })
 
   it("resizes and encodes images as webp files", async () => {
@@ -133,12 +136,20 @@ describe("image upload utilities", () => {
     expect(bitmap.close).toHaveBeenCalledOnce()
   })
 
-  it("rejects when the browser cannot encode webp", async () => {
+  it("falls back to jpeg when the browser cannot encode webp", async () => {
     const bitmap = stubDecodedImage(800, 600)
-    toBlobResult = new Blob(["png"], { type: "image/png" })
+    toBlobResults = [
+      new Blob(["png"], { type: "image/png" }),
+      new Blob(["jpeg"], { type: IMAGE_UPLOAD_JPEG_TYPE })
+    ]
     const original = new File(["original"], "photo.png", { type: "image/png" })
 
-    await expect(resizeImageToWebp(original)).rejects.toThrow("WebP")
+    const converted = await resizeImageToWebp(original)
+
+    expect(converted.name).toBe("photo.jpg")
+    expect(converted.type).toBe(IMAGE_UPLOAD_JPEG_TYPE)
+    expect(toBlobMimeType).toBe(IMAGE_UPLOAD_JPEG_TYPE)
+    expect(toBlobQuality).toBe(IMAGE_UPLOAD_JPEG_QUALITY)
     expect(bitmap.close).toHaveBeenCalledOnce()
   })
 
