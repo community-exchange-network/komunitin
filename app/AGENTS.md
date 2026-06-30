@@ -44,7 +44,8 @@ pnpm test
 
 - Read the terminology guidelines `src/i18n/README.md` and the flavor overrides (`src/i18n/flavors/ces/README.md`) before changing or adding any user-facing string.
 - Keep translation keys static, for example `t('account')`, not `t(key)`.
-- Languages live under `src/i18n/<lang>/`; flavor overrides live under `src/i18n/flavors/<flavor>/<lang>/`.
+- Languages live under `src/i18n/<lang>/index.json` for end-user strings, and `src/i18n/<lang>/admin.json` for community admin strings. Superadmin strings are not translated.
+- Flavor overrides live under `src/i18n/flavors/<flavor>/<lang>/`.
 
 ## Tests
 
