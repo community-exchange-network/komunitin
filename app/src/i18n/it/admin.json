@@ -3,7 +3,7 @@
   "editGroup": "Modifica comunità",
   "editGroupText": "Definisci gli attributi principali della tua comunità di scambio.",
   "currencyValue": "Valore della valuta",
-  "currencyValueHint": "Il valore della tua valuta in relazione alla valuta di riferimento HOUR. Viene utilizzato per calcolare il tasso di cambio tra la tua valuta e le altre. Utilizza la notazione n/d. Ad esempio, se imposti 1/10, significa che 10 unità della tua valuta equivalgono a 1 HOUR",
+  "currencyValueHint": "Il valore della tua valuta in relazione alla valuta di riferimento HOUR. Viene utilizzato per calcolare il tasso di conversione tra la tua valuta e le altre. Utilizza la notazione n/d. Ad esempio, se imposti 1/10, significa che 10 unità della tua valuta equivalgono a 1 HOUR",
   "invalidCurrencyValue": "Valore di valuta non valido. Si prega di utilizzare la notazione n/d.",
   "groupSettings": "Impostazioni della comunità",
   "categories": "Categorie",

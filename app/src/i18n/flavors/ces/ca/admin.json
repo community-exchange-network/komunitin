@@ -1,0 +1,3 @@
+{
+    "currencyValueHint": "El valor de les teves unitats en relació amb la referència HORA (una hora mitjana de treball). S'utilitza per calcular la taxa de conversió entre les teves unitats i altres. Usa la notació n/d. Exemples: si la teva unitat és 1 hora de treball (banc de temps), introdueix 1/1 — significa que 1 de les teves unitats equival a 1 HORA. Si la teva unitat val una fracció d'hora, introdueix 1/10 — significa que 10 de les teves unitats equivalen a 1 HORA."
+}

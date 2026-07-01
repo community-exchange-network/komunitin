@@ -571,6 +571,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       currentExternalTraderInitialCredit
     }, {
       sponsor: await this.keys.sponsorKey(),
+      issuer: await this.keys.issuerKey(),
       externalTrader: await this.keys.externalTraderKey(),
       externalIssuer: await this.keys.externalIssuerKey(),
       credit: await this.keys.creditKey()
