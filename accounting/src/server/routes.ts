@@ -94,13 +94,23 @@ export function getRoutes(controller: BaseService) {
   )
 
   // Download accounts as CSV
+
+  const defaultAccountTransferStatsFields = () => {
+    const currentYear = new Date().getUTCFullYear()
+    return [currentYear, currentYear - 1, currentYear - 2].map(String)
+  }
   router.get('/:code/accounts.csv', userAuth([Scope.Accounting, Scope.Superadmin]),
     currencyCollectionCsvHandler(controller, async (currencyController, ctx, params) => {
-      return await currencyController.accounts.getAccounts(ctx, params)
-    }, {
+      return await currencyController.accounts.getAccountsWithStats(ctx, params)
+    }, () => ({
       filter: ["status"],
       sort: ["code", "balance", "creditLimit", "maximumBalance", "created", "updated"],
-    }, createAccountCSVMapper, {checkActive: false})
+      statsFields: {
+        transfers: {
+          defaultFields: defaultAccountTransferStatsFields()
+        }
+      }
+    }), createAccountCSVMapper, { checkActive: false })
   )
 
   // Get account. No auth required to get an account having its id. We need that for

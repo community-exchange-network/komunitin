@@ -136,3 +136,67 @@ export async function seedTransfers(tenantId: string, n: number, start: Date, en
     })
   }
 }
+
+export async function seedCsvStatsTransfers(tenantId: string, accountA: string, accountB: string, userId: string) {
+  const client = tenantDb(new PrismaClient(), tenantId)
+  await client.transfer.createMany({
+    skipDuplicates: true,
+    data: [
+      {
+        amount: 100,
+        payerId: accountA,
+        payeeId: accountB,
+        meta: { description: "CSV stats 2025 A" },
+        userId,
+        state: "committed",
+        created: new Date("2025-03-15T00:00:00.000Z"),
+        updated: new Date("2025-03-15T00:00:00.000Z"),
+        hash: "csv-stats-2025-a",
+      },
+      {
+        amount: 100,
+        payerId: accountB,
+        payeeId: accountA,
+        meta: { description: "CSV stats 2025 B" },
+        userId,
+        state: "committed",
+        created: new Date("2025-06-10T00:00:00.000Z"),
+        updated: new Date("2025-06-10T00:00:00.000Z"),
+        hash: "csv-stats-2025-b",
+      },
+      {
+        amount: 100,
+        payerId: accountA,
+        payeeId: accountB,
+        meta: { description: "CSV stats rejected" },
+        userId,
+        state: "rejected",
+        created: new Date("2025-08-01T00:00:00.000Z"),
+        updated: new Date("2025-08-01T00:00:00.000Z"),
+        hash: "csv-stats-2025-rejected",
+      },
+      {
+        amount: 100,
+        payerId: accountA,
+        payeeId: accountB,
+        meta: { description: "CSV stats June 2024" },
+        userId,
+        state: "committed",
+        created: new Date("2024-06-15T00:00:00.000Z"),
+        updated: new Date("2024-06-15T00:00:00.000Z"),
+        hash: "csv-stats-2024-june",
+      },
+      {
+        amount: 100,
+        payerId: accountB,
+        payeeId: accountA,
+        meta: { description: "CSV stats July 2024" },
+        userId,
+        state: "committed",
+        created: new Date("2024-07-01T00:00:00.000Z"),
+        updated: new Date("2024-07-01T00:00:00.000Z"),
+        hash: "csv-stats-2024-july",
+      },
+    ]
+  })
+}
