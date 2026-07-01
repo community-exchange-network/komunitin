@@ -14,6 +14,7 @@ import {
 } from './mocks/handlers'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
+import { toUuid } from './mocks/utils'
 
 let app: any
 const tinyPng = Buffer.from(
@@ -134,6 +135,40 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'public-active')
+  })
+
+  test('GET /:code/members?include=account includes external account references', async () => {
+    const accountId = toUuid('members-include-account-public-active')
+    await seedGroup({ tenantId: 'members-include-account', status: 'active', access: 'public' })
+    await seedMember({
+      tenantId: 'members-include-account',
+      code: 'public-active',
+      status: 'active',
+      access: 'public',
+      accountId,
+    })
+
+    const res = await request(app)
+      .get('/members-include-account/members?include=account')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].relationships.account.data.type, 'accounts')
+    assert.strictEqual(res.body.data[0].relationships.account.data.id, accountId)
+    assert.strictEqual(res.body.data[0].relationships.account.data.meta.external, true)
+    assert.strictEqual(res.body.data[0].relationships.account.data.meta.href, `http://localhost:2025/members-include-account/accounts/${accountId}`)
+
+    assert.ok(Array.isArray(res.body.included))
+    assert.strictEqual(res.body.included.length, 1)
+    assert.deepStrictEqual(res.body.included[0], {
+      type: 'accounts',
+      id: accountId,
+      meta: {
+        external: true,
+        href: `http://localhost:2025/members-include-account/accounts/${accountId}`,
+      },
+    })
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
   })
 
   test('GET /:code/members defaults to active status and still allows owner to request drafts explicitly', async () => {
