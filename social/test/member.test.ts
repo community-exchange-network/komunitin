@@ -171,6 +171,52 @@ describe('Members endpoints', () => {
     assert.deepStrictEqual(getAccountingRequestPaths(), [])
   })
 
+  test('GET /:code/members filters by account id', async () => {
+    const accountOne = toUuid('members-filter-account-one')
+    const accountTwo = toUuid('members-filter-account-two')
+    const accountThree = toUuid('members-filter-account-three')
+    await seedGroup({ tenantId: 'members-filter-account', status: 'active', access: 'public' })
+    await seedMember({
+      tenantId: 'members-filter-account',
+      code: 'account-one',
+      status: 'active',
+      access: 'public',
+      accountId: accountOne,
+    })
+    await seedMember({
+      tenantId: 'members-filter-account',
+      code: 'account-two',
+      status: 'active',
+      access: 'public',
+      accountId: accountTwo,
+    })
+    await seedMember({
+      tenantId: 'members-filter-account',
+      code: 'account-three',
+      status: 'active',
+      access: 'public',
+      accountId: accountThree,
+    })
+
+    const single = await request(app)
+      .get(`/members-filter-account/members?filter[account]=${accountOne}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      single.body.data.map((member: any) => member.attributes.code),
+      ['account-one'],
+    )
+
+    const multiple = await request(app)
+      .get(`/members-filter-account/members?filter[account]=${accountOne},${accountThree}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      multiple.body.data.map((member: any) => member.attributes.code).sort(),
+      ['account-one', 'account-three'],
+    )
+  })
+
   test('GET /:code/members defaults to active status and still allows owner to request drafts explicitly', async () => {
     await seedGroup({ tenantId: 'members-list-owner', status: 'active', access: 'public' })
     const owner = await auth('member-owner')

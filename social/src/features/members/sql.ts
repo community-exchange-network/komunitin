@@ -23,6 +23,7 @@ const memberColumns: SqlColumnMap = {
   type: memberColumn('type'),
   status: memberColumn('status'),
   access: memberColumn('access'),
+  account: memberColumn('accountId'),
   created: memberColumn('created'),
   updated: memberColumn('updated'),
 }
