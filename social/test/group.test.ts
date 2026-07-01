@@ -513,6 +513,36 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.included[0].attributes.defaultGroupEmailFrequency, 'weekly')
   })
 
+  test('GET /:code?include=currency includes external currency reference', async () => {
+    const currencyId = toUuid('single-currency-include-group')
+    await seedGroup({
+      tenantId: 'single-currency-include-group',
+      status: 'active',
+      access: 'public',
+      currencyId,
+    })
+
+    const res = await request(app)
+      .get('/single-currency-include-group?include=currency')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.relationships.currency.data.type, 'currencies')
+    assert.strictEqual(res.body.data.relationships.currency.data.id, currencyId)
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.external, true)
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.href, 'http://localhost:2025/single-currency-include-group/currency')
+
+    assert.ok(Array.isArray(res.body.included))
+    assert.deepStrictEqual(res.body.included[0], {
+      type: 'currencies',
+      id: currencyId,
+      meta: {
+        external: true,
+        href: 'http://localhost:2025/single-currency-include-group/currency',
+      },
+    })
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+  })
+
 
   test('PATCH /:code requires JWT', async () => {
     await seedGroup({ tenantId: 'patch-auth', status: 'active', access: 'public' })
