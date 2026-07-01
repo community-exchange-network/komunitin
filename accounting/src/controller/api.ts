@@ -154,6 +154,6 @@ export interface TransfersService extends TransfersPublicService {
 export interface StatsPublicService {
   getAmount(ctx: Context, params: StatsOptions): Promise<Stats>
   getAccounts(ctx: Context, params: AccountStatsOptions): Promise<Stats>
-  getAccountsTransfers(ctx: Context, params: StatsOptions): Promise<AccountsStats>
+  getAccountsTransfers(ctx: Context, params: StatsOptions, accountIds: string[]): Promise<AccountsStats>
   getTransfers(ctx: Context, params: StatsOptions): Promise<Stats>
 }

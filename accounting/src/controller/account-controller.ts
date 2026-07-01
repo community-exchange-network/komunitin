@@ -366,10 +366,10 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
     return recordToAccount(record.account, this.currency())
   }
 
-  async getAccountsTransferStats(ctx: Context, fields: StatsField[]): Promise<Record<string, Record<string, number>>> {
+  async getAccountsTransferStats(ctx: Context, fields: StatsField[], accountIds: string[]): Promise<Record<string, Record<string, number>>> {
     const valuesByAccount: Record<string, Record<string, number>> = {}
     for (const { field, params } of fields) {
-      const stats = await this.currencyController.stats.getAccountsTransfers(ctx, params)
+      const stats = await this.currencyController.stats.getAccountsTransfers(ctx, params, accountIds)
       for (const [accountId, value] of Object.entries(stats.values)) {
         valuesByAccount[accountId] = {
           ...valuesByAccount[accountId],
@@ -383,11 +383,11 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
   async getAccountsWithStats(ctx: Context, params: CsvCollectionOptions): Promise<AccountWithStats[]> {
     const accounts = await this.getAccounts(ctx, params)
     const statsFields = params.statsFields
-    if (statsFields.length === 0) {
+    if (statsFields.length === 0 || accounts.length === 0) {
       return accounts
     }
 
-    const statsByAccount = await this.getAccountsTransferStats(ctx, statsFields)
+    const statsByAccount = await this.getAccountsTransferStats(ctx, statsFields, accounts.map(account => account.id))
 
     return accounts.map(account => ({
       ...account,

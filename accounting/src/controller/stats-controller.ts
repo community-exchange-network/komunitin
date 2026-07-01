@@ -392,7 +392,7 @@ export class StatsControllerImpl implements StatsPublicService {
    * @param ctx 
    * @param params 
    */
-  public async getAccountsTransfers(ctx: Context, params: StatsOptions): Promise<AccountsStats> {
+  public async getAccountsTransfers(ctx: Context, params: StatsOptions, accountIds: string[]): Promise<AccountsStats> {
     const { from, to } = params
     const toDate = to ?? new Date()
     const fromDate = from ?? this.truncateDate(await this.getFirstAccountDate(), 'P1D')
@@ -403,6 +403,7 @@ export class StatsControllerImpl implements StatsPublicService {
       LEFT JOIN "Transfer" t ON (t."payerId" = a."id" OR t."payeeId" = a."id")
         AND t."updated" >= ${fromDate} AND t."updated" < ${toDate}
         AND t."state" = 'committed'
+      WHERE a."id" IN (${Prisma.join(accountIds)})
       GROUP BY a."id"
       ` as Array<{ account: string, count: number }>;
     
