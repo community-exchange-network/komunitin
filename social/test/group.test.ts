@@ -13,6 +13,7 @@ import {
 } from './mocks/handlers'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
+import { toUuid } from './mocks/utils'
 
 let app: any
 const tinyPng = Buffer.from(
@@ -335,6 +336,38 @@ describe('Groups endpoints', () => {
     assert.ok(Array.isArray(res.body.included))
     assert.strictEqual(res.body.included[0].type, 'group-settings')
     assert.strictEqual(res.body.included[0].attributes.requireAcceptTerms, true)
+  })
+
+  test('GET /groups?include=currency includes external currency references', async () => {
+    const currencyId = toUuid('currency-include-group')
+    await seedGroup({
+      tenantId: 'currency-include-group',
+      status: 'active',
+      access: 'public',
+      currencyId,
+    })
+
+    const res = await request(app)
+      .get('/groups?include=currency')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].relationships.currency.data.type, 'currencies')
+    assert.strictEqual(res.body.data[0].relationships.currency.data.id, currencyId)
+    assert.strictEqual(res.body.data[0].relationships.currency.data.meta.external, true)
+    assert.strictEqual(res.body.data[0].relationships.currency.data.meta.href, 'http://localhost:2025/currency-include-group/currency')
+
+    assert.ok(Array.isArray(res.body.included))
+    assert.strictEqual(res.body.included.length, 1)
+    assert.deepStrictEqual(res.body.included[0], {
+      type: 'currencies',
+      id: currencyId,
+      meta: {
+        external: true,
+        href: 'http://localhost:2025/currency-include-group/currency',
+      },
+    })
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
   })
 
   test('GET /:code allows anonymous access to active public groups', async () => {
