@@ -21,6 +21,10 @@ type JsonApiDoc = {
   errors?: JsonApiError[]
 }
 
+type RequestOptions = {
+  allowNotFound?: boolean
+}
+
 export type CurrencyStatus = "new" | "active" | "disabled"
 export type Currency = {
   id: string
@@ -36,6 +40,7 @@ export type Account = {
   type: "accounts"
   code: string
   status: AccountStatus
+  balance?: number
   [key: string]: unknown
 }
 
@@ -49,7 +54,7 @@ const toError = (status: number, errors: JsonApiError[] | undefined, fallback: s
 
   const details = errors ? { details: errors } : undefined
 
-  // All errors from the accounting service (authorization, not found, etc) are treated as 
+  // All errors from the accounting service (authorization, not found, etc) are treated as
   // internal errors in the social service, because none of our calls is expected to fail.
 
   return internalError(message, details)
@@ -84,7 +89,7 @@ class AccountingClient {
     return this.ctx.token
   }
 
-  private async request(path: string, init: RequestInit, allowNotFound = false): Promise<JsonApiDoc | undefined> {
+  private async request(path: string, init: RequestInit, options: RequestOptions = {}): Promise<JsonApiDoc | undefined> {
     const token = await this.getAuthorizationToken()
     
     const response = await fetchWithRetry(accountingUrl(path), {
@@ -97,7 +102,7 @@ class AccountingClient {
       },
     })
     
-    if (allowNotFound && response.status === 404) {
+    if (options.allowNotFound && response.status === 404) {
       return undefined
     }
 
@@ -111,7 +116,7 @@ class AccountingClient {
   }
 
   public async findCurrencyByCode(code: string): Promise<Currency | undefined> {
-    const response = await this.request(`/${code}/currency`, {}, true)
+    const response = await this.request(`/${code}/currency`, {}, { allowNotFound: true })
     return toResource(response?.data) as Currency | undefined
   }
 
@@ -186,6 +191,15 @@ class AccountingClient {
     return resource as Account
   }
 
+  public async findAccountById(currencyCode: string, accountId: string): Promise<Account | undefined> {
+    const response = await this.request(
+      `/${currencyCode}/accounts/${accountId}`,
+      {},
+      { allowNotFound: true },
+    )
+    return toResource(response?.data) as Account | undefined
+  }
+
   public async createAccount(currencyCode: string, attributes: Record<string, unknown>, userIds: string[]): Promise<Account> {
     const response = await this.request(
       `/${currencyCode}/accounts`,
@@ -232,6 +246,10 @@ class AccountingClient {
     }
     return resource as Account
   }
+
+  async deleteAccount(currencyCode: string, accountId: string): Promise<void> {
+    await this.request(`/${currencyCode}/accounts/${accountId}`, { method: 'DELETE' })
+  }
 }
 
 export const createAccountingClient = (ctx: AuthContext) => {
@@ -245,4 +263,3 @@ export const getAccountingCurrencyUrl = (code: string) => {
 export const getAccountingAccountUrl = (currencyCode: string, accountId: string) => {
   return accountingUrl(`/${currencyCode}/accounts/${accountId}`)
 }
-
