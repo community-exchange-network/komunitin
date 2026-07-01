@@ -10,8 +10,8 @@ This service is replacing the legacy IntegralCES social API. It owns social and 
 
 ```bash
 pnpm install
-pnpm prisma generate
 cp .env.test .env
+pnpm prisma generate
 docker compose up -d
 pnpm prisma migrate deploy
 pnpm typecheck
