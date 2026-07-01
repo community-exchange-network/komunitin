@@ -3,6 +3,7 @@ import { OptionalAuthContext } from '../../server/context'
 import { DbClient } from '../../server/multitenant'
 import {
   findCollectionIds,
+  getFilterValues,
   sqlAnd,
   sqlColumn,
   sqlOr,
@@ -77,6 +78,20 @@ const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): P
   return sqlOr(readable)
 }
 
+const buildExpiredWhere = (rawValue: CollectionParams['filters'][string] | undefined): Prisma.Sql | null => {
+  const values = new Set(getFilterValues(rawValue))
+  const includeExpired = values.has('true')
+  const includeCurrent = values.has('false')
+
+  if (includeExpired === includeCurrent) {
+    return null
+  }
+
+  return includeExpired
+    ? Prisma.sql`${postColumn('expires')} < NOW()`
+    : Prisma.sql`(${postColumn('expires')} IS NULL OR ${postColumn('expires')} >= NOW())`
+}
+
 
 export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<string[]> => {
   const readableWhere = await buildReadablePostWhere(ctx, group)
@@ -85,15 +100,21 @@ export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group
   }
 
   const hasSearch = params.filters.search !== undefined
+  const { expired, ...filters } = params.filters
+  const expiredWhere = buildExpiredWhere(expired)
 
   return await findCollectionIds(db, {
     from: hasSearch ? searchablePostFrom : postTable,
     columns: postColumns,
     search: hasSearch ? [postColumn('search'), memberColumn('search')] : postColumn('search'),
-    params,
+    params: {
+      ...params,
+      filters,
+    },
     where: [
       Prisma.sql`${postColumn('deleted')} IS NULL`,
       readableWhere,
+      ...(expiredWhere ? [expiredWhere] : []),
     ],
   })
 }

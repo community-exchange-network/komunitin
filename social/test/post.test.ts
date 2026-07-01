@@ -49,6 +49,41 @@ const postInput = (type: 'offers' | 'needs', attributes: any, memberId: string, 
     }
   }
 })
+
+const postQueryFixture = async (tenantId: string) => {
+  const currencyId = toUuid(`${tenantId}-currency`)
+  const memberAccountId = toUuid(`${tenantId}-account`)
+  await seedGroup({ tenantId, status: 'active', access: 'public', currencyId })
+  const admin = await auth(`${tenantId}-admin`)
+  await seedGroupAdmin({ tenantId, userId: admin.id })
+  const member = await seedMember({
+    tenantId,
+    code: `${tenantId}-member`,
+    name: 'Query Member',
+    status: 'active',
+    access: 'public',
+    accountId: memberAccountId,
+    contacts: [
+      { type: 'email', value: `${tenantId}@example.org` },
+    ],
+  })
+  const otherMember = await seedMember({
+    tenantId,
+    code: `${tenantId}-other`,
+    name: 'Other Member',
+    status: 'active',
+    access: 'public',
+    accountId: toUuid(`${tenantId}-other-account`),
+  })
+  const category = await seedCategory({ tenantId, code: `${tenantId}-category`, name: 'Query Category' })
+
+  return { admin, category, currencyId, member, memberAccountId, otherMember }
+}
+
+const includedResource = (body: any, type: string, id?: string) => {
+  return body.included?.find((resource: any) => resource.type === type && (id === undefined || resource.id === id))
+}
+
 describe('Posts endpoints', () => {
   beforeEach(async () => {
     await resetDb()
@@ -390,6 +425,204 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].type, 'offers')
+  })
+
+  test('GET /:code/posts supports offer member/status/expired/category app query', async () => {
+    const { admin, category, member, otherMember } = await postQueryFixture('posts-app-offer-filter')
+    await seedPost({
+      tenantId: 'posts-app-offer-filter',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'published-current-offer',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      expires: new Date('2999-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-offer-filter',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'hidden-expired-offer',
+      type: 'offers',
+      status: 'hidden',
+      access: 'private',
+      expires: new Date('2000-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-offer-filter',
+      memberId: otherMember.id,
+      categoryId: category.id,
+      code: 'other-member-offer',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/posts-app-offer-filter/posts?filter[type]=offers&include=category&filter[member]=${member.id}&filter[expired]=false,true&filter[status]=published,hidden`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((post: any) => post.attributes.code).sort(),
+      ['hidden-expired-offer', 'published-current-offer'],
+    )
+    assert.ok(includedResource(res.body, 'categories', category.id))
+  })
+
+  test('GET /:code/posts supports rich offer list app query', async () => {
+    const { admin, category, currencyId, member, memberAccountId } = await postQueryFixture('posts-app-offer-rich')
+    await seedPost({
+      tenantId: 'posts-app-offer-rich',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'older-repair-offer',
+      title: 'Repair Help',
+      description: 'Needle repair support',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      updated: new Date('2026-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-offer-rich',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'newer-repair-offer',
+      title: 'Repair Tools',
+      description: 'Needle tool support',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      updated: new Date('2026-02-01T00:00:00.000Z'),
+    })
+
+    const res = await request(app)
+      .get('/posts-app-offer-rich/posts?filter[type]=offers&include=category,member,member.group,member.group.currency,member.account&sort=-updated&filter[search]=needle')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((post: any) => post.attributes.code),
+      ['newer-repair-offer', 'older-repair-offer'],
+    )
+    assert.ok(includedResource(res.body, 'members', member.id))
+    assert.ok(includedResource(res.body, 'groups'))
+    assert.ok(includedResource(res.body, 'currencies', currencyId))
+    assert.ok(includedResource(res.body, 'accounts', memberAccountId))
+  })
+
+  test('GET /:code/posts supports offer code lookup app query', async () => {
+    const { admin, category, currencyId, member } = await postQueryFixture('posts-app-offer-code')
+    await seedPost({
+      tenantId: 'posts-app-offer-code',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'target-offer',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'posts-app-offer-code',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'other-offer',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get('/posts-app-offer-code/posts?filter[type]=offers&filter[code]=target-offer&include=category,member,member.group,member.group.currency')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'target-offer')
+    assert.ok(includedResource(res.body, 'categories', category.id))
+    assert.ok(includedResource(res.body, 'members', member.id))
+    assert.ok(includedResource(res.body, 'currencies', currencyId))
+  })
+
+  test('GET /:code/posts supports need member/status/expired/category app query', async () => {
+    const { admin, category, member, otherMember } = await postQueryFixture('posts-app-need-filter')
+    await seedPost({
+      tenantId: 'posts-app-need-filter',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'published-current-need',
+      type: 'needs',
+      status: 'published',
+      access: 'public',
+      expires: new Date('2999-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-need-filter',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'hidden-expired-need',
+      type: 'needs',
+      status: 'hidden',
+      access: 'private',
+      expires: new Date('2000-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-need-filter',
+      memberId: otherMember.id,
+      categoryId: category.id,
+      code: 'other-member-need',
+      type: 'needs',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/posts-app-need-filter/posts?filter[type]=needs&include=category,member&filter[member]=${member.id}&filter[expired]=false,true&filter[status]=published,hidden`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((post: any) => post.attributes.code).sort(),
+      ['hidden-expired-need', 'published-current-need'],
+    )
+    assert.ok(includedResource(res.body, 'categories', category.id))
+    const includedMember = includedResource(res.body, 'members', member.id)
+    assert.strictEqual(includedMember.attributes.contacts[0].value, 'posts-app-need-filter@example.org')
+  })
+
+  test('GET /:code/posts supports need code/account app query', async () => {
+    const { admin, category, member, memberAccountId } = await postQueryFixture('posts-app-need-code')
+    await seedPost({
+      tenantId: 'posts-app-need-code',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'target-need',
+      type: 'needs',
+      status: 'published',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'posts-app-need-code',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'other-need',
+      type: 'needs',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get('/posts-app-need-code/posts?filter[type]=needs&filter[code]=target-need&include=category,member,member.account')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'target-need')
+    assert.ok(includedResource(res.body, 'categories', category.id))
+    assert.ok(includedResource(res.body, 'members', member.id))
+    assert.ok(includedResource(res.body, 'accounts', memberAccountId))
   })
 
   test('GET /:code/posts supports search across post data and member search fields', async () => {

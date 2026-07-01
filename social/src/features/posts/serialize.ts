@@ -33,8 +33,8 @@ const linkers = {
 }
 
 const relators = {
-  member: new Relator(async (post: Post) => post.member, MemberSerializer),
-  category: new Relator(async (post: Post) => ({id: post.categoryId}), new Serializer("categories"))
+  member: new Relator(async (post: Post) => post.member, MemberSerializer, { relatedName: 'member' }),
+  category: new Relator(async (post: Post) => ({id: post.categoryId}), new Serializer("categories"), { relatedName: 'category' })
 }
 
 const OfferSerializer = new Serializer('offers', {

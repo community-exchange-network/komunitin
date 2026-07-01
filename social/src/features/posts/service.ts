@@ -4,12 +4,12 @@ import { PostUpdateInput } from '../../generated/prisma/models'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
-import type { CollectionParams } from '../../server/request'
+import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { slugify } from '../../utils/format'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { fromLocation, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
+import { DbGroup, fromLocation, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { getMember, isMemberUser, toMember } from '../members/service'
 import { createNotificationsClient } from '../../clients/notifications'
@@ -34,7 +34,22 @@ const toPost = (dbPost: DbPost, member: Member): Post => {
   } as Post
 }
 
-const getPostById = async (code: string, id: string): Promise<Post> => {
+const shouldIncludeMemberGroup = (include: string[] = []): boolean => {
+  return include.some((item) => item === 'member.group' || item.startsWith('member.group.'))
+}
+
+const getMemberInclude = (include: string[] = []) => {
+  const includeGroup = shouldIncludeMemberGroup(include)
+  return {
+    group: includeGroup && {
+      include: {
+        admins: true,
+      },
+    },
+  }
+}
+
+const getPostById = async (code: string, id: string, params?: ResourceParams): Promise<Post> => {
   const validation = z.uuid().safeParse(id)
   if (!validation.success) {
     throw notFound('Post not found')
@@ -44,9 +59,11 @@ const getPostById = async (code: string, id: string): Promise<Post> => {
   const post = await db.post.findFirst({
     where: { id, deleted: null },
     include: {
-      member: true
+      member: {
+        include: getMemberInclude(params?.include),
+      },
     }
-  })
+  }) as (DbPost & { member: DbMember & { group?: DbGroup } }) | null
 
   if (!post) {
     throw notFound('Post not found')
@@ -122,16 +139,18 @@ export const listPosts = async (ctx: OptionalAuthContext, code: string, params: 
       id: { in: ids },
     },
     include: {
-      member: true
+      member: {
+        include: getMemberInclude(params.include),
+      },
     },
-  })
+  }) as (DbPost & { member: DbMember & { group?: DbGroup } })[]
 
   return reorderByIds(posts, ids).map((post) => toPost(post, toMember(post.member)))
 }
 
-export const getPost = async (ctx: OptionalAuthContext, code: string, id: string): Promise<Post> => {
+export const getPost = async (ctx: OptionalAuthContext, code: string, id: string, params?: ResourceParams): Promise<Post> => {
   const group = await getGroupByCode(ctx, code)
-  const post = await getPostById(code, id)
+  const post = await getPostById(code, id, params)
 
   const allowed = await canReadPost(ctx, group, post)
   if (!allowed) {
