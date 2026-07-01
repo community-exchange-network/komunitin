@@ -40,6 +40,7 @@ export type Account = {
   type: "accounts"
   code: string
   status: AccountStatus
+  balance?: number
   [key: string]: unknown
 }
 
@@ -53,7 +54,7 @@ const toError = (status: number, errors: JsonApiError[] | undefined, fallback: s
 
   const details = errors ? { details: errors } : undefined
 
-  // All errors from the accounting service (authorization, not found, etc) are treated as 
+  // All errors from the accounting service (authorization, not found, etc) are treated as
   // internal errors in the social service, because none of our calls is expected to fail.
 
   return internalError(message, details)
@@ -190,6 +191,15 @@ class AccountingClient {
     return resource as Account
   }
 
+  public async findAccountById(currencyCode: string, accountId: string): Promise<Account | undefined> {
+    const response = await this.request(
+      `/${currencyCode}/accounts/${accountId}`,
+      {},
+      { allowNotFound: true },
+    )
+    return toResource(response?.data) as Account | undefined
+  }
+
   public async createAccount(currencyCode: string, attributes: Record<string, unknown>, userIds: string[]): Promise<Account> {
     const response = await this.request(
       `/${currencyCode}/accounts`,
@@ -238,9 +248,7 @@ class AccountingClient {
   }
 
   async deleteAccount(currencyCode: string, accountId: string): Promise<void> {
-    await this.request(`/${currencyCode}/accounts/${accountId}`, { method: 'DELETE' }, {
-      allowNotFound: true,
-    })
+    await this.request(`/${currencyCode}/accounts/${accountId}`, { method: 'DELETE' })
   }
 }
 
