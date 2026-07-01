@@ -667,6 +667,50 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'b')
   })
 
+  test('GET /:code/members supports admin status/search/sort/page query', async () => {
+    await seedGroup({ tenantId: 'members-admin-search-query', status: 'active', access: 'public' })
+    const admin = await auth('members-admin-search-query-admin')
+    await seedGroupAdmin({ tenantId: 'members-admin-search-query', userId: admin.id })
+
+    await seedMember({ tenantId: 'members-admin-search-query', code: 'disabled-needle', name: 'Alpha Needle', status: 'disabled', access: 'private' })
+    await seedMember({ tenantId: 'members-admin-search-query', code: 'suspended-needle', name: 'Bravo Needle', status: 'suspended', access: 'private' })
+    await seedMember({ tenantId: 'members-admin-search-query', code: 'active-needle', name: 'Charlie Needle', status: 'active', access: 'private' })
+    await seedMember({ tenantId: 'members-admin-search-query', code: 'active-other', name: 'Delta Other', status: 'active', access: 'private' })
+
+    const res = await request(app)
+      .get('/members-admin-search-query/members?filter[status]=active,disabled,suspended&sort=name&filter[search]=needle&page[size]=2')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((member: any) => member.attributes.code),
+      ['disabled-needle', 'suspended-needle'],
+    )
+  })
+
+  test('GET /:code/members supports admin account/status/page query', async () => {
+    const accountOne = toUuid('members-admin-account-query-one')
+    const accountTwo = toUuid('members-admin-account-query-two')
+    const accountThree = toUuid('members-admin-account-query-three')
+    await seedGroup({ tenantId: 'members-admin-account-query', status: 'active', access: 'public' })
+    const admin = await auth('members-admin-account-query-admin')
+    await seedGroupAdmin({ tenantId: 'members-admin-account-query', userId: admin.id })
+
+    await seedMember({ tenantId: 'members-admin-account-query', code: 'active-account', status: 'active', access: 'private', accountId: accountOne })
+    await seedMember({ tenantId: 'members-admin-account-query', code: 'disabled-account', status: 'disabled', access: 'private', accountId: accountTwo })
+    await seedMember({ tenantId: 'members-admin-account-query', code: 'pending-account', status: 'pending', access: 'private', accountId: accountThree })
+
+    const res = await request(app)
+      .get(`/members-admin-account-query/members?filter[account]=${accountOne},${accountTwo}&filter[status]=active,disabled,suspended&page[size]=5`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((member: any) => member.attributes.code).sort(),
+      ['active-account', 'disabled-account'],
+    )
+  })
+
   test('GET /:code/members supports search across text and JSON scalar values', async () => {
     await seedGroup({ tenantId: 'members-search', status: 'active', access: 'public' })
     await seedMember({
