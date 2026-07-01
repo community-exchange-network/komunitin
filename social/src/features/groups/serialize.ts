@@ -6,6 +6,10 @@ import type { Group } from './types'
 
 const { Linker, Relator, Serializer } = TsJapi
 const ExternalCurrencySerializer = externalResourceSerializer<{ id: string; href: string }>('currencies')
+const GroupAdminSerializer = new Serializer<{ id: string }>('users', {
+  version: null,
+  projection: {},
+})
 
 type OutputGroupSettings = GroupSettings & { 
   groupCode: string
@@ -67,6 +71,9 @@ export const GroupSerializer = new Serializer<Group>('groups', {
         href: getAccountingCurrencyUrl(group.code),
       }
     }, ExternalCurrencySerializer, { relatedName: 'currency' }),
+    admins: new Relator<Group, { id: string }>(async (group) => {
+      return group.admins
+    }, GroupAdminSerializer, { relatedName: 'admins' }),
   },
   linkers: {
     resource: new Linker((group) => getResourceLink("groups", group.code, group.id)),

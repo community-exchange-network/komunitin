@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { Account, createAccountingClient, getAccountingAccountUrl } from '../../clients/accounting'
-import { Prisma, type Group as DbGroup, type Member as DbMember } from '../../generated/prisma/client'
+import { Account, createAccountingClient } from '../../clients/accounting'
+import { Prisma, type Member as DbMember } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
@@ -8,7 +8,7 @@ import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
+import { DbGroup, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, PatchMemberInput } from './types'
@@ -29,15 +29,20 @@ const getMemberById = async (code: string, id: string, params?: ResourceParams):
   }
 
   const db = tenantDb(prisma, code)
+  const includeGroup = params?.include.includes('group') ?? false
   const member = await db.member.findFirst({
     where: {
       id,
       deleted: null,
     },
     include: {
-      group: params?.include.includes('group') ?? false,
+      group: includeGroup && {
+        include: {
+          admins: true
+        }
+      }
     },
-  })
+  }) as (DbMember & { group?: DbGroup }) // Prisma can't infer the type correctly when using conditional include.
 
   if (!member) {
     throw notFound('Member not found')
@@ -65,6 +70,7 @@ export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member
 
 const canReadMember = async (ctx: OptionalAuthContext, group: Group, member: Member): Promise<boolean> => {
   return ctx.isSuperadmin
+    || ctx.isSocialReadAll
     || (group.status === 'active' && member.status === 'active' && member.access === 'public')  
     || (group.status === 'active' && member.status === 'active' && member.access === 'group' && await isGroupMember(ctx, group))
     || await isMemberUser(ctx, member)
@@ -180,14 +186,19 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     return []
   }
 
+  const includeGroup = params.include.includes('group') ?? false
   const members = await db.member.findMany({
     where: {
       id: { in: ids },
     },
     include: {
-      group: params.include.includes('group'),
+      group: includeGroup ? {
+        include: {
+          admins: true
+        }
+      } : false,
     }
-  })
+  }) as (DbMember & { group?: DbGroup })[] // Prisma can't infer the type correctly when using conditional include.
 
   return reorderByIds(members, ids).map(toMember)
 }

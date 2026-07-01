@@ -1,7 +1,7 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
-import { Scope } from '../src/server/auth'
+import { Scope } from '../src/server/context'
 import { auth } from './mocks/auth'
 import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
@@ -210,6 +210,20 @@ describe('Categories endpoints', () => {
       .get('/cats-pending/categories')
       .set('Authorization', `Bearer ${superadmin.token}`)
       .expect(200)
+  })
+
+  test('GET /:code/categories allows read-all scope for pending private group', async () => {
+    await seedGroup({ tenantId: 'cats-read-all', status: 'pending', access: 'private' })
+    await seedCategory({ tenantId: 'cats-read-all', code: 'hidden', access: 'private' })
+
+    const serviceUser = await auth('cats-read-all-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get('/cats-read-all/categories')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'hidden')
   })
 
   test('GET /:code/categories returns 404 for missing group', async () => {

@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
-import { Scope } from '../src/server/auth'
+import { Scope } from '../src/server/context'
 import { auth } from './mocks/auth'
 import {
   getAccountingRequestPaths,
@@ -211,6 +211,42 @@ describe('Members endpoints', () => {
     await request(app)
       .get(`/members-get-one/members/${privateDraft.id}`)
       .expect(403)
+  })
+
+  test('GET /:code/members/:member allows read-all scope for non-public member', async () => {
+    await seedGroup({ tenantId: 'members-read-all-one', status: 'pending', access: 'private' })
+    const hiddenMember = await seedMember({
+      tenantId: 'members-read-all-one',
+      code: 'hidden-member',
+      status: 'draft',
+      access: 'private',
+    })
+
+    const serviceUser = await auth('members-read-all-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get(`/members-read-all-one/members/${hiddenMember.id}`)
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.id, hiddenMember.id)
+    assert.strictEqual(res.body.data.attributes.code, 'hidden-member')
+  })
+
+  test('GET /:code/members allows read-all scope for non-public members', async () => {
+    await seedGroup({ tenantId: 'members-read-all-list', status: 'pending', access: 'private' })
+    await seedMember({ tenantId: 'members-read-all-list', code: 'member-a', status: 'draft', access: 'private' })
+    await seedMember({ tenantId: 'members-read-all-list', code: 'member-b', status: 'pending', access: 'group' })
+
+    const serviceUser = await auth('members-read-all-list-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get('/members-read-all-list/members?filter[status]=draft,pending,active')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 2)
+    const codes = res.body.data.map((item: any) => item.attributes.code)
+    assert.strictEqual(codes.includes('member-a'), true)
+    assert.strictEqual(codes.includes('member-b'), true)
   })
 
   test('PATCH /:code/members/:member allows member user to update attributes', async () => {

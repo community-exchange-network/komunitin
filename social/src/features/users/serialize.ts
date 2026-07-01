@@ -1,5 +1,6 @@
 import TsJapi from 'ts-japi'
 import { config } from '../../config'
+import type { SerializerOptions } from '../../server/jsonapi-serialize'
 import type { User, UserSettings } from './types'
 
 const { Linker, Relator, Serializer } = TsJapi
@@ -45,4 +46,8 @@ const UserSerializer = new Serializer<User>('users', {
 
 export const serializeUser = async (user: User, params: {include: string[]}) => {
   return UserSerializer.serialize(user, params)
+}
+
+export const serializeUsers = async (users: User[], params?: SerializerOptions<User>) => {
+  return UserSerializer.serialize(users, params)
 }

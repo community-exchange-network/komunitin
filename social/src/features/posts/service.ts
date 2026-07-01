@@ -61,6 +61,7 @@ const isPostOwner = async (ctx: OptionalAuthContext, post: Post): Promise<boolea
 
 const canReadPost = async (ctx: OptionalAuthContext, group: Group, post: Post): Promise<boolean> => {
   return (ctx.isSuperadmin) 
+    || ctx.isSocialReadAll
     || (group.status === 'active' && post.status === 'published' && post.access === 'public' )
     || (group.status === 'active' && post.status === 'published' && post.access === 'group' && await isGroupMember(ctx, group))
     || (await isPostOwner(ctx, post))

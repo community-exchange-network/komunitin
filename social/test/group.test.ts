@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
-import { Scope } from '../src/server/auth'
+import { Scope } from '../src/server/context'
 import { auth } from './mocks/auth'
 import {
   getAccountingRequestPaths,
@@ -379,6 +379,39 @@ describe('Groups endpoints', () => {
       .get('/member-group')
       .set('Authorization', `Bearer ${superadmin.token}`)
       .expect(200)
+  })
+
+  test('GET /:code includes group admins relationship linkage', async () => {
+    await seedGroup({ tenantId: 'group-admins-include', status: 'active', access: 'public' })
+    const admin = await auth('group-admins-user')
+    await seedGroupAdmin({ tenantId: 'group-admins-include', userId: admin.id })
+
+    const res = await request(app)
+      .get('/group-admins-include')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.relationships.admins.data.some((resource: any) => resource.id === admin.id), true)
+    // Not including admins as included resources.
+    assert.strictEqual(Array.isArray(res.body.included) && res.body.included.some((resource: any) => resource.type === 'users' && resource.id === admin.id), false)
+  })
+
+  test('GET /:code allows read-all scope for pending private group', async () => {
+    await seedGroup({ tenantId: 'group-read-all', status: 'pending', access: 'private' })
+
+    const regularUser = await auth('group-read-all-regular')
+    await request(app)
+      .get('/group-read-all')
+      .set('Authorization', `Bearer ${regularUser.token}`)
+      .expect(403)
+
+    const serviceUser = await auth('group-read-all-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get('/group-read-all')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.attributes.code, 'group-read-all')
+    assert.strictEqual(res.body.data.attributes.status, 'pending')
   })
 
   test('GET /:code returns 404 for missing group', async () => {

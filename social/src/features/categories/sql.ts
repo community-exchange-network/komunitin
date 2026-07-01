@@ -24,7 +24,7 @@ const categoryColumns: SqlColumnMap = {
 }
 
 const buildReadableCategoryWhere = async (ctx: OptionalAuthContext, group: Group) => {
-  if (ctx.isSuperadmin) {
+  if (ctx.isSuperadmin || ctx.isSocialReadAll) {
     return Prisma.sql`TRUE`
   }
 
@@ -59,4 +59,3 @@ export const findCategoriesIds = async (ctx: OptionalAuthContext, db: DbClient, 
     where: [readableWhere],
   })
 }
-

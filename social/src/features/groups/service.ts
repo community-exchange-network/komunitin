@@ -1,5 +1,5 @@
 import { InputJsonObject } from '@prisma/client/runtime/client'
-import { Group as DbGroup, Prisma } from '../../generated/prisma/client'
+import { Group as DbGroupRaw, GroupAdminUser, Prisma } from '../../generated/prisma/client'
 import { GroupUpdateInput } from '../../generated/prisma/models'
 import { AuthContext, OptionalAuthContext } from '../../server/context'
 import { createAccountingClient, Currency } from '../../clients/accounting'
@@ -40,25 +40,6 @@ const getRequestedCurrency = (group: Pick<DbGroup, 'meta' | 'tenantId'>) => {
   }
 }
 
-/**
- * Return the user IDs of all admins of the given group.
- * 
- * In fact there is just only one admin per group for now, but this may change in the future, so we return an array.
- */
-const getGroupAdminUserIds = async (group: Pick<DbGroup, 'id' | 'tenantId'>): Promise<string[]> => {
-  const db = tenantDb(prisma, group.tenantId)
-  const admins = await db.groupAdminUser.findMany({
-    where: {
-      groupId: group.id,
-    },
-    select: {
-      userId: true,
-    },
-  })
-
-  return admins.map((admin) => admin.userId)
-}
-
 export const fromLocation = (location?: Location | null): { latitude: number|null; longitude: number|null } => {
   return {
     latitude: location?.coordinates[1] ?? null,
@@ -66,6 +47,10 @@ export const fromLocation = (location?: Location | null): { latitude: number|nul
   }
 }
 
+// This is the type we get from db fetches including the admins relation.
+export type DbGroup = DbGroupRaw & {
+  admins: GroupAdminUser[]
+}
 /**
  * Map database model to Group type, ready to be serialized and sent in API responses.
  */
@@ -73,6 +58,7 @@ export const toGroup = (group: DbGroup): Group => {
   return {
     ...group,
     code: group.tenantId,
+    admins: group.admins.map((admin) => ({ id: admin.userId, role: admin.role })),
     location: toLocation(group),
   } as Group
 }
@@ -111,10 +97,10 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
     } as InputJsonObject,
   }
 
-  const group = await db.transaction(async (tx) => {
+  const dbGroup = await db.transaction(async (tx) => {
     const created = await tx.group.create({ data: createData })
 
-    await tx.groupAdminUser.create({
+    const admin = await tx.groupAdminUser.create({
       data: {
         tenantId: attributes.code,
         groupId: created.id,
@@ -123,15 +109,20 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
       }
     })
 
-    return created
+    return {
+      ...created,
+      admins: [admin],
+    }
   })
+
+  const group = toGroup(dbGroup)
 
   await syncResourceFiles(attributes.code, 'groups', group.id, attributes.image ? [attributes.image.url] : [])
 
   const notifications = createNotificationsClient(ctx)
-  await notifications.notifyGroupRequested(toGroup(group))
+  await notifications.notifyGroupRequested(group)
 
-  return toGroup(group)
+  return group
 }
 
 export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Pick<Group, 'id' | 'code'>): Promise<boolean> => {
@@ -171,6 +162,7 @@ export const isGroupMember = async (ctx: OptionalAuthContext, group: Pick<Group,
 
 export const canReadGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
   return ctx.isSuperadmin
+    || ctx.isSocialReadAll
     || (group.status === 'active' && group.access === 'public')
     || await isGroupMember(ctx, group)
     || await isGroupAdmin(ctx, group)
@@ -207,7 +199,10 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
   const groups = await db.group.findMany({
     where: {
       id: { in: ids },
-    }
+    },
+    include: {
+      admins: true
+    },
   })
 
   return reorderByIds(groups, ids).map(toGroup)
@@ -218,7 +213,11 @@ export const getGroupByCode = async (
   code: string
 ): Promise<Group> => {
   const db = tenantDb(prisma, code)
-  const dbGroup = await db.group.findFirst()
+  const dbGroup = await db.group.findFirst({
+    include: {
+      admins: true
+    },
+  })
   if (!dbGroup) {
     throw notFound('Group not found')
   }
@@ -240,7 +239,7 @@ const syncCurrencyStatus = async (ctx: AuthContext, group: Group, status: Curren
   if (!currency) {
     // Create currency
     const requestedCurrency = getRequestedCurrency(group)
-    const adminUserIds = await getGroupAdminUserIds(group)
+    const adminUserIds = group.admins.map((admin) => admin.id)
     
     currency = await accounting.createCurrency({
       ...requestedCurrency,
@@ -309,21 +308,26 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
   }
   
   const db = tenantDb(prisma, code)
-  const updated = await db.group.update({
+  const dbUpdated = await db.group.update({
     where: { id: group.id },
     data,
+    include: {
+      admins: true,
+    }
   })
 
   if (attributes.image !== undefined) {
     await syncResourceFiles(code, 'groups', group.id, attributes.image ? [attributes.image.url] : [])
   }
 
+  const updated = toGroup(dbUpdated)
+
   if (notifyGroupActivated) {
     const notifications = createNotificationsClient(ctx)
-    await notifications.notifyGroupActivated(toGroup(updated))
+    await notifications.notifyGroupActivated(updated)
   }
 
-  return toGroup(updated)
+  return updated
 }
 
 export const patchGroupSettingsByCode = async (
@@ -332,13 +336,9 @@ export const patchGroupSettingsByCode = async (
   attributes: PatchGroupSettingsAttributes,
 ): Promise<Group> => {
   const db = tenantDb(prisma, code)
-  const group = await db.group.findFirst()
+  const group = await getGroupByCode(ctx, code)
 
-  if (!group) {
-    throw notFound('Group not found')
-  }
-
-  const allowed = await canWriteGroup(ctx, toGroup(group))
+  const allowed = await canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to update this group')
   }
@@ -354,6 +354,9 @@ export const patchGroupSettingsByCode = async (
     data: {
       settings: mergedSettings,
     },
+    include: {
+      admins: true,
+    }
   })
 
   return toGroup(updated)
