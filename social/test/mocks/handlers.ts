@@ -29,6 +29,8 @@ const notificationsBaseUrl = process.env.NOTIFICATIONS_API_URL ?? 'http://notifi
 let accountingCurrencies = new Map<string, MockCurrency>()
 let accountingAccounts = new Map<string, Map<string, MockAccount>>()
 let accountingRequests: AccountingRequest[] = []
+let accountingAccountDeleteStatus = 204
+let accountingAccountDeleteDetail = 'Mock accounting delete failure'
 let notificationsEventStatus = 201
 let notificationsEvents: unknown[] = []
 
@@ -91,6 +93,11 @@ export const getAccountingRequestPaths = (): string[] => {
   return accountingRequests.map((entry) => `${entry.method} ${entry.path}`)
 }
 
+export const setAccountingAccountDeleteStatus = (status: number, detail = 'Mock accounting delete failure') => {
+  accountingAccountDeleteStatus = status
+  accountingAccountDeleteDetail = detail
+}
+
 export const setNotificationsEventStatus = (status: number) => {
   notificationsEventStatus = status
 }
@@ -147,6 +154,8 @@ export const resetMockState = () => {
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
   accountingRequests = []
+  accountingAccountDeleteStatus = 204
+  accountingAccountDeleteDetail = 'Mock accounting delete failure'
   notificationsEventStatus = 201
   notificationsEvents = []
   notificationsRequests = []
@@ -305,6 +314,26 @@ export const handlers = [
     return HttpResponse.json({
       data: serializeAccount(account),
     })
+  }),
+  http.delete(`${accountingBaseUrl}/:currencyCode/accounts/:accountId`, ({ request, params }) => {
+    const unauthorized = requireAccountingAuthorization(request)
+    if (unauthorized) {
+      return unauthorized
+    }
+
+    if (accountingAccountDeleteStatus !== 204) {
+      return jsonApiError(accountingAccountDeleteStatus, accountingAccountDeleteDetail)
+    }
+
+    const currencyCode = String(params.currencyCode)
+    const accountId = String(params.accountId)
+    const account = findAccountingAccountById(currencyCode, accountId)
+    if (!account) {
+      return jsonApiError(404, `Account ${accountId} not found`)
+    }
+
+    account.status = 'deleted'
+    return new HttpResponse(null, { status: 204 })
   }),
   http.patch(`${accountingBaseUrl}/:currencyCode/accounts/:accountId`, async ({ request, params }) => {
     const unauthorized = requireAccountingAuthorization(request)

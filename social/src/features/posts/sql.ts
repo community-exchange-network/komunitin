@@ -19,7 +19,7 @@ const postColumn = (column: string) => sqlColumn('p', column)
 const memberTable = sqlTable('Member', 'm')
 const memberColumn = (column: string) => sqlColumn('m', column)
 
-const searchablePostFrom = Prisma.sql`
+const postWithMemberFrom = Prisma.sql`
   ${postTable}
   INNER JOIN ${memberTable}
     ON ${memberColumn('id')} = ${postColumn('memberId')}
@@ -104,7 +104,7 @@ export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group
   const expiredWhere = buildExpiredWhere(expired)
 
   return await findCollectionIds(db, {
-    from: hasSearch ? searchablePostFrom : postTable,
+    from: postWithMemberFrom,
     columns: postColumns,
     search: hasSearch ? [postColumn('search'), memberColumn('search')] : postColumn('search'),
     params: {
@@ -113,6 +113,7 @@ export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group
     },
     where: [
       Prisma.sql`${postColumn('deleted')} IS NULL`,
+      Prisma.sql`${memberColumn('deleted')} IS NULL`,
       readableWhere,
       ...(expiredWhere ? [expiredWhere] : []),
     ],

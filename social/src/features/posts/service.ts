@@ -57,7 +57,13 @@ const getPostById = async (code: string, id: string, params?: ResourceParams): P
 
   const db = tenantDb(prisma, code)
   const post = await db.post.findFirst({
-    where: { id, deleted: null },
+    where: {
+      id,
+      deleted: null,
+      member: {
+        deleted: null,
+      },
+    },
     include: {
       member: {
         include: getMemberInclude(params?.include),

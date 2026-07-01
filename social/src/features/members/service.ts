@@ -366,3 +366,24 @@ export const patchMember = async (
 
   return toMember(updated)
 }
+
+export const deleteMember = async (ctx: AuthContext, code: string, id: string): Promise<void> => {
+  const group = await getGroupByCode(ctx, code)
+  const member = await getMemberById(code, id, { include: ["group"] })
+
+  const allowed = await canWriteMember(ctx, group, member)
+  if (!allowed) {
+    throw forbidden('You do not have permission to delete this member')
+  }
+
+  if (member.accountId) {
+    const accounting = createAccountingClient(ctx)
+    await accounting.deleteAccount(getCurrencyCode(group), member.accountId)
+  }
+
+  const db = tenantDb(prisma, code)
+  await db.member.update({
+    where: { id: member.id },
+    data: { deleted: new Date() },
+  })
+}

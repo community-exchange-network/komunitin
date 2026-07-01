@@ -21,6 +21,10 @@ type JsonApiDoc = {
   errors?: JsonApiError[]
 }
 
+type RequestOptions = {
+  allowNotFound?: boolean
+}
+
 export type CurrencyStatus = "new" | "active" | "disabled"
 export type Currency = {
   id: string
@@ -84,7 +88,7 @@ class AccountingClient {
     return this.ctx.token
   }
 
-  private async request(path: string, init: RequestInit, allowNotFound = false): Promise<JsonApiDoc | undefined> {
+  private async request(path: string, init: RequestInit, options: RequestOptions = {}): Promise<JsonApiDoc | undefined> {
     const token = await this.getAuthorizationToken()
     
     const response = await fetchWithRetry(accountingUrl(path), {
@@ -97,7 +101,7 @@ class AccountingClient {
       },
     })
     
-    if (allowNotFound && response.status === 404) {
+    if (options.allowNotFound && response.status === 404) {
       return undefined
     }
 
@@ -111,7 +115,7 @@ class AccountingClient {
   }
 
   public async findCurrencyByCode(code: string): Promise<Currency | undefined> {
-    const response = await this.request(`/${code}/currency`, {}, true)
+    const response = await this.request(`/${code}/currency`, {}, { allowNotFound: true })
     return toResource(response?.data) as Currency | undefined
   }
 
@@ -232,6 +236,12 @@ class AccountingClient {
     }
     return resource as Account
   }
+
+  async deleteAccount(currencyCode: string, accountId: string): Promise<void> {
+    await this.request(`/${currencyCode}/accounts/${accountId}`, { method: 'DELETE' }, {
+      allowNotFound: true,
+    })
+  }
 }
 
 export const createAccountingClient = (ctx: AuthContext) => {
@@ -245,4 +255,3 @@ export const getAccountingCurrencyUrl = (code: string) => {
 export const getAccountingAccountUrl = (currencyCode: string, accountId: string) => {
   return accountingUrl(`/${currencyCode}/accounts/${accountId}`)
 }
-

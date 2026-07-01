@@ -5,7 +5,7 @@ import { getCollectionParams, getCode, getParam, getResourceParams } from '../..
 import { getValidatedBody } from '../../server/validation'
 import type { CreateMemberBody, PatchMemberBody } from './schema'
 import { serializeMember, serializeMembers } from './serialize'
-import { createMember, getMember, listMembers, patchMember } from './service'
+import { createMember, deleteMember, getMember, listMembers, patchMember } from './service'
 
 export const getMembersRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
@@ -59,4 +59,13 @@ export const patchMemberRoute: RequestHandler = async (req, res) => {
 
   const payload = await serializeMember(member)
   res.status(200).json(payload)
+}
+
+export const deleteMemberRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+  const memberId = getParam(req, 'member')
+
+  await deleteMember(ctx, code, memberId)
+  res.status(204).send()
 }

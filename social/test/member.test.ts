@@ -11,8 +11,9 @@ import {
   resetMockState,
   seedAccountingAccount,
   seedAccountingCurrency,
+  setAccountingAccountDeleteStatus,
 } from './mocks/handlers'
-import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser } from './mocks/seed'
+import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser, seedPost } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { toUuid } from './mocks/utils'
 
@@ -621,6 +622,238 @@ describe('Members endpoints', () => {
         `PATCH /${currency.code}/accounts/${account.id}`,
       ],
     )
+  })
+
+  test('DELETE /:code/members/:member soft-deletes as member admin after accounting delete', async () => {
+    const currency = seedAccountingCurrency('members-delete')
+    await seedGroup({
+      tenantId: 'members-delete',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-owner')
+    const account = seedAccountingAccount(currency.code, 'delete-me', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete',
+      code: 'delete-me',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `DELETE /${currency.code}/accounts/${account.id}`,
+    ])
+
+    await request(app)
+      .get(`/members-delete/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(404)
+
+    const list = await request(app)
+      .get('/members-delete/members?filter[status]=active')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+
+    assert.strictEqual(list.body.data.length, 0)
+
+    const db = tenantDb(prisma, 'members-delete')
+    const deleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.ok(deleted?.deleted)
+    assert.strictEqual(deleted?.status, 'active')
+  })
+
+  test('DELETE /:code/members/:member allows group admin to delete another member', async () => {
+    const currency = seedAccountingCurrency('members-delete-admin')
+    await seedGroup({
+      tenantId: 'members-delete-admin',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-admin-owner')
+    const admin = await auth('members-delete-admin-admin')
+    await seedGroupAdmin({ tenantId: 'members-delete-admin', userId: admin.id })
+    const account = seedAccountingAccount(currency.code, 'delete-by-admin', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete-admin',
+      code: 'delete-by-admin',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete-admin/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `DELETE /${currency.code}/accounts/${account.id}`,
+    ])
+  })
+
+  test('DELETE /:code/members/:member forbids non-writer before accounting delete', async () => {
+    const currency = seedAccountingCurrency('members-delete-deny')
+    await seedGroup({
+      tenantId: 'members-delete-deny',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-deny-owner')
+    const outsider = await auth('members-delete-deny-outsider')
+    const account = seedAccountingAccount(currency.code, 'delete-denied', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete-deny',
+      code: 'delete-denied',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete-deny/members/${member.id}`)
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .expect(403)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+  })
+
+  test('DELETE /:code/members/:member skips accounting for member without account', async () => {
+    await seedGroup({ tenantId: 'members-delete-no-account', status: 'active', access: 'public' })
+    const owner = await auth('members-delete-no-account-owner')
+    const member = await seedMember({
+      tenantId: 'members-delete-no-account',
+      status: 'active',
+      userId: owner.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete-no-account/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+
+    const db = tenantDb(prisma, 'members-delete-no-account')
+    const deleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.ok(deleted?.deleted)
+  })
+
+  test('DELETE /:code/members/:member keeps social member when accounting delete fails', async () => {
+    const currency = seedAccountingCurrency('members-delete-accounting-400')
+    await seedGroup({
+      tenantId: 'members-delete-accounting-400',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-accounting-400-owner')
+    const account = seedAccountingAccount(currency.code, 'delete-balance', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete-accounting-400',
+      code: 'delete-balance',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+    setAccountingAccountDeleteStatus(400, 'Account balance must be zero to delete account')
+
+    const res = await request(app)
+      .delete(`/members-delete-accounting-400/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(500)
+
+    assert.strictEqual(res.body.errors[0].detail, 'Account balance must be zero to delete account')
+
+    const db = tenantDb(prisma, 'members-delete-accounting-400')
+    const notDeleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.strictEqual(notDeleted?.deleted, null)
+
+    await request(app)
+      .get(`/members-delete-accounting-400/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+  })
+
+  test('DELETE /:code/members/:member treats missing accounting account as deleted', async () => {
+    const currency = seedAccountingCurrency('members-delete-accounting-404')
+    await seedGroup({
+      tenantId: 'members-delete-accounting-404',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-accounting-404-owner')
+    const member = await seedMember({
+      tenantId: 'members-delete-accounting-404',
+      code: 'delete-missing-account',
+      status: 'active',
+      userId: owner.id,
+      accountId: toUuid('members-delete-accounting-404-missing'),
+    })
+    setAccountingAccountDeleteStatus(404, 'Account not found')
+
+    await request(app)
+      .delete(`/members-delete-accounting-404/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `DELETE /${currency.code}/accounts/${member.accountId}`,
+    ])
+
+    const db = tenantDb(prisma, 'members-delete-accounting-404')
+    const deleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.ok(deleted?.deleted)
+  })
+
+  test('DELETE /:code/members/:member hides member posts without soft-deleting posts', async () => {
+    await seedGroup({ tenantId: 'members-delete-posts', status: 'active', access: 'public' })
+    const owner = await auth('members-delete-posts-owner')
+    const member = await seedMember({
+      tenantId: 'members-delete-posts',
+      status: 'active',
+      access: 'public',
+      userId: owner.id,
+    })
+    const post = await seedPost({
+      tenantId: 'members-delete-posts',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    await request(app)
+      .get(`/members-delete-posts/posts/${post.id}`)
+      .expect(200)
+
+    await request(app)
+      .delete(`/members-delete-posts/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    await request(app)
+      .get(`/members-delete-posts/posts/${post.id}`)
+      .expect(404)
+
+    const list = await request(app)
+      .get('/members-delete-posts/posts')
+      .expect(200)
+
+    assert.strictEqual(list.body.data.length, 0)
+
+    const db = tenantDb(prisma, 'members-delete-posts')
+    const unchangedPost = await db.post.findUnique({ where: { id: post.id } })
+    assert.strictEqual(unchangedPost?.deleted, null)
   })
 
   test('PATCH /:code/members/:member denies non-member and non-admin', async () => {
