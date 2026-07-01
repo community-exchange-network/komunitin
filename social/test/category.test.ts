@@ -212,6 +212,20 @@ describe('Categories endpoints', () => {
       .expect(200)
   })
 
+  test('GET /:code/categories allows read-all scope for pending private group', async () => {
+    await seedGroup({ tenantId: 'cats-read-all', status: 'pending', access: 'private' })
+    await seedCategory({ tenantId: 'cats-read-all', code: 'hidden', access: 'private' })
+
+    const serviceUser = await auth('cats-read-all-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get('/cats-read-all/categories')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'hidden')
+  })
+
   test('GET /:code/categories returns 404 for missing group', async () => {
     await request(app)
       .get('/cats-missing/categories')

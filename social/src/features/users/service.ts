@@ -5,7 +5,6 @@ import { badRequest, forbidden, notFound } from '../../utils/error'
 import { privilegedDb } from '../../server/multitenant'
 import { AuthContext } from '../../server/context'
 import { CollectionParams } from '../../server/request'
-import { reorderByIds } from '../../server/query'
 
 const castSettings = (settings: unknown): UserSettings | null => {
   if (!settings || typeof settings !== 'object') {
@@ -98,37 +97,23 @@ export const listUsers = async (ctx: AuthContext, params: CollectionParams): Pro
   const order = params.sort[0]?.order ?? 'asc'
 
   const db = privilegedDb(prisma)
-  const links = await db.memberUser.findMany({
+  const users = await db.user.findMany({
     where: {
-      memberId: {
-        in: memberIds,
+      members: {
+        some: {
+          memberId: {
+            in: memberIds,
+          },
+        },
       },
     },
-    select: {
-      userId: true,
-    },
-    distinct: ['userId'],
-    orderBy: {
-      user: {
-        created: order,
-      }
-    },
+    orderBy: [
+      { created: order },
+      { id: 'asc' },
+    ],
     skip: params.pagination.cursor,
     take: params.pagination.size
   })
 
-  const userIds = links.map((link) => link.userId)
-  if (userIds.length === 0) {
-    return []
-  }
-
-  const users = await db.user.findMany({
-    where: {
-      id: {
-        in: userIds,
-      },
-    },
-  })
-
-  return reorderByIds(users, userIds).map(toUser)
+  return users.map(toUser)
 }

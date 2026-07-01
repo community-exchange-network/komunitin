@@ -211,6 +211,47 @@ describe('Users endpoints', () => {
     assert.strictEqual(linkedSettings.attributes.language, 'en')
   })
 
+  test('GET /users paginates unique users when one user belongs to multiple filtered members', async () => {
+    const tenantId = 'users-filter-members-unique'
+    const duplicateUserId = toUuid('duplicate-member-user')
+    const uniqueUserId = toUuid('unique-member-user')
+
+    await seedGroup({ tenantId, status: 'active', access: 'public' })
+    const firstMember = await seedMember({
+      tenantId,
+      status: 'active',
+      access: 'public',
+      userId: duplicateUserId,
+    })
+    const secondMember = await seedMember({
+      tenantId,
+      status: 'active',
+      access: 'public',
+      userId: duplicateUserId,
+    })
+
+    await seedUser({
+      id: uniqueUserId,
+      email: 'unique-member-user@example.org',
+    })
+    await seedMemberUser({
+      tenantId,
+      memberId: secondMember.id,
+      userId: uniqueUserId,
+    })
+
+    const serviceToken = await signJwt(toUuid('service-user-pagination'), 'service-pagination@example.org', Scope.SocialReadAll)
+    const memberFilter = `${firstMember.id},${secondMember.id}`
+
+    const res = await request(app)
+      .get(`/users?filter[members]=${memberFilter}&sort=created&page[size]=2`)
+      .set('Authorization', `Bearer ${serviceToken}`)
+      .expect(200)
+
+    const ids = res.body.data.map((resource: any) => resource.id)
+    assert.deepStrictEqual(ids, [duplicateUserId, uniqueUserId])
+  })
+
   test('GET /users requires read-all scope', async () => {
     const token = await signJwt(toUuid('regular-user'), 'regular@example.org')
 
