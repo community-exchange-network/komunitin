@@ -12,9 +12,15 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const params = getCollectionParams(req, {
-    filter: ['code', 'type', 'status', 'access', 'member', 'category', 'search'],
+    filter: ['code', 'type', 'status', 'access', 'member', 'category', 'expired', 'search'],
     sort: ['created', 'updated', 'expires'],
-    include: ['member', 'category'],
+    include: [
+      'member',
+      'member.group',
+      'member.group.currency',
+      'member.account',
+      'category',
+    ],
   })
 
   const posts = await listPosts(ctx, code, params)
@@ -31,9 +37,17 @@ export const getPostRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const postId = getParam(req, 'post')
-  const params = getResourceParams(req, { include: ['member', 'category'] })
+  const params = getResourceParams(req, {
+    include: [
+      'member',
+      'member.group',
+      'member.group.currency',
+      'member.account',
+      'category',
+    ],
+  })
 
-  const post = await getPost(ctx, code, postId)
+  const post = await getPost(ctx, code, postId, params)
 
   const payload = await serializePost(post, params)
   res.status(200).json(payload)
