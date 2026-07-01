@@ -69,4 +69,9 @@ Default demo credentials are password `komunitin`; common users include `noether
 
 - For user-facing app text and translations, read the guidelines at `app/src/i18n/README.md` and also read the app flavors overrides (currently only at `app/src/i18n/flavors/ces/README.md`) before making text changes.
 - For non-user-facing text, use the default terminology guidelines (no flavor) and keep existing API contracts unless specifically changing them.
-  
+
+## General Development Guidelines
+- Avoid defensive programming. Use the type system to enforce non-nullable values instead of runtime checks.
+- Keep the code minimal, simple and elegant. Avoid duplication at all costs.
+- Add concise comments for non-obvious or unreadable logic, for public API functions and for orchestration code.
+- Keep testing code minimal, readable and focused on the service boundary (HTTP api for backend services, user interaction for app).
