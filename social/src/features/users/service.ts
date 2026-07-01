@@ -1,10 +1,13 @@
 import prisma from '../../utils/prisma'
-import { User as DbUser } from '../../generated/prisma/client'
+import { Prisma, User as DbUser, type Member as DbMember } from '../../generated/prisma/client'
 import type { User, UserSettings, CreateUserInput } from './types'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { privilegedDb } from '../../server/multitenant'
 import { AuthContext } from '../../server/context'
 import { CollectionParams } from '../../server/request'
+import type { DbGroup } from '../groups/service'
+import { getMemberInclude, toMember } from '../members/service'
+import type { Member } from '../members/types'
 
 const castSettings = (settings: unknown): UserSettings | null => {
   if (!settings || typeof settings !== 'object') {
@@ -22,6 +25,37 @@ const toUser = (user: DbUser): User => {
     created: user.created,
     updated: user.updated,
   }
+}
+
+export const resolveUserId = (ctx: AuthContext, id: string): string => {
+  return id === 'me' ? ctx.userId : id
+}
+
+const canReadUser = (ctx: AuthContext, id: string): boolean => {
+  return ctx.userId === id || ctx.isSuperadmin || ctx.isSocialReadAll
+}
+
+const mergeSettings = (current: UserSettings | null, patch: UserSettings): Prisma.InputJsonObject => {
+  const merged: UserSettings = {
+    ...(current ?? {}),
+    ...patch,
+  }
+
+  if (patch.notifications) {
+    merged.notifications = {
+      ...current?.notifications,
+      ...patch.notifications,
+    }
+  }
+
+  if (patch.emails) {
+    merged.emails = {
+      ...current?.emails,
+      ...patch.emails,
+    }
+  }
+
+  return merged as Prisma.InputJsonObject
 }
 
 export const createUser = async ({
@@ -55,16 +89,79 @@ export const createUser = async ({
 }
 
 export const getUserById = async (ctx: AuthContext, id: string): Promise<User> => {
-  if (ctx.userId !== id && !ctx.isSuperadmin && !ctx.isSocialReadAll) {
+  const userId = resolveUserId(ctx, id)
+  if (!canReadUser(ctx, userId)) {
     throw forbidden('You can only access your own user resource')
   }
   const db = privilegedDb(prisma)
-  const user = await db.user.findUnique({ where: { id } })
+  const user = await db.user.findUnique({ where: { id: userId } })
   if (!user) {
     throw notFound('User not found')
   }
 
   return toUser(user)
+}
+
+export const patchUserSettings = async (
+  ctx: AuthContext,
+  id: string,
+  settings: UserSettings,
+): Promise<User> => {
+  const userId = resolveUserId(ctx, id)
+  if (ctx.userId !== userId) {
+    throw forbidden('You can only update your own user settings')
+  }
+
+  const current = await getUserById(ctx, userId)
+  const db = privilegedDb(prisma)
+  const updated = await db.user.update({
+    where: { id: userId },
+    data: {
+      settings: mergeSettings(current.settings, settings),
+    },
+  })
+
+  return toUser(updated)
+}
+
+export const listUserMembers = async (
+  ctx: AuthContext,
+  id: string,
+  params: CollectionParams,
+): Promise<Member[]> => {
+  const userId = resolveUserId(ctx, id)
+  await getUserById(ctx, userId)
+
+  const sortField = params.sort[0]?.field ?? 'created'
+  const sortOrder = params.sort[0]?.order ?? 'asc'
+  const db = privilegedDb(prisma)
+  const relations = await db.memberUser.findMany({
+    where: {
+      userId,
+      member: {
+        deleted: null,
+      },
+    },
+    include: {
+      member: {
+        include: getMemberInclude(params.include),
+      },
+    },
+    orderBy: [
+      {
+        member: {
+          [sortField]: sortOrder,
+        },
+      },
+      { memberId: 'asc' },
+    ] as Prisma.MemberUserOrderByWithRelationInput[],
+    skip: params.pagination.cursor,
+    take: params.pagination.size,
+  })
+
+  return relations.map((relation) => toMember(
+    relation.member as DbMember & { group?: DbGroup }
+  ))
 }
 
 /**
