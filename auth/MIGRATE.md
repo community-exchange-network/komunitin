@@ -338,7 +338,6 @@ Current client IDs in auth:
 
 - `komunitin-notifications`
 - `komunitin-social`
-- `komunitin-accounting`
 
 Do not request legacy scopes like:
 

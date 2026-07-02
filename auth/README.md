@@ -50,12 +50,11 @@ Unsupported by design:
 
 Current clients:
 
-| Client | Type | Grants |
-| --- | --- | --- |
-| `komunitin-app` | Public PWA client | `password`, `refresh_token` |
-| `komunitin-social` | Confidential service client | `client_credentials`, token exchange |
-| `komunitin-accounting` | Confidential service client | `client_credentials`, token exchange |
-| `komunitin-notifications` | Confidential service client | `client_credentials`, token exchange |
+| Client | Type | Grants | Allowed scopes |
+| --- | --- | --- | --- |
+| `komunitin-app` | Public PWA client | `password`, `refresh_token` | `email`, `offline_access`, `social:read`, `social:write`, `accounting:read`, `accounting:write` |
+| `komunitin-social` | Confidential service client | `client_credentials`, token exchange | `accounting:read`, `accounting:write` |
+| `komunitin-notifications` | Confidential service client | `client_credentials`, token exchange | `email`, `social:read`, `accounting:read` |
 
 Current scopes:
 
