@@ -21,21 +21,29 @@ export const toMember = (member: DbMember & {group?: DbGroup}): Member => {
   } as Member
 }
 
+const shouldIncludeMemberGroup = (include: string[] = []): boolean => {
+  return include.some((item) => item === 'group' || item.startsWith('group.'))
+}
+
+export const getMemberInclude = (include: string[] = []) => {
+  const includeGroup = shouldIncludeMemberGroup(include)
+  return {
+    group: includeGroup ? {
+      include: {
+        admins: true,
+      },
+    } : false,
+  }
+}
+
 const getMemberById = async (code: string, id: string, params?: ResourceParams): Promise<Member> => {
   const db = tenantDb(prisma, code)
-  const includeGroup = params?.include.includes('group') ?? false
   const member = await db.member.findFirst({
     where: {
       id,
       deleted: null,
     },
-    include: {
-      group: includeGroup && {
-        include: {
-          admins: true
-        }
-      }
-    },
+    include: getMemberInclude(params?.include),
   }) as (DbMember & { group?: DbGroup }) // Prisma can't infer the type correctly when using conditional include.
 
   if (!member) {
@@ -185,18 +193,11 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     return []
   }
 
-  const includeGroup = params.include.includes('group') ?? false
   const members = await db.member.findMany({
     where: {
       id: { in: ids },
     },
-    include: {
-      group: includeGroup ? {
-        include: {
-          admins: true
-        }
-      } : false,
-    }
+    include: getMemberInclude(params.include),
   }) as (DbMember & { group?: DbGroup })[] // Prisma can't infer the type correctly when using conditional include.
 
   return reorderByIds(members, ids).map(toMember)

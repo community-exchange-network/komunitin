@@ -21,7 +21,7 @@ import {
   seedPost,
 } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
-import { toUuid } from './mocks/utils'
+import { includedResource, toUuid } from './mocks/utils'
 
 let app: any
 
@@ -78,10 +78,6 @@ const postQueryFixture = async (tenantId: string) => {
   const category = await seedCategory({ tenantId, code: `${tenantId}-category`, name: 'Query Category' })
 
   return { admin, category, currencyId, member, memberAccountId, otherMember }
-}
-
-const includedResource = (body: any, type: string, id?: string) => {
-  return body.included?.find((resource: any) => resource.type === type && (id === undefined || resource.id === id))
 }
 
 describe('Posts endpoints', () => {
