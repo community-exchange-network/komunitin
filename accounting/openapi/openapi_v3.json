@@ -2098,46 +2098,6 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/vnd.api+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "errors": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "detail": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "example": [
-                        {
-                          "status": "404",
-                          "code": "NotFound",
-                          "title": "Not Found",
-                          "detail": "Currency with code TEST not found"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
           }
         },
         "tags": [
@@ -2394,7 +2354,100 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "example": "id,created,updated,code,status,balance,creditLimit,maximumBalance,key,user.id,transfers.2026,transfers.2025,transfers.2024\n92a1307d-860b-4f72-b2f6-e1b2414cdd5d,2026-06-29T14:53:49.419Z,2026-06-29T14:53:54.401Z,TEST0001,active,0.00,0.10,10.00,GDFD7M4ZKAOONB654DEX5GHO7ZVOMJAJ7U4ARU3FRJJ2H4FASNTENKOL,2,0,2,2\n636b4296-e84b-4289-b170-27ca96b15779,2026-06-29T14:53:48.415Z,2026-06-29T14:53:53.519Z,TEST1000,active,0.00,1000000.00,,GBTO3XGX6VA4A7C46ZUKX3GWK55ZC3NIBHYWYHCCQFKFYRQ56XNZYY5M,1,0,2,2\nf7f38257-de38-4e49-83ac-41089af6a9bf,2026-06-29T14:53:50.427Z,2026-06-29T14:53:50.427Z,TEST2000,active,0.00,0.20,2.00,GCAJTMWBR34V432D5SF57MJCLY3M6OHEIV4VSNFJG3BQXGFQ5VBVATAA,1,0,0,0"
+                }
+              },
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "string",
+                  "example": "id,created,updated,code,status,balance,creditLimit,maximumBalance,key,user.id,transfers.2026,transfers.2025,transfers.2024\n92a1307d-860b-4f72-b2f6-e1b2414cdd5d,2026-06-29T14:53:49.419Z,2026-06-29T14:53:54.401Z,TEST0001,active,0.00,0.10,10.00,GDFD7M4ZKAOONB654DEX5GHO7ZVOMJAJ7U4ARU3FRJJ2H4FASNTENKOL,2,0,2,2\n636b4296-e84b-4289-b170-27ca96b15779,2026-06-29T14:53:48.415Z,2026-06-29T14:53:53.519Z,TEST1000,active,0.00,1000000.00,,GBTO3XGX6VA4A7C46ZUKX3GWK55ZC3NIBHYWYHCCQFKFYRQ56XNZYY5M,1,0,2,2\nf7f38257-de38-4e49-83ac-41089af6a9bf,2026-06-29T14:53:50.427Z,2026-06-29T14:53:50.427Z,TEST2000,active,0.00,0.20,2.00,GCAJTMWBR34V432D5SF57MJCLY3M6OHEIV4VSNFJG3BQXGFQ5VBVATAA,1,0,0,0"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "400",
+                          "code": "BadRequest",
+                          "title": "Bad Request",
+                          "detail": "Invalid account transfer stats field transfers.ytd"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "400",
+                          "code": "BadRequest",
+                          "title": "Bad Request",
+                          "detail": "Invalid account transfer stats field transfers.ytd"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "accounts"
         ]
@@ -5144,7 +5197,51 @@
     "/currencies/stats/amount": {
       "get": {
         "summary": "/currencies/stats/amount",
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "stats"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "values": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              },
+                              "example": [
+                                5759900
+                              ]
+                            },
+                            "from": {
+                              "type": "string",
+                              "example": "2024-06-01T00:00:00.000Z"
+                            },
+                            "to": {
+                              "type": "string",
+                              "example": "2024-07-01T00:00:00.000Z"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "currencies"
         ]
@@ -5183,7 +5280,51 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "stats"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "values": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              },
+                              "example": [
+                                1868700
+                              ]
+                            },
+                            "from": {
+                              "type": "string",
+                              "example": "2024-06-01T00:00:00.000Z"
+                            },
+                            "to": {
+                              "type": "string",
+                              "example": "2024-07-01T00:00:00.000Z"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       }
     },
@@ -6007,7 +6148,7 @@
                           "status": "500",
                           "code": "InternalError",
                           "title": "Internal Error",
-                          "detail": "\nInvalid `this.db().creditCommonsNode.create()` invocation in\n/Users/michiel/gh/komunitin/komunitin/accounting/src/creditcommons/credit-commons-controller.ts:95:39\n\n  92 async createNode(ctx: Context, peerNodePath: string, lastHash: string, vostroId: string): Promise<CreditCommonsNode> {\n  93   // Only admins are allowed to set the trunkward node:\n  94   await this.users().checkAdmin(ctx)\n→ 95   await this.db().creditCommonsNode.create({\n         data: {\n           tenantId: \"TEST\",\n           peerNodePath: \"trunk\",\n           lastHash: \"asdf\",\n           vostroId: \"a9fb66cf-468a-482d-a0b5-14d0d0e98539\",\n       +   ourNodePath: String\n         }\n       })\n\nArgument `ourNodePath` is missing."
+                          "detail": "\nInvalid `this.db().creditCommonsNode.create()` invocation in\n/Users/michiel/gh/komunitin/komunitin/accounting/src/creditcommons/credit-commons-controller.ts:95:39\n\n  92 async createNode(ctx: Context, peerNodePath: string, lastHash: string, vostroId: string): Promise<CreditCommonsNode> {\n  93   // Only admins are allowed to set the trunkward node:\n  94   await this.users().checkAdmin(ctx)\n\u2192 95   await this.db().creditCommonsNode.create({\n         data: {\n           tenantId: \"TEST\",\n           peerNodePath: \"trunk\",\n           lastHash: \"asdf\",\n           vostroId: \"a9fb66cf-468a-482d-a0b5-14d0d0e98539\",\n       +   ourNodePath: String\n         }\n       })\n\nArgument `ourNodePath` is missing."
                         }
                       ]
                     }

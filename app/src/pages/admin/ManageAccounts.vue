@@ -373,7 +373,7 @@ const pagination = ref({
   descending: false,
   page: 1,
   rowsPerPage: 25,
-  rowsNumber: undefined
+  rowsNumber: undefined as number | undefined
 })
 
 const filter = ref('')

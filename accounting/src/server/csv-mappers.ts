@@ -1,6 +1,6 @@
-import { Account, Currency, Transfer } from "../model"
+import { AccountWithStats, Currency, Transfer } from "../model"
 
-type CSVRow = Record<string, string | number | boolean | null>
+export type CSVRow = Record<string, string | number | boolean | null>
 
 export type CSVMapper<T> = (data: T) => CSVRow
 export type CSVMapperFactory<T> = (currency: Currency) => CSVMapper<T>
@@ -20,7 +20,7 @@ const formatAmount = (amount: number | undefined, currency: Currency) => {
   }).format(amount / 10 ** currency.scale)
 }
 
-const mapAccountToCSV = (account: Account) => {
+const mapAccountToCSV = (account: AccountWithStats) => {
   return {
     'id': account.id,
     'created': account.created.toISOString(),
@@ -32,13 +32,14 @@ const mapAccountToCSV = (account: Account) => {
     'maximumBalance': account.maximumBalance === false ? "" : formatAmount(account.maximumBalance, account.currency),
     'key': account.key,
     'user.id': account.users && account.users.length > 0 ? account.users[0].id : '',
+    ...(account.stats ?? {})
   }
 }
 
 /**
  * CSV mapper for account resources.
  */
-export const createAccountCSVMapper = (): CSVMapper<Account> => {
+export const createAccountCSVMapper = (): CSVMapper<AccountWithStats> => {
   return mapAccountToCSV
 }
 
