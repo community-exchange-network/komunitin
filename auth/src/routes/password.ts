@@ -1,6 +1,6 @@
 import express, { Router } from 'express'
 import prisma from '../utils/prisma'
-import { createPasswordResetToken, findPasswordResetByToken, hasExpired, hashPassword } from '../services/password'
+import { createPasswordResetToken, findPasswordResetByToken, hasExpired, hashPassword } from '../services/tokens'
 import { NotificationsService } from '../services/notifications'
 import { rateLimit } from '../utils/rate-limit'
 import { badRequest } from '../utils/error'

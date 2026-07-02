@@ -10,23 +10,13 @@ import Provider, {
 import { config } from '../config'
 import { adapterFactory } from './adapter'
 import { findAccount, authenticate } from './account'
-import { clients } from './clients'
+import { apiScopes, clients } from './clients'
 import { getJwks, verifySignedToken } from './jwks'
-import { handler as builtInRefreshTokenHandler } from '../../node_modules/oidc-provider/lib/actions/grants/refresh_token.js'
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60
 const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60
 const APP_RESOURCE_INDICATOR = 'urn:komunitin:app'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-const apiScopes = [
-  'email',
-  'offline_access',
-  'social:read',
-  'social:write',
-  'accounting:read',
-  'accounting:write',
-]
 
 const oidcScopes = new Set(['email', 'offline_access'])
 const allowedScopes = new Set(apiScopes)
@@ -87,8 +77,33 @@ const getRequestedScopes = (scope: unknown, fallback: string[] = []) => {
   return scope.split(/\s+/).filter(Boolean)
 }
 
-const filterAllowedScopes = (scopes: string[]) => {
-  return [...new Set(scopes.filter((scope) => allowedScopes.has(scope)))]
+const clientScopeSet = (client: Client) => {
+  return client.scope ? new Set(splitScope(client.scope)) : allowedScopes
+}
+
+const ensureClientScopesAllowed = (
+  ctx: KoaContextWithOIDC,
+  client: Client,
+  requestedScopes: string[],
+) => {
+  if (!client.scope) {
+    return
+  }
+
+  const clientScopes = clientScopeSet(client)
+  const disallowedScope = requestedScopes.find((scope) => allowedScopes.has(scope) && !clientScopes.has(scope))
+
+  if (disallowedScope) {
+    ctx.throw(400, 'invalid_scope', {
+      error_description: 'requested scope is not allowed',
+      scope: disallowedScope,
+    })
+  }
+}
+
+const filterAllowedScopes = (scopes: string[], client: Client) => {
+  const clientScopes = clientScopeSet(client)
+  return [...new Set(scopes.filter((scope) => allowedScopes.has(scope) && clientScopes.has(scope)))]
 }
 
 const serializeScope = (scopes: string[]) => scopes.join(' ')
@@ -225,7 +240,8 @@ export async function createProvider() {
       })
 
       const requestedScopes = getRequestedScopes(scope, ['email'])
-      const grantedScopes = filterAllowedScopes(requestedScopes)
+      ensureClientScopesAllowed(ctx, client, requestedScopes)
+      const grantedScopes = filterAllowedScopes(requestedScopes, client)
       const scopeValue = serializeScope(grantedScopes)
 
       assignGrantScopes(grant, scopeValue)
@@ -238,34 +254,6 @@ export async function createProvider() {
       await next()
     },
     ['username', 'password', 'scope', 'resource']
-  )
-
-  provider.registerGrantType(
-    'refresh_token',
-    async (ctx, next) => {
-      const params = getParams(ctx)
-      const refreshTokenValue = getStringParam(params, 'refresh_token')
-
-      const refreshToken = refreshTokenValue
-        ? await ctx.oidc.provider.RefreshToken.find(refreshTokenValue, { ignoreExpiration: true })
-        : undefined
-
-      if (refreshToken && !getStringParam(params, 'resource') && typeof refreshToken.resource === 'string') {
-        params.resource = refreshToken.resource
-      }
-
-      await builtInRefreshTokenHandler(ctx, next)
-
-      const responseScope = typeof params.scope === 'string' && params.scope.trim() !== ''
-        ? params.scope
-        : refreshToken?.scope
-
-      if (responseScope && isRecord(ctx.body)) {
-        ctx.body.scope = responseScope
-      }
-    },
-    ['refresh_token', 'scope', 'resource'],
-    ['resource'],
   )
 
   provider.registerGrantType(
@@ -317,7 +305,13 @@ export async function createProvider() {
       const subjectScope = typeof tokenPayload.scope === 'string' ? tokenPayload.scope : ''
       const requestedScopes = getRequestedScopes(scope, splitScope(subjectScope))
       const subjectScopes = new Set(splitScope(subjectScope))
-      const grantedScopes = filterAllowedScopes(requestedScopes.filter((candidate) => subjectScopes.has(candidate)))
+      if (scope) {
+        ensureClientScopesAllowed(ctx, client, requestedScopes)
+      }
+      const grantedScopes = filterAllowedScopes(
+        requestedScopes.filter((candidate) => subjectScopes.has(candidate)),
+        client,
+      )
 
       if (requestedScopes.length > 0 && grantedScopes.length === 0) {
         ctx.throw(400, 'invalid_scope', { error_description: 'No requested scopes were granted' })

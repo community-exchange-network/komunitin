@@ -6,7 +6,7 @@ import {
   findEmailActionByToken,
   hasExpired,
   userActionTokenPurpose,
-} from '../services/password'
+} from '../services/tokens'
 import { NotificationsService } from '../services/notifications'
 import { rateLimit } from '../utils/rate-limit'
 import { userAuth, AuthenticatedRequest } from './auth-middleware'

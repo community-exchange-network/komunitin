@@ -47,10 +47,6 @@ What does not migrate directly:
 - Legacy JWT audience assumptions such as `komunitin-app`.
 - Current app profile flows that mutate password/email through the social user resource instead of auth.
 
-Important branch note:
-
-- This branch already fixes one auth-side migration bug: refresh-token exchanges now keep the app resource indicator so refreshed access tokens remain JWTs for audience `app` instead of degrading into opaque tokens with missing API scopes.
-
 ## Current Contract Of The New Auth Service
 
 ### Supported OAuth flows
@@ -71,10 +67,6 @@ It does not support the legacy app behavior of exchanging emailed codes through 
   - `password`
   - `refresh_token`
 - `komunitin-social`
-  - confidential client
-  - `client_credentials`
-  - `token-exchange`
-- `komunitin-accounting`
   - confidential client
   - `client_credentials`
   - `token-exchange`
@@ -526,7 +518,6 @@ The target state is:
 ## Recommended Rollout Order
 
 1. Finish auth-side gaps.
-   - already fixed in this branch: refresh-token resource preservation
    - still missing: authenticated self-service password change
    - still missing outside auth: replacement for legacy magic-link onboarding and unsubscribe tokens
 2. Update service JWT validation to the new issuer, audience, and JWKS/discovery.
