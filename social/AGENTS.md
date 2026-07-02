@@ -24,7 +24,7 @@ pnpm start
 
 - The local compose file starts PostgreSQL on host port 5434 with PostGIS, pgvector, pg_trgm, btree_gin, and unaccent enabled. Run migrations after the database is available.
 - The service listens on port 2028 by default.
-- Tests use Node's built-in test runner with `--experimental-test-module-mocks`, `.env.test`, `tsx`, and `--test-concurrency=1`.
+- Tests use Node's built-in test runner with `--experimental-test-module-mocks`, `.env.test`, `tsx`, and `--test-concurrency=1` because they use a real database.
 - Tests require the database schema to be migrated; test data is reset through helpers in `test/mocks/seed.ts`.
 - Tests mock JWKS, accounting, notifications, and S3-compatible uploads through MSW handlers in `test/mocks/handlers.ts`.
 - Docker builds use Node.js 24, run `pnpm prisma generate`, and build with unbuild.
@@ -37,6 +37,12 @@ pnpm start
 - Shared request parsing, pagination, filtering, sorting, includes, and geo params live in `src/server/request.ts`.
 - Expected errors should be `KError` values from `src/utils/error.ts`; `src/server/errors.ts` converts them to JSON:API error objects.
 - Environment variables are validated in `src/config.ts`. Add new runtime config there and update `.env.test` plus deployment/compose files when needed.
+
+## API
+- The service uses JSON:API 1.1
+- `include`, `filter`, `sort`, `page` and `near` query params are supported.
+- `include` is only allowed for to-one relationships.
+- `filter[search]` is a trigram search on the resource's computed `search` column.
 
 ## Data, Tenancy, and Auth
 
