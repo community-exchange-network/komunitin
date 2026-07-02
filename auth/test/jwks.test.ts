@@ -6,7 +6,8 @@ import { exportJWK, generateKeyPair, importJWK, SignJWT, type JWK } from 'jose'
 import type { Prisma } from '../src/generated/prisma/client'
 import prisma from '../src/utils/prisma'
 import { config } from '../src/config'
-import { getJwks, resetJwksCache, verifySignedToken } from '../src/oidc/jwks'
+import { verifySignedToken } from '../src/oidc/token-verifier'
+import { getJwks, resetJwksCache } from '../src/oidc/jwks'
 import { disconnectPrisma } from '../src/utils/prisma'
 
 type StoredJwk = JWK & Record<string, unknown>

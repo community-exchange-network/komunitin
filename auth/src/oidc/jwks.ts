@@ -1,4 +1,4 @@
-import { createLocalJWKSet, exportJWK, generateKeyPair, jwtVerify, type JWK, type JWTVerifyOptions } from 'jose'
+import { exportJWK, generateKeyPair, type JWK } from 'jose'
 import crypto from 'node:crypto'
 import { config } from '../config'
 import type { Prisma } from '../generated/prisma/client'
@@ -9,28 +9,15 @@ type Jwks = {
   keys: StoredJwk[]
 }
 
-type PublicJwks = {
-  keys: JWK[]
-}
-
 type StoredJwk = JWK & Record<string, unknown>
 
 const JWKS_ROTATION_INTERVAL_MS = config.JWKS_ROTATION_INTERVAL_DAYS * 24 * 60 * 60 * 1000
 const JWKS_RETENTION_MS = config.JWKS_RETENTION_HOURS * 60 * 60 * 1000
 
 let cachedJwksPromise: Promise<Jwks> | undefined
-let cachedPublicJwksPromise: Promise<PublicJwks> | undefined
-let cachedLocalJwkSet: ReturnType<typeof createLocalJWKSet> | undefined
-
-export const toPublicJwk = (jwk: StoredJwk) => {
-  const { d, p, q, dp, dq, qi, oth, ...publicJwk } = jwk
-  return publicJwk
-}
 
 export function resetJwksCache() {
   cachedJwksPromise = undefined
-  cachedPublicJwksPromise = undefined
-  cachedLocalJwkSet = undefined
 }
 
 function toStoredJson(jwk: StoredJwk): Prisma.InputJsonValue {
@@ -135,22 +122,4 @@ export async function getJwks(): Promise<Jwks> {
   }
 
   return cachedJwksPromise
-}
-
-async function getPublicJwks(): Promise<PublicJwks> {
-  if (!cachedPublicJwksPromise) {
-    cachedPublicJwksPromise = getJwks().then(({ keys }) => ({
-      keys: keys.map((key) => toPublicJwk(key)),
-    }))
-  }
-
-  return cachedPublicJwksPromise
-}
-
-export async function verifySignedToken(token: string, options: JWTVerifyOptions) {
-  if (!cachedLocalJwkSet) {
-    cachedLocalJwkSet = createLocalJWKSet(await getPublicJwks())
-  }
-
-  return jwtVerify(token, cachedLocalJwkSet, options)
 }

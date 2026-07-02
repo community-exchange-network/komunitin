@@ -11,10 +11,11 @@ import { config } from '../config'
 import { adapterFactory } from './adapter'
 import { findAccount, authenticate } from './account'
 import { apiScopes, clients } from './clients'
-import { getJwks, verifySignedToken } from './jwks'
+import { verifySignedToken } from './token-verifier'
+import { getJwks } from './jwks'
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60
-const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60
+const REFRESH_TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60
 const APP_RESOURCE_INDICATOR = 'urn:komunitin:app'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -139,9 +140,7 @@ export async function createProvider() {
       resourceIndicators: {
         enabled: true,
         defaultResource: async () => APP_RESOURCE_INDICATOR,
-        getResourceServerInfo: async (ctx, resourceIndicator, client) => {
-          return appResourceServer
-        },
+        getResourceServerInfo: async () => appResourceServer
       },
     },
     extraTokenClaims: async (ctx, token) => {
@@ -253,7 +252,7 @@ export async function createProvider() {
       await issueTokenResponse(ctx, 'password', accountId, scopeValue, grant.jti)
       await next()
     },
-    ['username', 'password', 'scope', 'resource']
+    ['username', 'password', 'scope']
   )
 
   provider.registerGrantType(
@@ -328,7 +327,7 @@ export async function createProvider() {
       await issueTokenResponse(ctx, 'token-exchange', subjectAccountId, scopeValue, String(grant.jti))
       await next()
     },
-    ['subject_token', 'subject_token_type', 'scope', 'resource']
+    ['subject_token', 'subject_token_type', 'scope']
   )
 
   return provider

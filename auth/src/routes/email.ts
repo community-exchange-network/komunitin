@@ -9,7 +9,7 @@ import {
 } from '../services/tokens'
 import { NotificationsService } from '../services/notifications'
 import { rateLimit } from '../utils/rate-limit'
-import { userAuth, AuthenticatedRequest } from './auth-middleware'
+import { userAuth, type AuthenticatedRequest } from '../server/auth'
 import { badRequest } from '../utils/error'
 import logger from '../utils/logger'
 

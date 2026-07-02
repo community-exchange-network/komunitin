@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express'
+import type { NextFunction, Request, Response } from 'express'
 import { config } from '../config'
-import { verifySignedToken } from '../oidc/jwks'
+import { verifySignedToken } from '../oidc/token-verifier'
 import { unauthorized } from '../utils/error'
 import prisma from '../utils/prisma'
 
