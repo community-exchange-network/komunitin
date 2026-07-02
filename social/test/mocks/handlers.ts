@@ -16,6 +16,7 @@ type MockAccount = {
   currencyCode: string
   userIds: string[]
   status: 'active' | 'disabled' | 'suspended' | 'deleted'
+  balance: number
 }
 
 type AccountingRequest = {
@@ -64,8 +65,9 @@ export const seedAccountingAccount = (
   userIds: string[] = [],
   id = toUuid(`accounting-account-${currencyCode}-${code}`),
   status: MockAccount['status'] = 'active',
+  balance = 0,
 ): MockAccount => {
-  const account = { id, code, currencyCode, userIds, status }
+  const account = { id, code, currencyCode, userIds, status, balance }
   const accounts = accountingAccounts.get(currencyCode) ?? new Map<string, MockAccount>()
   accounts.set(code, account)
   accountingAccounts.set(currencyCode, accounts)
@@ -153,6 +155,7 @@ const serializeAccount = (account: MockAccount) => ({
   attributes: {
     code: account.code,
     status: account.status,
+    balance: account.balance,
   },
 })
 

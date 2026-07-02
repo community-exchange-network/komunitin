@@ -383,14 +383,15 @@ export const deleteMember = async (ctx: AuthContext, code: string, id: string): 
 
   const currencyCode = getCurrencyCode(group)
   const accounting = createAccountingClient(ctx)
-  let accountId = member.accountId ?? undefined
-  if (!accountId) {
-    const account = await accounting.findAccountByCode(currencyCode, member.code)
-    accountId = account?.id
-  }
+  const account = member.accountId
+    ? await accounting.findAccountById(currencyCode, member.accountId)
+    : await accounting.findAccountByCode(currencyCode, member.code)
 
-  if (accountId) {
-    await accounting.deleteAccount(currencyCode, accountId)
+  if (account && account.status !== 'deleted') {
+    if (account.balance !== undefined && account.balance !== 0) {
+      throw badRequest('Account balance must be zero to delete account')
+    }
+    await accounting.deleteAccount(currencyCode, account.id)
   }
 
   const db = tenantDb(prisma, code)
