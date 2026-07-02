@@ -54,15 +54,13 @@ services:
     environment:
       PORT: 2026
       DATABASE_URL: postgresql://auth:auth@db-auth:5432/auth?schema=public
-      API_BASE_URL: ${KOMUNITIN_AUTH_URL:-http://auth:2026}
       ISSUER_URL: ${KOMUNITIN_AUTH_URL:-http://auth:2026}
       NOTIFICATIONS_URL: http://notifications-ts:2023
       NOTIFICATIONS_EVENTS_USERNAME: komunitin
       NOTIFICATIONS_EVENTS_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
       NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
-      SOCIAL_CLIENT_SECRET: ${KOMUNITIN_SOCIAL_SECRET:-komunitin-social-secret}
-      ACCOUNTING_CLIENT_SECRET: ${KOMUNITIN_ACCOUNTING_SECRET:-komunitin-accounting-secret}
-      COOKIE_SECRET: ${KOMUNITIN_AUTH_COOKIE_SECRET:-change-this-cookie-secret}
+      SOCIAL_CLIENT_SECRET: ${KOMUNITIN_SOCIAL_SECRET}
+      ACCOUNTING_CLIENT_SECRET: ${KOMUNITIN_ACCOUNTING_SECRET}
 
   db-notifications:
     image: redis:7
@@ -257,4 +255,3 @@ volumes:
   db-notifications-ts:
   db-social:
   integralces-sites:
-

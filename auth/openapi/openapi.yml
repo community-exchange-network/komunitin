@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Komunitin Auth Service API
   version: 1.0.0
-  description: OAuth2/OIDC identity service for Komunitin.
+  description: OAuth2 identity service for Komunitin.
 servers:
   - url: http://localhost:2026
     description: Local development
@@ -280,8 +280,6 @@ components:
         access_token:
           type: string
         refresh_token:
-          type: string
-        id_token:
           type: string
         expires_in:
           type: integer

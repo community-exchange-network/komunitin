@@ -20,20 +20,15 @@ const APP_RESOURCE_INDICATOR = 'urn:komunitin:app'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const apiScopes = [
-  'openid',
-  'profile',
   'email',
   'offline_access',
-  'auth',
   'social:read',
   'social:write',
-  'social:admin',
   'accounting:read',
   'accounting:write',
-  'accounting:admin',
 ]
 
-const oidcScopes = new Set(['openid', 'profile', 'email', 'offline_access'])
+const oidcScopes = new Set(['email', 'offline_access'])
 const allowedScopes = new Set(apiScopes)
 
 const appResourceServer = {
@@ -64,7 +59,6 @@ const requireStringParam = (
   const value = getStringParam(params, key)
   if (!value) {
     ctx.throw(400, 'invalid_request', { error_description: errorDescription })
-    throw new Error(`Missing required parameter: ${key}`)
   }
   return value
 }
@@ -73,7 +67,6 @@ const requireClient = (ctx: KoaContextWithOIDC): Client => {
   const client = ctx.oidc.client
   if (!client) {
     ctx.throw(400, 'invalid_client', { error_description: 'Missing OAuth client' })
-    throw new Error('Missing OAuth client')
   }
   return client
 }
@@ -124,13 +117,6 @@ export async function createProvider() {
     findAccount,
     clients,
     scopes: apiScopes,
-    clientDefaults: {
-      id_token_signed_response_alg: 'RS256',
-      token_endpoint_auth_method: 'client_secret_post',
-    },
-    pkce: {
-      required: () => false,
-    },
     jwks,
     features: {
       devInteractions: { enabled: false },
@@ -160,11 +146,7 @@ export async function createProvider() {
       AccessToken: () => ACCESS_TOKEN_TTL_SECONDS,
       ClientCredentials: () => ACCESS_TOKEN_TTL_SECONDS,
       Grant: () => REFRESH_TOKEN_TTL_SECONDS,
-      IdToken: () => ACCESS_TOKEN_TTL_SECONDS,
       RefreshToken: () => REFRESH_TOKEN_TTL_SECONDS,
-    },
-    cookies: {
-      keys: [config.COOKIE_SECRET],
     },
   }
 
@@ -177,7 +159,7 @@ export async function createProvider() {
     scope: string,
     grantId: string,
   ) => {
-    const { AccessToken, RefreshToken, IdToken } = ctx.oidc.provider
+    const { AccessToken, RefreshToken } = ctx.oidc.provider
     const { client } = ctx.oidc
 
     const accessToken = new AccessToken({
@@ -196,16 +178,6 @@ export async function createProvider() {
       expires_in: ACCESS_TOKEN_TTL_SECONDS,
       token_type: accessToken.tokenType,
       scope: accessToken.scope,
-    }
-
-    if (scope.split(' ').includes('openid')) {
-      const account = await findAccount(ctx, accountId)
-      if (account) {
-          const claims = await account.claims('id_token', scope, EMPTY_REQUESTED_CLAIMS, [])
-        const idToken = new IdToken(claims, { ctx, client })
-        idToken.scope = scope
-        response.id_token = await idToken.issue({ use: 'idtoken' })
-      }
     }
 
     if (client.grantTypeAllowed('refresh_token') && splitScope(scope).includes('offline_access')) {
@@ -252,11 +224,7 @@ export async function createProvider() {
         clientId,
       })
 
-      const requestedScopes = getRequestedScopes(scope, ['openid', 'profile', 'email'])
-      if (!requestedScopes.includes('openid')) {
-        requestedScopes.push('openid')
-      }
-
+      const requestedScopes = getRequestedScopes(scope, ['email'])
       const grantedScopes = filterAllowedScopes(requestedScopes)
       const scopeValue = serializeScope(grantedScopes)
 

@@ -1,6 +1,6 @@
 # Komunitin Auth Service
 
-The `auth` service is the Komunitin identity provider. It owns identity records, password hashes, email verification state, password reset tokens, email-change tokens, OAuth/OIDC token issuance, and signing keys.
+The `auth` service is the Komunitin identity provider. It owns identity records, password hashes, email verification state, password reset tokens, email-change tokens, OAuth token issuance, and signing keys.
 
 This service is part of the migration away from the legacy Drupal/IntegralCES auth API. It is intentionally not a drop-in replacement for IntegralCES `/oauth2`.
 
@@ -9,7 +9,7 @@ This service is part of the migration away from the legacy Drupal/IntegralCES au
 Auth owns:
 
 - User identity: UUID, email, password hash, email verification, and auth status.
-- OAuth/OIDC tokens for first-party clients and backend services.
+- OAuth access and refresh tokens for first-party clients and backend services.
 - Password reset, email verification, and email change action tokens.
 - JWKS signing key persistence and rotation.
 
@@ -33,7 +33,7 @@ If a flow needs product-domain state after the user verifies an email, keep the 
 - Local service port: `2026`
 - Local database port: `5435`
 
-## OAuth And OIDC
+## OAuth
 
 Supported grants:
 
@@ -59,17 +59,12 @@ Current clients:
 
 Current scopes:
 
-- `openid`
-- `profile`
 - `email`
 - `offline_access`
-- `auth`
 - `social:read`
 - `social:write`
-- `social:admin`
 - `accounting:read`
 - `accounting:write`
-- `accounting:admin`
 
 Access tokens are signed JWTs with audience `app`. Refresh tokens are opaque server-side records stored by `oidc-provider`.
 
@@ -134,7 +129,7 @@ The tests use Node's native test runner with `--test-concurrency=1` and `.env.te
 
 Signing keys are generated on first boot and stored in the auth database. The service rotates the active signing key on startup when the active key is older than `JWKS_ROTATION_INTERVAL_DAYS`.
 
-Retired keys stay published for `JWKS_RETENTION_HOURS`, so already-issued access and ID tokens can validate while clients refresh JWKS caches. Current signed token lifetime is 1 hour, so the default 24-hour overlap is intentionally conservative.
+Retired keys stay published for `JWKS_RETENTION_HOURS`, so already-issued access tokens can validate while clients refresh JWKS caches. Current signed token lifetime is 1 hour, so the default 24-hour overlap is intentionally conservative.
 
 Refresh tokens are opaque database-backed records. They do not require old signing keys to stay published.
 

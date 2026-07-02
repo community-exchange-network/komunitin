@@ -87,17 +87,12 @@ It does not support the legacy app behavior of exchanging emailed codes through 
 
 The new auth service currently recognizes:
 
-- `openid`
-- `profile`
 - `email`
 - `offline_access`
-- `auth`
 - `social:read`
 - `social:write`
-- `social:admin`
 - `accounting:read`
 - `accounting:write`
-- `accounting:admin`
 
 It does not recognize legacy `komunitin_*` scope names.
 
@@ -171,14 +166,14 @@ Target request to the new auth service must use the new scope names.
 Recommended target for the normal app session:
 
 ```text
-openid profile email offline_access social:read social:write accounting:read accounting:write
+email offline_access social:read social:write accounting:read accounting:write
 ```
 
 Notes:
 
 - Do not switch the app scope string until the downstream services accept the new names.
-- `social:admin` and `accounting:admin` should only be requested if the frontend truly needs admin-only operations.
-- There is currently no direct replacement for `komunitin_superadmin` in the new auth service. This requires a separate superadmin model decision.
+- The new auth service does not issue ID tokens and does not currently expose `openid` or `profile` scopes.
+- Admin and superadmin authorization should be modeled deliberately before adding auth scopes for it. There is currently no direct replacement for `komunitin_superadmin`.
 
 ### 2. Stop using `authorization_code` for emailed links
 
@@ -320,11 +315,11 @@ Required changes:
 - audience must match the new auth access tokens
   - current auth access tokens use audience `app`
 - JWKS should come from the new auth service
-- prefer discovery over hardcoded legacy URLs when possible
+- prefer issuer metadata over hardcoded legacy URLs when possible
 
 Best practice:
 
-- use OIDC discovery (`/.well-known/openid-configuration`) and the returned `jwks_uri`
+- use the auth issuer metadata and the returned `jwks_uri`
 - do not hardcode legacy `/oauth2/token` or `/.well-known/jwks.json` paths from the Drupal setup
 
 ### Client credentials

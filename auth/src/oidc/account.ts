@@ -26,10 +26,6 @@ export const findAccount: FindAccount = async (ctx, id) => {
         sub: user.id,
       }
 
-      if (scopeSet.has('profile')) {
-        claims.preferred_username = user.email.split('@')[0]
-      }
-
       if (scopeSet.has('email')) {
         claims.email = user.email
         claims.email_verified = user.emailVerified

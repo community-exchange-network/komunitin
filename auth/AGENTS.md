@@ -2,7 +2,7 @@
 
 ## Scope
 
-This folder contains the Komunitin auth service: a Node.js 24, TypeScript, Express, Prisma, PostgreSQL, and `oidc-provider` identity provider.
+This folder contains the Komunitin auth service: a Node.js 24, TypeScript, Express, Prisma, PostgreSQL, and `oidc-provider`-based OAuth identity provider.
 
 Simplicity is part of the security model here.
 
@@ -11,7 +11,7 @@ Simplicity is part of the security model here.
 Auth owns:
 
 - Identity records and canonical auth user UUIDs.
-- OAuth/OIDC token issuance and JWKS signing keys.
+- OAuth token issuance and JWKS signing keys.
 - Email, password hash, email verification, and auth account status.
 - Password reset, and email change action tokens.
 
@@ -56,7 +56,8 @@ pnpm build
 ## Security Rules
 - Email links must remain purpose-specific single-use action tokens redeemed at dedicated endpoints.
 - Keep password reset responses generic so they do not reveal whether an email exists.
-- If adding Authorization Code flow for the PWA later, require PKCE and keep it separate from emailed action tokens.
+- Keep browser-session features out of auth unless a real browser interaction flow is added.
+- If adding Authorization Code flow for the PWA later, require PKCE, add the required cookie/session configuration then, and keep it separate from emailed action tokens.
 
 ## Migration Context
 

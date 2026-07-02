@@ -77,12 +77,11 @@ describe('Auth Service Integration Tests', () => {
         client_id: 'komunitin-app',
         username: 'test@example.org',
         password: 'password123',
-        scope: 'openid profile email social:read offline_access',
+        scope: 'email social:read offline_access',
       })
       .expect(200)
 
     assert.ok(res.body.access_token)
-    assert.ok(res.body.id_token)
     assert.ok(res.body.refresh_token)
     assert.strictEqual(res.body.token_type, 'Bearer')
 
@@ -90,7 +89,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(decoded.sub, userId)
     assert.strictEqual(decoded.email, 'test@example.org')
     assert.strictEqual(decoded.email_verified, false)
-    assert.strictEqual(decoded.scope, 'openid profile email social:read offline_access')
+    assert.strictEqual(decoded.scope, 'email social:read offline_access')
   })
 
   test('POST /token with refresh_token preserves app JWTs and API scopes', async () => {
@@ -114,7 +113,7 @@ describe('Auth Service Integration Tests', () => {
         client_id: 'komunitin-app',
         username: 'refresh@example.org',
         password: 'password123',
-        scope: 'openid email offline_access social:read',
+        scope: 'email offline_access social:read',
       })
       .expect(200)
 
@@ -130,7 +129,7 @@ describe('Auth Service Integration Tests', () => {
 
     assert.ok(refreshRes.body.access_token)
     assert.ok(refreshRes.body.refresh_token)
-    assert.strictEqual(refreshRes.body.scope, 'openid email offline_access social:read')
+    assert.strictEqual(refreshRes.body.scope, 'email offline_access social:read')
 
     const decoded = decodeJwt(refreshRes.body.access_token) as any
     assert.strictEqual(decoded.sub, userId)
@@ -237,7 +236,7 @@ describe('Auth Service Integration Tests', () => {
         client_id: 'komunitin-app',
         username: 'user-exchange@example.org',
         password: 'password123',
-        scope: 'openid email social:read social:write',
+        scope: 'email social:read social:write',
       })
       .expect(200)
 
@@ -253,7 +252,7 @@ describe('Auth Service Integration Tests', () => {
         client_secret: 'komunitin-social-secret',
         subject_token: subjectToken,
         subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
-        scope: 'openid email social:read',
+        scope: 'email social:read',
       })
       .expect(200)
 
@@ -263,7 +262,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(decoded.sub, userId)
     assert.strictEqual(decoded.email, 'user-exchange@example.org')
     assert.strictEqual(decoded.client_id, 'komunitin-social')
-    assert.strictEqual(decoded.scope, 'openid email social:read')
+    assert.strictEqual(decoded.scope, 'email social:read')
   })
 
   test('POST /token with Token Exchange does not escalate scopes', async () => {
@@ -287,7 +286,7 @@ describe('Auth Service Integration Tests', () => {
         client_id: 'komunitin-app',
         username: 'limited@example.org',
         password: 'password123',
-        scope: 'openid social:read',
+        scope: 'social:read',
       })
       .expect(200)
 
@@ -300,12 +299,12 @@ describe('Auth Service Integration Tests', () => {
         client_secret: 'komunitin-social-secret',
         subject_token: tokenRes.body.access_token,
         subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
-        scope: 'openid email social:write',
+        scope: 'social:read social:write',
       })
       .expect(200)
 
     const decoded = decodeJwt(exchangeRes.body.access_token) as any
-    assert.strictEqual(decoded.scope, 'openid')
+    assert.strictEqual(decoded.scope, 'social:read')
     assert.strictEqual(decoded.email, undefined)
   })
 
