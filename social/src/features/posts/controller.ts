@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express'
 import { getAuthContext, getOptionalAuthContext } from '../../server/context'
 import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
-import { getCollectionParams, getCode, getParam, getResourceParams } from '../../server/request'
+import { getCollectionParams, getCode, getIdParam, getResourceParams } from '../../server/request'
 import { getValidatedBody } from '../../server/validation'
 import type { CreatePostBody, PatchPostBody } from './schema'
 import { serializePost, serializePosts } from './serialize'
@@ -36,7 +36,7 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
 export const getPostRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
-  const postId = getParam(req, 'post')
+  const postId = getIdParam(req, 'post')
   const params = getResourceParams(req, {
     include: [
       'member',
@@ -77,7 +77,7 @@ export const postPostsRoute: RequestHandler = async (req, res) => {
 export const patchPostRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const code = getCode(req)
-  const postId = getParam(req, 'post')
+  const postId = getIdParam(req, 'post')
   const body = getValidatedBody<PatchPostBody>(req)
 
   const categoryId = body.data.relationships?.category?.data?.id ?? (
@@ -97,7 +97,7 @@ export const patchPostRoute: RequestHandler = async (req, res) => {
 export const deletePostRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const code = getCode(req)
-  const postId = getParam(req, 'post')
+  const postId = getIdParam(req, 'post')
 
   await deletePost(ctx, code, postId)
   res.status(204).send()

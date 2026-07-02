@@ -5,6 +5,7 @@ import { Scope } from '../src/server/context'
 import { auth } from './mocks/auth'
 import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
+import { toUuid } from './mocks/utils'
 
 let app: any
 
@@ -470,9 +471,10 @@ describe('Categories endpoints', () => {
     await seedGroup({ tenantId: 'cats-patch-errors', status: 'active', access: 'public' })
     const admin = await auth('admin-patch-errors')
     await seedGroupAdmin({ tenantId: 'cats-patch-errors', userId: admin.id })
+    const missingCategoryId = toUuid('cats-patch-errors-missing')
 
     await request(app)
-      .patch('/cats-patch-errors/categories/missing')
+      .patch(`/cats-patch-errors/categories/${missingCategoryId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .send({
         data: {
@@ -485,7 +487,7 @@ describe('Categories endpoints', () => {
       .expect(400)
 
     await request(app)
-      .patch('/cats-patch-errors/categories/missing')
+      .patch(`/cats-patch-errors/categories/${missingCategoryId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .send({
         data: {
@@ -549,14 +551,15 @@ describe('Categories endpoints', () => {
     await seedGroup({ tenantId: 'cats-delete-errors', status: 'active', access: 'public' })
     const admin = await auth('admin-delete-errors')
     await seedGroupAdmin({ tenantId: 'cats-delete-errors', userId: admin.id })
+    const missingCategoryId = toUuid('cats-delete-errors-missing')
 
     await request(app)
-      .delete('/cats-delete-errors/categories/missing')
+      .delete(`/cats-delete-errors/categories/${missingCategoryId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(404)
 
     await request(app)
-      .delete('/cats-delete-missing/categories/missing')
+      .delete(`/cats-delete-missing/categories/${missingCategoryId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(404)
   })

@@ -4,6 +4,7 @@ import { badRequest } from '../utils/error'
 
 const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 200
+const CODE_PARAM_REGEX = /^[A-Za-z0-9._-]{1,31}$/
 
 export type GeoPoint = {
   latitude: number
@@ -115,10 +116,21 @@ const resourceParamsSchema = (options: ResourceParamsOptions) => {
   })
 }
 
-/**
- * Get a path parameter from the request.
- */
-export const getParam = (req: Request, name: string): string => {
+const idParamSchema = z.uuid()
+const codeParamSchema = z.string().regex(CODE_PARAM_REGEX, {
+  message: 'Code must contain only letters, numbers, dots, underscores or hyphens, and be at most 31 characters long.'
+})
+
+const parseRouteParam = (name: string, value: string, schema: z.ZodType<string>): string => {
+  const result = schema.safeParse(value)
+  if (!result.success) {
+    throw badRequest(`Invalid route parameter: ${name}`, { details: result.error.issues })
+  }
+
+  return result.data
+}
+
+const getParam = (req: Request, name: string): string => {
   const value = req.params[name]
   const param = Array.isArray(value) ? value[0] : value
   if (!param) {
@@ -128,8 +140,12 @@ export const getParam = (req: Request, name: string): string => {
   return param
 }
 
+export const getIdParam = (req: Request, name: string): string => {
+  return parseRouteParam(name, getParam(req, name), idParamSchema)
+}
+
 export const getCode = (req: Request): string => {
-  return getParam(req, 'code')
+  return parseRouteParam('code', getParam(req, 'code'), codeParamSchema)
 }
 
 export const getCollectionParams = (req: Request, options: CollectionParamsOptions): CollectionParams => {

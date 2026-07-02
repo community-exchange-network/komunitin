@@ -1,4 +1,3 @@
-import { z } from 'zod'
 import { Account, createAccountingClient } from '../../clients/accounting'
 import { Prisma, type Member as DbMember } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
@@ -23,11 +22,6 @@ export const toMember = (member: DbMember & {group?: DbGroup}): Member => {
 }
 
 const getMemberById = async (code: string, id: string, params?: ResourceParams): Promise<Member> => {
-  const validation = z.uuid().safeParse(id)
-  if (!validation.success) {
-    throw notFound('Member not found')
-  }
-
   const db = tenantDb(prisma, code)
   const includeGroup = params?.include.includes('group') ?? false
   const member = await db.member.findFirst({
