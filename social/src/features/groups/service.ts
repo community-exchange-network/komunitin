@@ -1,16 +1,18 @@
 import { InputJsonObject } from '@prisma/client/runtime/client'
-import { Group as DbGroup, Prisma } from '../../generated/prisma/client'
+import { Group as DbGroupRaw, GroupAdminUser, Prisma } from '../../generated/prisma/client'
 import { GroupUpdateInput } from '../../generated/prisma/models'
 import { AuthContext, OptionalAuthContext } from '../../server/context'
+import { createAccountingClient, Currency } from '../../clients/accounting'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
-import { badRequest, forbidden, notFound } from '../../utils/error'
+import { badRequest, forbidden, internalError, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
 import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
 import { findGroupIds } from './sql'
-import type { CreateGroupInput, Group } from './types'
+import type { CreateGroupInput, Group, GroupMeta } from './types'
+import { createNotificationsClient } from '../../clients/notifications'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -27,6 +29,17 @@ export const toLocation = (entity: WithAddressAndCoords): Location | null => {
   }
 }
 
+const getGroupMeta = (group: Pick<DbGroup, 'meta'>): GroupMeta => {
+  return (group.meta ?? {}) as GroupMeta
+}
+
+const getRequestedCurrency = (group: Pick<DbGroup, 'meta' | 'tenantId'>) => {
+  return {
+    ...(getGroupMeta(group).request?.currency ?? {}),
+    code: group.tenantId,
+  }
+}
+
 export const fromLocation = (location?: Location | null): { latitude: number|null; longitude: number|null } => {
   return {
     latitude: location?.coordinates[1] ?? null,
@@ -34,6 +47,10 @@ export const fromLocation = (location?: Location | null): { latitude: number|nul
   }
 }
 
+// This is the type we get from db fetches including the admins relation.
+export type DbGroup = DbGroupRaw & {
+  admins: GroupAdminUser[]
+}
 /**
  * Map database model to Group type, ready to be serialized and sent in API responses.
  */
@@ -41,6 +58,7 @@ export const toGroup = (group: DbGroup): Group => {
   return {
     ...group,
     code: group.tenantId,
+    admins: group.admins.map((admin) => ({ id: admin.userId, role: admin.role })),
     location: toLocation(group),
   } as Group
 }
@@ -79,10 +97,10 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
     } as InputJsonObject,
   }
 
-  const group = await db.transaction(async (tx) => {
+  const dbGroup = await db.transaction(async (tx) => {
     const created = await tx.group.create({ data: createData })
 
-    await tx.groupAdminUser.create({
+    const admin = await tx.groupAdminUser.create({
       data: {
         tenantId: attributes.code,
         groupId: created.id,
@@ -91,12 +109,20 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
       }
     })
 
-    return created
+    return {
+      ...created,
+      admins: [admin],
+    }
   })
+
+  const group = toGroup(dbGroup)
 
   await syncResourceFiles(attributes.code, 'groups', group.id, attributes.image ? [attributes.image.url] : [])
 
-  return toGroup(group)
+  const notifications = createNotificationsClient(ctx)
+  await notifications.notifyGroupRequested(group)
+
+  return group
 }
 
 export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Pick<Group, 'id' | 'code'>): Promise<boolean> => {
@@ -136,6 +162,7 @@ export const isGroupMember = async (ctx: OptionalAuthContext, group: Pick<Group,
 
 export const canReadGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
   return ctx.isSuperadmin
+    || ctx.isSocialReadAll
     || (group.status === 'active' && group.access === 'public')
     || await isGroupMember(ctx, group)
     || await isGroupAdmin(ctx, group)
@@ -172,7 +199,10 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
   const groups = await db.group.findMany({
     where: {
       id: { in: ids },
-    }
+    },
+    include: {
+      admins: true
+    },
   })
 
   return reorderByIds(groups, ids).map(toGroup)
@@ -183,7 +213,14 @@ export const getGroupByCode = async (
   code: string
 ): Promise<Group> => {
   const db = tenantDb(prisma, code)
-  const dbGroup = await db.group.findFirst()
+  const dbGroup = await db.group.findFirst({
+    where: {
+      deleted: null,
+    },
+    include: {
+      admins: true
+    },
+  })
   if (!dbGroup) {
     throw notFound('Group not found')
   }
@@ -198,34 +235,45 @@ export const getGroupByCode = async (
   return group
 }
 
-export const patchGroupByCode = async (ctx: AuthContext, code: string, attributes: PatchGroupAttributes): Promise<Group> => {
-  const db = tenantDb(prisma, code)
-  const group = await db.group.findFirst()
-
-  if (!group) {
-    throw notFound('Group not found')
+const syncCurrencyStatus = async (ctx: AuthContext, group: Group, status: Currency["status"]): Promise<Currency> => {
+  const accounting = createAccountingClient(ctx)
+  const currencyCode = getCurrencyCode(group)
+  let currency = await accounting.findCurrencyByCode(currencyCode)
+  if (!currency) {
+    // Create currency
+    const requestedCurrency = getRequestedCurrency(group)
+    const adminUserIds = group.admins.map((admin) => admin.id)
+    
+    currency = await accounting.createCurrency({
+      ...requestedCurrency,
+      code: currencyCode,
+      status: 'active',
+    }, adminUserIds)
   }
+  // Update currency status if needed
+  if (currency.status !== status) {
+    currency = await accounting.updateCurrency(currencyCode, currency.id, {
+      status,
+    })
+  }
+  return currency
+}
 
-  const allowed = await canWriteGroup(ctx, toGroup(group))
+export const patchGroupByCode = async (ctx: AuthContext, code: string, attributes: PatchGroupAttributes): Promise<Group> => {
+  const group = await getGroupByCode(ctx, code)
+
+  const allowed = await canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to update this group')
   }
 
-  if (typeof attributes.status === 'string') {
-    if (!ctx.isSuperadmin || attributes.status !== 'active' || group.status !== 'pending') {
-      throw badRequest('Status transition is not allowed')
-    }
-
-    // Activation must call accounting and be retry-safe before local status updates are allowed.
-    // TODO
-    throw badRequest('Group activation is not implemented yet')
-  }
-
-  const { location, image, ...rest } = attributes
+  // Prepare update data.
+  const { location, image, status, ...rest } = attributes
   const data: GroupUpdateInput = {
     ...rest,
     image: toNullableJsonInput(image),
   }
+  let notifyGroupActivated = false
 
   if (attributes.location !== undefined) {
     const location = fromLocation(attributes.location)
@@ -233,16 +281,74 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     data.longitude = location.longitude
   }
 
-  const updated = await db.group.update({
+  // Status transition
+  if (status !== undefined && status !== group.status) {
+    if (status === 'active' && group.status === 'disabled'
+      || status === 'disabled' && group.status === 'active') {
+      // group admins can enable/disable the group.
+    } else if (group.status === 'pending' && status === 'active') {
+      // Only superadmins can activate a group.
+      if (!ctx.isSuperadmin) {
+        throw forbidden('Only superadmins can activate groups')
+      }
+    } else {
+      throw badRequest(`Invalid status transition from ${group.status} to ${status}`)
+    }
+
+    // Handle side effects of status transitions.
+    if (status === 'active' || status === 'disabled') {
+      const currency = await syncCurrencyStatus(ctx, group, status)
+      if (!group.currencyId) {
+        data.currencyId = currency.id
+      }
+    }
+
+    if (group.status === 'pending' && status === 'active') {
+      notifyGroupActivated = true
+    }
+
+    data.status = status
+  }
+  
+  const db = tenantDb(prisma, code)
+  const dbUpdated = await db.group.update({
     where: { id: group.id },
     data,
+    include: {
+      admins: true,
+    }
   })
 
   if (attributes.image !== undefined) {
     await syncResourceFiles(code, 'groups', group.id, attributes.image ? [attributes.image.url] : [])
   }
 
-  return toGroup(updated)
+  const updated = toGroup(dbUpdated)
+
+  if (notifyGroupActivated) {
+    const notifications = createNotificationsClient(ctx)
+    await notifications.notifyGroupActivated(updated)
+  }
+
+  return updated
+}
+
+export const deleteGroupByCode = async (ctx: AuthContext, code: string): Promise<void> => {
+  const group = await getGroupByCode(ctx, code)
+
+  const allowed = await canWriteGroup(ctx, group)
+  if (!allowed) {
+    throw forbidden('You do not have permission to delete this group')
+  }
+
+  const accounting = createAccountingClient(ctx)
+  await accounting.deleteCurrency(getCurrencyCode(group))
+
+  const db = tenantDb(prisma, code)
+  await db.group.update({
+    where: { id: group.id },
+    data: { deleted: new Date() },
+  })
 }
 
 export const patchGroupSettingsByCode = async (
@@ -251,13 +357,9 @@ export const patchGroupSettingsByCode = async (
   attributes: PatchGroupSettingsAttributes,
 ): Promise<Group> => {
   const db = tenantDb(prisma, code)
-  const group = await db.group.findFirst()
+  const group = await getGroupByCode(ctx, code)
 
-  if (!group) {
-    throw notFound('Group not found')
-  }
-
-  const allowed = await canWriteGroup(ctx, toGroup(group))
+  const allowed = await canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to update this group')
   }
@@ -273,7 +375,14 @@ export const patchGroupSettingsByCode = async (
     data: {
       settings: mergedSettings,
     },
+    include: {
+      admins: true,
+    }
   })
 
   return toGroup(updated)
+}
+
+export const getCurrencyCode = (group: Group): string => {
+  return group.code
 }

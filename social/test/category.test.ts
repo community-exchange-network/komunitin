@@ -1,10 +1,11 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
-import { Scope } from '../src/server/auth'
+import { Scope } from '../src/server/context'
 import { auth } from './mocks/auth'
 import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
+import { toUuid } from './mocks/utils'
 
 let app: any
 
@@ -210,6 +211,20 @@ describe('Categories endpoints', () => {
       .get('/cats-pending/categories')
       .set('Authorization', `Bearer ${superadmin.token}`)
       .expect(200)
+  })
+
+  test('GET /:code/categories allows read-all scope for pending private group', async () => {
+    await seedGroup({ tenantId: 'cats-read-all', status: 'pending', access: 'private' })
+    await seedCategory({ tenantId: 'cats-read-all', code: 'hidden', access: 'private' })
+
+    const serviceUser = await auth('cats-read-all-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get('/cats-read-all/categories')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'hidden')
   })
 
   test('GET /:code/categories returns 404 for missing group', async () => {
@@ -456,9 +471,10 @@ describe('Categories endpoints', () => {
     await seedGroup({ tenantId: 'cats-patch-errors', status: 'active', access: 'public' })
     const admin = await auth('admin-patch-errors')
     await seedGroupAdmin({ tenantId: 'cats-patch-errors', userId: admin.id })
+    const missingCategoryId = toUuid('cats-patch-errors-missing')
 
     await request(app)
-      .patch('/cats-patch-errors/categories/missing')
+      .patch(`/cats-patch-errors/categories/${missingCategoryId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .send({
         data: {
@@ -471,7 +487,7 @@ describe('Categories endpoints', () => {
       .expect(400)
 
     await request(app)
-      .patch('/cats-patch-errors/categories/missing')
+      .patch(`/cats-patch-errors/categories/${missingCategoryId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .send({
         data: {
@@ -535,14 +551,15 @@ describe('Categories endpoints', () => {
     await seedGroup({ tenantId: 'cats-delete-errors', status: 'active', access: 'public' })
     const admin = await auth('admin-delete-errors')
     await seedGroupAdmin({ tenantId: 'cats-delete-errors', userId: admin.id })
+    const missingCategoryId = toUuid('cats-delete-errors-missing')
 
     await request(app)
-      .delete('/cats-delete-errors/categories/missing')
+      .delete(`/cats-delete-errors/categories/${missingCategoryId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(404)
 
     await request(app)
-      .delete('/cats-delete-missing/categories/missing')
+      .delete(`/cats-delete-missing/categories/${missingCategoryId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(404)
   })

@@ -3,9 +3,19 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
+import { Scope } from '../src/server/context'
 import { auth } from './mocks/auth'
-import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser } from './mocks/seed'
+import {
+  getAccountingRequestPaths,
+  getNotificationsEvents,
+  resetMockState,
+  seedAccountingAccount,
+  seedAccountingCurrency,
+  setAccountingAccountDeleteStatus,
+} from './mocks/handlers'
+import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser, seedPost } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
+import { toUuid } from './mocks/utils'
 
 let app: any
 const tinyPng = Buffer.from(
@@ -25,6 +35,7 @@ after(async () => {
 describe('Members endpoints', () => {
   beforeEach(async () => {
     await resetDb()
+    resetMockState()
   })
 
   test('POST /:code/members requires JWT', async () => {
@@ -127,6 +138,86 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'public-active')
   })
 
+  test('GET /:code/members?include=account includes external account references', async () => {
+    const accountId = toUuid('members-include-account-public-active')
+    await seedGroup({ tenantId: 'members-include-account', status: 'active', access: 'public' })
+    await seedMember({
+      tenantId: 'members-include-account',
+      code: 'public-active',
+      status: 'active',
+      access: 'public',
+      accountId,
+    })
+
+    const res = await request(app)
+      .get('/members-include-account/members?include=account')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].relationships.account.data.type, 'accounts')
+    assert.strictEqual(res.body.data[0].relationships.account.data.id, accountId)
+    assert.strictEqual(res.body.data[0].relationships.account.data.meta.external, true)
+    assert.strictEqual(res.body.data[0].relationships.account.data.meta.href, `http://localhost:2025/members-include-account/accounts/${accountId}`)
+
+    assert.ok(Array.isArray(res.body.included))
+    assert.strictEqual(res.body.included.length, 1)
+    assert.deepStrictEqual(res.body.included[0], {
+      type: 'accounts',
+      id: accountId,
+      meta: {
+        external: true,
+        href: `http://localhost:2025/members-include-account/accounts/${accountId}`,
+      },
+    })
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+  })
+
+  test('GET /:code/members filters by account id', async () => {
+    const accountOne = toUuid('members-filter-account-one')
+    const accountTwo = toUuid('members-filter-account-two')
+    const accountThree = toUuid('members-filter-account-three')
+    await seedGroup({ tenantId: 'members-filter-account', status: 'active', access: 'public' })
+    await seedMember({
+      tenantId: 'members-filter-account',
+      code: 'account-one',
+      status: 'active',
+      access: 'public',
+      accountId: accountOne,
+    })
+    await seedMember({
+      tenantId: 'members-filter-account',
+      code: 'account-two',
+      status: 'active',
+      access: 'public',
+      accountId: accountTwo,
+    })
+    await seedMember({
+      tenantId: 'members-filter-account',
+      code: 'account-three',
+      status: 'active',
+      access: 'public',
+      accountId: accountThree,
+    })
+
+    const single = await request(app)
+      .get(`/members-filter-account/members?filter[account]=${accountOne}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      single.body.data.map((member: any) => member.attributes.code),
+      ['account-one'],
+    )
+
+    const multiple = await request(app)
+      .get(`/members-filter-account/members?filter[account]=${accountOne},${accountThree}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      multiple.body.data.map((member: any) => member.attributes.code).sort(),
+      ['account-one', 'account-three'],
+    )
+  })
+
   test('GET /:code/members defaults to active status and still allows owner to request drafts explicitly', async () => {
     await seedGroup({ tenantId: 'members-list-owner', status: 'active', access: 'public' })
     const owner = await auth('member-owner')
@@ -204,6 +295,42 @@ describe('Members endpoints', () => {
       .expect(403)
   })
 
+  test('GET /:code/members/:member allows read-all scope for non-public member', async () => {
+    await seedGroup({ tenantId: 'members-read-all-one', status: 'pending', access: 'private' })
+    const hiddenMember = await seedMember({
+      tenantId: 'members-read-all-one',
+      code: 'hidden-member',
+      status: 'draft',
+      access: 'private',
+    })
+
+    const serviceUser = await auth('members-read-all-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get(`/members-read-all-one/members/${hiddenMember.id}`)
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.id, hiddenMember.id)
+    assert.strictEqual(res.body.data.attributes.code, 'hidden-member')
+  })
+
+  test('GET /:code/members allows read-all scope for non-public members', async () => {
+    await seedGroup({ tenantId: 'members-read-all-list', status: 'pending', access: 'private' })
+    await seedMember({ tenantId: 'members-read-all-list', code: 'member-a', status: 'draft', access: 'private' })
+    await seedMember({ tenantId: 'members-read-all-list', code: 'member-b', status: 'pending', access: 'group' })
+
+    const serviceUser = await auth('members-read-all-list-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get('/members-read-all-list/members?filter[status]=draft,pending,active')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 2)
+    const codes = res.body.data.map((item: any) => item.attributes.code)
+    assert.strictEqual(codes.includes('member-a'), true)
+    assert.strictEqual(codes.includes('member-b'), true)
+  })
+
   test('PATCH /:code/members/:member allows member user to update attributes', async () => {
     await seedGroup({ tenantId: 'members-patch-owner', status: 'active', access: 'public' })
     const owner = await auth('member-patch-owner')
@@ -257,13 +384,23 @@ describe('Members endpoints', () => {
       .expect(200)
 
     assert.strictEqual(res.body.data.attributes.status, 'pending')
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'MemberRequested')
+    assert.strictEqual(events[0].data.attributes.code, 'members-submit')
+    assert.strictEqual(typeof events[0].data.attributes.data.member, 'string')
   })
 
   test('PATCH /:code/members/:member allows pending to active by admin only', async () => {
-    await seedGroup({ tenantId: 'members-approve', status: 'active', access: 'public' })
+    const currency = seedAccountingCurrency('members-approve')
+    await seedGroup({
+      tenantId: 'members-approve',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
     const owner = await auth('member-approve-owner')
-    const admin = await auth('member-approve-admin')
-    await seedGroupAdmin({ tenantId: 'members-approve', userId: admin.id })
+    const admin = await auth('seed-group-admin-members-approve')
 
     const member = await seedMember({
       tenantId: 'members-approve',
@@ -283,7 +420,7 @@ describe('Members endpoints', () => {
           },
         },
       })
-      .expect(400)
+      .expect(403)
 
     const approved = await request(app)
       .patch(`/members-approve/members/${member.id}`)
@@ -299,6 +436,532 @@ describe('Members endpoints', () => {
       .expect(200)
 
     assert.strictEqual(approved.body.data.attributes.status, 'active')
+    assert.ok(approved.body.data.attributes.accountId)
+    assert.strictEqual(approved.body.data.relationships.account.data.type, 'accounts')
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.external, true)
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.href, `http://localhost:2025/${currency.code}/accounts/${approved.body.data.attributes.accountId}`)
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
+    )
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'MemberJoined')
+    assert.strictEqual(events[0].data.attributes.code, 'members-approve')
+  })
+
+  test('PATCH /:code/members/:member adopts existing accounting account by member code', async () => {
+    const currency = seedAccountingCurrency('members-adopt')
+    await seedGroup({
+      tenantId: 'members-adopt',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-adopt-owner')
+    const admin = await auth('seed-group-admin-members-adopt')
+    const account = seedAccountingAccount(currency.code, 'adopt-me', [owner.id])
+
+    const member = await seedMember({
+      tenantId: 'members-adopt',
+      code: 'adopt-me',
+      status: 'pending',
+      userId: owner.id,
+    })
+
+    const approved = await request(app)
+      .patch(`/members-adopt/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(approved.body.data.attributes.accountId, account.id)
+    assert.strictEqual(approved.body.data.relationships.account.data.id, account.id)
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [`GET /${currency.code}/accounts`],
+    )
+  })
+
+  test('PATCH /:code/members/:member allows member admin to disable and reactivate with accounting sync', async () => {
+    const currency = seedAccountingCurrency('members-toggle')
+    await seedGroup({
+      tenantId: 'members-toggle',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-toggle-owner')
+    const account = seedAccountingAccount(currency.code, 'toggle-me', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-toggle',
+      code: 'toggle-me',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    const disabled = await request(app)
+      .patch(`/members-toggle/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'disabled',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(disabled.body.data.attributes.status, 'disabled')
+
+    const reactivated = await request(app)
+      .patch(`/members-toggle/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(reactivated.body.data.attributes.status, 'active')
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+      ],
+    )
+    assert.strictEqual(getNotificationsEvents().length, 0)
+  })
+
+  test('PATCH /:code/members/:member allows suspend and resume only by group admin', async () => {
+    const currency = seedAccountingCurrency('members-suspend')
+    await seedGroup({
+      tenantId: 'members-suspend',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('members-suspend-owner')
+    const admin = await auth('seed-group-admin-members-suspend')
+    const account = seedAccountingAccount(currency.code, 'suspend-me', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-suspend',
+      code: 'suspend-me',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .patch(`/members-suspend/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'suspended',
+          },
+        },
+      })
+      .expect(403)
+
+    const suspended = await request(app)
+      .patch(`/members-suspend/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'suspended',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(suspended.body.data.attributes.status, 'suspended')
+
+    const resumed = await request(app)
+      .patch(`/members-suspend/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(resumed.body.data.attributes.status, 'active')
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+        `GET /${currency.code}/accounts/${account.id}`,
+        `PATCH /${currency.code}/accounts/${account.id}`,
+      ],
+    )
+  })
+
+  test('DELETE /:code/members/:member soft-deletes as member admin after accounting delete', async () => {
+    const currency = seedAccountingCurrency('members-delete')
+    await seedGroup({
+      tenantId: 'members-delete',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-owner')
+    const account = seedAccountingAccount(currency.code, 'delete-me', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete',
+      code: 'delete-me',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+      `DELETE /${currency.code}/accounts/${account.id}`,
+    ])
+
+    await request(app)
+      .get(`/members-delete/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(404)
+
+    const list = await request(app)
+      .get('/members-delete/members?filter[status]=active')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+
+    assert.strictEqual(list.body.data.length, 0)
+
+    const db = tenantDb(prisma, 'members-delete')
+    const deleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.ok(deleted?.deleted)
+    assert.strictEqual(deleted?.status, 'active')
+  })
+
+  test('DELETE /:code/members/:member allows group admin to delete another member', async () => {
+    const currency = seedAccountingCurrency('members-delete-admin')
+    await seedGroup({
+      tenantId: 'members-delete-admin',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-admin-owner')
+    const admin = await auth('members-delete-admin-admin')
+    await seedGroupAdmin({ tenantId: 'members-delete-admin', userId: admin.id })
+    const account = seedAccountingAccount(currency.code, 'delete-by-admin', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete-admin',
+      code: 'delete-by-admin',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete-admin/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+      `DELETE /${currency.code}/accounts/${account.id}`,
+    ])
+  })
+
+  test('DELETE /:code/members/:member forbids non-writer before accounting delete', async () => {
+    const currency = seedAccountingCurrency('members-delete-deny')
+    await seedGroup({
+      tenantId: 'members-delete-deny',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-deny-owner')
+    const outsider = await auth('members-delete-deny-outsider')
+    const account = seedAccountingAccount(currency.code, 'delete-denied', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete-deny',
+      code: 'delete-denied',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete-deny/members/${member.id}`)
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .expect(403)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+  })
+
+  test('DELETE /:code/members/:member skips accounting delete when member has no accounting account', async () => {
+    await seedGroup({ tenantId: 'members-delete-no-account', status: 'active', access: 'public' })
+    const owner = await auth('members-delete-no-account-owner')
+    const member = await seedMember({
+      tenantId: 'members-delete-no-account',
+      status: 'active',
+      userId: owner.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete-no-account/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'GET /members-delete-no-account/accounts',
+    ])
+
+    const db = tenantDb(prisma, 'members-delete-no-account')
+    const deleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.ok(deleted?.deleted)
+  })
+
+  test('DELETE /:code/members/:member deletes accounting account found by member code', async () => {
+    const currency = seedAccountingCurrency('members-delete-account-by-code')
+    await seedGroup({
+      tenantId: 'members-delete-account-by-code',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-account-by-code-owner')
+    const account = seedAccountingAccount(currency.code, 'delete-by-code', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete-account-by-code',
+      code: 'delete-by-code',
+      status: 'active',
+      userId: owner.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete-account-by-code/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts`,
+      `DELETE /${currency.code}/accounts/${account.id}`,
+    ])
+
+    const db = tenantDb(prisma, 'members-delete-account-by-code')
+    const deleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.ok(deleted?.deleted)
+  })
+
+  test('DELETE /:code/members/:member returns bad request and keeps social member when accounting account has nonzero balance', async () => {
+    const currency = seedAccountingCurrency('members-delete-accounting-400')
+    await seedGroup({
+      tenantId: 'members-delete-accounting-400',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-accounting-400-owner')
+    const account = seedAccountingAccount(currency.code, 'delete-balance', [owner.id])
+    account.balance = 10
+    const member = await seedMember({
+      tenantId: 'members-delete-accounting-400',
+      code: 'delete-balance',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    const res = await request(app)
+      .delete(`/members-delete-accounting-400/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(400)
+
+    assert.strictEqual(res.body.errors[0].code, 'BadRequest')
+    assert.strictEqual(res.body.errors[0].detail, 'Account balance must be zero to delete account')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+    ])
+
+    const db = tenantDb(prisma, 'members-delete-accounting-400')
+    const notDeleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.strictEqual(notDeleted?.deleted, null)
+
+    await request(app)
+      .get(`/members-delete-accounting-400/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+  })
+
+  test('DELETE /:code/members/:member returns internal error when accounting delete fails after preflight', async () => {
+    const currency = seedAccountingCurrency('members-delete-accounting-500')
+    await seedGroup({
+      tenantId: 'members-delete-accounting-500',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-accounting-500-owner')
+    const account = seedAccountingAccount(currency.code, 'delete-failure', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete-accounting-500',
+      code: 'delete-failure',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+    setAccountingAccountDeleteStatus(400, 'Mock accounting delete failure')
+
+    const res = await request(app)
+      .delete(`/members-delete-accounting-500/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(500)
+
+    assert.strictEqual(res.body.errors[0].code, 'InternalError')
+    assert.strictEqual(res.body.errors[0].detail, 'Mock accounting delete failure')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+      `DELETE /${currency.code}/accounts/${account.id}`,
+    ])
+
+    const db = tenantDb(prisma, 'members-delete-accounting-500')
+    const notDeleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.strictEqual(notDeleted?.deleted, null)
+  })
+
+  test('DELETE /:code/members/:member treats missing accounting account as deleted', async () => {
+    const currency = seedAccountingCurrency('members-delete-accounting-404')
+    await seedGroup({
+      tenantId: 'members-delete-accounting-404',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-accounting-404-owner')
+    const member = await seedMember({
+      tenantId: 'members-delete-accounting-404',
+      code: 'delete-missing-account',
+      status: 'active',
+      userId: owner.id,
+      accountId: toUuid('members-delete-accounting-404-missing'),
+    })
+
+    await request(app)
+      .delete(`/members-delete-accounting-404/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${member.accountId}`,
+    ])
+
+    const db = tenantDb(prisma, 'members-delete-accounting-404')
+    const deleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.ok(deleted?.deleted)
+  })
+
+  test('DELETE /:code/members/:member treats already deleted accounting account as deleted', async () => {
+    const currency = seedAccountingCurrency('members-delete-account-deleted')
+    await seedGroup({
+      tenantId: 'members-delete-account-deleted',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-account-deleted-owner')
+    const account = seedAccountingAccount(currency.code, 'delete-already-deleted', [owner.id])
+    account.status = 'deleted'
+    const member = await seedMember({
+      tenantId: 'members-delete-account-deleted',
+      code: 'delete-already-deleted',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete-account-deleted/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${member.accountId}`,
+    ])
+
+    const db = tenantDb(prisma, 'members-delete-account-deleted')
+    const deleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.ok(deleted?.deleted)
+  })
+
+  test('DELETE /:code/members/:member hides member posts without soft-deleting posts', async () => {
+    await seedGroup({ tenantId: 'members-delete-posts', status: 'active', access: 'public' })
+    const owner = await auth('members-delete-posts-owner')
+    const member = await seedMember({
+      tenantId: 'members-delete-posts',
+      status: 'active',
+      access: 'public',
+      userId: owner.id,
+    })
+    const post = await seedPost({
+      tenantId: 'members-delete-posts',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    await request(app)
+      .get(`/members-delete-posts/posts/${post.id}`)
+      .expect(200)
+
+    await request(app)
+      .delete(`/members-delete-posts/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    await request(app)
+      .get(`/members-delete-posts/posts/${post.id}`)
+      .expect(404)
+
+    const list = await request(app)
+      .get('/members-delete-posts/posts')
+      .expect(200)
+
+    assert.strictEqual(list.body.data.length, 0)
+
+    const db = tenantDb(prisma, 'members-delete-posts')
+    const unchangedPost = await db.post.findUnique({ where: { id: post.id } })
+    assert.strictEqual(unchangedPost?.deleted, null)
   })
 
   test('PATCH /:code/members/:member denies non-member and non-admin', async () => {
@@ -343,6 +1006,50 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'b')
+  })
+
+  test('GET /:code/members supports admin status/search/sort/page query', async () => {
+    await seedGroup({ tenantId: 'members-admin-search-query', status: 'active', access: 'public' })
+    const admin = await auth('members-admin-search-query-admin')
+    await seedGroupAdmin({ tenantId: 'members-admin-search-query', userId: admin.id })
+
+    await seedMember({ tenantId: 'members-admin-search-query', code: 'disabled-needle', name: 'Alpha Needle', status: 'disabled', access: 'private' })
+    await seedMember({ tenantId: 'members-admin-search-query', code: 'suspended-needle', name: 'Bravo Needle', status: 'suspended', access: 'private' })
+    await seedMember({ tenantId: 'members-admin-search-query', code: 'active-needle', name: 'Charlie Needle', status: 'active', access: 'private' })
+    await seedMember({ tenantId: 'members-admin-search-query', code: 'active-other', name: 'Delta Other', status: 'active', access: 'private' })
+
+    const res = await request(app)
+      .get('/members-admin-search-query/members?filter[status]=active,disabled,suspended&sort=name&filter[search]=needle&page[size]=2')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((member: any) => member.attributes.code),
+      ['disabled-needle', 'suspended-needle'],
+    )
+  })
+
+  test('GET /:code/members supports admin account/status/page query', async () => {
+    const accountOne = toUuid('members-admin-account-query-one')
+    const accountTwo = toUuid('members-admin-account-query-two')
+    const accountThree = toUuid('members-admin-account-query-three')
+    await seedGroup({ tenantId: 'members-admin-account-query', status: 'active', access: 'public' })
+    const admin = await auth('members-admin-account-query-admin')
+    await seedGroupAdmin({ tenantId: 'members-admin-account-query', userId: admin.id })
+
+    await seedMember({ tenantId: 'members-admin-account-query', code: 'active-account', status: 'active', access: 'private', accountId: accountOne })
+    await seedMember({ tenantId: 'members-admin-account-query', code: 'disabled-account', status: 'disabled', access: 'private', accountId: accountTwo })
+    await seedMember({ tenantId: 'members-admin-account-query', code: 'pending-account', status: 'pending', access: 'private', accountId: accountThree })
+
+    const res = await request(app)
+      .get(`/members-admin-account-query/members?filter[account]=${accountOne},${accountTwo}&filter[status]=active,disabled,suspended&page[size]=5`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((member: any) => member.attributes.code).sort(),
+      ['active-account', 'disabled-account'],
+    )
   })
 
   test('GET /:code/members supports search across text and JSON scalar values', async () => {
@@ -406,9 +1113,10 @@ describe('Members endpoints', () => {
     await seedGroup({ tenantId: 'members-missing', status: 'active', access: 'public' })
     const admin = await auth('members-missing-admin')
     await seedGroupAdmin({ tenantId: 'members-missing', userId: admin.id })
+    const missingMemberId = toUuid('members-missing-id')
 
     await request(app)
-      .patch('/members-missing/members/123')
+      .patch(`/members-missing/members/${missingMemberId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .send({
         data: {

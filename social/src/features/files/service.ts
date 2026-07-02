@@ -110,20 +110,27 @@ const normalizeUrls = (urls: string[]): string[] => {
   return Array.from(new Set(urls.map((url) => url.trim()).filter(Boolean)))
 }
 
+/**
+ * Synchronize the file records associated with a specific resource.
+ * 
+ * This function needs to be called after any update to a resource that has files associated with it, 
+ * to ensure that the file records in the database are correctly linked or unlinked to the resource 
+ * based on the provided URLs.
+ */
 export const syncResourceFiles = async (
-  code: string,
+  tenantId: string,
   resourceType: FileResourceType,
   resourceId: string,
   urls: string[],
 ): Promise<void> => {
   const normalizedUrls = normalizeUrls(urls)
-  const db = tenantDb(prisma, code)
+  const db = tenantDb(prisma, tenantId)
 
   await db.transaction(async (tx) => {
     // Find first the ids of files identified by the URLs
     const existingFiles = await tx.file.findMany({
       where: {
-        tenantId: code,
+        tenantId,
         url: { in: normalizedUrls },
         resourceType,
         OR: [
@@ -140,7 +147,7 @@ export const syncResourceFiles = async (
     // Unlink files that are currently linked to the resource but not included in the new URLs
     await tx.file.updateMany({
       where: {
-        tenantId: code,
+        tenantId,
         resourceType,
         resourceId,
         id: {notIn: ids}
@@ -157,7 +164,7 @@ export const syncResourceFiles = async (
     // Link the identified files to the resource (not already linked)
     await tx.file.updateMany({
       where: {
-        tenantId: code,
+        tenantId,
         id: { in: ids },
         resourceId: null,
       },

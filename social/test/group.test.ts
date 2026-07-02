@@ -3,10 +3,18 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
-import { Scope } from '../src/server/auth'
+import { Scope } from '../src/server/context'
 import { auth } from './mocks/auth'
-import { resetDb, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
+import {
+  getAccountingRequestPaths,
+  getNotificationsEvents,
+  resetMockState,
+  seedAccountingCurrency,
+  setAccountingCurrencyDeleteStatus,
+} from './mocks/handlers'
+import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
+import { toUuid } from './mocks/utils'
 
 let app: any
 const tinyPng = Buffer.from(
@@ -61,6 +69,7 @@ after(async () => {
 describe('Groups endpoints', () => {
   beforeEach(async () => {
     await resetDb()
+    resetMockState()
   })
 
   test('POST /groups requires JWT', async () => {
@@ -112,6 +121,12 @@ describe('Groups endpoints', () => {
       .get('/alpha-group')
       .set('Authorization', `Bearer ${outsiderToken}`)
       .expect(403)
+
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'GroupRequested')
+    assert.strictEqual(events[0].data.attributes.code, 'alpha-group')
+    assert.strictEqual(events[0].data.attributes.data.group, 'alpha-group')
   })
 
   test('POST /groups rejects duplicate code', async () => {
@@ -324,6 +339,38 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.included[0].attributes.requireAcceptTerms, true)
   })
 
+  test('GET /groups?include=currency includes external currency references', async () => {
+    const currencyId = toUuid('currency-include-group')
+    await seedGroup({
+      tenantId: 'currency-include-group',
+      status: 'active',
+      access: 'public',
+      currencyId,
+    })
+
+    const res = await request(app)
+      .get('/groups?include=currency')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].relationships.currency.data.type, 'currencies')
+    assert.strictEqual(res.body.data[0].relationships.currency.data.id, currencyId)
+    assert.strictEqual(res.body.data[0].relationships.currency.data.meta.external, true)
+    assert.strictEqual(res.body.data[0].relationships.currency.data.meta.href, 'http://localhost:2025/currency-include-group/currency')
+
+    assert.ok(Array.isArray(res.body.included))
+    assert.strictEqual(res.body.included.length, 1)
+    assert.deepStrictEqual(res.body.included[0], {
+      type: 'currencies',
+      id: currencyId,
+      meta: {
+        external: true,
+        href: 'http://localhost:2025/currency-include-group/currency',
+      },
+    })
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+  })
+
   test('GET /:code allows anonymous access to active public groups', async () => {
     await seedGroup({ tenantId: 'public-one', status: 'active', access: 'public' })
 
@@ -366,6 +413,39 @@ describe('Groups endpoints', () => {
       .get('/member-group')
       .set('Authorization', `Bearer ${superadmin.token}`)
       .expect(200)
+  })
+
+  test('GET /:code includes group admins relationship linkage', async () => {
+    await seedGroup({ tenantId: 'group-admins-include', status: 'active', access: 'public' })
+    const admin = await auth('group-admins-user')
+    await seedGroupAdmin({ tenantId: 'group-admins-include', userId: admin.id })
+
+    const res = await request(app)
+      .get('/group-admins-include')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.relationships.admins.data.some((resource: any) => resource.id === admin.id), true)
+    // Not including admins as included resources.
+    assert.strictEqual(Array.isArray(res.body.included) && res.body.included.some((resource: any) => resource.type === 'users' && resource.id === admin.id), false)
+  })
+
+  test('GET /:code allows read-all scope for pending private group', async () => {
+    await seedGroup({ tenantId: 'group-read-all', status: 'pending', access: 'private' })
+
+    const regularUser = await auth('group-read-all-regular')
+    await request(app)
+      .get('/group-read-all')
+      .set('Authorization', `Bearer ${regularUser.token}`)
+      .expect(403)
+
+    const serviceUser = await auth('group-read-all-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get('/group-read-all')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.attributes.code, 'group-read-all')
+    assert.strictEqual(res.body.data.attributes.status, 'pending')
   })
 
   test('GET /:code returns 404 for missing group', async () => {
@@ -434,6 +514,192 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.included[0].attributes.defaultGroupEmailFrequency, 'weekly')
   })
 
+  test('GET /:code?include=currency includes external currency reference', async () => {
+    const currencyId = toUuid('single-currency-include-group')
+    await seedGroup({
+      tenantId: 'single-currency-include-group',
+      status: 'active',
+      access: 'public',
+      currencyId,
+    })
+
+    const res = await request(app)
+      .get('/single-currency-include-group?include=currency')
+      .expect(200)
+
+    assert.strictEqual(res.body.data.relationships.currency.data.type, 'currencies')
+    assert.strictEqual(res.body.data.relationships.currency.data.id, currencyId)
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.external, true)
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.href, 'http://localhost:2025/single-currency-include-group/currency')
+
+    assert.ok(Array.isArray(res.body.included))
+    assert.deepStrictEqual(res.body.included[0], {
+      type: 'currencies',
+      id: currencyId,
+      meta: {
+        external: true,
+        href: 'http://localhost:2025/single-currency-include-group/currency',
+      },
+    })
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+  })
+
+  test('DELETE /:code requires JWT', async () => {
+    await seedGroup({ tenantId: 'delete-auth', status: 'active', access: 'public' })
+
+    await request(app)
+      .delete('/delete-auth')
+      .expect(401)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+  })
+
+  test('DELETE /:code soft-deletes group as admin after accounting currency delete', async () => {
+    const admin = await auth('delete-group-admin')
+    const staleCurrencyId = toUuid('delete-group-stale-currency-id')
+    seedAccountingCurrency('delete-group-success', toUuid('delete-group-accounting-currency-id'))
+    await seedGroup({
+      tenantId: 'delete-group-success',
+      status: 'active',
+      access: 'public',
+      currencyId: staleCurrencyId,
+    })
+    await seedGroupAdmin({ tenantId: 'delete-group-success', userId: admin.id })
+    const member = await seedMember({ tenantId: 'delete-group-success' })
+
+    await request(app)
+      .delete('/delete-group-success')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'DELETE /delete-group-success/currency',
+    ])
+
+    const db = tenantDb(prisma, 'delete-group-success')
+    const group = await db.group.findFirstOrThrow()
+    assert.ok(group.deleted)
+    assert.strictEqual(group.currencyId, staleCurrencyId)
+
+    const storedMember = await db.member.findFirstOrThrow({ where: { id: member.id } })
+    assert.strictEqual(storedMember.deleted, null)
+  })
+
+  test('DELETE /:code allows superadmin', async () => {
+    const superadmin = await auth('delete-group-superadmin', undefined, Scope.Superadmin)
+    const currency = seedAccountingCurrency('delete-group-superadmin')
+    await seedGroup({
+      tenantId: 'delete-group-superadmin',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    await request(app)
+      .delete('/delete-group-superadmin')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'DELETE /delete-group-superadmin/currency',
+    ])
+  })
+
+  test('DELETE /:code denies outsiders before accounting call', async () => {
+    const currency = seedAccountingCurrency('delete-group-denied')
+    await seedGroup({
+      tenantId: 'delete-group-denied',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const outsider = await auth('delete-group-outsider')
+
+    await request(app)
+      .delete('/delete-group-denied')
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .expect(403)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+    const db = tenantDb(prisma, 'delete-group-denied')
+    const group = await db.group.findFirstOrThrow()
+    assert.strictEqual(group.deleted, null)
+  })
+
+  test('DELETE /:code treats missing accounting currency as already deleted', async () => {
+    const admin = await auth('delete-group-missing-currency-admin')
+    await seedGroup({
+      tenantId: 'delete-group-missing-currency',
+      status: 'active',
+      access: 'public',
+    })
+    await seedGroupAdmin({ tenantId: 'delete-group-missing-currency', userId: admin.id })
+
+    await request(app)
+      .delete('/delete-group-missing-currency')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'DELETE /delete-group-missing-currency/currency',
+    ])
+    const db = tenantDb(prisma, 'delete-group-missing-currency')
+    const group = await db.group.findFirstOrThrow()
+    assert.ok(group.deleted)
+  })
+
+  test('DELETE /:code leaves group untouched when accounting deletion fails', async () => {
+    const admin = await auth('delete-group-accounting-failure-admin')
+    const currency = seedAccountingCurrency('delete-group-accounting-failure')
+    await seedGroup({
+      tenantId: 'delete-group-accounting-failure',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    await seedGroupAdmin({ tenantId: 'delete-group-accounting-failure', userId: admin.id })
+    setAccountingCurrencyDeleteStatus(500, 'Currency has remaining accounts')
+
+    await request(app)
+      .delete('/delete-group-accounting-failure')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(500)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'DELETE /delete-group-accounting-failure/currency',
+    ])
+    const db = tenantDb(prisma, 'delete-group-accounting-failure')
+    const group = await db.group.findFirstOrThrow()
+    assert.strictEqual(group.deleted, null)
+  })
+
+  test('deleted groups are hidden from group and tenant endpoints', async () => {
+    await seedGroup({
+      tenantId: 'deleted-group-hidden',
+      status: 'active',
+      access: 'public',
+      deleted: new Date(), // deleted
+    })
+    await seedCategory({ tenantId: 'deleted-group-hidden' })
+
+    const groups = await request(app)
+      .get('/groups?filter[status]=active')
+      .expect(200)
+
+    assert.deepStrictEqual(groups.body.data, [])
+
+    await request(app)
+      .get('/deleted-group-hidden')
+      .expect(404)
+
+    await request(app)
+      .get('/deleted-group-hidden/settings')
+      .expect(404)
+
+    await request(app)
+      .get('/deleted-group-hidden/categories')
+      .expect(404)
+  })
 
   test('PATCH /:code requires JWT', async () => {
     await seedGroup({ tenantId: 'patch-auth', status: 'active', access: 'public' })
@@ -492,7 +758,153 @@ describe('Groups endpoints', () => {
           }
         }
       })
-      .expect(400)
+      .expect(403)
+  })
+
+  test('PATCH /:code activates pending group via accounting create and exposes external currency relationship', async () => {
+    const superadmin = await auth('group-activate-superadmin', undefined, Scope.Superadmin)
+
+    await seedGroup({
+      tenantId: 'activate-group',
+      status: 'pending',
+      access: 'public',
+      meta: {
+        request: {
+          currency: {
+            name: 'Activate Currency',
+          },
+        },
+      },
+    })
+
+    const res = await request(app)
+      .patch('/activate-group')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            status: 'active',
+          }
+        }
+      })
+      .expect(200)
+
+    assert.strictEqual(res.body.data.attributes.status, 'active')
+    assert.strictEqual(res.body.data.relationships.currency.data.type, 'currencies')
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.external, true)
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.href, 'http://localhost:2025/activate-group/currency')
+
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      ['GET /activate-group/currency', 'POST /currencies'],
+    )
+
+    const db = tenantDb(prisma, 'activate-group')
+    const group = await db.group.findFirstOrThrow()
+    assert.strictEqual(group.status, 'active')
+    assert.strictEqual(group.currencyId, res.body.data.relationships.currency.data.id)
+    assert.deepStrictEqual(group.meta, {
+      request: {
+        currency: {
+          name: 'Activate Currency',
+        },
+      },
+    })
+
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'GroupActivated')
+    assert.strictEqual(events[0].data.attributes.code, 'activate-group')
+  })
+
+  test('PATCH /:code adopts existing accounting currency without creating a new one', async () => {
+    const superadmin = await auth('group-adopt-superadmin', undefined, Scope.Superadmin)
+    const currency = seedAccountingCurrency('adopt-group')
+
+    await seedGroup({
+      tenantId: 'adopt-group',
+      status: 'pending',
+      access: 'public',
+      meta: {
+        request: {
+          currency: {
+            name: 'Adopt Group Currency',
+          },
+        },
+      },
+    })
+
+    const res = await request(app)
+      .patch('/adopt-group')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            status: 'active',
+          }
+        }
+      })
+      .expect(200)
+
+    assert.strictEqual(res.body.data.relationships.currency.data.id, currency.id)
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      ['GET /adopt-group/currency'],
+    )
+  })
+
+  test('PATCH /:code allows group admin to disable and reactivate with accounting sync', async () => {
+    const currency = seedAccountingCurrency('group-toggle')
+    const admin = await auth('group-toggle-admin')
+    await seedGroup({
+      tenantId: 'group-toggle',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    await seedGroupAdmin({ tenantId: 'group-toggle', userId: admin.id })
+
+    const disabled = await request(app)
+      .patch('/group-toggle')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            status: 'disabled',
+          }
+        }
+      })
+      .expect(200)
+
+    assert.strictEqual(disabled.body.data.attributes.status, 'disabled')
+
+    const reactivated = await request(app)
+      .patch('/group-toggle')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            status: 'active',
+          }
+        }
+      })
+      .expect(200)
+
+    assert.strictEqual(reactivated.body.data.attributes.status, 'active')
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        'GET /group-toggle/currency',
+        'PATCH /group-toggle/currency',
+        'GET /group-toggle/currency',
+        'PATCH /group-toggle/currency',
+      ],
+    )
+    assert.strictEqual(getNotificationsEvents().length, 0)
   })
 
   test('PATCH /:code denies non-admin and allows superadmin for non-status updates', async () => {

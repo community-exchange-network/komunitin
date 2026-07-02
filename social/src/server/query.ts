@@ -23,6 +23,15 @@ type CollectionQueryInput = {
 
 const quoteIdentifier = (identifier: string) => `"${identifier.replaceAll('"', '""')}"`
 
+export const getFilterValues = (rawValue: FilterOptions[string] | undefined): string[] => {
+  if (rawValue === undefined) {
+    return []
+  }
+
+  const values = Array.isArray(rawValue) ? rawValue : [rawValue]
+  return values.map((value) => value.trim()).filter((value) => value.length > 0)
+}
+
 const sqlIdentifier = (...parts: string[]): Prisma.Sql => {
   return Prisma.raw(parts.map(quoteIdentifier).join('.'))
 }
@@ -83,7 +92,7 @@ const sqlDistance = (location: Prisma.Sql, point: GeoPoint): Prisma.Sql => {
 /**
  * Build SQL WHERE clauses from filter options. 
  * 
- * If a filter value is array or comma-separated string, it will be treated as an "IN" condition.
+ * If a filter value is an array, it will be treated as an "IN" condition.
  * Otherwise, it will be treated as an equality condition.
  */
 const buildFilterWhere = (filter: FilterOptions, columns: SqlColumnMap): Prisma.Sql[] => {
@@ -95,8 +104,7 @@ const buildFilterWhere = (filter: FilterOptions, columns: SqlColumnMap): Prisma.
       continue
     }
 
-    const values = Array.isArray(rawValue) ? rawValue : rawValue.split(',')
-    const cleaned = values.map((value) => value.trim()).filter((value) => value.length > 0)
+    const cleaned = getFilterValues(rawValue)
 
     if (cleaned.length === 0) {
       continue

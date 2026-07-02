@@ -1,17 +1,17 @@
-import z from 'zod'
 import { type Member as DbMember, type Post as DbPost } from '../../generated/prisma/client'
 import { PostUpdateInput } from '../../generated/prisma/models'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
-import type { CollectionParams } from '../../server/request'
+import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { slugify } from '../../utils/format'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { fromLocation, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
+import { DbGroup, fromLocation, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { getMember, isMemberUser, toMember } from '../members/service'
+import { createNotificationsClient } from '../../clients/notifications'
 import type { PostStatus } from './schema'
 import type { CreatePostInput, NeedData, OfferData, PatchPostInput, Post } from './types'
 import { findPostsIds } from './sql'
@@ -33,19 +33,37 @@ const toPost = (dbPost: DbPost, member: Member): Post => {
   } as Post
 }
 
-const getPostById = async (code: string, id: string): Promise<Post> => {
-  const validation = z.uuid().safeParse(id)
-  if (!validation.success) {
-    throw notFound('Post not found')
-  }
+const shouldIncludeMemberGroup = (include: string[] = []): boolean => {
+  return include.some((item) => item === 'member.group' || item.startsWith('member.group.'))
+}
 
+const getMemberInclude = (include: string[] = []) => {
+  const includeGroup = shouldIncludeMemberGroup(include)
+  return {
+    group: includeGroup && {
+      include: {
+        admins: true,
+      },
+    },
+  }
+}
+
+const getPostById = async (code: string, id: string, params?: ResourceParams): Promise<Post> => {
   const db = tenantDb(prisma, code)
   const post = await db.post.findFirst({
-    where: { id, deleted: null },
+    where: {
+      id,
+      deleted: null,
+      member: {
+        deleted: null,
+      },
+    },
     include: {
-      member: true
+      member: {
+        include: getMemberInclude(params?.include),
+      },
     }
-  })
+  }) as (DbPost & { member: DbMember & { group?: DbGroup } }) | null
 
   if (!post) {
     throw notFound('Post not found')
@@ -60,6 +78,7 @@ const isPostOwner = async (ctx: OptionalAuthContext, post: Post): Promise<boolea
 
 const canReadPost = async (ctx: OptionalAuthContext, group: Group, post: Post): Promise<boolean> => {
   return (ctx.isSuperadmin) 
+    || ctx.isSocialReadAll
     || (group.status === 'active' && post.status === 'published' && post.access === 'public' )
     || (group.status === 'active' && post.status === 'published' && post.access === 'group' && await isGroupMember(ctx, group))
     || (await isPostOwner(ctx, post))
@@ -120,16 +139,18 @@ export const listPosts = async (ctx: OptionalAuthContext, code: string, params: 
       id: { in: ids },
     },
     include: {
-      member: true
+      member: {
+        include: getMemberInclude(params.include),
+      },
     },
-  })
+  }) as (DbPost & { member: DbMember & { group?: DbGroup } })[]
 
   return reorderByIds(posts, ids).map((post) => toPost(post, toMember(post.member)))
 }
 
-export const getPost = async (ctx: OptionalAuthContext, code: string, id: string): Promise<Post> => {
+export const getPost = async (ctx: OptionalAuthContext, code: string, id: string, params?: ResourceParams): Promise<Post> => {
   const group = await getGroupByCode(ctx, code)
-  const post = await getPostById(code, id)
+  const post = await getPostById(code, id, params)
 
   const allowed = await canReadPost(ctx, group, post)
   if (!allowed) {
@@ -241,6 +262,15 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
 
   await syncResourceFiles(code, input.type, created.id, (input.images ?? []).map((image) => image.url))
 
+  if (created.status === 'published') {
+    const notifications = createNotificationsClient(ctx)
+    if (created.type === 'offers') {
+      await notifications.notifyOfferPublished(code, created)
+    } else {
+      await notifications.notifyNeedPublished(code, created)
+    }
+  }
+
   return toPost(created, member)
 }
 
@@ -306,6 +336,15 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
 
   if (input.images !== undefined) {
     await syncResourceFiles(code, post.type, post.id, (input.images ?? []).map((image) => image.url))
+  }
+
+  if (post.status !== 'published' && updated.status === 'published') {
+    const notifications = createNotificationsClient(ctx)
+    if (updated.type === 'offers') {
+      await notifications.notifyOfferPublished(code, updated)
+    } else {
+      await notifications.notifyNeedPublished(code, updated)
+    }
   }
 
   return toPost(updated, toMember(updated.member))

@@ -1,19 +1,19 @@
 import type { RequestHandler } from 'express'
 import { getAuthContext, getOptionalAuthContext } from '../../server/context'
 import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
-import { getCollectionParams, getCode, getParam, getResourceParams } from '../../server/request'
+import { getCollectionParams, getCode, getIdParam, getResourceParams } from '../../server/request'
 import { getValidatedBody } from '../../server/validation'
 import type { CreateMemberBody, PatchMemberBody } from './schema'
 import { serializeMember, serializeMembers } from './serialize'
-import { createMember, getMember, listMembers, patchMember } from './service'
+import { createMember, deleteMember, getMember, listMembers, patchMember } from './service'
 
 export const getMembersRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const params = getCollectionParams(req, {
-    filter: ['code', 'name', 'type', 'status', 'access', 'search'],
+    filter: ['code', 'name', 'type', 'status', 'access', 'account', 'search'],
     sort: ['created', 'updated', 'name', 'code'],
-    include: ['group'],
+    include: ['group', 'account'],
   })
 
   const members = await listMembers(ctx, code, params)
@@ -29,8 +29,8 @@ export const getMembersRoute: RequestHandler = async (req, res) => {
 export const getMemberRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
-  const memberId = getParam(req, 'member')
-  const params = getResourceParams(req, { include: ['group'] })
+  const memberId = getIdParam(req, 'member')
+  const params = getResourceParams(req, { include: ['group', 'account'] })
 
   const member = await getMember(ctx, code, memberId, params)
 
@@ -52,11 +52,20 @@ export const postMembersRoute: RequestHandler = async (req, res) => {
 export const patchMemberRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const code = getCode(req)
-  const memberId = getParam(req, 'member')
+  const memberId = getIdParam(req, 'member')
   const body = getValidatedBody<PatchMemberBody>(req)
 
   const member = await patchMember(ctx, code, memberId, body.data.attributes)
 
   const payload = await serializeMember(member)
   res.status(200).json(payload)
+}
+
+export const deleteMemberRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+  const memberId = getIdParam(req, 'member')
+
+  await deleteMember(ctx, code, memberId)
+  res.status(204).send()
 }

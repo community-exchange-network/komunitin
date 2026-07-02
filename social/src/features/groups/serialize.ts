@@ -1,12 +1,15 @@
 import TsJapi from 'ts-japi'
-import { config } from '../../config'
-import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
-import type { Member } from '../members/types'
-import { MemberSerializer } from '../members/serialize'
+import { getAccountingCurrencyUrl } from '../../clients/accounting'
+import { externalResourceSerializer, getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
 import type { GroupSettings } from './schema'
 import type { Group } from './types'
 
 const { Linker, Relator, Serializer } = TsJapi
+const ExternalCurrencySerializer = externalResourceSerializer<{ id: string; href: string }>('currencies')
+const GroupAdminSerializer = new Serializer<{ id: string }>('users', {
+  version: null,
+  projection: {},
+})
 
 type OutputGroupSettings = GroupSettings & { 
   groupCode: string
@@ -58,6 +61,19 @@ export const GroupSerializer = new Serializer<Group>('groups', {
         ...group.settings,
       }
     }, GroupSettingsSerializer, { relatedName: 'settings' }),
+    currency: new Relator<Group, { id: string; href: string }>(async (group) => {
+      if (!group.currencyId) {
+        return undefined
+      }
+
+      return {
+        id: group.currencyId,
+        href: getAccountingCurrencyUrl(group.code),
+      }
+    }, ExternalCurrencySerializer, { relatedName: 'currency' }),
+    admins: new Relator<Group, { id: string }>(async (group) => {
+      return group.admins
+    }, GroupAdminSerializer, { relatedName: 'admins' }),
   },
   linkers: {
     resource: new Linker((group) => getResourceLink("groups", group.code, group.id)),

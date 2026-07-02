@@ -1,5 +1,5 @@
 import type { Group as DbGroup } from '../../generated/prisma/client'
-import type { Access, CreateGroupAttributes, GroupSettings, Contact, Address, Location } from './schema'
+import type { Access, Address, Contact, CreateGroupAttributes, GroupSettings, GroupStatus, Location } from './schema'
 
 // Input types derived from request schema
 export interface CreateGroupInput {
@@ -8,9 +8,16 @@ export interface CreateGroupInput {
   currency?: unknown
 }
 
+export interface GroupAdmin {
+  id: string
+  role: 'admin'
+}
+
 // Output types derived from Prisma models
 export interface Group extends DbGroup {
   code: string
+  admins: GroupAdmin[]
+  status: GroupStatus
   access: Access
   address: Address | null
   location: Location | null

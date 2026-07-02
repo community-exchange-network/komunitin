@@ -5,7 +5,7 @@ import { getCode, getCollectionParams, getResourceParams } from '../../server/re
 import { getValidatedBody } from '../../server/validation'
 import type { CreateGroupBody, PatchGroupBody, PatchGroupSettingsBody } from './schema'
 import { serializeGroup, serializeGroups, serializeGroupSettings } from './serialize'
-import { createGroup, getGroupByCode, listGroups, patchGroupByCode, patchGroupSettingsByCode } from './service'
+import { createGroup, deleteGroupByCode, getGroupByCode, listGroups, patchGroupByCode, patchGroupSettingsByCode } from './service'
 
 export const postGroups: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
@@ -20,7 +20,7 @@ export const postGroups: RequestHandler = async (req, res) => {
     settings,
     currency,
   })
-  const params = getResourceParams(req, { include: ['settings'] })
+  const params = getResourceParams(req, { include: ['settings', 'currency'] })
   const payload = await serializeGroup(group, params)
   res.status(201).json(payload)
 }
@@ -30,7 +30,7 @@ export const getGroups: RequestHandler = async (req, res) => {
   const params = getCollectionParams(req, {
     filter: ['code', 'name', 'status', 'access', 'search'],
     sort: ['created', 'updated', 'name', 'code', 'distance'],
-    include: ['settings'],
+    include: ['settings', 'currency'],
   })
 
   const groups = await listGroups(ctx, params)
@@ -43,7 +43,7 @@ export const getGroups: RequestHandler = async (req, res) => {
 export const getGroupByCodeRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
-  const params = getResourceParams(req, { include: ['settings'] })
+  const params = getResourceParams(req, { include: ['settings', 'currency'] })
 
   const group = await getGroupByCode(ctx, code)
 
@@ -70,6 +70,14 @@ export const patchGroupByCodeRoute: RequestHandler = async (req, res) => {
 
   const payload = await serializeGroup(group)
   res.status(200).json(payload)
+}
+
+export const deleteGroupByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+
+  await deleteGroupByCode(ctx, code)
+  res.status(204).send()
 }
 
 export const patchGroupSettingsByCodeRoute: RequestHandler = async (req, res) => {

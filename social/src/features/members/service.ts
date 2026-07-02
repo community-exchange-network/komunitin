@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { Prisma, type Member as DbMember, type Group as DbGroup } from '../../generated/prisma/client'
+import { Account, createAccountingClient } from '../../clients/accounting'
+import { Prisma, type Member as DbMember } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { reorderByIds } from '../../server/query'
@@ -7,11 +7,11 @@ import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
+import { DbGroup, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
-import { type MemberStatus, type PatchMemberAttributes } from './schema'
-import type { CreateMemberInput, Member, PatchMemberInput } from './types'
 import { findMemberIds } from './sql'
+import type { CreateMemberInput, Member, PatchMemberInput } from './types'
+import { createNotificationsClient } from '../../clients/notifications'
 
 export const toMember = (member: DbMember & {group?: DbGroup}): Member => {
   return {
@@ -21,22 +21,30 @@ export const toMember = (member: DbMember & {group?: DbGroup}): Member => {
   } as Member
 }
 
-const getMemberById = async (code: string, id: string, params?: ResourceParams): Promise<Member> => {
-  const validation = z.uuid().safeParse(id)
-  if (!validation.success) {
-    throw notFound('Member not found')
-  }
+const shouldIncludeMemberGroup = (include: string[] = []): boolean => {
+  return include.some((item) => item === 'group' || item.startsWith('group.'))
+}
 
+export const getMemberInclude = (include: string[] = []) => {
+  const includeGroup = shouldIncludeMemberGroup(include)
+  return {
+    group: includeGroup ? {
+      include: {
+        admins: true,
+      },
+    } : false,
+  }
+}
+
+const getMemberById = async (code: string, id: string, params?: ResourceParams): Promise<Member> => {
   const db = tenantDb(prisma, code)
   const member = await db.member.findFirst({
     where: {
       id,
       deleted: null,
     },
-    include: {
-      group: params?.include.includes('group')
-    },
-  })
+    include: getMemberInclude(params?.include),
+  }) as (DbMember & { group?: DbGroup }) // Prisma can't infer the type correctly when using conditional include.
 
   if (!member) {
     throw notFound('Member not found')
@@ -64,6 +72,7 @@ export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member
 
 const canReadMember = async (ctx: OptionalAuthContext, group: Group, member: Member): Promise<boolean> => {
   return ctx.isSuperadmin
+    || ctx.isSocialReadAll
     || (group.status === 'active' && member.status === 'active' && member.access === 'public')  
     || (group.status === 'active' && member.status === 'active' && member.access === 'group' && await isGroupMember(ctx, group))
     || await isMemberUser(ctx, member)
@@ -75,50 +84,6 @@ const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): P
     || await isMemberUser(ctx, member, "admin")  
     || await isGroupAdmin(ctx, group)
     
-}
-
-const validateStatusTransition = async (
-  ctx: AuthContext,
-  group: Group,
-  member: Member,
-  to: MemberStatus,
-): Promise<void> => {
-  const from = member.status
-
-  if (from === to) {
-    return
-  }
-
-  const admin = ctx.isSuperadmin || await isGroupAdmin(ctx, group)
-  const owner = await isMemberUser(ctx, member)
-
-  if (from === 'draft' && to === 'pending' && (owner || admin)) {
-    return
-  }
-
-  if (from === 'pending' && to === 'active' && admin) {
-    // Account creation in accounting service must happen on approval.
-    // TODO: Implement remote account creation and persist accountId.
-    return
-  }
-
-  if (from === 'active' && to === 'inactive' && (owner || admin)) {
-    return
-  }
-
-  if (from === 'active' && to === 'suspended' && admin) {
-    return
-  }
-
-  if (from === 'inactive' && to === 'active' && (owner || admin)) {
-    return
-  }
-
-  if (from === 'suspended' && to === 'active' && admin) {
-    return
-  }
-
-  throw badRequest('Status transition is not allowed')
 }
 
 const buildMemberCode = (groupCode: string, index: number): string => {
@@ -151,6 +116,58 @@ const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   return buildMemberCode(groupCode, candidate)
 }
 
+const getMemberUserIds = async (member: Pick<Member, 'id' | 'tenantId'>): Promise<string[]> => {
+  const db = tenantDb(prisma, member.tenantId)
+  const relations = await db.memberUser.findMany({
+    where: {
+      memberId: member.id,
+    },
+    select: {
+      userId: true,
+    },
+  })
+
+  return [...new Set(relations.map((relation) => relation.userId))]
+}
+
+type AccountingClient = ReturnType<typeof createAccountingClient>
+
+const findMemberAccount = async (accounting: AccountingClient, member: Member, currencyCode: string): Promise<Account | undefined> => {
+  if (member.accountId) {
+    return await accounting.getAccount(currencyCode, member.accountId)
+  }
+
+  // Just in case the member has an account but the accountId is not set, 
+  // try to find it by code before creating a new one.
+  return await accounting.findAccountByCode(currencyCode, member.code)
+}
+
+/**
+ * Synchronize the account status from the accounting service to the provided status.
+ * 
+ * If the member does not have an account, one will be created. If the account exists 
+ * but has a different status, it will be updated.
+ */
+const syncAccountStatus = async (ctx: AuthContext, member: Member, currencyCode: string, status: Account["status"]): Promise<Account> => {
+  const accounting = createAccountingClient(ctx)
+  let account = await findMemberAccount(accounting, member, currencyCode)
+
+  if (!account) {
+    const users = await getMemberUserIds(member)
+    account = await accounting.createAccount(currencyCode, {
+      code: member.code,
+    }, users)
+  }
+
+  // Update account status if needed.
+  if (account.status !== status) {
+    account = await accounting.updateAccount(currencyCode, account.id, { status })
+  }
+
+  return account
+}
+
+
 /**
  * Return all members of a group accessible to the given user.
  * 
@@ -180,10 +197,8 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     where: {
       id: { in: ids },
     },
-    include: {
-      group: params.include.includes('group')
-    }
-  })
+    include: getMemberInclude(params.include),
+  }) as (DbMember & { group?: DbGroup })[] // Prisma can't infer the type correctly when using conditional include.
 
   return reorderByIds(members, ids).map(toMember)
 }
@@ -268,21 +283,58 @@ export const patchMember = async (
   input: PatchMemberInput,
 ): Promise<Member> => {
   const group = await getGroupByCode(ctx, code)
-  const member = await getMemberById(code, id)
+  const member = await getMemberById(code, id, { include: ["group"] })
 
   const allowed = await canWriteMember(ctx, group, member)
   if (!allowed) {
     throw forbidden('You do not have permission to update this member')
   }
 
-  if (typeof input.status === 'string') {
-    await validateStatusTransition(ctx, group, member, input.status)
-  }
-
   const { location, image, ...rest } = input
   const data: Prisma.MemberUpdateInput = {
     ...rest,
     image: toNullableJsonInput(image),
+  }
+  let notifyMemberRequested = false
+  let notifyMemberJoined = false
+
+  // Status transition.
+  if (input.status !== undefined && member.status !== input.status) {
+    const from = member.status
+    const to = input.status
+    if (from === 'draft' && to === 'pending'
+      || from === 'active' && to === 'disabled'
+      || from === 'disabled' && to === 'active'
+    ) {
+      // Allowed user transition, no additional checks needed.
+    } else if (from === 'pending' && to === 'active'
+      || from === 'active' && to === 'suspended'
+      || from === 'suspended' && to === 'active'
+    ) {
+      // Allowed admin transition, check if user is admin.
+      if (!(ctx.isSuperadmin || await isGroupAdmin(ctx, group))) {
+        throw forbidden('Only group admins can perform this status transition')
+      }
+    } else {
+      throw badRequest(`Invalid status transition from ${from} to ${to}`)
+    }
+
+    // Status transition approved, handle side effects.
+    if (from === 'draft' && to === 'pending') {
+      notifyMemberRequested = true
+    }
+    if (from === 'pending' && to === 'active') {
+      notifyMemberJoined = true
+    }
+
+    if (to === 'active' || to === 'disabled' || to === 'suspended') {
+      const currencyCode = getCurrencyCode(group)
+      const account = await syncAccountStatus(ctx, member, currencyCode, to)
+      if (!member.accountId) {
+        data.accountId = account.id
+      }     
+    }
+    data.status = to
   }
 
   if (location) {
@@ -302,5 +354,44 @@ export const patchMember = async (
     await syncResourceFiles(code, 'members', member.id, input.image ? [input.image.url] : [])
   }
 
+  if (notifyMemberRequested || notifyMemberJoined) {
+    const notifications = createNotificationsClient(ctx)
+    if (notifyMemberRequested) {
+      await notifications.notifyMemberRequested(code, updated)
+    }
+    if (notifyMemberJoined) {
+      await notifications.notifyMemberJoined(code, updated)
+    }
+  }
+
   return toMember(updated)
+}
+
+export const deleteMember = async (ctx: AuthContext, code: string, id: string): Promise<void> => {
+  const group = await getGroupByCode(ctx, code)
+  const member = await getMemberById(code, id, { include: ["group"] })
+
+  const allowed = await canWriteMember(ctx, group, member)
+  if (!allowed) {
+    throw forbidden('You do not have permission to delete this member')
+  }
+
+  const currencyCode = getCurrencyCode(group)
+  const accounting = createAccountingClient(ctx)
+  const account = member.accountId
+    ? await accounting.findAccountById(currencyCode, member.accountId)
+    : await accounting.findAccountByCode(currencyCode, member.code)
+
+  if (account && account.status !== 'deleted') {
+    if (account.balance !== undefined && account.balance !== 0) {
+      throw badRequest('Account balance must be zero to delete account')
+    }
+    await accounting.deleteAccount(currencyCode, account.id)
+  }
+
+  const db = tenantDb(prisma, code)
+  await db.member.update({
+    where: { id: member.id },
+    data: { deleted: new Date() },
+  })
 }

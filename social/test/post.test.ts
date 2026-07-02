@@ -2,8 +2,15 @@ import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
+import { Scope } from '../src/server/context'
 import prisma from '../src/utils/prisma'
 import { auth } from './mocks/auth'
+import {
+  getNotificationsEvents,
+  getNotificationsRequests,
+  resetMockState,
+  setNotificationsEventStatus,
+} from './mocks/handlers'
 import {
   resetDb,
   seedCategory,
@@ -14,7 +21,7 @@ import {
   seedPost,
 } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
-import { toUuid } from './mocks/utils'
+import { includedResource, toUuid } from './mocks/utils'
 
 let app: any
 
@@ -42,9 +49,41 @@ const postInput = (type: 'offers' | 'needs', attributes: any, memberId: string, 
     }
   }
 })
+
+const postQueryFixture = async (tenantId: string) => {
+  const currencyId = toUuid(`${tenantId}-currency`)
+  const memberAccountId = toUuid(`${tenantId}-account`)
+  await seedGroup({ tenantId, status: 'active', access: 'public', currencyId })
+  const admin = await auth(`${tenantId}-admin`)
+  await seedGroupAdmin({ tenantId, userId: admin.id })
+  const member = await seedMember({
+    tenantId,
+    code: `${tenantId}-member`,
+    name: 'Query Member',
+    status: 'active',
+    access: 'public',
+    accountId: memberAccountId,
+    contacts: [
+      { type: 'email', value: `${tenantId}@example.org` },
+    ],
+  })
+  const otherMember = await seedMember({
+    tenantId,
+    code: `${tenantId}-other`,
+    name: 'Other Member',
+    status: 'active',
+    access: 'public',
+    accountId: toUuid(`${tenantId}-other-account`),
+  })
+  const category = await seedCategory({ tenantId, code: `${tenantId}-category`, name: 'Query Category' })
+
+  return { admin, category, currencyId, member, memberAccountId, otherMember }
+}
+
 describe('Posts endpoints', () => {
   beforeEach(async () => {
     await resetDb()
+    resetMockState()
   })
 
   test('POST /:code/posts requires JWT', async () => {
@@ -86,6 +125,56 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data.attributes.code, 'nice-bicycle')
     assert.strictEqual(res.body.data.attributes.status, 'draft')
     assert.strictEqual(res.body.data.relationships.member.data.id, member.id)
+  })
+
+  test('POST /:code/posts emits OfferPublished when created as published', async () => {
+    await seedGroup({ tenantId: 'posts-create-published', status: 'active', access: 'public' })
+    const user = await auth('posts-create-published-user')
+    const member = await seedMember({ tenantId: 'posts-create-published', status: 'active', userId: user.id })
+
+    await request(app)
+      .post('/posts-create-published/posts')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send(postInput('offers', {
+        title: 'Published Offer',
+        description: 'A published offer',
+        status: 'published',
+      }, member.id))
+      .expect(201)
+
+    const requests = getNotificationsRequests()
+    assert.strictEqual(requests.length, 1)
+    assert.strictEqual(requests[0].method, 'POST')
+    assert.strictEqual(requests[0].path, '/events')
+
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.type, 'events')
+    assert.strictEqual(events[0].data.attributes.name, 'OfferPublished')
+    assert.strictEqual(events[0].data.attributes.source, 'social')
+    assert.strictEqual(events[0].data.attributes.code, 'posts-create-published')
+    assert.strictEqual(typeof events[0].data.attributes.time, 'string')
+    assert.strictEqual(typeof events[0].data.attributes.data.offer, 'string')
+    assert.strictEqual(events[0].data.relationships.user.data.type, 'users')
+    assert.strictEqual(events[0].data.relationships.user.data.id, user.id)
+  })
+
+  test('POST /:code/posts does not emit notification for draft post creation', async () => {
+    await seedGroup({ tenantId: 'posts-create-draft', status: 'active', access: 'public' })
+    const user = await auth('posts-create-draft-user')
+    const member = await seedMember({ tenantId: 'posts-create-draft', status: 'active', userId: user.id })
+
+    await request(app)
+      .post('/posts-create-draft/posts')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send(postInput('offers', {
+        title: 'Draft Offer',
+        description: 'A draft offer',
+      }, member.id))
+      .expect(201)
+
+    assert.strictEqual(getNotificationsRequests().length, 0)
+    assert.strictEqual(getNotificationsEvents().length, 0)
   })
 
   test('POST /:code/posts creates a need', async () => {
@@ -275,6 +364,49 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'my-draft')
   })
 
+  test('GET /:code/posts allows read-all scope for unpublished posts in pending private group', async () => {
+    await seedGroup({ tenantId: 'posts-read-all-list', status: 'pending', access: 'private' })
+    const owner = await auth('posts-read-all-owner')
+    const member = await seedMember({ tenantId: 'posts-read-all-list', status: 'draft', access: 'private', userId: owner.id })
+
+    await seedPost({ tenantId: 'posts-read-all-list', memberId: member.id, code: 'draft-offer', type: 'offers', status: 'draft', access: 'private' })
+    await seedPost({ tenantId: 'posts-read-all-list', memberId: member.id, code: 'hidden-offer', type: 'offers', status: 'hidden', access: 'group' })
+
+    const serviceUser = await auth('posts-read-all-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get('/posts-read-all-list/posts?filter[status]=draft,hidden,published')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 2)
+    const codes = res.body.data.map((item: any) => item.attributes.code)
+    assert.strictEqual(codes.includes('draft-offer'), true)
+    assert.strictEqual(codes.includes('hidden-offer'), true)
+  })
+
+  test('GET /:code/posts/:post allows read-all scope for non-public post', async () => {
+    await seedGroup({ tenantId: 'posts-read-all-one', status: 'pending', access: 'private' })
+    const owner = await auth('posts-read-all-one-owner')
+    const member = await seedMember({ tenantId: 'posts-read-all-one', status: 'draft', access: 'private', userId: owner.id })
+    const post = await seedPost({
+      tenantId: 'posts-read-all-one',
+      memberId: member.id,
+      code: 'private-draft-offer',
+      type: 'offers',
+      status: 'draft',
+      access: 'private',
+    })
+
+    const serviceUser = await auth('posts-read-all-one-service', undefined, Scope.SocialReadAll)
+    const res = await request(app)
+      .get(`/posts-read-all-one/posts/${post.id}`)
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.id, post.id)
+    assert.strictEqual(res.body.data.attributes.code, 'private-draft-offer')
+  })
+
   test('GET /:code/posts?filter[type]=offers returns only offers', async () => {
     await seedGroup({ tenantId: 'posts-filter-type', status: 'active', access: 'public' })
     const user = await auth('posts-filter-type-user')
@@ -289,6 +421,204 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].type, 'offers')
+  })
+
+  test('GET /:code/posts supports offer member/status/expired/category app query', async () => {
+    const { admin, category, member, otherMember } = await postQueryFixture('posts-app-offer-filter')
+    await seedPost({
+      tenantId: 'posts-app-offer-filter',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'published-current-offer',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      expires: new Date('2999-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-offer-filter',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'hidden-expired-offer',
+      type: 'offers',
+      status: 'hidden',
+      access: 'private',
+      expires: new Date('2000-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-offer-filter',
+      memberId: otherMember.id,
+      categoryId: category.id,
+      code: 'other-member-offer',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/posts-app-offer-filter/posts?filter[type]=offers&include=category&filter[member]=${member.id}&filter[expired]=false,true&filter[status]=published,hidden`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((post: any) => post.attributes.code).sort(),
+      ['hidden-expired-offer', 'published-current-offer'],
+    )
+    assert.ok(includedResource(res.body, 'categories', category.id))
+  })
+
+  test('GET /:code/posts supports rich offer list app query', async () => {
+    const { admin, category, currencyId, member, memberAccountId } = await postQueryFixture('posts-app-offer-rich')
+    await seedPost({
+      tenantId: 'posts-app-offer-rich',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'older-repair-offer',
+      title: 'Repair Help',
+      description: 'Needle repair support',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      updated: new Date('2026-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-offer-rich',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'newer-repair-offer',
+      title: 'Repair Tools',
+      description: 'Needle tool support',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      updated: new Date('2026-02-01T00:00:00.000Z'),
+    })
+
+    const res = await request(app)
+      .get('/posts-app-offer-rich/posts?filter[type]=offers&include=category,member,member.group,member.group.currency,member.account&sort=-updated&filter[search]=needle')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((post: any) => post.attributes.code),
+      ['newer-repair-offer', 'older-repair-offer'],
+    )
+    assert.ok(includedResource(res.body, 'members', member.id))
+    assert.ok(includedResource(res.body, 'groups'))
+    assert.ok(includedResource(res.body, 'currencies', currencyId))
+    assert.ok(includedResource(res.body, 'accounts', memberAccountId))
+  })
+
+  test('GET /:code/posts supports offer code lookup app query', async () => {
+    const { admin, category, currencyId, member } = await postQueryFixture('posts-app-offer-code')
+    await seedPost({
+      tenantId: 'posts-app-offer-code',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'target-offer',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'posts-app-offer-code',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'other-offer',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get('/posts-app-offer-code/posts?filter[type]=offers&filter[code]=target-offer&include=category,member,member.group,member.group.currency')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'target-offer')
+    assert.ok(includedResource(res.body, 'categories', category.id))
+    assert.ok(includedResource(res.body, 'members', member.id))
+    assert.ok(includedResource(res.body, 'currencies', currencyId))
+  })
+
+  test('GET /:code/posts supports need member/status/expired/category app query', async () => {
+    const { admin, category, member, otherMember } = await postQueryFixture('posts-app-need-filter')
+    await seedPost({
+      tenantId: 'posts-app-need-filter',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'published-current-need',
+      type: 'needs',
+      status: 'published',
+      access: 'public',
+      expires: new Date('2999-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-need-filter',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'hidden-expired-need',
+      type: 'needs',
+      status: 'hidden',
+      access: 'private',
+      expires: new Date('2000-01-01T00:00:00.000Z'),
+    })
+    await seedPost({
+      tenantId: 'posts-app-need-filter',
+      memberId: otherMember.id,
+      categoryId: category.id,
+      code: 'other-member-need',
+      type: 'needs',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/posts-app-need-filter/posts?filter[type]=needs&include=category,member&filter[member]=${member.id}&filter[expired]=false,true&filter[status]=published,hidden`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((post: any) => post.attributes.code).sort(),
+      ['hidden-expired-need', 'published-current-need'],
+    )
+    assert.ok(includedResource(res.body, 'categories', category.id))
+    const includedMember = includedResource(res.body, 'members', member.id)
+    assert.strictEqual(includedMember.attributes.contacts[0].value, 'posts-app-need-filter@example.org')
+  })
+
+  test('GET /:code/posts supports need code/account app query', async () => {
+    const { admin, category, member, memberAccountId } = await postQueryFixture('posts-app-need-code')
+    await seedPost({
+      tenantId: 'posts-app-need-code',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'target-need',
+      type: 'needs',
+      status: 'published',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'posts-app-need-code',
+      memberId: member.id,
+      categoryId: category.id,
+      code: 'other-need',
+      type: 'needs',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get('/posts-app-need-code/posts?filter[type]=needs&filter[code]=target-need&include=category,member,member.account')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'target-need')
+    assert.ok(includedResource(res.body, 'categories', category.id))
+    assert.ok(includedResource(res.body, 'members', member.id))
+    assert.ok(includedResource(res.body, 'accounts', memberAccountId))
   })
 
   test('GET /:code/posts supports search across post data and member search fields', async () => {
@@ -494,6 +824,57 @@ describe('Posts endpoints', () => {
       .expect(200)
 
     assert.strictEqual(res.body.data.attributes.status, 'published')
+
+    const events = getNotificationsEvents() as any[]
+    assert.strictEqual(events.length, 1)
+    assert.strictEqual(events[0].data.attributes.name, 'OfferPublished')
+  })
+
+  test('PATCH /:code/posts/:post does not emit duplicate event for already published post edits', async () => {
+    await seedGroup({ tenantId: 'posts-no-duplicate-event', status: 'active', access: 'public' })
+    const user = await auth('posts-no-duplicate-event-user')
+    const member = await seedMember({ tenantId: 'posts-no-duplicate-event', status: 'active', userId: user.id })
+    const post = await seedPost({
+      tenantId: 'posts-no-duplicate-event',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      title: 'Original title',
+    })
+
+    await request(app)
+      .patch(`/posts-no-duplicate-event/posts/${post.id}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'offers',
+          attributes: {
+            title: 'Updated title',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(getNotificationsEvents().length, 0)
+  })
+
+  test('POST /:code/posts remains successful when notifications endpoint fails', async () => {
+    setNotificationsEventStatus(500)
+    await seedGroup({ tenantId: 'posts-notifications-fail', status: 'active', access: 'public' })
+    const user = await auth('posts-notifications-fail-user')
+    const member = await seedMember({ tenantId: 'posts-notifications-fail', status: 'active', userId: user.id })
+
+    await request(app)
+      .post('/posts-notifications-fail/posts')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send(postInput('offers', {
+        title: 'Published despite notification failure',
+        description: 'Event delivery fails but write succeeds',
+        status: 'published',
+      }, member.id))
+      .expect(201)
+
+    assert.strictEqual(getNotificationsRequests().length, 1)
   })
 
   test('PATCH /:code/posts/:post rejects invalid status transition', async () => {

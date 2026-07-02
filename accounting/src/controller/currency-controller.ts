@@ -218,6 +218,28 @@ export class CurrencyControllerImpl implements CurrencyService {
 
     return this.model
   }
+
+  async deleteCurrency(ctx: Context) {
+    await this.users.checkAdmin(ctx)
+
+    if (this.model.status === "active") {
+      await this.disableCurrency(ctx)
+    } else if (this.model.status !== "disabled") {
+      // Currencies should only be in "new" status while the ledger operations are
+      // being performed, so we should not allow deleting a currency in "new" status.
+      throw badRequest(`Can't delete currency with status ${this.model.status}`)
+    }
+
+    await this.db.currency.update({
+      data: {
+        status: "deleted"
+      },
+      where: {
+        id: this.model.id
+      }
+    })
+    this.model.status = "deleted"
+  }
   /**
    * Implements {@link CurrencyPublicService.getCurrencySettings}
    */
@@ -571,6 +593,7 @@ export class CurrencyControllerImpl implements CurrencyService {
       currentExternalTraderInitialCredit
     }, {
       sponsor: await this.keys.sponsorKey(),
+      issuer: await this.keys.issuerKey(),
       externalTrader: await this.keys.externalTraderKey(),
       externalIssuer: await this.keys.externalIssuerKey(),
       credit: await this.keys.creditKey()

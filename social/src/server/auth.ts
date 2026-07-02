@@ -9,10 +9,6 @@ type JwtPayload = {
   scope?: string
 }
 
-export const Scope = {
-  Superadmin: 'komunitin_superadmin',
-} as const
-
 const buildJwt = () => {
   return authJwt({
     issuer: config.AUTH_JWT_ISSUER,
@@ -92,7 +88,7 @@ export const getOptionalAuthUserId = (req: Request): string | undefined => {
   return payload.sub
 }
 
-const getAuthScopes = (req: Request): string[] => {
+export const getAuthScopes = (req: Request): string[] => {
   const payload = getOptionalAuthPayload(req)
   if (payload === undefined || typeof payload.scope !== 'string' || payload.scope.trim() === '') {
     return []
@@ -101,10 +97,10 @@ const getAuthScopes = (req: Request): string[] => {
   return payload.scope.split(' ')
 }
 
-export const hasScope = (req: Request, scope: string): boolean => {
-  return getAuthScopes(req).includes(scope)
-}
-
-export const isSuperadmin = (req: Request): boolean => {
-  return hasScope(req, Scope.Superadmin)
+export const getAuthToken = (req: Request): string => {
+  const authorization = req.headers.authorization
+  if (authorization === undefined || !authorization.toLowerCase().startsWith('bearer ')) {
+    throw unauthorized('Missing authorization header')
+  }
+  return authorization.slice(7)
 }

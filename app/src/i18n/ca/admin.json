@@ -3,7 +3,7 @@
   "editGroup": "Edita comunitat",
   "editGroupText": "Defineix els atributs principals de la teva comunitat d'intercanvi.",
   "currencyValue": "Valor de la moneda",
-  "currencyValueHint": "El valor de la teva moneda en relació amb la moneda de referència HORA. S'utilitza per calcular el tipus de canvi entre la teva moneda i altres. Usa la notació n/d. Per exemple, si introdueixes 1/10, significa que 10 unitats de la teva moneda equivalen a 1 HORA.",
+  "currencyValueHint": "El valor de la teva moneda en relació amb la moneda de referència HORA. S'utilitza per calcular la taxa de conversió entre la teva moneda i altres. Usa la notació n/d. Per exemple, si introdueixes 1/10, significa que 10 unitats de la teva moneda equivalen a 1 HORA.",
   "invalidCurrencyValue": "Valor de la moneda no vàlid. Si us plau, usa la notació n/d.",
   "groupSettings": "Configuració de la comunitat",
   "categories": "Categories",
