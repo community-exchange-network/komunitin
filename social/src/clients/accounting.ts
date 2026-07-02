@@ -25,7 +25,7 @@ type RequestOptions = {
   allowNotFound?: boolean
 }
 
-export type CurrencyStatus = "new" | "active" | "disabled"
+export type CurrencyStatus = "new" | "active" | "disabled" | "deleted"
 export type Currency = {
   id: string
   type: "currencies"
@@ -164,6 +164,12 @@ class AccountingClient {
       throw internalError('Invalid response from accounting service when updating currency')
     }
     return resource as Currency
+  }
+
+  public async deleteCurrency(currencyCode: string): Promise<void> {
+    await this.request(`/${currencyCode}/currency`, { method: 'DELETE' }, {
+      allowNotFound: true,
+    })
   }
 
   public async findAccountByCode(currencyCode: string, accountCode: string): Promise<Account|undefined> {

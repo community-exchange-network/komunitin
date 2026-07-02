@@ -214,6 +214,9 @@ export const getGroupByCode = async (
 ): Promise<Group> => {
   const db = tenantDb(prisma, code)
   const dbGroup = await db.group.findFirst({
+    where: {
+      deleted: null,
+    },
     include: {
       admins: true
     },
@@ -328,6 +331,24 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
   }
 
   return updated
+}
+
+export const deleteGroupByCode = async (ctx: AuthContext, code: string): Promise<void> => {
+  const group = await getGroupByCode(ctx, code)
+
+  const allowed = await canWriteGroup(ctx, group)
+  if (!allowed) {
+    throw forbidden('You do not have permission to delete this group')
+  }
+
+  const accounting = createAccountingClient(ctx)
+  await accounting.deleteCurrency(getCurrencyCode(group))
+
+  const db = tenantDb(prisma, code)
+  await db.group.update({
+    where: { id: group.id },
+    data: { deleted: new Date() },
+  })
 }
 
 export const patchGroupSettingsByCode = async (

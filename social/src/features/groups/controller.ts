@@ -5,7 +5,7 @@ import { getCode, getCollectionParams, getResourceParams } from '../../server/re
 import { getValidatedBody } from '../../server/validation'
 import type { CreateGroupBody, PatchGroupBody, PatchGroupSettingsBody } from './schema'
 import { serializeGroup, serializeGroups, serializeGroupSettings } from './serialize'
-import { createGroup, getGroupByCode, listGroups, patchGroupByCode, patchGroupSettingsByCode } from './service'
+import { createGroup, deleteGroupByCode, getGroupByCode, listGroups, patchGroupByCode, patchGroupSettingsByCode } from './service'
 
 export const postGroups: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
@@ -70,6 +70,14 @@ export const patchGroupByCodeRoute: RequestHandler = async (req, res) => {
 
   const payload = await serializeGroup(group)
   res.status(200).json(payload)
+}
+
+export const deleteGroupByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+
+  await deleteGroupByCode(ctx, code)
+  res.status(204).send()
 }
 
 export const patchGroupSettingsByCodeRoute: RequestHandler = async (req, res) => {

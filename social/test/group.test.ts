@@ -10,8 +10,9 @@ import {
   getNotificationsEvents,
   resetMockState,
   seedAccountingCurrency,
+  setAccountingCurrencyDeleteStatus,
 } from './mocks/handlers'
-import { resetDb, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
+import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { toUuid } from './mocks/utils'
 
@@ -543,6 +544,162 @@ describe('Groups endpoints', () => {
     assert.deepStrictEqual(getAccountingRequestPaths(), [])
   })
 
+  test('DELETE /:code requires JWT', async () => {
+    await seedGroup({ tenantId: 'delete-auth', status: 'active', access: 'public' })
+
+    await request(app)
+      .delete('/delete-auth')
+      .expect(401)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+  })
+
+  test('DELETE /:code soft-deletes group as admin after accounting currency delete', async () => {
+    const admin = await auth('delete-group-admin')
+    const staleCurrencyId = toUuid('delete-group-stale-currency-id')
+    seedAccountingCurrency('delete-group-success', toUuid('delete-group-accounting-currency-id'))
+    await seedGroup({
+      tenantId: 'delete-group-success',
+      status: 'active',
+      access: 'public',
+      currencyId: staleCurrencyId,
+    })
+    await seedGroupAdmin({ tenantId: 'delete-group-success', userId: admin.id })
+    const member = await seedMember({ tenantId: 'delete-group-success' })
+
+    await request(app)
+      .delete('/delete-group-success')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'DELETE /delete-group-success/currency',
+    ])
+
+    const db = tenantDb(prisma, 'delete-group-success')
+    const group = await db.group.findFirstOrThrow()
+    assert.ok(group.deleted)
+    assert.strictEqual(group.currencyId, staleCurrencyId)
+
+    const storedMember = await db.member.findFirstOrThrow({ where: { id: member.id } })
+    assert.strictEqual(storedMember.deleted, null)
+  })
+
+  test('DELETE /:code allows superadmin', async () => {
+    const superadmin = await auth('delete-group-superadmin', undefined, Scope.Superadmin)
+    const currency = seedAccountingCurrency('delete-group-superadmin')
+    await seedGroup({
+      tenantId: 'delete-group-superadmin',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    await request(app)
+      .delete('/delete-group-superadmin')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'DELETE /delete-group-superadmin/currency',
+    ])
+  })
+
+  test('DELETE /:code denies outsiders before accounting call', async () => {
+    const currency = seedAccountingCurrency('delete-group-denied')
+    await seedGroup({
+      tenantId: 'delete-group-denied',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const outsider = await auth('delete-group-outsider')
+
+    await request(app)
+      .delete('/delete-group-denied')
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .expect(403)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+    const db = tenantDb(prisma, 'delete-group-denied')
+    const group = await db.group.findFirstOrThrow()
+    assert.strictEqual(group.deleted, null)
+  })
+
+  test('DELETE /:code treats missing accounting currency as already deleted', async () => {
+    const admin = await auth('delete-group-missing-currency-admin')
+    await seedGroup({
+      tenantId: 'delete-group-missing-currency',
+      status: 'active',
+      access: 'public',
+    })
+    await seedGroupAdmin({ tenantId: 'delete-group-missing-currency', userId: admin.id })
+
+    await request(app)
+      .delete('/delete-group-missing-currency')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'DELETE /delete-group-missing-currency/currency',
+    ])
+    const db = tenantDb(prisma, 'delete-group-missing-currency')
+    const group = await db.group.findFirstOrThrow()
+    assert.ok(group.deleted)
+  })
+
+  test('DELETE /:code leaves group untouched when accounting deletion fails', async () => {
+    const admin = await auth('delete-group-accounting-failure-admin')
+    const currency = seedAccountingCurrency('delete-group-accounting-failure')
+    await seedGroup({
+      tenantId: 'delete-group-accounting-failure',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    await seedGroupAdmin({ tenantId: 'delete-group-accounting-failure', userId: admin.id })
+    setAccountingCurrencyDeleteStatus(500, 'Currency has remaining accounts')
+
+    await request(app)
+      .delete('/delete-group-accounting-failure')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(500)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'DELETE /delete-group-accounting-failure/currency',
+    ])
+    const db = tenantDb(prisma, 'delete-group-accounting-failure')
+    const group = await db.group.findFirstOrThrow()
+    assert.strictEqual(group.deleted, null)
+  })
+
+  test('deleted groups are hidden from group and tenant endpoints', async () => {
+    await seedGroup({
+      tenantId: 'deleted-group-hidden',
+      status: 'active',
+      access: 'public',
+      deleted: new Date(), // deleted
+    })
+    await seedCategory({ tenantId: 'deleted-group-hidden' })
+
+    const groups = await request(app)
+      .get('/groups?filter[status]=active')
+      .expect(200)
+
+    assert.deepStrictEqual(groups.body.data, [])
+
+    await request(app)
+      .get('/deleted-group-hidden')
+      .expect(404)
+
+    await request(app)
+      .get('/deleted-group-hidden/settings')
+      .expect(404)
+
+    await request(app)
+      .get('/deleted-group-hidden/categories')
+      .expect(404)
+  })
 
   test('PATCH /:code requires JWT', async () => {
     await seedGroup({ tenantId: 'patch-auth', status: 'active', access: 'public' })

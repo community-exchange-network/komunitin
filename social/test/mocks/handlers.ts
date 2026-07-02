@@ -7,7 +7,7 @@ let s3UploadStatus = 200
 type MockCurrency = {
   id: string
   code: string
-  status: 'active' | 'disabled'
+  status: 'active' | 'disabled' | 'deleted'
 }
 
 type MockAccount = {
@@ -29,6 +29,8 @@ const notificationsBaseUrl = process.env.NOTIFICATIONS_API_URL ?? 'http://notifi
 let accountingCurrencies = new Map<string, MockCurrency>()
 let accountingAccounts = new Map<string, Map<string, MockAccount>>()
 let accountingRequests: AccountingRequest[] = []
+let accountingCurrencyDeleteStatus = 204
+let accountingCurrencyDeleteDetail = 'Mock accounting currency delete failure'
 let accountingAccountDeleteStatus = 204
 let accountingAccountDeleteDetail = 'Mock accounting delete failure'
 let notificationsEventStatus = 201
@@ -98,6 +100,11 @@ export const setAccountingAccountDeleteStatus = (status: number, detail = 'Mock 
   accountingAccountDeleteDetail = detail
 }
 
+export const setAccountingCurrencyDeleteStatus = (status: number, detail = 'Mock accounting currency delete failure') => {
+  accountingCurrencyDeleteStatus = status
+  accountingCurrencyDeleteDetail = detail
+}
+
 export const setNotificationsEventStatus = (status: number) => {
   notificationsEventStatus = status
 }
@@ -154,6 +161,8 @@ export const resetMockState = () => {
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
   accountingRequests = []
+  accountingCurrencyDeleteStatus = 204
+  accountingCurrencyDeleteDetail = 'Mock accounting currency delete failure'
   accountingAccountDeleteStatus = 204
   accountingAccountDeleteDetail = 'Mock accounting delete failure'
   notificationsEventStatus = 201
@@ -242,6 +251,25 @@ export const handlers = [
     return HttpResponse.json({
       data: serializeCurrency(existing),
     })
+  }),
+  http.delete(`${accountingBaseUrl}/:currencyCode/currency`, ({ request, params }) => {
+    const unauthorized = requireAccountingAuthorization(request)
+    if (unauthorized) {
+      return unauthorized
+    }
+
+    if (accountingCurrencyDeleteStatus !== 204) {
+      return jsonApiError(accountingCurrencyDeleteStatus, accountingCurrencyDeleteDetail)
+    }
+
+    const currencyCode = String(params.currencyCode)
+    const existing = accountingCurrencies.get(currencyCode)
+    if (!existing) {
+      return jsonApiError(404, `Currency ${currencyCode} not found`)
+    }
+
+    existing.status = 'deleted'
+    return new HttpResponse(null, { status: 204 })
   }),
   http.get(`${accountingBaseUrl}/:currencyCode/accounts`, ({ request, params }) => {
     const unauthorized = requireAccountingAuthorization(request)
