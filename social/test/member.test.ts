@@ -1196,7 +1196,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.included[0].attributes.code, 'members-filter-include')
   })
 
-  test('POST and PATCH /:code/members sync member image files by URL', async () => {
+  test('POST, PATCH and DELETE /:code/members sync member image files by URL', async () => {
     await seedGroup({ tenantId: 'members-files', status: 'active', access: 'public' })
     const user = await auth('members-files-user')
     await seedGroupAdmin({ tenantId: 'members-files', userId: user.id })
@@ -1278,6 +1278,36 @@ describe('Members endpoints', () => {
       .expect(200)
 
     assert.strictEqual(cleared.body.data.attributes.image, null)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
+
+    await request(app)
+      .patch(`/members-files/members/${memberId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            image: { url: secondUrl, alt: 'Image to unlink on delete' },
+          },
+        },
+      })
+      .expect(200)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, memberId)
+
+    await request(app)
+      .delete(`/members-files/members/${memberId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .expect(204)
 
     files = await db.file.findMany({
       where: { url: { in: [firstUrl, secondUrl] } },
