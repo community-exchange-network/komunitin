@@ -487,7 +487,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(approved.body.data.relationships.account.data.id, account.id)
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
-      [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
+      [`GET /${currency.code}/accounts`],
     )
   })
 
@@ -728,7 +728,7 @@ describe('Members endpoints', () => {
     assert.deepStrictEqual(getAccountingRequestPaths(), [])
   })
 
-  test('DELETE /:code/members/:member skips accounting for member without account', async () => {
+  test('DELETE /:code/members/:member skips accounting delete when member has no accounting account', async () => {
     await seedGroup({ tenantId: 'members-delete-no-account', status: 'active', access: 'public' })
     const owner = await auth('members-delete-no-account-owner')
     const member = await seedMember({
@@ -742,9 +742,43 @@ describe('Members endpoints', () => {
       .set('Authorization', `Bearer ${owner.token}`)
       .expect(204)
 
-    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      'GET /members-delete-no-account/accounts',
+    ])
 
     const db = tenantDb(prisma, 'members-delete-no-account')
+    const deleted = await db.member.findUnique({ where: { id: member.id } })
+    assert.ok(deleted?.deleted)
+  })
+
+  test('DELETE /:code/members/:member deletes accounting account found by member code', async () => {
+    const currency = seedAccountingCurrency('members-delete-account-by-code')
+    await seedGroup({
+      tenantId: 'members-delete-account-by-code',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('members-delete-account-by-code-owner')
+    const account = seedAccountingAccount(currency.code, 'delete-by-code', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-delete-account-by-code',
+      code: 'delete-by-code',
+      status: 'active',
+      userId: owner.id,
+    })
+
+    await request(app)
+      .delete(`/members-delete-account-by-code/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204)
+
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts`,
+      `DELETE /${currency.code}/accounts/${account.id}`,
+    ])
+
+    const db = tenantDb(prisma, 'members-delete-account-by-code')
     const deleted = await db.member.findUnique({ where: { id: member.id } })
     assert.ok(deleted?.deleted)
   })

@@ -128,6 +128,18 @@ const getMemberUserIds = async (member: Pick<Member, 'id' | 'tenantId'>): Promis
   return [...new Set(relations.map((relation) => relation.userId))]
 }
 
+type AccountingClient = ReturnType<typeof createAccountingClient>
+
+const findMemberAccount = async (accounting: AccountingClient, member: Member, currencyCode: string): Promise<Account | undefined> => {
+  if (member.accountId) {
+    return await accounting.getAccount(currencyCode, member.accountId)
+  }
+
+  // Just in case the member has an account but the accountId is not set, 
+  // try to find it by code before creating a new one.
+  return await accounting.findAccountByCode(currencyCode, member.code)
+}
+
 /**
  * Synchronize the account status from the accounting service to the provided status.
  * 
@@ -136,16 +148,9 @@ const getMemberUserIds = async (member: Pick<Member, 'id' | 'tenantId'>): Promis
  */
 const syncAccountStatus = async (ctx: AuthContext, member: Member, currencyCode: string, status: Account["status"]): Promise<Account> => {
   const accounting = createAccountingClient(ctx)
-  
-  // Get or create account.
-  let account: Account | undefined
-  if (member.accountId) {
-    account = await accounting.getAccount(currencyCode, member.accountId)
-  } else {
-    // Just in case the member has an account but the accountId is not set, 
-    // try to find it by code before creating a new one.
-    account = await accounting.findAccountByCode(currencyCode, member.code)
-    
+  let account = await findMemberAccount(accounting, member, currencyCode)
+
+  if (!account) {
     const users = await getMemberUserIds(member)
     account = await accounting.createAccount(currencyCode, {
       code: member.code,
@@ -376,17 +381,17 @@ export const deleteMember = async (ctx: AuthContext, code: string, id: string): 
     throw forbidden('You do not have permission to delete this member')
   }
 
-  if (member.accountId) {
-    const accounting = createAccountingClient(ctx)
-    const currencyCode = getCurrencyCode(group)
-    const account = await accounting.findAccountById(currencyCode, member.accountId)
+  const currencyCode = getCurrencyCode(group)
+  const accounting = createAccountingClient(ctx)
+  const account = member.accountId
+    ? await accounting.findAccountById(currencyCode, member.accountId)
+    : await accounting.findAccountByCode(currencyCode, member.code)
 
-    if (account && account.status !== 'deleted') {
-      if (account.balance !== undefined && account.balance !== 0) {
-        throw badRequest('Account balance must be zero to delete account')
-      }
-      await accounting.deleteAccount(currencyCode, member.accountId)
+  if (account && account.status !== 'deleted') {
+    if (account.balance !== undefined && account.balance !== 0) {
+      throw badRequest('Account balance must be zero to delete account')
     }
+    await accounting.deleteAccount(currencyCode, account.id)
   }
 
   const db = tenantDb(prisma, code)

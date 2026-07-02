@@ -107,7 +107,7 @@ export type CurrencySettings = {
 
 export type UpdateCurrencySettings = AtLeast<CurrencySettings, "id">
 
-export type CurrencyStatus = "new" | "active" | "disabled"
+export type CurrencyStatus = "new" | "active" | "disabled" | "deleted"
 
 /**
  * Currency model

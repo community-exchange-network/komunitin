@@ -53,6 +53,7 @@ export interface CurrencyPublicService {
   // Currency
   getCurrency(ctx: Context): Promise<Currency>
   updateCurrency(ctx: Context, currency: UpdateCurrency): Promise<Currency>
+  deleteCurrency(ctx: Context): Promise<void>
 
   // Currency settings
   getCurrencySettings(ctx: Context): Promise<CurrencySettings>

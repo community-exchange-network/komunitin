@@ -100,6 +100,9 @@ export const findGroupIds = async (ctx: OptionalAuthContext, db: DbClient, param
     location: groupColumn('location'),
     search: groupColumn('search'),
     params,
-    where: [buildReadableGroupWhere(ctx)],
+    where: [
+      Prisma.sql`${groupColumn('deleted')} IS NULL`,
+      buildReadableGroupWhere(ctx),
+    ],
   })
 }
