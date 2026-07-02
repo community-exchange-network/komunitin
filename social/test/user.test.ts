@@ -314,7 +314,7 @@ describe('Users endpoints', () => {
     assert.strictEqual(res.body.data.attributes.email, 'owner-2@example.org')
   })
 
-  test('GET /users/me/members returns paginated members with to-one includes', async () => {
+  test('GET /users/:id/members returns paginated members with to-one includes', async () => {
     const subject = toUuid('bootstrap-member-user')
     const token = await signJwt(subject, 'bootstrap-member-user@example.org')
     const currencyId = toUuid('bootstrap-currency')
@@ -336,7 +336,7 @@ describe('Users endpoints', () => {
     })
 
     const res = await request(app)
-      .get('/users/me/members?page[size]=1&include=group,group.currency,account')
+      .get(`/users/${subject}/members?page[size]=1&include=group,group.currency,account`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
 
@@ -404,7 +404,7 @@ describe('Users endpoints', () => {
     assert.strictEqual(superadminRes.body.data[0].id, member.id)
   })
 
-  test('GET /users/:id/settings enforces read permissions and supports me alias', async () => {
+  test('GET /users/:id/settings enforces read permissions', async () => {
     const subject = toUuid('settings-owner')
     const token = await signJwt(subject, 'settings-owner@example.org')
     const outsiderToken = await signJwt(toUuid('settings-outsider'), 'settings-outsider@example.org')
@@ -420,7 +420,7 @@ describe('Users endpoints', () => {
     })
 
     const selfRes = await request(app)
-      .get('/users/me/settings')
+      .get(`/users/${subject}/settings`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
 
@@ -479,7 +479,7 @@ describe('Users endpoints', () => {
       .expect(403)
 
     const res = await request(app)
-      .patch('/users/me/settings')
+      .patch(`/users/${subject}/settings`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         data: {
@@ -518,7 +518,7 @@ describe('Users endpoints', () => {
     })
 
     await request(app)
-      .patch('/users/me/settings')
+      .patch(`/users/${subject}/settings`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         data: {

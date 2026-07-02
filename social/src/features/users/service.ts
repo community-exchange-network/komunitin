@@ -27,10 +27,6 @@ const toUser = (user: DbUser): User => {
   }
 }
 
-export const resolveUserId = (ctx: AuthContext, id: string): string => {
-  return id === 'me' ? ctx.userId : id
-}
-
 const canReadUser = (ctx: AuthContext, id: string): boolean => {
   return ctx.userId === id || ctx.isSuperadmin || ctx.isSocialReadAll
 }
@@ -89,12 +85,11 @@ export const createUser = async ({
 }
 
 export const getUserById = async (ctx: AuthContext, id: string): Promise<User> => {
-  const userId = resolveUserId(ctx, id)
-  if (!canReadUser(ctx, userId)) {
+  if (!canReadUser(ctx, id)) {
     throw forbidden('You can only access your own user resource')
   }
   const db = privilegedDb(prisma)
-  const user = await db.user.findUnique({ where: { id: userId } })
+  const user = await db.user.findUnique({ where: { id } })
   if (!user) {
     throw notFound('User not found')
   }
@@ -107,15 +102,14 @@ export const patchUserSettings = async (
   id: string,
   settings: UserSettings,
 ): Promise<User> => {
-  const userId = resolveUserId(ctx, id)
-  if (ctx.userId !== userId) {
+  if (ctx.userId !== id) {
     throw forbidden('You can only update your own user settings')
   }
 
-  const current = await getUserById(ctx, userId)
+  const current = await getUserById(ctx, id)
   const db = privilegedDb(prisma)
   const updated = await db.user.update({
-    where: { id: userId },
+    where: { id },
     data: {
       settings: mergeSettings(current.settings, settings),
     },
@@ -129,15 +123,14 @@ export const listUserMembers = async (
   id: string,
   params: CollectionParams,
 ): Promise<Member[]> => {
-  const userId = resolveUserId(ctx, id)
-  await getUserById(ctx, userId)
+  await getUserById(ctx, id)
 
   const sortField = params.sort[0]?.field ?? 'created'
   const sortOrder = params.sort[0]?.order ?? 'asc'
   const db = privilegedDb(prisma)
   const relations = await db.memberUser.findMany({
     where: {
-      userId,
+      userId: id,
       member: {
         deleted: null,
       },
