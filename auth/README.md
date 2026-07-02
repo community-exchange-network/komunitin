@@ -1,88 +1,157 @@
-# Komunitin Identity Provider (Auth Service)
+# Komunitin Auth Service
 
-The `auth` service is a security-critical component of the Komunitin ecosystem. It serves as the central identity provider (IdP) and OpenID Connect (OIDC) compliant authorization server for all microservices in the architecture.
+The `auth` service is the Komunitin identity provider. It owns identity records, password hashes, email verification state, password reset tokens, email-change tokens, OAuth/OIDC token issuance, and signing keys.
 
-## Main Features
+This service is part of the migration away from the legacy Drupal/IntegralCES auth API. It is intentionally not a drop-in replacement for IntegralCES `/oauth2`.
 
-- **OpenID Connect Provider**: Powered by `oidc-provider`, delivering standard JWT tokens (access, id, and refresh tokens).
-- **Signing Keys**: Generates RSA signing keys automatically and persists them in the auth database instead of relying on a checked-in `jwks.json` file.
-- **Authentication**: Custom authentication flows using the Resource Owner Password Credentials (ROPC) grant type for the PWA and Token Exchange/Client Credentials for inter-service communication.
-- **Microservices Trust**: Validates and facilitates token exchanges securely among backend services without escalating scopes.
-- **Account Management**: Endpoints for password resets, changing passwords, and updating emails (with double-verification mechanisms via the `notifications-ts` service). Email-delivered tokens are single-use action tokens redeemed at dedicated endpoints, not OAuth codes redeemable at `POST /token`.
-- **Security-focused**: Features built-in memory-based rate limiting, Helmet for HTTP headers, isolated PostgreSQL database, and password hashing using bcrypt.
+## Service Boundary
 
-## Interaction with Other Services
+Auth owns:
 
-The `auth` service acts as the source of truth for identities. All backend services expect `Bearer` tokens signed by this service. 
+- User identity: UUID, email, password hash, email verification, and auth status.
+- OAuth/OIDC tokens for first-party clients and backend services.
+- Password reset, email verification, and email change action tokens.
+- JWKS signing key persistence and rotation.
 
-### Frontend (`komunitin-app`)
-The frontend is a public client (`client_id: komunitin-app`).
-- **Login**: Acquires tokens by sending a `POST /token` request with `grant_type=password`, exchanging the user's email and password for an access, refresh, and id token.
-- **Refresh**: Refreshes expired sessions via `grant_type=refresh_token`.
-- **Email Actions**: Password reset and email confirmation links must call `POST /change-password` or `POST /change-email/confirm` with the emailed token. These flows do not mint access tokens or refresh tokens.
-- **Management**: Communicates directly with endpoints like `/change-password` or `/change-email` using its emitted token in the `Authorization: Bearer <token>` header where necessary.
+Auth does not own:
 
-### Backend Microservices (`accounting`, `social`, `notifications-ts`)
-Backends interact with `auth` via two main modes:
-1. **Machine-to-Machine (M2M)**: Services can fetch a token using `grant_type=client_credentials` to perform autonomous background operations.
-2. **Delegation (Token Exchange)**: Using `urn:ietf:params:oauth:grant-type:token-exchange`, a service can submit the user's access token (which it received from the frontend) and obtain a new token scaled down or configured appropriately for its context. This is highly recommended to maintain user-context securely between chains of internal API calls.
+- Social profiles, memberships, groups, onboarding state, posts, or newsletter preferences.
+- Generic magic-login links.
+- Social/domain action tokens such as one-click unsubscribe tokens.
+- Legacy IntegralCES `/get-auth-code` or `/get-auth-token` compatibility.
 
-## Development Quickstart
+If a flow needs product-domain state after the user verifies an email, keep the auth token limited to email verification and put the continuation/invite token in the owning service, normally `social`.
 
-Ensure you have your environment correctly configured. Use Node 24 and `pnpm`.
+## Runtime
 
-### Prerequisites
+- Node.js 24
+- TypeScript
+- Express 5
+- `oidc-provider`
+- Prisma 7 with PostgreSQL
+- `pnpm`
+- Local service port: `2026`
+- Local database port: `5435`
 
-1. Copy `.env.test` to `.env` if developing locally.
-2. Stand up the required database (Docker Compose is recommended):
-   ```bash
-   cd ..
-   docker compose up -d db-auth
-   ```
-3. Install dependencies:
-   ```bash
-   pnpm install
-   ```
-4. Push the schema to the database (and run migrations):
-   ```bash
-   pnpm prisma migrate dev
-   # or `pnpm prisma db push` if you are in a quick test setup
-   ```
-5. Start the development server (runs with hot-reload via `tsx`):
-   ```bash
-   pnpm dev
-   ```
-The service will be mapped and available at `http://localhost:2026/`.
+## OAuth And OIDC
 
-## JWKS Rotation
+Supported grants:
 
-Signing keys are generated automatically on first boot and persisted in the auth database. By default, the service rotates the active signing key every 90 days on startup and keeps retired keys published for 24 hours so already-issued access tokens can continue to validate while clients refresh their JWKS cache.
+- `password`
+- `refresh_token`
+- `client_credentials`
+- `urn:ietf:params:oauth:grant-type:token-exchange`
 
-The long-lived frontend refresh token does not require the old signing key to stay published for 30 days. In this service, refresh tokens are opaque values stored and looked up server-side, while the JWKS is only used to validate signed JWTs such as access tokens and id tokens. Those signed tokens currently live for 1 hour, so a 24 hour overlap is already conservative. If signed token lifetimes are increased in the future, `JWKS_RETENTION_HOURS` should be increased to at least match the longest signed JWT lifetime plus a small cache-refresh margin.
+Unsupported by design:
 
-This service does not hot-rotate keys inside a running `oidc-provider` instance. Rotation is therefore designed around normal restarts or deployments, which keeps the implementation simple and avoids provider reinitialization logic. The cadence can be adjusted with `JWKS_ROTATION_INTERVAL_DAYS` and `JWKS_RETENTION_HOURS`.
+- `authorization_code`
+- Legacy emailed OAuth login codes.
+- Legacy `/get-auth-code` and `/get-auth-token`.
 
-## Running Tests
+Current clients:
 
-Tests use the native Node.js test runner (`node --test`). Since it interacts directly with the DB, make sure you don't run tests pointing to your production or important staging databases! It uses `.env.test` by default and resets data between runs.
+| Client | Type | Grants |
+| --- | --- | --- |
+| `komunitin-app` | Public PWA client | `password`, `refresh_token` |
+| `komunitin-social` | Confidential service client | `client_credentials`, token exchange |
+| `komunitin-accounting` | Confidential service client | `client_credentials`, token exchange |
+| `komunitin-notifications` | Confidential service client | `client_credentials`, token exchange |
+
+Current scopes:
+
+- `openid`
+- `profile`
+- `email`
+- `offline_access`
+- `auth`
+- `social:read`
+- `social:write`
+- `social:admin`
+- `accounting:read`
+- `accounting:write`
+- `accounting:admin`
+
+Access tokens are signed JWTs with audience `app`. Refresh tokens are opaque server-side records stored by `oidc-provider`.
+
+## HTTP API
+
+The OpenAPI contract lives at `openapi/openapi.yml`.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health` | Checks database connectivity. |
+| `POST /token` | OAuth token endpoint. |
+| `POST /reset-password` | Creates a password reset action token and emits a notification event if the user exists. |
+| `POST /change-password` | Consumes a password reset action token and updates the password. |
+| `POST /change-email` | Authenticated endpoint that creates an email-change action token and emits a validation email event. |
+| `POST /change-email/confirm` | Consumes an email-change or email-verification action token. |
+| `POST /resend-validation` | Re-sends validation for an existing unverified user or pending email change. |
+
+Action tokens are not OAuth tokens and are not accepted at `POST /token`.
+
+## Local Development
+
+From `auth/`:
 
 ```bash
-# Run the entire test suite
-pnpm test
-
-# Run tests with coverage included (works on Node.js 22+)
-pnpm test --experimental-test-coverage
-
-# Run a specific test file
-pnpm test-one test/auth.test.ts 
+pnpm install
+docker compose up -d db-auth
+pnpm prisma generate
+pnpm prisma migrate dev
+pnpm dev
 ```
 
-**Note**: Before running tests, ensure the local development database service defined in `compose.yml` (`db-auth`) is running. The test suite automatically cleans the database before running each scenario using Prisma's reset utilities.
+The service listens at:
 
-## Architecture & Code Principles
+```text
+http://localhost:2026
+```
 
-- **Controller & Routing**: Express routing wrapped in custom middleware and standard error handlers avoiding `try/catch` repetition where possible.
-- **Error Handling**: Use the `KError` class (from `src/utils/error.ts`) such as `badRequest()` or `unauthorized()` so errors are consistently formatted as JSON:API error objects.
-- **Prisma**: Do not place business logic in Prisma models. Keep database interaction limited to `src/utils/prisma.ts` or scoped module queries.
-- **Testing**: End-to-end integration tests overriding `fetch` to mock external webhook/email calls.
+For the full stack, use the root compose flow documented in the repository `AGENTS.md`.
 
+
+## Tests And Checks
+
+From `auth/`:
+
+```bash
+docker compose up -d
+pnpm prisma migrate deploy
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Run one test file:
+
+```bash
+pnpm test-one test/auth.test.ts
+```
+
+The tests use Node's native test runner with `--test-concurrency=1` and `.env.test`. They reset auth tables between scenarios. Never point `.env.test` at production or shared staging data.
+
+## JWKS Persistence And Rotation
+
+Signing keys are generated on first boot and stored in the auth database. The service rotates the active signing key on startup when the active key is older than `JWKS_ROTATION_INTERVAL_DAYS`.
+
+Retired keys stay published for `JWKS_RETENTION_HOURS`, so already-issued access and ID tokens can validate while clients refresh JWKS caches. Current signed token lifetime is 1 hour, so the default 24-hour overlap is intentionally conservative.
+
+Refresh tokens are opaque database-backed records. They do not require old signing keys to stay published.
+
+
+## Known Gaps
+
+These are the main auth-side gaps to resolve before the new service fully replaces IntegralCES auth:
+
+- Add a registration endpoint for auth-first signup and group-founder onboarding.
+- Add authenticated self-service password change with current-password verification.
+- Revoke or rotate refresh-token grants after password changes, account disablement, and other high-risk account events.
+- Define per-client allowed scopes so service clients cannot request scopes outside their role.
+- Decide whether unverified users may log in. If not, enforce the `pending`/`emailVerified` state consistently.
+- Canonicalize and validate emails at write boundaries, ideally with case-insensitive uniqueness.
+- Reject invalid requested scopes instead of silently dropping unknown scopes once the migration is ready.
+- Add production-grade rate limiting and account-level throttling for password and action-token endpoints.
+- Add token/session management endpoints if users need logout-all-devices or administrators need forced revocation.
+- Add operational cleanup for expired `OidcPayload` and `UserActionToken` rows.
+
+See `MIGRATE.md` for the broader frontend, notifications, accounting, social, and IntegralCES migration plan.

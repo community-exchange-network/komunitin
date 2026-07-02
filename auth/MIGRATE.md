@@ -2,6 +2,8 @@
 
 This document is the implementation plan for migrating from the legacy Drupal-based auth service (`/oauth2` plus custom endpoints such as `/get-auth-code`) to the new `auth` service in this repository.
 
+## Relevant paths
+
 It is intentionally concrete and code-driven. The recommendations below come from the current consumers in:
 
 - `app/src/plugins/Auth.ts`
