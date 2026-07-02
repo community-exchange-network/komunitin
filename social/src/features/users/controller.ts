@@ -62,7 +62,7 @@ export const getUserByIdRoute: RequestHandler = async (req, res) => {
 
 export const getUserMembersRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
-  const requestedId = getParam(req, 'id')
+  const requestedId = getIdParam(req, 'id')
   const params = getCollectionParams(req, {
     sort: ['created', 'updated', 'name', 'code'],
     include: ['group', 'group.currency', 'account'],
@@ -79,7 +79,7 @@ export const getUserMembersRoute: RequestHandler = async (req, res) => {
 
 export const getUserSettingsRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
-  const requestedId = getParam(req, 'id')
+  const requestedId = getIdParam(req, 'id')
 
   const user = await getUserById(ctx, requestedId)
   const payload = await serializeUserSettings(user)
@@ -88,7 +88,7 @@ export const getUserSettingsRoute: RequestHandler = async (req, res) => {
 
 export const patchUserSettingsRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
-  const requestedId = getParam(req, 'id')
+  const requestedId = getIdParam(req, 'id')
   const body = getValidatedBody<PatchUserSettingsBody>(req)
 
   const user = await patchUserSettings(ctx, requestedId, body.data.attributes)

@@ -941,7 +941,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(elevated.body.data.attributes.name, 'Superadmin updated')
   })
 
-  test('PATCH /:code syncs group image files by URL', async () => {
+  test('PATCH and DELETE /:code sync group image files by URL', async () => {
     const admin = await auth('group-files-admin')
     const group = await seedGroup({ tenantId: 'group-files', status: 'active', access: 'public' })
     await seedGroupAdmin({ tenantId: 'group-files', userId: admin.id })
@@ -1020,6 +1020,36 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     assert.strictEqual(cleared.body.data.attributes.image, null)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, null)
+
+    await request(app)
+      .patch('/group-files')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            image: { url: secondUrl, alt: 'Image to unlink on delete' },
+          },
+        },
+      })
+      .expect(200)
+
+    files = await db.file.findMany({
+      where: { url: { in: [firstUrl, secondUrl] } },
+    })
+    fileByUrl = new Map(files.map((file) => [file.url, file]))
+    assert.strictEqual(fileByUrl.get(secondUrl)?.resourceId, group.id)
+
+    await request(app)
+      .delete('/group-files')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(204)
 
     files = await db.file.findMany({
       where: { url: { in: [firstUrl, secondUrl] } },
