@@ -43,6 +43,23 @@ services:
       - ./accounting/.env:/app/.env
       - ./accounting/package.json:/app/package.json
       - ./accounting/pnpm-lock.yaml:/app/pnpm-lock.yaml
+
+  auth:
+    command: pnpm dev
+    ports: !override
+      - "2026:2026"
+      - "9230:9230"
+    volumes:
+      - ./auth/src:/app/src
+      - ./auth/prisma:/app/prisma
+      - ./auth/test:/app/test
+      - ./auth/.env:/app/.env
+      - ./auth/build.config.ts:/app/build.config.ts
+      - ./auth/package.json:/app/package.json
+      - ./auth/pnpm-lock.yaml:/app/pnpm-lock.yaml
+      - ./auth/pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./auth/prisma.config.ts:/app/prisma.config.ts
+      - ./auth/tsconfig.json:/app/tsconfig.json
   
   notifications-ts:
     command: pnpm dev
@@ -76,7 +93,7 @@ services:
       PMA_HOSTS: "db-integralces,db-accounting"
       PMA_PORTS: "3306,5432"
     ports:
-      - "2026:80"
+      - "2022:80"
   db-notifications:
     ports:
       - "6379:6379"
