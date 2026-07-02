@@ -349,6 +349,8 @@ export const deleteGroupByCode = async (ctx: AuthContext, code: string): Promise
     where: { id: group.id },
     data: { deleted: new Date() },
   })
+
+  await syncResourceFiles(code, 'groups', group.id, [])
 }
 
 export const patchGroupSettingsByCode = async (

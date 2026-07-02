@@ -394,4 +394,6 @@ export const deleteMember = async (ctx: AuthContext, code: string, id: string): 
     where: { id: member.id },
     data: { deleted: new Date() },
   })
+
+  await syncResourceFiles(code, 'members', member.id, [])
 }

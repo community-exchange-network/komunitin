@@ -113,6 +113,105 @@ export type AccountStatsOptions = StatsOptions & {
   minTransactions: number|undefined
   maxTransactions: number|undefined
 }
+export type StatsField = {
+  field: string
+  params: StatsOptions
+}
+export type CsvCollectionOptions = CollectionOptions & {
+  csvfields: string[] | null
+  statsFields: StatsField[]
+}
+export type StatsFieldParamsOptions = {
+  defaultFields: string[]
+}
+export type StatsFieldsParamsOptions = Record<string, StatsFieldParamsOptions>
+export type CsvCollectionParamsOptions = CollectionParamsOptions & {
+  statsFields?: StatsFieldsParamsOptions
+}
+
+export const csvFields = (req: Request) => {
+  const fields = req.query.csvfields
+  if (Array.isArray(fields)) {
+    return fields.filter((field): field is string => typeof field === "string")
+  } else if (typeof fields === "string") {
+    return fields.split(",")
+  }
+  return null
+}
+
+/**
+ * Parses the date part of a csv stats field.
+ * 
+ * The date can be in the format YYYY, YYYY-MM or YYYY-MM-DD. 
+ */
+const parseCsvStatsFieldDate = (value: string) => {
+  const match = value.match(/^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/)
+  if (!match) {
+    return undefined
+  }
+
+  const year = Number(match[1])
+  const month = match[2] === undefined ? 1 : Number(match[2])
+  const day = match[3] === undefined ? 1 : Number(match[3])
+  if (year < 1000 || month < 1 || month > 12 || day < 1 || day > 31) {
+    return undefined
+  }
+
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    return undefined
+  }
+  return date
+}
+
+const parseCsvStatsField = (field: string, prefix: string): StatsOptions => {
+  if (!field.startsWith(prefix)) {
+    throw badRequest(`Invalid stats field ${field}`)
+  }
+
+  const period = field.slice(prefix.length)
+  if (/^\d{4}$/.test(period)) {
+    const year = Number(period)
+    return {
+      from: new Date(Date.UTC(year, 0, 1)),
+      to: new Date(Date.UTC(year + 1, 0, 1)),
+      interval: undefined
+    }
+  }
+
+  const [fromToken, toToken, ...extra] = period.split("_")
+  if (!fromToken || !toToken || extra.length > 0) {
+    throw badRequest(`Invalid stats field ${field}`)
+  }
+
+  const from = parseCsvStatsFieldDate(fromToken)
+  const to = parseCsvStatsFieldDate(toToken)
+  if (!from || !to || from.getTime() >= to.getTime()) {
+    throw badRequest(`Invalid stats field ${field}`)
+  }
+
+  return { from, to, interval: undefined }
+}
+
+export const parseCsvStatsFields = (
+  csvfields: string[] | null,
+  options: StatsFieldsParamsOptions
+): StatsField[] => {
+  return Object.entries(options).flatMap(([namespace, paramsOptions]) => {
+    const prefix = `${namespace}.`
+    const fields = csvfields === null
+      ? paramsOptions.defaultFields.map(field => `${prefix}${field}`)
+      : csvfields.filter(field => field.startsWith(namespace))
+
+    return fields.map(field => {
+      return {
+        field,
+        params: parseCsvStatsField(field, prefix)
+      }
+    })
+  })
+}
+
 /**
  * Return the request pagination, filtering and sort parameters. 
  * 
@@ -136,6 +235,15 @@ export const collectionParams = (req: Request, options: CollectionParamsOptions)
     filters: filters(req, options?.filter ?? []),
     sort: sort(req, options.sort),
     include: include(req, options?.include ?? [])
+  }
+}
+
+export const csvCollectionParams = (req: Request, options: CsvCollectionParamsOptions): CsvCollectionOptions => {
+  const requestedCsvFields = csvFields(req)
+  return {
+    ...collectionParams(req, options),
+    csvfields: requestedCsvFields,
+    statsFields: options.statsFields ? parseCsvStatsFields(requestedCsvFields, options.statsFields) : []
   }
 }
 
@@ -201,4 +309,3 @@ export const accountStatsParams = (req: Request): AccountStatsOptions => {
   return {...params, minTransactions, maxTransactions}
 
 }
-
