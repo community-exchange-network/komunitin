@@ -2,11 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import qs from 'qs'
 import type { Request } from 'express'
-import { getCollectionParams, getResourceParams } from '../../src/server/request'
+import { getCode, getCollectionParams, getIdParam, getResourceParams } from '../../src/server/request'
 
-const createRequest = (query: string): Request => ({
+const createRequest = (query: string, params: Record<string, string> = {}): Request => ({
 	query: qs.parse(query, { comma: true }),
-	params: {},
+	params,
 } as Request)
 
 test('getCollectionParams parses pagination, sorting and filters generically', () => {
@@ -160,4 +160,35 @@ test('getResourceParams defaults include and parses allowed include values', () 
 
 	assert.deepStrictEqual(defaults, { include: [] })
 	assert.deepStrictEqual(explicit, { include: ['settings'] })
+})
+
+test('getCode validates route code params', () => {
+	assert.strictEqual(
+		getCode(createRequest('', { code: 'alpha.group_1-2' })),
+		'alpha.group_1-2'
+	)
+
+	assert.throws(
+		() => getCode(createRequest('', { code: 'bad code' })),
+		/Invalid route parameter: code/
+	)
+
+	assert.throws(
+		() => getCode(createRequest('', { code: 'a'.repeat(32) })),
+		/Invalid route parameter: code/
+	)
+})
+
+test('getIdParam validates UUID route params', () => {
+	const id = '7c0ca2a9-ab7d-4f85-89a2-d8b425c1b7dc'
+
+	assert.strictEqual(
+		getIdParam(createRequest('', { member: id }), 'member'),
+		id
+	)
+
+	assert.throws(
+		() => getIdParam(createRequest('', { member: '123' }), 'member'),
+		/Invalid route parameter: member/
+	)
 })

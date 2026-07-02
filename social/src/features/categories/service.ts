@@ -1,4 +1,3 @@
-import { z } from 'zod'
 import { type Category as DbCategory } from '../../generated/prisma/client'
 import { type AuthContext, type OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
@@ -16,11 +15,6 @@ const toCategory = (dbCategory: DbCategory): Category => {
 }
 
 const getCategoryById = async (code: string, id: string): Promise<Category> => {
-  const validation = z.uuid().safeParse(id)
-  if (!validation.success) {
-    throw notFound('Category not found')
-  }
-
   const db = tenantDb(prisma, code)
 
   const category = await db.category.findFirst({

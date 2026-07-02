@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express'
 import { getAuthContext } from '../../server/context'
 import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
-import { getCollectionParams, getParam, getResourceParams } from '../../server/request'
+import { getCollectionParams, getIdParam, getResourceParams } from '../../server/request'
 import { getValidatedBody } from '../../server/validation'
 import type { CreateUserBody } from './schema'
 import { serializeUser, serializeUsers } from './serialize'
@@ -51,7 +51,7 @@ export const getUsersMe: RequestHandler = async (req, res) => {
 
 export const getUserByIdRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
-  const requestedId = getParam(req, 'id')
+  const requestedId = getIdParam(req, 'id')
   const params = getResourceParams(req, { include: ['settings'] })
 
   const user = await getUserById(ctx, requestedId)
