@@ -207,6 +207,7 @@ export class BaseControllerImpl implements BasePublicService {
     return recordToCurrency(record)
 
   }
+
   /**
    * Implements {@link BaseController.getCurrencies}
    */
@@ -233,7 +234,10 @@ export class BaseControllerImpl implements BasePublicService {
 
   private async loadCurrency(code: string): Promise<Currency> {
     const record = await this.tenantDb(code).currency.findUnique({
-      where: { code },
+      where: {
+        code,
+        status: { not: "deleted" },
+      },
       include: {
         externalAccount: true
       }
@@ -304,4 +308,3 @@ export class BaseControllerImpl implements BasePublicService {
   }
 
 }
-
