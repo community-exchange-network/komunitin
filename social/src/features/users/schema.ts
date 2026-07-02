@@ -27,5 +27,7 @@ export type UserAttributes = z.infer<typeof userAttributesSchema>
 const userSchema = jsonApiResourceSchema('users', userAttributesSchema)
 
 export const createUserBodySchema = jsonApiDocumentSchema(userSchema, userSettingsSchema)
+export const patchUserSettingsBodySchema = jsonApiDocumentSchema(userSettingsSchema)
 
 export type CreateUserBody = z.infer<typeof createUserBodySchema>
+export type PatchUserSettingsBody = z.infer<typeof patchUserSettingsBodySchema>

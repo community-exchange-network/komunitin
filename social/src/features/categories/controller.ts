@@ -4,7 +4,7 @@ import { getValidatedBody } from '../../server/validation'
 import type { CreateCategoryBody, PatchCategoryBody } from './schema'
 import { serializeCategories, serializeCategory } from './serialize'
 import { createCategory, deleteCategory, listCategories, patchCategory } from './service'
-import { getCollectionParams, getCode, getParam } from '../../server/request'
+import { getCollectionParams, getCode, getIdParam } from '../../server/request'
 import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
 
 export const getCategoriesRoute: RequestHandler = async (req, res) => {
@@ -37,7 +37,7 @@ export const postCategoriesRoute: RequestHandler = async (req, res) => {
 export const patchCategoryRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const code = getCode(req)
-  const category = getParam(req, 'category')
+  const category = getIdParam(req, 'category')
   const body = getValidatedBody<PatchCategoryBody>(req)
 
   const updated = await patchCategory(ctx, code, category, body.data.attributes)
@@ -48,7 +48,7 @@ export const patchCategoryRoute: RequestHandler = async (req, res) => {
 export const deleteCategoryRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const code = getCode(req)
-  const category = getParam(req, 'category')
+  const category = getIdParam(req, 'category')
 
   await deleteCategory(ctx, code, category)
   res.status(204).send()

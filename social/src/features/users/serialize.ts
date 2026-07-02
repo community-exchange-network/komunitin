@@ -51,3 +51,10 @@ export const serializeUser = async (user: User, params: {include: string[]}) => 
 export const serializeUsers = async (users: User[], params?: SerializerOptions<User>) => {
   return UserSerializer.serialize(users, params)
 }
+
+export const serializeUserSettings = async (user: User) => {
+  return UserSettingsSerializer.serialize({
+    userId: user.id,
+    ...(user.settings ?? {}),
+  })
+}

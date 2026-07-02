@@ -1113,9 +1113,10 @@ describe('Members endpoints', () => {
     await seedGroup({ tenantId: 'members-missing', status: 'active', access: 'public' })
     const admin = await auth('members-missing-admin')
     await seedGroupAdmin({ tenantId: 'members-missing', userId: admin.id })
+    const missingMemberId = toUuid('members-missing-id')
 
     await request(app)
-      .patch('/members-missing/members/123')
+      .patch(`/members-missing/members/${missingMemberId}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .send({
         data: {

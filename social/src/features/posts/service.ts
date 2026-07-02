@@ -1,4 +1,3 @@
-import z from 'zod'
 import { type Member as DbMember, type Post as DbPost } from '../../generated/prisma/client'
 import { PostUpdateInput } from '../../generated/prisma/models'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
@@ -50,11 +49,6 @@ const getMemberInclude = (include: string[] = []) => {
 }
 
 const getPostById = async (code: string, id: string, params?: ResourceParams): Promise<Post> => {
-  const validation = z.uuid().safeParse(id)
-  if (!validation.success) {
-    throw notFound('Post not found')
-  }
-
   const db = tenantDb(prisma, code)
   const post = await db.post.findFirst({
     where: {
