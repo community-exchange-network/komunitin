@@ -3,8 +3,7 @@ import { config } from '../config'
 import { verifySignedToken } from '../oidc/token-verifier'
 import { unauthorized } from '../utils/error'
 import prisma from '../utils/prisma'
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { isUuid } from '../utils/uuid'
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -27,7 +26,12 @@ export async function userAuth(req: AuthenticatedRequest, res: Response, next: N
     })
 
     const userId = typeof payload.sub === 'string' ? payload.sub : undefined
-    if (payload.gty === 'client_credentials' || !userId || !UUID_PATTERN.test(userId)) {
+    if (
+      payload.client_id !== 'komunitin-app'
+      || payload.gty === 'client_credentials'
+      || !userId
+      || !isUuid(userId)
+    ) {
       return next(unauthorized('Invalid or expired token'))
     }
 
@@ -53,3 +57,30 @@ export async function userAuth(req: AuthenticatedRequest, res: Response, next: N
     next(unauthorized('Invalid or expired token'))
   }
 }
+
+export function serviceClientAuth(clientId: string) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next(unauthorized('Missing or invalid Authorization header'))
+    }
+
+    try {
+      const { payload } = await verifySignedToken(authHeader.split(' ')[1], {
+        issuer: config.ISSUER_URL,
+        audience: 'app',
+      })
+
+      const userId = typeof payload.sub === 'string' ? payload.sub : undefined
+      if (payload.client_id !== clientId || (userId && isUuid(userId))) {
+        return next(unauthorized('Invalid or expired token'))
+      }
+
+      next()
+    } catch (err) {
+      next(unauthorized('Invalid or expired token'))
+    }
+  }
+}
+
+export const notificationsServiceAuth = serviceClientAuth('komunitin-notifications')

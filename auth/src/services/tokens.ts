@@ -9,6 +9,7 @@ export const userActionTokenPurpose = {
   passwordReset: 'passwordReset',
   emailChange: 'emailChange',
   emailVerification: 'emailVerification',
+  unsubscribe: 'unsubscribe',
 } as const
 
 export type UserActionTokenPurpose =
@@ -95,16 +96,13 @@ async function createUserActionToken({
   return token
 }
 
-export async function createPasswordResetToken(email: string): Promise<{ token: string; userId: string } | null> {
-  const user = await prisma.user.findUnique({ where: { email } })
-  if (!user) return null
-
+export async function createPasswordResetTokenForUser(userId: string): Promise<string> {
   const token = await createUserActionToken({
-    userId: user.id,
+    userId,
     purpose: userActionTokenPurpose.passwordReset,
   })
 
-  return { token, userId: user.id }
+  return token
 }
 
 export async function createEmailChangeToken(userId: string, targetEmail: string): Promise<string> {
@@ -120,5 +118,12 @@ export async function createEmailVerificationToken(userId: string, targetEmail: 
     userId,
     purpose: userActionTokenPurpose.emailVerification,
     targetEmail,
+  })
+}
+
+export async function createUnsubscribeToken(userId: string): Promise<string> {
+  return createUserActionToken({
+    userId,
+    purpose: userActionTokenPurpose.unsubscribe,
   })
 }

@@ -10,24 +10,12 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserStatus {
-  active
-  pending
-  disabled
-}
-
-enum UserActionTokenPurpose {
-  passwordReset
-  emailChange
-  emailVerification
-}
-
 model User {
   id           String            @id @db.Uuid @default(uuid())
   email        String            @unique
   passwordHash String
   emailVerified Boolean          @default(false)
-  status       UserStatus        @default(active)
+  status       String            @default("active")
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   actionTokens UserActionToken[]
@@ -36,7 +24,7 @@ model User {
 model UserActionToken {
   id          String                 @id @db.Uuid @default(uuid())
   userId      String                 @db.Uuid
-  purpose     UserActionTokenPurpose
+  purpose     String
   targetEmail String?
   tokenHash   String                 @unique
   expiresAt   DateTime

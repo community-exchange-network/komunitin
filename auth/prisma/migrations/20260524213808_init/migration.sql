@@ -1,16 +1,10 @@
--- CreateEnum
-CREATE TYPE "UserStatus" AS ENUM ('active', 'pending', 'disabled');
-
--- CreateEnum
-CREATE TYPE "UserActionTokenPurpose" AS ENUM ('passwordReset', 'emailChange', 'emailVerification');
-
 -- CreateTable
 CREATE TABLE "User" (
     "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
-    "status" "UserStatus" NOT NULL DEFAULT 'active',
+    "status" TEXT NOT NULL DEFAULT 'active',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -21,7 +15,7 @@ CREATE TABLE "User" (
 CREATE TABLE "UserActionToken" (
     "id" UUID NOT NULL,
     "userId" UUID NOT NULL,
-    "purpose" "UserActionTokenPurpose" NOT NULL,
+    "purpose" TEXT NOT NULL,
     "targetEmail" TEXT,
     "tokenHash" TEXT NOT NULL,
     "expiresAt" TIMESTAMP(3) NOT NULL,

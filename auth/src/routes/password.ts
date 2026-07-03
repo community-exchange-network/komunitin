@@ -1,31 +1,31 @@
 import express, { Router } from 'express'
+import { z } from 'zod'
 import prisma from '../utils/prisma'
-import { createPasswordResetToken, findPasswordResetByToken, hasExpired, hashPassword } from '../services/tokens'
+import { findPasswordResetByToken, hasExpired, hashPassword } from '../services/tokens'
 import { NotificationsService } from '../services/notifications'
 import { rateLimit } from '../utils/rate-limit'
 import { badRequest } from '../utils/error'
 import logger from '../utils/logger'
 
 const router = Router()
-const parseBody = [
-  express.urlencoded({ extended: false }),
-  express.json({
-    type: ['application/vnd.api+json', 'application/json'],
-  }),
-]
+const parseBody = express.json()
+const emailPayloadSchema = z.object({ email: z.string().min(1) })
+const resetTokenPayloadSchema = z.object({ token: z.string().min(1) })
+const passwordPayloadSchema = z.object({ password: z.string().min(1) })
 
-router.post('/reset-password', ...parseBody, rateLimit({ bucket: 'reset-password' }), async (req, res, next) => {
-  const { email } = req.body
-  if (!email || typeof email !== 'string') {
+router.post('/reset-password', parseBody, rateLimit({ bucket: 'reset-password' }), async (req, res, next) => {
+  const parsed = emailPayloadSchema.safeParse(req.body)
+  if (!parsed.success) {
     return next(badRequest('Missing or invalid email'))
   }
+  const { email } = parsed.data
 
   try {
-    const result = await createPasswordResetToken(email)
+    const user = await prisma.user.findUnique({ where: { email } })
     res.json({ status: 'ok' })
-    
-    if (result) {
-      NotificationsService.sendPasswordResetEmail(result.userId, result.token).catch(err => {
+
+    if (user) {
+      NotificationsService.sendPasswordResetEmail(user.id, user.email).catch(err => {
         logger.error({ err }, 'Failed to send password reset email in background')
       })
     }
@@ -34,14 +34,17 @@ router.post('/reset-password', ...parseBody, rateLimit({ bucket: 'reset-password
   }
 })
 
-router.post('/change-password', ...parseBody, rateLimit({ bucket: 'change-password' }), async (req, res, next) => {
-  const { token, password } = req.body
-  if (!token || typeof token !== 'string') {
+router.post('/change-password', parseBody, rateLimit({ bucket: 'change-password' }), async (req, res, next) => {
+  const tokenParsed = resetTokenPayloadSchema.safeParse(req.body)
+  if (!tokenParsed.success) {
     return next(badRequest('Missing reset token'))
   }
-  if (!password || typeof password !== 'string') {
+  const passwordParsed = passwordPayloadSchema.safeParse(req.body)
+  if (!passwordParsed.success) {
     return next(badRequest('Missing new password'))
   }
+  const { token } = tokenParsed.data
+  const { password } = passwordParsed.data
 
   try {
     const resetRecord = await findPasswordResetByToken(token)

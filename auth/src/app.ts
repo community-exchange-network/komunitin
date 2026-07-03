@@ -5,6 +5,7 @@ import { httpLogger } from './server/http-logger'
 import { errorHandler } from './server/errors'
 import passwordRoutes from './routes/password'
 import emailRoutes from './routes/email'
+import actionTokenRoutes from './routes/action-token'
 import healthRoutes from './routes/health'
 import { createProvider } from './oidc/provider'
 import logger from './utils/logger'
@@ -35,6 +36,7 @@ app.use(healthRoutes)
 
 app.use(passwordRoutes)
 app.use(emailRoutes)
+app.use(actionTokenRoutes)
 
 let providerMounted = false
 

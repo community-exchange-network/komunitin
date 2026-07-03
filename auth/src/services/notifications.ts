@@ -12,7 +12,7 @@ export class NotificationsService {
     }
   }
 
-  private static async sendEvent(name: AuthEventName, userId: string, token: string) {
+  private static async sendEvent(name: AuthEventName, userId: string, email: string) {
     const url = `${config.NOTIFICATIONS_URL}/events`
     const body = {
       data: {
@@ -24,7 +24,7 @@ export class NotificationsService {
           time: new Date().toISOString(),
           data: {
             user: userId,
-            token,
+            email,
           },
         },
         relationships: {
@@ -58,11 +58,11 @@ export class NotificationsService {
     }
   }
 
-  static async sendPasswordResetEmail(userId: string, token: string) {
-    await this.sendEvent('PasswordResetRequested', userId, token)
+  static async sendPasswordResetEmail(userId: string, email: string) {
+    await this.sendEvent('PasswordResetRequested', userId, email)
   }
 
-  static async sendValidationEmail(userId: string, token: string) {
-    await this.sendEvent('ValidationEmailRequested', userId, token)
+  static async sendValidationEmail(userId: string, email: string) {
+    await this.sendEvent('ValidationEmailRequested', userId, email)
   }
 }

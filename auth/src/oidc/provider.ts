@@ -13,11 +13,11 @@ import { findAccount, authenticate } from './account'
 import { apiScopes, clients } from './clients'
 import { verifySignedToken } from './token-verifier'
 import { getJwks } from './jwks'
+import { isUuid } from '../utils/uuid'
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60
 const REFRESH_TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60
 const APP_RESOURCE_INDICATOR = 'urn:komunitin:app'
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const oidcScopes = new Set(['email', 'offline_access'])
 const allowedScopes = new Set(apiScopes)
@@ -283,7 +283,7 @@ export async function createProvider() {
 
       const accountId = tokenPayload.accountId
         ?? tokenPayload.sub
-      if (typeof accountId !== 'string' || !UUID_PATTERN.test(accountId)) {
+      if (typeof accountId !== 'string' || !isUuid(accountId)) {
         ctx.throw(400, 'invalid_grant', { error_description: 'Subject token has no associated account' })
       }
       const subjectAccountId = accountId as string

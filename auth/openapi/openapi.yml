@@ -95,9 +95,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EmailPayload'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/EmailPayload'
       responses:
         '200':
           description: Reset email queued if the user exists.
@@ -127,9 +124,6 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/ChangePasswordPayload'
-          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/ChangePasswordPayload'
       responses:
@@ -162,9 +156,6 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/EmailPayload'
-          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/EmailPayload'
       responses:
@@ -204,9 +195,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TokenPayload'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TokenPayload'
       responses:
         '200':
           description: Email updated or verified.
@@ -237,9 +225,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EmailPayload'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/EmailPayload'
       responses:
         '200':
           description: Validation email queued if applicable.
@@ -255,6 +240,39 @@ paths:
                 $ref: '#/components/schemas/JsonApiErrors'
         '429':
           description: Rate limit exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+  /action-token:
+    post:
+      tags: [Email]
+      summary: Create a purpose-bound email action token
+      description: Internal endpoint for the notifications service. Returns a token for one explicit action and never creates an OAuth session.
+      operationId: postActionToken
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionTokenPayload'
+      responses:
+        '200':
+          description: Purpose-bound action token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionTokenResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '401':
+          description: Missing or invalid notifications client token.
           content:
             application/json:
               schema:
@@ -318,6 +336,56 @@ components:
         password:
           type: string
           minLength: 8
+    ActionTokenPayload:
+      oneOf:
+        - type: object
+          required: [userId, purpose]
+          properties:
+            userId:
+              type: string
+              format: uuid
+            purpose:
+              type: string
+              enum: [passwordReset]
+        - type: object
+          required: [userId, purpose, email]
+          properties:
+            userId:
+              type: string
+              format: uuid
+            purpose:
+              type: string
+              enum: [emailChange]
+            email:
+              type: string
+              format: email
+        - type: object
+          required: [userId, purpose]
+          properties:
+            userId:
+              type: string
+              format: uuid
+            purpose:
+              type: string
+              enum: [emailVerification]
+        - type: object
+          required: [userId, purpose]
+          properties:
+            userId:
+              type: string
+              format: uuid
+            purpose:
+              type: string
+              enum: [unsubscribe]
+    ActionTokenResponse:
+      type: object
+      required: [token, email]
+      properties:
+        token:
+          type: string
+        email:
+          type: string
+          format: email
     JsonApiErrors:
       type: object
       required: [errors]

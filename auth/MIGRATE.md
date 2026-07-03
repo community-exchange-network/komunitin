@@ -99,6 +99,11 @@ It does not recognize legacy `komunitin_*` scope names.
   - email-token based
 - `POST /resend-validation`
 
+These auth API endpoints accept plain `application/json` request bodies only.
+Legacy `application/x-www-form-urlencoded` and `application/vnd.api+json`
+payloads must be migrated. The OAuth `/token` endpoint remains
+`application/x-www-form-urlencoded`.
+
 ## Main Incompatibilities Found In Current Consumers
 
 ### Frontend
@@ -124,7 +129,7 @@ Notifications currently uses auth in two very different ways that must be split 
 - `notifications-ts/src/clients/komunitin/getAuthCode.ts`
   - calls legacy `/get-auth-code`
 - `notifications-ts/src/notifications/handlers/user.ts`
-  - discards the raw auth token already present in auth-generated events and replaces it with a legacy auth code
+  - calls `/get-auth-code` to create legacy login codes for auth-generated email links
 - `notifications-ts/src/newsletter/service.ts`
   - uses `/get-auth-code` to create one-click unsubscribe links
 
@@ -371,26 +376,32 @@ This must be split into two migrations.
 
 Current auth behavior:
 
-- `auth/src/services/notifications.ts` already sends `event.data.token`
-- that token is the real auth action token for password reset or email confirmation
+- `auth/src/services/notifications.ts` sends auth-generated email-link events with the destination email, but without raw action tokens
 
 Current notifications behavior:
 
-- `notifications-ts/src/notifications/handlers/user.ts` ignores `event.data.token`
-- it calls `/get-auth-code` and puts a legacy login code into the email instead
+- `notifications-ts/src/notifications/handlers/user.ts` calls `/get-auth-code` and puts a legacy login code into the email
+
+Architecture note:
+
+- All auth-generated email-link cases must move from legacy `/get-auth-code` to `POST /action-token`.
+- The current cases are password reset, email verification, email change, and newsletter unsubscribe.
 
 Target behavior:
 
-- notifications must stop calling `/get-auth-code` for `ValidationEmailRequested` and `PasswordResetRequested`
-- it should use the token carried in the auth event payload
+- notifications must stop calling `/get-auth-code`
+- it should call auth `POST /action-token` as the notifications service client
+- it should pass `userId`, the explicit action `purpose`, and the destination `email` when the purpose is `emailChange`
 - email templates should keep building CTA links, but those links must point to new public frontend routes that redeem auth tokens directly
 
 Resulting flow:
 
-1. auth emits `ValidationEmailRequested` or `PasswordResetRequested`
-2. notifications sends email with the raw auth token from the event
-3. frontend public page calls auth endpoint directly
-4. no login session is minted from the email link
+1. auth emits an email-link event
+2. notifications calls `POST /action-token` with the user id, action purpose, and the new email when changing email
+3. auth returns a purpose-bound action token
+4. notifications sends email with that raw action token
+5. frontend public page calls auth endpoint directly
+6. no login session is minted from the email link
 
 ### B. Newsletter unsubscribe / one-click unsubscribe
 
@@ -403,21 +414,17 @@ This should not be migrated to token exchange.
 
 This should also not be migrated to a general access token or a user impersonation token.
 
-Best-practice replacement:
-
-- the service that owns the preference being changed should own the unsubscribe token
-- in this case, that is social, because the endpoint and the preference are social-domain concerns
+Notifications should replace the `/get-auth-code` call with `POST /action-token`
+and the explicit `unsubscribe` purpose. The token must still be purpose-bound
+and must not be accepted by `/token`.
 
 Recommended design:
 
-1. Add a dedicated social model for one-time unsubscribe tokens.
-   - fields: `userId`, `tokenHash`, `expiresAt`, `usedAt`, optional tenant/group context
-2. Add an internal authenticated social endpoint for notifications to mint a token.
-   - protected with `client_credentials`
-   - no user impersonation
-3. Keep or add a public social endpoint that consumes the token and updates user email settings.
-4. Mark the token as used.
-5. Return a simple success page or redirect target.
+1. Notifications calls auth `POST /action-token` with purpose `unsubscribe`.
+2. Auth returns a purpose-bound unsubscribe action token.
+3. The public unsubscribe endpoint consumes that token and updates the social email settings.
+4. The token is marked as used.
+5. The endpoint returns a simple success page or redirect target.
 
 Why this is the right design:
 
@@ -425,6 +432,7 @@ Why this is the right design:
 - notifications does not have a user token at send time
 - token exchange cannot help here
 - issuing login-capable tokens for unsubscribe is unnecessary and unsafe
+- the token can still be minted through the same auth `/action-token` service-to-service workflow as password reset and email verification
 
 If a generic cross-service email-action mechanism is still desired, build purpose-bound action tokens with explicit `purpose`, `audience`, `sub`, and single-use storage. Do not revive `/get-auth-code`.
 
@@ -528,8 +536,8 @@ The target state is:
    - switch to new scopes
    - move password/email flows to auth endpoints
 5. Migrate notifications.
-   - use auth event tokens for validation/reset emails
-   - add dedicated unsubscribe tokens in social
+   - call auth `POST /action-token` for validation, reset, email-change, and unsubscribe emails
+   - stop using `/get-auth-code` for email links
 6. Import user data from Drupal with canonical UUID mapping.
 7. Cut traffic over to the new auth service.
 8. Remove all legacy compatibility code and endpoints.
@@ -557,5 +565,4 @@ These need explicit decisions before the migration can be considered complete:
 
 - What is the permanent replacement for `komunitin_superadmin`?
 - Will passwords be migrated with temporary legacy-hash verification or forced reset?
-- Should generic purpose-bound action tokens live in auth, or should unsubscribe remain a social-owned token?
 - What is the final scope matrix for read/write/admin operations in accounting and social?
