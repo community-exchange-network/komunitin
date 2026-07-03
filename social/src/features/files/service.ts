@@ -1,9 +1,9 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
-import { FetchHttpHandler } from '@smithy/fetch-http-handler'
+import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import type { Request } from 'express'
 import { fileTypeFromBuffer } from 'file-type'
 import { randomUUID } from 'node:crypto'
 import { config } from '../../config'
+import { s3 } from '../../clients/s3'
 import type { File as DbFile } from '../../generated/prisma/client'
 import type { AuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
@@ -52,17 +52,6 @@ const defaultPublicUrl = (): string => {
  * The public base URL for accessing files.
  */
 const publicUrlBase = trimTrailingSlash(config.UPLOAD_PUBLIC_URL ?? defaultPublicUrl())
-
-const s3 = new S3Client({
-  endpoint: config.UPLOAD_S3_ENDPOINT,
-  region: config.UPLOAD_S3_REGION,
-  forcePathStyle: config.UPLOAD_S3_FORCE_PATH_STYLE,
-  requestHandler: new FetchHttpHandler(),
-  credentials: {
-    accessKeyId: config.UPLOAD_S3_ACCESS_KEY,
-    secretAccessKey: config.UPLOAD_S3_SECRET_KEY,
-  },
-})
 
 const assertMimeAllowed = (mime: string): void => {
   if (!config.UPLOAD_ALLOWED_MIME_TYPES.includes(mime)) {

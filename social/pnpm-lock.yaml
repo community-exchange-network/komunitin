@@ -17,9 +17,6 @@ importers:
       '@prisma/client':
         specifier: 7.8.0
         version: 7.8.0(prisma@7.8.0(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3))(typescript@5.9.3)
-      '@smithy/fetch-http-handler':
-        specifier: ^5.4.3
-        version: 5.4.3
       cors:
         specifier: ^2.8.5
         version: 2.8.6
