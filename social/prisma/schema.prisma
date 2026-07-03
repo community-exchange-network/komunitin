@@ -173,6 +173,7 @@ model Category {
 
   created DateTime @default(now())
   updated DateTime @updatedAt
+  deleted DateTime?
 
   // Computed in SQL migration as GENERATED ALWAYS ... STORED.
   search String @default(dbgenerated()) @ignore @db.Text

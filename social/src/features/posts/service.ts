@@ -125,6 +125,23 @@ const findFreePostCode = async (code: string, baseCode: string): Promise<string>
   }
 }
 
+const validatePostCategory = async (code: string, group: Group, categoryId: string): Promise<void> => {
+  const db = tenantDb(prisma, code)
+  const category = await db.category.findFirst({
+    where: {
+      id: categoryId,
+      deleted: null,
+      group: {
+        id: group.id,
+      },
+    },
+  })
+
+  if (!category) {
+    throw badRequest('Category not found')
+  }
+}
+
 export const listPosts = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Post[]> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
@@ -216,13 +233,7 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
 
   // Resolve category
   if (input.categoryId) {
-    const category = await db.category.findFirst({ where: { 
-      id: input.categoryId,
-      group: { id: group.id }
-    } })
-    if (!category) {
-      throw badRequest('Category not found')
-    }
+    await validatePostCategory(code, group, input.categoryId)
   }
 
   // Default title
@@ -288,11 +299,7 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
   }
 
   if (input.categoryId !== undefined && input.categoryId !== null) {
-    const db = tenantDb(prisma, code)
-    const category = await db.category.findFirst({ where: { id: input.categoryId } })
-    if (!category) {
-      throw badRequest('Category not found')
-    }
+    await validatePostCategory(code, group, input.categoryId)
   }
 
   // Can't change post type
