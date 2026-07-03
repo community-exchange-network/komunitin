@@ -877,6 +877,28 @@ describe('Posts endpoints', () => {
     assert.strictEqual(getNotificationsRequests().length, 1)
   })
 
+  test('POST /:code/posts rejects deleted categories', async () => {
+    await seedGroup({ tenantId: 'posts-create-deleted-category', status: 'active', access: 'public' })
+    const user = await auth('posts-create-deleted-category-user')
+    const member = await seedMember({ tenantId: 'posts-create-deleted-category', status: 'active', userId: user.id })
+    const category = await seedCategory({
+      tenantId: 'posts-create-deleted-category',
+      code: 'deleted-category',
+      deleted: new Date(),
+    })
+
+    const res = await request(app)
+      .post('/posts-create-deleted-category/posts')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send(postInput('offers', {
+        title: 'Offer with deleted category',
+        description: 'This should fail',
+      }, member.id, category.id))
+      .expect(400)
+
+    assert.strictEqual(res.body.errors[0].detail, 'Category not found')
+  })
+
   test('PATCH /:code/posts/:post rejects invalid status transition', async () => {
     await seedGroup({ tenantId: 'posts-status-invalid', status: 'active', access: 'public' })
     const user = await auth('posts-status-invalid-user')
@@ -905,6 +927,39 @@ describe('Posts endpoints', () => {
       .expect(200)
 
     assert.strictEqual(res.body.data.attributes.title, 'Admin edited')
+  })
+
+  test('PATCH /:code/posts/:post rejects deleted categories', async () => {
+    await seedGroup({ tenantId: 'posts-patch-deleted-category', status: 'active', access: 'public' })
+    const user = await auth('posts-patch-deleted-category-user')
+    const member = await seedMember({ tenantId: 'posts-patch-deleted-category', status: 'active', userId: user.id })
+    const category = await seedCategory({
+      tenantId: 'posts-patch-deleted-category',
+      code: 'deleted-category',
+      deleted: new Date(),
+    })
+    const post = await seedPost({
+      tenantId: 'posts-patch-deleted-category',
+      memberId: member.id,
+      type: 'offers',
+      status: 'draft',
+    })
+
+    const res = await request(app)
+      .patch(`/posts-patch-deleted-category/posts/${post.id}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'offers',
+          attributes: {},
+          relationships: {
+            category: { data: { type: 'categories', id: category.id } },
+          },
+        },
+      })
+      .expect(400)
+
+    assert.strictEqual(res.body.errors[0].detail, 'Category not found')
   })
 
   test('DELETE /:code/posts/:post soft-deletes as owner', async () => {

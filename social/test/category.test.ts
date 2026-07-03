@@ -2,8 +2,10 @@ import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
 import { Scope } from '../src/server/context'
+import { tenantDb } from '../src/server/multitenant'
+import prisma from '../src/utils/prisma'
 import { auth } from './mocks/auth'
-import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
+import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember, seedPost } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { toUuid } from './mocks/utils'
 
@@ -28,6 +30,7 @@ describe('Categories endpoints', () => {
     await seedCategory({ tenantId: 'cats-public', code: 'pub', access: 'public' })
     await seedCategory({ tenantId: 'cats-public', code: 'grp', access: 'group' })
     await seedCategory({ tenantId: 'cats-public', code: 'prv', access: 'private' })
+    await seedCategory({ tenantId: 'cats-public', code: 'deleted', access: 'public', deleted: new Date() })
 
     const res = await request(app)
       .get('/cats-public/categories')
@@ -545,6 +548,95 @@ describe('Categories endpoints', () => {
     const codes = listAfterDelete.body.data.map((resource: any) => resource.attributes.code)
     assert.strictEqual(codes.includes(first.code), false)
     assert.strictEqual(codes.includes(second.code), false)
+
+    const db = tenantDb(prisma, 'cats-delete-admin')
+    const firstStored = await db.category.findUnique({ where: { id: first.id } })
+    const secondStored = await db.category.findUnique({ where: { id: second.id } })
+    assert.ok(firstStored?.deleted)
+    assert.ok(secondStored?.deleted)
+  })
+
+  test('GET /:code/categories hides deleted categories for admins and superadmins', async () => {
+    await seedGroup({ tenantId: 'cats-deleted-hidden', status: 'active', access: 'public' })
+    const admin = await auth('admin-deleted-hidden')
+    await seedGroupAdmin({ tenantId: 'cats-deleted-hidden', userId: admin.id })
+
+    await seedCategory({ tenantId: 'cats-deleted-hidden', code: 'live', access: 'private' })
+    await seedCategory({ tenantId: 'cats-deleted-hidden', code: 'deleted', access: 'private', deleted: new Date() })
+
+    const adminRes = await request(app)
+      .get('/cats-deleted-hidden/categories')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      adminRes.body.data.map((resource: any) => resource.attributes.code),
+      ['live'],
+    )
+
+    const superadmin = await auth('superadmin-deleted-hidden', undefined, Scope.Superadmin)
+    const superadminRes = await request(app)
+      .get('/cats-deleted-hidden/categories')
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      superadminRes.body.data.map((resource: any) => resource.attributes.code),
+      ['live'],
+    )
+  })
+
+  test('DELETE /:code/categories/:category rejects categories with live posts', async () => {
+    await seedGroup({ tenantId: 'cats-delete-live-posts', status: 'active', access: 'public' })
+    const admin = await auth('admin-delete-live-posts')
+    await seedGroupAdmin({ tenantId: 'cats-delete-live-posts', userId: admin.id })
+    const member = await seedMember({ tenantId: 'cats-delete-live-posts', status: 'active' })
+    const category = await seedCategory({ tenantId: 'cats-delete-live-posts', code: 'has-posts' })
+    await seedPost({
+      tenantId: 'cats-delete-live-posts',
+      memberId: member.id,
+      categoryId: category.id,
+      type: 'offers',
+      status: 'draft',
+    })
+
+    const res = await request(app)
+      .delete(`/cats-delete-live-posts/categories/${category.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(400)
+
+    assert.strictEqual(res.body.errors[0].detail, 'Category has live posts')
+
+    const stored = await tenantDb(prisma, 'cats-delete-live-posts').category.findUnique({
+      where: { id: category.id },
+    })
+    assert.strictEqual(stored?.deleted, null)
+  })
+
+  test('DELETE /:code/categories/:category allows categories with only deleted posts', async () => {
+    await seedGroup({ tenantId: 'cats-delete-deleted-posts', status: 'active', access: 'public' })
+    const admin = await auth('admin-delete-deleted-posts')
+    await seedGroupAdmin({ tenantId: 'cats-delete-deleted-posts', userId: admin.id })
+    const member = await seedMember({ tenantId: 'cats-delete-deleted-posts', status: 'active' })
+    const category = await seedCategory({ tenantId: 'cats-delete-deleted-posts', code: 'old-posts' })
+    await seedPost({
+      tenantId: 'cats-delete-deleted-posts',
+      memberId: member.id,
+      categoryId: category.id,
+      type: 'offers',
+      status: 'published',
+      deleted: new Date(),
+    })
+
+    await request(app)
+      .delete(`/cats-delete-deleted-posts/categories/${category.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(204)
+
+    const stored = await tenantDb(prisma, 'cats-delete-deleted-posts').category.findUnique({
+      where: { id: category.id },
+    })
+    assert.ok(stored?.deleted)
   })
 
   test('DELETE /:code/categories/:category returns 404 for missing category or group', async () => {
@@ -552,9 +644,19 @@ describe('Categories endpoints', () => {
     const admin = await auth('admin-delete-errors')
     await seedGroupAdmin({ tenantId: 'cats-delete-errors', userId: admin.id })
     const missingCategoryId = toUuid('cats-delete-errors-missing')
+    const deletedCategory = await seedCategory({
+      tenantId: 'cats-delete-errors',
+      code: 'deleted-category',
+      deleted: new Date(),
+    })
 
     await request(app)
       .delete(`/cats-delete-errors/categories/${missingCategoryId}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(404)
+
+    await request(app)
+      .delete(`/cats-delete-errors/categories/${deletedCategory.id}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(404)
 
