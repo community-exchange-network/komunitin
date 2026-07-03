@@ -440,5 +440,6 @@
   "ErrorAccountNotFound": "Account non trovato",
   "ErrorAccountIsNotYours": "L'account specificato non è il tuo account attivo corrente.",
   "ErrorDescriptionRequired" : "La descrizione del movimento è obbligatoria.",
-  "ErrorInvalidAmount" : "Importo non valido. Inserire importo corretto."
+  "ErrorInvalidAmount" : "Importo non valido. Inserire importo corretto.",
+  "dateRange": "Intervallo di date"
 }

@@ -8,10 +8,9 @@
     :bounds="bounds"
   >
     <l-tile-layer :url="url" />
-    <l-marker
+    <styled-marker
       v-if="marker"
       :lat-lng="markerLatLng" 
-      :icon="markerIcon"
     />
     <slot />
   </l-map>
@@ -22,7 +21,8 @@ import { computed } from "vue";
 
 import type { PointExpression, LatLngExpression, LatLngBounds} from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { LMap, LTileLayer, LMarker } from "@vue-leaflet/vue-leaflet";
+import { LMap, LTileLayer } from "@vue-leaflet/vue-leaflet";
+import StyledMarker from './StyledMarker.vue';
 import { useLeafletSettings } from "../composables/leaflet";
 
 const props = withDefaults(defineProps<{
@@ -41,7 +41,7 @@ const props = withDefaults(defineProps<{
   bounds: undefined,
 })
 
-const { url, zoom: defaultZoom, markerIcon } = useLeafletSettings()
+const { url, zoom: defaultZoom } = useLeafletSettings()
 const centerLatLng = computed(() => props.center?.slice().reverse() as PointExpression)
 const markerLatLng = computed(() => props.marker?.slice().reverse() as LatLngExpression)
 

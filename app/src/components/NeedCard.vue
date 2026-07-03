@@ -2,8 +2,6 @@
   <q-card
     v-if="need"
     v-card-click-to="`/groups/${code}/needs/${need.attributes.code}`"
-    flat
-    bordered
     :class="[hidden ? 'not-published' : '', expired ? 'expired' : '' ]"
   >
     <!-- Header -->

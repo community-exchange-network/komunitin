@@ -33,13 +33,14 @@
 
         <div
           v-if="group"
-          class="row q-col-gutter-md"
+          class="row"
         >
           <!-- image -->
           <div class="col-4 q-px-md">
             <div class="q-mx-auto" style="max-width: 152px; line-height: 0;">
               <fit-text update>
                 <avatar
+                  class="group-avatar"
                   size="inherit"
                   :text="group.attributes.name"
                   :img-src="group.attributes.image"
@@ -50,27 +51,28 @@
 
           <!-- description -->
           <div class="col column">
-            <div class="text-h6">
+            <div class="text-h5 text-serif text-bold">
               {{ group.attributes.code }}
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
               ref="descriptionRef"
               class="text-onsurface-m"
-              :class="isDescriptionOpen ? '' : 'ellipsis-3-lines'"
+              :class="isDescriptionOpen ? '' : 'ellipsis-2-lines'"
               v-html="md2html(group.attributes.description)"
             />
 
-            <q-btn
-              v-if="canToggleDescription"
-              flat
-              round
-              dense
-              :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
-              style="margin-left:auto;"
-              @click="toggleDescription"
-            />
           </div>
+        </div>
+        <div class="row justify-center q-mt-sm">
+          <q-btn
+            v-if="canToggleDescription"
+            flat
+            class="toggle-button"
+            dense
+            :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
+            @click="toggleDescription"
+          />
         </div>
         <!-- sub-page navigation -->
         <nav
@@ -83,6 +85,7 @@
           >
             <nav-card
               icon="people"
+              icon-color="accent-muted"
               :label="membersLabel"
             />
           </router-link>
@@ -92,7 +95,8 @@
             class="col-6"
           >
             <nav-card
-              icon="insert_chart"
+              icon="bar_chart"
+              icon-color="background"
               :label="$t('statistics')"
             />
           </router-link>
@@ -103,7 +107,6 @@
         >
           <div class="col-12 col-sm-6 col-lg-8">
             <q-card
-              square
               flat
             >
               <simple-map
@@ -112,7 +115,7 @@
                 :marker="marker"
                 :bounds="memberMarkers"
               >
-                <l-marker
+                <styled-marker
                   v-for="(memberMarker, i) of memberMarkers"
                   :key="i"
                   :lat-lng="memberMarker"
@@ -150,7 +153,6 @@
 import { computed, ref, watch, nextTick } from 'vue';
 import { useStore } from 'vuex';
 
-import { LMarker } from '@vue-leaflet/vue-leaflet';
 import type { LatLngExpression } from 'leaflet';
 
 import md2html from '../../plugins/Md2html';
@@ -164,6 +166,7 @@ import SocialNetworkList from '../../components/SocialNetworkList.vue';
 import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
 import NavCard from '../../components/NavCard.vue';
+import StyledMarker from 'src/components/StyledMarker.vue';
 
 import type { Group, Contact, Member } from '../../store/model';
 import { useAllResources, useResource } from 'src/composables/useResources';
@@ -205,7 +208,7 @@ const { resources: members, loadAll: loadAllMembers } = useAllResources('members
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;
 };
-const calculateDescriptionOverflow = async (maxLines = 3) => {
+const calculateDescriptionOverflow = async (maxLines = 2) => {
   await nextTick();
 
   const el = descriptionRef.value;
@@ -242,3 +245,13 @@ watch(
   { immediate: true }
 );
 </script>
+
+<style lang="scss" scoped>
+.group-avatar {
+  outline: 3px solid white;
+  box-shadow: $shadow-4;
+}
+.toggle-button {
+  background: $background;
+}
+</style>

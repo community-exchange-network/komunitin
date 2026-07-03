@@ -1,9 +1,11 @@
 <template>
   <q-header>
     <div
-      id="header"
-      class="bg-primary flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md"
-      :class="showBalance ? 'wrap' : 'q-pt-xs no-wrap'"
+      class="header flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-onsurface-m"
+      :class="[
+        showBalance ? 'wrap' : 'q-pt-xs no-wrap',
+        isScrolling ? 'bg-background' : 'bg-light'
+      ]"
       :style="`height: ${computedHeight}px;`"
     >
         <!-- render back button, menu button, profile button or none -->
@@ -39,13 +41,13 @@
         style="min-width: 100%; max-width: 100%;"
       > 
         <div 
-          class="text-body2 text-onprimary-m"
+          class="text-body2"
           :style="`font-size: ${0.875*balanceScaleFactor}rem; line-height: ${1.25*balanceScaleFactor}rem;`"
         >
           {{ $t('balance') }}
         </div>
         <div 
-          class="text-h3 text-onprimary-m"
+          class="text-h3"
           :style="`font-size: ${3*balanceScaleFactor}rem; line-height: ${3.125*balanceScaleFactor}rem`"
         >
           {{
@@ -61,17 +63,20 @@
         style="max-width: none; min-width: 0;flex: 1 1 0%; padding-right: 0;"
         :class="inlineLeftButton ? 'q-pl-none' : 'q-pl-md'"
       >
-        <q-toolbar-title v-if="!searchActive">
+        <q-toolbar-title 
+          v-if="!searchActive"
+          class="text-serif text-bold">
           {{ title }}
         </q-toolbar-title>
         <q-input
           v-if="searchActive"
           v-model="searchText"
-          dark
           dense
-          standout
-          class="q-mr-xs search-box"
-          type="search"
+          outlined
+          rounded
+          bg-color="surface-container-h"
+          class="q-mr-xs search-box input-borderless"
+          type="search" 
           debounce="250"
           autofocus
           @update:model-value="onUpdateSearchText"
@@ -110,7 +115,6 @@
           />
         </slot>
         <q-scroll-observer
-          v-if="requireBalance"
           @scroll="scrollHandler"
         />
       </q-toolbar>
@@ -160,6 +164,8 @@ const searchActive = ref(false)
 const searchText = ref("")
 const scrollOffset = ref(0)
 const offset = ref(0)
+const isScrolling = ref(false)
+let scrollTimeout: ReturnType<typeof setTimeout> | null = null
 
 const myAccount = computed(() => store.getters.myAccount)
 
@@ -191,7 +197,26 @@ let computedHeight: MaybeRef<number> = headerHeight
 let requireBalance: MaybeRef<boolean> = false
 let showBalance: MaybeRef<boolean> = false
 let balanceScaleFactor: MaybeRef<number> = 0
-let scrollHandler: (details: {position: {top: number}}) => void | undefined = undefined
+
+// Universal scroll handler for detecting scrolling and handling balance scaling
+const scrollHandler = (details: { position: { top: number } }) => {
+  // If balance feature is enabled, handle balance scaling
+  if (process.env.FEAT_HEADER_BALANCE === 'true') {
+    const originalHeight = toValue(requireBalance) ? 2 * 50 + 70 : headerHeight
+    offset.value = Math.min(details.position.top, originalHeight - headerHeight)
+    scrollOffset.value = details.position.top
+  }
+
+  // Handle scrolling state for background darkening
+  isScrolling.value = true
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout)
+  }
+  scrollTimeout = setTimeout(() => {
+    isScrolling.value = false
+    scrollTimeout = null
+  }, 150)
+}
 
 // This code is stripped out if the feature is disabled
 if (process.env.FEAT_HEADER_BALANCE === 'true') {
@@ -213,12 +238,6 @@ if (process.env.FEAT_HEADER_BALANCE === 'true') {
   computedHeight = computed(() => originalHeight.value - offset.value)
   balanceScaleFactor = computed(() => Math.max(0, 1 - offset.value / balanceHeight))
   showBalance = computed(() => toValue(requireBalance) && offset.value < balanceHeight)
-
-  
-  scrollHandler = (details: { position: { top: number; }; }) => {
-    offset.value = Math.min(details.position.top, originalHeight.value - headerHeight)
-    scrollOffset.value = details.position.top
-  }
 }
 
 // Computes whether there is a button on the left of the title, to help adjusting the title padding.
@@ -254,6 +273,10 @@ const goUp = () => {
 
 </script>
 <style lang="scss" scoped>
+.header {
+  transition: background-color 0.3s ease-in-out;
+}
+
 // Toolbar has a default padding of 12px. That's ok when there's a button,
 // but it is too low when there's the title directly.
 .no-button {
