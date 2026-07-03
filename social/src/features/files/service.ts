@@ -1,9 +1,9 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
-import { FetchHttpHandler } from '@smithy/fetch-http-handler'
+import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import type { Request } from 'express'
 import { fileTypeFromBuffer } from 'file-type'
 import { randomUUID } from 'node:crypto'
 import { config } from '../../config'
+import { s3 } from '../../clients/s3'
 import type { File as DbFile } from '../../generated/prisma/client'
 import type { AuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
@@ -53,17 +53,6 @@ const defaultPublicUrl = (): string => {
  */
 const publicUrlBase = trimTrailingSlash(config.UPLOAD_PUBLIC_URL ?? defaultPublicUrl())
 
-const s3 = new S3Client({
-  endpoint: config.UPLOAD_S3_ENDPOINT,
-  region: config.UPLOAD_S3_REGION,
-  forcePathStyle: config.UPLOAD_S3_FORCE_PATH_STYLE,
-  requestHandler: new FetchHttpHandler(),
-  credentials: {
-    accessKeyId: config.UPLOAD_S3_ACCESS_KEY,
-    secretAccessKey: config.UPLOAD_S3_SECRET_KEY,
-  },
-})
-
 const assertMimeAllowed = (mime: string): void => {
   if (!config.UPLOAD_ALLOWED_MIME_TYPES.includes(mime)) {
     throw badRequest('Unsupported file type')
@@ -79,12 +68,15 @@ const extensionFromMime = (mime: string): string => {
   return ext
 }
 
+const fullObjectKey = (key: string): string => {
+  return uploadBaseKeyPrefix ? `${uploadBaseKeyPrefix}/${key}` : key
+}
+
 const uploadToS3 = async (key: string, contentType: string, data: Buffer): Promise<void> => {
-  const fullKey = uploadBaseKeyPrefix ? `${uploadBaseKeyPrefix}/${key}` : key
   try {
     await s3.send(new PutObjectCommand({
       Bucket: uploadBucket,
-      Key: fullKey,
+      Key: fullObjectKey(key),
       Body: data,
       ContentType: contentType,
       ContentLength: data.length,
@@ -92,6 +84,17 @@ const uploadToS3 = async (key: string, contentType: string, data: Buffer): Promi
     }))
   } catch (cause) {
     throw internalError('Failed to upload file', { cause })
+  }
+}
+
+export const deleteFromS3 = async (key: string): Promise<void> => {
+  try {
+    await s3.send(new DeleteObjectCommand({
+      Bucket: uploadBucket,
+      Key: fullObjectKey(key),
+    }))
+  } catch (cause) {
+    throw internalError('Failed to delete file', { cause })
   }
 }
 

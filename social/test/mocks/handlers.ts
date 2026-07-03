@@ -2,8 +2,6 @@ import { http, HttpResponse } from 'msw'
 import { getJwks } from './auth'
 import { toUuid } from './utils'
 
-let s3UploadStatus = 200
-
 type MockCurrency = {
   id: string
   code: string
@@ -44,10 +42,6 @@ type NotificationsRequest = {
 }
 
 let notificationsRequests: NotificationsRequest[] = []
-
-export const setS3UploadStatus = (status: number) => {
-  s3UploadStatus = status
-}
 
 export const seedAccountingCurrency = (
   code: string,
@@ -160,7 +154,6 @@ const serializeAccount = (account: MockAccount) => ({
 })
 
 export const resetMockState = () => {
-  s3UploadStatus = 200
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
   accountingRequests = []
@@ -427,39 +420,5 @@ export const handlers = [
         },
       },
     }, { status: 201 })
-  }),
-  http.put('http://s3.test/:bucket/:key*', async ({ request }) => {
-    if (s3UploadStatus >= 400) {
-      return HttpResponse.text('error', { status: s3UploadStatus })
-    }
-
-    const body = await request.arrayBuffer()
-    if (body.byteLength === 0) {
-      return new HttpResponse(null, { status: 400 })
-    }
-
-    return HttpResponse.text('', {
-      status: 200,
-      headers: {
-        etag: '"mock-etag"',
-      },
-    })
-  }),
-  http.put('http://:bucket.s3.test/:key*', async ({ request }) => {
-    if (s3UploadStatus >= 400) {
-      return HttpResponse.text('error', { status: s3UploadStatus })
-    }
-
-    const body = await request.arrayBuffer()
-    if (body.byteLength === 0) {
-      return new HttpResponse(null, { status: 400 })
-    }
-
-    return HttpResponse.text('', {
-      status: 200,
-      headers: {
-        etag: '"mock-etag"',
-      },
-    })
   }),
 ]

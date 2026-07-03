@@ -1,5 +1,14 @@
 import { z } from 'zod'
 
+const envBoolean = (defaultValue: boolean) => z.preprocess(
+  (value) => {
+    if (value === '') return undefined
+    if (value === 'false') return false
+    return value
+  },
+  z.coerce.boolean().default(defaultValue),
+)
+
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(2028),
   DATABASE_URL: z.string().default('postgresql://social:social@localhost:5434/social?schema=public'),
@@ -16,12 +25,14 @@ const envSchema = z.object({
   UPLOAD_S3_REGION: z.string().trim().min(1).default('us-east-1'),
   UPLOAD_S3_ACCESS_KEY: z.string().trim().min(1).default('test-access-key'),
   UPLOAD_S3_SECRET_KEY: z.string().trim().min(1).default('test-secret-key'),
-  UPLOAD_S3_FORCE_PATH_STYLE: z.coerce.boolean().default(false),
+  UPLOAD_S3_FORCE_PATH_STYLE: envBoolean(false),
   UPLOAD_PUBLIC_URL: z.url().optional(),
   UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(2 * 1024 * 1024),
   UPLOAD_ALLOWED_MIME_TYPES: z.string()
     .default('image/jpeg,image/png,image/webp,image/gif')
     .transform((s) => s.split(',').map((it) => it.trim()).filter(Boolean)),
+  UPLOAD_CLEANUP_ENABLED: envBoolean(true),
+  UPLOAD_CLEANUP_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
 })
 
 export const config = envSchema.parse(process.env)
