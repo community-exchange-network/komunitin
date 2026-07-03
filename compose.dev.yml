@@ -1,4 +1,5 @@
 services:
+  # Node inspect ports mirror service HTTP ports: 2023 -> 9223, 2025 -> 9225, 2026 -> 9226, 2028 -> 9228.
   app:
     build:
       target: komunitin-app-build
@@ -33,7 +34,7 @@ services:
     command: pnpm dev
     ports:
       - "2025:2025"
-      - "9229:9229"
+      - "9225:9225"
     volumes:
       - ./accounting/cli:/app/cli
       - ./accounting/openapi:/app/openapi
@@ -48,7 +49,7 @@ services:
     command: pnpm dev
     ports: !override
       - "2026:2026"
-      - "9230:9230"
+      - "9226:9226"
     volumes:
       - ./auth/src:/app/src
       - ./auth/prisma:/app/prisma
@@ -65,7 +66,7 @@ services:
     command: pnpm dev
     ports:
       - "2023:2023"
-      - "9223:9229"
+      - "9223:9223"
     volumes:
       - ./notifications-ts/src:/app/src
       - ./notifications-ts/prisma:/app/prisma
