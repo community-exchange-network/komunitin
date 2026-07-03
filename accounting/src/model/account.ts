@@ -18,6 +18,9 @@ export type AccountKind = PrismaAccountKind
 // Accounts, as returned by the API, do not need to have all fields filled. 
 // That depends on the permissions of the caller.
 export type Account = Optional<FullAccount, "balance" | "creditLimit" | "maximumBalance" | "users" | "settings">
+export type AccountWithStats = Account & {
+  stats?: Record<string, number>
+}
 export interface FullAccount {
   id: string, // e.g. f51d66ac-ec5f-493a-8ce8-1f815f7ff637
   code: string, // e.g. NET20002
