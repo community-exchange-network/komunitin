@@ -8,7 +8,7 @@ const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 export async function checkPrismaHealth() {
-	await prisma.$queryRawUnsafe('SELECT 1')
+	await prisma.$queryRaw`SELECT 1`
 }
 
 export async function disconnectPrisma() {
