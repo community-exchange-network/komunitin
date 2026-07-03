@@ -17,6 +17,8 @@ export const startCleanupWorker = () => {
     cleanupUnlinkedFiles().catch((err) => {
       logger.error({ err }, 'Upload cleanup worker failed')
     })
+  }, {
+    timezone: 'UTC',
   })
 
   logger.info({ schedule: CLEANUP_CRON }, 'Upload cleanup worker started')
