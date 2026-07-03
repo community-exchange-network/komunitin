@@ -317,7 +317,7 @@ export const seedFile = async (data: SeedFileInput): Promise<File> => {
     id: uploaderId,
   })
 
-  const created = await db().file.create({
+  return db().file.create({
     data: {
       id: data.id ? toUuid(data.id) : undefined,
       tenantId: data.tenantId,
@@ -330,22 +330,7 @@ export const seedFile = async (data: SeedFileInput): Promise<File> => {
       resourceId: data.resourceId === undefined ? null : data.resourceId,
       uploaderId,
       created: data.created,
-    },
-  })
-
-  if (data.created || data.updated) {
-    const createdAt = data.created ?? created.created
-    const updatedAt = data.updated ?? created.updated
-    await db().$executeRaw`
-      UPDATE "File"
-      SET "created" = ${createdAt}, "updated" = ${updatedAt}
-      WHERE "id" = ${created.id}::uuid
-    `
-  }
-
-  return await db().file.findUniqueOrThrow({
-    where: {
-      id: created.id,
+      updated: data.updated,
     },
   })
 }

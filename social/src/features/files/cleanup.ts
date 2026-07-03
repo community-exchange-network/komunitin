@@ -115,12 +115,12 @@ export const cleanupUnlinkedFiles = async (options: CleanupOptions = {}): Promis
       const liveReference = await findLiveResourceReference(file)
       if (liveReference) {
         stats.skippedReferenced++
-        console.warn('Unlinked file is still referenced by a live resource; skipping S3 cleanup', {
+        logger.warn({
           fileId: file.id,
           tenantId: file.tenantId,
           url: file.url,
           ...liveReference,
-        })
+        }, 'Unlinked file is still referenced by a live resource; skipping S3 cleanup')
         continue
       }
 

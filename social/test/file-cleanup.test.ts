@@ -2,6 +2,7 @@ import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import { cleanupUnlinkedFiles } from '../src/features/files/cleanup'
 import { privilegedDb } from '../src/server/multitenant'
+import logger from '../src/utils/logger'
 import prisma from '../src/utils/prisma'
 import { getS3DeleteRequests, resetMockState, setS3DeleteStatus } from './mocks/handlers'
 import { resetDb, seedFile, seedGroup, seedMember, seedPost } from './mocks/seed'
@@ -93,11 +94,11 @@ describe('Unlinked file cleanup', () => {
       updated: daysAgo(31),
     })
 
-    const originalWarn = console.warn
+    const originalWarn = logger.warn
     const warnings: unknown[][] = []
-    console.warn = (...args: unknown[]) => {
+    logger.warn = ((...args: unknown[]) => {
       warnings.push(args)
-    }
+    }) as typeof logger.warn
 
     try {
       const stats = await cleanupUnlinkedFiles()
@@ -107,11 +108,15 @@ describe('Unlinked file cleanup', () => {
       assert.strictEqual(stats.skippedReferenced, 1)
       assert.ok(await db().file.findUnique({ where: { id: file.id } }))
       assert.deepStrictEqual(getS3DeleteRequests(), [])
-      assert.ok(warnings.some(([message]) =>
+      assert.ok(warnings.some(([context, message]) =>
+        typeof context === 'object' &&
+        context !== null &&
+        (context as Record<string, unknown>).fileId === file.id &&
+        (context as Record<string, unknown>).tenantId === tenantId &&
         String(message).includes('Unlinked file is still referenced by a live resource')
       ))
     } finally {
-      console.warn = originalWarn
+      logger.warn = originalWarn
     }
   })
 
@@ -168,8 +173,8 @@ describe('Unlinked file cleanup', () => {
       updated: daysAgo(31),
     })
 
-    const originalWarn = console.warn
-    console.warn = () => {}
+    const originalWarn = logger.warn
+    logger.warn = (() => {}) as typeof logger.warn
 
     try {
       const stats = await cleanupUnlinkedFiles()
@@ -181,7 +186,7 @@ describe('Unlinked file cleanup', () => {
       assert.ok(await db().file.findUnique({ where: { id: postFile.id } }))
       assert.deepStrictEqual(getS3DeleteRequests(), [])
     } finally {
-      console.warn = originalWarn
+      logger.warn = originalWarn
     }
   })
 
