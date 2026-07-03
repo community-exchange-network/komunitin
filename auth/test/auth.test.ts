@@ -80,7 +80,6 @@ after(async () => {
 describe('Auth Service Integration Tests', () => {
   beforeEach(async () => {
     await resetDb()
-    resetRateLimits()
     fetchCalls.length = 0
   })
 
