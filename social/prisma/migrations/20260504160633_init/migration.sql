@@ -89,6 +89,7 @@ CREATE TABLE "Category" (
     "meta" JSONB,
     "created" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" TIMESTAMP(3) NOT NULL,
+    "deleted" TIMESTAMP(3),
     "groupId" UUID NOT NULL,
 
     CONSTRAINT "Category_pkey" PRIMARY KEY ("id")

@@ -56,6 +56,9 @@ export const findCategoriesIds = async (ctx: OptionalAuthContext, db: DbClient, 
     columns: categoryColumns,
     search: categoryColumn('search'),
     params,
-    where: [readableWhere],
+    where: [
+      Prisma.sql`${categoryColumn('deleted')} IS NULL`,
+      readableWhere,
+    ],
   })
 }

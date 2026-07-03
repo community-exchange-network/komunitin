@@ -17,8 +17,11 @@ const toCategory = (dbCategory: DbCategory): Category => {
 const getCategoryById = async (code: string, id: string): Promise<Category> => {
   const db = tenantDb(prisma, code)
 
-  const category = await db.category.findFirst({
-    where: { id },
+  const category = await db.category.findUnique({
+    where: {
+      id,
+      deleted: null,
+    },
   })
 
   if (!category) {
@@ -125,9 +128,25 @@ export const deleteCategory = async (
   const db = tenantDb(prisma, code)
   const category = await getCategoryById(code, id)
 
-  await db.category.delete({
-    where: {
-      id: category.id,
-    },
+  await db.transaction(async (tx) => {
+    const livePosts = await tx.post.count({
+      where: {
+        categoryId: category.id,
+        deleted: null,
+      },
+    })
+
+    if (livePosts > 0) {
+      throw badRequest('Category has live posts')
+    }
+
+    await tx.category.update({
+      where: {
+        id: category.id,
+      },
+      data: {
+        deleted: new Date(),
+      },
+    })
   })
 }
