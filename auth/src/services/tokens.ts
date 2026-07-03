@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt'
 import crypto from 'node:crypto'
+import type { Prisma } from '../generated/prisma/client'
 import prisma from '../utils/prisma'
 import { badRequest } from '../utils/error'
 
@@ -50,15 +51,45 @@ async function findUserActionTokenByToken(
     : null
 }
 
-export async function findPasswordResetByToken(token: string) {
-  return findUserActionTokenByToken(token, userActionTokenPurpose.passwordReset)
+type ActionTokenRecord = NonNullable<Awaited<ReturnType<typeof findUserActionTokenByToken>>>
+
+/**
+ * Returns a usable action token matching one of the given purposes, or null
+ * when it is unknown, of the wrong purpose, already used, or expired.
+ */
+export async function findValidActionToken(
+  token: string,
+  purposes: UserActionTokenPurpose | UserActionTokenPurpose[],
+): Promise<ActionTokenRecord | null> {
+  const actionToken = await findUserActionTokenByToken(token, purposes)
+  if (!actionToken || actionToken.usedAt !== null || hasExpired(actionToken.expiresAt)) {
+    return null
+  }
+  return actionToken
 }
 
-export async function findEmailActionByToken(token: string) {
-  return findUserActionTokenByToken(token, [
-    userActionTokenPurpose.emailChange,
-    userActionTokenPurpose.emailVerification,
-  ])
+/**
+ * Consumes an action token inside a transaction: marks it used and deletes any
+ * other pending token for the same user and purpose. Pass the transaction
+ * client from `prisma.$transaction(async (tx) => ...)` so consumption is atomic
+ * with the mutation the token authorizes.
+ */
+export async function consumeActionToken(
+  tx: Prisma.TransactionClient,
+  actionToken: ActionTokenRecord,
+) {
+  await tx.userActionToken.update({
+    where: { id: actionToken.id },
+    data: { usedAt: new Date() },
+  })
+  await tx.userActionToken.deleteMany({
+    where: {
+      userId: actionToken.userId,
+      purpose: actionToken.purpose,
+      usedAt: null,
+      id: { not: actionToken.id },
+    },
+  })
 }
 
 async function createUserActionToken({
@@ -126,4 +157,32 @@ export async function createUnsubscribeToken(userId: string): Promise<string> {
     userId,
     purpose: userActionTokenPurpose.unsubscribe,
   })
+}
+
+/**
+ * Validates and consumes a purpose-bound action token on behalf of a backend
+ * service (e.g. social redeeming an unsubscribe token). The token is marked as
+ * used (single-use). Returns the token owner, or null when the token is
+ * unknown, of the wrong purpose, already used, or expired.
+ */
+export async function redeemActionToken(
+  token: string,
+  purpose: UserActionTokenPurpose,
+): Promise<{ userId: string; email: string; purpose: UserActionTokenPurpose } | null> {
+  const actionToken = await findValidActionToken(token, purpose)
+  if (!actionToken) {
+    return null
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: actionToken.userId },
+    select: { id: true, email: true },
+  })
+  if (!user) {
+    return null
+  }
+
+  await prisma.$transaction((tx) => consumeActionToken(tx, actionToken))
+
+  return { userId: user.id, email: user.email, purpose: actionToken.purpose as UserActionTokenPurpose }
 }

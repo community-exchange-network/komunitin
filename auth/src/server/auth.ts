@@ -84,3 +84,5 @@ export function serviceClientAuth(clientId: string) {
 }
 
 export const notificationsServiceAuth = serviceClientAuth('komunitin-notifications')
+
+export const socialServiceAuth = serviceClientAuth('komunitin-social')

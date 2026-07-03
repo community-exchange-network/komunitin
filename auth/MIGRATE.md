@@ -434,6 +434,46 @@ Why this is the right design:
 - issuing login-capable tokens for unsubscribe is unnecessary and unsafe
 - the token can still be minted through the same auth `/action-token` service-to-service workflow as password reset and email verification
 
+#### Social redemption via `POST /redeem-action-token`
+
+Step 3 above is served by a dedicated auth endpoint. The social service must
+not read or trust the raw action token itself; it must ask auth to validate and
+consume it.
+
+Auth contract:
+
+```text
+POST /redeem-action-token
+Authorization: Bearer <komunitin-social client_credentials token>
+Content-Type: application/json
+{ "token": "<raw unsubscribe token>", "purpose": "unsubscribe" }
+```
+
+Success response:
+
+```json
+{ "userId": "<uuid>", "email": "<user email>", "purpose": "unsubscribe" }
+```
+
+Properties:
+
+- authenticated as the `komunitin-social` service client (client credentials)
+- `purpose` is restricted to `unsubscribe`; social cannot redeem password-reset,
+  email-change, or email-verification tokens
+- the token is single-use: auth marks it used on success, so a second redemption
+  of the same token returns `400`
+- invalid, expired, wrong-purpose, or already-used tokens return `400`
+
+How social must adapt:
+
+1. Obtain a `komunitin-social` client-credentials access token from auth.
+2. On the public unsubscribe request, POST the raw token to
+   `POST /redeem-action-token` with `purpose: "unsubscribe"`.
+3. Use the returned `userId` (and/or `email`) to update the newsletter/email
+   settings for that user.
+4. Do not decode, verify, or persist the raw token locally, and do not attempt
+   to redeem it through `/token`.
+
 If a generic cross-service email-action mechanism is still desired, build purpose-bound action tokens with explicit `purpose`, `audience`, `sub`, and single-use storage. Do not revive `/get-auth-code`.
 
 ## User Data Migration From Drupal

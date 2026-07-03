@@ -382,6 +382,112 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.errors[0].code, 'BadRequest')
   })
 
+  test('POST /redeem-action-token consumes unsubscribe tokens for the social client', async () => {
+    const userId = '31313131-3131-4131-8131-313131313131'
+    const passwordHash = await hashPassword('password123')
+    await prisma.user.create({
+      data: {
+        id: userId,
+        email: 'redeem-unsubscribe@example.org',
+        passwordHash,
+        emailVerified: true,
+        status: 'active',
+      },
+    })
+
+    const { token } = await requestActionToken({ userId, purpose: 'unsubscribe' })
+
+    const socialTokenRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'client_credentials',
+        client_id: 'komunitin-social',
+        client_secret: 'komunitin-social-secret',
+        scope: 'accounting:read',
+      })
+      .expect(200)
+
+    const res = await request(app)
+      .post('/redeem-action-token')
+      .set('Authorization', `Bearer ${socialTokenRes.body.access_token}`)
+      .type('json')
+      .send({ token, purpose: 'unsubscribe' })
+      .expect(200)
+
+    assert.strictEqual(res.body.userId, userId)
+    assert.strictEqual(res.body.email, 'redeem-unsubscribe@example.org')
+    assert.strictEqual(res.body.purpose, 'unsubscribe')
+
+    // Single-use: a second redemption of the same token fails.
+    const secondRes = await request(app)
+      .post('/redeem-action-token')
+      .set('Authorization', `Bearer ${socialTokenRes.body.access_token}`)
+      .type('json')
+      .send({ token, purpose: 'unsubscribe' })
+      .expect(400)
+
+    assert.strictEqual(secondRes.body.errors[0].code, 'BadRequest')
+  })
+
+  test('POST /redeem-action-token rejects non-social clients', async () => {
+    const authRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'client_credentials',
+        client_id: 'komunitin-notifications',
+        client_secret: 'replace-this-with-a-secure-password',
+        scope: 'email',
+      })
+      .expect(200)
+
+    const res = await request(app)
+      .post('/redeem-action-token')
+      .set('Authorization', `Bearer ${authRes.body.access_token}`)
+      .type('json')
+      .send({ token: 'some-token', purpose: 'unsubscribe' })
+      .expect(401)
+
+    assert.strictEqual(res.body.errors[0].code, 'Unauthorized')
+  })
+
+  test('POST /redeem-action-token refuses purposes other than unsubscribe', async () => {
+    const userId = '32323232-3232-4232-8232-323232323232'
+    const passwordHash = await hashPassword('password123')
+    await prisma.user.create({
+      data: {
+        id: userId,
+        email: 'redeem-reset@example.org',
+        passwordHash,
+        emailVerified: true,
+        status: 'active',
+      },
+    })
+
+    const { token } = await requestActionToken({ userId, purpose: 'passwordReset' })
+
+    const socialTokenRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'client_credentials',
+        client_id: 'komunitin-social',
+        client_secret: 'komunitin-social-secret',
+        scope: 'accounting:read',
+      })
+      .expect(200)
+
+    const res = await request(app)
+      .post('/redeem-action-token')
+      .set('Authorization', `Bearer ${socialTokenRes.body.access_token}`)
+      .type('json')
+      .send({ token, purpose: 'passwordReset' })
+      .expect(400)
+
+    assert.strictEqual(res.body.errors[0].code, 'BadRequest')
+  })
+
   test('Token-exchanged user tokens cannot call app user endpoints', async () => {
     const userId = '24242424-2424-2424-2424-242424242424'
     const passwordHash = await hashPassword('password123')

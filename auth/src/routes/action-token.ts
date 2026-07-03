@@ -1,11 +1,12 @@
 import express, { Router } from 'express'
 import { z } from 'zod'
-import { notificationsServiceAuth } from '../server/auth'
+import { notificationsServiceAuth, socialServiceAuth } from '../server/auth'
 import {
   createEmailChangeToken,
   createEmailVerificationToken,
   createPasswordResetTokenForUser,
   createUnsubscribeToken,
+  redeemActionToken,
   userActionTokenPurpose,
 } from '../services/tokens'
 import { badRequest } from '../utils/error'
@@ -58,6 +59,31 @@ router.post('/action-token', express.json(), notificationsServiceAuth, async (re
     }
 
     res.json({ token, email })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const redeemActionTokenPayloadSchema = z.object({
+  token: z.string().min(1),
+  purpose: z.literal(userActionTokenPurpose.unsubscribe),
+})
+
+router.post('/redeem-action-token', express.json(), socialServiceAuth, async (req, res, next) => {
+  const parsed = redeemActionTokenPayloadSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return next(badRequest('Invalid redeem action token request'))
+  }
+
+  const { token, purpose } = parsed.data
+
+  try {
+    const redeemed = await redeemActionToken(token, purpose)
+    if (!redeemed) {
+      return next(badRequest('Invalid or expired action token'))
+    }
+
+    res.json(redeemed)
   } catch (err) {
     next(err)
   }

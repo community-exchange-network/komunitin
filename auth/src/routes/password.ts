@@ -1,7 +1,7 @@
 import express, { Router } from 'express'
 import { z } from 'zod'
 import prisma from '../utils/prisma'
-import { findPasswordResetByToken, hasExpired, hashPassword } from '../services/tokens'
+import { consumeActionToken, findValidActionToken, hashPassword, userActionTokenPurpose } from '../services/tokens'
 import { NotificationsService } from '../services/notifications'
 import { rateLimit } from '../utils/rate-limit'
 import { badRequest } from '../utils/error'
@@ -47,32 +47,21 @@ router.post('/change-password', parseBody, rateLimit({ bucket: 'change-password'
   const { password } = passwordParsed.data
 
   try {
-    const resetRecord = await findPasswordResetByToken(token)
+    const resetRecord = await findValidActionToken(token, userActionTokenPurpose.passwordReset)
 
-    if (!resetRecord || resetRecord.usedAt !== null || hasExpired(resetRecord.expiresAt)) {
+    if (!resetRecord) {
       return next(badRequest('Invalid or expired reset token'))
     }
 
     const passwordHash = await hashPassword(password)
 
-    await prisma.$transaction([
-      prisma.user.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: resetRecord.userId },
         data: { passwordHash },
-      }),
-      prisma.userActionToken.update({
-        where: { id: resetRecord.id },
-        data: { usedAt: new Date() },
-      }),
-      prisma.userActionToken.deleteMany({
-        where: {
-          userId: resetRecord.userId,
-          purpose: resetRecord.purpose,
-          usedAt: null,
-          id: { not: resetRecord.id },
-        },
-      }),
-    ])
+      })
+      await consumeActionToken(tx, resetRecord)
+    })
 
     res.json({ status: 'ok' })
   } catch (err) {

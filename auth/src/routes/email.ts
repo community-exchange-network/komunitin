@@ -1,7 +1,7 @@
 import express, { Router, Response } from 'express'
 import { z } from 'zod'
 import prisma from '../utils/prisma'
-import { findEmailActionByToken, hasExpired } from '../services/tokens'
+import { consumeActionToken, findValidActionToken, userActionTokenPurpose } from '../services/tokens'
 import { NotificationsService } from '../services/notifications'
 import { rateLimit } from '../utils/rate-limit'
 import { userAuth, type AuthenticatedRequest } from '../server/auth'
@@ -44,38 +44,31 @@ router.post('/change-email/confirm', parseBody, rateLimit({ bucket: 'change-emai
   const { token } = parsed.data
 
   try {
-    const changeRecord = await findEmailActionByToken(token)
+    const changeRecord = await findValidActionToken(token, [
+      userActionTokenPurpose.emailChange,
+      userActionTokenPurpose.emailVerification,
+    ])
 
-    if (!changeRecord || !changeRecord.targetEmail || changeRecord.usedAt !== null || hasExpired(changeRecord.expiresAt)) {
+    if (!changeRecord || !changeRecord.targetEmail) {
       return next(badRequest('Invalid or expired token'))
     }
+    const targetEmail = changeRecord.targetEmail
 
-    const existing = await prisma.user.findUnique({ where: { email: changeRecord.targetEmail } })
+    const existing = await prisma.user.findUnique({ where: { email: targetEmail } })
     if (existing && existing.id !== changeRecord.userId) {
       return next(badRequest('Email is already taken'))
     }
 
-    await prisma.$transaction([
-      prisma.user.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: changeRecord.userId },
         data: {
-          email: changeRecord.targetEmail,
+          email: targetEmail,
           emailVerified: true,
         },
-      }),
-      prisma.userActionToken.update({
-        where: { id: changeRecord.id },
-        data: { usedAt: new Date() },
-      }),
-      prisma.userActionToken.deleteMany({
-        where: {
-          userId: changeRecord.userId,
-          purpose: changeRecord.purpose,
-          usedAt: null,
-          id: { not: changeRecord.id },
-        },
-      }),
-    ])
+      })
+      await consumeActionToken(tx, changeRecord)
+    })
 
     res.json({ status: 'ok' })
   } catch (err) {
