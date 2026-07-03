@@ -3,11 +3,12 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { config } from '../src/config'
 import { auth } from './mocks/auth'
-import { setS3UploadStatus, resetMockState } from './mocks/handlers'
+import { setS3UploadError } from './mocks/s3'
 import { resetDb, seedGroup, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
 let app: any
+let resetMocks: () => void
 
 const tinyPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=',
@@ -17,6 +18,7 @@ const tinyPng = Buffer.from(
 before(async () => {
   const server = await setupTestServer()
   app = server.app
+  resetMocks = server.resetMocks
 })
 
 after(async () => {
@@ -25,7 +27,7 @@ after(async () => {
 
 describe('Files upload endpoint', () => {
   beforeEach(async () => {
-    resetMockState()
+    resetMocks()
     await resetDb()
   })
 
@@ -114,7 +116,7 @@ describe('Files upload endpoint', () => {
     const user = await auth('uploads-s3-failure-user')
     await seedMember({ tenantId: 'uploads-s3-failure', userId: user.id })
 
-    setS3UploadStatus(500)
+    setS3UploadError()
 
     const res = await request(app)
       .post('/uploads-s3-failure/files/upload')

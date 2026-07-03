@@ -4,7 +4,7 @@ import { cleanupUnlinkedFiles } from '../src/features/files/cleanup'
 import { privilegedDb } from '../src/server/multitenant'
 import logger from '../src/utils/logger'
 import prisma from '../src/utils/prisma'
-import { getS3DeleteRequests, resetMockState, setS3DeleteStatus } from './mocks/handlers'
+import { getS3DeleteRequests, setS3DeleteError } from './mocks/s3'
 import { resetDb, seedFile, seedGroup, seedMember, seedPost } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { toUuid } from './mocks/utils'
@@ -16,9 +16,11 @@ const daysAgo = (days: number): Date => {
 }
 
 const db = () => privilegedDb(prisma)
+let resetMocks: () => void
 
 before(async () => {
-  await setupTestServer()
+  const server = await setupTestServer()
+  resetMocks = server.resetMocks
 })
 
 after(async () => {
@@ -27,7 +29,7 @@ after(async () => {
 
 describe('Unlinked file cleanup', () => {
   beforeEach(async () => {
-    resetMockState()
+    resetMocks()
     await resetDb()
   })
 
@@ -196,7 +198,7 @@ describe('Unlinked file cleanup', () => {
       resourceType: 'members',
       updated: daysAgo(31),
     })
-    setS3DeleteStatus(500)
+    setS3DeleteError()
 
     const stats = await cleanupUnlinkedFiles()
 
