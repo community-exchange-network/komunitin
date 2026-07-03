@@ -3,6 +3,8 @@ import { getJwks } from './auth'
 import { toUuid } from './utils'
 
 let s3UploadStatus = 200
+let s3DeleteStatus = 204
+let s3DeleteRequests: string[] = []
 
 type MockCurrency = {
   id: string
@@ -47,6 +49,14 @@ let notificationsRequests: NotificationsRequest[] = []
 
 export const setS3UploadStatus = (status: number) => {
   s3UploadStatus = status
+}
+
+export const setS3DeleteStatus = (status: number) => {
+  s3DeleteStatus = status
+}
+
+export const getS3DeleteRequests = (): string[] => {
+  return [...s3DeleteRequests]
 }
 
 export const seedAccountingCurrency = (
@@ -161,6 +171,8 @@ const serializeAccount = (account: MockAccount) => ({
 
 export const resetMockState = () => {
   s3UploadStatus = 200
+  s3DeleteStatus = 204
+  s3DeleteRequests = []
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
   accountingRequests = []
@@ -430,7 +442,12 @@ export const handlers = [
   }),
   http.put('http://s3.test/:bucket/:key*', async ({ request }) => {
     if (s3UploadStatus >= 400) {
-      return HttpResponse.text('error', { status: s3UploadStatus })
+      return HttpResponse.text('<Error><Code>InternalError</Code><Message>error</Message></Error>', {
+        status: s3UploadStatus,
+        headers: {
+          'content-type': 'application/xml',
+        },
+      })
     }
 
     const body = await request.arrayBuffer()
@@ -447,7 +464,12 @@ export const handlers = [
   }),
   http.put('http://:bucket.s3.test/:key*', async ({ request }) => {
     if (s3UploadStatus >= 400) {
-      return HttpResponse.text('error', { status: s3UploadStatus })
+      return HttpResponse.text('<Error><Code>InternalError</Code><Message>error</Message></Error>', {
+        status: s3UploadStatus,
+        headers: {
+          'content-type': 'application/xml',
+        },
+      })
     }
 
     const body = await request.arrayBuffer()
@@ -461,5 +483,31 @@ export const handlers = [
         etag: '"mock-etag"',
       },
     })
+  }),
+  http.delete('http://s3.test/:bucket/:key*', ({ request }) => {
+    s3DeleteRequests.push(request.url)
+    if (s3DeleteStatus >= 400) {
+      return HttpResponse.text('<Error><Code>InternalError</Code><Message>error</Message></Error>', {
+        status: s3DeleteStatus,
+        headers: {
+          'content-type': 'application/xml',
+        },
+      })
+    }
+
+    return HttpResponse.text('', { status: 200 })
+  }),
+  http.delete('http://:bucket.s3.test/:key*', ({ request }) => {
+    s3DeleteRequests.push(request.url)
+    if (s3DeleteStatus >= 400) {
+      return HttpResponse.text('<Error><Code>InternalError</Code><Message>error</Message></Error>', {
+        status: s3DeleteStatus,
+        headers: {
+          'content-type': 'application/xml',
+        },
+      })
+    }
+
+    return HttpResponse.text('', { status: 200 })
   }),
 ]

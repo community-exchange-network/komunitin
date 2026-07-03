@@ -1,5 +1,5 @@
 import { Prisma } from '../../src/generated/prisma/client'
-import type { Category, Group, GroupAdminUser, Member, MemberUser, Post, User } from '../../src/generated/prisma/client'
+import type { Category, File, Group, GroupAdminUser, Member, MemberUser, Post, User } from '../../src/generated/prisma/client'
 import { privilegedDb } from '../../src/server/multitenant'
 import prisma from '../../src/utils/prisma'
 import { toUuid } from './utils'
@@ -9,6 +9,7 @@ let memberCounter = 0
 let userCounter = 0
 let categoryCounter = 0
 let postCounter = 0
+let fileCounter = 0
 
 type SeedGroupInput = Omit<Partial<Group>, 'tenantId'> & {
   tenantId: string
@@ -26,6 +27,11 @@ type SeedPostInput = Omit<Partial<Post>, 'tenantId' | 'groupId' | 'memberId'> & 
 
 type SeedCategoryInput = Omit<Partial<Category>, 'tenantId' | 'groupId'> & {
   tenantId: string
+}
+
+type SeedFileInput = Omit<Partial<File>, 'tenantId' | 'uploaderId'> & {
+  tenantId: string
+  uploaderId?: string
 }
 
 const db = () => privilegedDb(prisma)
@@ -81,6 +87,19 @@ const defaultPostData = () => {
   }
 }
 
+const defaultFileData = (tenantId: string, resourceType = 'members') => {
+  fileCounter++
+  const key = `${tenantId}/${resourceType}/seed-file-${fileCounter}.png`
+  return {
+    key,
+    url: `http://komunitin.s3.test/uploads/${key}`,
+    mime: 'image/png',
+    filename: `seed-file-${fileCounter}.png`,
+    size: 68,
+    resourceType,
+  }
+}
+
 const getGroupByTenant = async (tenantId: string) => {
   const group = await db().group.findFirst({
     where: { tenantId },
@@ -111,6 +130,7 @@ export const resetDb = async () => {
   userCounter = 0
   categoryCounter = 0
   postCounter = 0
+  fileCounter = 0
   await prisma.$executeRawUnsafe(
     'TRUNCATE TABLE "File", "Post", "Category", "MemberUser", "GroupAdminUser", "Member", "Group", "User" RESTART IDENTITY CASCADE'
   )
@@ -289,3 +309,43 @@ export const seedPost = async (data: SeedPostInput): Promise<Post> => {
   })
 }
 
+export const seedFile = async (data: SeedFileInput): Promise<File> => {
+  const defaults = defaultFileData(data.tenantId, data.resourceType ?? undefined)
+  const uploaderId = toUuid(data.uploaderId ?? `seed-file-uploader-${data.tenantId}`)
+
+  await seedUser({
+    id: uploaderId,
+  })
+
+  const created = await db().file.create({
+    data: {
+      id: data.id ? toUuid(data.id) : undefined,
+      tenantId: data.tenantId,
+      mime: data.mime ?? defaults.mime,
+      key: data.key ?? defaults.key,
+      url: data.url ?? defaults.url,
+      filename: data.filename ?? defaults.filename,
+      size: data.size ?? defaults.size,
+      resourceType: data.resourceType ?? defaults.resourceType,
+      resourceId: data.resourceId === undefined ? null : data.resourceId,
+      uploaderId,
+      created: data.created,
+    },
+  })
+
+  if (data.created || data.updated) {
+    const createdAt = data.created ?? created.created
+    const updatedAt = data.updated ?? created.updated
+    await db().$executeRaw`
+      UPDATE "File"
+      SET "created" = ${createdAt}, "updated" = ${updatedAt}
+      WHERE "id" = ${created.id}::uuid
+    `
+  }
+
+  return await db().file.findUniqueOrThrow({
+    where: {
+      id: created.id,
+    },
+  })
+}

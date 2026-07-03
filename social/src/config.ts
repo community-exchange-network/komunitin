@@ -22,6 +22,8 @@ const envSchema = z.object({
   UPLOAD_ALLOWED_MIME_TYPES: z.string()
     .default('image/jpeg,image/png,image/webp,image/gif')
     .transform((s) => s.split(',').map((it) => it.trim()).filter(Boolean)),
+  UPLOAD_CLEANUP_ENABLED: z.coerce.boolean().default(true),
+  UPLOAD_CLEANUP_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
 })
 
 export const config = envSchema.parse(process.env)

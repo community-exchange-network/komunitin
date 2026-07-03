@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { FetchHttpHandler } from '@smithy/fetch-http-handler'
 import type { Request } from 'express'
 import { fileTypeFromBuffer } from 'file-type'
@@ -79,12 +79,15 @@ const extensionFromMime = (mime: string): string => {
   return ext
 }
 
+const fullObjectKey = (key: string): string => {
+  return uploadBaseKeyPrefix ? `${uploadBaseKeyPrefix}/${key}` : key
+}
+
 const uploadToS3 = async (key: string, contentType: string, data: Buffer): Promise<void> => {
-  const fullKey = uploadBaseKeyPrefix ? `${uploadBaseKeyPrefix}/${key}` : key
   try {
     await s3.send(new PutObjectCommand({
       Bucket: uploadBucket,
-      Key: fullKey,
+      Key: fullObjectKey(key),
       Body: data,
       ContentType: contentType,
       ContentLength: data.length,
@@ -92,6 +95,17 @@ const uploadToS3 = async (key: string, contentType: string, data: Buffer): Promi
     }))
   } catch (cause) {
     throw internalError('Failed to upload file', { cause })
+  }
+}
+
+export const deleteFromS3 = async (key: string): Promise<void> => {
+  try {
+    await s3.send(new DeleteObjectCommand({
+      Bucket: uploadBucket,
+      Key: fullObjectKey(key),
+    }))
+  } catch (cause) {
+    throw internalError('Failed to delete file', { cause })
   }
 }
 
