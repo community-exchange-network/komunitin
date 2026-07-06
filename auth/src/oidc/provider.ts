@@ -12,7 +12,7 @@ import { adapterFactory } from './adapter'
 import { findAccount, authenticate } from './account'
 import { apiScopes, clients } from './clients'
 import { verifySignedToken } from './token-verifier'
-import { getJwks } from './jwks'
+import type { Jwks } from './jwks'
 import { isUuid } from '../utils/uuid'
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60
@@ -125,8 +125,7 @@ const assignGrantScopes = (grant: any, scope: string) => {
   }
 }
 
-export async function createProvider() {
-  const jwks = await getJwks()
+export async function createProvider(jwks: Jwks) {
 
   const oidcConfig: Configuration = {
     adapter: adapterFactory,

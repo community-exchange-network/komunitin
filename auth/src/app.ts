@@ -7,7 +7,7 @@ import passwordRoutes from './routes/password'
 import emailRoutes from './routes/email'
 import actionTokenRoutes from './routes/action-token'
 import healthRoutes from './routes/health'
-import { createProvider } from './oidc/provider'
+import { oidcProviderMiddleware, startJwksRotationJob } from './oidc/provider-runtime'
 import logger from './utils/logger'
 import { config } from './config'
 import type { Server } from 'node:http'
@@ -42,9 +42,8 @@ let providerMounted = false
 
 export const initializeApp = async () => {
   if (!providerMounted) {
-    const provider = await createProvider()
     app.use('/token', tokenRateLimit)
-    app.use('/', provider.callback())
+    app.use('/', await oidcProviderMiddleware())
     app.use(errorHandler)
     providerMounted = true
   }
@@ -62,9 +61,11 @@ export const startServer = async () => {
     })
     instance.once('error', reject)
   })
+  const stopJwksRotationJob = startJwksRotationJob()
 
   return {
     stop: async () => {
+      stopJwksRotationJob()
       await new Promise<void>((resolve, reject) => {
         server.close((err) => err ? reject(err) : resolve())
       })

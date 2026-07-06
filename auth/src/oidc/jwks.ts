@@ -5,7 +5,7 @@ import type { Prisma } from '../generated/prisma/client'
 import prisma from '../utils/prisma'
 import logger from '../utils/logger'
 
-type Jwks = {
+export type Jwks = {
   keys: StoredJwk[]
 }
 
