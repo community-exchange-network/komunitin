@@ -11,9 +11,9 @@ Simplicity is part of the security model here.
 Auth owns:
 
 - Identity records and canonical auth user UUIDs.
-- OAuth token issuance and JWKS signing keys.
-- Email, password hash, email verification, and auth account status.
-- Password reset, and email change action tokens.
+- OAuth token issuance and JWKS signing keys
+- Action tokens for email verification, email change, password reset, unsubscribe links.
+- Email, password hash, email verification.
 
 Auth does not own:
 
