@@ -49,7 +49,7 @@ elif [ "$dev" = true ]; then
   # Create .env files required by compose.dev.yml volume mounts if they don't exist.
   # Docker creates empty directories in their place if the host files are missing,
   # which causes the services to fail to start.
-  touch -a app/.env accounting/.env notifications-ts/.env auth/.env
+  touch -a app/.env accounting/.env notifications-ts/.env auth/.env social/.env
   docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans
 else
   docker compose up -d --build --remove-orphans
@@ -68,9 +68,12 @@ if [ "$demo" = true  ]; then
   docker compose exec auth pnpm prisma migrate reset --force
   docker compose exec accounting pnpm prisma migrate reset --force
   docker compose exec notifications-ts pnpm prisma migrate reset --force
+  # for social db, prisma reset does not work well so we recreate the db container instead.
+  docker compose down -v social-db && docker compose up -d social-db
   sleep 2
 else
   docker compose exec auth pnpm prisma migrate deploy
+  docker compose exec social pnpm prisma migrate deploy
   docker compose exec accounting pnpm prisma migrate deploy
   docker compose exec notifications-ts pnpm prisma migrate deploy
   sleep 2

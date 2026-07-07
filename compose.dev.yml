@@ -62,6 +62,23 @@ services:
       - ./auth/prisma.config.ts:/app/prisma.config.ts
       - ./auth/tsconfig.json:/app/tsconfig.json
   
+  social:
+    command: pnpm dev
+    ports:
+      - "2028:2028"
+      - "9228:9228"
+    volumes:
+      - ./social/src:/app/src
+      - ./social/prisma:/app/prisma
+      - ./social/test:/app/test
+      - ./social/.env:/app/.env
+      - ./social/build.config.ts:/app/build.config.ts
+      - ./social/package.json:/app/package.json
+      - ./social/pnpm-lock.yaml:/app/pnpm-lock.yaml
+      - ./social/pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./social/prisma.config.ts:/app/prisma.config.ts
+      - ./social/tsconfig.json:/app/tsconfig.json
+
   notifications-ts:
     command: pnpm dev
     ports:

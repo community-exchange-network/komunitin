@@ -10,9 +10,9 @@ services:
     environment:
       OAUTH_CLIENTID: komunitin-app
       MOCK_ENABLE: false
-      AUTH_URL: ${ICES_URL}/oauth2
-      SOCIAL_URL: ${ICES_URL}/ces/api/social
-      FILES_URL: ${ICES_URL}/ces/files
+      AUTH_URL: ${KOMUNITIN_AUTH_URL}
+      SOCIAL_URL: ${KOMUNITIN_SOCIAL_URL}
+      FILES_URL: ${KOMUNITIN_SOCIAL_URL}
       ACCOUNTING_URL: ${KOMUNITIN_ACCOUNTING_URL}
       NOTIFICATIONS_URL: ${KOMUNITIN_NOTIFICATIONS_URL}
       FEEDBACK_URL: ${KOMUNITIN_FEEDBACK_URL}
@@ -54,7 +54,7 @@ services:
     environment:
       PORT: 2026
       DATABASE_URL: postgresql://auth:auth@db-auth:5432/auth?schema=public
-      ISSUER_URL: ${KOMUNITIN_AUTH_URL:-http://auth:2026}
+      ISSUER_URL: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
       NOTIFICATIONS_URL: http://notifications-ts:2023
       NOTIFICATIONS_EVENTS_USERNAME: komunitin
       NOTIFICATIONS_EVENTS_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
@@ -108,9 +108,9 @@ services:
       STELLAR_CHANNEL_ACCOUNTS_ENABLED: true
       DOMAIN: ${KOMUNITIN_DOMAIN}
       MASTER_PASSWORD_SALT: ${KOMUNITIN_ACCOUNTING_MASTER_PASSWORD_SALT}
-      AUTH_JWKS_URL: http://integralces:2029/.well-known/jwks.json
-      AUTH_JWT_ISSUER: ${ICES_URL}/
-      AUTH_JWT_AUDIENCE: "komunitin-app,komunitin-notifications"
+      AUTH_JWKS_URL: http://auth:2026/.well-known/jwks.json
+      AUTH_JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
+      AUTH_JWT_AUDIENCE: app
       NOTIFICATIONS_API_URL: http://notifications-ts:2023
       API_BASE_URL: ${KOMUNITIN_ACCOUNTING_URL}
       APP_URL: ${KOMUNITIN_APP_URL}
@@ -166,16 +166,16 @@ services:
       - db-notifications-ts
       - db-notifications
     environment:
-      KOMUNITIN_AUTH_URL: http://integralces:2029/oauth2
-      KOMUNITIN_SOCIAL_URL: http://integralces:2029/ces/api/social
-      KOMUNITIN_SOCIAL_PUBLIC_URL: ${ICES_URL}/ces/api/social
+      KOMUNITIN_AUTH_URL: http://auth:2026
+      KOMUNITIN_SOCIAL_URL: http://social:2028
+      KOMUNITIN_SOCIAL_PUBLIC_URL: ${KOMUNITIN_SOCIAL_URL:-http://localhost:2028}
       KOMUNITIN_ACCOUNTING_URL: http://accounting:2025
       KOMUNITIN_APP_URL: ${KOMUNITIN_APP_URL}
       DATABASE_URL: postgresql://notifications:notifications@db-notifications-ts:5432/notifications?schema=public
       REDIS_URL: redis://db-notifications:6379
-      AUTH_JWKS_URL: http://integralces:2029/.well-known/jwks.json
-      AUTH_JWT_ISSUER: ${ICES_URL}/
-      AUTH_JWT_AUDIENCE: "komunitin-app,komunitin-notifications"
+      AUTH_JWKS_URL: http://auth:2026/.well-known/jwks.json
+      AUTH_JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
+      AUTH_JWT_AUDIENCE: app
 
       NOTIFICATIONS_CLIENT_ID: komunitin-notifications
       NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
@@ -220,6 +220,34 @@ services:
       AWS_S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
     volumes:
       - db-notifications-ts:/var/lib/postgresql/data
+
+  social:
+    build:
+      context: ./social
+    restart: unless-stopped
+    ports:
+      - "2028:2028"
+    depends_on:
+      - db-social
+    environment:
+      PORT: 2028
+      DATABASE_URL: postgresql://social:social@db-social:5432/social?schema=public
+      API_BASE_URL: ${KOMUNITIN_SOCIAL_URL:-http://localhost:2028}
+      ACCOUNTING_URL: http://accounting:2025
+      NOTIFICATIONS_API_URL: http://notifications-ts:2023
+      NOTIFICATIONS_API_USERNAME: komunitin
+      NOTIFICATIONS_API_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
+      AUTH_JWKS_URL: http://auth:2026/.well-known/jwks.json
+      AUTH_JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
+      AUTH_JWT_AUDIENCE: app
+      UPLOAD_S3_PREFIX: ${S3_PREFIX}/uploads
+      UPLOAD_S3_ENDPOINT: ${S3_ENDPOINT:-http://s3.test}
+      UPLOAD_S3_REGION: ${S3_REGION:-us-east-1}
+      UPLOAD_S3_ACCESS_KEY: ${S3_ACCESS_KEY:-test-access-key}
+      UPLOAD_S3_SECRET_KEY: ${S3_SECRET_KEY:-test-secret-key}
+      UPLOAD_S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   db-social:
     build:

@@ -10,6 +10,8 @@ paths over keeping adapters. Use the new service shapes to simplify consumers,
 especially by separating auth-owned credentials from social-owned profile and
 membership data.
 
+If you find needing changes out of the scope of current stage, just note that in this plan document and we'll implement that later. You can even add additional stages if needed.
+
 ## Stage 0: Wire The New Services Through Configuration
 
 Goal: make the local stack and consumers point at the new service URLs without

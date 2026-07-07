@@ -4,3 +4,9 @@
 .vscode/chrome
 app/src/css/override.variables.sass
 accounting/komunitin-project-backup-credentials.json
+auth/node_modules/
+auth/src/generated
+auth/dist
+social/dist
+social/node_modules/
+social/src/generated
