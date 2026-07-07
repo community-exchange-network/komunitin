@@ -6,7 +6,7 @@
     :zoom="zoom ?? defaultZoom"
     :center="centerLatLng"
     :use-global-leaflet="false"
-    :bounds="bounds"
+    :bounds="leafletBounds"
     @ready="fitBounds"
   >
     <l-tile-layer :url="url" />
@@ -20,21 +20,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRaw, useTemplateRef } from "vue";
+import { computed, useTemplateRef } from "vue";
 
-import type { PointExpression, LatLngExpression, LatLngBoundsExpression, Map as LeafletMap } from "leaflet";
-import { latLngBounds } from "leaflet/dist/leaflet-src.esm";
+import type { LatLngExpression, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { LMap, LTileLayer, LMarker } from "@vue-leaflet/vue-leaflet";
-import { useLeafletSettings } from "../composables/leaflet";
+import { toLeafletBounds, toLeafletLatLng, type LngLat, useLeafletSettings } from "../composables/leaflet";
 
 const props = withDefaults(defineProps<{
-  center: [number, number],
+  center: LngLat,
   zoom?: number
-  // Bounds accepts the points you need to keep visible. Note that this prop requires coordinates in
-  // reversed order (lat, lng) compared to marker and center (lng, lat).
-  bounds?: LatLngBoundsExpression,
-  marker?: [number, number],
+  // Points that need to remain visible, using the app-wide [longitude, latitude] convention.
+  bounds?: LngLat[],
+  marker?: LngLat,
   interactive?: boolean
 }>(), {
   interactive: true,
@@ -44,21 +42,19 @@ const props = withDefaults(defineProps<{
 })
 
 const { url, zoom: defaultZoom, markerIcon } = useLeafletSettings()
-const centerLatLng = computed(() => props.center?.slice().reverse() as PointExpression)
-const markerLatLng = computed(() => props.marker?.slice().reverse() as LatLngExpression)
+const centerLatLng = computed<LatLngExpression>(() => toLeafletLatLng(props.center))
+const markerLatLng = computed<LatLngExpression | undefined>(() => props.marker ? toLeafletLatLng(props.marker) : undefined)
+const leafletBounds = computed(() => toLeafletBounds(props.bounds))
 const map = useTemplateRef<{ leafletObject?: LeafletMap }>("map")
 
 const fitBounds = () => {
-  if (!props.bounds) {
+  if (!leafletBounds.value) {
     return
   }
 
   // LMap handles later bounds changes, but its watcher is installed after async Leaflet setup and is
   // not immediate. Fit the current prop on ready so already-loaded bounds are not missed.
-  const bounds = latLngBounds(toRaw(props.bounds))
-  if (bounds.isValid()) {
-    map.value?.leafletObject?.fitBounds(bounds)
-  }
+  map.value?.leafletObject?.fitBounds(leafletBounds.value)
 }
 
 </script>
