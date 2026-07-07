@@ -8,7 +8,7 @@
 	"scripts": {
 		"build": "pnpm typecheck && unbuild",
 		"start": "node dist/index.mjs",
-		"dev": "tsx --inspect=0.0.0.0:9229 --watch src/index.ts | pino-pretty",
+		"dev": "tsx --inspect=0.0.0.0:9225 --watch src/index.ts | pino-pretty",
 		"reset-db": "prisma migrate reset --force",
 		"test-ledger": "tsx --test test/ledger/*.ts",
 		"test-server": "pnpm reset-db && pnpm test-api && pnpm test-credcom && pnpm test-topup",

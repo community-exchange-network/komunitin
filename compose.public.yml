@@ -27,6 +27,20 @@ services:
     
     networks:
       - proxy
+
+  auth:
+    ports: !reset []
+    expose:
+      - "2026"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.auth-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=2026"
+      - "traefik.http.routers.auth-${COMPOSE_PROJECT_NAME}.rule=Host(`auth.${KOMUNITIN_DOMAIN}`)"
+      - "traefik.http.routers.auth-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
+      - "traefik.http.routers.auth-${COMPOSE_PROJECT_NAME}.tls=true"
+      - "traefik.http.routers.auth-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
+    networks:
+      - proxy
   
   accounting:
     ports: !reset []
@@ -62,6 +76,11 @@ services:
       - proxy
 
   db-integralces:
+    ports: !reset []
+    networks:
+      - proxy
+
+  db-auth:
     ports: !reset []
     networks:
       - proxy
