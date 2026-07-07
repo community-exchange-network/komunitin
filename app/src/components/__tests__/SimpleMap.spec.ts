@@ -4,7 +4,7 @@ import { defineComponent, h, onMounted } from "vue";
 import { vi } from "vitest";
 
 import SimpleMap from "../SimpleMap.vue";
-import type { LngLat } from "../../composables/leaflet.js";
+import type { LngLat } from "../../composables/leaflet";
 import type { LatLngBounds } from "leaflet";
 
 describe("SimpleMap", () => {
