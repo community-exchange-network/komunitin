@@ -6,7 +6,7 @@
     >
       <template #buttons>
         <contact-button
-          v-if="!loading && group"
+          v-if="!isLoading && group"
           icon="message"
           round
           flat
@@ -26,7 +26,7 @@
       <q-page class="q-pa-md">
         <!-- Loading spinner -->
         <q-inner-loading
-          :showing="loading"
+          :showing="isLoading"
           color="icon-dark"
         />
         <!-- Group view -->
@@ -110,11 +110,11 @@
                 class="simple-map"
                 :center="center"
                 :marker="marker"
-                :bounds="bounds"
+                :bounds="memberMarkers"
               >
                 <l-marker
                   v-for="(memberMarker, i) of memberMarkers"
-                  :key="`member-${i}`"
+                  :key="i"
                   :lat-lng="memberMarker"
                 />
               </simple-map>
@@ -168,41 +168,39 @@ import NavCard from '../../components/NavCard.vue';
 import type { Group, Contact, Member } from '../../store/model';
 import { useAllResources, useResource } from 'src/composables/useResources';
 import { useI18n } from 'vue-i18n';
-import type { LatLngBounds } from "leaflet";
-import { latLngBounds } from "leaflet/dist/leaflet-src.esm";
 
 const props = defineProps<{ code: string }>();
 
 const store = useStore();
 const { t } = useI18n();
 
+const isLoading = ref(false);
 const isDescriptionOpen = ref(false);
 const descriptionRef = ref<HTMLElement | null>(null);
 const canToggleDescription = ref(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
 const groupOptions = computed(() => ({ group: props.code, include: 'contacts' }));
-const { resource: group, loading } = useResource<Group & { contacts: Contact[] }>('groups', groupOptions);
+const { resource: group, load: loadGroup } = useResource<Group & { contacts: Contact[] }>('groups', groupOptions, {
+  immediate: false,
+});
 const own = computed(
   () => group.value && store.getters['myMember'] && group.value.id == store.getters['myMember'].group.id
 );
 const center = computed(() => group.value?.attributes.location.coordinates);
 const marker = computed(() => center.value);
-
-const memberOptions = computed(() => ({ group: props.code, cache: 10 * 60 * 1000 }));
-const { resources: members } = useAllResources('members', memberOptions);
-
 const memberMarkers = computed<LatLngExpression[]>(() => {
   return (members.value ?? [])
     .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
     .filter(Boolean) as LatLngExpression[];
 });
-
-const bounds = computed<LatLngBounds>(() => latLngBounds(memberMarkers.value));
 const membersLabel = computed(
   () => `${t('members')} ${isLoggedIn.value && members.value?.length ? `(${members.value.length})` : ''}`
 );
 
+
+const memberOptions = computed(() => ({ group: props.code }));
+const { resources: members, loadAll: loadAllMembers } = useAllResources('members', memberOptions, { immediate: false });
 
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;
@@ -223,8 +221,24 @@ const calculateDescriptionOverflow = async (maxLines = 3) => {
   canToggleDescription.value = el.scrollHeight > maxHeight + 1;
 };
 
+const fetchData = async () => {
+  isLoading.value = true;
+  try {
+    await loadGroup();
+    if (isLoggedIn.value) {
+      await loadAllMembers();
+    }
+  } finally {
+    isLoading.value = false;
+  }
+};
 
-watch(group, async () => {
-  await calculateDescriptionOverflow();
-}, { immediate: true });
+watch(
+  () => props.code,
+  async () => {
+    await fetchData();
+    await calculateDescriptionOverflow();
+  },
+  { immediate: true }
+);
 </script>
