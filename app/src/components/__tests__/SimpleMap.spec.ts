@@ -5,6 +5,7 @@ import { vi } from "vitest";
 
 import SimpleMap from "../SimpleMap.vue";
 import type { LngLat } from "../../composables/leaflet.js";
+import type { LatLngBounds } from "leaflet";
 
 describe("SimpleMap", () => {
   let wrapper: VueWrapper;
@@ -101,8 +102,13 @@ describe("SimpleMap", () => {
       bounds,
     });
 
-    const leafletBounds = wrapper.findComponent(LMapStub).props("bounds")
-    expect(leafletBounds).toEqual([[41,1],[42,2]])
+    const leafletBounds = wrapper.findComponent(LMapStub).props("bounds") as LatLngBounds;
+    
+    expect(leafletBounds.getNorth()).toBeCloseTo(42);
+    expect(leafletBounds.getSouth()).toBeCloseTo(41);
+    expect(leafletBounds.getEast()).toBeCloseTo(2);
+    expect(leafletBounds.getWest()).toBeCloseTo(1);
+
     expect(fitBounds).not.toHaveBeenCalled();
   });
 });
