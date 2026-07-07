@@ -21,6 +21,8 @@ changing business flows yet.
   and the matching social client secret where needed.
 - Point development config to new auth on port `2026` and new social on the
   social service port, not IntegralCES.
+- Point the app `FILES_URL` runtime config at the new social service base URL;
+  keep upload consumer shape changes for the later frontend API migration stage.
 - Make sure app passthrough/proxy config allows the new auth and social URLs.
 - Keep migration/import tooling that explicitly reads IntegralCES separate from
   runtime config.
@@ -235,6 +237,9 @@ Goal: move normal app usage to strict new social query and resource shapes.
 
 - Audit every `include` sent by frontend resource modules and pages; remove
   unsupported nested to-many includes.
+- Update image upload consumers from the legacy Drupal files endpoint to social
+  `POST /:code/files/upload`, sending one file and the required `resourceType`
+  multipart field (`members`, `groups`, `offers`, or `needs`).
 - Use allowed route includes only: users `settings`; user members
   `group,group.currency,account`; groups `settings,currency`; members
   `group,account`.
