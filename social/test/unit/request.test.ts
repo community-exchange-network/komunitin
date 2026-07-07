@@ -162,6 +162,21 @@ test('getResourceParams defaults include and parses allowed include values', () 
 	assert.deepStrictEqual(explicit, { include: ['settings'] })
 })
 
+test('request params reject include values when no includes are allowed', () => {
+	assert.throws(
+		() => getCollectionParams(
+			createRequest('include=settings'),
+			{ sort: ['created'] }
+		),
+		/Invalid query parameters/
+	)
+
+	assert.throws(
+		() => getResourceParams(createRequest('include=settings'), {}),
+		/Invalid query parameters/
+	)
+})
+
 test('getCode validates route code params', () => {
 	assert.strictEqual(
 		getCode(createRequest('', { code: 'alpha.group_1-2' })),
