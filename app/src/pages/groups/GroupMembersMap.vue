@@ -9,10 +9,10 @@
       :marker="center"
       :bounds="bounds"
     >
-      <simple-map-marker
-        v-for="(memberMarker, i) of memberMarkers"
+      <l-marker
+        v-for="(memberMarker, i) of memberMarkerLatLngs"
         :key="`member-${i}`"
-        :coordinates="memberMarker"
+        :lat-lng="memberMarker"
       />
     </simple-map>
     <q-card-section class="group-footer-card text-onsurface-m">
@@ -25,12 +25,13 @@
 <script setup lang="ts">
 import { computed, watch } from "vue"
 import { useStore } from "vuex"
+import type { LatLngExpression } from "leaflet"
+import { LMarker } from "@vue-leaflet/vue-leaflet"
 
 import SimpleMap from "../../components/SimpleMap.vue"
-import SimpleMapMarker from "../../components/SimpleMapMarker.vue"
 
 import { useAllResources } from "src/composables/useResources"
-import { getBoundsAroundCenter, isUsableLngLat, type LngLat } from "src/composables/leaflet"
+import { getBoundsAroundCenter, isUsableLngLat, toLeafletLatLng, type LngLat } from "src/composables/leaflet"
 import type { Group, Member } from "src/store/model"
 
 const props = defineProps<{
@@ -63,4 +64,5 @@ const memberMarkers = computed<LngLat[]>(() => {
 })
 
 const bounds = computed(() => getBoundsAroundCenter(center.value, memberMarkers.value, 0.8, 0.1))
+const memberMarkerLatLngs = computed<LatLngExpression[]>(() => memberMarkers.value.map(toLeafletLatLng))
 </script>
