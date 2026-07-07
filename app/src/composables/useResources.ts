@@ -114,15 +114,16 @@ export const useAllResources = <T extends ResourceObject = ResourceObject>(
   options: MaybeRefOrGetter<LoadListPayload>,
   config?: UseResourcesConfig
 ) => {
-  const allResources = ref<T[]>([]);
-  const { resources, hasNext, loadNext, load, loading } = useResources(type, options, config);
+  const { resources, hasNext, loadNext, load, loading } = useResources<T>(type, options, {
+    ...config,
+    immediate: false
+  });
 
   const loadAll = async () => {
     await load();
     while (hasNext.value) {
       await loadNext();
     }
-    allResources.value = resources.value as T[];
   };
 
   // Load all resources immediately if configured
@@ -130,5 +131,5 @@ export const useAllResources = <T extends ResourceObject = ResourceObject>(
     loadAll();
   }
 
-  return { resources: allResources, loadAll, loading };
+  return { resources, loadAll, loading };
 };
