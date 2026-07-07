@@ -104,7 +104,7 @@ const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   const existingCodes = members.map(m => m.code.substring(groupCode.length))
     .filter(code => /^\d+$/.test(code)) // Only consider numeric codes
     .map(code => parseInt(code))
-    .sort()
+    .sort((a, b) => a - b)
   
   // Find the first gap in the sequence of existing codes.
   const candidate = existingCodes.length > 0 ? existingCodes[0] + 1 : 0
