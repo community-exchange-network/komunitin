@@ -2,6 +2,7 @@ import TsJapi from 'ts-japi'
 import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
 import { MemberSerializer } from '../members/serialize'
 import { Post } from './types'
+import { CategorySerializer } from '../categories/serialize'
 
 const { Relator, Linker, Serializer, PolymorphicSerializer } = TsJapi
 
@@ -34,7 +35,7 @@ const linkers = {
 
 const relators = {
   member: new Relator(async (post: Post) => post.member, MemberSerializer, { relatedName: 'member' }),
-  category: new Relator(async (post: Post) => ({id: post.categoryId}), new Serializer("categories"), { relatedName: 'category' })
+  category: new Relator(async (post: Post) => post.category, CategorySerializer, { relatedName: 'category' })
 }
 
 const OfferSerializer = new Serializer('offers', {

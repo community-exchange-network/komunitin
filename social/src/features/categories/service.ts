@@ -10,7 +10,7 @@ import { canWriteGroup, getGroupByCode } from '../groups/service'
 import type { Category, CreateCategoryInput, PatchCategoryInput } from './types'
 import { findCategoriesIds } from './sql'
 
-const toCategory = (dbCategory: DbCategory): Category => {
+export const toCategory = (dbCategory: DbCategory): Category => {
   return dbCategory as Category
 }
 

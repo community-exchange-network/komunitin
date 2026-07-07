@@ -1,4 +1,5 @@
 import type { Post as DbPost } from '../../generated/prisma/client'
+import { Category } from '../categories/types'
 import type { Access, Location } from '../groups/schema'
 import { Member } from '../members/types'
 import type { CreateNeedAttributes, CreateOfferAttributes, Image, PatchNeedAttributes, PatchOfferAttributes, PostStatus } from './schema'
@@ -39,6 +40,7 @@ interface BasePost extends Omit<DbPost, "data" | "latitude" | "longitude"> {
   images: Image[] | null
   location: Location | null
   member: Member
+  category: Category | null
 }
 
 export type OfferData = {

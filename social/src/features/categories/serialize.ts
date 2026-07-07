@@ -1,11 +1,10 @@
 import TsJapi from 'ts-japi'
-import { config } from '../../config'
 import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
 import type { Category } from './types'
 
 const { Linker, Serializer } = TsJapi
 
-const CategorySerializer = new Serializer<Category>('categories', {
+export const CategorySerializer = new Serializer<Category>('categories', {
   version: null,
   projection: {
     code: 1,

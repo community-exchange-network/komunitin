@@ -1,4 +1,4 @@
-import { type Member as DbMember, type Post as DbPost } from '../../generated/prisma/client'
+import type { Member as DbMember, Post as DbPost, Category as DbCategory } from '../../generated/prisma/client'
 import { PostUpdateInput } from '../../generated/prisma/models'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
@@ -15,9 +15,9 @@ import { createNotificationsClient } from '../../clients/notifications'
 import type { PostStatus } from './schema'
 import type { CreatePostInput, NeedData, OfferData, PatchPostInput, Post } from './types'
 import { findPostsIds } from './sql'
-import { Member } from '../members/types'
+import { toCategory } from '../categories/service'
 
-const toPost = (dbPost: DbPost, member: Member): Post => {
+const toPost = (dbPost: DbPost & { member: DbMember & { group?: DbGroup }, category: DbCategory | null }): Post => {
   const { latitude, longitude, data, ...post} = dbPost
   const location = toLocation({
     address: null,
@@ -29,7 +29,8 @@ const toPost = (dbPost: DbPost, member: Member): Post => {
     ...post,
     ...dataObj,
     location,
-    member,
+    member: toMember(dbPost.member),
+    category: dbPost.category ? toCategory(dbPost.category) : null,
   } as Post
 }
 
@@ -62,14 +63,15 @@ const getPostById = async (code: string, id: string, params?: ResourceParams): P
       member: {
         include: getMemberInclude(params?.include),
       },
+      category: true
     }
-  }) as (DbPost & { member: DbMember & { group?: DbGroup } }) | null
+  }) as (DbPost & { member: DbMember & { group?: DbGroup }, category: DbCategory | null }) | null
 
   if (!post) {
     throw notFound('Post not found')
   }
 
-  return toPost(post, toMember(post.member))
+  return toPost(post)
 }
 
 const isPostOwner = async (ctx: OptionalAuthContext, post: Post): Promise<boolean> => {
@@ -159,10 +161,11 @@ export const listPosts = async (ctx: OptionalAuthContext, code: string, params: 
       member: {
         include: getMemberInclude(params.include),
       },
+      category: true,
     },
-  }) as (DbPost & { member: DbMember & { group?: DbGroup } })[]
+  }) as (DbPost & { member: DbMember & { group?: DbGroup }, category: DbCategory | null })[]
 
-  return reorderByIds(posts, ids).map((post) => toPost(post, toMember(post.member)))
+  return reorderByIds(posts, ids).map((post) => toPost(post))
 }
 
 export const getPost = async (ctx: OptionalAuthContext, code: string, id: string, params?: ResourceParams): Promise<Post> => {
@@ -268,6 +271,10 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
       memberId: member.id,
       categoryId: input.categoryId ?? null,
       groupId: group.id,
+    },
+    include: {
+      category: true,
+      member: true
     }
   })
 
@@ -282,7 +289,7 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
     }
   }
 
-  return toPost(created, member)
+  return toPost(created)
 }
 
 export const patchPost = async (ctx: AuthContext, code: string, id: string, input: PatchPostInput): Promise<Post> => {
@@ -337,7 +344,8 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
     where: { id: post.id },
     data: updateData,
     include: {
-      member: true
+      member: true,
+      category: true
     }
   })
 
@@ -354,7 +362,7 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
     }
   }
 
-  return toPost(updated, toMember(updated.member))
+  return toPost(updated)
 }
 
 export const deletePost = async (ctx: AuthContext, code: string, id: string): Promise<void> => {
