@@ -74,16 +74,18 @@ import ResourceCards from "../ResourceCards.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
 import { useStore } from "vuex";
 import { useResource } from 'src/composables/useResources';
+import type { Currency, CurrencySettings } from "../../store/model";
 
 const props = defineProps<{
   code: string
 }>();
 
 const store = useStore();
-const { resource: currency } = useResource('currencies', { group: props.code, include: 'settings' });
+const options = computed(() => ({ group: props.code, include: 'settings' }));
+const { resource: currency } = useResource<Currency & {settings: CurrencySettings}>('currencies', options);
 
 const showBalances = computed(() => 
-  currency.value?.settings?.value?.attributes.defaultHideBalance !== true
+  currency.value?.settings?.attributes.defaultHideBalance !== true
   || store.getters.isAdmin
 );
 
