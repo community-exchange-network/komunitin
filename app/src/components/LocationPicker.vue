@@ -14,7 +14,7 @@
       draggable
       :icon="markerIcon" 
       :lat-lng="markerLatLng"
-      @update:lat-lng="(value) => markerLatLng = value"
+      @update:lat-lng="updateLocation"
     />
     <div class="leaflet-control-container">
       <div class="leaflet-bottom leaflet-right">
@@ -31,17 +31,17 @@
     </div>
   </l-map>
   <div class="text-onsurface-m text-body-2">
-    {{ $t('lnglat', {lng: markerLatLng?.lng?.toFixed(4), lat: markerLatLng?.lat?.toFixed(4)}) }}
+    {{ $t('lnglat', {lng: markerLngLat?.[0]?.toFixed(4), lat: markerLngLat?.[1]?.toFixed(4)}) }}
   </div>
 </template>
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useStore } from 'vuex'
 
-import type { LeafletMouseEvent, LocationEvent, PointExpression } from 'leaflet'
+import type { LeafletMouseEvent, LocationEvent } from 'leaflet'
 import "leaflet/dist/leaflet.css";
 import { LMap, LMarker, LTileLayer } from '@vue-leaflet/vue-leaflet'
-import { useLeafletSettings } from '../composables/leaflet'
+import { fromLeafletLatLng, toLeafletLatLng, useLeafletSettings } from '../composables/leaflet'
 
 
 
@@ -94,20 +94,17 @@ const initialLocation = () => {
   }
 }
 
-const centerLatLng = initialLocation().slice().reverse() as PointExpression
-const markerLatLng = computed({
-  get: () => {
-    return props.modelValue ? {lng: Number(props.modelValue[0]), lat: Number(props.modelValue[1])} : undefined
-  },
-  set: (value) => {
-    emit('update:modelValue', value ? [value.lng, value.lat] : undefined)
-  }
-})
+const centerLatLng = toLeafletLatLng(initialLocation())
+const markerLngLat = computed(() => props.modelValue)
+const markerLatLng = computed(() => markerLngLat.value ? toLeafletLatLng(markerLngLat.value) : undefined)
+const updateLocation = (value: {lat: number, lng: number} | undefined) => {
+  emit('update:modelValue', value ? fromLeafletLatLng([value.lat, value.lng]) : undefined)
+}
 
 const {markerIcon, url, zoom: defaultZoom } = useLeafletSettings()
 
 const map = ref()
-const onMapClick = (e: LeafletMouseEvent|LocationEvent) => markerLatLng.value = e.latlng
+const onMapClick = (e: LeafletMouseEvent|LocationEvent) => updateLocation(e.latlng)
 const onReady = () => {
   map.value.leafletObject.on("click", onMapClick)
   map.value.leafletObject.on("locationfound", onMapClick)

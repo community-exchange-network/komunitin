@@ -52,14 +52,14 @@ export const useResources = <T extends ResourceObject = ResourceObject>(type: st
 export type UseResourceOptions = Omit<LoadByIdPayload, 'id'> & {
   // Use undefined (or don't set) for loading resources without id: currency, currency settings, group etc.
   // Use null for not loading any resource.
-  id?: MaybeRefOrGetter<string> | null;
+  id?: string | null;
 }
   
 
 export const useResource = <T extends ResourceObject = ResourceObject>(type: string, options: MaybeRefOrGetter<UseResourceOptions>, config?: UseResourcesConfig) => {
   const store = useStore()
   
-  const id = ref<string|null|undefined>(toValue(options.id))
+  const id = ref<string|null|undefined>(toValue(options).id)
   const resource = computed<T | null>(() => id.value ? store.getters[`${type}/one`](id.value) : null)
 
   const loading = ref(false)
@@ -91,7 +91,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     try {
       await store.dispatch(type + '/update', {
         id: id.value,
-        group: toValue(options.group),
+        group: toValue(options).group,
         resource: data
       })
     } finally {
@@ -99,9 +99,9 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     }
   }
 
-  // load resource initially and when id changes
-  watch(() => toValue(options.id), () => {
-    id.value = toValue(options.id)
+  // load resource initially and when id or group changes
+  watch([() => toValue(options).id, () => toValue(options).group], () => {
+    id.value = toValue(options).id
     load()
   }, { immediate: config?.immediate ?? true })
 
@@ -114,15 +114,16 @@ export const useAllResources = <T extends ResourceObject = ResourceObject>(
   options: MaybeRefOrGetter<LoadListPayload>,
   config?: UseResourcesConfig
 ) => {
-  const allResources = ref<T[]>([]);
-  const { resources, hasNext, loadNext, load, loading } = useResources(type, options, config);
+  const { resources, hasNext, loadNext, load, loading } = useResources<T>(type, options, {
+    ...config,
+    immediate: false
+  });
 
   const loadAll = async () => {
     await load();
     while (hasNext.value) {
       await loadNext();
     }
-    allResources.value = resources.value as T[];
   };
 
   // Load all resources immediately if configured
@@ -130,5 +131,5 @@ export const useAllResources = <T extends ResourceObject = ResourceObject>(
     loadAll();
   }
 
-  return { resources: allResources, loadAll, loading };
+  return { resources, loadAll, loading };
 };
