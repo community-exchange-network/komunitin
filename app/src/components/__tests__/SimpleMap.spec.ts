@@ -4,13 +4,14 @@ import { defineComponent, h, onMounted } from "vue";
 import { vi } from "vitest";
 
 import SimpleMap from "../SimpleMap.vue";
+import type { LngLat } from "../../composables/leaflet.js";
 
 describe("SimpleMap", () => {
   let wrapper: VueWrapper;
 
   // Mount the component before each test.
   beforeEach(() => {
-    const position = [41.5922793, 1.8342942] as [number, number];
+    const position = [1.8342942, 41.5922793] as LngLat;
     wrapper = shallowMount(SimpleMap, {
       props: {
         center: position,
@@ -25,7 +26,7 @@ describe("SimpleMap", () => {
   });
 
   it("fits current bounds when the map becomes ready", async () => {
-    const position = [41.5922793, 1.8342942] as [number, number];
+    const position = [1.8342942, 41.5922793] as LngLat;
     const fitBounds = vi.fn();
     const LMapStub = defineComponent({
       emits: ["ready"],
@@ -41,8 +42,8 @@ describe("SimpleMap", () => {
         center: position,
         marker: position,
         bounds: [
-          [41, 1],
-          [42, 2],
+          [1, 41],
+          [2, 42],
         ],
       },
       global: {
@@ -61,7 +62,7 @@ describe("SimpleMap", () => {
   });
 
   it("forwards bounds changes to LMap", async () => {
-    const position = [41.5922793, 1.8342942] as [number, number];
+    const position = [1.8342942, 41.5922793] as LngLat;
     const fitBounds = vi.fn();
     const LMapStub = defineComponent({
       props: {
@@ -93,14 +94,15 @@ describe("SimpleMap", () => {
     });
 
     const bounds = [
-      [41, 1],
-      [42, 2],
+      [1, 41],
+      [2, 42],
     ];
     await wrapper.setProps({
       bounds,
     });
 
-    expect(wrapper.findComponent(LMapStub).props("bounds")).toEqual(bounds);
+    const leafletBounds = wrapper.findComponent(LMapStub).props("bounds")
+    expect(leafletBounds).toEqual([[41,1],[42,2]])
     expect(fitBounds).not.toHaveBeenCalled();
   });
 });

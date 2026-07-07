@@ -102,27 +102,7 @@
           class="row q-col-gutter-md"
         >
           <div class="col-12 col-sm-6 col-lg-8">
-            <q-card
-              square
-              flat
-            >
-              <simple-map
-                class="simple-map"
-                :center="center"
-                :marker="marker"
-                :bounds="bounds"
-              >
-                <l-marker
-                  v-for="(memberMarker, i) of memberMarkers"
-                  :key="`member-${i}`"
-                  :lat-lng="memberMarker"
-                />
-              </simple-map>
-              <q-card-section class="group-footer-card text-onsurface-m">
-                <q-icon name="place" />
-                {{ group.attributes.location.name }}
-              </q-card-section>
-            </q-card>
+            <group-members-map :group="group" />
           </div>
           <div class="col-12 col-sm-6 col-lg-4 relative-position">
             <social-network-list
@@ -150,26 +130,21 @@
 import { computed, ref, watch, nextTick } from 'vue';
 import { useStore } from 'vuex';
 
-import { LMarker } from '@vue-leaflet/vue-leaflet';
-import type { LatLngExpression } from 'leaflet';
-
 import md2html from '../../plugins/Md2html';
 
 import PageHeader from '../../layouts/PageHeader.vue';
 import Avatar from '../../components/Avatar.vue';
 import ContactButton from '../../components/ContactButton.vue';
 import ShareButton from '../../components/ShareButton.vue';
-import SimpleMap from '../../components/SimpleMap.vue';
 import SocialNetworkList from '../../components/SocialNetworkList.vue';
 import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
 import NavCard from '../../components/NavCard.vue';
+import GroupMembersMap from './GroupMembersMap.vue';
 
-import type { Group, Contact, Member } from '../../store/model';
-import { useAllResources, useResource } from 'src/composables/useResources';
+import type { Group, Contact } from '../../store/model';
+import { useResource } from 'src/composables/useResources';
 import { useI18n } from 'vue-i18n';
-import type { LatLngBounds } from "leaflet";
-import { latLngBounds } from "leaflet/dist/leaflet-src.esm";
 
 const props = defineProps<{ code: string }>();
 
@@ -186,23 +161,10 @@ const { resource: group, loading } = useResource<Group & { contacts: Contact[] }
 const own = computed(
   () => group.value && store.getters['myMember'] && group.value.id == store.getters['myMember'].group.id
 );
-const center = computed(() => group.value?.attributes.location.coordinates);
-const marker = computed(() => center.value);
-
-const memberOptions = computed(() => ({ group: props.code, cache: 10 * 60 * 1000 }));
-const { resources: members } = useAllResources('members', memberOptions);
-
-const memberMarkers = computed<LatLngExpression[]>(() => {
-  return (members.value ?? [])
-    .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
-    .filter(Boolean) as LatLngExpression[];
-});
-
-const bounds = computed<LatLngBounds>(() => latLngBounds(memberMarkers.value));
+const memberCount = computed(() => group.value?.relationships.members.meta.count)
 const membersLabel = computed(
-  () => `${t('members')} ${isLoggedIn.value && members.value?.length ? `(${members.value.length})` : ''}`
+  () => `${t('members')} ${isLoggedIn.value && memberCount.value ? `(${memberCount.value})` : ''}`
 );
-
 
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;
@@ -223,8 +185,8 @@ const calculateDescriptionOverflow = async (maxLines = 3) => {
   canToggleDescription.value = el.scrollHeight > maxHeight + 1;
 };
 
-
 watch(group, async () => {
   await calculateDescriptionOverflow();
 }, { immediate: true });
+
 </script>
