@@ -1,7 +1,6 @@
-import { Prisma } from '../../src/generated/prisma/client'
 import type { Category, File, Group, GroupAdminUser, Member, MemberUser, Post, User } from '../../src/generated/prisma/client'
 import { privilegedDb } from '../../src/server/multitenant'
-import prisma from '../../src/utils/prisma'
+import prisma, { toNullableJsonInput } from '../../src/utils/prisma'
 import { toUuid } from './utils'
 
 let groupCounter = 0
@@ -112,18 +111,6 @@ const getGroupByTenant = async (tenantId: string) => {
   return group
 }
 
-const toNullableJson = (value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined => {
-  if (value === undefined) {
-    return undefined
-  }
-
-  if (value === null) {
-    return Prisma.JsonNull
-  }
-
-  return value as Prisma.InputJsonValue
-}
-
 export const resetDb = async () => {
   groupCounter = 0
   memberCounter = 0
@@ -142,7 +129,7 @@ export const seedUser = async (data: Partial<User> = {}): Promise<User> => {
   const input = {
     email: data.email ?? defaults.email,
     name: data.name,
-    settings: toNullableJson(data.settings), 
+    settings: toNullableJsonInput(data.settings), 
   }
   
   return db().user.upsert({
@@ -166,13 +153,13 @@ export const seedGroup = async (data: SeedGroupInput): Promise<Group> => {
       description: data.description ?? defaults.description,
       status: data.status ?? defaults.status,
       access: data.access ?? defaults.access,
-      image: toNullableJson(data.image),
-      address: toNullableJson(data.address),
-      contacts: toNullableJson(data.contacts),
+      image: toNullableJsonInput(data.image),
+      address: toNullableJsonInput(data.address),
+      contacts: toNullableJsonInput(data.contacts),
       latitude: data.latitude,
       longitude: data.longitude,
-      meta: toNullableJson(data.meta),
-      settings: toNullableJson(data.settings),
+      meta: toNullableJsonInput(data.meta),
+      settings: toNullableJsonInput(data.settings),
       deleted: data.deleted,
       currencyId: data.currencyId,
     },
@@ -225,10 +212,10 @@ export const seedMember = async (data: SeedMemberInput): Promise<Member> => {
       ...input,
       ...(data.id ? { id: toUuid(data.id) } : {}),
       groupId: group.id,
-      image: toNullableJson(data.image),
-      address: toNullableJson(data.address),
-      contacts: toNullableJson(data.contacts),
-      meta: toNullableJson(data.meta),
+      image: toNullableJsonInput(data.image),
+      address: toNullableJsonInput(data.address),
+      contacts: toNullableJsonInput(data.contacts),
+      meta: toNullableJsonInput(data.meta),
       accountId: data.accountId ? toUuid(data.accountId) : undefined,
     },
   })
@@ -285,8 +272,8 @@ export const seedCategory = async (data: SeedCategoryInput): Promise<Category> =
       ...data,
       ...(data.id ? { id: toUuid(data.id) } : {}),
       groupId: group.id,
-      icon: toNullableJson(data.icon),
-      meta: toNullableJson(data.meta),
+      icon: toNullableJsonInput(data.icon),
+      meta: toNullableJsonInput(data.meta),
     },
   })
 }
@@ -304,7 +291,7 @@ export const seedPost = async (data: SeedPostInput): Promise<Post> => {
       ...(expires ? { expires } : {}),
       memberId: toUuid(data.memberId),
       groupId: group.id,
-      images: toNullableJson(data.images),
+      images: toNullableJsonInput(data.images),
     } as any,
   })
 }
