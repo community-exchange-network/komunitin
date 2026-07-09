@@ -4,7 +4,7 @@
 import type { Server} from "miragejs";
 import { Model, belongsTo, hasMany, Factory, Response } from "miragejs";
 import faker from "faker";
-import { filter } from "./ServerUtils"
+import { badRequest, filter, notFound } from "./ServerUtils"
 
 import { getContactNetworkKeys } from "../utils/social-networks";
 import { config } from "src/utils/config";
@@ -54,6 +54,17 @@ function fakeContactName(type: string) {
       return faker.internet.email();
   }
 }
+
+function fakeContacts(count = 4) {
+  return Array.from({ length: count }, (_, i) => {
+    const type = contactTypes[i % contactTypes.length];
+    return {
+      type,
+      value: fakeContactName(type)
+    };
+  });
+}
+
 // [longitude, latitude]
 function fakeLocation() {
   return {
@@ -74,7 +85,10 @@ function fakeAddress() {
 }
 
 function fakeImage(search = "", size = "800x600") {
-  return `https://picsum.photos/seed/${search}/${size.replace("x", "/")}`;
+  return {
+    url: `https://picsum.photos/seed/${search}/${size.replace("x", "/")}`,
+    alt: search
+  };
 }
 
 function fakeCategoryIconName(i: number): string {
@@ -94,6 +108,31 @@ function fakePrice(i:number): string {
   }
 }
 
+function includes(request: any, value: string) {
+  return (request.queryParams.include ?? "").split(",").includes(value);
+}
+
+function withoutQuery(request: any, names: string[]) {
+  return {
+    ...request,
+    queryParams: Object.fromEntries(
+      Object.entries(request.queryParams).filter(([key]) => !names.includes(key))
+    )
+  };
+}
+
+function sortByDistance(records: any, request: any) {
+  if (!request.queryParams.near || request.queryParams.sort != "distance") {
+    return records;
+  }
+  const [lat, lng] = request.queryParams.near.split(",").map(Number);
+  const distance = (record: any) => {
+    const coordinates = record.location?.coordinates;
+    return coordinates ? Math.pow(coordinates[1] - lat, 2) + Math.pow(coordinates[0] - lng, 2) : Infinity;
+  };
+  return records.sort((a: any, b: any) => distance(a) - distance(b));
+}
+
 /**
  * Object containing the properties to create a MirageJS server that mocks the
  * Komunitin Social API.
@@ -111,22 +150,13 @@ export default {
             };
           }
         );
-        // Only include members, offers and needs for the first two groups, emulating
+        // Only include members and posts for the first two groups, emulating
         // forbidden access.
         if (!["GRP0", "GRP1"].includes(group.code)) {
           delete links['members']
-          delete links['offers']
-          delete links['needs']
+          delete links['posts']
         }
         return links;
-      },
-      shouldIncludeLinkageData(relationshipKey: string, model: any) {
-        return (
-          ApiSerializer.prototype.shouldIncludeLinkageData.apply(this, [
-            relationshipKey,
-            model
-          ]) || relationshipKey == "contacts"
-        );
       },
       selfLink: (group: any) => urlSocial + "/" + group.code,
       isExternal(relationshipKey: string) {
@@ -134,61 +164,44 @@ export default {
       },
     }),
     member: ApiSerializer.extend({
-      shouldIncludeLinkageData(relationshipKey: string, model: any) {
-        return (
-          ApiSerializer.prototype.shouldIncludeLinkageData.apply(this, [
-            relationshipKey,
-            model
-          ]) || relationshipKey == "contacts"
-        );
-      },
       selfLink: (member: any) =>
-        urlSocial + "/" + member.group.code + "/members/" + member.code,
+        urlSocial + "/" + member.group.code + "/members/" + member.id,
       isExternal(relationshipKey: string) {
         return relationshipKey == "account";
       },
       links: (member: any) => {
         return {
           account: {
-            related: `${urlAccounting}/${member.account.currency.code}/accounts/${member.account.code}`
+            related: `${urlAccounting}/${member.group.code}/accounts/${member.account?.id}`
           }
         }
       }
     }),
-    contact: ApiSerializer,
     category: ApiSerializer.extend({
       links(category: any) {
         return {
-          offers: {
-            related: `${urlSocial}/${category.group.code}/offers?filter[category]=${category.id}`
-          },
-          needs: {
-            related: `${urlSocial}/${category.group.code}/needs?filter[category]=${category.id}`
+          posts: {
+            related: `${urlSocial}/${category.group.code}/posts?filter[category]=${category.id}`
           }
         };
       },
       selfLink: (category: any) =>
         urlSocial + "/" + category.group.code + "/categories/" + category.id
     }),
-    offer: ApiSerializer.extend({
-      selfLink: (offer: any) =>
-        urlSocial + "/" + offer.group.code + "/offers/" + offer.code
-    }),
-    need: ApiSerializer.extend({
-      selfLink: (need: any) =>
-        urlSocial + "/" + need.group.code + "/needs/" + need.code
+    post: ApiSerializer.extend({
+      getResourceObjectForModel(model: any) {
+        const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model]);
+        delete json.attributes.type;
+        return json;
+      },
+      typeKeyForModel(model: any) {
+        return model.type
+      },
+      selfLink: (post: any) =>
+        urlSocial + "/" + post.group.code + "/posts/" + post.id
     }),
     user: ApiSerializer.extend({
-      alwaysIncludeLinkageData: true,
       selfLink: (user: any) => `${urlSocial}/users/${user.id}`,
-      links(user: any) {
-        const member = user.members.models[0];
-        return {
-          members: {
-            related: `${urlSocial}/${member.group.code}/members/${member.id}` 
-          }
-        }
-      }
     }),
     userSettings: ApiSerializer.extend({
       selfLink: (settings: any) => `${urlSocial}/users/${settings.id}/settings`
@@ -207,10 +220,8 @@ export default {
     }),
     group: Model.extend({
       members: hasMany(),
-      contacts: hasMany(),
       categories: hasMany(),
-      offers: hasMany(),
-      needs: hasMany(),
+      posts: hasMany(),
       currency: belongsTo(),
       settings: belongsTo("groupSettings")
     }),
@@ -219,23 +230,14 @@ export default {
     }),
     member: Model.extend({
       group: belongsTo(),
-      contacts: hasMany(),
       account: belongsTo(),
-      needs: hasMany(),
-      offers: hasMany(),
+      posts: hasMany(),
     }),
-    contact: Model,
     category: Model.extend({
       group: belongsTo(),
-      offers: hasMany(),
-      needs: hasMany()
+      posts: hasMany()
     }),
-    offer: Model.extend({
-      category: belongsTo(),
-      group: belongsTo(),
-      member: belongsTo()
-    }),
-    need: Model.extend({
+    post: Model.extend({
       category: belongsTo(),
       group: belongsTo(),
       member: belongsTo()
@@ -249,7 +251,6 @@ export default {
     }),
     userSettings: Factory.extend({
       language: "en-us",
-      komunitin: true,
       notifications: {
         myAccount: true,
         group: true
@@ -265,7 +266,7 @@ export default {
       status: "active",
       description: () => fakeMarkdown(4),
       image: (i: number) => (i % 2 == 0) ? fakeImage(`group${i}`) : null,
-      website: () => faker.internet.url(),
+      contacts: () => fakeContacts(),
       address: () => {
         return {
           addressLocality: "Barcelona",
@@ -278,70 +279,56 @@ export default {
       created: () => faker.date.past().toJSON(),
       updated: () => faker.date.recent().toJSON()
     }),
-    contact: Factory.extend({
-      type: (i: number) => contactTypes[i % contactTypes.length],
-      name: (i: number) =>
-        fakeContactName(contactTypes[i % contactTypes.length]),
-      created: () => faker.date.past().toJSON(),
-      updated: () => faker.date.past().toJSON(),
-    }),
     member: Factory.extend({
       code() {
         return faker.internet.userName(this.name);
       },
       access: "public",
-      state: "active",
-      type: () => faker.random.arrayElement(["personal", "business", "public"]),
+      status: "active",
+      type: () => faker.random.arrayElement(["personal", "business", "organization"]),
       name: () => faker.name.findName(),
       description: () => fakeMarkdown(2),
       image: (i: number) => (i % 3 == 0) ? null : fakeImage(`face-${i}`, "100x100"),
+      contacts: () => fakeContacts(),
       address: () => fakeAddress(),
       location: () => fakeLocation(),
       created: () => faker.date.past(),
       updated: () => faker.date.recent()
     }),
     category: Factory.extend({
+      code() {
+        return faker.helpers.slugify(this.name);
+      },
       name: () => faker.commerce.department(),
-      //code() {
-      //  return faker.helpers.slugify((this as any).name);
-      //},
-      //cpa: (i: number) => ["" + i, "" + 0, "" + 0],
-      //description: () => faker.lorem.sentence(),
-      icon: (i: number) => (i % 3 == 1) ? null : fakeCategoryIconName(i),
-      //access: "public",
+      icon: (i: number) => (i % 3 == 1) ? null : {
+        type: "material",
+        value: fakeCategoryIconName(i)
+      },
+      access: "public",
+      meta: () => ({
+        description: faker.lorem.sentence()
+      }),
       created: () => faker.date.past(),
       updated: () => faker.date.past(),
     }),
-    offer: Factory.extend({
-      name: () => faker.commerce.product(),
+    post: Factory.extend({
+      type: "offers",
+      title: () => faker.commerce.product(),
       code(i: number) {
-        return faker.helpers.slugify(this.name) + i;
+        return faker.helpers.slugify(this.title) + i;
       },
-      content: () => fakeMarkdown(faker.random.number({ min: 1, max: 3 })),
-      price: () => fakePrice(faker.random.number({min: 1, max:1000})),
+      description: () => fakeMarkdown(faker.random.number({ min: 1, max: 3 })),
+      value: () => fakePrice(faker.random.number({min: 1, max:1000})),
       images: (i: number) =>
         Array.from(
           { length: faker.random.number({ min: 0, max: 5 }) },
           (v: never, j: number) => fakeImage(`product${i}-${j}`),
         ),
       access: "public",
-      state: "published",
-      expires: () => faker.date.future().toJSON(),
-      created: () => faker.date.past().toJSON(),
-      updated: () => faker.date.recent().toJSON()
-    }),
-    need: Factory.extend({
-      content: () => fakeMarkdown(faker.random.number({min: 1, max: 2})),
-      code() {
-        return faker.helpers.slugify(this.content.substr(0, 10));
+      status: "published",
+      fulfilled() {
+        return this.type == "needs" ? null : undefined;
       },
-      images: (i: number) => Array.from(
-        // Often it's empty.
-        { length: Math.max(faker.random.number({ min: -2, max: 2 }), 0) },
-        (v: never, j: number) => fakeImage(`need${i}-${j}`)
-      ),
-      access: "public",
-      state: "published",
       expires: () => faker.date.future().toJSON(),
       created: () => faker.date.past().toJSON(),
       updated: () => faker.date.recent().toJSON()
@@ -360,10 +347,6 @@ export default {
       // Create signup settings.
       const settings = server.create("groupSettings", { group } as any);
       group.update({ settings });
-      // Create group contacts.
-      faker.seed(1);
-      const contacts = server.createList("contact", 4);
-      group.update({ contacts });
       // Only add data for the first group. Otherwise we spend a lot of
       // time in this function.
       if (i == 0) {
@@ -375,15 +358,12 @@ export default {
         const members = server.createList("member", 30, { group } as any);
         for (let j = 0; j < members.length; j++) {
           const member = members[j];
-          // Create member contacts.
-          faker.seed(1 + j);
-          const contacts = server.createList("contact", 4);
-          member.update({ contacts });
-          // Create member offers and needs only for the first 10 members.
+          // Create member posts only for the first 10 members.
           if (j < 10) {
             const category = categories[j % categories.length];
             faker.seed(j);
-            server.createList("offer", 3, {
+            server.createList("post", 3, {
+              type: "offers",
               member,
               category,
               group
@@ -391,7 +371,9 @@ export default {
             // Create member needs only for some members.
             if (j % 3 == 0) {
               faker.seed(j);
-              server.createList("need", (j % 3) + 1, {
+              server.createList("post", (j % 3) + 1, {
+                type: "needs",
+                value: undefined,
                 member,
                 category: categories[j % categories.length],
                 group
@@ -421,7 +403,7 @@ export default {
         server.create("member", { 
           name: "Empty User",
           code: "empty_user",
-          state: "pending",
+          status: "pending",
           type: undefined,
           description: undefined,
           image: undefined,
@@ -436,7 +418,8 @@ export default {
   routes(server: Server) {
     // All groups
     server.get(urlSocial + "/groups", (schema: any, request) => {
-      return filter(schema.groups.all(), request);
+      const records = filter(schema.groups.all(), withoutQuery(request, ["near"]));
+      return sortByDistance(records, request);
     });
 
     // Single group
@@ -469,7 +452,7 @@ export default {
     // Group categories.
     server.get(urlSocial + "/:code/categories", (schema: any, request) => {
       const group = schema.groups.findBy({ code: request.params.code });
-      return schema.categories.where({ groupId: group.id });
+      return filter(schema.categories.where({ groupId: group.id }), request);
     });
 
     // Create category
@@ -502,16 +485,10 @@ export default {
       return new Response(204);
     })
 
-    // Group offers.
-    server.get(urlSocial + "/:code/offers", (schema: any, request: any) => {
+    // Group posts.
+    server.get(urlSocial + "/:code/posts", (schema: any, request: any) => {
       const group = schema.groups.findBy({ code: request.params.code });
-      return filter(schema.offers.where({ groupId: group.id }), request);
-    });
-
-    // Group offers.
-    server.get(urlSocial + "/:code/needs", (schema: any, request: any) => {
-      const group = schema.groups.findBy({ code: request.params.code });
-      return filter(schema.needs.where({ groupId: group.id }), request);
+      return filter(schema.posts.where({ groupId: group.id }), request);
     });
 
     // Group members.
@@ -552,81 +529,43 @@ export default {
       return undefined as any;
     })
 
-    // Single offer.
-    server.get(urlSocial + "/:code/offers/:offer", (schema: any, request: any) => {
-      return schema.offers.find(request.params.offer);
+    // Single post.
+    server.get(urlSocial + "/:code/posts/:post", (schema: any, request: any) => {
+      return schema.posts.find(request.params.post);
     });
 
-    // Create offer
-    server.post(urlSocial + "/:code/offers", (schema: any, request: any) => {
+    // Create post
+    server.post(urlSocial + "/:code/posts", (schema: any, request: any) => {
       const body = JSON.parse(request.requestBody);
-      const offer = {
+      const type = body.data.type == "needs" ? "needs" : "offers";
+      const post = {
         ...body.data.attributes,
-        code: faker.helpers.slugify(body.data.attributes.name.substr(0, 10)),
+        type,
+        code: faker.helpers.slugify((body.data.attributes.title ?? body.data.attributes.description).substr(0, 10)),
         created: new Date().toJSON(),
         updated: new Date().toJSON(),
         groupId: schema.groups.findBy({ code: request.params.code }).id,
         memberId: body.data.relationships.member.data.id,
         categoryId: body.data.relationships.category.data.id,
       }
-      
-      return schema.offers.create(offer);
+      return schema.posts.create(post);
     })
 
-    // Update offer
-    server.patch(urlSocial + "/:code/offers/:offer", (schema: any, request: any) => {
+    // Update post
+    server.patch(urlSocial + "/:code/posts/:post", (schema: any, request: any) => {
       const body = JSON.parse(request.requestBody);
-      const offer = schema.offers.find(request.params.offer);
-      offer.update({
+      const post = schema.posts.find(request.params.post);
+      post.update({
         ...body.data.attributes,
         updated: new Date().toJSON(),
       })
-      return offer;
+      return post;
     })
 
-    // Delete offer
-    server.delete(urlSocial + "/:code/offers/:offer", (schema: any, request: any) => {
-      const offer = schema.offers.find(request.params.offer);
-      offer.destroy();
-      return undefined as any
-    })
-
-    // Single need
-    server.get(urlSocial + "/:code/needs/:need", (schema: any, request: any) => {
-      return schema.needs.find(request.params.need);
-    });
-
-    // Create need
-    server.post(urlSocial + "/:code/needs", (schema: any, request: any) => {
-      const body = JSON.parse(request.requestBody);
-      const need = {
-        ...body.data.attributes,
-        code: faker.helpers.slugify(body.data.attributes.content.substr(0, 10)),
-        created: new Date().toJSON(),
-        updated: new Date().toJSON(),
-        groupId: schema.groups.findBy({ code: request.params.code }).id,
-        memberId: body.data.relationships.member.data.id,
-        categoryId: body.data.relationships.category.data.id,
-      }
-      
-      return schema.needs.create(need);
-    })
-
-    // Update need
-    server.patch(urlSocial + "/:code/needs/:need", (schema: any, request: any) => {
-      const body = JSON.parse(request.requestBody);
-      const need = schema.needs.find(request.params.need);
-      need.update({
-        ...body.data.attributes,
-        updated: new Date().toJSON(),
-      })
-      return need;
-    })
-
-    // Delete need
-    server.delete(urlSocial + "/:code/needs/:need", (schema: any, request: any) => {
-      const need = schema.needs.find(request.params.need);
-      need.destroy();
+    // Delete post
+    server.delete(urlSocial + "/:code/posts/:post", (schema: any, request: any) => {
+      const post = schema.posts.find(request.params.post);
+      post.destroy();
       return undefined as any
     })
 
@@ -635,8 +574,19 @@ export default {
       return users;
     });
 
+    // User members
+    server.get(urlSocial + "/users/:id/members", (schema: any, request: any) => {
+      if (request.params.id == "me") {
+        return notFound();
+      }
+      return filter(schema.users.find(request.params.id).members, request);
+    });
+
     // Logged-in User
     server.get(urlSocial + "/users/:id", (schema: any, request: any) => {
+      if (includes(request, "members")) {
+        return badRequest("Use /users/:id/members");
+      }
       if (request.requestHeaders.Authorization.split(" ")[1] == "empty_user_access_token") {
         return schema.users.findBy({ email: "empty@example.com" });
       } else {
@@ -669,20 +619,13 @@ export default {
     // Create user.
     server.post(urlSocial + "/users", (schema: any, request: any) => {
       const body = JSON.parse(request.requestBody)
-      const memberId = body.data.relationships.members.data[0].id
-      const memberData = body.included.find((record: any) => record.type == "members" && record.id == memberId)
-      
-      const group = schema.groups.find(memberData.relationships.group.data.id)
-      const member = schema.members.create({...memberData.attributes, group})
+      if (body.data.attributes.password || body.data.relationships?.members) {
+        return badRequest("Social users do not include credentials or members");
+      }
 
-      const userSettingsData = body.included.find((record: any) => record.type == "user-settings")
-      const userSettings = schema.userSettings.create(userSettingsData.attributes)
-      const user = schema.users.create({...body.data.attributes, members: [member], settings: userSettings})
-      
-       
-      console.info("New user created! Follow this URL to contine the signup process:")
-       
-      console.info(`https://localhost:2030/groups/${group.code}/signup-member?token=empty_user`)
+      const userSettingsData = body.included?.find((record: any) => record.type == "user-settings")
+      const userSettings = userSettingsData ? schema.userSettings.create(userSettingsData.attributes) : undefined
+      const user = schema.users.create({...body.data.attributes, settings: userSettings})
 
       return user
     });

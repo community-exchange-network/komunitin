@@ -61,9 +61,12 @@ Goal: make the frontend test/mocking layer behave like the new `auth` and
   creating app sessions from those tokens.
 - Update Mirage social endpoints to return the new resource shapes and allowed
   includes, including `/users/me?include=settings`,
-  `/users/me/members?include=group,group.currency,account&page[size]=1`,
+  `/users/:id/members?include=group,group.currency,account&page[size]=1`,
   `/groups`, `/:code/members`, settings, uploads, marketplace resources, and
   strict `filter`, `sort`, `page`, and `near` query params.
+- Note: the current social service exposes `/users/:id/members`, not
+  `/users/me/members`; load `/users/me` first and use the concrete user id for
+  membership requests.
 - Remove mocked legacy conveniences that would hide frontend migration work:
   embedded `user.members`, magic `?token=` login, social password fields,
   `authorization_code`, `geo-position`, `sort=location`, and unsupported nested
@@ -99,8 +102,8 @@ still run only against MirageJS.
   or refreshed app credentials.
 - Replace `GET /users/me?include=members,members.group,settings` with:
   `GET /users/me?include=settings` and
-  `GET /users/me/members?include=group,group.currency,account&page[size]=1`.
-- Add a dedicated store action/client method for `/users/me/members` instead of
+  `GET /users/:id/members?include=group,group.currency,account&page[size]=1`.
+- Add a dedicated store action/client method for `/users/:id/members` instead of
   forcing it through the generic `/users/me` resource endpoint.
 - Derive `myMember`, `myAccount`, `myCurrency`, and `myGroup` from normalized
   member/account/group/currency stores, not from embedded `user.members`.
@@ -181,7 +184,7 @@ Goal: prove the migrated app bootstrap works against the real social API.
 - Point app runtime/dev config at the real social service for user bootstrap
   endpoints.
 - Verify `GET /users/me?include=settings` and
-  `GET /users/me/members?include=group,group.currency,account&page[size]=1`
+  `GET /users/:id/members?include=group,group.currency,account&page[size]=1`
   match the Mirage contract used in Stage 2.
 - Ensure normalized member/account/group/currency stores populate correctly
   from real social responses.
@@ -387,7 +390,7 @@ scopes.
 - Update notifications calls to accounting so client-credentials tokens carry
   only new allowed scopes.
 - Update accounting CLI scripts that are meant for the new stack to use new
-  auth `/token`, new scopes, and new social `/users/me/members` bootstrap.
+  auth `/token`, new scopes, and new social `/users/:id/members` bootstrap.
 - Keep IntegralCES token refresh only inside explicit migration/import tooling.
 
 Verification:

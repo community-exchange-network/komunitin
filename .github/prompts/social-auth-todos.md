@@ -1,0 +1,3 @@
+# Social/Auth Migration Todos
+
+- Verify whether the real social service emits relationship metadata for non-included Mirage associations such as `user.members`, `group.members`, `group.categories`, `member.posts`, `group.posts`, `group.offers`? `group.needs`?. Mirage now returns that metadata by default and only rejects unsupported `include` values; we may need to align MirageJS and the real service behavior. Specifically, the frontend uses `count` metadata for `group.members`, `member.needs`, `member.offers` etc. Weight whether to keep this architecture (attach meta to each relation) or move to a single metadata object for each resource type, e.g. for a group `meta: { membersCount: 3, needsCount: 2, offersCount: 1 }`.
