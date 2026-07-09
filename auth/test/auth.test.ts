@@ -1,12 +1,12 @@
-import { after, before, beforeEach, describe, test, mock } from 'node:test'
-import assert from 'node:assert'
-import request from 'supertest'
-import { decodeJwt } from 'jose'
-import { setupTestServer, teardownTestServer, resetDb } from './helper'
-import prisma from '../src/utils/prisma'
-import { hashPassword } from '../src/services/tokens'
-import { resetRateLimits } from '../src/utils/rate-limit'
 import type { Express } from 'express'
+import { decodeJwt } from 'jose'
+import assert from 'node:assert'
+import { after, before, beforeEach, describe, test } from 'node:test'
+import request from 'supertest'
+import { config } from '../src/config'
+import { hashPassword } from '../src/services/tokens'
+import prisma from '../src/utils/prisma'
+import { resetDb, setupTestServer, teardownTestServer } from './helper'
 
 // Mock global fetch to intercept emails
 const fetchCalls: { url: string; init: any; body: any }[] = []
@@ -168,7 +168,7 @@ describe('Auth Service Integration Tests', () => {
 
     const decoded = decodeJwt(refreshRes.body.access_token) as any
     assert.strictEqual(decoded.sub, userId)
-    assert.strictEqual(decoded.aud, 'app')
+    assert.strictEqual(decoded.aud, config.JWT_AUDIENCE)
     assert.strictEqual(decoded.scope, 'social:read')
   })
 

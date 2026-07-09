@@ -21,8 +21,8 @@ export async function userAuth(req: AuthenticatedRequest, res: Response, next: N
   const token = authHeader.split(' ')[1]
   try {
     const { payload } = await verifySignedToken(token, {
-      issuer: config.ISSUER_URL,
-      audience: 'app',
+      issuer: config.JWT_ISSUER,
+      audience: config.JWT_AUDIENCE,
     })
 
     const userId = typeof payload.sub === 'string' ? payload.sub : undefined
@@ -67,8 +67,8 @@ export function serviceClientAuth(clientId: string) {
 
     try {
       const { payload } = await verifySignedToken(authHeader.split(' ')[1], {
-        issuer: config.ISSUER_URL,
-        audience: 'app',
+        issuer: config.JWT_ISSUER,
+        audience: config.JWT_AUDIENCE,
       })
 
       const userId = typeof payload.sub === 'string' ? payload.sub : undefined

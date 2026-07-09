@@ -12,7 +12,7 @@ membership data.
 
 If you find needing changes out of the scope of current stage, just note that in this plan document and we'll implement that later. You can even add additional stages if needed.
 
-## Stage 0: Wire The New Services Through Configuration
+## Stage 0: Wire The New Services Through Configuration (DONE)
 
 Goal: make the local stack and consumers point at the new service URLs without
 changing business flows yet.
@@ -43,7 +43,7 @@ Verification:
 Goal: make services trust tokens issued by the new auth service.
 
 - Update JWT validation in social, accounting, and notifications to the new
-  issuer, JWKS, and audience `app`.
+  issuer, JWKS, and audience `urn:komunitin:api`.
 - Replace legacy service scopes with the new scope vocabulary:
   `email`, `social:read`, `social:write`, `accounting:read`,
   `accounting:write`, and any newly agreed admin/read-all scopes.

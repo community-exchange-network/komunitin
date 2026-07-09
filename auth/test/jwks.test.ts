@@ -36,8 +36,8 @@ async function signAccessToken(jwk: StoredJwk) {
 
   return new SignJWT({ sub: '11111111-1111-1111-1111-111111111111' })
     .setProtectedHeader({ alg: 'RS256', kid: String(jwk.kid) })
-    .setIssuer(config.ISSUER_URL)
-    .setAudience('app')
+    .setIssuer(config.JWT_ISSUER)
+    .setAudience(config.JWT_AUDIENCE)
     .setIssuedAt()
     .setExpirationTime('5m')
     .sign(key)
@@ -99,12 +99,12 @@ describe('JWKS persistence and rotation', () => {
     const newToken = await signAccessToken(jwks.keys[0])
 
     await assert.doesNotReject(() => verifySignedToken(oldToken, {
-      issuer: config.ISSUER_URL,
-      audience: 'app',
+      issuer: config.JWT_ISSUER,
+      audience: config.JWT_AUDIENCE,
     }))
     await assert.doesNotReject(() => verifySignedToken(newToken, {
-      issuer: config.ISSUER_URL,
-      audience: 'app',
+      issuer: config.JWT_ISSUER,
+      audience: config.JWT_AUDIENCE,
     }))
   })
 })

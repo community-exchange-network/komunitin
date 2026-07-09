@@ -54,7 +54,8 @@ services:
     environment:
       PORT: 2026
       DATABASE_URL: postgresql://auth:auth@db-auth:5432/auth?schema=public
-      ISSUER_URL: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
+      JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
+      JWT_AUDIENCE: urn:komunitin:api
       NOTIFICATIONS_URL: http://notifications-ts:2023
       NOTIFICATIONS_EVENTS_USERNAME: komunitin
       NOTIFICATIONS_EVENTS_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
@@ -110,7 +111,7 @@ services:
       MASTER_PASSWORD_SALT: ${KOMUNITIN_ACCOUNTING_MASTER_PASSWORD_SALT}
       AUTH_JWKS_URL: http://auth:2026/.well-known/jwks.json
       AUTH_JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
-      AUTH_JWT_AUDIENCE: app
+      AUTH_JWT_AUDIENCE: urn:komunitin:api
       NOTIFICATIONS_API_URL: http://notifications-ts:2023
       API_BASE_URL: ${KOMUNITIN_ACCOUNTING_URL}
       APP_URL: ${KOMUNITIN_APP_URL}
@@ -175,7 +176,7 @@ services:
       REDIS_URL: redis://db-notifications:6379
       AUTH_JWKS_URL: http://auth:2026/.well-known/jwks.json
       AUTH_JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
-      AUTH_JWT_AUDIENCE: app
+      AUTH_JWT_AUDIENCE: urn:komunitin:api
 
       NOTIFICATIONS_CLIENT_ID: komunitin-notifications
       NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
@@ -239,7 +240,7 @@ services:
       NOTIFICATIONS_API_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}
       AUTH_JWKS_URL: http://auth:2026/.well-known/jwks.json
       AUTH_JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
-      AUTH_JWT_AUDIENCE: app
+      AUTH_JWT_AUDIENCE: urn:komunitin:api
       UPLOAD_S3_PREFIX: ${S3_PREFIX}/uploads
       UPLOAD_S3_ENDPOINT: ${S3_ENDPOINT:-http://s3.test}
       UPLOAD_S3_REGION: ${S3_REGION:-us-east-1}

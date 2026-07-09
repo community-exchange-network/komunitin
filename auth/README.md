@@ -65,7 +65,7 @@ Current scopes:
 - `accounting:read`
 - `accounting:write`
 
-Access tokens are signed JWTs with audience `app`. Refresh tokens are opaque server-side records stored by `oidc-provider`.
+Access tokens are signed JWTs with audience `urn:komunitin:api` by default, configurable through `JWT_AUDIENCE`. Refresh tokens are opaque server-side records stored by `oidc-provider`.
 
 ## HTTP API
 

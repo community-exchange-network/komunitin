@@ -23,7 +23,7 @@ const oidcScopes = new Set(['email', 'offline_access'])
 const allowedScopes = new Set(apiScopes)
 
 const appResourceServer = {
-  audience: 'app',
+  audience: config.JWT_AUDIENCE,
   scope: apiScopes.join(' '),
   accessTokenFormat: 'jwt',
   accessTokenTTL: ACCESS_TOKEN_TTL_SECONDS,
@@ -163,7 +163,7 @@ export async function createProvider(jwks: Jwks) {
     },
   }
 
-  const provider = new Provider(config.ISSUER_URL, oidcConfig)
+  const provider = new Provider(config.JWT_ISSUER, oidcConfig)
 
   const issueTokenResponse = async (
     ctx: any,
@@ -267,8 +267,8 @@ export async function createProvider(jwks: Jwks) {
       }
 
       const verified = await verifySignedToken(subjectToken, {
-        issuer: config.ISSUER_URL,
-        audience: 'app',
+        issuer: config.JWT_ISSUER,
+        audience: config.JWT_AUDIENCE,
       }).catch(() => undefined)
 
       if (!verified) {
