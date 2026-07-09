@@ -1,10 +1,15 @@
 import type { AccountClaims, ClaimsParameterMember, FindAccount } from 'oidc-provider'
 import prisma from '../utils/prisma'
 import bcrypt from 'bcrypt'
+import { normalizeEmail } from '../utils/email'
+import { UserStatus } from '../users/status'
 
 export const findAccount: FindAccount = async (ctx, id) => {
   const user = await prisma.user.findUnique({
-    where: { id },
+    where: { 
+      id,
+      status: UserStatus.Active,
+    },
   })
 
   if (!user) return undefined
@@ -40,7 +45,10 @@ const DUMMY_HASH = '$2b$10$Ep32/O81Gk6z.jBOM7Cg.eo1G2aE8i6E7U8g1xM.sHTXv8K7d8.b6
 
 export async function authenticate(email: string, passwordSecret: string) {
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { 
+      email: normalizeEmail(email),
+      status: UserStatus.Active
+    },
   })
 
   if (!user) {
@@ -51,10 +59,6 @@ export async function authenticate(email: string, passwordSecret: string) {
 
   const isValid = await bcrypt.compare(passwordSecret, user.passwordHash)
   if (!isValid) return null
-
-  if (user.status !== 'active') {
-    throw new Error('User account is not active')
-  }
 
   return user
 }

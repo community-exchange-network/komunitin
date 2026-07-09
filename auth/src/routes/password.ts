@@ -6,10 +6,11 @@ import { NotificationsService } from '../services/notifications'
 import { rateLimit } from '../utils/rate-limit'
 import { badRequest } from '../utils/error'
 import logger from '../utils/logger'
+import { normalizedEmailSchema } from '../utils/email'
 
 const router = Router()
 const parseBody = express.json()
-const emailPayloadSchema = z.object({ email: z.string().min(1) })
+const emailPayloadSchema = z.object({ email: normalizedEmailSchema })
 const resetTokenPayloadSchema = z.object({ token: z.string().min(1) })
 const passwordPayloadSchema = z.object({ password: z.string().min(1) })
 

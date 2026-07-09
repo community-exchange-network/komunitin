@@ -7,10 +7,11 @@ import { rateLimit } from '../utils/rate-limit'
 import { userAuth, type AuthenticatedRequest } from '../server/auth'
 import { badRequest } from '../utils/error'
 import logger from '../utils/logger'
+import { normalizeEmail, normalizedEmailSchema } from '../utils/email'
 
 const router = Router()
 const parseBody = express.json()
-const emailPayloadSchema = z.object({ email: z.string().min(1) })
+const emailPayloadSchema = z.object({ email: normalizedEmailSchema })
 const tokenPayloadSchema = z.object({ token: z.string().min(1) })
 
 router.post('/change-email', parseBody, userAuth, rateLimit({ bucket: 'change-email' }), async (req: AuthenticatedRequest, res: Response, next) => {
@@ -52,7 +53,7 @@ router.post('/change-email/confirm', parseBody, rateLimit({ bucket: 'change-emai
     if (!changeRecord || !changeRecord.targetEmail) {
       return next(badRequest('Invalid or expired token'))
     }
-    const targetEmail = changeRecord.targetEmail
+    const targetEmail = normalizeEmail(changeRecord.targetEmail)
 
     const existing = await prisma.user.findUnique({ where: { email: targetEmail } })
     if (existing && existing.id !== changeRecord.userId) {
