@@ -85,7 +85,7 @@ Verification:
   shapes closely enough that frontend migration can happen without real
   services.
 
-## Stage 2: Migrate Frontend In Isolation Against Mirage
+## Stage 2: Migrate Frontend In Isolation Against Mirage (DONE)
 
 Goal: move the app to the new auth and social contracts while all frontend tests
 still run only against MirageJS.
