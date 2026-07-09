@@ -4,11 +4,13 @@ This is a staged migration plan for moving the frontend and dependent services
 from legacy IntegralCES/Drupal social/auth behavior to the new `social` and
 `auth` services.
 
-The stages are ordered so each one leaves a testable slice. The frontend does
-not need to preserve compatibility with the old APIs; prefer deleting legacy
-paths over keeping adapters. Use the new service shapes to simplify consumers,
-especially by separating auth-owned credentials from social-owned profile and
-membership data.
+The stages are ordered so each one leaves a testable slice. First migrate the
+frontend's MirageJS server to the new auth and social API shapes, then migrate
+the frontend against those mocks before connecting it to the real services. The
+frontend does not need to preserve compatibility with the old APIs; prefer
+deleting legacy paths over keeping adapters. Use the new service shapes to
+simplify consumers, especially by separating auth-owned credentials from
+social-owned profile and membership data.
 
 If you find needing changes out of the scope of current stage, just note that in this plan document and we'll implement that later. You can even add additional stages if needed.
 
@@ -38,7 +40,96 @@ Verification:
 - App can reach the configured auth/social URLs through its runtime config.
 - Runtime services no longer need IntegralCES to answer auth/social API calls.
 
-## Stage 1: Establish The New Auth Trust Baseline
+## Stage 1: Migrate Frontend MirageJS Server To New Service Shapes
+
+Goal: make the frontend test/mocking layer behave like the new `auth` and
+`social` services before any real-service integration work.
+
+- Audit the app MirageJS server, factories, fixtures, serializers, and test
+  helpers for legacy IntegralCES/Drupal auth and social assumptions.
+- Model auth-owned data separately from social-owned data:
+  credentials, OAuth tokens, refresh tokens, action tokens, and email
+  verification belong to auth; profiles, settings, groups, members,
+  currencies, accounts, contacts, locations, offers, needs, categories, files,
+  and newsletter preferences belong to social.
+- Update Mirage auth endpoints to the new contracts:
+  `POST /token` remains form-encoded OAuth; credential/account management
+  endpoints such as `register`, `resetPassword`, `resendValidation`,
+  `changePassword`, `changeEmail`, and `confirmEmail` use JSON bodies.
+- Add action-token behavior for email verification, password reset, email
+  change, onboarding continuation where needed, and unsubscribe links without
+  creating app sessions from those tokens.
+- Update Mirage social endpoints to return the new resource shapes and allowed
+  includes, including `/users/me?include=settings`,
+  `/users/me/members?include=group,group.currency,account&page[size]=1`,
+  `/groups`, `/:code/members`, settings, uploads, marketplace resources, and
+  strict `filter`, `sort`, `page`, and `near` query params.
+- Remove mocked legacy conveniences that would hide frontend migration work:
+  embedded `user.members`, magic `?token=` login, social password fields,
+  `authorization_code`, `geo-position`, `sort=location`, and unsupported nested
+  to-many includes.
+- Keep the Mirage fixtures realistic enough to cover the main product journeys:
+  logged-out browsing, login/reload, group creation, activation visibility,
+  member signup/onboarding, email confirmation, password/email changes,
+  marketplace browsing, uploads, notifications links, and unsubscribe.
+
+Verification:
+
+- Frontend tests that only exercise Mirage continue to run against the new mock
+  contracts.
+- Test fixtures expose failures when the frontend sends old request shapes.
+- Mirage responses match the documented new auth/social API ownership and JSON
+  shapes closely enough that frontend migration can happen without real
+  services.
+
+## Stage 2: Migrate Frontend In Isolation Against Mirage
+
+Goal: move the app to the new auth and social contracts while all frontend tests
+still run only against MirageJS.
+
+- In `app/src/plugins/Auth.ts`, replace legacy scopes with the new app scopes.
+- Delete `authorizeWithCode()` and all `authorization_code` handling.
+- Change auth management calls to JSON: `resetPassword`, `resendValidation`,
+  `changePassword`, `changeEmail`, and `confirmEmail`.
+- Keep `/token` requests as form-encoded OAuth requests.
+- In `app/src/boot/auth.ts`, remove global `?token=` magic login behavior.
+- Treat email links as public action-token pages, not login/session links.
+- Keep token refresh inside the auth client layer.
+- Simplify route guards: public pages stay public; private pages require stored
+  or refreshed app credentials.
+- Replace `GET /users/me?include=members,members.group,settings` with:
+  `GET /users/me?include=settings` and
+  `GET /users/me/members?include=group,group.currency,account&page[size]=1`.
+- Add a dedicated store action/client method for `/users/me/members` instead of
+  forcing it through the generic `/users/me` resource endpoint.
+- Derive `myMember`, `myAccount`, `myCurrency`, and `myGroup` from normalized
+  member/account/group/currency stores, not from embedded `user.members`.
+- Convert location list queries from `geo-position=<lng>,<lat>&sort=location`
+  to `near=<lat>,<lng>&sort=distance`.
+- Update first-group and member-signup frontend flows to create auth
+  credentials first, then log in, then create social users/groups/members
+  without sending passwords to social.
+- Add or update public action-token pages for email confirmation, password
+  reset, email change confirmation, and unsubscribe status where the frontend
+  owns the page.
+- Update account-management UI so password and primary email changes call auth
+  endpoints, while profile/settings changes call social endpoints.
+- Audit every frontend `include` and resource query; remove unsupported nested
+  to-many includes and update marketplace/profile/group/member/upload consumers
+  to the new social shapes.
+- Prefer small route-specific client/store methods where the generic resource
+  module would need awkward endpoint overrides.
+
+Verification:
+
+- App unit/component/e2e tests that run against Mirage pass.
+- Login, refresh after reload, current-user bootstrap, public browsing,
+  group creation, member signup, onboarding continuation, email confirmation,
+  password reset/change, email change, profile/settings updates, marketplace
+  reads/writes, uploads, maps, and unsubscribe all pass in frontend isolation.
+- Frontend tests fail if an old IntegralCES request shape is reintroduced.
+
+## Stage 3: Establish The New Auth Trust Baseline
 
 Goal: make services trust tokens issued by the new auth service.
 
@@ -64,20 +155,17 @@ Verification:
 - Social/accounting/notifications accept new tokens and reject legacy-scope-only
   assumptions.
 
-## Stage 2: Simplify The Frontend Auth Client And Boot Guard
+## Stage 4: Integrate Frontend Auth With The Real Auth Service
 
-Goal: make app sessions use only the new auth contract.
+Goal: prove the already-migrated frontend session model works against real auth.
 
-- In `app/src/plugins/Auth.ts`, replace legacy scopes with the new app scopes.
-- Delete `authorizeWithCode()` and all `authorization_code` handling.
-- Change auth management calls to JSON: `resetPassword`, `resendValidation`,
-  `changePassword`, `changeEmail`, and `confirmEmail`.
-- Keep `/token` requests as form-encoded OAuth requests.
-- In `app/src/boot/auth.ts`, remove global `?token=` magic login behavior.
-- Treat email links as public action-token pages, not login/session links.
-- Keep token refresh inside the auth client layer.
-- Simplify route guards: public pages stay public; private pages require stored
-  or refreshed app credentials.
+- Point app runtime/dev config at the real auth service instead of Mirage for
+  auth endpoints.
+- Verify the real auth service supports the exact request/response shapes used
+  by the migrated frontend.
+- Fix real auth gaps discovered by frontend integration without adding frontend
+  compatibility branches for legacy IntegralCES behavior.
+- Keep social calls mocked or isolated until the social integration stages.
 
 Verification:
 
@@ -86,22 +174,20 @@ Verification:
 - Visiting a URL with `?token=` does not silently create a session.
 - Public pages do not attempt to authorize unless they need private data.
 
-## Stage 3: Bootstrap Current User With New Social Shapes
+## Stage 5: Bootstrap Current User With Real Social Shapes
 
-Goal: let a logged-in user load app state through the new social API.
+Goal: prove the migrated app bootstrap works against the real social API.
 
-- Replace `GET /users/me?include=members,members.group,settings` with:
-  `GET /users/me?include=settings` and
-  `GET /users/me/members?include=group,group.currency,account&page[size]=1`.
-- Add a dedicated store action/client method for `/users/me/members` instead of
-  forcing it through the generic `/users/me` resource endpoint.
-- Derive `myMember`, `myAccount`, `myCurrency`, and `myGroup` from normalized
-  member/account/group/currency stores, not from embedded `user.members`.
-- Remove code that expects to-many relationships under a user include.
+- Point app runtime/dev config at the real social service for user bootstrap
+  endpoints.
+- Verify `GET /users/me?include=settings` and
+  `GET /users/me/members?include=group,group.currency,account&page[size]=1`
+  match the Mirage contract used in Stage 2.
+- Ensure normalized member/account/group/currency stores populate correctly
+  from real social responses.
 - Keep the current-member selection simple at first: load page size `1` until
   the product defines multi-membership switching.
-- Convert location list queries from `geo-position=<lng>,<lat>&sort=location`
-  to `near=<lat>,<lng>&sort=distance`.
+- Verify real social location queries use `near=<lat>,<lng>&sort=distance`.
 
 Verification:
 
@@ -111,13 +197,13 @@ Verification:
   members.
 - Nearby group/resource ordering works through `near` and `sort=distance`.
 
-## Stage 4: Create A First Group Through New Auth And Social
+## Stage 6: Create A First Group Through Real Auth And Social
 
 Goal: support the first fully new group request flow.
 
-- Add the missing auth-side public registration primitive for new users. The
-  frontend should create credentials in auth first; social should not receive or
-  store passwords.
+- Add or verify the auth-side public registration primitive for new users. The
+  frontend creates credentials in auth first; social must not receive or store
+  passwords.
 - Recommended auth registration shape:
   `POST /register` with `{ "email": "...", "password": "..." }`, creating the
   canonical auth UUID, hashing the password, setting `emailVerified: false`,
@@ -145,7 +231,7 @@ Verification:
 - The group appears in social with status `pending` and the requested currency
   and settings.
 
-## Stage 5: Activate And Administer The First Group
+## Stage 7: Activate And Administer The First Group
 
 Goal: make the first pending group activatable in the new stack.
 
@@ -165,17 +251,17 @@ Verification:
 - An unauthorized regular user cannot activate groups.
 - Once active, the group is visible to public group listing and join flows.
 
-## Stage 6: Migrate Group Member Registration
+## Stage 8: Validate Group Member Registration Against Real Services
 
 Goal: support a new user joining an existing active group.
 
-- Update `/groups/:code/signup` to create auth credentials first, then log in,
-  then create the social user/settings if needed.
-- Create the member through `POST /:code/members` using the authenticated user,
-  not by embedding members inside `POST /users`.
+- Verify `/groups/:code/signup` creates auth credentials first, then logs in,
+  then creates the social user/settings if needed.
+- Verify the member is created through `POST /:code/members` using the
+  authenticated user, not by embedding members inside `POST /users`.
 - Use the new member shape directly: member profile fields in
-  `data.attributes`; user settings through `/users/:id/settings`; no password or
-  primary email in social.
+  `data.attributes`; user settings through `/users/:id/settings`; no password
+  or primary email in social.
 - Keep member initial status as `draft` or the new service default, then move to
   `pending` after onboarding profile/offers are complete.
 - Remove any dependency on `/groups/:code/signup-member?token=...` as an
@@ -188,7 +274,7 @@ Verification:
 - Reload after signup uses normal stored credentials and the new bootstrap flow.
 - Completing profile/offers moves the member to `pending`.
 
-## Stage 7: Migrate Email Verification And Onboarding Continuation
+## Stage 9: Validate Email Verification And Onboarding Continuation
 
 Goal: replace email magic login with explicit action-token redemption.
 
@@ -209,7 +295,7 @@ Verification:
 - Confirmation does not create a session by itself.
 - A logged-in draft member can continue onboarding after confirming email.
 
-## Stage 8: Migrate Password And Email Account Management
+## Stage 10: Validate Password And Email Account Management
 
 Goal: move all credential mutation out of social user updates.
 
@@ -233,7 +319,7 @@ Verification:
   after confirmation.
 - Social user profile/settings updates no longer accept credential fields.
 
-## Stage 9: Migrate Core Marketplace And Profile Reads/Writes
+## Stage 11: Validate Core Marketplace And Profile Reads/Writes
 
 Goal: move normal app usage to strict new social query and resource shapes.
 
@@ -261,7 +347,7 @@ Verification:
 - Unsupported includes are gone from frontend tests and mocks.
 - Pagination and next-page loading still work.
 
-## Stage 10: Migrate Notifications, Newsletter, And Unsubscribe
+## Stage 12: Migrate Notifications, Newsletter, And Unsubscribe
 
 Goal: remove `/get-auth-code` from notifications and make email links
 purpose-bound.
@@ -288,7 +374,7 @@ Verification:
 - One-click unsubscribe consumes the token once and updates social settings.
 - Newsletter snapshots and mocks reflect the new links.
 
-## Stage 11: Migrate Accounting And Cross-Service Calls
+## Stage 13: Migrate Accounting And Cross-Service Calls
 
 Goal: make accounting and dependent service calls use new auth identities and
 scopes.
@@ -312,7 +398,7 @@ Verification:
 - Transfers, accounts, stats, and notification-derived accounting reads still
   work.
 
-## Stage 12: Remove Legacy Frontend And Service Paths
+## Stage 14: Remove Legacy Frontend And Service Paths
 
 Goal: finish the cutover by deleting old assumptions.
 
