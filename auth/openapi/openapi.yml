@@ -8,6 +8,7 @@ servers:
     description: Local development
 tags:
   - name: Health
+  - name: Registration
   - name: Password
   - name: Email
   - name: OAuth2
@@ -26,6 +27,43 @@ paths:
                 $ref: '#/components/schemas/StatusResponse'
         '503':
           description: Service is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+  /register:
+    post:
+      tags: [Registration]
+      summary: Register a new auth user
+      description: Creates an unverified auth identity and queues an email validation message. This endpoint does not create an OAuth session or any social onboarding state.
+      operationId: postRegister
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPayload'
+      responses:
+        '201':
+          description: Auth user created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '409':
+          description: Email is already registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '429':
+          description: Rate limit exceeded.
           content:
             application/json:
               schema:
@@ -291,6 +329,28 @@ components:
         status:
           type: string
           enum: [ok]
+    RegisterPayload:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+    RegisterResponse:
+      type: object
+      required: [id, email, emailVerified]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        emailVerified:
+          type: boolean
     TokenResponse:
       type: object
       required: [access_token, expires_in, token_type, scope]

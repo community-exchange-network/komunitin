@@ -1,6 +1,7 @@
 import type { AccountClaims, ClaimsParameterMember, FindAccount } from 'oidc-provider'
 import prisma from '../utils/prisma'
 import bcrypt from 'bcrypt'
+import { normalizeEmail } from '../utils/email'
 
 export const findAccount: FindAccount = async (ctx, id) => {
   const user = await prisma.user.findUnique({
@@ -40,7 +41,7 @@ const DUMMY_HASH = '$2b$10$Ep32/O81Gk6z.jBOM7Cg.eo1G2aE8i6E7U8g1xM.sHTXv8K7d8.b6
 
 export async function authenticate(email: string, passwordSecret: string) {
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: normalizeEmail(email) },
   })
 
   if (!user) {

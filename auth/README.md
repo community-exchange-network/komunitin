@@ -74,6 +74,7 @@ The OpenAPI contract lives at `openapi/openapi.yml`.
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /health` | Checks database connectivity. |
+| `POST /register` | Creates an unverified auth identity and emits a validation email event. |
 | `POST /token` | OAuth token endpoint. |
 | `POST /reset-password` | Creates a password reset action token and emits a notification event if the user exists. |
 | `POST /change-password` | Consumes a password reset action token and updates the password. |
@@ -137,7 +138,6 @@ Refresh tokens are opaque database-backed records. They do not require old signi
 
 These are the main auth-side gaps to resolve before the new service fully replaces IntegralCES auth:
 
-- Add a registration endpoint for auth-first signup and group-founder onboarding.
 - Add authenticated self-service password change with current-password verification.
 - Revoke or rotate refresh-token grants after password changes, account disablement, and other high-risk account events.
 - Define per-client allowed scopes so service clients cannot request scopes outside their role.

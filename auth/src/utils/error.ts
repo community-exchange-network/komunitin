@@ -1,6 +1,7 @@
 export enum KErrorCode {
   NotFound = 'NotFound',
   BadRequest = 'BadRequest',
+  Conflict = 'Conflict',
   InternalError = 'InternalError',
   Unauthorized = 'Unauthorized',
   Forbidden = 'Forbidden',
@@ -9,6 +10,7 @@ export enum KErrorCode {
 
 const errorDefinitions: Record<KErrorCode, [number, string]> = {
   [KErrorCode.BadRequest]: [400, 'Bad Request'],
+  [KErrorCode.Conflict]: [409, 'Conflict'],
   [KErrorCode.InternalError]: [500, 'Internal Error'],
   [KErrorCode.Unauthorized]: [401, 'Unauthorized'],
   [KErrorCode.Forbidden]: [403, 'Forbidden'],
@@ -43,6 +45,7 @@ export class KError extends Error {
 }
 
 export const badRequest = (message = 'Bad Request', options?: KErrorOptions) => new KError(KErrorCode.BadRequest, message, options)
+export const conflict = (message = 'Conflict', options?: KErrorOptions) => new KError(KErrorCode.Conflict, message, options)
 export const internalError = (message = 'Internal Error', options?: KErrorOptions) => new KError(KErrorCode.InternalError, message, options)
 export const unauthorized = (message = 'Unauthorized', options?: KErrorOptions) => new KError(KErrorCode.Unauthorized, message, options)
 export const forbidden = (message = 'Forbidden', options?: KErrorOptions) => new KError(KErrorCode.Forbidden, message, options)

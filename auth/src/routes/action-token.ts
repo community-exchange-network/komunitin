@@ -11,6 +11,7 @@ import {
 } from '../services/tokens'
 import { badRequest } from '../utils/error'
 import prisma from '../utils/prisma'
+import { normalizedEmailSchema } from '../utils/email'
 
 const router = Router()
 
@@ -26,7 +27,7 @@ const actionTokenPayloadSchema = z.discriminatedUnion('purpose', [
   z.object({
     purpose: z.literal(userActionTokenPurpose.emailChange),
     userId: z.uuid(),
-    email: z.email(),
+    email: normalizedEmailSchema,
   }),
 ])
 

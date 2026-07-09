@@ -91,6 +91,146 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.status, 'ok')
   })
 
+  test('POST /register creates an unverified user and sends validation email', async () => {
+    const registerRes = await request(app)
+      .post('/register')
+      .type('json')
+      .send({
+        email: '  New.User@Example.ORG  ',
+        password: 'password123',
+      })
+      .expect(201)
+
+    assert.ok(registerRes.body.id)
+    assert.strictEqual(registerRes.body.email, 'new.user@example.org')
+    assert.strictEqual(registerRes.body.emailVerified, false)
+
+    const user = await prisma.user.findUnique({
+      where: { id: registerRes.body.id },
+    })
+    assert.ok(user)
+    assert.strictEqual(user.email, 'new.user@example.org')
+    assert.strictEqual(user.emailVerified, false)
+    assert.strictEqual(user.status, 'active')
+    assert.notStrictEqual(user.passwordHash, 'password123')
+
+    assert.strictEqual(fetchCalls.length, 1)
+    const emailCall = fetchCalls[0]
+    assert.strictEqual(emailCall.body.data.attributes.name, 'ValidationEmailRequested')
+    assert.strictEqual(emailCall.body.data.attributes.source, 'auth')
+    assert.strictEqual(emailCall.body.data.relationships.user.data.id, user.id)
+    assert.deepStrictEqual(emailCall.body.data.attributes.data, { user: user.id, email: 'new.user@example.org' })
+    assert.strictEqual(emailCall.body.data.attributes.data.token, undefined)
+
+    const tokenRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: '  NEW.USER@Example.ORG  ',
+        password: 'password123',
+        scope: 'email',
+      })
+      .expect(200)
+
+    const decoded = decodeJwt(tokenRes.body.access_token) as any
+    assert.strictEqual(decoded.sub, user.id)
+    assert.strictEqual(decoded.email, 'new.user@example.org')
+    assert.strictEqual(decoded.email_verified, false)
+
+    const { token } = await requestActionToken({ userId: user.id, purpose: 'emailVerification' })
+    await request(app)
+      .post('/change-email/confirm')
+      .send({ token })
+      .expect(200)
+
+    const verifiedUser = await prisma.user.findUnique({ where: { id: user.id } })
+    assert.ok(verifiedUser)
+    assert.strictEqual(verifiedUser.emailVerified, true)
+  })
+
+  test('POST /register rejects duplicate emails', async () => {
+    await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.10')
+      .type('json')
+      .send({
+        email: 'duplicate@example.org',
+        password: 'password123',
+      })
+      .expect(201)
+
+    const duplicateRes = await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.11')
+      .type('json')
+      .send({
+        email: '  DUPLICATE@example.org  ',
+        password: 'another-password',
+      })
+      .expect(409)
+
+    assert.strictEqual(duplicateRes.body.errors[0].code, 'Conflict')
+    assert.strictEqual(fetchCalls.length, 1)
+  })
+
+  test('POST /register handles concurrent duplicate registrations', async () => {
+    const responses = await Promise.all([
+      request(app)
+        .post('/register')
+        .set('X-Forwarded-For', '203.0.113.20')
+        .type('json')
+        .send({
+          email: 'race@example.org',
+          password: 'password123',
+        }),
+      request(app)
+        .post('/register')
+        .set('X-Forwarded-For', '203.0.113.21')
+        .type('json')
+        .send({
+          email: 'race@example.org',
+          password: 'password456',
+        }),
+    ])
+
+    const statuses = responses.map(response => response.status).sort()
+    assert.deepStrictEqual(statuses, [201, 409])
+
+    const users = await prisma.user.findMany({
+      where: { email: 'race@example.org' },
+    })
+    assert.strictEqual(users.length, 1)
+  })
+
+  test('POST /register validates email and password', async () => {
+    const invalidEmailRes = await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.30')
+      .type('json')
+      .send({
+        email: 'not-an-email',
+        password: 'password123',
+      })
+      .expect(400)
+
+    assert.strictEqual(invalidEmailRes.body.errors[0].code, 'BadRequest')
+
+    const shortPasswordRes = await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.31')
+      .type('json')
+      .send({
+        email: 'short-password@example.org',
+        password: 'short',
+      })
+      .expect(400)
+
+    assert.strictEqual(shortPasswordRes.body.errors[0].code, 'BadRequest')
+    assert.strictEqual(fetchCalls.length, 0)
+  })
+
   test('POST /token with ROPC (password grant)', async () => {
     const userId = '11111111-1111-1111-1111-111111111111'
     const passwordHash = await hashPassword('password123')
@@ -713,7 +853,7 @@ describe('Auth Service Integration Tests', () => {
     await request(app)
       .post('/reset-password')
       .type('json')
-      .send({ email: 'reset-pwd@example.org' })
+      .send({ email: '  RESET-PWD@Example.ORG  ' })
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
@@ -841,7 +981,7 @@ describe('Auth Service Integration Tests', () => {
     await request(app)
       .post('/change-email')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ email: 'new-email@example.org' })
+      .send({ email: '  New-Email@Example.ORG  ' })
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
@@ -852,7 +992,7 @@ describe('Auth Service Integration Tests', () => {
     assert.deepStrictEqual(emailCall.body.data.attributes.data, { user: userId, email: 'new-email@example.org' })
     assert.strictEqual(emailCall.body.data.attributes.data.token, undefined)
     
-    const actionToken = await requestActionToken({ userId, purpose: 'emailChange', email: 'new-email@example.org' })
+    const actionToken = await requestActionToken({ userId, purpose: 'emailChange', email: '  New-Email@Example.ORG  ' })
     assert.strictEqual(actionToken.email, 'new-email@example.org')
     const token = actionToken.token
     assert.ok(token)
