@@ -4,6 +4,7 @@ import { verifySignedToken } from '../oidc/token-verifier'
 import { unauthorized } from '../utils/error'
 import prisma from '../utils/prisma'
 import { isUuid } from '../utils/uuid'
+import { UserStatus } from '../users/status'
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -36,7 +37,10 @@ export async function userAuth(req: AuthenticatedRequest, res: Response, next: N
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { 
+        id: userId,
+        status: UserStatus.Active,
+      },
       select: {
         id: true,
         email: true,
@@ -44,7 +48,7 @@ export async function userAuth(req: AuthenticatedRequest, res: Response, next: N
       },
     })
 
-    if (!user || user.status !== 'active') {
+    if (!user) {
       return next(unauthorized('Invalid or expired token'))
     }
 

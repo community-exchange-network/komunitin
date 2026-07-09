@@ -7,6 +7,7 @@ import { rateLimit } from '../utils/rate-limit'
 import { badRequest, conflict } from '../utils/error'
 import logger from '../utils/logger'
 import { normalizedEmailSchema } from '../utils/email'
+import { UserStatus } from '../users/status'
 
 const router = Router()
 const parseBody = express.json()
@@ -43,7 +44,7 @@ router.post('/register', parseBody, rateLimit({ bucket: 'register', limit: 1, wi
         email,
         passwordHash,
         emailVerified: false,
-        status: 'active',
+        status: UserStatus.Active,
       },
       select: {
         id: true,

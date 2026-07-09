@@ -1,12 +1,12 @@
-import { after, before, beforeEach, describe, test, mock } from 'node:test'
-import assert from 'node:assert'
-import request from 'supertest'
-import { decodeJwt } from 'jose'
-import { setupTestServer, teardownTestServer, resetDb } from './helper'
-import prisma from '../src/utils/prisma'
-import { hashPassword } from '../src/services/tokens'
-import { resetRateLimits } from '../src/utils/rate-limit'
 import type { Express } from 'express'
+import { decodeJwt } from 'jose'
+import assert from 'node:assert'
+import { after, before, beforeEach, describe, test } from 'node:test'
+import request from 'supertest'
+import { hashPassword } from '../src/services/tokens'
+import { UserStatus } from '../src/users/status'
+import prisma from '../src/utils/prisma'
+import { resetDb, setupTestServer, teardownTestServer } from './helper'
 
 // Mock global fetch to intercept emails
 const fetchCalls: { url: string; init: any; body: any }[] = []
@@ -111,7 +111,7 @@ describe('Auth Service Integration Tests', () => {
     assert.ok(user)
     assert.strictEqual(user.email, 'new.user@example.org')
     assert.strictEqual(user.emailVerified, false)
-    assert.strictEqual(user.status, 'active')
+    assert.strictEqual(user.status, UserStatus.Active)
     assert.notStrictEqual(user.passwordHash, 'password123')
 
     assert.strictEqual(fetchCalls.length, 1)
@@ -240,7 +240,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'test@example.org',
         passwordHash,
         emailVerified: false,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -267,6 +267,32 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(decoded.scope, 'email social:read offline_access')
   })
 
+  test('POST /token with ROPC rejects disabled users', async () => {
+    const passwordHash = await hashPassword('password123')
+    await prisma.user.create({
+      data: {
+        id: '13131313-1313-1313-1313-131313131313',
+        email: 'disabled@example.org',
+        passwordHash,
+        emailVerified: true,
+        status: UserStatus.Disabled,
+      },
+    })
+
+    const res = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'disabled@example.org',
+        password: 'password123',
+      })
+      .expect(400)
+
+    assert.strictEqual(res.body.error, 'invalid_grant')
+  })
+
   test('POST /token with refresh_token returns app JWTs with API scopes', async () => {
     const userId = '12121212-1212-1212-1212-121212121212'
     const passwordHash = await hashPassword('password123')
@@ -276,7 +302,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'refresh@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -312,6 +338,49 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(decoded.scope, 'social:read')
   })
 
+  test('POST /token with refresh_token rejects disabled users', async () => {
+    const userId = '14141414-1414-1414-1414-141414141414'
+    const passwordHash = await hashPassword('password123')
+    await prisma.user.create({
+      data: {
+        id: userId,
+        email: 'disabled-refresh@example.org',
+        passwordHash,
+        emailVerified: true,
+        status: UserStatus.Active,
+      },
+    })
+
+    const loginRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'disabled-refresh@example.org',
+        password: 'password123',
+        scope: 'offline_access social:read',
+      })
+      .expect(200)
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { status: UserStatus.Disabled },
+    })
+
+    const res = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'refresh_token',
+        client_id: 'komunitin-app',
+        refresh_token: loginRes.body.refresh_token,
+      })
+      .expect(400)
+
+    assert.strictEqual(res.body.error, 'invalid_grant')
+  })
+
   test('POST /token does not redeem emailed action tokens through authorization_code', async () => {
     const userId = 'abababab-abab-4bab-abab-abababababab'
     const passwordHash = await hashPassword('password123')
@@ -321,7 +390,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'email-action@example.org',
         passwordHash,
         emailVerified: false,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -440,7 +509,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'unsubscribe-token@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -493,7 +562,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'missing-email-change@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -530,7 +599,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'redeem-unsubscribe@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -600,7 +669,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'redeem-reset@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -636,7 +705,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'service-exchanged@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -684,7 +753,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'user-exchange@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -734,7 +803,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'limited@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -777,7 +846,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'cross-service@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -845,7 +914,7 @@ describe('Auth Service Integration Tests', () => {
         id: userId,
         email: 'reset-pwd@example.org',
         passwordHash,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -899,7 +968,7 @@ describe('Auth Service Integration Tests', () => {
         id: userId,
         email: 'stale-reset@example.org',
         passwordHash,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -959,7 +1028,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'old-email@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -1019,7 +1088,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'email-change@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -1089,7 +1158,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'unverified@example.org',
         passwordHash: 'dummy',
         emailVerified: false,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -1120,7 +1189,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'verify-me@example.org',
         passwordHash,
         emailVerified: false,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
@@ -1155,7 +1224,7 @@ describe('Auth Service Integration Tests', () => {
         email: 'mixed-actions@example.org',
         passwordHash,
         emailVerified: true,
-        status: 'active',
+        status: UserStatus.Active,
       },
     })
 
