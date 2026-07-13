@@ -37,7 +37,7 @@
         @submit="createAdmin"        
       />
       <signup-verify-form
-        v-if="page == 'verify'"
+        v-else-if="page == 'verify'"
         :loading="loading"
         @resend="resendEmail"
       />
@@ -50,9 +50,7 @@ import SignupCredentialsForm from "src/pages/members/SignupCredentialsForm.vue";
 import SignupVerifyForm from "src/pages/members/SignupVerifyForm.vue";
 
 import { ref } from "vue";
-import { useStore } from "vuex";
 import { useLocale } from "src/boot/i18n";
-import { v4 as uuid } from "uuid";
 import KError, { KErrorCode } from "src/KError";
 import { Notify } from "quasar";
 import { useI18n } from "vue-i18n";
@@ -70,40 +68,19 @@ const credentials = ref({
 
 const loading = ref(false)
 
-const store = useStore()
 const locale = useLocale()
 const { t } = useI18n()
+const auth = new Auth()
 
 const showDocsBanner = ref(true)
 
 const createAdmin = async () => {
   loading.value = true
-  
-  const settingsId = uuid() // Ephemeral id for included resource
   try {
-    await store.dispatch("users/create", {
-      resource: {
-        type: "users",
-        attributes: {
-          name: credentials.value.name,
-          email: credentials.value.email,
-          password: credentials.value.password
-        },
-        relationships: {
-          settings: {
-            data: { type: "user-settings", id: settingsId}
-          }
-        }
-      },
-      included: [
-        {
-          id: settingsId,
-          type: "user-settings",
-          attributes: {
-            language: locale.value
-          }
-        }
-      ]
+    await auth.register(credentials.value.email, credentials.value.password, {
+      type: "group",
+      name: credentials.value.name,
+      language: locale.value
     })
     page.value = "verify"
   } catch (error) {
@@ -123,12 +100,10 @@ const createAdmin = async () => {
   }
 }
 
-const auth = new Auth()
-
 const resendEmail = async () => {
   loading.value = true
   try {
-    await auth.resendValidationEmail(credentials.value.email, null)
+    await auth.resendValidationEmail(credentials.value.email)
   } finally {
     loading.value = false
   }

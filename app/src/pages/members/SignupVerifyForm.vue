@@ -1,3 +1,13 @@
+<script setup lang="ts">
+defineProps<{
+  loading: boolean
+}>()
+
+const emit = defineEmits<{
+  resend: []
+}>()
+</script>
+
 <template>
   <div>
     <div class="text-h6">
@@ -5,9 +15,9 @@
     </div>
     <div>
       <div class="float-left q-pr-md">
-        <q-icon 
-          name="forward_to_inbox" 
-          size="100px" 
+        <q-icon
+          name="forward_to_inbox"
+          size="100px"
           color="icon-dark"
         />
       </div>
@@ -27,14 +37,3 @@
     </div>
   </div>
 </template>
-<script setup lang="ts">
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const props = defineProps<{
-  loading: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: "resend"): void
-}>()
-
-</script>

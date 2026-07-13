@@ -60,13 +60,10 @@ import { useStore } from "vuex";
 import EditGroupForm from "src/pages/admin/EditGroupForm.vue"
 import PageHeader from "src/layouts/PageHeader.vue";
 import { ref } from "vue";
-import type { Currency, Group } from "src/store/model";
+import type { Contact, Currency, Group } from "src/store/model";
 import { v4 as uuid } from "uuid";
-import type { PartialContact } from "src/components/MemberContactsField.vue";
 
 const store = useStore()
-
-const myUser = store.getters.myUser
 
 const group = ref<Group>({
   attributes: {},
@@ -74,7 +71,7 @@ const group = ref<Group>({
 
 const done = ref(false)
 
-const contacts = ref<PartialContact[]>([])
+const contacts = ref<Contact[]>([])
 const currency = ref<Currency>({
   type: "currencies",
   id: uuid(), // Ephemeral id for augmented posting.
@@ -96,21 +93,12 @@ const submit = async () => {
         type: "groups",
         attributes: {
           ...group.value.attributes,
-        },
-        relationships: {
-          admins: {
-            data: [ { type: "users", id: myUser.id } ]
-          },
-          contacts: {
-            data: contacts.value.map((c) => ({ type: "contacts", id: c.id }))
-          },
-          currency: {
-            data: { type: "currencies", id: currency.value.id }
-          }
+          contacts: contacts.value
         }
       },
+      // Social stores the currency request from `included` and assigns the
+      // authenticated creator as admin; neither is a client-set relationship.
       included: [
-        ...contacts.value,
         currency.value
       ]
     })
