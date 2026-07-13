@@ -8,3 +8,4 @@
 - Update Notifications email verification to mint an Auth `emailVerification` action token and link to `/confirm-email?token=...`; the current real notification handler still uses the legacy auth-code client and legacy onboarding URLs.
 - Make real Social member provisioning idempotent per authenticated user and group, matching Mirage, so retrying after a partial onboarding failure cannot create duplicate memberships.
 - Add `near=<lat>,<lng>&sort=distance` support to real Social member and post collections. The frontend applies location ordering to groups, members, offers, and needs, while the current real controllers only advertise distance sorting for groups.
+- Implement superadmin: rename the komunitin-superadmin scope to `superadmin` and add a way to grant it to a user via the real Auth service. Eg, we can have an env var `SUPERADMIN_EMAIL` that seeds the superadmin role on startup, and a `POST /superadmin/grant` endpoint to grant it to other users.
