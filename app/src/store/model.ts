@@ -205,6 +205,7 @@ export interface Group extends ResourceObject {
     currency: RelatedResource;
     settings: RelatedResource;
     admins: RelatedCollection;
+    members: RelatedCollection;
   };
 }
 

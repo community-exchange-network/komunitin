@@ -1,23 +1,39 @@
 <script setup lang="ts">
-import { onMounted, shallowRef } from "vue"
+import { shallowRef, watch } from "vue"
 import { useRoute } from "vue-router"
+import { useStore } from "vuex"
 import { Auth } from "src/plugins/Auth"
 import type { ConfirmedAuthUser } from "src/plugins/Auth"
 import PageHeader from "src/layouts/PageHeader.vue"
 import LoginMail from "src/pages/home/LoginMail.vue"
 
 const route = useRoute()
+const store = useStore()
 const status = shallowRef<"loading" | "success" | "error">("loading")
 const confirmedUser = shallowRef<ConfirmedAuthUser>()
 
-onMounted(async () => {
-  try {
-    confirmedUser.value = await new Auth().confirmEmail(route.query.token as string)
-    status.value = "success"
-  } catch {
-    status.value = "error"
-  }
-})
+watch(
+  () => route.query.token as string,
+  async (token, _previousToken, onCleanup) => {
+    let active = true
+    onCleanup(() => active = false)
+    status.value = "loading"
+    confirmedUser.value = undefined
+
+    try {
+      const user = await new Auth().confirmEmail(token)
+      if (!active) return
+      confirmedUser.value = user
+      if (store.getters.isLoggedIn) {
+        await store.dispatch("authorize", { force: true })
+      }
+      if (active) status.value = "success"
+    } catch {
+      if (active) status.value = "error"
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>

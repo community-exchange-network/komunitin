@@ -10,6 +10,7 @@ export interface TokenResponse {
   refresh_token: string;
   scope: string;
   expires_in: number;
+  email?: string;
 }
 
 interface TokenRequestData {
@@ -26,6 +27,18 @@ export interface AuthData {
   refreshToken: string;
   accessTokenExpire: Date;
   scopes: string[];
+  email?: string;
+}
+
+function accessTokenEmail(accessToken: string): string | undefined {
+  const payload = accessToken.split(".")[1]
+  if (!payload) return undefined
+
+  const base64 = payload.replace(/-/g, "+").replace(/_/g, "/")
+    .padEnd(Math.ceil(payload.length / 4) * 4, "=")
+  const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0))
+  const claims = JSON.parse(new TextDecoder().decode(bytes)) as { email?: string }
+  return claims.email
 }
 
 export type SignupContext = {
@@ -293,7 +306,8 @@ export class Auth {
       accessToken: response.access_token,
       refreshToken: response.refresh_token,
       accessTokenExpire: expire,
-      scopes: response.scope.split(" ")
+      scopes: response.scope.split(" "),
+      email: response.email ?? accessTokenEmail(response.access_token)
     };
 
     // Save data state.
