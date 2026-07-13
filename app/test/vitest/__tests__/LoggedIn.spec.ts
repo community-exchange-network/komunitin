@@ -48,16 +48,16 @@ describe("logged in", () => {
     await waitFor(() => passwordControl.getComponent(QDialog).props("modelValue"), false, "Password dialog should close");
   });
 
-  it("shows the Auth session email in the profile and contacts", async () => {
+  it("shows the Auth session email in the profile", async () => {
     await wrapper.vm.$router.push("/profile");
     await waitFor(() => wrapper.text().includes("Edit profile"), true, "Profile form should load");
     const tokens = wrapper.vm.$store.state.me.tokens;
     wrapper.vm.$store.commit("tokens", { ...tokens, email: "updated@example.com" });
 
     await waitFor(
-      () => wrapper.findAll<HTMLInputElement>("input").filter(input => input.element.value === "updated@example.com").length,
-      2,
-      "Primary and contact emails should come from Auth"
+      () => wrapper.get<HTMLInputElement>("input[name='email']").element.value,
+      "updated@example.com",
+      "Primary email should come from Auth"
     );
     wrapper.vm.$store.commit("tokens", tokens);
   });

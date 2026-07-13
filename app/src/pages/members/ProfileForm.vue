@@ -170,11 +170,7 @@ const country = ref(m.value.address?.addressCountry ?? "")
 
 // Member contacts
 const email = computed(() => store.state.me.tokens?.email ?? props.user.attributes.email)
-const contacts = ref(props.contacts.map(contact =>
-  contact.type === "email"
-    ? { ...contact, value: email.value }
-    : contact
-))
+const contacts = ref(props.contacts)
 
 // User attributes.
 watchDebounced([image, name, description, location, address, postalCode, city, region, country], () => {
@@ -203,20 +199,6 @@ watchDebounced([image, name, description, location, address, postalCode, city, r
 
 watch([contacts], () => {
   emit('update:contacts', contacts.value)
-})
-
-// One of the contacts is the user email, but it is not automatically updated in 
-// the UI when we change the user email. We manually patch that here purely on the
-// UI side.
-watch(email, (email, oldEmail) => {
-  if (email !== oldEmail) {
-    contacts.value = contacts.value.map(c => {
-      if (c.type === "email" && c.value === oldEmail) {
-        return {...c, value: email}
-      }
-      return c
-    })
-  }
 })
 
 </script>

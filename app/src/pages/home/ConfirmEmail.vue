@@ -15,6 +15,7 @@ const confirmedUser = shallowRef<ConfirmedAuthUser>()
 watch(
   () => route.query.token as string,
   async (token, _previousToken, onCleanup) => {
+    // A previous request must not overwrite the state for a newer route token.
     let active = true
     onCleanup(() => active = false)
     status.value = "loading"
@@ -24,8 +25,8 @@ watch(
       const user = await new Auth().confirmEmail(token)
       if (!active) return
       confirmedUser.value = user
-      if (store.getters.isLoggedIn) {
-        await store.dispatch("authorize", { force: true })
+      if (store.getters.myUser?.id === user.id) {
+        await store.dispatch("updateAuthEmail", user.email)
       }
       if (active) status.value = "success"
     } catch {

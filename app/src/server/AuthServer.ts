@@ -87,7 +87,6 @@ export function mockToken(scope: string | null, emptyUser = false): TokenRespons
     expires_in: 3600,
     token_type: "Bearer",
     scope: scope ?? "",
-    email: emptyUser ? "empty@example.com" : "noether@komunitin.org",
   };
 }
 
@@ -120,8 +119,7 @@ export default {
           return new Response(200, {}, {
             ...mockToken(params.get("scope")),
             access_token: accessToken,
-            refresh_token: registered.refreshToken,
-            email: registered.email
+            refresh_token: registered.refreshToken
           })
         }
         const data = mockToken(params.get("scope"), param === "empty_user");

@@ -10,7 +10,6 @@ export interface TokenResponse {
   refresh_token: string;
   scope: string;
   expires_in: number;
-  email?: string;
 }
 
 interface TokenRequestData {
@@ -28,17 +27,6 @@ export interface AuthData {
   accessTokenExpire: Date;
   scopes: string[];
   email?: string;
-}
-
-function accessTokenEmail(accessToken: string): string | undefined {
-  const payload = accessToken.split(".")[1]
-  if (!payload) return undefined
-
-  const base64 = payload.replace(/-/g, "+").replace(/_/g, "/")
-    .padEnd(Math.ceil(payload.length / 4) * 4, "=")
-  const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0))
-  const claims = JSON.parse(new TextDecoder().decode(bytes)) as { email?: string }
-  return claims.email
 }
 
 export type SignupContext = {
@@ -150,7 +138,7 @@ export class Auth {
       password: password,
       grant_type: "password",
       scope: Auth.SCOPES + (superadmin ? " " + Auth.SUPERADMIN_SCOPE : "")
-    });
+    }, email);
 
     return tokens;
   }
@@ -185,6 +173,13 @@ export class Auth {
 
   public async confirmEmail(token: string): Promise<ConfirmedAuthUser> {
     return await this.jsonRequest<ConfirmedAuthUser>(config.AUTH_URL + "/change-email/confirm", { token })
+  }
+
+  /** Persist the Auth-owned email alongside the OAuth session. */
+  public async setStoredEmail(tokens: AuthData, email: string): Promise<AuthData> {
+    const data = { ...tokens, email }
+    await LocalStorage.set(Auth.STORAGE_KEY, data)
+    return data
   }
 
   /**
@@ -265,14 +260,14 @@ export class Auth {
     return await this.tokenRequest({
       grant_type: "refresh_token",
       refresh_token: tokens.refreshToken
-    });
+    }, tokens.email);
   }
 
   /**
    * Perform a request to /token OAuth2 endpoint.
    * @param data The data to be sent. client_id is set automatically.
    */
-  private async tokenRequest(data: TokenRequestData): Promise<AuthData> {
+  private async tokenRequest(data: TokenRequestData, email?: string): Promise<AuthData> {
     data.client_id = this.clientId;
     // Use URLSearchParams in order to send the request with x-www-urlencoded.
     const params = new URLSearchParams();
@@ -285,7 +280,7 @@ export class Auth {
       });
       this.checkResponse(response)
       const data = await response.json();
-      return await this.processTokenResponse(data);
+      return await this.processTokenResponse(data, email);
     } catch (error) {
       throw KError.getKError(error);
     }
@@ -297,7 +292,7 @@ export class Auth {
    * 
    * Public function just for testing purposes.
    */
-  public async processTokenResponse(response: TokenResponse): Promise<AuthData> {
+  public async processTokenResponse(response: TokenResponse, email?: string): Promise<AuthData> {
     // Set data object from response.
     const expire = new Date();
     expire.setSeconds(expire.getSeconds() + Number(response.expires_in));
@@ -307,7 +302,7 @@ export class Auth {
       refreshToken: response.refresh_token,
       accessTokenExpire: expire,
       scopes: response.scope.split(" "),
-      email: response.email ?? accessTokenEmail(response.access_token)
+      email
     };
 
     // Save data state.
