@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { type defineComponent } from 'vue';
 import { flushPromises, mount, type MountingOptions, type VueWrapper } from "@vue/test-utils";
-import { Notify, LocalStorage } from "quasar";
+import { Notify } from "quasar";
 import { quasarPlugin, qComponents } from "./quasar-plugin";
 import store from 'src/store/index';
 import createRouter from 'src/router/index';
@@ -17,18 +17,18 @@ import { auth } from '../../../src/store/me';
 import { mockToken } from 'src/server/AuthServer';
 import { type RouteLocationRaw } from 'vue-router';
 
-export function testLogin() {
+export async function testLogin() {
   // This call actually saves the mocked token in LocalStorage.
-  auth.processTokenResponse(mockToken(Auth.SCOPES));
+  await auth.processTokenResponse(mockToken(Auth.SCOPES));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true }): Promise<VueWrapper> {
-  LocalStorage.clear();
+  await auth.logout();
 
   // Login state. We must do that before createStore().
   if (options?.login) {
-    testLogin();  
+    await testLogin();
   }
 
   // Set the router mode to "history", as we have in our Quasar config file.
