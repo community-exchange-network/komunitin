@@ -6,11 +6,11 @@
     >
       <template #buttons>
         <contact-button
-          v-if="!isMe && member.contacts"
+          v-if="!isMe && member.attributes.contacts"
           icon="message"
           round
           flat
-          :contacts="member.contacts"
+          :contacts="member.attributes.contacts"
         />
         <share-button
           icon="share"
@@ -48,6 +48,8 @@
           :member="member"
           :tab="hashTab"
           :transactions="!isMe"
+          :needs-count="needsCount"
+          :offers-count="offersCount"
           @tab-change="onTabChange"
         />
         <q-tab-panels
@@ -109,7 +111,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch } from "vue"
+import { computed, shallowRef, watch } from "vue"
 import { useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 
@@ -136,14 +138,17 @@ const store = useStore()
 const myMember = computed(() => store.getters.myMember)
 const isComplete = computed(() => store.getters.isComplete)
 
-const fetched = ref(false)
-const isLoading = computed(() => !(fetched.value || member.value && member.value.contacts !== null && (!isComplete.value || member.value.account !== null)))
+const fetched = shallowRef(false)
+const isLoading = computed(() => !(fetched.value || member.value && (!isComplete.value || member.value.account !== null)))
+const needsCount = computed(() => member.value.relationships.needs.meta.count)
+const offersCount = computed(() => member.value.relationships.offers.meta.count)
 
 const fetchData = async (memberCode: string) => {
+  fetched.value = false
   await store.dispatch("members/load", {
     code: memberCode,
     group: props.code,
-    include: "contacts,offers,needs" + (isComplete.value ? ",account" : "")
+    include: isComplete.value ? "account" : undefined
   });
   fetched.value = true;
 }

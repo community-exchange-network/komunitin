@@ -19,7 +19,7 @@
         v-if="group"
         op="edit"
         :group="group"
-        :contacts="group.contacts"
+        :contacts="group.attributes.contacts"
         :currency="group.currency"
         @update:group="saveGroup"
         @update:contacts="saveContacts"
@@ -38,8 +38,7 @@ import EditGroupForm from "./EditGroupForm.vue"
 import PageHeader from "src/layouts/PageHeader.vue";
 import SaveChanges from "src/components/SaveChanges.vue";
 import { computed, ref, watch } from "vue";
-import type { Currency, Group } from "src/store/model";
-import type { PartialContact } from "src/components/MemberContactsField.vue";
+import type { Contact, Currency, Group } from "src/store/model";
 
 const store = useStore()
 const props = defineProps<{
@@ -49,7 +48,7 @@ const props = defineProps<{
 watch(() => props.code, async (code) => {
   await store.dispatch("groups/load", {
     group: code,
-    include: "currency,contacts"
+    include: "currency"
   })
 }, { immediate: true })
 const group = computed(() => store.getters["groups/current"])
@@ -68,18 +67,15 @@ const saveGroup = (group: Group) => {
     })
   })
 }
-const saveContacts = (contacts: PartialContact[]) => {
+const saveContacts = (contacts: Contact[]) => {
   changes.value?.save(async () => {
     return await store.dispatch("groups/update", {
       group: props.code,
       resource: {
-        relationships: {
-          contacts: {
-            data: contacts.map(c => ({ id: c.id, type: "contacts" }))
-          }
+        attributes: {
+          contacts
         }
-      },
-      included: contacts
+      }
     })
   })
 }

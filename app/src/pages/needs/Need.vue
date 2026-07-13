@@ -58,7 +58,7 @@
             <!-- eslint-disable vue/no-v-html -->
             <div 
               class="col text-body1 text-onsurface"
-              v-html="md2html(need.attributes.content)"
+              v-html="md2html(need.attributes.description)"
             />
             <!-- eslint-enable vue/no-v-html -->
             <div class="text-body2 text-onsurface-m q-pb-md">
@@ -72,13 +72,13 @@
                 color="primary"
                 :label="$t('share')"
                 :title="$t('checkThisNeed', {member: need.member.attributes.name})"
-                :text="need.attributes.content"
+                :text="need.attributes.description"
               />
               <contact-button
                 unelevated
                 color="primary"
                 :label="$t('contact')"
-                :contacts="need.member.contacts"
+                :contacts="need.member.attributes.contacts"
               /> 
             </div>
           </template>
@@ -162,7 +162,7 @@ export default defineComponent({
     isLoading(): boolean {
       // We need the explicit fetched boolean to force trigger update that may not
       // trigger due to the structure of relatinship links of resource objects.
-      return !(this.need && this.need.member && this.need.member.contacts && this.need.category) && (this.ready || !this.ready)
+      return !(this.need && this.need.member && this.need.category) && (this.ready || !this.ready)
     },
     canEdit(): boolean {
       return this.need?.member?.id === this.$store.getters.myMember.id || this.$store.getters.isAdmin
@@ -178,7 +178,7 @@ export default defineComponent({
       await this.$store.dispatch("needs/load", {
         code: needCode,
         group: this.code,
-        include: "category,member,member.contacts,member.account"
+        include: "category,member,member.account"
       });
       this.ready = true
     }

@@ -45,7 +45,7 @@ const showTransfer = computed(
 )
 
 const isDisabled = computed(
-  () => myMember.value?.attributes.state !== 'active' || myMember.value?.group.attributes.status !== 'active'
+  () => myMember.value?.attributes.status !== 'active' || myMember.value?.group.attributes.status !== 'active'
 )
 
 const actions = ref<FABAction[]>([])
@@ -94,5 +94,4 @@ if (process.env.FEAT_TOPUP === 'true') {
   }, {immediate: true})
 }
 </script>
-
 

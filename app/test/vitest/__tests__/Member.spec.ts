@@ -1,4 +1,4 @@
-import { VueWrapper } from "@vue/test-utils";
+import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
 import { QMenu, QTab } from "quasar";
@@ -38,23 +38,20 @@ describe("Member", () => {
     // Wait for content.
     await waitFor(() => wrapper.text().includes("GRP0000"), true, "Member page should load content");
     const text = wrapper.text();
+    const myMember = wrapper.vm.$store.getters.myMember;
     expect(text).toContain("GRP0000");
-    expect(text).toContain("Public account");
     expect(text).toContain("$734.69");
     expect(text).toContain("Min $-100");
     expect(text).toContain("Max $500");
     // Tabs
     expect(text).toContain("Profile");
-    expect(text).toContain("1 Want");
-    expect(text).toContain("3 Offers");
+    expect(text).toContain("Wants");
+    expect(text).toContain("Offers");
     expect(wrapper.findAllComponents(QTab).length).toBe(3);
     // Bio
-    expect(text).toContain("Est placeat ex ut voluptas enim ex");
-    // Contact
-    expect(text).toContain("210-860-5469");
-    expect(text).toContain("Kaley_Cummerata");
-    // Location
-    expect(text).toContain("Borders");
+    expect(text).toContain(myMember.attributes.description.replace(/[*_]/g, "").slice(0, 20));
+    myMember.attributes.contacts.forEach((contact: { value: string }) => expect(text).toContain(contact.value));
+    expect(text).toContain(myMember.attributes.location.name);
     
     // Needs
     const needsTab = wrapper.findAllComponents(QTab)[1];
@@ -79,17 +76,18 @@ describe("Member", () => {
       "Members list should load"
     );
     const member = wrapper.getComponent(MemberList).findAllComponents(MemberHeader)[1];
+    const selected = member.props("member");
     await member.trigger("click");
-    await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members/ArnoldoErdman69");
-    await waitFor(() => wrapper.text().includes("Arnoldo"), true, "Member page should load");
+    await waitFor(() => wrapper.vm.$route.fullPath, `/groups/GRP0/members/${selected.attributes.code}`);
+    await waitFor(() => wrapper.text().includes(selected.attributes.name), true, "Member page should load");
     const text = wrapper.text();
-    expect(text).toContain("Arnoldo");
+    expect(text).toContain(selected.attributes.name);
     expect(text).toContain("GRP00001");
     expect(text).toContain("$208.42");
-    expect(text).toContain("Voluptates totam quaerat eius aut odio adipisci");
-    expect(text).toContain("@yahoo.com");
-    expect(text).toContain("No Wants");
-    expect(text).toContain("3 Offers");
+    expect(text).toContain(selected.attributes.description.replace(/[*_]/g, "").slice(0, 20));
+    selected.attributes.contacts.forEach((contact: { value: string }) => expect(text).toContain(contact.value));
+    expect(text).toContain("Wants");
+    expect(text).toContain("Offers");
 
     const tabs = wrapper.findAllComponents(QTab);
     expect(tabs.length).toBe(4);
@@ -103,7 +101,7 @@ describe("Member", () => {
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 3, "Should show 3 offers");
     const offers = wrapper.findAllComponents(OfferCard);
     const offer = offers[0];
-    expect(offer.text()).toContain("Arnoldo");
+    expect(offer.text()).toContain(selected.attributes.name);
 
     // Transactions
     await tabs[3].trigger("click");

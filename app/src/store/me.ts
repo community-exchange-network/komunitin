@@ -4,11 +4,20 @@ import type { ActionContext, Module } from "vuex";
 import { setAccountingApiUrl } from ".";
 import type { AuthData } from "../plugins/Auth";
 import { Auth } from "../plugins/Auth";
+import type { SignupContext } from "../plugins/Auth";
 import { getNotificationPermission, subscribe, unsubscribe } from "../plugins/Notifications";
-import type { Member, NotificationsSubscription, } from "./model";
+import type {
+  CollectionResponseInclude,
+  ExternalResourceObject,
+  Group,
+  Member,
+  NotificationsSubscription,
+  ResourceObject,
+} from "./model";
 
 import { config } from "src/utils/config";
 import { apiRequest } from "./request";
+import { v4 as uuid } from "uuid";
 
 // Exported just for testing purposes.
 export const auth = new Auth()
@@ -17,6 +26,7 @@ export interface LoginPayload {
   email: string
   password: string
   superadmin?: boolean
+  signup?: SignupContext
 }
 
 export type AuthorizePayload = {
@@ -26,6 +36,7 @@ export type AuthorizePayload = {
 export interface UserState {
   tokens?: AuthData;
   myUserId?: string;
+  myMemberId?: string;
   /**
    * Current location, provided by device.
    */
@@ -44,23 +55,36 @@ export interface UserState {
  * @param commit The local commit function.
  * @param dispatch The vuex Dispatch object.
  */
-async function loadUser(
-  { commit, dispatch, getters, rootGetters }: ActionContext<UserState, never>
-) {
-  // Resource actions allow including external relationships such as members.account,
-  // but we can't use it right here because we still don't know the group code (nor 
-  // the accounting api url), which is necessary for this process to work. So we 
-  // manually do the two calls.
+async function loadUser(context: ActionContext<UserState, never>) {
+  const { commit, dispatch, getters, rootGetters } = context
   await dispatch("users/load", {
-    include: "members,members.group,settings"
+    include: "settings"
   });
   const user = rootGetters["users/current"];
+  commit("myUserId", user.id);
 
-  // If the user is a member of a group, we get the currency and account data. 
-  // This is not the case only when registering a new Group.
-  if (user.members && user.members.length > 0) {
+  const query = new URLSearchParams({
+    include: "group,group.currency,account",
+    "page[size]": "1"
+  })
+  const response = await apiRequest<Member>(
+    context,
+    `${config.SOCIAL_URL}/users/${user.id}/members?${query}`
+  ) as CollectionResponseInclude<Member, ResourceObject>
+  (response.included ?? [])
+    .filter(resource => !(resource as ExternalResourceObject).meta?.external)
+    .forEach(resource => commit(`${resource.type}/addResource`, resource, { root: true }))
+  commit("members/addResources", response.data, { root: true })
+
+  const member = response.data[0]
+    ? rootGetters["members/one"](response.data[0].id) as Member & { group: Group }
+    : undefined
+  commit("myMemberId", member?.id)
+
+  // A user requesting their first group does not have a membership yet.
+  if (member) {
     // This is the currency URL from the Accounting API.
-    const currencyUrl = user.members[0].group.relationships.currency.links.related;
+    const currencyUrl = member.group.relationships.currency.links.related;
     // https://.../accounting/<GROUP>/currency
     
     // Get the accounting API URL from the currency URL and update it in the store. This is
@@ -78,8 +102,8 @@ async function loadUser(
     const currencyCode = currencyUrl.split('/').slice(-2)[0];
 
     // pending or deleted members don't have related account. Superadmins neither do.
-    if (["active", "disabled", "suspended"].includes(user.members[0].attributes.state) && !getters.isSuperadmin) {
-      const accountId = user.members[0].relationships.account.data.id
+    if (["active", "disabled", "suspended"].includes(member.attributes.status) && !getters.isSuperadmin) {
+      const accountId = member.relationships.account.data.id
       await dispatch("accounts/load", {
         id: accountId, 
         group: currencyCode, 
@@ -94,8 +118,6 @@ async function loadUser(
     }
   }
 
-  commit("myUserId", user.id);
-  
   // Initialize the location to the member configured location.
   if (getters.myMember) {
     const member = getters.myMember as Member
@@ -112,12 +134,43 @@ async function loadUser(
   }
 }
 
+async function provisionSignup(
+  context: ActionContext<UserState, never>,
+  email: string,
+  signup: SignupContext
+) {
+  await context.dispatch("users/create", {
+    resource: {
+      type: "users",
+      attributes: {
+        name: signup.name,
+        email
+      }
+    },
+    included: [{
+      type: "user-settings",
+      id: uuid(),
+      attributes: { language: signup.language }
+    }]
+  }, { root: true })
+
+  if (signup.type === "member") {
+    await context.dispatch("members/create", {
+      group: signup.groupCode,
+      resource: {
+        type: "members",
+        attributes: { name: signup.name }
+      }
+    }, { root: true })
+  }
+}
+
 export default {
   state: () => ({
     tokens: undefined,
     // It is important to define the properties even if undefined in order to add the reactivity.
     myUserId: undefined,
-    accountId: undefined,
+    myMemberId: undefined,
     location: undefined,
     subscription: undefined,
   } as UserState),
@@ -126,7 +179,7 @@ export default {
       state.myUserId !== undefined &&
       auth.isAuthorized(state.tokens),
     isComplete: (state, getters) =>
-      ["active", "disabled", "suspended"].includes(getters.myMember?.attributes.state),
+      ["active", "disabled", "suspended"].includes(getters.myMember?.attributes.status),
     isSubscribed: state =>
       state.subscription !== undefined,
     myUser: (state, getters, rootState, rootGetters) => {
@@ -135,12 +188,10 @@ export default {
       }
       return undefined;
     },
-    myMember: (state, getters) => {
-      const user = getters.myUser;
-      if (user?.members?.length > 0) {
-        return user.members[0];
-      }
-      return undefined;
+    myMember: (state, _getters, _rootState, rootGetters) => {
+      return state.myMemberId
+        ? rootGetters["members/one"](state.myMemberId)
+        : undefined
     },
     myAccount: (state, getters) => {
       return getters.isComplete 
@@ -151,6 +202,7 @@ export default {
       return getters.myAccount?.currency ??
         getters.myMember?.group?.currency
     },
+    myGroup: (state, getters) => getters.myMember?.group,
     accessToken: (state) => 
       state.tokens?.accessToken
     ,
@@ -178,6 +230,7 @@ export default {
   mutations: {
     tokens: (state, tokens) => (state.tokens = tokens),
     myUserId: (state, myUserId) => (state.myUserId = myUserId),
+    myMemberId: (state, myMemberId) => (state.myMemberId = myMemberId),
     location: (state, location) => (state.location = location),
     subscription: (state, subscription) => (state.subscription = subscription),
   },
@@ -190,9 +243,13 @@ export default {
       context: ActionContext<UserState, never>,
       payload: LoginPayload
     ) => {
-      const tokens = await auth.login(payload);
-      context.commit("tokens", tokens);
-      await loadUser(context);
+      const tokens = await auth.login(payload)
+      context.commit("tokens", tokens)
+      if (payload.signup) {
+        await provisionSignup(context, payload.email, payload.signup)
+      }
+      await loadUser(context)
+      return payload.signup
     },
     /**
      * Silently authorize user using stored credentials. Throws exception (rejects)
@@ -219,15 +276,6 @@ export default {
       }
     },
     /**
-     * 
-     * @param context 
-     */
-    authorizeWithCode: async (context: ActionContext<UserState, never>, payload: {code: string}) => {
-      const tokens = await auth.authorizeWithCode(payload.code);
-      context.commit("tokens", tokens);
-      await loadUser(context);
-    },
-    /**
      * Logout current user.
      */
     logout: async (context: ActionContext<UserState, never>, payload: { authorizationError?: boolean }) => {
@@ -241,6 +289,7 @@ export default {
       await auth.logout();
       context.commit("tokens", undefined);
       context.commit("myUserId", undefined);
+      context.commit("myMemberId", undefined);
     },
     /**
      * Get the current location from the device.

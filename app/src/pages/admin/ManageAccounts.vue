@@ -180,7 +180,7 @@
             :props="scope"
           >
             <member-status-chip 
-              :status="scope.row.attributes.state" 
+              :status="scope.row.attributes.status"
               size="sm"
             />
           </q-td>
@@ -258,7 +258,7 @@ const loadPending = async () => {
   await store.dispatch('members/loadList', {
     group: props.code,
     filter: {
-      state: "pending"
+      status: "pending"
     }
   })
   pending.value = store.getters['members/currentList']
@@ -293,7 +293,7 @@ const columns = [
   {name: 'image', field: (m: ExtendedMember) => m.attributes.image, label: '', align: 'center', required: true},
   {name: 'code', field: (m: ExtendedMember) => m.account.attributes.code, label: t('account'), align: 'left', required: true, sortable: true},  
   {name: 'name', field: (m: ExtendedMember) => m.attributes.name, label: t('name'), align: 'left', required: true, sortable: true, style: 'max-width: 200px;', classes: 'ellipsis'},
-  {name: 'state', field: (m: ExtendedMember) => m.attributes.state, label: t('state'), align: 'left'},
+  {name: 'state', field: (m: ExtendedMember) => m.attributes.status, label: t('state'), align: 'left'},
   {name: 'balance', field: (m: ExtendedMember) => m.account.attributes.balance, label: t('balance'), align: 'right', sortable: true, format: formatAmount},
   // Account limits
   {name: 'creditLimit', field: (m: ExtendedMember) => m.account.attributes.creditLimit, label: t('creditLimit'), align: 'right', sortable: true, format: formatAmount},
@@ -522,7 +522,7 @@ const acceptMember = async (member: Member & {group: Group}) => {
       resource: {
         type: "members",
         attributes: {
-          state: "active"
+          status: "active"
         }
       }
     })

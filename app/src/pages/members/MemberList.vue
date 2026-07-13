@@ -25,7 +25,7 @@
           v-slot="slotProps"
           :code="code"
           type="members"
-          include="contacts,account"
+          include="account"
           :query="query"
         >
           <q-list

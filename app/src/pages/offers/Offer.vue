@@ -51,7 +51,7 @@
           </template>
           <template #content>
             <div class="text-h4 q-pb-sm">
-              {{ offer.attributes.name }}
+              {{ offer.attributes.title }}
             </div>
             <div class="text-h6 q-pb-sm">
               <span class="text-onsurface-m">{{ $t('price') }}</span>
@@ -66,7 +66,7 @@
             <!-- eslint-disable vue/no-v-html -->
             <div
               class="col text-body1 text-onsurface"
-              v-html="md2html(offer.attributes.content)"
+              v-html="md2html(offer.attributes.description)"
             />
             <!-- eslint-enable vue/no-v-html -->
             <div class="text-body2 text-onsurface-m q-pb-md">
@@ -80,13 +80,13 @@
                 color="primary"
                 :label="$t('share')"
                 :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
-                :text="`${offer.attributes.name}\n${offer.attributes.content}`"
+                :text="`${offer.attributes.title}\n${offer.attributes.description}`"
               />
               <contact-button
                 unelevated
                 color="primary"
                 :label="$t('contact')"
-                :contacts="offer.member.contacts"
+                :contacts="offer.member.attributes.contacts"
               /> 
             </div>
           </template>
@@ -143,11 +143,11 @@ const offer = computed(() => {
 
 const isLoading = computed(() => {
   return !(ready.value || offer.value && offer.value.category && offer.value.member 
-    && offer.value.member.contacts && offer.value.member.group 
+    && offer.value.member.attributes.contacts && offer.value.member.group
     && offer.value.member.group.currency)
 })
 const price = computed(() => {
-  return formatPrice(offer.value.attributes.price, offer.value.member.group.currency)
+  return formatPrice(offer.value.attributes.value ?? '', offer.value.member.group.currency)
 })
 const canEdit = computed(() => {
   return offer.value?.member?.id == store.getters.myMember.id || store.getters.isAdmin
@@ -156,7 +156,7 @@ const fetchData = async(offerCode: string) => {
   await store.dispatch("offers/load", {
     code: offerCode,
     group: props.code,
-    include: "category,member,member.contacts,member.group,member.group.currency"
+    include: "category,member,member.group,member.group.currency"
   });
   ready.value = true
 }

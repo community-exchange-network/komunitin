@@ -10,7 +10,7 @@
           icon="message"
           round
           flat
-          :contacts="group.contacts"
+          :contacts="group.attributes.contacts"
         />
         <share-button
           v-if="group"
@@ -127,7 +127,7 @@
           <div class="col-12 col-sm-6 col-lg-4 relative-position">
             <social-network-list
               type="contact"
-              :contacts="group.contacts"
+              :contacts="group.attributes.contacts"
             />
           </div>
           <floating-btn
@@ -180,7 +180,7 @@ const descriptionRef = ref<HTMLElement | null>(null);
 const canToggleDescription = ref(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
-const groupOptions = computed(() => ({ group: props.code, include: 'contacts' }));
+const groupOptions = computed(() => ({ group: props.code }));
 const { resource: group, load: loadGroup } = useResource<Group & { contacts: Contact[] }>('groups', groupOptions, {
   immediate: false,
 });

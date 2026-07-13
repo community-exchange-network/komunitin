@@ -68,7 +68,7 @@ const props = defineProps<{
 }>();
 
 const store = useStore()
-const currentStatus = ref(props.member.attributes.state)
+const currentStatus = ref(props.member.attributes.status)
 
 const active = useAccountStatus('active')
 const disabled = useAccountStatus('disabled')

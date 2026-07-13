@@ -23,8 +23,7 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
       // Load member from server
       await store.dispatch("members/load", {
         code: memberCodeStr,
-        group: groupCodeStr,
-        include: "contacts"
+        group: groupCodeStr
       })
       member.value = store.getters["members/current"]
 

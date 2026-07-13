@@ -9,11 +9,21 @@ declare module "miragejs/serializer" {
     getResourceObjectForModel(model: any): any;
     serialize(object: any, request: Request): any;
     getHashForIncludedResource(model: any): any;
+    typeKeyForModel(model: any): string;
   }
 }
 
 export default class ApiSerializer extends JSONAPISerializer {
   public static readonly DEFAULT_PAGE_SIZE = 20;
+
+  typeKeyForModel(model: any) {
+    // `type` is a domain attribute on members. Mirage otherwise mistakes it
+    // for the JSON:API resource type when the application serializer handles
+    // a member subcollection.
+    return model.modelName === "member"
+      ? "members"
+      : JSONAPISerializer.prototype.typeKeyForModel.call(this, model)
+  }
 
   /**
    * Include linkage data for ro-one relationships
