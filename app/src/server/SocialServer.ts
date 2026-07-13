@@ -231,6 +231,7 @@ export default {
         return json;
       },
       typeKeyForModel(model: any) {
+        // Mirage also calls this for the post's relationship linkage models.
         return model.modelName === "post"
           ? model.type
           : ApiSerializer.prototype.typeKeyForModel.call(this, model)

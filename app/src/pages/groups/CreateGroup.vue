@@ -94,10 +94,14 @@ const submit = async () => {
         attributes: {
           ...group.value.attributes,
           contacts: contacts.value
+        },
+        relationships: {
+          currency: {
+            data: { type: "currencies", id: currency.value.id }
+          }
         }
       },
-      // Social stores the currency request from `included` and assigns the
-      // authenticated creator as admin; neither is a client-set relationship.
+      // Social assigns the authenticated creator as admin.
       included: [
         currency.value
       ]

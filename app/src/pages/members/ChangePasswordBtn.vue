@@ -1,3 +1,26 @@
+<template>
+  <dialog-form-btn
+    :label="$t('changePassword')"
+    :text="$t('changePasswordText')"
+    :valid="currentPassword.length > 0 && newPassword.length >= 8"
+    :submit="changePassword"
+  >
+    <password-field
+      v-model="currentPassword"
+      :label="$t('oldPassword')"
+      :hint="$t('oldPasswordHint')"
+      class="q-mb-md"
+      :error="passwordInvalid"
+      @update:model-value="passwordInvalid = false"
+    />
+    <password-field
+      v-model="newPassword"
+      :label="$t('newPassword')"
+      :hint="$t('newPasswordHint')"
+    />
+  </dialog-form-btn>
+</template>
+
 <script setup lang="ts">
 import { shallowRef } from "vue"
 import { useStore } from "vuex"
@@ -39,26 +62,3 @@ const changePassword = async () => {
   }
 }
 </script>
-
-<template>
-  <dialog-form-btn
-    :label="$t('changePassword')"
-    :text="$t('changePasswordText')"
-    :valid="currentPassword.length > 0 && newPassword.length >= 8"
-    :submit="changePassword"
-  >
-    <password-field
-      v-model="currentPassword"
-      :label="$t('oldPassword')"
-      :hint="$t('oldPasswordHint')"
-      class="q-mb-md"
-      :error="passwordInvalid"
-      @update:model-value="passwordInvalid = false"
-    />
-    <password-field
-      v-model="newPassword"
-      :label="$t('newPassword')"
-      :hint="$t('newPasswordHint')"
-    />
-  </dialog-form-btn>
-</template>

@@ -127,7 +127,10 @@ watch(images, (value) => {
   emit("update:modelValue", value)
 })
 
-const { fieldName, url, headers, formFields } = useUploaderSettings(props)
+const { fieldName, url, headers, formFields } = useUploaderSettings({
+  code: props.code,
+  resourceType: props.resourceType
+})
 
 </script>
 <style lang="scss">

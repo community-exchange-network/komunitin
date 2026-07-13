@@ -45,8 +45,8 @@ describe("Member", () => {
     expect(text).toContain("Max $500");
     // Tabs
     expect(text).toContain("Profile");
-    expect(text).toContain("Wants");
-    expect(text).toContain("Offers");
+    expect(text).toContain("1 Want");
+    expect(text).toContain("3 Offers");
     expect(wrapper.findAllComponents(QTab).length).toBe(3);
     // Bio
     expect(text).toContain(myMember.attributes.description.replace(/[*_]/g, "").slice(0, 20));
@@ -86,8 +86,8 @@ describe("Member", () => {
     expect(text).toContain("$208.42");
     expect(text).toContain(selected.attributes.description.replace(/[*_]/g, "").slice(0, 20));
     selected.attributes.contacts.forEach((contact: { value: string }) => expect(text).toContain(contact.value));
-    expect(text).toContain("Wants");
-    expect(text).toContain("Offers");
+    expect(text).toContain("No Wants");
+    expect(text).toContain("3 Offers");
 
     const tabs = wrapper.findAllComponents(QTab);
     expect(tabs.length).toBe(4);

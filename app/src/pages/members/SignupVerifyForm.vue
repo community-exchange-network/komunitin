@@ -1,13 +1,3 @@
-<script setup lang="ts">
-defineProps<{
-  loading: boolean
-}>()
-
-const emit = defineEmits<{
-  resend: []
-}>()
-</script>
-
 <template>
   <div>
     <div class="text-h6">
@@ -37,3 +27,13 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+defineProps<{
+  loading: boolean
+}>()
+
+const emit = defineEmits<{
+  resend: []
+}>()
+</script>

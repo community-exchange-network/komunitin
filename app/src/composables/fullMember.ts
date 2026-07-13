@@ -11,15 +11,16 @@ import { useStore } from "vuex";
  */
 export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined>, memberCode: MaybeRefOrGetter<string|undefined>) => {
   const store = useStore()
+  type FullUser = User & {settings: UserSettings}
   
-  const user = ref<User & {settings: UserSettings}>()
+  const user = ref<FullUser>()
   const member = ref<Member>()
 
   watch([
     () => toValue(groupCode),
     () => toValue(memberCode),
-    () => store.getters.myMember as Member,
-    () => store.getters.myUser as User
+    () => store.getters.myMember,
+    () => store.getters.myUser
   ], async ([groupCodeStr, memberCodeStr, myMember, myUser]) => {
     // Wait for initialization
     if (!myUser) return

@@ -10,7 +10,7 @@ export default boot(({ router }) => {
         await store.dispatch("authorize");
       }
       // User is logged in.
-      if (store.getters.isLoggedIn && (to.path == "/" || to.path.startsWith("/login"))) {
+      if (to.path == "/" || to.path.startsWith("/login")) {
         
         if (to.query.redirect) {
           return to.query.redirect as string;
