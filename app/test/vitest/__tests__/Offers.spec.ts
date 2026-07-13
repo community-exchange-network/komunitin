@@ -1,17 +1,22 @@
  
-import { type VueWrapper, flushPromises } from "@vue/test-utils";
+import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, waitFor } from "../utils";
 import { QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
 import ApiSerializer from "src/server/ApiSerializer";
 import { seeds } from "src/server";
 import SelectCategory from "src/components/SelectCategory.vue";
+import type { Category, Member, Offer } from "src/store/model";
+
+type FullOffer = Offer & { member: Member, category: Category };
+type SelectOption = { label: string, value: string };
 
 
 describe("Offers", () => {
   let wrapper: VueWrapper;
+  let offer: FullOffer;
 
   beforeAll(async () => {
     seeds();
@@ -34,6 +39,7 @@ describe("Offers", () => {
     // with the tech layer, just call the trigger() function in QInfiniteScroll.
     (wrapper.findComponent(QInfiniteScroll).vm as QInfiniteScroll).trigger();
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 30, "Should load 30 offers after scroll");
+    offer = wrapper.findAllComponents(OfferCard)[0].props("offer") as FullOffer;
     // Category icon
     expect(wrapper.findAllComponents(OfferCard)[0].text()).toContain("accessibility_new");
   });
@@ -50,13 +56,13 @@ describe("Offers", () => {
   })
 
   it ("renders single offer", async() => {
-    await wrapper.vm.$router.push("/groups/GRP0/offers/Tuna5");
-    await waitFor(() => wrapper.text().includes("Tuna"), true, "Offer page should load");
+    await wrapper.vm.$router.push(`/groups/GRP0/offers/${offer.attributes.code}`);
+    const title = requireText(offer.attributes.title, "Offer title");
+    await waitFor(() => wrapper.text().includes(title), true, "Offer page should load");
     const text = wrapper.text();
-    expect(text).toContain("Tuna");
-    expect(text).toContain("Arnoldo");
-    expect(text).toContain("GRP00001");
-    expect(text).toContain("$0.88");
+    expect(text).toContain(title);
+    expect(text).toContain(requireText(offer.member.attributes.name, "Offer member name"));
+    expect(text).toContain(requireText(offer.category.attributes.name, "Offer category name"));
     // The date is generated with faker.date.recent() so it could be "today" or "yesterday"
     // depending on when the test runs (especially around midnight boundaries).
     expect(text).toMatch(/Updated (yesterday|today)/);
@@ -67,12 +73,14 @@ describe("Offers", () => {
     await waitFor(() => wrapper.text().includes("Preview"), true, "New offer form should load");
 
     const select = wrapper.getComponent(SelectCategory).getComponent(QSelect)
-    await waitFor(() => (select.props("options") as any[])?.length > 0, true, "Categories should load");
+    await waitFor(() => (select.props("options") as unknown[])?.length > 0, true, "Categories should load");
     await select.trigger("click");
     await waitFor(() => select.findAllComponents(QItem).length > 0, true, "Category dropdown should open");
     const menu = select.findAllComponents(QItem);
+    const selectedCategory = (select.props("options") as SelectOption[])[1];
+    const selectedCategoryName = requireText(selectedCategory.label, "Selected category name");
     await menu[1].trigger("click");
-    await flushPromises();
+    await waitFor(() => select.props("modelValue")?.value, selectedCategory.value, "Category should be selected");
 
     await wrapper.get("[name='title']").setValue("The Offer")
     await wrapper.get("[name='description']").setValue("This offer is a mirage.")
@@ -84,9 +92,9 @@ describe("Offers", () => {
     const text = wrapper.text();
     expect(text).toContain("This offer is a mirage.");
     expect(text).toContain("Updated today");
-    expect(text).toContain("Games");
+    expect(text).toContain(selectedCategoryName);
     await wrapper.get(".q-btn--fab").trigger("click");
-    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/members/EmilianoLemke57");
+    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`);
     expect(wrapper.vm.$route.hash).toBe("#offers");
     await wrapper.vm.$router.push("/groups/GRP0/offers/The-Offer")
     await waitFor(() => wrapper.text().includes("The Offer"), true, "Offer page should show");

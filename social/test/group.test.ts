@@ -129,6 +129,37 @@ describe('Groups endpoints', () => {
     assert.strictEqual(events[0].data.attributes.data.group, 'alpha-group')
   })
 
+  test('POST /groups accepts currency inclusion with JSON:API linkage', async () => {
+    const { token } = await auth('currency-request-user')
+    const currencyId = toUuid('currency-request')
+
+    const res = await request(app)
+      .post('/groups')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            code: 'currency-request-group',
+            name: 'Currency request group',
+          },
+          relationships: {
+            currency: {
+              data: { type: 'currencies', id: currencyId },
+            },
+          },
+        },
+        included: [{
+          type: 'currencies',
+          id: currencyId,
+          attributes: { code: 'CRG' },
+        }],
+      })
+      .expect(201)
+
+    assert.strictEqual(res.body.data.attributes.code, 'currency-request-group')
+  })
+
   test('POST /groups rejects duplicate code', async () => {
     const { token } = await auth('user-2')
     await postGroup(token, 'dupe-code').expect(201)

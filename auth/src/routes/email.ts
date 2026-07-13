@@ -60,18 +60,24 @@ router.post('/change-email/confirm', parseBody, rateLimit({ bucket: 'change-emai
       return next(badRequest('Email is already taken'))
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
+    const user = await prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
         where: { id: changeRecord.userId },
         data: {
           email: targetEmail,
           emailVerified: true,
         },
+        select: {
+          id: true,
+          email: true,
+          emailVerified: true,
+        },
       })
       await consumeActionToken(tx, changeRecord)
+      return updatedUser
     })
 
-    res.json({ status: 'ok' })
+    res.json(user)
   } catch (err) {
     next(err)
   }

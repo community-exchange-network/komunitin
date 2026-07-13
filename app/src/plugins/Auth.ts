@@ -19,7 +19,6 @@ interface TokenRequestData {
   password?: string;
   scope?: string;
   refresh_token?: string;
-  code?: string;
 }
 
 export interface AuthData {
@@ -27,6 +26,21 @@ export interface AuthData {
   refreshToken: string;
   accessTokenExpire: Date;
   scopes: string[];
+}
+
+export type SignupContext = {
+  name: string
+  language: string
+} & (
+  | { type: "group" }
+  | { type: "member", groupCode: string }
+)
+
+export interface ConfirmedAuthUser {
+  id: string
+  email: string
+  emailVerified: true
+  signup?: SignupContext
 }
 
 /**
@@ -37,8 +51,7 @@ export interface AuthData {
  */
 export class Auth {
   public static readonly STORAGE_KEY: string = "auth-session";
-  public static readonly SCOPES = "komunitin_social komunitin_accounting email offline_access openid profile";
-  public static readonly AUTH_SCOPE = "komunitin_auth";
+  public static readonly SCOPES = "email offline_access social:read social:write accounting:read accounting:write";
   public static readonly SUPERADMIN_SCOPE = "komunitin_superadmin";
 
   private readonly tokenEndpoint: string;
@@ -129,49 +142,36 @@ export class Auth {
     return tokens;
   }
 
-  /**
-   * 
-   * @param 
-   */
-  public async authorizeWithCode(code: string): Promise<AuthData> {
-    const tokens = await this.tokenRequest({
-      grant_type: "authorization_code",
-      code,
-      scope: Auth.SCOPES + " " + Auth.AUTH_SCOPE
-    });
-
-    return tokens;
-  }
-
   public async resetPassword(email: string): Promise<void> {
-    const params = new URLSearchParams(); 
-    params.append("email", email);
-    params.append("client_id", this.clientId);
-
-    const response = await fetch(this.resetPasswordEndpoint, {
-      method: "POST",
-      body: params,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" }
-    });
-
-    this.checkResponse(response)
+    await this.jsonRequest(this.resetPasswordEndpoint, { email })
   }
 
-  public async resendValidationEmail(email: string, code: string|null): Promise<void> {
-    const params = new URLSearchParams()
-    params.append("email", email)
-    params.append("client_id", this.clientId)
-    if (code !== null) {
-      params.append("group", code)
-    }
+  public async register(email: string, password: string, signup: SignupContext): Promise<void> {
+    await this.jsonRequest(config.AUTH_URL + "/register", { email, password, signup })
+  }
 
-    const response = await fetch(config.AUTH_URL + "/resend-validation", {
-      method: "POST",
-      body: params,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" }
-    })
+  public async resendValidationEmail(email: string): Promise<void> {
+    await this.jsonRequest(config.AUTH_URL + "/resend-validation", { email })
+  }
 
-    this.checkResponse(response)
+  public async changePassword(token: string, password: string): Promise<void> {
+    await this.jsonRequest(config.AUTH_URL + "/change-password", { token, password })
+  }
+
+  public async changeAuthenticatedPassword(currentPassword: string, password: string, accessToken: string): Promise<void> {
+    await this.jsonRequest(
+      config.AUTH_URL + "/change-password/authenticated",
+      { currentPassword, password },
+      accessToken
+    )
+  }
+
+  public async changeEmail(email: string, accessToken: string): Promise<void> {
+    await this.jsonRequest(config.AUTH_URL + "/change-email", { email }, accessToken)
+  }
+
+  public async confirmEmail(token: string): Promise<ConfirmedAuthUser> {
+    return await this.jsonRequest<ConfirmedAuthUser>(config.AUTH_URL + "/change-email/confirm", { token })
   }
 
   /**
@@ -204,6 +204,13 @@ export class Auth {
           undefined,
           response
         );
+      } else if (response.status == 409) {
+        throw new KError(
+          KErrorCode.DuplicatedEmail,
+          "Email already registered",
+          undefined,
+          response
+        );
       } else if (400 <= response.status && response.status < 500) {
         throw new KError(
           KErrorCode.IncorrectRequest,
@@ -215,6 +222,23 @@ export class Auth {
         throw new KError(KErrorCode.ServerBadResponse, `Server error ${response.status}`, undefined, {error: response.statusText});
       }
     }
+  }
+
+  private async jsonRequest<T = void>(
+    url: string,
+    body?: Record<string, unknown>,
+    accessToken?: string
+  ): Promise<T> {
+    const response = await fetch(url, {
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+      }
+    })
+    this.checkResponse(response)
+    return await response.json() as T
   }
 
   /**
@@ -248,7 +272,7 @@ export class Auth {
       });
       this.checkResponse(response)
       const data = await response.json();
-      return this.processTokenResponse(data);
+      return await this.processTokenResponse(data);
     } catch (error) {
       throw KError.getKError(error);
     }
@@ -260,7 +284,7 @@ export class Auth {
    * 
    * Public function just for testing purposes.
    */
-  public processTokenResponse(response: TokenResponse): AuthData {
+  public async processTokenResponse(response: TokenResponse): Promise<AuthData> {
     // Set data object from response.
     const expire = new Date();
     expire.setSeconds(expire.getSeconds() + Number(response.expires_in));
@@ -273,7 +297,7 @@ export class Auth {
     };
 
     // Save data state.
-    LocalStorage.set(Auth.STORAGE_KEY, data);
+    await LocalStorage.set(Auth.STORAGE_KEY, data);
 
     return data;
   }

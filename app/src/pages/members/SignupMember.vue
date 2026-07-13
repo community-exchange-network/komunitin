@@ -10,13 +10,13 @@
     >
       <div v-if="page=='profile'">
         <q-form 
-          v-if="myMember && myMember.contacts && myUser"
+          v-if="myMember && myUser"
           @submit="saveMember"
         >
           <profile-form 
             :change-credentials="false"
             :member="myMember"
-            :contacts="myMember.contacts"
+            :contacts="myMember.attributes.contacts"
             :user="myUser"
             @update:member="updateMember"
             @update:contacts="updateContacts"
@@ -104,9 +104,7 @@ store.dispatch("groups/load", {
   include: "settings"
 })
 // Load member
-type ExtendedMember = Member & { contacts: DeepPartial<Contact>[] }
-
-const member = ref<ExtendedMember>(myMember.value)
+const member = ref<Member>(myMember.value)
 
 const currentOffer = ref()
 const offers = ref<DeepPartial<Offer>[]>([])
@@ -115,15 +113,12 @@ const initializeMember = async () => {
   await store.dispatch("members/load", {
     id: myMember.value.id,
     group: props.code,
-    include: "contacts"
   })
   // Using spread operator not to copy the proxy object
   // but their values.
   member.value = {
     ...myMember.value
   }
-  // Initialize contacts (not copied by the spread operator)
-  member.value.contacts = myMember.value.contacts || []
 }
 const initializeOffers = async () => {
   await store.dispatch("offers/loadList", {
@@ -148,10 +143,7 @@ const updateMember = (resource: DeepPartial<Member>) => {
   member.value.attributes = resource.attributes as Member["attributes"]
 }
 const updateContacts = (contacts: DeepPartial<Contact>[]) => {
-  member.value.contacts = contacts
-  member.value.relationships.contacts = {
-    data: contacts.map(c => ({ type: "contacts", id: c.id }))
-  }
+  member.value.attributes.contacts = contacts as Contact[]
 }
 const saveMember = async () => {
   loadingSaveMember.value = true
@@ -162,10 +154,8 @@ const saveMember = async () => {
       resource: {
         id: member.value.id,
         type: "members",
-        attributes: member.value.attributes,
-        relationships: member.value.relationships
-      },
-      included: member.value.contacts
+        attributes: member.value.attributes
+      }
     })
     await nextPage()
   } finally {
@@ -216,7 +206,7 @@ const apply = async () => {
       id: myMember.value.id,
       type: "members",
       attributes: {
-        state: "pending"
+        status: "pending"
       }
     }
   })

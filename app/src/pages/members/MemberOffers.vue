@@ -24,6 +24,6 @@ const card = OfferCard.name
 const filter = computed(() => ({
   member: props.member.id,
   expired: 'false' + (canEdit.value ? ',true' : ''),
-  state: 'published' + (canEdit.value ? ',hidden' : '')
+  status: 'published' + (canEdit.value ? ',hidden' : '')
 }))
 </script>

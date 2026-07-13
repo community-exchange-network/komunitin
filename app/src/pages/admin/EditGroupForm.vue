@@ -3,6 +3,8 @@
     <avatar-field
       v-model="image"
       :text="name"
+      :code="code"
+      resource-type="groups"
     />
     <q-input
       v-model="name"
@@ -113,26 +115,25 @@ import { ref, watch } from "vue"
 import AvatarField from "src/components/AvatarField.vue"
 import LocationPicker from "src/components/LocationPicker.vue"
 import CountryChooser from "src/components/CountryChooser.vue"
-import type { PartialContact } from "src/components/MemberContactsField.vue";
 import MemberContactsField from "src/components/MemberContactsField.vue"
-import type { Currency, Group } from "src/store/model"
+import type { Contact, Currency, Group } from "src/store/model"
 import { watchDebounced } from "@vueuse/shared"
 import { useStore } from "vuex"
 
 const props = defineProps<{
   op: "edit" | "create"
   group: Group
-  contacts: PartialContact[]
+  contacts: Contact[]
   currency: Currency
 }>()
 
 const emit = defineEmits<{
   (e: "update:group", group: Group): void,
-  (e: "update:contacts", contacts: PartialContact[]): void,
+  (e: "update:contacts", contacts: Contact[]): void,
   (e: "update:currency", currency: Currency): void
 }>()
 
-const image = ref(props.group.attributes.image ?? "")
+const image = ref(props.group.attributes.image ?? null)
 const name = ref(props.group.attributes.name ?? "")
 const code = ref(props.group.attributes.code ?? "")
 const description = ref(props.group.attributes.description ?? "")

@@ -8,6 +8,10 @@ import { waitFor } from "./utils"
 
 describe("Send events to notifications service", async () => {
   const t = setupServerTest()
+  const notificationsAuth = {
+    user: null,
+    scopes: [Scope.AccountingReadAll],
+  }
 
   let transfer: any
   await it('sends pending event', async () => {
@@ -67,26 +71,14 @@ describe("Send events to notifications service", async () => {
   })
 
   await it('notifications service can use api', async() => {
-    const response = await t.api.get('/TEST/transfers', {
-      user: null,
-      scopes: [Scope.AccountingReadAll],
-      audience: "komunitin-notifications"
-    })
+    const response = await t.api.get('/TEST/transfers', notificationsAuth)
     assert.equal(response.status, 200)
     const tansfers = response.body.data
     assert.equal(tansfers.length, 2)
   })
 
   await it('notifications service cannot write', async() => {
-    await t.api.post("/TEST/accounts", testAccount("123"), {
-      user: null,
-      scopes: [Scope.AccountingReadAll],
-      audience: "komunitin-notifications"
-    }, 403)
-    await t.api.post("/TEST/accounts", testAccount(null as any as string), {
-      user: null,
-      scopes: [Scope.AccountingReadAll],
-      audience: "komunitin-notifications"
-    }, 403)
+    await t.api.post("/TEST/accounts", testAccount("123"), notificationsAuth, 403)
+    await t.api.post("/TEST/accounts", testAccount(null as any as string), notificationsAuth, 403)
   }) 
 })

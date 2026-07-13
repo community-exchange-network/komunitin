@@ -82,7 +82,7 @@ describe("Front page and login", () => {
   it("lag in unsubscription should not block logout", async() => {
     // Mock the browser unsubscribe() to take a long time.
     mockUnsubscribe.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 5000)));
-    testLogin();
+    await testLogin();
     // logout
     await wrapper.vm.$router.push("/logout");
     // after 1 sec it should still be logging out, since the unsubscription is taking a long time.

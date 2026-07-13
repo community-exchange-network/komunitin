@@ -68,6 +68,9 @@ pnpm start
 - `src/clients/notifications.ts` posts JSON:API social-domain events to `/events` with Basic auth and logs failures without failing the social operation.
 - Social events must stay social-domain events such as group, member, offer, and need lifecycle events. Auth-owned events belong to the auth service or an auth-owned integration.
 
+## Code Style
+ - Order: `<template>`, `<script setup lang="ts">`, `<style>`.
+
 ## Tests
 
 - API tests live in `test/*.test.ts` and use supertest against the real Express app.

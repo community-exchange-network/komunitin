@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { jsonApiDocumentSchema, jsonApiResourceSchema } from '../../server/jsonapi-schema'
+import {
+  jsonApiDocumentSchema,
+  jsonApiResourceSchema,
+  jsonApiToOneRelationshipSchema,
+} from '../../server/jsonapi-schema'
 
 export const accessSchema = z.enum(['public', 'group', 'private'])
 export type Access = z.infer<typeof accessSchema>
@@ -70,6 +74,9 @@ export const currencyAttributesSchema = z.object().loose().refine((data) => {
 
 const groupSettingsSchema = jsonApiResourceSchema('group-settings', groupSettingsAttributesSchema)
 const currencySchema = jsonApiResourceSchema('currencies', currencyAttributesSchema)
+const createGroupRelationshipsSchema = z.object({
+  currency: jsonApiToOneRelationshipSchema('currencies').optional(),
+}).strict().optional()
 
 const groupStatuses = ['pending', 'active', 'disabled'] as const
 export type GroupStatus = typeof groupStatuses[number]
@@ -82,7 +89,7 @@ export type PatchGroupAttributes = z.infer<typeof patchGroupAttributesSchema>
 export type PatchGroupSettingsAttributes = z.infer<typeof groupSettingsAttributesSchema>
 
 export const createGroupBodySchema = jsonApiDocumentSchema(
-  jsonApiResourceSchema('groups', createGroupAttributesSchema),
+  jsonApiResourceSchema('groups', createGroupAttributesSchema, createGroupRelationshipsSchema),
   [groupSettingsSchema, currencySchema],
 )
 

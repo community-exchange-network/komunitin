@@ -98,9 +98,8 @@ const group = ref<ExtendedGroup>(props.modelValue?.member?.group as ExtendedGrou
 
 const searchText = ref("")
 
-// Not all groups allow us to list their members.
-// We know that (quite indirectly) by checking the existence of the
-// related link in the "members" relationship of the group.
+// The members related link advertises whether the current user may list this
+// group's members; group visibility alone does not grant that permission.
 const canListMembers = computed(() => {
   return group.value && (group.value.id === myGroup.value.id || group.value.relationships?.members?.links?.related)
 })

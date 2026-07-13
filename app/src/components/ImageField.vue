@@ -13,6 +13,7 @@
       :field-name="fieldName"
       :url="url"
       :headers="headers"
+      :form-fields="formFields"
       @added="handleAdded"
       @uploaded="uploaded"
       @failed="failed"
@@ -81,17 +82,20 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import type { QUploader } from 'quasar'
+import type { ImageObject } from 'src/store/model'
 import ImageFieldItem from './ImageFieldItem.vue'
 import { imageFile, notifyImageError, useImageUploaderProcessing, useUploaderSettings } from '../composables/uploader'
 
 const props = defineProps<{
-  modelValue: string[],
+  modelValue: ImageObject[],
   label: string,
-  hint?: string
+  hint?: string,
+  code: string,
+  resourceType: "offers" | "needs"
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string[]): void
+  (e: 'update:modelValue', value: ImageObject[]): void
 }>()
 
 // Set files from modelValue to the QUploader component
@@ -99,14 +103,14 @@ const uploader = useTemplateRef<QUploader>("uploader")
 const uploaderFiles = computed(() => uploader.value?.files || [])
 const { isProcessing, handleAdded } = useImageUploaderProcessing({ uploader })
 
-const images = ref<string[]>(props.modelValue)
+const images = ref<ImageObject[]>(props.modelValue)
 
-const imageFiles = computed(() => props.modelValue.map((url: string) => imageFile(url)))
+const imageFiles = computed(() => props.modelValue.map(image => imageFile(image.url)))
 
 const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
   const response = JSON.parse(xhr.responseText)
   const url = response.data.attributes.url
-  images.value = [...images.value, url]
+  images.value = [...images.value, { url }]
   uploader.value?.removeUploadedFiles()
 }
 
@@ -116,14 +120,17 @@ const failed = ({files}: {files: File[]}) => {
 }
 
 const removeImage = (url: string) => {
-  images.value = images.value.filter((u: string) => u != url)
+  images.value = images.value.filter(image => image.url !== url)
 }
 
 watch(images, (value) => {
   emit("update:modelValue", value)
 })
 
-const { fieldName, url, headers } = useUploaderSettings()
+const { fieldName, url, headers, formFields } = useUploaderSettings({
+  code: props.code,
+  resourceType: props.resourceType
+})
 
 </script>
 <style lang="scss">

@@ -62,6 +62,16 @@ describe("MirageJS Server", () => {
     expect((await changePassword()).status).toBe(200);
     expect((await changePassword()).status).toBe(400);
 
+    const authenticatedPassword = await fetch(`${urlAuth}/change-password/authenticated`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer test_user_access_token"
+      },
+      body: JSON.stringify({ currentPassword: "komunitin", password: "new-password" })
+    });
+    expect(authenticatedPassword.status).toBe(200);
+
     const unsubscribeActionToken = await fetch(`${urlAuth}/action-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -153,6 +163,11 @@ describe("MirageJS Server", () => {
     expect(groupsData.data[0].attributes.state).toBeUndefined();
     expect(groupsData.data[0].relationships.contacts).toBeUndefined();
 
+    const categories = await fetch(`${urlSocial}/GRP0/categories`);
+    const categoriesData = await json(categories);
+    expect(categoriesData.data[0].relationships.offers.meta.count).toBeGreaterThan(0);
+    expect(categoriesData.data[0].relationships.needs.meta.count).toBeGreaterThanOrEqual(0);
+
     const posts = await fetch(`${urlSocial}/GRP0/posts?filter[type]=offers&include=member,category&page[size]=1`);
     const postsData = await json(posts);
     expect(postsData.data).toHaveLength(1);
@@ -161,6 +176,17 @@ describe("MirageJS Server", () => {
     expect(postsData.data[0].attributes.description).toBeTruthy();
     expect(postsData.data[0].attributes.value).toBeTruthy();
     expect(postsData.data[0].attributes.type).toBeUndefined();
+    expect(postsData.data[0].relationships.member.data.type).toBe("members");
+    expect(postsData.data[0].relationships.category.data.type).toBe("categories");
+    expect(postsData.included.some((resource: ResourceObject) => resource.type === "members")).toBe(true);
+    expect(postsData.included.some((resource: ResourceObject) => resource.type === "categories")).toBe(true);
+
+    const singlePost = await fetch(`${urlSocial}/GRP0/posts?filter[code]=${postsData.data[0].attributes.code}&filter[type]=offers&include=category,member,member.group,member.group.currency`);
+    const singlePostData = await json(singlePost);
+    expect(singlePostData.data).toHaveLength(1);
+    expect(singlePostData.included.map((resource: ResourceObject) => resource.type)).toEqual(
+      expect.arrayContaining(["categories", "members", "groups", "currencies"])
+    );
 
     const needs = await fetch(`${urlSocial}/GRP0/posts?filter[type]=needs&page[size]=1`);
     const needsData = await json(needs);

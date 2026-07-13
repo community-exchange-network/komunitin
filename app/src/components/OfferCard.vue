@@ -29,7 +29,7 @@
     <q-card-section>
       <span class="text-uppercase text-onsurface-m text-overline">{{$t('offer')}}</span>
       <div class="text-h6">
-        {{ offer.attributes.name }}
+        {{ offer.attributes.title }}
       </div>
       <!-- TODO: Add price -->
       <div class="text-subtitle2 q-mb-xs">
@@ -41,7 +41,7 @@
         v-clamp="3"
         class="text-body2 text-justify text-onsurface-m"
       >
-        {{ md2txt(offer.attributes.content) }}
+        {{ md2txt(offer.attributes.description) }}
       </div>
     </q-card-section>
     <q-card-section 
@@ -112,12 +112,12 @@ export default defineComponent({
     const currency = ref(group.value.currency)
     watch(() => group.value.currency, (value) => currency.value = value)
     
-    const price = computed(() => currency.value ? formatPrice(props.offer.attributes.price, currency.value) : '')
+    const price = computed(() => currency.value ? formatPrice(props.offer.attributes.value ?? '', currency.value) : '')
     const canEdit = computed(() => 
     props.offer.member.id === store.getters.myMember.id
     || store.getters.isAdmin
   )
-  const hidden = computed(() => props.offer.attributes.state === "hidden" || props.offer.member.attributes.state !== "active")
+  const hidden = computed(() => props.offer.attributes.status === "hidden" || props.offer.member.attributes.status !== "active")
   const expired = computed(() => new Date(props.offer.attributes.expires) < new Date())
   
   return {

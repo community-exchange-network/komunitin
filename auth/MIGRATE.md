@@ -311,13 +311,13 @@ Required changes:
 - issuer must be the new auth issuer, not the Drupal `/oauth2` issuer
 - audience must match the new auth access tokens
   - current auth access tokens use audience `app`
-- JWKS should come from the new auth service
+- JWKS are published by the new auth service at `/.well-known/jwks.json`
 - prefer issuer metadata over hardcoded legacy URLs when possible
 
 Best practice:
 
 - use the auth issuer metadata and the returned `jwks_uri`
-- do not hardcode legacy `/oauth2/token` or `/.well-known/jwks.json` paths from the Drupal setup
+- do not hardcode the legacy `/oauth2/token` path
 
 ### Client credentials
 

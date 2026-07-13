@@ -12,7 +12,9 @@ deleting legacy paths over keeping adapters. Use the new service shapes to
 simplify consumers, especially by separating auth-owned credentials from
 social-owned profile and membership data.
 
-If you find needing changes out of the scope of current stage, just note that in this plan document and we'll implement that later. You can even add additional stages if needed.
+If you find needing changes out of the scope of current stage, just note them in this plan document and we'll implement that later. You can even add additional stages if needed.
+
+If you find missing features in social or auth services, please note that in `.github/prompts/social-auth-todos.md` and we'll implement that later.
 
 ## Stage 0: Wire The New Services Through Configuration (DONE)
 
@@ -40,7 +42,7 @@ Verification:
 - App can reach the configured auth/social URLs through its runtime config.
 - Runtime services no longer need IntegralCES to answer auth/social API calls.
 
-## Stage 1: Migrate Frontend MirageJS Server To New Service Shapes
+## Stage 1: Migrate Frontend MirageJS Server To New Service Shapes (DONE)
 
 Goal: make the frontend test/mocking layer behave like the new `auth` and
 `social` services before any real-service integration work.

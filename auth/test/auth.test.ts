@@ -141,10 +141,15 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(decoded.email_verified, false)
 
     const { token } = await requestActionToken({ userId: user.id, purpose: 'emailVerification' })
-    await request(app)
+    const confirmation = await request(app)
       .post('/change-email/confirm')
       .send({ token })
       .expect(200)
+    assert.deepStrictEqual(confirmation.body, {
+      id: user.id,
+      email: 'new.user@example.org',
+      emailVerified: true,
+    })
 
     const verifiedUser = await prisma.user.findUnique({ where: { id: user.id } })
     assert.ok(verifiedUser)

@@ -52,14 +52,14 @@ export const useResources = <T extends ResourceObject = ResourceObject>(type: st
 export type UseResourceOptions = Omit<LoadByIdPayload, 'id'> & {
   // Use undefined (or don't set) for loading resources without id: currency, currency settings, group etc.
   // Use null for not loading any resource.
-  id?: MaybeRefOrGetter<string> | null;
+  id?: string | null;
 }
   
 
 export const useResource = <T extends ResourceObject = ResourceObject>(type: string, options: MaybeRefOrGetter<UseResourceOptions>, config?: UseResourcesConfig) => {
   const store = useStore()
   
-  const id = ref<string|null|undefined>(toValue(options.id))
+  const id = ref<string|null|undefined>(toValue(options).id)
   const resource = computed<T | null>(() => id.value ? store.getters[`${type}/one`](id.value) : null)
 
   const loading = ref(false)
@@ -91,7 +91,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     try {
       await store.dispatch(type + '/update', {
         id: id.value,
-        group: toValue(options.group),
+        group: toValue(options).group,
         resource: data
       })
     } finally {
@@ -100,8 +100,8 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
   }
 
   // load resource initially and when id changes
-  watch(() => toValue(options.id), () => {
-    id.value = toValue(options.id)
+  watch(() => toValue(options).id, (newid) => {
+    id.value = newid
     load()
   }, { immediate: config?.immediate ?? true })
 

@@ -6,6 +6,7 @@ import { Scope } from "../../src/server/auth"
 const keys = generateKeyPairSync("rsa", {
   modulusLength: 2048,
 })
+const TEST_KEY_ID = "test-key-id"
 
 export async function token(user: string|null, scopes?: Scope[], audience?: string) {
   const payload = {} as Record<string, string>
@@ -18,15 +19,18 @@ export async function token(user: string|null, scopes?: Scope[], audience?: stri
     .setSubject(user as string)
     .setIssuedAt()
     .setExpirationTime("1h")
-    .setProtectedHeader({alg: "RS256"})
+    .setProtectedHeader({alg: "RS256", kid: TEST_KEY_ID})
     .sign(keys.privateKey)
   return token
 }
 
 export function jwks(): JSONWebKeySet {
   return {
-    keys: [keys.publicKey.export({
-      format: "jwk"
-    })]
+    keys: [{
+      ...keys.publicKey.export({ format: "jwk" }),
+      kid: TEST_KEY_ID,
+      alg: "RS256",
+      use: "sig",
+    }]
   }
 }

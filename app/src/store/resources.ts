@@ -486,18 +486,21 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
             Object.defineProperty(main, name, {
               get: function() {
                 const items = (value.data as ResourceIdentifierObject[]).map(
-                  resourceId =>
-                    rootGetters[resourceId.type + "/one"](resourceId.id)
+                  resourceId => {
+                    const related = rootGetters[resourceId.type + "/one"]
+                    return related ? related(resourceId.id) : undefined
+                  }
                 );
                 // Return either all or no objects.
-                return items.includes(null) ? null : items;
+                return items.some(item => item == null) ? null : items;
               }
             });
           } else {
             Object.defineProperty(main, name, {
               get: function() {
                 const resourceId = value.data as ResourceIdentifierObject;
-                return resourceId === null ? null : rootGetters[resourceId.type + "/one"](resourceId.id);
+                const related = resourceId && rootGetters[resourceId.type + "/one"]
+                return resourceId === null ? null : related?.(resourceId.id);
               }
             });
           }
@@ -780,16 +783,12 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       });
     }
     if (payload.location) {
-      params.set(
-        "geo-position",
-        payload.location[0] + "," + payload.location[1]
-      )
-      if (!payload.sort) {
-        payload.sort = "location";
-      }
+      const [longitude, latitude] = payload.location
+      params.set("near", `${latitude},${longitude}`)
     }
-    if (payload.sort) {
-      params.set("sort", payload.sort);
+    const sort = payload.sort ?? (payload.location ? "distance" : undefined)
+    if (sort) {
+      params.set("sort", sort);
     }
     if (payload.pageSize) {
       params.set("page[size]", payload.pageSize.toString());
@@ -820,6 +819,12 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     }
     if (payload.sort) {
       params.set("sort", payload.sort);
+    } else if (payload.location) {
+      params.set("sort", "distance")
+    }
+    if (payload.location) {
+      const [longitude, latitude] = payload.location
+      params.set("near", `${latitude},${longitude}`)
     }
     if (payload.pageSize) {
       params.set("pageSize", payload.pageSize.toString())
