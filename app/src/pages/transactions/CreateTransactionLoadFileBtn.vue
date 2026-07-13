@@ -13,8 +13,9 @@
         :label="$t('selectFile')"
         :hint="$t('selectFileHint')"
         accept=".csv, .txt"
-        max-file-size="10000"
+        max-file-size="100000"
         :error-message="fileErrorMessage"
+        @rejected="onRejectedFiles"
         :error="!!fileErrorMessage"
       >
         <template #append>
@@ -52,6 +53,11 @@ const myCurrency = computed(() => store.getters.myAccount.currency)
 // File import
 const file = ref<File|null>()
 const fileErrorMessage = ref<string>("")
+const maxImportRows = 100
+
+const onRejectedFiles = () => {
+  fileErrorMessage.value = t("ErrorInvalidTransfersCSVFileLimits", {rows: maxImportRows})
+}
 
 const fetchAccountByCode = async (code: string) => {
   code = normalizeAccountCode(code, myCurrency.value)
@@ -82,6 +88,9 @@ const parseTransfersFile = async (content: string[][]) : Promise<TransferRow[]> 
   if (parseAmount(lastHeader, myCurrency.value) === false) {
     content.shift()
     line++
+  }
+  if (content.length > maxImportRows) {
+    throw new KError(KErrorCode.InvalidTransfersCSVFile, "Too many rows", undefined, {maxRows: maxImportRows})
   }
   const parsed = []
   // Parse the rest of the rows
@@ -135,6 +144,9 @@ const parseTransfersFile = async (content: string[][]) : Promise<TransferRow[]> 
   }
   return parsed
   } catch (error) {
+    if (error instanceof KError && (error.debugInfo as {maxRows?: number} | undefined)?.maxRows) {
+      throw error
+    }
     throw new KError(KErrorCode.InvalidTransfersCSVFile, "Error parsing transfers file", error, {line, column})
   }
 }
@@ -150,8 +162,12 @@ const importFile = async () => {
     emit("import", rows)
   } catch (error) {
     if (error instanceof KError && error.code === KErrorCode.InvalidTransfersCSVFile && error.debugInfo) {
-      const debugInfo = error.debugInfo as {line: number, column: number}
-      fileErrorMessage.value = t("ErrorInvalidTransfersCSVFileLineColumn", {line: debugInfo.line, column: debugInfo.column})  
+      const debugInfo = error.debugInfo as {line?: number, column?: number, maxRows?: number}
+      if (debugInfo.maxRows) {
+        fileErrorMessage.value = t("ErrorInvalidTransfersCSVFileLimits", {rows: debugInfo.maxRows})
+      } else {
+        fileErrorMessage.value = t("ErrorInvalidTransfersCSVFileLineColumn", {line: debugInfo.line, column: debugInfo.column})
+      }
     } else {
       fileErrorMessage.value = t("ErrorInvalidTransfersCSVFile")
     }

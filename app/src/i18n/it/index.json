@@ -430,6 +430,7 @@
   "ErrorNoTrustPath": "Il movimento non è riuscito perché non esiste un percorso di scambio tra le due valute",
   "ErrorTransactionError": "Il movimento non è andato a buon fine",
   "ErrorInvalidTransfersCSVFileLineColumn": "Errore durante l'analisi del file CSV nella riga {line} colonna {column}",
+  "ErrorInvalidTransfersCSVFileLimits": "Seleziona un file CSV o TXT inferiore a 100 KB con al massimo {rows} righe.",
   "ErrorInvalidTransfersCSVFile": "Errore durante la lettura del file",
   "ErrorCamNotAllowed": "L'app non ha il permesso di usare la fotocamera. Puoi consentirlo nelle impostazioni del browser.",
   "ErrorCamNotFound": "Nessuna fotocamera trovata in questo dispositivo",
