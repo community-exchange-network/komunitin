@@ -1,4 +1,5 @@
 import { exportJWK, generateKeyPair, SignJWT } from 'jose'
+import { config } from '../../src/config'
 import { toUuid } from './utils'
 import { seedUser } from './seed'
 
@@ -37,8 +38,8 @@ export const signJwt = async (
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'RS256', kid: 'test-key-id' })
     .setIssuedAt()
-    .setIssuer('https://komunitin.org')
-    .setAudience('komunitin-app')
+    .setIssuer(config.AUTH_JWT_ISSUER)
+    .setAudience(config.AUTH_JWT_AUDIENCE)
     .setSubject(userId)
     .setExpirationTime('2h')
     .sign(privateKey)
