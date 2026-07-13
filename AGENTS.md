@@ -9,15 +9,16 @@ Komunitin is an open-source system featuring a community currency wallet and a m
 | Path | Purpose |
 | --- | --- |
 | `app/` | Vue 3 + Quasar PWA frontend served on port 2030. |
+| `auth/` | Node.js Express/Prisma Authentication service on port 2026. |
+
 | `accounting/` | Node.js Express/Prisma/Stellar accounting service on port 2025. |
+| `social/` | Node.js Express/Prisma Marketplace and social features on port 2028. |
 | `notifications-ts/` | Node.js Express/Prisma/BullMQ notifications service on port 2023. |
 | `docs/` | GitBook product and technology documentation. |
 | `shared/` | Shared utilities and docker images. |
 | `.github/` | CI workflows |
-| `social/` | Future marketplace and social features |
-| `auth/` | Future authentication service |
 
-An external dependency **IntegralCES** (Drupal, cloned separately on `../ices`) currently provides the social/auth API at port 2029.
+An external dependency **IntegralCES** (Drupal, cloned separately on `../ices`) provides the legacy social/auth API at port 2029, now being migrated to the local `auth` and `social` services.
 
 ## Shared Tooling
 
@@ -52,6 +53,7 @@ Published local ports in the dev stack:
 | App | `https://localhost:2030` |
 | Auth | `http://localhost:2026` |
 | Accounting | `http://localhost:2025` |
+| Social | `http://localhost:2028` |
 | Notifications | `http://localhost:2023` |
 | IntegralCES | `http://localhost:2029` |
 | Credit Commons test node | `http://localhost:2024` |
