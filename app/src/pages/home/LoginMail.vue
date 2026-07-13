@@ -8,6 +8,7 @@
       outlined
       dark
       type="email"
+      :disable="!!confirmedEmail"
       placeholder="example@example.com"
       :label="$t('email')"
       maxlength="255"
@@ -48,7 +49,7 @@
 
 <script setup lang="ts">
 import PasswordField from "../../components/PasswordField.vue";
-import { computed, ref } from "vue";
+import { computed, shallowRef } from "vue";
 import { useVuelidate } from "@vuelidate/core";
 import { required, email as emailv, minLength } from '@vuelidate/validators';
 import KError, { KErrorCode } from '../../KError';
@@ -57,11 +58,16 @@ import { useStore } from "vuex";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useRedirectQuery } from "../../composables/useRedirectQuery";
+import type { SignupContext } from "src/plugins/Auth";
 
+const props = defineProps<{
+  confirmedEmail?: string
+  signup?: SignupContext
+}>()
 
-const email = ref('')
-const pass = ref('')
-const forgotPassword = ref(false)
+const email = shallowRef(props.confirmedEmail ?? '')
+const pass = shallowRef('')
+const forgotPassword = shallowRef(false)
 
 const v$ = useVuelidate({
   email: { required, emailv },
@@ -95,7 +101,19 @@ const submit = async () => {
     $q.loading.show({
       delay: 200
     })
-    await store.dispatch("login", {email: email.value, password: pass.value, superadmin: isSuperadmin.value});
+    const signup = await store.dispatch("login", {
+      email: email.value,
+      password: pass.value,
+      superadmin: isSuperadmin.value,
+      signup: props.signup
+    })
+    if (signup) {
+      const destination = signup.type === "member"
+        ? `/groups/${signup.groupCode}/signup-member`
+        : "/groups/new"
+      await router.push(destination)
+      return
+    }
   }
   finally {
     $q.loading.hide()
