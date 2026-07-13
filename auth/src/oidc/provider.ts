@@ -142,6 +142,9 @@ export async function createProvider(jwks: Jwks) {
         getResourceServerInfo: async () => appResourceServer
       },
     },
+    routes: {
+      jwks: '/.well-known/jwks.json',
+    },
     extraTokenClaims: async (ctx, token) => {
       if (hasAccountId(token)) {
         const account = await findAccount(ctx, token.accountId)

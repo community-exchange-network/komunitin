@@ -19,7 +19,7 @@ async function resetAuthState() {
 async function reloadWithFreshInitialKey() {
   await refreshOidcProvider()
   const res = await request(app)
-    .get('/jwks')
+    .get('/.well-known/jwks.json')
     .expect(200)
 
   assert.strictEqual(res.body.keys.length, 1)
@@ -39,6 +39,14 @@ describe('OIDC provider JWKS hot reload', () => {
     await disconnectPrisma()
   })
 
+  test('discovery advertises the well-known JWKS endpoint', async () => {
+    const response = await request(app)
+      .get('/.well-known/openid-configuration')
+      .expect(200)
+
+    assert.strictEqual(new URL(response.body.jwks_uri).pathname, '/.well-known/jwks.json')
+  })
+
   test('reload rotates keys and signs new tokens with the new first key', async () => {
     const oldKid = await reloadWithFreshInitialKey()
     const oldCreatedAt = new Date(Date.now() - ((config.JWKS_ROTATION_INTERVAL_DAYS + 1) * 24 * 60 * 60 * 1000))
@@ -52,7 +60,7 @@ describe('OIDC provider JWKS hot reload', () => {
     assert.strictEqual(reloaded, true)
 
     const jwksRes = await request(app)
-      .get('/jwks')
+      .get('/.well-known/jwks.json')
       .expect(200)
     const keyIds = jwksRes.body.keys.map((key: { kid: string }) => key.kid)
 
@@ -94,7 +102,7 @@ describe('OIDC provider JWKS hot reload', () => {
     assert.strictEqual(reloaded, true)
 
     const jwksRes = await request(app)
-      .get('/jwks')
+      .get('/.well-known/jwks.json')
       .expect(200)
     const keyIds = jwksRes.body.keys.map((key: { kid: string }) => key.kid)
 
