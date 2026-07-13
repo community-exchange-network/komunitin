@@ -137,7 +137,6 @@ import ChangeEmailBtn from "./ChangeEmailBtn.vue"
 import ChangePasswordBtn from "./ChangePasswordBtn.vue"
 
 import { computed, ref, watch } from "vue";
-import { useStore } from "vuex"
 import { watchDebounced } from "@vueuse/shared"
 
 import type { Contact, Member, User, Group } from '../../store/model';
@@ -154,7 +153,6 @@ const emit = defineEmits<{
   (e: 'update:contacts', value: Contact[]): void
   (e: 'update:user', value: User): void
 }>()
-const store = useStore()
 
 // Member attributes.
 const m = computed(() => props.member.attributes)
@@ -169,7 +167,7 @@ const region = ref(m.value.address?.addressRegion ?? "")
 const country = ref(m.value.address?.addressCountry ?? "")
 
 // Member contacts
-const email = computed(() => store.state.me.tokens?.email ?? props.user.attributes.email)
+const email = computed(() => props.user.attributes.email)
 const contacts = ref(props.contacts)
 
 // User attributes.

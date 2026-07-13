@@ -26,7 +26,6 @@ export interface AuthData {
   refreshToken: string;
   accessTokenExpire: Date;
   scopes: string[];
-  email?: string;
 }
 
 export type SignupContext = {
@@ -138,7 +137,7 @@ export class Auth {
       password: password,
       grant_type: "password",
       scope: Auth.SCOPES + (superadmin ? " " + Auth.SUPERADMIN_SCOPE : "")
-    }, email);
+    });
 
     return tokens;
   }
@@ -173,13 +172,6 @@ export class Auth {
 
   public async confirmEmail(token: string): Promise<ConfirmedAuthUser> {
     return await this.jsonRequest<ConfirmedAuthUser>(config.AUTH_URL + "/change-email/confirm", { token })
-  }
-
-  /** Persist the Auth-owned email alongside the OAuth session. */
-  public async setStoredEmail(tokens: AuthData, email: string): Promise<AuthData> {
-    const data = { ...tokens, email }
-    await LocalStorage.set(Auth.STORAGE_KEY, data)
-    return data
   }
 
   /**
@@ -260,14 +252,14 @@ export class Auth {
     return await this.tokenRequest({
       grant_type: "refresh_token",
       refresh_token: tokens.refreshToken
-    }, tokens.email);
+    });
   }
 
   /**
    * Perform a request to /token OAuth2 endpoint.
    * @param data The data to be sent. client_id is set automatically.
    */
-  private async tokenRequest(data: TokenRequestData, email?: string): Promise<AuthData> {
+  private async tokenRequest(data: TokenRequestData): Promise<AuthData> {
     data.client_id = this.clientId;
     // Use URLSearchParams in order to send the request with x-www-urlencoded.
     const params = new URLSearchParams();
@@ -280,7 +272,7 @@ export class Auth {
       });
       this.checkResponse(response)
       const data = await response.json();
-      return await this.processTokenResponse(data, email);
+      return await this.processTokenResponse(data);
     } catch (error) {
       throw KError.getKError(error);
     }
@@ -292,7 +284,7 @@ export class Auth {
    * 
    * Public function just for testing purposes.
    */
-  public async processTokenResponse(response: TokenResponse, email?: string): Promise<AuthData> {
+  public async processTokenResponse(response: TokenResponse): Promise<AuthData> {
     // Set data object from response.
     const expire = new Date();
     expire.setSeconds(expire.getSeconds() + Number(response.expires_in));
@@ -301,8 +293,7 @@ export class Auth {
       accessToken: response.access_token,
       refreshToken: response.refresh_token,
       accessTokenExpire: expire,
-      scopes: response.scope.split(" "),
-      email
+      scopes: response.scope.split(" ")
     };
 
     // Save data state.

@@ -15,9 +15,14 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
   const user = ref<User & {settings: UserSettings}>()
   const member = ref<Member>()
 
-  watch([() => toValue(groupCode), () => toValue(memberCode), () => (store.getters.myMember as Member)], async ([groupCodeStr, memberCodeStr, myMember]) => {
+  watch([
+    () => toValue(groupCode),
+    () => toValue(memberCode),
+    () => store.getters.myMember as Member,
+    () => store.getters.myUser as User
+  ], async ([groupCodeStr, memberCodeStr, myMember, myUser]) => {
     // Wait for initialization
-    if (!store.getters.myUser) return
+    if (!myUser) return
 
     if (groupCodeStr && memberCodeStr && memberCodeStr !== myMember?.attributes.code) {
       // Load member from server
@@ -38,7 +43,7 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
 
     } else {
       // use data from logged in user
-      user.value = store.getters.myUser
+      user.value = myUser
       member.value = myMember
       // load settings.
       await store.dispatch("user-settings/load", {

@@ -26,7 +26,12 @@ watch(
       if (!active) return
       confirmedUser.value = user
       if (store.getters.myUser?.id === user.id) {
-        await store.dispatch("updateAuthEmail", user.email)
+        await store.dispatch("users/create", {
+          resource: {
+            type: "users",
+            attributes: { email: user.email }
+          }
+        })
       }
       if (active) status.value = "success"
     } catch {

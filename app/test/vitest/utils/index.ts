@@ -19,7 +19,7 @@ import { type RouteLocationRaw } from 'vue-router';
 
 export async function testLogin() {
   // This call actually saves the mocked token in LocalStorage.
-  await auth.processTokenResponse(mockToken(Auth.SCOPES), "noether@komunitin.org");
+  await auth.processTokenResponse(mockToken(Auth.SCOPES));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

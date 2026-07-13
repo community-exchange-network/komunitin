@@ -739,13 +739,13 @@ export default {
       const userSettingsData = body.included?.find((record: any) => record.type == "user-settings")
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
-      const user = authUser ? schema.users.find(authUser.id) : undefined
+      const user = authUser
+        ? schema.users.find(authUser.id)
+        : token === "test_user_access_token" ? schema.users.first() : undefined
       const userSettings = user?.settings
         ?? (userSettingsData ? schema.userSettings.create(userSettingsData.attributes) : undefined)
       const attributes = {
-        id: authUser?.id,
         ...body.data.attributes,
-        email: authUser?.email ?? body.data.attributes.email,
         settings: userSettings
       }
 
@@ -754,7 +754,7 @@ export default {
         return user
       }
 
-      return schema.users.create(attributes)
+      return schema.users.create({ id: authUser?.id, ...attributes })
     });
 
   }

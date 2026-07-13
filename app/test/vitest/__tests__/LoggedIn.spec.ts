@@ -5,6 +5,7 @@ import { mountComponent, waitFor } from "../utils";
 import { QBtn, QDialog } from "quasar";
 import PasswordField from "src/components/PasswordField.vue";
 import ChangePasswordBtn from "src/pages/members/ChangePasswordBtn.vue";
+import { config } from "src/utils/config";
 
 describe("logged in", () => {
   let wrapper: VueWrapper;
@@ -48,17 +49,41 @@ describe("logged in", () => {
     await waitFor(() => passwordControl.getComponent(QDialog).props("modelValue"), false, "Password dialog should close");
   });
 
-  it("shows the Auth session email in the profile", async () => {
+  it("reactively updates the profile after posting the Social user", async () => {
     await wrapper.vm.$router.push("/profile");
     await waitFor(() => wrapper.text().includes("Edit profile"), true, "Profile form should load");
-    const tokens = wrapper.vm.$store.state.me.tokens;
-    wrapper.vm.$store.commit("tokens", { ...tokens, email: "updated@example.com" });
+    await wrapper.vm.$store.dispatch("users/create", {
+      resource: {
+        type: "users",
+        attributes: { email: "updated@example.com" }
+      }
+    });
 
     await waitFor(
       () => wrapper.get<HTMLInputElement>("input[name='email']").element.value,
       "updated@example.com",
-      "Primary email should come from Auth"
+      "Profile email should react to the updated Social user"
     );
-    wrapper.vm.$store.commit("tokens", tokens);
+  });
+
+  it("posts a confirmed email to the Social user", async () => {
+    const response = await fetch(`${config.AUTH_URL}/action-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        purpose: "emailChange",
+        userId: wrapper.vm.$store.getters.myUser.id,
+        email: "confirmed@example.com"
+      })
+    });
+    const { token } = await response.json();
+
+    await wrapper.vm.$router.push({ path: "/confirm-email", query: { token } });
+    await waitFor(
+      () => wrapper.text().includes("Your email has been confirmed"),
+      true,
+      "Email confirmation should succeed"
+    );
+    expect(wrapper.vm.$store.getters.myUser.attributes.email).toBe("confirmed@example.com");
   });
 });

@@ -275,14 +275,6 @@ export default {
         }
       }
     },
-    updateAuthEmail: async (
-      context: ActionContext<UserState, never>,
-      email: string
-    ) => {
-      if (context.state.tokens) {
-        context.commit("tokens", await auth.setStoredEmail(context.state.tokens, email))
-      }
-    },
     /**
      * Logout current user.
      */
