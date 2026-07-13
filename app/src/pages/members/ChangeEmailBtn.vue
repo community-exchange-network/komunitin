@@ -17,7 +17,7 @@
   </dialog-form-btn>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import useVuelidate from "@vuelidate/core"
 import { required, email as vemail } from "@vuelidate/validators"
@@ -32,6 +32,10 @@ const props = defineProps<{
 }>();
 
 const email = ref(props.modelValue ?? '')
+watch(() => props.modelValue, value => {
+  email.value = value ?? ''
+})
+
 const store = useStore()
 
 const v$ = useVuelidate({

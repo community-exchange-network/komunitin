@@ -165,7 +165,7 @@ import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
 import NavCard from '../../components/NavCard.vue';
 
-import type { Group, Contact, Member } from '../../store/model';
+import type { Group, Member } from '../../store/model';
 import { useAllResources, useResource } from 'src/composables/useResources';
 import { useI18n } from 'vue-i18n';
 
@@ -181,7 +181,7 @@ const canToggleDescription = ref(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
 const groupOptions = computed(() => ({ group: props.code }));
-const { resource: group, load: loadGroup } = useResource<Group & { contacts: Contact[] }>('groups', groupOptions, {
+const { resource: group, load: loadGroup } = useResource<Group>('groups', groupOptions, {
   immediate: false,
 });
 const own = computed(
@@ -189,6 +189,10 @@ const own = computed(
 );
 const center = computed(() => group.value?.attributes.location.coordinates);
 const marker = computed(() => center.value);
+
+const memberOptions = computed(() => ({ group: props.code }));
+const { resources: members, loadAll: loadAllMembers } = useAllResources<Member>('members', memberOptions, { immediate: false });
+
 const memberMarkers = computed<LatLngExpression[]>(() => {
   return (members.value ?? [])
     .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
@@ -198,9 +202,6 @@ const membersLabel = computed(
   () => `${t('members')} ${isLoggedIn.value && members.value?.length ? `(${members.value.length})` : ''}`
 );
 
-
-const memberOptions = computed(() => ({ group: props.code }));
-const { resources: members, loadAll: loadAllMembers } = useAllResources('members', memberOptions, { immediate: false });
 
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;
