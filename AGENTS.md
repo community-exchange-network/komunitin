@@ -78,3 +78,4 @@ Default demo credentials are password `komunitin`; common users include `noether
 - Keep the code minimal, simple and elegant. Avoid duplication at all costs.
 - Add concise comments for non-obvious or unreadable logic, for public API functions and for orchestration code.
 - Keep testing code minimal, readable and focused on the service boundary (HTTP api for backend services, user interaction for app).
+- 2-space indentation. No unnecessary trailing semicolons.
