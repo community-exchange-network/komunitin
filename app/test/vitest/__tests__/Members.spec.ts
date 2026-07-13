@@ -1,7 +1,7 @@
  
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, waitFor } from "../utils";
 import { QInnerLoading, QInfiniteScroll, QAvatar } from "quasar";
 import MemberHeader from "../../../src/components/MemberHeader.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
@@ -40,6 +40,8 @@ describe("Members", () => {
     // Check GRP00002 result
     const members = wrapper.getComponent(MemberList).findAllComponents(MemberHeader);
     const second = members[2];
+    const secondName = requireText(second.props("member").attributes.name, "Member name");
+    expect(second.text()).toContain(secondName);
     expect(second.text()).toContain("GRP00002");
     expect(second.text()).toContain("$987.10");
     // Avatar image
@@ -51,11 +53,14 @@ describe("Members", () => {
 
     // Check GRP00025 result
     const other = members[25];
+    const otherName = requireText(other.props("member").attributes.name, "Member name");
+    expect(other.text()).toContain(otherName);
     expect(other.text()).toContain("GRP00025");
     expect(other.text()).toContain("$-208.12");
     // Search
     const target = members[5].props("member");
-    const search = target.attributes.name.split(" ").at(-1);
+    const targetName = requireText(target.attributes.name, "Search target name");
+    const search = requireText(targetName.split(" ").at(-1), "Member search term");
     wrapper.getComponent(PageHeader).vm.$emit("search", search);
     await waitFor(
       () => wrapper.getComponent(MemberList).findAllComponents(MemberHeader).length,
@@ -63,7 +68,7 @@ describe("Members", () => {
       `Should find 1 member matching '${search}'`
     );
     const result = wrapper.getComponent(MemberList).getComponent(MemberHeader);
-    expect(result.text()).toContain(target.attributes.name);
+    expect(result.text()).toContain(targetName);
     expect(result.text()).toContain("GRP00005");
     expect(result.text()).toContain("$346.21");
   }, 20000);

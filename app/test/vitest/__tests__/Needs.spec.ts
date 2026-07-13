@@ -1,7 +1,7 @@
  
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../utils";
 import { QItem, QSelect, QDialog, QBtn, QInnerLoading } from "quasar";
 import { seeds } from "src/server";
 import SelectCategory from "src/components/SelectCategory.vue";
@@ -12,6 +12,7 @@ import PageHeader from "src/layouts/PageHeader.vue";
 import type { Category, Member, Need } from "src/store/model";
 
 type FullNeed = Need & { member: Member, category: Category };
+type SelectOption = { label: string, value: string };
 
 // See also Offers.spec.ts
 describe("Needs", () => {
@@ -40,19 +41,23 @@ describe("Needs", () => {
     // Category
     expect(wrapper.findAllComponents(NeedCard)[1].text()).toContain("build");
 
-    const search = need.attributes.description.split(/\W+/).find(word => word.length > 4);
+    const search = requireText(
+      need.attributes.description.split(/\W+/).find(word => word.length > 4),
+      "Need search term"
+    );
     const expected = needs.filter(item => JSON.stringify(item.attributes).toLowerCase().includes(search.toLowerCase())).length;
+    expect(expected).toBeGreaterThan(0);
     wrapper.getComponent(PageHeader).vm.$emit("search", search);
     await waitFor(() => wrapper.findAllComponents(NeedCard).length, expected, `Should find needs matching '${search}'`);
   });
 
   it ("Renders single need", async () => {
     await wrapper.vm.$router.push(`/groups/GRP0/needs/${need.attributes.code}`);
-    const description = need.attributes.description.replace(/[*_]/g, "").slice(0, 20);
+    const description = requireTextExcerpt(need.attributes.description, "Need description");
     await waitFor(() => wrapper.text().includes(description), true, "Need page should load");
     const text = wrapper.text();
-    expect(text).toContain(need.member.attributes.name);
-    expect(text).toContain(need.category.attributes.name);
+    expect(text).toContain(requireText(need.member.attributes.name, "Need member name"));
+    expect(text).toContain(requireText(need.category.attributes.name, "Need category name"));
     expect(text).toMatch(/Updated (yesterday|today)/);
     expect(text).toContain("Expires");
     expect(text).toContain("Share");
@@ -71,9 +76,10 @@ describe("Needs", () => {
     await waitFor(() => select.findAllComponents(QItem).length > 0, true, "Category dropdown should open");
 
     const menu = select.findAllComponents(QItem);
-    const selectedCategory = menu[1].text();
+    const selectedCategory = (select.props("options") as SelectOption[])[1];
+    const selectedCategoryName = requireText(selectedCategory.label, "Selected category name");
     await menu[1].trigger("click");
-    await waitFor(() => select.text().includes(selectedCategory), true, "Category should be selected")
+    await waitFor(() => select.props("modelValue")?.value, selectedCategory.value, "Category should be selected")
 
     await wrapper.get("[name='description']").setValue("I really need this test to pass.")
 
@@ -81,7 +87,7 @@ describe("Needs", () => {
     await waitFor(() => wrapper.text().includes("I really need this test to pass."), true, "Need preview should show")
     expect(wrapper.vm.$route.path).toBe("/groups/GRP0/needs/I-really-n/preview");
     expect(wrapper.text()).toContain("Updated today");
-    expect(wrapper.text()).toContain(selectedCategory);
+    expect(wrapper.text()).toContain(selectedCategoryName);
     await wrapper.get(".q-btn--fab").trigger("click");
     
     await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`);

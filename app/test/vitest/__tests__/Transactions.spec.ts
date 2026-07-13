@@ -1,6 +1,6 @@
 import { flushPromises, type VueWrapper } from "@vue/test-utils";
 import App from "src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, waitFor } from "../utils";
 import TransactionList from "src/pages/transactions/TransactionList.vue";
 import AccountHeader from "src/components/AccountHeader.vue";
 import SelectAccount from "src/components/SelectAccount.vue";
@@ -12,6 +12,7 @@ import GroupHeader from "src/components/GroupHeader.vue";
 import CreateTransactionSendQR from "src/pages/transactions/CreateTransactionSendQR.vue";
 import NfcTagScanner from "src/components/NfcTagScanner.vue";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
+import AccountItemContent from "src/components/AccountItemContent.vue";
 import DateField from "src/components/DateField.vue";
 import { addDays, format } from "date-fns";
 
@@ -67,12 +68,22 @@ describe("Transactions", () => {
     );
     const transactions = wrapper.getComponent(TransactionList).findAllComponents(TransactionItem)
     const first = transactions[3];
+    const firstAccountName = requireText(
+      first.getComponent(AccountItemContent).props("account").member.attributes.name,
+      "Transaction account name"
+    );
     expect(first.text()).toContain("Pending");
+    expect(first.text()).toContain(firstAccountName);
     expect(first.text()).toContain("$-7.45");
     expect(first.text()).toContain("multimedia");
 
     const second = transactions[1];
+    const secondAccountName = requireText(
+      second.getComponent(AccountItemContent).props("account").member.attributes.name,
+      "Transaction account name"
+    );
     expect(second.text()).toContain("today");
+    expect(second.text()).toContain(secondAccountName);
     expect(second.text()).toContain("$-22.09");
     expect(second.text()).toContain("Mandatory");
     // Search
@@ -170,7 +181,7 @@ describe("Transactions", () => {
 
     const dialog = await openAccountList();
     const payer = dialog.findAllComponents(AccountHeader)[2]
-    const payerName = payer.props("account").member.attributes.name;
+    const payerName = requireText(payer.props("account").member.attributes.name, "Payer name");
     expect(payer.text()).toContain(payerName)
     await payer.trigger("click")
     await flushPromises();
@@ -199,7 +210,7 @@ describe("Transactions", () => {
 
     const dialog = await openAccountList();
     const payee = dialog.findAllComponents(AccountHeader)[2]
-    const payeeName = payee.props("account").member.attributes.name;
+    const payeeName = requireText(payee.props("account").member.attributes.name, "Payee name");
     expect(payee.text()).toContain(payeeName)
     await payee.trigger("click")
     await flushPromises();
@@ -241,7 +252,7 @@ describe("Transactions", () => {
       "External group accounts should load"
     );
     const payee = dialog.findAllComponents(AccountHeader)[1]
-    const payeeName = payee.props("account").member.attributes.name;
+    const payeeName = requireText(payee.props("account").member.attributes.name, "External payee name");
     expect(payee.text()).toContain(payeeName)
     await payee.trigger("click")
     await flushPromises();
@@ -326,7 +337,7 @@ describe("Transactions", () => {
       await payees[i].get('input').trigger("click");
       await waitFor(() => payees[i].getComponent(QMenu).findAllComponents(AccountHeader).length > 0, true, `Account list ${i} should open`)
       const payee = payees[i].getComponent(QMenu).findAllComponents(AccountHeader)[i+1]
-      names.push(payee.props("account").member.attributes.name);
+      names.push(requireText(payee.props("account").member.attributes.name, `Payee ${i + 1} name`));
       await payee.trigger("click")
       await flushPromises()
       await wrapper.get(`[name='description[${i}]']`).setValue(`Test multi ${i+1}`)

@@ -1,7 +1,7 @@
  
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../utils";
 import { QInnerLoading, QCard } from "quasar";
 import SimpleMap from '../../../src/components/SimpleMap.vue';
 import GroupCard from "../../../src/components/GroupCard.vue";
@@ -37,7 +37,8 @@ describe("Groups", () => {
     // Code
     expect(text).toContain("GRP0");
     const group = wrapper.vm.$store.getters["groups/find"]({ code: "GRP0" });
-    expect(text).toContain(group.attributes.description.replace(/[*_]/g, "").slice(0, 20));
+    const description = requireTextExcerpt(group.attributes.description, "Group description");
+    expect(text).toContain(description);
 
     // Check cards present.
     const cards = wrapper.findAllComponents(QCard);
@@ -50,8 +51,11 @@ describe("Groups", () => {
     // Members should not show on map, only group center
     expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(1);
     // Location
-    expect(text).toContain(group.attributes.location.name);
-    group.attributes.contacts.forEach((contact: { value: string }) => expect(text).toContain(contact.value));
+    expect(text).toContain(requireText(group.attributes.location.name, "Group location"));
+    expect(group.attributes.contacts).not.toHaveLength(0);
+    group.attributes.contacts.forEach((contact: { value: string }) => {
+      expect(text).toContain(requireText(contact.value, "Group contact"));
+    });
   });
 
   it("Renders group members on map if logged in", async () => {

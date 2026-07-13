@@ -22,6 +22,18 @@ export async function testLogin() {
   await auth.processTokenResponse(mockToken(Auth.SCOPES));
 }
 
+/** Assert that fixture text is usable before matching it against rendered text. */
+export function requireText(value: string | undefined, label: string): string {
+  const text = value?.trim();
+  expect(text, `${label} should not be empty`).toBeTruthy();
+  return text;
+}
+
+/** Return the non-empty excerpt rendered by markdown text components. */
+export function requireTextExcerpt(value: string, label: string): string {
+  return requireText(value.replace(/[*_]/g, "").slice(0, 20), label);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true }): Promise<VueWrapper> {
   await auth.logout();

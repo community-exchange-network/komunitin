@@ -1,7 +1,7 @@
  
-import { type VueWrapper, flushPromises } from "@vue/test-utils";
+import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, waitFor } from "../utils";
 import { QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
@@ -11,6 +11,7 @@ import SelectCategory from "src/components/SelectCategory.vue";
 import type { Category, Member, Offer } from "src/store/model";
 
 type FullOffer = Offer & { member: Member, category: Category };
+type SelectOption = { label: string, value: string };
 
 
 describe("Offers", () => {
@@ -56,11 +57,12 @@ describe("Offers", () => {
 
   it ("renders single offer", async() => {
     await wrapper.vm.$router.push(`/groups/GRP0/offers/${offer.attributes.code}`);
-    await waitFor(() => wrapper.text().includes(offer.attributes.title), true, "Offer page should load");
+    const title = requireText(offer.attributes.title, "Offer title");
+    await waitFor(() => wrapper.text().includes(title), true, "Offer page should load");
     const text = wrapper.text();
-    expect(text).toContain(offer.attributes.title);
-    expect(text).toContain(offer.member.attributes.name);
-    expect(text).toContain(offer.category.attributes.name);
+    expect(text).toContain(title);
+    expect(text).toContain(requireText(offer.member.attributes.name, "Offer member name"));
+    expect(text).toContain(requireText(offer.category.attributes.name, "Offer category name"));
     // The date is generated with faker.date.recent() so it could be "today" or "yesterday"
     // depending on when the test runs (especially around midnight boundaries).
     expect(text).toMatch(/Updated (yesterday|today)/);
@@ -75,9 +77,10 @@ describe("Offers", () => {
     await select.trigger("click");
     await waitFor(() => select.findAllComponents(QItem).length > 0, true, "Category dropdown should open");
     const menu = select.findAllComponents(QItem);
-    const selectedCategory = menu[1].text();
+    const selectedCategory = (select.props("options") as SelectOption[])[1];
+    const selectedCategoryName = requireText(selectedCategory.label, "Selected category name");
     await menu[1].trigger("click");
-    await flushPromises();
+    await waitFor(() => select.props("modelValue")?.value, selectedCategory.value, "Category should be selected");
 
     await wrapper.get("[name='title']").setValue("The Offer")
     await wrapper.get("[name='description']").setValue("This offer is a mirage.")
@@ -89,7 +92,7 @@ describe("Offers", () => {
     const text = wrapper.text();
     expect(text).toContain("This offer is a mirage.");
     expect(text).toContain("Updated today");
-    expect(text).toContain(selectedCategory);
+    expect(text).toContain(selectedCategoryName);
     await wrapper.get(".q-btn--fab").trigger("click");
     await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`);
     expect(wrapper.vm.$route.hash).toBe("#offers");

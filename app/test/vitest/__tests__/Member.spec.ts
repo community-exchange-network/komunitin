@@ -1,6 +1,6 @@
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../utils";
 import { QMenu, QTab } from "quasar";
 import NeedCard from "../../../src/components/NeedCard.vue";
 import OfferCard from "../../../src/components/OfferCard.vue";
@@ -49,9 +49,13 @@ describe("Member", () => {
     expect(text).toContain("3 Offers");
     expect(wrapper.findAllComponents(QTab).length).toBe(3);
     // Bio
-    expect(text).toContain(myMember.attributes.description.replace(/[*_]/g, "").slice(0, 20));
-    myMember.attributes.contacts.forEach((contact: { value: string }) => expect(text).toContain(contact.value));
-    expect(text).toContain(myMember.attributes.location.name);
+    const description = requireTextExcerpt(myMember.attributes.description, "Member description");
+    expect(text).toContain(description);
+    expect(myMember.attributes.contacts).not.toHaveLength(0);
+    myMember.attributes.contacts.forEach((contact: { value: string }) => {
+      expect(text).toContain(requireText(contact.value, "Member contact"));
+    });
+    expect(text).toContain(requireText(myMember.attributes.location.name, "Member location"));
     
     // Needs
     const needsTab = wrapper.findAllComponents(QTab)[1];
@@ -77,15 +81,23 @@ describe("Member", () => {
     );
     const member = wrapper.getComponent(MemberList).findAllComponents(MemberHeader)[1];
     const selected = member.props("member");
+    const selectedName = requireText(selected.attributes.name, "Selected member name");
     await member.trigger("click");
     await waitFor(() => wrapper.vm.$route.fullPath, `/groups/GRP0/members/${selected.attributes.code}`);
-    await waitFor(() => wrapper.text().includes(selected.attributes.name), true, "Member page should load");
+    await waitFor(() => wrapper.text().includes(selectedName), true, "Member page should load");
     const text = wrapper.text();
-    expect(text).toContain(selected.attributes.name);
+    expect(text).toContain(selectedName);
     expect(text).toContain("GRP00001");
     expect(text).toContain("$208.42");
-    expect(text).toContain(selected.attributes.description.replace(/[*_]/g, "").slice(0, 20));
-    selected.attributes.contacts.forEach((contact: { value: string }) => expect(text).toContain(contact.value));
+    const selectedDescription = requireTextExcerpt(
+      selected.attributes.description,
+      "Selected member description"
+    );
+    expect(text).toContain(selectedDescription);
+    expect(selected.attributes.contacts).not.toHaveLength(0);
+    selected.attributes.contacts.forEach((contact: { value: string }) => {
+      expect(text).toContain(requireText(contact.value, "Selected member contact"));
+    });
     expect(text).toContain("No Wants");
     expect(text).toContain("3 Offers");
 
@@ -101,7 +113,7 @@ describe("Member", () => {
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 3, "Should show 3 offers");
     const offers = wrapper.findAllComponents(OfferCard);
     const offer = offers[0];
-    expect(offer.text()).toContain(selected.attributes.name);
+    expect(offer.text()).toContain(selectedName);
 
     // Transactions
     await tabs[3].trigger("click");
