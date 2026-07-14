@@ -20,7 +20,7 @@ const envSchema = z.object({
   AUTH_JWT_ISSUER: z.string().default('https://komunitin.org'),
   AUTH_JWT_AUDIENCE: z.string().default('komunitin-app').transform((s) => s.split(',')),
   AUTH_JWKS_URL: z.url().default('https://komunitin.org/.well-known/jwks.json'),
-  UPLOAD_S3_PREFIX: z.url({protocol: /^s3:$/}).default('s3://komunitin/uploads'),
+  UPLOAD_S3_PREFIX: z.url({protocol: /^s3$/}).default('s3://komunitin/uploads'),
   UPLOAD_S3_ENDPOINT: z.url().default('http://s3.test'),
   UPLOAD_S3_REGION: z.string().trim().min(1).default('us-east-1'),
   UPLOAD_S3_ACCESS_KEY: z.string().trim().min(1).default('test-access-key'),
