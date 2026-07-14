@@ -10,7 +10,7 @@ import Provider, {
 import { config } from '../config'
 import { adapterFactory } from './adapter'
 import { findAccount, authenticate } from './account'
-import { apiScopes, clients } from './clients'
+import { apiScopes, clients, SUPERADMIN_SCOPE } from './clients'
 import { verifySignedToken } from './token-verifier'
 import type { Jwks } from './jwks'
 import { isUuid } from '../utils/uuid'
@@ -240,6 +240,7 @@ export async function createProvider(jwks: Jwks) {
       const requestedScopes = getRequestedScopes(scope, ['email'])
       ensureClientScopesAllowed(ctx, client, requestedScopes)
       const grantedScopes = filterAllowedScopes(requestedScopes, client)
+        .filter((candidate) => candidate !== SUPERADMIN_SCOPE || user.email === config.ADMIN_EMAIL)
       const scopeValue = serializeScope(grantedScopes)
 
       assignGrantScopes(grant, scopeValue)

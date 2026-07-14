@@ -2,16 +2,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { config } from "src/utils/config";
-import type { TokenResponse } from "../plugins/Auth";
+import { Auth, type TokenResponse } from "../plugins/Auth";
 import type { Server} from "miragejs";
 import { Response } from "miragejs";
 
-export function mockToken(scope: string, emptyUser = false): TokenResponse {
+export function mockToken(scope: string, emptyUser = false, superadmin = false): TokenResponse {
   return {
     access_token: emptyUser ? "empty_user_access_token" : "test_user_access_token",
     refresh_token: emptyUser ? "empty_user_refresh_token" : "test_user_refresh_token",
     expires_in: 3600,
-    scope: scope
+    scope: scope.split(" ").filter(value => value !== Auth.SUPERADMIN_SCOPE || superadmin).join(" ")
   };
 }
 
@@ -26,8 +26,9 @@ export default {
       config.AUTH_URL + "/token",
       (schema: any, request) => {
         const params = new URLSearchParams(request.requestBody);
-        const param = params.get("code") || params.get("refresh_token") || params.get("username") || "test_user";
-        const data = mockToken(params.get("scope"), param === "empty_user");
+        const username = params.get("username");
+        const param = params.get("code") || params.get("refresh_token") || username || "test_user";
+        const data = mockToken(params.get("scope") ?? "", param === "empty_user", username === "superadmin@example.com");
         return new Response(200, {}, data);
       }
     );

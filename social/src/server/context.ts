@@ -21,7 +21,7 @@ export type AnonContext = BaseContext & {
 export type OptionalAuthContext = AuthContext | AnonContext
 
 export const Scope = {
-  Superadmin: 'komunitin_superadmin',
+  Superadmin: 'superadmin',
   SocialReadAll: 'komunitin_social_read_all',
 } as const
 

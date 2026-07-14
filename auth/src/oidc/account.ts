@@ -1,10 +1,12 @@
 import type { AccountClaims, ClaimsParameterMember, FindAccount } from 'oidc-provider'
+import { config } from '../config'
 import prisma from '../utils/prisma'
 import bcrypt from 'bcrypt'
 import { normalizeEmail } from '../utils/email'
 import { UserStatus } from '../users/status'
+import { SUPERADMIN_SCOPE } from './clients'
 
-export const findAccount: FindAccount = async (ctx, id) => {
+export const findAccount: FindAccount = async (ctx, id, token) => {
   const user = await prisma.user.findUnique({
     where: { 
       id,
@@ -13,6 +15,11 @@ export const findAccount: FindAccount = async (ctx, id) => {
   })
 
   if (!user) return undefined
+  
+  // oidc-provider calls findAccount during refresh; reject sessions whose superadmin identity is no longer configured.
+  if (token && 'scopes' in token && token.scopes.has(SUPERADMIN_SCOPE) && user.email !== config.ADMIN_EMAIL) {
+    return undefined
+  }
 
   return {
     accountId: user.id,
