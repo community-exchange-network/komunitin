@@ -104,7 +104,6 @@ const submit = async () => {
     const signup = await store.dispatch("login", {
       email: email.value,
       password: pass.value,
-      superadmin: isSuperadmin.value,
       signup: props.signup
     })
     if (signup) {

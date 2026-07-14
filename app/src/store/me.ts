@@ -25,7 +25,6 @@ export const auth = new Auth()
 export interface LoginPayload {
   email: string
   password: string
-  superadmin?: boolean
   signup?: SignupContext
 }
 

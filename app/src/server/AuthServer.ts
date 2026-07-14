@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { config } from "src/utils/config";
-import type { SignupContext, TokenResponse } from "../plugins/Auth";
+import { Auth, type SignupContext, type TokenResponse } from "../plugins/Auth";
 import type { Server} from "miragejs";
 import { Response } from "miragejs";
 import { badRequest } from "./ServerUtils";
@@ -80,13 +80,13 @@ export function redeemMockActionToken(token: string, purpose: ActionTokenPurpose
   return consumeActionToken(token, [purpose]);
 }
 
-export function mockToken(scope: string | null, emptyUser = false): TokenResponse & { token_type: "Bearer" } {
+export function mockToken(scope: string | null, emptyUser = false, superadmin = false): TokenResponse & { token_type: "Bearer" } {
   return {
     access_token: emptyUser ? "empty_user_access_token" : "test_user_access_token",
     refresh_token: emptyUser ? "empty_user_refresh_token" : "test_user_refresh_token",
     expires_in: 3600,
     token_type: "Bearer",
-    scope: scope ?? "",
+    scope: (scope ?? "").split(" ").filter(value => value !== Auth.SUPERADMIN_SCOPE || superadmin).join(" ")
   };
 }
 
@@ -117,12 +117,13 @@ export default {
           const accessToken = `${registered.id}_access_token`
           accessTokenUsers.set(accessToken, registered)
           return new Response(200, {}, {
-            ...mockToken(params.get("scope")),
+            ...mockToken(params.get("scope"), false, registered.email === "superadmin@example.com"),
             access_token: accessToken,
             refresh_token: registered.refreshToken
           })
         }
-        const data = mockToken(params.get("scope"), param === "empty_user");
+        const username = params.get("username");
+        const data = mockToken(params.get("scope") ?? "", param === "empty_user", username === "superadmin@example.com");
         return new Response(200, {}, data);
       }
     );

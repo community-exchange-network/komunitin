@@ -66,6 +66,7 @@ describe("Front page and login", () => {
     ).toBeUndefined();
     await wrapper.get("button[type='submit']").trigger("click");
     await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true, "User should be logged in");
+    expect(wrapper.vm.$store.getters.isSuperadmin).toBe(false);
     await waitFor(() => wrapper.vm.$route.path, "/home");
     // Open profile menu
     await wrapper.findComponent(ProfileBtnMenu).trigger('click');
@@ -76,6 +77,20 @@ describe("Front page and login", () => {
       .getComponent(QList)
       .get("#user-menu-logout")
       .trigger("click");
+    await waitFor(() => wrapper.vm.$route.path, "/");
+  });
+
+  it("grants superadmin navigation to the configured account", async () => {
+    await wrapper.vm.$router.push("/superadmin/groups");
+    await waitFor(() => wrapper.vm.$route.path, "/login-mail");
+    await wrapper.get("input[type='email']").setValue("superadmin@example.com");
+    await wrapper.get("input[type='password']").setValue("password");
+    await wrapper.get("button[type='submit']").trigger("click");
+
+    await waitFor(() => wrapper.vm.$store.getters.isSuperadmin, true);
+    await waitFor(() => wrapper.vm.$route.path, "/superadmin/groups");
+
+    await wrapper.vm.$router.push("/logout");
     await waitFor(() => wrapper.vm.$route.path, "/");
   });
 

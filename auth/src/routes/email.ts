@@ -8,6 +8,7 @@ import { userAuth, type AuthenticatedRequest } from '../server/auth'
 import { badRequest } from '../utils/error'
 import logger from '../utils/logger'
 import { normalizeEmail, normalizedEmailSchema } from '../utils/email'
+import { revokeUserSessions } from '../oidc/adapter'
 
 const router = Router()
 const parseBody = express.json()
@@ -74,6 +75,9 @@ router.post('/change-email/confirm', parseBody, rateLimit({ bucket: 'change-emai
         },
       })
       await consumeActionToken(tx, changeRecord)
+      if (changeRecord.purpose === userActionTokenPurpose.emailChange) {
+        await revokeUserSessions(tx, changeRecord.userId)
+      }
       return updatedUser
     })
 

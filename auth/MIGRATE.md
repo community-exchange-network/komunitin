@@ -163,14 +163,14 @@ Target request to the new auth service must use the new scope names.
 Recommended target for the normal app session:
 
 ```text
-email offline_access social:read social:write accounting:read accounting:write
+email offline_access social:read social:write accounting:read accounting:write superadmin
 ```
 
 Notes:
 
 - Do not switch the app scope string until the downstream services accept the new names.
 - The new auth service does not issue ID tokens and does not currently expose `openid` or `profile` scopes.
-- Admin and superadmin authorization should be modeled deliberately before adding auth scopes for it. There is currently no direct replacement for `komunitin_superadmin`.
+- The app always requests `superadmin`; auth grants it only when the authenticated email matches `ADMIN_EMAIL`.
 
 ### 2. Stop using `authorization_code` for emailed links
 
@@ -603,6 +603,5 @@ The target state is:
 
 These need explicit decisions before the migration can be considered complete:
 
-- What is the permanent replacement for `komunitin_superadmin`?
 - Will passwords be migrated with temporary legacy-hash verification or forced reset?
 - What is the final scope matrix for read/write/admin operations in accounting and social?
