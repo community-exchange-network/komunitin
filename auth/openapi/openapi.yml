@@ -34,8 +34,8 @@ paths:
   /register:
     post:
       tags: [Registration]
-      summary: Register a new auth user
-      description: Creates an unverified auth identity and queues an email validation message. This endpoint does not create an OAuth session or any social onboarding state.
+      summary: Register an auth user
+      description: Creates an unverified auth identity, or refreshes an existing unverified registration, and queues an email validation message. Verified identities cannot be replaced. This endpoint does not create an OAuth session or any social onboarding state.
       operationId: postRegister
       requestBody:
         required: true
@@ -45,7 +45,7 @@ paths:
               $ref: '#/components/schemas/RegisterPayload'
       responses:
         '201':
-          description: Auth user created.
+          description: Auth user created or unverified registration refreshed.
           content:
             application/json:
               schema:
@@ -57,7 +57,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JsonApiErrors'
         '409':
-          description: Email is already registered.
+          description: Email belongs to a verified identity.
           content:
             application/json:
               schema:

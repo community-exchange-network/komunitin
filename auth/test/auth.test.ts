@@ -156,23 +156,108 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(verifiedUser.emailVerified, true)
   })
 
-  test('POST /register rejects duplicate emails', async () => {
-    await request(app)
+  test('POST /register replaces an unverified registration', async () => {
+    const firstRegistration = await request(app)
       .post('/register')
       .set('X-Forwarded-For', '203.0.113.10')
       .type('json')
       .send({
         email: 'duplicate@example.org',
-        password: 'password123',
+        password: 'original-password',
       })
       .expect(201)
 
-    const duplicateRes = await request(app)
+    const loginRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'duplicate@example.org',
+        password: 'original-password',
+        scope: 'offline_access',
+      })
+      .expect(200)
+
+    await requestActionToken({
+      userId: firstRegistration.body.id,
+      purpose: 'emailChange',
+      email: 'pending-change@example.org',
+    })
+
+    const replacement = await request(app)
       .post('/register')
       .set('X-Forwarded-For', '203.0.113.11')
       .type('json')
       .send({
         email: '  DUPLICATE@example.org  ',
+        password: 'replacement-password',
+      })
+      .expect(201)
+
+    assert.strictEqual(replacement.body.id, firstRegistration.body.id)
+    assert.strictEqual(replacement.body.email, 'duplicate@example.org')
+    assert.strictEqual(replacement.body.emailVerified, false)
+    assert.strictEqual(await prisma.user.count({ where: { email: 'duplicate@example.org' } }), 1)
+    assert.strictEqual(await prisma.userActionToken.count({ where: { userId: firstRegistration.body.id } }), 0)
+    assert.strictEqual(fetchCalls.length, 2)
+
+    const refreshRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'refresh_token',
+        client_id: 'komunitin-app',
+        refresh_token: loginRes.body.refresh_token,
+      })
+      .expect(400)
+    assert.strictEqual(refreshRes.body.error, 'invalid_grant')
+
+    await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'duplicate@example.org',
+        password: 'original-password',
+      })
+      .expect(400)
+
+    await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'duplicate@example.org',
+        password: 'replacement-password',
+      })
+      .expect(200)
+  })
+
+  test('POST /register rejects duplicate verified emails', async () => {
+    const registration = await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.12')
+      .type('json')
+      .send({
+        email: 'verified-duplicate@example.org',
+        password: 'password123',
+      })
+      .expect(201)
+
+    await prisma.user.update({
+      where: { id: registration.body.id },
+      data: { emailVerified: true },
+    })
+
+    const duplicateRes = await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.13')
+      .type('json')
+      .send({
+        email: '  VERIFIED-DUPLICATE@example.org  ',
         password: 'another-password',
       })
       .expect(409)
@@ -181,7 +266,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(fetchCalls.length, 1)
   })
 
-  test('POST /register handles concurrent duplicate registrations', async () => {
+  test('POST /register merges concurrent unverified registrations', async () => {
     const responses = await Promise.all([
       request(app)
         .post('/register')
@@ -202,7 +287,8 @@ describe('Auth Service Integration Tests', () => {
     ])
 
     const statuses = responses.map(response => response.status).sort()
-    assert.deepStrictEqual(statuses, [201, 409])
+    assert.deepStrictEqual(statuses, [201, 201])
+    assert.strictEqual(responses[0].body.id, responses[1].body.id)
 
     const users = await prisma.user.findMany({
       where: { email: 'race@example.org' },

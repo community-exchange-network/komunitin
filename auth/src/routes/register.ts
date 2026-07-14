@@ -8,6 +8,7 @@ import { badRequest, conflict } from '../utils/error'
 import logger from '../utils/logger'
 import { normalizedEmailSchema } from '../utils/email'
 import { UserStatus } from '../users/status'
+import { revokeUserSessions } from '../oidc/adapter'
 
 const router = Router()
 const parseBody = express.json()
@@ -33,25 +34,43 @@ router.post('/register', parseBody, rateLimit({ bucket: 'register', limit: 1, wi
   const { email, password } = parsed.data
 
   try {
-    const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) {
+    const passwordHash = await hashPassword(password)
+    const user = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.upsert({
+        where: {
+          email,
+          emailVerified: false,
+        },
+        update: { passwordHash },
+        create: {
+          email,
+          passwordHash,
+          emailVerified: false,
+          status: UserStatus.Active,
+        },
+        select: {
+          id: true,
+          email: true,
+          emailVerified: true,
+        },
+      })
+      // A verified email conflicts with create but is excluded from update, so the upsert returns no row.
+      if (!user) return null
+
+      await tx.userActionToken.deleteMany({
+        where: {
+          userId: user.id,
+          usedAt: null,
+        },
+      })
+      await revokeUserSessions(tx, user.id)
+
+      return user
+    })
+
+    if (!user) {
       return next(duplicateEmail())
     }
-
-    const passwordHash = await hashPassword(password)
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        emailVerified: false,
-        status: UserStatus.Active,
-      },
-      select: {
-        id: true,
-        email: true,
-        emailVerified: true,
-      },
-    })
 
     res.status(201).json(user)
     NotificationsService.sendValidationEmail(user.id, user.email).catch(err => {
