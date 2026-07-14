@@ -52,7 +52,7 @@ Current clients:
 
 | Client | Type | Grants | Allowed scopes |
 | --- | --- | --- | --- |
-| `komunitin-app` | Public PWA client | `password`, `refresh_token` | `email`, `offline_access`, `social:read`, `social:write`, `accounting:read`, `accounting:write` |
+| `komunitin-app` | Public PWA client | `password`, `refresh_token` | `email`, `offline_access`, `social:read`, `social:write`, `accounting:read`, `accounting:write`, `superadmin` |
 | `komunitin-social` | Confidential service client | `client_credentials`, token exchange | `accounting:read`, `accounting:write` |
 | `komunitin-notifications` | Confidential service client | `client_credentials`, token exchange | `email`, `social:read`, `accounting:read` |
 
@@ -64,6 +64,7 @@ Current scopes:
 - `social:write`
 - `accounting:read`
 - `accounting:write`
+- `superadmin` (granted only when the authenticated user matches `ADMIN_EMAIL`)
 
 Access tokens are signed JWTs with audience `app`. Refresh tokens are opaque server-side records stored by `oidc-provider`.
 

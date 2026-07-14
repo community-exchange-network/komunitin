@@ -267,6 +267,75 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(decoded.scope, 'email social:read offline_access')
   })
 
+  test('POST /token grants superadmin only to ADMIN_EMAIL', async () => {
+    const passwordHash = await hashPassword('password123')
+    await prisma.user.createMany({
+      data: [
+        {
+          id: '15151515-1515-1515-1515-151515151515',
+          email: 'superadmin@test.com',
+          passwordHash,
+          emailVerified: true,
+          status: UserStatus.Active,
+        },
+        {
+          id: '16161616-1616-1616-1616-161616161616',
+          email: 'regular@test.com',
+          passwordHash,
+          emailVerified: true,
+          status: UserStatus.Active,
+        },
+      ],
+    })
+
+    const adminRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'SUPERADMIN@TEST.COM',
+        password: 'password123',
+        scope: 'email offline_access social:read superadmin',
+      })
+      .expect(200)
+
+    assert.deepStrictEqual(adminRes.body.scope.split(' '), [
+      'email',
+      'offline_access',
+      'social:read',
+      'superadmin',
+    ])
+    assert.strictEqual((decodeJwt(adminRes.body.access_token) as any).scope, adminRes.body.scope)
+
+    const regularRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'regular@test.com',
+        password: 'password123',
+        scope: 'email offline_access social:read superadmin',
+      })
+      .expect(200)
+
+    assert.strictEqual(regularRes.body.scope, 'email offline_access social:read')
+
+    const refreshRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'refresh_token',
+        client_id: 'komunitin-app',
+        refresh_token: adminRes.body.refresh_token,
+      })
+      .expect(200)
+
+    assert.deepStrictEqual(refreshRes.body.scope.split(' '), ['social:read', 'superadmin'])
+    assert.strictEqual((decodeJwt(refreshRes.body.access_token) as any).scope, refreshRes.body.scope)
+  })
+
   test('POST /token with ROPC rejects disabled users', async () => {
     const passwordHash = await hashPassword('password123')
     await prisma.user.create({

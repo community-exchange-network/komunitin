@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { mailboxEmailSchema } from './utils/email'
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -10,6 +11,7 @@ const envSchema = z.object({
   NOTIFICATIONS_EVENTS_PASSWORD: z.string().min(1).default('replace-this-with-a-secure-password'),
   NOTIFICATIONS_CLIENT_SECRET: z.string().min(1).default('replace-this-with-a-secure-password'),
   SOCIAL_CLIENT_SECRET: z.string().min(1).default('komunitin-social-secret'),
+  ADMIN_EMAIL: mailboxEmailSchema,
   JWKS_ROTATION_INTERVAL_DAYS: z.coerce.number().int().positive().default(90),
   JWKS_RETENTION_HOURS: z.coerce.number().int().positive().default(24),
   RATE_LIMIT_MAX_ATTEMPTS: z.coerce.number().int().positive().default(100),

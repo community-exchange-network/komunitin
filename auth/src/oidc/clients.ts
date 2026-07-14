@@ -1,6 +1,8 @@
 import { ClientMetadata } from 'oidc-provider'
 import { config } from '../config'
 
+export const SUPERADMIN_SCOPE = 'superadmin'
+
 export const apiScopes: string[] = [
   'email',
   'offline_access',
@@ -8,6 +10,7 @@ export const apiScopes: string[] = [
   'social:write',
   'accounting:read',
   'accounting:write',
+  SUPERADMIN_SCOPE,
 ]
 
 const notificationsScopes = [
