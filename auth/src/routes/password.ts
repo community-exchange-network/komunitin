@@ -7,6 +7,7 @@ import { rateLimit } from '../utils/rate-limit'
 import { badRequest } from '../utils/error'
 import logger from '../utils/logger'
 import { normalizedEmailSchema } from '../utils/email'
+import { revokeUserSessions } from '../oidc/adapter'
 
 const router = Router()
 const parseBody = express.json()
@@ -62,6 +63,7 @@ router.post('/change-password', parseBody, rateLimit({ bucket: 'change-password'
         data: { passwordHash },
       })
       await consumeActionToken(tx, resetRecord)
+      await revokeUserSessions(tx, resetRecord.userId)
     })
 
     res.json({ status: 'ok' })

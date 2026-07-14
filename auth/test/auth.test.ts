@@ -334,6 +334,23 @@ describe('Auth Service Integration Tests', () => {
 
     assert.deepStrictEqual(refreshRes.body.scope.split(' '), ['social:read', 'superadmin'])
     assert.strictEqual((decodeJwt(refreshRes.body.access_token) as any).scope, refreshRes.body.scope)
+
+    await prisma.user.update({
+      where: { id: '15151515-1515-1515-1515-151515151515' },
+      data: { email: 'former-superadmin@test.com' },
+    })
+
+    const staleAdminRefreshRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'refresh_token',
+        client_id: 'komunitin-app',
+        refresh_token: refreshRes.body.refresh_token,
+      })
+      .expect(400)
+
+    assert.strictEqual(staleAdminRefreshRes.body.error, 'invalid_grant')
   })
 
   test('POST /token with ROPC rejects disabled users', async () => {
@@ -1005,11 +1022,46 @@ describe('Auth Service Integration Tests', () => {
     const { token } = await requestActionToken({ userId, purpose: 'passwordReset' })
     assert.ok(token)
 
+    const loginRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'reset-pwd@example.org',
+        password: 'old-password',
+        scope: 'offline_access social:read',
+      })
+      .expect(200)
+
     // 2. Confirm Change
     await request(app)
       .post('/change-password')
       .send({ token, password: 'new-secure-password' })
       .expect(200)
+
+    const refreshRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'refresh_token',
+        client_id: 'komunitin-app',
+        refresh_token: loginRes.body.refresh_token,
+      })
+      .expect(400)
+
+    assert.strictEqual(refreshRes.body.error, 'invalid_grant')
+
+    await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'reset-pwd@example.org',
+        password: 'old-password',
+      })
+      .expect(400)
 
     // 3. Verify Login with new password
     await request(app)
@@ -1110,6 +1162,19 @@ describe('Auth Service Integration Tests', () => {
         client_id: 'komunitin-app',
         username: 'old-email@example.org',
         password: 'password123',
+        scope: 'offline_access social:read',
+      })
+      .expect(200)
+
+    const secondTokenRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'old-email@example.org',
+        password: 'password123',
+        scope: 'offline_access social:read',
       })
       .expect(200)
 
@@ -1141,11 +1206,36 @@ describe('Auth Service Integration Tests', () => {
       .send({ token })
       .expect(200)
 
+    for (const refreshToken of [tokenRes.body.refresh_token, secondTokenRes.body.refresh_token]) {
+      const refreshRes = await request(app)
+        .post('/token')
+        .type('form')
+        .send({
+          grant_type: 'refresh_token',
+          client_id: 'komunitin-app',
+          refresh_token: refreshToken,
+        })
+        .expect(400)
+
+      assert.strictEqual(refreshRes.body.error, 'invalid_grant')
+    }
+
     // 4. Verify user in database is updated
     const user = await prisma.user.findUnique({ where: { id: userId } })
     assert.ok(user)
     assert.strictEqual(user.email, 'new-email@example.org')
     assert.strictEqual(user.emailVerified, true)
+
+    await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'new-email@example.org',
+        password: 'password123',
+      })
+      .expect(200)
   })
 
   test('Older email change tokens are invalidated when a new change is requested', async () => {
@@ -1262,6 +1352,18 @@ describe('Auth Service Integration Tests', () => {
       },
     })
 
+    const loginRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'verify-me@example.org',
+        password: 'password123',
+        scope: 'offline_access social:read',
+      })
+      .expect(200)
+
     await request(app)
       .post('/resend-validation')
       .type('json')
@@ -1282,6 +1384,16 @@ describe('Auth Service Integration Tests', () => {
     assert.ok(user)
     assert.strictEqual(user.email, 'verify-me@example.org')
     assert.strictEqual(user.emailVerified, true)
+
+    await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'refresh_token',
+        client_id: 'komunitin-app',
+        refresh_token: loginRes.body.refresh_token,
+      })
+      .expect(200)
   })
 
   test('Password reset and email action tokens do not invalidate each other', async () => {

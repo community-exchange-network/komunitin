@@ -1,4 +1,5 @@
 import { Adapter, AdapterPayload } from 'oidc-provider'
+import type { Prisma } from '../generated/prisma/client'
 import prisma from '../utils/prisma'
 
 export class PrismaAdapter implements Adapter {
@@ -103,3 +104,15 @@ export class PrismaAdapter implements Adapter {
 }
 
 export const adapterFactory = (name: string) => new PrismaAdapter(name)
+
+/** Revoke all persisted OIDC sessions for a user. */
+export const revokeUserSessions = (tx: Prisma.TransactionClient, userId: string) => {
+  return tx.oidcPayload.deleteMany({
+    where: {
+      payload: {
+        path: ['accountId'],
+        equals: userId,
+      },
+    },
+  })
+}
