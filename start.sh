@@ -65,7 +65,7 @@ if [ "$demo" = true  ]; then
   docker compose exec accounting pnpm prisma migrate reset --force
   docker compose exec notifications-ts pnpm prisma migrate reset --force
   # for social db, prisma reset does not work well so we recreate the db container instead.
-  docker compose down -v social-db && docker compose up -d social-db
+  docker compose down -v db-social && docker compose up -d db-social
   sleep 2
 else
   docker compose exec auth pnpm prisma migrate deploy
