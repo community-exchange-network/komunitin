@@ -35,7 +35,7 @@ paths:
     post:
       tags: [Registration]
       summary: Register an auth user
-      description: Creates an unverified auth identity, or refreshes an existing unverified registration, and queues an email validation message. Verified identities cannot be replaced. This endpoint does not create an OAuth session or any social onboarding state.
+      description: Creates an unverified auth identity, or refreshes an existing unverified registration, and queues an email validation message. The required signup continuation is stored only on the purpose-bound verification token. Verified identities cannot be replaced. This endpoint does not create an OAuth session or a Social resource.
       operationId: postRegister
       requestBody:
         required: true
@@ -77,6 +77,7 @@ paths:
         `urn:ietf:params:oauth:grant-type:token-exchange` grant types.
         Email action tokens from password reset and email validation flows are
         not redeemable here and must be sent to their dedicated endpoints.
+        The password grant rejects users whose email is not yet verified.
       operationId: postToken
       requestBody:
         required: true
@@ -332,7 +333,7 @@ components:
           enum: [ok]
     RegisterPayload:
       type: object
-      required: [email, password]
+      required: [email, password, signup]
       properties:
         email:
           type: string
@@ -340,6 +341,32 @@ components:
         password:
           type: string
           minLength: 8
+        signup:
+          $ref: '#/components/schemas/SignupContext'
+    SignupContext:
+      oneOf:
+        - type: object
+          required: [type, name, language]
+          properties:
+            type:
+              type: string
+              enum: [group]
+            name:
+              type: string
+            language:
+              type: string
+        - type: object
+          required: [type, name, language, groupCode]
+          properties:
+            type:
+              type: string
+              enum: [member]
+            name:
+              type: string
+            language:
+              type: string
+            groupCode:
+              type: string
     AuthUserResponse:
       type: object
       required: [id, email, emailVerified]
@@ -352,6 +379,8 @@ components:
           format: email
         emailVerified:
           type: boolean
+        signup:
+          $ref: '#/components/schemas/SignupContext'
     TokenResponse:
       type: object
       required: [access_token, expires_in, token_type, scope]
@@ -433,6 +462,8 @@ components:
             purpose:
               type: string
               enum: [emailVerification]
+            signup:
+              $ref: '#/components/schemas/SignupContext'
         - type: object
           required: [userId, purpose]
           properties:

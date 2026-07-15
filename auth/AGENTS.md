@@ -56,6 +56,7 @@ pnpm build
 
 ## Security Rules
 - Email links must remain purpose-specific single-use action tokens redeemed at dedicated endpoints.
+- Never send action tokens through notification events. Events carry the user and action context; Notifications requests raw tokens through the authenticated `POST /action-token` endpoint.
 - Keep password reset responses generic so they do not reveal whether an email exists.
 - Keep browser-session features out of auth unless a real browser interaction flow is added.
 - If adding Authorization Code flow for the PWA later, require PKCE, add the required cookie/session configuration then, and keep it separate from emailed action tokens.

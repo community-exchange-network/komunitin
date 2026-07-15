@@ -1,7 +1,12 @@
 import { config } from '../config'
+import { userActionTokenPurpose } from './tokens'
+import type { SignupContext } from '../users/signup'
 import logger from '../utils/logger'
 
 type AuthEventName = 'PasswordResetRequested' | 'ValidationEmailRequested'
+type ValidationPurpose =
+  | typeof userActionTokenPurpose.emailChange
+  | typeof userActionTokenPurpose.emailVerification
 
 export class NotificationsService {
   private static getHeaders() {
@@ -12,7 +17,13 @@ export class NotificationsService {
     }
   }
 
-  private static async sendEvent(name: AuthEventName, userId: string, email: string) {
+  private static async sendEvent(
+    name: AuthEventName,
+    userId: string,
+    email: string,
+    data: Record<string, unknown> = {},
+    code: string | null = null,
+  ) {
     const url = `${config.NOTIFICATIONS_URL}/events`
     const body = {
       data: {
@@ -20,11 +31,12 @@ export class NotificationsService {
         attributes: {
           name,
           source: 'auth',
-          code: null,
+          code,
           time: new Date().toISOString(),
           data: {
             user: userId,
             email,
+            ...data,
           },
         },
         relationships: {
@@ -62,7 +74,16 @@ export class NotificationsService {
     await this.sendEvent('PasswordResetRequested', userId, email)
   }
 
-  static async sendValidationEmail(userId: string, email: string) {
-    await this.sendEvent('ValidationEmailRequested', userId, email)
+  static async sendValidationEmail(
+    userId: string,
+    email: string,
+    purpose: ValidationPurpose,
+    signup?: SignupContext,
+  ) {
+    const code = signup?.type === 'member' ? signup.groupCode : null
+    await this.sendEvent('ValidationEmailRequested', userId, email, {
+      purpose,
+      signup,
+    }, code)
   }
 }

@@ -22,7 +22,7 @@ const createEventSchema = z.object({
         source: z.string(),
         code: z.string().nullable(),
         time: z.coerce.date(),
-        data: z.record(z.string()).default({}),
+        data: z.record(z.string(), z.unknown()).default({}),
       }).refine((attributes) => !(attributes.code === null && !nullableCodeEventNames.has(attributes.name)), {
         message: 'code is required for this event type',
         path: ['code'],

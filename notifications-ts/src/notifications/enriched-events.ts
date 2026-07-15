@@ -77,8 +77,6 @@ export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
 };
 
 export type EnrichedUserEvent = UserEvent & {
-  // user is already taken.
-  target: { user: User; settings: UserSettings };
   token: string;
   // Some user events may not be associated to any group (eg email validation when creating a new group).
   group?: Group;

@@ -7,7 +7,7 @@ import { HistoryLog, NewsletterContext, ProcessedItem } from './types';
 import prisma from '../utils/prisma';
 import { shouldSendNewsletter, shouldProcessGroup } from './frequency';
 import initI18n from '../utils/i18n';
-import { getAuthCode } from '../clients/komunitin/getAuthCode';
+import { getUnsubscribeToken } from '../clients/komunitin/getActionToken';
 
 import { selectBestItems, getDistance } from './posts-algorithm';
 import { Member, Offer, Need, Group } from '../clients/komunitin/types';
@@ -246,7 +246,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     for (const { user, settings: userSettings } of recipientsToProcess) {
       let unsubscribeToken: string | undefined;
       try {
-        unsubscribeToken = await getAuthCode(user.id, ['komunitin_social']);
+        unsubscribeToken = await getUnsubscribeToken(user.id);
       } catch (err) {
         logger.error({ err, user: user.id }, 'Failed to get unsubscribe token. Aborting sending to this user.');
         //abort

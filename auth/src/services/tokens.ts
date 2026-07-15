@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import type { Prisma } from '../generated/prisma/client'
 import prisma from '../utils/prisma'
 import { badRequest } from '../utils/error'
+import type { SignupContext } from '../users/signup'
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 
@@ -96,10 +97,12 @@ async function createUserActionToken({
   userId,
   purpose,
   targetEmail = null,
+  data,
 }: {
   userId: string
   purpose: UserActionTokenPurpose
   targetEmail?: string | null
+  data?: SignupContext
 }): Promise<string> {
   const token = generateToken()
   const tokenHash = hashToken(token)
@@ -118,6 +121,7 @@ async function createUserActionToken({
         userId,
         purpose,
         targetEmail,
+        data,
         tokenHash,
         expiresAt,
       },
@@ -144,11 +148,16 @@ export async function createEmailChangeToken(userId: string, targetEmail: string
   })
 }
 
-export async function createEmailVerificationToken(userId: string, targetEmail: string): Promise<string> {
+export async function createEmailVerificationToken(
+  userId: string,
+  targetEmail: string,
+  signup?: SignupContext,
+): Promise<string> {
   return createUserActionToken({
     userId,
     purpose: userActionTokenPurpose.emailVerification,
     targetEmail,
+    data: signup,
   })
 }
 

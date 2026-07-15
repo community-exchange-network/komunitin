@@ -38,6 +38,7 @@ describe('AuthProvider', () => {
     const call = (global.fetch as any).mock.calls[0];
     // URL should match .env.test value
     assert.strictEqual(call.arguments[0], 'http://auth.test/token');
+    assert.strictEqual(call.arguments[1].body.get('scope'), 'email social:read accounting:read');
   });
 
   it('should reuse valid token', async () => {

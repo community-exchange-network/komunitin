@@ -134,7 +134,7 @@ Verification:
   reads/writes, uploads, maps, and unsubscribe all pass in frontend isolation.
 - Frontend tests fail if an old IntegralCES request shape is reintroduced.
 
-## Stage 3: Establish The New Auth Trust Baseline
+## Stage 3: Establish The New Auth Trust Baseline (DONE)
 
 Goal: make services trust tokens issued by the new auth service.
 
@@ -159,7 +159,7 @@ Verification:
 - Social/accounting/notifications accept new tokens and reject legacy-scope-only
   assumptions.
 
-## Stage 4: Integrate Frontend Auth With The Real Auth Service
+## Stage 4: Integrate Frontend Auth With The Real Auth Service (DONE)
 
 Goal: prove the already-migrated frontend session model works against real auth.
 
@@ -178,7 +178,7 @@ Verification:
 - Visiting a URL with `?token=` does not silently create a session.
 - Public pages do not attempt to authorize unless they need private data.
 
-## Stage 5: Bootstrap Current User With Real Social Shapes
+## Stage 5: Bootstrap Current User With Real Social Shapes (DONE)
 
 Goal: prove the migrated app bootstrap works against the real social API.
 
@@ -201,7 +201,7 @@ Verification:
   members.
 - Nearby group/resource ordering works through `near` and `sort=distance`.
 
-## Stage 6: Create A First Group Through Real Auth And Social
+## Stage 6: Create A First Group Through Real Auth And Social (DONE)
 
 Goal: support the first fully new group request flow.
 
@@ -212,9 +212,13 @@ Goal: support the first fully new group request flow.
   `POST /register` with `{ "email": "...", "password": "..." }`, creating the
   canonical auth UUID, hashing the password, setting `emailVerified: false`,
   and emitting an email-verification event.
-- After registration, the app logs in with password grant and creates the social
-  user via `POST /users` using the bearer token; social should use `ctx.userId`
-  as the canonical id.
+- After registration, the app waits for email verification. Auth stores the
+  signup continuation on the purpose-bound verification token and Notifications
+  links to `/confirm-email?token=...`.
+- Email confirmation returns the signup continuation without creating a
+  session. The confirmation page asks for the password, logs in with the normal
+  password grant, and creates the social user via `POST /users`; social uses
+  `ctx.userId` as the canonical id.
 - Simplify `SignupGroup.vue`: separate credentials/account creation from group
   creation, stop sending `password` to social, and stop relying on
   `/groups/new?token=...`.
@@ -222,14 +226,15 @@ Goal: support the first fully new group request flow.
   group attributes in `data.attributes`, settings/currency in `included`, and
   no embedded contacts relationship if the new social schema stores contacts as
   attributes.
-- Navigate directly from successful admin account creation to group details or
-  `/groups/new` under the authenticated session; do not wait for a magic login
-  email.
+- Navigate to `/groups/new` under the authenticated session after email
+  verification and password login; do not treat the email action token as a
+  login credential.
 
 Verification:
 
-- A fresh user can register, log in, create their social user, request a group,
-  and see the pending-group confirmation.
+- A fresh user can register, verify their email, log in, create their social
+  user, request a group, and see the pending-group confirmation.
+- Password login is rejected before email verification.
 - No frontend request sends a password to social.
 - The created auth user id and social user id are the same UUID.
 - The group appears in social with status `pending` and the requested currency

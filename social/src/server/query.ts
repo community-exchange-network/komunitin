@@ -24,12 +24,7 @@ type CollectionQueryInput = {
 const quoteIdentifier = (identifier: string) => `"${identifier.replaceAll('"', '""')}"`
 
 export const getFilterValues = (rawValue: FilterOptions[string] | undefined): string[] => {
-  if (rawValue === undefined) {
-    return []
-  }
-
-  const values = Array.isArray(rawValue) ? rawValue : [rawValue]
-  return values.map((value) => value.trim()).filter((value) => value.length > 0)
+  return (rawValue ?? []).map((value) => value.trim()).filter((value) => value.length > 0)
 }
 
 const sqlIdentifier = (...parts: string[]): Prisma.Sql => {

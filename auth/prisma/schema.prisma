@@ -26,6 +26,7 @@ model UserActionToken {
   userId      String                 @db.Uuid
   purpose     String
   targetEmail String?
+  data        Json?
   tokenHash   String                 @unique
   expiresAt   DateTime
   usedAt      DateTime?

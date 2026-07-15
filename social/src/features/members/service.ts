@@ -178,7 +178,7 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
   const db = tenantDb(prisma, code)
   
   const defaultFilters = {
-    status: 'active',
+    status: ['active'],
   }
 
   const ids = await findMemberIds(ctx, db, group, {

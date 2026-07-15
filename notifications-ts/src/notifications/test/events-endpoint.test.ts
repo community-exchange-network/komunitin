@@ -95,15 +95,23 @@ describe('POST /events', () => {
       assert.ok(res.body.errors[0].detail.includes('relationships'));
     });
 
-    it('rejects non-string data values', async () => {
+    it('accepts structured event data', async () => {
       const res = await post({
         data: {
           type: 'events',
-          attributes: { name: 'TransferCommitted', source: 's', code: 'c', time: new Date().toISOString(), data: { key: 123 } },
+          attributes: {
+            name: 'ValidationEmailRequested',
+            source: 's',
+            code: null,
+            time: new Date().toISOString(),
+            data: { signup: { type: 'group', name: 'Group Admin', language: 'en' } },
+          },
           relationships: { user: { data: { type: 'users', id: 'u1' } } },
         },
-      }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('string'));
+      }).expect(201);
+      assert.deepStrictEqual(res.body.data.attributes.data, {
+        signup: { type: 'group', name: 'Group Admin', language: 'en' },
+      });
     });
 
     it('rejects invalid time format', async () => {
@@ -154,7 +162,12 @@ describe('POST /events', () => {
       const body = createEventBody('ValidationEmailRequested', {
         code: null,
         user: 'user-42',
-        data: { user: 'user-42', token: 'token-123' },
+        data: {
+          user: 'user-42',
+          email: 'user-42@example.org',
+          purpose: 'emailVerification',
+          signup: { type: 'group', name: 'New Group Admin', language: 'en' },
+        },
       });
 
       const res = await app
@@ -174,7 +187,7 @@ describe('POST /events', () => {
       const body = createEventBody('PasswordResetRequested', {
         code: null,
         user: 'user-42',
-        data: { user: 'user-42', token: 'token-456' },
+        data: { user: 'user-42', email: 'user-42@example.org' },
       });
 
       const res = await app
@@ -213,7 +226,16 @@ describe('POST /events', () => {
       const eventNames = Object.values(EVENT_NAME);
 
       for (const name of eventNames) {
-        const body = createEventBody(name, { code: 'GRP1', user: 'user-1', data: { transfer: 'payload-1' } });
+        const data = name === EVENT_NAME.ValidationEmailRequested
+          ? {
+              user: 'user-1',
+              email: 'user-1@example.org',
+              purpose: 'emailVerification',
+            }
+          : name === EVENT_NAME.PasswordResetRequested
+            ? { user: 'user-1', email: 'user-1@example.org' }
+            : { transfer: 'payload-1' };
+        const body = createEventBody(name, { code: 'GRP1', user: 'user-1', data });
         await app
           .post('/events')
           .set('Content-Type', 'application/vnd.api+json')

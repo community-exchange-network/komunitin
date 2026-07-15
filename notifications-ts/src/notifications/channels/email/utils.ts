@@ -40,6 +40,15 @@ export const handleEmailEvent = async <T extends AnyEnrichedEvent>(
   }
 }
 
+export const handleEmailAddressEvent = async <T extends AnyEnrichedEvent>(
+  event: T,
+  to: string,
+  locale: string | undefined,
+  templateName: string,
+  buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null) => {
+  await buildAndSendEmail(event, to, locale ?? 'en', templateName, buildContext)
+}
+
 /**
  * Send an email to the server superadmin (ADMIN_EMAIL env var), always in English.
  * Used for system-level events like GroupRequested that are not tied to a specific user.
@@ -51,5 +60,4 @@ export const handleSuperadminEmailEvent = async <T extends AnyEnrichedEvent>(
   const adminEmail = config.ADMIN_EMAIL;
   await buildAndSendEmail(event, adminEmail, 'en', templateName, buildContext);
 }
-
 

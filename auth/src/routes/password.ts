@@ -1,7 +1,12 @@
 import express, { Router } from 'express'
 import { z } from 'zod'
 import prisma from '../utils/prisma'
-import { consumeActionToken, findValidActionToken, hashPassword, userActionTokenPurpose } from '../services/tokens'
+import {
+  consumeActionToken,
+  findValidActionToken,
+  hashPassword,
+  userActionTokenPurpose,
+} from '../services/tokens'
 import { NotificationsService } from '../services/notifications'
 import { rateLimit } from '../utils/rate-limit'
 import { badRequest } from '../utils/error'

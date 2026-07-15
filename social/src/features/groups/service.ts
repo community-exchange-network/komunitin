@@ -181,7 +181,7 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
   const db = privilegedDb(prisma)
 
   const defaultFilters = {
-    status: 'active'
+    status: ['active']
   }
   
   const ids = await findGroupIds(ctx, db, {

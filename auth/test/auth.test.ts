@@ -20,6 +20,12 @@ type ExpectedAccessToken = {
   scope: string
 }
 
+const registrationSignup = {
+  type: 'group' as const,
+  name: 'Test Community Administrator',
+  language: 'en',
+}
+
 const assertAccessToken = (token: string, expected: ExpectedAccessToken) => {
   const decoded = decodeJwt(token)
 
@@ -39,10 +45,12 @@ async function requestActionToken({
   userId,
   purpose,
   email,
+  signup,
 }: {
   userId: string
   purpose: string
   email?: string
+  signup?: Record<string, string>
 }) {
   const authRes = await request(app)
     .post('/token')
@@ -59,6 +67,7 @@ async function requestActionToken({
     userId,
     purpose,
     ...(email ? { email } : {}),
+    ...(signup ? { signup } : {}),
   }
 
   const tokenRes = await request(app)
@@ -69,6 +78,31 @@ async function requestActionToken({
     .expect(200)
 
   return tokenRes.body as { token: string; email: string }
+}
+
+function assertAuthEmailEvent(
+  call: { body: any },
+  expected: {
+    name: string
+    userId: string
+    email: string
+    purpose?: string
+    signup?: Record<string, string>
+    code?: string | null
+  },
+) {
+  assert.strictEqual(call.body.data.attributes.name, expected.name)
+  assert.strictEqual(call.body.data.attributes.source, 'auth')
+  assert.strictEqual(call.body.data.attributes.code, expected.code ?? null)
+  assert.strictEqual(call.body.data.relationships.user.data.id, expected.userId)
+  const data = call.body.data.attributes.data
+  assert.deepStrictEqual(data, {
+    user: expected.userId,
+    email: expected.email,
+    ...(expected.purpose ? { purpose: expected.purpose } : {}),
+    ...(expected.signup ? { signup: expected.signup } : {}),
+  })
+  assert.ok(!('token' in call.body.data.attributes.data))
 }
 
 before(() => {
@@ -120,6 +154,11 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: '  New.User@Example.ORG  ',
         password: 'password123',
+        signup: {
+          type: 'group',
+          name: 'New Community Administrator',
+          language: 'ca',
+        },
       })
       .expect(201)
 
@@ -137,14 +176,25 @@ describe('Auth Service Integration Tests', () => {
     assert.notStrictEqual(user.passwordHash, 'password123')
 
     assert.strictEqual(fetchCalls.length, 1)
-    const emailCall = fetchCalls[0]
-    assert.strictEqual(emailCall.body.data.attributes.name, 'ValidationEmailRequested')
-    assert.strictEqual(emailCall.body.data.attributes.source, 'auth')
-    assert.strictEqual(emailCall.body.data.relationships.user.data.id, user.id)
-    assert.deepStrictEqual(emailCall.body.data.attributes.data, { user: user.id, email: 'new.user@example.org' })
-    assert.strictEqual(emailCall.body.data.attributes.data.token, undefined)
+    const signup = {
+      type: 'group',
+      name: 'New Community Administrator',
+      language: 'ca',
+    }
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId: user.id,
+      email: 'new.user@example.org',
+      purpose: 'emailVerification',
+      signup,
+    })
+    const { token } = await requestActionToken({
+      userId: user.id,
+      purpose: 'emailVerification',
+      signup,
+    })
 
-    const tokenRes = await request(app)
+    await request(app)
       .post('/token')
       .type('form')
       .send({
@@ -154,14 +204,8 @@ describe('Auth Service Integration Tests', () => {
         password: 'password123',
         scope: 'email',
       })
-      .expect(200)
+      .expect(400)
 
-    const decoded = decodeJwt(tokenRes.body.access_token) as any
-    assert.strictEqual(decoded.sub, user.id)
-    assert.strictEqual(decoded.email, 'new.user@example.org')
-    assert.strictEqual(decoded.email_verified, false)
-
-    const { token } = await requestActionToken({ userId: user.id, purpose: 'emailVerification' })
     const confirmation = await request(app)
       .post('/change-email/confirm')
       .send({ token })
@@ -170,7 +214,24 @@ describe('Auth Service Integration Tests', () => {
       id: user.id,
       email: 'new.user@example.org',
       emailVerified: true,
+      signup,
     })
+
+    const tokenRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'new.user@example.org',
+        password: 'password123',
+        scope: 'email',
+      })
+      .expect(200)
+
+    const decoded = decodeJwt(tokenRes.body.access_token) as any
+    assert.strictEqual(decoded.sub, user.id)
+    assert.strictEqual(decoded.email_verified, true)
 
     const verifiedUser = await prisma.user.findUnique({ where: { id: user.id } })
     assert.ok(verifiedUser)
@@ -185,20 +246,9 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: 'duplicate@example.org',
         password: 'original-password',
+        signup: registrationSignup,
       })
       .expect(201)
-
-    const loginRes = await request(app)
-      .post('/token')
-      .type('form')
-      .send({
-        grant_type: 'password',
-        client_id: 'komunitin-app',
-        username: 'duplicate@example.org',
-        password: 'original-password',
-        scope: 'offline_access',
-      })
-      .expect(200)
 
     await requestActionToken({
       userId: firstRegistration.body.id,
@@ -213,6 +263,7 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: '  DUPLICATE@example.org  ',
         password: 'replacement-password',
+        signup: registrationSignup,
       })
       .expect(201)
 
@@ -222,17 +273,6 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(await prisma.user.count({ where: { email: 'duplicate@example.org' } }), 1)
     assert.strictEqual(await prisma.userActionToken.count({ where: { userId: firstRegistration.body.id } }), 0)
     assert.strictEqual(fetchCalls.length, 2)
-
-    const refreshRes = await request(app)
-      .post('/token')
-      .type('form')
-      .send({
-        grant_type: 'refresh_token',
-        client_id: 'komunitin-app',
-        refresh_token: loginRes.body.refresh_token,
-      })
-      .expect(400)
-    assert.strictEqual(refreshRes.body.error, 'invalid_grant')
 
     await request(app)
       .post('/token')
@@ -244,6 +284,34 @@ describe('Auth Service Integration Tests', () => {
         password: 'original-password',
       })
       .expect(400)
+
+    await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'duplicate@example.org',
+        password: 'replacement-password',
+      })
+      .expect(400)
+
+    assertAuthEmailEvent(fetchCalls[1], {
+      name: 'ValidationEmailRequested',
+      userId: firstRegistration.body.id,
+      email: 'duplicate@example.org',
+      purpose: 'emailVerification',
+      signup: registrationSignup,
+    })
+    const { token: verificationToken } = await requestActionToken({
+      userId: firstRegistration.body.id,
+      purpose: 'emailVerification',
+      signup: registrationSignup,
+    })
+    await request(app)
+      .post('/change-email/confirm')
+      .send({ token: verificationToken })
+      .expect(200)
 
     await request(app)
       .post('/token')
@@ -265,6 +333,7 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: 'verified-duplicate@example.org',
         password: 'password123',
+        signup: registrationSignup,
       })
       .expect(201)
 
@@ -280,6 +349,7 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: '  VERIFIED-DUPLICATE@example.org  ',
         password: 'another-password',
+        signup: registrationSignup,
       })
       .expect(409)
 
@@ -296,6 +366,7 @@ describe('Auth Service Integration Tests', () => {
         .send({
           email: 'race@example.org',
           password: 'password123',
+          signup: registrationSignup,
         }),
       request(app)
         .post('/register')
@@ -304,6 +375,7 @@ describe('Auth Service Integration Tests', () => {
         .send({
           email: 'race@example.org',
           password: 'password456',
+          signup: registrationSignup,
         }),
     ])
 
@@ -317,7 +389,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(users.length, 1)
   })
 
-  test('POST /register validates email and password', async () => {
+  test('POST /register validates email, password, and signup context', async () => {
     const invalidEmailRes = await request(app)
       .post('/register')
       .set('X-Forwarded-For', '203.0.113.30')
@@ -325,6 +397,7 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: 'not-an-email',
         password: 'password123',
+        signup: registrationSignup,
       })
       .expect(400)
 
@@ -337,10 +410,23 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: 'short-password@example.org',
         password: 'short',
+        signup: registrationSignup,
       })
       .expect(400)
 
     assert.strictEqual(shortPasswordRes.body.errors[0].code, 'BadRequest')
+
+    const missingSignupRes = await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.32')
+      .type('json')
+      .send({
+        email: 'missing-signup@example.org',
+        password: 'password123',
+      })
+      .expect(400)
+
+    assert.strictEqual(missingSignupRes.body.errors[0].code, 'BadRequest')
     assert.strictEqual(fetchCalls.length, 0)
   })
 
@@ -352,7 +438,7 @@ describe('Auth Service Integration Tests', () => {
         id: userId,
         email: 'test@example.org',
         passwordHash,
-        emailVerified: false,
+        emailVerified: true,
         status: UserStatus.Active,
       },
     })
@@ -379,7 +465,7 @@ describe('Auth Service Integration Tests', () => {
       scope: 'email offline_access social:read social:write accounting:read accounting:write',
     })
     assert.strictEqual(decoded.email, 'test@example.org')
-    assert.strictEqual(decoded.email_verified, false)
+    assert.strictEqual(decoded.email_verified, true)
   })
 
   test('POST /token grants superadmin only to ADMIN_EMAIL', async () => {
@@ -603,8 +689,11 @@ describe('Auth Service Integration Tests', () => {
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'email-action@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'email-action@example.org',
+    })
     const { token: actionToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
 
     const res = await request(app)
@@ -1138,6 +1227,7 @@ describe('Auth Service Integration Tests', () => {
         id: userId,
         email: 'reset-pwd@example.org',
         passwordHash,
+        emailVerified: true,
         status: UserStatus.Active,
       },
     })
@@ -1150,15 +1240,12 @@ describe('Auth Service Integration Tests', () => {
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
-    const resetCall = fetchCalls[0]
-    assert.strictEqual(resetCall.body.data.attributes.name, 'PasswordResetRequested')
-    assert.strictEqual(resetCall.body.data.attributes.source, 'auth')
-    assert.strictEqual(resetCall.body.data.relationships.user.data.id, userId)
-    assert.deepStrictEqual(resetCall.body.data.attributes.data, { user: userId, email: 'reset-pwd@example.org' })
-    assert.strictEqual(resetCall.body.data.attributes.data.token, undefined)
-    
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'reset-pwd@example.org',
+    })
     const { token } = await requestActionToken({ userId, purpose: 'passwordReset' })
-    assert.ok(token)
 
     const loginRes = await request(app)
       .post('/token')
@@ -1227,6 +1314,7 @@ describe('Auth Service Integration Tests', () => {
         id: userId,
         email: 'stale-reset@example.org',
         passwordHash,
+        emailVerified: true,
         status: UserStatus.Active,
       },
     })
@@ -1237,10 +1325,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'stale-reset@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'stale-reset@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'stale-reset@example.org',
+    })
     const { token: firstToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
-    assert.ok(firstToken)
 
     await request(app)
       .post('/reset-password')
@@ -1248,10 +1338,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'stale-reset@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[1].body.data.attributes.data, { user: userId, email: 'stale-reset@example.org' })
-    assert.strictEqual(fetchCalls[1].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[1], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'stale-reset@example.org',
+    })
     const { token: secondToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
-    assert.ok(secondToken)
     assert.notStrictEqual(firstToken, secondToken)
 
     const staleResetRes = await request(app)
@@ -1326,12 +1418,12 @@ describe('Auth Service Integration Tests', () => {
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
-    const emailCall = fetchCalls[0]
-    assert.strictEqual(emailCall.body.data.attributes.name, 'ValidationEmailRequested')
-    assert.strictEqual(emailCall.body.data.attributes.source, 'auth')
-    assert.strictEqual(emailCall.body.data.relationships.user.data.id, userId)
-    assert.deepStrictEqual(emailCall.body.data.attributes.data, { user: userId, email: 'new-email@example.org' })
-    assert.strictEqual(emailCall.body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'new-email@example.org',
+      purpose: 'emailChange',
+    })
     
     const actionToken = await requestActionToken({ userId, purpose: 'emailChange', email: '  New-Email@Example.ORG  ' })
     assert.strictEqual(actionToken.email, 'new-email@example.org')
@@ -1408,8 +1500,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'first-change@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'first-change@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'first-change@example.org',
+      purpose: 'emailChange',
+    })
     const firstActionToken = await requestActionToken({ userId, purpose: 'emailChange', email: 'first-change@example.org' })
     assert.strictEqual(firstActionToken.email, 'first-change@example.org')
     const firstToken = firstActionToken.token
@@ -1421,8 +1517,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'second-change@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[1].body.data.attributes.data, { user: userId, email: 'second-change@example.org' })
-    assert.strictEqual(fetchCalls[1].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[1], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'second-change@example.org',
+      purpose: 'emailChange',
+    })
     const secondActionToken = await requestActionToken({ userId, purpose: 'emailChange', email: 'second-change@example.org' })
     assert.strictEqual(secondActionToken.email, 'second-change@example.org')
     const secondToken = secondActionToken.token
@@ -1449,6 +1549,11 @@ describe('Auth Service Integration Tests', () => {
 
   test('Resend Validation Flow', async () => {
     const userId = '55555555-5555-4555-8555-555555555555'
+    const signup = {
+      type: 'group',
+      name: 'Resent Group Admin',
+      language: 'ca',
+    }
     await prisma.user.create({
       data: {
         id: userId,
@@ -1458,6 +1563,7 @@ describe('Auth Service Integration Tests', () => {
         status: UserStatus.Active,
       },
     })
+    await requestActionToken({ userId, purpose: 'emailVerification', signup })
 
     // Request resend validation
     await request(app)
@@ -1467,14 +1573,13 @@ describe('Auth Service Integration Tests', () => {
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
-    const emailCall = fetchCalls[0]
-    assert.strictEqual(emailCall.body.data.attributes.name, 'ValidationEmailRequested')
-    assert.strictEqual(emailCall.body.data.attributes.source, 'auth')
-    assert.strictEqual(emailCall.body.data.relationships.user.data.id, userId)
-    assert.deepStrictEqual(emailCall.body.data.attributes.data, { user: userId, email: 'unverified@example.org' })
-    assert.strictEqual(emailCall.body.data.attributes.data.token, undefined)
-    const { token } = await requestActionToken({ userId, purpose: 'emailVerification' })
-    assert.ok(token)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'unverified@example.org',
+      purpose: 'emailVerification',
+      signup,
+    })
   })
 
   test('Initial email verification can be confirmed for the current email', async () => {
@@ -1490,7 +1595,7 @@ describe('Auth Service Integration Tests', () => {
       },
     })
 
-    const loginRes = await request(app)
+    await request(app)
       .post('/token')
       .type('form')
       .send({
@@ -1500,7 +1605,7 @@ describe('Auth Service Integration Tests', () => {
         password: 'password123',
         scope: 'offline_access social:read',
       })
-      .expect(200)
+      .expect(400)
 
     await request(app)
       .post('/resend-validation')
@@ -1508,10 +1613,13 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'verify-me@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'verify-me@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'verify-me@example.org',
+      purpose: 'emailVerification',
+    })
     const { token } = await requestActionToken({ userId, purpose: 'emailVerification' })
-    assert.ok(token)
 
     await request(app)
       .post('/change-email/confirm')
@@ -1527,9 +1635,10 @@ describe('Auth Service Integration Tests', () => {
       .post('/token')
       .type('form')
       .send({
-        grant_type: 'refresh_token',
+        grant_type: 'password',
         client_id: 'komunitin-app',
-        refresh_token: loginRes.body.refresh_token,
+        username: 'verify-me@example.org',
+        password: 'password123',
       })
       .expect(200)
   })
@@ -1564,8 +1673,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'mixed-actions-new@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'mixed-actions-new@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'mixed-actions-new@example.org',
+      purpose: 'emailChange',
+    })
     const emailActionToken = await requestActionToken({ userId, purpose: 'emailChange', email: 'mixed-actions-new@example.org' })
     assert.strictEqual(emailActionToken.email, 'mixed-actions-new@example.org')
     const emailToken = emailActionToken.token
@@ -1577,8 +1690,11 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'mixed-actions@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[1].body.data.attributes.data, { user: userId, email: 'mixed-actions@example.org' })
-    assert.strictEqual(fetchCalls[1].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[1], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'mixed-actions@example.org',
+    })
     const { token: passwordToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
     assert.ok(passwordToken)
 

@@ -1,7 +1,11 @@
 import express, { Router, Response } from 'express'
 import { z } from 'zod'
 import prisma from '../utils/prisma'
-import { consumeActionToken, findValidActionToken, userActionTokenPurpose } from '../services/tokens'
+import {
+  consumeActionToken,
+  findValidActionToken,
+  userActionTokenPurpose,
+} from '../services/tokens'
 import { NotificationsService } from '../services/notifications'
 import { rateLimit } from '../utils/rate-limit'
 import { userAuth, type AuthenticatedRequest } from '../server/auth'
@@ -9,6 +13,7 @@ import { badRequest } from '../utils/error'
 import logger from '../utils/logger'
 import { normalizeEmail, normalizedEmailSchema } from '../utils/email'
 import { revokeUserSessions } from '../oidc/adapter'
+import { signupContextSchema } from '../users/signup'
 
 const router = Router()
 const parseBody = express.json()
@@ -30,7 +35,7 @@ router.post('/change-email', parseBody, userAuth, rateLimit({ bucket: 'change-em
       return next(badRequest('Email is already taken'))
     }
 
-    await NotificationsService.sendValidationEmail(userId, email)
+    await NotificationsService.sendValidationEmail(userId, email, userActionTokenPurpose.emailChange)
 
     res.json({ status: 'ok' })
   } catch (err) {
@@ -55,6 +60,7 @@ router.post('/change-email/confirm', parseBody, rateLimit({ bucket: 'change-emai
       return next(badRequest('Invalid or expired token'))
     }
     const targetEmail = normalizeEmail(changeRecord.targetEmail)
+    const signup = signupContextSchema.safeParse(changeRecord.data)
 
     const existing = await prisma.user.findUnique({ where: { email: targetEmail } })
     if (existing && existing.id !== changeRecord.userId) {
@@ -81,7 +87,7 @@ router.post('/change-email/confirm', parseBody, rateLimit({ bucket: 'change-emai
       return updatedUser
     })
 
-    res.json(user)
+    res.json({ ...user, ...(signup.success ? { signup: signup.data } : {}) })
   } catch (err) {
     next(err)
   }
@@ -100,8 +106,22 @@ router.post('/resend-validation', parseBody, rateLimit({ bucket: 'resend-validat
       return res.json({ status: 'ok' })
     }
 
+    const currentToken = await prisma.userActionToken.findFirst({
+      where: {
+        userId: user.id,
+        purpose: userActionTokenPurpose.emailVerification,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { data: true },
+    })
+    const signup = signupContextSchema.safeParse(currentToken?.data)
     res.json({ status: 'ok' })
-    NotificationsService.sendValidationEmail(user.id, user.email).catch(err => {
+    NotificationsService.sendValidationEmail(
+      user.id,
+      user.email,
+      userActionTokenPurpose.emailVerification,
+      signup.success ? signup.data : undefined,
+    ).catch(err => {
       logger.error({ err }, 'Failed to send validation email in background')
     })
   } catch (err) {

@@ -174,11 +174,7 @@ export const listUsers = async (ctx: AuthContext, params: CollectionParams): Pro
     throw badRequest('Filtering by member id(s) is required to list users')
   }
 
-  const memberIds = Array.isArray(params.filters.members)
-    ? params.filters.members
-    : params.filters.members
-      ? [params.filters.members]
-      : []
+  const memberIds = params.filters.members
 
   if (memberIds.length === 0) {
      return []
