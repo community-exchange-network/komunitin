@@ -1,50 +1,62 @@
 import type { NextFunction, Request, Response } from 'express'
-import { InvalidTokenError, auth as authJwt } from 'express-oauth2-jwt-bearer'
+import { InvalidTokenError, auth as authJwt, requiredScopes } from 'express-oauth2-jwt-bearer'
+import { z } from 'zod'
 import { config } from '../config'
 import logger from '../utils/logger'
 import { unauthorized } from '../utils/error'
+import { Scope, type SocialScope } from './scopes'
 
 type JwtPayload = {
   sub?: string
+  client_id?: string
   scope?: string
 }
+
+export type AuthIdentity = {
+  subject: string
+  clientId: string
+  isService: boolean
+}
+
+const APP_CLIENT_ID = 'komunitin-app'
+const uuidSchema = z.uuid()
 
 const buildJwt = () => {
   return authJwt({
     issuer: config.AUTH_JWT_ISSUER,
     audience: config.AUTH_JWT_AUDIENCE,
     jwksUri: config.AUTH_JWKS_URL,
-    validators: {
-      // IntegralCES may append a language code to iss.
-      iss: (iss) => typeof iss === 'string' && iss.startsWith(config.AUTH_JWT_ISSUER),
-    }
   })
 }
 
 let jwt = buildJwt()
 let lastInvalidTokenRetry = 0
 
-export const userAuth = () => {
+const handleAuthRequest = (scope: SocialScope, req: Request, res: Response, next: NextFunction) => {
+  jwt(req, res, (err) => {
+    if (!err) {
+      requiredScopes(scope)(req, res, next)
+      return
+    }
+
+    const mustRefresh = err instanceof InvalidTokenError
+      && lastInvalidTokenRetry < Date.now() - 1000 * 60 * 5
+
+    if (mustRefresh) {
+      lastInvalidTokenRetry = Date.now()
+      jwt = buildJwt()
+      logger.warn('Invalid token error. Refreshing JWKS.')
+      handleAuthRequest(scope, req, res, next)
+      return
+    }
+
+    next(err)
+  })
+}
+
+export const userAuth = (scope: SocialScope) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    jwt(req, res, (err) => {
-      if (!err) {
-        next()
-        return
-      }
-
-      const mustRefresh = err instanceof InvalidTokenError
-        && lastInvalidTokenRetry < Date.now() - 1000 * 60 * 5
-
-      if (mustRefresh) {
-        lastInvalidTokenRetry = Date.now()
-        jwt = buildJwt()
-        logger.warn('Invalid token error. Refreshing JWKS.')
-        jwt(req, res, next)
-        return
-      }
-
-      next(err)
-    })
+    handleAuthRequest(scope, req, res, next)
   }
 }
 
@@ -56,7 +68,7 @@ export const optionalUserAuth = () => {
       return
     }
 
-    userAuth()(req, res, next)
+    handleAuthRequest(Scope.SocialRead, req, res, next)
   }
 }
 
@@ -72,20 +84,34 @@ const getOptionalAuthPayload = (req: Request): JwtPayload | undefined => {
   return (req as any).auth?.payload as JwtPayload | undefined
 }
 
-export const getAuthUserId = (req: Request): string => {
-  const payload = getAuthPayload(req)
-  if (typeof payload.sub !== 'string' || payload.sub.length === 0) {
-    throw unauthorized('Token subject is required')
+const parseAuthIdentity = (payload: JwtPayload): AuthIdentity => {
+  const subject = payload.sub
+  const clientId = payload.client_id
+  if (typeof subject !== 'string' || typeof clientId !== 'string') {
+    throw unauthorized('Token subject and client are required')
   }
-  return payload.sub
+
+  if (subject === clientId) {
+    return { subject, clientId, isService: true }
+  }
+
+  if (clientId !== APP_CLIENT_ID || !uuidSchema.safeParse(subject).success) {
+    throw unauthorized('Invalid token subject or client')
+  }
+
+  return { subject, clientId, isService: false }
 }
 
-export const getOptionalAuthUserId = (req: Request): string | undefined => {
+export const getAuthIdentity = (req: Request): AuthIdentity => {
+  return parseAuthIdentity(getAuthPayload(req))
+}
+
+export const getOptionalAuthIdentity = (req: Request): AuthIdentity | undefined => {
   const payload = getOptionalAuthPayload(req)
-  if (!payload || typeof payload.sub !== 'string' || payload.sub.length === 0) {
+  if (!payload) {
     return undefined
   }
-  return payload.sub
+  return parseAuthIdentity(payload)
 }
 
 export const getAuthScopes = (req: Request): string[] => {
@@ -94,7 +120,7 @@ export const getAuthScopes = (req: Request): string[] => {
     return []
   }
 
-  return payload.scope.split(' ')
+  return payload.scope.split(/\s+/).filter(Boolean)
 }
 
 export const getAuthToken = (req: Request): string => {

@@ -4,7 +4,7 @@ import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import { Scope } from '../src/server/context'
 import prisma from '../src/utils/prisma'
-import { auth } from './mocks/auth'
+import { auth, serviceAuth } from './mocks/auth'
 import {
   getNotificationsEvents,
   getNotificationsRequests,
@@ -364,7 +364,7 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'my-draft')
   })
 
-  test('GET /:code/posts allows read-all scope for unpublished posts in pending private group', async () => {
+  test('GET /:code/posts allows service read access for unpublished posts in pending private group', async () => {
     await seedGroup({ tenantId: 'posts-read-all-list', status: 'pending', access: 'private' })
     const owner = await auth('posts-read-all-owner')
     const member = await seedMember({ tenantId: 'posts-read-all-list', status: 'draft', access: 'private', userId: owner.id })
@@ -372,7 +372,7 @@ describe('Posts endpoints', () => {
     await seedPost({ tenantId: 'posts-read-all-list', memberId: member.id, code: 'draft-offer', type: 'offers', status: 'draft', access: 'private' })
     await seedPost({ tenantId: 'posts-read-all-list', memberId: member.id, code: 'hidden-offer', type: 'offers', status: 'hidden', access: 'group' })
 
-    const serviceUser = await auth('posts-read-all-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get('/posts-read-all-list/posts?filter[status]=draft,hidden,published')
       .set('Authorization', `Bearer ${serviceUser.token}`)
@@ -384,7 +384,7 @@ describe('Posts endpoints', () => {
     assert.strictEqual(codes.includes('hidden-offer'), true)
   })
 
-  test('GET /:code/posts/:post allows read-all scope for non-public post', async () => {
+  test('GET /:code/posts/:post allows service read access for non-public post', async () => {
     await seedGroup({ tenantId: 'posts-read-all-one', status: 'pending', access: 'private' })
     const owner = await auth('posts-read-all-one-owner')
     const member = await seedMember({ tenantId: 'posts-read-all-one', status: 'draft', access: 'private', userId: owner.id })
@@ -397,7 +397,7 @@ describe('Posts endpoints', () => {
       access: 'private',
     })
 
-    const serviceUser = await auth('posts-read-all-one-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get(`/posts-read-all-one/posts/${post.id}`)
       .set('Authorization', `Bearer ${serviceUser.token}`)

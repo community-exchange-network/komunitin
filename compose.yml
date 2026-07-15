@@ -236,6 +236,9 @@ services:
       DATABASE_URL: postgresql://social:social@db-social:5432/social?schema=public
       API_BASE_URL: ${KOMUNITIN_SOCIAL_URL:-http://localhost:2028}
       ACCOUNTING_URL: http://accounting:2025
+      AUTH_URL: http://auth:2026
+      SOCIAL_CLIENT_ID: komunitin-social
+      SOCIAL_CLIENT_SECRET: ${KOMUNITIN_SOCIAL_SECRET}
       NOTIFICATIONS_API_URL: http://notifications-ts:2023
       NOTIFICATIONS_API_USERNAME: komunitin
       NOTIFICATIONS_API_PASSWORD: ${KOMUNITIN_NOTIFICATIONS_SECRET}

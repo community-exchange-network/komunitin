@@ -4,9 +4,11 @@ import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/context'
-import { auth } from './mocks/auth'
+import { auth, serviceAuth } from './mocks/auth'
 import {
+  getAccountingRequests,
   getAccountingRequestPaths,
+  getAuthTokenRequests,
   getNotificationsEvents,
   resetMockState,
   seedAccountingCurrency,
@@ -460,7 +462,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(Array.isArray(res.body.included) && res.body.included.some((resource: any) => resource.type === 'users' && resource.id === admin.id), false)
   })
 
-  test('GET /:code allows read-all scope for pending private group', async () => {
+  test('GET /:code allows service read access for pending private group', async () => {
     await seedGroup({ tenantId: 'group-read-all', status: 'pending', access: 'private' })
 
     const regularUser = await auth('group-read-all-regular')
@@ -469,7 +471,7 @@ describe('Groups endpoints', () => {
       .set('Authorization', `Bearer ${regularUser.token}`)
       .expect(403)
 
-    const serviceUser = await auth('group-read-all-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get('/group-read-all')
       .set('Authorization', `Bearer ${serviceUser.token}`)
@@ -606,6 +608,16 @@ describe('Groups endpoints', () => {
     assert.deepStrictEqual(getAccountingRequestPaths(), [
       'DELETE /delete-group-success/currency',
     ])
+    assert.deepStrictEqual(getAuthTokenRequests(), [{
+      clientId: 'komunitin-social',
+      grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      scope: Scope.AccountingWrite,
+      subjectToken: admin.token,
+    }])
+    assert.strictEqual(
+      getAccountingRequests()[0].authorization,
+      'Bearer exchanged-accounting-write',
+    )
 
     const db = tenantDb(prisma, 'delete-group-success')
     const group = await db.group.findFirstOrThrow()
@@ -883,6 +895,16 @@ describe('Groups endpoints', () => {
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
       ['GET /adopt-group/currency'],
+    )
+    assert.deepStrictEqual(getAuthTokenRequests(), [{
+      clientId: 'komunitin-social',
+      grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      scope: Scope.AccountingRead,
+      subjectToken: superadmin.token,
+    }])
+    assert.strictEqual(
+      getAccountingRequests()[0].authorization,
+      'Bearer exchanged-accounting-read',
     )
   })
 

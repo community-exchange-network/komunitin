@@ -72,7 +72,7 @@ export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member
 
 const canReadMember = async (ctx: OptionalAuthContext, group: Group, member: Member): Promise<boolean> => {
   return ctx.isSuperadmin
-    || ctx.isSocialReadAll
+    || ctx.canReadAllSocial
     || (group.status === 'active' && member.status === 'active' && member.access === 'public')  
     || (group.status === 'active' && member.status === 'active' && member.access === 'group' && await isGroupMember(ctx, group))
     || await isMemberUser(ctx, member)

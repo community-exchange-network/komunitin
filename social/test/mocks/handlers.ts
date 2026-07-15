@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import { Scope } from '../../src/server/scopes'
 import { getJwks } from './auth'
 import { toUuid } from './utils'
 
@@ -23,7 +24,16 @@ type AccountingRequest = {
   authorization: string | null
 }
 
+type AuthTokenRequest = {
+  clientId: string | null
+  grantType: string | null
+  scope: string | null
+  subjectToken: string | null
+}
+
+const authBaseUrl = process.env.AUTH_URL ?? 'http://auth.test'
 const accountingBaseUrl = process.env.ACCOUNTING_URL ?? 'http://localhost:2025'
+let authTokenRequests: AuthTokenRequest[] = []
 const notificationsBaseUrl = process.env.NOTIFICATIONS_API_URL ?? 'http://notifications.test'
 let accountingCurrencies = new Map<string, MockCurrency>()
 let accountingAccounts = new Map<string, Map<string, MockAccount>>()
@@ -85,6 +95,10 @@ const findAccountingAccountById = (currencyCode: string, accountId: string): Moc
 
 export const getAccountingRequests = (): AccountingRequest[] => {
   return [...accountingRequests]
+}
+
+export const getAuthTokenRequests = (): AuthTokenRequest[] => {
+  return [...authTokenRequests]
 }
 
 export const getAccountingRequestPaths = (): string[] => {
@@ -154,6 +168,7 @@ const serializeAccount = (account: MockAccount) => ({
 })
 
 export const resetMockState = () => {
+  authTokenRequests = []
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
   accountingRequests = []
@@ -169,6 +184,34 @@ export const resetMockState = () => {
 export const handlers = [
   http.get(process.env.AUTH_JWKS_URL!, () => {
     return HttpResponse.json(getJwks())
+  }),
+  http.post(`${authBaseUrl}/token`, async ({ request }) => {
+    const params = new URLSearchParams(await request.text())
+    const tokenRequest: AuthTokenRequest = {
+      clientId: params.get('client_id'),
+      grantType: params.get('grant_type'),
+      scope: params.get('scope'),
+      subjectToken: params.get('subject_token'),
+    }
+    authTokenRequests.push(tokenRequest)
+
+    if (
+      tokenRequest.grantType !== 'urn:ietf:params:oauth:grant-type:token-exchange'
+      || tokenRequest.clientId !== process.env.SOCIAL_CLIENT_ID
+      || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
+      || params.get('subject_token_type') !== 'urn:ietf:params:oauth:token-type:access_token'
+      || !tokenRequest.subjectToken
+      || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.AccountingWrite)
+    ) {
+      return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
+    }
+
+    return HttpResponse.json({
+      access_token: `exchanged-${tokenRequest.scope.replace(':', '-')}`,
+      expires_in: 3600,
+      scope: tokenRequest.scope,
+      token_type: 'Bearer',
+    })
   }),
   http.get(`${accountingBaseUrl}/:currencyCode/currency`, ({ request, params }) => {
     const unauthorized = requireAccountingAuthorization(request)
