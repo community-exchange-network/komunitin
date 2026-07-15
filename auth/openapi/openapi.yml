@@ -223,12 +223,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JsonApiErrors'
-  /change-email/confirm:
+  /email/confirm:
     post:
       tags: [Email]
       summary: Confirm an email change or email verification
-      description: Consumes a single-use email action token and does not create an OAuth session.
-      operationId: postConfirmEmailChange
+      description: |
+        Consumes a single-use email action token and does not create an OAuth
+        session. Reusing a consumed email verification token returns the
+        confirmed user while its target remains the user's verified email.
+        Email change tokens remain strictly single-use.
+      operationId: postConfirmEmail
       requestBody:
         required: true
         content:

@@ -80,7 +80,7 @@ The OpenAPI contract lives at `openapi/openapi.yml`.
 | `POST /reset-password` | Creates a password reset action token and emits a notification event if the user exists. |
 | `POST /change-password` | Consumes a password reset action token and updates the password. |
 | `POST /change-email` | Authenticated endpoint that creates an email-change action token and emits a validation email event. |
-| `POST /change-email/confirm` | Consumes an email-change or email-verification action token. |
+| `POST /email/confirm` | Consumes an email-change or email-verification action token. |
 | `POST /resend-validation` | Re-sends validation for an existing unverified user or pending email change. |
 
 Action tokens are not OAuth tokens and are not accepted at `POST /token`.

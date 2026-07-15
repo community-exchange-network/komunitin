@@ -76,6 +76,6 @@ pnpm start
 - API tests live in `test/*.test.ts` and use supertest against the real Express app.
 - Unit tests live in `test/unit/`.
 - Shared test setup, JWT fixtures, MSW handlers, seed helpers, and deterministic UUID helpers live in `test/mocks/`.
-- `pnpm prisma migrate reset` does not work well due to how DB image is created. If you need to reset the test DB, rebuild the container and run `pnpm prisma migrate deploy`. Do not try to rebuild the DB manually. Tests use `resetDb` helper to truncate all tables.
+- `pnpm prisma migrate reset` does not work well due to how DB image is created. If you need to reset the test DB, remove the database volume (`docker compose down -v db-social`) and run `pnpm prisma migrate deploy`. Do not try to rebuild the DB manually and do not amend the shared db image unless explicitly requested. Tests use `resetDb` helper to truncate all tables.
 - When changing routes, schemas, access control, status transitions, accounting sync, notification events, search/filter/sort/pagination, RLS behavior, or uploads, add focused tests in the matching suite.
 - Prefer full HTTP JSON:API behavior tests plus database side-effect assertions.

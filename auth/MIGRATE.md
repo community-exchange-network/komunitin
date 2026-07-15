@@ -95,7 +95,7 @@ It does not recognize legacy `komunitin_*` scope names.
   - reset-token based
 - `POST /change-email`
   - authenticated bearer token required
-- `POST /change-email/confirm`
+- `POST /email/confirm`
   - email-token based
 - `POST /resend-validation`
 
@@ -268,12 +268,12 @@ Target model:
 
 - `POST /change-email` on auth with bearer token and the new email address
 - auth sends validation email
-- validation page calls `POST /change-email/confirm` with the email token
+- validation page calls `POST /email/confirm` with the email token
 
 Recommended frontend route:
 
 - add a public `/confirm-email?token=...` route
-- call `POST /change-email/confirm`
+- call `POST /email/confirm`
 - redirect to login or the appropriate onboarding page after success
 
 Do not auto-login the user from the email token.

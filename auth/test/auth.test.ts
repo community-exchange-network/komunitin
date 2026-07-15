@@ -207,7 +207,7 @@ describe('Auth Service Integration Tests', () => {
       .expect(400)
 
     const confirmation = await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token })
       .expect(200)
     assert.deepStrictEqual(confirmation.body, {
@@ -309,7 +309,7 @@ describe('Auth Service Integration Tests', () => {
       signup: registrationSignup,
     })
     await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token: verificationToken })
       .expect(200)
 
@@ -1432,9 +1432,16 @@ describe('Auth Service Integration Tests', () => {
 
     // 3. Confirm Change
     await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token })
       .expect(200)
+
+    const reusedConfirmRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(reusedConfirmRes.body.errors[0].detail, 'Invalid or expired token')
 
     for (const refreshToken of [tokenRes.body.refresh_token, secondTokenRes.body.refresh_token]) {
       const refreshRes = await request(app)
@@ -1530,14 +1537,14 @@ describe('Auth Service Integration Tests', () => {
     assert.notStrictEqual(firstToken, secondToken)
 
     const staleConfirmRes = await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token: firstToken })
       .expect(400)
 
     assert.strictEqual(staleConfirmRes.body.errors[0].detail, 'Invalid or expired token')
 
     await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token: secondToken })
       .expect(200)
 
@@ -1585,6 +1592,12 @@ describe('Auth Service Integration Tests', () => {
   test('Initial email verification can be confirmed for the current email', async () => {
     const userId = '66666666-6666-4666-8666-666666666666'
     const passwordHash = await hashPassword('password123')
+    const signup = {
+      type: 'member',
+      name: 'Verified Member',
+      language: 'en',
+      groupCode: 'TEST',
+    }
     await prisma.user.create({
       data: {
         id: userId,
@@ -1619,17 +1632,36 @@ describe('Auth Service Integration Tests', () => {
       email: 'verify-me@example.org',
       purpose: 'emailVerification',
     })
-    const { token } = await requestActionToken({ userId, purpose: 'emailVerification' })
+    const { token } = await requestActionToken({ userId, purpose: 'emailVerification', signup })
 
-    await request(app)
-      .post('/change-email/confirm')
+    const confirmRes = await request(app)
+      .post('/email/confirm')
       .send({ token })
       .expect(200)
+
+    assert.deepStrictEqual(confirmRes.body, {
+      id: userId,
+      email: 'verify-me@example.org',
+      emailVerified: true,
+      signup,
+    })
 
     const user = await prisma.user.findUnique({ where: { id: userId } })
     assert.ok(user)
     assert.strictEqual(user.email, 'verify-me@example.org')
     assert.strictEqual(user.emailVerified, true)
+
+    await prisma.userActionToken.updateMany({
+      where: { userId, purpose: 'emailVerification' },
+      data: { expiresAt: new Date(0) },
+    })
+
+    const reusedConfirmRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(200)
+
+    assert.deepStrictEqual(reusedConfirmRes.body, confirmRes.body)
 
     await request(app)
       .post('/token')
@@ -1641,6 +1673,55 @@ describe('Auth Service Integration Tests', () => {
         password: 'password123',
       })
       .expect(200)
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { email: 'changed-after-verification@example.org' },
+    })
+
+    const staleEmailRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(staleEmailRes.body.errors[0].detail, 'Invalid or expired token')
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { email: 'verify-me@example.org', emailVerified: false },
+    })
+
+    const unverifiedUserRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(unverifiedUserRes.body.errors[0].detail, 'Invalid or expired token')
+  })
+
+  test('Expired unused email verification tokens remain invalid', async () => {
+    const userId = '68686868-6868-4868-8868-686868686868'
+    await prisma.user.create({
+      data: {
+        id: userId,
+        email: 'expired-verification@example.org',
+        passwordHash: 'dummy',
+        emailVerified: false,
+        status: UserStatus.Active,
+      },
+    })
+    const { token } = await requestActionToken({ userId, purpose: 'emailVerification' })
+    await prisma.userActionToken.updateMany({
+      where: { userId, purpose: 'emailVerification' },
+      data: { expiresAt: new Date(0) },
+    })
+
+    const confirmRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(confirmRes.body.errors[0].detail, 'Invalid or expired token')
   })
 
   test('Password reset and email action tokens do not invalidate each other', async () => {
@@ -1699,7 +1780,7 @@ describe('Auth Service Integration Tests', () => {
     assert.ok(passwordToken)
 
     await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token: emailToken })
       .expect(200)
 

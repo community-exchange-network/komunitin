@@ -3,7 +3,8 @@ import { z } from 'zod'
 import prisma from '../utils/prisma'
 import {
   consumeActionToken,
-  findValidActionToken,
+  findActionToken,
+  hasExpired,
   userActionTokenPurpose,
 } from '../services/tokens'
 import { NotificationsService } from '../services/notifications'
@@ -19,6 +20,11 @@ const router = Router()
 const parseBody = express.json()
 const emailPayloadSchema = z.object({ email: normalizedEmailSchema })
 const tokenPayloadSchema = z.object({ token: z.string().min(1) })
+const confirmedUserSelect = {
+  id: true,
+  email: true,
+  emailVerified: true,
+} as const
 
 router.post('/change-email', parseBody, userAuth, rateLimit({ bucket: 'change-email' }), async (req: AuthenticatedRequest, res: Response, next) => {
   const parsed = emailPayloadSchema.safeParse(req.body)
@@ -43,7 +49,7 @@ router.post('/change-email', parseBody, userAuth, rateLimit({ bucket: 'change-em
   }
 })
 
-router.post('/change-email/confirm', parseBody, rateLimit({ bucket: 'change-email-confirm' }), async (req, res, next) => {
+router.post('/email/confirm', parseBody, rateLimit({ bucket: 'email-confirm' }), async (req, res, next) => {
   const parsed = tokenPayloadSchema.safeParse(req.body)
   if (!parsed.success) {
     return next(badRequest('Missing token'))
@@ -51,38 +57,59 @@ router.post('/change-email/confirm', parseBody, rateLimit({ bucket: 'change-emai
   const { token } = parsed.data
 
   try {
-    const changeRecord = await findValidActionToken(token, [
+    const emailActionToken = await findActionToken(token, [
       userActionTokenPurpose.emailChange,
       userActionTokenPurpose.emailVerification,
     ])
 
-    if (!changeRecord || !changeRecord.targetEmail) {
+    if (!emailActionToken || !emailActionToken.targetEmail || hasExpired(emailActionToken.expiresAt)) {
       return next(badRequest('Invalid or expired token'))
     }
-    const targetEmail = normalizeEmail(changeRecord.targetEmail)
-    const signup = signupContextSchema.safeParse(changeRecord.data)
+    const targetEmail = normalizeEmail(emailActionToken.targetEmail)
+    const signup = signupContextSchema.safeParse(emailActionToken.data)
+
+    switch (emailActionToken.purpose) {
+      case userActionTokenPurpose.emailVerification: {
+        // Allow reusing a consumed email verification token.
+        if (emailActionToken.usedAt !== null) {
+          const user = await prisma.user.findUnique({
+            where: { id: emailActionToken.userId },
+            select: confirmedUserSelect,
+          })
+          if (!user || !user.emailVerified || user.email !== targetEmail) {
+            return next(badRequest('Invalid or expired token'))
+          }
+          return res.json({ ...user, ...(signup.success ? { signup: signup.data } : {}) })
+        }
+        
+        break
+      }
+      case userActionTokenPurpose.emailChange:
+        if (emailActionToken.usedAt !== null) {
+          return next(badRequest('Invalid or expired token'))
+        }
+        break
+      default:
+        return next(badRequest('Invalid or expired token'))
+    }
 
     const existing = await prisma.user.findUnique({ where: { email: targetEmail } })
-    if (existing && existing.id !== changeRecord.userId) {
+    if (existing && existing.id !== emailActionToken.userId) {
       return next(badRequest('Email is already taken'))
     }
 
     const user = await prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
-        where: { id: changeRecord.userId },
+        where: { id: emailActionToken.userId },
         data: {
           email: targetEmail,
           emailVerified: true,
         },
-        select: {
-          id: true,
-          email: true,
-          emailVerified: true,
-        },
+        select: confirmedUserSelect,
       })
-      await consumeActionToken(tx, changeRecord)
-      if (changeRecord.purpose === userActionTokenPurpose.emailChange) {
-        await revokeUserSessions(tx, changeRecord.userId)
+      await consumeActionToken(tx, emailActionToken)
+      if (emailActionToken.purpose === userActionTokenPurpose.emailChange) {
+        await revokeUserSessions(tx, emailActionToken.userId)
       }
       return updatedUser
     })
