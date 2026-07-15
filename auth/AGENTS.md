@@ -52,6 +52,7 @@ pnpm build
 - Prefer tests that use the public API rather than reaching into internal details.
 - Run `pnpm prisma generate` after schema changes.
 - Create Prisma migrations for schema changes.
+- Always prefer `oidc-provider` default features and behavior over custom code that duplicates or overrides it.
 
 ## Security Rules
 - Email links must remain purpose-specific single-use action tokens redeemed at dedicated endpoints.

@@ -358,6 +358,10 @@ components:
       properties:
         access_token:
           type: string
+          description: |
+            Signed JWT for audience `urn:komunitin:api`. The `client_id` claim
+            identifies the OAuth client. User tokens use the canonical user UUID
+            as `sub`; client-credentials tokens use the client id.
         refresh_token:
           type: string
         expires_in:

@@ -66,7 +66,7 @@ Current scopes:
 - `accounting:write`
 - `superadmin` (granted only when the authenticated user matches `ADMIN_EMAIL`)
 
-Access tokens are signed JWTs with audience `urn:komunitin:api` by default, configurable through `JWT_AUDIENCE`. Refresh tokens are opaque server-side records stored by `oidc-provider`.
+Access tokens are signed JWTs with audience `urn:komunitin:api` by default, configurable through `JWT_AUDIENCE`. They identify the OAuth client through `client_id`. User and exchanged tokens use the canonical user UUID as `sub`; client-credentials tokens use the client id. Refresh tokens are opaque server-side records stored by `oidc-provider`.
 
 ## HTTP API
 

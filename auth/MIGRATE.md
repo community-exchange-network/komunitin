@@ -202,7 +202,7 @@ refresh_token=<refresh token>
 
 Notes:
 
-- This branch fixes the auth-side refresh bug so the response remains usable for audience `app`.
+- Refreshed access tokens remain usable for audience `urn:komunitin:api`.
 - The frontend must treat refresh as an auth concern only and keep all credential refresh logic inside the auth client layer.
 - Do not use legacy `/oauth2/token` URLs.
 
@@ -310,7 +310,7 @@ Required changes:
 
 - issuer must be the new auth issuer, not the Drupal `/oauth2` issuer
 - audience must match the new auth access tokens
-  - current auth access tokens use audience `app`
+- current auth access tokens use audience `urn:komunitin:api`
 - JWKS are published by the new auth service at `/.well-known/jwks.json`
 - prefer issuer metadata over hardcoded legacy URLs when possible
 
@@ -586,7 +586,7 @@ The target state is:
 
 - login works with `password`
 - refresh works with `refresh_token`
-- refreshed app tokens are JWTs for audience `app`
+- refreshed app tokens are JWTs for audience `urn:komunitin:api`
 - backend services validate the new issuer and audience
 - no service still calls `/oauth2/token`
 - no service still calls `/get-auth-code` or `/get-auth-token`

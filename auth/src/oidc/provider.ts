@@ -280,10 +280,6 @@ export async function createProvider(jwks: Jwks) {
       }
       const tokenPayload = verified!.payload
 
-      if (tokenPayload.gty === 'client_credentials') {
-        ctx.throw(400, 'invalid_grant', { error_description: 'Subject token must represent a user' })
-      }
-
       const accountId = tokenPayload.accountId
         ?? tokenPayload.sub
       if (typeof accountId !== 'string' || !isUuid(accountId)) {

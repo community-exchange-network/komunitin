@@ -149,8 +149,7 @@ Goal: make services trust tokens issued by the new auth service.
   accounting calls and unsubscribe token redemption.
 - Remove legacy issuer-prefix, null-subject, and numeric Drupal-subject handling
   from runtime paths unless a specific import window still requires it.
-- Decide and implement the replacement for `komunitin_superadmin` before
-  migrating admin and activation screens.
+- Check the new `superadmin` (formerly `komunitin_superadmin`) scope is used everywhere needed.
 
 Verification:
 

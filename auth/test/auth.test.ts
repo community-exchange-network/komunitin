@@ -14,6 +14,27 @@ const fetchCalls: { url: string; init: any; body: any }[] = []
 const originalFetch = global.fetch
 let app: Express
 
+type ExpectedAccessToken = {
+  subject: string
+  clientId: string
+  scope: string
+}
+
+const assertAccessToken = (token: string, expected: ExpectedAccessToken) => {
+  const decoded = decodeJwt(token)
+
+  assert.strictEqual(decoded.iss, config.JWT_ISSUER)
+  assert.strictEqual(decoded.aud, config.JWT_AUDIENCE)
+  assert.strictEqual(decoded.sub, expected.subject)
+  assert.strictEqual(decoded.client_id, expected.clientId)
+  assert.strictEqual(decoded.scope, expected.scope)
+  assert.strictEqual(typeof decoded.iat, 'number')
+  assert.strictEqual(typeof decoded.exp, 'number')
+  assert.ok(decoded.exp! > decoded.iat!)
+
+  return decoded
+}
+
 async function requestActionToken({
   userId,
   purpose,
@@ -344,7 +365,7 @@ describe('Auth Service Integration Tests', () => {
         client_id: 'komunitin-app',
         username: 'test@example.org',
         password: 'password123',
-        scope: 'email social:read offline_access',
+        scope: 'email offline_access social:read social:write accounting:read accounting:write',
       })
       .expect(200)
 
@@ -352,11 +373,13 @@ describe('Auth Service Integration Tests', () => {
     assert.ok(res.body.refresh_token)
     assert.strictEqual(res.body.token_type, 'Bearer')
 
-    const decoded = decodeJwt(res.body.access_token) as any
-    assert.strictEqual(decoded.sub, userId)
+    const decoded = assertAccessToken(res.body.access_token, {
+      subject: userId,
+      clientId: 'komunitin-app',
+      scope: 'email offline_access social:read social:write accounting:read accounting:write',
+    })
     assert.strictEqual(decoded.email, 'test@example.org')
     assert.strictEqual(decoded.email_verified, false)
-    assert.strictEqual(decoded.scope, 'email social:read offline_access')
   })
 
   test('POST /token grants superadmin only to ADMIN_EMAIL', async () => {
@@ -510,10 +533,11 @@ describe('Auth Service Integration Tests', () => {
     assert.ok(refreshRes.body.refresh_token)
     assert.strictEqual(refreshRes.body.scope, 'social:read')
 
-    const decoded = decodeJwt(refreshRes.body.access_token) as any
-    assert.strictEqual(decoded.sub, userId)
-    assert.strictEqual(decoded.aud, config.JWT_AUDIENCE)
-    assert.strictEqual(decoded.scope, 'social:read')
+    assertAccessToken(refreshRes.body.access_token, {
+      subject: userId,
+      clientId: 'komunitin-app',
+      scope: 'social:read',
+    })
   })
 
   test('POST /token with refresh_token rejects disabled users', async () => {
@@ -605,17 +629,38 @@ describe('Auth Service Integration Tests', () => {
         grant_type: 'client_credentials',
         client_id: 'komunitin-notifications',
         client_secret: 'replace-this-with-a-secure-password',
-        scope: 'social:read accounting:read',
+        scope: 'email social:read accounting:read',
       })
       .expect(200)
 
     assert.ok(res.body.access_token)
     assert.strictEqual(res.body.token_type, 'Bearer')
-    assert.strictEqual(res.body.scope, 'social:read accounting:read')
+    assert.strictEqual(res.body.scope, 'email social:read accounting:read')
 
-    const decoded = decodeJwt(res.body.access_token) as any
-    assert.strictEqual(decoded.client_id, 'komunitin-notifications')
-    assert.strictEqual(decoded.scope, 'social:read accounting:read')
+    assertAccessToken(res.body.access_token, {
+      subject: 'komunitin-notifications',
+      clientId: 'komunitin-notifications',
+      scope: 'email social:read accounting:read',
+    })
+  })
+
+  test('POST /token issues Social client credentials with its exact scope allowlist', async () => {
+    const res = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'client_credentials',
+        client_id: 'komunitin-social',
+        client_secret: 'komunitin-social-secret',
+        scope: 'accounting:read accounting:write',
+      })
+      .expect(200)
+
+    assertAccessToken(res.body.access_token, {
+      subject: 'komunitin-social',
+      clientId: 'komunitin-social',
+      scope: 'accounting:read accounting:write',
+    })
   })
 
   test('POST /token with Client Credentials rejects scopes outside the client allowlist', async () => {
@@ -965,11 +1010,12 @@ describe('Auth Service Integration Tests', () => {
 
     assert.ok(exchangeRes.body.access_token)
     
-    const decoded = decodeJwt(exchangeRes.body.access_token) as any
-    assert.strictEqual(decoded.sub, userId)
+    const decoded = assertAccessToken(exchangeRes.body.access_token, {
+      subject: userId,
+      clientId: 'komunitin-social',
+      scope: 'accounting:read',
+    })
     assert.strictEqual(decoded.email, undefined)
-    assert.strictEqual(decoded.client_id, 'komunitin-social')
-    assert.strictEqual(decoded.scope, 'accounting:read')
   })
 
   test('POST /token with Token Exchange does not escalate scopes', async () => {
