@@ -67,23 +67,28 @@ describe("logged in", () => {
   });
 
   it("posts a confirmed email to the Social user", async () => {
+    const userId = wrapper.vm.$store.getters.myUser.id
     const response = await fetch(`${config.AUTH_URL}/action-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         purpose: "emailChange",
-        userId: wrapper.vm.$store.getters.myUser.id,
+        userId,
         email: "confirmed@example.com"
       })
     });
     const { token } = await response.json();
 
     await wrapper.vm.$router.push({ path: "/confirm-email", query: { token } });
+    expect(wrapper.vm.$store.getters["users/one"](userId).attributes.email).not.toBe("confirmed@example.com")
+    await wrapper.get("#confirm-email").trigger("click")
     await waitFor(
       () => wrapper.text().includes("Your email has been confirmed"),
       true,
       "Email confirmation should succeed"
     );
-    expect(wrapper.vm.$store.getters.myUser.attributes.email).toBe("confirmed@example.com");
+    expect(wrapper.vm.$route.path).toBe("/login-mail")
+    expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false)
+    expect(wrapper.vm.$store.getters["users/one"](userId).attributes.email).toBe("confirmed@example.com");
   });
 });

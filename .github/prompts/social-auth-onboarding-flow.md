@@ -49,7 +49,7 @@ This is the frontend/Mirage contract for onboarding. Real-service gaps are track
 7. The user follows the link. The public confirmation page calls:
 
    ```http
-   POST /change-email/confirm
+   POST /email/confirm
    Content-Type: application/json
 
    { "token": "<email-verification-token>" }

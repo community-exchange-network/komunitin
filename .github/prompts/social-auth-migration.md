@@ -22,7 +22,7 @@ services in this repository.
 - Backend service tokens must use `grant_type=client_credentials`, `client_id=<service client>`, `client_secret=<service secret>`, and an explicit allowed new scope set.
 - Token exchange is only for backend calls made on behalf of an already-authenticated frontend user; it requires a real user access token as `subject_token` and can only down-scope from that subject token.
 - Token exchange must not be used as a replacement for emailed links, unsubscribe links, or arbitrary impersonation.
-- Auth JSON endpoints to migrate to are `POST /reset-password` with `{ "email": "..." }`, `POST /change-password` with `{ "token": "...", "password": "..." }`, `POST /change-email` with bearer auth and `{ "email": "..." }`, `POST /change-email/confirm` with `{ "token": "..." }`, and `POST /resend-validation` with `{ "email": "..." }`.
+- Auth JSON endpoints to migrate to are `POST /reset-password` with `{ "email": "..." }`, `POST /change-password` with `{ "token": "...", "password": "..." }`, `POST /change-email` with bearer auth and `{ "email": "..." }`, `POST /email/confirm` with `{ "token": "..." }`, and `POST /resend-validation` with `{ "email": "..." }`.
 - Auth-generated action tokens are purpose-bound and are not OAuth tokens; they must never be sent to `POST /token`.
 - Notifications can request purpose-bound action tokens via `POST /action-token` as `komunitin-notifications`.
 - `POST /action-token` accepts `{ "purpose": "passwordReset" | "emailVerification" | "unsubscribe", "userId": "<uuid>" }` or `{ "purpose": "emailChange", "userId": "<uuid>", "email": "new@example.org" }`.
@@ -57,7 +57,7 @@ services in this repository.
 - The `/set-password` route is currently not marked public; under the new flow it must be publicly reachable without the boot guard trying stored-token login first.
 - `app/src/pages/members/ChangePasswordBtn.vue` updates the social user resource with `password` and `newPassword`; it needs an auth-owned replacement endpoint for logged-in password changes.
 - `app/src/pages/members/ChangeEmailBtn.vue` updates the social user resource with `email` and optional password; it must call auth `POST /change-email` with bearer auth and then rely on a confirmation email.
-- Add or reuse a public email confirmation page that calls auth `POST /change-email/confirm` with `{ token }`; do not auto-login from the email token.
+- Add or reuse a public email confirmation page that calls auth `POST /email/confirm` with `{ token }`; do not auto-login from the email token.
 - `app/src/pages/settings/Unsubscribe.vue` posts directly to `${SOCIAL_URL}/users/me/unsubscribe?token=...`; the target social endpoint must redeem the raw token through auth and update newsletter settings without requiring app login.
 - `app/src/store/me.ts` bootstraps with `users/load` and `include: "members,members.group,settings"`; replace this with separate user and user-members loads.
 - `app/src/store/me.ts` getters `myMember`, `myAccount`, and `myCurrency` currently read nested data under `myUser`; migrate them to derive from the members/account/currency stores after the new bootstrap calls.

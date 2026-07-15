@@ -292,7 +292,7 @@ Goal: replace email magic login with explicit action-token redemption.
 - Change validation email CTAs away from login-token routes. Use a public route
   such as `/confirm-email?token=...&next=...`.
 - Add a frontend public confirmation page that calls
-  `POST /change-email/confirm` with `{ token }`.
+  `POST /email/confirm` with `{ token }`.
 - After confirmation, redirect to login or to a public onboarding landing page;
   if a logged-in session already exists, route to the appropriate continuation.
 - Keep onboarding state in social/member data, not in auth action tokens.
@@ -315,7 +315,7 @@ Goal: move all credential mutation out of social user updates.
 - Add the missing authenticated password-change auth endpoint, then migrate
   `ChangePasswordBtn.vue` to it.
 - Migrate `ChangeEmailBtn.vue` to `POST /change-email` with bearer auth and
-  email confirmation through `POST /change-email/confirm`.
+  email confirmation through `POST /email/confirm`.
 - Delete social user updates carrying `password`, `newPassword`, or primary
   `email`.
 

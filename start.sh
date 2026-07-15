@@ -37,6 +37,13 @@ set -a
 . .env
 set +a
 
+# for social db, prisma reset does not work well so we remove the volume and let docker 
+# compose recreate it.
+if [ "$demo" = true  ]; then
+  docker compose down -v db-social
+fi
+
+
 # Start the services
 if [ "$up" = true ]; then
 if [ "$public" = true ]; then
@@ -62,10 +69,9 @@ fi
 # Migrate service databases
 if [ "$demo" = true  ]; then
   docker compose exec auth pnpm prisma migrate reset --force
+  docker compose exec social pnpm prisma migrate deploy
   docker compose exec accounting pnpm prisma migrate reset --force
   docker compose exec notifications-ts pnpm prisma migrate reset --force
-  # for social db, prisma reset does not work well so we recreate the db container instead.
-  docker compose down -v db-social && docker compose up -d db-social
   sleep 2
 else
   docker compose exec auth pnpm prisma migrate deploy

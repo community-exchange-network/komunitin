@@ -69,12 +69,18 @@ describe("Signup", () => {
     });
     const { token } = await response.json();
     await wrapper.vm.$router.push({ path: "/confirm-email", query: { token } });
+    await flushPromises()
+    expect(wrapper.text()).not.toContain("Your email has been confirmed")
+    await wrapper.get("#confirm-email").trigger("click")
     await waitFor(() => wrapper.text().includes("Your email has been confirmed"), true, "Email should be confirmed");
+    expect(wrapper.vm.$route.path).toBe("/login-mail")
+    expect(wrapper.vm.$route.query.redirect).toBe(destination)
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
 
     // Reopening a consumed verification link must recover the same flow.
     await wrapper.vm.$router.push("/groups")
     await wrapper.vm.$router.push({ path: "/confirm-email", query: { token } })
+    await wrapper.get("#confirm-email").trigger("click")
     await waitFor(() => wrapper.text().includes("Your email has been confirmed"), true, "Used token should resume confirmation")
     expect(wrapper.get<HTMLInputElement>("input[type='email']").element.value).toBe(email)
     await wrapper.get("input[type='password']").setValue(password);

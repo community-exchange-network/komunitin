@@ -176,7 +176,7 @@ export class Auth {
   }
 
   public async confirmEmail(token: string): Promise<ConfirmedAuthUser> {
-    return await this.jsonRequest<ConfirmedAuthUser>(config.AUTH_URL + "/change-email/confirm", { token })
+    return await this.jsonRequest<ConfirmedAuthUser>(config.AUTH_URL + "/email/confirm", { token })
   }
 
   /**

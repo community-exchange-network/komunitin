@@ -215,7 +215,7 @@ export default {
       return statusOk();
     });
 
-    server.post(config.AUTH_URL + "/change-email/confirm", (_schema: any, request) => {
+    server.post(config.AUTH_URL + "/email/confirm", (_schema: any, request) => {
       const body = jsonBody(request);
       if (!body?.token) {
         return badRequest("Expected JSON token");
