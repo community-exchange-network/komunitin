@@ -59,7 +59,8 @@ describe("Signup", () => {
         password
       })
     })
-    expect(prematureLogin.status).toBe(403)
+    expect(prematureLogin.status).toBe(400)
+    expect(await prematureLogin.json()).toMatchObject({ error: "invalid_grant" })
 
     const response = await fetch(`${config.AUTH_URL}/action-token`, {
       method: "POST",

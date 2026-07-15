@@ -101,14 +101,15 @@ const submit = async () => {
     $q.loading.show({
       delay: 200
     })
-    const signup = await store.dispatch("login", {
+    
+    await store.dispatch("login", {
       email: email.value,
       password: pass.value,
       signup: props.signup
     })
-    if (signup) {
-      const destination = signup.type === "member"
-        ? `/groups/${signup.groupCode}/signup-member`
+    if (props.signup) {
+      const destination = props.signup.type === "member"
+        ? `/groups/${props.signup.groupCode}/signup-member`
         : "/groups/new"
       await router.push(destination)
       return
