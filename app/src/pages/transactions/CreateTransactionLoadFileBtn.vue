@@ -9,6 +9,7 @@
     <template #default>
       <q-file 
         v-model="file"
+        @update:model-value="fileErrorMessage = ''"
         outlined
         :label="$t('selectFile')"
         :hint="$t('selectFileHint')"
@@ -35,6 +36,7 @@ import { normalizeAccountCode, parseAmount } from 'src/plugins/FormatCurrency';
 import type { TransferRow } from "./CreateTransactionMultiple.vue";
 import { useStore } from "vuex";
 import type { ExtendedAccount } from "src/store/model";
+import type { QRejectedEntry } from "quasar";
 
 const props = defineProps<{
   code: string,
@@ -55,8 +57,10 @@ const file = ref<File|null>()
 const fileErrorMessage = ref<string>("")
 const maxImportRows = 100
 
-const onRejectedFiles = () => {
-  fileErrorMessage.value = t("ErrorInvalidTransfersCSVFileLimits", {rows: maxImportRows})
+const onRejectedFiles = (rejectedEntries: QRejectedEntry[]) => {
+  fileErrorMessage.value = rejectedEntries.some(entry => entry.failedPropValidation === "max-file-size")
+    ? t("ErrorInvalidTransfersCSVFileLimits", {rows: maxImportRows})
+    : t("ErrorInvalidTransfersCSVFile")
 }
 
 const fetchAccountByCode = async (code: string) => {
