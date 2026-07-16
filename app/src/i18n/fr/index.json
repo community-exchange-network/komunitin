@@ -419,6 +419,7 @@
   "ErrorNoTrustPath": "L'échange a échoué car il n'y a pas de chemin d'échange entre les deux monnaies",
   "ErrorTransactionError": "L'échange a échoué",
   "ErrorInvalidTransfersCSVFileLineColumn": "Erreur d'analyse du fichier CSV à la ligne {line} colonne {column}",
+  "ErrorInvalidTransfersCSVFileLimits": "Sélectionnez un fichier CSV ou TXT de moins de 100 Ko avec au maximum {rows} lignes.",
   "ErrorInvalidTransfersCSVFile": "Erreur de lecture du fichier",
   "ErrorCamNotAllowed": "L'application n'a pas la permission d'utiliser la caméra. Vous pouvez l'autoriser dans les paramètres du navigateur.",
   "ErrorCamNotFound": "Aucune caméra trouvée sur cet appareil",

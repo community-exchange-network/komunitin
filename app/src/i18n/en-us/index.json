@@ -425,6 +425,7 @@
   "ErrorNoTrustPath": "Transfer failed because there is no exchange path between the two currencies",
   "ErrorTransactionError": "Transfer failed",
   "ErrorInvalidTransfersCSVFileLineColumn": "Error parsing the CSV file in line {line} column {column}",
+  "ErrorInvalidTransfersCSVFileLimits": "Select a CSV or TXT file under 100 KB with at most {rows} rows.",
   "ErrorInvalidTransfersCSVFile": "Error reading the file",
   "ErrorCamNotAllowed": "The app does not have permission to use the camera. You can allow it in the browser settings.",
   "ErrorCamNotFound": "No camera found in this device",
