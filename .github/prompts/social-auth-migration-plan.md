@@ -142,14 +142,14 @@ Goal: make services trust tokens issued by the new auth service.
   issuer, JWKS, and audience `urn:komunitin:api`.
 - Replace legacy service scopes with the new scope vocabulary:
   `email`, `social:read`, `social:write`, `accounting:read`,
-  `accounting:write`, and any newly agreed admin/read-all scopes.
+  `accounting:write`, and `superadmin`.
 - Update notifications client credentials to request only scopes allowed for
   `komunitin-notifications`, currently `email social:read accounting:read`.
 - Update social service credentials to use `komunitin-social` for delegated
   accounting calls and unsubscribe token redemption.
 - Remove legacy issuer-prefix, null-subject, and numeric Drupal-subject handling
   from runtime paths unless a specific import window still requires it.
-- Check the new `superadmin` (formerly `komunitin_superadmin`) scope is used everywhere needed.
+- Check the `superadmin` scope is used everywhere needed.
 
 Verification:
 
@@ -251,7 +251,7 @@ Goal: make the first pending group activatable in the new stack.
   status from `pending` to `active`.
 - Update accounting creation side effects for group/currency activation if they
   are not already handled by social/accounting integration.
-- Remove old `komunitin_superadmin` checks from frontend and services once the
+- Remove old prefixed superadmin-scope checks from frontend and services once the
   replacement is in place.
 
 Verification:
@@ -418,8 +418,7 @@ Goal: finish the cutover by deleting old assumptions.
   and Drupal numeric user ids unless still isolated in import tooling.
 - Delete old CLI assumptions or mark old scripts explicitly as IntegralCES-only.
 - Search the repo for `/oauth2`, `/get-auth-code`, `/get-auth-token`,
-  `authorization_code`, `komunitin_social`, `komunitin_accounting`,
-  `komunitin_auth`, `komunitin_superadmin`, `include=members`, `geo-position`,
+  `authorization_code`, legacy `komunitin_*` scope names, `include=members`, `geo-position`,
   and `sort=location`.
 
 Verification:

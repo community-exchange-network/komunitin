@@ -109,7 +109,7 @@ In a future, other access labels may be added (friends, contacts, community:XXXX
 
 Authorization endpoints are out of the scope of this API, which expects the user to be authorized with an OAuth2 access token. The access token is provided by a separate authorization API. The recommended OAuth2 flow for web apps and native apps is the Authorization Code Flow with Proof Key for Code Exchange (PKCE).
 
-A general `komunitin_social` OAuth2 scope is required to access this API.
+Read operations require the `social:read` OAuth2 scope, while write operations require `social:write`.
 
 #### Accounting
 
