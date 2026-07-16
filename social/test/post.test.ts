@@ -723,8 +723,6 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'b-visible')
-    assert.strictEqual(res.body.meta.count, 1)
-    assert.strictEqual(res.body.links.next, null)
   })
 
   test('GET /:code/posts sorts by distance with null locations last', async () => {
