@@ -85,6 +85,10 @@ The OpenAPI contract lives at `openapi/openapi.yml`.
 
 Action tokens are not OAuth tokens and are not accepted at `POST /token`.
 
+### Provisioning the configured superadmin
+
+After applying database migrations, the root `start.sh` script runs `./shared/cli/komunitin admin bootstrap`. Using existing HTTP APIs, the command registers and verifies `ADMIN_EMAIL`, logs in to obtain its user access token, and creates the matching Social user projection. It uses `ADMIN_PASSWORD` when configured and otherwise generates a random password, in which case the administrator should use **Forgot Password** before their first interactive login.
+
 ## Local Development
 
 From `auth/`:

@@ -31,18 +31,18 @@ describe('Users endpoints', () => {
       .expect(401)
   })
 
-  test('POST /users requires the new social write scope', async () => {
+  test('POST /users rejects a read-only social scope', async () => {
     const token = await signJwt(
-      toUuid('legacy-scope-user'),
-      'legacy-scope@example.org',
-      'komunitin_social',
+      toUuid('read-only-user'),
+      'read-only@example.org',
+      'social:read',
       { includeDefaultScopes: false },
     )
 
     await request(app)
       .post('/users')
       .set('Authorization', `Bearer ${token}`)
-      .send({ data: { type: 'users', attributes: { email: 'legacy-scope@example.org' } } })
+      .send({ data: { type: 'users', attributes: { email: 'read-only@example.org' } } })
       .expect(403)
   })
 

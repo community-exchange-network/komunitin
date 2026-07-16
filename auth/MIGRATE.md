@@ -141,7 +141,6 @@ The services still assume legacy issuer/audience/scope behavior:
 
 - `accounting/src/server/auth.ts`
   - accepts legacy audience defaults like `komunitin-app`
-  - still uses legacy scope enum names
   - contains temporary Drupal numeric-id compatibility logic
 - `social/src/server/auth.ts`
   - still defaults audience to `komunitin-app`
@@ -152,15 +151,7 @@ The services still assume legacy issuer/audience/scope behavior:
 
 ### 1. Replace legacy scope names
 
-Current app request:
-
-```text
-komunitin_social komunitin_accounting email offline_access openid profile
-```
-
-Target request to the new auth service must use the new scope names.
-
-Recommended target for the normal app session:
+App request:
 
 ```text
 email offline_access social:read social:write accounting:read accounting:write superadmin
@@ -168,7 +159,6 @@ email offline_access social:read social:write accounting:read accounting:write s
 
 Notes:
 
-- Do not switch the app scope string until the downstream services accept the new names.
 - The new auth service does not issue ID tokens and does not currently expose `openid` or `profile` scopes.
 - The app always requests `superadmin`; auth grants it only when the authenticated email matches `ADMIN_EMAIL`.
 

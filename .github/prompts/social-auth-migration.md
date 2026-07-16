@@ -13,9 +13,9 @@ services in this repository.
 - Do not use `authorization_code`; the new auth service intentionally does not exchange emailed `?token=...` links for app sessions.
 - The public app client is `komunitin-app` and supports `password` and `refresh_token`.
 - Confidential service clients currently implemented in auth are `komunitin-social` and `komunitin-notifications`; both support `client_credentials` and token exchange.
-- App login scopes must move from `komunitin_social komunitin_accounting email offline_access openid profile` to the new scope vocabulary, such as `email offline_access social:read social:write accounting:read accounting:write`.
+- App login scopes use `email offline_access social:read social:write accounting:read accounting:write`.
 - The new auth service does not issue ID tokens and does not expose `openid` or `profile` scopes.
-- Legacy scopes such as `komunitin_social`, `komunitin_accounting`, `komunitin_social_read_all`, `komunitin_accounting_read_all`, `komunitin_auth_impersonate_all`, and `komunitin_superadmin` must not be requested from the new auth service.
+- Legacy prefixed domain, service-wide read, impersonation, and superadmin scopes must not be requested from the new auth service.
 - Current new auth access tokens use audience `app`; consumers that validate JWTs must update issuer, audience, and JWKS configuration away from legacy Drupal defaults.
 - Prefer OIDC issuer metadata/JWKS from the new auth service where possible; avoid hardcoded legacy `/.well-known/jwks.json` and `/oauth2` paths.
 - Frontend refresh must remain a token endpoint form request with `grant_type=refresh_token`, `client_id=komunitin-app`, and `refresh_token=<stored refresh token>`.
@@ -45,7 +45,7 @@ services in this repository.
 - The social service still uses JSON:API payload shapes for resources and settings; auth management endpoints use plain JSON, so do not reuse JSON:API request builders for auth endpoints.
 - Social user resources no longer own password or primary email mutation; password/email flows belong to auth.
 - Social `PATCH /users/:id/settings` remains the place for user preferences such as language, notification settings, and newsletter email settings.
-- Social currently still checks legacy `komunitin_superadmin` and `komunitin_social_read_all` scopes in `social/src/server/context.ts`; those authorization checks need a new-scope replacement before relying fully on new auth tokens.
+- Social checks `superadmin` for privileged user access and `social:read` for service-wide reads in `social/src/server/context.ts`.
 
 ## Frontend App Patterns To Migrate
 
@@ -68,14 +68,14 @@ services in this repository.
 
 ## Notifications Service Patterns To Migrate
 
-- `notifications-ts/src/clients/komunitin/AuthProvider.ts` currently requests legacy service scopes `komunitin_social_read_all komunitin_accounting_read_all komunitin_auth_impersonate_all`; replace with the new allowed scopes for `komunitin-notifications`, currently `email social:read accounting:read`.
+- `notifications-ts/src/clients/komunitin/AuthProvider.ts` requests the allowed scopes for `komunitin-notifications`: `email social:read accounting:read`.
 - `notifications-ts/src/clients/komunitin/getAuthCode.ts` calls legacy `/get-auth-code`; remove this helper or replace it with an action-token client that calls auth `POST /action-token`.
 - `notifications-ts/src/notifications/handlers/user.ts` calls `getAuthCode()` for all user email events; split by action purpose and request the correct action token purpose from auth.
 - Password reset email tokens should be `passwordReset` action tokens and should lead to the public frontend password reset page.
 - Email validation tokens should be `emailVerification` action tokens and should lead to a public frontend confirmation/onboarding route that redeems the token explicitly.
 - Email change tokens should be `emailChange` action tokens and must include the destination email when requesting `POST /action-token`.
 - Newsletter unsubscribe tokens should use `purpose: "unsubscribe"` action tokens, not login-capable auth codes.
-- `notifications-ts/src/newsletter/service.ts` currently calls `getAuthCode(user.id, ["komunitin_social"])`; replace with the unsubscribe action-token purpose.
+- `notifications-ts/src/newsletter/service.ts` uses the unsubscribe action-token purpose for newsletter links.
 - `notifications-ts/src/newsletter/template.ts` builds app unsubscribe links as `/unsubscribe?token=...`; this can stay as the app-facing URL if the app posts to the new social redemption endpoint.
 - `notifications-ts/src/clients/email/mailer.ts` builds RFC 8058 `List-Unsubscribe` URLs as `${KOMUNITIN_SOCIAL_PUBLIC_URL}/users/me/unsubscribe?token=...`; this endpoint must be backed by the new social/auth redemption flow or the URL must change.
 - `notifications-ts/src/notifications/emails/user.ts` currently creates validation CTAs to `/groups/:code/signup-member?token=...` or `/groups/new?token=...`; those links must stop relying on boot-time magic login.
@@ -105,8 +105,7 @@ services in this repository.
 ## Unclear Or Not Yet Fully Implemented Paths
 
 - There is no authenticated self-service password-change endpoint in auth yet; current app logged-in password change cannot be migrated cleanly until a bearer-auth endpoint such as `POST /change-password/authenticated` exists or another explicit contract is chosen.
-- The permanent replacement for `komunitin_superadmin` is not defined; app superadmin login, route guards, social privileged reads, and accounting admin behavior still depend on this concept.
-- The final new scope matrix for social read-all, social admin, accounting read-all, accounting write/admin, notifications service reads, and superadmin-like operations is not fully clear.
+- The `superadmin` scope remains the privileged signal for app route guards and service admin behavior.
 - Social has the auth-side `POST /redeem-action-token` contract available, but a public social endpoint for `/users/me/unsubscribe?token=...` and a social client-credentials auth client were not found in `social/`; this path needs implementation or a different endpoint.
 - Link-driven signup/onboarding after email verification is not fully defined: validation tokens confirm email, but they do not authenticate or carry social onboarding state.
 - The target frontend route after email verification is not settled for group-member signup versus new-group creation; current `/groups/:code/signup-member?token=...` and `/groups/new?token=...` links depend on magic login.

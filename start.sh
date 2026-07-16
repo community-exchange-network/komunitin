@@ -1,36 +1,68 @@
-# parse args
-# Function to display usage
+#!/usr/bin/env bash
+
 usage() {
-    echo "Usage: $0 [--up] [--demo] [--dev] [--public]"
-    exit
+  cat <<EOF
+Usage: $0 [OPTIONS]
+
+Migrate the databases and provision the configured superadmin. Use --up to
+build and start the services first.
+
+Options:
+  --up          Build and start the services
+  --demo        Reset the service databases and seed them with demo data
+  --dev         Start with development config (requires --up)
+  --public      Start with production config (requires --up)
+  --no-prune    Keep unused Docker resources after startup
+  -h, --help    Show this help message
+EOF
 }
 
-# Parse arguments
 demo=false
 public=false
 up=false
+noprune=false
 dev=false
 
-while [[ "$1" != "" ]]; do
-    case "$1" in
-        --up)
-            up=true
-            ;;
-        --demo)
-            demo=true
-            ;;
-        --public)
-            public=true
-            ;;
-        --dev)
-            dev=true
-            ;;
-        *)
-            usage
-            ;;
-    esac
-    shift
+while (( $# > 0 )); do
+  case "$1" in
+    --up)
+      up=true
+      ;;
+    --demo)
+      demo=true
+      ;;
+    --public)
+      public=true
+      ;;
+    --dev)
+      dev=true
+      ;;
+    --no-prune)
+      noprune=true
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+  shift
 done
+
+if [ "$dev" = true ] && [ "$public" = true ]; then
+  echo "Options --dev and --public cannot be used together." >&2
+  exit 1
+fi
+
+if [ "$up" = false ] && { [ "$dev" = true ] || [ "$public" = true ] || [ "$noprune" = true ]; }; then
+  echo "Options --dev, --public and --no-prune require --up." >&2
+  exit 1
+fi
 
 # Load .env file.
 set -a
@@ -59,7 +91,9 @@ else
 fi
 
 # cleanup old images and volumes
-docker system prune -f
+if [ "$noprune" = false ]; then
+  docker system prune -f
+fi
 
 echo "Waiting for the services to start..."
 sleep 10
@@ -80,3 +114,6 @@ else
   docker compose exec notifications-ts pnpm prisma migrate deploy
   sleep 2
 fi
+
+# Bootstrap the configured superadmin in Auth and Social.
+./shared/cli/komunitin admin bootstrap

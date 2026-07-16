@@ -1589,7 +1589,7 @@ describe('Auth Service Integration Tests', () => {
     })
   })
 
-  test('Initial email verification can be confirmed for the current email', async () => {
+  test('Initial email verification is idempotent only while its token is valid', async () => {
     const userId = '66666666-6666-4666-8666-666666666666'
     const passwordHash = await hashPassword('password123')
     const signup = {
@@ -1651,11 +1651,6 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(user.email, 'verify-me@example.org')
     assert.strictEqual(user.emailVerified, true)
 
-    await prisma.userActionToken.updateMany({
-      where: { userId, purpose: 'emailVerification' },
-      data: { expiresAt: new Date(0) },
-    })
-
     const reusedConfirmRes = await request(app)
       .post('/email/confirm')
       .send({ token })
@@ -1697,6 +1692,22 @@ describe('Auth Service Integration Tests', () => {
       .expect(400)
 
     assert.strictEqual(unverifiedUserRes.body.errors[0].detail, 'Invalid or expired token')
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified: true },
+    })
+    await prisma.userActionToken.updateMany({
+      where: { userId, purpose: 'emailVerification' },
+      data: { expiresAt: new Date(0) },
+    })
+
+    const expiredConfirmRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(expiredConfirmRes.body.errors[0].detail, 'Invalid or expired token')
   })
 
   test('Expired unused email verification tokens remain invalid', async () => {
