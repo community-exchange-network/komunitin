@@ -128,6 +128,7 @@ test('getCollectionParams parses include and near with distance sorting', () => 
 			filter: ['code', 'name', 'status', 'access', 'search'],
 			sort: ['created', 'updated', 'name', 'code', 'distance'],
 			include: ['settings', 'currency'],
+			near: true,
 		}
 	)
 

@@ -13,7 +13,7 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
   const code = getCode(req)
   const params = getCollectionParams(req, {
     filter: ['code', 'type', 'status', 'access', 'member', 'category', 'expired', 'search'],
-    sort: ['created', 'updated', 'expires'],
+    sort: ['created', 'updated', 'expires', 'distance'],
     include: [
       'member',
       'member.group',

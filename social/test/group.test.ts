@@ -325,7 +325,7 @@ describe('Groups endpoints', () => {
     await seedGroup({ tenantId: 'loc-charlie', name: 'Charlie Location', status: 'active', access: 'public' })
     
     const res = await request(app)
-      .get('/groups?near=41.8781,-87.6298&sort=distance')
+      .get('/groups?near=-87.6298,41.8781&sort=distance')
       .expect(200)
     assert.strictEqual(res.body.data.length, 3)
     assert.deepStrictEqual(

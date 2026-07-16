@@ -109,7 +109,7 @@ const collectionParamsSchema = (options: CollectionParamsOptions) => {
     filter: filterParamSchema(options.filter ?? []),
     sort: sortParamSchema(options.sort),
     include: includeParamSchema(options.include ?? []),
-    near: nearParamSchema,
+    ...(options.near ? { near: nearParamSchema } : {}),
   }).strict().refine((data) => !(data.sort.some((s) => s.field === 'distance') && !data.near), {
     message: 'Sorting by distance requires the "near" parameter to be provided.'
   }).transform(({page, filter, sort, include, near}) => ({
@@ -117,7 +117,7 @@ const collectionParamsSchema = (options: CollectionParamsOptions) => {
     filters: filter,
     sort,
     include,
-    near
+    near: near as GeoPoint | undefined,
   }))
 }
 
