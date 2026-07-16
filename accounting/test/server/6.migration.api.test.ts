@@ -41,7 +41,7 @@ describe.skip("Test migration from local IntegralCes instance", async () => {
         username,
         password,
         client_id: 'komunitin-app',
-        scope: 'openid email profile komunitin_social komunitin_accounting offline_access komunitin_social_read_all superadmin'
+        scope: 'email offline_access social:read social:write accounting:read accounting:write superadmin'
       })
     })
 

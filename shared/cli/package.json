@@ -2,7 +2,11 @@
   "name": "@komunitin/cli",
   "private": true,
   "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
-    "@types/node": "^24.10.9"
+    "@types/node": "^24.10.9",
+    "typescript": "^5.9.3"
   }
 }

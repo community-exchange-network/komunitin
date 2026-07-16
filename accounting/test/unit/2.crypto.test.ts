@@ -27,7 +27,7 @@ describe('Crypto', async () => {
     const token = await createExternalToken(key)
     const result = await verifyExternalToken(token)
     assert.equal(result.payload.type, "external")
-    assert.equal(result.payload.aud, config.AUTH_JWT_AUDIENCE[0])
+    assert.equal(result.payload.aud, config.AUTH_JWT_AUDIENCE)
   })
 
   it('Fails to verify external token with wrong signature', async () => {

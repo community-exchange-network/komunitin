@@ -3,47 +3,52 @@ import assert from "node:assert"
 import {validate as isUuid} from "uuid"
 import { Scope } from "../../src/server/auth"
 import { setupServerTest } from "./setup"
+import { testUserId, userAuth } from "./api.data"
+import { config } from "../../src/config"
 
 describe('Currencies endpoints', async () => {
   const t = setupServerTest(false)
 
-  const admin1 = {user: "1", scopes: [Scope.Accounting]}
-  const admin2 = {user: "2", scopes: [Scope.Accounting]}
+  const admin1 = userAuth("1")
+  const admin2 = userAuth("2")
 
-  const currencyPostBody = (attributes: Record<string, any>, user: string, settings: Record<string, any>) => ({
-    data: {
-      type: "currencies",
-      attributes: {
-        code: "TES1",
-        name: "Testy",
-        namePlural: "Testies",
-        symbol: "T$",
-        decimals: 2,
-        scale: 4,
-        rate: {n: 1, d: 10},
-        ...attributes,
-      },
-      relationships: {
-        admins: {
-          data: [{ type: "users", id: user }]
+  const currencyPostBody = (attributes: Record<string, any>, user: string, settings: Record<string, any>) => {
+    const userId = testUserId(user)
+    return {
+      data: {
+        type: "currencies",
+        attributes: {
+          code: "TES1",
+          name: "Testy",
+          namePlural: "Testies",
+          symbol: "T$",
+          decimals: 2,
+          scale: 4,
+          rate: {n: 1, d: 10},
+          ...attributes,
         },
-        settings: {
-          data: { type: "currency-settings", id: "1" }
+        relationships: {
+          admins: {
+            data: [{ type: "users", id: userId }]
+          },
+          settings: {
+            data: { type: "currency-settings", id: "1" }
+          }
         }
-      }
-    },
-    included: [{
-      type: "users",
-      id: user
-    }, {
-      type: "currency-settings",
-      id: "1",
-      attributes: {
-        defaultInitialCreditLimit: 1000,
-        ...settings
-      }
-    }]
-  })
+      },
+      included: [{
+        type: "users",
+        id: userId
+      }, {
+        type: "currency-settings",
+        id: "1",
+        attributes: {
+          defaultInitialCreditLimit: 1000,
+          ...settings
+        }
+      }]
+    }
+  }
   
   await it('create currency', async () => {
     // User 1 creates currency TES1
@@ -66,7 +71,7 @@ describe('Currencies endpoints', async () => {
   // Helper doing an authenticated post to /currencies, expecting a 400 error.
   const badPost = async (attributes?: any) => {
     const currency = currencyPostBody(attributes, "400", {})
-    const user400 = {user: "400", scopes: [Scope.Accounting]}
+    const user400 = userAuth("400", [Scope.AccountingWrite])
     const response = await t.api.post('/currencies', currency, user400, 400)
     assert.equal(response.body.errors[0].status, 400) 
   }
@@ -90,12 +95,33 @@ describe('Currencies endpoints', async () => {
   await it('incorrect zero rate', async () => badPost({code: "ERRO", rate: {n: 0, d: 1}}))
   await it('incorrect negative rate', async () => badPost({code: "ERRO", rate: {n: -1, d: 1}}))
   
-  // Only logged in users with komunitin_accounting scope can create currencies.
+  // Only logged-in users with accounting:write can create currencies.
   await it('unauthorized create', async () => {
     await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), undefined, 401)
   })
   await it('missing scope create', async () => {
     await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), {user: "400", scopes: []}, 403)
+  })
+  await it('read-only scope cannot create', async () => {
+    await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), userAuth("400", [Scope.AccountingRead]), 403)
+  })
+  await it('legacy audience is rejected', async () => {
+    await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), {
+      ...userAuth("400", [Scope.AccountingWrite]),
+      audience: "komunitin-app",
+    }, 401)
+  })
+  await it('legacy issuer prefix is rejected', async () => {
+    await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), {
+      ...userAuth("400", [Scope.AccountingWrite]),
+      issuer: `${config.AUTH_JWT_ISSUER}/en`,
+    }, 401)
+  })
+  await it('legacy accounting scope is rejected', async () => {
+    await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), {
+      ...userAuth("400"),
+      scopes: ["accounting"],
+    }, 403)
   })
 
   // public endpoint

@@ -88,6 +88,8 @@ In order to feature trade between communities, the following model is proposed:
 ## Credit Commons protocol integration
 The [Credit Commons](https://creditcommons.net/) is a protocol for enabling transactions between different servers and sytems.
 
+Accounting administration commands, including trustline and Credit Commons node setup, live in the [shared TypeScript CLI](../shared/cli/README.md). They authenticate through the new Auth service and use Social for current-user membership discovery.
+
 ### Known issues
 Komunitin's Credit Commons API is a recent addition, it's not complete, and there are a few known issues:
 * The only [CC workflow](https://gitlab.com/credit-commons/cc-node/-/blob/0.9.x/doc/developers.md?ref_type=heads#workflow) that is currently supported is `_C-`, meaning the payer sends money and it completes immediately (just a POST, no PATCH).

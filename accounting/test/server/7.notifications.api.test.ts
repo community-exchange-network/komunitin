@@ -9,8 +9,9 @@ import { waitFor } from "./utils"
 describe("Send events to notifications service", async () => {
   const t = setupServerTest()
   const notificationsAuth = {
-    user: null,
-    scopes: [Scope.AccountingReadAll],
+    user: 'komunitin-notifications',
+    clientId: 'komunitin-notifications',
+    scopes: [Scope.AccountingRead],
   }
 
   let transfer: any
@@ -79,6 +80,5 @@ describe("Send events to notifications service", async () => {
 
   await it('notifications service cannot write', async() => {
     await t.api.post("/TEST/accounts", testAccount("123"), notificationsAuth, 403)
-    await t.api.post("/TEST/accounts", testAccount(null as any as string), notificationsAuth, 403)
   }) 
 })

@@ -247,7 +247,7 @@ Verification:
 - The group appears in social with status `pending` and the requested currency
   and settings.
 
-## Stage 7: Migrate The Accounting Service
+## Stage 7: Migrate The Accounting Service (DONE)
 
 Goal: complete the accounting cutover before changing its upstream consumers.
 
@@ -264,11 +264,11 @@ Goal: complete the accounting cutover before changing its upstream consumers.
   its operation.
 - Update accounting OpenAPI declarations, test token helpers, fixtures, and
   service tests to use the new audience, subjects, and scope names.
-- Update accounting CLI scripts intended for the new stack to use auth
-  `POST /token`, the new scopes, and social
+- Move accounting administration commands for the new stack into the shared
+  TypeScript CLI. Use auth `POST /token`, the new scopes, and social
   `GET /users/:id/members` where current-member discovery is needed.
-- Clearly mark scripts that still read IntegralCES or refresh IntegralCES tokens
-  as migration-only; do not retain those paths in normal accounting clients.
+- Delete the service-local shell CLI, including the obsolete IntegralCES
+  migration script; do not retain legacy paths in normal accounting clients.
 
 Verification:
 

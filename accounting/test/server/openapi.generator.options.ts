@@ -21,6 +21,14 @@ export const expressOasGeneratorOptions: HandleResponsesOptions = {
         description: 'Local development server'
       }
     ]
+    spec.securityDefinitions = {
+      authorization: {
+        name: 'Authorization',
+        in: 'header',
+        type: 'apiKey',
+        description: 'Bearer JWT from the configured Auth issuer for audience urn:komunitin:api. Use accounting:read for reads, accounting:write for writes, or superadmin on admin operations.'
+      }
+    }
     return spec
   },
   specOutputPath: "openapi/openapi.json",
