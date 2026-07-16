@@ -1109,6 +1109,41 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'visible')
   })
 
+  test('GET /:code/members sorts by distance with null locations last', async () => {
+    await seedGroup({ tenantId: 'members-distance', status: 'active', access: 'public' })
+    await seedMember({
+      tenantId: 'members-distance',
+      code: 'near',
+      status: 'active',
+      access: 'public',
+      longitude: 120,
+      latitude: 45,
+    })
+    await seedMember({
+      tenantId: 'members-distance',
+      code: 'far',
+      status: 'active',
+      access: 'public',
+      longitude: 10,
+      latitude: 20,
+    })
+    await seedMember({
+      tenantId: 'members-distance',
+      code: 'no-location',
+      status: 'active',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get('/members-distance/members?near=121,45&sort=distance')
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((member: any) => member.attributes.code),
+      ['near', 'far', 'no-location'],
+    )
+  })
+
   test('PATCH /:code/members/:member returns 404 for unknown id', async () => {
     await seedGroup({ tenantId: 'members-missing', status: 'active', access: 'public' })
     const admin = await auth('members-missing-admin')

@@ -86,6 +86,7 @@ export const findMemberIds = async (
   return await findCollectionIds(db, {
     from: memberTable,
     columns: memberColumns,
+    location: memberColumn('location'),
     search: memberColumn('search'),
     params,
     where: [

@@ -168,6 +168,9 @@ const buildCollectionIdQuery = ({
     }
   }
 
+  // Offset pagination requires a deterministic order when requested values tie.
+  orderBy = Prisma.sql`${orderBy}, ${columns.id} ASC`
+
   const whereClause = where.length > 0
     ? Prisma.sql`WHERE ${sqlAnd(where)}`
     : Prisma.sql``

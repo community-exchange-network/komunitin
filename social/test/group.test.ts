@@ -334,7 +334,7 @@ describe('Groups endpoints', () => {
     )
 
     const res2 = await request(app)
-      .get('/groups?near=34.0522,-118.2437&sort=distance')
+      .get('/groups?near=-118.2437,34.0522&sort=distance')
       .expect(200)
     assert.strictEqual(res2.body.data.length, 3)
     assert.deepStrictEqual(

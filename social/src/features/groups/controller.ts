@@ -31,6 +31,7 @@ export const getGroups: RequestHandler = async (req, res) => {
     filter: ['code', 'name', 'status', 'access', 'search'],
     sort: ['created', 'updated', 'name', 'code', 'distance'],
     include: ['settings', 'currency'],
+    near: true,
   })
 
   const groups = await listGroups(ctx, params)

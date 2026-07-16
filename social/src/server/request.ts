@@ -36,6 +36,7 @@ export type CollectionParamsOptions = {
   filter?: string[]
   sort: string[]
   include?: string[]
+  near?: boolean
 }
 
 export type ResourceParams = {
@@ -56,7 +57,7 @@ const includeParamSchema = (include: string[]) => {
 const pageParamSchema = z.object({
   size: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   after: z.coerce.number().int().min(0).default(0),
-}).prefault({}).transform(({ after, size }) => ({
+}).strict().prefault({}).transform(({ after, size }) => ({
   cursor: after,
   size,
 }));
@@ -97,9 +98,9 @@ const sortParamSchema = (fields: string[]) => {
 
 const nearParamSchema = z.preprocess(
   splitCommaSeparated,
-  z.array(z.coerce.number()).length(2).refine(([lat, lng]) => lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180, {
-    message: 'Invalid near parameter. Latitude must be between -90 and 90, and longitude must be between -180 and 180.'
-  }).transform(([latitude, longitude]) => ({ latitude, longitude }))
+  z.array(z.coerce.number()).length(2).refine(([longitude, latitude]) => longitude >= -180 && longitude <= 180 && latitude >= -90 && latitude <= 90, {
+    message: 'Invalid near parameter. Longitude must be between -180 and 180, and latitude must be between -90 and 90.'
+  }).transform(([longitude, latitude]) => ({ latitude, longitude }))
 ).optional()
 
 const collectionParamsSchema = (options: CollectionParamsOptions) => { 
@@ -109,21 +110,21 @@ const collectionParamsSchema = (options: CollectionParamsOptions) => {
     sort: sortParamSchema(options.sort),
     include: includeParamSchema(options.include ?? []),
     near: nearParamSchema,
-  }).refine((data) => !(data.sort.some((s) => s.field === 'distance') && !data.near), {
+  }).strict().refine((data) => !(data.sort.some((s) => s.field === 'distance') && !data.near), {
     message: 'Sorting by distance requires the "near" parameter to be provided.'
   }).transform(({page, filter, sort, include, near}) => ({
     pagination: page,
     filters: filter,
     sort,
     include,
-    near,
+    near
   }))
 }
 
 const resourceParamsSchema = (options: ResourceParamsOptions) => {
   return z.object({
     include: includeParamSchema(options.include ?? []),
-  })
+  }).strict()
 }
 
 const idParamSchema = z.uuid()

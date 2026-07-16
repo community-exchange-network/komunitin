@@ -723,6 +723,50 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'b-visible')
+    assert.strictEqual(res.body.meta.count, 1)
+    assert.strictEqual(res.body.links.next, null)
+  })
+
+  test('GET /:code/posts sorts by distance with null locations last', async () => {
+    await seedGroup({ tenantId: 'posts-distance', status: 'active', access: 'public' })
+    const member = await seedMember({ tenantId: 'posts-distance', status: 'active' })
+    await seedPost({
+      tenantId: 'posts-distance',
+      memberId: member.id,
+      code: 'near',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      longitude: 120,
+      latitude: 45,
+    })
+    await seedPost({
+      tenantId: 'posts-distance',
+      memberId: member.id,
+      code: 'far',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      longitude: 10,
+      latitude: 20,
+    })
+    await seedPost({
+      tenantId: 'posts-distance',
+      memberId: member.id,
+      code: 'no-location',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get('/posts-distance/posts?near=121,45&sort=distance')
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((post: any) => post.attributes.code),
+      ['near', 'far', 'no-location'],
+    )
   })
 
   test('GET /:code/posts supports reverse sorting by update date', async () => {

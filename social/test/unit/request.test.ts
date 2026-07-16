@@ -138,8 +138,8 @@ test('getCollectionParams parses include and near with distance sorting', () => 
 		isDefault: false,
 	}])
 	assert.deepStrictEqual(params.near, {
-		latitude: 41.4,
-		longitude: 2.1,
+		latitude: 2.1,
+		longitude: 41.4,
 	})
 })
 
@@ -150,9 +150,51 @@ test('getCollectionParams rejects distance sorting without near', () => {
 			{
 				filter: ['code', 'name', 'status', 'access', 'search'],
 				sort: ['created', 'updated', 'name', 'code', 'distance'],
+				near: true,
 			}
 		),
 		/Invalid query parameters/
+	)
+})
+
+test('getCollectionParams rejects near where the route does not support it', () => {
+	assert.throws(
+		() => getCollectionParams(
+			createRequest('near=2.1,41.4'),
+			{ sort: ['created'] }
+		),
+		/Invalid query parameters/
+	)
+})
+
+test('getCollectionParams validates longitude then latitude', () => {
+	const options = { sort: ['created', 'distance'], near: true }
+	assert.deepStrictEqual(
+		getCollectionParams(createRequest('near=120,45'), options).near,
+		{ longitude: 120, latitude: 45 },
+	)
+	assert.throws(
+		() => getCollectionParams(createRequest('near=181,45'), options),
+		/Invalid query parameters/,
+	)
+	assert.throws(
+		() => getCollectionParams(createRequest('near=120,91'), options),
+		/Invalid query parameters/,
+	)
+})
+
+test('request query objects reject unknown top-level and pagination keys', () => {
+	assert.throws(
+		() => getCollectionParams(createRequest('legacy=value'), { sort: ['created'] }),
+		/Invalid query parameters/,
+	)
+	assert.throws(
+		() => getCollectionParams(createRequest('page[number]=1'), { sort: ['created'] }),
+		/Invalid query parameters/,
+	)
+	assert.throws(
+		() => getResourceParams(createRequest('legacy=value'), {}),
+		/Invalid query parameters/,
 	)
 })
 

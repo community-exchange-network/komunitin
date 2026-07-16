@@ -109,6 +109,7 @@ export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group
   return await findCollectionIds(db, {
     from: postWithMemberFrom,
     columns: postColumns,
+    location: postColumn('location'),
     search: hasSearch ? [postColumn('search'), memberColumn('search')] : postColumn('search'),
     params: {
       ...params,

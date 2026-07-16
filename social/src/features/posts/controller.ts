@@ -21,6 +21,7 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
       'member.account',
       'category',
     ],
+    near: true,
   })
 
   const posts = await listPosts(ctx, code, params)

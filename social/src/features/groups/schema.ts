@@ -34,7 +34,10 @@ export type Contact = z.infer<typeof contactSchema>
 export const locationSchema = z.object({
   name: z.string().optional(),
   type: z.literal('Point'),
-  coordinates: z.tuple([z.number(), z.number()]),
+  coordinates: z.tuple([
+    z.number().min(-180).max(180),
+    z.number().min(-90).max(90),
+  ]),
 }).strict()
 
 export type Location = z.infer<typeof locationSchema>
