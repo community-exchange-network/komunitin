@@ -36,7 +36,6 @@ services:
       - "2025:2025"
       - "9225:9225"
     volumes:
-      - ./accounting/cli:/app/cli
       - ./accounting/openapi:/app/openapi
       - ./accounting/prisma:/app/prisma
       - ./accounting/src:/app/src
