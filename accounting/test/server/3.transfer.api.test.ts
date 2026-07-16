@@ -181,7 +181,7 @@ describe('Transfer endpoints', async () => {
     await t.api.get(`/TEST/transfers/${transfer.id}`, t.user2)
     // forbidden get by unrelated user
     await t.createAccount("4")
-    await t.api.get(`/TEST/transfers/${transfer.id}`, { user: "4", scopes: [Scope.Accounting] }, 403)
+    await t.api.get(`/TEST/transfers/${transfer.id}`, { user: "4", scopes: [Scope.AccountingRead] }, 403)
   })
 
   await it('list transfers', async () => {

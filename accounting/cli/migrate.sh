@@ -18,7 +18,7 @@ KOMUNITIN_ACCOUNTING_URL=${5:-$DEFAULT_KOMUNITIN_ACCOUNTING_URL}
 
 echo "Getting access token from $ICES_URL..."
 cd "$(dirname "$0")"
-ACCESS_TOKEN=$(./access.sh $USERNAME $PASSWORD $ICES_URL komunitin_superadmin)
+ACCESS_TOKEN=$(./access.sh $USERNAME $PASSWORD $ICES_URL superadmin)
 
 echo "Migrating group $GROUP from $ICES_URL to $KOMUNITIN_ACCOUNTING_URL..."
 

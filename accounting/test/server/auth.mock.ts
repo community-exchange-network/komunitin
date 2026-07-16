@@ -8,10 +8,13 @@ const keys = generateKeyPairSync("rsa", {
 })
 const TEST_KEY_ID = "test-key-id"
 
-export async function token(user: string|null, scopes?: Scope[], audience?: string) {
+export async function token(user: string|null, scopes?: Scope[], audience?: string, clientId?: string) {
   const payload = {} as Record<string, string>
   if (scopes) {
     payload.scope = scopes.join(" ")
+  }
+  if (clientId) {
+    payload.client_id = clientId
   }
   const token = await new SignJWT(payload)
     .setAudience(audience ?? config.AUTH_JWT_AUDIENCE[0])

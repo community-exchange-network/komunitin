@@ -10,9 +10,9 @@ import { setupServerTest } from "./setup"
 describe('Accounts endpoints', async () => {
   const t = setupServerTest(false)
 
-  const admin = { user: "1", scopes: [Scope.Accounting] }
-  const user2 = { user: "2", scopes: [Scope.Accounting] }
-  const user3 = { user: "3", scopes: [Scope.Accounting] }
+  const admin = { user: "1", scopes: [Scope.AccountingRead, Scope.AccountingWrite] }
+  const user2 = { user: "2", scopes: [Scope.AccountingRead, Scope.AccountingWrite] }
+  const user3 = { user: "3", scopes: [Scope.AccountingRead, Scope.AccountingWrite] }
 
   const csvRows = (text: string) => text.split('\n').filter(line => line.trim().length > 0).map(line => line.split(','))
 
@@ -92,6 +92,9 @@ describe('Accounts endpoints', async () => {
   })
   it('forbidden list accounts', async() => {
     await t.api.get('/TEST/accounts', user3, 403)
+  })
+  it('write-only scope cannot list accounts', async() => {
+    await t.api.get('/TEST/accounts', { user: "2", scopes: [Scope.AccountingWrite] }, 403)
   })
 
   it('allowed anonymous list accounts by id', async () => {

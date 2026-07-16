@@ -48,6 +48,11 @@ export const context = (req: Request): Context => {
     return {
       type: "superadmin",
     }
+  // Client-credentials tokens identify the service with matching sub and client_id claims.
+  } else if (typeof payload.client_id === "string" && payload.sub === payload.client_id) {
+    return {
+      type: "system"
+    }
   } else if (typeof payload.sub === "string") {
     return {
       type: "user",

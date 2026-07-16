@@ -8,8 +8,8 @@ import { unauthorized } from "../utils/error"
 import { verifyExternalToken } from "../controller/external-jwt"
 
 export enum Scope {
-  Accounting = "komunitin_accounting",
-  AccountingReadAll = "komunitin_accounting_read_all",
+  AccountingRead = "accounting:read",
+  AccountingWrite = "accounting:write",
   Superadmin = "superadmin",
 }
 
@@ -42,6 +42,19 @@ let lastInvalidTokenRetry = 0
  */
 export const userAuth = (scopes?: Scope|Scope[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    handleAuthRequest(scopes, req, res, next)
+  }
+}
+
+/**
+ * Authenticate requests that include a bearer token while allowing anonymous requests.
+ */
+export const optionalUserAuth = (scopes?: Scope|Scope[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (req.header("authorization") === undefined) {
+      next()
+      return
+    }
     handleAuthRequest(scopes, req, res, next)
   }
 }

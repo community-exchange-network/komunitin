@@ -9,8 +9,9 @@ import { waitFor } from "./utils"
 describe("Send events to notifications service", async () => {
   const t = setupServerTest()
   const notificationsAuth = {
-    user: null,
-    scopes: [Scope.AccountingReadAll],
+    user: 'komunitin-notifications',
+    clientId: 'komunitin-notifications',
+    scopes: [Scope.AccountingRead],
   }
 
   let transfer: any

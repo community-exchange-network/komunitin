@@ -7,8 +7,8 @@ import { setupServerTest } from "./setup"
 describe('Currencies endpoints', async () => {
   const t = setupServerTest(false)
 
-  const admin1 = {user: "1", scopes: [Scope.Accounting]}
-  const admin2 = {user: "2", scopes: [Scope.Accounting]}
+  const admin1 = {user: "1", scopes: [Scope.AccountingRead, Scope.AccountingWrite]}
+  const admin2 = {user: "2", scopes: [Scope.AccountingRead, Scope.AccountingWrite]}
 
   const currencyPostBody = (attributes: Record<string, any>, user: string, settings: Record<string, any>) => ({
     data: {
@@ -66,7 +66,7 @@ describe('Currencies endpoints', async () => {
   // Helper doing an authenticated post to /currencies, expecting a 400 error.
   const badPost = async (attributes?: any) => {
     const currency = currencyPostBody(attributes, "400", {})
-    const user400 = {user: "400", scopes: [Scope.Accounting]}
+    const user400 = {user: "400", scopes: [Scope.AccountingWrite]}
     const response = await t.api.post('/currencies', currency, user400, 400)
     assert.equal(response.body.errors[0].status, 400) 
   }
@@ -90,12 +90,15 @@ describe('Currencies endpoints', async () => {
   await it('incorrect zero rate', async () => badPost({code: "ERRO", rate: {n: 0, d: 1}}))
   await it('incorrect negative rate', async () => badPost({code: "ERRO", rate: {n: -1, d: 1}}))
   
-  // Only logged in users with komunitin_accounting scope can create currencies.
+  // Only logged-in users with accounting:write can create currencies.
   await it('unauthorized create', async () => {
     await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), undefined, 401)
   })
   await it('missing scope create', async () => {
     await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), {user: "400", scopes: []}, 403)
+  })
+  await it('read-only scope cannot create', async () => {
+    await t.api.post('/currencies', currencyPostBody({code: "ERRO"}, "400", {}), {user: "400", scopes: [Scope.AccountingRead]}, 403)
   })
 
   // public endpoint

@@ -13,7 +13,7 @@ ICES_URL=$3
 ADDITIONAL_SCOPES=$4
 
 # Base scopes
-BASE_SCOPES="openid email profile komunitin_social komunitin_accounting offline_access"
+BASE_SCOPES="email offline_access social:read social:write accounting:read accounting:write"
 
 # Add additional scopes if provided
 if [ -n "$ADDITIONAL_SCOPES" ]; then
