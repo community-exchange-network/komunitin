@@ -17,7 +17,7 @@ export async function token(user: string|null, scopes?: Scope[], audience?: stri
     payload.client_id = clientId
   }
   const token = await new SignJWT(payload)
-    .setAudience(audience ?? config.AUTH_JWT_AUDIENCE[0])
+    .setAudience(audience ?? config.AUTH_JWT_AUDIENCE)
     .setIssuer(config.AUTH_JWT_ISSUER)
     .setSubject(user as string)
     .setIssuedAt()

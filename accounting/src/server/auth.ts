@@ -18,16 +18,6 @@ const buildJwt = () => {
     issuer: config.AUTH_JWT_ISSUER,
     audience: config.AUTH_JWT_AUDIENCE,
     jwksUri: fixUrl(config.AUTH_JWKS_URL),
-    validators: {
-      // IntegralCES creates JWTs with a null sub claim for the tokens
-      // requested by the notifications service. The default validator
-      // in express-oauth2-jwt-bearer does not allow null values for 
-      // the sub claim.
-      sub: (sub) => typeof sub === "string" || sub === null,
-      // IntegralCES may append the language code to the issuer claim (!),
-      // so we need to allow for that instead of strict equality.
-      iss: (iss) => typeof iss === "string" && iss.startsWith(config.AUTH_JWT_ISSUER), 
-    },
   })
 }
 
@@ -146,8 +136,8 @@ const handleAuthRequest = (scopes: Scope|Scope[]|undefined, req: Request, res: R
       } else {
         next(err)
       }
-    } else if (scopes && scopes.length){
-       scopeIncludesAny(scopes)(req, res, next)
+    } else if (scopes && scopes.length) {
+      scopeIncludesAny(scopes)(req, res, next)
     } else {
       next()
     }
