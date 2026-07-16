@@ -12,6 +12,13 @@ deleting legacy paths over keeping adapters. Use the new service shapes to
 simplify consumers, especially by separating auth-owned credentials from
 social-owned profile and membership data.
 
+The remaining work is deliberately service-first. Migrate accounting completely,
+then migrate and verify social against auth and accounting, then migrate
+notifications against all three services. Only after those service boundaries
+are stable should end-to-end user workflows be debugged. This keeps workflow
+failures from being obscured by several partially migrated backend consumers at
+once.
+
 If you find needing changes out of the scope of current stage, just note them in this plan document and we'll implement that later. You can even add additional stages if needed.
 
 If you find missing features in social or auth services, please note that in `.github/prompts/social-auth-todos.md` and we'll implement that later.
@@ -240,195 +247,262 @@ Verification:
 - The group appears in social with status `pending` and the requested currency
   and settings.
 
-## Stage 7: Activate And Administer The First Group
+## Stage 7: Migrate The Accounting Service
 
-Goal: make the first pending group activatable in the new stack.
+Goal: complete the accounting cutover before changing its upstream consumers.
 
-- Implement the agreed new admin/superadmin authorization scope or role before
-  migrating activation UI.
-- Update app superadmin/admin route guards to use the new admin signal.
-- Update social group patch authorization so an authorized admin can set group
-  status from `pending` to `active`.
-- Update accounting creation side effects for group/currency activation if they
-  are not already handled by social/accounting integration.
-- Remove old prefixed superadmin-scope checks from frontend and services once the
-  replacement is in place.
-
-Verification:
-
-- A pending group can be activated using only new auth tokens.
-- An unauthorized regular user cannot activate groups.
-- Once active, the group is visible to public group listing and join flows.
-
-## Stage 8: Validate Group Member Registration Against Real Services
-
-Goal: support a new user joining an existing active group.
-
-- Verify `/groups/:code/signup` creates auth credentials first, then logs in,
-  then creates the social user/settings if needed.
-- Verify the member is created through `POST /:code/members` using the
-  authenticated user, not by embedding members inside `POST /users`.
-- Use the new member shape directly: member profile fields in
-  `data.attributes`; user settings through `/users/:id/settings`; no password
-  or primary email in social.
-- Keep member initial status as `draft` or the new service default, then move to
-  `pending` after onboarding profile/offers are complete.
-- Remove any dependency on `/groups/:code/signup-member?token=...` as an
-  authenticated continuation link.
+- Replace legacy accounting scope enum values and authorization checks with
+  `accounting:read`, `accounting:write`, and `superadmin` as appropriate.
+- Validate tokens against the exact new auth issuer, JWKS, and audience
+  `urn:komunitin:api`; remove IntegralCES issuer-prefix and null-subject
+  compatibility from accounting runtime auth.
+- Resolve users and account ownership from canonical UUID subjects. Remove the
+  numeric Drupal user-id lookup from normal request handling while keeping any
+  required conversion inside explicit IntegralCES migration tooling.
+- Audit currency, account, transfer, stats, notification-facing, top-up, and
+  admin endpoints so each one requires the narrowest new scope that supports
+  its operation.
+- Update accounting OpenAPI declarations, test token helpers, fixtures, and
+  service tests to use the new audience, subjects, and scope names.
+- Update accounting CLI scripts intended for the new stack to use auth
+  `POST /token`, the new scopes, and social
+  `GET /users/:id/members` where current-member discovery is needed.
+- Clearly mark scripts that still read IntegralCES or refresh IntegralCES tokens
+  as migration-only; do not retain those paths in normal accounting clients.
 
 Verification:
 
-- A fresh user can sign up for an active group, create an auth account, social
-  user, and draft member.
-- Reload after signup uses normal stored credentials and the new bootstrap flow.
-- Completing profile/offers moves the member to `pending`.
+- Accounting accepts app user tokens and appropriately downscoped service
+  tokens issued by new auth, and rejects legacy issuer/audience/scope shapes.
+- Current-user and account resolution work from canonical UUID subjects only.
+- Currency/account provisioning, transfers, balances, history, stats, top-ups,
+  and notification-facing reads pass accounting API tests.
+- Explicit IntegralCES import/migration tests remain isolated from runtime auth.
 
-## Stage 9: Validate Email Verification And Onboarding Continuation
+## Stage 8: Migrate And Verify The Social Service
 
-Goal: replace email magic login with explicit action-token redemption.
+Goal: make social a complete consumer of new auth and the migrated accounting
+service before debugging frontend workflows.
 
-- Update notifications user-email enrichment to call auth `POST /action-token`
-  with `purpose: "emailVerification"`.
-- Change validation email CTAs away from login-token routes. Use a public route
-  such as `/confirm-email?token=...&next=...`.
-- Add a frontend public confirmation page that calls
-  `POST /email/confirm` with `{ token }`.
-- After confirmation, redirect to login or to a public onboarding landing page;
-  if a logged-in session already exists, route to the appropriate continuation.
-- Keep onboarding state in social/member data, not in auth action tokens.
+- Audit social JWT authorization and request context against the exact new
+  issuer, audience, canonical UUID subject, `social:read`, `social:write`, and
+  `superadmin` semantics. Remove remaining IntegralCES runtime identity
+  assumptions.
+- Verify social's delegated accounting client exchanges the user's token through
+  new auth and requests only `accounting:read` or `accounting:write` for the
+  operation being performed.
+- Verify `GET /users/me?include=settings`,
+  `GET /users/:id/members?include=group,group.currency,account&page[size]=1`,
+  groups, settings, currencies, accounts, members, categories, offers, needs,
+  locations, contacts, and files against the contracts already represented by
+  Mirage and consumed by the frontend.
+- Complete group lifecycle behavior: create a pending group, authorize
+  superadmin activation, provision its accounting currency/accounts through the
+  migrated accounting boundary, and make active groups available to public
+  listing and joining.
+- Make member provisioning idempotent per authenticated user and group, keep
+  onboarding state in social, and enforce the intended `draft` to `pending`
+  status transition.
+- Resolve the remaining relationship metadata and group-admin endpoint gaps
+  recorded in `social-auth-todos.md` so real responses expose the permissions
+  and counts expected by the frontend.
+- Verify strict `filter`, `sort`, `page`, `include`, and `near` handling for
+  groups, members, offers, and needs. Settle the coordinate-order contract and
+  use it consistently in social, Mirage, and frontend consumers.
+- Verify `POST /:code/files/upload` accepts one file and the required
+  `resourceType` (`members`, `groups`, `offers`, or `needs`) without any legacy
+  Drupal file endpoint.
+- Implement the public social unsubscribe endpoint: redeem an auth
+  `unsubscribe` action token with the social service credentials and update the
+  user's newsletter preferences.
+- Run the social service boundary tests with mocked auth, accounting,
+  notifications, and storage dependencies before starting full-stack workflow
+  debugging.
 
 Verification:
 
-- Email verification marks auth `emailVerified` true.
-- Reusing the same token fails.
-- Confirmation does not create a session by itself.
-- A logged-in draft member can continue onboarding after confirming email.
+- Social accepts new user/service tokens, enforces the new scopes and
+  superadmin rules, and contains no runtime numeric Drupal identity path.
+- Its user bootstrap, group lifecycle, member lifecycle, marketplace, location,
+  relationship metadata, upload, and unsubscribe API tests pass.
+- Delegated accounting reads/writes work through new auth against migrated
+  accounting and never use IntegralCES tokens.
+- Real social response and error shapes match the migrated frontend/Mirage
+  contract.
 
-## Stage 10: Validate Password And Email Account Management
+## Stage 9: Migrate The Notifications Service
 
-Goal: move all credential mutation out of social user updates.
+Goal: make notifications consume new auth, social, and accounting contracts and
+emit purpose-bound links.
 
-- Update forgot-password email flow to use `POST /reset-password`, action-token
-  email, and public `/set-password?token=...`.
-- Make `/set-password` public and call `POST /change-password` with
-  `{ token, password }`.
-- Add the missing authenticated password-change auth endpoint, then migrate
-  `ChangePasswordBtn.vue` to it.
-- Migrate `ChangeEmailBtn.vue` to `POST /change-email` with bearer auth and
-  email confirmation through `POST /email/confirm`.
-- Delete social user updates carrying `password`, `newPassword`, or primary
-  `email`.
+- Validate inbound tokens against the exact new issuer, JWKS, and audience
+  `urn:komunitin:api`; remove IntegralCES issuer-prefix, null-subject, and
+  numeric-user-id compatibility from notifications runtime auth and event
+  handling.
+- Obtain a notifications client-credentials token from new auth with only
+  `email social:read accounting:read`, and use canonical UUIDs for all social
+  and accounting enrichment calls.
+- Replace any remaining `/get-auth-code` or OAuth-code helper with the
+  `POST /action-token` client.
+- Map each email flow to its explicit token purpose: `passwordReset`,
+  `emailVerification`, `emailChange`, or `unsubscribe`.
+- Point validation and account-management CTAs at their public frontend
+  action-token pages; do not create sessions from email links.
+- Generate newsletter unsubscribe tokens with purpose `unsubscribe`, point the
+  application status page at the social unsubscribe endpoint, and update RFC
+  8058 `List-Unsubscribe` headers to the working public endpoint.
+- Update notifications mocks, fixtures, snapshots, and tests to the new auth,
+  social, accounting, and link contracts.
 
 Verification:
 
-- Forgot password works without login.
+- Notifications accepts new event tokens and rejects legacy auth shapes.
+- No notifications code calls `/get-auth-code` or relies on IntegralCES user-id
+  lookup.
+- Social/accounting enrichment works with the narrowly scoped notifications
+  client token.
+- Password reset, validation, email-change, and newsletter emails contain the
+  correct single-purpose action tokens and links.
+- Notifications typecheck, API/unit tests, and email snapshots pass.
+
+## Stage 10: Debug Group Administration And Member Onboarding Workflows
+
+Goal: debug the primary registration journeys end to end now that the service
+boundaries are migrated.
+
+- Re-run the first-group journey from Stage 6 against the fully migrated stack:
+  register credentials, verify email, log in, create the social user, and
+  create a pending group.
+- Grant and expose the new `superadmin` signal, update frontend admin route
+  guards, and activate the pending group through social. Verify the migrated
+  accounting side effects before exposing the group publicly.
+- Debug `/groups/:code/signup` so it creates auth credentials first, verifies
+  email, logs in normally, creates social user/settings if needed, and creates
+  the member through `POST /:code/members`.
+- Send member profile fields in `data.attributes`, user settings through
+  `/users/:id/settings`, and no password or primary email to social.
+- Remove dependencies on `/groups/:code/signup-member?token=...`; email
+  confirmation is a public action-token flow and onboarding resumes from
+  persisted social/member state after normal login.
+- Verify public `/confirm-email?token=...&next=...` calls
+  `POST /email/confirm` with `{ token }`, shows the result, and directs the user
+  to normal login or the appropriate onboarding continuation.
+- Verify reloads during both journeys reconstruct current user, member, account,
+  group, currency, permissions, and onboarding status from normalized stores.
+
+Verification:
+
+- A pending group can be activated by an authorized superadmin but not by a
+  regular user; once active, it appears in public listings and join flows.
+- A fresh user can join that group, create one idempotent draft member, reload,
+  complete profile/offers, and move the member to `pending`.
+- Email confirmation is single-use, marks auth `emailVerified`, and never
+  creates an app session itself.
+- Both workflows use canonical UUIDs and no request sends credentials to social.
+
+## Stage 11: Debug Account Management Workflows
+
+Goal: verify every credential mutation stays in auth while profile and
+preferences stay in social.
+
+- Debug forgot-password through auth `POST /reset-password`, its purpose-bound
+  email, and public `/set-password?token=...` calling
+  `POST /change-password` with `{ token, password }`.
+- Implement the missing authenticated password-change auth endpoint and verify
+  `ChangePasswordBtn.vue` sends the current and new passwords only to auth.
+- Verify `ChangeEmailBtn.vue` calls auth `POST /change-email` with bearer auth
+  and completes the change through `POST /email/confirm`.
+- Verify social profile/settings updates contain no `password`, `newPassword`,
+  or primary `email` fields.
+
+Verification:
+
+- Forgot password works without a session and its token cannot be reused.
 - Logged-in password change validates the current password and changes future
   login credentials.
-- Logged-in email change sends a confirmation email and only changes auth email
-  after confirmation.
-- Social user profile/settings updates no longer accept credential fields.
+- Logged-in email change updates the auth email only after confirmation.
+- Profile, settings, and newsletter preferences remain independently editable
+  through social.
 
-## Stage 11: Validate Core Marketplace And Profile Reads/Writes
+## Stage 12: Debug Marketplace, Profile, And Location Workflows
 
-Goal: move normal app usage to strict new social query and resource shapes.
+Goal: verify normal app usage against strict real social resources after the
+service migrations.
 
-- Audit every `include` sent by frontend resource modules and pages; remove
-  unsupported nested to-many includes.
-- Update image upload consumers from the legacy Drupal files endpoint to social
-  `POST /:code/files/upload`, sending one file and the required `resourceType`
-  multipart field (`members`, `groups`, `offers`, or `needs`).
-- Use allowed route includes only: users `settings`; user members
-  `group,group.currency,account`; groups `settings,currency`; members
+- Exercise group list/detail, member list/profile, contacts, categories,
+  offers, needs, settings, maps, and upload flows against real social.
+- Audit every frontend `include`; retain only route-supported includes and
+  normalize collection/subcollection responses instead of relying on deeply
+  embedded resources. In particular, use users `settings`, user members
+  `group,group.currency,account`, groups `settings,currency`, and members
   `group,account`.
-- Normalize store data from collection/subcollection responses instead of
-  depending on deeply embedded resources.
-- Update profile/member forms to send contacts, location, image, address, and
+- Verify profile/member forms send contacts, location, image, address, and
   metadata in the new member/group attribute shapes.
-- Update group/resource search and ordering to use strict `filter`, `sort`,
-  `page`, and `near` params.
+- Verify uploads use social `POST /:code/files/upload` with one file and the
+  correct `resourceType` multipart field.
+- Verify search, filtering, explicit distance ordering, pagination, and
+  next-page loading use the strict `filter`, `sort`, `page`, and `near`
+  contracts established in Stage 8.
 - Prefer small route-specific client methods where the generic resource module
-  would need awkward endpoint overrides.
+  would otherwise need endpoint-specific compatibility behavior.
 
 Verification:
 
-- Group list, group detail, member list, member profile, offers, needs,
-  categories, settings, and maps work against the new social service.
-- Unsupported includes are gone from frontend tests and mocks.
-- Pagination and next-page loading still work.
+- Core marketplace and profile reads/writes work against real social.
+- Unsupported includes and the legacy Drupal upload path are absent from
+  frontend requests, tests, and mocks.
+- Location ordering, pagination, and next-page loading match real social.
 
-## Stage 12: Migrate Notifications, Newsletter, And Unsubscribe
+## Stage 13: Debug Notification, Newsletter, And Unsubscribe Workflows
 
-Goal: remove `/get-auth-code` from notifications and make email links
-purpose-bound.
+Goal: verify the migrated notifications service in real user journeys.
 
-- Replace `notifications-ts/src/clients/komunitin/getAuthCode.ts` with an
-  action-token client for `POST /action-token`.
-- Split user-event token purposes: `passwordReset`, `emailVerification`,
-  `emailChange`, and `unsubscribe`.
-- Update newsletter generation to request `purpose: "unsubscribe"` action
-  tokens.
-- Implement the public social unsubscribe endpoint if missing. It should accept
-  the raw token, obtain a `komunitin-social` client-credentials token, call auth
-  `POST /redeem-action-token`, and update the user's newsletter/email settings.
-- Keep app `/unsubscribe?token=...` as a public status page if useful, but make
-  it call the new social unsubscribe endpoint.
-- Update RFC 8058 `List-Unsubscribe` headers to point at the working public
-  unsubscribe endpoint.
+- Trigger verification, password-reset, email-change, marketplace, transfer,
+  and newsletter notifications from the relevant real service boundaries.
+- Verify email enrichment reads canonical user/member/account data from auth,
+  social, and accounting with the notifications service token.
+- Exercise the public app action-token pages and confirm each accepts only its
+  matching token purpose.
+- Exercise one-click newsletter unsubscribe through the public social endpoint
+  from the app's public `/unsubscribe?token=...` status page, and reflect the
+  updated preference in the app.
 
 Verification:
 
-- No notifications code calls `/get-auth-code`.
-- Password reset, validation, and newsletter emails contain action tokens, not
-  OAuth/login codes.
-- One-click unsubscribe consumes the token once and updates social settings.
-- Newsletter snapshots and mocks reflect the new links.
+- Relevant social and accounting events produce the expected emails exactly
+  once.
+- Every action link completes its intended public flow without silently logging
+  the user in.
+- One-click unsubscribe consumes its token once, updates social settings, and
+  is reflected by subsequent newsletter selection.
 
-## Stage 13: Migrate Accounting And Cross-Service Calls
+## Stage 14: Remove Legacy Paths And Run Full Regression
 
-Goal: make accounting and dependent service calls use new auth identities and
-scopes.
-
-- Replace accounting legacy scope enum values with the final new accounting
-  scopes.
-- Update accounting audience config to `app` and new JWKS/issuer values.
-- Remove numeric Drupal user-id compatibility from runtime user resolution after
-  imported users use canonical UUIDs.
-- Update notifications calls to accounting so client-credentials tokens carry
-  only new allowed scopes.
-- Update accounting CLI scripts that are meant for the new stack to use new
-  auth `/token`, new scopes, and new social `/users/:id/members` bootstrap.
-- Keep IntegralCES token refresh only inside explicit migration/import tooling.
-
-Verification:
-
-- Accounting API accepts app user tokens and notifications service tokens from
-  new auth.
-- Current user/account resolution works from canonical UUID subjects.
-- Transfers, accounts, stats, and notification-derived accounting reads still
-  work.
-
-## Stage 14: Remove Legacy Frontend And Service Paths
-
-Goal: finish the cutover by deleting old assumptions.
+Goal: finish the cutover after the migrated workflows are proven.
 
 - Delete frontend `authorization_code`, magic `?token=` login, old scope names,
-  old user-member include paths, and social credential updates.
-- Delete notifications `/get-auth-code` mocks/tests/helpers.
+  old user-member include paths, legacy upload/location params, and social
+  credential updates.
+- Delete notifications `/get-auth-code` mocks, tests, and helpers.
 - Delete service JWT compatibility for old issuer quirks, null service `sub`,
-  and Drupal numeric user ids unless still isolated in import tooling.
-- Delete old CLI assumptions or mark old scripts explicitly as IntegralCES-only.
+  and Drupal numeric user ids unless isolated in explicitly named IntegralCES
+  import tooling.
+- Delete old CLI assumptions or mark old scripts explicitly as
+  IntegralCES-only.
 - Search the repo for `/oauth2`, `/get-auth-code`, `/get-auth-token`,
-  `authorization_code`, legacy `komunitin_*` scope names, `include=members`, `geo-position`,
-  and `sort=location`.
+  `authorization_code`, legacy `komunitin_*` scope names, `include=members`,
+  `geo-position`, and `sort=location`.
 
 Verification:
 
-- The legacy search terms appear only in docs, tests for migration tooling, or
+- Legacy search terms appear only in documentation, migration-tooling tests, or
   explicitly named IntegralCES import code.
-- App, accounting, social, auth, and notifications test suites pass.
-- A full manual journey works: create group, activate group, register member,
-  confirm email, complete onboarding, create offer/need, receive notification,
-  change email/password, unsubscribe from newsletter.
+- App, auth, accounting, social, and notifications lint, typecheck, and test
+  suites pass.
+- A full manual journey works: create and activate a group, register a member,
+  confirm email, complete onboarding, create an offer/need, make a transfer,
+  receive notifications, change email/password, and unsubscribe from the
+  newsletter.
 
 ## Notes On Simplification
 
