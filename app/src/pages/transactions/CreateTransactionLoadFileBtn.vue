@@ -148,7 +148,7 @@ const parseTransfersFile = async (content: string[][]) : Promise<TransferRow[]> 
   }
   return parsed
   } catch (error) {
-    if (error instanceof KError && (error.debugInfo as {maxRows?: number} | undefined)?.maxRows) {
+    if (error instanceof KError) {
       throw error
     }
     throw new KError(KErrorCode.InvalidTransfersCSVFile, "Error parsing transfers file", error, {line, column})
