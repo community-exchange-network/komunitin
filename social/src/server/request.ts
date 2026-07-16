@@ -16,7 +16,7 @@ export type PaginationOptions = {
   size: number
 }
 
-export type FilterOptions = Record<string, string[]>
+export type FilterOptions = Partial<Record<string, string[]>>
 
 export type SortOptions = {
   field: string

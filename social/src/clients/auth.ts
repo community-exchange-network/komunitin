@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { config } from '../config'
 import { Scope } from '../server/scopes'
 import { AsyncCache, type CacheValue } from '../utils/cache'
@@ -18,7 +19,11 @@ const TOKEN_EXPIRY_MARGIN_MS = 60 * 1000
 const tokenCache = new AsyncCache<string, string>(MAX_CACHED_TOKENS)
 
 const getCacheKey = (subjectToken: string, scope: AccountingScope): string => {
-  return JSON.stringify([subjectToken, scope])
+  return createHash('sha256')
+    .update(subjectToken)
+    .update('\0')
+    .update(scope)
+    .digest('base64url')
 }
 
 const requestAccountingToken = async (
