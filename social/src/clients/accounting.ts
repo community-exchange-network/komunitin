@@ -1,6 +1,8 @@
 import { config } from '../config'
-import { AuthContext } from '../server/context'
+import type { AuthContext } from '../server/context'
+import { Scope } from '../server/scopes'
 import { internalError } from '../utils/error'
+import { exchangeAccountingToken } from './auth'
 import { fetchWithRetry } from './utils'
 
 type JsonApiError = {
@@ -83,14 +85,15 @@ const userMap = (ids: string[]) => ids.map((id) => ({ type: 'users', id }))
 class AccountingClient {
   constructor(readonly ctx: AuthContext) {}
 
-  private async getAuthorizationToken(): Promise<string> {
-    // As of now, we simply forward the user's JWT token to the accounting service for authentication,
-    // but we are prepared to implement a token exchange mechanis when the auth service supports it.
-    return this.ctx.token
-  }
-
-  private async request(path: string, init: RequestInit, options: RequestOptions = {}): Promise<JsonApiDoc | undefined> {
-    const token = await this.getAuthorizationToken()
+  private async request(
+    path: string,
+    init: RequestInit,
+    options: RequestOptions = {},
+  ): Promise<JsonApiDoc | undefined> {
+    const scope = !init.method || init.method === 'GET'
+      ? Scope.AccountingRead
+      : Scope.AccountingWrite
+    const token = await exchangeAccountingToken(this.ctx.token, scope)
     
     const response = await fetchWithRetry(accountingUrl(path), {
       ...init,

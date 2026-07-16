@@ -19,12 +19,13 @@ export const handlers = [
       access_token: 'mock-token',
       expires_in: 3600,
       token_type: 'Bearer',
-      scope: 'komunitin_social_read_all komunitin_accounting_read_all'
+      scope: 'email social:read accounting:read'
     });
   }),
-  
-  http.post(`${AUTH_URL}/get-auth-code`, () => {
-    return HttpResponse.json({ code: 'mock-unsubscribe-token' });
+
+  http.post(`${AUTH_URL}/action-token`, async ({ request }) => {
+    const { purpose } = await request.json() as { purpose: string };
+    return HttpResponse.json({ token: `mock-${purpose}-token` });
   }),
 
   http.get(`${AUTH_URL}/.well-known/jwks.json`, () => {

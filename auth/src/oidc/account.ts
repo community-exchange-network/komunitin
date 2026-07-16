@@ -54,7 +54,8 @@ export async function authenticate(email: string, passwordSecret: string) {
   const user = await prisma.user.findUnique({
     where: { 
       email: normalizeEmail(email),
-      status: UserStatus.Active
+      status: UserStatus.Active,
+      emailVerified: true,
     },
   })
 

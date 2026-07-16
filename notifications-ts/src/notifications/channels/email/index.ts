@@ -6,7 +6,7 @@ import { EnrichedTransferEvent, EnrichedMemberEvent, EnrichedMemberHasExpiredPos
 import { ctxTransferSent, ctxTransferReceived, ctxTransferPending, ctxTransferRejected } from '../../emails/transfer';
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
-import { handleEmailEvent, handleSuperadminEmailEvent } from './utils';
+import { handleEmailAddressEvent, handleEmailEvent, handleSuperadminEmailEvent } from './utils';
 
 export const initEmailChannel = (): (() => void) => {
   logger.info('Initializing email notification channel');
@@ -34,10 +34,15 @@ export const initEmailChannel = (): (() => void) => {
 
     // User events
     eventBus.on(EVENT_NAME.ValidationEmailRequested, async (event: EnrichedUserEvent) => 
-      handleEmailEvent(event, [event.target], "message", ctxValidationEmail
+      handleEmailAddressEvent(
+        event,
+        event.data.email,
+        event.name === EVENT_NAME.ValidationEmailRequested ? event.data.signup?.language : undefined,
+        "message",
+        ctxValidationEmail
     )),
     eventBus.on(EVENT_NAME.PasswordResetRequested, async (event: EnrichedUserEvent) => 
-      handleEmailEvent(event, [event.target], "message", ctxPasswordReset
+      handleEmailAddressEvent(event, event.data.email, undefined, "message", ctxPasswordReset
     )),
 
     // Transfer events

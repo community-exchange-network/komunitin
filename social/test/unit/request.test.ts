@@ -24,7 +24,7 @@ test('getCollectionParams parses pagination, sorting and filters generically', (
 			size: 1,
 		},
 		filters: {
-			access: 'private',
+			access: ['private'],
 		},
 		sort: [{
 			field: 'name',
@@ -46,7 +46,7 @@ test('getCollectionParams supports sparse search filters', () => {
 	)
 
 	assert.deepStrictEqual(params.filters, {
-		search: 'organic',
+		search: ['organic'],
 	})
 	assert.deepStrictEqual(params.pagination, {
 		cursor: 0,
@@ -60,8 +60,13 @@ test('getCollectionParams supports sparse search filters', () => {
 })
 
 test('getCollectionParams supports comma separated filter values', () => {
+	const query = new URLSearchParams({
+		'filter[code]': 'code-one,code-two',
+	}).toString()
+	assert.ok(query.includes('code-one%2Ccode-two'))
+
 	const params = getCollectionParams(
-		createRequest('filter[code]=code-one,code-two'),
+		createRequest(query),
 		{
 			filter: ['code', 'name', 'status', 'access', 'search'],
 			sort: ['created', 'updated', 'name', 'code', 'distance'],
@@ -96,27 +101,37 @@ test('getCollectionParams supports multiple search-related endpoint shapes', () 
 		}
 	)
 
-	assert.deepStrictEqual(categoryParams.filters, { search: 'food' })
-	assert.deepStrictEqual(memberParams.filters, { status: 'pending' })
+	assert.deepStrictEqual(categoryParams.filters, { search: ['food'] })
+	assert.deepStrictEqual(memberParams.filters, { status: ['pending'] })
 	assert.deepStrictEqual(memberParams.sort, [{
 		field: 'name',
 		order: 'asc',
 		isDefault: false,
 	}])
-	assert.deepStrictEqual(postParams.filters, { type: 'offers' })
+	assert.deepStrictEqual(postParams.filters, { type: ['offers'] })
 })
 
 test('getCollectionParams parses include and near with distance sorting', () => {
+	const query = new URLSearchParams({
+		include: 'settings,currency',
+		sort: '-distance',
+		near: '41.4,2.1',
+	}).toString()
+	const request = createRequest(query)
+	assert.ok(query.includes('settings%2Ccurrency'))
+	assert.strictEqual(request.query.include, 'settings,currency')
+	assert.strictEqual(request.query.near, '41.4,2.1')
+
 	const params = getCollectionParams(
-		createRequest('include=settings&sort=-distance&near=41.4,2.1'),
+		request,
 		{
 			filter: ['code', 'name', 'status', 'access', 'search'],
 			sort: ['created', 'updated', 'name', 'code', 'distance'],
-			include: ['settings'],
+			include: ['settings', 'currency'],
 		}
 	)
 
-	assert.deepStrictEqual(params.include, ['settings'])
+	assert.deepStrictEqual(params.include, ['settings', 'currency'])
 	assert.deepStrictEqual(params.sort, [{
 		field: 'distance',
 		order: 'desc',

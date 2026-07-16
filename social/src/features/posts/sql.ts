@@ -40,8 +40,11 @@ const postColumns: SqlColumnMap = {
 }
 
 const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): Promise<Prisma.Sql | null> => {
-  const isAdmin = ctx.isSuperadmin || await isGroupAdmin(ctx, group)
-  if (isAdmin || ctx.isSocialReadAll) {
+  if (ctx.isSuperadmin || ctx.canReadAllSocial) {
+    return Prisma.sql`TRUE`
+  }
+
+  if (await isGroupAdmin(ctx, group)) {
     return Prisma.sql`TRUE`
   }
 

@@ -4,7 +4,7 @@ import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/context'
-import { auth } from './mocks/auth'
+import { auth, serviceAuth } from './mocks/auth'
 import {
   getAccountingRequestPaths,
   getNotificationsEvents,
@@ -295,7 +295,7 @@ describe('Members endpoints', () => {
       .expect(403)
   })
 
-  test('GET /:code/members/:member allows read-all scope for non-public member', async () => {
+  test('GET /:code/members/:member allows service read access for non-public member', async () => {
     await seedGroup({ tenantId: 'members-read-all-one', status: 'pending', access: 'private' })
     const hiddenMember = await seedMember({
       tenantId: 'members-read-all-one',
@@ -304,7 +304,7 @@ describe('Members endpoints', () => {
       access: 'private',
     })
 
-    const serviceUser = await auth('members-read-all-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get(`/members-read-all-one/members/${hiddenMember.id}`)
       .set('Authorization', `Bearer ${serviceUser.token}`)
@@ -314,12 +314,12 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data.attributes.code, 'hidden-member')
   })
 
-  test('GET /:code/members allows read-all scope for non-public members', async () => {
+  test('GET /:code/members allows service read access for non-public members', async () => {
     await seedGroup({ tenantId: 'members-read-all-list', status: 'pending', access: 'private' })
     await seedMember({ tenantId: 'members-read-all-list', code: 'member-a', status: 'draft', access: 'private' })
     await seedMember({ tenantId: 'members-read-all-list', code: 'member-b', status: 'pending', access: 'group' })
 
-    const serviceUser = await auth('members-read-all-list-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get('/members-read-all-list/members?filter[status]=draft,pending,active')
       .set('Authorization', `Bearer ${serviceUser.token}`)

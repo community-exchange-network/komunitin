@@ -53,7 +53,7 @@ pnpm start
 
 ## Domain Notes
 
-- Groups, members, categories, and posts enforce visibility in service code and raw SQL list queries. Preserve anonymous, owner, group-member, group-admin, read-all, and superadmin access paths.
+- Groups, members, categories, and posts enforce visibility in service code and raw SQL list queries. Preserve anonymous, owner, group-member, group-admin, service-reader, and superadmin access paths.
 - Group activation/disabling may sync accounting currencies and emit social notification events.
 - Member status transitions may create or update accounting accounts and emit member notification events.
 - Offers and needs share the `Post` table with a `type` discriminator; type-specific fields live in the JSON `data` column.
@@ -64,7 +64,7 @@ pnpm start
 
 ## External Integrations
 
-- `src/clients/accounting.ts` forwards the user's JWT to accounting. Accounting failures are treated as unexpected social-service errors.
+- `src/clients/accounting.ts` exchanges the user's JWT through Auth for a downscoped Accounting token. Accounting failures are treated as unexpected social-service errors.
 - `src/clients/notifications.ts` posts JSON:API social-domain events to `/events` with Basic auth and logs failures without failing the social operation.
 - Social events must stay social-domain events such as group, member, offer, and need lifecycle events. Auth-owned events belong to the auth service or an auth-owned integration.
 
@@ -76,6 +76,6 @@ pnpm start
 - API tests live in `test/*.test.ts` and use supertest against the real Express app.
 - Unit tests live in `test/unit/`.
 - Shared test setup, JWT fixtures, MSW handlers, seed helpers, and deterministic UUID helpers live in `test/mocks/`.
-- `pnpm prisma migrate reset` does not work well due to how DB image is created. If you need to reset the test DB, rebuild the container and run `pnpm prisma migrate deploy`. Do not try to rebuild the DB manually. Tests use `resetDb` helper to truncate all tables.
+- `pnpm prisma migrate reset` does not work well due to how DB image is created. If you need to reset the test DB, remove the database volume (`docker compose down -v db-social`) and run `pnpm prisma migrate deploy`. Do not try to rebuild the DB manually and do not amend the shared db image unless explicitly requested. Tests use `resetDb` helper to truncate all tables.
 - When changing routes, schemas, access control, status transitions, accounting sync, notification events, search/filter/sort/pagination, RLS behavior, or uploads, add focused tests in the matching suite.
 - Prefer full HTTP JSON:API behavior tests plus database side-effect assertions.

@@ -28,7 +28,7 @@ const toUser = (user: DbUser): User => {
 }
 
 const canReadUser = (ctx: AuthContext, id: string): boolean => {
-  return ctx.userId === id || ctx.isSuperadmin || ctx.isSocialReadAll
+  return ctx.userId === id || ctx.isSuperadmin || ctx.canReadAllSocial
 }
 
 const mergeSettings = (current: UserSettings | null, patch: UserSettings): Prisma.InputJsonObject => {
@@ -160,11 +160,11 @@ export const listUserMembers = async (
 /**
  * List users provided a list of member IDs.
  * 
- * This feature is used by the notifications service and we request the read_all scope.
+ * This feature is used by the notifications service with its social:read service token.
  */
 export const listUsers = async (ctx: AuthContext, params: CollectionParams): Promise<User[]> => {
   
-  const allowed = ctx.isSuperadmin || ctx.isSocialReadAll
+  const allowed = ctx.isSuperadmin || ctx.canReadAllSocial
   
   if (!allowed) {
     throw forbidden('You do not have permission to list users')
@@ -174,11 +174,7 @@ export const listUsers = async (ctx: AuthContext, params: CollectionParams): Pro
     throw badRequest('Filtering by member id(s) is required to list users')
   }
 
-  const memberIds = Array.isArray(params.filters.members)
-    ? params.filters.members
-    : params.filters.members
-      ? [params.filters.members]
-      : []
+  const memberIds = params.filters.members
 
   if (memberIds.length === 0) {
      return []

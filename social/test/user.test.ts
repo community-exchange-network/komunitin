@@ -1,8 +1,9 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
+import { config } from '../src/config'
 import { Scope } from '../src/server/context'
-import { signJwt } from './mocks/auth'
+import { serviceAuth, signJwt } from './mocks/auth'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { includedResource, toUuid } from './mocks/utils'
 import { resetDb, seedGroup, seedMember, seedMemberUser, seedUser } from './mocks/seed'
@@ -27,6 +28,50 @@ describe('Users endpoints', () => {
     await request(app)
       .post('/users')
       .send({ data: { type: 'users', attributes: { email: 'x@example.org' } } })
+      .expect(401)
+  })
+
+  test('POST /users rejects a read-only social scope', async () => {
+    const token = await signJwt(
+      toUuid('read-only-user'),
+      'read-only@example.org',
+      'social:read',
+      { includeDefaultScopes: false },
+    )
+
+    await request(app)
+      .post('/users')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ data: { type: 'users', attributes: { email: 'read-only@example.org' } } })
+      .expect(403)
+  })
+
+  test('GET /users/me requires the exact new issuer and audience', async () => {
+    const subject = toUuid('legacy-trust-user')
+    const issuerToken = await signJwt(subject, 'issuer@example.org', undefined, {
+      issuer: `${config.AUTH_JWT_ISSUER}/ca`,
+    })
+    const audienceToken = await signJwt(subject, 'audience@example.org', undefined, {
+      audience: 'komunitin-app',
+    })
+
+    await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${issuerToken}`)
+      .expect(401)
+
+    await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${audienceToken}`)
+      .expect(401)
+  })
+
+  test('GET /users/me rejects non-UUID user subjects', async () => {
+    const token = await signJwt('123', 'numeric-subject@example.org')
+
+    await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${token}`)
       .expect(401)
   })
 
@@ -186,7 +231,7 @@ describe('Users endpoints', () => {
     assert.strictEqual(res.body.data.attributes.name, 'Self User')
   })
 
-  test('GET /users allows read-all scope with filter[members] and include=settings', async () => {
+  test('GET /users allows service read access with filter[members] and include=settings', async () => {
     const tenantId = 'users-filter-members'
     await seedGroup({ tenantId, status: 'active', access: 'public' })
 
@@ -217,7 +262,7 @@ describe('Users endpoints', () => {
       },
     })
 
-    const serviceToken = await signJwt(toUuid('service-user'), 'service@example.org', Scope.SocialReadAll)
+    const { token: serviceToken } = await serviceAuth()
 
     const res = await request(app)
       .get(`/users?filter[members]=${member.id}&include=settings`)
@@ -265,7 +310,7 @@ describe('Users endpoints', () => {
       userId: uniqueUserId,
     })
 
-    const serviceToken = await signJwt(toUuid('service-user-pagination'), 'service-pagination@example.org', Scope.SocialReadAll)
+    const { token: serviceToken } = await serviceAuth()
     const memberFilter = `${firstMember.id},${secondMember.id}`
 
     const res = await request(app)
@@ -277,7 +322,7 @@ describe('Users endpoints', () => {
     assert.deepStrictEqual(ids, [duplicateUserId, uniqueUserId])
   })
 
-  test('GET /users requires read-all scope', async () => {
+  test('GET /users rejects regular user tokens', async () => {
     const token = await signJwt(toUuid('regular-user'), 'regular@example.org')
 
     await request(app)
@@ -286,10 +331,10 @@ describe('Users endpoints', () => {
       .expect(403)
   })
 
-  test('GET /users/:id allows read-all scope cross-user access', async () => {
+  test('GET /users/:id allows service cross-user access', async () => {
     const ownerSubject = toUuid('owner-user')
     const ownerToken = await signJwt(ownerSubject, 'owner-2@example.org')
-    const serviceToken = await signJwt(toUuid('service-user-2'), 'service-2@example.org', Scope.SocialReadAll)
+    const { token: serviceToken } = await serviceAuth()
 
     await request(app)
       .post('/users')
@@ -372,9 +417,9 @@ describe('Users endpoints', () => {
       .expect(403)
   })
 
-  test('GET /users/:id/members allows read-all and superadmin', async () => {
+  test('GET /users/:id/members allows service access and superadmin', async () => {
     const ownerSubject = toUuid('member-service-owner')
-    const readAllToken = await signJwt(toUuid('member-read-all'), 'member-read-all@example.org', Scope.SocialReadAll)
+    const { token: serviceToken } = await serviceAuth()
     const superadminToken = await signJwt(toUuid('member-superadmin'), 'member-superadmin@example.org', Scope.Superadmin)
 
     await seedGroup({
@@ -389,12 +434,12 @@ describe('Users endpoints', () => {
       access: 'public',
     })
 
-    const readAllRes = await request(app)
+    const serviceRes = await request(app)
       .get(`/users/${ownerSubject}/members`)
-      .set('Authorization', `Bearer ${readAllToken}`)
+      .set('Authorization', `Bearer ${serviceToken}`)
       .expect(200)
 
-    assert.strictEqual(readAllRes.body.data[0].id, member.id)
+    assert.strictEqual(serviceRes.body.data[0].id, member.id)
 
     const superadminRes = await request(app)
       .get(`/users/${ownerSubject}/members`)
@@ -408,7 +453,7 @@ describe('Users endpoints', () => {
     const subject = toUuid('settings-owner')
     const token = await signJwt(subject, 'settings-owner@example.org')
     const outsiderToken = await signJwt(toUuid('settings-outsider'), 'settings-outsider@example.org')
-    const readAllToken = await signJwt(toUuid('settings-read-all'), 'settings-read-all@example.org', Scope.SocialReadAll)
+    const { token: serviceToken } = await serviceAuth()
     const superadminToken = await signJwt(toUuid('settings-superadmin'), 'settings-superadmin@example.org', Scope.Superadmin)
 
     await seedUser({
@@ -430,7 +475,7 @@ describe('Users endpoints', () => {
 
     await request(app)
       .get(`/users/${subject}/settings`)
-      .set('Authorization', `Bearer ${readAllToken}`)
+      .set('Authorization', `Bearer ${serviceToken}`)
       .expect(200)
 
     await request(app)
@@ -447,7 +492,7 @@ describe('Users endpoints', () => {
   test('PATCH /users/:id/settings is self-only and deep-merges nested settings', async () => {
     const subject = toUuid('settings-patch-owner')
     const token = await signJwt(subject, 'settings-patch-owner@example.org')
-    const readAllToken = await signJwt(toUuid('settings-patch-read-all'), 'settings-patch-read-all@example.org', Scope.SocialReadAll)
+    const { token: serviceToken } = await serviceAuth()
 
     await seedUser({
       id: subject,
@@ -467,7 +512,7 @@ describe('Users endpoints', () => {
 
     await request(app)
       .patch(`/users/${subject}/settings`)
-      .set('Authorization', `Bearer ${readAllToken}`)
+      .set('Authorization', `Bearer ${serviceToken}`)
       .send({
         data: {
           type: 'user-settings',

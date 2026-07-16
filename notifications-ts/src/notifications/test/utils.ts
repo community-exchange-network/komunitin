@@ -42,7 +42,7 @@ export const createNotification = async (
 /**
  * Create event data in the format expected by addEvent / the events queue.
  */
-export const createEvent = (name: EventName, params: { code: string | null; user: string; data: Record<string, string> }): AnyNotificationEvent => {
+export const createEvent = (name: EventName, params: { code: string | null; user: string; data: Record<string, unknown> }): AnyNotificationEvent => {
   return {
     id: randomUUID(),
     name,
@@ -57,7 +57,7 @@ export const createEvent = (name: EventName, params: { code: string | null; user
 /**
  * Create a JSON:API event body for the POST /events endpoint.
  */
-export const createEventBody = (name: EventName, params: { code: string | null; user: string; data: Record<string, string> }) => {
+export const createEventBody = (name: EventName, params: { code: string | null; user: string; data: Record<string, unknown> }) => {
   return {
     data: {
       type: 'events',

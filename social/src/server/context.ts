@@ -1,9 +1,12 @@
 import type { Request } from "express"
-import { getAuthScopes, getAuthToken, getAuthUserId, getOptionalAuthUserId } from "./auth"
+import { getAuthIdentity, getAuthScopes, getAuthToken, getOptionalAuthIdentity } from "./auth"
+import { Scope } from './scopes'
+
+export { Scope } from './scopes'
 
 type BaseContext = {
   isSuperadmin: boolean
-  isSocialReadAll: boolean
+  canReadAllSocial: boolean
   scopes: string[]
 }
 
@@ -14,26 +17,23 @@ export type AuthContext = BaseContext & {
 
 export type AnonContext = BaseContext & {
   isSuperadmin: false
+  canReadAllSocial: false
   userId?: undefined
   token?: string
 }
 
 export type OptionalAuthContext = AuthContext | AnonContext
 
-export const Scope = {
-  Superadmin: 'superadmin',
-  SocialReadAll: 'komunitin_social_read_all',
-} as const
-
 /**
  * To be used by functions that require an authenticated user.
  */
 export const getAuthContext = (req: Request): AuthContext => {
+  const identity = getAuthIdentity(req)
   const scopes = getAuthScopes(req)
   return {
-    userId: getAuthUserId(req),
-    isSuperadmin: scopes.includes(Scope.Superadmin),
-    isSocialReadAll: scopes.includes(Scope.SocialReadAll),
+    userId: identity.subject,
+    isSuperadmin: !identity.isService && scopes.includes(Scope.Superadmin),
+    canReadAllSocial: identity.isService && scopes.includes(Scope.SocialRead),
     token: getAuthToken(req),
     scopes,
   }
@@ -43,14 +43,14 @@ export const getAuthContext = (req: Request): AuthContext => {
  * To be used by functions that can optionally have an authenticated user, but don't require one.
  */
 export const getOptionalAuthContext = (req: Request): OptionalAuthContext => {
-  const userId = getOptionalAuthUserId(req)
+  const identity = getOptionalAuthIdentity(req)
   const scopes = getAuthScopes(req)
 
-  if (userId !== undefined) {
+  if (identity !== undefined) {
     return {
-      userId,
-      isSuperadmin: scopes.includes(Scope.Superadmin),
-      isSocialReadAll: scopes.includes(Scope.SocialReadAll),
+      userId: identity.subject,
+      isSuperadmin: !identity.isService && scopes.includes(Scope.Superadmin),
+      canReadAllSocial: identity.isService && scopes.includes(Scope.SocialRead),
       token: getAuthToken(req),
       scopes,
     }
@@ -58,7 +58,7 @@ export const getOptionalAuthContext = (req: Request): OptionalAuthContext => {
 
   return {
     isSuperadmin: false,
-    isSocialReadAll: false,
+    canReadAllSocial: false,
     scopes,
   }
 }

@@ -134,7 +134,7 @@ Verification:
   reads/writes, uploads, maps, and unsubscribe all pass in frontend isolation.
 - Frontend tests fail if an old IntegralCES request shape is reintroduced.
 
-## Stage 3: Establish The New Auth Trust Baseline
+## Stage 3: Establish The New Auth Trust Baseline (DONE)
 
 Goal: make services trust tokens issued by the new auth service.
 
@@ -142,15 +142,14 @@ Goal: make services trust tokens issued by the new auth service.
   issuer, JWKS, and audience `urn:komunitin:api`.
 - Replace legacy service scopes with the new scope vocabulary:
   `email`, `social:read`, `social:write`, `accounting:read`,
-  `accounting:write`, and any newly agreed admin/read-all scopes.
+  `accounting:write`, and `superadmin`.
 - Update notifications client credentials to request only scopes allowed for
   `komunitin-notifications`, currently `email social:read accounting:read`.
 - Update social service credentials to use `komunitin-social` for delegated
   accounting calls and unsubscribe token redemption.
 - Remove legacy issuer-prefix, null-subject, and numeric Drupal-subject handling
   from runtime paths unless a specific import window still requires it.
-- Decide and implement the replacement for `komunitin_superadmin` before
-  migrating admin and activation screens.
+- Check the `superadmin` scope is used everywhere needed.
 
 Verification:
 
@@ -160,7 +159,7 @@ Verification:
 - Social/accounting/notifications accept new tokens and reject legacy-scope-only
   assumptions.
 
-## Stage 4: Integrate Frontend Auth With The Real Auth Service
+## Stage 4: Integrate Frontend Auth With The Real Auth Service (DONE)
 
 Goal: prove the already-migrated frontend session model works against real auth.
 
@@ -179,7 +178,7 @@ Verification:
 - Visiting a URL with `?token=` does not silently create a session.
 - Public pages do not attempt to authorize unless they need private data.
 
-## Stage 5: Bootstrap Current User With Real Social Shapes
+## Stage 5: Bootstrap Current User With Real Social Shapes (DONE)
 
 Goal: prove the migrated app bootstrap works against the real social API.
 
@@ -202,7 +201,7 @@ Verification:
   members.
 - Nearby group/resource ordering works through `near` and `sort=distance`.
 
-## Stage 6: Create A First Group Through Real Auth And Social
+## Stage 6: Create A First Group Through Real Auth And Social (DONE)
 
 Goal: support the first fully new group request flow.
 
@@ -213,9 +212,13 @@ Goal: support the first fully new group request flow.
   `POST /register` with `{ "email": "...", "password": "..." }`, creating the
   canonical auth UUID, hashing the password, setting `emailVerified: false`,
   and emitting an email-verification event.
-- After registration, the app logs in with password grant and creates the social
-  user via `POST /users` using the bearer token; social should use `ctx.userId`
-  as the canonical id.
+- After registration, the app waits for email verification. Auth stores the
+  signup continuation on the purpose-bound verification token and Notifications
+  links to `/confirm-email?token=...`.
+- Email confirmation returns the signup continuation without creating a
+  session. The confirmation page asks for the password, logs in with the normal
+  password grant, and creates the social user via `POST /users`; social uses
+  `ctx.userId` as the canonical id.
 - Simplify `SignupGroup.vue`: separate credentials/account creation from group
   creation, stop sending `password` to social, and stop relying on
   `/groups/new?token=...`.
@@ -223,14 +226,15 @@ Goal: support the first fully new group request flow.
   group attributes in `data.attributes`, settings/currency in `included`, and
   no embedded contacts relationship if the new social schema stores contacts as
   attributes.
-- Navigate directly from successful admin account creation to group details or
-  `/groups/new` under the authenticated session; do not wait for a magic login
-  email.
+- Navigate to `/groups/new` under the authenticated session after email
+  verification and password login; do not treat the email action token as a
+  login credential.
 
 Verification:
 
-- A fresh user can register, log in, create their social user, request a group,
-  and see the pending-group confirmation.
+- A fresh user can register, verify their email, log in, create their social
+  user, request a group, and see the pending-group confirmation.
+- Password login is rejected before email verification.
 - No frontend request sends a password to social.
 - The created auth user id and social user id are the same UUID.
 - The group appears in social with status `pending` and the requested currency
@@ -247,7 +251,7 @@ Goal: make the first pending group activatable in the new stack.
   status from `pending` to `active`.
 - Update accounting creation side effects for group/currency activation if they
   are not already handled by social/accounting integration.
-- Remove old `komunitin_superadmin` checks from frontend and services once the
+- Remove old prefixed superadmin-scope checks from frontend and services once the
   replacement is in place.
 
 Verification:
@@ -288,7 +292,7 @@ Goal: replace email magic login with explicit action-token redemption.
 - Change validation email CTAs away from login-token routes. Use a public route
   such as `/confirm-email?token=...&next=...`.
 - Add a frontend public confirmation page that calls
-  `POST /change-email/confirm` with `{ token }`.
+  `POST /email/confirm` with `{ token }`.
 - After confirmation, redirect to login or to a public onboarding landing page;
   if a logged-in session already exists, route to the appropriate continuation.
 - Keep onboarding state in social/member data, not in auth action tokens.
@@ -311,7 +315,7 @@ Goal: move all credential mutation out of social user updates.
 - Add the missing authenticated password-change auth endpoint, then migrate
   `ChangePasswordBtn.vue` to it.
 - Migrate `ChangeEmailBtn.vue` to `POST /change-email` with bearer auth and
-  email confirmation through `POST /change-email/confirm`.
+  email confirmation through `POST /email/confirm`.
 - Delete social user updates carrying `password`, `newPassword`, or primary
   `email`.
 
@@ -414,8 +418,7 @@ Goal: finish the cutover by deleting old assumptions.
   and Drupal numeric user ids unless still isolated in import tooling.
 - Delete old CLI assumptions or mark old scripts explicitly as IntegralCES-only.
 - Search the repo for `/oauth2`, `/get-auth-code`, `/get-auth-token`,
-  `authorization_code`, `komunitin_social`, `komunitin_accounting`,
-  `komunitin_auth`, `komunitin_superadmin`, `include=members`, `geo-position`,
+  `authorization_code`, legacy `komunitin_*` scope names, `include=members`, `geo-position`,
   and `sort=location`.
 
 Verification:

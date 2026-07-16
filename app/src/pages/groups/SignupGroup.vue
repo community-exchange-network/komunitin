@@ -49,7 +49,7 @@ import PageHeader from "src/layouts/PageHeader.vue";
 import SignupCredentialsForm from "src/pages/members/SignupCredentialsForm.vue";
 import SignupVerifyForm from "src/pages/members/SignupVerifyForm.vue";
 
-import { ref } from "vue";
+import { ref, shallowRef } from "vue";
 import { useLocale } from "src/boot/i18n";
 import KError, { KErrorCode } from "src/KError";
 import { Notify } from "quasar";
@@ -59,20 +59,20 @@ import { config } from "../../utils/config"
 
 const docsUrl = config.DOCS_URL
 
-const page = ref("credentials")
+const page = shallowRef("credentials")
 const credentials = ref({
   name: "",
   email: "",
   password: "",
 })
 
-const loading = ref(false)
+const loading = shallowRef(false)
 
 const locale = useLocale()
 const { t } = useI18n()
 const auth = new Auth()
 
-const showDocsBanner = ref(true)
+const showDocsBanner = shallowRef(true)
 
 const createAdmin = async () => {
   loading.value = true

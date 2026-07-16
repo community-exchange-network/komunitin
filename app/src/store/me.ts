@@ -248,7 +248,6 @@ export default {
         await provisionSignup(context, payload.email, payload.signup)
       }
       await loadUser(context)
-      return payload.signup
     },
     /**
      * Silently authorize user using stored credentials. Throws exception (rejects)

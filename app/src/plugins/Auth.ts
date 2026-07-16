@@ -21,6 +21,11 @@ interface TokenRequestData {
   refresh_token?: string;
 }
 
+interface OAuthErrorResponse {
+  error: string
+  error_description: string
+}
+
 export interface AuthData {
   accessToken: string;
   refreshToken: string;
@@ -171,7 +176,7 @@ export class Auth {
   }
 
   public async confirmEmail(token: string): Promise<ConfirmedAuthUser> {
-    return await this.jsonRequest<ConfirmedAuthUser>(config.AUTH_URL + "/change-email/confirm", { token })
+    return await this.jsonRequest<ConfirmedAuthUser>(config.AUTH_URL + "/email/confirm", { token })
   }
 
   /**
@@ -188,7 +193,7 @@ export class Auth {
    * Throws KError if the response is not OK.
    * @param response 
    */
-  private checkResponse(response: Response) {
+  private async checkResponse(response: Response) {
     if (!response.ok) {
       if (response.status == 401) {
         throw new KError(
@@ -197,6 +202,22 @@ export class Auth {
           undefined,
           response
         );
+      } else if (response.status == 400) {
+        const oauthError = await response.clone().json() as OAuthErrorResponse
+        if (oauthError.error === "invalid_grant") {
+          throw new KError(
+            KErrorCode.IncorrectCredentials,
+            oauthError.error_description,
+            undefined,
+            response
+          )
+        }
+        throw new KError(
+          KErrorCode.IncorrectRequest,
+          "Invalid request",
+          undefined,
+          response
+        )
       } else if (response.status == 403) {
         throw new KError(
           KErrorCode.IncorrectCredentials,
@@ -237,7 +258,7 @@ export class Auth {
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
       }
     })
-    this.checkResponse(response)
+    await this.checkResponse(response)
     return await response.json() as T
   }
 
@@ -270,9 +291,9 @@ export class Auth {
         body: params,
         headers: { "Content-Type": "application/x-www-form-urlencoded" }
       });
-      this.checkResponse(response)
-      const data = await response.json();
-      return await this.processTokenResponse(data);
+      await this.checkResponse(response)
+      const tokenResponse = await response.json();
+      return await this.processTokenResponse(tokenResponse);
     } catch (error) {
       throw KError.getKError(error);
     }

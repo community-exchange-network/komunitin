@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import type { Prisma } from '../generated/prisma/client'
 import prisma from '../utils/prisma'
 import { badRequest } from '../utils/error'
+import type { SignupContext } from '../users/signup'
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 
@@ -35,7 +36,11 @@ export function hasExpired(expiresAt: Date): boolean {
   return expiresAt.getTime() <= Date.now()
 }
 
-async function findUserActionTokenByToken(
+/**
+ * Returns an action token matching one of the given purposes, regardless of
+ * whether it has been used or expired.
+ */
+export async function findActionToken(
   token: string,
   purposes: UserActionTokenPurpose | UserActionTokenPurpose[],
 ) {
@@ -51,7 +56,7 @@ async function findUserActionTokenByToken(
     : null
 }
 
-type ActionTokenRecord = NonNullable<Awaited<ReturnType<typeof findUserActionTokenByToken>>>
+type ActionTokenRecord = NonNullable<Awaited<ReturnType<typeof findActionToken>>>
 
 /**
  * Returns a usable action token matching one of the given purposes, or null
@@ -61,7 +66,7 @@ export async function findValidActionToken(
   token: string,
   purposes: UserActionTokenPurpose | UserActionTokenPurpose[],
 ): Promise<ActionTokenRecord | null> {
-  const actionToken = await findUserActionTokenByToken(token, purposes)
+  const actionToken = await findActionToken(token, purposes)
   if (!actionToken || actionToken.usedAt !== null || hasExpired(actionToken.expiresAt)) {
     return null
   }
@@ -96,10 +101,12 @@ async function createUserActionToken({
   userId,
   purpose,
   targetEmail = null,
+  data,
 }: {
   userId: string
   purpose: UserActionTokenPurpose
   targetEmail?: string | null
+  data?: SignupContext
 }): Promise<string> {
   const token = generateToken()
   const tokenHash = hashToken(token)
@@ -118,6 +125,7 @@ async function createUserActionToken({
         userId,
         purpose,
         targetEmail,
+        data,
         tokenHash,
         expiresAt,
       },
@@ -144,11 +152,16 @@ export async function createEmailChangeToken(userId: string, targetEmail: string
   })
 }
 
-export async function createEmailVerificationToken(userId: string, targetEmail: string): Promise<string> {
+export async function createEmailVerificationToken(
+  userId: string,
+  targetEmail: string,
+  signup?: SignupContext,
+): Promise<string> {
   return createUserActionToken({
     userId,
     purpose: userActionTokenPurpose.emailVerification,
     targetEmail,
+    data: signup,
   })
 }
 

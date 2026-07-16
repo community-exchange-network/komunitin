@@ -4,7 +4,7 @@ import request from 'supertest'
 import { Scope } from '../src/server/context'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
-import { auth } from './mocks/auth'
+import { auth, serviceAuth } from './mocks/auth'
 import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember, seedPost } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { toUuid } from './mocks/utils'
@@ -216,11 +216,11 @@ describe('Categories endpoints', () => {
       .expect(200)
   })
 
-  test('GET /:code/categories allows read-all scope for pending private group', async () => {
+  test('GET /:code/categories allows service read access for pending private group', async () => {
     await seedGroup({ tenantId: 'cats-read-all', status: 'pending', access: 'private' })
     await seedCategory({ tenantId: 'cats-read-all', code: 'hidden', access: 'private' })
 
-    const serviceUser = await auth('cats-read-all-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get('/cats-read-all/categories')
       .set('Authorization', `Bearer ${serviceUser.token}`)

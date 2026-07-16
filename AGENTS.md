@@ -15,7 +15,7 @@ Komunitin is an open-source system featuring a community currency wallet and a m
 | `social/` | Node.js Express/Prisma Marketplace and social features on port 2028. |
 | `notifications-ts/` | Node.js Express/Prisma/BullMQ notifications service on port 2023. |
 | `docs/` | GitBook product and technology documentation. |
-| `shared/` | Shared utilities and docker images. |
+| `shared/` | Incipient admin CLI and shared docker images. |
 | `.github/` | CI workflows |
 
 An external dependency **IntegralCES** (Drupal, cloned separately on `../ices`) provides the legacy social/auth API at port 2029, now being migrated to the local `auth` and `social` services.

@@ -75,7 +75,7 @@ const buildGroupAdminWhere = (userId: string) => {
  * Build SQL WHERE clauses to filter groups based on read permissions for the given user.
  */
 const buildReadableGroupWhere = (ctx: OptionalAuthContext): Prisma.Sql => {
-  if (ctx.isSuperadmin || ctx.isSocialReadAll) {
+  if (ctx.isSuperadmin || ctx.canReadAllSocial) {
     return Prisma.sql`TRUE`
   }
 

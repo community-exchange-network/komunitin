@@ -162,7 +162,7 @@ export const isGroupMember = async (ctx: OptionalAuthContext, group: Pick<Group,
 
 export const canReadGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
   return ctx.isSuperadmin
-    || ctx.isSocialReadAll
+    || ctx.canReadAllSocial
     || (group.status === 'active' && group.access === 'public')
     || await isGroupMember(ctx, group)
     || await isGroupAdmin(ctx, group)
@@ -181,7 +181,7 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
   const db = privilegedDb(prisma)
 
   const defaultFilters = {
-    status: 'active'
+    status: ['active']
   }
   
   const ids = await findGroupIds(ctx, db, {

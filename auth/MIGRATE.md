@@ -95,7 +95,7 @@ It does not recognize legacy `komunitin_*` scope names.
   - reset-token based
 - `POST /change-email`
   - authenticated bearer token required
-- `POST /change-email/confirm`
+- `POST /email/confirm`
   - email-token based
 - `POST /resend-validation`
 
@@ -141,7 +141,6 @@ The services still assume legacy issuer/audience/scope behavior:
 
 - `accounting/src/server/auth.ts`
   - accepts legacy audience defaults like `komunitin-app`
-  - still uses legacy scope enum names
   - contains temporary Drupal numeric-id compatibility logic
 - `social/src/server/auth.ts`
   - still defaults audience to `komunitin-app`
@@ -152,15 +151,7 @@ The services still assume legacy issuer/audience/scope behavior:
 
 ### 1. Replace legacy scope names
 
-Current app request:
-
-```text
-komunitin_social komunitin_accounting email offline_access openid profile
-```
-
-Target request to the new auth service must use the new scope names.
-
-Recommended target for the normal app session:
+App request:
 
 ```text
 email offline_access social:read social:write accounting:read accounting:write superadmin
@@ -168,7 +159,6 @@ email offline_access social:read social:write accounting:read accounting:write s
 
 Notes:
 
-- Do not switch the app scope string until the downstream services accept the new names.
 - The new auth service does not issue ID tokens and does not currently expose `openid` or `profile` scopes.
 - The app always requests `superadmin`; auth grants it only when the authenticated email matches `ADMIN_EMAIL`.
 
@@ -202,7 +192,7 @@ refresh_token=<refresh token>
 
 Notes:
 
-- This branch fixes the auth-side refresh bug so the response remains usable for audience `app`.
+- Refreshed access tokens remain usable for audience `urn:komunitin:api`.
 - The frontend must treat refresh as an auth concern only and keep all credential refresh logic inside the auth client layer.
 - Do not use legacy `/oauth2/token` URLs.
 
@@ -268,12 +258,12 @@ Target model:
 
 - `POST /change-email` on auth with bearer token and the new email address
 - auth sends validation email
-- validation page calls `POST /change-email/confirm` with the email token
+- validation page calls `POST /email/confirm` with the email token
 
 Recommended frontend route:
 
 - add a public `/confirm-email?token=...` route
-- call `POST /change-email/confirm`
+- call `POST /email/confirm`
 - redirect to login or the appropriate onboarding page after success
 
 Do not auto-login the user from the email token.
@@ -310,7 +300,7 @@ Required changes:
 
 - issuer must be the new auth issuer, not the Drupal `/oauth2` issuer
 - audience must match the new auth access tokens
-  - current auth access tokens use audience `app`
+- current auth access tokens use audience `urn:komunitin:api`
 - JWKS are published by the new auth service at `/.well-known/jwks.json`
 - prefer issuer metadata over hardcoded legacy URLs when possible
 
@@ -586,7 +576,7 @@ The target state is:
 
 - login works with `password`
 - refresh works with `refresh_token`
-- refreshed app tokens are JWTs for audience `app`
+- refreshed app tokens are JWTs for audience `urn:komunitin:api`
 - backend services validate the new issuer and audience
 - no service still calls `/oauth2/token`
 - no service still calls `/get-auth-code` or `/get-auth-token`

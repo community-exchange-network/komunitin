@@ -30,7 +30,7 @@ const memberColumns: SqlColumnMap = {
 
 const buildReadableMemberWhere = async (ctx: OptionalAuthContext, group: Group): Promise<Prisma.Sql | null> => {
   // Superadmins can read all members
-  if (ctx.isSuperadmin || ctx.isSocialReadAll) {
+  if (ctx.isSuperadmin || ctx.canReadAllSocial) {
     return Prisma.sql`TRUE`
   }
   // Group admins can read all members of their group

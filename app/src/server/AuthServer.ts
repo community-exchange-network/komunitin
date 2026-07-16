@@ -38,6 +38,13 @@ function statusOk() {
   return new Response(200, {}, { status: "ok" });
 }
 
+function invalidGrant(errorDescription: string) {
+  return new Response(400, {}, {
+    error: "invalid_grant",
+    error_description: errorDescription
+  })
+}
+
 function jsonBody(request: any) {
   const contentType = request.requestHeaders["Content-Type"] ?? request.requestHeaders["content-type"] ?? "";
   if (!contentType.includes("application/json")) {
@@ -109,10 +116,10 @@ export default {
           ?? [...registeredUsers.values()].find(user => user.refreshToken === param)
         if (registered) {
           if (params.get("grant_type") === "password" && registered.password !== params.get("password")) {
-            return new Response(403, {}, { errors: [{ detail: "Invalid credentials" }] })
+            return invalidGrant("Invalid credentials")
           }
           if (!registered.emailVerified) {
-            return new Response(403, {}, { errors: [{ detail: "Email is not verified" }] })
+            return invalidGrant("Email is not verified")
           }
           const accessToken = `${registered.id}_access_token`
           accessTokenUsers.set(accessToken, registered)
@@ -208,7 +215,7 @@ export default {
       return statusOk();
     });
 
-    server.post(config.AUTH_URL + "/change-email/confirm", (_schema: any, request) => {
+    server.post(config.AUTH_URL + "/email/confirm", (_schema: any, request) => {
       const body = jsonBody(request);
       if (!body?.token) {
         return badRequest("Expected JSON token");

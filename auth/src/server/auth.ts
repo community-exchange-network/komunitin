@@ -29,7 +29,6 @@ export async function userAuth(req: AuthenticatedRequest, res: Response, next: N
     const userId = typeof payload.sub === 'string' ? payload.sub : undefined
     if (
       payload.client_id !== 'komunitin-app'
-      || payload.gty === 'client_credentials'
       || !userId
       || !isUuid(userId)
     ) {
@@ -75,8 +74,10 @@ export function serviceClientAuth(clientId: string) {
         audience: config.JWT_AUDIENCE,
       })
 
-      const userId = typeof payload.sub === 'string' ? payload.sub : undefined
-      if (payload.client_id !== clientId || (userId && isUuid(userId))) {
+      if (
+        payload.client_id !== clientId
+        || payload.sub !== clientId
+      ) {
         return next(unauthorized('Invalid or expired token'))
       }
 

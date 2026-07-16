@@ -16,7 +16,7 @@ export type PaginationOptions = {
   size: number
 }
 
-export type FilterOptions = Record<string, string | string[]>
+export type FilterOptions = Partial<Record<string, string[]>>
 
 export type SortOptions = {
   field: string
@@ -46,8 +46,11 @@ export type ResourceParamsOptions = {
   include?: string[]
 }
 
+// qs splits commas before URL decoding, so URLSearchParams values need normalization after parsing.
+const splitCommaSeparated = (value: unknown) => typeof value === 'string' ? value.split(',') : value
+
 const includeParamSchema = (include: string[]) => {
-  return z.preprocess((value) => typeof value === 'string' ? [value] : value, z.array(z.enum(include))).default([])
+  return z.preprocess(splitCommaSeparated, z.array(z.enum(include))).default([])
 }
 
 const pageParamSchema = z.object({
@@ -59,7 +62,11 @@ const pageParamSchema = z.object({
 }));
 
 const filterParamSchema = (fields: string[]) => {
-  return z.partialRecord(z.enum(fields), z.union([z.string(), z.array(z.string())]))
+  const valueSchema = z.preprocess(
+    splitCommaSeparated,
+    z.array(z.string())
+  )
+  return z.partialRecord(z.enum(fields), valueSchema)
     .default({})
     .transform((filter): FilterOptions => {
       const normalized: FilterOptions = {}
@@ -74,7 +81,7 @@ const filterParamSchema = (fields: string[]) => {
 }
 
 const sortParamSchema = (fields: string[]) => {
-  return z.preprocess((value) => typeof value === 'string' ? [value] : value, z.array(z.string())
+  return z.preprocess(splitCommaSeparated, z.array(z.string())
     .transform((arr) => arr.map((item) => {
       const desc = item.startsWith('-')
       const field = desc ? item.slice(1) : item
@@ -88,9 +95,12 @@ const sortParamSchema = (fields: string[]) => {
     }])
 }
 
-const nearParamSchema = z.array(z.coerce.number()).length(2).refine(([lat, lng]) => lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180, {
-  message: 'Invalid near parameter. Latitude must be between -90 and 90, and longitude must be between -180 and 180.'
-}).transform(([latitude, longitude]) => ({ latitude, longitude })).optional()
+const nearParamSchema = z.preprocess(
+  splitCommaSeparated,
+  z.array(z.coerce.number()).length(2).refine(([lat, lng]) => lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180, {
+    message: 'Invalid near parameter. Latitude must be between -90 and 90, and longitude must be between -180 and 180.'
+  }).transform(([latitude, longitude]) => ({ latitude, longitude }))
+).optional()
 
 const collectionParamsSchema = (options: CollectionParamsOptions) => { 
   return z.object({

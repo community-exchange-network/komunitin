@@ -26,10 +26,14 @@ describe("Public account action links", () => {
   it.each(["emailVerification", "emailChange"])("confirms a %s token without creating a session", async purpose => {
     const token = await actionToken(purpose);
     await wrapper.vm.$router.push({ path: "/confirm-email", query: { token } });
+    expect(wrapper.text()).not.toContain("Your email has been confirmed")
+    await wrapper.get("#confirm-email").trigger("click")
     await waitFor(() => wrapper.text().includes("Your email has been confirmed"), true, "Email confirmation should succeed");
+    expect(wrapper.vm.$route.path).toBe("/login-mail")
+    expect(wrapper.get<HTMLInputElement>("input[type='email']").element.value).toBe("action@example.com")
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
     if (purpose === "emailChange") {
-      const reusedToken = await fetch(`${config.AUTH_URL}/change-email/confirm`, {
+      const reusedToken = await fetch(`${config.AUTH_URL}/email/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token })
