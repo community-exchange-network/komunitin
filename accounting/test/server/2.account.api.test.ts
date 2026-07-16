@@ -3,16 +3,16 @@ import { before, describe, it } from "node:test"
 import { config } from "../../src/config"
 import { Scope } from "../../src/server/auth"
 import { validate as isUuid } from "uuid"
-import { testCurrency } from "./api.data"
+import { testCurrency, userAuth } from "./api.data"
 import { seedCsvStatsTransfers } from "./db"
 import { setupServerTest } from "./setup"
 
 describe('Accounts endpoints', async () => {
   const t = setupServerTest(false)
 
-  const admin = { user: "1", scopes: [Scope.AccountingRead, Scope.AccountingWrite] }
-  const user2 = { user: "2", scopes: [Scope.AccountingRead, Scope.AccountingWrite] }
-  const user3 = { user: "3", scopes: [Scope.AccountingRead, Scope.AccountingWrite] }
+  const admin = userAuth("1")
+  const user2 = userAuth("2")
+  const user3 = userAuth("3")
 
   const csvRows = (text: string) => text.split('\n').filter(line => line.trim().length > 0).map(line => line.split(','))
 
@@ -36,9 +36,9 @@ describe('Accounts endpoints', async () => {
   await it('admin creates user account', async () => {
     const response = await t.api.post('/TEST/accounts', {
       data: {
-        relationships: { users: { data: [{ type: "users", id: "2" }] }}
+        relationships: { users: { data: [{ type: "users", id: user2.user }] }}
       },
-      included: [{ type: "users", id: "2"}]
+      included: [{ type: "users", id: user2.user}]
     }, admin)
     assert(isUuid(response.body.data.id), "The account id is not a valid UUID")
     assert.equal(response.body.data.type, 'accounts')
@@ -66,9 +66,9 @@ describe('Accounts endpoints', async () => {
   it('unauthorized creation', async () => {
     await t.api.post('/TEST/accounts', { 
       data: { 
-        relationships: {users: { data: [{ type: "users", id: "3" }] }} 
+        relationships: {users: { data: [{ type: "users", id: user3.user }] }}
       },
-      included: [{type: "users",id: "3"}]
+      included: [{type: "users",id: user3.user}]
      }, undefined, 401)
   })
 
@@ -94,7 +94,7 @@ describe('Accounts endpoints', async () => {
     await t.api.get('/TEST/accounts', user3, 403)
   })
   it('write-only scope cannot list accounts', async() => {
-    await t.api.get('/TEST/accounts', { user: "2", scopes: [Scope.AccountingWrite] }, 403)
+    await t.api.get('/TEST/accounts', { ...user2, scopes: [Scope.AccountingWrite] }, 403)
   })
 
   it('allowed anonymous list accounts by id', async () => {
@@ -284,7 +284,7 @@ describe('Accounts endpoints', async () => {
     const response = await t.api.patch(`/TEST/accounts/${account3.id}`, usersBody([user2.user, user3.user]), admin)
     account3 = response.body.data
     const users = account3.relationships.users.data.map((u: {id: string}) => u.id).sort()
-    assert.deepEqual(users, ['2', '3'])
+    assert.deepEqual(users, [user2.user, user3.user].sort())
   })
 
   it('change credit limit beyond maximum balance', async () => {

@@ -247,7 +247,7 @@ Verification:
 - The group appears in social with status `pending` and the requested currency
   and settings.
 
-## Stage 7: Migrate The Accounting Service
+## Stage 7: Migrate The Accounting Service (DONE)
 
 Goal: complete the accounting cutover before changing its upstream consumers.
 

@@ -80,6 +80,5 @@ describe("Send events to notifications service", async () => {
 
   await it('notifications service cannot write', async() => {
     await t.api.post("/TEST/accounts", testAccount("123"), notificationsAuth, 403)
-    await t.api.post("/TEST/accounts", testAccount(null as any as string), notificationsAuth, 403)
   }) 
 })

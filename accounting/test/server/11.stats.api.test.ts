@@ -9,20 +9,21 @@ describe('Statistics endpoints', async () => {
   const t = setupServerTest()
   const start = new Date(2024, 0, 1)
   const end = new Date(2024, 11, 31)
+  const statsAdmin = userAuth("10")
   
   before(async () => {
     // Add some accounts to the DB (without creating ledger accounts)
     await seedAccounts("TEST", 80, start, end)
     // Add some transfers to the DB (without actually performing them in the ledger for speed)
-    await seedTransfers("TEST", 1000, start, end, "0")
+    await seedTransfers("TEST", 1000, start, end, t.admin.user)
 
     // Create a 2nd currency for global stats.
     await t.createCurrency({
       code: "STAT"
-    }, userAuth("10"))
+    }, statsAdmin)
 
     await seedAccounts("STAT", 100, start, end)
-    await seedTransfers("STAT", 2000, start, end, "10")
+    await seedTransfers("STAT", 2000, start, end, statsAdmin.user)
   })
 
   await it('volume in one month', async () => {
