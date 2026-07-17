@@ -1,0 +1,2 @@
+transfer_key,payer_account_code,payee_account_code,initiator_user,amount,description,created_at,updated_at
+transfer-alice-bob-1,EXMP0001,EXMP0002,alice@example.org,5.00,Example payment,2025-02-01T12:00:00Z,2025-02-01T12:00:00Z

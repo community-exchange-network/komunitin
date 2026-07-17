@@ -17,16 +17,16 @@ The new Auth and Social stack must work end to end before execution is enabled: 
 
 ## Milestone 1 — Format and Validation
 
-### 1. Format and example bundle
+### 1. Format and example bundle (DONE)
 
 - Add the format documentation, empty templates and a tiny internally consistent example under `shared/migration/`.
 - Keep community and resource data in the documented CSV files; do not add metadata that is not needed by the importer.
-- Define exact files, headers, stable source keys, relationships, enum values, JSON field shapes, integer/decimal amount rules, UTC timestamps, required files and optional files.
-- Represent each image with a stable source image key and an HTTP(S) source URL. Do not require checksums or licence metadata in the import format.
+- Define exact files, headers, stable source keys, relationships, enum values, denormalized optional fields, integer/decimal amount rules, UTC timestamps, required files and optional files.
+- Represent each image with an HTTP(S) source URL. Do not require checksums or licence metadata in the import format.
 - State explicitly that the format accepts only complete, self-balancing histories and new destination community codes.
 - No runtime or service changes.
 
-Review focus: Is the smallest useful format sufficient for identities, members, accounts, marketplace content, transfers, contacts, images and community/account settings?
+Review focus: Is the smallest useful format sufficient for users, members, accounts, marketplace content, transfers, contacts, images and community/account settings?
 
 ### 2. Parser and semantic validator
 
@@ -54,15 +54,15 @@ Review focus: State transitions, access control, useful audit data and simple pr
 
 ### 4. Auth provisioning and imported-account activation
 
-- Add service-authenticated bulk operations that resolve identities by the existing normalized-email rule.
-- Reuse existing identities and idempotently create new unverified identities without a usable password.
+- Add service-authenticated bulk operations that resolve users by the existing normalized-email rule.
+- Reuse existing users and idempotently create new unverified users without a usable password.
 - Persist and return the canonical Auth UUID mapping so Social and Accounting use the same user ID.
-- Define conflicts for duplicate bundle emails, disabled identities and an email already linked incompatibly in the destination.
+- Define conflicts for duplicate bundle emails, disabled users and an email already linked incompatibly in the destination.
 - Extend the existing Auth action-token mechanism with an imported-account activation purpose that verifies the email and sets the initial password in one single-use flow.
-- Add the Notifications event/template and send activation invitations only for identities that need them.
+- Add the Notifications event/template and send activation invitations only for users that need them.
 - Key provisioning and invitation operations by migration and user. Do not connect them to the worker yet.
 
-Review focus: Canonical identity mapping, conflict behavior, idempotency and reuse of existing Auth security mechanisms.
+Review focus: Canonical user mapping, conflict behavior, idempotency and reuse of existing Auth security mechanisms.
 
 ### 5. Accounting snapshot import and reconciliation
 
@@ -115,7 +115,7 @@ Review focus: S3-first synchronization, correct image-to-resource links and best
   7. Complete the audit summary.
 - Use Social service credentials and stable per-phase idempotency keys rather than persisted superadmin tokens.
 - Record actionable phase failures and allow resume from the last completed checkpoint.
-- Allow abort and cleanup only before Accounting reconciliation starts. After reconciliation starts, expose resume rather than abort; never delete reused Auth identities.
+- Allow abort and cleanup only before Accounting reconciliation starts. After reconciliation starts, expose resume rather than abort; never delete reused Auth users.
 - Add the Social worker to Compose/deployment wiring and add a cross-service integration test with fake S3, Notifications and Stellar.
 
 Review focus: Phase ordering, restart behavior, final activation boundary and safe recovery without distributed rollback.
@@ -147,7 +147,7 @@ Review focus: Reuse of existing screens, clear component boundaries, authenticat
   - Rate `1/1`, five categories, ten offers, five wants and approximately 24 historical transfers.
   - Most activity on Riemann and Euclid, supporting members with net-zero histories and exactly two non-zero accounts.
 - Add the realistic, privacy-safe Barcelona-area `DEMO` fixture and image URL catalogue as data-only content:
-  - Rate `1/10`, eight identities, ten active profiles, one pending applicant, five categories, fifteen offers and eight wants.
+  - Rate `1/10`, eight users, ten active profiles, one pending applicant, five categories, fifteen offers and eight wants.
   - Most activity on Alex and Sam, with supporting accounts net zero.
   - Public-domain/CC0 image sources documented without checksums.
 - After each CSV import, create one ordinary committed transfer through the normal authenticated Accounting workflow.
