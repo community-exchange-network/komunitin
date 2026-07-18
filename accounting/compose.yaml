@@ -22,10 +22,15 @@ services:
       # AWS_REGION: gra
       # AWS_S3_FORCE_PATH_STYLE: false
   stellar:
-    image: stellar/quickstart
+    image: stellar/quickstart:latest
     container_name: stellar
     restart: unless-stopped
     ports:
       - "8000:8000"
+    volumes:
+      - stellar-data:/opt/stellar
     environment:
       NETWORK: local
+
+volumes:
+  stellar-data:
