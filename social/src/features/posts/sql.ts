@@ -2,6 +2,7 @@ import { Prisma } from '../../generated/prisma/client'
 import { OptionalAuthContext } from '../../server/context'
 import { DbClient } from '../../server/multitenant'
 import {
+  type CollectionIds,
   findCollectionIds,
   getFilterValues,
   sqlAnd,
@@ -96,10 +97,10 @@ const buildExpiredWhere = (rawValue: CollectionParams['filters'][string] | undef
 }
 
 
-export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<string[]> => {
+export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<CollectionIds> => {
   const readableWhere = await buildReadablePostWhere(ctx, group)
   if (readableWhere === null) {
-    return []
+    return { ids: [], total: 0 }
   }
 
   const hasSearch = params.filters.search !== undefined

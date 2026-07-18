@@ -17,11 +17,11 @@ export const getMembersRoute: RequestHandler = async (req, res) => {
     near: true,
   })
 
-  const members = await listMembers(ctx, code, params)
+  const result = await listMembers(ctx, code, params)
 
   const payload = await serializeMembers(
-    members,
-    getCollectionSerializerOptions(req.url, params, members.length)
+    result.items,
+    getCollectionSerializerOptions(req.url, params, result.total)
   )
 
   res.status(200).json(payload)

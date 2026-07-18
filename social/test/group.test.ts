@@ -239,6 +239,7 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     assert.strictEqual(firstPage.body.data.length, 1)
+    assert.strictEqual(firstPage.body.meta.count, 2)
     assert.strictEqual(firstPage.body.data[0].attributes.name, 'Alpha Group')
     assert.strictEqual(typeof firstPage.body.links.self, 'string')
     assert.strictEqual(typeof firstPage.body.links.next, 'string')
@@ -249,6 +250,9 @@ describe('Groups endpoints', () => {
 
     assert.strictEqual(secondPage.body.data.length, 1)
     assert.strictEqual(secondPage.body.data[0].attributes.name, 'Bravo Group')
+    assert.strictEqual(secondPage.body.meta.count, 2)
+    assert.strictEqual(secondPage.body.links.next, null)
+    assert.strictEqual(typeof secondPage.body.links.last, 'string')
 
     const superadmin = await auth('superadmin-query', undefined, Scope.Superadmin)
     const filtered = await request(app)

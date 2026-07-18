@@ -24,11 +24,11 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
     near: true,
   })
 
-  const posts = await listPosts(ctx, code, params)
+  const result = await listPosts(ctx, code, params)
 
   const payload = await serializePosts(
-    posts,
-    getCollectionSerializerOptions(req.url, params, posts.length)
+    result.items,
+    getCollectionSerializerOptions(req.url, params, result.total)
   )
 
   res.status(200).json(payload)

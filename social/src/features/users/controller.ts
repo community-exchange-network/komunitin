@@ -18,8 +18,8 @@ export const getUsersRoute: RequestHandler = async (req, res) => {
     include: ['settings'],
   })
 
-  const users = await listUsers(ctx, params)
-  const payload = await serializeUsers(users, getCollectionSerializerOptions(req.url, params, users.length))
+  const result = await listUsers(ctx, params)
+  const payload = await serializeUsers(result.items, getCollectionSerializerOptions(req.url, params, result.total))
 
   res.status(200).json(payload)
 }
@@ -68,10 +68,10 @@ export const getUserMembersRoute: RequestHandler = async (req, res) => {
     include: ['group', 'group.currency', 'account'],
   })
 
-  const members = await listUserMembers(ctx, requestedId, params)
+  const result = await listUserMembers(ctx, requestedId, params)
   const payload = await serializeMembers(
-    members,
-    getCollectionSerializerOptions(req.url, params, members.length)
+    result.items,
+    getCollectionSerializerOptions(req.url, params, result.total)
   )
 
   res.status(200).json(payload)
