@@ -16,7 +16,6 @@ export const auth = new Auth()
 export interface LoginPayload {
   email: string
   password: string
-  superadmin?: boolean
 }
 
 export type AuthorizePayload = {

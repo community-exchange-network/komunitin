@@ -61,6 +61,13 @@ export function getRoutes(controller: BaseService) {
     }, CurrencySerializer, {checkActive: false})
   )
 
+  // Delete currency
+  router.delete('/:code/currency', userAuth([Scope.Accounting, Scope.Superadmin]), asyncHandler(async (req, res) => {
+    const currencyController = await controller.getCurrencyController(req.params.code)
+    await currencyController.deleteCurrency(context(req))
+    res.status(204).end()
+  }))
+
   // Get currency settings
   router.get('/:code/currency/settings', userAuth([Scope.Accounting, Scope.AccountingReadAll, Scope.Superadmin]), 
     currencyResourceHandler(controller, async (currencyController, ctx) => {

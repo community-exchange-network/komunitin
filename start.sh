@@ -49,7 +49,7 @@ elif [ "$dev" = true ]; then
   # Create .env files required by compose.dev.yml volume mounts if they don't exist.
   # Docker creates empty directories in their place if the host files are missing,
   # which causes the services to fail to start.
-  touch -a app/.env accounting/.env notifications-ts/.env
+  touch -a app/.env accounting/.env notifications-ts/.env auth/.env
   docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans
 else
   docker compose up -d --build --remove-orphans
@@ -63,12 +63,14 @@ sleep 10
 
 fi
 
-# Install Accounting and NOtifications-ts service
+# Install Auth, Accounting and Notifications-ts services
 if [ "$demo" = true  ]; then
+  docker compose exec auth pnpm prisma migrate reset --force
   docker compose exec accounting pnpm prisma migrate reset --force
   docker compose exec notifications-ts pnpm prisma migrate reset --force
   sleep 2
 else
+  docker compose exec auth pnpm prisma migrate deploy
   docker compose exec accounting pnpm prisma migrate deploy
   docker compose exec notifications-ts pnpm prisma migrate deploy
   sleep 2

@@ -1,0 +1,51 @@
+{
+  "name": "auth",
+  "version": "1.0.0",
+  "description": "Komunitin Identity Provider Service (Node.js/TypeScript)",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx watch --inspect=0.0.0.0:9226 src/index.ts",
+    "build": "pnpm typecheck && unbuild",
+    "start": "node dist/index.mjs",
+    "test": "node --experimental-test-module-mocks --env-file=.env.test --import tsx --test-concurrency=1 --test ./**/*.test.ts",
+    "test-one": "node --experimental-test-module-mocks --env-file=.env.test --import tsx --test-concurrency=1 --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "7.8.0",
+    "@prisma/client-runtime-utils": "^7.8.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "node-cron": "^3.0.3",
+    "oidc-provider": "^8.5.1",
+    "pg": "^8.20.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.4",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.9",
+    "@types/node-cron": "^3.0.11",
+    "@types/oidc-provider": "^9.5.0",
+    "@types/supertest": "^6.0.3",
+    "jose": "^6.2.3",
+    "pino-pretty": "^10.3.0",
+    "prisma": "7.8.0",
+    "supertest": "^7.1.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "unbuild": "^3.6.1"
+  }
+}
