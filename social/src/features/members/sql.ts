@@ -2,6 +2,7 @@ import { Prisma } from '../../generated/prisma/client'
 import { OptionalAuthContext } from '../../server/context'
 import { DbClient } from '../../server/multitenant'
 import {
+  type CollectionIds,
   findCollectionIds,
   sqlAnd,
   sqlColumn,
@@ -78,10 +79,10 @@ export const findMemberIds = async (
   db: DbClient,
   group: Group,
   params: CollectionParams,
-): Promise<string[]> => {
+): Promise<CollectionIds> => {
   const readableWhere = await buildReadableMemberWhere(ctx, group)
   if (readableWhere === null) {
-    return []
+    return { ids: [], total: 0 }
   }
   return await findCollectionIds(db, {
     from: memberTable,

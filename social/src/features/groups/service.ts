@@ -4,7 +4,7 @@ import { GroupUpdateInput } from '../../generated/prisma/models'
 import { AuthContext, OptionalAuthContext } from '../../server/context'
 import { createAccountingClient, Currency } from '../../clients/accounting'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
-import { reorderByIds } from '../../server/query'
+import { type CollectionResult, reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
 import { badRequest, forbidden, internalError, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
@@ -177,14 +177,14 @@ export const canWriteGroup = async (ctx: AuthContext, group: Group): Promise<boo
  * 
  * If no status filter is provided, defaults to 'active' groups only.
  */
-export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<Group[]> => {
+export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<CollectionResult<Group>> => {
   const db = privilegedDb(prisma)
 
   const defaultFilters = {
     status: ['active']
   }
   
-  const ids = await findGroupIds(ctx, db, {
+  const result = await findGroupIds(ctx, db, {
     ...params,
     filters: {
       ...defaultFilters,
@@ -192,20 +192,19 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
     }
   })
 
-  if (ids.length === 0) {
-    return []
-  }
-
   const groups = await db.group.findMany({
     where: {
-      id: { in: ids },
+      id: { in: result.ids },
     },
     include: {
       admins: true
     },
   })
 
-  return reorderByIds(groups, ids).map(toGroup)
+  return {
+    items: reorderByIds(groups, result.ids).map(toGroup),
+    total: result.total,
+  }
 }
 
 export const getGroupByCode = async (
