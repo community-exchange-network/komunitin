@@ -191,7 +191,7 @@ export const createUploadedFile = async (
 
   // Verify access.
   const allowed = ctx.isSuperadmin
-    || await isGroupAdmin(ctx, group)
+    || isGroupAdmin(ctx, group)
     || await isGroupMember(ctx, group)
 
   if (!allowed) {

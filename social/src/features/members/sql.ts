@@ -35,7 +35,7 @@ const buildReadableMemberWhere = async (ctx: OptionalAuthContext, group: Group):
     return Prisma.sql`TRUE`
   }
   // Group admins can read all members of their group
-  const groupAdmin = await isGroupAdmin(ctx, group)
+  const groupAdmin = isGroupAdmin(ctx, group)
   if (groupAdmin) {
     return Prisma.sql`TRUE`
   }

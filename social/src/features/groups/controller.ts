@@ -6,6 +6,8 @@ import { getValidatedBody } from '../../server/validation'
 import type { CreateGroupBody, PatchGroupBody, PatchGroupSettingsBody } from './schema'
 import { serializeGroup, serializeGroups, serializeGroupSettings } from './serialize'
 import { createGroup, deleteGroupByCode, getGroupByCode, listGroups, patchGroupByCode, patchGroupSettingsByCode } from './service'
+import { listGroupAdmins } from '../users/service'
+import { serializeUsers } from '../users/serialize'
 
 export const postGroups: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
@@ -59,6 +61,21 @@ export const getGroupSettingsByCodeRoute: RequestHandler = async (req, res) => {
   const group = await getGroupByCode(ctx, code)
 
   const payload = await serializeGroupSettings(group)
+  res.status(200).json(payload)
+}
+
+export const getGroupAdminsRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+  const params = getCollectionParams(req, {
+    sort: ['created'],
+  })
+  const result = await listGroupAdmins(ctx, code, params)
+  const payload = await serializeUsers(
+    result.items,
+    getCollectionSerializerOptions(req.url, params, result.total),
+  )
+
   res.status(200).json(payload)
 }
 

@@ -50,7 +50,7 @@ export const listCategories = async (ctx: OptionalAuthContext, code: string, par
 
 export const createCategory = async (ctx: AuthContext, code: string, input: CreateCategoryInput): Promise<Category> => {
   const group = await getGroupByCode(ctx, code)
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to create categories in this group')
   }
@@ -89,7 +89,7 @@ export const patchCategory = async (
 ): Promise<Category> => {
   const group = await getGroupByCode(ctx, code)
 
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to update categories in this group')
   }
@@ -119,7 +119,7 @@ export const deleteCategory = async (
 ): Promise<void> => {
   const group = await getGroupByCode(ctx, code)
 
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to delete categories in this group')
   }
