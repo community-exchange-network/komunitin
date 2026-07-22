@@ -12,15 +12,16 @@ export const getMembersRoute: RequestHandler = async (req, res) => {
   const code = getCode(req)
   const params = getCollectionParams(req, {
     filter: ['code', 'name', 'type', 'status', 'access', 'account', 'search'],
-    sort: ['created', 'updated', 'name', 'code'],
+    sort: ['created', 'updated', 'name', 'code', 'distance'],
     include: ['group', 'account'],
+    near: true,
   })
 
-  const members = await listMembers(ctx, code, params)
+  const result = await listMembers(ctx, code, params)
 
   const payload = await serializeMembers(
-    members,
-    getCollectionSerializerOptions(req.url, params, members.length)
+    result.items,
+    getCollectionSerializerOptions(req.url, params, result.total)
   )
 
   res.status(200).json(payload)

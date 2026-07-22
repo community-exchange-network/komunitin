@@ -2,7 +2,7 @@ import type { Member as DbMember, Post as DbPost, Category as DbCategory } from 
 import { PostUpdateInput } from '../../generated/prisma/models'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { reorderByIds } from '../../server/query'
+import { type CollectionResult, reorderByIds } from '../../server/query'
 import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { slugify } from '../../utils/format'
@@ -84,12 +84,12 @@ const canReadPost = async (ctx: OptionalAuthContext, group: Group, post: Post): 
     || (group.status === 'active' && post.status === 'published' && post.access === 'public' )
     || (group.status === 'active' && post.status === 'published' && post.access === 'group' && await isGroupMember(ctx, group))
     || (await isPostOwner(ctx, post))
-    || (await isGroupAdmin(ctx, group))
+    || isGroupAdmin(ctx, group)
 }
 
 const canWritePost = async (ctx: AuthContext, group: Group, post: Post): Promise<boolean> => {
   return ctx.isSuperadmin
-    || await isGroupAdmin(ctx, group)
+    || isGroupAdmin(ctx, group)
     || await isPostOwner(ctx, post)
 }
 
@@ -102,7 +102,7 @@ const validateStatusTransition = async (
   const from = post.status
   if (from === to) return
 
-  const admin = ctx.isSuperadmin || await isGroupAdmin(ctx, group)
+  const admin = ctx.isSuperadmin || isGroupAdmin(ctx, group)
   const owner = await isPostOwner(ctx, post)
 
   if (from === 'draft' && to === 'published' && (owner || admin)) return
@@ -144,18 +144,14 @@ const validatePostCategory = async (code: string, group: Group, categoryId: stri
   }
 }
 
-export const listPosts = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Post[]> => {
+export const listPosts = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<Post>> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
 
-  const ids = await findPostsIds(ctx, db, group, params)
-  if (ids.length === 0) {
-    return []
-  }
-
+  const result = await findPostsIds(ctx, db, group, params)
   const posts = await db.post.findMany({
     where: {
-      id: { in: ids },
+      id: { in: result.ids },
     },
     include: {
       member: {
@@ -165,7 +161,10 @@ export const listPosts = async (ctx: OptionalAuthContext, code: string, params: 
     },
   }) as (DbPost & { member: DbMember & { group?: DbGroup }, category: DbCategory | null })[]
 
-  return reorderByIds(posts, ids).map((post) => toPost(post))
+  return {
+    items: reorderByIds(posts, result.ids).map((post) => toPost(post)),
+    total: result.total,
+  }
 }
 
 export const getPost = async (ctx: OptionalAuthContext, code: string, id: string, params?: ResourceParams): Promise<Post> => {
@@ -228,7 +227,7 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
   // Check access
   const allowed = ctx.isSuperadmin 
     || await isMemberUser(ctx, member)  
-    || await isGroupAdmin(ctx, group)
+    || isGroupAdmin(ctx, group)
   
   if (!allowed) {
     throw forbidden('You do not have permission to create a post for this member')

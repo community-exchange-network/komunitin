@@ -12,6 +12,20 @@ type CollectionIdRow = {
   id: string
 }
 
+type CollectionCountRow = {
+  count: number
+}
+
+export type CollectionIds = {
+  ids: string[]
+  total: number
+}
+
+export type CollectionResult<Item> = {
+  items: Item[]
+  total: number
+}
+
 type CollectionQueryInput = {
   from: Prisma.Sql,
   columns: SqlColumnMap,
@@ -140,36 +154,37 @@ const buildOrderBy = (sort: SortOptions[], columns: SqlColumnMap, near?: GeoPoin
 /**
  * Build a full SQL query that selects IDs from SQL fragments for filtering, sorting, and pagination.
  */
-const buildCollectionIdQuery = ({
+const buildCollectionQueries = ({
   from,
   columns,
   location,
   search,
   params,
   where
-}: CollectionQueryInput): Prisma.Sql => {
+}: CollectionQueryInput): { ids: Prisma.Sql; count: Prisma.Sql } => {
   // sort
   let orderBy = buildOrderBy(params.sort, columns, params.near, location)
 
-  if (where === undefined) {
-    where = []
-  }
+  const clauses = [...(where ?? [])]
   const { search: query, ...filters } = params.filters
-  where.push(...buildFilterWhere(filters, columns))
+  clauses.push(...buildFilterWhere(filters, columns))
 
   // search
   if (query && search) {
     const trigramSearch = buildTrigramSearch(search, query)
     if (trigramSearch) {
-      where.push(trigramSearch.where)
+      clauses.push(trigramSearch.where)
       if (params.sort[0]?.isDefault) {
         orderBy = trigramSearch.sort
       }
     }
   }
 
-  const whereClause = where.length > 0
-    ? Prisma.sql`WHERE ${sqlAnd(where)}`
+  // Offset pagination requires a deterministic order when requested values tie.
+  orderBy = Prisma.sql`${orderBy}, ${columns.id} ASC`
+
+  const whereClause = clauses.length > 0
+    ? Prisma.sql`WHERE ${sqlAnd(clauses)}`
     : Prisma.sql``
   
 
@@ -177,14 +192,21 @@ const buildCollectionIdQuery = ({
   const skip = params.pagination.cursor
   const take = params.pagination.size
 
-  return Prisma.sql`
-    SELECT ${columns.id} AS "id"
-    FROM ${from}
-    ${whereClause}
-    ORDER BY ${orderBy}
-    OFFSET ${skip}
-    LIMIT ${take}
-  `
+  return {
+    ids: Prisma.sql`
+      SELECT ${columns.id} AS "id"
+      FROM ${from}
+      ${whereClause}
+      ORDER BY ${orderBy}
+      OFFSET ${skip}
+      LIMIT ${take}
+    `,
+    count: Prisma.sql`
+      SELECT COUNT(*)::integer AS "count"
+      FROM ${from}
+      ${whereClause}
+    `,
+  }
 }
 
 /**
@@ -193,15 +215,17 @@ const buildCollectionIdQuery = ({
  * @param input 
  * @returns 
  */
-export const findCollectionIds = async (db: DbClient, input: CollectionQueryInput): Promise<string[]> => {
-  const idQuery = buildCollectionIdQuery(input)
-  const rows = await db.$queryRaw<CollectionIdRow[]>(idQuery)
-  
-  if (rows.length === 0) {
-    return []
+export const findCollectionIds = async (db: DbClient, input: CollectionQueryInput): Promise<CollectionIds> => {
+  const queries = buildCollectionQueries(input)
+  const [rows, counts] = await Promise.all([
+    db.$queryRaw<CollectionIdRow[]>(queries.ids),
+    db.$queryRaw<CollectionCountRow[]>(queries.count),
+  ])
+
+  return {
+    ids: rows.map(({ id }) => id),
+    total: counts[0]?.count ?? 0,
   }
-  const ids = rows.map(({ id }) => id)
-  return ids
 }
 
 /**

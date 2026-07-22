@@ -239,6 +239,7 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     assert.strictEqual(firstPage.body.data.length, 1)
+    assert.strictEqual(firstPage.body.meta.count, 2)
     assert.strictEqual(firstPage.body.data[0].attributes.name, 'Alpha Group')
     assert.strictEqual(typeof firstPage.body.links.self, 'string')
     assert.strictEqual(typeof firstPage.body.links.next, 'string')
@@ -249,6 +250,9 @@ describe('Groups endpoints', () => {
 
     assert.strictEqual(secondPage.body.data.length, 1)
     assert.strictEqual(secondPage.body.data[0].attributes.name, 'Bravo Group')
+    assert.strictEqual(secondPage.body.meta.count, 2)
+    assert.strictEqual(secondPage.body.links.next, null)
+    assert.strictEqual(typeof secondPage.body.links.last, 'string')
 
     const superadmin = await auth('superadmin-query', undefined, Scope.Superadmin)
     const filtered = await request(app)
@@ -325,7 +329,7 @@ describe('Groups endpoints', () => {
     await seedGroup({ tenantId: 'loc-charlie', name: 'Charlie Location', status: 'active', access: 'public' })
     
     const res = await request(app)
-      .get('/groups?near=41.8781,-87.6298&sort=distance')
+      .get('/groups?near=-87.6298,41.8781&sort=distance')
       .expect(200)
     assert.strictEqual(res.body.data.length, 3)
     assert.deepStrictEqual(
@@ -334,7 +338,7 @@ describe('Groups endpoints', () => {
     )
 
     const res2 = await request(app)
-      .get('/groups?near=34.0522,-118.2437&sort=distance')
+      .get('/groups?near=-118.2437,34.0522&sort=distance')
       .expect(200)
     assert.strictEqual(res2.body.data.length, 3)
     assert.deepStrictEqual(
@@ -448,7 +452,7 @@ describe('Groups endpoints', () => {
       .expect(200)
   })
 
-  test('GET /:code includes group admins relationship linkage', async () => {
+  test('GET /:code exposes admin metadata and the authorized admins endpoint without linkage', async () => {
     await seedGroup({ tenantId: 'group-admins-include', status: 'active', access: 'public' })
     const admin = await auth('group-admins-user')
     await seedGroupAdmin({ tenantId: 'group-admins-include', userId: admin.id })
@@ -457,9 +461,30 @@ describe('Groups endpoints', () => {
       .get('/group-admins-include')
       .expect(200)
 
-    assert.strictEqual(res.body.data.relationships.admins.data.some((resource: any) => resource.id === admin.id), true)
-    // Not including admins as included resources.
-    assert.strictEqual(Array.isArray(res.body.included) && res.body.included.some((resource: any) => resource.type === 'users' && resource.id === admin.id), false)
+    const relationship = res.body.data.relationships.admins
+    assert.strictEqual(relationship.data, undefined)
+    assert.strictEqual(relationship.meta.count, 2)
+    assert.strictEqual(relationship.links.related, 'http://localhost:2028/group-admins-include/admins')
+
+    await request(app)
+      .get('/group-admins-include/admins')
+      .expect(401)
+
+    const outsider = await auth('group-admins-outsider')
+    await request(app)
+      .get('/group-admins-include/admins')
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .expect(403)
+
+    const admins = await request(app)
+      .get('/group-admins-include/admins?page[size]=10')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(admins.body.meta.count, 2)
+    const adminResource = admins.body.data.find((resource: any) => resource.id === admin.id)
+    assert.strictEqual(typeof adminResource.attributes.email, 'string')
+    assert.strictEqual(adminResource.relationships.settings, undefined)
   })
 
   test('GET /:code allows service read access for pending private group', async () => {

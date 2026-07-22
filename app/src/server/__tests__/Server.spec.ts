@@ -152,7 +152,7 @@ describe("MirageJS Server", () => {
   });
 
   it("mocks new social queries and uploads", async () => {
-    const groups = await fetch(`${urlSocial}/groups?near=41.39,2.17&sort=distance&include=currency`);
+    const groups = await fetch(`${urlSocial}/groups?near=2.17,41.39&sort=distance&include=currency`);
     expect(groups.status).toBe(200);
     const groupsData = await json(groups);
     expect(groupsData.data[0].attributes.contacts[0]).toEqual(expect.objectContaining({

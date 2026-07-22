@@ -784,11 +784,10 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     }
     if (payload.location) {
       const [longitude, latitude] = payload.location
-      params.set("near", `${latitude},${longitude}`)
+      params.set("near", `${longitude},${latitude}`)
     }
-    const sort = payload.sort ?? (payload.location ? "distance" : undefined)
-    if (sort) {
-      params.set("sort", sort);
+    if (payload.sort) {
+      params.set("sort", payload.sort);
     }
     if (payload.pageSize) {
       params.set("page[size]", payload.pageSize.toString());
@@ -819,12 +818,10 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     }
     if (payload.sort) {
       params.set("sort", payload.sort);
-    } else if (payload.location) {
-      params.set("sort", "distance")
     }
     if (payload.location) {
       const [longitude, latitude] = payload.location
-      params.set("near", `${latitude},${longitude}`)
+      params.set("near", `${longitude},${latitude}`)
     }
     if (payload.pageSize) {
       params.set("pageSize", payload.pageSize.toString())

@@ -4,7 +4,7 @@ import { GroupUpdateInput } from '../../generated/prisma/models'
 import { AuthContext, OptionalAuthContext } from '../../server/context'
 import { createAccountingClient, Currency } from '../../clients/accounting'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
-import { reorderByIds } from '../../server/query'
+import { type CollectionResult, reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
 import { badRequest, forbidden, internalError, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
@@ -125,21 +125,10 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
   return group
 }
 
-export const isGroupAdmin = async (ctx: OptionalAuthContext, group: Pick<Group, 'id' | 'code'>): Promise<boolean> => {
-  if (!ctx.userId) {
-    return false
-  }
-
-  const db = tenantDb(prisma, group.code)
-  const relation = await db.groupAdminUser.findFirst({
-    where: {
-      groupId: group.id,
-      userId: ctx.userId,
-    }
-  })
-
-  return Boolean(relation)
-}
+export const isGroupAdmin = (
+  ctx: OptionalAuthContext,
+  group: Pick<Group, 'admins'>,
+): boolean => Boolean(ctx.userId && group.admins.some(({ id }) => id === ctx.userId))
 
 export const isGroupMember = async (ctx: OptionalAuthContext, group: Pick<Group, 'id' | 'code'>): Promise<boolean> => {
   if (!ctx.userId) {
@@ -165,11 +154,11 @@ export const canReadGroup = async (ctx: OptionalAuthContext, group: Group): Prom
     || ctx.canReadAllSocial
     || (group.status === 'active' && group.access === 'public')
     || await isGroupMember(ctx, group)
-    || await isGroupAdmin(ctx, group)
+    || isGroupAdmin(ctx, group)
 }
 
-export const canWriteGroup = async (ctx: AuthContext, group: Group): Promise<boolean> => {
-  return ctx.isSuperadmin || await isGroupAdmin(ctx, group)
+export const canWriteGroup = (ctx: AuthContext, group: Group): boolean => {
+  return ctx.isSuperadmin || isGroupAdmin(ctx, group)
 }
 
 /**
@@ -177,14 +166,14 @@ export const canWriteGroup = async (ctx: AuthContext, group: Group): Promise<boo
  * 
  * If no status filter is provided, defaults to 'active' groups only.
  */
-export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<Group[]> => {
+export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<CollectionResult<Group>> => {
   const db = privilegedDb(prisma)
 
   const defaultFilters = {
     status: ['active']
   }
   
-  const ids = await findGroupIds(ctx, db, {
+  const result = await findGroupIds(ctx, db, {
     ...params,
     filters: {
       ...defaultFilters,
@@ -192,20 +181,19 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
     }
   })
 
-  if (ids.length === 0) {
-    return []
-  }
-
   const groups = await db.group.findMany({
     where: {
-      id: { in: ids },
+      id: { in: result.ids },
     },
     include: {
       admins: true
     },
   })
 
-  return reorderByIds(groups, ids).map(toGroup)
+  return {
+    items: reorderByIds(groups, result.ids).map(toGroup),
+    total: result.total,
+  }
 }
 
 export const getGroupByCode = async (
@@ -262,7 +250,7 @@ const syncCurrencyStatus = async (ctx: AuthContext, group: Group, status: Curren
 export const patchGroupByCode = async (ctx: AuthContext, code: string, attributes: PatchGroupAttributes): Promise<Group> => {
   const group = await getGroupByCode(ctx, code)
 
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to update this group')
   }
@@ -336,7 +324,7 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
 export const deleteGroupByCode = async (ctx: AuthContext, code: string): Promise<void> => {
   const group = await getGroupByCode(ctx, code)
 
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to delete this group')
   }
@@ -361,7 +349,7 @@ export const patchGroupSettingsByCode = async (
   const db = tenantDb(prisma, code)
   const group = await getGroupByCode(ctx, code)
 
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to update this group')
   }

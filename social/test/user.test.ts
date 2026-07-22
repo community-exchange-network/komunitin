@@ -320,6 +320,7 @@ describe('Users endpoints', () => {
 
     const ids = res.body.data.map((resource: any) => resource.id)
     assert.deepStrictEqual(ids, [duplicateUserId, uniqueUserId])
+    assert.strictEqual(res.body.meta.count, 2)
   })
 
   test('GET /users rejects regular user tokens', async () => {
@@ -389,6 +390,7 @@ describe('Users endpoints', () => {
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].type, 'members')
     assert.strictEqual(res.body.data[0].id, member.id)
+    assert.strictEqual(res.body.meta.count, 1)
     assert.strictEqual(typeof res.body.links.self, 'string')
     assert.ok(includedResource(res.body, 'groups'))
     assert.ok(includedResource(res.body, 'currencies', currencyId))

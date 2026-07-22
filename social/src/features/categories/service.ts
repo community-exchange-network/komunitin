@@ -1,7 +1,7 @@
 import { type Category as DbCategory } from '../../generated/prisma/client'
 import { type AuthContext, type OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { reorderByIds } from '../../server/query'
+import { type CollectionResult, reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { slugify } from '../../utils/format'
@@ -31,27 +31,26 @@ const getCategoryById = async (code: string, id: string): Promise<Category> => {
   return toCategory(category)
 }
 
-export const listCategories = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Category[]> => {
+export const listCategories = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<Category>> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
-  const ids = await findCategoriesIds(ctx, db, group, params)
-
-  if (ids.length === 0) {
-    return []
-  }
+  const result = await findCategoriesIds(ctx, db, group, params)
 
   const categories = await db.category.findMany({
     where: {
-      id: { in: ids },
+      id: { in: result.ids },
     },
   })
 
-  return reorderByIds(categories, ids).map(toCategory)
+  return {
+    items: reorderByIds(categories, result.ids).map(toCategory),
+    total: result.total,
+  }
 }
 
 export const createCategory = async (ctx: AuthContext, code: string, input: CreateCategoryInput): Promise<Category> => {
   const group = await getGroupByCode(ctx, code)
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to create categories in this group')
   }
@@ -90,7 +89,7 @@ export const patchCategory = async (
 ): Promise<Category> => {
   const group = await getGroupByCode(ctx, code)
 
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to update categories in this group')
   }
@@ -120,7 +119,7 @@ export const deleteCategory = async (
 ): Promise<void> => {
   const group = await getGroupByCode(ctx, code)
 
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to delete categories in this group')
   }

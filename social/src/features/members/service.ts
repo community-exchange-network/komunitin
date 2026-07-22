@@ -2,7 +2,7 @@ import { Account, createAccountingClient } from '../../clients/accounting'
 import { Prisma, type Member as DbMember } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { reorderByIds } from '../../server/query'
+import { type CollectionResult, reorderByIds } from '../../server/query'
 import type { CollectionParams, ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
@@ -76,13 +76,13 @@ const canReadMember = async (ctx: OptionalAuthContext, group: Group, member: Mem
     || (group.status === 'active' && member.status === 'active' && member.access === 'public')  
     || (group.status === 'active' && member.status === 'active' && member.access === 'group' && await isGroupMember(ctx, group))
     || await isMemberUser(ctx, member)
-    || await isGroupAdmin(ctx, group)
+    || isGroupAdmin(ctx, group)
 }
 
 const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): Promise<boolean> => {
   return ctx.isSuperadmin
     || await isMemberUser(ctx, member, "admin")  
-    || await isGroupAdmin(ctx, group)
+    || isGroupAdmin(ctx, group)
     
 }
 
@@ -173,7 +173,7 @@ const syncAccountStatus = async (ctx: AuthContext, member: Member, currencyCode:
  * 
  * If no status filter is provided, defaults to 'active' members only.
  */
-export const listMembers = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Member[]> => {
+export const listMembers = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<Member>> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
   
@@ -181,7 +181,7 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     status: ['active'],
   }
 
-  const ids = await findMemberIds(ctx, db, group, {
+  const result = await findMemberIds(ctx, db, group, {
     ...params,
     filters: {
       ...defaultFilters,
@@ -189,18 +189,17 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     },
   })
   
-  if (ids.length === 0) {
-    return []
-  }
-
   const members = await db.member.findMany({
     where: {
-      id: { in: ids },
+      id: { in: result.ids },
     },
     include: getMemberInclude(params.include),
   }) as (DbMember & { group?: DbGroup })[] // Prisma can't infer the type correctly when using conditional include.
 
-  return reorderByIds(members, ids).map(toMember)
+  return {
+    items: reorderByIds(members, result.ids).map(toMember),
+    total: result.total,
+  }
 }
 
 export const getMember = async (ctx: OptionalAuthContext, code: string, id: string, params: ResourceParams): Promise<Member> => {
@@ -221,7 +220,7 @@ export const createMember = async (ctx: AuthContext, code: string, input: Create
 
   let memberCode = input.code?.trim()
   if (memberCode) {
-    const isAdmin = ctx.isSuperadmin || await isGroupAdmin(ctx, group)
+    const isAdmin = ctx.isSuperadmin || isGroupAdmin(ctx, group)
     if (!isAdmin) {
       throw badRequest('Only group admins can set member code')
     }
@@ -312,7 +311,7 @@ export const patchMember = async (
       || from === 'suspended' && to === 'active'
     ) {
       // Allowed admin transition, check if user is admin.
-      if (!(ctx.isSuperadmin || await isGroupAdmin(ctx, group))) {
+      if (!(ctx.isSuperadmin || isGroupAdmin(ctx, group))) {
         throw forbidden('Only group admins can perform this status transition')
       }
     } else {

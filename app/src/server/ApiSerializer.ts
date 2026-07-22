@@ -129,22 +129,20 @@ export default class ApiSerializer extends JSONAPISerializer {
       json.data.splice(size);
     }
 
-    // Build pagination links
-    json.links = {};
-    if (hasNext) {
-      const next = new URL(request.url);
-      next.searchParams.set("page[after]", (after + size).toString());
-      json.links.next = next.toString();
-    } else {
-      json.links.next = null;
+    const withCursor = (cursor: number) => {
+      const url = new URL(request.url)
+      url.searchParams.set("page[size]", size.toString())
+      url.searchParams.set("page[after]", cursor.toString())
+      return url.toString()
     }
-
-    if (hasPrevious) {
-      const prev = new URL(request.url);
-      prev.searchParams.set("page[after]", (after - size).toString());
-      json.links.prev = prev.toString();
-    } else {
-      json.links.prev = null;
+    const total = json.meta.count
+    const last = total === 0 ? 0 : Math.floor((total - 1) / size) * size
+    json.links = {
+      first: withCursor(0),
+      prev: after >= size ? withCursor(after - size) : null,
+      self: withCursor(after),
+      next: hasNext ? withCursor(after + size) : null,
+      last: withCursor(last),
     }
 
     this.filterIncluded(json);

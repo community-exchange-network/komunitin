@@ -126,7 +126,7 @@ function sortByDistance(records: any, request: any) {
   if (!request.queryParams.near || request.queryParams.sort != "distance") {
     return records;
   }
-  const [lat, lng] = request.queryParams.near.split(",").map(Number);
+  const [lng, lat] = request.queryParams.near.split(",").map(Number);
   const distance = (record: any) => {
     const coordinates = record.location?.coordinates;
     return coordinates ? Math.pow(coordinates[1] - lat, 2) + Math.pow(coordinates[0] - lng, 2) : Infinity;
@@ -559,13 +559,15 @@ export default {
     // Group posts.
     server.get(urlSocial + "/:code/posts", (schema: any, request: any) => {
       const group = schema.groups.findBy({ code: request.params.code });
-      return filter(schema.posts.where({ groupId: group.id }), request);
+      const records = filter(schema.posts.where({ groupId: group.id }), withoutQuery(request, ["near"]));
+      return sortByDistance(records, request);
     });
 
     // Group members.
     server.get(urlSocial + "/:code/members", (schema: any, request: any) => {
       const group = schema.groups.findBy({ code: request.params.code });
-      return filter(schema.members.where({ groupId: group.id }), request);
+      const records = filter(schema.members.where({ groupId: group.id }), withoutQuery(request, ["near"]));
+      return sortByDistance(records, request);
     });
 
     server.post(urlSocial + "/:code/members", (schema: any, request: any) => {
