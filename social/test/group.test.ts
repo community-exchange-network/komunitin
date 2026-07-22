@@ -452,7 +452,7 @@ describe('Groups endpoints', () => {
       .expect(200)
   })
 
-  test('GET /:code includes group admins relationship linkage', async () => {
+  test('GET /:code exposes admin metadata and the authorized admins endpoint without linkage', async () => {
     await seedGroup({ tenantId: 'group-admins-include', status: 'active', access: 'public' })
     const admin = await auth('group-admins-user')
     await seedGroupAdmin({ tenantId: 'group-admins-include', userId: admin.id })
@@ -461,9 +461,30 @@ describe('Groups endpoints', () => {
       .get('/group-admins-include')
       .expect(200)
 
-    assert.strictEqual(res.body.data.relationships.admins.data.some((resource: any) => resource.id === admin.id), true)
-    // Not including admins as included resources.
-    assert.strictEqual(Array.isArray(res.body.included) && res.body.included.some((resource: any) => resource.type === 'users' && resource.id === admin.id), false)
+    const relationship = res.body.data.relationships.admins
+    assert.strictEqual(relationship.data, undefined)
+    assert.strictEqual(relationship.meta.count, 2)
+    assert.strictEqual(relationship.links.related, 'http://localhost:2028/group-admins-include/admins')
+
+    await request(app)
+      .get('/group-admins-include/admins')
+      .expect(401)
+
+    const outsider = await auth('group-admins-outsider')
+    await request(app)
+      .get('/group-admins-include/admins')
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .expect(403)
+
+    const admins = await request(app)
+      .get('/group-admins-include/admins?page[size]=10')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(admins.body.meta.count, 2)
+    const adminResource = admins.body.data.find((resource: any) => resource.id === admin.id)
+    assert.strictEqual(typeof adminResource.attributes.email, 'string')
+    assert.strictEqual(adminResource.relationships.settings, undefined)
   })
 
   test('GET /:code allows service read access for pending private group', async () => {

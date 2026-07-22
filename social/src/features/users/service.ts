@@ -6,7 +6,7 @@ import { privilegedDb } from '../../server/multitenant'
 import { AuthContext } from '../../server/context'
 import { CollectionParams } from '../../server/request'
 import type { CollectionResult } from '../../server/query'
-import type { DbGroup } from '../groups/service'
+import { getGroupByCode, isGroupAdmin, type DbGroup } from '../groups/service'
 import { getMemberInclude, toMember } from '../members/service'
 import type { Member } from '../members/types'
 
@@ -25,6 +25,39 @@ const toUser = (user: DbUser): User => {
     settings: castSettings(user.settings),
     created: user.created,
     updated: user.updated,
+  }
+}
+
+export const listGroupAdmins = async (
+  ctx: AuthContext,
+  code: string,
+  params: CollectionParams,
+): Promise<CollectionResult<User>> => {
+  const group = await getGroupByCode(ctx, code)
+  const allowed = ctx.isSuperadmin || ctx.canReadAllSocial || isGroupAdmin(ctx, group)
+  if (!allowed) {
+    throw forbidden('You do not have permission to list group administrators')
+  }
+
+  const db = privilegedDb(prisma)
+  const order = params.sort[0]?.order ?? 'asc'
+  const relations = await db.groupAdminUser.findMany({
+    where: {
+      tenantId: code,
+      groupId: group.id,
+    },
+    include: { user: true },
+    orderBy: [
+      { user: { created: order } },
+      { userId: 'asc' },
+    ],
+    skip: params.pagination.cursor,
+    take: params.pagination.size,
+  })
+
+  return {
+    items: relations.map(({ user }) => toUser(user)),
+    total: group.admins.length,
   }
 }
 
