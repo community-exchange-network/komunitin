@@ -45,7 +45,7 @@ const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): P
     return Prisma.sql`TRUE`
   }
 
-  if (await isGroupAdmin(ctx, group)) {
+  if (isGroupAdmin(ctx, group)) {
     return Prisma.sql`TRUE`
   }
 
