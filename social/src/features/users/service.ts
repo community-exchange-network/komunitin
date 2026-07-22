@@ -56,7 +56,7 @@ export const listGroupAdmins = async (
   })
 
   return {
-    items: relations.map(({ user }) => toUser(user)),
+    items: relations.map(({ user }) => ({ ...toUser(user), settings: null })),
     total: group.admins.length,
   }
 }
