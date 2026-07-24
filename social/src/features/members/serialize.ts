@@ -2,13 +2,14 @@ import TsJapi from 'ts-japi'
 import { externalResourceSerializer, getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
 import { getAccountingAccountUrl } from '../../clients/accounting'
 import { GroupSerializer } from '../groups/serialize'
-import { Group } from '../groups/types'
-import type { Member } from './types'
+import type { SerializableGroup } from '../groups/types'
+import { postRelationships } from '../posts/relationship-serialize'
+import type { SerializableMember } from './types'
 
 const { Linker, Serializer, Relator } = TsJapi
 const ExternalAccountSerializer = externalResourceSerializer<{ id: string; href: string }>('accounts')
 
-export const MemberSerializer = new Serializer<Member>('members', {
+export const MemberSerializer = new Serializer<SerializableMember>('members', {
   version: null,
   projection: {
     code: 1,
@@ -30,8 +31,9 @@ export const MemberSerializer = new Serializer<Member>('members', {
     resource: new Linker((member) => getResourceLink("members", member.tenantId, member.id)),
   },
   relators: {
-    group: new Relator<Member, Group>(async (member) => member.group, GroupSerializer, { relatedName: 'group' }),
-    account: new Relator<Member, { id: string; href: string }>(async (member) => {
+    ...postRelationships<SerializableMember>('member'),
+    group: new Relator<SerializableMember, SerializableGroup>(async (member) => member.group, GroupSerializer, { relatedName: 'group' }),
+    account: new Relator<SerializableMember, { id: string; href: string }>(async (member) => {
       if (!member.accountId) {
         return undefined
       }
@@ -40,14 +42,14 @@ export const MemberSerializer = new Serializer<Member>('members', {
         id: member.accountId,
         href: getAccountingAccountUrl(member.tenantId, member.accountId),
       }
-    }, ExternalAccountSerializer, { relatedName: 'account' })
+    }, ExternalAccountSerializer, { relatedName: 'account' }),
   }
 })
 
-export const serializeMember = async (member: Member, options?: SerializerOptions<Member>) => {
+export const serializeMember = async (member: SerializableMember, options?: SerializerOptions<SerializableMember>) => {
   return MemberSerializer.serialize(member, options)
 }
 
-export const serializeMembers = async (members: Member[], options?: SerializerOptions<Member>) => {
+export const serializeMembers = async (members: SerializableMember[], options?: SerializerOptions<SerializableMember>) => {
   return MemberSerializer.serialize(members, options)
 }

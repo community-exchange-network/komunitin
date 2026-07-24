@@ -26,6 +26,14 @@ export interface Group extends DbGroup {
   meta: GroupMeta | null
 }
 
+export interface SerializableGroup extends Group {
+  relationshipMeta: {
+    adminCount: number
+    memberCount: number
+    canListMembers: boolean
+  }
+}
+
 export type GroupMeta = {
   request?: {
     currency?: unknown

@@ -3,11 +3,33 @@ import TsJapi, { type Dictionary } from "ts-japi"
 import { config } from "../config"
 import { CollectionParams, PaginationOptions } from "./request"
 
-const { Linker, Metaizer, Paginator, Serializer } = TsJapi
+const { Linker, Metaizer, Paginator, Relator, Serializer } = TsJapi
 
 export type ExternalResource = {
   id: string
   href: string
+}
+
+export class ToManyRelator<Source> extends Relator<Source, { id: string }> {
+  constructor(
+    name: string,
+    private readonly url: (source: Source) => string | undefined,
+    count: (source: Source) => number,
+  ) {
+    super(async () => undefined, new Serializer(name, { version: null, projection: {} }), {
+      relatedName: name,
+      linkers: {
+        related: new Linker((source) => url(source)!),
+      },
+      metaizer: new Metaizer((source) => ({ count: count(source) })),
+    })
+  }
+
+  override async getRelationship(source: Source, relatedDataCache?: Dictionary<any>[]) {
+    return this.url(source)
+      ? super.getRelationship(source, relatedDataCache)
+      : undefined
+  }
 }
 
 const getPaginationLinks = (url: string, pagination: PaginationOptions, totalCount: number) => {

@@ -1,10 +1,11 @@
 import TsJapi from 'ts-japi'
 import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
-import type { Category } from './types'
+import { postRelationships } from '../posts/relationship-serialize'
+import type { SerializableCategory } from './types'
 
 const { Linker, Serializer } = TsJapi
 
-export const CategorySerializer = new Serializer<Category>('categories', {
+export const CategorySerializer = new Serializer<SerializableCategory>('categories', {
   version: null,
   projection: {
     code: 1,
@@ -18,12 +19,13 @@ export const CategorySerializer = new Serializer<Category>('categories', {
   linkers: {
     resource: new Linker((category) => getResourceLink("categories", category.tenantId, category.id)),
   },
+  relators: postRelationships<SerializableCategory>('category'),
 })
 
-export const serializeCategory = async (category: Category, options?: SerializerOptions<Category>) => {
+export const serializeCategory = async (category: SerializableCategory, options?: SerializerOptions<SerializableCategory>) => {
   return CategorySerializer.serialize(category, options)
 }
 
-export const serializeCategories = async (categories: Category[], options?: SerializerOptions<Category>) => {
+export const serializeCategories = async (categories: SerializableCategory[], options?: SerializerOptions<SerializableCategory>) => {
   return CategorySerializer.serialize(categories, options)
 }
