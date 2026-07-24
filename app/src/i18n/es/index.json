@@ -420,6 +420,23 @@
   "ErrorAccountNotFound": "No se ha encontrado la cuenta",
   "ErrorAccountIsNotYours": "La cuenta especificada no es tu cuenta activa actual.",
   "ErrorDescriptionRequired" : "Entra una descripción del intercambio.",
-  "ErrorInvalidAmount" : "Cantidad inválida. Entra un número positivo."
-
+  "ErrorInvalidAmount" : "Cantidad inválida. Entra un número positivo.",
+  "ErrorUnknown": "Error: desconocido",
+  "ErrorIncorrectRequest": "Error: solicitud incorrecta",
+  "ErrorServerNoResponse": "Error: el servidor no responde",
+  "ErrorServerBadResponse": "Error: respuesta incorrecta del servidor",
+  "ErrorResourceNotFound": "Error: recurso no encontrado",
+  "ErrorUnknownServer": "Error: respuesta inesperada del servidor",
+  "ErrorUnknownVueError": "Error: error desconocido en la interfaz de usuario",
+  "ErrorUnknownScript": "Error: error de script desconocido",
+  "ErrorErrorHandling": "Error al gestionar otro error",
+  "ErrorPositionTimeout": "Error: tiempo de espera agotado al obtener tu posición",
+  "ErrorPositionUnavailable": "Error: posición no disponible",
+  "ErrorPositionPermisionDenied": "Error: permiso denegado al intentar obtener tu posición",
+  "ErrorNotificationsPermissionDenied": "Error: permiso denegado al intentar suscribirte a las notificaciones push",
+  "ErrorVueWarning": "Advertencia de VUE",
+  "ErrorIncorrectCredentials": "Error: correo electrónico o contraseña incorrectos",
+  "ErrorNotImplemented": "Error: no implementado",
+  "ErrorInvalidTransferState": "Error: estado de movimiento no válido",
+  "ErrorBadRequest": "Error: la validación de datos ha fallado en el servidor"
 }
