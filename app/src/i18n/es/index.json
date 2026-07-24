@@ -409,6 +409,7 @@
   "ErrorNoTrustPath": "El movimiento ha fallado porque no existe ningún camino de intercambio entre las dos monedas",
   "ErrorTransactionError": "El movimiento ha fallado",
   "ErrorInvalidTransfersCSVFileLineColumn": "Error leyendo el fichero CSV en la línea {line} columna {column}",
+  "ErrorInvalidTransfersCSVFileLimits": "Selecciona un fichero CSV o TXT de menos de 100 KB con un máximo de {rows} filas.",
   "ErrorInvalidTransfersCSVFile": "Error leyendo el fitxer",
   "ErrorCamNotAllowed": "La app no tiene permiso para utilizar la camara. Activa los permisos en la configuración del navegador.",
   "ErrorCamNotFound": "No se ha encontrado ninguna camara en este dispositivo.",

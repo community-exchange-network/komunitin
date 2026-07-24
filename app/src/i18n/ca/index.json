@@ -408,6 +408,7 @@
   "ErrorNoTrustPath": "El moviment ha fallat perquè no hi ha cap camí d'intercanvi entre les dues monedes",
   "ErrorTransactionError": "El moviment ha fallat",
   "ErrorInvalidTransfersCSVFileLineColumn": "Error llegint el fitxer CSV a la línia {line} columna {column}",
+  "ErrorInvalidTransfersCSVFileLimits": "Selecciona un fitxer CSV o TXT de menys de 100 KB amb un màxim de {rows} files.",
   "ErrorInvalidTransfersCSVFile": "Error llegint el fitxer",
   "ErrorCamNotAllowed": "La app no té permís per accedir a la càmera. Pots activar-ho des de la configuració del navegador.",
   "ErrorCamNotFound": "No s'ha trobat cap càmera en aquest dispositiu.",
