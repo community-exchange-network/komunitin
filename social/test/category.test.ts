@@ -121,6 +121,47 @@ describe('Categories endpoints', () => {
     assert.strictEqual(filtered.body.data[0].attributes.code, 'c')
   })
 
+  test('category offer and need relationships expose visible published counts and canonical links', async () => {
+    await seedGroup({ tenantId: 'cats-post-counts', status: 'active', access: 'public' })
+    const member = await seedMember({ tenantId: 'cats-post-counts', status: 'active' })
+    const category = await seedCategory({ tenantId: 'cats-post-counts', access: 'public' })
+    await seedPost({
+      tenantId: 'cats-post-counts',
+      memberId: member.id,
+      categoryId: category.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'cats-post-counts',
+      memberId: member.id,
+      categoryId: category.id,
+      type: 'offers',
+      status: 'draft',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'cats-post-counts',
+      memberId: member.id,
+      categoryId: category.id,
+      type: 'needs',
+      status: 'published',
+      access: 'group',
+    })
+
+    const res = await request(app)
+      .get('/cats-post-counts/categories')
+      .expect(200)
+
+    const relationships = res.body.data[0].relationships
+    assert.strictEqual(relationships.offers.meta.count, 1)
+    assert.strictEqual(relationships.needs.meta.count, 0)
+    const related = new URL(relationships.offers.links.related)
+    assert.strictEqual(related.searchParams.get('filter[category]'), category.id)
+    assert.strictEqual(related.searchParams.get('filter[status]'), 'published')
+  })
+
   test('GET /:code/categories supports search across code, name and meta.description', async () => {
     await seedGroup({ tenantId: 'cats-search', status: 'active', access: 'public' })
     await seedCategory({

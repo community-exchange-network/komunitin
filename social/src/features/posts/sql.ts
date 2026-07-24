@@ -14,6 +14,7 @@ import {
 import type { CollectionParams } from '../../server/request'
 import { isGroupAdmin, isGroupMember } from '../groups/service'
 import { Group } from '../groups/types'
+import type { PostRelationshipMeta } from './types'
 
 const postTable = sqlTable('Post', 'p')
 const postColumn = (column: string) => sqlColumn('p', column)
@@ -41,12 +42,13 @@ const postColumns: SqlColumnMap = {
 }
 
 const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): Promise<Prisma.Sql | null> => {
-  if (ctx.isSuperadmin || ctx.canReadAllSocial) {
-    return Prisma.sql`TRUE`
-  }
+  const live = [
+    Prisma.sql`${postColumn('deleted')} IS NULL`,
+    Prisma.sql`${memberColumn('deleted')} IS NULL`,
+  ]
 
-  if (isGroupAdmin(ctx, group)) {
-    return Prisma.sql`TRUE`
+  if (ctx.isSuperadmin || ctx.canReadAllSocial || isGroupAdmin(ctx, group)) {
+    return sqlAnd(live)
   }
 
   const readable: Prisma.Sql[] = []
@@ -79,7 +81,7 @@ const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): P
     return null
   }
 
-  return sqlOr(readable)
+  return sqlAnd([...live, sqlOr(readable)])
 }
 
 const buildExpiredWhere = (rawValue: CollectionParams['filters'][string] | undefined): Prisma.Sql | null => {
@@ -96,6 +98,61 @@ const buildExpiredWhere = (rawValue: CollectionParams['filters'][string] | undef
     : Prisma.sql`(${postColumn('expires')} IS NULL OR ${postColumn('expires')} >= NOW())`
 }
 
+type PostRelationshipCountRow = {
+  relatedId: string
+  type: 'offers' | 'needs'
+  count: number
+}
+
+/**
+ * Computes the number of published offers and needs for the given members and categories in parallel,
+ * taking into account the read permissions of the user.
+ */
+export const findPostRelationshipCounts = async (
+  ctx: OptionalAuthContext,
+  db: DbClient,
+  group: Group,
+  targets: { memberIds?: string[]; categoryIds?: string[] },
+): Promise<{ members: Map<string, PostRelationshipMeta>; categories: Map<string, PostRelationshipMeta> }> => {
+  const memberIds = [...new Set(targets.memberIds ?? [])]
+  const categoryIds = [...new Set(targets.categoryIds ?? [])]
+  const members = new Map(memberIds.map((id) => [id, { offers: 0, needs: 0 }]))
+  const categories = new Map(categoryIds.map((id) => [id, { offers: 0, needs: 0 }]))
+
+  const readableWhere = await buildReadablePostWhere(ctx, group)
+  if (readableWhere === null) {
+    return { members, categories }
+  }
+
+  const commonWhere = sqlAnd([
+    readableWhere,
+    Prisma.sql`${postColumn('status')} = 'published'`,
+  ])
+
+  const queryCounts = async (relatedId: Prisma.Sql, ids: string[]): Promise<PostRelationshipCountRow[]> =>
+    ids.length === 0
+      ? []
+      : db.$queryRaw(Prisma.sql`
+          SELECT ${relatedId} AS "relatedId",
+            ${postColumn('type')} AS "type", COUNT(*)::integer AS "count"
+          FROM ${postWithMemberFrom}
+          WHERE ${commonWhere} AND ${relatedId} IN (${Prisma.join(ids)})
+          GROUP BY ${relatedId}, ${postColumn('type')}
+        `)
+
+  const [memberRows, categoryRows] = await Promise.all([
+    queryCounts(postColumn('memberId'), memberIds),
+    queryCounts(postColumn('categoryId'), categoryIds),
+  ])
+
+  for (const [rows, targets] of [[memberRows, members], [categoryRows, categories]] as const) {
+    for (const row of rows) {
+      targets.get(row.relatedId)![row.type] = row.count
+    }
+  }
+
+  return { members, categories }
+}
 
 export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<CollectionIds> => {
   const readableWhere = await buildReadablePostWhere(ctx, group)
@@ -117,8 +174,6 @@ export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group
       filters,
     },
     where: [
-      Prisma.sql`${postColumn('deleted')} IS NULL`,
-      Prisma.sql`${memberColumn('deleted')} IS NULL`,
       readableWhere,
       ...(expiredWhere ? [expiredWhere] : []),
     ],
