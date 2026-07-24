@@ -48,7 +48,7 @@ export const getPostRoute: RequestHandler = async (req, res) => {
     ],
   })
 
-  const post = await getPost(ctx, code, postId, params)
+  const post = await getPost(ctx, code, postId)
 
   const payload = await serializePost(post, params)
   res.status(200).json(payload)

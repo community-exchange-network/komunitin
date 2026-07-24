@@ -6,7 +6,7 @@ import { Scope } from '../src/server/context'
 import { serviceAuth, signJwt } from './mocks/auth'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { includedResource, toUuid } from './mocks/utils'
-import { resetDb, seedGroup, seedMember, seedMemberUser, seedUser } from './mocks/seed'
+import { resetDb, seedGroup, seedMember, seedMemberUser, seedPost, seedUser } from './mocks/seed'
 
 let app: any
 
@@ -395,6 +395,50 @@ describe('Users endpoints', () => {
     assert.ok(includedResource(res.body, 'groups'))
     assert.ok(includedResource(res.body, 'currencies', currencyId))
     assert.ok(includedResource(res.body, 'accounts', accountId))
+  })
+
+  test('GET /users/:id/members includes visible published post counts', async () => {
+    const subject = toUuid('member-post-count-user')
+    const token = await signJwt(subject, 'member-post-count-user@example.org')
+
+    const group = await seedGroup({
+      tenantId: 'user-member-post-counts',
+      status: 'active',
+      access: 'public',
+    })
+    const member = await seedMember({
+      tenantId: 'user-member-post-counts',
+      userId: subject,
+      status: 'active',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'user-member-post-counts',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'user-member-post-counts',
+      memberId: member.id,
+      type: 'needs',
+      status: 'draft',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/users/${subject}/members`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data[0].relationships.offers.meta.count, 1)
+    assert.strictEqual(res.body.data[0].relationships.needs.meta.count, 0)
+    assert.deepStrictEqual(res.body.data[0].relationships.group.data, {
+      type: 'groups',
+      id: group.id,
+    })
+    assert.deepStrictEqual(res.body.included, [])
   })
 
   test('GET /users/:id/members denies outsiders', async () => {

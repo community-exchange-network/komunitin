@@ -33,7 +33,7 @@ export const getMemberRoute: RequestHandler = async (req, res) => {
   const memberId = getIdParam(req, 'member')
   const params = getResourceParams(req, { include: ['group', 'account'] })
 
-  const member = await getMember(ctx, code, memberId, params)
+  const member = await getMember(ctx, code, memberId)
 
   const payload = await serializeMember(member, params)
   res.status(200).json(payload)

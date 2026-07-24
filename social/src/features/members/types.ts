@@ -27,12 +27,11 @@ export interface Member extends DbMember {
   location: Location | null
   contacts: Contact[] | null
   meta: MemberMeta
-  // Group is optionally included based on request parameters.
-  group?: Group
+  group: Group
 }
 
-export interface SerializableMember extends Member {
-  group?: SerializableGroup
+export interface SerializableMember extends Omit<Member, 'group'> {
+  group: SerializableGroup
   relationshipMeta: PostRelationshipMeta
 }
 

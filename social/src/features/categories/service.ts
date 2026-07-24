@@ -23,13 +23,17 @@ export const enrichCategories = async (
   categories: Category[],
 ): Promise<SerializableCategory[]> => {
   const db = tenantDb(prisma, group.code)
-  const counts = await findPostRelationshipCounts(ctx, db, group, {
-    categoryIds: categories.map(({ id }) => id),
-  })
+  const counts = await findPostRelationshipCounts(
+    ctx,
+    db,
+    group,
+    'categoryId',
+    categories.map(({ id }) => id),
+  )
 
   return categories.map((category) => ({
     ...category,
-    relationshipMeta: counts.categories.get(category.id)!,
+    relationshipMeta: counts.get(category.id)!,
   }))
 }
 

@@ -9,10 +9,13 @@ import type { CollectionParams } from '../../server/request'
 import { badRequest, forbidden, internalError, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
+import type { MemberStatus } from '../members/schema'
 import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes } from './schema'
 import { findGroupIds } from './sql'
-import type { CreateGroupInput, Group, GroupMeta } from './types'
+import type { CreateGroupInput, Group, GroupMeta, SerializableGroup } from './types'
 import { createNotificationsClient } from '../../clients/notifications'
+import { canListGroupMembers } from '../members/service'
+import { findUserMembers } from '../users/member-query'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -33,6 +36,67 @@ const getGroupMeta = (group: Pick<DbGroup, 'meta'>): GroupMeta => {
   return (group.meta ?? {}) as GroupMeta
 }
 
+/** Add viewer-specific relationship metadata required by the group serializer. */
+export const enrichGroups = async (
+  ctx: OptionalAuthContext,
+  groups: Group[],
+): Promise<SerializableGroup[]> => {
+  if (groups.length === 0) {
+    return []
+  }
+
+  const db = privilegedDb(prisma)
+  const groupIds = groups.map(({ id }) => id)
+
+  const memberCounts = await db.member.groupBy({
+    by: ['groupId'],
+    where: {
+      groupId: { in: groupIds },
+      status: 'active',
+      deleted: null,
+    },
+    _count: true,
+  })
+  const counts = new Map(memberCounts.map(({ groupId, _count }) => [groupId, _count]))
+
+  // get groups where the user is a member, to determine if they can list members
+  let userMemberGroups: Set<string> | undefined = undefined
+  const getUserMemberGroups = async () => {
+    if (userMemberGroups === undefined) {
+      const groups = ctx.userId ? await findUserMembers(ctx.userId, {
+        where: {
+          groupId: { in: groupIds },
+          status: 'active',
+        },
+        select: { groupId: true },
+      }) : []
+      userMemberGroups = new Set(groups.map(({ groupId }) => groupId))
+    }
+    return userMemberGroups
+  }
+  
+  const isMember = (group: Group) => async () => {
+    const userMemberGroups = await getUserMemberGroups()
+    return userMemberGroups.has(group.id)
+  }
+
+  return Promise.all(groups.map(async (group) => ({
+    ...group,
+    relationshipMeta: {
+      adminCount: group.admins.length,
+      memberCount: counts.get(group.id) ?? 0,
+      canListMembers: await canListGroupMembers(ctx, group, isMember(group)),
+    },
+  })))
+}
+
+export const enrichGroup = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+): Promise<SerializableGroup> => {
+  return (await enrichGroups(ctx, [group]))[0]
+}
+
 const getRequestedCurrency = (group: Pick<DbGroup, 'meta' | 'tenantId'>) => {
   return {
     ...(getGroupMeta(group).request?.currency ?? {}),
@@ -51,9 +115,7 @@ export const fromLocation = (location?: Location | null): { latitude: number|nul
 export type DbGroup = DbGroupRaw & {
   admins: GroupAdminUser[]
 }
-/**
- * Map database model to Group type, ready to be serialized and sent in API responses.
- */
+/** Map a database group to the core domain type. */
 export const toGroup = (group: DbGroup): Group => {
   return {
     ...group,
@@ -67,7 +129,7 @@ export const toGroup = (group: DbGroup): Group => {
  * Create a pending new group with the given attributes. The creating user will be set as group admin. 
  * The group will need to be activated by a superadmin before it becomes visible and usable.
  */
-export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Promise<Group> => {
+export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Promise<SerializableGroup> => {
   const db = tenantDb(prisma, input.attributes.code)
 
   const existing = await db.group.findFirst()
@@ -122,7 +184,7 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
   const notifications = createNotificationsClient(ctx)
   await notifications.notifyGroupRequested(group)
 
-  return group
+  return enrichGroup(ctx, group)
 }
 
 export const isGroupAdmin = (
@@ -130,30 +192,33 @@ export const isGroupAdmin = (
   group: Pick<Group, 'admins'>,
 ): boolean => Boolean(ctx.userId && group.admins.some(({ id }) => id === ctx.userId))
 
-export const isGroupMember = async (ctx: OptionalAuthContext, group: Pick<Group, 'id' | 'code'>): Promise<boolean> => {
+export const isGroupMember = async (
+  ctx: OptionalAuthContext,
+  group: Pick<Group, 'id'>,
+  statuses: MemberStatus[] = ['active'],
+): Promise<boolean> => {
   if (!ctx.userId) {
     return false
   }
 
-  const db = tenantDb(prisma, group.code)
-  const relation = await db.memberUser.findFirst({
+  const members = await findUserMembers(ctx.userId, {
     where: {
-      userId: ctx.userId,
-      member: {
-        groupId: group.id,
-        deleted: null,
-      },
-    }
+      groupId: group.id,
+      status: { in: statuses },
+    },
+    take: 1,
   })
 
-  return Boolean(relation)
+  return members.length > 0
 }
+
+
 
 export const canReadGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
   return ctx.isSuperadmin
     || ctx.canReadAllSocial
     || (group.status === 'active' && group.access === 'public')
-    || await isGroupMember(ctx, group)
+    || await isGroupMember(ctx, group, ['draft', 'pending', 'active', 'disabled', 'suspended'])
     || isGroupAdmin(ctx, group)
 }
 
@@ -166,7 +231,7 @@ export const canWriteGroup = (ctx: AuthContext, group: Group): boolean => {
  * 
  * If no status filter is provided, defaults to 'active' groups only.
  */
-export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<CollectionResult<Group>> => {
+export const listGroups = async (ctx: OptionalAuthContext, params: CollectionParams): Promise<CollectionResult<SerializableGroup>> => {
   const db = privilegedDb(prisma)
 
   const defaultFilters = {
@@ -190,8 +255,9 @@ export const listGroups = async (ctx: OptionalAuthContext, params: CollectionPar
     },
   })
 
+  const items = reorderByIds(groups, result.ids).map(toGroup)
   return {
-    items: reorderByIds(groups, result.ids).map(toGroup),
+    items: await enrichGroups(ctx, items),
     total: result.total,
   }
 }
@@ -247,7 +313,7 @@ const syncCurrencyStatus = async (ctx: AuthContext, group: Group, status: Curren
   return currency
 }
 
-export const patchGroupByCode = async (ctx: AuthContext, code: string, attributes: PatchGroupAttributes): Promise<Group> => {
+export const patchGroupByCode = async (ctx: AuthContext, code: string, attributes: PatchGroupAttributes): Promise<SerializableGroup> => {
   const group = await getGroupByCode(ctx, code)
 
   const allowed = canWriteGroup(ctx, group)
@@ -311,7 +377,7 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     await syncResourceFiles(code, 'groups', group.id, attributes.image ? [attributes.image.url] : [])
   }
 
-  const updated = toGroup(dbUpdated)
+  const updated = await enrichGroup(ctx, toGroup(dbUpdated))
 
   if (notifyGroupActivated) {
     const notifications = createNotificationsClient(ctx)

@@ -104,54 +104,41 @@ type PostRelationshipCountRow = {
   count: number
 }
 
-/**
- * Computes the number of published offers and needs for the given members and categories in parallel,
- * taking into account the read permissions of the user.
- */
+/** Compute visible published offer and need counts for members or categories. */
 export const findPostRelationshipCounts = async (
   ctx: OptionalAuthContext,
   db: DbClient,
   group: Group,
-  targets: { memberIds?: string[]; categoryIds?: string[] },
-): Promise<{ members: Map<string, PostRelationshipMeta>; categories: Map<string, PostRelationshipMeta> }> => {
-  const memberIds = [...new Set(targets.memberIds ?? [])]
-  const categoryIds = [...new Set(targets.categoryIds ?? [])]
-  const members = new Map(memberIds.map((id) => [id, { offers: 0, needs: 0 }]))
-  const categories = new Map(categoryIds.map((id) => [id, { offers: 0, needs: 0 }]))
+  relatedBy: 'memberId' | 'categoryId',
+  ids: string[],
+): Promise<Map<string, PostRelationshipMeta>> => {
+  const uniqueIds = [...new Set(ids)]
+  const counts = new Map(uniqueIds.map((id) => [id, { offers: 0, needs: 0 }]))
+  if (uniqueIds.length === 0) {
+    return counts
+  }
 
   const readableWhere = await buildReadablePostWhere(ctx, group)
   if (readableWhere === null) {
-    return { members, categories }
+    return counts
   }
 
-  const commonWhere = sqlAnd([
-    readableWhere,
-    Prisma.sql`${postColumn('status')} = 'published'`,
-  ])
+  const relatedId = postColumn(relatedBy)
+  const rows = await db.$queryRaw<PostRelationshipCountRow[]>(Prisma.sql`
+    SELECT ${relatedId} AS "relatedId",
+      ${postColumn('type')} AS "type", COUNT(*)::integer AS "count"
+    FROM ${postWithMemberFrom}
+    WHERE ${readableWhere}
+      AND ${postColumn('status')} = 'published'
+      AND ${relatedId} IN (${Prisma.join(uniqueIds)})
+    GROUP BY ${relatedId}, ${postColumn('type')}
+  `)
 
-  const queryCounts = async (relatedId: Prisma.Sql, ids: string[]): Promise<PostRelationshipCountRow[]> =>
-    ids.length === 0
-      ? []
-      : db.$queryRaw(Prisma.sql`
-          SELECT ${relatedId} AS "relatedId",
-            ${postColumn('type')} AS "type", COUNT(*)::integer AS "count"
-          FROM ${postWithMemberFrom}
-          WHERE ${commonWhere} AND ${relatedId} IN (${Prisma.join(ids)})
-          GROUP BY ${relatedId}, ${postColumn('type')}
-        `)
-
-  const [memberRows, categoryRows] = await Promise.all([
-    queryCounts(postColumn('memberId'), memberIds),
-    queryCounts(postColumn('categoryId'), categoryIds),
-  ])
-
-  for (const [rows, targets] of [[memberRows, members], [categoryRows, categories]] as const) {
-    for (const row of rows) {
-      targets.get(row.relatedId)![row.type] = row.count
-    }
+  for (const row of rows) {
+    counts.get(row.relatedId)![row.type] = row.count
   }
 
-  return { members, categories }
+  return counts
 }
 
 export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<CollectionIds> => {
