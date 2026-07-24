@@ -42,7 +42,7 @@
   "transactionPending": "The trade is pending approval from the other user",
   "transactionRejected": "The trade has been rejected and will not be recorded",
   "acceptPaymentsAutomatically": "Accept Trades as Recipient Automatically",
-  "acceptPaymentsHint": "If enabled, trades requested by other users (providers) will be automatically accepted (decrease of your community standing). Otherwise, you will have to accept them manually.",
+  "acceptPaymentsHint": "If enabled, trades requested by other users (providers) will be automatically accepted. This decreases your community standing. Otherwise, you will have to accept them manually.",
   "myAccountNotificationsHint": "Receive notifications about activity in your account: recorded trades, pending trades, expired offers and wants...",
   "disabledAccountText": "Your account is disabled. Go to your settings to re-enable it before you can record trades.",
   "myAccountEmailsHint": "Emails related to your account: trades, expired offers and wants...",
