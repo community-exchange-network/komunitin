@@ -100,7 +100,7 @@
   "create": "Crea",
   "backToTransfers": "Torna ai movimenti",
   "description": "Descrizione",
-  "transactionDescriptionHint": "Breve descrizione del concetto dello scambio. Per esempio '2kg di patate'.",
+  "transactionDescriptionHint": "Breve descrizione di ciò che è stato scambiato, per esempio '2kg di patate'.",
   "amount": "Importo",
   "amountIn": "Importo in {currency}",
   "transactionAmountHint": "Importo in {currency}.",

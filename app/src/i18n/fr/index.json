@@ -96,7 +96,7 @@
   "transactionPayerHint": "Choisissez le compte à partir duquel le montant sera transféré.",
   "transactionPayeeHint": "Choisissez le compte qui recevra le transfert.",
   "description": "Description",
-  "transactionDescriptionHint": "Brève description du motif du transfert, par exemple '2kg de pommes de terre'.",
+  "transactionDescriptionHint": "Brève description de ce qui a été échangé, par exemple '2kg de pommes de terre'.",
   "amount": "Montant",
   "amountIn": "Montant en {currency}",
   "transactionAmountHint": "Quantité à transférer.",

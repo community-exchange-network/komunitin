@@ -100,7 +100,7 @@
   "transactionPayerHint": "Elige la cuenta desde la que se transferirá la cantidad.",
   "transactionPayeeHint": "Elige la cuenta que recibirá la transferencia.",
   "description": "Descripción",
-  "transactionDescriptionHint": "Breve descripción del concepto del intercambio. Por ejemplo '2kg de patatas'.",
+  "transactionDescriptionHint": "Breve descripción de lo que se ha intercambiado, por ejemplo '2kg de patatas'.",
   "amount": "Cantidad",
   "amountIn": "Cantidad en {currency}",
   "transactionAmountHint": "Cantidad a transferir",
