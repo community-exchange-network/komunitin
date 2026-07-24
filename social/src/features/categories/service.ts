@@ -7,11 +7,42 @@ import { badRequest, forbidden, notFound } from '../../utils/error'
 import { slugify } from '../../utils/format'
 import prisma from '../../utils/prisma'
 import { canWriteGroup, getGroupByCode } from '../groups/service'
-import type { Category, CreateCategoryInput, PatchCategoryInput } from './types'
+import type { Group } from '../groups/types'
+import type { Category, CreateCategoryInput, PatchCategoryInput, SerializableCategory } from './types'
 import { findCategoriesIds } from './sql'
+import { findPostRelationshipCounts } from '../posts/sql'
 
 export const toCategory = (dbCategory: DbCategory): Category => {
   return dbCategory as Category
+}
+
+/** Add viewer-specific post counts required by the category serializer. */
+export const enrichCategories = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+  categories: Category[],
+): Promise<SerializableCategory[]> => {
+  const db = tenantDb(prisma, group.code)
+  const counts = await findPostRelationshipCounts(
+    ctx,
+    db,
+    group,
+    'categoryId',
+    categories.map(({ id }) => id),
+  )
+
+  return categories.map((category) => ({
+    ...category,
+    relationshipMeta: counts.get(category.id)!,
+  }))
+}
+
+export const enrichCategory = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+  category: Category,
+) => {
+  return (await enrichCategories(ctx, group, [category]))[0]
 }
 
 const getCategoryById = async (code: string, id: string): Promise<Category> => {
@@ -31,7 +62,7 @@ const getCategoryById = async (code: string, id: string): Promise<Category> => {
   return toCategory(category)
 }
 
-export const listCategories = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<Category>> => {
+export const listCategories = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<SerializableCategory>> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
   const result = await findCategoriesIds(ctx, db, group, params)
@@ -42,13 +73,14 @@ export const listCategories = async (ctx: OptionalAuthContext, code: string, par
     },
   })
 
+  const items = reorderByIds(categories, result.ids).map(toCategory)
   return {
-    items: reorderByIds(categories, result.ids).map(toCategory),
+    items: await enrichCategories(ctx, group, items),
     total: result.total,
   }
 }
 
-export const createCategory = async (ctx: AuthContext, code: string, input: CreateCategoryInput): Promise<Category> => {
+export const createCategory = async (ctx: AuthContext, code: string, input: CreateCategoryInput): Promise<SerializableCategory> => {
   const group = await getGroupByCode(ctx, code)
   const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
@@ -78,7 +110,7 @@ export const createCategory = async (ctx: AuthContext, code: string, input: Crea
     },
   })
 
-  return toCategory(created)
+  return enrichCategory(ctx, group, toCategory(created))
 }
 
 export const patchCategory = async (
@@ -86,7 +118,7 @@ export const patchCategory = async (
   code: string,
   id: string,
   input: PatchCategoryInput,
-): Promise<Category> => {
+): Promise<SerializableCategory> => {
   const group = await getGroupByCode(ctx, code)
 
   const allowed = canWriteGroup(ctx, group)
@@ -109,7 +141,7 @@ export const patchCategory = async (
     },
   })
 
-  return toCategory(updated)
+  return enrichCategory(ctx, group, toCategory(updated))
 }
 
 export const deleteCategory = async (

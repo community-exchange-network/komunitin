@@ -1,7 +1,7 @@
 import TsJapi from 'ts-japi'
 import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
 import { MemberSerializer } from '../members/serialize'
-import { Post } from './types'
+import type { SerializablePost } from './types'
 import { CategorySerializer } from '../categories/serialize'
 
 const { Relator, Linker, Serializer, PolymorphicSerializer } = TsJapi
@@ -30,12 +30,12 @@ const needProjection = {
 } as const
 
 const linkers = {
-  resource: new Linker((post: Post) => getResourceLink(post.type, post.tenantId, post.id)),
+  resource: new Linker((post: SerializablePost) => getResourceLink(post.type, post.tenantId, post.id)),
 }
 
 const relators = {
-  member: new Relator(async (post: Post) => post.member, MemberSerializer, { relatedName: 'member' }),
-  category: new Relator(async (post: Post) => post.category, CategorySerializer, { relatedName: 'category' })
+  member: new Relator(async (post: SerializablePost) => post.member, MemberSerializer, { relatedName: 'member' }),
+  category: new Relator(async (post: SerializablePost) => post.category, CategorySerializer, { relatedName: 'category' })
 }
 
 const OfferSerializer = new Serializer('offers', {
@@ -57,10 +57,10 @@ const PostSerializer = new PolymorphicSerializer('posts', 'type', {
   needs: NeedSerializer,
 })
 
-export const serializePost = async (post: Post, options?: SerializerOptions<Post>) => {
+export const serializePost = async (post: SerializablePost, options?: SerializerOptions<SerializablePost>) => {
   return PostSerializer.serialize(post, options as SerializerOptions<{type: any}>)
 }
 
-export const serializePosts = async (posts: Post[], options?: SerializerOptions<Post>) => {
+export const serializePosts = async (posts: SerializablePost[], options?: SerializerOptions<SerializablePost>) => {
   return PostSerializer.serialize(posts, options as SerializerOptions<{type: any}>)
 }

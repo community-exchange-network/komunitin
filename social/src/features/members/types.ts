@@ -1,4 +1,5 @@
 import type { Member as DbMember } from '../../generated/prisma/client'
+import type { PostRelationshipMeta } from '../posts/types'
 import type { Access } from '../groups/schema'
 import type {
   Address,
@@ -10,7 +11,7 @@ import type {
   MemberType,
   PatchMemberAttributes,
 } from './schema'
-import type { Group } from '../groups/types'
+import type { Group, SerializableGroup } from '../groups/types'
 
 // Input types derived from request schema
 export type CreateMemberInput = CreateMemberAttributes
@@ -26,8 +27,12 @@ export interface Member extends DbMember {
   location: Location | null
   contacts: Contact[] | null
   meta: MemberMeta
-  // Group is optionally included based on request parameters.
-  group?: Group
+  group: Group
+}
+
+export interface SerializableMember extends Omit<Member, 'group'> {
+  group: SerializableGroup
+  relationshipMeta: PostRelationshipMeta
 }
 
 export type Image = {

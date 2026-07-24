@@ -50,6 +50,7 @@ const defaultGroupData = () => {
     description: `Description for Test Group ${groupCounter}`,
     status: 'active',
     access: 'public',
+    settings: { allowAnonymousMemberList: true },
   }
 }
 
@@ -159,7 +160,7 @@ export const seedGroup = async (data: SeedGroupInput): Promise<Group> => {
       latitude: data.latitude,
       longitude: data.longitude,
       meta: toNullableJsonInput(data.meta),
-      settings: toNullableJsonInput(data.settings),
+      settings: toNullableJsonInput(data.settings ?? defaults.settings),
       deleted: data.deleted,
       currencyId: data.currencyId,
     },

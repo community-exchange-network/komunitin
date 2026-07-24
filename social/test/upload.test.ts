@@ -78,6 +78,46 @@ describe('Files upload endpoint', () => {
     assert.ok(res.body.data.attributes.size > 0)
   })
 
+  test('POST /:code/files/upload accepts linked draft members during onboarding', async () => {
+    await seedGroup({ tenantId: 'uploads-draft', status: 'active', access: 'public' })
+    const user = await auth('uploads-draft-user')
+    await seedMember({ tenantId: 'uploads-draft', userId: user.id, status: 'draft' })
+
+    await request(app)
+      .post('/uploads-draft/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .field('resourceType', 'members')
+      .attach('file', tinyPng, { filename: 'avatar.png', contentType: 'image/png' })
+      .expect(201)
+  })
+
+  test('POST /:code/files/upload rejects missing, legacy, and multiple-file payloads', async () => {
+    await seedGroup({ tenantId: 'uploads-fields', status: 'active', access: 'public' })
+    const user = await auth('uploads-fields-user')
+    await seedMember({ tenantId: 'uploads-fields', userId: user.id })
+
+    await request(app)
+      .post('/uploads-fields/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .attach('file', tinyPng, { filename: 'avatar.png', contentType: 'image/png' })
+      .expect(400)
+
+    await request(app)
+      .post('/uploads-fields/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .field('resourceType', 'member-image')
+      .attach('file', tinyPng, { filename: 'avatar.png', contentType: 'image/png' })
+      .expect(400)
+
+    await request(app)
+      .post('/uploads-fields/files/upload')
+      .set('Authorization', `Bearer ${user.token}`)
+      .field('resourceType', 'members')
+      .attach('first', tinyPng, { filename: 'first.png', contentType: 'image/png' })
+      .attach('second', tinyPng, { filename: 'second.png', contentType: 'image/png' })
+      .expect(400)
+  })
+
 
   test('POST /:code/files/upload rejects unsupported file types', async () => {
     await seedGroup({ tenantId: 'uploads-mime', status: 'active', access: 'public' })

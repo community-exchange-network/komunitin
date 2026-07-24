@@ -586,6 +586,8 @@ describe('Posts endpoints', () => {
     assert.ok(includedResource(res.body, 'categories', category.id))
     const includedMember = includedResource(res.body, 'members', member.id)
     assert.strictEqual(includedMember.attributes.contacts[0].value, 'posts-app-need-filter@example.org')
+    assert.strictEqual(includedMember.relationships.group.data.id, member.groupId)
+    assert.strictEqual(includedResource(res.body, 'groups'), undefined)
   })
 
   test('GET /:code/posts supports need code/account app query', async () => {

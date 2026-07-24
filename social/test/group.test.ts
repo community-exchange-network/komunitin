@@ -487,6 +487,68 @@ describe('Groups endpoints', () => {
     assert.strictEqual(adminResource.relationships.settings, undefined)
   })
 
+  test('group members relationship is only exposed to viewers who can list members', async () => {
+    await seedGroup({
+      tenantId: 'private-member-list',
+      status: 'active',
+      access: 'public',
+      settings: { allowAnonymousMemberList: false },
+    })
+    await seedMember({
+      tenantId: 'private-member-list',
+      status: 'active',
+      access: 'public',
+    })
+
+    const hidden = await request(app)
+      .get('/private-member-list')
+      .expect(200)
+
+    assert.strictEqual(hidden.body.data.relationships.members, undefined)
+    await request(app)
+      .get('/private-member-list/members')
+      .expect(403)
+
+    const admin = await auth('member-list-admin')
+    await seedGroupAdmin({ tenantId: 'private-member-list', userId: admin.id })
+    const allowed = await request(app)
+      .get('/private-member-list')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(allowed.body.data.relationships.members.meta.count, 1)
+    assert.strictEqual(
+      allowed.body.data.relationships.members.links.related,
+      'http://localhost:2028/private-member-list/members',
+    )
+    await request(app)
+      .get('/private-member-list/members')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+  })
+
+  test('GET /groups exposes members relationships for the viewer active memberships', async () => {
+    const viewer = await auth('group-list-member')
+    const settings = { allowAnonymousMemberList: false }
+    await seedGroup({ tenantId: 'joined-group', status: 'active', access: 'public', settings })
+    await seedGroup({ tenantId: 'other-group', status: 'active', access: 'public', settings })
+    await seedGroup({ tenantId: 'disabled-member-group', status: 'active', access: 'public', settings })
+    await seedMember({ tenantId: 'joined-group', userId: viewer.id, status: 'active' })
+    await seedMember({ tenantId: 'disabled-member-group', userId: viewer.id, status: 'disabled' })
+
+    const res = await request(app)
+      .get('/groups?filter[code]=joined-group,other-group,disabled-member-group')
+      .set('Authorization', `Bearer ${viewer.token}`)
+      .expect(200)
+
+    const groups = new Map<string, any>(
+      res.body.data.map((group: any) => [group.attributes.code, group]),
+    )
+    assert.strictEqual(groups.get('joined-group').relationships.members.meta.count, 1)
+    assert.strictEqual(groups.get('other-group').relationships.members, undefined)
+    assert.strictEqual(groups.get('disabled-member-group').relationships.members, undefined)
+  })
+
   test('GET /:code allows service read access for pending private group', async () => {
     await seedGroup({ tenantId: 'group-read-all', status: 'pending', access: 'private' })
 

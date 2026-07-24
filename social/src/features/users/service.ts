@@ -1,14 +1,15 @@
 import prisma from '../../utils/prisma'
-import { Prisma, User as DbUser, type Member as DbMember } from '../../generated/prisma/client'
+import { Prisma, User as DbUser } from '../../generated/prisma/client'
 import type { User, UserSettings, CreateUserInput } from './types'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { privilegedDb } from '../../server/multitenant'
 import { AuthContext } from '../../server/context'
 import { CollectionParams } from '../../server/request'
 import type { CollectionResult } from '../../server/query'
-import { getGroupByCode, isGroupAdmin, type DbGroup } from '../groups/service'
-import { getMemberInclude, toMember } from '../members/service'
-import type { Member } from '../members/types'
+import { getGroupByCode, isGroupAdmin } from '../groups/service'
+import { type DbMember, enrichMembers, getMemberInclude, toMember } from '../members/service'
+import type { SerializableMember } from '../members/types'
+import { countUserMembers, findUserMembers } from './member-query'
 
 const castSettings = (settings: unknown): UserSettings | null => {
   if (!settings || typeof settings !== 'object') {
@@ -156,44 +157,27 @@ export const listUserMembers = async (
   ctx: AuthContext,
   id: string,
   params: CollectionParams,
-): Promise<CollectionResult<Member>> => {
+): Promise<CollectionResult<SerializableMember>> => {
   await getUserById(ctx, id)
 
   const sortField = params.sort[0]?.field ?? 'created'
   const sortOrder = params.sort[0]?.order ?? 'asc'
-  const db = privilegedDb(prisma)
-  const where: Prisma.MemberUserWhereInput = {
-    userId: id,
-    member: {
-      deleted: null,
-    },
-  }
-  const [relations, total] = await Promise.all([
-    db.memberUser.findMany({
-      where,
-      include: {
-        member: {
-          include: getMemberInclude(params.include),
-        },
-      },
+  const [members, total] = await Promise.all([
+    findUserMembers(id, {
+      include: getMemberInclude(),
       orderBy: [
-        {
-          member: {
-            [sortField]: sortOrder,
-          },
-        },
-        { memberId: 'asc' },
-      ] as Prisma.MemberUserOrderByWithRelationInput[],
+        { [sortField]: sortOrder },
+        { id: 'asc' },
+      ] as Prisma.MemberOrderByWithRelationInput[],
       skip: params.pagination.cursor,
       take: params.pagination.size,
     }),
-    db.memberUser.count({ where }),
+    countUserMembers(id),
   ])
+  const items = (members as DbMember[]).map(toMember)
 
   return {
-    items: relations.map((relation) => toMember(
-      relation.member as DbMember & { group?: DbGroup }
-    )),
+    items: await enrichMembers(ctx, items),
     total,
   }
 }

@@ -1,4 +1,5 @@
 import type { Category as DbCategory } from '../../generated/prisma/client'
+import type { PostRelationshipMeta } from '../posts/types'
 import type { Access } from '../groups/schema'
 import type { Icon, CategoryMeta, CreateCategoryAttributes, PatchCategoryAttributes } from './schema'
 
@@ -13,4 +14,8 @@ export interface Category extends DbCategory {
   access: Access
   icon: Icon
   meta: CategoryMeta
+}
+
+export interface SerializableCategory extends Category {
+  relationshipMeta: PostRelationshipMeta
 }
