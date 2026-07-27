@@ -1,5 +1,5 @@
 import TsJapi from 'ts-japi'
-import { getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
+import { getResourceLink, relatedResource, SerializerOptions } from '../../server/jsonapi-serialize'
 import { MemberSerializer } from '../members/serialize'
 import type { SerializablePost } from './types'
 import { CategorySerializer } from '../categories/serialize'
@@ -34,8 +34,16 @@ const linkers = {
 }
 
 const relators = {
-  member: new Relator(async (post: SerializablePost) => post.member, MemberSerializer, { relatedName: 'member' }),
-  category: new Relator(async (post: SerializablePost) => post.category, CategorySerializer, { relatedName: 'category' })
+  member: new Relator(
+    async (post: SerializablePost) => relatedResource(post.memberId, post.member),
+    MemberSerializer,
+    { relatedName: 'member' },
+  ),
+  category: new Relator(
+    async (post: SerializablePost) => relatedResource(post.categoryId, post.category),
+    CategorySerializer,
+    { relatedName: 'category' },
+  ),
 }
 
 const OfferSerializer = new Serializer('offers', {

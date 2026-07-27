@@ -2,12 +2,12 @@ import { Account, createAccountingClient } from '../../clients/accounting'
 import { Prisma, type Member as DbMemberRecord } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { type CollectionResult, reorderByIds } from '../../server/query'
-import type { CollectionParams } from '../../server/request'
+import { type CollectionResult, indexById, reorderByIds } from '../../server/query'
+import { hasInclude, type CollectionParams, type ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { DbGroup, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
+import { enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
@@ -15,34 +15,31 @@ import { createNotificationsClient } from '../../clients/notifications'
 import { findPostRelationshipCounts } from '../posts/sql'
 import type { PostRelationshipMeta } from '../posts/types'
 
-export type DbMember = DbMemberRecord & { group: DbGroup }
+const getMemberLoad = (params: ResourceParams) => ({
+  group: hasInclude(params, 'group'),
+})
 
-export const toMember = (member: DbMember): Member => {
+export const toMember = (member: DbMemberRecord, group?: Group): Member => {
   return {
     ...member,
     location: toLocation(member),
-    group: toGroup(member.group),
+    group,
   } as Member
 }
-
-export const getMemberInclude = () => ({
-  group: {
-    include: {
-      admins: true,
-    },
-  },
-} as const)
 
 /** Add post counts and enrich member groups. */
 export const enrichMembers = async (
   ctx: OptionalAuthContext,
   members: Member[],
+  groups: Group[],
 ): Promise<SerializableMember[]> => {
   if (members.length === 0) {
     return []
   }
 
-  const groups = members.map(({ group }) => group)
+  const includedGroups = groups.filter((group) =>
+      members.some((member) => member.group?.id === group.id))
+
   const [countMaps, serializableGroups] = await Promise.all([
     Promise.all(groups.map(async (group) => {
       const db = tenantDb(prisma, group.code)
@@ -56,11 +53,11 @@ export const enrichMembers = async (
           .map(({ id }) => id),
       )
     })),
-    enrichGroups(ctx, groups),
+    enrichGroups(ctx, includedGroups),
   ])
 
-  const groupsById = new Map(serializableGroups.map((group) => [group.id, group]))
-  
+  const groupsById = indexById(serializableGroups)
+
   // Combine the counts from all groups into a single map for easy lookup.
   const postCounts = new Map<string, PostRelationshipMeta>(
     countMaps.flatMap((counts) => [...counts.entries()]),
@@ -68,7 +65,7 @@ export const enrichMembers = async (
 
   return members.map((member) => ({
     ...member,
-    group: groupsById.get(member.groupId)!,
+    group: member.group ? groupsById.get(member.groupId)! : undefined,
     relationshipMeta: postCounts.get(member.id)!,
   }))
 }
@@ -76,25 +73,25 @@ export const enrichMembers = async (
 export const enrichMember = async (
   ctx: OptionalAuthContext,
   member: Member,
+  group: Group,
 ): Promise<SerializableMember> => {
-  return (await enrichMembers(ctx, [member]))[0]
+  return (await enrichMembers(ctx, [member], [group]))[0]
 }
 
-const getMemberById = async (code: string, id: string): Promise<Member> => {
+export const getMemberById = async (code: string, id: string, group?: Group): Promise<Member> => {
   const db = tenantDb(prisma, code)
   const member = await db.member.findFirst({
     where: {
       id,
       deleted: null,
     },
-    include: getMemberInclude(),
   })
 
   if (!member) {
     throw notFound('Member not found')
   }
 
-  return toMember(member)
+  return toMember(member, group)
 }
 
 export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member, 'id' | 'tenantId'>, role?: 'admin' ): Promise<boolean> => {
@@ -257,26 +254,35 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     where: {
       id: { in: result.ids },
     },
-    include: getMemberInclude(),
   })
 
-  const items = reorderByIds(members, result.ids).map(toMember)
+  const load = getMemberLoad(params)
+  const includedGroup = load.group ? group : undefined
+  const items = reorderByIds(members, result.ids)
+    .map((member) => toMember(member, includedGroup))
   return {
-    items: await enrichMembers(ctx, items),
+    items: await enrichMembers(ctx, items, [group]),
     total: result.total,
   }
 }
 
-export const getMember = async (ctx: OptionalAuthContext, code: string, id: string): Promise<SerializableMember> => {
+export const getMember = async (
+  ctx: OptionalAuthContext,
+  code: string,
+  id: string,
+  params: ResourceParams = { include: [] },
+): Promise<SerializableMember> => {
   const group = await getGroupByCode(ctx, code)
-  const member = await getMemberById(code, id)
+  const load = getMemberLoad(params)
+  const includedGroup = load.group ? group : undefined
+  const member = await getMemberById(code, id, includedGroup)
 
   const allowed = await canReadMember(ctx, group, member)
   if (!allowed) {
     throw forbidden('You do not have access to this member')
   }
 
-  return enrichMember(ctx, member)
+  return enrichMember(ctx, member, group)
 }
 
 export const createMember = async (ctx: AuthContext, code: string, input: CreateMemberInput): Promise<SerializableMember> => {
@@ -321,7 +327,6 @@ export const createMember = async (ctx: AuthContext, code: string, input: Create
         longitude: input.location?.coordinates[0],
         groupId: group.id,
       },
-      include: getMemberInclude(),
     })
 
     await tx.memberUser.create({
@@ -338,7 +343,7 @@ export const createMember = async (ctx: AuthContext, code: string, input: Create
 
   await syncResourceFiles(code, 'members', created.id, input.image ? [input.image.url] : [])
 
-  return enrichMember(ctx, toMember(created))
+  return enrichMember(ctx, toMember(created), group)
 }
 
 export const patchMember = async (
@@ -413,7 +418,6 @@ export const patchMember = async (
       id: member.id,
     },
     data,
-    include: getMemberInclude(),
   })
 
   if (input.image !== undefined) {
@@ -430,7 +434,7 @@ export const patchMember = async (
     }
   }
 
-  return enrichMember(ctx, toMember(updated))
+  return enrichMember(ctx, toMember(updated), group)
 }
 
 export const deleteMember = async (ctx: AuthContext, code: string, id: string): Promise<void> => {

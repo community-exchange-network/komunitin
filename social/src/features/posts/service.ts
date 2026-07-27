@@ -1,23 +1,47 @@
-import type { Post as DbPost, Category as DbCategory } from '../../generated/prisma/client'
+import type { Post as DbPost } from '../../generated/prisma/client'
 import { PostUpdateInput } from '../../generated/prisma/models'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { type CollectionResult, reorderByIds } from '../../server/query'
-import type { CollectionParams } from '../../server/request'
+import { type CollectionResult, indexById, reorderByIds, uniqueById } from '../../server/query'
+import { hasInclude, type CollectionParams, type ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { slugify } from '../../utils/format'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
 import { fromLocation, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
-import { type DbMember, enrichMembers, getMember, getMemberInclude, isMemberUser, toMember } from '../members/service'
+import { enrichMembers, getMemberById, isMemberUser, toMember } from '../members/service'
+import type { Member } from '../members/types'
 import { createNotificationsClient } from '../../clients/notifications'
 import type { PostStatus } from './schema'
 import type { CreatePostInput, NeedData, OfferData, PatchPostInput, Post, SerializablePost } from './types'
 import { findPostsIds } from './sql'
 import { enrichCategories, toCategory } from '../categories/service'
+import type { Category } from '../categories/types'
 
-const toPost = (dbPost: DbPost & { member: DbMember, category: DbCategory | null }): Post => {
+type PostLoad = {
+  member: boolean
+  memberGroup: boolean
+  category: boolean
+}
+
+const getPostLoad = (params: ResourceParams): PostLoad => ({
+  member: hasInclude(params, 'member'),
+  memberGroup: hasInclude(params, 'member.group'),
+  category: hasInclude(params, 'category'),
+})
+
+const noPostLoad: PostLoad = {
+  member: false,
+  memberGroup: false,
+  category: false,
+}
+
+const toPost = (
+  dbPost: DbPost,
+  member?: Member,
+  category?: Category,
+): Post => {
   const { latitude, longitude, data, ...post} = dbPost
   const location = toLocation({
     address: null,
@@ -29,8 +53,8 @@ const toPost = (dbPost: DbPost & { member: DbMember, category: DbCategory | null
     ...post,
     ...dataObj,
     location,
-    member: toMember(dbPost.member),
-    category: dbPost.category ? toCategory(dbPost.category) : null,
+    member,
+    category,
   } as Post
 }
 
@@ -40,20 +64,19 @@ export const enrichPosts = async (
   group: Group,
   posts: Post[],
 ): Promise<SerializablePost[]> => {
+  const postMembers = uniqueById(posts.flatMap(({ member }) => member ? [member] : []))
+  const postCategories = uniqueById(posts.flatMap(({ category }) => category ? [category] : []))
   const [members, categories] = await Promise.all([
-    enrichMembers(ctx, posts.map(({ member }) => member)),
-    enrichCategories(
-      ctx,
-      group,
-      posts.map(({ category }) => category).filter((category) => category !== null)
-    ),
+    enrichMembers(ctx, postMembers, [group]),
+    enrichCategories(ctx, group, postCategories),
   ])
-  const categoriesById = new Map(categories.map((category) => [category.id, category]))
+  const membersById = indexById(members)
+  const categoriesById = indexById(categories)
 
-  return posts.map((post, index): SerializablePost => ({
+  return posts.map((post): SerializablePost => ({
     ...post,
-    member: members[index],
-    category: post.category ? categoriesById.get(post.category.id)! : null,
+    member: post.member ? membersById.get(post.member.id)! : undefined,
+    category: post.category ? categoriesById.get(post.category.id)! : undefined,
   }))
 }
 
@@ -65,7 +88,12 @@ export const enrichPost = async (
   return (await enrichPosts(ctx, group, [post]))[0]
 }
 
-const getPostById = async (code: string, id: string): Promise<Post> => {
+const getPostById = async (
+  code: string,
+  id: string,
+  load: PostLoad = noPostLoad,
+  group?: Group,
+): Promise<Post> => {
   const db = tenantDb(prisma, code)
   const post = await db.post.findFirst({
     where: {
@@ -76,10 +104,8 @@ const getPostById = async (code: string, id: string): Promise<Post> => {
       },
     },
     include: {
-      member: {
-        include: getMemberInclude(),
-      },
-      category: true
+      member: load.member,
+      category: load.category,
     }
   })
 
@@ -87,7 +113,11 @@ const getPostById = async (code: string, id: string): Promise<Post> => {
     throw notFound('Post not found')
   }
 
-  return toPost(post)
+  return toPost(
+    post,
+    load.member ? toMember(post.member, load.memberGroup ? group : undefined) : undefined,
+    load.category && post.category ? toCategory(post.category) : undefined,
+  )
 }
 
 const isPostOwner = async (ctx: OptionalAuthContext, post: Post): Promise<boolean> => {
@@ -163,6 +193,7 @@ const validatePostCategory = async (code: string, group: Group, categoryId: stri
 export const listPosts = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<SerializablePost>> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
+  const load = getPostLoad(params)
 
   const result = await findPostsIds(ctx, db, group, params)
   const posts = await db.post.findMany({
@@ -170,23 +201,32 @@ export const listPosts = async (ctx: OptionalAuthContext, code: string, params: 
       id: { in: result.ids },
     },
     include: {
-      member: {
-        include: getMemberInclude(),
-      },
-      category: true,
+      member: load.member,
+      category: load.category,
     },
   })
 
-  const items = reorderByIds(posts, result.ids).map((post) => toPost(post))
+  const items = reorderByIds(posts, result.ids)
+    .map((post) => toPost(
+      post,
+      load.member ? toMember(post.member, load.memberGroup ? group : undefined) : undefined,
+      load.category && post.category ? toCategory(post.category) : undefined,
+    ))
   return {
     items: await enrichPosts(ctx, group, items),
     total: result.total,
   }
 }
 
-export const getPost = async (ctx: OptionalAuthContext, code: string, id: string): Promise<SerializablePost> => {
+export const getPost = async (
+  ctx: OptionalAuthContext,
+  code: string,
+  id: string,
+  params: ResourceParams = { include: [] },
+): Promise<SerializablePost> => {
   const group = await getGroupByCode(ctx, code)
-  const post = await getPostById(code, id)
+  const load = getPostLoad(params)
+  const post = await getPostById(code, id, load, group)
 
   const allowed = await canReadPost(ctx, group, post)
   if (!allowed) {
@@ -236,7 +276,7 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
   const group = await getGroupByCode(ctx, code)
 
   // Resolve member
-  const member = await getMember(ctx, code, input.memberId)
+  const member = await getMemberById(code, input.memberId)
 
   // Check access
   const allowed = ctx.isSuperadmin 
@@ -284,12 +324,6 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
       memberId: member.id,
       categoryId: input.categoryId ?? null,
       groupId: group.id,
-    },
-    include: {
-      category: true,
-      member: {
-        include: getMemberInclude(),
-      },
     }
   })
 
@@ -358,12 +392,6 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
   const updated = await db.post.update({
     where: { id: post.id },
     data: updateData,
-    include: {
-      member: {
-        include: getMemberInclude(),
-      },
-      category: true
-    }
   })
 
   if (input.images !== undefined) {

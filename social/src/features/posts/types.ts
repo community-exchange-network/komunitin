@@ -39,8 +39,9 @@ interface BasePost extends Omit<DbPost, "data" | "latitude" | "longitude"> {
   access: Access
   images: Image[] | null
   location: Location | null
-  member: Member
-  category: Category | null
+  // Optional related resources are hydrated only when included.
+  member?: Member
+  category?: Category
 }
 
 export type OfferData = {
@@ -62,8 +63,8 @@ export type Need = BasePost & NeedData & {
 export type Post = Offer | Need
 
 type SerializablePostRelationships = {
-  member: SerializableMember
-  category: SerializableCategory | null
+  member?: SerializableMember
+  category?: SerializableCategory
 }
 
 export type SerializablePost =

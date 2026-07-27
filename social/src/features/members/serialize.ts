@@ -1,5 +1,5 @@
 import TsJapi from 'ts-japi'
-import { externalResourceSerializer, getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
+import { externalResourceSerializer, getResourceLink, relatedResource, SerializerOptions } from '../../server/jsonapi-serialize'
 import { getAccountingAccountUrl } from '../../clients/accounting'
 import { GroupSerializer } from '../groups/serialize'
 import type { SerializableGroup } from '../groups/types'
@@ -32,7 +32,11 @@ export const MemberSerializer = new Serializer<SerializableMember>('members', {
   },
   relators: {
     ...postRelationships<SerializableMember>('member'),
-    group: new Relator<SerializableMember, SerializableGroup>(async (member) => member.group, GroupSerializer, { relatedName: 'group' }),
+    group: new Relator<SerializableMember, SerializableGroup>(
+      async (member) => relatedResource(member.groupId, member.group),
+      GroupSerializer,
+      { relatedName: 'group' },
+    ),
     account: new Relator<SerializableMember, { id: string; href: string }>(async (member) => {
       if (!member.accountId) {
         return undefined

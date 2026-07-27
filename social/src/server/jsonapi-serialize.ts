@@ -10,6 +10,17 @@ export type ExternalResource = {
   href: string
 }
 
+/**
+ * Return a hydrated related resource when it was included, or the minimal
+ * resource identifier required for JSON:API relationship linkage.
+ */
+export const relatedResource = <Resource extends { id: string }>(
+  id: string | null,
+  included?: Resource,
+): Resource | null => {
+  return id === null ? null : included ?? { id } as Resource
+}
+
 export class ToManyRelator<Source> extends Relator<Source, { id: string }> {
   constructor(
     name: string,

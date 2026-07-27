@@ -47,6 +47,10 @@ export type ResourceParamsOptions = {
   include?: string[]
 }
 
+export const hasInclude = (params: ResourceParams, path: string) => {
+  return params.include.some((item) => item === path || item.startsWith(`${path}.`))
+}
+
 // qs splits commas before URL decoding, so URLSearchParams values need normalization after parsing.
 const splitCommaSeparated = (value: unknown) => typeof value === 'string' ? value.split(',') : value
 
