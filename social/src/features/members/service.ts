@@ -7,7 +7,7 @@ import { hasInclude, type CollectionParams, type ResourceParams } from '../../se
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
@@ -206,23 +206,6 @@ const syncAccountStatus = async (ctx: AuthContext, member: Member, currencyCode:
   }
 
   return account
-}
-
-/**
- * Return true if the given context has permission to list members of the group.
- * 
- * The optional `isMember` checks if the user is a member of the group. This can be 
- * used to avoid unnecessary database queries.
- */
-export const canListGroupMembers = async (
-  ctx: OptionalAuthContext,
-  group: Group,
-  isMember = () => isGroupMember(ctx, group),
-) => {
-  return ctx.isSuperadmin || ctx.canReadAllSocial
-    || (group.status === 'active' && group.access === 'public' && group.settings?.allowAnonymousMemberList === true)
-    || isGroupAdmin(ctx, group)
-    || await isMember()
 }
 
 /**

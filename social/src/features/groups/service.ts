@@ -14,7 +14,6 @@ import { Address, Location, PatchGroupAttributes, PatchGroupSettingsAttributes }
 import { findGroupIds } from './sql'
 import type { CreateGroupInput, Group, GroupMeta, SerializableGroup } from './types'
 import { createNotificationsClient } from '../../clients/notifications'
-import { canListGroupMembers } from '../members/service'
 import { findUserMembers } from '../users/member-query'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
@@ -212,7 +211,22 @@ export const isGroupMember = async (
   return members.length > 0
 }
 
-
+/**
+ * Return true if the given context has permission to list members of the group.
+ *
+ * The optional `isMember` checks if the user is a member of the group. This can
+ * be used to avoid unnecessary database queries.
+ */
+export const canListGroupMembers = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+  isMember = () => isGroupMember(ctx, group),
+) => {
+  return ctx.isSuperadmin || ctx.canReadAllSocial
+    || (group.status === 'active' && group.access === 'public' && group.settings?.allowAnonymousMemberList === true)
+    || isGroupAdmin(ctx, group)
+    || await isMember()
+}
 
 export const canReadGroup = async (ctx: OptionalAuthContext, group: Group): Promise<boolean> => {
   return ctx.isSuperadmin
