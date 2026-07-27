@@ -117,7 +117,8 @@ still run only against MirageJS.
 - Derive `myMember`, `myAccount`, `myCurrency`, and `myGroup` from normalized
   member/account/group/currency stores, not from embedded `user.members`.
 - Convert location list queries from `geo-position=<lng>,<lat>&sort=location`
-  to `near=<lat>,<lng>&sort=distance`.
+  to `near=<lng>,<lat>&sort=distance`. Keep sorting explicit: a current
+  location alone must not select distance ordering.
 - Update first-group and member-signup frontend flows to create auth
   credentials first, then log in, then create social users/groups/members
   without sending passwords to social.
@@ -198,7 +199,7 @@ Goal: prove the migrated app bootstrap works against the real social API.
   from real social responses.
 - Keep the current-member selection simple at first: load page size `1` until
   the product defines multi-membership switching.
-- Verify real social location queries use `near=<lat>,<lng>&sort=distance`.
+- Verify real social location queries use `near=<lng>,<lat>&sort=distance`.
 
 Verification:
 
@@ -299,7 +300,9 @@ service before debugging frontend workflows.
 - Complete group lifecycle behavior: create a pending group, authorize
   superadmin activation, provision its accounting currency/accounts through the
   migrated accounting boundary, and make active groups available to public
-  listing and joining.
+  listing and joining. Pending groups retain requested currency attributes in
+  internal request metadata but expose no currency relationship until
+  Accounting successfully provisions one.
 - Make member provisioning idempotent per authenticated user and group, keep
   onboarding state in social, and enforce the intended `draft` to `pending`
   status transition.
@@ -330,6 +333,20 @@ Verification:
 - Real social response and error shapes match the migrated frontend/Mirage
   contract.
 
+Local-stack smoke performed 2026-07-16:
+
+- IntegralCES was stopped for the entire request sequence and restarted only
+  after the smoke completed.
+- Auth bootstrapped the configured admin UUID; Social created pending group
+  `S8Z1` without a currency relationship, then activated it through delegated
+  Auth token exchange and real Accounting currency provisioning.
+- The same user created one draft member (`201`), retried with a different body
+  (`200`, same unchanged resource), transitioned it through `pending` and
+  `active`, and received a real Accounting account relationship.
+- Direct Accounting reads confirmed the active currency and account, and an
+  anonymous filtered Social collection returned the active group with exact
+  `meta.count`.
+
 ## Stage 9: Migrate The Notifications Service
 
 Goal: make notifications consume new auth, social, and accounting contracts and
@@ -353,6 +370,10 @@ emit purpose-bound links.
   8058 `List-Unsubscribe` headers to the working public endpoint.
 - Update notifications mocks, fixtures, snapshots, and tests to the new auth,
   social, accounting, and link contracts.
+- Replace embedded `relationships.admins.data` consumption with
+  `GET /:code/admins`, and use `/posts` with canonical `filter[type]=offers|needs`
+  and `filter[status]=published`; Social provides no temporary legacy
+  relationship or marketplace aliases.
 
 Verification:
 

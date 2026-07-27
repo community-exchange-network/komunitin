@@ -16,7 +16,7 @@ services in this repository.
 - App login scopes use `email offline_access social:read social:write accounting:read accounting:write`.
 - The new auth service does not issue ID tokens and does not expose `openid` or `profile` scopes.
 - Legacy prefixed domain, service-wide read, impersonation, and superadmin scopes must not be requested from the new auth service.
-- Current new auth access tokens use audience `app`; consumers that validate JWTs must update issuer, audience, and JWKS configuration away from legacy Drupal defaults.
+- New auth access tokens use audience `urn:komunitin:api`; consumers that validate JWTs must use the configured new issuer, that exact audience, and the new JWKS endpoint.
 - Prefer OIDC issuer metadata/JWKS from the new auth service where possible; avoid hardcoded legacy `/.well-known/jwks.json` and `/oauth2` paths.
 - Frontend refresh must remain a token endpoint form request with `grant_type=refresh_token`, `client_id=komunitin-app`, and `refresh_token=<stored refresh token>`.
 - Backend service tokens must use `grant_type=client_credentials`, `client_id=<service client>`, `client_secret=<service secret>`, and an explicit allowed new scope set.
@@ -40,8 +40,11 @@ services in this repository.
 - The social request parser now validates include, filter, sort, page, and route params strictly; unsupported include paths should be treated as migration failures, not ignored compatibility behavior.
 - Use only allowed includes per route: users support `settings`; user members support `group`, `group.currency`, and `account`; tenant members support `group` and `account`; groups support `settings` and `currency`.
 - To-many relationships should be fetched through collections/subcollections instead of nested `include` paths.
-- Location sorting must move from the old app pattern `geo-position=<lng>,<lat>` plus `sort=location` to the new social pattern `near=<lat>,<lng>` plus `sort=distance`.
-- The app stores locations as `[longitude, latitude]`; convert order before sending the new `near` parameter, which expects latitude first and longitude second.
+- Location sorting must move from the old app pattern `geo-position=<lng>,<lat>` plus `sort=location` to the new social pattern `near=<lng>,<lat>` plus explicit `sort=distance`.
+- The app and Social use GeoJSON coordinate order `[longitude, latitude]`; preserve that order in `near`, and do not select distance sorting merely because a current location is available.
+- Pending groups retain requested currency attributes in Social's internal request metadata but do not expose an external currency relationship until activation successfully provisions a real Accounting currency.
+- Group `admins` relationships contain only `links.related` and `meta.count`; authorized consumers fetch the collection from `GET /:code/admins`.
+- Member and category marketplace relationships use canonical `/posts` links with `filter[type]=offers|needs` and `filter[status]=published`; there are no `/offers` or `/needs` aliases.
 - The social service still uses JSON:API payload shapes for resources and settings; auth management endpoints use plain JSON, so do not reuse JSON:API request builders for auth endpoints.
 - Social user resources no longer own password or primary email mutation; password/email flows belong to auth.
 - Social `PATCH /users/:id/settings` remains the place for user preferences such as language, notification settings, and newsletter email settings.
@@ -61,7 +64,7 @@ services in this repository.
 - `app/src/pages/settings/Unsubscribe.vue` posts directly to `${SOCIAL_URL}/users/me/unsubscribe?token=...`; the target social endpoint must redeem the raw token through auth and update newsletter settings without requiring app login.
 - `app/src/store/me.ts` bootstraps with `users/load` and `include: "members,members.group,settings"`; replace this with separate user and user-members loads.
 - `app/src/store/me.ts` getters `myMember`, `myAccount`, and `myCurrency` currently read nested data under `myUser`; migrate them to derive from the members/account/currency stores after the new bootstrap calls.
-- `app/src/store/resources.ts` currently emits `geo-position` and default `sort=location` when `payload.location` exists; migrate the query builder to emit `near=<lat>,<lng>` and default `sort=distance` for new social endpoints.
+- `app/src/store/resources.ts` emits `near=<lng>,<lat>` when `payload.location` exists and emits `sort` only when the caller explicitly requests it.
 - `app/src/store/index.ts` has `users.resourceEndpoint(..., id?)` mapping no-id calls to `/users/me`; user-members subcollection loading likely needs a dedicated resource action or specialized endpoint because the generic user resource module does not express `/users/me/members`.
 - `app/src/router/routes.ts` currently treats `/groups/new` and `/groups/:code/signup-member` as logged-in continuation routes for email validation links; those flows must be reviewed because validation action tokens do not authenticate.
 - Tests and mocks that expect magic-login `?token=` behavior, legacy scopes, or embedded user members need to be updated alongside app changes.
@@ -81,6 +84,7 @@ services in this repository.
 - `notifications-ts/src/notifications/emails/user.ts` currently creates validation CTAs to `/groups/:code/signup-member?token=...` or `/groups/new?token=...`; those links must stop relying on boot-time magic login.
 - `notifications-ts/src/clients/komunitin/client.ts` uses client-credentials tokens for social/accounting API reads; after scope migration, verify every called endpoint accepts the new scopes and token audience.
 - Notification mocks and snapshot tests still return or assert `mock-unsubscribe-token` from `/get-auth-code`; update them to the action-token contract.
+- Notifications must fetch group administrators from `GET /:code/admins` and query marketplace data through `/posts` with canonical type/status filters; Social does not retain embedded admin linkage or legacy marketplace aliases for this migration.
 
 ## Accounting Service Patterns To Migrate
 
@@ -106,9 +110,9 @@ services in this repository.
 
 - There is no authenticated self-service password-change endpoint in auth yet; current app logged-in password change cannot be migrated cleanly until a bearer-auth endpoint such as `POST /change-password/authenticated` exists or another explicit contract is chosen.
 - The `superadmin` scope remains the privileged signal for app route guards and service admin behavior.
-- Social has the auth-side `POST /redeem-action-token` contract available, but a public social endpoint for `/users/me/unsubscribe?token=...` and a social client-credentials auth client were not found in `social/`; this path needs implementation or a different endpoint.
+- Social exposes public `POST /users/me/unsubscribe?token=...`, obtains a cached client-credentials token, and redeems the single-use `unsubscribe` action token through Auth without logging or storing the raw token.
 - Link-driven signup/onboarding after email verification is not fully defined: validation tokens confirm email, but they do not authenticate or carry social onboarding state.
 - The target frontend route after email verification is not settled for group-member signup versus new-group creation; current `/groups/:code/signup-member?token=...` and `/groups/new?token=...` links depend on magic login.
 - It is unclear whether app bootstrap should keep only the first member with `page[size]=1` or support multi-membership selection now that `/users/me/members` is paginated.
 - It is unclear whether the app should continue deriving the accounting API base URL from HATEOAS currency links after the social/auth migration, or whether the new stack should rely on configured service URLs.
-- It is unclear which legacy compatibility validators for JWT issuer prefix, null `sub`, and numeric user subjects must remain during a staged rollout and when each should be removed.
+- Social retains no runtime compatibility validators for legacy issuer prefixes, null or numeric subjects, legacy scopes, or noncanonical service identities.
