@@ -138,6 +138,8 @@ class AccountingClient {
               },
             },
           },
+          // We could add currency-settings as well, but the accounting service will 
+          // create default settings if none are provided.
           included: userMap(adminUserIds),
         }),
       },

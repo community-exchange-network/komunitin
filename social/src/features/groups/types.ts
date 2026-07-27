@@ -1,16 +1,21 @@
-import type { Group as DbGroup } from '../../generated/prisma/client'
+import type { Group as DbGroup, Prisma } from '../../generated/prisma/client'
 import type { Access, Address, Contact, CreateGroupAttributes, GroupSettings, GroupStatus, Location } from './schema'
 
 // Input types derived from request schema
 export interface CreateGroupInput {
   attributes: CreateGroupAttributes
   settings?: GroupSettings
-  currency?: unknown
 }
 
 export interface GroupAdmin {
   id: string
   role: 'admin'
+}
+
+export type GroupMeta = {
+  request?: {
+    currency?: Prisma.JsonObject
+  }
 }
 
 // Output types derived from Prisma models
@@ -32,11 +37,4 @@ export interface SerializableGroup extends Group {
     memberCount: number
     canListMembers: boolean
   }
-}
-
-export type GroupMeta = {
-  request?: {
-    currency?: unknown
-  }
-  [key: string]: any
 }

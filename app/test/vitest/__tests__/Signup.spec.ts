@@ -249,7 +249,18 @@ describe("Signup", () => {
     });
     const admins = await adminsResponse.json();
     expect(admins.data[0].id).toBe(wrapper.vm.$store.getters.myUser.id);
-    expect(wrapper.vm.$store.getters["groups/current"].relationships.currency.data.id).toBeTruthy();
+    expect(createdGroup.relationships.currency).toBeUndefined();
+    expect(createdGroup.attributes.meta.request.currency).toEqual({
+      name: "test credit",
+      namePlural: "test credits",
+      symbol: "TC",
+      decimals: 2,
+      scale: 6,
+      rate: {
+        n: 1,
+        d: 10
+      }
+    });
   });
   
 })

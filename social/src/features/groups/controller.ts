@@ -15,12 +15,10 @@ export const postGroups: RequestHandler = async (req, res) => {
 
   const attributes = body.data.attributes
   const settings = body.included?.find((resource) => resource.type === 'group-settings')?.attributes
-  const currency = body.included?.find((resource) => resource.type === 'currencies')?.attributes
 
   const group = await createGroup(ctx, {
     attributes,
     settings,
-    currency,
   })
   const params = getResourceParams(req, { include: ['settings', 'currency'] })
   const payload = await serializeGroup(group, params)

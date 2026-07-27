@@ -23,6 +23,17 @@ const tinyPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=',
   'base64',
 )
+const testCurrencyAttributes = {
+  name: 'Test Credit',
+  namePlural: 'Test Credits',
+  symbol: 'TCR',
+  decimals: 2,
+  scale: 6,
+  rate: {
+    n: 1,
+    d: 10,
+  },
+}
 
 const postGroup = (
   token: string,
@@ -131,9 +142,8 @@ describe('Groups endpoints', () => {
     assert.strictEqual(events[0].data.attributes.data.group, 'alpha-group')
   })
 
-  test('POST /groups accepts currency inclusion with JSON:API linkage', async () => {
+  test('POST /groups stores the public currency request in group meta', async () => {
     const { token } = await auth('currency-request-user')
-    const currencyId = toUuid('currency-request')
 
     const res = await request(app)
       .post('/groups')
@@ -144,22 +154,26 @@ describe('Groups endpoints', () => {
           attributes: {
             code: 'currency-request-group',
             name: 'Currency request group',
-          },
-          relationships: {
-            currency: {
-              data: { type: 'currencies', id: currencyId },
+            meta: {
+              request: {
+                currency: {
+                  ...testCurrencyAttributes,
+                  symbol: 'CRG',
+                },
+              },
             },
           },
         },
-        included: [{
-          type: 'currencies',
-          id: currencyId,
-          attributes: { code: 'CRG' },
-        }],
       })
       .expect(201)
 
     assert.strictEqual(res.body.data.attributes.code, 'currency-request-group')
+    assert.strictEqual(res.body.data.relationships.currency, undefined)
+    assert.strictEqual(res.body.data.attributes.meta.request.currency.symbol, 'CRG')
+
+    const db = tenantDb(prisma, 'currency-request-group')
+    const group = await db.group.findFirstOrThrow()
+    assert.deepStrictEqual(group.meta, res.body.data.attributes.meta)
   })
 
   test('POST /groups rejects duplicate code', async () => {
@@ -872,6 +886,53 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.data.attributes.description, 'Updated description')
   })
 
+  test('PATCH /:code updates a pending currency request for group admin', async () => {
+    const admin = await auth('currency-request-admin')
+    await seedGroup({
+      tenantId: 'patch-currency-request',
+      status: 'pending',
+      access: 'public',
+      meta: {
+        request: {
+          currency: testCurrencyAttributes,
+        },
+      },
+    })
+    await seedGroupAdmin({ tenantId: 'patch-currency-request', userId: admin.id })
+
+    const currency = {
+      ...testCurrencyAttributes,
+      name: 'Reviewed Credit',
+      symbol: 'RC',
+    }
+    const res = await request(app)
+      .patch('/patch-currency-request')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            meta: {
+              request: {
+                currency,
+              },
+            },
+          },
+        },
+      })
+      .expect(200)
+
+    assert.deepStrictEqual(res.body.data.attributes.meta.request.currency, currency)
+
+    const db = tenantDb(prisma, 'patch-currency-request')
+    const group = await db.group.findFirstOrThrow()
+    assert.deepStrictEqual(group.meta, {
+      request: {
+        currency,
+      },
+    })
+  })
+
   test('PATCH /:code denies admin status transition from pending to active', async () => {
     const admin = await auth('admin-status-9')
     await seedGroup({ tenantId: 'status-transition', status: 'pending', access: 'public' })
@@ -901,6 +962,7 @@ describe('Groups endpoints', () => {
       meta: {
         request: {
           currency: {
+            ...testCurrencyAttributes,
             name: 'Activate Currency',
           },
         },
@@ -921,6 +983,7 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     assert.strictEqual(res.body.data.attributes.status, 'active')
+    assert.strictEqual(res.body.data.attributes.meta, null)
     assert.strictEqual(res.body.data.relationships.currency.data.type, 'currencies')
     assert.strictEqual(res.body.data.relationships.currency.data.meta.external, true)
     assert.strictEqual(res.body.data.relationships.currency.data.meta.href, 'http://localhost:2025/activate-group/currency')
@@ -934,13 +997,7 @@ describe('Groups endpoints', () => {
     const group = await db.group.findFirstOrThrow()
     assert.strictEqual(group.status, 'active')
     assert.strictEqual(group.currencyId, res.body.data.relationships.currency.data.id)
-    assert.deepStrictEqual(group.meta, {
-      request: {
-        currency: {
-          name: 'Activate Currency',
-        },
-      },
-    })
+    assert.strictEqual(group.meta, null)
 
     const events = getNotificationsEvents() as any[]
     assert.strictEqual(events.length, 1)
@@ -959,6 +1016,7 @@ describe('Groups endpoints', () => {
       meta: {
         request: {
           currency: {
+            ...testCurrencyAttributes,
             name: 'Adopt Group Currency',
           },
         },
@@ -993,6 +1051,11 @@ describe('Groups endpoints', () => {
       getAccountingRequests()[0].authorization,
       'Bearer exchanged-accounting-read',
     )
+
+    const db = tenantDb(prisma, 'adopt-group')
+    const group = await db.group.findFirstOrThrow()
+    assert.strictEqual(group.meta, null)
+    assert.strictEqual(res.body.data.attributes.meta, null)
   })
 
   test('PATCH /:code allows group admin to disable and reactivate with accounting sync', async () => {
