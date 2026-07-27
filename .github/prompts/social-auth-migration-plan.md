@@ -280,7 +280,7 @@ Verification:
   and notification-facing reads pass accounting API tests.
 - Explicit IntegralCES import/migration tests remain isolated from runtime auth.
 
-## Stage 8: Migrate And Verify The Social Service
+## Stage 8: Migrate And Verify The Social Service (DONE)
 
 Goal: make social a complete consumer of new auth and the migrated accounting
 service before debugging frontend workflows.
