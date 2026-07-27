@@ -191,12 +191,12 @@ export default {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
         const posts = model.posts.models
         json.relationships.offers = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=offers` },
-          meta: { count: posts.filter((post: any) => post.type === "offers").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=offers&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "offers" && post.status === "published").length }
         }
         json.relationships.needs = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=needs` },
-          meta: { count: posts.filter((post: any) => post.type === "needs").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=needs&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "needs" && post.status === "published").length }
         }
         delete json.relationships.posts
         return json
@@ -219,12 +219,12 @@ export default {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
         const posts = model.posts.models
         json.relationships.offers = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=offers` },
-          meta: { count: posts.filter((post: any) => post.type === "offers").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=offers&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "offers" && post.status === "published").length }
         }
         json.relationships.needs = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=needs` },
-          meta: { count: posts.filter((post: any) => post.type === "needs").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=needs&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "needs" && post.status === "published").length }
         }
         delete json.relationships.group
         delete json.relationships.posts
