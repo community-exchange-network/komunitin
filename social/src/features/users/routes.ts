@@ -11,11 +11,13 @@ import {
   getUsersRoute,
   patchUserSettingsRoute,
   postUsers,
+  unsubscribeUserRoute,
 } from './controller'
 
 const router = Router()
 
 router.post('/users', userAuth(Scope.SocialWrite), validateBody(createUserBodySchema), postUsers)
+router.post('/users/unsubscribe', unsubscribeUserRoute)
 router.get('/users', userAuth(Scope.SocialRead), getUsersRoute)
 router.get('/users/me', userAuth(Scope.SocialRead), getUsersMe)
 router.get('/users/:id/members', userAuth(Scope.SocialRead), getUserMembersRoute)

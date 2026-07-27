@@ -83,7 +83,7 @@ export class Mailer {
 
     // Add List-Unsubscribe headers for one-click unsubscribe (RFC 8058)
     if (message.token) {
-      const unsubscribeUrl = `${config.KOMUNITIN_SOCIAL_PUBLIC_URL}/users/me/unsubscribe?token=${message.token}`;
+      const unsubscribeUrl = `${config.KOMUNITIN_SOCIAL_PUBLIC_URL}/users/unsubscribe?token=${message.token}`;
       mailOptions.headers = {
         'List-Unsubscribe': `<${unsubscribeUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

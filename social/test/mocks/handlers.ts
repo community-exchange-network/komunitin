@@ -31,9 +31,15 @@ type AuthTokenRequest = {
   subjectToken: string | null
 }
 
+type MockUnsubscribeToken = {
+  userId: string
+  email: string
+}
+
 const authBaseUrl = process.env.AUTH_URL ?? 'http://auth.test'
 const accountingBaseUrl = process.env.ACCOUNTING_URL ?? 'http://localhost:2025'
 let authTokenRequests: AuthTokenRequest[] = []
+let authUnsubscribeTokens = new Map<string, MockUnsubscribeToken>()
 const notificationsBaseUrl = process.env.NOTIFICATIONS_API_URL ?? 'http://notifications.test'
 let accountingCurrencies = new Map<string, MockCurrency>()
 let accountingAccounts = new Map<string, Map<string, MockAccount>>()
@@ -99,6 +105,10 @@ export const getAccountingRequests = (): AccountingRequest[] => {
 
 export const getAuthTokenRequests = (): AuthTokenRequest[] => {
   return [...authTokenRequests]
+}
+
+export const seedAuthUnsubscribeToken = (token: string, userId: string, email: string) => {
+  authUnsubscribeTokens.set(token, { userId, email })
 }
 
 export const getAccountingRequestPaths = (): string[] => {
@@ -169,6 +179,7 @@ const serializeAccount = (account: MockAccount) => ({
 
 export const resetMockState = () => {
   authTokenRequests = []
+  authUnsubscribeTokens = new Map()
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
   accountingRequests = []
@@ -195,6 +206,22 @@ export const handlers = [
     }
     authTokenRequests.push(tokenRequest)
 
+    if (tokenRequest.grantType === 'client_credentials') {
+      if (
+        tokenRequest.clientId !== process.env.SOCIAL_CLIENT_ID
+        || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
+        || tokenRequest.scope !== Scope.AccountingRead
+      ) {
+        return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
+      }
+      return HttpResponse.json({
+        access_token: 'social-service-token',
+        expires_in: 3600,
+        scope: tokenRequest.scope,
+        token_type: 'Bearer',
+      })
+    }
+
     if (
       tokenRequest.grantType !== 'urn:ietf:params:oauth:grant-type:token-exchange'
       || tokenRequest.clientId !== process.env.SOCIAL_CLIENT_ID
@@ -212,6 +239,21 @@ export const handlers = [
       scope: tokenRequest.scope,
       token_type: 'Bearer',
     })
+  }),
+  http.post(`${authBaseUrl}/redeem-action-token`, async ({ request }) => {
+    if (request.headers.get('authorization') !== 'Bearer social-service-token') {
+      return HttpResponse.json({ error: 'invalid_token' }, { status: 401 })
+    }
+    const body = await request.json() as { token?: string; purpose?: string }
+    if (!body.token || body.purpose !== 'unsubscribe') {
+      return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
+    }
+    const record = authUnsubscribeTokens.get(body.token)
+    if (!record) {
+      return HttpResponse.json({ error: 'invalid_action_token' }, { status: 400 })
+    }
+    authUnsubscribeTokens.delete(body.token)
+    return HttpResponse.json({ ...record, purpose: 'unsubscribe' })
   }),
   http.get(`${accountingBaseUrl}/:currencyCode/currency`, ({ request, params }) => {
     const unauthorized = requireAccountingAuthorization(request)
