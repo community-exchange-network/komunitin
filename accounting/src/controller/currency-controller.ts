@@ -89,12 +89,13 @@ export const defaultCurrencySettings = (currency: CreateCurrency) => ({
 
 export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
   const defaultSettings = defaultCurrencySettings(currency)
+  const settings = currency.settings ?? {}
   // Compute external trader initial credit and maximum balance
-  const externalTraderInitialCreditSetting = currency.settings.externalTraderCreditLimit ?? defaultSettings.externalTraderCreditLimit
+  const externalTraderInitialCreditSetting = settings.externalTraderCreditLimit ?? defaultSettings.externalTraderCreditLimit
   const externalTraderInitialCredit = toStringAmount(currency, externalTraderInitialCreditSetting)
   
-  const externalTraderMaximumBalanceSetting = currency.settings.externalTraderMaximumBalance !== undefined && currency.settings.externalTraderMaximumBalance !== false 
-    ? currency.settings.externalTraderMaximumBalance
+  const externalTraderMaximumBalanceSetting = settings.externalTraderMaximumBalance !== undefined && settings.externalTraderMaximumBalance !== false
+    ? settings.externalTraderMaximumBalance
     : defaultSettings.externalTraderMaximumBalance
   const externalTraderMaximumBalance = toStringAmount(currency, externalTraderMaximumBalanceSetting + externalTraderInitialCreditSetting)
 

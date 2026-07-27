@@ -283,17 +283,6 @@ export const handlers = [
     if (typeof code !== 'string' || code.length === 0) {
       return jsonApiError(400, 'Missing currency code')
     }
-    const settings = body.data?.relationships?.settings?.data
-    if (
-      settings?.type !== 'currency-settings'
-      || typeof settings.id !== 'string'
-      || !body.included?.some((resource) => (
-        resource.type === settings.type && resource.id === settings.id
-      ))
-    ) {
-      return jsonApiError(400, 'Missing currency settings')
-    }
-
     const currency = accountingCurrencies.get(code) ?? seedAccountingCurrency(code)
 
     const status = body.data?.attributes?.status
