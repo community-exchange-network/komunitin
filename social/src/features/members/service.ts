@@ -1,56 +1,97 @@
 import { Account, createAccountingClient } from '../../clients/accounting'
-import { Prisma, type Member as DbMember } from '../../generated/prisma/client'
+import { Prisma, type Member as DbMemberRecord } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { type CollectionResult, reorderByIds } from '../../server/query'
-import type { CollectionParams, ResourceParams } from '../../server/request'
+import { type CollectionResult, indexById, reorderByIds } from '../../server/query'
+import { hasInclude, type CollectionParams, type ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { DbGroup, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
-import type { CreateMemberInput, Member, PatchMemberInput } from './types'
+import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
 import { createNotificationsClient } from '../../clients/notifications'
+import { findPostRelationshipCounts } from '../posts/sql'
+import type { PostRelationshipMeta } from '../posts/types'
 
-export const toMember = (member: DbMember & {group?: DbGroup}): Member => {
+const getMemberLoad = (params: ResourceParams) => ({
+  group: hasInclude(params, 'group'),
+})
+
+export const toMember = (member: DbMemberRecord, group?: Group): Member => {
   return {
     ...member,
     location: toLocation(member),
-    group: member.group ? toGroup(member.group) : undefined,
+    group,
   } as Member
 }
 
-const shouldIncludeMemberGroup = (include: string[] = []): boolean => {
-  return include.some((item) => item === 'group' || item.startsWith('group.'))
-}
-
-export const getMemberInclude = (include: string[] = []) => {
-  const includeGroup = shouldIncludeMemberGroup(include)
-  return {
-    group: includeGroup ? {
-      include: {
-        admins: true,
-      },
-    } : false,
+/** Add post counts and enrich member groups. */
+export const enrichMembers = async (
+  ctx: OptionalAuthContext,
+  members: Member[],
+  groups: Group[],
+): Promise<SerializableMember[]> => {
+  if (members.length === 0) {
+    return []
   }
+
+  const includedGroups = groups.filter((group) =>
+      members.some((member) => member.group?.id === group.id))
+
+  const [countMaps, serializableGroups] = await Promise.all([
+    Promise.all(groups.map(async (group) => {
+      const db = tenantDb(prisma, group.code)
+      return findPostRelationshipCounts(
+        ctx,
+        db,
+        group,
+        'memberId',
+        members
+          .filter(({ groupId }) => groupId === group.id)
+          .map(({ id }) => id),
+      )
+    })),
+    enrichGroups(ctx, includedGroups),
+  ])
+
+  const groupsById = indexById(serializableGroups)
+
+  // Combine the counts from all groups into a single map for easy lookup.
+  const postCounts = new Map<string, PostRelationshipMeta>(
+    countMaps.flatMap((counts) => [...counts.entries()]),
+  )
+
+  return members.map((member) => ({
+    ...member,
+    group: member.group ? groupsById.get(member.groupId)! : undefined,
+    relationshipMeta: postCounts.get(member.id)!,
+  }))
 }
 
-const getMemberById = async (code: string, id: string, params?: ResourceParams): Promise<Member> => {
+export const enrichMember = async (
+  ctx: OptionalAuthContext,
+  member: Member,
+  group: Group,
+): Promise<SerializableMember> => {
+  return (await enrichMembers(ctx, [member], [group]))[0]
+}
+
+export const getMemberById = async (code: string, id: string, group?: Group): Promise<Member> => {
   const db = tenantDb(prisma, code)
   const member = await db.member.findFirst({
     where: {
       id,
       deleted: null,
     },
-    include: getMemberInclude(params?.include),
-  }) as (DbMember & { group?: DbGroup }) // Prisma can't infer the type correctly when using conditional include.
+  })
 
   if (!member) {
     throw notFound('Member not found')
   }
 
-  return toMember(member)
+  return toMember(member, group)
 }
 
 export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member, 'id' | 'tenantId'>, role?: 'admin' ): Promise<boolean> => {
@@ -167,14 +208,17 @@ const syncAccountStatus = async (ctx: AuthContext, member: Member, currencyCode:
   return account
 }
 
-
 /**
  * Return all members of a group accessible to the given user.
  * 
  * If no status filter is provided, defaults to 'active' members only.
  */
-export const listMembers = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<Member>> => {
+export const listMembers = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<SerializableMember>> => {
   const group = await getGroupByCode(ctx, code)
+
+  if (!await canListGroupMembers(ctx, group)) {
+    throw forbidden('You do not have permission to list members in this group')
+  }
   const db = tenantDb(prisma, code)
   
   const defaultFilters = {
@@ -193,28 +237,38 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     where: {
       id: { in: result.ids },
     },
-    include: getMemberInclude(params.include),
-  }) as (DbMember & { group?: DbGroup })[] // Prisma can't infer the type correctly when using conditional include.
+  })
 
+  const load = getMemberLoad(params)
+  const includedGroup = load.group ? group : undefined
+  const items = reorderByIds(members, result.ids)
+    .map((member) => toMember(member, includedGroup))
   return {
-    items: reorderByIds(members, result.ids).map(toMember),
+    items: await enrichMembers(ctx, items, [group]),
     total: result.total,
   }
 }
 
-export const getMember = async (ctx: OptionalAuthContext, code: string, id: string, params: ResourceParams): Promise<Member> => {
+export const getMember = async (
+  ctx: OptionalAuthContext,
+  code: string,
+  id: string,
+  params: ResourceParams = { include: [] },
+): Promise<SerializableMember> => {
   const group = await getGroupByCode(ctx, code)
-  const member = await getMemberById(code, id, params)
+  const load = getMemberLoad(params)
+  const includedGroup = load.group ? group : undefined
+  const member = await getMemberById(code, id, includedGroup)
 
   const allowed = await canReadMember(ctx, group, member)
   if (!allowed) {
     throw forbidden('You do not have access to this member')
   }
 
-  return member
+  return enrichMember(ctx, member, group)
 }
 
-export const createMember = async (ctx: AuthContext, code: string, input: CreateMemberInput): Promise<Member> => {
+export const createMember = async (ctx: AuthContext, code: string, input: CreateMemberInput): Promise<SerializableMember> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
 
@@ -272,7 +326,7 @@ export const createMember = async (ctx: AuthContext, code: string, input: Create
 
   await syncResourceFiles(code, 'members', created.id, input.image ? [input.image.url] : [])
 
-  return toMember(created)
+  return enrichMember(ctx, toMember(created), group)
 }
 
 export const patchMember = async (
@@ -280,9 +334,9 @@ export const patchMember = async (
   code: string,
   id: string,
   input: PatchMemberInput,
-): Promise<Member> => {
+): Promise<SerializableMember> => {
   const group = await getGroupByCode(ctx, code)
-  const member = await getMemberById(code, id, { include: ["group"] })
+  const member = await getMemberById(code, id)
 
   const allowed = await canWriteMember(ctx, group, member)
   if (!allowed) {
@@ -363,12 +417,12 @@ export const patchMember = async (
     }
   }
 
-  return toMember(updated)
+  return enrichMember(ctx, toMember(updated), group)
 }
 
 export const deleteMember = async (ctx: AuthContext, code: string, id: string): Promise<void> => {
   const group = await getGroupByCode(ctx, code)
-  const member = await getMemberById(code, id, { include: ["group"] })
+  const member = await getMemberById(code, id)
 
   const allowed = await canWriteMember(ctx, group, member)
   if (!allowed) {

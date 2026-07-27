@@ -5,7 +5,7 @@ import { getCode, getCollectionParams, getResourceParams } from '../../server/re
 import { getValidatedBody } from '../../server/validation'
 import type { CreateGroupBody, PatchGroupBody, PatchGroupSettingsBody } from './schema'
 import { serializeGroup, serializeGroups, serializeGroupSettings } from './serialize'
-import { createGroup, deleteGroupByCode, getGroupByCode, listGroups, patchGroupByCode, patchGroupSettingsByCode } from './service'
+import { createGroup, deleteGroupByCode, enrichGroup, getGroupByCode, listGroups, patchGroupByCode, patchGroupSettingsByCode } from './service'
 import { listGroupAdmins } from '../users/service'
 import { serializeUsers } from '../users/serialize'
 
@@ -48,7 +48,7 @@ export const getGroupByCodeRoute: RequestHandler = async (req, res) => {
   const code = getCode(req)
   const params = getResourceParams(req, { include: ['settings', 'currency'] })
 
-  const group = await getGroupByCode(ctx, code)
+  const group = await enrichGroup(ctx, await getGroupByCode(ctx, code))
 
   const payload = await serializeGroup(group, params)
   res.status(200).json(payload)

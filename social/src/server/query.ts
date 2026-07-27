@@ -26,6 +26,16 @@ export type CollectionResult<Item> = {
   total: number
 }
 
+/** Index resources by ID, keeping the last occurrence of duplicate IDs. */
+export const indexById = <Item extends { id: string }>(items: Item[]) => {
+  return new Map(items.map((item) => [item.id, item]))
+}
+
+/** Return resources once per ID, keeping the last occurrence of duplicate IDs. */
+export const uniqueById = <Item extends { id: string }>(items: Item[]) => {
+  return [...indexById(items).values()]
+}
+
 type CollectionQueryInput = {
   from: Prisma.Sql,
   columns: SqlColumnMap,
@@ -235,7 +245,7 @@ export const findCollectionIds = async (db: DbClient, input: CollectionQueryInpu
  * the original list of IDs.
  */
 export const reorderByIds = <Row extends { id: string }>(rows: Row[], ids: string[]): Row[] => {
-  const rowsById = new Map(rows.map((row) => [row.id, row]))
+  const rowsById = indexById(rows)
 
   return ids
     .map((id) => rowsById.get(id))
