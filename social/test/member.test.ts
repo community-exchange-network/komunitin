@@ -94,6 +94,41 @@ describe('Members endpoints', () => {
     assert.strictEqual(draftList.body.data[0].attributes.name, 'Alice Member')
   })
 
+  test('POST /:code/members allows repeated member creation by the same user', async () => {
+    await seedGroup({ tenantId: 'members-repeated', status: 'active', access: 'public' })
+    const user = await auth('member-repeated-user')
+    const create = (name: string) => request(app)
+      .post('/members-repeated/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ data: { type: 'members', attributes: { name } } })
+
+    const first = await create('First Member').expect(201)
+    const second = await create('Second Member').expect(201)
+
+    assert.notStrictEqual(first.body.data.id, second.body.data.id)
+    assert.strictEqual(first.body.data.attributes.name, 'First Member')
+    assert.strictEqual(second.body.data.attributes.name, 'Second Member')
+
+    const db = tenantDb(prisma, 'members-repeated')
+    assert.strictEqual(await db.member.count(), 2)
+    assert.strictEqual(await db.memberUser.count({ where: { userId: user.id } }), 2)
+  })
+
+  test('POST /:code/members allocates the first unused numeric code', async () => {
+    await seedGroup({ tenantId: 'members-code-gap', status: 'active', access: 'public' })
+    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0000' })
+    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0002' })
+    const user = await auth('member-code-gap-user')
+
+    const res = await request(app)
+      .post('/members-code-gap/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ data: { type: 'members', attributes: { name: 'Gap Member' } } })
+      .expect(201)
+
+    assert.strictEqual(res.body.data.attributes.code, 'members-code-gap0001')
+  })
+
   test('POST /:code/members accepts explicit code only if admin', async () => {
     await seedGroup({ tenantId: 'members-create-code', status: 'active', access: 'public' })
     const user = await auth('member-create-code-user')

@@ -14,7 +14,7 @@
         v-if="page == 'terms'"  
         :group="group"
         :terms="settings.terms"
-        @accept="toPage('credentials')"
+        @accept="continueSignup"
       />
       <signup-credentials-form
         v-else-if="page == 'credentials'"
@@ -40,6 +40,7 @@ import SignupVerifyForm from "./SignupVerifyForm.vue"
 
 import { useStore } from "vuex";
 import { computed, ref, watchEffect } from "vue";
+import { useRouter } from "vue-router";
 import { scroll } from "quasar";
 import { useLocale } from "src/boot/i18n";
 import { Auth } from "../../plugins/Auth"
@@ -54,6 +55,7 @@ const props = defineProps<{
 }>()
 
 const store = useStore()
+const router = useRouter()
 
 store.dispatch("groups/load", {
   group: props.code,
@@ -64,6 +66,7 @@ const settings = computed(() => group.value?.settings?.attributes)
 
 const page = ref("terms")
 const needsTerms = computed<boolean|undefined>(() => settings.value?.requireAcceptTerms)
+const isLoggedIn = computed(() => store.getters.isLoggedIn)
 
 const toPage = (name: string) => {
   page.value = name
@@ -71,9 +74,17 @@ const toPage = (name: string) => {
   getScrollTarget(el).scrollTo(0, 0)
 }
 
+const continueSignup = async () => {
+  if (isLoggedIn.value) {
+    await router.push(`/groups/${props.code}/signup-member`)
+  } else {
+    toPage("credentials")
+  }
+}
+
 watchEffect(() => {
   if (needsTerms.value === false && page.value == "terms") {
-    toPage("credentials")
+    void continueSignup()
   }
 })
 

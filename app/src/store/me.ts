@@ -152,16 +152,6 @@ async function provisionSignup(
       attributes: { language: signup.language }
     }]
   }, { root: true })
-
-  if (signup.type === "member") {
-    await context.dispatch("members/create", {
-      group: signup.groupCode,
-      resource: {
-        type: "members",
-        attributes: { name: signup.name }
-      }
-    }, { root: true })
-  }
 }
 
 export default {
@@ -250,6 +240,12 @@ export default {
       await loadUser(context)
     },
     /**
+     * Reload the current Social user and their selected membership.
+     */
+    reloadUser: async (context: ActionContext<UserState, never>) => {
+      await loadUser(context)
+    },
+    /**
      * Silently authorize user using stored credentials. Throws exception (rejects)
      * on failed authorization.
      */
@@ -313,7 +309,7 @@ export default {
     subscribe: async (context: ActionContext<UserState, never>) => {
       const { state, commit, getters } = context
       // renew subscription if not there, incorrect user and every 24h
-      const shouldRenewSubscription = getters.isLoggedIn && (!state.subscription 
+      const shouldRenewSubscription = getters.isLoggedIn && getters.myMember && (!state.subscription
         || state.subscription.relationships?.user?.data.id !== getters.myUser.id
         || new Date(state.subscription.attributes.updated) < new Date(Date.now() - 24 * 60 * 60 * 1000)
       )
