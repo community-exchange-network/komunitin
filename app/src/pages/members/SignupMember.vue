@@ -148,6 +148,11 @@ const loadOffers = async (memberId: string) => {
 
 const initializeSignup = async () => {
   const retrying = initializationFailed.value
+  page.value = "profile"
+  currentOfferIndex.value = -1
+  currentOffer.value = undefined
+  offers.value = []
+  member.value = undefined
   initializing.value = true
   initializationFailed.value = false
   try {
