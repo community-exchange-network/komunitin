@@ -100,6 +100,13 @@ describe('Groups endpoints', () => {
       .expect(401)
   })
 
+  test('GET /groups rejects malformed optional bearer tokens', async () => {
+    await request(app)
+      .get('/groups')
+      .set('Authorization', 'Bearer not-a-jwt')
+      .expect(401)
+  })
+
   test('POST /groups creates pending group with optional settings include', async () => {
     const { id: subject, token } = await auth('user-1')
 
