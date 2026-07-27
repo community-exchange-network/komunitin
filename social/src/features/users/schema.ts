@@ -30,7 +30,7 @@ export const createUserBodySchema = jsonApiDocumentSchema(userSchema, userSettin
 export const patchUserSettingsBodySchema = jsonApiDocumentSchema(userSettingsSchema)
 export const unsubscribeQuerySchema = z.object({
   token: z.string().min(1),
-}).strict()
+})
 
 export type CreateUserBody = z.infer<typeof createUserBodySchema>
 export type PatchUserSettingsBody = z.infer<typeof patchUserSettingsBodySchema>

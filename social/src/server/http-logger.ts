@@ -22,7 +22,7 @@ const redactActionToken = (url: string): string => {
 
 export const serializeRequest = (req: any) => {
   const headers = filterObjectKeys(
-    req.raw.headers,
+    req.raw?.headers,
     ['host', 'user-agent', 'x-forwarded-for', 'referer']
   )
   if (typeof headers?.referer === 'string') {
@@ -32,7 +32,7 @@ export const serializeRequest = (req: any) => {
   return {
     ...req,
     url: redactActionToken(req.url),
-    query: Object.hasOwn(req.query, 'token')
+    query: req.query && Object.hasOwn(req.query, 'token')
       ? { ...req.query, token: redacted }
       : req.query,
     headers
