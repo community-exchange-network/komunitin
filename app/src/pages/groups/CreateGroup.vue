@@ -61,7 +61,6 @@ import EditGroupForm from "src/pages/admin/EditGroupForm.vue"
 import PageHeader from "src/layouts/PageHeader.vue";
 import { ref } from "vue";
 import type { Contact, Currency, Group } from "src/store/model";
-import { v4 as uuid } from "uuid";
 
 const store = useStore()
 
@@ -72,18 +71,14 @@ const group = ref<Group>({
 const done = ref(false)
 
 const contacts = ref<Contact[]>([])
-const currency = ref<Currency>({
-  type: "currencies",
-  id: uuid(), // Ephemeral id for augmented posting.
-  attributes: {
-    decimals: 2,
-    rate: {
-      n: 1,
-      d:10
-    },
-    scale: 6
+const currency = ref<Partial<Currency["attributes"]>>({
+  decimals: 2,
+  rate: {
+    n: 1,
+    d: 10
   },
-} as Currency)
+  scale: 6
+})
 const loading = ref(false)
 const submit = async () => {
   try {
@@ -93,18 +88,14 @@ const submit = async () => {
         type: "groups",
         attributes: {
           ...group.value.attributes,
-          contacts: contacts.value
-        },
-        relationships: {
-          currency: {
-            data: { type: "currencies", id: currency.value.id }
+          contacts: contacts.value,
+          meta: {
+            request: {
+              currency: currency.value
+            }
           }
         }
-      },
-      // Social assigns the authenticated creator as admin.
-      included: [
-        currency.value
-      ]
+      }
     })
     done.value = true
   } finally {

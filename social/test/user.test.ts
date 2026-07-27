@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { config } from '../src/config'
 import { Scope } from '../src/server/context'
-import { serviceAuth, signJwt } from './mocks/auth'
+import { serviceAuth, signJwt, signServiceJwt } from './mocks/auth'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { includedResource, toUuid } from './mocks/utils'
 import { resetDb, seedGroup, seedMember, seedMemberUser, seedPost, seedUser } from './mocks/seed'
@@ -74,6 +74,43 @@ describe('Users endpoints', () => {
       .get('/users/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(401)
+  })
+
+  test('GET /users/me rejects exchanged user tokens issued to the social client', async () => {
+    const token = await signJwt(
+      toUuid('social-exchanged-user'),
+      'social-exchanged-user@example.org',
+      Scope.SocialRead,
+      { clientId: 'komunitin-social', includeDefaultScopes: false },
+    )
+
+    await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(401)
+  })
+
+  test('service and superadmin identities cannot bypass the base social scope', async () => {
+    const forgedService = await signServiceJwt(
+      'komunitin-notifications',
+      [Scope.SocialRead],
+      'different-service-subject',
+    )
+    await request(app)
+      .get('/users?filter[members]=00000000-0000-4000-8000-000000000001')
+      .set('Authorization', `Bearer ${forgedService}`)
+      .expect(401)
+
+    const superadminOnly = await signJwt(
+      toUuid('scope-less-superadmin'),
+      'scope-less-superadmin@example.org',
+      Scope.Superadmin,
+      { includeDefaultScopes: false },
+    )
+    await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${superadminOnly}`)
+      .expect(403)
   })
 
   test('POST /users creates authenticated user with optional settings include', async () => {

@@ -277,20 +277,12 @@ export const handlers = [
       return unauthorized
     }
 
-    const body = await request.json() as {
-      data?: {
-        attributes?: {
-          code?: string
-          status?: string
-        }
-      }
-    }
+    const body = await request.json() as any
 
     const code = body.data?.attributes?.code
     if (typeof code !== 'string' || code.length === 0) {
       return jsonApiError(400, 'Missing currency code')
     }
-
     const currency = accountingCurrencies.get(code) ?? seedAccountingCurrency(code)
 
     const status = body.data?.attributes?.status

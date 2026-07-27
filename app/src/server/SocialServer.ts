@@ -146,6 +146,9 @@ export default {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
         delete json.relationships.categories
         delete json.relationships.posts
+        if (json.relationships.currency?.data === null) {
+          delete json.relationships.currency
+        }
         return json
       },
       links(group: any) {
@@ -470,11 +473,7 @@ export default {
     server.post(urlSocial + "/groups", (schema: any, request: any) => {
       const body = JSON.parse(request.requestBody)
       const settingsData = body.included?.find((record: any) => record.type === "group-settings")
-      const currencyData = body.included?.find((record: any) => record.type === "currencies")
       const settings = schema.groupSettings.create(settingsData?.attributes ?? {})
-      const currency = currencyData
-        ? schema.currencies.create({ id: currencyData.id, ...currencyData.attributes })
-        : undefined
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
       const admin = authUser ? schema.users.find(authUser.id) : undefined
@@ -482,7 +481,6 @@ export default {
         ...body.data.attributes,
         status: "pending",
         settings,
-        currency,
         admins: admin ? [admin] : [],
         created: new Date().toJSON(),
         updated: new Date().toJSON()
@@ -502,7 +500,26 @@ export default {
     server.patch(urlSocial + "/:code", (schema: any, request) => {
       const group = schema.groups.findBy({ code: request.params.code });
       const body = JSON.parse(request.requestBody);
-      group.update(body.data.attributes);
+      const attributes = body.data.attributes
+      if (group.status === "pending" && attributes.status === "active") {
+        const currencyRequest = attributes.meta?.request.currency ?? group.meta.request.currency
+        const currency = schema.currencies.findBy({ code: group.code })
+          ?? schema.currencies.create({
+            ...currencyRequest,
+            code: group.code,
+            status: "active"
+          })
+        if (!currency.settings) {
+          schema.currencySettings.create({ currency })
+        }
+        group.update({
+          ...attributes,
+          meta: null,
+          currency
+        })
+      } else {
+        group.update(attributes);
+      }
       return group;
     });
 

@@ -43,6 +43,7 @@ export const GroupSerializer = new Serializer<SerializableGroup>('groups', {
     address: 1,
     contacts: 1,
     location: 1,
+    meta: 1,
     created: 1,
     updated: 1,
   },

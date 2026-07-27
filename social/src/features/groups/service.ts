@@ -31,10 +31,6 @@ export const toLocation = (entity: WithAddressAndCoords): Location | null => {
   }
 }
 
-const getGroupMeta = (group: Pick<DbGroup, 'meta'>): GroupMeta => {
-  return (group.meta ?? {}) as GroupMeta
-}
-
 /** Add viewer-specific relationship metadata required by the group serializer. */
 export const enrichGroups = async (
   ctx: OptionalAuthContext,
@@ -96,13 +92,6 @@ export const enrichGroup = async (
   return (await enrichGroups(ctx, [group]))[0]
 }
 
-const getRequestedCurrency = (group: Pick<DbGroup, 'meta' | 'tenantId'>) => {
-  return {
-    ...(getGroupMeta(group).request?.currency ?? {}),
-    code: group.tenantId,
-  }
-}
-
 export const fromLocation = (location?: Location | null): { latitude: number|null; longitude: number|null } => {
   return {
     latitude: location?.coordinates[1] ?? null,
@@ -151,11 +140,7 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
     longitude: location.longitude,
     
     settings: input.settings,
-    meta: {
-      request: {
-        currency: input.currency,
-      }
-    } as InputJsonObject,
+    meta: toNullableJsonInput(attributes.meta as GroupMeta),
   }
 
   const dbGroup = await db.transaction(async (tx) => {
@@ -303,17 +288,16 @@ export const getGroupByCode = async (
   return group
 }
 
-const syncCurrencyStatus = async (ctx: AuthContext, group: Group, status: Currency["status"]): Promise<Currency> => {
+const syncCurrencyStatus = async (ctx: AuthContext, group: Group, status: Currency["status"], attributes?: Record<string, unknown>): Promise<Currency> => {
   const accounting = createAccountingClient(ctx)
   const currencyCode = getCurrencyCode(group)
   let currency = await accounting.findCurrencyByCode(currencyCode)
   if (!currency) {
     // Create currency
-    const requestedCurrency = getRequestedCurrency(group)
     const adminUserIds = group.admins.map((admin) => admin.id)
     
     currency = await accounting.createCurrency({
-      ...requestedCurrency,
+      ...attributes,
       code: currencyCode,
       status: 'active',
     }, adminUserIds)
@@ -336,12 +320,19 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
   }
 
   // Prepare update data.
-  const { location, image, status, ...rest } = attributes
+  const { location, image, status, meta, ...rest } = attributes
   const data: GroupUpdateInput = {
     ...rest,
     image: toNullableJsonInput(image),
   }
   let notifyGroupActivated = false
+
+  if (meta !== undefined) {
+    if (group.status !== 'pending') {
+      throw badRequest('Currency request can only be changed for pending groups')
+    }
+    data.meta = toNullableJsonInput(meta as GroupMeta)
+  }
 
   if (attributes.location !== undefined) {
     const location = fromLocation(attributes.location)
@@ -365,7 +356,8 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
 
     // Handle side effects of status transitions.
     if (status === 'active' || status === 'disabled') {
-      const currency = await syncCurrencyStatus(ctx, group, status)
+      const currencyAttributes = (meta ?? group.meta)?.request?.currency
+      const currency = await syncCurrencyStatus(ctx, group, status, currencyAttributes)
       if (!group.currencyId) {
         data.currencyId = currency.id
       }
@@ -373,6 +365,8 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
 
     if (group.status === 'pending' && status === 'active') {
       notifyGroupActivated = true
+      // Clear the meta field on activation.
+      data.meta = Prisma.DbNull
     }
 
     data.status = status
