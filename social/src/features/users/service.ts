@@ -1,7 +1,7 @@
 import prisma from '../../utils/prisma'
 import { Prisma, User as DbUser, type Member as DbMember } from '../../generated/prisma/client'
 import type { User, UserSettings, CreateUserInput } from './types'
-import { badRequest, forbidden, notFound } from '../../utils/error'
+import { badRequest, forbidden, internalError, notFound } from '../../utils/error'
 import { privilegedDb } from '../../server/multitenant'
 import { AuthContext } from '../../server/context'
 import { hasInclude, type CollectionParams } from '../../server/request'
@@ -151,6 +151,28 @@ export const patchUserSettings = async (
   })
 
   return toUser(updated)
+}
+
+export const unsubscribeUser = async (id: string): Promise<void> => {
+  const db = privilegedDb(prisma)
+  const user = await db.user.findUnique({ where: { id } })
+  if (!user) {
+    return
+  }
+
+  const settings = castSettings(user.settings)
+  try {
+    await db.user.update({
+      where: { id },
+      data: {
+        settings: mergeSettings(settings, {
+          emails: { group: 'never' },
+        }),
+      },
+    })
+  } catch (cause) {
+    throw internalError(`Failed to unsubscribe user ${id}`, { cause })
+  }
 }
 
 export const listUserMembers = async (

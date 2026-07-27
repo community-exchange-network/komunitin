@@ -5,8 +5,11 @@ import { getCollectionParams, getIdParam, getResourceParams } from '../../server
 import { getValidatedBody } from '../../server/validation'
 import { serializeMembers } from '../members/serialize'
 import type { CreateUserBody, PatchUserSettingsBody } from './schema'
+import { unsubscribeQuerySchema } from './schema'
 import { serializeUser, serializeUsers, serializeUserSettings } from './serialize'
-import { createUser, getUserById, listUserMembers, listUsers, patchUserSettings } from './service'
+import { createUser, getUserById, listUserMembers, listUsers, patchUserSettings, unsubscribeUser } from './service'
+import { redeemUnsubscribeToken } from '../../clients/auth'
+import { badRequest } from '../../utils/error'
 
 
 export const getUsersRoute: RequestHandler = async (req, res) => {
@@ -94,4 +97,15 @@ export const patchUserSettingsRoute: RequestHandler = async (req, res) => {
   const user = await patchUserSettings(ctx, requestedId, body.data.attributes)
   const payload = await serializeUserSettings(user)
   res.status(200).json(payload)
+}
+
+export const unsubscribeUserRoute: RequestHandler = async (req, res) => {
+  const parsed = unsubscribeQuerySchema.safeParse(req.query)
+  if (!parsed.success) {
+    throw badRequest('Invalid unsubscribe token')
+  }
+
+  const redeemed = await redeemUnsubscribeToken(parsed.data.token)
+  await unsubscribeUser(redeemed.userId)
+  res.status(204).send()
 }

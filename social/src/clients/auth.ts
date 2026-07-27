@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto'
+import { z } from 'zod'
 import { config } from '../config'
 import { Scope } from '../server/scopes'
 import { AsyncCache, type CacheValue } from '../utils/cache'
-import { internalError } from '../utils/error'
+import { badRequest, internalError } from '../utils/error'
 import { fetchWithRetry } from './utils'
 
 type AccountingScope = typeof Scope.AccountingRead | typeof Scope.AccountingWrite
@@ -11,12 +12,29 @@ type TokenResponse = {
   access_token?: unknown
   expires_in?: unknown
   scope?: unknown
+  token_type?: unknown
 }
+
+type TokenRequestParameters = Record<string, string> & {
+  grant_type:
+    | 'client_credentials'
+    | 'urn:ietf:params:oauth:grant-type:token-exchange'
+  scope: AccountingScope
+}
+
+const redeemedUnsubscribeTokenSchema = z.object({
+  userId: z.uuid(),
+  email: z.email(),
+  purpose: z.literal('unsubscribe'),
+}).strict()
+
+type RedeemedUnsubscribeToken = z.infer<typeof redeemedUnsubscribeTokenSchema>
 
 const tokenUrl = new URL('/token', config.AUTH_URL).toString()
 const MAX_CACHED_TOKENS = 1000
 const TOKEN_EXPIRY_MARGIN_MS = 60 * 1000
 const tokenCache = new AsyncCache<string, string>(MAX_CACHED_TOKENS)
+const serviceTokenCache = new AsyncCache<string, string>(1)
 
 const getCacheKey = (subjectToken: string, scope: AccountingScope): string => {
   return createHash('sha256')
@@ -26,19 +44,12 @@ const getCacheKey = (subjectToken: string, scope: AccountingScope): string => {
     .digest('base64url')
 }
 
-const requestAccountingToken = async (
-  subjectToken: string,
-  scope: AccountingScope,
-): Promise<CacheValue<string>> => {
+const requestToken = async (parameters: TokenRequestParameters): Promise<CacheValue<string>> => {
   const body = new URLSearchParams({
-    grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
     client_id: config.SOCIAL_CLIENT_ID,
     client_secret: config.SOCIAL_CLIENT_SECRET,
-    subject_token: subjectToken,
-    subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
-    scope,
+    ...parameters,
   })
-
   const response = await fetchWithRetry(tokenUrl, {
     method: 'POST',
     headers: {
@@ -47,17 +58,21 @@ const requestAccountingToken = async (
     },
     body,
   })
-  const responseBody = await response.json() as TokenResponse
-
+  const responseBody = await response.json().catch(() => undefined) as TokenResponse | undefined
   if (
     !response.ok
-    || typeof responseBody.access_token !== 'string'
-    || responseBody.scope !== scope
+    || typeof responseBody?.access_token !== 'string'
+    || responseBody.scope !== parameters.scope
+    || responseBody.token_type !== 'Bearer'
     || typeof responseBody.expires_in !== 'number'
     || !Number.isFinite(responseBody.expires_in)
     || responseBody.expires_in <= 0
   ) {
-    throw internalError('Auth token exchange failed')
+    throw internalError(
+      parameters.grant_type === 'client_credentials'
+        ? 'Auth service token request failed'
+        : 'Auth token exchange failed',
+    )
   }
 
   return {
@@ -66,6 +81,61 @@ const requestAccountingToken = async (
   }
 }
 
+const requestAccountingToken = async (
+  subjectToken: string,
+  scope: AccountingScope,
+): Promise<CacheValue<string>> => {
+  return requestToken({
+    grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+    subject_token: subjectToken,
+    subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+    scope,
+  })
+}
+
+const requestSocialServiceToken = async (): Promise<CacheValue<string>> => {
+  return requestToken({
+    grant_type: 'client_credentials',
+    scope: Scope.AccountingRead,
+  })
+}
+
+/**
+ * Get a service token to call the accounting service on behalf of the social service.
+ */
+const getSocialServiceToken = async (): Promise<string> => {
+  return serviceTokenCache.getOrLoad(config.SOCIAL_CLIENT_ID, requestSocialServiceToken)
+}
+
+/**
+ * Redeem (and consume) an email unsubscribe token.
+ */
+export const redeemUnsubscribeToken = async (token: string): Promise<RedeemedUnsubscribeToken> => {
+  const serviceToken = await getSocialServiceToken()
+  const response = await fetchWithRetry(new URL('/redeem-action-token', config.AUTH_URL), {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${serviceToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ token, purpose: 'unsubscribe' }),
+  })
+  const responseBody = await response.json().catch(() => undefined)
+  if (response.status === 400) {
+    throw badRequest('Invalid or expired unsubscribe token')
+  }
+  const parsed = redeemedUnsubscribeTokenSchema.safeParse(responseBody)
+  if (!response.ok || !parsed.success) {
+    throw internalError('Auth action token redemption failed')
+  }
+
+  return parsed.data
+}
+
+/**
+ * Get an access token to call the accounting service on behalf of a user.
+ */
 export const exchangeAccountingToken = async (
   subjectToken: string,
   scope: AccountingScope,

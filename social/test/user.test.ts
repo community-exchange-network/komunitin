@@ -7,6 +7,7 @@ import { serviceAuth, signJwt } from './mocks/auth'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { includedResource, toUuid } from './mocks/utils'
 import { resetDb, seedGroup, seedMember, seedMemberUser, seedPost, seedUser } from './mocks/seed'
+import { seedAuthUnsubscribeToken } from './mocks/handlers'
 
 let app: any
 
@@ -621,6 +622,60 @@ describe('Users endpoints', () => {
           },
         },
       })
+      .expect(400)
+  })
+
+  test('POST /users/unsubscribe redeems a public token and preserves other settings', async () => {
+    const userId = toUuid('unsubscribe-user')
+    const token = 'valid-unsubscribe-token'
+    await seedUser({
+      id: userId,
+      email: 'unsubscribe-user@example.org',
+      settings: {
+        language: 'ca',
+        notifications: { myAccount: true, group: true },
+        emails: { myAccount: true, group: 'weekly' },
+      },
+    })
+    seedAuthUnsubscribeToken(token, userId, 'unsubscribe-user@example.org')
+
+    await request(app)
+      .post(`/users/unsubscribe?token=${token}`)
+      .expect(200, { status: 'ok' })
+
+    const userToken = await signJwt(userId, 'unsubscribe-user@example.org')
+    const settings = await request(app)
+      .get(`/users/${userId}/settings`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200)
+
+    assert.deepStrictEqual(settings.body.data.attributes, {
+      language: 'ca',
+      notifications: { myAccount: true, group: true },
+      emails: { myAccount: true, group: 'never' },
+    })
+
+    await request(app)
+      .post(`/users/unsubscribe?token=${token}`)
+      .expect(400)
+  })
+
+  test('POST /users/unsubscribe does not disclose a missing social projection', async () => {
+    const token = 'unsubscribe-without-social-user'
+    seedAuthUnsubscribeToken(token, toUuid('auth-only-user'), 'auth-only@example.org')
+
+    await request(app)
+      .post(`/users/unsubscribe?token=${token}`)
+      .expect(200, { status: 'ok' })
+  })
+
+  test('POST /users/unsubscribe rejects missing and unknown tokens', async () => {
+    await request(app)
+      .post('/users/unsubscribe')
+      .expect(400)
+
+    await request(app)
+      .post('/users/unsubscribe?token=unknown')
       .expect(400)
   })
 })
