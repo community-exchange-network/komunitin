@@ -54,7 +54,7 @@ watch(() => props.code, async (code) => {
 type GroupWithCurrency = Group & { currency?: Currency }
 
 const group = computed<GroupWithCurrency | undefined>(() => store.getters["groups/current"])
-const currency = computed<Currency["attributes"] | undefined>(() => {
+const currency = computed<Partial<Currency["attributes"]> | undefined>(() => {
   // Currency is stored in the group attributes before the group is approved.
   return group.value?.attributes.status === "pending"
     ? group.value.attributes.meta?.request.currency
@@ -93,7 +93,7 @@ const saveContacts = (contacts: Contact[]) => {
     })
   })
 }
-const saveCurrency = (currency: Currency["attributes"]) => {
+const saveCurrency = (currency: Partial<Currency["attributes"]>) => {
   changes.value?.save(async () => {
     if (group.value?.attributes.status === "pending") {
       return await store.dispatch("groups/update", {

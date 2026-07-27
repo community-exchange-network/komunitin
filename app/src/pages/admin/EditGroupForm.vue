@@ -124,13 +124,13 @@ const props = defineProps<{
   op: "edit" | "create"
   group: Group
   contacts: Contact[]
-  currency: Currency["attributes"]
+  currency: Partial<Currency["attributes"]>
 }>()
 
 const emit = defineEmits<{
   (e: "update:group", group: Group): void,
   (e: "update:contacts", contacts: Contact[]): void,
-  (e: "update:currency", currency: Currency["attributes"]): void
+  (e: "update:currency", currency: Partial<Currency["attributes"]>): void
 }>()
 
 const image = ref(props.group.attributes.image ?? null)
