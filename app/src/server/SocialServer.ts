@@ -716,7 +716,7 @@ export default {
       return settings;
     });
 
-    server.post(urlSocial + "/users/me/unsubscribe", (schema: any, request: any) => {
+    server.post(urlSocial + "/users/unsubscribe", (schema: any, request: any) => {
       const action = redeemMockActionToken(request.queryParams.token, "unsubscribe")
       if (!action) {
         return badRequest("Invalid or expired unsubscribe token")
