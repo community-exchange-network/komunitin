@@ -133,25 +133,17 @@ const buildMemberCode = (groupCode: string, index: number): string => {
 
 const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   const db = tenantDb(prisma, groupCode)
-  // Get all existing codes from the DB.
   const members = await db.member.findMany({
-    select: {
-      code: true,
-    },
-    where: {
-      code: { startsWith: groupCode },
-    }
+    select: { code: true },
+    where: { code: { startsWith: groupCode } },
   })
-  const existingCodes = members.map(m => m.code.substring(groupCode.length))
-    .filter(code => /^\d+$/.test(code)) // Only consider numeric codes
-    .map(code => parseInt(code))
-    .sort((a, b) => a - b)
-  
-  // Find the first gap in the sequence of existing codes.
-  const candidate = existingCodes.length > 0 ? existingCodes[0] + 1 : 0
-  let index = 1
-  while (index < existingCodes.length && existingCodes[index] === candidate) {
-    index++
+  const used = new Set(members
+    .map(({ code }) => code.substring(groupCode.length))
+    .filter((suffix) => /^\d+$/.test(suffix))
+    .map(Number))
+  let candidate = 0
+  while (used.has(candidate)) {
+    candidate++
   }
 
   return buildMemberCode(groupCode, candidate)
@@ -268,7 +260,11 @@ export const getMember = async (
   return enrichMember(ctx, member, group)
 }
 
-export const createMember = async (ctx: AuthContext, code: string, input: CreateMemberInput): Promise<SerializableMember> => {
+export const createMember = async (
+  ctx: AuthContext,
+  code: string,
+  input: CreateMemberInput,
+): Promise<SerializableMember> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
 
@@ -278,11 +274,7 @@ export const createMember = async (ctx: AuthContext, code: string, input: Create
     if (!isAdmin) {
       throw badRequest('Only group admins can set member code')
     }
-    const codeExists = await db.member.findFirst({
-      where: {
-        code: memberCode,
-      },
-    })
+    const codeExists = await db.member.findFirst({ where: { code: memberCode } })
     if (codeExists) {
       throw badRequest('A member with this code already exists')
     }
@@ -290,17 +282,14 @@ export const createMember = async (ctx: AuthContext, code: string, input: Create
     memberCode = await findFreeMemberCode(code)
   }
 
-  const type = input.type ?? 'personal'
-  const access = input.access ?? group.access
-  
-  const created = await db.transaction(async (tx) => {
+  const member = await db.transaction(async (tx) => {
     const member = await tx.member.create({
       data: {
         code: memberCode,
         name: input.name,
-        type: type,
+        type: input.type ?? 'personal',
         status: 'draft',
-        access: access,
+        access: input.access ?? group.access,
         description: input.description ?? '',
         image: toNullableJsonInput(input.image),
         address: input.address,
@@ -324,9 +313,9 @@ export const createMember = async (ctx: AuthContext, code: string, input: Create
     return member
   })
 
-  await syncResourceFiles(code, 'members', created.id, input.image ? [input.image.url] : [])
+  await syncResourceFiles(code, 'members', member.id, input.image ? [input.image.url] : [])
 
-  return enrichMember(ctx, toMember(created), group)
+  return enrichMember(ctx, toMember(member), group)
 }
 
 export const patchMember = async (

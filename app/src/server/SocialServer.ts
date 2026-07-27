@@ -17,6 +17,19 @@ const urlSocial = config.SOCIAL_URL;
 const urlAccounting = config.ACCOUNTING_URL;
 
 const contactTypes = getContactNetworkKeys();
+let memberCreateFailures = 0
+let memberCreateResponseFailures = 0
+let memberCreateCount = 0
+
+export const failNextMockMemberCreate = () => {
+  memberCreateFailures++
+}
+
+export const failNextMockMemberCreateResponse = () => {
+  memberCreateResponseFailures++
+}
+
+export const getMockMemberCreateCount = () => memberCreateCount
 
 inflections("en", function (inflect) {
   inflect.irregular("userSettings", "userSettings")
@@ -178,12 +191,12 @@ export default {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
         const posts = model.posts.models
         json.relationships.offers = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=offers` },
-          meta: { count: posts.filter((post: any) => post.type === "offers").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=offers&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "offers" && post.status === "published").length }
         }
         json.relationships.needs = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=needs` },
-          meta: { count: posts.filter((post: any) => post.type === "needs").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=needs&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "needs" && post.status === "published").length }
         }
         delete json.relationships.posts
         return json
@@ -206,12 +219,12 @@ export default {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
         const posts = model.posts.models
         json.relationships.offers = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=offers` },
-          meta: { count: posts.filter((post: any) => post.type === "offers").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=offers&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "offers" && post.status === "published").length }
         }
         json.relationships.needs = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=needs` },
-          meta: { count: posts.filter((post: any) => post.type === "needs").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=needs&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "needs" && post.status === "published").length }
         }
         delete json.relationships.group
         delete json.relationships.posts
@@ -588,15 +601,15 @@ export default {
     });
 
     server.post(urlSocial + "/:code/members", (schema: any, request: any) => {
+      if (memberCreateFailures > 0) {
+        memberCreateFailures--
+        return new Response(503, {}, { errors: [{ detail: "Member creation failed" }] })
+      }
       const body = JSON.parse(request.requestBody)
       const group = schema.groups.findBy({ code: request.params.code })
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
       const user = authUser ? schema.users.find(authUser.id) : undefined
-      const existing = user?.members.models.find((member: any) => member.group.id === group.id)
-      if (existing) {
-        return existing
-      }
       const member = schema.members.create({
         ...body.data.attributes,
         status: "draft",
@@ -607,6 +620,11 @@ export default {
       })
       user?.members.add(member)
       user?.save()
+      memberCreateCount++
+      if (memberCreateResponseFailures > 0) {
+        memberCreateResponseFailures--
+        return new Response(503, {}, { errors: [{ detail: "Member creation response failed" }] })
+      }
       return member
     })
 

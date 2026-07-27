@@ -230,6 +230,7 @@
   "signupCredentialsText": "Entrez votre nom, votre courriel et définissez un mot de passe pour créer votre compte. Vous devrez vérifier le courriel.",
   "signupVerifyEmail": "Vérifiez votre courriel",
   "signupVerifyEmailText": "Nous vous avons envoyé un courriel avec un lien pour vérifier votre adresse. Vérifiez votre boîte de réception et suivez les instructions.",
+  "signupInitializationError": "Impossible de démarrer l'inscription. Vérifiez votre connexion et réessayez.",
   "signupComplete": "Inscription terminée !",
   "signupCompleteText": "Vous avez terminé le processus d'inscription à la communauté {group}. Maintenant, votre inscription est en attente d'approbation par les administrateurs de la communauté. Vous recevrez un courriel lorsque votre compte sera entièrement activé.",
   "signupCompleteText2": "En attendant, vous pouvez compléter votre profil et améliorer vos offres.",

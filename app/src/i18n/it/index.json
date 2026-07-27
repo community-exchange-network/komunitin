@@ -233,6 +233,7 @@
   "signupCredentialsText": "Inserisci nome, email e imposta la password per creare il tuo account. Dovrai verificare la tua email.",
   "signupVerifyEmail": "Verifica la tua email",
   "signupVerifyEmailText": "Ti abbiamo inviato una mail con il link di verifica.  Controlla la tua casella di posta segui le istruzioni.",
+  "signupInitializationError": "Impossibile avviare la registrazione. Controlla la connessione e riprova.",
   "signupComplete": "Registrazione avvenuta!",
   "signupCompleteText": "Hai completato la registrazione alla comunità {group}. La tua registrazione è in attesa di conferma da parte dell'amministrazione. Riceverai una mail di conferma quando il tuo account sarà attivato.",
   "signupCompleteText2": "Nel frattempo puoi completare il tuo profilo e migliorare le tue offerte.",
