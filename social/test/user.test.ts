@@ -641,7 +641,7 @@ describe('Users endpoints', () => {
 
     await request(app)
       .post(`/users/unsubscribe?token=${token}`)
-      .expect(200, { status: 'ok' })
+      .expect(204)
 
     const userToken = await signJwt(userId, 'unsubscribe-user@example.org')
     const settings = await request(app)
@@ -666,7 +666,7 @@ describe('Users endpoints', () => {
 
     await request(app)
       .post(`/users/unsubscribe?token=${token}`)
-      .expect(200, { status: 'ok' })
+      .expect(204)
   })
 
   test('POST /users/unsubscribe rejects missing and unknown tokens', async () => {
