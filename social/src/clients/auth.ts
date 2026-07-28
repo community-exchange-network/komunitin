@@ -143,7 +143,7 @@ export const getNotificationsToken = async (forceRefresh = false): Promise<strin
 }
 
 /**
- * Redeem (and consume) an email unsubscribe token.
+ * Resolve a replayable email unsubscribe token.
  */
 export const redeemUnsubscribeToken = async (token: string): Promise<RedeemedUnsubscribeToken> => {
   const response = await fetchWithAuth(

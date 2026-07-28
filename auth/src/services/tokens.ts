@@ -5,7 +5,7 @@ import prisma from '../utils/prisma'
 import { badRequest } from '../utils/error'
 import type { SignupContext } from '../users/signup'
 
-const TOKEN_TTL_MS = 24 * 60 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000
 
 export const userActionTokenPurpose = {
   passwordReset: 'passwordReset',
@@ -16,6 +16,27 @@ export const userActionTokenPurpose = {
 
 export type UserActionTokenPurpose =
   (typeof userActionTokenPurpose)[keyof typeof userActionTokenPurpose]
+
+const defaultPolicy = {
+  ttlMs: DAY_MS,
+  replacePending: true,
+  consumeOnRedeem: true,
+} as const
+
+const actionTokenPolicies = {
+  [userActionTokenPurpose.passwordReset]: defaultPolicy,
+  [userActionTokenPurpose.emailChange]: defaultPolicy,
+  [userActionTokenPurpose.emailVerification]: defaultPolicy,
+  [userActionTokenPurpose.unsubscribe]: {
+    ttlMs: 365 * DAY_MS,
+    replacePending: false,
+    consumeOnRedeem: false,
+  },
+} satisfies Record<UserActionTokenPurpose, {
+  ttlMs: number
+  replacePending: boolean
+  consumeOnRedeem: boolean
+}>
 
 export async function hashPassword(password: string): Promise<string> {
   if (password.length < 8) {
@@ -110,14 +131,19 @@ async function createUserActionToken({
 }): Promise<string> {
   const token = generateToken()
   const tokenHash = hashToken(token)
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS)
+  const now = new Date()
+  const policy = actionTokenPolicies[purpose]
+  const expiresAt = new Date(now.getTime() + policy.ttlMs)
 
   await prisma.$transaction([
     prisma.userActionToken.deleteMany({
       where: {
         userId,
         purpose,
-        usedAt: null,
+        OR: [
+          { expiresAt: { lte: now } },
+          ...(policy.replacePending ? [{ usedAt: null }] : []),
+        ],
       },
     }),
     prisma.userActionToken.create({
@@ -173,10 +199,8 @@ export async function createUnsubscribeToken(userId: string): Promise<string> {
 }
 
 /**
- * Validates and consumes a purpose-bound action token on behalf of a backend
- * service (e.g. social redeeming an unsubscribe token). The token is marked as
- * used (single-use). Returns the token owner, or null when the token is
- * unknown, of the wrong purpose, already used, or expired.
+ * Resolves a purpose-bound action token on behalf of a backend service.
+ * Purpose policy determines whether successful redemption consumes the token.
  */
 export async function redeemActionToken(
   token: string,
@@ -195,7 +219,9 @@ export async function redeemActionToken(
     return null
   }
 
-  await prisma.$transaction((tx) => consumeActionToken(tx, actionToken))
+  if (actionTokenPolicies[purpose].consumeOnRedeem) {
+    await prisma.$transaction((tx) => consumeActionToken(tx, actionToken))
+  }
 
   return { userId: user.id, email: user.email, purpose: actionToken.purpose as UserActionTokenPurpose }
 }

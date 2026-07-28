@@ -412,8 +412,8 @@ Recommended design:
 
 1. Notifications calls auth `POST /action-token` with purpose `unsubscribe`.
 2. Auth returns a purpose-bound unsubscribe action token.
-3. The public unsubscribe endpoint consumes that token and updates the social email settings.
-4. The token is marked as used.
+3. The public unsubscribe endpoint resolves that token and updates the social email settings.
+4. The token remains valid for replay until its one-year expiry.
 5. The endpoint returns a simple success page or redirect target.
 
 Why this is the right design:
@@ -428,7 +428,7 @@ Why this is the right design:
 
 Step 3 above is served by a dedicated auth endpoint. The social service must
 not read or trust the raw action token itself; it must ask auth to validate and
-consume it.
+resolve it.
 
 Auth contract:
 
@@ -450,9 +450,9 @@ Properties:
 - authenticated as the `komunitin-social` service client (client credentials)
 - `purpose` is restricted to `unsubscribe`; social cannot redeem password-reset,
   email-change, or email-verification tokens
-- the token is single-use: auth marks it used on success, so a second redemption
-  of the same token returns `400`
-- invalid, expired, wrong-purpose, or already-used tokens return `400`
+- the token is replayable until expiry so retries remain possible after Auth
+  resolution but before the Social mutation completes
+- invalid, expired, or wrong-purpose tokens return `400`
 
 How social must adapt:
 
@@ -464,7 +464,9 @@ How social must adapt:
 4. Do not decode, verify, or persist the raw token locally, and do not attempt
    to redeem it through `/token`.
 
-If a generic cross-service email-action mechanism is still desired, build purpose-bound action tokens with explicit `purpose`, `audience`, `sub`, and single-use storage. Do not revive `/get-auth-code`.
+Action-token lifetime, replacement, and consumption are purpose policies.
+Credential and identity mutations remain short-lived and consumable;
+unsubscribe remains long-lived and replayable. Do not revive `/get-auth-code`.
 
 ## User Data Migration From Drupal
 

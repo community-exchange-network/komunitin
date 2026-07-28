@@ -26,9 +26,9 @@ services in this repository.
 - Auth-generated action tokens are purpose-bound and are not OAuth tokens; they must never be sent to `POST /token`.
 - Notifications can request purpose-bound action tokens via `POST /action-token` as `komunitin-notifications`.
 - `POST /action-token` accepts `{ "purpose": "passwordReset" | "emailVerification" | "unsubscribe", "userId": "<uuid>" }` or `{ "purpose": "emailChange", "userId": "<uuid>", "email": "new@example.org" }`.
-- Social can redeem unsubscribe action tokens through auth `POST /redeem-action-token` as `komunitin-social`, with `{ "token": "...", "purpose": "unsubscribe" }`.
-- `POST /redeem-action-token` consumes the token once and returns `{ "userId": "<uuid>", "email": "...", "purpose": "unsubscribe" }` on success.
-- Social must not decode, verify, persist, or locally trust raw action tokens; it must ask auth to redeem them.
+- Social can resolve unsubscribe action tokens through auth `POST /redeem-action-token` as `komunitin-social`, with `{ "token": "...", "purpose": "unsubscribe" }`.
+- `POST /redeem-action-token` keeps unsubscribe tokens replayable and returns `{ "userId": "<uuid>", "email": "...", "purpose": "unsubscribe" }` on success.
+- Social must not decode, verify, persist, or locally trust raw action tokens; it must ask auth to resolve them.
 
 ## Social Service Contracts To Use
 
@@ -61,7 +61,7 @@ services in this repository.
 - `app/src/pages/members/ChangePasswordBtn.vue` updates the social user resource with `password` and `newPassword`; it needs an auth-owned replacement endpoint for logged-in password changes.
 - `app/src/pages/members/ChangeEmailBtn.vue` updates the social user resource with `email` and optional password; it must call auth `POST /change-email` with bearer auth and then rely on a confirmation email.
 - Add or reuse a public email confirmation page that calls auth `POST /email/confirm` with `{ token }`; do not auto-login from the email token.
-- `app/src/pages/settings/Unsubscribe.vue` posts directly to `${SOCIAL_URL}/users/me/unsubscribe?token=...`; the target social endpoint must redeem the raw token through auth and update newsletter settings without requiring app login.
+- `app/src/pages/settings/Unsubscribe.vue` posts directly to `${SOCIAL_URL}/users/unsubscribe?token=...`; the target social endpoint must resolve the raw token through auth and update newsletter settings without requiring app login.
 - `app/src/store/me.ts` bootstraps with `users/load` and `include: "members,members.group,settings"`; replace this with separate user and user-members loads.
 - `app/src/store/me.ts` getters `myMember`, `myAccount`, and `myCurrency` currently read nested data under `myUser`; migrate them to derive from the members/account/currency stores after the new bootstrap calls.
 - `app/src/store/resources.ts` emits `near=<lng>,<lat>` when `payload.location` exists and emits `sort` only when the caller explicitly requests it.
@@ -80,7 +80,7 @@ services in this repository.
 - Newsletter unsubscribe tokens should use `purpose: "unsubscribe"` action tokens, not login-capable auth codes.
 - `notifications-ts/src/newsletter/service.ts` uses the unsubscribe action-token purpose for newsletter links.
 - `notifications-ts/src/newsletter/template.ts` builds app unsubscribe links as `/unsubscribe?token=...`; this can stay as the app-facing URL if the app posts to the new social redemption endpoint.
-- `notifications-ts/src/clients/email/mailer.ts` builds RFC 8058 `List-Unsubscribe` URLs as `${KOMUNITIN_SOCIAL_PUBLIC_URL}/users/me/unsubscribe?token=...`; this endpoint must be backed by the new social/auth redemption flow or the URL must change.
+- `notifications-ts/src/clients/email/mailer.ts` builds RFC 8058 `List-Unsubscribe` URLs as `${KOMUNITIN_SOCIAL_PUBLIC_URL}/users/unsubscribe?token=...`; this endpoint is backed by the social/auth resolution flow.
 - `notifications-ts/src/notifications/emails/user.ts` currently creates validation CTAs to `/groups/:code/signup-member?token=...` or `/groups/new?token=...`; those links must stop relying on boot-time magic login.
 - `notifications-ts/src/clients/komunitin/client.ts` uses client-credentials tokens for social/accounting API reads; after scope migration, verify every called endpoint accepts the new scopes and token audience.
 - Notification mocks and snapshot tests still return or assert `mock-unsubscribe-token` from `/get-auth-code`; update them to the action-token contract.
@@ -110,7 +110,7 @@ services in this repository.
 
 - There is no authenticated self-service password-change endpoint in auth yet; current app logged-in password change cannot be migrated cleanly until a bearer-auth endpoint such as `POST /change-password/authenticated` exists or another explicit contract is chosen.
 - The `superadmin` scope remains the privileged signal for app route guards and service admin behavior.
-- Social exposes public `POST /users/me/unsubscribe?token=...`, obtains a cached client-credentials token, and redeems the single-use `unsubscribe` action token through Auth without logging or storing the raw token.
+- Social exposes public `POST /users/unsubscribe?token=...`, obtains a cached client-credentials token, resolves the replayable `unsubscribe` action token through Auth without logging or storing the raw token, and idempotently updates the preference.
 - Link-driven signup/onboarding after email verification is not fully defined: validation tokens confirm email, but they do not authenticate or carry social onboarding state.
 - The target frontend route after email verification is not settled for group-member signup versus new-group creation; current `/groups/:code/signup-member?token=...` and `/groups/new?token=...` links depend on magic login.
 - It is unclear whether app bootstrap should keep only the first member with `page[size]=1` or support multi-membership selection now that `/users/me/members` is paginated.

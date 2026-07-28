@@ -159,14 +159,14 @@ test('uses a client-credentials token to redeem unsubscribe actions and maps fai
 
     assert.strictEqual(new Headers(init?.headers).get('Authorization'), 'Bearer social-service-token')
     redemption++
-    if (redemption === 1) {
+    if (redemption <= 2) {
       return response({
         userId: redeemedUserId,
         email: 'unsubscribe@example.org',
         purpose: 'unsubscribe',
       })
     }
-    if (redemption === 2) {
+    if (redemption === 3) {
       return new Response(JSON.stringify({ error: 'invalid_action_token' }), { status: 400 })
     }
     return response({ unexpected: true })
@@ -177,6 +177,11 @@ test('uses a client-credentials token to redeem unsubscribe actions and maps fai
     email: 'unsubscribe@example.org',
     purpose: 'unsubscribe',
   })
-  await assert.rejects(redeemUnsubscribeToken('used'), /Invalid or expired unsubscribe token/)
+  assert.deepStrictEqual(await redeemUnsubscribeToken('valid'), {
+    userId: redeemedUserId,
+    email: 'unsubscribe@example.org',
+    purpose: 'unsubscribe',
+  })
+  await assert.rejects(redeemUnsubscribeToken('expired'), /Invalid or expired unsubscribe token/)
   await assert.rejects(redeemUnsubscribeToken('malformed'), /Auth action token redemption failed/)
 })

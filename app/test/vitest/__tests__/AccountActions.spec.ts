@@ -58,12 +58,19 @@ describe("Public account action links", () => {
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
   });
 
-  it("unsubscribes through a one-time public action token", async () => {
+  it("reuses one unsubscribe token for one-click and application flows", async () => {
     const meResponse = await fetch(`${config.SOCIAL_URL}/users/me`, {
       headers: { Authorization: "Bearer test_user_access_token" }
     });
     const me = await meResponse.json();
     const token = await actionToken("unsubscribe", me.data.id);
+
+    const oneClickResponse = await fetch(`${config.SOCIAL_URL}/users/unsubscribe?token=${token}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "List-Unsubscribe=One-Click"
+    });
+    expect(oneClickResponse.status).toBe(204);
 
     await wrapper.vm.$router.push({ path: "/unsubscribe", query: { token } });
     await waitFor(() => wrapper.text().includes("You've been unsubscribed"), true, "Unsubscribe status should succeed");
