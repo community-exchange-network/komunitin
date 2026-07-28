@@ -349,42 +349,102 @@ Local-stack smoke performed 2026-07-16:
 
 ## Stage 9: Migrate The Notifications Service
 
-Goal: make notifications consume new auth, social, and accounting contracts and
-emit purpose-bound links.
+Goal: migrate Notifications to the new Auth, Social, and Accounting service
+boundaries and emit only purpose-bound public links. This stage verifies and
+hardens existing client-credentials, action-token, frontend action-page, and
+RFC 8058 work; it does not reimplement those features or repeat the complete
+journeys reserved for Stage 13.
 
-- Validate inbound tokens against the exact new issuer, JWKS, and audience
-  `urn:komunitin:api`; remove IntegralCES issuer-prefix, null-subject, and
-  numeric-user-id compatibility from notifications runtime auth and event
-  handling.
-- Obtain a notifications client-credentials token from new auth with only
-  `email social:read accounting:read`, and use canonical UUIDs for all social
-  and accounting enrichment calls.
-- Replace any remaining `/get-auth-code` or OAuth-code helper with the
-  `POST /action-token` client.
-- Map each email flow to its explicit token purpose: `passwordReset`,
-  `emailVerification`, `emailChange`, or `unsubscribe`.
-- Point validation and account-management CTAs at their public frontend
-  action-token pages; do not create sessions from email links.
-- Generate newsletter unsubscribe tokens with purpose `unsubscribe`, point the
-  application status page at the social unsubscribe endpoint, and update RFC
-  8058 `List-Unsubscribe` headers to the working public endpoint.
-- Update notifications mocks, fixtures, snapshots, and tests to the new auth,
-  social, accounting, and link contracts.
-- Replace embedded `relationships.admins.data` consumption with
-  `GET /:code/admins`, and use `/posts` with canonical `filter[type]=offers|needs`
-  and `filter[status]=published`; Social provides no temporary legacy
-  relationship or marketplace aliases.
+- Add `notifications:read` and `notifications:write` to Auth's API scopes.
+  `komunitin-app` may request both. The confidential `komunitin-auth`,
+  `komunitin-social`, and `komunitin-accounting` clients may request only
+  `notifications:write` for event publication. Do not grant either scope to
+  `komunitin-notifications`.
+- Enforce this Notifications route matrix:
+
+  | Route | Required scope | Required identity |
+  | --- | --- | --- |
+  | `GET /:code/notifications` | `notifications:read` | `komunitin-app` with a UUID user subject |
+  | `POST /:code/notifications/read` | `notifications:write` | `komunitin-app` with a UUID user subject |
+  | `POST /:code/subscriptions` | `notifications:write` | `komunitin-app` with a UUID user subject |
+  | `DELETE /:code/subscriptions/:id` | `notifications:write` | `komunitin-app` with a UUID user subject |
+  | `POST /events` | `notifications:write` | approved client-credentials service subject |
+
+  User routes enforce exact resource ownership. The push-delivery telemetry
+  route remains unauthenticated because a service worker can report delivery
+  without a current app session; it is not a user read/write API.
+- Validate all inbound JWTs against the exact Auth issuer, JWKS, audience
+  `urn:komunitin:api`, signature, and expiry. Remove issuer-prefix,
+  null-subject, and numeric Drupal identity compatibility. `/events` additionally
+  requires `sub === client_id` and allows only the `komunitin-auth`,
+  `komunitin-social`, and `komunitin-accounting` subjects, so an app user with
+  `notifications:write` cannot publish events.
+- Replace the publishers' shared Basic credentials with cached Auth
+  client-credentials tokens requesting exactly `notifications:write`. Send
+  bearer tokens from Auth, Social, and Accounting and refresh and retry once
+  after a `401`.
+- Restrict the public event HTTP schema to events emitted by Auth, Social, and
+  Accounting. Use discriminated event schemas and canonical UUID identifiers;
+  scheduled and synthetic events continue to enter through internal functions.
+- Retain Notifications' existing outbound client-credentials flow and exact
+  `email social:read accounting:read` scope set. Centralize authenticated
+  requests, preserve token caching, deduplicate refreshes, and retry once after
+  a `401`.
+- Retain and harden the existing `POST /action-token` client and mappings for
+  `passwordReset`, `emailVerification`, `emailChange`, and `unsubscribe`.
+  Verification, password, email-change, and unsubscribe frontend pages are
+  already present and must be boundary-tested rather than rebuilt. Remove any
+  remaining legacy auth-code terminology or endpoint.
+- Give unsubscribe tokens a one-year lifetime unless a different retained-mail
+  policy is adopted. Allow multiple unsubscribe tokens per user and, unlike
+  password and email action tokens, keep each valid for replay until it
+  expires. Resolving the token and applying the Social preference change must
+  both be idempotent so a failure between those service calls can be retried.
+  Use the same recipient token for the email body and RFC 8058 one-click flow.
+  The body links to the public app `/unsubscribe?token=<token>`;
+  `List-Unsubscribe` links directly to Social
+  `/users/unsubscribe?token=<token>`; and
+  `List-Unsubscribe-Post` remains `List-Unsubscribe=One-Click`.
+- Extend Social's allowlisted collection filtering with
+  `filter[field][operator]=<RFC3339-date>` for `gt`, `gte`, `lt`, and `lte`.
+  Enable only `created` and `expires` for posts and `created` for members.
+  Combine comparisons with `AND`, map fields and operators through fixed
+  allowlists, and parameterize values. Unknown fields or operators, malformed
+  dates, arrays, and mixed flat/nested filter values return `400`. Use the
+  canonical `expires` field; do not add an `expire` alias.
+- Replace stale Social contracts: use `/:code/posts` with canonical type,
+  status, expiry, and comparison filters; fetch `/:code/admins`; use current
+  post names (`title`, `description`), image objects, and nullable `expires`;
+  and stop expecting admins on groups or members on users. Build an explicit
+  `Map<UserId, Set<MemberId>>` from member-user results for recipient ownership.
+- Paginate Social and Accounting reads with `page[size]=200`. Preserve the
+  path and query from `links.next` but rebuild each next URL against the
+  configured internal service origin; never follow a response-supplied origin.
+  For Accounting, query supported account/date filters and retain only
+  transfers whose state is `committed` locally instead of sending the
+  unsupported `filter[state]=committed`.
+- Update strict mocks, fixtures, behavioral assertions, and snapshots for the
+  new auth, event, Social, Accounting, pagination, and link contracts. Keep
+  Notifications-local contract types instead of introducing a shared SDK.
 
 Verification:
 
-- Notifications accepts new event tokens and rejects legacy auth shapes.
-- No notifications code calls `/get-auth-code` or relies on IntegralCES user-id
-  lookup.
-- Social/accounting enrichment works with the narrowly scoped notifications
-  client token.
-- Password reset, validation, email-change, and newsletter emails contain the
-  correct single-purpose action tokens and links.
+- Notifications' user-facing API accepts new Auth user JWTs with the
+  route-appropriate scope and exact UUID ownership. Its service event endpoint
+  accepts canonical events from approved migrated services using scoped Auth
+  service tokens. Legacy auth shapes, unapproved service subjects, and Basic
+  event credentials are rejected.
+- No Notifications code calls `/get-auth-code`, uses IntegralCES identifiers
+  or routes, follows an untrusted pagination origin, or depends on stale Social
+  resource shapes.
+- Social and Accounting enrichment works with the narrowly scoped Notifications
+  client token across multiple pages.
+- Password reset, verification, email-change, and newsletter emails contain
+  the correct purpose-bound tokens and public links. Repeated use of an
+  unexpired unsubscribe token succeeds without changing any other setting.
 - Notifications typecheck, API/unit tests, and email snapshots pass.
+- Complete user journeys and exactly-once delivery verification remain in
+  Stage 13.
 
 ## Stage 10: Debug Group Administration And Member Onboarding Workflows
 
@@ -476,7 +536,8 @@ Verification:
 
 ## Stage 13: Debug Notification, Newsletter, And Unsubscribe Workflows
 
-Goal: verify the migrated notifications service in real user journeys.
+Goal: verify the migrated notifications service in complete real user journeys,
+including exactly-once behavior that is intentionally outside Stage 9.
 
 - Trigger verification, password-reset, email-change, marketplace, transfer,
   and newsletter notifications from the relevant real service boundaries.
@@ -484,9 +545,10 @@ Goal: verify the migrated notifications service in real user journeys.
   social, and accounting with the notifications service token.
 - Exercise the public app action-token pages and confirm each accepts only its
   matching token purpose.
-- Exercise one-click newsletter unsubscribe through the public social endpoint
-  from the app's public `/unsubscribe?token=...` status page, and reflect the
-  updated preference in the app.
+- Exercise the replayable newsletter unsubscribe capability through both the
+  public app `/unsubscribe?token=...` status flow and the RFC 8058 direct
+  Social POST. Retry after a simulated failure between Auth resolution and the
+  Social mutation, and reflect the updated preference in the app.
 
 Verification:
 
@@ -494,8 +556,9 @@ Verification:
   once.
 - Every action link completes its intended public flow without silently logging
   the user in.
-- One-click unsubscribe consumes its token once, updates social settings, and
-  is reflected by subsequent newsletter selection.
+- Repeated use of an unexpired unsubscribe capability succeeds idempotently,
+  updates only the intended Social setting, and is reflected by subsequent
+  newsletter selection.
 
 ## Stage 14: Remove Legacy Paths And Run Full Regression
 
