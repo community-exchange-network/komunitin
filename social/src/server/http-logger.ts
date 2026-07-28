@@ -9,15 +9,19 @@ const filterObjectKeys = (obj: Record<string, any> | undefined, keys: string[]) 
 
 const redacted = '[REDACTED]'
 
-const redactActionToken = (url: string): string => {
-  const parsed = new URL(url, 'http://localhost')
-  if (!parsed.searchParams.has('token')) {
+const redactActionToken = (url: string) => {
+  try {
+    const parsed = new URL(url, 'http://localhost')
+    if (!parsed.searchParams.has('token')) {
+      return url
+    }
+    parsed.searchParams.set('token', redacted)
+    return url.startsWith('/')
+      ? `${parsed.pathname}${parsed.search}${parsed.hash}`
+      : parsed.toString()
+  } catch {
     return url
   }
-  parsed.searchParams.set('token', redacted)
-  return url.startsWith('/')
-    ? `${parsed.pathname}${parsed.search}${parsed.hash}`
-    : parsed.toString()
 }
 
 export const serializeRequest = (req: any) => {
