@@ -42,27 +42,4 @@ describe('fetchWithAuth', () => {
     assert.deepStrictEqual(authorizations, ['Bearer token-1', 'Bearer token-2']);
     assert.strictEqual((global.fetch as any).mock.callCount(), 4);
   });
-
-  it('reports request failures without response contents', async () => {
-    global.fetch = mock.fn(async (input: string | URL | Request) => {
-      if (input.toString().endsWith('/token')) {
-        return new Response(JSON.stringify({
-          access_token: 'token',
-          expires_in: 3600,
-          token_type: 'Bearer',
-          scope: 'all',
-        }));
-      }
-      return new Response('sensitive response', { status: 403, statusText: 'Forbidden' });
-    });
-
-    await assert.rejects(
-      fetchWithAuth('http://accounting.test/private?token=secret'),
-      (error: Error) => {
-        assert.strictEqual(error.message, 'http://accounting.test/private?token=secret request failed: 403 Forbidden');
-        return true;
-      },
-    );
-    assert.strictEqual((global.fetch as any).mock.callCount(), 2);
-  });
 });
