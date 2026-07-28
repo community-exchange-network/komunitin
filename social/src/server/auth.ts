@@ -1,8 +1,7 @@
 import type { NextFunction, Request, Response } from 'express'
-import { InvalidTokenError, auth as authJwt, requiredScopes } from 'express-oauth2-jwt-bearer'
+import { auth as authJwt, requiredScopes } from 'express-oauth2-jwt-bearer'
 import { z } from 'zod'
 import { config } from '../config'
-import logger from '../utils/logger'
 import { unauthorized } from '../utils/error'
 import { Scope, type SocialScope } from './scopes'
 
@@ -21,36 +20,19 @@ export type AuthIdentity = {
 const APP_CLIENT_ID = 'komunitin-app'
 const uuidSchema = z.uuid()
 
-const buildJwt = () => {
-  return authJwt({
-    issuer: config.AUTH_JWT_ISSUER,
-    audience: config.AUTH_JWT_AUDIENCE,
-    jwksUri: config.AUTH_JWKS_URL,
-  })
-}
-
-let jwt = buildJwt()
-let lastInvalidTokenRetry = 0
+const jwt = authJwt({
+  issuer: config.AUTH_JWT_ISSUER,
+  audience: config.AUTH_JWT_AUDIENCE,
+  jwksUri: config.AUTH_JWKS_URL,
+})
 
 const handleAuthRequest = (scope: SocialScope, req: Request, res: Response, next: NextFunction) => {
   jwt(req, res, (err) => {
-    if (!err) {
+    if (err) {
+      next(err)
+    } else {
       requiredScopes(scope)(req, res, next)
-      return
     }
-
-    const mustRefresh = err instanceof InvalidTokenError
-      && lastInvalidTokenRetry < Date.now() - 1000 * 60 * 5
-
-    if (mustRefresh) {
-      lastInvalidTokenRetry = Date.now()
-      jwt = buildJwt()
-      logger.warn('Invalid token error. Refreshing JWKS.')
-      handleAuthRequest(scope, req, res, next)
-      return
-    }
-
-    next(err)
   })
 }
 
