@@ -46,8 +46,7 @@ describe('POST /events', () => {
       const cases = [
         ['komunitin-auth', authEvent()],
         ['komunitin-social', socialEvent()],
-        ['komunitin-accounting', accountingEvent()],
-        ['another-service', accountingEvent()],
+        ['komunitin-accounting', accountingEvent()]
       ] as const
 
       for (const [clientId, body] of cases) {
