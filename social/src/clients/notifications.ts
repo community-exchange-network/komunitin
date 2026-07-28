@@ -4,7 +4,7 @@ import logger from '../utils/logger'
 import type { Group } from '../features/groups/types'
 import type { Member } from '../features/members/types'
 import type { Post } from '../features/posts/types'
-import { fetchWithRetry } from './utils'
+import { fetchWithAuth } from './utils'
 import { getNotificationsToken } from './auth'
 
 type SocialEventName =
@@ -68,17 +68,18 @@ class NotificationsClient {
     }
 
     try {
-      const token = await getNotificationsToken()
-      const response = await fetchWithRetry(notificationsUrl('/events'), {
-        method: 'POST',
-        headers: {
-          Accept: 'application/vnd.api+json',
-          'Content-Type': 'application/vnd.api+json',
-          Authorization: `Bearer ${token}`,
+      const response = await fetchWithAuth(
+        notificationsUrl('/events'),
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'application/vnd.api+json',
+            'Content-Type': 'application/vnd.api+json',
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      })
-
+        getNotificationsToken,
+      )
       if (!response.ok) {
         const body = await response.text()
         logger.error({ name, code, status: response.status, body }, 'Failed to send notification event')

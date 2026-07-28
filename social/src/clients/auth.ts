@@ -4,7 +4,7 @@ import { config } from '../config'
 import { Scope } from '../server/scopes'
 import { AsyncCache, type CacheValue } from '../utils/cache'
 import { badRequest, internalError } from '../utils/error'
-import { fetchWithRetry } from './utils'
+import { fetchWithAuth, fetchWithRetry } from './utils'
 
 type AccountingScope = typeof Scope.AccountingRead | typeof Scope.AccountingWrite
 type ServiceScope = AccountingScope | typeof Scope.NotificationsWrite
@@ -37,6 +37,18 @@ const TOKEN_EXPIRY_MARGIN_MS = 60 * 1000
 const tokenCache = new AsyncCache<string, string>(MAX_CACHED_TOKENS)
 const serviceTokenCache = new AsyncCache<string, string>(1)
 const notificationsTokenCache = new AsyncCache<string, string>(1)
+
+const getCachedToken = async (
+  cache: AsyncCache<string, string>,
+  key: string,
+  load: () => Promise<CacheValue<string>>,
+  forceRefresh: boolean,
+): Promise<string> => {
+  if (forceRefresh) {
+    cache.delete(key)
+  }
+  return cache.getOrLoad(key, load)
+}
 
 const getCacheKey = (subjectToken: string, scope: AccountingScope): string => {
   return createHash('sha256')
@@ -112,28 +124,40 @@ const requestNotificationsToken = async (): Promise<CacheValue<string>> => {
 /**
  * Get a service token to call the accounting service on behalf of the social service.
  */
-const getSocialServiceToken = async (): Promise<string> => {
-  return serviceTokenCache.getOrLoad(config.SOCIAL_CLIENT_ID, requestSocialServiceToken)
+const getSocialServiceToken = async (forceRefresh = false): Promise<string> => {
+  return getCachedToken(
+    serviceTokenCache,
+    config.SOCIAL_CLIENT_ID,
+    requestSocialServiceToken,
+    forceRefresh,
+  )
 }
 
-export const getNotificationsToken = async (): Promise<string> => {
-  return notificationsTokenCache.getOrLoad(config.SOCIAL_CLIENT_ID, requestNotificationsToken)
+export const getNotificationsToken = async (forceRefresh = false): Promise<string> => {
+  return getCachedToken(
+    notificationsTokenCache,
+    config.SOCIAL_CLIENT_ID,
+    requestNotificationsToken,
+    forceRefresh,
+  )
 }
 
 /**
  * Resolve a replayable email unsubscribe token.
  */
 export const redeemUnsubscribeToken = async (token: string): Promise<RedeemedUnsubscribeToken> => {
-  const serviceToken = await getSocialServiceToken()
-  const response = await fetchWithRetry(new URL('/redeem-action-token', config.AUTH_URL), {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${serviceToken}`,
-      'Content-Type': 'application/json',
+  const response = await fetchWithAuth(
+    new URL('/redeem-action-token', config.AUTH_URL),
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, purpose: 'unsubscribe' }),
     },
-    body: JSON.stringify({ token, purpose: 'unsubscribe' }),
-  })
+    getSocialServiceToken,
+  )
   const responseBody = await response.json().catch(() => undefined)
   if (response.status === 400) {
     throw badRequest('Invalid or expired unsubscribe token')
@@ -152,7 +176,13 @@ export const redeemUnsubscribeToken = async (token: string): Promise<RedeemedUns
 export const exchangeAccountingToken = async (
   subjectToken: string,
   scope: AccountingScope,
+  forceRefresh = false,
 ): Promise<string> => {
   const key = getCacheKey(subjectToken, scope)
-  return tokenCache.getOrLoad(key, () => requestAccountingToken(subjectToken, scope))
+  return getCachedToken(
+    tokenCache,
+    key,
+    () => requestAccountingToken(subjectToken, scope),
+    forceRefresh,
+  )
 }
