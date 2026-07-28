@@ -415,16 +415,13 @@ journeys reserved for Stage 13.
 - Replace stale Social contracts: use `/:code/posts` with canonical type,
   status, expiry, and comparison filters; fetch `/:code/admins`; use current
   post names (`title`, `description`), image objects, and nullable `expires`;
-  and stop expecting admins on groups or members on users. Build an explicit
-  `Map<UserId, Set<MemberId>>` from member-user results for recipient ownership.
-- Paginate Social and Accounting reads with `page[size]=200`. Preserve the
-  path and query from `links.next` but rebuild each next URL against the
-  configured internal service origin; never follow a response-supplied origin.
-  For Accounting, query supported account/date filters and retain only
-  transfers whose state is `committed` locally instead of sending the
-  unsupported `filter[state]=committed`.
+  stop expecting embedded admins on groups, and fetch user memberships through
+  `/users/:id/members` rather than an embedded user relationship.
+- Add `state` to the Accounting transfer and transfer CSV collection filters,
+  test committed and default filtering, and keep `filter[state]=committed` in
+  the Notifications newsletter query.
 - Update strict mocks, fixtures, behavioral assertions, and snapshots for the
-  new auth, event, Social, Accounting, pagination, and link contracts. Keep
+  new auth, event, Social, Accounting, and link contracts. Keep
   Notifications-local contract types instead of introducing a shared SDK.
 
 Verification:
@@ -435,10 +432,9 @@ Verification:
   service tokens. Legacy auth shapes, unapproved service subjects, and Basic
   event credentials are rejected.
 - No Notifications code calls `/get-auth-code`, uses IntegralCES identifiers
-  or routes, follows an untrusted pagination origin, or depends on stale Social
-  resource shapes.
+  or routes, or depends on stale Social resource shapes.
 - Social and Accounting enrichment works with the narrowly scoped Notifications
-  client token across multiple pages.
+  client token.
 - Password reset, verification, email-change, and newsletter emails contain
   the correct purpose-bound tokens and public links. Repeated use of an
   unexpired unsubscribe token succeeds without changing any other setting.
