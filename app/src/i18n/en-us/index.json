@@ -231,6 +231,7 @@
   "signupCredentialsText": "Enter your name, email and set a password to create your account. You'll need to verify the email.",
   "signupVerifyEmail": "Verify your email",
   "signupVerifyEmailText": "We have sent you an email with a link to verify your email. Check your inbox and follow the instructions.",
+  "signupInitializationError": "Could not start signup. Check your connection and try again.",
   "signupComplete": "Signup complete!",
   "signupCompleteText": "You have completed the signup process to the community {group}. Now your registration is pending approval by the community administrators. You will receive an email when you account is fully activated.",
   "signupCompleteText2": "Meanwhile you can complete your profile and improve your offers.",

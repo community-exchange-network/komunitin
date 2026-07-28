@@ -1,12 +1,5 @@
 # Social/Auth Migration Todos
 
-- Align real social relationship metadata with the frontend contract represented by Mirage: `group.members.links.related` advertises whether the authenticated user may list a group's members, while member and category `offers` and `needs` relationships expose `meta.count`. Group visibility alone cannot determine member-list access. Decide whether to retain these relationship fields or replace them with explicit capability/count metadata.
-- Add the real Social `GET /:code/admins` relationship endpoint. Group resources should advertise it through `relationships.admins.links.related` and `meta.count`, without embedding to-many admin linkage or included user resources.
 - Implement `POST /change-password/authenticated` in the real auth service with bearer authentication and `{ "currentPassword": "...", "password": "..." }`. Mirage and the frontend profile control already use this contract.
-- Implement the public social unsubscribe endpoint that redeems an auth `unsubscribe` action token and updates newsletter preferences. Mirage exposes `POST /users/me/unsubscribe?token=...` for the frontend journey, but the real social service does not yet provide it.
 - Decide how repeated unverified registrations prove ownership. The current Auth endpoint replaces the password and issues a fresh single-use verification journey; it should not expose whether an unverified identity already exists.
-- Make real Social member provisioning idempotent per authenticated user and group, matching Mirage, so retrying after a partial onboarding failure cannot create duplicate memberships.
-- Add `near=<lat>,<lng>&sort=distance` support to real Social member and post collections. The frontend applies location ordering to groups, members, offers, and needs, while the current real controllers only advertise distance sorting for groups.
-- Implement superadmin: rename the komunitin-superadmin scope to `superadmin` and add a way to grant it to a user via the real Auth service. Eg, we can have an env var `SUPERADMIN_EMAIL` that seeds the superadmin role on startup, and a `POST /superadmin/grant` endpoint to grant it to other users.
-- Frontend is sortiung by distance by default, when it shouldn't.
-- Social uses query param near=<lat,lng>, but most API fieldsuses lng, lat ordering, following GeoJSON conventions. Update the query param (and consumers) to use lng,lat matching the API field ordering.
+- Add a way to grant the existing `superadmin` scope to another user through the real Auth service; the configured admin email is currently the only grant source.

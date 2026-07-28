@@ -17,6 +17,19 @@ const urlSocial = config.SOCIAL_URL;
 const urlAccounting = config.ACCOUNTING_URL;
 
 const contactTypes = getContactNetworkKeys();
+let memberCreateFailures = 0
+let memberCreateResponseFailures = 0
+let memberCreateCount = 0
+
+export const failNextMockMemberCreate = () => {
+  memberCreateFailures++
+}
+
+export const failNextMockMemberCreateResponse = () => {
+  memberCreateResponseFailures++
+}
+
+export const getMockMemberCreateCount = () => memberCreateCount
 
 inflections("en", function (inflect) {
   inflect.irregular("userSettings", "userSettings")
@@ -126,7 +139,7 @@ function sortByDistance(records: any, request: any) {
   if (!request.queryParams.near || request.queryParams.sort != "distance") {
     return records;
   }
-  const [lat, lng] = request.queryParams.near.split(",").map(Number);
+  const [lng, lat] = request.queryParams.near.split(",").map(Number);
   const distance = (record: any) => {
     const coordinates = record.location?.coordinates;
     return coordinates ? Math.pow(coordinates[1] - lat, 2) + Math.pow(coordinates[0] - lng, 2) : Infinity;
@@ -146,6 +159,9 @@ export default {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
         delete json.relationships.categories
         delete json.relationships.posts
+        if (json.relationships.currency?.data === null) {
+          delete json.relationships.currency
+        }
         return json
       },
       links(group: any) {
@@ -175,12 +191,12 @@ export default {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
         const posts = model.posts.models
         json.relationships.offers = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=offers` },
-          meta: { count: posts.filter((post: any) => post.type === "offers").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=offers&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "offers" && post.status === "published").length }
         }
         json.relationships.needs = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=needs` },
-          meta: { count: posts.filter((post: any) => post.type === "needs").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=needs&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "needs" && post.status === "published").length }
         }
         delete json.relationships.posts
         return json
@@ -203,12 +219,12 @@ export default {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
         const posts = model.posts.models
         json.relationships.offers = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=offers` },
-          meta: { count: posts.filter((post: any) => post.type === "offers").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=offers&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "offers" && post.status === "published").length }
         }
         json.relationships.needs = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=needs` },
-          meta: { count: posts.filter((post: any) => post.type === "needs").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=needs&filter[status]=published` },
+          meta: { count: posts.filter((post: any) => post.type === "needs" && post.status === "published").length }
         }
         delete json.relationships.group
         delete json.relationships.posts
@@ -470,11 +486,7 @@ export default {
     server.post(urlSocial + "/groups", (schema: any, request: any) => {
       const body = JSON.parse(request.requestBody)
       const settingsData = body.included?.find((record: any) => record.type === "group-settings")
-      const currencyData = body.included?.find((record: any) => record.type === "currencies")
       const settings = schema.groupSettings.create(settingsData?.attributes ?? {})
-      const currency = currencyData
-        ? schema.currencies.create({ id: currencyData.id, ...currencyData.attributes })
-        : undefined
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
       const admin = authUser ? schema.users.find(authUser.id) : undefined
@@ -482,7 +494,6 @@ export default {
         ...body.data.attributes,
         status: "pending",
         settings,
-        currency,
         admins: admin ? [admin] : [],
         created: new Date().toJSON(),
         updated: new Date().toJSON()
@@ -502,7 +513,26 @@ export default {
     server.patch(urlSocial + "/:code", (schema: any, request) => {
       const group = schema.groups.findBy({ code: request.params.code });
       const body = JSON.parse(request.requestBody);
-      group.update(body.data.attributes);
+      const attributes = body.data.attributes
+      if (group.status === "pending" && attributes.status === "active") {
+        const currencyRequest = attributes.meta?.request.currency ?? group.meta.request.currency
+        const currency = schema.currencies.findBy({ code: group.code })
+          ?? schema.currencies.create({
+            ...currencyRequest,
+            code: group.code,
+            status: "active"
+          })
+        if (!currency.settings) {
+          schema.currencySettings.create({ currency })
+        }
+        group.update({
+          ...attributes,
+          meta: null,
+          currency
+        })
+      } else {
+        group.update(attributes);
+      }
       return group;
     });
 
@@ -559,25 +589,27 @@ export default {
     // Group posts.
     server.get(urlSocial + "/:code/posts", (schema: any, request: any) => {
       const group = schema.groups.findBy({ code: request.params.code });
-      return filter(schema.posts.where({ groupId: group.id }), request);
+      const records = filter(schema.posts.where({ groupId: group.id }), withoutQuery(request, ["near"]));
+      return sortByDistance(records, request);
     });
 
     // Group members.
     server.get(urlSocial + "/:code/members", (schema: any, request: any) => {
       const group = schema.groups.findBy({ code: request.params.code });
-      return filter(schema.members.where({ groupId: group.id }), request);
+      const records = filter(schema.members.where({ groupId: group.id }), withoutQuery(request, ["near"]));
+      return sortByDistance(records, request);
     });
 
     server.post(urlSocial + "/:code/members", (schema: any, request: any) => {
+      if (memberCreateFailures > 0) {
+        memberCreateFailures--
+        return new Response(503, {}, { errors: [{ detail: "Member creation failed" }] })
+      }
       const body = JSON.parse(request.requestBody)
       const group = schema.groups.findBy({ code: request.params.code })
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
       const user = authUser ? schema.users.find(authUser.id) : undefined
-      const existing = user?.members.models.find((member: any) => member.group.id === group.id)
-      if (existing) {
-        return existing
-      }
       const member = schema.members.create({
         ...body.data.attributes,
         status: "draft",
@@ -588,6 +620,11 @@ export default {
       })
       user?.members.add(member)
       user?.save()
+      memberCreateCount++
+      if (memberCreateResponseFailures > 0) {
+        memberCreateResponseFailures--
+        return new Response(503, {}, { errors: [{ detail: "Member creation response failed" }] })
+      }
       return member
     })
 
@@ -714,7 +751,7 @@ export default {
       return settings;
     });
 
-    server.post(urlSocial + "/users/me/unsubscribe", (schema: any, request: any) => {
+    server.post(urlSocial + "/users/unsubscribe", (schema: any, request: any) => {
       const action = redeemMockActionToken(request.queryParams.token, "unsubscribe")
       if (!action) {
         return badRequest("Invalid or expired unsubscribe token")

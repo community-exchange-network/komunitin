@@ -233,6 +233,7 @@
   "signupCredentialsText": "Entra el teu nom, correu electrònic i contrasenya per a crear el teu compte. Hauràs de verificar el teu correu electrònic.",
   "signupVerifyEmail": "Verifica el teu correu electrònic",
   "signupVerifyEmailText": "T'hem enviat un correu electrònic amb un enllaç per a verificar la teva adreça. Comprova la teva safata d'entrada i segueix les instruccions.",
+  "signupInitializationError": "No s'ha pogut iniciar el registre. Comprova la connexió i torna-ho a provar.",
   "signupComplete": "Registre completat!",
   "signupCompleteText": "Has completat el procés de registre a la comunitat {group}. Ara la teva inscripció està pendent d'aprovació pels administradors. Rebràs un correu electrònic quan el teu compte estigui actiu.",
   "signupCompleteText2": "Mentrestant, pots completar el teu perfil i millorar les teves ofertes.",

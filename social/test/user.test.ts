@@ -3,10 +3,11 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { config } from '../src/config'
 import { Scope } from '../src/server/context'
-import { serviceAuth, signJwt } from './mocks/auth'
+import { serviceAuth, signJwt, signServiceJwt } from './mocks/auth'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { includedResource, toUuid } from './mocks/utils'
-import { resetDb, seedGroup, seedMember, seedMemberUser, seedUser } from './mocks/seed'
+import { resetDb, seedGroup, seedMember, seedMemberUser, seedPost, seedUser } from './mocks/seed'
+import { seedAuthUnsubscribeToken } from './mocks/handlers'
 
 let app: any
 
@@ -73,6 +74,43 @@ describe('Users endpoints', () => {
       .get('/users/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(401)
+  })
+
+  test('GET /users/me rejects exchanged user tokens issued to the social client', async () => {
+    const token = await signJwt(
+      toUuid('social-exchanged-user'),
+      'social-exchanged-user@example.org',
+      Scope.SocialRead,
+      { clientId: 'komunitin-social', includeDefaultScopes: false },
+    )
+
+    await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(401)
+  })
+
+  test('service and superadmin identities cannot bypass the base social scope', async () => {
+    const forgedService = await signServiceJwt(
+      'komunitin-notifications',
+      [Scope.SocialRead],
+      'different-service-subject',
+    )
+    await request(app)
+      .get('/users?filter[members]=00000000-0000-4000-8000-000000000001')
+      .set('Authorization', `Bearer ${forgedService}`)
+      .expect(401)
+
+    const superadminOnly = await signJwt(
+      toUuid('scope-less-superadmin'),
+      'scope-less-superadmin@example.org',
+      Scope.Superadmin,
+      { includeDefaultScopes: false },
+    )
+    await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${superadminOnly}`)
+      .expect(403)
   })
 
   test('POST /users creates authenticated user with optional settings include', async () => {
@@ -320,6 +358,7 @@ describe('Users endpoints', () => {
 
     const ids = res.body.data.map((resource: any) => resource.id)
     assert.deepStrictEqual(ids, [duplicateUserId, uniqueUserId])
+    assert.strictEqual(res.body.meta.count, 2)
   })
 
   test('GET /users rejects regular user tokens', async () => {
@@ -389,10 +428,55 @@ describe('Users endpoints', () => {
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].type, 'members')
     assert.strictEqual(res.body.data[0].id, member.id)
+    assert.strictEqual(res.body.meta.count, 1)
     assert.strictEqual(typeof res.body.links.self, 'string')
     assert.ok(includedResource(res.body, 'groups'))
     assert.ok(includedResource(res.body, 'currencies', currencyId))
     assert.ok(includedResource(res.body, 'accounts', accountId))
+  })
+
+  test('GET /users/:id/members includes visible published post counts', async () => {
+    const subject = toUuid('member-post-count-user')
+    const token = await signJwt(subject, 'member-post-count-user@example.org')
+
+    const group = await seedGroup({
+      tenantId: 'user-member-post-counts',
+      status: 'active',
+      access: 'public',
+    })
+    const member = await seedMember({
+      tenantId: 'user-member-post-counts',
+      userId: subject,
+      status: 'active',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'user-member-post-counts',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'user-member-post-counts',
+      memberId: member.id,
+      type: 'needs',
+      status: 'draft',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/users/${subject}/members`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data[0].relationships.offers.meta.count, 1)
+    assert.strictEqual(res.body.data[0].relationships.needs.meta.count, 0)
+    assert.deepStrictEqual(res.body.data[0].relationships.group.data, {
+      type: 'groups',
+      id: group.id,
+    })
+    assert.deepStrictEqual(res.body.included, [])
   })
 
   test('GET /users/:id/members denies outsiders', async () => {
@@ -575,6 +659,60 @@ describe('Users endpoints', () => {
           },
         },
       })
+      .expect(400)
+  })
+
+  test('POST /users/unsubscribe redeems a public token and preserves other settings', async () => {
+    const userId = toUuid('unsubscribe-user')
+    const token = 'valid-unsubscribe-token'
+    await seedUser({
+      id: userId,
+      email: 'unsubscribe-user@example.org',
+      settings: {
+        language: 'ca',
+        notifications: { myAccount: true, group: true },
+        emails: { myAccount: true, group: 'weekly' },
+      },
+    })
+    seedAuthUnsubscribeToken(token, userId, 'unsubscribe-user@example.org')
+
+    await request(app)
+      .post(`/users/unsubscribe?token=${token}`)
+      .expect(204)
+
+    const userToken = await signJwt(userId, 'unsubscribe-user@example.org')
+    const settings = await request(app)
+      .get(`/users/${userId}/settings`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200)
+
+    assert.deepStrictEqual(settings.body.data.attributes, {
+      language: 'ca',
+      notifications: { myAccount: true, group: true },
+      emails: { myAccount: true, group: 'never' },
+    })
+
+    await request(app)
+      .post(`/users/unsubscribe?token=${token}`)
+      .expect(400)
+  })
+
+  test('POST /users/unsubscribe does not disclose a missing social projection', async () => {
+    const token = 'unsubscribe-without-social-user'
+    seedAuthUnsubscribeToken(token, toUuid('auth-only-user'), 'auth-only@example.org')
+
+    await request(app)
+      .post(`/users/unsubscribe?token=${token}`)
+      .expect(204)
+  })
+
+  test('POST /users/unsubscribe rejects missing and unknown tokens', async () => {
+    await request(app)
+      .post('/users/unsubscribe')
+      .expect(400)
+
+    await request(app)
+      .post('/users/unsubscribe?token=unknown')
       .expect(400)
   })
 })

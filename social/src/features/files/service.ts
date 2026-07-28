@@ -191,8 +191,8 @@ export const createUploadedFile = async (
 
   // Verify access.
   const allowed = ctx.isSuperadmin
-    || await isGroupAdmin(ctx, group)
-    || await isGroupMember(ctx, group)
+    || isGroupAdmin(ctx, group)
+    || await isGroupMember(ctx, group, ['draft', 'pending', 'active'])
 
   if (!allowed) {
     throw forbidden('You do not have permission to upload files in this group')

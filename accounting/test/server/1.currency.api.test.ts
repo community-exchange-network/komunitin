@@ -50,9 +50,19 @@ describe('Currencies endpoints', async () => {
     }
   }
   
-  await it('create currency', async () => {
-    // User 1 creates currency TES1
-    const currency = currencyPostBody({code:"TES1"}, "1", {})
+  await it('create currency with default settings', async () => {
+    // User 1 creates currency TES1, without included settings object.
+    const currencyWithSettings = currencyPostBody({code:"TES1"}, "1", {})
+    const currency = {
+      ...currencyWithSettings,
+      data: {
+        ...currencyWithSettings.data,
+        relationships: {
+          admins: currencyWithSettings.data.relationships.admins
+        }
+      },
+      included: currencyWithSettings.included.filter(({ type }) => type !== "currency-settings")
+    }
     const response = await t.api.post('/currencies', currency, admin1)
     assert(isUuid(response.body.data.id), "The currency id is not a valid UUID")
     assert.equal(response.body.data.type, 'currencies')
@@ -65,7 +75,7 @@ describe('Currencies endpoints', async () => {
     const response2 = await t.api.get('/TES1/currency?include=settings')
     const settings = response2.body.included.find((i: any) => i.type === "currency-settings")
     assert(isUuid(settings.id), "The settings id is not a valid UUID")
-    assert.equal(settings.attributes.defaultInitialCreditLimit, 1000)
+    assert.equal(settings.attributes.defaultInitialCreditLimit, 1000000)
   })
 
   // Helper doing an authenticated post to /currencies, expecting a 400 error.

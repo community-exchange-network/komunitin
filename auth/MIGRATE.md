@@ -398,7 +398,7 @@ Resulting flow:
 Current behavior:
 
 - `newsletter/service.ts` asks auth for `/get-auth-code`
-- links point to `/unsubscribe?token=...` in the app and to `/users/me/unsubscribe?token=...` in social public URLs
+- links point to `/unsubscribe?token=...` in the app and to `/users/unsubscribe?token=...` in social public URLs
 
 This should not be migrated to token exchange.
 

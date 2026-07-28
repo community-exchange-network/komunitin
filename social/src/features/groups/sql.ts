@@ -10,6 +10,7 @@ import {
   type SqlColumnMap
 } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
+import type { CollectionIds } from '../../server/query'
 
 const groupTable = sqlTable('Group', 'g')
 const groupColumn = (column: string) => sqlColumn('g', column)
@@ -93,7 +94,7 @@ const buildReadableGroupWhere = (ctx: OptionalAuthContext): Prisma.Sql => {
  * Build SQL query to list groups, taking into account the user's permissions and the provided 
  * collection parameters for filtering, sorting, and pagination.
  */
-export const findGroupIds = async (ctx: OptionalAuthContext, db: DbClient, params: CollectionParams): Promise<string[]> => {
+export const findGroupIds = async (ctx: OptionalAuthContext, db: DbClient, params: CollectionParams): Promise<CollectionIds> => {
   return findCollectionIds(db, {
     from: groupTable,
     columns: groupColumns,

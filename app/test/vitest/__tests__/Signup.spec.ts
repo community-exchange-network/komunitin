@@ -13,6 +13,11 @@ import EditGroupForm from "src/pages/admin/EditGroupForm.vue";
 import { config } from "src/utils/config";
 import { Auth, type SignupContext } from "src/plugins/Auth";
 import type { Group } from "src/store/model";
+import {
+  failNextMockMemberCreate,
+  failNextMockMemberCreateResponse,
+  getMockMemberCreateCount
+} from "src/server/SocialServer";
 
 // Mock quasar.scroll used in Signup.vue and SignupMember.vue to scroll to top on step change.
 vi.mock("quasar", async () => {
@@ -27,6 +32,9 @@ vi.mock("quasar", async () => {
 
 describe("Signup", () => {
   let wrapper: VueWrapper;
+  let confirmationToken = ""
+  let draftMemberId = ""
+  let memberCreateCount = 0
 
   const confirmAndLogin = async (
     email: string,
@@ -86,6 +94,7 @@ describe("Signup", () => {
     await wrapper.get("input[type='password']").setValue(password);
     await wrapper.get("button[type='submit']").trigger("click");
     await waitFor(() => wrapper.vm.$route.path, destination);
+    return token
   };
   
   beforeAll(async () => {  
@@ -118,14 +127,52 @@ describe("Signup", () => {
     await flushPromises();
     await waitFor(() => wrapper.text().includes("Verify your email"), true, "Verification waiting page should show");
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
-    await confirmAndLogin("empty@example.com", "password", {
+    memberCreateCount = getMockMemberCreateCount()
+    failNextMockMemberCreate()
+    confirmationToken = await confirmAndLogin("empty@example.com", "password", {
       type: "member",
       name: "Empty User",
       language: "en-us",
       groupCode: "GRP0"
     }, "/groups/GRP0/signup-member");
+    await waitFor(
+      () => wrapper.text().includes("Could not start signup"),
+      true,
+      "Signup initialization failure should show"
+    )
+    expect(wrapper.vm.$store.getters.myMember).toBeUndefined()
+    expect(getMockMemberCreateCount()).toBe(memberCreateCount)
+    const retry = wrapper.findAllComponents(QBtn).find(button => button.text().includes("Retry now"))
+    expect(retry).toBeDefined()
+    await retry?.trigger("click")
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Retry should initialize the draft")
     expect(wrapper.find("[name='password']").exists()).toBe(false);
     expect(wrapper.vm.$store.getters.myUser.settings.attributes.language).toBe("en-us");
+    draftMemberId = wrapper.vm.$store.getters.myMember.id
+    expect(getMockMemberCreateCount()).toBe(memberCreateCount + 1)
+  })
+
+  it("resumes the existing draft on reload and repeated confirmation", async () => {
+    await wrapper.vm.$router.push("/groups")
+    await wrapper.vm.$router.push("/groups/GRP0/signup-member")
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Reloaded signup should show the draft")
+    expect(wrapper.vm.$store.getters.myMember.id).toBe(draftMemberId)
+    expect(getMockMemberCreateCount()).toBe(memberCreateCount + 1)
+
+    await wrapper.vm.$router.push("/groups")
+    await wrapper.vm.$router.push({ path: "/confirm-email", query: { token: confirmationToken } })
+    await wrapper.get("#confirm-email").trigger("click")
+    await waitFor(
+      () => wrapper.text().includes("Your email has been confirmed"),
+      true,
+      "Consumed confirmation should resume signup"
+    )
+    await wrapper.get("input[type='password']").setValue("password")
+    await wrapper.get("button[type='submit']").trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/signup-member")
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Resumed signup should show the draft")
+    expect(wrapper.vm.$store.getters.myMember.id).toBe(draftMemberId)
+    expect(getMockMemberCreateCount()).toBe(memberCreateCount + 1)
   })
 
   it('Creates member', async () => {
@@ -249,7 +296,55 @@ describe("Signup", () => {
     });
     const admins = await adminsResponse.json();
     expect(admins.data[0].id).toBe(wrapper.vm.$store.getters.myUser.id);
-    expect(wrapper.vm.$store.getters["groups/current"].relationships.currency.data.id).toBeTruthy();
+    expect(createdGroup.relationships.currency).toBeUndefined();
+    expect(createdGroup.attributes.meta.request.currency).toEqual({
+      name: "test credit",
+      namePlural: "test credits",
+      symbol: "TC",
+      decimals: 2,
+      scale: 6,
+      rate: {
+        n: 1,
+        d: 10
+      }
+    });
   });
+
+  it("lets a logged-in user without a member restart from a community", async () => {
+    const createsBeforeRecovery = getMockMemberCreateCount()
+    failNextMockMemberCreateResponse()
+    await wrapper.vm.$router.push("/groups/GRP0")
+    await waitFor(
+      () => wrapper.find("a[href='/groups/GRP0/signup']").exists(),
+      true,
+      "Community signup action should be available"
+    )
+    await wrapper.get("a[href='/groups/GRP0/signup']").trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/signup")
+    await waitFor(() => wrapper.text().includes("Membership terms"), true, "Terms should be shown")
+    expect(wrapper.find("[name='password']").exists()).toBe(false)
+    await wrapper.get("button[type='submit']").trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/signup-member")
+    await waitFor(
+      () => wrapper.text().includes("Could not start signup"),
+      true,
+      "Lost create response should show retry"
+    )
+    expect(getMockMemberCreateCount()).toBe(createsBeforeRecovery + 1)
+    const retry = wrapper.findAllComponents(QBtn).find(button => button.text().includes("Retry now"))
+    expect(retry).toBeDefined()
+    await retry?.trigger("click")
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Committed draft should load on retry")
+    expect(wrapper.get<HTMLInputElement>("[name='name']").element.value).toBe("Test Administrator")
+    expect(getMockMemberCreateCount()).toBe(createsBeforeRecovery + 1)
+
+    await wrapper.vm.$router.push("/groups/GRP1/signup-member")
+    await waitFor(
+      () => wrapper.vm.$route.path,
+      "/groups/GRP0/signup-member",
+      "A draft in another community should be resumed"
+    )
+    expect(getMockMemberCreateCount()).toBe(createsBeforeRecovery + 1)
+  })
   
 })

@@ -131,7 +131,7 @@
             />
           </div>
           <floating-btn
-            v-if="!isLoggedIn"
+            v-if="!isLoggedIn || !myMember"
             :label="$t('signUp')"
             icon="add"
             color="primary"
@@ -180,6 +180,7 @@ const descriptionRef = ref<HTMLElement | null>(null);
 const canToggleDescription = ref(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
+const myMember = computed(() => store.getters.myMember);
 const groupOptions = computed(() => ({ group: props.code }));
 const { resource: group, load: loadGroup } = useResource<Group>('groups', groupOptions, {
   immediate: false,

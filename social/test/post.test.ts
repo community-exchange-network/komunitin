@@ -586,6 +586,8 @@ describe('Posts endpoints', () => {
     assert.ok(includedResource(res.body, 'categories', category.id))
     const includedMember = includedResource(res.body, 'members', member.id)
     assert.strictEqual(includedMember.attributes.contacts[0].value, 'posts-app-need-filter@example.org')
+    assert.strictEqual(includedMember.relationships.group.data.id, member.groupId)
+    assert.strictEqual(includedResource(res.body, 'groups'), undefined)
   })
 
   test('GET /:code/posts supports need code/account app query', async () => {
@@ -723,6 +725,50 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'b-visible')
+    assert.strictEqual(res.body.meta.count, 1)
+    assert.strictEqual(res.body.links.next, null)
+  })
+
+  test('GET /:code/posts sorts by distance with null locations last', async () => {
+    await seedGroup({ tenantId: 'posts-distance', status: 'active', access: 'public' })
+    const member = await seedMember({ tenantId: 'posts-distance', status: 'active' })
+    await seedPost({
+      tenantId: 'posts-distance',
+      memberId: member.id,
+      code: 'near',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      longitude: 120,
+      latitude: 45,
+    })
+    await seedPost({
+      tenantId: 'posts-distance',
+      memberId: member.id,
+      code: 'far',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      longitude: 10,
+      latitude: 20,
+    })
+    await seedPost({
+      tenantId: 'posts-distance',
+      memberId: member.id,
+      code: 'no-location',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get('/posts-distance/posts?near=121,45&sort=distance')
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((post: any) => post.attributes.code),
+      ['near', 'far', 'no-location'],
+    )
   })
 
   test('GET /:code/posts supports reverse sorting by update date', async () => {
@@ -756,6 +802,48 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.id, post.id)
     assert.strictEqual(res.body.data.type, 'offers')
+    assert.deepStrictEqual(res.body.data.relationships.member.data, {
+      type: 'members',
+      id: member.id,
+    })
+    assert.strictEqual(res.body.data.relationships.category.data, null)
+    assert.deepStrictEqual(res.body.included, [])
+  })
+
+  test('GET /:code/posts/:post hydrates only requested nested relationships', async () => {
+    const currencyId = toUuid('posts-get-includes-currency')
+    const accountId = toUuid('posts-get-includes-account')
+    await seedGroup({
+      tenantId: 'posts-get-includes',
+      status: 'active',
+      access: 'public',
+      currencyId,
+    })
+    const member = await seedMember({
+      tenantId: 'posts-get-includes',
+      status: 'active',
+      access: 'public',
+      accountId,
+    })
+    const category = await seedCategory({ tenantId: 'posts-get-includes' })
+    const post = await seedPost({
+      tenantId: 'posts-get-includes',
+      memberId: member.id,
+      categoryId: category.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/posts-get-includes/posts/${post.id}?include=member,member.group,member.group.currency,member.account,category`)
+      .expect(200)
+
+    assert.ok(includedResource(res.body, 'members', member.id))
+    assert.ok(includedResource(res.body, 'groups', member.groupId))
+    assert.ok(includedResource(res.body, 'currencies', currencyId))
+    assert.ok(includedResource(res.body, 'accounts', accountId))
+    assert.ok(includedResource(res.body, 'categories', category.id))
   })
 
   test('GET /:code/posts/:post returns 403 for unauthorized draft', async () => {

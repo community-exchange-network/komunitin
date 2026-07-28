@@ -1,17 +1,48 @@
 import { type Category as DbCategory } from '../../generated/prisma/client'
 import { type AuthContext, type OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { reorderByIds } from '../../server/query'
+import { type CollectionResult, reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { slugify } from '../../utils/format'
 import prisma from '../../utils/prisma'
 import { canWriteGroup, getGroupByCode } from '../groups/service'
-import type { Category, CreateCategoryInput, PatchCategoryInput } from './types'
+import type { Group } from '../groups/types'
+import type { Category, CreateCategoryInput, PatchCategoryInput, SerializableCategory } from './types'
 import { findCategoriesIds } from './sql'
+import { findPostRelationshipCounts } from '../posts/sql'
 
 export const toCategory = (dbCategory: DbCategory): Category => {
   return dbCategory as Category
+}
+
+/** Add viewer-specific post counts required by the category serializer. */
+export const enrichCategories = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+  categories: Category[],
+): Promise<SerializableCategory[]> => {
+  const db = tenantDb(prisma, group.code)
+  const counts = await findPostRelationshipCounts(
+    ctx,
+    db,
+    group,
+    'categoryId',
+    categories.map(({ id }) => id),
+  )
+
+  return categories.map((category) => ({
+    ...category,
+    relationshipMeta: counts.get(category.id)!,
+  }))
+}
+
+export const enrichCategory = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+  category: Category,
+) => {
+  return (await enrichCategories(ctx, group, [category]))[0]
 }
 
 const getCategoryById = async (code: string, id: string): Promise<Category> => {
@@ -31,27 +62,27 @@ const getCategoryById = async (code: string, id: string): Promise<Category> => {
   return toCategory(category)
 }
 
-export const listCategories = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<Category[]> => {
+export const listCategories = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<SerializableCategory>> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
-  const ids = await findCategoriesIds(ctx, db, group, params)
-
-  if (ids.length === 0) {
-    return []
-  }
+  const result = await findCategoriesIds(ctx, db, group, params)
 
   const categories = await db.category.findMany({
     where: {
-      id: { in: ids },
+      id: { in: result.ids },
     },
   })
 
-  return reorderByIds(categories, ids).map(toCategory)
+  const items = reorderByIds(categories, result.ids).map(toCategory)
+  return {
+    items: await enrichCategories(ctx, group, items),
+    total: result.total,
+  }
 }
 
-export const createCategory = async (ctx: AuthContext, code: string, input: CreateCategoryInput): Promise<Category> => {
+export const createCategory = async (ctx: AuthContext, code: string, input: CreateCategoryInput): Promise<SerializableCategory> => {
   const group = await getGroupByCode(ctx, code)
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to create categories in this group')
   }
@@ -79,7 +110,7 @@ export const createCategory = async (ctx: AuthContext, code: string, input: Crea
     },
   })
 
-  return toCategory(created)
+  return enrichCategory(ctx, group, toCategory(created))
 }
 
 export const patchCategory = async (
@@ -87,10 +118,10 @@ export const patchCategory = async (
   code: string,
   id: string,
   input: PatchCategoryInput,
-): Promise<Category> => {
+): Promise<SerializableCategory> => {
   const group = await getGroupByCode(ctx, code)
 
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to update categories in this group')
   }
@@ -110,7 +141,7 @@ export const patchCategory = async (
     },
   })
 
-  return toCategory(updated)
+  return enrichCategory(ctx, group, toCategory(updated))
 }
 
 export const deleteCategory = async (
@@ -120,7 +151,7 @@ export const deleteCategory = async (
 ): Promise<void> => {
   const group = await getGroupByCode(ctx, code)
 
-  const allowed = await canWriteGroup(ctx, group)
+  const allowed = canWriteGroup(ctx, group)
   if (!allowed) {
     throw forbidden('You do not have permission to delete categories in this group')
   }

@@ -124,13 +124,13 @@ const props = defineProps<{
   op: "edit" | "create"
   group: Group
   contacts: Contact[]
-  currency: Currency
+  currency: Partial<Currency["attributes"]>
 }>()
 
 const emit = defineEmits<{
   (e: "update:group", group: Group): void,
   (e: "update:contacts", contacts: Contact[]): void,
-  (e: "update:currency", currency: Currency): void
+  (e: "update:currency", currency: Partial<Currency["attributes"]>): void
 }>()
 
 const image = ref(props.group.attributes.image ?? null)
@@ -145,10 +145,10 @@ const country = ref(props.group.attributes.address?.addressCountry ?? "")
 
 const contacts = ref(props.contacts)
 
-const currencyName = ref(props.currency.attributes.name ?? "")
-const currencyNamePlural = ref(props.currency.attributes.namePlural ?? "")
-const currencySymbol = ref(props.currency.attributes.symbol ?? "")
-const decimals = ref(props.currency.attributes.decimals ?? 2)
+const currencyName = ref(props.currency.name ?? "")
+const currencyNamePlural = ref(props.currency.namePlural ?? "")
+const currencySymbol = ref(props.currency.symbol ?? "")
+const decimals = ref(props.currency.decimals ?? 2)
 
 // Consider image and others differently since the image value is changed in the update endpoint.
 watch(image, () => {
@@ -186,17 +186,13 @@ watch([contacts], () => {
 })
 
 watchDebounced([currencyName, currencyNamePlural, currencySymbol, decimals], () => {
-  const { rate, scale, code } = props.currency.attributes
   emit('update:currency', {
     ...props.currency,
-    attributes: {
-      ...{rate, scale, code },
-      name: currencyName.value,
-      namePlural: currencyNamePlural.value,
-      symbol: currencySymbol.value,
-      decimals: decimals.value
-    }
-  } as Currency)
+    name: currencyName.value,
+    namePlural: currencyNamePlural.value,
+    symbol: currencySymbol.value,
+    decimals: decimals.value
+  })
 })
 
 const store = useStore()

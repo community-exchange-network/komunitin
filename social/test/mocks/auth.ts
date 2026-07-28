@@ -32,6 +32,7 @@ export const signJwt = async (
   scope?: string | string[],
   options: {
     audience?: string
+    clientId?: string
     includeDefaultScopes?: boolean
     issuer?: string
   } = {},
@@ -47,7 +48,7 @@ export const signJwt = async (
     ...requestedScopes,
   ]
   const payload: Record<string, unknown> = {
-    client_id: 'komunitin-app',
+    client_id: options.clientId ?? 'komunitin-app',
     email,
     ...(scopes.length > 0 ? { scope: [...new Set(scopes)].join(' ') } : {}),
   }
@@ -65,6 +66,7 @@ export const signJwt = async (
 export const signServiceJwt = async (
   clientId = 'komunitin-notifications',
   scopes: string[] = [Scope.SocialRead],
+  subject = clientId,
 ) => {
   return await new SignJWT({
     client_id: clientId,
@@ -74,7 +76,7 @@ export const signServiceJwt = async (
     .setIssuedAt()
     .setIssuer(config.AUTH_JWT_ISSUER)
     .setAudience(config.AUTH_JWT_AUDIENCE)
-    .setSubject(clientId)
+    .setSubject(subject)
     .setExpirationTime('2h')
     .sign(privateKey)
 }

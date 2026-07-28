@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { exchangeAccountingToken } from '../../src/clients/auth'
+import { exchangeAccountingToken, redeemUnsubscribeToken } from '../../src/clients/auth'
 import { Scope } from '../../src/server/scopes'
 
 const response = (body: Record<string, unknown>): Response => {
@@ -145,4 +145,38 @@ test('rejects invalid expiry metadata and mismatched scopes without caching', as
     'mismatched-scope-subject-valid',
   )
   assert.deepStrictEqual([...subjectRequests.values()], [2, 2])
+})
+
+test('uses a client-credentials token to redeem unsubscribe actions and maps failures', async (t) => {
+  const redeemedUserId = '00000000-0000-4000-8000-000000000001'
+  let redemption = 0
+  t.mock.method(globalThis, 'fetch', async (_input, init) => {
+    if (init?.body instanceof URLSearchParams) {
+      assert.strictEqual(init.body.get('grant_type'), 'client_credentials')
+      assert.strictEqual(init.body.get('scope'), Scope.AccountingRead)
+      return tokenResponse('social-service-token', Scope.AccountingRead)
+    }
+
+    assert.strictEqual((init?.headers as Record<string, string>).Authorization, 'Bearer social-service-token')
+    redemption++
+    if (redemption === 1) {
+      return response({
+        userId: redeemedUserId,
+        email: 'unsubscribe@example.org',
+        purpose: 'unsubscribe',
+      })
+    }
+    if (redemption === 2) {
+      return new Response(JSON.stringify({ error: 'invalid_action_token' }), { status: 400 })
+    }
+    return response({ unexpected: true })
+  })
+
+  assert.deepStrictEqual(await redeemUnsubscribeToken('valid'), {
+    userId: redeemedUserId,
+    email: 'unsubscribe@example.org',
+    purpose: 'unsubscribe',
+  })
+  await assert.rejects(redeemUnsubscribeToken('used'), /Invalid or expired unsubscribe token/)
+  await assert.rejects(redeemUnsubscribeToken('malformed'), /Auth action token redemption failed/)
 })

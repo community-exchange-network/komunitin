@@ -198,11 +198,16 @@ export interface Group extends ResourceObject {
     location: Location;
     address: Address;
     contacts: Contact[];
+    meta: {
+      request: {
+        currency: Partial<Currency["attributes"]>;
+      };
+    } | null;
     created: string;
     updated: string;
   };
   relationships: {
-    currency: RelatedResource;
+    currency?: RelatedResource;
     settings: RelatedResource;
     admins: RelatedCollection;
     members: RelatedCollection;
@@ -320,10 +325,6 @@ export interface Currency extends ResourceObject {
     symbol: string;
     decimals: number;
     scale: number;
-    /**
-     * @deprecated Use rate instead.
-     */
-    value: number;
     
     rate: {
       n: number,

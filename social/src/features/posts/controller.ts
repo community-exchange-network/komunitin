@@ -13,7 +13,7 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
   const code = getCode(req)
   const params = getCollectionParams(req, {
     filter: ['code', 'type', 'status', 'access', 'member', 'category', 'expired', 'search'],
-    sort: ['created', 'updated', 'expires'],
+    sort: ['created', 'updated', 'expires', 'distance'],
     include: [
       'member',
       'member.group',
@@ -21,13 +21,14 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
       'member.account',
       'category',
     ],
+    near: true,
   })
 
-  const posts = await listPosts(ctx, code, params)
+  const result = await listPosts(ctx, code, params)
 
   const payload = await serializePosts(
-    posts,
-    getCollectionSerializerOptions(req.url, params, posts.length)
+    result.items,
+    getCollectionSerializerOptions(req.url, params, result.total)
   )
 
   res.status(200).json(payload)

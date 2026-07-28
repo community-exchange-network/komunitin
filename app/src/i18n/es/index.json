@@ -233,6 +233,7 @@
   "signupCredentialsText": "Entra tu nombre, correo electrónico y contraseña para crear tu cuenta. Deberás verificar tu correo electrónico.",
   "signupVerifyEmail": "Verifica tu correo electrónico",
   "signupVerifyEmailText": "Te hemos enviado un e-mail con un enlace para verificar tu dirección. Comprueba tu bandeja de entrada y sigue las instrucciones.",
+  "signupInitializationError": "No se ha podido iniciar el registro. Comprueba la conexión e inténtalo de nuevo.",
   "signupComplete": "Registro completado!",
   "signupCompleteText": "Has completado el proceso de registro en la comunidad {group}. Ahora tu inscripción está pendiente de aprobación por los administradores. Recibirás un correo electrónico cuando tu cuenta esté activa.",
   "signupCompleteText2": "Mientras, puedes completar tu perfil y mejorar tus ofertas.",
