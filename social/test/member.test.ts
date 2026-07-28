@@ -1110,6 +1110,27 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'b')
   })
 
+  test('GET /:code/members combines created comparison with status filtering', async () => {
+    await seedGroup({ tenantId: 'members-created-comparison', status: 'active', access: 'public' })
+    const admin = await auth('members-created-comparison-admin')
+    await seedGroupAdmin({ tenantId: 'members-created-comparison', userId: admin.id })
+
+    await seedMember({ tenantId: 'members-created-comparison', code: 'old-active', status: 'active', access: 'public', created: new Date('2026-01-01T00:00:00Z') })
+    await seedMember({ tenantId: 'members-created-comparison', code: 'new-active', status: 'active', access: 'public', created: new Date('2026-01-03T00:00:00Z') })
+    await seedMember({ tenantId: 'members-created-comparison', code: 'new-pending', status: 'pending', access: 'private', created: new Date('2026-01-03T00:00:00Z') })
+
+    const res = await request(app)
+      .get('/members-created-comparison/members?filter[status]=active&filter[created][gt]=2026-01-02T00:00:00Z')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((member: any) => member.attributes.code),
+      ['new-active'],
+    )
+    assert.strictEqual(res.body.meta.count, 1)
+  })
+
   test('GET /:code/members supports admin status/search/sort/page query', async () => {
     await seedGroup({ tenantId: 'members-admin-search-query', status: 'active', access: 'public' })
     const admin = await auth('members-admin-search-query-admin')

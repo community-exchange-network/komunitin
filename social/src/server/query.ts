@@ -1,6 +1,14 @@
 import { Prisma } from '../generated/prisma/client'
 import { DbClient } from './multitenant'
-import { type CollectionParams, type FilterOptions, type GeoPoint, type SortOptions } from './request'
+import {
+  comparisonOperators,
+  type CollectionParams,
+  type ComparisonOperator,
+  type ComparisonOptions,
+  type FilterOptions,
+  type GeoPoint,
+  type SortOptions,
+} from './request'
 import { buildTrigramSearch, type SearchSource } from './search'
 
 export type SqlColumnMap = {
@@ -139,6 +147,31 @@ const buildFilterWhere = (filter: FilterOptions, columns: SqlColumnMap): Prisma.
   return where
 }
 
+const comparisonSql: Record<ComparisonOperator, Prisma.Sql> = {
+  gt: Prisma.raw('>'),
+  gte: Prisma.raw('>='),
+  lt: Prisma.raw('<'),
+  lte: Prisma.raw('<='),
+}
+
+const buildComparisonWhere = (comparisons: ComparisonOptions, columns: SqlColumnMap) => {
+  const where: Prisma.Sql[] = []
+  for (const [field, conditions] of Object.entries(comparisons)) {
+    const column = columns[field]
+    if (!column) {
+      continue
+    }
+    for (const operator of comparisonOperators) {
+      const value = conditions?.[operator]
+      if (value !== undefined) {
+        where.push(Prisma.sql`${column} ${comparisonSql[operator]} ${value}`)
+      }
+    }
+  }
+
+  return where
+}
+
 /**
  * Build SQL ORDER BY clause from sort options (excluding the "ORDER BY" keyword).
  */
@@ -178,6 +211,7 @@ const buildCollectionQueries = ({
   const clauses = [...(where ?? [])]
   const { search: query, ...filters } = params.filters
   clauses.push(...buildFilterWhere(filters, columns))
+  clauses.push(...buildComparisonWhere(params.comparisons, columns))
 
   // search
   if (query && search) {

@@ -12,6 +12,7 @@ export const getMembersRoute: RequestHandler = async (req, res) => {
   const code = getCode(req)
   const params = getCollectionParams(req, {
     filter: ['code', 'name', 'type', 'status', 'access', 'account', 'search'],
+    compare: ['created'],
     sort: ['created', 'updated', 'name', 'code', 'distance'],
     include: ['group', 'account'],
     near: true,

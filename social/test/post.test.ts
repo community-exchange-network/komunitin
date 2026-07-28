@@ -424,6 +424,62 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].type, 'offers')
   })
 
+  test('GET /:code/posts combines allowlisted date comparisons with visibility and counts', async () => {
+    await seedGroup({ tenantId: 'posts-date-comparison', status: 'active', access: 'public' })
+    const member = await seedMember({ tenantId: 'posts-date-comparison', status: 'active', access: 'public' })
+    const base = {
+      tenantId: 'posts-date-comparison',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    }
+
+    await seedPost({ ...base, code: 'before', created: new Date('2026-01-01T00:00:00Z'), expires: new Date('2026-01-02T00:00:00Z') })
+    await seedPost({ ...base, code: 'boundary', created: new Date('2026-01-02T00:00:00Z'), expires: new Date('2026-01-02T00:00:00Z') })
+    await seedPost({ ...base, code: 'after', created: new Date('2026-01-03T00:00:00Z'), expires: new Date('2026-01-03T00:00:00Z') })
+    await seedPost({ ...base, code: 'no-expiration', created: new Date('2026-01-03T00:00:00Z') })
+    await seedPost({ ...base, code: 'hidden', status: 'draft', created: new Date('2026-01-03T00:00:00Z'), expires: new Date('2026-01-03T00:00:00Z') })
+
+    const inclusive = await request(app)
+      .get('/posts-date-comparison/posts?filter[type]=offers&filter[created][gte]=2026-01-02T00:00:00Z&filter[created][lte]=2026-01-03T00:00:00Z&filter[expires][gt]=2026-01-02T00:00:00Z&filter[expires][lte]=2026-01-03T00:00:00Z')
+      .expect(200)
+
+    assert.deepStrictEqual(
+      inclusive.body.data.map((post: any) => post.attributes.code),
+      ['after'],
+    )
+    assert.strictEqual(inclusive.body.meta.count, 1)
+
+    const strict = await request(app)
+      .get('/posts-date-comparison/posts?filter[type]=offers&filter[created][gt]=2026-01-01T00:00:00Z&filter[created][lt]=2026-01-03T00:00:00Z&filter[expires][gte]=2026-01-02T00:00:00Z')
+      .expect(200)
+
+    assert.deepStrictEqual(
+      strict.body.data.map((post: any) => post.attributes.code),
+      ['boundary'],
+    )
+    assert.strictEqual(strict.body.meta.count, 1)
+  })
+
+  test('GET /:code/posts rejects unsupported or malformed comparisons', async () => {
+    await seedGroup({ tenantId: 'posts-invalid-comparison', status: 'active', access: 'public' })
+    const invalidQueries = [
+      'filter[expire][lt]=2026-01-01T00:00:00Z',
+      'filter[updated][gt]=2026-01-01T00:00:00Z',
+      'filter[created][eq]=2026-01-01T00:00:00Z',
+      'filter[created][gt]=not-a-date',
+      'filter[created][gt]=2026-01-01T00:00:00Z,2026-01-02T00:00:00Z',
+      'filter[created]=2026-01-01T00:00:00Z&filter[created][gt]=2026-01-02T00:00:00Z',
+    ]
+
+    for (const query of invalidQueries) {
+      await request(app)
+        .get(`/posts-invalid-comparison/posts?${query}`)
+        .expect(400)
+    }
+  })
+
   test('GET /:code/posts supports offer member/status/expired/category app query', async () => {
     const { admin, category, member, otherMember } = await postQueryFixture('posts-app-offer-filter')
     await seedPost({
