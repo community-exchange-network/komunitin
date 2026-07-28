@@ -210,12 +210,14 @@ export const handlers = [
       if (
         tokenRequest.clientId !== process.env.SOCIAL_CLIENT_ID
         || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
-        || tokenRequest.scope !== Scope.AccountingRead
+        || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.NotificationsWrite)
       ) {
         return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
       }
       return HttpResponse.json({
-        access_token: 'social-service-token',
+        access_token: tokenRequest.scope === Scope.NotificationsWrite
+          ? 'social-notifications-token'
+          : 'social-service-token',
         expires_in: 3600,
         scope: tokenRequest.scope,
         token_type: 'Bearer',
@@ -480,8 +482,7 @@ export const handlers = [
       }, { status: notificationsEventStatus })
     }
 
-    const expectedBasic = `Basic ${Buffer.from(`${process.env.NOTIFICATIONS_API_USERNAME}:${process.env.NOTIFICATIONS_API_PASSWORD}`).toString('base64')}`
-    if (authorization !== expectedBasic) {
+    if (authorization !== 'Bearer social-notifications-token') {
       return jsonApiError(401, 'Missing or invalid notifications authorization header')
     }
 

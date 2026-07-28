@@ -1,7 +1,7 @@
 import { describe, it } from "node:test"
 import { setupServerTest } from './setup'
 import assert from "node:assert"
-import { clearEvents, getEvents } from "./net.mock"
+import { clearEvents, getEvents, setNotificationStatuses } from "./net.mock"
 import { Scope } from "../../src/server/auth"
 import { testAccount } from "./api.data"
 import { waitFor } from "./utils"
@@ -71,11 +71,21 @@ describe("Send events to notifications service", async () => {
     assert.equal(events[1].attributes.name, "TransferRejected")
   })
 
+  await it('retries once with a refreshed token after 401', async () => {
+    clearEvents()
+    setNotificationStatuses(401, 201)
+    transfer = await t.payment(t.account1.id, t.account2.id, 100, "Test token refresh", "committed", t.user2)
+    await waitFor(async () => {
+      return getEvents().length === 1
+    }, "Expected retried event", 500)
+    assert.equal(getEvents()[0].attributes.name, "TransferPending")
+  })
+
   await it('notifications service can use api', async() => {
     const response = await t.api.get('/TEST/transfers', notificationsAuth)
     assert.equal(response.status, 200)
     const tansfers = response.body.data
-    assert.equal(tansfers.length, 2)
+    assert.equal(tansfers.length, 3)
   })
 
   await it('notifications service cannot write', async() => {

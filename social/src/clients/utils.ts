@@ -13,3 +13,27 @@ export const fetchWithRetry = async (input: string | URL | Request, init?: Reque
     throw error
   }
 }
+
+type BearerTokenProvider = (forceRefresh: boolean) => Promise<string>
+
+/**
+ * Fetch with a cached bearer token, refreshing it and retrying once when rejected.
+ */
+export const fetchWithAuth = async (
+  input: string | URL | Request,
+  init: RequestInit,
+  getToken: BearerTokenProvider,
+): Promise<Response> => {
+  const request = async (forceRefresh: boolean) => {
+    const headers = new Headers(init.headers)
+    const token = await getToken(forceRefresh)
+    headers.set('Authorization', `Bearer ${token}`)
+    return fetchWithRetry(input, { ...init, headers })
+  }
+
+  let response = await request(false)
+  if (response.status === 401) {
+    response = await request(true)
+  }
+  return response
+}

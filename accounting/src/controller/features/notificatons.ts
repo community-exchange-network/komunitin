@@ -5,6 +5,7 @@ import { FullTransfer, User } from "../../model";
 import TsJapi from "ts-japi";
 import { UserSerializer } from "../../server/serialize";
 import { fixUrl } from "../../utils/net";
+import { getNotificationsToken } from "./auth-token";
 
 const { Relator, Serializer } = TsJapi
 
@@ -25,7 +26,7 @@ export type Event = {
 
 const event = (name: EventName, code: string, data: Record<string, any>, user: User): Event => ({
   name,
-  source: config.API_BASE_URL,
+  source: "accounting",
   time: new Date().toISOString(),
   code,
   data,
@@ -43,17 +44,24 @@ const EventSerializer = new Serializer<Event>("events", {
 const sendEvent = async (event: Event) => {
   const doc = await EventSerializer.serialize(event)
   const body = JSON.stringify(doc)
-  // Send event to notifications service
   const url = `${config.NOTIFICATIONS_API_URL}/events`
-  const basicAuth = Buffer.from(`${config.NOTIFICATIONS_API_USERNAME}:${config.NOTIFICATIONS_API_PASSWORD}`).toString("base64")
-  await fetch(fixUrl(url), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/vnd.api+json",
-      Authorization: `Basic ${basicAuth}`
-    },
-    body
-  })
+  const request = async (forceRefresh = false) => {
+    const token = await getNotificationsToken(forceRefresh)
+    return fetch(fixUrl(url), {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json",
+        Authorization: `Bearer ${token}`
+      },
+      body
+    })
+  }
+
+  const response = await request()
+  if (response.status === 401) {
+    await request(true)
+  }
 }
 
 /**

@@ -5,12 +5,15 @@ import { after, before, beforeEach, describe, test } from 'node:test'
 import request from 'supertest'
 import { config } from '../src/config'
 import { hashPassword } from '../src/services/tokens'
+import { NotificationsService } from '../src/services/notifications'
 import { UserStatus } from '../src/users/status'
 import prisma from '../src/utils/prisma'
 import { resetDb, setupTestServer, teardownTestServer } from './helper'
 
 // Mock global fetch to intercept emails
 const fetchCalls: { url: string; init: any; body: any }[] = []
+const serviceTokenRequests: URLSearchParams[] = []
+const eventStatuses: number[] = []
 const originalFetch = global.fetch
 let app: Express
 
@@ -81,7 +84,7 @@ async function requestActionToken({
 }
 
 function assertAuthEmailEvent(
-  call: { body: any },
+  call: { body: any, init: any },
   expected: {
     name: string
     userId: string
@@ -103,18 +106,34 @@ function assertAuthEmailEvent(
     ...(expected.signup ? { signup: expected.signup } : {}),
   })
   assert.ok(!('token' in call.body.data.attributes.data))
+  assert.strictEqual(call.init.headers.Authorization, 'Bearer auth-notifications-token')
 }
 
 before(() => {
   global.fetch = async (url: any, init: any) => {
+    if (String(url).endsWith('/token')) {
+      const body = new URLSearchParams(init.body)
+      serviceTokenRequests.push(body)
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: 'auth-notifications-token',
+          expires_in: 3600,
+          scope: 'notifications:write',
+          token_type: 'Bearer',
+        }),
+      } as any
+    }
+    const status = eventStatuses.shift() ?? 201
     let body = null
     if (init && init.body) {
       body = JSON.parse(init.body)
     }
     fetchCalls.push({ url: String(url), init, body })
     return {
-      ok: true,
-      status: 201,
+      ok: status >= 200 && status < 300,
+      status,
       json: async () => ({ data: { type: 'events', id: 'job-123' } }),
       text: async () => 'ok',
     } as any
@@ -137,6 +156,8 @@ describe('Auth Service Integration Tests', () => {
   beforeEach(async () => {
     await resetDb()
     fetchCalls.length = 0
+    serviceTokenRequests.length = 0
+    eventStatuses.length = 0
   })
 
   test('GET /health returns 200 with status ok', async () => {
@@ -176,6 +197,11 @@ describe('Auth Service Integration Tests', () => {
     assert.notStrictEqual(user.passwordHash, 'password123')
 
     assert.strictEqual(fetchCalls.length, 1)
+    assert.strictEqual(serviceTokenRequests.length, 1)
+    assert.strictEqual(serviceTokenRequests[0].get('client_id'), 'komunitin-auth')
+    assert.strictEqual(serviceTokenRequests[0].get('client_secret'), 'komunitin-auth-secret')
+    assert.strictEqual(serviceTokenRequests[0].get('grant_type'), 'client_credentials')
+    assert.strictEqual(serviceTokenRequests[0].get('scope'), 'notifications:write')
     const signup = {
       type: 'group',
       name: 'New Community Administrator',
@@ -451,7 +477,7 @@ describe('Auth Service Integration Tests', () => {
         client_id: 'komunitin-app',
         username: 'test@example.org',
         password: 'password123',
-        scope: 'email offline_access social:read social:write accounting:read accounting:write',
+        scope: 'email offline_access social:read social:write accounting:read accounting:write notifications:read notifications:write',
       })
       .expect(200)
 
@@ -462,7 +488,7 @@ describe('Auth Service Integration Tests', () => {
     const decoded = assertAccessToken(res.body.access_token, {
       subject: userId,
       clientId: 'komunitin-app',
-      scope: 'email offline_access social:read social:write accounting:read accounting:write',
+      scope: 'email offline_access social:read social:write accounting:read accounting:write notifications:read notifications:write',
     })
     assert.strictEqual(decoded.email, 'test@example.org')
     assert.strictEqual(decoded.email_verified, true)
@@ -741,15 +767,66 @@ describe('Auth Service Integration Tests', () => {
         grant_type: 'client_credentials',
         client_id: 'komunitin-social',
         client_secret: 'komunitin-social-secret',
-        scope: 'accounting:read accounting:write',
+        scope: 'accounting:read accounting:write notifications:write',
       })
       .expect(200)
 
     assertAccessToken(res.body.access_token, {
       subject: 'komunitin-social',
       clientId: 'komunitin-social',
-      scope: 'accounting:read accounting:write',
+      scope: 'accounting:read accounting:write notifications:write',
     })
+  })
+
+  test('POST /token issues exact event-publisher client credentials', async () => {
+    const publishers = [
+      ['komunitin-auth', 'komunitin-auth-secret'],
+      ['komunitin-accounting', 'komunitin-accounting-secret'],
+    ] as const
+
+    for (const [clientId, clientSecret] of publishers) {
+      const res = await request(app)
+        .post('/token')
+        .type('form')
+        .send({
+          grant_type: 'client_credentials',
+          client_id: clientId,
+          client_secret: clientSecret,
+          scope: 'notifications:write',
+        })
+        .expect(200)
+
+      assertAccessToken(res.body.access_token, {
+        subject: clientId,
+        clientId,
+        scope: 'notifications:write',
+      })
+
+      const rejected = await request(app)
+        .post('/token')
+        .type('form')
+        .send({
+          grant_type: 'client_credentials',
+          client_id: clientId,
+          client_secret: clientSecret,
+          scope: 'notifications:read',
+        })
+        .expect(400)
+      assert.strictEqual(rejected.body.error, 'invalid_scope')
+    }
+  })
+
+  test('notification publication refreshes its service token once after 401', async () => {
+    eventStatuses.push(401, 201)
+
+    await NotificationsService.sendPasswordResetEmail(
+      '00000000-0000-4000-8000-000000000001',
+      'retry@example.org',
+    )
+
+    assert.strictEqual(fetchCalls.length, 2)
+    assert.ok(serviceTokenRequests.length >= 1)
+    assert.strictEqual(serviceTokenRequests.at(-1)!.get('scope'), 'notifications:write')
   })
 
   test('POST /token with Client Credentials rejects scopes outside the client allowlist', async () => {
@@ -760,7 +837,7 @@ describe('Auth Service Integration Tests', () => {
         grant_type: 'client_credentials',
         client_id: 'komunitin-notifications',
         client_secret: 'replace-this-with-a-secure-password',
-        scope: 'social:write',
+        scope: 'notifications:write',
       })
       .expect(400)
 

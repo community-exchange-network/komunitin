@@ -2,6 +2,7 @@ import { config } from '../config'
 import { userActionTokenPurpose } from './tokens'
 import type { SignupContext } from '../users/signup'
 import logger from '../utils/logger'
+import { getNotificationsToken } from './service-token'
 
 type AuthEventName = 'PasswordResetRequested' | 'ValidationEmailRequested'
 type ValidationPurpose =
@@ -9,12 +10,17 @@ type ValidationPurpose =
   | typeof userActionTokenPurpose.emailVerification
 
 export class NotificationsService {
-  private static getHeaders() {
-    const credentials = Buffer.from(`${config.NOTIFICATIONS_EVENTS_USERNAME}:${config.NOTIFICATIONS_EVENTS_PASSWORD}`).toString('base64')
-    return {
-      'Content-Type': 'application/vnd.api+json',
-      'Authorization': `Basic ${credentials}`,
-    }
+  private static async request(body: string, forceRefresh = false) {
+    const token = await getNotificationsToken(forceRefresh)
+    return fetch(`${config.NOTIFICATIONS_URL}/events`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/vnd.api+json',
+        Authorization: `Bearer ${token}`,
+      },
+      body,
+    })
   }
 
   private static async sendEvent(
@@ -24,7 +30,6 @@ export class NotificationsService {
     data: Record<string, unknown> = {},
     code: string | null = null,
   ) {
-    const url = `${config.NOTIFICATIONS_URL}/events`
     const body = {
       data: {
         type: 'events',
@@ -51,11 +56,11 @@ export class NotificationsService {
     }
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(body),
-      })
+      const serializedBody = JSON.stringify(body)
+      let response = await this.request(serializedBody)
+      if (response.status === 401) {
+        response = await this.request(serializedBody, true)
+      }
 
       if (!response.ok) {
         const text = await response.text()

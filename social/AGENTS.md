@@ -65,7 +65,7 @@ pnpm start
 ## External Integrations
 
 - `src/clients/accounting.ts` exchanges the user's JWT through Auth for a downscoped Accounting token. Accounting failures are treated as unexpected social-service errors.
-- `src/clients/notifications.ts` posts JSON:API social-domain events to `/events` with Basic auth and logs failures without failing the social operation.
+- `src/clients/notifications.ts` posts JSON:API social-domain events to `/events` with a cached `notifications:write` client-credentials token and logs failures without failing the social operation.
 - Social events must stay social-domain events such as group, member, offer, and need lifecycle events. Auth-owned events belong to the auth service or an auth-owned integration.
 
 ## Code Style

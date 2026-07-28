@@ -263,7 +263,7 @@ export default {
           // Couldn't authorize. Delete credentials so we don't attempt another
           // call next time.
           if (context.state.tokens) {
-            context.dispatch("logout", { authorizationError: true });
+            await context.dispatch("logout", { authorizationError: true });
           }
           throw error;
         }

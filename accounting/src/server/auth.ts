@@ -1,9 +1,8 @@
 
-import { InvalidTokenError, auth as authJwt, scopeIncludesAny } from "express-oauth2-jwt-bearer"
+import { auth as authJwt, scopeIncludesAny } from "express-oauth2-jwt-bearer"
 import { config } from "../config"
 import { NextFunction, Request, Response } from "express"
 import { fixUrl } from "../utils/net"
-import { logger } from "../utils/logger"
 import { unauthorized } from "../utils/error"
 import { verifyExternalToken } from "../controller/external-jwt"
 
@@ -13,16 +12,11 @@ export enum Scope {
   Superadmin = "superadmin",
 }
 
-const buildJwt = () => {
-  return authJwt({
-    issuer: config.AUTH_JWT_ISSUER,
-    audience: config.AUTH_JWT_AUDIENCE,
-    jwksUri: fixUrl(config.AUTH_JWKS_URL),
-  })
-}
-
-let jwt = buildJwt()
-let lastInvalidTokenRetry = 0
+const jwt = authJwt({
+  issuer: config.AUTH_JWT_ISSUER,
+  audience: config.AUTH_JWT_AUDIENCE,
+  jwksUri: fixUrl(config.AUTH_JWKS_URL),
+})
 
 /**
  * Require a valid JWT token in the request. If the scopes parameter is provided, require also
@@ -125,17 +119,7 @@ export const lastHashAuth = () => (req: Request, res: Response, next: NextFuncti
 const handleAuthRequest = (scopes: Scope|Scope[]|undefined, req: Request, res: Response, next: NextFunction) => {
   jwt(req, res, (err) => {
     if (err) {
-      if (err instanceof InvalidTokenError && lastInvalidTokenRetry < Date.now() - 1000 * 60 * 5) {
-        // In this case it could be possible that the error is "signature verification failed" because the token
-        // is signed with a newly rotated key that is still not used because the jwks cache is not updated.
-        // Note that in order to prevent abuse, we only retry once every 5 minutes.
-        lastInvalidTokenRetry = Date.now()
-        jwt = buildJwt()
-        logger.warn("Invalid token error. Refreshing JWKS.")
-        handleAuthRequest(scopes, req, res, next)
-      } else {
-        next(err)
-      }
+      next(err)
     } else if (scopes && scopes.length) {
       scopeIncludesAny(scopes)(req, res, next)
     } else {

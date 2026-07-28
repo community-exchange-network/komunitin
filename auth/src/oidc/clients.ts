@@ -10,6 +10,8 @@ export const apiScopes: string[] = [
   'social:write',
   'accounting:read',
   'accounting:write',
+  'notifications:read',
+  'notifications:write',
   SUPERADMIN_SCOPE,
 ]
 
@@ -22,7 +24,10 @@ const notificationsScopes = [
 const socialScopes = [
   'accounting:read',
   'accounting:write',
+  'notifications:write',
 ] as const
+
+const publisherScopes = ['notifications:write'] as const
 
 const scopeString = (scopes: readonly string[]) => scopes.join(' ')
 
@@ -54,5 +59,23 @@ export const clients: ClientMetadata[] = [
     redirect_uris: [],
     response_types: [],
     scope: scopeString(socialScopes),
+  },
+  {
+    client_id: 'komunitin-auth',
+    client_secret: config.AUTH_CLIENT_SECRET,
+    token_endpoint_auth_method: 'client_secret_post',
+    grant_types: ['client_credentials'],
+    redirect_uris: [],
+    response_types: [],
+    scope: scopeString(publisherScopes),
+  },
+  {
+    client_id: 'komunitin-accounting',
+    client_secret: config.ACCOUNTING_CLIENT_SECRET,
+    token_endpoint_auth_method: 'client_secret_post',
+    grant_types: ['client_credentials'],
+    redirect_uris: [],
+    response_types: [],
+    scope: scopeString(publisherScopes),
   },
 ]

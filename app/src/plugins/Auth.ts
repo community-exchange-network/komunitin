@@ -52,12 +52,11 @@ export interface ConfirmedAuthUser {
  * Implements OAuth2 client with the features:
  *  - `Resource Owner Password` flow for direct login with email & password.
  *  - Refresh credentials through refresh tokens.
- *  - OIDC social login with Google and Facebook (TODO)
  */
 export class Auth {
   public static readonly STORAGE_KEY: string = "auth-session";
   public static readonly SUPERADMIN_SCOPE = "superadmin";
-  public static readonly SCOPES = `email offline_access social:read social:write accounting:read accounting:write ${Auth.SUPERADMIN_SCOPE}`;
+  public static readonly SCOPES = `email offline_access social:read social:write accounting:read accounting:write notifications:read notifications:write ${Auth.SUPERADMIN_SCOPE}`;
 
   private readonly tokenEndpoint: string;
   private readonly resetPasswordEndpoint: string;
@@ -94,7 +93,7 @@ export class Auth {
   /**
    * Returns whether this class contains sufficient authorization information.
    */
-  public isAuthorized(tokens: AuthData | undefined): boolean {
+  public isAuthorized(tokens: AuthData | undefined): tokens is AuthData {
     return (
       tokens !== undefined &&
       tokens.accessTokenExpire.getTime() > new Date().getTime()
