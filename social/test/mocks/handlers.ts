@@ -254,7 +254,6 @@ export const handlers = [
     if (!record) {
       return HttpResponse.json({ error: 'invalid_action_token' }, { status: 400 })
     }
-    authUnsubscribeTokens.delete(body.token)
     return HttpResponse.json({ ...record, purpose: 'unsubscribe' })
   }),
   http.get(`${accountingBaseUrl}/:currencyCode/currency`, ({ request, params }) => {

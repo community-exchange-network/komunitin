@@ -10,14 +10,14 @@ Auth owns:
 
 - User identity: UUID, email, password hash, email verification, and auth status.
 - OAuth access and refresh tokens for first-party clients and backend services.
-- Password reset, email verification, and email change action tokens.
+- Password reset, email verification, email change, and unsubscribe action tokens.
 - JWKS signing key persistence and rotation.
 
 Auth does not own:
 
 - Social profiles, memberships, groups, onboarding state, posts, or newsletter preferences.
 - Generic magic-login links.
-- Social/domain action tokens such as one-click unsubscribe tokens.
+- Newsletter preferences or the one-click unsubscribe mutation.
 - Legacy IntegralCES `/get-auth-code` or `/get-auth-token` compatibility.
 
 If a flow needs product-domain state after the user verifies an email, keep the auth token limited to email verification and put the continuation/invite token in the owning service, normally `social`.
@@ -82,8 +82,14 @@ The OpenAPI contract lives at `openapi/openapi.yml`.
 | `POST /change-email` | Authenticated endpoint that creates an email-change action token and emits a validation email event. |
 | `POST /email/confirm` | Consumes an email-change or email-verification action token. |
 | `POST /resend-validation` | Re-sends validation for an existing unverified user or pending email change. |
+| `POST /action-token` | Lets Notifications create a purpose-bound email action token. |
+| `POST /redeem-action-token` | Lets Social resolve a replayable unsubscribe token. |
 
 Action tokens are not OAuth tokens and are not accepted at `POST /token`.
+Password and email actions retain their existing 24-hour replacement and
+consumption rules. Unsubscribe tokens last one year, coexist with older
+unsubscribe tokens, and remain resolvable until expiry so a failed Social
+preference update can be retried.
 
 ### Provisioning the configured superadmin
 

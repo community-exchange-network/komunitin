@@ -84,6 +84,10 @@ function consumeActionToken(token: string, purposes: ActionTokenPurpose[]) {
 }
 
 export function redeemMockActionToken(token: string, purpose: ActionTokenPurpose) {
+  const record = actionTokens.get(token);
+  if (record?.purpose === "unsubscribe" && purpose === "unsubscribe") {
+    return record;
+  }
   return consumeActionToken(token, [purpose]);
 }
 
@@ -281,7 +285,7 @@ export default {
       if (!body?.token || body.purpose !== "unsubscribe") {
         return badRequest("Invalid redeem action token request");
       }
-      const record = consumeActionToken(body.token, ["unsubscribe"]);
+      const record = redeemMockActionToken(body.token, "unsubscribe");
       return record
         ? new Response(200, {}, { userId: record.userId, email: record.email, purpose: record.purpose })
         : badRequest("Invalid or expired action token");

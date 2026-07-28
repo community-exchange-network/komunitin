@@ -764,7 +764,7 @@ export default {
           group: "never"
         }
       })
-      return new Response(200, {}, { status: "ok" })
+      return new Response(204)
     })
 
     // Create user.

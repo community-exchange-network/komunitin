@@ -121,7 +121,7 @@ export const getNotificationsToken = async (): Promise<string> => {
 }
 
 /**
- * Redeem (and consume) an email unsubscribe token.
+ * Resolve a replayable email unsubscribe token.
  */
 export const redeemUnsubscribeToken = async (token: string): Promise<RedeemedUnsubscribeToken> => {
   const serviceToken = await getSocialServiceToken()

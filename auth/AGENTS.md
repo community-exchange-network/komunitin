@@ -55,7 +55,7 @@ pnpm build
 - Always prefer `oidc-provider` default features and behavior over custom code that duplicates or overrides it.
 
 ## Security Rules
-- Email links must remain purpose-specific single-use action tokens redeemed at dedicated endpoints.
+- Email links must remain purpose-specific action tokens redeemed at dedicated endpoints. Password and email-change tokens are single-use; unsubscribe tokens are replayable until expiry so the Social mutation can be retried.
 - Never send action tokens through notification events. Events carry the user and action context; Notifications requests raw tokens through the authenticated `POST /action-token` endpoint.
 - Keep password reset responses generic so they do not reveal whether an email exists.
 - Keep browser-session features out of auth unless a real browser interaction flow is added.

@@ -272,7 +272,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
           to: user.attributes.email,
           subject,
           html,
-          token: unsubscribeToken
+          unsubscribeToken
         })
         logger.info({ user: user.id }, 'Newsletter sent');
         sentRecipients.push({ userId: user.id, email: user.attributes.email });

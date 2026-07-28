@@ -1,6 +1,7 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
+import { redeemUnsubscribeToken } from '../src/clients/auth'
 import { config } from '../src/config'
 import { Scope } from '../src/server/context'
 import { serviceAuth, signJwt, signServiceJwt } from './mocks/auth'
@@ -694,7 +695,18 @@ describe('Users endpoints', () => {
 
     await request(app)
       .post(`/users/unsubscribe?token=${token}`)
-      .expect(400)
+      .expect(204)
+
+    const repeatedSettings = await request(app)
+      .get(`/users/${userId}/settings`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200)
+
+    assert.deepStrictEqual(repeatedSettings.body.data.attributes, {
+      language: 'ca',
+      notifications: { myAccount: true, group: true },
+      emails: { myAccount: true, group: 'never' },
+    })
   })
 
   test('POST /users/unsubscribe does not disclose a missing social projection', async () => {
@@ -704,6 +716,34 @@ describe('Users endpoints', () => {
     await request(app)
       .post(`/users/unsubscribe?token=${token}`)
       .expect(204)
+  })
+
+  test('POST /users/unsubscribe can retry after Auth resolution precedes a failed Social mutation', async () => {
+    const userId = toUuid('unsubscribe-retry')
+    const token = 'retryable-unsubscribe-token'
+    await seedUser({
+      id: userId,
+      email: 'unsubscribe-retry@example.org',
+      settings: {
+        emails: { group: 'weekly' },
+      },
+    })
+    seedAuthUnsubscribeToken(token, userId, 'unsubscribe-retry@example.org')
+
+    // Simulate losing the operation after Auth resolves the token but before Social writes.
+    await redeemUnsubscribeToken(token)
+
+    await request(app)
+      .post(`/users/unsubscribe?token=${token}`)
+      .expect(204)
+
+    const userToken = await signJwt(userId, 'unsubscribe-retry@example.org')
+    const settings = await request(app)
+      .get(`/users/${userId}/settings`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200)
+
+    assert.strictEqual(settings.body.data.attributes.emails.group, 'never')
   })
 
   test('POST /users/unsubscribe rejects missing and unknown tokens', async () => {

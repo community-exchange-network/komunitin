@@ -24,7 +24,7 @@ export type EmailOptions = {
   subject: string;
   html: string;
   text?: string;
-  token?: string;
+  unsubscribeToken?: string;
 };
 
 
@@ -50,7 +50,7 @@ export class Mailer {
    * 
    * If DEV_SAVE_NEWSLETTERS is enabled, the email content will also be saved to a local file.
    * If SMTP is not configured, the method will log a warning and skip sending the email.
-   * If a token is provided, List-Unsubscribe headers will be added for one-click unsubscribe functionality.
+   * If an unsubscribe token is provided, RFC 8058 one-click headers are added.
    * If text is not provided, it will be auto-generated from the HTML content.
    * 
    * @param message 
@@ -82,8 +82,8 @@ export class Mailer {
     };
 
     // Add List-Unsubscribe headers for one-click unsubscribe (RFC 8058)
-    if (message.token) {
-      const unsubscribeUrl = `${config.KOMUNITIN_SOCIAL_PUBLIC_URL}/users/unsubscribe?token=${message.token}`;
+    if (message.unsubscribeToken) {
+      const unsubscribeUrl = `${config.KOMUNITIN_SOCIAL_PUBLIC_URL}/users/unsubscribe?token=${message.unsubscribeToken}`;
       mailOptions.headers = {
         'List-Unsubscribe': `<${unsubscribeUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

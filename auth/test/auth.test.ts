@@ -4,7 +4,7 @@ import assert from 'node:assert'
 import { after, before, beforeEach, describe, test } from 'node:test'
 import request from 'supertest'
 import { config } from '../src/config'
-import { hashPassword } from '../src/services/tokens'
+import { hashPassword, hashToken } from '../src/services/tokens'
 import { NotificationsService } from '../src/services/notifications'
 import { UserStatus } from '../src/users/status'
 import prisma from '../src/utils/prisma'
@@ -889,7 +889,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.errors[0].code, 'Unauthorized')
   })
 
-  test('POST /action-token creates purpose-bound unsubscribe tokens', async () => {
+  test('POST /action-token creates long-lived independent unsubscribe tokens and cleans expired records', async () => {
     const userId = '25252525-2525-4525-8525-252525252525'
     const passwordHash = await hashPassword('password123')
     await prisma.user.create({
@@ -902,19 +902,37 @@ describe('Auth Service Integration Tests', () => {
       },
     })
 
-    const actionToken = await requestActionToken({ userId, purpose: 'unsubscribe' })
+    const requestedAt = Date.now()
+    const firstActionToken = await requestActionToken({ userId, purpose: 'unsubscribe' })
 
-    assert.ok(actionToken.token)
-    assert.strictEqual(actionToken.email, 'unsubscribe-token@example.org')
+    assert.ok(firstActionToken.token)
+    assert.strictEqual(firstActionToken.email, 'unsubscribe-token@example.org')
 
-    const storedToken = await prisma.userActionToken.findFirst({
-      where: {
-        userId,
-        purpose: 'unsubscribe',
-        usedAt: null,
-      },
+    const firstStoredToken = await prisma.userActionToken.findUnique({
+      where: { tokenHash: hashToken(firstActionToken.token) },
     })
-    assert.ok(storedToken)
+    assert.ok(firstStoredToken)
+    assert.ok(firstStoredToken.expiresAt.getTime() >= requestedAt + 365 * 24 * 60 * 60 * 1000)
+    assert.ok(firstStoredToken.expiresAt.getTime() <= Date.now() + 365 * 24 * 60 * 60 * 1000)
+
+    const secondActionToken = await requestActionToken({ userId, purpose: 'unsubscribe' })
+    assert.notStrictEqual(secondActionToken.token, firstActionToken.token)
+    assert.strictEqual(await prisma.userActionToken.count({
+      where: { userId, purpose: 'unsubscribe', usedAt: null },
+    }), 2)
+
+    await prisma.userActionToken.update({
+      where: { tokenHash: hashToken(firstActionToken.token) },
+      data: { expiresAt: new Date(0) },
+    })
+    await requestActionToken({ userId, purpose: 'unsubscribe' })
+
+    assert.strictEqual(await prisma.userActionToken.findUnique({
+      where: { tokenHash: hashToken(firstActionToken.token) },
+    }), null)
+    assert.strictEqual(await prisma.userActionToken.count({
+      where: { userId, purpose: 'unsubscribe', usedAt: null },
+    }), 2)
   })
 
   test('POST /action-token rejects invalid JSON bodies', async () => {
@@ -979,7 +997,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.errors[0].code, 'BadRequest')
   })
 
-  test('POST /redeem-action-token consumes unsubscribe tokens for the social client', async () => {
+  test('POST /redeem-action-token resolves unsubscribe tokens repeatedly until expiry', async () => {
     const userId = '31313131-3131-4131-8131-313131313131'
     const passwordHash = await hashPassword('password123')
     await prisma.user.create({
@@ -1016,15 +1034,41 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.email, 'redeem-unsubscribe@example.org')
     assert.strictEqual(res.body.purpose, 'unsubscribe')
 
-    // Single-use: a second redemption of the same token fails.
     const secondRes = await request(app)
       .post('/redeem-action-token')
       .set('Authorization', `Bearer ${socialTokenRes.body.access_token}`)
       .type('json')
       .send({ token, purpose: 'unsubscribe' })
+      .expect(200)
+
+    assert.deepStrictEqual(secondRes.body, res.body)
+    const storedToken = await prisma.userActionToken.findUnique({
+      where: { tokenHash: hashToken(token) },
+    })
+    assert.ok(storedToken)
+    assert.strictEqual(storedToken.usedAt, null)
+
+    const { token: passwordResetToken } = await requestActionToken({
+      userId,
+      purpose: 'passwordReset',
+    })
+    await request(app)
+      .post('/redeem-action-token')
+      .set('Authorization', `Bearer ${socialTokenRes.body.access_token}`)
+      .type('json')
+      .send({ token: passwordResetToken, purpose: 'unsubscribe' })
       .expect(400)
 
-    assert.strictEqual(secondRes.body.errors[0].code, 'BadRequest')
+    await prisma.userActionToken.update({
+      where: { tokenHash: hashToken(token) },
+      data: { expiresAt: new Date(0) },
+    })
+    await request(app)
+      .post('/redeem-action-token')
+      .set('Authorization', `Bearer ${socialTokenRes.body.access_token}`)
+      .type('json')
+      .send({ token, purpose: 'unsubscribe' })
+      .expect(400)
   })
 
   test('POST /redeem-action-token rejects non-social clients', async () => {
