@@ -3,7 +3,7 @@ import type { AuthContext } from '../server/context'
 import { Scope } from '../server/scopes'
 import { internalError } from '../utils/error'
 import { exchangeAccountingToken } from './auth'
-import { fetchWithRetry } from './utils'
+import { fetchWithAuth } from './utils'
 
 type JsonApiError = {
   status: string
@@ -93,18 +93,19 @@ class AccountingClient {
     const scope = !init.method || init.method === 'GET'
       ? Scope.AccountingRead
       : Scope.AccountingWrite
-    const token = await exchangeAccountingToken(this.ctx.token, scope)
-    
-    const response = await fetchWithRetry(accountingUrl(path), {
-      ...init,
-      headers: {
-        Accept: 'application/vnd.api+json',
-        ...(init.body ? { 'Content-Type': 'application/vnd.api+json' } : {}),
-        Authorization: `Bearer ${token}`,
-        ...init.headers,
+    const response = await fetchWithAuth(
+      accountingUrl(path),
+      {
+        ...init,
+        headers: {
+          Accept: 'application/vnd.api+json',
+          ...(init.body ? { 'Content-Type': 'application/vnd.api+json' } : {}),
+          ...init.headers,
+        },
       },
-    })
-    
+      (forceRefresh) => exchangeAccountingToken(this.ctx.token, scope, forceRefresh),
+    )
+
     if (options.allowNotFound && response.status === 404) {
       return undefined
     }
