@@ -8,8 +8,8 @@ export async function fetchWithRetry(url: string, options: RequestInit = {}) {
   while (true) {
     try {
       return await fetch(url, options);
-    } catch (error: any) {
-      const retryable = error.message?.includes('fetch failed') || error.message?.includes('other side closed');
+    } catch (error) {
+      const retryable = error instanceof Error && (error.message.includes('fetch failed') || error.message.includes('other side closed'));
       if (!retryable || attempt >= maxAttempts) {
         throw error;
       }
