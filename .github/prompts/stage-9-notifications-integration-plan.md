@@ -329,6 +329,8 @@ Set the Notifications test command to run with
 
 ## Phase 3: Correct Unsubscribe Resolution and Delivery
 
+**Status: Done.**
+
 1. Add purpose-specific action-token policy in Auth:
 
    - Existing semantics remain unchanged for password and email actions.
