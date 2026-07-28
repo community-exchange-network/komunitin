@@ -100,6 +100,33 @@ test('getCollectionParams parses allowlisted comparisons alongside equality filt
 	})
 })
 
+test('getCollectionParams classifies fields supporting equality and comparison filters by shape', () => {
+	const options = {
+		filter: ['created'],
+		compare: ['created'],
+		sort: ['created'],
+	}
+	const equalityParams = getCollectionParams(
+		createRequest('filter[created]=2025-01-01'),
+		options,
+	)
+	const comparisonParams = getCollectionParams(
+		createRequest('filter[created][lt]=2026-01-01T00:00:00Z'),
+		options,
+	)
+
+	assert.deepStrictEqual(equalityParams.filters, {
+		created: ['2025-01-01'],
+	})
+	assert.deepStrictEqual(equalityParams.comparisons, {})
+	assert.deepStrictEqual(comparisonParams.filters, {})
+	assert.deepStrictEqual(comparisonParams.comparisons, {
+		created: {
+			lt: new Date('2026-01-01T00:00:00Z'),
+		},
+	})
+})
+
 test('getCollectionParams rejects invalid comparison shapes and values', () => {
 	const options = {
 		filter: ['status'],

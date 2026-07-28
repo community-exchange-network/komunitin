@@ -157,10 +157,14 @@ const comparisonSql: Record<ComparisonOperator, Prisma.Sql> = {
 const buildComparisonWhere = (comparisons: ComparisonOptions, columns: SqlColumnMap) => {
   const where: Prisma.Sql[] = []
   for (const [field, conditions] of Object.entries(comparisons)) {
+    const column = columns[field]
+    if (!column) {
+      continue
+    }
     for (const operator of comparisonOperators) {
       const value = conditions?.[operator]
       if (value !== undefined) {
-        where.push(Prisma.sql`${columns[field]} ${comparisonSql[operator]} ${value}`)
+        where.push(Prisma.sql`${column} ${comparisonSql[operator]} ${value}`)
       }
     }
   }

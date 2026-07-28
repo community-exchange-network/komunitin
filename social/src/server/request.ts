@@ -92,9 +92,12 @@ const filterParamSchema = (
   )
 
   for (const field of comparisonFields) {
-    shape[field] = z.object(Object.fromEntries(
+    const comparisonSchema = z.object(Object.fromEntries(
       comparisonOperators.map((operator) => [operator, comparisonValueSchema.optional()])
-    )).strict().optional()
+    )).strict()
+    shape[field] = fields.includes(field)
+      ? z.union([valueSchema, comparisonSchema]).optional()
+      : comparisonSchema.optional()
   }
 
   return z.object(shape).strict()
@@ -103,17 +106,13 @@ const filterParamSchema = (
       const filters: FilterOptions = {}
       const comparisons: ComparisonOptions = {}
 
-      for (const field of fields) {
-        const value = filter[field]
+      for (const [field, value] of Object.entries(filter)) {
         if (value !== undefined) {
-          filters[field] = value as string[]
-        }
-      }
-
-      for (const field of comparisonFields) {
-        const conditions = filter[field] as Partial<Record<typeof comparisonOperators[number], Date>> | undefined
-        if (conditions !== undefined) {
-          comparisons[field] = conditions
+          if (Array.isArray(value)) {
+            filters[field] = value
+          } else {
+            comparisons[field] = value as Partial<Record<ComparisonOperator, Date>>
+          }
         }
       }
 
