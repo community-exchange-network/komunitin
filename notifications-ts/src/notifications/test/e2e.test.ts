@@ -5,8 +5,7 @@ import { resetWebPushMocks, sendNotification } from '../../mocks/web-push'
 import { createMember, getUserIdForMember } from '../../mocks/db'
 import prisma from '../../utils/prisma'
 import { createEventBody, setupNotificationsTest, subscribeToPushNotifications } from './utils'
-
-const credentials = Buffer.from('testuser:testpass').toString('base64')
+import { signServiceJwt } from '../../mocks/auth'
 
 const { app, appNotifications, pushQueue, email } = setupNotificationsTest({
   useWorker: true,
@@ -41,7 +40,7 @@ describe('End-to-end: HTTP event to all channels', () => {
     const res = await app
       .post('/events')
       .set('Content-Type', 'application/vnd.api+json')
-      .set('Authorization', `Basic ${credentials}`)
+      .set('Authorization', `Bearer ${await signServiceJwt('komunitin-social')}`)
       .send(body)
       .expect(201)
 

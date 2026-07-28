@@ -12,7 +12,7 @@ describe('Notifications API', () => {
     it('Returns notifications for authenticated user', async () => {
       const groupCode = 'GRP1'
       const userId = uid('1')
-      const token = await signJwt(userId, ['komunitin_social'])
+      const token = await signJwt(userId, ['notifications:read'])
 
       await createNotification(groupCode, userId, 'evt-1', 'Test notification 1', 'Body 1')
       await createNotification(groupCode, userId, 'evt-2', 'Test notification 2', 'Body 2', new Date())
@@ -35,7 +35,7 @@ describe('Notifications API', () => {
     it('Returns empty array for user with no notifications', async () => {
       const groupCode = 'GRP1'
       const userId = uid('2')
-      const token = await signJwt(userId, ['komunitin_social'])
+      const token = await signJwt(userId, ['notifications:read'])
 
       const res = await app
         .get(`/${groupCode}/notifications`)
@@ -48,7 +48,7 @@ describe('Notifications API', () => {
 
     it('Only returns notifications for the correct tenant', async () => {
       const userId = uid('3')
-      const token = await signJwt(userId, ['komunitin_social'])
+      const token = await signJwt(userId, ['notifications:read'])
 
       await createNotification('GRP1', userId, 'evt-grp1', 'GRP1 notification', 'Body GRP1')
       await createNotification('GRP2', userId, 'evt-grp2', 'GRP2 notification', 'Body GRP2')
@@ -67,13 +67,64 @@ describe('Notifications API', () => {
         .get(`/GRP1/notifications`)
         .expect(400)
     })
+
+    it('rejects a token without notifications:read', async () => {
+      const token = await signJwt(uid('a'), ['notifications:write'])
+      await app
+        .get('/GRP1/notifications')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(403)
+    })
+
+    it('rejects issuer prefixes and old audiences', async () => {
+      const issuerPrefixToken = await signJwt(uid('b'), ['notifications:read'], {
+        issuer: 'http://auth.test/ca',
+      })
+      const oldAudienceToken = await signJwt(uid('b'), ['notifications:read'], {
+        audience: 'komunitin-app',
+      })
+
+      await app
+        .get('/GRP1/notifications')
+        .set('Authorization', `Bearer ${issuerPrefixToken}`)
+        .expect(401)
+      await app
+        .get('/GRP1/notifications')
+        .set('Authorization', `Bearer ${oldAudienceToken}`)
+        .expect(401)
+    })
+
+    it('rejects missing subjects and service-client tokens', async () => {
+      const missingSubject = await signJwt(uid('c'), ['notifications:read'], {
+        omitSubject: true,
+      })
+      const serviceSubject = await signJwt(uid('e'), ['notifications:read'], {
+        clientId: 'komunitin-social',
+      })
+
+      for (const token of [missingSubject, serviceSubject]) {
+        const response = await app
+          .get('/GRP1/notifications')
+          .set('Authorization', `Bearer ${token}`)
+        assert.ok(response.status === 401 || response.status === 403)
+      }
+    })
+
+    it('accepts a non-UUID user subject', async () => {
+      const token = await signJwt('user-1', ['notifications:read'])
+
+      await app
+        .get('/GRP1/notifications')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+    })
   })
 
   describe('POST /:code/notifications/read', () => {
     it('Marks all unread notifications as read for authenticated user', async () => {
       const groupCode = 'GRP1'
       const userId = uid('4')
-      const token = await signJwt(userId, ['komunitin_social'])
+      const token = await signJwt(userId, ['notifications:write'])
 
       await createNotification(groupCode, userId, 'evt-unread-1', 'Unread 1', 'Body 1')
       await createNotification(groupCode, userId, 'evt-unread-2', 'Unread 2', 'Body 2')
@@ -97,7 +148,7 @@ describe('Notifications API', () => {
 
     it('Only marks notifications as read for the correct tenant', async () => {
       const userId = uid('5')
-      const token = await signJwt(userId, ['komunitin_social'])
+      const token = await signJwt(userId, ['notifications:write'])
 
       await createNotification('GRP1', userId, 'evt-grp1-1', 'GRP1 notification', 'Body GRP1')
       await createNotification('GRP2', userId, 'evt-grp2-1', 'GRP2 notification', 'Body GRP2')
@@ -121,7 +172,7 @@ describe('Notifications API', () => {
     it('Only marks notifications as read for the authenticated user', async () => {
       const userA = uid('6')
       const userB = uid('7')
-      const tokenA = await signJwt(userA, ['komunitin_social'])
+      const tokenA = await signJwt(userA, ['notifications:write'])
 
       await createNotification('GRP1', userA, 'evt-user-a', 'User A notification', 'Body A')
       await createNotification('GRP1', userB, 'evt-user-b', 'User B notification', 'Body B')
@@ -145,7 +196,7 @@ describe('Notifications API', () => {
     it('Returns 0 count when user has no unread notifications', async () => {
       const groupCode = 'GRP1'
       const userId = uid('8')
-      const token = await signJwt(userId, ['komunitin_social'])
+      const token = await signJwt(userId, ['notifications:write'])
 
       await createNotification(groupCode, userId, 'evt-already-read', 'Already read', 'Body', new Date())
 
@@ -160,7 +211,7 @@ describe('Notifications API', () => {
     it('Returns 0 count when user has no notifications at all', async () => {
       const groupCode = 'GRP1'
       const userId = uid('9')
-      const token = await signJwt(userId, ['komunitin_social'])
+      const token = await signJwt(userId, ['notifications:write'])
 
       const res = await app
         .post(`/${groupCode}/notifications/read`)
@@ -174,6 +225,14 @@ describe('Notifications API', () => {
       await app
         .post(`/GRP1/notifications/read`)
         .expect(400)
+    })
+
+    it('rejects a token without notifications:write', async () => {
+      const token = await signJwt(uid('d'), ['notifications:read'])
+      await app
+        .post('/GRP1/notifications/read')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(403)
     })
   })
 })

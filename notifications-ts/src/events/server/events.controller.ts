@@ -1,29 +1,28 @@
-import type { Request, Response, NextFunction } from 'express';
-import { randomUUID, timingSafeEqual } from 'node:crypto';
-import { z } from 'zod';
-import { config } from '../../config';
-import { unauthorized, badRequest } from '../../utils/error';
-import { addEvent } from '../event-queue';
-import type { AnyNotificationEvent, EventName } from '../../notifications/events';
-import { EVENT_NAME } from '../../notifications/events';
-import { serializeEvent } from './events.serialize';
+import type { Request, Response, NextFunction } from 'express'
+import { randomUUID } from 'node:crypto'
+import { z } from 'zod'
+import { badRequest } from '../../utils/error'
+import { addEvent } from '../event-queue'
+import type { AnyNotificationEvent, EventName } from '../../notifications/events'
+import { EVENT_NAME } from '../../notifications/events'
+import { serializeEvent } from './events.serialize'
 
 const eventNameValues = Object.values(EVENT_NAME) as [EventName, ...EventName[]];
 const nullableCodeEventNames = new Set<EventName>([
   EVENT_NAME.ValidationEmailRequested,
   EVENT_NAME.PasswordResetRequested,
-]);
+])
 
 const createEventSchema = z.object({
   data: z.object({
     type: z.literal('events').optional(),
     attributes: z.object({
-        name: z.enum(eventNameValues),
-        source: z.string(),
-        code: z.string().nullable(),
-        time: z.coerce.date(),
-        data: z.record(z.string(), z.unknown()).default({}),
-      }).refine((attributes) => !(attributes.code === null && !nullableCodeEventNames.has(attributes.name)), {
+      name: z.enum(eventNameValues),
+      source: z.string(),
+      code: z.string().min(1).nullable(),
+      time: z.coerce.date(),
+      data: z.record(z.string(), z.unknown()).default({}),
+    }).refine((attributes) => !(attributes.code === null && !nullableCodeEventNames.has(attributes.name)), {
         message: 'code is required for this event type',
         path: ['code'],
       }),
@@ -36,58 +35,31 @@ const createEventSchema = z.object({
       }),
     }),
   }),
-});
+})
 
 /**
- * Basic Auth middleware for the events endpoint.
- * Uses timing-safe comparison to prevent timing attacks.
- */
-export const eventsAuth = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return next(unauthorized('Missing Basic Auth credentials'));
-  }
-
-  const base64 = authHeader.slice(6);
-  const decoded = Buffer.from(base64, 'base64').toString('utf-8');
-
-  const expectedUser = config.NOTIFICATIONS_EVENTS_USERNAME;
-  const expectedPass = config.NOTIFICATIONS_EVENTS_PASSWORD;
-  const expected = `${expectedUser}:${expectedPass}`;
-
-  const match = decoded.length === expected.length && timingSafeEqual(Buffer.from(decoded), Buffer.from(expected));
-
-  if (!match) {
-    return next(unauthorized('Invalid credentials'));
-  }
-
-  next();
-};
-
-/**
- * POST /events — receive a JSON:API event document and enqueue it.
+ * Receive an event from a service and enqueue it.
  */
 export const createEvent = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = createEventSchema.parse(req.body);
-    const { attributes, relationships } = parsed.data;
+    const parsed = createEventSchema.parse(req.body)
+    const { attributes, relationships } = parsed.data
 
     const event = {
       id: randomUUID(),
       name: attributes.name,
-      source: attributes.source ,
+      source: attributes.source,
       code: attributes.code,
       time: attributes.time,
       data: attributes.data,
       user: relationships.user.data.id,
-    } as AnyNotificationEvent;
+    } as AnyNotificationEvent
 
-    await addEvent(event);
+    await addEvent(event)
 
     res.status(201).json({
       data: serializeEvent(event),
-    });
-    
+    })
   } catch (err) {
     if (err instanceof z.ZodError) {
       err = badRequest(err.message, {
@@ -100,6 +72,6 @@ export const createEvent = async (req: Request, res: Response, next: NextFunctio
         },
       })
     }
-    next(err);
+    next(err)
   }
-};
+}
