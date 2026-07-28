@@ -18,8 +18,6 @@ const envSchema = z.object({
   SOCIAL_CLIENT_ID: z.string().trim().min(1).default('komunitin-social'),
   SOCIAL_CLIENT_SECRET: z.string().trim().min(1).default('komunitin-social-secret'),
   NOTIFICATIONS_API_URL: z.url().default('http://localhost:2023'),
-  NOTIFICATIONS_API_USERNAME: z.string().trim().min(1).default('komunitin'),
-  NOTIFICATIONS_API_PASSWORD: z.string().trim().min(1).default('replace-this-with-a-secure-password'),
   AUTH_JWT_ISSUER: z.url().default('http://localhost:2026'),
   AUTH_JWT_AUDIENCE: z.string().default('urn:komunitin:api'),
   AUTH_JWKS_URL: z.url().default('http://localhost:2026/.well-known/jwks.json'),

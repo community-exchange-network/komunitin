@@ -146,6 +146,7 @@ describe('Posts endpoints', () => {
     assert.strictEqual(requests.length, 1)
     assert.strictEqual(requests[0].method, 'POST')
     assert.strictEqual(requests[0].path, '/events')
+    assert.strictEqual(requests[0].authorization, 'Bearer social-notifications-token')
 
     const events = getNotificationsEvents() as any[]
     assert.strictEqual(events.length, 1)

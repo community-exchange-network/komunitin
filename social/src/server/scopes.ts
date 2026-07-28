@@ -3,6 +3,7 @@ export const Scope = {
   AccountingWrite: 'accounting:write',
   SocialRead: 'social:read',
   SocialWrite: 'social:write',
+  NotificationsWrite: 'notifications:write',
   Superadmin: 'superadmin',
 } as const
 

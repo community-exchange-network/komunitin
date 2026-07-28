@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer'
 import { config } from '../config'
 import type { AuthContext } from '../server/context'
 import logger from '../utils/logger'
@@ -6,6 +5,7 @@ import type { Group } from '../features/groups/types'
 import type { Member } from '../features/members/types'
 import type { Post } from '../features/posts/types'
 import { fetchWithRetry } from './utils'
+import { getNotificationsToken } from './auth'
 
 type SocialEventName =
   | 'NeedPublished'
@@ -45,18 +45,7 @@ const notificationsUrl = (path: string): string => {
 class NotificationsClient {
   constructor(readonly ctx: AuthContext) {}
 
-  private getBasicAuthHeader(): string {
-    const credentials = `${config.NOTIFICATIONS_API_USERNAME}:${config.NOTIFICATIONS_API_PASSWORD}`
-    return `Basic ${Buffer.from(credentials).toString('base64')}`
-  }
-
   private async sendEvent(name: SocialEventName, code: string, data: EventData): Promise<void> {
-    const headers = {
-      Accept: 'application/vnd.api+json',
-      'Content-Type': 'application/vnd.api+json',
-      Authorization: this.getBasicAuthHeader(),
-    }
-
     const payload: EventPayload = {
       data: {
         type: 'events',
@@ -79,9 +68,14 @@ class NotificationsClient {
     }
 
     try {
+      const token = await getNotificationsToken()
       const response = await fetchWithRetry(notificationsUrl('/events'), {
         method: 'POST',
-        headers,
+        headers: {
+          Accept: 'application/vnd.api+json',
+          'Content-Type': 'application/vnd.api+json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       })
 

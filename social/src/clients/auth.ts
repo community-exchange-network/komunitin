@@ -7,6 +7,7 @@ import { badRequest, internalError } from '../utils/error'
 import { fetchWithRetry } from './utils'
 
 type AccountingScope = typeof Scope.AccountingRead | typeof Scope.AccountingWrite
+type ServiceScope = AccountingScope | typeof Scope.NotificationsWrite
 
 type TokenResponse = {
   access_token?: unknown
@@ -19,7 +20,7 @@ type TokenRequestParameters = Record<string, string> & {
   grant_type:
     | 'client_credentials'
     | 'urn:ietf:params:oauth:grant-type:token-exchange'
-  scope: AccountingScope
+  scope: ServiceScope
 }
 
 const redeemedUnsubscribeTokenSchema = z.object({
@@ -35,6 +36,7 @@ const MAX_CACHED_TOKENS = 1000
 const TOKEN_EXPIRY_MARGIN_MS = 60 * 1000
 const tokenCache = new AsyncCache<string, string>(MAX_CACHED_TOKENS)
 const serviceTokenCache = new AsyncCache<string, string>(1)
+const notificationsTokenCache = new AsyncCache<string, string>(1)
 
 const getCacheKey = (subjectToken: string, scope: AccountingScope): string => {
   return createHash('sha256')
@@ -100,11 +102,22 @@ const requestSocialServiceToken = async (): Promise<CacheValue<string>> => {
   })
 }
 
+const requestNotificationsToken = async (): Promise<CacheValue<string>> => {
+  return requestToken({
+    grant_type: 'client_credentials',
+    scope: Scope.NotificationsWrite,
+  })
+}
+
 /**
  * Get a service token to call the accounting service on behalf of the social service.
  */
 const getSocialServiceToken = async (): Promise<string> => {
   return serviceTokenCache.getOrLoad(config.SOCIAL_CLIENT_ID, requestSocialServiceToken)
+}
+
+export const getNotificationsToken = async (): Promise<string> => {
+  return notificationsTokenCache.getOrLoad(config.SOCIAL_CLIENT_ID, requestNotificationsToken)
 }
 
 /**
