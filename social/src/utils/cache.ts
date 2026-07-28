@@ -12,6 +12,10 @@ export class AsyncCache<Key, Value> {
 
   constructor(private readonly maxEntries: number) {}
 
+  public delete(key: Key): void {
+    this.values.delete(key)
+  }
+
   public async getOrLoad(
     key: Key,
     load: () => Promise<CacheValue<Value>>,

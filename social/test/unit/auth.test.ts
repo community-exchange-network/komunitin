@@ -157,7 +157,7 @@ test('uses a client-credentials token to redeem unsubscribe actions and maps fai
       return tokenResponse('social-service-token', Scope.AccountingRead)
     }
 
-    assert.strictEqual((init?.headers as Record<string, string>).Authorization, 'Bearer social-service-token')
+    assert.strictEqual(new Headers(init?.headers).get('Authorization'), 'Bearer social-service-token')
     redemption++
     if (redemption <= 2) {
       return response({

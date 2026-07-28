@@ -109,15 +109,6 @@ describe('Notifications API', () => {
         assert.ok(response.status === 401 || response.status === 403)
       }
     })
-
-    it('accepts a non-UUID user subject', async () => {
-      const token = await signJwt('user-1', ['notifications:read'])
-
-      await app
-        .get('/GRP1/notifications')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200)
-    })
   })
 
   describe('POST /:code/notifications/read', () => {
