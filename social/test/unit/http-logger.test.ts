@@ -26,3 +26,23 @@ test('redacts action tokens from every logged request field', () => {
     'https://app.komunitin.org/users/unsubscribe?token=%5BREDACTED%5D'
   )
 })
+
+test('preserves missing and malformed logged URLs', () => {
+  const malformedUrl = 'http://[?token=unsubscribe-token'
+  const req = {
+    url: malformedUrl
+  }
+  Object.defineProperty(req, 'raw', {
+    value: {
+      headers: {
+        referer: malformedUrl
+      }
+    }
+  })
+
+  const logged = serializeRequest(req)
+
+  assert.strictEqual(logged.url, malformedUrl)
+  assert.strictEqual(logged.headers.referer, malformedUrl)
+  assert.strictEqual(serializeRequest({}).url, undefined)
+})
