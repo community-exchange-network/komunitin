@@ -146,6 +146,8 @@ duplication in authenticated requests and pagination.
 
 ## Phase 0: Codify the Boundary and Stabilize the Baseline
 
+**Status: Done.**
+
 1. Update Stage 9 in `social-auth-migration-plan.md`:
 
    - Mark client credentials, action-token purposes, frontend pages, and RFC
@@ -180,6 +182,8 @@ Set the Notifications test command to run with
 - The main migration document accurately describes the real boundaries.
 
 ## Phase 1: Enforce Scoped Auth and Remove Legacy Inbound Compatibility
+
+**Status: Done.**
 
 1. Add the scopes and publisher clients in Auth:
 
@@ -581,6 +585,10 @@ Then update each consumer:
    - Use current title and description fields.
    - Convert image objects at the presentation boundary.
    - Preserve the existing public application routes.
+
+## Phase 8: Hardcode client ids and remove CLIENT_ID env vars
+   - Remove `CLIENT_ID`s vars from services. They should be hardcoded in the service code and not configurable.
+   - However, they should be defined in a single place in each service, and not scattered throughout the codebase as strings.
 
 ## Phase 7: Replace Permissive Mocks with Contract Mocks
 
