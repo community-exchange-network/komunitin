@@ -282,6 +282,8 @@ Set the Notifications test command to run with
 
 ## Phase 2: Consolidate Outbound Auth Authentication
 
+**Status: Done.**
+
 1. Retain the existing client-credentials flow and exact scope set:
 
    - `email`

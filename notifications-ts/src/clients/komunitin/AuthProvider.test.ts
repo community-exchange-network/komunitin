@@ -29,7 +29,7 @@ describe('AuthProvider', () => {
 
     const auth = AuthProvider.getInstance();
     // Force refresh to clear any state
-    auth.forceRefresh();
+    auth.invalidate();
 
     const token = await auth.getAccessToken();
 
@@ -49,6 +49,26 @@ describe('AuthProvider', () => {
 
     assert.strictEqual(token, 'test-token');
     // Fetch call count should still be 1 from previous test
+    assert.strictEqual((global.fetch as any).mock.callCount(), 1);
+  });
+
+  it('should deduplicate concurrent token refreshes', async () => {
+    global.fetch = mock.fn(async () => new Response(JSON.stringify({
+      access_token: 'shared-token',
+      expires_in: 3600,
+      token_type: 'Bearer',
+      scope: 'all'
+    })));
+    const auth = AuthProvider.getInstance();
+    auth.invalidate();
+
+    const tokens = await Promise.all([
+      auth.getAccessToken(),
+      auth.getAccessToken(),
+      auth.getAccessToken(),
+    ]);
+
+    assert.deepStrictEqual(tokens, ['shared-token', 'shared-token', 'shared-token']);
     assert.strictEqual((global.fetch as any).mock.callCount(), 1);
   });
 });

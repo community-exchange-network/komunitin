@@ -82,8 +82,11 @@ export class AuthProvider {
     }
   }
 
-  public forceRefresh(): void {
-    this.accessToken = null;
-    this.expiresAt = 0;
+  public invalidate(token?: string): void {
+    // A delayed 401 must not invalidate a newer token refreshed by another request.
+    if (!token || token === this.accessToken) {
+      this.accessToken = null;
+      this.expiresAt = 0;
+    }
   }
 }
