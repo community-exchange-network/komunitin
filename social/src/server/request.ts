@@ -18,6 +18,14 @@ export type PaginationOptions = {
 
 export type FilterOptions = Partial<Record<string, string[]>>
 
+export const comparisonOperators = ['gt', 'gte', 'lt', 'lte'] as const
+
+export type ComparisonOperator = typeof comparisonOperators[number]
+
+export type ComparisonOptions = Partial<
+  Record<string, Partial<Record<ComparisonOperator, Date>>>
+>
+
 export type SortOptions = {
   field: string
   order: 'asc' | 'desc'
@@ -27,6 +35,7 @@ export type SortOptions = {
 export type CollectionParams = {
   pagination: PaginationOptions
   filters: FilterOptions
+  comparisons: ComparisonOptions
   sort: SortOptions[]
   include: string[]
   near?: GeoPoint
@@ -34,6 +43,7 @@ export type CollectionParams = {
 
 export type CollectionParamsOptions = {
   filter?: string[]
+  compare?: string[]
   sort: string[]
   include?: string[]
   near?: boolean
@@ -66,22 +76,48 @@ const pageParamSchema = z.object({
   size,
 }));
 
-const filterParamSchema = (fields: string[]) => {
+const comparisonValueSchema = z.iso.datetime({ offset: true })
+  .transform((value) => new Date(value))
+
+const filterParamSchema = (
+  fields: string[],
+  comparisonFields: string[],
+) => {
   const valueSchema = z.preprocess(
     splitCommaSeparated,
     z.array(z.string())
   )
-  return z.partialRecord(z.enum(fields), valueSchema)
+  const shape: Record<string, z.ZodType> = Object.fromEntries(
+    fields.map((field) => [field, valueSchema.optional()])
+  )
+
+  for (const field of comparisonFields) {
+    shape[field] = z.object(Object.fromEntries(
+      comparisonOperators.map((operator) => [operator, comparisonValueSchema.optional()])
+    )).strict().optional()
+  }
+
+  return z.object(shape).strict()
     .default({})
-    .transform((filter): FilterOptions => {
-      const normalized: FilterOptions = {}
-      for (const [key, value] of Object.entries(filter)) {
+    .transform((filter) => {
+      const filters: FilterOptions = {}
+      const comparisons: ComparisonOptions = {}
+
+      for (const field of fields) {
+        const value = filter[field]
         if (value !== undefined) {
-          normalized[key] = value
+          filters[field] = value as string[]
         }
       }
 
-      return normalized
+      for (const field of comparisonFields) {
+        const conditions = filter[field] as Partial<Record<typeof comparisonOperators[number], Date>> | undefined
+        if (conditions !== undefined) {
+          comparisons[field] = conditions
+        }
+      }
+
+      return { filters, comparisons }
     })
 }
 
@@ -110,15 +146,16 @@ const nearParamSchema = z.preprocess(
 const collectionParamsSchema = (options: CollectionParamsOptions) => { 
   return z.object({
     page: pageParamSchema,
-    filter: filterParamSchema(options.filter ?? []),
+    filter: filterParamSchema(options.filter ?? [], options.compare ?? []),
     sort: sortParamSchema(options.sort),
     include: includeParamSchema(options.include ?? []),
     ...(options.near ? { near: nearParamSchema } : {}),
   }).strict().refine((data) => !(data.sort.some((s) => s.field === 'distance') && !data.near), {
     message: 'Sorting by distance requires the "near" parameter to be provided.'
-  }).transform(({page, filter, sort, include, near}) => ({
+  }).transform(({page, filter: { filters, comparisons }, sort, include, near}) => ({
     pagination: page,
-    filters: filter,
+    filters,
+    comparisons,
     sort,
     include,
     near: near as GeoPoint | undefined,

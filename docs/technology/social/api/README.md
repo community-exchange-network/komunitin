@@ -43,6 +43,12 @@ This section extensively use the [JSON:API](https://jsonapi.org/) language.
 
 Filtering is available in all endpoints that return a collection following the custom [Simple filtering](https://github.com/komunitin/komunitin-api/blob/master/jsonapi-profiles/filter.md) JSON:API profile.
 
+Date comparisons use `filter[field][operator]=value`, where the value is an
+RFC 3339 timestamp and the operator is `gt`, `gte`, `lt`, or `lte`. Posts allow
+comparisons on `created` and `expires`; members allow them on `created`.
+Multiple comparisons are combined with `AND`. Unsupported fields, operators,
+malformed dates, arrays, and mixed equality/comparison values return `400`.
+
 #### Pagination
 
 Pagination is available in all endpoints that return a collection following the official [Cursor Pagination](https://jsonapi.org/profiles/ethanresnick/cursor-pagination/) JSON:API profile.

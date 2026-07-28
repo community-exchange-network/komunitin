@@ -26,6 +26,7 @@ test('getCollectionParams parses pagination, sorting and filters generically', (
 		filters: {
 			access: ['private'],
 		},
+		comparisons: {},
 		sort: [{
 			field: 'name',
 			order: 'asc',
@@ -76,6 +77,49 @@ test('getCollectionParams supports comma separated filter values', () => {
 	assert.deepStrictEqual(params.filters, {
 		code: ['code-one', 'code-two'],
 	})
+})
+
+test('getCollectionParams parses allowlisted comparisons alongside equality filters', () => {
+	const params = getCollectionParams(
+		createRequest(
+			'filter[status]=active&filter[created][gt]=2026-01-01T00:00:00Z&filter[created][lte]=2026-01-31T00:00:00%2B01:00'
+		),
+		{
+			filter: ['status'],
+			compare: ['created'],
+			sort: ['created'],
+		}
+	)
+
+	assert.deepStrictEqual(params.filters, { status: ['active'] })
+	assert.deepStrictEqual(params.comparisons, {
+		created: {
+			gt: new Date('2026-01-01T00:00:00Z'),
+			lte: new Date('2026-01-31T00:00:00+01:00'),
+		},
+	})
+})
+
+test('getCollectionParams rejects invalid comparison shapes and values', () => {
+	const options = {
+		filter: ['status'],
+		compare: ['created'],
+		sort: ['created'],
+	}
+	const invalidQueries = [
+		'filter[updated][gt]=2026-01-01T00:00:00Z',
+		'filter[created][eq]=2026-01-01T00:00:00Z',
+		'filter[created][gt]=not-a-date',
+		'filter[created][gt]=2026-01-01T00:00:00Z,2026-01-02T00:00:00Z',
+		'filter[created]=2026-01-01T00:00:00Z&filter[created][gt]=2026-01-02T00:00:00Z',
+	]
+
+	for (const query of invalidQueries) {
+		assert.throws(
+			() => getCollectionParams(createRequest(query), options),
+			/Invalid query parameters/,
+		)
+	}
 })
 
 test('getCollectionParams supports multiple search-related endpoint shapes', () => {
