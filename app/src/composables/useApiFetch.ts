@@ -7,7 +7,7 @@ type FetchOptions = Omit<RequestInit, "body"> & {
 }
 
 export interface AuthService {
-  accessToken: () => string | null
+  accessToken: () => string | undefined
   refresh: () => Promise<void>
 }
 
@@ -15,19 +15,22 @@ export interface AuthService {
  * Use useApiFetch instead of this function if outside of the store.
  */
 export const request = async <T extends ResourceObject> (url: string, options: FetchOptions = {}, auth: AuthService) => {
-  const doRequest = () => fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      'Authorization': `Bearer ${auth.accessToken()}`,
-      'Accept': 'application/vnd.api+json',
-      ...(options.body ? { 'Content-Type': 'application/vnd.api+json' } : {})
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined
-  })
+  const doRequest = () => {
+    const accessToken = auth.accessToken()
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+        'Accept': 'application/vnd.api+json',
+        ...(options.body ? { 'Content-Type': 'application/vnd.api+json' } : {})
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined
+    })
+  }
   try {
     let response = await doRequest()
-    if (!response.ok && response.status == 401) {
+    if (!response.ok && response.status == 401 && auth.accessToken()) {
       await auth.refresh()
       response = await doRequest()
     }
