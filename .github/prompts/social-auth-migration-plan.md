@@ -347,7 +347,7 @@ Local-stack smoke performed 2026-07-16:
   anonymous filtered Social collection returned the active group with exact
   `meta.count`.
 
-## Stage 9: Migrate The Notifications Service
+## Stage 9: Migrate The Notifications Service (DONE)
 
 Goal: migrate Notifications to the new Auth, Social, and Accounting service
 boundaries and emit only purpose-bound public links. This stage verifies and
