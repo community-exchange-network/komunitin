@@ -1,6 +1,6 @@
 import { Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Group, Need, Offer, User } from '../../clients/komunitin/types';
+import { Group, Need, Offer } from '../../clients/komunitin/types';
 import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import { EVENT_NAME } from '../events';
@@ -37,14 +37,6 @@ const daysSince = (date: Date | string): number => {
   const d = typeof date === 'string' ? new Date(date) : date;
   return (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
 };
-
-/**
- * Check if a user is the author of a post.
- */
-const isMemberUser = (user: User, memberId: string): boolean => {
-  return user.relationships.members.data.some((m: any) => m.id === memberId);
-};
-
 
 /**
  * Check if a user should receive a digest based on their posts and last sent time.
@@ -95,12 +87,26 @@ const processCommunityDigest = async (
   const lookbackIso = lookbackDate.toISOString();
 
   const [offers, needs] = await Promise.all([
-    client.getOffers(code, { 'filter[created][gt]': lookbackIso }),
-    client.getNeeds(code, { 'filter[created][gt]': lookbackIso }),
+    client.getOffers(code, {
+      'filter[status]': 'published',
+      'filter[expired]': 'false',
+      'filter[created][gt]': lookbackIso,
+      sort: '-created'
+    }),
+    client.getNeeds(code, {
+      'filter[status]': 'published',
+      'filter[expired]': 'false',
+      'filter[created][gt]': lookbackIso,
+      sort: '-created'
+    }),
   ]);
 
   // 2. Fetch recent members
-  const newMembers = await client.getMembers(code, { 'filter[created][gt]': lookbackIso });
+  const newMembers = await client.getMembers(code, {
+    'filter[status]': 'active',
+    'filter[created][gt]': lookbackIso,
+    sort: '-created'
+  });
 
   const allPosts = [...offers, ...needs];
 
@@ -119,6 +125,14 @@ const processCommunityDigest = async (
     membersWithUsers.flatMap(mwu => mwu.users).map(u => [u.user.id, u])
   )
   const usersWithSettings = usersWithSettingsMap.values()
+  const memberIdsByUser = new Map<string, Set<string>>();
+  for (const { member, users } of membersWithUsers) {
+    for (const { user } of users) {
+      const memberIds = memberIdsByUser.get(user.id) ?? new Set<string>();
+      memberIds.add(member.id);
+      memberIdsByUser.set(user.id, memberIds);
+    }
+  }
 
 
   // Get lastest PostsPublishedDigest notifications for all users in this community = tenant
@@ -136,7 +150,7 @@ const processCommunityDigest = async (
 
     // Take only the members since last digest
     const eligibleNewMembers = newMembers.filter(m => 
-      !isMemberUser(user, m.id) && isNew(m.attributes.created, lastSentForMembers)
+      !memberIdsByUser.get(user.id)?.has(m.id) && isNew(m.attributes.created, lastSentForMembers)
     );
 
     // Divide posts into regular and posts from new members, removing the ones
@@ -145,7 +159,7 @@ const processCommunityDigest = async (
     const newMemberPosts: (Offer | Need)[] = [];
 
     for (const post of nonUrgentPosts) {
-      if (isMemberUser(user, post.relationships.member.data.id)) continue;
+      if (memberIdsByUser.get(user.id)?.has(post.relationships.member.data.id)) continue;
 
       const isFromNewMember = newMemberIds.has(post.relationships.member.data.id);
       const targetList = isFromNewMember ? newMemberPosts : regularPosts;

@@ -1,69 +1,82 @@
 export interface Address {
-  streetAddress: string;
-  addressLocality: string;
-  postalCode: string;
-  addressRegion: string;
-  addressCountry: string;
+  streetAddress?: string;
+  addressLocality?: string;
+  postalCode?: string;
+  addressRegion?: string;
+  addressCountry?: string;
 }
 
-export interface Location {  
+export interface Location {
   name?: string;
   type: "Point";
   coordinates: [number, number];
 }
 
+export interface Image {
+  url: string;
+  alt?: string;
+}
+
+type ResourceIdentifier = {
+  id: string;
+  type: string;
+}
+
 export interface Member {
   id: string;
+  type: "members";
   attributes: {
     name: string;
     code: string;
-    image: string;
+    image: Image | null;
     description: string;
+    status: "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted";
     created: string;
-    address?: Address;
-    location?: Location;
+    updated: string;
+    address: Address | null;
+    location: Location | null;
     [key: string]: any;
   };
   relationships: {
-    account: { data: { id: string, type: string } };
+    account: { data: ResourceIdentifier };
     needs: { meta: { count: number } };
     offers: { meta: { count: number } };
   };
 }
 
-export interface Offer {
+interface BasePost {
   id: string;
-  type: "offers";
   attributes: {
     code: string;
-    name: string;
-    images: string[];
-    content: string;
+    title: string | null;
+    images: Image[] | null;
+    description: string;
+    status: "draft" | "published" | "hidden";
     created: string;
     updated: string;
-    expires: string;
-    // add other fields
+    expires: string | null;
   };
   relationships: {
-    member: { data: { id: string } }
-  },
+    member: { data: ResourceIdentifier };
+    category?: { data: ResourceIdentifier | null };
+  };
 }
 
-export interface Need {
-  id: string;
-  type: "needs";
-  attributes: {
-    code: string;
-    images: string[];
-    content: string;
-    created: string;
-    updated: string;
-    expires: string;
+export interface Offer extends BasePost {
+  type: "offers";
+  attributes: BasePost["attributes"] & {
+    value?: string | null;
   };
-  relationships: {
-    member: { data: { id: string } }
-  },
 }
+
+export interface Need extends BasePost {
+  type: "needs";
+  attributes: BasePost["attributes"] & {
+    fulfilled?: string | null;
+  };
+}
+
+export type Post = Offer | Need;
 
 export interface Currency {
   id: string;
@@ -80,17 +93,20 @@ export interface Currency {
 
 export interface Group {
   id: string;
+  type: "groups";
   attributes: {
     code: string;
     name: string;
     status: "pending" | "active" | "disabled";
-    location: Location;
-    address?: Address;
-    image?: string;
-    // ... other fields
+    location: Location | null;
+    address: Address | null;
+    image: Image | null;
   };
   relationships: {
-    admins: { data: { id: string, type: string }[] };
+    admins: {
+      links: { related: string };
+      meta: { count: number };
+    };
   };
 }
 
@@ -104,14 +120,14 @@ export interface GroupSettings {
 
 export interface User {
   id: string;
+  type: "users";
   attributes: {
     email: string;
     created: string;
     updated: string;
   };
   relationships: {
-    settings: { data: { id: string, type: string } };
-    members: { data: { id: string, type: string }[] };
+    settings: { data: ResourceIdentifier };
   };
 }
 

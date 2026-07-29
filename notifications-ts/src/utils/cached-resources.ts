@@ -38,7 +38,7 @@ export const getCachedGroupMembersWithUsers = async (client: KomunitinClient, gr
   const key = `group:${groupCode}:members`;
 
   return await cache.get(key, async () => {
-    const members = await client.getMembers(groupCode);
+    const members = await client.getMembers(groupCode, { 'filter[status]': 'active' });
     const result: MemberWithUsers[] = [];
 
     for (const member of members) {

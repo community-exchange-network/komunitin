@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
-import { createMembers, createNeed, createOffer, db, getUserIdForMember } from '../../mocks/db'
+import { createMembers, createPost, db, getUserIdForMember } from '../../mocks/db'
 import { createEvent, setupNotificationsTest } from './utils'
 
 const { put, appNotifications } = setupNotificationsTest({
@@ -21,14 +21,14 @@ describe('New post notifications (URGENT)', () => {
     const expires = new Date()
     expires.setDate(created.getDate() + 5) // 5 days window <= 7 days
 
-    const offer = createOffer({
+    const offer = createPost('offers', {
       id: 'offer-urgent',
       code: 'OFF1',
       groupCode,
       memberId: authorMember.id,
       attributes: {
-        name: 'Urgent Offer',
-        content: 'Urgent content',
+        title: 'Urgent Offer',
+        description: 'Urgent content',
         created: created.toISOString(),
         expires: expires.toISOString(),
       }
@@ -62,14 +62,14 @@ describe('New post notifications (URGENT)', () => {
     const expires = new Date()
     expires.setDate(created.getDate() + 10) // 10 days window > 7 days
 
-    const offer = createOffer({
+    const offer = createPost('offers', {
       id: 'offer-non-urgent',
       code: 'OFF2',
       groupCode,
       memberId: authorMember.id,
       attributes: {
-        name: 'Lazy Offer',
-        content: 'I will do this next month',
+        title: 'Lazy Offer',
+        description: 'I will do this next month',
         created: created.toISOString(),
         expires: expires.toISOString(),
       }
@@ -95,13 +95,13 @@ describe('New post notifications (URGENT)', () => {
     const expires = new Date()
     expires.setDate(created.getDate() + 3) // 3 days window <= 7 days
 
-    const need = createNeed({
+    const need = createPost('needs', {
       id: 'need-urgent',
       code: 'NEE1',
       groupCode,
       memberId: authorMember.id,
       attributes: {
-        content: 'I need some help urgently!',
+        description: 'I need some help urgently!',
         created: created.toISOString(),
         expires: expires.toISOString(),
       }

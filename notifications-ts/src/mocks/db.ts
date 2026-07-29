@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
-import { Member } from '../clients/komunitin/types';
-import { ACCOUNTING_URL, EXTERNAL_URL } from './handlers';
+import { Image, Member, Post } from '../clients/komunitin/types';
+import { ACCOUNTING_URL, EXTERNAL_URL, SOCIAL_URL } from './handlers';
 
 const IN_30_DAYS = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000);
 const IN_90_DAYS = new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000);
@@ -8,6 +8,7 @@ const IN_90_DAYS = new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000);
 // -- Data Store --
 export const db = {
   groups: [] as any[],
+  groupAdmins: [] as { groupId: string; userId: string }[],
   groupsSettings: [] as any[],
   currencies: [] as any[],
   members: [] as any[],
@@ -26,6 +27,7 @@ export const db = {
 
 export const resetDb = () => {
   db.groups.length = 0;
+  db.groupAdmins.length = 0;
   db.groupsSettings.length = 0;
   db.currencies.length = 0;
   db.members.length = 0;
@@ -42,7 +44,8 @@ export const resetDb = () => {
 };
 
 export const getUserIdForMember = (memberId: string) => {
-  const user = db.users.find(u => u.relationships.members.data.some((r: any) => r.id === memberId));
+  const userId = db.members.find(member => member.id === memberId)?.relationships.user.data.id;
+  const user = db.users.find(u => u.id === userId);
   if (!user) {
     throw new Error(`No user found for member ${memberId}`);
   }
@@ -74,10 +77,10 @@ export const createGroup = (code: string) => {
     id: adminUserId,
     attributes: { email: `admin-${code.toLowerCase()}@example.com`, created: new Date().toISOString(), updated: new Date().toISOString() },
     relationships: {
-      settings: { data: { type: 'user-settings', id: `${adminUserId}-settings` } },
-      members: { data: [] }
+      settings: { data: { type: 'user-settings', id: `${adminUserId}-settings` } }
     }
   });
+  db.groupAdmins.push({ groupId: id, userId: adminUserId });
 
   db.userSettings.push({
     type: 'user-settings',
@@ -100,12 +103,17 @@ export const createGroup = (code: string) => {
     attributes: {
       code,
       name: `Group ${code}`,
+      status: 'active',
       access: 'public',
-
+      image: null,
+      address: null,
       location: { type: 'Point', coordinates: [2.1734, 41.3851] }
     },
     relationships: {
-      admins: { data: [{ id: adminUserId, type: 'users' }] },
+      admins: {
+        links: { related: `${SOCIAL_URL}/${code}/admins` },
+        meta: { count: 1 }
+      },
       currency: { links: { related: `${ACCOUNTING_URL}/${code}/currency` } }
     }
   });
@@ -144,7 +152,7 @@ export const createMember = (opts: {
   userId?: string;
   accountId?: string;
   attributes?: Record<string, any>;
-  image?: string | null;
+  image?: Image | null;
 }) => {
   createGroup(opts.groupCode);
   const groupId = `group-${opts.groupCode}`;
@@ -164,7 +172,9 @@ export const createMember = (opts: {
     attributes: {
       code: userCode,
       name: opts.name || `Member ${userCode}`,
-      image: opts.image !== undefined ? opts.image : faker.image.avatar(),
+      image: opts.image !== undefined ? opts.image : { url: faker.image.avatar() },
+      status: 'active',
+      address: null,
       location: { type: 'Point', coordinates: [faker.location.longitude(), faker.location.latitude()] },
       description: faker.lorem.sentence(),
       created: new Date().toISOString(),
@@ -187,8 +197,7 @@ export const createMember = (opts: {
   // User
   createUser({
     id: userId,
-    email: `${userCode}@example.com`,
-    memberIds: [id],
+    email: `${userCode}@example.com`
   });
 
   // Account
@@ -212,15 +221,17 @@ export const createMember = (opts: {
 export const createUser = (opts: {
   id: string;
   email: string;
-  memberIds?: string[];
 }) => {
   const user = {
     type: 'users',
     id: opts.id,
-    attributes: { email: opts.email },
+    attributes: {
+      email: opts.email,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    },
     relationships: {
-      settings: { data: { type: 'user-settings', id: `${opts.id}-settings` } },
-      members: { data: (opts.memberIds || []).map(id => ({ type: 'members', id })) }
+      settings: { data: { type: 'user-settings', id: `${opts.id}-settings` } }
     }
   };
   db.users.push(user);
@@ -265,7 +276,26 @@ export const createMembers = (code: string) => {
   return members;
 };
 
-export const createOffer = (opts: {
+type PostType = Post['type'];
+
+const postDefaults = {
+  offers: {
+    count: 3,
+    expires: IN_90_DAYS,
+    prefix: 'offer',
+  },
+  needs: {
+    count: 2,
+    expires: IN_30_DAYS,
+    prefix: 'need',
+  },
+} satisfies Record<PostType, {
+  count: number;
+  expires: Date;
+  prefix: string;
+}>;
+
+export const createPost = (type: PostType, opts: {
   id: string;
   code: string;
   groupCode: string;
@@ -274,26 +304,28 @@ export const createOffer = (opts: {
 }) => {
   const members = createMembers(opts.groupCode);
   const groupId = `group-${opts.groupCode}`;
-  
+
   const memberId = opts.memberId || members[0]?.id;
-  
+
   if (!memberId) {
     throw new Error(`No member found for group ${opts.groupCode}`);
   }
 
   const created = faker.date.past();
-  const offer = {
-    type: 'offers',
+  const posts = db[type];
+  const post = {
+    type,
     id: opts.id,
     attributes: {
-      name: faker.commerce.productName(),
-      content: faker.lorem.paragraph(),
-      price: faker.commerce.price(),
-      images: [faker.image.url()],
+      title: faker.commerce.productName(),
+      description: faker.lorem.paragraph(),
+      ...(type === 'offers' ? { price: faker.commerce.price() } : {}),
+      images: [{ url: faker.image.url() }],
       code: opts.code,
+      status: 'published',
       created: created.toISOString(),
       updated: created.toISOString(),
-      expires: IN_90_DAYS.toISOString(),
+      expires: postDefaults[type].expires.toISOString(),
       ...opts.attributes,
     },
     relationships: {
@@ -301,92 +333,30 @@ export const createOffer = (opts: {
       group: { data: { type: 'groups', id: groupId } }
     }
   };
-  
-  db.offers.push(offer);
 
+  posts.push(post);
   const member = db.members.find(m => m.id === memberId);
   if (member) {
-    const offerCount = db.offers.filter(o => o.relationships.member.data.id === memberId).length;
-    member.relationships.offers.meta.count = offerCount;
+    member.relationships[type].meta.count = posts
+      .filter(post => post.relationships.member.data.id === memberId)
+      .length;
   }
-  
-  return offer;
+
+  return post;
 };
 
-export const createOffers = (code: string) => {
+export const createPosts = (type: PostType, code: string) => {
   const members = createMembers(code);
   const groupId = `group-${code}`;
-  if (db.offers.some(o => o.relationships.group.data.id === groupId)) {
+  const posts = db[type];
+  if (posts.some(post => post.relationships.group.data.id === groupId)) {
     return;
   }
 
   members.forEach((member, m) => {
-    for (let o = 0; o < 3; o++) {
-      createOffer({
-        id: `offer-${code}-${m}-${o}`,
-        code: faker.string.alphanumeric(8).toUpperCase(),
-        groupCode: code,
-        memberId: member.id,
-      });
-    }
-  });
-};
-
-export const createNeed = (opts: {
-  id: string;
-  code: string;
-  groupCode: string;
-  memberId?: string;
-  attributes?: Partial<any>;
-}) => {
-  const members = createMembers(opts.groupCode);
-  const groupId = `group-${opts.groupCode}`;
-
-  const memberId = opts.memberId || members[0]?.id;
-  
-  if (!memberId) {
-    throw new Error(`No member found for group ${opts.groupCode}`);
-  }
-  const created = faker.date.past();
-  const need = {
-    type: 'needs',
-    id: opts.id,
-    attributes: {
-      name: faker.commerce.productName(),
-      content: faker.lorem.paragraph(),
-      images: [faker.image.url()],
-      code: opts.code,
-      created: created.toISOString(),
-      updated: created.toISOString(),
-      expires: IN_30_DAYS.toISOString(),
-      ...opts.attributes,
-    },
-    relationships: {
-      member: { data: { type: 'members', id: memberId } },
-      group: { data: { type: 'groups', id: groupId } }
-    }
-  };
-  
-  db.needs.push(need);
-
-  const member = db.members.find(m => m.id === memberId);
-  if (member) {
-    const needCount = db.needs.filter(n => n.relationships.member.data.id === memberId).length;
-    member.relationships.needs.meta.count = needCount;
-  }
-
-  return need;
-};
-
-export const createNeeds = (code: string) => {
-  const members = createMembers(code);
-  const groupId = `group-${code}`;
-  if (db.needs.some(n => n.relationships.group.data.id === groupId)) return;
-
-  members.forEach((member, m) => {
-    for (let n = 0; n < 2; n++) {
-      createNeed({
-        id: `need-${code}-${m}-${n}`,
+    for (let p = 0; p < postDefaults[type].count; p++) {
+      createPost(type, {
+        id: `${postDefaults[type].prefix}-${code}-${m}-${p}`,
         code: faker.string.alphanumeric(8).toUpperCase(),
         groupCode: code,
         memberId: member.id,
@@ -544,9 +514,7 @@ export const createExternalTransfer = (opts: {
     db.blockedPaths.add(extGroupCode);
   }
 
-  const localUser = db.users.find(u =>
-    u.relationships.members.data.some((r: any) => r.id === localMember.id)
-  )!;
+  const localUser = db.users.find(u => u.id === getUserIdForMember(localMember.id))!;
 
   return {
     transfer,
