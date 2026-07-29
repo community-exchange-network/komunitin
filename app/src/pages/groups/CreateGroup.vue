@@ -8,7 +8,10 @@
       padding 
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
     >
-      <template v-if="!done">
+      <q-form
+        v-if="!done"
+        @submit="submit"
+      >
         <div class="q-pb-lg">
           <div class="text-subtitle1">
             {{ $t('newGroup') }}
@@ -30,9 +33,9 @@
           color="primary"
           unelevated
           :loading="loading"
-          @click="submit"
+          type="submit"
         />
-      </template>
+      </q-form>
       <template v-else>
         <div class="q-pb-lg">
           <div class="text-subtitle1">
