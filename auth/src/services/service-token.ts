@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { config } from '../config'
+import { CLIENT_ID, config } from '../config'
 
 const tokenResponseSchema = z.object({
   access_token: z.string().min(1),
@@ -20,7 +20,7 @@ const requestToken = async () => {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams({
-      client_id: config.AUTH_CLIENT_ID,
+      client_id: CLIENT_ID,
       client_secret: config.AUTH_CLIENT_SECRET,
       grant_type: 'client_credentials',
       scope: 'notifications:write',

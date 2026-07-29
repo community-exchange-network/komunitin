@@ -1,4 +1,4 @@
-import { config } from "src/utils/config";
+import { CLIENT_ID, config } from "src/utils/config";
 import KError, { KErrorCode } from "src/KError";
 //https://quasar.dev/quasar-plugins/web-storage
 
@@ -60,12 +60,9 @@ export class Auth {
 
   private readonly tokenEndpoint: string;
   private readonly resetPasswordEndpoint: string;
-  private readonly clientId: string;
-
   constructor() {
     this.tokenEndpoint = config.AUTH_URL + "/token";
     this.resetPasswordEndpoint = config.AUTH_URL + "/reset-password"
-    this.clientId = config.OAUTH_CLIENTID
   }
 
   /**
@@ -280,7 +277,7 @@ export class Auth {
    * @param data The data to be sent. client_id is set automatically.
    */
   private async tokenRequest(data: TokenRequestData): Promise<AuthData> {
-    data.client_id = this.clientId;
+    data.client_id = CLIENT_ID;
     // Use URLSearchParams in order to send the request with x-www-urlencoded.
     const params = new URLSearchParams();
     Object.entries(data).forEach(([key, value]) => params.append(key, value));

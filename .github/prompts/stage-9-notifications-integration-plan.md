@@ -449,6 +449,8 @@ Set the Notifications test command to run with
 
 ## Phase 5: Migrate Social and Accounting Client Contracts
 
+**Status: Done.**
+
 ### Social Routes
 
 Replace:
@@ -509,6 +511,8 @@ Extend the current Accounting transfer collection endpoints to support
 
 ## Phase 6: Update Enrichment, Scheduled Jobs, and Presentation
 
+**Status: Done.**
+
 Use only supported filters:
 
 | Workflow | Server-side query | Local boundary |
@@ -518,7 +522,7 @@ Use only supported filters:
 | Current offers and needs | Type, `status=published`, `expired=false` | Render the canonical fields |
 | Digest posts | Type, `status=published`, `expired=false`, `filter[created][gt]=<cutoff>`, `sort=-created` | Exclude urgent posts and select recipients |
 | Recently created members | `status=active`, `filter[created][gt]=<cutoff>`, `sort=-created` | None |
-| Upcoming expiration | Type, `status=published`, `expired=false`, `filter[expires][lt]=<horizon>`, `sort=expires` | Schedule notifications |
+| Post expiration sweep | Type, `status=published`, `filter[expires][lt]=<horizon>`, `sort=expires` | Schedule upcoming notifications and aggregate already-expired posts by member |
 | Already expired offers | Offers, member, `status=published`, `expired=true` | None |
 
 Then update each consumer:
@@ -539,7 +543,13 @@ Then update each consumer:
 3. Expiration jobs:
 
    - Treat `expires: null` as non-expiring.
-   - Use supported expired, status, and `filter[expires][lt]` filters.
+   - Use one `status=published` and `filter[expires][lt]` sweep for both
+     upcoming and already-expired posts; adding `expired=false` would exclude
+     the posts needed for member expiration reminders.
+   - Split the result locally: schedule upcoming notifications and aggregate
+     already-expired posts by member.
+   - Use the supported `expired=true` filter when enriching a member expiration
+     event with that member's expired posts.
    - Preserve the nullable Social type and narrow before scheduling even though
      the comparison predicate excludes null values.
 

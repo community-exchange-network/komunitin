@@ -2,6 +2,8 @@ import dotenv from "dotenv"
 import { badConfig } from "./utils/error"
 import { Config } from "@stellar/stellar-sdk"
 
+export const CLIENT_ID = "komunitin-accounting"
+
 const loadConfig = () => {
   // Read .env file
   dotenv.config()
@@ -18,7 +20,6 @@ const loadConfig = () => {
     AUTH_JWT_ISSUER: process.env.AUTH_JWT_ISSUER || "http://localhost:2026",
     AUTH_JWT_AUDIENCE: process.env.AUTH_JWT_AUDIENCE || "urn:komunitin:api",
     AUTH_URL: process.env.AUTH_URL || "http://localhost:2026",
-    ACCOUNTING_CLIENT_ID: process.env.ACCOUNTING_CLIENT_ID || "komunitin-accounting",
     API_BASE_URL: process.env.API_BASE_URL || "https://accounting.komunitin.org",
     NOTIFICATIONS_API_URL: process.env.NOTIFICATIONS_API_URL || "https://notifications.komunitin.org",
     DOCKER: process.env.DOCKER === "true" || false,

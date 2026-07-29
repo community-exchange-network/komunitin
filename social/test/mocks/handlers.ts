@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import { CLIENT_ID } from '../../src/config'
 import { Scope } from '../../src/server/scopes'
 import { getJwks } from './auth'
 import { toUuid } from './utils'
@@ -208,7 +209,7 @@ export const handlers = [
 
     if (tokenRequest.grantType === 'client_credentials') {
       if (
-        tokenRequest.clientId !== process.env.SOCIAL_CLIENT_ID
+        tokenRequest.clientId !== CLIENT_ID
         || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
         || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.NotificationsWrite)
       ) {
@@ -226,7 +227,7 @@ export const handlers = [
 
     if (
       tokenRequest.grantType !== 'urn:ietf:params:oauth:grant-type:token-exchange'
-      || tokenRequest.clientId !== process.env.SOCIAL_CLIENT_ID
+      || tokenRequest.clientId !== CLIENT_ID
       || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
       || params.get('subject_token_type') !== 'urn:ietf:params:oauth:token-type:access_token'
       || !tokenRequest.subjectToken

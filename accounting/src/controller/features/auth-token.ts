@@ -1,4 +1,4 @@
-import { config } from "../../config"
+import { CLIENT_ID, config } from "../../config"
 
 type TokenResponse = {
   access_token?: unknown
@@ -19,7 +19,7 @@ const requestToken = async () => {
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
-      client_id: config.ACCOUNTING_CLIENT_ID,
+      client_id: CLIENT_ID,
       client_secret: config.ACCOUNTING_CLIENT_SECRET!,
       grant_type: "client_credentials",
       scope: "notifications:write",

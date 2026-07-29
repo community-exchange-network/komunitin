@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { mailboxEmailSchema } from './utils/email'
 
+export const CLIENT_ID = 'komunitin-auth'
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(2026),
@@ -8,7 +10,6 @@ const envSchema = z.object({
   JWT_ISSUER: z.string().default('http://localhost:2026'),
   JWT_AUDIENCE: z.string().min(1).default('urn:komunitin:api'),
   NOTIFICATIONS_URL: z.string().default('http://localhost:2023'),
-  AUTH_CLIENT_ID: z.string().min(1).default('komunitin-auth'),
   AUTH_CLIENT_SECRET: z.string().min(1).default('komunitin-auth-secret'),
   NOTIFICATIONS_CLIENT_SECRET: z.string().min(1).default('replace-this-with-a-secure-password'),
   SOCIAL_CLIENT_SECRET: z.string().min(1).default('komunitin-social-secret'),

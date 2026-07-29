@@ -4,7 +4,7 @@ import { setupServer, SetupServerApi } from 'msw/node'
 import { logger } from "../../src/utils/logger"
 import request from "supertest"
 import TestAgent from "supertest/lib/agent"
-import { config } from "../../src/config"
+import { CLIENT_ID, config } from "../../src/config"
 import { jwks } from "./auth.mock"
 
 const events: any[] = []
@@ -47,7 +47,7 @@ const getHandlers = (app: Express) => [
   http.post(`${config.AUTH_URL}/token`, async ({ request }) => {
     const body = new URLSearchParams(await request.text())
     if (
-      body.get("client_id") !== config.ACCOUNTING_CLIENT_ID
+      body.get("client_id") !== CLIENT_ID
       || body.get("client_secret") !== config.ACCOUNTING_CLIENT_SECRET
       || body.get("grant_type") !== "client_credentials"
       || body.get("scope") !== "notifications:write"

@@ -8,7 +8,6 @@ services:
     ports:
       - "2030:80"
     environment:
-      OAUTH_CLIENTID: komunitin-app
       MOCK_ENABLE: false
       AUTH_URL: ${KOMUNITIN_AUTH_URL}
       SOCIAL_URL: ${KOMUNITIN_SOCIAL_URL}
@@ -57,7 +56,6 @@ services:
       JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
       JWT_AUDIENCE: urn:komunitin:api
       NOTIFICATIONS_URL: http://notifications-ts:2023
-      AUTH_CLIENT_ID: komunitin-auth
       AUTH_CLIENT_SECRET: ${KOMUNITIN_AUTH_CLIENT_SECRET}
       NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
       SOCIAL_CLIENT_SECRET: ${KOMUNITIN_SOCIAL_SECRET}
@@ -115,7 +113,6 @@ services:
       AUTH_JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
       AUTH_JWT_AUDIENCE: urn:komunitin:api
       AUTH_URL: http://auth:2026
-      ACCOUNTING_CLIENT_ID: komunitin-accounting
       ACCOUNTING_CLIENT_SECRET: ${KOMUNITIN_ACCOUNTING_CLIENT_SECRET}
       NOTIFICATIONS_API_URL: http://notifications-ts:2023
       API_BASE_URL: ${KOMUNITIN_ACCOUNTING_URL}
@@ -179,7 +176,6 @@ services:
       AUTH_JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
       AUTH_JWT_AUDIENCE: urn:komunitin:api
 
-      NOTIFICATIONS_CLIENT_ID: komunitin-notifications
       NOTIFICATIONS_CLIENT_SECRET: ${KOMUNITIN_NOTIFICATIONS_SECRET}
 
       SMTP_HOST: ${SMTP_HOST}
@@ -234,7 +230,6 @@ services:
       API_BASE_URL: ${KOMUNITIN_SOCIAL_URL:-http://localhost:2028}
       ACCOUNTING_URL: http://accounting:2025
       AUTH_URL: http://auth:2026
-      SOCIAL_CLIENT_ID: komunitin-social
       SOCIAL_CLIENT_SECRET: ${KOMUNITIN_SOCIAL_SECRET}
       NOTIFICATIONS_API_URL: http://notifications-ts:2023
       AUTH_JWKS_URL: http://auth:2026/.well-known/jwks.json
