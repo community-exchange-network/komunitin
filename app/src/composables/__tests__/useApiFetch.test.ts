@@ -31,7 +31,7 @@ describe("API request authentication", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 401 }))
     vi.stubGlobal("fetch", fetchMock)
     const auth: AuthService = {
-      accessToken: () => null,
+      accessToken: () => undefined,
       refresh: vi.fn()
     }
 
