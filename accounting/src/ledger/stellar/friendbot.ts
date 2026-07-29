@@ -19,5 +19,6 @@ export const friendbot = async (url: string, horizonUrl: string, publicKey: stri
     logger.info(`Account ${publicKey} funded with 10,000 XLM with friendbot`)
   } catch (e) {
     logger.error(e)
+    throw e
   }
 }
