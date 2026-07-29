@@ -18,7 +18,8 @@ Komunitin is an open-source system featuring a community currency wallet and a m
 | `shared/` | Incipient admin CLI and shared docker images. |
 | `.github/` | CI workflows |
 
-An external dependency **IntegralCES** (Drupal, cloned separately on `../ices`) provides the legacy social/auth API at port 2029, now being migrated to the local `auth` and `social` services.
+Explicit migration tooling can still read from an externally managed
+IntegralCES instance.
 
 ## Shared Tooling
 
@@ -27,14 +28,14 @@ An external dependency **IntegralCES** (Drupal, cloned separately on `../ices`) 
 
 ## Docker Compose Orchestration
 
-- Full local stack, including IntegralCES (may take a few minutes to build and start):
+- Full local stack (may take a few minutes to build and start):
 
   ```bash
   cp .env.dev.template .env
-  ./start.sh --up --ices --dev --demo
+  ./start.sh --up --dev --reset
   ```
 
-- `compose.yml` is the base stack: app, accounting, notifications-ts, IntegralCES, PostgreSQL databases, and Redis.
+- `compose.yml` is the base stack: app, auth, social, accounting, notifications-ts, PostgreSQL databases, and Redis.
 - `compose.dev.yml` adds hot-reload commands, debugger ports, local utility services, and bind mounts for active development.
 - Once the stack is running, you can use docker compose commands to quickly manage services, eg:
 
@@ -55,12 +56,11 @@ Published local ports in the dev stack:
 | Accounting | `http://localhost:2025` |
 | Social | `http://localhost:2028` |
 | Notifications | `http://localhost:2023` |
-| IntegralCES | `http://localhost:2029` |
 | Credit Commons test node | `http://localhost:2024` |
-| phpMyAdmin | `http://localhost:2022` |
 | Redis Commander | `http://localhost:2027` |
 
-Default demo credentials are password `komunitin`; common users include `noether@komunitin.org`, `euclides@komunitin.org`, and `riemann@komunitin.org`.
+The development template bootstraps the superadmin
+`info@komunitin.org` with password `komunitin`.
 
 ## CI and Deployment Shape
 
