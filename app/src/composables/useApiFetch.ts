@@ -7,7 +7,7 @@ type FetchOptions = Omit<RequestInit, "body"> & {
 }
 
 export interface AuthService {
-  accessToken: () => string | null
+  accessToken: () => string | undefined
   refresh: () => Promise<void>
 }
 
@@ -15,21 +15,29 @@ export interface AuthService {
  * Use useApiFetch instead of this function if outside of the store.
  */
 export const request = async <T extends ResourceObject> (url: string, options: FetchOptions = {}, auth: AuthService) => {
-  const doRequest = () => fetch(url, {
+  const doRequest = (accessToken: string | undefined) => fetch(url, {
     ...options,
     headers: {
       ...options.headers,
-      'Authorization': `Bearer ${auth.accessToken()}`,
+      ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
       'Accept': 'application/vnd.api+json',
       ...(options.body ? { 'Content-Type': 'application/vnd.api+json' } : {})
     },
     body: options.body ? JSON.stringify(options.body) : undefined
   })
   try {
-    let response = await doRequest()
+    const originalToken = auth.accessToken()
+    let response = await doRequest(originalToken)
     if (!response.ok && response.status == 401) {
-      await auth.refresh()
-      response = await doRequest()
+      const currentToken = auth.accessToken()
+      if (originalToken && currentToken === originalToken) {
+        // Refresh and retry
+        await auth.refresh()
+        response = await doRequest(auth.accessToken())
+      } else if (currentToken) {
+        // Authentication changed while awaiting the response, so use the new token directly.
+        response = await doRequest(currentToken)
+      }
     }
     // Throw error if response not ok
     await checkFetchResponse(response)
