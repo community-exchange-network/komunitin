@@ -36,13 +36,13 @@
       input-style="min-height: 100px;"
       :rules = "[v => !!v || $t('fieldRequired')]"
     />
-    <div>
-      <location-picker 
-        v-model="location"
-        :default-location="[0, 0]"
-        :zoom="1"
-      />
-    </div>
+    <location-picker
+      v-model="location"
+      required
+      :rules="[v => !!v || $t('fieldRequired')]"
+      :default-location="[0, 0]"
+      :zoom="1"
+    />
     <q-input
       v-model="city"
       type="text"
