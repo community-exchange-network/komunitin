@@ -2,6 +2,7 @@ import { Prisma } from '../../generated/prisma/client'
 import { OptionalAuthContext } from '../../server/context'
 import { DbClient } from '../../server/multitenant'
 import {
+  type CollectionIds,
   findCollectionIds,
   sqlColumn,
   sqlTable,
@@ -24,11 +25,11 @@ const categoryColumns: SqlColumnMap = {
 }
 
 const buildReadableCategoryWhere = async (ctx: OptionalAuthContext, group: Group) => {
-  if (ctx.isSuperadmin || ctx.isSocialReadAll) {
+  if (ctx.isSuperadmin || ctx.canReadAllSocial) {
     return Prisma.sql`TRUE`
   }
 
-  const groupAdmin = await isGroupAdmin(ctx, group)
+  const groupAdmin = isGroupAdmin(ctx, group)
   if (groupAdmin) {
     return Prisma.sql`TRUE`
   }
@@ -46,10 +47,10 @@ const buildReadableCategoryWhere = async (ctx: OptionalAuthContext, group: Group
   return null
 }
 
-export const findCategoriesIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<string[]> => {
+export const findCategoriesIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<CollectionIds> => {
   const readableWhere = await buildReadableCategoryWhere(ctx, group)
   if (readableWhere === null) {
-    return []
+    return { ids: [], total: 0 }
   }
   return await findCollectionIds(db, {
     from: categoryTable,

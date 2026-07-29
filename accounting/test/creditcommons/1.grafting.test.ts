@@ -30,9 +30,9 @@ describe('grafting', async () => {
       "/TEST/cc/nodes",
       testNodeData(),
       { user: null, scopes: [], ccNode: 'trunk', lastHash: 'asdf' },
-      403)
+      401)
     // note that this error will come from a CC admin route:
-    assert.equal(response.text, '{"errors":[{"status":"403","code":"Forbidden","title":"Forbidden","detail":"Insufficient Scope"}]}')
+    assert.equal(response.text, '{"errors":[{"status":"401","code":"Unauthorized","title":"Unauthorized","detail":"Unauthorized"}]}')
   })
   it('requires admin', async () => {
     const response = await t.api.post(

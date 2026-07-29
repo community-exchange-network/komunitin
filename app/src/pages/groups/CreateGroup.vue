@@ -8,7 +8,10 @@
       padding 
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
     >
-      <template v-if="!done">
+      <q-form
+        v-if="!done"
+        @submit="submit"
+      >
         <div class="q-pb-lg">
           <div class="text-subtitle1">
             {{ $t('newGroup') }}
@@ -30,9 +33,9 @@
           color="primary"
           unelevated
           :loading="loading"
-          @click="submit"
+          type="submit"
         />
-      </template>
+      </q-form>
       <template v-else>
         <div class="q-pb-lg">
           <div class="text-subtitle1">
@@ -60,13 +63,9 @@ import { useStore } from "vuex";
 import EditGroupForm from "src/pages/admin/EditGroupForm.vue"
 import PageHeader from "src/layouts/PageHeader.vue";
 import { ref } from "vue";
-import type { Currency, Group } from "src/store/model";
-import { v4 as uuid } from "uuid";
-import type { PartialContact } from "src/components/MemberContactsField.vue";
+import type { Contact, Currency, Group } from "src/store/model";
 
 const store = useStore()
-
-const myUser = store.getters.myUser
 
 const group = ref<Group>({
   attributes: {},
@@ -74,19 +73,15 @@ const group = ref<Group>({
 
 const done = ref(false)
 
-const contacts = ref<PartialContact[]>([])
-const currency = ref<Currency>({
-  type: "currencies",
-  id: uuid(), // Ephemeral id for augmented posting.
-  attributes: {
-    decimals: 2,
-    rate: {
-      n: 1,
-      d:10
-    },
-    scale: 6
+const contacts = ref<Contact[]>([])
+const currency = ref<Partial<Currency["attributes"]>>({
+  decimals: 2,
+  rate: {
+    n: 1,
+    d: 10
   },
-} as Currency)
+  scale: 6
+})
 const loading = ref(false)
 const submit = async () => {
   try {
@@ -96,23 +91,14 @@ const submit = async () => {
         type: "groups",
         attributes: {
           ...group.value.attributes,
-        },
-        relationships: {
-          admins: {
-            data: [ { type: "users", id: myUser.id } ]
-          },
-          contacts: {
-            data: contacts.value.map((c) => ({ type: "contacts", id: c.id }))
-          },
-          currency: {
-            data: { type: "currencies", id: currency.value.id }
+          contacts: contacts.value,
+          meta: {
+            request: {
+              currency: currency.value
+            }
           }
         }
-      },
-      included: [
-        ...contacts.value,
-        currency.value
-      ]
+      }
     })
     done.value = true
   } finally {

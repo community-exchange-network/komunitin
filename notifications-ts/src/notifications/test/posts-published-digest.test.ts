@@ -1,7 +1,7 @@
 
 import assert from 'node:assert'
 import { before, beforeEach, describe, it } from 'node:test'
-import { createMembers, createNeed, createOffer, db, getUserIdForMember } from '../../mocks/db'
+import { createMembers, createPost, db, getUserIdForMember } from '../../mocks/db'
 import { EVENT_NAME } from '../events'
 import { setupNotificationsTest } from './utils'
 
@@ -51,13 +51,13 @@ describe('PostsPublishedDigest notifications', () => {
       groupCode,
       memberId: authorId,
       attributes: {
-        name: `Test ${type}`,
-        content: `Content for ${type}`,
+        title: `Test ${type}`,
+        description: `Content for ${type}`,
         created: created.toISOString(),
         expires: expires.toISOString(),
       }
     };
-    return type === 'offer' ? createOffer(data) : createNeed(data);
+    return createPost(`${type}s`, data);
   }
 
   it('should send digest if 3+ pending items and 2+ days without prior digest', async () => {

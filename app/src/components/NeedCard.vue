@@ -32,7 +32,7 @@
         v-clamp="hasImages ? 3 : 13"
         class="text-body2 text-justify text-onsurface-m"
       >
-        {{ md2txt(need.attributes.content) }}
+        {{ md2txt(need.attributes.description) }}
       </div>
     </q-card-section>
 
@@ -41,7 +41,7 @@
         v-if="!expired && !hidden"
         flat
         color="primary"
-        :contacts="need.member.contacts"
+        :contacts="need.member.attributes.contacts"
       >
         {{
           $t("reply")
@@ -61,7 +61,7 @@
         color="icon-dark"
         :url="url"
         :title="$t('checkThisNeed', { member: need.member.attributes.name })"
-        :text="need.attributes.content"
+        :text="need.attributes.description"
       />
       <q-btn
         v-if="canEdit"
@@ -141,7 +141,7 @@ export default defineComponent({
       return this.need.member?.id == this.$store.getters.myMember?.id || this.$store.getters.isAdmin;
     },
     hidden(): boolean {
-      return this.need.attributes.state == "hidden"
+      return this.need.attributes.status == "hidden"
     },
     expired(): boolean {
       return new Date(this.need.attributes.expires) < new Date()

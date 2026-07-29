@@ -10,12 +10,7 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
 
   const appUrl = common.appUrl;
 
-  // If the event is not associated to any group, this means that the user is
-  // validating their email when creating a new group. Otherwise, they are 
-  // validating their email to join an existing group.
-  const ctaUrl = (event.code) 
-    ? `${appUrl}/groups/${event.code}/signup-member?token=${event.token}`
-    : `${appUrl}/groups/new?token=${event.token}`;
+  const ctaUrl = `${appUrl}/confirm-email?token=${event.token}`;
 
   const data = {
     ...common,

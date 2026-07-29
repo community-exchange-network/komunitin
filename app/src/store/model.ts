@@ -84,7 +84,10 @@ export interface Location {
   coordinates: [number, number]; //longitude and latitude
 }
 
-export type ImageObject = string;
+export interface ImageObject {
+  url: string;
+  alt?: string;
+}
 
 /**
  * To-many relationship.
@@ -142,12 +145,12 @@ export interface ExternalResourceObject extends ResourceObject {
 export interface User extends ResourceObject {
   attributes: {
     email: string,
+    name?: string,
     created: string,
     updated: string,
   },
   relationships: {
-    settings: RelatedResource,
-    members: RelatedLinkedCollection
+    settings: RelatedResource
   }
 }
 
@@ -174,11 +177,9 @@ export interface UserSettings extends ResourceObject {
 /**
  * Contact model.
  */
-export interface Contact extends ResourceObject {
-  attributes: {
-    type: string;
-    name: string;
-  };
+export interface Contact {
+  type: string;
+  value: string;
 }
 
 export type Access = "public" | "group" | "private";
@@ -192,23 +193,24 @@ export interface Group extends ResourceObject {
     name: string;
     status: "pending" | "active" | "disabled"
     description: string;
-    image: ImageObject;
-    website: string;
+    image: ImageObject | null;
     access: Access;
     location: Location;
     address: Address;
+    contacts: Contact[];
+    meta: {
+      request: {
+        currency: Partial<Currency["attributes"]>;
+      };
+    } | null;
     created: string;
     updated: string;
   };
   relationships: {
-    contacts: RelatedLinkedCollection;
-    members: RelatedCollection;
-    categories: RelatedCollection;
-    offers: RelatedCollection;
-    needs: RelatedCollection;
-    posts: RelatedCollection;
-    currency: RelatedResource;
+    currency?: RelatedResource;
     settings: RelatedResource;
+    admins: RelatedCollection;
+    members: RelatedCollection;
   };
 }
 
@@ -234,21 +236,24 @@ export interface Category extends ResourceObject {
   attributes: {
     code: string;
     name: string;
-    cpa: string[];
-    description: string;
     /**
      * The category icon, following the same convention as Quasar framework for icon components:
      * https://quasar.dev/vue-components/icon
      */
-    icon: string;
+    icon?: {
+      type: string;
+      value: string;
+    };
+    meta?: {
+      description?: string;
+    };
     access: Access;
     created: string;
     updated: string;
   };
   relationships: {
-    group: RelatedResource;
-    needs: RelatedCollection;
     offers: RelatedCollection;
+    needs: RelatedCollection;
   };
 }
 
@@ -263,7 +268,7 @@ export interface Address {
   addressCountry: string;
 }
 
-export type MemberState = "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted"
+export type MemberStatus = "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted"
 
 /**
  * Member interface.
@@ -273,21 +278,21 @@ export interface Member extends ResourceObject {
     code: string;
     access: Access;
     name: string;
-    type: "personal" | "business" | "public";
-    state: MemberState;
+    type: "personal" | "business" | "organization";
+    status: MemberStatus;
     description: string;
-    image: ImageObject;
+    image: ImageObject | null;
     address: Address;
+    contacts: Contact[];
     location: Location;
     created: string;
     updated: string;
   };
   relationships: {
-    contacts: RelatedLinkedCollection;
     group: RelatedResource;
-    needs: RelatedCollection;
-    offers: RelatedCollection;
     account: RelatedResource;
+    offers: RelatedCollection;
+    needs: RelatedCollection;
   };
 }
 
@@ -320,10 +325,6 @@ export interface Currency extends ResourceObject {
     symbol: string;
     decimals: number;
     scale: number;
-    /**
-     * @deprecated Use rate instead.
-     */
-    value: number;
     
     rate: {
       n: number,
@@ -451,15 +452,15 @@ export interface ExtendedAccount extends Account {
 export interface Offer extends ResourceObject {
   attributes: {
     code: string;
-    name: string;
-    content: string;
+    title: string;
+    description: string;
     images: ImageObject[];
-    price: string;
+    value?: string;
     access: Access;
     expires: string;
     created: string;
     updated: string;
-    state: OfferState;
+    status: OfferStatus;
   };
   relationships: {
     category: RelatedResource;
@@ -467,8 +468,9 @@ export interface Offer extends ResourceObject {
   };
 }
 
-export type NeedState = "hidden" | "published";
-export type OfferState = NeedState;
+export type PostStatus = "draft" | "hidden" | "published";
+export type NeedStatus = PostStatus;
+export type OfferStatus = PostStatus;
 
 /**
  * Need model
@@ -476,13 +478,14 @@ export type OfferState = NeedState;
 export interface Need extends ResourceObject {
   attributes: {
     code: string;
-    content: string;
+    description: string;
     images: ImageObject[];
     access: Access;
     expires: string;
     created: string;
     updated: string;
-    state: NeedState;
+    status: NeedStatus;
+    fulfilled?: string;
   };
   relationships: {
     category: RelatedResource;

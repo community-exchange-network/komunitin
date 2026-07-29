@@ -3,24 +3,57 @@ import { decodeJwt } from 'jose'
 import assert from 'node:assert'
 import { after, before, beforeEach, describe, test } from 'node:test'
 import request from 'supertest'
-import { hashPassword } from '../src/services/tokens'
+import { config } from '../src/config'
+import { hashPassword, hashToken } from '../src/services/tokens'
+import { NotificationsService } from '../src/services/notifications'
 import { UserStatus } from '../src/users/status'
 import prisma from '../src/utils/prisma'
 import { resetDb, setupTestServer, teardownTestServer } from './helper'
 
 // Mock global fetch to intercept emails
 const fetchCalls: { url: string; init: any; body: any }[] = []
+const serviceTokenRequests: URLSearchParams[] = []
+const eventStatuses: number[] = []
 const originalFetch = global.fetch
 let app: Express
+
+type ExpectedAccessToken = {
+  subject: string
+  clientId: string
+  scope: string
+}
+
+const registrationSignup = {
+  type: 'group' as const,
+  name: 'Test Community Administrator',
+  language: 'en',
+}
+
+const assertAccessToken = (token: string, expected: ExpectedAccessToken) => {
+  const decoded = decodeJwt(token)
+
+  assert.strictEqual(decoded.iss, config.JWT_ISSUER)
+  assert.strictEqual(decoded.aud, config.JWT_AUDIENCE)
+  assert.strictEqual(decoded.sub, expected.subject)
+  assert.strictEqual(decoded.client_id, expected.clientId)
+  assert.strictEqual(decoded.scope, expected.scope)
+  assert.strictEqual(typeof decoded.iat, 'number')
+  assert.strictEqual(typeof decoded.exp, 'number')
+  assert.ok(decoded.exp! > decoded.iat!)
+
+  return decoded
+}
 
 async function requestActionToken({
   userId,
   purpose,
   email,
+  signup,
 }: {
   userId: string
   purpose: string
   email?: string
+  signup?: Record<string, string>
 }) {
   const authRes = await request(app)
     .post('/token')
@@ -37,6 +70,7 @@ async function requestActionToken({
     userId,
     purpose,
     ...(email ? { email } : {}),
+    ...(signup ? { signup } : {}),
   }
 
   const tokenRes = await request(app)
@@ -49,16 +83,57 @@ async function requestActionToken({
   return tokenRes.body as { token: string; email: string }
 }
 
+function assertAuthEmailEvent(
+  call: { body: any, init: any },
+  expected: {
+    name: string
+    userId: string
+    email: string
+    purpose?: string
+    signup?: Record<string, string>
+    code?: string | null
+  },
+) {
+  assert.strictEqual(call.body.data.attributes.name, expected.name)
+  assert.strictEqual(call.body.data.attributes.source, 'auth')
+  assert.strictEqual(call.body.data.attributes.code, expected.code ?? null)
+  assert.strictEqual(call.body.data.relationships.user.data.id, expected.userId)
+  const data = call.body.data.attributes.data
+  assert.deepStrictEqual(data, {
+    user: expected.userId,
+    email: expected.email,
+    ...(expected.purpose ? { purpose: expected.purpose } : {}),
+    ...(expected.signup ? { signup: expected.signup } : {}),
+  })
+  assert.ok(!('token' in call.body.data.attributes.data))
+  assert.strictEqual(call.init.headers.Authorization, 'Bearer auth-notifications-token')
+}
+
 before(() => {
   global.fetch = async (url: any, init: any) => {
+    if (String(url).endsWith('/token')) {
+      const body = new URLSearchParams(init.body)
+      serviceTokenRequests.push(body)
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: 'auth-notifications-token',
+          expires_in: 3600,
+          scope: 'notifications:write',
+          token_type: 'Bearer',
+        }),
+      } as any
+    }
+    const status = eventStatuses.shift() ?? 201
     let body = null
     if (init && init.body) {
       body = JSON.parse(init.body)
     }
     fetchCalls.push({ url: String(url), init, body })
     return {
-      ok: true,
-      status: 201,
+      ok: status >= 200 && status < 300,
+      status,
       json: async () => ({ data: { type: 'events', id: 'job-123' } }),
       text: async () => 'ok',
     } as any
@@ -81,6 +156,8 @@ describe('Auth Service Integration Tests', () => {
   beforeEach(async () => {
     await resetDb()
     fetchCalls.length = 0
+    serviceTokenRequests.length = 0
+    eventStatuses.length = 0
   })
 
   test('GET /health returns 200 with status ok', async () => {
@@ -98,6 +175,11 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: '  New.User@Example.ORG  ',
         password: 'password123',
+        signup: {
+          type: 'group',
+          name: 'New Community Administrator',
+          language: 'ca',
+        },
       })
       .expect(201)
 
@@ -115,14 +197,30 @@ describe('Auth Service Integration Tests', () => {
     assert.notStrictEqual(user.passwordHash, 'password123')
 
     assert.strictEqual(fetchCalls.length, 1)
-    const emailCall = fetchCalls[0]
-    assert.strictEqual(emailCall.body.data.attributes.name, 'ValidationEmailRequested')
-    assert.strictEqual(emailCall.body.data.attributes.source, 'auth')
-    assert.strictEqual(emailCall.body.data.relationships.user.data.id, user.id)
-    assert.deepStrictEqual(emailCall.body.data.attributes.data, { user: user.id, email: 'new.user@example.org' })
-    assert.strictEqual(emailCall.body.data.attributes.data.token, undefined)
+    assert.strictEqual(serviceTokenRequests.length, 1)
+    assert.strictEqual(serviceTokenRequests[0].get('client_id'), 'komunitin-auth')
+    assert.strictEqual(serviceTokenRequests[0].get('client_secret'), 'komunitin-auth-secret')
+    assert.strictEqual(serviceTokenRequests[0].get('grant_type'), 'client_credentials')
+    assert.strictEqual(serviceTokenRequests[0].get('scope'), 'notifications:write')
+    const signup = {
+      type: 'group',
+      name: 'New Community Administrator',
+      language: 'ca',
+    }
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId: user.id,
+      email: 'new.user@example.org',
+      purpose: 'emailVerification',
+      signup,
+    })
+    const { token } = await requestActionToken({
+      userId: user.id,
+      purpose: 'emailVerification',
+      signup,
+    })
 
-    const tokenRes = await request(app)
+    await request(app)
       .post('/token')
       .type('form')
       .send({
@@ -132,42 +230,152 @@ describe('Auth Service Integration Tests', () => {
         password: 'password123',
         scope: 'email',
       })
+      .expect(400)
+
+    const confirmation = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(200)
+    assert.deepStrictEqual(confirmation.body, {
+      id: user.id,
+      email: 'new.user@example.org',
+      emailVerified: true,
+      signup,
+    })
+
+    const tokenRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'new.user@example.org',
+        password: 'password123',
+        scope: 'email',
+      })
       .expect(200)
 
     const decoded = decodeJwt(tokenRes.body.access_token) as any
     assert.strictEqual(decoded.sub, user.id)
-    assert.strictEqual(decoded.email, 'new.user@example.org')
-    assert.strictEqual(decoded.email_verified, false)
-
-    const { token } = await requestActionToken({ userId: user.id, purpose: 'emailVerification' })
-    await request(app)
-      .post('/change-email/confirm')
-      .send({ token })
-      .expect(200)
+    assert.strictEqual(decoded.email_verified, true)
 
     const verifiedUser = await prisma.user.findUnique({ where: { id: user.id } })
     assert.ok(verifiedUser)
     assert.strictEqual(verifiedUser.emailVerified, true)
   })
 
-  test('POST /register rejects duplicate emails', async () => {
-    await request(app)
+  test('POST /register replaces an unverified registration', async () => {
+    const firstRegistration = await request(app)
       .post('/register')
       .set('X-Forwarded-For', '203.0.113.10')
       .type('json')
       .send({
         email: 'duplicate@example.org',
-        password: 'password123',
+        password: 'original-password',
+        signup: registrationSignup,
       })
       .expect(201)
 
-    const duplicateRes = await request(app)
+    await requestActionToken({
+      userId: firstRegistration.body.id,
+      purpose: 'emailChange',
+      email: 'pending-change@example.org',
+    })
+
+    const replacement = await request(app)
       .post('/register')
       .set('X-Forwarded-For', '203.0.113.11')
       .type('json')
       .send({
         email: '  DUPLICATE@example.org  ',
+        password: 'replacement-password',
+        signup: registrationSignup,
+      })
+      .expect(201)
+
+    assert.strictEqual(replacement.body.id, firstRegistration.body.id)
+    assert.strictEqual(replacement.body.email, 'duplicate@example.org')
+    assert.strictEqual(replacement.body.emailVerified, false)
+    assert.strictEqual(await prisma.user.count({ where: { email: 'duplicate@example.org' } }), 1)
+    assert.strictEqual(await prisma.userActionToken.count({ where: { userId: firstRegistration.body.id } }), 0)
+    assert.strictEqual(fetchCalls.length, 2)
+
+    await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'duplicate@example.org',
+        password: 'original-password',
+      })
+      .expect(400)
+
+    await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'duplicate@example.org',
+        password: 'replacement-password',
+      })
+      .expect(400)
+
+    assertAuthEmailEvent(fetchCalls[1], {
+      name: 'ValidationEmailRequested',
+      userId: firstRegistration.body.id,
+      email: 'duplicate@example.org',
+      purpose: 'emailVerification',
+      signup: registrationSignup,
+    })
+    const { token: verificationToken } = await requestActionToken({
+      userId: firstRegistration.body.id,
+      purpose: 'emailVerification',
+      signup: registrationSignup,
+    })
+    await request(app)
+      .post('/email/confirm')
+      .send({ token: verificationToken })
+      .expect(200)
+
+    await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'duplicate@example.org',
+        password: 'replacement-password',
+      })
+      .expect(200)
+  })
+
+  test('POST /register rejects duplicate verified emails', async () => {
+    const registration = await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.12')
+      .type('json')
+      .send({
+        email: 'verified-duplicate@example.org',
+        password: 'password123',
+        signup: registrationSignup,
+      })
+      .expect(201)
+
+    await prisma.user.update({
+      where: { id: registration.body.id },
+      data: { emailVerified: true },
+    })
+
+    const duplicateRes = await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.13')
+      .type('json')
+      .send({
+        email: '  VERIFIED-DUPLICATE@example.org  ',
         password: 'another-password',
+        signup: registrationSignup,
       })
       .expect(409)
 
@@ -175,7 +383,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(fetchCalls.length, 1)
   })
 
-  test('POST /register handles concurrent duplicate registrations', async () => {
+  test('POST /register merges concurrent unverified registrations', async () => {
     const responses = await Promise.all([
       request(app)
         .post('/register')
@@ -184,6 +392,7 @@ describe('Auth Service Integration Tests', () => {
         .send({
           email: 'race@example.org',
           password: 'password123',
+          signup: registrationSignup,
         }),
       request(app)
         .post('/register')
@@ -192,11 +401,13 @@ describe('Auth Service Integration Tests', () => {
         .send({
           email: 'race@example.org',
           password: 'password456',
+          signup: registrationSignup,
         }),
     ])
 
     const statuses = responses.map(response => response.status).sort()
-    assert.deepStrictEqual(statuses, [201, 409])
+    assert.deepStrictEqual(statuses, [201, 201])
+    assert.strictEqual(responses[0].body.id, responses[1].body.id)
 
     const users = await prisma.user.findMany({
       where: { email: 'race@example.org' },
@@ -204,7 +415,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(users.length, 1)
   })
 
-  test('POST /register validates email and password', async () => {
+  test('POST /register validates email, password, and signup context', async () => {
     const invalidEmailRes = await request(app)
       .post('/register')
       .set('X-Forwarded-For', '203.0.113.30')
@@ -212,6 +423,7 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: 'not-an-email',
         password: 'password123',
+        signup: registrationSignup,
       })
       .expect(400)
 
@@ -224,10 +436,23 @@ describe('Auth Service Integration Tests', () => {
       .send({
         email: 'short-password@example.org',
         password: 'short',
+        signup: registrationSignup,
       })
       .expect(400)
 
     assert.strictEqual(shortPasswordRes.body.errors[0].code, 'BadRequest')
+
+    const missingSignupRes = await request(app)
+      .post('/register')
+      .set('X-Forwarded-For', '203.0.113.32')
+      .type('json')
+      .send({
+        email: 'missing-signup@example.org',
+        password: 'password123',
+      })
+      .expect(400)
+
+    assert.strictEqual(missingSignupRes.body.errors[0].code, 'BadRequest')
     assert.strictEqual(fetchCalls.length, 0)
   })
 
@@ -239,7 +464,7 @@ describe('Auth Service Integration Tests', () => {
         id: userId,
         email: 'test@example.org',
         passwordHash,
-        emailVerified: false,
+        emailVerified: true,
         status: UserStatus.Active,
       },
     })
@@ -252,7 +477,7 @@ describe('Auth Service Integration Tests', () => {
         client_id: 'komunitin-app',
         username: 'test@example.org',
         password: 'password123',
-        scope: 'email social:read offline_access',
+        scope: 'email offline_access social:read social:write accounting:read accounting:write notifications:read notifications:write',
       })
       .expect(200)
 
@@ -260,11 +485,13 @@ describe('Auth Service Integration Tests', () => {
     assert.ok(res.body.refresh_token)
     assert.strictEqual(res.body.token_type, 'Bearer')
 
-    const decoded = decodeJwt(res.body.access_token) as any
-    assert.strictEqual(decoded.sub, userId)
+    const decoded = assertAccessToken(res.body.access_token, {
+      subject: userId,
+      clientId: 'komunitin-app',
+      scope: 'email offline_access social:read social:write accounting:read accounting:write notifications:read notifications:write',
+    })
     assert.strictEqual(decoded.email, 'test@example.org')
-    assert.strictEqual(decoded.email_verified, false)
-    assert.strictEqual(decoded.scope, 'email social:read offline_access')
+    assert.strictEqual(decoded.email_verified, true)
   })
 
   test('POST /token grants superadmin only to ADMIN_EMAIL', async () => {
@@ -418,10 +645,11 @@ describe('Auth Service Integration Tests', () => {
     assert.ok(refreshRes.body.refresh_token)
     assert.strictEqual(refreshRes.body.scope, 'social:read')
 
-    const decoded = decodeJwt(refreshRes.body.access_token) as any
-    assert.strictEqual(decoded.sub, userId)
-    assert.strictEqual(decoded.aud, 'app')
-    assert.strictEqual(decoded.scope, 'social:read')
+    assertAccessToken(refreshRes.body.access_token, {
+      subject: userId,
+      clientId: 'komunitin-app',
+      scope: 'social:read',
+    })
   })
 
   test('POST /token with refresh_token rejects disabled users', async () => {
@@ -487,8 +715,11 @@ describe('Auth Service Integration Tests', () => {
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'email-action@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'email-action@example.org',
+    })
     const { token: actionToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
 
     const res = await request(app)
@@ -513,17 +744,89 @@ describe('Auth Service Integration Tests', () => {
         grant_type: 'client_credentials',
         client_id: 'komunitin-notifications',
         client_secret: 'replace-this-with-a-secure-password',
-        scope: 'social:read accounting:read',
+        scope: 'email social:read accounting:read',
       })
       .expect(200)
 
     assert.ok(res.body.access_token)
     assert.strictEqual(res.body.token_type, 'Bearer')
-    assert.strictEqual(res.body.scope, 'social:read accounting:read')
+    assert.strictEqual(res.body.scope, 'email social:read accounting:read')
 
-    const decoded = decodeJwt(res.body.access_token) as any
-    assert.strictEqual(decoded.client_id, 'komunitin-notifications')
-    assert.strictEqual(decoded.scope, 'social:read accounting:read')
+    assertAccessToken(res.body.access_token, {
+      subject: 'komunitin-notifications',
+      clientId: 'komunitin-notifications',
+      scope: 'email social:read accounting:read',
+    })
+  })
+
+  test('POST /token issues Social client credentials with its exact scope allowlist', async () => {
+    const res = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'client_credentials',
+        client_id: 'komunitin-social',
+        client_secret: 'komunitin-social-secret',
+        scope: 'accounting:read accounting:write notifications:write',
+      })
+      .expect(200)
+
+    assertAccessToken(res.body.access_token, {
+      subject: 'komunitin-social',
+      clientId: 'komunitin-social',
+      scope: 'accounting:read accounting:write notifications:write',
+    })
+  })
+
+  test('POST /token issues exact event-publisher client credentials', async () => {
+    const publishers = [
+      ['komunitin-auth', 'komunitin-auth-secret'],
+      ['komunitin-accounting', 'komunitin-accounting-secret'],
+    ] as const
+
+    for (const [clientId, clientSecret] of publishers) {
+      const res = await request(app)
+        .post('/token')
+        .type('form')
+        .send({
+          grant_type: 'client_credentials',
+          client_id: clientId,
+          client_secret: clientSecret,
+          scope: 'notifications:write',
+        })
+        .expect(200)
+
+      assertAccessToken(res.body.access_token, {
+        subject: clientId,
+        clientId,
+        scope: 'notifications:write',
+      })
+
+      const rejected = await request(app)
+        .post('/token')
+        .type('form')
+        .send({
+          grant_type: 'client_credentials',
+          client_id: clientId,
+          client_secret: clientSecret,
+          scope: 'notifications:read',
+        })
+        .expect(400)
+      assert.strictEqual(rejected.body.error, 'invalid_scope')
+    }
+  })
+
+  test('notification publication refreshes its service token once after 401', async () => {
+    eventStatuses.push(401, 201)
+
+    await NotificationsService.sendPasswordResetEmail(
+      '00000000-0000-4000-8000-000000000001',
+      'retry@example.org',
+    )
+
+    assert.strictEqual(fetchCalls.length, 2)
+    assert.ok(serviceTokenRequests.length >= 1)
+    assert.strictEqual(serviceTokenRequests.at(-1)!.get('scope'), 'notifications:write')
   })
 
   test('POST /token with Client Credentials rejects scopes outside the client allowlist', async () => {
@@ -534,7 +837,7 @@ describe('Auth Service Integration Tests', () => {
         grant_type: 'client_credentials',
         client_id: 'komunitin-notifications',
         client_secret: 'replace-this-with-a-secure-password',
-        scope: 'social:write',
+        scope: 'notifications:write',
       })
       .expect(400)
 
@@ -586,7 +889,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.errors[0].code, 'Unauthorized')
   })
 
-  test('POST /action-token creates purpose-bound unsubscribe tokens', async () => {
+  test('POST /action-token creates long-lived independent unsubscribe tokens and cleans expired records', async () => {
     const userId = '25252525-2525-4525-8525-252525252525'
     const passwordHash = await hashPassword('password123')
     await prisma.user.create({
@@ -599,19 +902,37 @@ describe('Auth Service Integration Tests', () => {
       },
     })
 
-    const actionToken = await requestActionToken({ userId, purpose: 'unsubscribe' })
+    const requestedAt = Date.now()
+    const firstActionToken = await requestActionToken({ userId, purpose: 'unsubscribe' })
 
-    assert.ok(actionToken.token)
-    assert.strictEqual(actionToken.email, 'unsubscribe-token@example.org')
+    assert.ok(firstActionToken.token)
+    assert.strictEqual(firstActionToken.email, 'unsubscribe-token@example.org')
 
-    const storedToken = await prisma.userActionToken.findFirst({
-      where: {
-        userId,
-        purpose: 'unsubscribe',
-        usedAt: null,
-      },
+    const firstStoredToken = await prisma.userActionToken.findUnique({
+      where: { tokenHash: hashToken(firstActionToken.token) },
     })
-    assert.ok(storedToken)
+    assert.ok(firstStoredToken)
+    assert.ok(firstStoredToken.expiresAt.getTime() >= requestedAt + 365 * 24 * 60 * 60 * 1000)
+    assert.ok(firstStoredToken.expiresAt.getTime() <= Date.now() + 365 * 24 * 60 * 60 * 1000)
+
+    const secondActionToken = await requestActionToken({ userId, purpose: 'unsubscribe' })
+    assert.notStrictEqual(secondActionToken.token, firstActionToken.token)
+    assert.strictEqual(await prisma.userActionToken.count({
+      where: { userId, purpose: 'unsubscribe', usedAt: null },
+    }), 2)
+
+    await prisma.userActionToken.update({
+      where: { tokenHash: hashToken(firstActionToken.token) },
+      data: { expiresAt: new Date(0) },
+    })
+    await requestActionToken({ userId, purpose: 'unsubscribe' })
+
+    assert.strictEqual(await prisma.userActionToken.findUnique({
+      where: { tokenHash: hashToken(firstActionToken.token) },
+    }), null)
+    assert.strictEqual(await prisma.userActionToken.count({
+      where: { userId, purpose: 'unsubscribe', usedAt: null },
+    }), 2)
   })
 
   test('POST /action-token rejects invalid JSON bodies', async () => {
@@ -676,7 +997,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.errors[0].code, 'BadRequest')
   })
 
-  test('POST /redeem-action-token consumes unsubscribe tokens for the social client', async () => {
+  test('POST /redeem-action-token resolves unsubscribe tokens repeatedly until expiry', async () => {
     const userId = '31313131-3131-4131-8131-313131313131'
     const passwordHash = await hashPassword('password123')
     await prisma.user.create({
@@ -713,15 +1034,41 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.email, 'redeem-unsubscribe@example.org')
     assert.strictEqual(res.body.purpose, 'unsubscribe')
 
-    // Single-use: a second redemption of the same token fails.
     const secondRes = await request(app)
       .post('/redeem-action-token')
       .set('Authorization', `Bearer ${socialTokenRes.body.access_token}`)
       .type('json')
       .send({ token, purpose: 'unsubscribe' })
+      .expect(200)
+
+    assert.deepStrictEqual(secondRes.body, res.body)
+    const storedToken = await prisma.userActionToken.findUnique({
+      where: { tokenHash: hashToken(token) },
+    })
+    assert.ok(storedToken)
+    assert.strictEqual(storedToken.usedAt, null)
+
+    const { token: passwordResetToken } = await requestActionToken({
+      userId,
+      purpose: 'passwordReset',
+    })
+    await request(app)
+      .post('/redeem-action-token')
+      .set('Authorization', `Bearer ${socialTokenRes.body.access_token}`)
+      .type('json')
+      .send({ token: passwordResetToken, purpose: 'unsubscribe' })
       .expect(400)
 
-    assert.strictEqual(secondRes.body.errors[0].code, 'BadRequest')
+    await prisma.userActionToken.update({
+      where: { tokenHash: hashToken(token) },
+      data: { expiresAt: new Date(0) },
+    })
+    await request(app)
+      .post('/redeem-action-token')
+      .set('Authorization', `Bearer ${socialTokenRes.body.access_token}`)
+      .type('json')
+      .send({ token, purpose: 'unsubscribe' })
+      .expect(400)
   })
 
   test('POST /redeem-action-token rejects non-social clients', async () => {
@@ -873,11 +1220,12 @@ describe('Auth Service Integration Tests', () => {
 
     assert.ok(exchangeRes.body.access_token)
     
-    const decoded = decodeJwt(exchangeRes.body.access_token) as any
-    assert.strictEqual(decoded.sub, userId)
+    const decoded = assertAccessToken(exchangeRes.body.access_token, {
+      subject: userId,
+      clientId: 'komunitin-social',
+      scope: 'accounting:read',
+    })
     assert.strictEqual(decoded.email, undefined)
-    assert.strictEqual(decoded.client_id, 'komunitin-social')
-    assert.strictEqual(decoded.scope, 'accounting:read')
   })
 
   test('POST /token with Token Exchange does not escalate scopes', async () => {
@@ -1000,6 +1348,7 @@ describe('Auth Service Integration Tests', () => {
         id: userId,
         email: 'reset-pwd@example.org',
         passwordHash,
+        emailVerified: true,
         status: UserStatus.Active,
       },
     })
@@ -1012,15 +1361,12 @@ describe('Auth Service Integration Tests', () => {
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
-    const resetCall = fetchCalls[0]
-    assert.strictEqual(resetCall.body.data.attributes.name, 'PasswordResetRequested')
-    assert.strictEqual(resetCall.body.data.attributes.source, 'auth')
-    assert.strictEqual(resetCall.body.data.relationships.user.data.id, userId)
-    assert.deepStrictEqual(resetCall.body.data.attributes.data, { user: userId, email: 'reset-pwd@example.org' })
-    assert.strictEqual(resetCall.body.data.attributes.data.token, undefined)
-    
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'reset-pwd@example.org',
+    })
     const { token } = await requestActionToken({ userId, purpose: 'passwordReset' })
-    assert.ok(token)
 
     const loginRes = await request(app)
       .post('/token')
@@ -1089,6 +1435,7 @@ describe('Auth Service Integration Tests', () => {
         id: userId,
         email: 'stale-reset@example.org',
         passwordHash,
+        emailVerified: true,
         status: UserStatus.Active,
       },
     })
@@ -1099,10 +1446,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'stale-reset@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'stale-reset@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'stale-reset@example.org',
+    })
     const { token: firstToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
-    assert.ok(firstToken)
 
     await request(app)
       .post('/reset-password')
@@ -1110,10 +1459,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'stale-reset@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[1].body.data.attributes.data, { user: userId, email: 'stale-reset@example.org' })
-    assert.strictEqual(fetchCalls[1].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[1], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'stale-reset@example.org',
+    })
     const { token: secondToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
-    assert.ok(secondToken)
     assert.notStrictEqual(firstToken, secondToken)
 
     const staleResetRes = await request(app)
@@ -1188,12 +1539,12 @@ describe('Auth Service Integration Tests', () => {
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
-    const emailCall = fetchCalls[0]
-    assert.strictEqual(emailCall.body.data.attributes.name, 'ValidationEmailRequested')
-    assert.strictEqual(emailCall.body.data.attributes.source, 'auth')
-    assert.strictEqual(emailCall.body.data.relationships.user.data.id, userId)
-    assert.deepStrictEqual(emailCall.body.data.attributes.data, { user: userId, email: 'new-email@example.org' })
-    assert.strictEqual(emailCall.body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'new-email@example.org',
+      purpose: 'emailChange',
+    })
     
     const actionToken = await requestActionToken({ userId, purpose: 'emailChange', email: '  New-Email@Example.ORG  ' })
     assert.strictEqual(actionToken.email, 'new-email@example.org')
@@ -1202,9 +1553,16 @@ describe('Auth Service Integration Tests', () => {
 
     // 3. Confirm Change
     await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token })
       .expect(200)
+
+    const reusedConfirmRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(reusedConfirmRes.body.errors[0].detail, 'Invalid or expired token')
 
     for (const refreshToken of [tokenRes.body.refresh_token, secondTokenRes.body.refresh_token]) {
       const refreshRes = await request(app)
@@ -1270,8 +1628,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'first-change@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'first-change@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'first-change@example.org',
+      purpose: 'emailChange',
+    })
     const firstActionToken = await requestActionToken({ userId, purpose: 'emailChange', email: 'first-change@example.org' })
     assert.strictEqual(firstActionToken.email, 'first-change@example.org')
     const firstToken = firstActionToken.token
@@ -1283,8 +1645,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'second-change@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[1].body.data.attributes.data, { user: userId, email: 'second-change@example.org' })
-    assert.strictEqual(fetchCalls[1].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[1], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'second-change@example.org',
+      purpose: 'emailChange',
+    })
     const secondActionToken = await requestActionToken({ userId, purpose: 'emailChange', email: 'second-change@example.org' })
     assert.strictEqual(secondActionToken.email, 'second-change@example.org')
     const secondToken = secondActionToken.token
@@ -1292,14 +1658,14 @@ describe('Auth Service Integration Tests', () => {
     assert.notStrictEqual(firstToken, secondToken)
 
     const staleConfirmRes = await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token: firstToken })
       .expect(400)
 
     assert.strictEqual(staleConfirmRes.body.errors[0].detail, 'Invalid or expired token')
 
     await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token: secondToken })
       .expect(200)
 
@@ -1311,6 +1677,11 @@ describe('Auth Service Integration Tests', () => {
 
   test('Resend Validation Flow', async () => {
     const userId = '55555555-5555-4555-8555-555555555555'
+    const signup = {
+      type: 'group',
+      name: 'Resent Group Admin',
+      language: 'ca',
+    }
     await prisma.user.create({
       data: {
         id: userId,
@@ -1320,6 +1691,7 @@ describe('Auth Service Integration Tests', () => {
         status: UserStatus.Active,
       },
     })
+    await requestActionToken({ userId, purpose: 'emailVerification', signup })
 
     // Request resend validation
     await request(app)
@@ -1329,19 +1701,24 @@ describe('Auth Service Integration Tests', () => {
       .expect(200)
 
     assert.strictEqual(fetchCalls.length, 1)
-    const emailCall = fetchCalls[0]
-    assert.strictEqual(emailCall.body.data.attributes.name, 'ValidationEmailRequested')
-    assert.strictEqual(emailCall.body.data.attributes.source, 'auth')
-    assert.strictEqual(emailCall.body.data.relationships.user.data.id, userId)
-    assert.deepStrictEqual(emailCall.body.data.attributes.data, { user: userId, email: 'unverified@example.org' })
-    assert.strictEqual(emailCall.body.data.attributes.data.token, undefined)
-    const { token } = await requestActionToken({ userId, purpose: 'emailVerification' })
-    assert.ok(token)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'unverified@example.org',
+      purpose: 'emailVerification',
+      signup,
+    })
   })
 
-  test('Initial email verification can be confirmed for the current email', async () => {
+  test('Initial email verification is idempotent only while its token is valid', async () => {
     const userId = '66666666-6666-4666-8666-666666666666'
     const passwordHash = await hashPassword('password123')
+    const signup = {
+      type: 'member',
+      name: 'Verified Member',
+      language: 'en',
+      groupCode: 'TEST',
+    }
     await prisma.user.create({
       data: {
         id: userId,
@@ -1352,7 +1729,7 @@ describe('Auth Service Integration Tests', () => {
       },
     })
 
-    const loginRes = await request(app)
+    await request(app)
       .post('/token')
       .type('form')
       .send({
@@ -1362,7 +1739,7 @@ describe('Auth Service Integration Tests', () => {
         password: 'password123',
         scope: 'offline_access social:read',
       })
-      .expect(200)
+      .expect(400)
 
     await request(app)
       .post('/resend-validation')
@@ -1370,30 +1747,113 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'verify-me@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'verify-me@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
-    const { token } = await requestActionToken({ userId, purpose: 'emailVerification' })
-    assert.ok(token)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'verify-me@example.org',
+      purpose: 'emailVerification',
+    })
+    const { token } = await requestActionToken({ userId, purpose: 'emailVerification', signup })
 
-    await request(app)
-      .post('/change-email/confirm')
+    const confirmRes = await request(app)
+      .post('/email/confirm')
       .send({ token })
       .expect(200)
+
+    assert.deepStrictEqual(confirmRes.body, {
+      id: userId,
+      email: 'verify-me@example.org',
+      emailVerified: true,
+      signup,
+    })
 
     const user = await prisma.user.findUnique({ where: { id: userId } })
     assert.ok(user)
     assert.strictEqual(user.email, 'verify-me@example.org')
     assert.strictEqual(user.emailVerified, true)
 
+    const reusedConfirmRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(200)
+
+    assert.deepStrictEqual(reusedConfirmRes.body, confirmRes.body)
+
     await request(app)
       .post('/token')
       .type('form')
       .send({
-        grant_type: 'refresh_token',
+        grant_type: 'password',
         client_id: 'komunitin-app',
-        refresh_token: loginRes.body.refresh_token,
+        username: 'verify-me@example.org',
+        password: 'password123',
       })
       .expect(200)
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { email: 'changed-after-verification@example.org' },
+    })
+
+    const staleEmailRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(staleEmailRes.body.errors[0].detail, 'Invalid or expired token')
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { email: 'verify-me@example.org', emailVerified: false },
+    })
+
+    const unverifiedUserRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(unverifiedUserRes.body.errors[0].detail, 'Invalid or expired token')
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified: true },
+    })
+    await prisma.userActionToken.updateMany({
+      where: { userId, purpose: 'emailVerification' },
+      data: { expiresAt: new Date(0) },
+    })
+
+    const expiredConfirmRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(expiredConfirmRes.body.errors[0].detail, 'Invalid or expired token')
+  })
+
+  test('Expired unused email verification tokens remain invalid', async () => {
+    const userId = '68686868-6868-4868-8868-686868686868'
+    await prisma.user.create({
+      data: {
+        id: userId,
+        email: 'expired-verification@example.org',
+        passwordHash: 'dummy',
+        emailVerified: false,
+        status: UserStatus.Active,
+      },
+    })
+    const { token } = await requestActionToken({ userId, purpose: 'emailVerification' })
+    await prisma.userActionToken.updateMany({
+      where: { userId, purpose: 'emailVerification' },
+      data: { expiresAt: new Date(0) },
+    })
+
+    const confirmRes = await request(app)
+      .post('/email/confirm')
+      .send({ token })
+      .expect(400)
+
+    assert.strictEqual(confirmRes.body.errors[0].detail, 'Invalid or expired token')
   })
 
   test('Password reset and email action tokens do not invalidate each other', async () => {
@@ -1426,8 +1886,12 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'mixed-actions-new@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[0].body.data.attributes.data, { user: userId, email: 'mixed-actions-new@example.org' })
-    assert.strictEqual(fetchCalls[0].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[0], {
+      name: 'ValidationEmailRequested',
+      userId,
+      email: 'mixed-actions-new@example.org',
+      purpose: 'emailChange',
+    })
     const emailActionToken = await requestActionToken({ userId, purpose: 'emailChange', email: 'mixed-actions-new@example.org' })
     assert.strictEqual(emailActionToken.email, 'mixed-actions-new@example.org')
     const emailToken = emailActionToken.token
@@ -1439,13 +1903,16 @@ describe('Auth Service Integration Tests', () => {
       .send({ email: 'mixed-actions@example.org' })
       .expect(200)
 
-    assert.deepStrictEqual(fetchCalls[1].body.data.attributes.data, { user: userId, email: 'mixed-actions@example.org' })
-    assert.strictEqual(fetchCalls[1].body.data.attributes.data.token, undefined)
+    assertAuthEmailEvent(fetchCalls[1], {
+      name: 'PasswordResetRequested',
+      userId,
+      email: 'mixed-actions@example.org',
+    })
     const { token: passwordToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
     assert.ok(passwordToken)
 
     await request(app)
-      .post('/change-email/confirm')
+      .post('/email/confirm')
       .send({ token: emailToken })
       .expect(200)
 

@@ -12,17 +12,19 @@ import {
 import { badRequest } from '../utils/error'
 import prisma from '../utils/prisma'
 import { normalizedEmailSchema } from '../utils/email'
+import { signupContextSchema } from '../users/signup'
 
 const router = Router()
 
 const actionTokenPayloadSchema = z.discriminatedUnion('purpose', [
   z.object({
-    purpose: z.enum([
-      userActionTokenPurpose.passwordReset,
-      userActionTokenPurpose.emailVerification,
-      userActionTokenPurpose.unsubscribe,
-    ]),
+    purpose: z.enum([userActionTokenPurpose.passwordReset, userActionTokenPurpose.unsubscribe]),
     userId: z.uuid(),
+  }),
+  z.object({
+    purpose: z.literal(userActionTokenPurpose.emailVerification),
+    userId: z.uuid(),
+    signup: signupContextSchema.optional(),
   }),
   z.object({
     purpose: z.literal(userActionTokenPurpose.emailChange),
@@ -54,7 +56,7 @@ router.post('/action-token', express.json(), notificationsServiceAuth, async (re
       email = parsed.data.email
       token = await createEmailChangeToken(user.id, email)
     } else if (purpose === userActionTokenPurpose.emailVerification) {
-      token = await createEmailVerificationToken(user.id, user.email)
+      token = await createEmailVerificationToken(user.id, user.email, parsed.data.signup)
     } else {
       token = await createUnsubscribeToken(user.id)
     }

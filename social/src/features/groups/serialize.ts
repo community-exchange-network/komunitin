@@ -1,15 +1,12 @@
 import TsJapi from 'ts-japi'
+import { config } from '../../config'
 import { getAccountingCurrencyUrl } from '../../clients/accounting'
-import { externalResourceSerializer, getResourceLink, SerializerOptions } from '../../server/jsonapi-serialize'
+import { externalResourceSerializer, getResourceLink, SerializerOptions, ToManyRelator } from '../../server/jsonapi-serialize'
 import type { GroupSettings } from './schema'
-import type { Group } from './types'
+import type { Group, SerializableGroup } from './types'
 
 const { Linker, Relator, Serializer } = TsJapi
 const ExternalCurrencySerializer = externalResourceSerializer<{ id: string; href: string }>('currencies')
-const GroupAdminSerializer = new Serializer<{ id: string }>('users', {
-  version: null,
-  projection: {},
-})
 
 type OutputGroupSettings = GroupSettings & { 
   groupCode: string
@@ -34,7 +31,7 @@ const GroupSettingsSerializer = new Serializer<OutputGroupSettings>('group-setti
   
 })
 
-export const GroupSerializer = new Serializer<Group>('groups', {
+export const GroupSerializer = new Serializer<SerializableGroup>('groups', {
   version: null,
   projection: {
     code: 1,
@@ -46,11 +43,12 @@ export const GroupSerializer = new Serializer<Group>('groups', {
     address: 1,
     contacts: 1,
     location: 1,
+    meta: 1,
     created: 1,
     updated: 1,
   },
   relators: {
-    settings: new Relator<Group, OutputGroupSettings>(async (group) => {
+    settings: new Relator<SerializableGroup, OutputGroupSettings>(async (group) => {
       if (!group.settings) {
         return undefined
       }
@@ -61,7 +59,7 @@ export const GroupSerializer = new Serializer<Group>('groups', {
         ...group.settings,
       }
     }, GroupSettingsSerializer, { relatedName: 'settings' }),
-    currency: new Relator<Group, { id: string; href: string }>(async (group) => {
+    currency: new Relator<SerializableGroup, { id: string; href: string }>(async (group) => {
       if (!group.currencyId) {
         return undefined
       }
@@ -71,22 +69,30 @@ export const GroupSerializer = new Serializer<Group>('groups', {
         href: getAccountingCurrencyUrl(group.code),
       }
     }, ExternalCurrencySerializer, { relatedName: 'currency' }),
-    admins: new Relator<Group, { id: string }>(async (group) => {
-      return group.admins
-    }, GroupAdminSerializer, { relatedName: 'admins' }),
+    admins: new ToManyRelator<SerializableGroup>(
+      'admins',
+      (group) => `${config.API_BASE_URL}/${group.code}/admins`,
+      (group) => group.relationshipMeta.adminCount,
+    ),
+    members: new ToManyRelator<SerializableGroup>(
+      'members',
+      (group) => group.relationshipMeta.canListMembers
+        ? `${config.API_BASE_URL}/${group.code}/members`
+        : undefined,
+      (group) => group.relationshipMeta.memberCount,
+    ),
   },
   linkers: {
     resource: new Linker((group) => getResourceLink("groups", group.code, group.id)),
   }
 })
 
-
-export const serializeGroup = async (group: Group, options?: SerializerOptions<Group>) => {
+export const serializeGroup = async (group: SerializableGroup, options?: SerializerOptions<SerializableGroup>) => {
   return GroupSerializer.serialize(group, options)
 }
 
 
-export const serializeGroups = async (groups: Group[], options?: SerializerOptions<Group>) => {
+export const serializeGroups = async (groups: SerializableGroup[], options?: SerializerOptions<SerializableGroup>) => {
   return GroupSerializer.serialize(groups, options)
 }
 

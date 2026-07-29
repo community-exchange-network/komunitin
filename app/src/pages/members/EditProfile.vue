@@ -12,7 +12,7 @@
       <profile-form 
         v-if="member && user" 
         :member="member"
-        :contacts="member.contacts"
+        :contacts="member.attributes.contacts"
         :user="user"
         :change-credentials="true"
         @update:member="saveMember"
@@ -62,19 +62,16 @@ const saveMember = async (resource: DeepPartial<Member>) => {
   await changes.value?.save(fn)
 }
 
-const saveContacts = async (resources: DeepPartial<Contact>[]) => {
+const saveContacts = async (contacts: Contact[]) => {
   if (!member.value) return
   const fn = () => store.dispatch("members/update", {
     id: member.value?.id,
     group: actualCode.value,
     resource: {
-      relationships: {
-        contacts: {
-          data: resources.map(r => ({id: r.id, type: "contacts"}))
-        }
+      attributes: {
+        contacts
       }
-    },
-    included: resources
+    }
   })
   await changes.value?.save(fn)
 }

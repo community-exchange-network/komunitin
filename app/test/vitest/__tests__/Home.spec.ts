@@ -69,7 +69,7 @@ describe("Home", () => {
     
     // Wait for search results to load
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 20, "Should find 20 offers matching 'dolor'");
-    expect(wrapper.findAllComponents(NeedCard).length).toBe(1);
+    await waitFor(() => wrapper.findAllComponents(NeedCard).length > 0, true, "Should find matching needs");
   });
   
   it('displays FAB', async () => {

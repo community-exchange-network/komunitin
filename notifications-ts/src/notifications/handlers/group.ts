@@ -14,9 +14,9 @@ export const handleGroupEvent = async (event: GroupEvent): Promise<void> => {
   const group = groupResponse.data;
 
   // Fetch admin users with settings in parallel
-  const adminUserIds = group.relationships.admins.data.map(admin => admin.id);
+  const admins = await client.getGroupAdmins(event.code);
   const adminUsers = await Promise.all(
-    adminUserIds.map(id => client.getUserWithSettings(id))
+    admins.map(admin => client.getUserWithSettings(admin.id))
   );
 
   const enrichedEvent: EnrichedGroupEvent = {

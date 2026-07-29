@@ -1,7 +1,15 @@
-import { ClientMetadata } from 'oidc-provider'
-import { config } from '../config'
+import type { ClientMetadata } from 'oidc-provider'
+import { CLIENT_ID, config } from '../config'
 
 export const SUPERADMIN_SCOPE = 'superadmin'
+
+export const clientIds = {
+  app: 'komunitin-app',
+  notifications: 'komunitin-notifications',
+  social: 'komunitin-social',
+  auth: CLIENT_ID,
+  accounting: 'komunitin-accounting',
+} as const
 
 export const apiScopes: string[] = [
   'email',
@@ -10,6 +18,8 @@ export const apiScopes: string[] = [
   'social:write',
   'accounting:read',
   'accounting:write',
+  'notifications:read',
+  'notifications:write',
   SUPERADMIN_SCOPE,
 ]
 
@@ -22,7 +32,10 @@ const notificationsScopes = [
 const socialScopes = [
   'accounting:read',
   'accounting:write',
+  'notifications:write',
 ] as const
+
+const publisherScopes = ['notifications:write'] as const
 
 const scopeString = (scopes: readonly string[]) => scopes.join(' ')
 
@@ -30,7 +43,7 @@ const scopeString = (scopes: readonly string[]) => scopes.join(' ')
 // Empty arrays keep authorization-code flows unavailable.
 export const clients: ClientMetadata[] = [
   {
-    client_id: 'komunitin-app',
+    client_id: clientIds.app,
     token_endpoint_auth_method: 'none',
     grant_types: ['password', 'refresh_token'],
     redirect_uris: [],
@@ -38,7 +51,7 @@ export const clients: ClientMetadata[] = [
     scope: scopeString(apiScopes),
   },
   {
-    client_id: 'komunitin-notifications',
+    client_id: clientIds.notifications,
     client_secret: config.NOTIFICATIONS_CLIENT_SECRET,
     token_endpoint_auth_method: 'client_secret_post',
     grant_types: ['client_credentials', 'urn:ietf:params:oauth:grant-type:token-exchange'],
@@ -47,12 +60,30 @@ export const clients: ClientMetadata[] = [
     scope: scopeString(notificationsScopes),
   },
   {
-    client_id: 'komunitin-social',
+    client_id: clientIds.social,
     client_secret: config.SOCIAL_CLIENT_SECRET,
     token_endpoint_auth_method: 'client_secret_post',
     grant_types: ['client_credentials', 'urn:ietf:params:oauth:grant-type:token-exchange'],
     redirect_uris: [],
     response_types: [],
     scope: scopeString(socialScopes),
+  },
+  {
+    client_id: clientIds.auth,
+    client_secret: config.AUTH_CLIENT_SECRET,
+    token_endpoint_auth_method: 'client_secret_post',
+    grant_types: ['client_credentials'],
+    redirect_uris: [],
+    response_types: [],
+    scope: scopeString(publisherScopes),
+  },
+  {
+    client_id: clientIds.accounting,
+    client_secret: config.ACCOUNTING_CLIENT_SECRET,
+    token_endpoint_auth_method: 'client_secret_post',
+    grant_types: ['client_credentials'],
+    redirect_uris: [],
+    response_types: [],
+    scope: scopeString(publisherScopes),
   },
 ]

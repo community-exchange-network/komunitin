@@ -24,8 +24,9 @@ test('getCollectionParams parses pagination, sorting and filters generically', (
 			size: 1,
 		},
 		filters: {
-			access: 'private',
+			access: ['private'],
 		},
+		comparisons: {},
 		sort: [{
 			field: 'name',
 			order: 'asc',
@@ -46,7 +47,7 @@ test('getCollectionParams supports sparse search filters', () => {
 	)
 
 	assert.deepStrictEqual(params.filters, {
-		search: 'organic',
+		search: ['organic'],
 	})
 	assert.deepStrictEqual(params.pagination, {
 		cursor: 0,
@@ -60,8 +61,13 @@ test('getCollectionParams supports sparse search filters', () => {
 })
 
 test('getCollectionParams supports comma separated filter values', () => {
+	const query = new URLSearchParams({
+		'filter[code]': 'code-one,code-two',
+	}).toString()
+	assert.ok(query.includes('code-one%2Ccode-two'))
+
 	const params = getCollectionParams(
-		createRequest('filter[code]=code-one,code-two'),
+		createRequest(query),
 		{
 			filter: ['code', 'name', 'status', 'access', 'search'],
 			sort: ['created', 'updated', 'name', 'code', 'distance'],
@@ -71,6 +77,76 @@ test('getCollectionParams supports comma separated filter values', () => {
 	assert.deepStrictEqual(params.filters, {
 		code: ['code-one', 'code-two'],
 	})
+})
+
+test('getCollectionParams parses allowlisted comparisons alongside equality filters', () => {
+	const params = getCollectionParams(
+		createRequest(
+			'filter[status]=active&filter[created][gt]=2026-01-01T00:00:00Z&filter[created][lte]=2026-01-31T00:00:00%2B01:00'
+		),
+		{
+			filter: ['status'],
+			compare: ['created'],
+			sort: ['created'],
+		}
+	)
+
+	assert.deepStrictEqual(params.filters, { status: ['active'] })
+	assert.deepStrictEqual(params.comparisons, {
+		created: {
+			gt: new Date('2026-01-01T00:00:00Z'),
+			lte: new Date('2026-01-31T00:00:00+01:00'),
+		},
+	})
+})
+
+test('getCollectionParams classifies fields supporting equality and comparison filters by shape', () => {
+	const options = {
+		filter: ['created'],
+		compare: ['created'],
+		sort: ['created'],
+	}
+	const equalityParams = getCollectionParams(
+		createRequest('filter[created]=2025-01-01'),
+		options,
+	)
+	const comparisonParams = getCollectionParams(
+		createRequest('filter[created][lt]=2026-01-01T00:00:00Z'),
+		options,
+	)
+
+	assert.deepStrictEqual(equalityParams.filters, {
+		created: ['2025-01-01'],
+	})
+	assert.deepStrictEqual(equalityParams.comparisons, {})
+	assert.deepStrictEqual(comparisonParams.filters, {})
+	assert.deepStrictEqual(comparisonParams.comparisons, {
+		created: {
+			lt: new Date('2026-01-01T00:00:00Z'),
+		},
+	})
+})
+
+test('getCollectionParams rejects invalid comparison shapes and values', () => {
+	const options = {
+		filter: ['status'],
+		compare: ['created'],
+		sort: ['created'],
+	}
+	const invalidQueries = [
+		'filter[updated][gt]=2026-01-01T00:00:00Z',
+		'filter[created][eq]=2026-01-01T00:00:00Z',
+		'filter[created][gt]=not-a-date',
+		'filter[created][gt]=2026-01-01T00:00:00Z,2026-01-02T00:00:00Z',
+		'filter[created]=2026-01-01T00:00:00Z&filter[created][gt]=2026-01-02T00:00:00Z',
+	]
+
+	for (const query of invalidQueries) {
+		assert.throws(
+			() => getCollectionParams(createRequest(query), options),
+			/Invalid query parameters/,
+		)
+	}
 })
 
 test('getCollectionParams supports multiple search-related endpoint shapes', () => {
@@ -96,35 +172,46 @@ test('getCollectionParams supports multiple search-related endpoint shapes', () 
 		}
 	)
 
-	assert.deepStrictEqual(categoryParams.filters, { search: 'food' })
-	assert.deepStrictEqual(memberParams.filters, { status: 'pending' })
+	assert.deepStrictEqual(categoryParams.filters, { search: ['food'] })
+	assert.deepStrictEqual(memberParams.filters, { status: ['pending'] })
 	assert.deepStrictEqual(memberParams.sort, [{
 		field: 'name',
 		order: 'asc',
 		isDefault: false,
 	}])
-	assert.deepStrictEqual(postParams.filters, { type: 'offers' })
+	assert.deepStrictEqual(postParams.filters, { type: ['offers'] })
 })
 
 test('getCollectionParams parses include and near with distance sorting', () => {
+	const query = new URLSearchParams({
+		include: 'settings,currency',
+		sort: '-distance',
+		near: '41.4,2.1',
+	}).toString()
+	const request = createRequest(query)
+	assert.ok(query.includes('settings%2Ccurrency'))
+	assert.strictEqual(request.query.include, 'settings,currency')
+	assert.strictEqual(request.query.near, '41.4,2.1')
+
 	const params = getCollectionParams(
-		createRequest('include=settings&sort=-distance&near=41.4,2.1'),
+		request,
 		{
 			filter: ['code', 'name', 'status', 'access', 'search'],
 			sort: ['created', 'updated', 'name', 'code', 'distance'],
-			include: ['settings'],
+			include: ['settings', 'currency'],
+			near: true,
 		}
 	)
 
-	assert.deepStrictEqual(params.include, ['settings'])
+	assert.deepStrictEqual(params.include, ['settings', 'currency'])
 	assert.deepStrictEqual(params.sort, [{
 		field: 'distance',
 		order: 'desc',
 		isDefault: false,
 	}])
 	assert.deepStrictEqual(params.near, {
-		latitude: 41.4,
-		longitude: 2.1,
+		latitude: 2.1,
+		longitude: 41.4,
 	})
 })
 
@@ -135,9 +222,51 @@ test('getCollectionParams rejects distance sorting without near', () => {
 			{
 				filter: ['code', 'name', 'status', 'access', 'search'],
 				sort: ['created', 'updated', 'name', 'code', 'distance'],
+				near: true,
 			}
 		),
 		/Invalid query parameters/
+	)
+})
+
+test('getCollectionParams rejects near where the route does not support it', () => {
+	assert.throws(
+		() => getCollectionParams(
+			createRequest('near=2.1,41.4'),
+			{ sort: ['created'] }
+		),
+		/Invalid query parameters/
+	)
+})
+
+test('getCollectionParams validates longitude then latitude', () => {
+	const options = { sort: ['created', 'distance'], near: true }
+	assert.deepStrictEqual(
+		getCollectionParams(createRequest('near=120,45'), options).near,
+		{ longitude: 120, latitude: 45 },
+	)
+	assert.throws(
+		() => getCollectionParams(createRequest('near=181,45'), options),
+		/Invalid query parameters/,
+	)
+	assert.throws(
+		() => getCollectionParams(createRequest('near=120,91'), options),
+		/Invalid query parameters/,
+	)
+})
+
+test('request query objects reject unknown top-level and pagination keys', () => {
+	assert.throws(
+		() => getCollectionParams(createRequest('legacy=value'), { sort: ['created'] }),
+		/Invalid query parameters/,
+	)
+	assert.throws(
+		() => getCollectionParams(createRequest('page[number]=1'), { sort: ['created'] }),
+		/Invalid query parameters/,
+	)
+	assert.throws(
+		() => getResourceParams(createRequest('legacy=value'), {}),
+		/Invalid query parameters/,
 	)
 })
 

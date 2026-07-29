@@ -4,7 +4,7 @@ import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import { Scope } from '../src/server/context'
 import prisma from '../src/utils/prisma'
-import { auth } from './mocks/auth'
+import { auth, serviceAuth } from './mocks/auth'
 import {
   getNotificationsEvents,
   getNotificationsRequests,
@@ -146,6 +146,7 @@ describe('Posts endpoints', () => {
     assert.strictEqual(requests.length, 1)
     assert.strictEqual(requests[0].method, 'POST')
     assert.strictEqual(requests[0].path, '/events')
+    assert.strictEqual(requests[0].authorization, 'Bearer social-notifications-token')
 
     const events = getNotificationsEvents() as any[]
     assert.strictEqual(events.length, 1)
@@ -364,7 +365,7 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'my-draft')
   })
 
-  test('GET /:code/posts allows read-all scope for unpublished posts in pending private group', async () => {
+  test('GET /:code/posts allows service read access for unpublished posts in pending private group', async () => {
     await seedGroup({ tenantId: 'posts-read-all-list', status: 'pending', access: 'private' })
     const owner = await auth('posts-read-all-owner')
     const member = await seedMember({ tenantId: 'posts-read-all-list', status: 'draft', access: 'private', userId: owner.id })
@@ -372,7 +373,7 @@ describe('Posts endpoints', () => {
     await seedPost({ tenantId: 'posts-read-all-list', memberId: member.id, code: 'draft-offer', type: 'offers', status: 'draft', access: 'private' })
     await seedPost({ tenantId: 'posts-read-all-list', memberId: member.id, code: 'hidden-offer', type: 'offers', status: 'hidden', access: 'group' })
 
-    const serviceUser = await auth('posts-read-all-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get('/posts-read-all-list/posts?filter[status]=draft,hidden,published')
       .set('Authorization', `Bearer ${serviceUser.token}`)
@@ -384,7 +385,7 @@ describe('Posts endpoints', () => {
     assert.strictEqual(codes.includes('hidden-offer'), true)
   })
 
-  test('GET /:code/posts/:post allows read-all scope for non-public post', async () => {
+  test('GET /:code/posts/:post allows service read access for non-public post', async () => {
     await seedGroup({ tenantId: 'posts-read-all-one', status: 'pending', access: 'private' })
     const owner = await auth('posts-read-all-one-owner')
     const member = await seedMember({ tenantId: 'posts-read-all-one', status: 'draft', access: 'private', userId: owner.id })
@@ -397,7 +398,7 @@ describe('Posts endpoints', () => {
       access: 'private',
     })
 
-    const serviceUser = await auth('posts-read-all-one-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get(`/posts-read-all-one/posts/${post.id}`)
       .set('Authorization', `Bearer ${serviceUser.token}`)
@@ -421,6 +422,62 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].type, 'offers')
+  })
+
+  test('GET /:code/posts combines allowlisted date comparisons with visibility and counts', async () => {
+    await seedGroup({ tenantId: 'posts-date-comparison', status: 'active', access: 'public' })
+    const member = await seedMember({ tenantId: 'posts-date-comparison', status: 'active', access: 'public' })
+    const base = {
+      tenantId: 'posts-date-comparison',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    }
+
+    await seedPost({ ...base, code: 'before', created: new Date('2026-01-01T00:00:00Z'), expires: new Date('2026-01-02T00:00:00Z') })
+    await seedPost({ ...base, code: 'boundary', created: new Date('2026-01-02T00:00:00Z'), expires: new Date('2026-01-02T00:00:00Z') })
+    await seedPost({ ...base, code: 'after', created: new Date('2026-01-03T00:00:00Z'), expires: new Date('2026-01-03T00:00:00Z') })
+    await seedPost({ ...base, code: 'no-expiration', created: new Date('2026-01-03T00:00:00Z') })
+    await seedPost({ ...base, code: 'hidden', status: 'draft', created: new Date('2026-01-03T00:00:00Z'), expires: new Date('2026-01-03T00:00:00Z') })
+
+    const inclusive = await request(app)
+      .get('/posts-date-comparison/posts?filter[type]=offers&filter[created][gte]=2026-01-02T00:00:00Z&filter[created][lte]=2026-01-03T00:00:00Z&filter[expires][gt]=2026-01-02T00:00:00Z&filter[expires][lte]=2026-01-03T00:00:00Z')
+      .expect(200)
+
+    assert.deepStrictEqual(
+      inclusive.body.data.map((post: any) => post.attributes.code),
+      ['after'],
+    )
+    assert.strictEqual(inclusive.body.meta.count, 1)
+
+    const strict = await request(app)
+      .get('/posts-date-comparison/posts?filter[type]=offers&filter[created][gt]=2026-01-01T00:00:00Z&filter[created][lt]=2026-01-03T00:00:00Z&filter[expires][gte]=2026-01-02T00:00:00Z')
+      .expect(200)
+
+    assert.deepStrictEqual(
+      strict.body.data.map((post: any) => post.attributes.code),
+      ['boundary'],
+    )
+    assert.strictEqual(strict.body.meta.count, 1)
+  })
+
+  test('GET /:code/posts rejects unsupported or malformed comparisons', async () => {
+    await seedGroup({ tenantId: 'posts-invalid-comparison', status: 'active', access: 'public' })
+    const invalidQueries = [
+      'filter[expire][lt]=2026-01-01T00:00:00Z',
+      'filter[updated][gt]=2026-01-01T00:00:00Z',
+      'filter[created][eq]=2026-01-01T00:00:00Z',
+      'filter[created][gt]=not-a-date',
+      'filter[created][gt]=2026-01-01T00:00:00Z,2026-01-02T00:00:00Z',
+      'filter[created]=2026-01-01T00:00:00Z&filter[created][gt]=2026-01-02T00:00:00Z',
+    ]
+
+    for (const query of invalidQueries) {
+      await request(app)
+        .get(`/posts-invalid-comparison/posts?${query}`)
+        .expect(400)
+    }
   })
 
   test('GET /:code/posts supports offer member/status/expired/category app query', async () => {
@@ -586,6 +643,8 @@ describe('Posts endpoints', () => {
     assert.ok(includedResource(res.body, 'categories', category.id))
     const includedMember = includedResource(res.body, 'members', member.id)
     assert.strictEqual(includedMember.attributes.contacts[0].value, 'posts-app-need-filter@example.org')
+    assert.strictEqual(includedMember.relationships.group.data.id, member.groupId)
+    assert.strictEqual(includedResource(res.body, 'groups'), undefined)
   })
 
   test('GET /:code/posts supports need code/account app query', async () => {
@@ -723,6 +782,50 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'b-visible')
+    assert.strictEqual(res.body.meta.count, 1)
+    assert.strictEqual(res.body.links.next, null)
+  })
+
+  test('GET /:code/posts sorts by distance with null locations last', async () => {
+    await seedGroup({ tenantId: 'posts-distance', status: 'active', access: 'public' })
+    const member = await seedMember({ tenantId: 'posts-distance', status: 'active' })
+    await seedPost({
+      tenantId: 'posts-distance',
+      memberId: member.id,
+      code: 'near',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      longitude: 120,
+      latitude: 45,
+    })
+    await seedPost({
+      tenantId: 'posts-distance',
+      memberId: member.id,
+      code: 'far',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      longitude: 10,
+      latitude: 20,
+    })
+    await seedPost({
+      tenantId: 'posts-distance',
+      memberId: member.id,
+      code: 'no-location',
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get('/posts-distance/posts?near=121,45&sort=distance')
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((post: any) => post.attributes.code),
+      ['near', 'far', 'no-location'],
+    )
   })
 
   test('GET /:code/posts supports reverse sorting by update date', async () => {
@@ -756,6 +859,48 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.id, post.id)
     assert.strictEqual(res.body.data.type, 'offers')
+    assert.deepStrictEqual(res.body.data.relationships.member.data, {
+      type: 'members',
+      id: member.id,
+    })
+    assert.strictEqual(res.body.data.relationships.category.data, null)
+    assert.deepStrictEqual(res.body.included, [])
+  })
+
+  test('GET /:code/posts/:post hydrates only requested nested relationships', async () => {
+    const currencyId = toUuid('posts-get-includes-currency')
+    const accountId = toUuid('posts-get-includes-account')
+    await seedGroup({
+      tenantId: 'posts-get-includes',
+      status: 'active',
+      access: 'public',
+      currencyId,
+    })
+    const member = await seedMember({
+      tenantId: 'posts-get-includes',
+      status: 'active',
+      access: 'public',
+      accountId,
+    })
+    const category = await seedCategory({ tenantId: 'posts-get-includes' })
+    const post = await seedPost({
+      tenantId: 'posts-get-includes',
+      memberId: member.id,
+      categoryId: category.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/posts-get-includes/posts/${post.id}?include=member,member.group,member.group.currency,member.account,category`)
+      .expect(200)
+
+    assert.ok(includedResource(res.body, 'members', member.id))
+    assert.ok(includedResource(res.body, 'groups', member.groupId))
+    assert.ok(includedResource(res.body, 'currencies', currencyId))
+    assert.ok(includedResource(res.body, 'accounts', accountId))
+    assert.ok(includedResource(res.body, 'categories', category.id))
   })
 
   test('GET /:code/posts/:post returns 403 for unauthorized draft', async () => {

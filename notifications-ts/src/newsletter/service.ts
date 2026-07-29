@@ -7,13 +7,14 @@ import { HistoryLog, NewsletterContext, ProcessedItem } from './types';
 import prisma from '../utils/prisma';
 import { shouldSendNewsletter, shouldProcessGroup } from './frequency';
 import initI18n from '../utils/i18n';
-import { getAuthCode } from '../clients/komunitin/getAuthCode';
+import { getUnsubscribeToken } from '../clients/komunitin/getActionToken';
 
 import { selectBestItems, getDistance } from './posts-algorithm';
 import { Member, Offer, Need, Group } from '../clients/komunitin/types';
 import { getAccountSectionData } from './account-algorithm';
 import { SeededRandom, stringToSeed } from '../utils/seededRandom';
 import { CACHE_TTL_24H, CACHE_TTL_NO_CACHE, getCachedActiveGroups } from '../utils/cached-resources';
+import { imageUrl } from '../clients/komunitin/image';
 
 
 const processItems = (
@@ -41,15 +42,15 @@ const processItems = (
       id: item.id,
       code: item.attributes.code,
       type: type,
-      title: "name" in item.attributes ? item.attributes.name : undefined,
-      description: item.attributes.content,
-      image: item.attributes.images?.[0],
+      title: item.attributes.title ?? undefined,
+      description: item.attributes.description,
+      image: imageUrl(item.attributes.images?.[0]),
       author: {
         name: author?.attributes.name || '',
-        image: author?.attributes.image
+        image: imageUrl(author?.attributes.image)
       },
       distance,
-      category: (item.attributes as any).category,
+      category: item.relationships.category?.data?.id,
       link
     };
   });
@@ -76,9 +77,20 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
   // 3. Fetch data to be used for all members of the group
   // Fetch ALL offers/needs using the pagination-enabled client methods
-  const allOffers = await client.getOffers(group.attributes.code, { sort: '-updated' });
-  const allNeeds = await client.getNeeds(group.attributes.code, { sort: '-updated' });
-  const allMembers = await client.getMembers(group.attributes.code, { sort: '-created' });
+  const allOffers = await client.getOffers(group.attributes.code, {
+    'filter[status]': 'published',
+    'filter[expired]': 'false',
+    sort: '-updated'
+  });
+  const allNeeds = await client.getNeeds(group.attributes.code, {
+    'filter[status]': 'published',
+    'filter[expired]': 'false',
+    sort: '-updated'
+  });
+  const allMembers = await client.getMembers(group.attributes.code, {
+    'filter[status]': 'active',
+    sort: '-created'
+  });
 
   const currency = await client.getCurrency(group.attributes.code);
 
@@ -211,6 +223,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     try {
       expiredOffers = await client.getOffers(group.attributes.code, {
         'filter[member]': member.id,
+        'filter[status]': 'published',
         'filter[expired]': 'true'
       });
     } catch (e) {
@@ -246,7 +259,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     for (const { user, settings: userSettings } of recipientsToProcess) {
       let unsubscribeToken: string | undefined;
       try {
-        unsubscribeToken = await getAuthCode(user.id, ['komunitin_social']);
+        unsubscribeToken = await getUnsubscribeToken(user.id);
       } catch (err) {
         logger.error({ err, user: user.id }, 'Failed to get unsubscribe token. Aborting sending to this user.');
         //abort
@@ -272,7 +285,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
           to: user.attributes.email,
           subject,
           html,
-          token: unsubscribeToken
+          unsubscribeToken
         })
         logger.info({ user: user.id }, 'Newsletter sent');
         sentRecipients.push({ userId: user.id, email: user.attributes.email });

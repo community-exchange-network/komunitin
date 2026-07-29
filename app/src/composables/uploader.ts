@@ -1,5 +1,5 @@
 import { Notify, type QUploader } from "quasar"
-import { computed, shallowRef, type Ref } from "vue"
+import { computed, shallowRef, toValue, type MaybeRefOrGetter, type Ref } from "vue"
 import { useStore } from "vuex"
 import { config } from "src/utils/config"
 import { resizeImageToWebp } from "src/utils/imageUpload"
@@ -9,19 +9,24 @@ import { i18n } from "src/boot/i18n"
  * Some configuration to use with QUploader component to send files to the
  * backend (currently Drupal).
  */
-export const useUploaderSettings = () => {
+export const useUploaderSettings = ({
+  code,
+  resourceType
+}: {
+  code: MaybeRefOrGetter<string>,
+  resourceType: "members" | "groups" | "offers" | "needs"
+}) => {
   const store = useStore()
-  // I'd prefer just "file" but Drupal backend requires it to be file[something],
-  // and the aesthetics of a good name does not pay for the work today ;)
-  const fieldName = "files[file]"
-  const url = config.FILES_URL
+  const fieldName = "file"
+  const url = computed(() => `${config.FILES_URL}/${toValue(code)}/files/upload`)
+  const formFields = [{ name: "resourceType", value: resourceType }]
 
   const headers = computed(() => {
     const token = store.getters.accessToken
     return [{name : 'Authorization', value: `Bearer ${token}`}]
   })
 
-  return { fieldName, url, headers }
+  return { fieldName, url, headers, formFields }
 }
 /**
  * A type for the image file object for QUploader component.

@@ -13,7 +13,7 @@ import logger from './utils/logger'
 import { config } from './config'
 import type { Server } from 'node:http'
 import { rateLimit } from './utils/rate-limit'
-import { disconnectPrisma } from './utils/prisma'
+import { disconnectPrisma, waitForPrisma } from './utils/prisma'
 
 const app = express()
 // Trust first proxy since we expect to be behind a load balancer in production,
@@ -54,6 +54,7 @@ export const initializeApp = async () => {
 }
 
 export const startServer = async () => {
+  await waitForPrisma()
   await initializeApp()
 
   const server = await new Promise<Server>((resolve, reject) => {

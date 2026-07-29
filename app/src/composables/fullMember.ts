@@ -11,20 +11,25 @@ import { useStore } from "vuex";
  */
 export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined>, memberCode: MaybeRefOrGetter<string|undefined>) => {
   const store = useStore()
+  type FullUser = User & {settings: UserSettings}
   
-  const user = ref<User & {settings: UserSettings}>()
+  const user = ref<FullUser>()
   const member = ref<Member>()
 
-  watch([() => toValue(groupCode), () => toValue(memberCode), () => (store.getters.myMember as Member)], async ([groupCodeStr, memberCodeStr, myMember]) => {
+  watch([
+    () => toValue(groupCode),
+    () => toValue(memberCode),
+    () => store.getters.myMember,
+    () => store.getters.myUser
+  ], async ([groupCodeStr, memberCodeStr, myMember, myUser]) => {
     // Wait for initialization
-    if (!store.getters.myUser) return
+    if (!myUser) return
 
     if (groupCodeStr && memberCodeStr && memberCodeStr !== myMember?.attributes.code) {
       // Load member from server
       await store.dispatch("members/load", {
         code: memberCodeStr,
-        group: groupCodeStr,
-        include: "contacts"
+        group: groupCodeStr
       })
       member.value = store.getters["members/current"]
 
@@ -39,7 +44,7 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
 
     } else {
       // use data from logged in user
-      user.value = store.getters.myUser
+      user.value = myUser
       member.value = myMember
       // load settings.
       await store.dispatch("user-settings/load", {

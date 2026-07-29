@@ -32,7 +32,7 @@
       </div>
       <social-network-list
         type="contact"
-        :contacts="member.contacts"
+        :contacts="member.attributes.contacts"
       />
     </div>
   </div>

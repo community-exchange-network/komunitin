@@ -26,10 +26,8 @@
 </template>
 <script setup lang="ts">
 import type { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "src/store/model"
-import type { Ref} from "vue";
 import { computed, ref, watch } from "vue"
 import { useStore } from "vuex"
-import type { ExtendedAccountWithSettings} from "src/composables/fullAccount";
 import { transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
 import { QrcodeStream } from "vue-qrcode-reader"
 import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue"
@@ -55,7 +53,7 @@ const myCurrency = computed(() => store.getters.myAccount.currency)
 
 const state = ref<"scan" | "confirm">("scan")
 
-const payerAccount = useCreateTransferPayerAccount(props.code, props.memberCode, "send") as Ref<ExtendedAccountWithSettings>
+const payerAccount = useCreateTransferPayerAccount(props.code, props.memberCode, "send")
 const payeeAccount = ref<Account|undefined>()
 
 const transfer = ref<ExtendedTransfer>()

@@ -95,7 +95,7 @@ It does not recognize legacy `komunitin_*` scope names.
   - reset-token based
 - `POST /change-email`
   - authenticated bearer token required
-- `POST /change-email/confirm`
+- `POST /email/confirm`
   - email-token based
 - `POST /resend-validation`
 
@@ -141,7 +141,6 @@ The services still assume legacy issuer/audience/scope behavior:
 
 - `accounting/src/server/auth.ts`
   - accepts legacy audience defaults like `komunitin-app`
-  - still uses legacy scope enum names
   - contains temporary Drupal numeric-id compatibility logic
 - `social/src/server/auth.ts`
   - still defaults audience to `komunitin-app`
@@ -152,15 +151,7 @@ The services still assume legacy issuer/audience/scope behavior:
 
 ### 1. Replace legacy scope names
 
-Current app request:
-
-```text
-komunitin_social komunitin_accounting email offline_access openid profile
-```
-
-Target request to the new auth service must use the new scope names.
-
-Recommended target for the normal app session:
+App request:
 
 ```text
 email offline_access social:read social:write accounting:read accounting:write superadmin
@@ -168,7 +159,6 @@ email offline_access social:read social:write accounting:read accounting:write s
 
 Notes:
 
-- Do not switch the app scope string until the downstream services accept the new names.
 - The new auth service does not issue ID tokens and does not currently expose `openid` or `profile` scopes.
 - The app always requests `superadmin`; auth grants it only when the authenticated email matches `ADMIN_EMAIL`.
 
@@ -202,7 +192,7 @@ refresh_token=<refresh token>
 
 Notes:
 
-- This branch fixes the auth-side refresh bug so the response remains usable for audience `app`.
+- Refreshed access tokens remain usable for audience `urn:komunitin:api`.
 - The frontend must treat refresh as an auth concern only and keep all credential refresh logic inside the auth client layer.
 - Do not use legacy `/oauth2/token` URLs.
 
@@ -268,12 +258,12 @@ Target model:
 
 - `POST /change-email` on auth with bearer token and the new email address
 - auth sends validation email
-- validation page calls `POST /change-email/confirm` with the email token
+- validation page calls `POST /email/confirm` with the email token
 
 Recommended frontend route:
 
 - add a public `/confirm-email?token=...` route
-- call `POST /change-email/confirm`
+- call `POST /email/confirm`
 - redirect to login or the appropriate onboarding page after success
 
 Do not auto-login the user from the email token.
@@ -310,14 +300,14 @@ Required changes:
 
 - issuer must be the new auth issuer, not the Drupal `/oauth2` issuer
 - audience must match the new auth access tokens
-  - current auth access tokens use audience `app`
-- JWKS should come from the new auth service
+- current auth access tokens use audience `urn:komunitin:api`
+- JWKS are published by the new auth service at `/.well-known/jwks.json`
 - prefer issuer metadata over hardcoded legacy URLs when possible
 
 Best practice:
 
 - use the auth issuer metadata and the returned `jwks_uri`
-- do not hardcode legacy `/oauth2/token` or `/.well-known/jwks.json` paths from the Drupal setup
+- do not hardcode the legacy `/oauth2/token` path
 
 ### Client credentials
 
@@ -408,7 +398,7 @@ Resulting flow:
 Current behavior:
 
 - `newsletter/service.ts` asks auth for `/get-auth-code`
-- links point to `/unsubscribe?token=...` in the app and to `/users/me/unsubscribe?token=...` in social public URLs
+- links point to `/unsubscribe?token=...` in the app and to `/users/unsubscribe?token=...` in social public URLs
 
 This should not be migrated to token exchange.
 
@@ -422,8 +412,8 @@ Recommended design:
 
 1. Notifications calls auth `POST /action-token` with purpose `unsubscribe`.
 2. Auth returns a purpose-bound unsubscribe action token.
-3. The public unsubscribe endpoint consumes that token and updates the social email settings.
-4. The token is marked as used.
+3. The public unsubscribe endpoint resolves that token and updates the social email settings.
+4. The token remains valid for replay until its one-year expiry.
 5. The endpoint returns a simple success page or redirect target.
 
 Why this is the right design:
@@ -438,7 +428,7 @@ Why this is the right design:
 
 Step 3 above is served by a dedicated auth endpoint. The social service must
 not read or trust the raw action token itself; it must ask auth to validate and
-consume it.
+resolve it.
 
 Auth contract:
 
@@ -460,9 +450,9 @@ Properties:
 - authenticated as the `komunitin-social` service client (client credentials)
 - `purpose` is restricted to `unsubscribe`; social cannot redeem password-reset,
   email-change, or email-verification tokens
-- the token is single-use: auth marks it used on success, so a second redemption
-  of the same token returns `400`
-- invalid, expired, wrong-purpose, or already-used tokens return `400`
+- the token is replayable until expiry so retries remain possible after Auth
+  resolution but before the Social mutation completes
+- invalid, expired, or wrong-purpose tokens return `400`
 
 How social must adapt:
 
@@ -474,7 +464,9 @@ How social must adapt:
 4. Do not decode, verify, or persist the raw token locally, and do not attempt
    to redeem it through `/token`.
 
-If a generic cross-service email-action mechanism is still desired, build purpose-bound action tokens with explicit `purpose`, `audience`, `sub`, and single-use storage. Do not revive `/get-auth-code`.
+Action-token lifetime, replacement, and consumption are purpose policies.
+Credential and identity mutations remain short-lived and consumable;
+unsubscribe remains long-lived and replayable. Do not revive `/get-auth-code`.
 
 ## User Data Migration From Drupal
 
@@ -586,7 +578,7 @@ The target state is:
 
 - login works with `password`
 - refresh works with `refresh_token`
-- refreshed app tokens are JWTs for audience `app`
+- refreshed app tokens are JWTs for audience `urn:komunitin:api`
 - backend services validate the new issuer and audience
 - no service still calls `/oauth2/token`
 - no service still calls `/get-auth-code` or `/get-auth-token`

@@ -13,9 +13,9 @@ import { createMockImageFile, mockImageUploadProcessing } from "../../../test/vi
 type MountedComponent = Awaited<ReturnType<typeof mountComponent>>
 
 const lastUploadedImageUrl = (wrapper: MountedComponent) => {
-  const modelUpdateEvents: [string[]][] = wrapper.emitted("update:modelValue") ?? []
-  const lastImageUrls = modelUpdateEvents.at(-1)?.[0]
-  return lastImageUrls?.at(-1)
+  const modelUpdateEvents: [{url: string}[]][] = wrapper.emitted("update:modelValue") ?? []
+  const lastImages = modelUpdateEvents.at(-1)?.[0]
+  return lastImages?.at(-1)?.url
 }
 
 const uploadFile = async (wrapper: MountedComponent, file: File) => {
@@ -54,7 +54,9 @@ describe("image upload fields", () => {
       props: {
         modelValue: [],
         label: "Add images",
-        hint: "hint"
+        hint: "hint",
+        code: "GRP0",
+        resourceType: "offers"
       },
       login: true
     })
@@ -84,7 +86,9 @@ describe("image upload fields", () => {
     const wrapper = await mountComponent(AvatarField, {
       props: {
         modelValue: null,
-        text: "Avatar"
+        text: "Avatar",
+        code: "GRP0",
+        resourceType: "members"
       },
       login: true
     })
@@ -119,7 +123,9 @@ describe("image upload fields", () => {
       props: {
         modelValue: [],
         label: "Add images",
-        hint: "hint"
+        hint: "hint",
+        code: "GRP0",
+        resourceType: "needs"
       },
       login: true
     })

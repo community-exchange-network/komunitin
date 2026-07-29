@@ -1,5 +1,6 @@
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Member, User, UserSettings } from '../../clients/komunitin/types';
+import { hasExpiration } from '../../clients/komunitin/post';
+import { Member, Post, User, UserSettings } from '../../clients/komunitin/types';
 import { getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
 import { internalError } from '../../utils/error';
 import logger from '../../utils/logger';
@@ -15,7 +16,10 @@ export const POSTS_URGENT_DAYS = 7;
 /**
  * Check if a post is urgent based on its expiry window.
  */
-export const isPostUrgent = (post: { attributes: { expires: string; created: string } }): boolean => {
+export const isPostUrgent = (post: Post): boolean => {
+  if (!hasExpiration(post)) {
+    return false;
+  }
   const expire = new Date(post.attributes.expires);
   const created = new Date(post.attributes.created);
   const windowDays = (expire.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
@@ -39,10 +43,8 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
     throw new Error(`Missing ${dataKey} id in post event ${event.name}`);
   }
 
-  // Fetch the post (offer or need) with included member
-  const postResponse = isOfferEvent
-    ? await client.getOffer(event.code, postId, ['member'])
-    : await client.getNeed(event.code, postId, ['member']);
+  // Fetch the post with its included member
+  const postResponse = await client.getPost(event.code, postId, ['member']);
 
   const post = postResponse.data;
   const included = postResponse.included || [];

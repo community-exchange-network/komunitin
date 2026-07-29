@@ -32,9 +32,9 @@ export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
 
   // For MemberRequested, fetch admin users with settings
   if (event.name === EVENT_NAME.MemberRequested) {
-    const adminUserIds = group.relationships.admins.data.map(admin => admin.id);
+    const admins = await client.getGroupAdmins(event.code);
     const adminUsers = await Promise.all(
-      adminUserIds.map(id => client.getUserWithSettings(id))
+      admins.map(admin => client.getUserWithSettings(admin.id))
     );
     (enrichedEvent as EnrichedMemberRequestedEvent).adminUsers = adminUsers;
   }
@@ -45,8 +45,16 @@ export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
     || event.name === EVENT_NAME.MemberHasExpiredPostsRecently
   ) {
     const [expiredOffers, expiredNeeds] = await Promise.all([
-      client.getOffers(event.code, { "filter[member]": memberId, "filter[expired]": "true" }),
-      client.getNeeds(event.code, { "filter[member]": memberId, "filter[expired]": "true" }),
+      client.getOffers(event.code, {
+        "filter[member]": memberId,
+        "filter[status]": "published",
+        "filter[expired]": "true"
+      }),
+      client.getNeeds(event.code, {
+        "filter[member]": memberId,
+        "filter[status]": "published",
+        "filter[expired]": "true"
+      }),
     ]);
     const enrichedMemberHasExpiredPostsEvent = enrichedEvent as EnrichedMemberHasExpiredPostsEvent;
     enrichedMemberHasExpiredPostsEvent.expiredOffers = expiredOffers;

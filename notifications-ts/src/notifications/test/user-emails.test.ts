@@ -1,9 +1,11 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
+import { http, HttpResponse } from "msw";
 import { createMember, createUser, db, getUserIdForMember } from "../../mocks/db";
+import { AUTH_URL } from "../../mocks/handlers";
 import { createEvent, setupNotificationsTest } from "./utils";
 
-const { put, email } = setupNotificationsTest({ useWorker: true });
+const { put, email, server } = setupNotificationsTest({ useWorker: true });
 
 const createUserAndMember = (groupCode: string) => {
   const member = createMember({ groupCode });
@@ -19,7 +21,16 @@ describe('User emails', () => {
 
   it('should send validation email', async () => {
     const { user } = createUserAndMember('GRP1');
-    const eventData = createEvent('ValidationEmailRequested', { code: 'GRP1', user: user.id, data: { user: user.id } });
+    const eventData = createEvent('ValidationEmailRequested', {
+      code: 'GRP1',
+      user: user.id,
+      data: {
+        user: user.id,
+        email: user.attributes.email,
+        purpose: 'emailVerification',
+        signup: { type: 'member', name: 'New Member', language: 'en', groupCode: 'GRP1' },
+      },
+    });
 
     await put(eventData);
 
@@ -35,8 +46,8 @@ describe('User emails', () => {
       `Subject should contain group name. Got: "${msg.subject}"`
     );
 
-    // HTML contains the signup CTA URL with group code and auth token
-    const expectedUrl = '/groups/GRP1/signup-member?token=mock-unsubscribe-token';
+    // HTML contains the public email confirmation URL and purpose-bound token.
+    const expectedUrl = '/confirm-email?token=mock-emailVerification-token';
     assert.ok(msg.html.includes(expectedUrl), 'HTML should contain signup URL with token');
 
     // Plain text (auto-converted from HTML) also carries the link
@@ -45,7 +56,11 @@ describe('User emails', () => {
 
   it('should send reset password email', async () => {
     const { user } = createUserAndMember('GRP1');
-    const eventData = createEvent('PasswordResetRequested', { code: 'GRP1', user: user.id, data: { user: user.id } });
+    const eventData = createEvent('PasswordResetRequested', {
+      code: 'GRP1',
+      user: user.id,
+      data: { user: user.id, email: user.attributes.email },
+    });
 
     await put(eventData);
 
@@ -66,7 +81,7 @@ describe('User emails', () => {
     assert.ok(msg.text.includes('Reset password'))
 
     // HTML contains the reset password CTA URL with auth token
-    const expectedUrl = '/set-password?token=mock-unsubscribe-token';
+    const expectedUrl = '/set-password?token=mock-passwordReset-token';
     assert.ok(msg.html.includes(expectedUrl), 'HTML should contain reset password URL with token');
 
     // Plain text (auto-converted from HTML) also carries the link
@@ -104,7 +119,23 @@ describe('User emails', () => {
 
   it('should send validation email without group code', async () => {
     const user = createUser({ id: 'user-no-group', email: 'user-no-group@example.com' });
-    const eventData = createEvent('ValidationEmailRequested', { code: null, user: user.id, data: { user: user.id } });
+    const signup = { type: 'group' as const, name: 'New Group Admin', language: 'en' };
+    let actionTokenRequest: unknown;
+    assert.ok(server);
+    server.use(http.post(`${AUTH_URL}/action-token`, async ({ request }) => {
+      actionTokenRequest = await request.json();
+      return HttpResponse.json({ token: 'group-validation-token' });
+    }));
+    const eventData = createEvent('ValidationEmailRequested', {
+      code: null,
+      user: user.id,
+      data: {
+        user: user.id,
+        email: user.attributes.email,
+        purpose: 'emailVerification',
+        signup,
+      },
+    });
 
     await put(eventData);
     
@@ -113,9 +144,14 @@ describe('User emails', () => {
     assert.strictEqual(msg.to, user.attributes.email);
 
     assert.ok(
-      msg.text.includes('/groups/new?token=mock-unsubscribe-token'),
-      'Validation email without group code should contain URL for creating new group with token'
+      msg.text.includes('/confirm-email?token=group-validation-token'),
+      'Validation email without group code should contain a public confirmation URL'
     );
+    assert.deepStrictEqual(actionTokenRequest, {
+      userId: user.id,
+      purpose: 'emailVerification',
+      signup,
+    });
 
     assert.ok(
       msg.text.includes('Confirm your email'),

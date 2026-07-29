@@ -15,7 +15,7 @@
         :key="i"
         :name="i + 1"
         class="q-pa-none"
-        :img-src="image"
+        :img-src="image.url"
       />
     </q-carousel>
     <fit-text
@@ -35,7 +35,7 @@
         class="col-3"
       >
         <img
-          :src="image"
+          :src="image.url"
           class="thumbnail vertical-bottom cursor-pointer"
           :class="'thumbnail-' + (slide == i + 1 ? 'active' : 'inactive')"
           @click="slide = i + 1"
@@ -44,31 +44,21 @@
     </div>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
+import { ref } from "vue";
+import type { ImageObject } from "src/store/model";
 import FitText from "./FitText.vue";
 /**
  * Almost just a wrapper around Quasar QCarousel to avoid repetition and unify behavior across the app.
  */
-export default defineComponent({
-  components: {
-    FitText
-  },
-  props: {
-    thumbnails: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
-    images: {
-      type: Array,
-      required: true,
-    }
-  },
-  data: () => ({
-    slide: 1
-  }),
-});
+withDefaults(defineProps<{
+  thumbnails?: boolean,
+  images: ImageObject[]
+}>(), {
+  thumbnails: false
+})
+
+const slide = ref(1)
 </script>
 <style lang="scss" scoped>
 .thumbnail {

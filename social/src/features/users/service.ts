@@ -1,13 +1,15 @@
 import prisma from '../../utils/prisma'
 import { Prisma, User as DbUser, type Member as DbMember } from '../../generated/prisma/client'
 import type { User, UserSettings, CreateUserInput } from './types'
-import { badRequest, forbidden, notFound } from '../../utils/error'
+import { badRequest, forbidden, internalError, notFound } from '../../utils/error'
 import { privilegedDb } from '../../server/multitenant'
 import { AuthContext } from '../../server/context'
-import { CollectionParams } from '../../server/request'
-import type { DbGroup } from '../groups/service'
-import { getMemberInclude, toMember } from '../members/service'
-import type { Member } from '../members/types'
+import { hasInclude, type CollectionParams } from '../../server/request'
+import { type CollectionResult, indexById, uniqueById } from '../../server/query'
+import { type DbGroup, getGroupByCode, isGroupAdmin, toGroup } from '../groups/service'
+import { enrichMembers, toMember } from '../members/service'
+import type { SerializableMember } from '../members/types'
+import { countUserMembers, findUserMembers } from './member-query'
 
 const castSettings = (settings: unknown): UserSettings | null => {
   if (!settings || typeof settings !== 'object') {
@@ -27,8 +29,41 @@ const toUser = (user: DbUser): User => {
   }
 }
 
+export const listGroupAdmins = async (
+  ctx: AuthContext,
+  code: string,
+  params: CollectionParams,
+): Promise<CollectionResult<User>> => {
+  const group = await getGroupByCode(ctx, code)
+  const allowed = ctx.isSuperadmin || ctx.canReadAllSocial || isGroupAdmin(ctx, group)
+  if (!allowed) {
+    throw forbidden('You do not have permission to list group administrators')
+  }
+
+  const db = privilegedDb(prisma)
+  const order = params.sort[0]?.order ?? 'asc'
+  const relations = await db.groupAdminUser.findMany({
+    where: {
+      tenantId: code,
+      groupId: group.id,
+    },
+    include: { user: true },
+    orderBy: [
+      { user: { created: order } },
+      { userId: 'asc' },
+    ],
+    skip: params.pagination.cursor,
+    take: params.pagination.size,
+  })
+
+  return {
+    items: relations.map(({ user }) => ({ ...toUser(user), settings: null })),
+    total: group.admins.length,
+  }
+}
+
 const canReadUser = (ctx: AuthContext, id: string): boolean => {
-  return ctx.userId === id || ctx.isSuperadmin || ctx.isSocialReadAll
+  return ctx.userId === id || ctx.isSuperadmin || ctx.canReadAllSocial
 }
 
 const mergeSettings = (current: UserSettings | null, patch: UserSettings): Prisma.InputJsonObject => {
@@ -118,53 +153,76 @@ export const patchUserSettings = async (
   return toUser(updated)
 }
 
+export const unsubscribeUser = async (id: string): Promise<void> => {
+  const db = privilegedDb(prisma)
+  const user = await db.user.findUnique({ where: { id } })
+  if (!user) {
+    return
+  }
+
+  const settings = castSettings(user.settings)
+  try {
+    await db.user.update({
+      where: { id },
+      data: {
+        settings: mergeSettings(settings, {
+          emails: { group: 'never' },
+        }),
+      },
+    })
+  } catch (cause) {
+    throw internalError(`Failed to unsubscribe user ${id}`, { cause })
+  }
+}
+
 export const listUserMembers = async (
   ctx: AuthContext,
   id: string,
   params: CollectionParams,
-): Promise<Member[]> => {
+): Promise<CollectionResult<SerializableMember>> => {
   await getUserById(ctx, id)
 
   const sortField = params.sort[0]?.field ?? 'created'
   const sortOrder = params.sort[0]?.order ?? 'asc'
-  const db = privilegedDb(prisma)
-  const relations = await db.memberUser.findMany({
-    where: {
-      userId: id,
-      member: {
-        deleted: null,
-      },
-    },
-    include: {
-      member: {
-        include: getMemberInclude(params.include),
-      },
-    },
-    orderBy: [
-      {
-        member: {
-          [sortField]: sortOrder,
+  const [members, total] = await Promise.all([
+    findUserMembers(id, {
+      include: {
+        group: {
+          include: { admins: true },
         },
       },
-      { memberId: 'asc' },
-    ] as Prisma.MemberUserOrderByWithRelationInput[],
-    skip: params.pagination.cursor,
-    take: params.pagination.size,
-  })
+      orderBy: [
+        { [sortField]: sortOrder },
+        { id: 'asc' },
+      ],
+      skip: params.pagination.cursor,
+      take: params.pagination.size,
+    }),
+    countUserMembers(id),
+  ])
 
-  return relations.map((relation) => toMember(
-    relation.member as DbMember & { group?: DbGroup }
-  ))
+  const membersWithGroups = members as (DbMember & { group: DbGroup })[]
+  const groups = uniqueById(membersWithGroups.map(({ group }) => toGroup(group)))
+  const groupsById = indexById(groups)
+  const includeGroups = hasInclude(params, 'group')
+  const items = membersWithGroups.map((member) =>
+    toMember(member, includeGroups ? groupsById.get(member.groupId)! : undefined)
+  )
+
+  return {
+    items: await enrichMembers(ctx, items, groups),
+    total,
+  }
 }
 
 /**
  * List users provided a list of member IDs.
  * 
- * This feature is used by the notifications service and we request the read_all scope.
+ * This feature is used by the notifications service with its social:read service token.
  */
-export const listUsers = async (ctx: AuthContext, params: CollectionParams): Promise<User[]> => {
+export const listUsers = async (ctx: AuthContext, params: CollectionParams): Promise<CollectionResult<User>> => {
   
-  const allowed = ctx.isSuperadmin || ctx.isSocialReadAll
+  const allowed = ctx.isSuperadmin || ctx.canReadAllSocial
   
   if (!allowed) {
     throw forbidden('You do not have permission to list users')
@@ -174,36 +232,36 @@ export const listUsers = async (ctx: AuthContext, params: CollectionParams): Pro
     throw badRequest('Filtering by member id(s) is required to list users')
   }
 
-  const memberIds = Array.isArray(params.filters.members)
-    ? params.filters.members
-    : params.filters.members
-      ? [params.filters.members]
-      : []
+  const memberIds = params.filters.members
 
   if (memberIds.length === 0) {
-     return []
+     return { items: [], total: 0 }
   }
 
   const order = params.sort[0]?.order ?? 'asc'
 
   const db = privilegedDb(prisma)
-  const users = await db.user.findMany({
-    where: {
-      members: {
-        some: {
-          memberId: {
-            in: memberIds,
-          },
+  const where: Prisma.UserWhereInput = {
+    members: {
+      some: {
+        memberId: {
+          in: memberIds,
         },
       },
     },
-    orderBy: [
-      { created: order },
-      { id: 'asc' },
-    ],
-    skip: params.pagination.cursor,
-    take: params.pagination.size
-  })
+  }
+  const [users, total] = await Promise.all([
+    db.user.findMany({
+      where,
+      orderBy: [
+        { created: order },
+        { id: 'asc' },
+      ],
+      skip: params.pagination.cursor,
+      take: params.pagination.size
+    }),
+    db.user.count({ where }),
+  ])
 
-  return users.map(toUser)
+  return { items: users.map(toUser), total }
 }

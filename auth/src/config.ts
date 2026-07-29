@@ -1,16 +1,19 @@
 import { z } from 'zod'
 import { mailboxEmailSchema } from './utils/email'
 
+export const CLIENT_ID = 'komunitin-auth'
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(2026),
   DATABASE_URL: z.string().default('postgresql://auth:auth@localhost:5435/auth?schema=public'),
-  ISSUER_URL: z.string().default('http://localhost:2026'),
+  JWT_ISSUER: z.string().default('http://localhost:2026'),
+  JWT_AUDIENCE: z.string().min(1).default('urn:komunitin:api'),
   NOTIFICATIONS_URL: z.string().default('http://localhost:2023'),
-  NOTIFICATIONS_EVENTS_USERNAME: z.string().min(1).default('komunitin'),
-  NOTIFICATIONS_EVENTS_PASSWORD: z.string().min(1).default('replace-this-with-a-secure-password'),
+  AUTH_CLIENT_SECRET: z.string().min(1).default('komunitin-auth-secret'),
   NOTIFICATIONS_CLIENT_SECRET: z.string().min(1).default('replace-this-with-a-secure-password'),
   SOCIAL_CLIENT_SECRET: z.string().min(1).default('komunitin-social-secret'),
+  ACCOUNTING_CLIENT_SECRET: z.string().min(1).default('komunitin-accounting-secret'),
   ADMIN_EMAIL: mailboxEmailSchema,
   JWKS_ROTATION_INTERVAL_DAYS: z.coerce.number().int().positive().default(90),
   JWKS_RETENTION_HOURS: z.coerce.number().int().positive().default(24),

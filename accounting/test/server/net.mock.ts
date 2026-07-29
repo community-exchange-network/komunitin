@@ -4,13 +4,17 @@ import { setupServer, SetupServerApi } from 'msw/node'
 import { logger } from "../../src/utils/logger"
 import request from "supertest"
 import TestAgent from "supertest/lib/agent"
-import { config } from "../../src/config"
+import { CLIENT_ID, config } from "../../src/config"
 import { jwks } from "./auth.mock"
 
 const events: any[] = []
+let notificationStatuses: number[] = []
 
 export const getEvents = () => events
 export const clearEvents = () => events.splice(0, events.length)
+export const setNotificationStatuses = (...statuses: number[]) => {
+  notificationStatuses = [...statuses]
+}
 
 
 const pipeRequest = async (info: any, app: any, method: (r: TestAgent, path: string) => any) => {
@@ -40,8 +44,33 @@ const getHandlers = (app: Express) => [
     return HttpResponse.json(jwks())
   }),
 
+  http.post(`${config.AUTH_URL}/token`, async ({ request }) => {
+    const body = new URLSearchParams(await request.text())
+    if (
+      body.get("client_id") !== CLIENT_ID
+      || body.get("client_secret") !== config.ACCOUNTING_CLIENT_SECRET
+      || body.get("grant_type") !== "client_credentials"
+      || body.get("scope") !== "notifications:write"
+    ) {
+      return HttpResponse.json({ error: "invalid_client" }, { status: 401 })
+    }
+    return HttpResponse.json({
+      access_token: "accounting-notifications-token",
+      expires_in: 3600,
+      scope: "notifications:write",
+      token_type: "Bearer",
+    })
+  }),
+
   // Mock notifications service events endpoint.
   http.post(`${config.NOTIFICATIONS_API_URL}/events`, async (info) => {
+    const status = notificationStatuses.shift() ?? 201
+    if (status === 401) {
+      return HttpResponse.json({ error: "invalid_token" }, { status })
+    }
+    if (info.request.headers.get("authorization") !== "Bearer accounting-notifications-token") {
+      return HttpResponse.json({ error: "invalid_token" }, { status: 401 })
+    }
     const doc = (await new Response(info.request.body).json()) as any
     const event = doc.data
     event.id = (events.length + 1).toString()
@@ -72,6 +101,7 @@ const getHandlers = (app: Express) => [
 let server: SetupServerApi;
 
 export const startServer = (app: Express) => {
+  notificationStatuses = []
   const handlers = getHandlers(app)
   server = setupServer(...handlers)
   server.listen({ onUnhandledRequest: "bypass" })
