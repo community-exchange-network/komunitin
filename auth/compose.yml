@@ -1,0 +1,18 @@
+services:
+  db-auth:
+    build:
+      context: ../shared/docker/db
+    restart: unless-stopped
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_APP_USER: auth
+      POSTGRES_APP_PASSWORD: auth
+    volumes:
+      - db-auth:/var/lib/postgresql/data
+
+volumes:
+  db-auth:

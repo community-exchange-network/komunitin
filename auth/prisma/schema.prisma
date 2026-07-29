@@ -1,0 +1,65 @@
+generator client {
+  provider            = "prisma-client-js"
+  output              = "../src/generated/prisma"
+  runtime             = "nodejs"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String            @id @db.Uuid @default(uuid())
+  email        String            @unique
+  passwordHash String
+  emailVerified Boolean          @default(false)
+  status       String            @default("active")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  actionTokens UserActionToken[]
+}
+
+model UserActionToken {
+  id          String                 @id @db.Uuid @default(uuid())
+  userId      String                 @db.Uuid
+  purpose     String
+  targetEmail String?
+  tokenHash   String                 @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime               @default(now())
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, expiresAt])
+}
+
+model OidcPayload {
+  id          String    @id
+  type        String
+  payload     Json
+  grantId     String?
+  userCode    String?
+  uid         String?
+  expiresAt   DateTime?
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([expiresAt])
+  @@index([uid])
+  @@index([userCode])
+  @@index([grantId])
+}
+
+model SigningKey {
+  id        String    @id @db.Uuid @default(uuid())
+  kid       String    @unique
+  jwk       Json
+  retireAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([retireAt])
+  @@index([createdAt])
+}

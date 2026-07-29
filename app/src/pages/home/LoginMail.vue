@@ -95,7 +95,7 @@ const submit = async () => {
     $q.loading.show({
       delay: 200
     })
-    await store.dispatch("login", {email: email.value, password: pass.value, superadmin: isSuperadmin.value});
+    await store.dispatch("login", {email: email.value, password: pass.value});
   }
   finally {
     $q.loading.hide()

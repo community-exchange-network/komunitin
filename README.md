@@ -65,6 +65,9 @@ The published services are:
  - Notifications service: [http://localhost:2023](http://localhost:2023)
  - IntegralCES: [http://localhost:2029](http://localhost:2029)
 
+Node debugger ports mirror the service HTTP ports: notifications-ts uses `9223`,
+accounting uses `9225`, auth uses `9226`, and social uses `9228`.
+
 You can now try Komunitin at [https://localhost:2030](https://localhost:2030) with the email `noether@komunitin.org` and password `komunitin`.
 
 ### Flavors

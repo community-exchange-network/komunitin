@@ -50,11 +50,12 @@ Published local ports in the dev stack:
 | Service | URL |
 | --- | --- |
 | App | `https://localhost:2030` |
+| Auth | `http://localhost:2026` |
 | Accounting | `http://localhost:2025` |
 | Notifications | `http://localhost:2023` |
 | IntegralCES | `http://localhost:2029` |
 | Credit Commons test node | `http://localhost:2024` |
-| phpMyAdmin | `http://localhost:2026` |
+| phpMyAdmin | `http://localhost:2022` |
 | Redis Commander | `http://localhost:2027` |
 
 Default demo credentials are password `komunitin`; common users include `noether@komunitin.org`, `euclides@komunitin.org`, and `riemann@komunitin.org`.

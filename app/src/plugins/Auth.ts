@@ -37,9 +37,9 @@ export interface AuthData {
  */
 export class Auth {
   public static readonly STORAGE_KEY: string = "auth-session";
-  public static readonly SCOPES = "komunitin_social komunitin_accounting email offline_access openid profile";
+  public static readonly SUPERADMIN_SCOPE = "superadmin";
+  public static readonly SCOPES = `komunitin_social komunitin_accounting email offline_access openid profile ${Auth.SUPERADMIN_SCOPE}`;
   public static readonly AUTH_SCOPE = "komunitin_auth";
-  public static readonly SUPERADMIN_SCOPE = "komunitin_superadmin";
 
   private readonly tokenEndpoint: string;
   private readonly resetPasswordEndpoint: string;
@@ -118,12 +118,12 @@ export class Auth {
    * @param email The user email
    * @param password The user password
    */
-  public async login({email, password, superadmin = false}: {email: string, password: string, superadmin?: boolean}): Promise<AuthData> {
+  public async login({email, password}: {email: string, password: string}): Promise<AuthData> {
     const tokens = await this.tokenRequest({
       username: email,
       password: password,
       grant_type: "password",
-      scope: Auth.SCOPES + (superadmin ? " " + Auth.SUPERADMIN_SCOPE : "")
+      scope: Auth.SCOPES
     });
 
     return tokens;

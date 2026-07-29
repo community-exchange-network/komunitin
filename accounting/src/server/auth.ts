@@ -10,7 +10,7 @@ import { verifyExternalToken } from "../controller/external-jwt"
 export enum Scope {
   Accounting = "komunitin_accounting",
   AccountingReadAll = "komunitin_accounting_read_all",
-  Superadmin = "komunitin_superadmin",
+  Superadmin = "superadmin",
 }
 
 const buildJwt = () => {
@@ -140,4 +140,3 @@ const handleAuthRequest = (scopes: Scope|Scope[]|undefined, req: Request, res: R
     }
   })
 }
-

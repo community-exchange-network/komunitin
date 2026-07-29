@@ -20,6 +20,7 @@
         "maxStructFields": -1
       }
     },
+    // Node inspect ports mirror service HTTP ports: 2023 -> 9223, 2025 -> 9225, 2026 -> 9226, 2028 -> 9228.
     {
       "name": "Notifications TS service",
       "type": "node",
@@ -36,9 +37,33 @@
       "name": "Accounting service",
       "type": "node",
       "request": "attach",
-      "port": 9229,
+      "port": 9225,
       "address": "localhost",
       "localRoot": "${workspaceFolder}/accounting",
+      "remoteRoot": "/app",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "name": "Auth service",
+      "type": "node",
+      "request": "attach",
+      "port": 9226,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/auth",
+      "remoteRoot": "/app",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "name": "Social service",
+      "type": "node",
+      "request": "attach",
+      "port": 9228,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/social",
       "remoteRoot": "/app",
       "skipFiles": [
         "<node_internals>/**"
