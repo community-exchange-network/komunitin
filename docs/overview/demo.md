@@ -2,7 +2,7 @@
 
 ### Explore the demo
 
-**NOTE:** The current stack does not seed demo data anymore. The following text is legacy and does not apply to the lastest version of the app. Demo data will be restored in the near future.
+**NOTE:** The current stack does not seed demo data anymore. The following text is legacy and does not apply to the latest version of the app. Demo data will be restored in the near future.
 
 Use the demo to experiment the app and discover all the features by yourself before starting a new community. Don't hesitate to make transfers and create offers and needs. Find the demo at:
 

@@ -64,8 +64,8 @@ if [ "$dev" = true ] && [ "$public" = true ]; then
   exit 1
 fi
 
-if [ "$up" = false ] && { [ "$dev" = true ] || [ "$public" = true ] || [ "$prune" = true ]; }; then
-  echo "Options --dev, --public and --prune require --up." >&2
+if [ "$up" = false ] && { [ "$reset" = true ] || [ "$dev" = true ] || [ "$public" = true ] || [ "$prune" = true ]; }; then
+  echo "Options --reset, --dev, --public and --prune require --up." >&2
   exit 1
 fi
 
