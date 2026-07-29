@@ -9,18 +9,19 @@ build and start the services first.
 
 Options:
   --up          Build and start the services
-  --demo        Reset the service databases and seed them with demo data
+  --reset       Reset the service databases before applying migrations
+  --demo        Deprecated alias for --reset
   --dev         Start with development config (requires --up)
   --public      Start with production config (requires --up)
-  --no-prune    Keep unused Docker resources after startup
+  --prune       Remove unused Docker resources after startup
   -h, --help    Show this help message
 EOF
 }
 
-demo=false
+reset=false
 public=false
 up=false
-noprune=false
+prune=false
 dev=false
 
 while (( $# > 0 )); do
@@ -28,8 +29,12 @@ while (( $# > 0 )); do
     --up)
       up=true
       ;;
+    --reset)
+      reset=true
+      ;;
     --demo)
-      demo=true
+      echo "Warning: --demo is deprecated; use --reset." >&2
+      reset=true
       ;;
     --public)
       public=true
@@ -37,8 +42,8 @@ while (( $# > 0 )); do
     --dev)
       dev=true
       ;;
-    --no-prune)
-      noprune=true
+    --prune)
+      prune=true
       ;;
     -h|--help)
       usage
@@ -59,8 +64,8 @@ if [ "$dev" = true ] && [ "$public" = true ]; then
   exit 1
 fi
 
-if [ "$up" = false ] && { [ "$dev" = true ] || [ "$public" = true ] || [ "$noprune" = true ]; }; then
-  echo "Options --dev, --public and --no-prune require --up." >&2
+if [ "$up" = false ] && { [ "$dev" = true ] || [ "$public" = true ] || [ "$prune" = true ]; }; then
+  echo "Options --dev, --public and --prune require --up." >&2
   exit 1
 fi
 
@@ -71,7 +76,7 @@ set +a
 
 # for social db, prisma reset does not work well so we remove the volume and let docker 
 # compose recreate it.
-if [ "$demo" = true  ]; then
+if [ "$reset" = true  ]; then
   docker compose down -v db-social
 fi
 
@@ -85,13 +90,17 @@ elif [ "$dev" = true ]; then
   # Docker creates empty directories in their place if the host files are missing,
   # which causes the services to fail to start.
   touch -a app/.env accounting/.env notifications-ts/.env auth/.env social/.env
+  mkdir -p notifications-ts/tmp
   docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans
+  docker compose exec auth pnpm prisma generate
+  docker compose exec social pnpm prisma generate
+  docker compose exec accounting pnpm prisma generate
 else
   docker compose up -d --build --remove-orphans
 fi
 
 # cleanup old images and volumes
-if [ "$noprune" = false ]; then
+if [ "$prune" = true ]; then
   docker system prune -f
 fi
 
@@ -101,7 +110,7 @@ sleep 10
 fi
 
 # Migrate service databases
-if [ "$demo" = true  ]; then
+if [ "$reset" = true  ]; then
   docker compose exec auth pnpm prisma migrate reset --force
   docker compose exec social pnpm prisma migrate deploy
   docker compose exec accounting pnpm prisma migrate reset --force
