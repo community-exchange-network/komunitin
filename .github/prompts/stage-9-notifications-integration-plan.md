@@ -21,7 +21,7 @@ verification covered by Stage 13.
 | Auth action links | `/action-token` and purpose mappings already exist | Verify and harden rather than reimplement |
 | Frontend action pages | `/confirm-email`, `/set-password`, and `/unsubscribe` already exist | Boundary-test them; do not rebuild them in Stage 9 |
 | Social integration | Routes, resource shapes, admins, membership, and filters are stale | Make this the principal implementation work |
-| Accounting integration | Mostly current | Fix transfer-state filtering and pagination |
+| Accounting integration | Mostly current | Add transfer-state filtering |
 | Unsubscribe | Purpose-bound, but generic 24-hour and single-use semantics are unsuitable | Add a long-lived, replayable policy and make the mutation idempotent |
 | End-to-end journeys | Covered again in Stage 13 | Keep Stage 9 to service boundaries; leave complete journeys and reliability to Stage 13 |
 
@@ -142,7 +142,7 @@ public API addition rather than an unrestricted query language.
 The Notifications client is stale, but a generated or shared SDK would turn
 Stage 9 into a broader repository architecture project. Keep
 Notifications-local types contract-faithful and refactor only enough to remove
-duplication in authenticated requests and pagination.
+duplication in authenticated requests.
 
 ## Phase 0: Codify the Boundary and Stabilize the Baseline
 
@@ -153,8 +153,7 @@ duplication in authenticated requests and pagination.
    - Mark client credentials, action-token purposes, frontend pages, and RFC
      headers as present work that must be verified and hardened.
    - Correct the event-token wording.
-   - Add the missing Social resource-shape, pagination, membership, and filter
-     work.
+   - Add the missing Social resource-shape, membership, and filter work.
    - Document the allowlisted Social comparison-filter syntax and fields.
    - Document the `notifications:read` and `notifications:write` route matrix
      and the approved event-publisher subjects.
@@ -381,6 +380,8 @@ Set the Notifications test command to run with
 
 ## Phase 4: Add Allowlisted Comparison Filters to Social
 
+**Status: Done.**
+
 1. Extend Social's shared collection request contract:
 
    - Add `gt`, `gte`, `lt`, and `lte` as the complete comparison operator set.
@@ -486,55 +487,25 @@ Update Notifications-local types to the current Social JSON:API contract:
 - Group and member images are nullable image objects.
 - Group admins are exposed through the admins endpoint or link, not embedded
   `relationships.admins.data`.
-- Users do not contain a `members` relationship.
+- User members are exposed through the `/users/:id/members` endpoint, not
+  embedded `relationships.members.data`.
 
 Do not add compatibility unions such as `string | Image`. Update callers to the
 new contract directly, using a small `imageUrl()` presentation helper only if
 it removes meaningful repetition.
 
-### Membership Ownership
-
-Digest selection currently infers membership from a nonexistent user
-relationship. Replace it with an explicit index derived from
-`MemberWithUsers` results:
-
-```text
-Map<UserId, Set<MemberId>>
-```
-
-Use that index to decide which posts belong to each recipient. Do not restore
-or synthesize a legacy `user.relationships.members` shape.
-
-### Pagination
-
-Social and Accounting generate pagination links using their public base URL,
-while Notifications may reach them through Docker service names. Following
-`links.next` verbatim can leave the internal network or incorrectly hit
-localhost.
-
-Change pagination so it:
-
-- Parses `links.next`.
-- Retains its path and query.
-- Rebuilds the URL using the configured internal service origin.
-- Never follows an arbitrary origin supplied by a response.
-- Uses `page[size]=200` unless a caller needs a smaller page.
-
-Add a multipage test where `links.next` contains a public origin and assert that
-the second request uses the configured internal origin.
-
 ### Accounting
 
-Keep the current Accounting endpoints, but stop relying on unsupported
-`filter[state]=committed`.
+Extend the current Accounting transfer collection endpoints to support
+`filter[state]`.
 
-- Query using supported account and date filters.
-- Filter returned transfers to `attributes.state === "committed"` before
-  newsletter totals and summaries are calculated.
-- Reuse the service-pinned pagination implementation.
-
-Adding an Accounting state filter is reasonable later, but unnecessary to
-complete Stage 9.
+- Add `state` to the allowed filters for both `/:code/transfers` and
+  `/:code/transfers.csv`.
+- Add an Accounting API test proving that `filter[state]=committed` returns
+  only committed transfers while an unfiltered request retains the current
+  default behavior of excluding only deleted transfers.
+- Keep `filter[state]=committed` in the Notifications newsletter query so
+  newsletter totals and summaries are calculated from committed transfers.
 
 ## Phase 6: Update Enrichment, Scheduled Jobs, and Presentation
 
@@ -614,7 +585,7 @@ Then update each consumer:
    - Admins.
    - User settings and member-user filtering.
    - Auth client token, publisher token, and action-token bodies.
-   - Accounting filters and pagination.
+   - Accounting state filters.
 
 4. Make mocks reject:
 
@@ -703,7 +674,6 @@ Stage 9 is complete when:
   remain.
 - All scheduled jobs use allowlisted Social equality and comparison filters
   with canonical resource shapes and field names.
-- Pagination stays on configured internal service origins.
 - Newsletter accounting excludes non-committed transfers.
 - Unsubscribe links remain replayable for the documented lifetime and Social
   applies them idempotently.

@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { mockDate, restoreDate } from '../../mocks/date';
 import { resetWebPushMocks, sendNotification, setVapidDetails } from '../../mocks/web-push';
 import prisma from '../../utils/prisma';
-import { db, createTransfers } from '../../mocks/db';
+import { db, createTransfers, getUserIdForMember } from '../../mocks/db';
 import { createEvent, setupNotificationsTest, subscribeToPushNotifications } from './utils';
 
 const JOB_NAME_SEND_PUSH = 'send-push-notification';
@@ -163,7 +163,7 @@ describe('Push notifications', () => {
 
     const accountUserId = (accountId: string) => {
       const memberId = db.members.find(m => m.relationships.account.data.id === accountId)!.id;
-      return db.users.find(u => u.relationships.members.data.some((r: any) => r.id === memberId))!.id;
+      return getUserIdForMember(memberId);
     }
     const payerUserId = accountUserId(transfer.relationships.payer.data.id);
     const payeeUserId = accountUserId(transfer.relationships.payee.data.id);
