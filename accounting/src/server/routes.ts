@@ -192,7 +192,7 @@ export function getRoutes(controller: BaseService) {
     currencyCollectionHandler(controller, async (currencyController, ctx, params) => {
       return await currencyController.transfers.getTransfers(ctx, params)
     }, TransferSerializer, {
-      filter: ["payer", "payee", "account", "search", "from", "to"],
+      filter: ["payer", "payee", "account", "search", "from", "to", "state"],
       sort: ["created", "updated"],
       include: ["payer", "payee", "currency"]
     }, {checkActive: false})
@@ -202,7 +202,7 @@ export function getRoutes(controller: BaseService) {
     currencyCollectionCsvHandler(controller, async (currencyController, ctx, params) => {
       return await currencyController.transfers.getTransfers(ctx, params)
     }, {
-      filter: ["payer", "payee", "account", "search", "from", "to"],
+      filter: ["payer", "payee", "account", "search", "from", "to", "state"],
       sort: ["created", "updated"]
     }, createTransferCSVMapper, {checkActive: false})
   )
