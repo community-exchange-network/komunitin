@@ -54,4 +54,43 @@ describe("API request authentication", () => {
     const headers = new Headers(fetchMock.mock.calls[0][1].headers)
     expect(headers.get("Authorization")).toBe("Bearer access-token")
   })
+
+  it("refreshes and retries when the rejected token is still current", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(response())
+    vi.stubGlobal("fetch", fetchMock)
+    let accessToken = "expired-token"
+    const auth: AuthService = {
+      accessToken: () => accessToken,
+      refresh: vi.fn(async () => {
+        accessToken = "refreshed-token"
+      })
+    }
+
+    await request<ResourceObject>("http://social.test/users/me", {}, auth)
+
+    expect(auth.refresh).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const retryHeaders = new Headers(fetchMock.mock.calls[1][1].headers)
+    expect(retryHeaders.get("Authorization")).toBe("Bearer refreshed-token")
+  })
+
+  it("does not refresh or retry after logout", async () => {
+    let accessToken: string | undefined = "access-token"
+    const fetchMock = vi.fn().mockImplementationOnce(async () => {
+      accessToken = undefined
+      return new Response(null, { status: 401 })
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    const auth: AuthService = {
+      accessToken: () => accessToken,
+      refresh: vi.fn()
+    }
+
+    await expect(request<ResourceObject>("http://social.test/users/me", {}, auth)).rejects.toBeDefined()
+
+    expect(auth.refresh).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
 })
