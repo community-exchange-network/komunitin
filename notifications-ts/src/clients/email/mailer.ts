@@ -48,7 +48,7 @@ export class Mailer {
   /**
    * Sends an email using the configured SMTP transporter. 
    * 
-   * If DEV_SAVE_NEWSLETTERS is enabled, the email content will also be saved to a local file.
+   * If DEV_SAVE_EMAILS is enabled, the email content will also be saved to a local file.
    * If SMTP is not configured, the method will log a warning and skip sending the email.
    * If an unsubscribe token is provided, RFC 8058 one-click headers are added.
    * If text is not provided, it will be auto-generated from the HTML content.
@@ -57,7 +57,7 @@ export class Mailer {
    * @returns 
    */
   public async sendEmail(message: EmailOptions): Promise<void> {
-    if (config.DEV_SAVE_NEWSLETTERS) {
+    if (config.DEV_SAVE_EMAILS) {
       saveEmail(message);
     }
     

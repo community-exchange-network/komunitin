@@ -29,7 +29,7 @@ const envSchema = z.object({
 
   FLAVOR: z.string().default('komunitin'),
 
-  DEV_SAVE_NEWSLETTERS: z.coerce.boolean().optional().default(false),
+  DEV_SAVE_EMAILS: z.enum(['true', 'false']).default('false').transform(value => value === 'true'),
   PORT: z.coerce.number().int().positive().default(2023),
 });
 
