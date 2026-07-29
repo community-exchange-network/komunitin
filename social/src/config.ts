@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+export const APP_CLIENT_ID = 'komunitin-app'
+export const CLIENT_ID = 'komunitin-social'
+
 const envBoolean = (defaultValue: boolean) => z.preprocess(
   (value) => {
     if (value === '') return undefined
@@ -15,7 +18,6 @@ const envSchema = z.object({
   API_BASE_URL: z.string().default('http://localhost:2028'),
   ACCOUNTING_URL: z.url().default('http://localhost:2025'),
   AUTH_URL: z.url().default('http://localhost:2026'),
-  SOCIAL_CLIENT_ID: z.string().trim().min(1).default('komunitin-social'),
   SOCIAL_CLIENT_SECRET: z.string().trim().min(1).default('komunitin-social-secret'),
   NOTIFICATIONS_API_URL: z.url().default('http://localhost:2023'),
   AUTH_JWT_ISSUER: z.url().default('http://localhost:2026'),

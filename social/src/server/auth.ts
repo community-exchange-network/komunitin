@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express'
 import { auth as authJwt, requiredScopes } from 'express-oauth2-jwt-bearer'
 import { z } from 'zod'
-import { config } from '../config'
+import { APP_CLIENT_ID, config } from '../config'
 import { unauthorized } from '../utils/error'
 import { Scope, type SocialScope } from './scopes'
 
@@ -17,7 +17,6 @@ export type AuthIdentity = {
   isService: boolean
 }
 
-const APP_CLIENT_ID = 'komunitin-app'
 const uuidSchema = z.uuid()
 
 const jwt = authJwt({

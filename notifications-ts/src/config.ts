@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+export const APP_CLIENT_ID = 'komunitin-app';
+export const CLIENT_ID = 'komunitin-notifications';
+
 const envSchema = z.object({
   KOMUNITIN_AUTH_URL: z.string().url(),
   KOMUNITIN_SOCIAL_URL: z.string().url(),
@@ -9,7 +12,6 @@ const envSchema = z.object({
   AUTH_JWT_ISSUER: z.string().url().default('http://auth:2026'),
   AUTH_JWT_AUDIENCE: z.string().min(1).default('urn:komunitin:api'),
   AUTH_JWKS_URL: z.string().url().default('http://auth:2026/.well-known/jwks.json'),
-  NOTIFICATIONS_CLIENT_ID: z.string().min(1),
   NOTIFICATIONS_CLIENT_SECRET: z.string().min(1),
   REDIS_URL: z.string().url().default('redis://db-notifications:6379'),
   // If left empty, no email will be sent

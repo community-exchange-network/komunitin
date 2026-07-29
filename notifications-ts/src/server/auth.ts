@@ -1,5 +1,5 @@
 import { auth as authJwt } from "express-oauth2-jwt-bearer"
-import { config } from "../config"
+import { APP_CLIENT_ID, config } from "../config"
 import type { Request, RequestHandler } from "express"
 import { forbidden, unauthorized } from "../utils/error"
 
@@ -48,7 +48,7 @@ export const userAuth = (scope: NotificationsScope) => {
       throw forbidden("Missing required scope")
     }
     if (
-      payload.client_id !== "komunitin-app"
+      payload.client_id !== APP_CLIENT_ID
       || typeof payload.sub !== "string"
     ) {
       throw forbidden("App user token required")

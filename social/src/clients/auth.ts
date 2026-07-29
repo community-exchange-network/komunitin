@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
-import { config } from '../config'
+import { CLIENT_ID, config } from '../config'
 import { Scope } from '../server/scopes'
 import { AsyncCache, type CacheValue } from '../utils/cache'
 import { badRequest, internalError } from '../utils/error'
@@ -60,7 +60,7 @@ const getCacheKey = (subjectToken: string, scope: AccountingScope): string => {
 
 const requestToken = async (parameters: TokenRequestParameters): Promise<CacheValue<string>> => {
   const body = new URLSearchParams({
-    client_id: config.SOCIAL_CLIENT_ID,
+    client_id: CLIENT_ID,
     client_secret: config.SOCIAL_CLIENT_SECRET,
     ...parameters,
   })
@@ -127,7 +127,7 @@ const requestNotificationsToken = async (): Promise<CacheValue<string>> => {
 const getSocialServiceToken = async (forceRefresh = false): Promise<string> => {
   return getCachedToken(
     serviceTokenCache,
-    config.SOCIAL_CLIENT_ID,
+    CLIENT_ID,
     requestSocialServiceToken,
     forceRefresh,
   )
@@ -136,7 +136,7 @@ const getSocialServiceToken = async (forceRefresh = false): Promise<string> => {
 export const getNotificationsToken = async (forceRefresh = false): Promise<string> => {
   return getCachedToken(
     notificationsTokenCache,
-    config.SOCIAL_CLIENT_ID,
+    CLIENT_ID,
     requestNotificationsToken,
     forceRefresh,
   )
