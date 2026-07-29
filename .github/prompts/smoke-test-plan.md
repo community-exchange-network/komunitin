@@ -1,0 +1,177 @@
+# Browser-Driven Full-Stack Smoke-Test Runbook
+
+## Summary
+
+Run a comprehensive 90–120 minute smoke test against a reset local Docker stack with mocks disabled. Exercise the Vue app through the browser while verifying the Auth → Social → Accounting → Notifications integration chain.
+
+No application or API changes are required. The output is a test report, evidence bundle, and actionable defect list.
+
+## Preparation
+
+- Start from a clean stack with `./start.sh --up --dev --reset` and confirm `KOMUNITIN_APP_MOCK=false`.
+- Record commit SHA, environment configuration, browser/version, viewport, start time, and run ID.
+- Verify:
+  - App loads at `https://localhost:2030`.
+  - Auth, Social, and Notifications `/health` endpoints return success.
+  - No unexpected browser console errors or failed startup requests.
+  - `DEV_SAVE_EMAILS=true`; retrieve action links from `notifications-ts/tmp/emails`, then open them in the browser.
+  - S3-compatible test storage is configured if image-upload tests are required.
+- Use isolated browser contexts for Anonymous, Superadmin, Group Admin, and Member.
+- Test data:
+  - Unique run ID, emails, and unused four-character group code.
+  - Superadmin: `info@komunitin.org` / `komunitin`.
+  - Configure the test group to require terms, one initial offer, a usable payment credit limit, and a dedicated smoke-test category.
+  - Keep credentials and action tokens out of reports and screenshots.
+
+## Smoke-Test Matrix
+
+### Community and identity lifecycle
+
+- **SMK-001 — Anonymous access**
+  - Explore communities, search, open a public community, and inspect public offers/members.
+  - Opening a protected route must redirect to login and preserve the intended destination.
+
+- **SMK-002 — Group-administrator signup**
+  - Start “new community” signup, validate required credentials, register, and request email resend.
+  - Confirm a verification email is produced.
+  - Open its link in the browser and verify confirmation does not create a session.
+  - Log in and resume automatically at the community creation form.
+
+- **SMK-003 — Community request**
+  - Enter identity, address, coordinates, contacts, and currency information.
+  - Submit and verify the community is `pending`, absent from anonymous results, and owned by the requesting administrator.
+  - Verify the appropriate group-request notification/email is produced.
+
+- **SMK-004 — Superadmin activation**
+  - Verify a non-superadmin cannot access `/superadmin`.
+  - Log in as superadmin, locate the pending community, and activate it.
+  - Verify it becomes public and active, Accounting currency data becomes available, and the administrator receives the activation email.
+
+- **SMK-005 — Community configuration**
+  - As superadmin, edit the community description/contact information.
+  - Configure terms, minimum offers, initial limits, email defaults, and a smoke-test category.
+  - Reload each page and confirm persisted values.
+
+- **SMK-006 — Administrator membership**
+  - Log in as the community creator and join the newly activated community.
+  - Accept terms, complete the profile, add a contact and required offer, and submit.
+  - Verify the membership is pending.
+  - As superadmin, accept it and verify an Accounting account is created.
+  - Log back in and confirm the group-admin menu and active account are available.
+
+- **SMK-007 — Ordinary member signup**
+  - In a fresh anonymous context, join the community using a second identity.
+  - Confirm email, log in, finish profile and required offer, and submit.
+  - Verify the member sees a pending/inactive state and the group administrator receives the request notification.
+
+- **SMK-008 — Member acceptance**
+  - As group admin, find the request under account management and accept it.
+  - Verify the member becomes active, an Accounting account with configured defaults appears, and welcome notifications are generated.
+  - Verify search, sorting, pagination, and CSV download produce the member.
+
+### Member and marketplace operations
+
+- **SMK-009 — Login, session, and navigation**
+  - Log in as the member, reload the browser, navigate through Home, profile, community, transactions, and logout.
+  - Verify session restoration, balances, browser back navigation, and post-login redirect.
+
+- **SMK-010 — Profile and settings**
+  - Update name, description, location, contacts, and profile image.
+  - Change account, notification, and email preferences.
+  - Reload and verify persistence; confirm the administrator sees the updated profile.
+  - If S3 is unavailable, mark only upload coverage as blocked and record the configuration gap.
+
+- **SMK-011 — Offer lifecycle**
+  - Create an offer with category, description, value, expiry, and image; preview and publish it.
+  - Find it through home/community search and another user’s browser.
+  - Edit it, hide it, verify it disappears publicly, republish it, then delete it.
+  - Verify ownership and admin edit permissions while unrelated members cannot mutate it.
+
+- **SMK-012 — Need lifecycle**
+  - Create, preview, publish, search, edit, hide/republish, and delete a need.
+  - Verify public visibility and permissions after every state change.
+
+- **SMK-013 — Accounting transaction**
+  - Send a small payment from the ordinary member to the administrator.
+  - Review the confirmation before committing.
+  - Verify committed status, description, both account balances, transaction histories, and the group-admin transaction list.
+  - Reload both sessions to prove persistence; balances must change by equal and opposite amounts.
+
+- **SMK-014 — Notifications**
+  - Check notifications resulting from group request/activation, member request/acceptance, post publication, and payment.
+  - Verify intended non-actor recipients, unread badge, notification links, mark-as-read behavior, and relevant saved emails.
+  - Poll asynchronous delivery for up to 60 seconds rather than using fixed sleeps.
+
+### Administration, permissions, and recovery
+
+- **SMK-015 — Member administration**
+  - Edit the ordinary member’s profile and account limits.
+  - Suspend the account and verify the member sees an inactive banner and cannot transact or publish.
+  - Resume it and verify normal operation returns.
+  - Disable and re-enable the account, checking Social and Accounting status remain synchronized.
+
+- **SMK-016 — Community administration**
+  - Edit group information and category/settings values as group admin.
+  - Disable the community and verify it disappears from anonymous discovery and operations are blocked.
+  - Re-enable it and verify public browsing and member operations recover.
+
+- **SMK-017 — Authorization boundaries**
+  - As an ordinary member, directly open group-admin URLs: no admin data or mutations may be allowed.
+  - As group admin, directly open superadmin URLs: the app must redirect through logout/login and deny access.
+  - As anonymous user, hidden posts, pending members, pending groups, and private administration data must remain inaccessible.
+  - Treat any client-side exposure backed by a successful unauthorized API response as a release-blocking security defect.
+
+- **SMK-018 — Authenticated password change**
+  - Enter an incorrect current password and verify a controlled validation error.
+  - Change it with the correct password, log out, verify the old password fails, and verify the new password succeeds.
+
+- **SMK-019 — Email change**
+  - Request a new email, verify the saved confirmation message, and open its link.
+  - Confirmation must log the user out.
+  - Verify the old email no longer authenticates, the new email does, and the Social profile reflects the confirmed Auth email.
+
+- **SMK-020 — Password reset**
+  - Request reset for both a known and unknown email; the visible response must not reveal account existence.
+  - Open the known account’s reset link, set a new password, and verify no session is created automatically.
+  - Verify the previous password fails, the new password succeeds, and the reset token cannot change the password again.
+
+- **SMK-021 — Member deletion**
+  - Return the member’s balance to zero, then delete the membership using the current password.
+  - Verify the Social member and posts disappear, the Accounting account is removed, but the Auth identity can still log in and start a new membership.
+
+- **SMK-022 — Pending-community rejection**
+  - Create a second minimal pending community with another identity.
+  - Delete it as superadmin and verify it disappears while the creator’s Auth identity remains usable.
+  - Run this destructive case last.
+
+- **SMK-023 — Responsive spot check**
+  - Repeat anonymous discovery, login, member home, profile menu, offer creation, and transaction history at approximately `390×844`.
+  - Check for blocked controls, clipped dialogs, inaccessible menus, and unusable scrolling.
+
+## Evidence and Defect Process
+
+- Create `artifacts/smoke/<run-id>/` containing:
+  - `report.md` with every case marked Pass, Fail, Blocked, or Skipped.
+  - `screenshots/`, sanitized network evidence, console output, and relevant service logs.
+  - A test-data manifest containing identifiers but no passwords or action tokens.
+- Capture screenshots at major lifecycle checkpoints and every failure. Name them `SMK-###-<step>-<short-description>.png`.
+- A toast alone is not proof: reload and verify through another page or persona after every cross-service mutation.
+- On failure:
+  1. Capture the current UI, URL, console, and failed network request before retrying.
+  2. Redact authorization headers, cookies, passwords, and action-token query strings.
+  3. Retry once using a reload or fresh browser context.
+  4. If reproducible, capture the owning service logs and file a defect; never silently retry until it passes.
+- Defect records must contain title, severity, run/environment, case ID, prerequisites, exact steps, expected/actual result, reproducibility, screenshot, sanitized request/response, relevant logs, suspected service boundary, and workaround.
+- Severity:
+  - **P0:** security breach, data corruption, or stack-wide outage; stop the run.
+  - **P1:** signup, activation, acceptance, login, or payment path broken.
+  - **P2:** important user/admin operation degraded with a workaround.
+  - **P3:** visual, wording, or minor usability issue.
+- Record non-bug findings separately: unclear UX, flaky timing, missing observability, configuration gaps, and documentation problems.
+- Preserve failed state until evidence is collected. Reset test data only after the report and defects are complete.
+
+## Acceptance and Assumptions
+
+- The run is green only if all non-optional cases pass, there are no P0/P1 defects, no unauthorized access, no unexplained browser errors, and no unexpected API `4xx/5xx` responses.
+- Default target is a reset local stack with saved HTML emails and comprehensive coverage because no environment preference was supplied.
+- Optional external SMTP delivery, push permission/device delivery, NFC hardware, top-ups, Credit Commons transfers, and IntegralCES migration are outside this core run unless their dependencies are explicitly configured.
