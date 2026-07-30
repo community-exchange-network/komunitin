@@ -372,9 +372,8 @@ export const patchMember = async (
     if (to === 'active' || to === 'disabled' || to === 'suspended') {
       const currencyCode = getCurrencyCode(group)
       const account = await syncAccountStatus(ctx, member, currencyCode, to)
-      if (!member.accountId) {
-        data.accountId = account.id
-      }     
+      data.accountId = account.id
+      data.accountHref = account.href
     }
     data.status = to
   }

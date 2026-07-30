@@ -26,11 +26,14 @@ CREATE TABLE "Group" (
     "settings" JSONB NOT NULL DEFAULT '{}',
     "meta" JSONB,
     "currencyId" TEXT,
+    "currencyHref" VARCHAR(2048),
     "created" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" TIMESTAMP(3) NOT NULL,
     "deleted" TIMESTAMP(3),
 
-    CONSTRAINT "Group_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Group_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "Group_currency_reference_check"
+        CHECK (("currencyId" IS NULL) = ("currencyHref" IS NULL))
 );
 
 -- CreateTable
@@ -60,12 +63,15 @@ CREATE TABLE "Member" (
     "contacts" JSONB,
     "meta" JSONB,
     "accountId" UUID,
+    "accountHref" VARCHAR(2048),
     "created" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" TIMESTAMP(3) NOT NULL,
     "deleted" TIMESTAMP(3),
     "groupId" UUID NOT NULL,
 
-    CONSTRAINT "Member_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Member_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "Member_account_reference_check"
+        CHECK (("accountId" IS NULL) = ("accountHref" IS NULL))
 );
 
 -- CreateTable

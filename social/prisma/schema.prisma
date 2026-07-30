@@ -71,8 +71,9 @@ model Group {
   settings Json @default("{}") // GroupSettings
   meta     Json? // GroupMeta
 
-  // Currency id in accounting service.
-  currencyId String?
+  // Currency reference in accounting service.
+  currencyId   String?
+  currencyHref String? @db.VarChar(2048)
 
   created DateTime  @default(now())
   updated DateTime  @updatedAt
@@ -126,8 +127,9 @@ model Member {
 
   meta Json? // MemberMeta
 
-  // Account id in accounting service.
-  accountId String? @db.Uuid
+  // Account reference in accounting service.
+  accountId   String? @db.Uuid
+  accountHref String? @db.VarChar(2048)
 
   created DateTime  @default(now())
   updated DateTime  @updatedAt

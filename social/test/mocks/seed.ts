@@ -1,6 +1,7 @@
 import type { Category, File, Group, GroupAdminUser, Member, MemberUser, Post, User } from '../../src/generated/prisma/client'
 import { privilegedDb } from '../../src/server/multitenant'
 import prisma, { toNullableJsonInput } from '../../src/utils/prisma'
+import { accountingAccountHref, accountingCurrencyHref } from './accounting'
 import { toUuid } from './utils'
 
 let groupCounter = 0
@@ -145,6 +146,9 @@ export const seedUser = async (data: Partial<User> = {}): Promise<User> => {
 
 export const seedGroup = async (data: SeedGroupInput): Promise<Group> => {
   const defaults = defaultGroupData()
+  const currencyHref = data.currencyId
+    ? data.currencyHref ?? accountingCurrencyHref(data.tenantId)
+    : undefined
 
   const group = await db().group.create({
     data: {
@@ -163,6 +167,7 @@ export const seedGroup = async (data: SeedGroupInput): Promise<Group> => {
       settings: toNullableJsonInput(data.settings ?? defaults.settings),
       deleted: data.deleted,
       currencyId: data.currencyId,
+      currencyHref,
     },
   })
 
@@ -206,6 +211,10 @@ export const seedMember = async (data: SeedMemberInput): Promise<Member> => {
   const group = await getGroupByTenant(data.tenantId)
   const defaults = defaultMemberData()
   const {userId, ...input} = data
+  const accountId = data.accountId ? toUuid(data.accountId) : undefined
+  const accountHref = accountId
+    ? data.accountHref ?? accountingAccountHref(data.tenantId, accountId)
+    : data.accountHref
 
   const member = await db().member.create({
     data: {
@@ -217,7 +226,8 @@ export const seedMember = async (data: SeedMemberInput): Promise<Member> => {
       address: toNullableJsonInput(data.address),
       contacts: toNullableJsonInput(data.contacts),
       meta: toNullableJsonInput(data.meta),
-      accountId: data.accountId ? toUuid(data.accountId) : undefined,
+      accountId,
+      accountHref,
     },
   })
 
