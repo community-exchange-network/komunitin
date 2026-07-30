@@ -2,7 +2,7 @@
 
 ## Summary
 
-Run a comprehensive 90–120 minute smoke test against a reset local Docker stack with mocks disabled. Exercise the Vue app through the browser while verifying the Auth → Social → Accounting → Notifications integration chain.
+Run a comprehensive smoke test against a reset local Docker stack with mocks disabled. Exercise the Vue app through the browser while verifying the Auth → Social → Accounting → Notifications integration chain.
 
 No application or API changes are required. The output is a test report, evidence bundle, and actionable defect list.
 
@@ -10,12 +10,30 @@ No application or API changes are required. The output is a test report, evidenc
 
 - Start from a clean stack with `./start.sh --up --dev --reset` and confirm `KOMUNITIN_APP_MOCK=false`.
 - Record commit SHA, environment configuration, browser/version, viewport, start time, and run ID.
+- The development TLS certificate is issued by an `mkcert` CA created inside the
+  app image, so host browser automation does not trust it by default. Use a
+  disposable localhost-only browser context with certificate validation disabled.
+  For Playwright, `ignoreHTTPSErrors` alone is insufficient because the service
+  worker still rejects the certificate; apply the bypass at browser/CDP level too:
+
+  ```ts
+  const browserSession = await browser.newBrowserCDPSession()
+  await browserSession.send("Security.setIgnoreCertificateErrors", { ignore: true })
+  const context = await browser.newContext({ ignoreHTTPSErrors: true })
+  ```
+
+  Do not reuse this certificate bypass for non-local targets.
 - Verify:
   - App loads at `https://localhost:2030`.
   - Auth, Social, and Notifications `/health` endpoints return success.
+  - The PWA service worker installs and controls the page.
   - No unexpected browser console errors or failed startup requests.
+    The exact `GET /config.js?<cache-buster>` HTTP 404 and its console message are
+    expected in development; record it once as environment noise. Do not classify
+    it as a defect or suppress any other failed request.
   - `DEV_SAVE_EMAILS=true`; retrieve action links from `notifications-ts/tmp/emails`, then open them in the browser.
-  - S3-compatible test storage is configured if image-upload tests are required.
+  - Image uploads go through the Social API. Verify that the returned
+    `https://localhost:9191/komunitin/uploads/...` S3Mock URL loads in the browser.
 - Use isolated browser contexts for Anonymous, Superadmin, Group Admin, and Member.
 - Test data:
   - Unique run ID, emails, and unused four-character group code.
@@ -79,7 +97,8 @@ No application or API changes are required. The output is a test report, evidenc
   - Update name, description, location, contacts, and profile image.
   - Change account, notification, and email preferences.
   - Reload and verify persistence; confirm the administrator sees the updated profile.
-  - If S3 is unavailable, mark only upload coverage as blocked and record the configuration gap.
+  - Verify the browser sends the image to the Social API and can load the returned
+    S3Mock HTTPS URL; it must not upload directly to S3Mock.
 
 - **SMK-011 — Offer lifecycle**
   - Create an offer with category, description, value, expiry, and image; preview and publish it.
@@ -169,6 +188,7 @@ No application or API changes are required. The output is a test report, evidenc
   - **P3:** visual, wording, or minor usability issue.
 - Record non-bug findings separately: unclear UX, flaky timing, missing observability, configuration gaps, and documentation problems.
 - Preserve failed state until evidence is collected. Reset test data only after the report and defects are complete.
+- Keep updating the report on the go so we can stop and resume the session without losing progress.
 
 ## Acceptance and Assumptions
 
