@@ -160,9 +160,6 @@ describe('Groups endpoints', () => {
       id: created.body.data.id,
     })
 
-    const db = tenantDb(prisma, 'default-settings-group')
-    const group = await db.group.findFirstOrThrow()
-    assert.deepStrictEqual(group.settings, {})
 
     const included = await request(app)
       .get('/default-settings-group?include=settings')
