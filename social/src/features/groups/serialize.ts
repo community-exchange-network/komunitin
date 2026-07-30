@@ -59,7 +59,7 @@ export const GroupSerializer = new Serializer<SerializableGroup>('groups', {
       }
     }, GroupSettingsSerializer, { relatedName: 'settings' }),
     currency: new Relator<SerializableGroup, { id: string; href: string }>(async (group) => {
-      if (!group.currencyId ||!group.currencyHref) {
+      if (!group.currencyId || !group.currencyHref) {
         return undefined
       }
 

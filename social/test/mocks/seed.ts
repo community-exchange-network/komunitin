@@ -148,7 +148,7 @@ export const seedGroup = async (data: SeedGroupInput): Promise<Group> => {
   const defaults = defaultGroupData()
   const currencyHref = data.currencyId
     ? data.currencyHref ?? accountingCurrencyHref(data.tenantId)
-    : data.currencyHref
+    : undefined
 
   const group = await db().group.create({
     data: {
