@@ -49,10 +49,6 @@ export const GroupSerializer = new Serializer<SerializableGroup>('groups', {
   },
   relators: {
     settings: new Relator<SerializableGroup, OutputGroupSettings>(async (group) => {
-      if (!group.settings) {
-        return undefined
-      }
-
       return {
         groupCode: group.code,
         groupId: group.id,

@@ -107,7 +107,7 @@ describe('Groups endpoints', () => {
       .expect(401)
   })
 
-  test('POST /groups creates pending group with optional settings include', async () => {
+  test('POST /groups creates pending group with included settings', async () => {
     const { id: subject, token } = await auth('user-1')
 
     const res = await postGroup(token, 'alpha-group', { includeSettings: true })
@@ -147,6 +147,56 @@ describe('Groups endpoints', () => {
     assert.strictEqual(events[0].data.attributes.name, 'GroupRequested')
     assert.strictEqual(events[0].data.attributes.code, 'alpha-group')
     assert.strictEqual(events[0].data.attributes.data.group, 'alpha-group')
+  })
+
+  test('POST /groups creates default settings when omitted', async () => {
+    const { token } = await auth('default-settings-user')
+
+    const created = await postGroup(token, 'default-settings-group')
+      .expect(201)
+
+    assert.deepStrictEqual(created.body.data.relationships.settings.data, {
+      type: 'group-settings',
+      id: created.body.data.id,
+    })
+
+    const db = tenantDb(prisma, 'default-settings-group')
+    const group = await db.group.findFirstOrThrow()
+    assert.deepStrictEqual(group.settings, {})
+
+    const included = await request(app)
+      .get('/default-settings-group?include=settings')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(included.body.data.relationships.settings.data, {
+      type: 'group-settings',
+      id: created.body.data.id,
+    })
+    assert.strictEqual(included.body.included.length, 1)
+    assert.strictEqual(included.body.included[0].type, 'group-settings')
+    assert.strictEqual(included.body.included[0].id, created.body.data.id)
+    assert.deepStrictEqual(included.body.included[0].attributes, {})
+
+    await request(app)
+      .patch('/default-settings-group/settings')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        data: {
+          type: 'group-settings',
+          attributes: {
+            minOffers: 1,
+          },
+        },
+      })
+      .expect(200)
+
+    const settings = await request(app)
+      .get('/default-settings-group/settings')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+
+    assert.strictEqual(settings.body.data.attributes.minOffers, 1)
   })
 
   test('POST /groups stores the public currency request in group meta', async () => {

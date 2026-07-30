@@ -139,7 +139,7 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
     latitude: location.latitude,
     longitude: location.longitude,
     
-    settings: input.settings,
+    settings: input.settings ?? {},
     meta: toNullableJsonInput(attributes.meta as GroupMeta),
   }
 
@@ -428,7 +428,7 @@ export const patchGroupSettingsByCode = async (
     throw forbidden('You do not have permission to update this group')
   }
 
-  const currentSettings = group.settings as Prisma.JsonObject || {}
+  const currentSettings = group.settings as Prisma.JsonObject
   const mergedSettings: Prisma.InputJsonObject = {
     ...currentSettings,
     ...attributes,
