@@ -1,3 +1,3 @@
-code,type,member_code,category_code,title,description,status,access,value,fulfilled_at,expires_at,created_at,updated_at,location_name,location_type,location_longitude,location_latitude,image_urls
+code,type,memberCode,categoryCode,title,description,status,access,value,fulfilledAt,expiresAt,createdAt,updatedAt,location.name,location.type,location.longitude,location.latitude,imageUrls
 fresh-bread,offer,EXMP0001,help,Fresh bread,I bake sourdough loaves every Friday.,published,public,3 EXMP,,,2025-01-02T10:00:00Z,2025-01-02T10:00:00Z,,,,,https://example.org/bread.jpg
 moving-help,want,EXMP0002,help,,Looking for help moving one bookcase.,published,public,,,,2025-01-03T10:00:00Z,2025-01-03T10:00:00Z,,,,,
