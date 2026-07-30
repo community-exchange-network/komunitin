@@ -75,8 +75,8 @@ onMounted(async () => {
   const token = route.query.token as string;
   const socialApiUrl = config.SOCIAL_URL
   try {
-    // POST to /users/me/unsubscribe with the token
-    const response = await fetch(`${socialApiUrl}/users/me/unsubscribe?token=${token}`, {
+    // POST to /users/unsubscribe with the token
+    const response = await fetch(`${socialApiUrl}/users/unsubscribe?token=${token}`, {
       method: 'POST',
     });
     await checkFetchResponse(response);

@@ -36,7 +36,6 @@ services:
       - "2025:2025"
       - "9225:9225"
     volumes:
-      - ./accounting/cli:/app/cli
       - ./accounting/openapi:/app/openapi
       - ./accounting/prisma:/app/prisma
       - ./accounting/src:/app/src
@@ -62,6 +61,30 @@ services:
       - ./auth/prisma.config.ts:/app/prisma.config.ts
       - ./auth/tsconfig.json:/app/tsconfig.json
   
+  social:
+    command: pnpm dev
+    ports:
+      - "2028:2028"
+      - "9228:9228"
+    volumes:
+      - ./social/src:/app/src
+      - ./social/prisma:/app/prisma
+      - ./social/test:/app/test
+      - ./social/.env:/app/.env
+      - ./social/build.config.ts:/app/build.config.ts
+      - ./social/package.json:/app/package.json
+      - ./social/pnpm-lock.yaml:/app/pnpm-lock.yaml
+      - ./social/pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./social/prisma.config.ts:/app/prisma.config.ts
+      - ./social/tsconfig.json:/app/tsconfig.json
+
+  s3mock:
+    image: adobe/s3mock:5
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: komunitin
+    ports:
+      - "9191:9191"
+
   notifications-ts:
     command: pnpm dev
     ports:
@@ -73,6 +96,7 @@ services:
       - ./notifications-ts/.env:/app/.env
       - ./notifications-ts/package.json:/app/package.json
       - ./notifications-ts/pnpm-lock.yaml:/app/pnpm-lock.yaml
+      - ./notifications-ts/tmp:/app/tmp
 
   cc:
     build:
@@ -85,16 +109,6 @@ services:
       - "trunk.cc-server:127.0.0.1"
       - "branch2.cc-server:127.0.0.1"
 
-  phpmyadmin:
-    image: phpmyadmin
-    restart: unless-stopped
-    depends_on:
-      - db-integralces
-    environment:
-      PMA_HOSTS: "db-integralces,db-accounting"
-      PMA_PORTS: "3306,5432"
-    ports:
-      - "2022:80"
   db-notifications:
     ports:
       - "6379:6379"

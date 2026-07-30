@@ -89,8 +89,17 @@ export type GroupEvent = NotificationEvent & {
   };
 };
 
-export type UserEvent = BaseEvent & {
-  name: UserEventName;
+export type SignupContext = {
+  name: string;
+  language: string;
+} & ({
+  type: 'group';
+} | {
+  type: 'member';
+  groupCode: string;
+});
+
+type UserEventBase = Omit<BaseEvent, 'name' | 'data'> & {
   code: string | null;
   data: {
     // That should usually be the same as the user field, 
@@ -98,7 +107,20 @@ export type UserEvent = BaseEvent & {
     // an email validation for a different user than the 
     // one who triggered the event.
     user: string;
+    email: string;
   };
 };
+
+export type UserEvent =
+  | UserEventBase & {
+      name: typeof EVENT_NAME.ValidationEmailRequested;
+      data: UserEventBase['data'] & {
+        purpose: 'emailChange' | 'emailVerification';
+        signup?: SignupContext;
+      };
+    }
+  | UserEventBase & {
+      name: typeof EVENT_NAME.PasswordResetRequested;
+    };
 
 export type AnyNotificationEvent = NotificationEvent | UserEvent;

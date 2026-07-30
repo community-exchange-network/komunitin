@@ -4,7 +4,7 @@
     :code="code"
     :title="$t('needs')"
     type="needs"
-    include="category,member,member.contacts"
+    include="category,member"
   >
     <template #after>
       <floating-btn

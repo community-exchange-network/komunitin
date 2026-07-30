@@ -34,8 +34,8 @@ paths:
   /register:
     post:
       tags: [Registration]
-      summary: Register a new auth user
-      description: Creates an unverified auth identity and queues an email validation message. This endpoint does not create an OAuth session or any social onboarding state.
+      summary: Register an auth user
+      description: Creates an unverified auth identity, or refreshes an existing unverified registration, and queues an email validation message. The required signup continuation is stored only on the purpose-bound verification token. Verified identities cannot be replaced. This endpoint does not create an OAuth session or a Social resource.
       operationId: postRegister
       requestBody:
         required: true
@@ -45,11 +45,11 @@ paths:
               $ref: '#/components/schemas/RegisterPayload'
       responses:
         '201':
-          description: Auth user created.
+          description: Auth user created or unverified registration refreshed.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RegisterResponse'
+                $ref: '#/components/schemas/AuthUserResponse'
         '400':
           description: Invalid request.
           content:
@@ -57,7 +57,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JsonApiErrors'
         '409':
-          description: Email is already registered.
+          description: Email belongs to a verified identity.
           content:
             application/json:
               schema:
@@ -77,6 +77,7 @@ paths:
         `urn:ietf:params:oauth:grant-type:token-exchange` grant types.
         Email action tokens from password reset and email validation flows are
         not redeemable here and must be sent to their dedicated endpoints.
+        The password grant rejects users whose email is not yet verified.
       operationId: postToken
       requestBody:
         required: true
@@ -222,12 +223,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JsonApiErrors'
-  /change-email/confirm:
+  /email/confirm:
     post:
       tags: [Email]
       summary: Confirm an email change or email verification
-      description: Consumes a single-use email action token and does not create an OAuth session.
-      operationId: postConfirmEmailChange
+      description: |
+        Consumes a time-limited email action token and does not create an OAuth
+        session. Email verification confirmation is idempotent until the token
+        expires while its target remains the user's verified email. Email
+        change tokens remain strictly single-use.
+      operationId: postConfirmEmail
       requestBody:
         required: true
         content:
@@ -240,7 +245,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusResponse'
+                $ref: '#/components/schemas/AuthUserResponse'
         '400':
           description: Invalid or expired token.
           content:
@@ -287,7 +292,12 @@ paths:
     post:
       tags: [Email]
       summary: Create a purpose-bound email action token
-      description: Internal endpoint for the notifications service. Returns a token for one explicit action and never creates an OAuth session.
+      description: |
+        Internal endpoint for the notifications service. Returns a token for
+        one explicit action and never creates an OAuth session. Password and
+        email tokens expire after 24 hours and replace an earlier pending token
+        of the same purpose. Unsubscribe tokens expire after one year and do
+        not replace earlier unsubscribe tokens.
       operationId: postActionToken
       security:
         - bearerAuth: []
@@ -316,6 +326,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JsonApiErrors'
+  /redeem-action-token:
+    post:
+      tags: [Email]
+      summary: Resolve an unsubscribe action token
+      description: |
+        Internal endpoint for the Social service. Valid unsubscribe tokens are
+        replayable until expiry so the preference mutation can be retried
+        safely. This endpoint never creates an OAuth session.
+      operationId: postRedeemActionToken
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemActionTokenPayload'
+      responses:
+        '200':
+          description: Resolved unsubscribe action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedeemedActionToken'
+        '400':
+          description: Invalid, expired, or wrong-purpose token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
+        '401':
+          description: Missing or invalid Social client token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonApiErrors'
 components:
   securitySchemes:
     bearerAuth:
@@ -332,7 +378,7 @@ components:
           enum: [ok]
     RegisterPayload:
       type: object
-      required: [email, password]
+      required: [email, password, signup]
       properties:
         email:
           type: string
@@ -340,7 +386,33 @@ components:
         password:
           type: string
           minLength: 8
-    RegisterResponse:
+        signup:
+          $ref: '#/components/schemas/SignupContext'
+    SignupContext:
+      oneOf:
+        - type: object
+          required: [type, name, language]
+          properties:
+            type:
+              type: string
+              enum: [group]
+            name:
+              type: string
+            language:
+              type: string
+        - type: object
+          required: [type, name, language, groupCode]
+          properties:
+            type:
+              type: string
+              enum: [member]
+            name:
+              type: string
+            language:
+              type: string
+            groupCode:
+              type: string
+    AuthUserResponse:
       type: object
       required: [id, email, emailVerified]
       properties:
@@ -352,12 +424,18 @@ components:
           format: email
         emailVerified:
           type: boolean
+        signup:
+          $ref: '#/components/schemas/SignupContext'
     TokenResponse:
       type: object
       required: [access_token, expires_in, token_type, scope]
       properties:
         access_token:
           type: string
+          description: |
+            Signed JWT for audience `urn:komunitin:api`. The `client_id` claim
+            identifies the OAuth client. User tokens use the canonical user UUID
+            as `sub`; client-credentials tokens use the client id.
         refresh_token:
           type: string
         expires_in:
@@ -429,6 +507,8 @@ components:
             purpose:
               type: string
               enum: [emailVerification]
+            signup:
+              $ref: '#/components/schemas/SignupContext'
         - type: object
           required: [userId, purpose]
           properties:
@@ -447,6 +527,28 @@ components:
         email:
           type: string
           format: email
+    RedeemActionTokenPayload:
+      type: object
+      required: [token, purpose]
+      properties:
+        token:
+          type: string
+        purpose:
+          type: string
+          enum: [unsubscribe]
+    RedeemedActionToken:
+      type: object
+      required: [userId, email, purpose]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        purpose:
+          type: string
+          enum: [unsubscribe]
     JsonApiErrors:
       type: object
       required: [errors]

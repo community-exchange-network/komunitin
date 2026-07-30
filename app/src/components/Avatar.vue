@@ -6,7 +6,7 @@
   >
     <img 
       v-if="imgSrc" 
-      :src="imgSrc"
+      :src="imgSrc?.url"
       style="object-fit: cover;"
     >
     <template v-else>
@@ -17,9 +17,10 @@
 <script setup lang="ts">
 import { colors } from "quasar";
 import { computed } from "vue";
+import type { ImageObject } from "src/store/model";
 
 const props = withDefaults(defineProps<{
-  imgSrc?: string | null,
+  imgSrc?: ImageObject | null,
   text: string,
   size?: string
 }>(), {

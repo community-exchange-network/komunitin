@@ -16,11 +16,11 @@
         </div>
       </div>
       <edit-group-form 
-        v-if="group"
+        v-if="group && currency"
         op="edit"
         :group="group"
-        :contacts="group.contacts"
-        :currency="group.currency"
+        :contacts="group.attributes.contacts"
+        :currency="currency"
         @update:group="saveGroup"
         @update:contacts="saveContacts"
         @update:currency="saveCurrency"
@@ -38,8 +38,7 @@ import EditGroupForm from "./EditGroupForm.vue"
 import PageHeader from "src/layouts/PageHeader.vue";
 import SaveChanges from "src/components/SaveChanges.vue";
 import { computed, ref, watch } from "vue";
-import type { Currency, Group } from "src/store/model";
-import type { PartialContact } from "src/components/MemberContactsField.vue";
+import type { Contact, Currency, Group } from "src/store/model";
 
 const store = useStore()
 const props = defineProps<{
@@ -49,50 +48,76 @@ const props = defineProps<{
 watch(() => props.code, async (code) => {
   await store.dispatch("groups/load", {
     group: code,
-    include: "currency,contacts"
+    include: "currency"
   })
 }, { immediate: true })
-const group = computed(() => store.getters["groups/current"])
+type GroupWithCurrency = Group & { currency?: Currency }
+
+const group = computed<GroupWithCurrency | undefined>(() => store.getters["groups/current"])
+const currency = computed<Partial<Currency["attributes"]> | undefined>(() => {
+  // Currency is stored in the group attributes before the group is approved.
+  return group.value?.attributes.status === "pending"
+    ? group.value.attributes.meta?.request.currency
+    : group.value?.currency?.attributes
+})
 
 const changes = ref<typeof SaveChanges>()
 
 const saveGroup = (group: Group) => {
+  const { name, description, access, image, address, location } = group.attributes
   changes.value?.save(async () => {
     return await store.dispatch("groups/update", {
       group: group.attributes.code,
       resource: {
         attributes: {
-          ...group.attributes
+          name,
+          description,
+          access,
+          image,
+          address,
+          location
         }
       }
     })
   })
 }
-const saveContacts = (contacts: PartialContact[]) => {
+const saveContacts = (contacts: Contact[]) => {
   changes.value?.save(async () => {
     return await store.dispatch("groups/update", {
       group: props.code,
       resource: {
-        relationships: {
-          contacts: {
-            data: contacts.map(c => ({ id: c.id, type: "contacts" }))
-          }
-        }
-      },
-      included: contacts
-    })
-  })
-}
-const saveCurrency = (currency: Currency) => {
-  changes.value?.save(async () => {
-    return await store.dispatch("currencies/update", {
-      group: props.code,
-      resource: {
         attributes: {
-          ...currency.attributes
+          contacts
         }
       }
     })
+  })
+}
+const saveCurrency = (currency: Partial<Currency["attributes"]>) => {
+  changes.value?.save(async () => {
+    if (group.value?.attributes.status === "pending") {
+      return await store.dispatch("groups/update", {
+        group: props.code,
+        resource: {
+          attributes: {
+            meta: {
+              ...group.value.attributes.meta,
+              request: {
+                ...group.value.attributes.meta?.request,
+                currency
+              }
+            }
+          }
+        }
+      })
+    } else {
+      return await store.dispatch("currencies/update", {
+        group: props.code,
+        resource: {
+          attributes: currency
+        }
+      })
+    }
   })
 }
 </script>

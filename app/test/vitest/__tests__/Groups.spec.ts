@@ -1,7 +1,7 @@
  
-import { VueWrapper } from "@vue/test-utils";
+import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../utils";
 import { QInnerLoading, QCard } from "quasar";
 import SimpleMap from '../../../src/components/SimpleMap.vue';
 import GroupCard from "../../../src/components/GroupCard.vue";
@@ -36,8 +36,9 @@ describe("Groups", () => {
     expect(text).toContain("Group 0");
     // Code
     expect(text).toContain("GRP0");
-    // Description
-    expect(text).toContain("Et facere placeat molestiae");
+    const group = wrapper.vm.$store.getters["groups/find"]({ code: "GRP0" });
+    const description = requireTextExcerpt(group.attributes.description, "Group description");
+    expect(text).toContain(description);
 
     // Check cards present.
     const cards = wrapper.findAllComponents(QCard);
@@ -50,12 +51,11 @@ describe("Groups", () => {
     // Members should not show on map, only group center
     expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(1);
     // Location
-    expect(text).toContain("Buckinghamshire");
-    // Contact
-    expect(text).toContain("363-958-4365");
-    expect(text).toContain("Kaci.Donnelly31@yahoo.com");
-    expect(text).toContain("Amir_Mann");
-    expect(text).toContain("186-667-337");
+    expect(text).toContain(requireText(group.attributes.location.name, "Group location"));
+    expect(group.attributes.contacts).not.toHaveLength(0);
+    group.attributes.contacts.forEach((contact: { value: string }) => {
+      expect(text).toContain(requireText(contact.value, "Group contact"));
+    });
   });
 
   it("Renders group members on map if logged in", async () => {
@@ -67,12 +67,18 @@ describe("Groups", () => {
     await wrapper.vm.$nextTick();
     await wrapper.get("button[type='submit']").trigger("click");
     await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true, "User should be logged in");
+    await waitFor(() => wrapper.vm.$route.path, "/home", "Login redirect should finish");
     
     await wrapper.vm.$router.push("/groups/GRP0");
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0");
     await waitFor(() => wrapper.vm.$store.getters["members/currentList"]?.length === 31, true, "Api should finish loading");
-    // Members should show on map
-    // There should really be 32 markers (1 group marker + 31 member markers),
-    // but one of the members has no location data and is filtered out on the page
-    expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(31);
+    // The empty signup fixture has no location, so 30 of the 31 members are
+    // passed to the map as bounds/markers.
+    await waitFor(
+      () => (wrapper.getComponent(SimpleMap).props("bounds") as unknown[])?.length,
+      30,
+      "Member markers should be passed to the map",
+      10000
+    );
   });
 });

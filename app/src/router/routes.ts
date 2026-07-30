@@ -20,6 +20,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/home/LoginMail.vue')
       },
       {
+        path: '/confirm-email',
+        name: 'ConfirmEmail',
+        component: () => import('../pages/home/ConfirmEmail.vue')
+      },
+      {
         path: '/forgot-password',
         name: 'ForgotPassword',
         component: () => import('../pages/home/ForgotPassword.vue')
@@ -77,6 +82,7 @@ const routes: RouteRecordRaw[] = [
         name: 'SetPassword',
         component: () => import('../pages/members/SetPassword.vue'),
         meta: {
+          public: true,
           back: false
         }
       },

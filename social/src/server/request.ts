@@ -16,7 +16,15 @@ export type PaginationOptions = {
   size: number
 }
 
-export type FilterOptions = Record<string, string | string[]>
+export type FilterOptions = Partial<Record<string, string[]>>
+
+export const comparisonOperators = ['gt', 'gte', 'lt', 'lte'] as const
+
+export type ComparisonOperator = typeof comparisonOperators[number]
+
+export type ComparisonOptions = Partial<
+  Record<string, Partial<Record<ComparisonOperator, Date>>>
+>
 
 export type SortOptions = {
   field: string
@@ -27,6 +35,7 @@ export type SortOptions = {
 export type CollectionParams = {
   pagination: PaginationOptions
   filters: FilterOptions
+  comparisons: ComparisonOptions
   sort: SortOptions[]
   include: string[]
   near?: GeoPoint
@@ -34,8 +43,10 @@ export type CollectionParams = {
 
 export type CollectionParamsOptions = {
   filter?: string[]
+  compare?: string[]
   sort: string[]
   include?: string[]
+  near?: boolean
 }
 
 export type ResourceParams = {
@@ -46,35 +57,71 @@ export type ResourceParamsOptions = {
   include?: string[]
 }
 
+export const hasInclude = (params: ResourceParams, path: string) => {
+  return params.include.some((item) => item === path || item.startsWith(`${path}.`))
+}
+
+// qs splits commas before URL decoding, so URLSearchParams values need normalization after parsing.
+const splitCommaSeparated = (value: unknown) => typeof value === 'string' ? value.split(',') : value
+
 const includeParamSchema = (include: string[]) => {
-  return z.preprocess((value) => typeof value === 'string' ? [value] : value, z.array(z.enum(include))).default([])
+  return z.preprocess(splitCommaSeparated, z.array(z.enum(include))).default([])
 }
 
 const pageParamSchema = z.object({
   size: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   after: z.coerce.number().int().min(0).default(0),
-}).prefault({}).transform(({ after, size }) => ({
+}).strict().prefault({}).transform(({ after, size }) => ({
   cursor: after,
   size,
 }));
 
-const filterParamSchema = (fields: string[]) => {
-  return z.partialRecord(z.enum(fields), z.union([z.string(), z.array(z.string())]))
+const comparisonValueSchema = z.iso.datetime({ offset: true })
+  .transform((value) => new Date(value))
+
+const filterParamSchema = (
+  fields: string[],
+  comparisonFields: string[],
+) => {
+  const valueSchema = z.preprocess(
+    splitCommaSeparated,
+    z.array(z.string())
+  )
+  const shape: Record<string, z.ZodType> = Object.fromEntries(
+    fields.map((field) => [field, valueSchema.optional()])
+  )
+
+  for (const field of comparisonFields) {
+    const comparisonSchema = z.object(Object.fromEntries(
+      comparisonOperators.map((operator) => [operator, comparisonValueSchema.optional()])
+    )).strict()
+    shape[field] = fields.includes(field)
+      ? z.union([valueSchema, comparisonSchema]).optional()
+      : comparisonSchema.optional()
+  }
+
+  return z.object(shape).strict()
     .default({})
-    .transform((filter): FilterOptions => {
-      const normalized: FilterOptions = {}
-      for (const [key, value] of Object.entries(filter)) {
+    .transform((filter) => {
+      const filters: FilterOptions = {}
+      const comparisons: ComparisonOptions = {}
+
+      for (const [field, value] of Object.entries(filter)) {
         if (value !== undefined) {
-          normalized[key] = value
+          if (Array.isArray(value)) {
+            filters[field] = value
+          } else {
+            comparisons[field] = value as Partial<Record<ComparisonOperator, Date>>
+          }
         }
       }
 
-      return normalized
+      return { filters, comparisons }
     })
 }
 
 const sortParamSchema = (fields: string[]) => {
-  return z.preprocess((value) => typeof value === 'string' ? [value] : value, z.array(z.string())
+  return z.preprocess(splitCommaSeparated, z.array(z.string())
     .transform((arr) => arr.map((item) => {
       const desc = item.startsWith('-')
       const field = desc ? item.slice(1) : item
@@ -88,32 +135,36 @@ const sortParamSchema = (fields: string[]) => {
     }])
 }
 
-const nearParamSchema = z.array(z.coerce.number()).length(2).refine(([lat, lng]) => lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180, {
-  message: 'Invalid near parameter. Latitude must be between -90 and 90, and longitude must be between -180 and 180.'
-}).transform(([latitude, longitude]) => ({ latitude, longitude })).optional()
+const nearParamSchema = z.preprocess(
+  splitCommaSeparated,
+  z.array(z.coerce.number()).length(2).refine(([longitude, latitude]) => longitude >= -180 && longitude <= 180 && latitude >= -90 && latitude <= 90, {
+    message: 'Invalid near parameter. Longitude must be between -180 and 180, and latitude must be between -90 and 90.'
+  }).transform(([longitude, latitude]) => ({ latitude, longitude }))
+).optional()
 
 const collectionParamsSchema = (options: CollectionParamsOptions) => { 
   return z.object({
     page: pageParamSchema,
-    filter: filterParamSchema(options.filter ?? []),
+    filter: filterParamSchema(options.filter ?? [], options.compare ?? []),
     sort: sortParamSchema(options.sort),
     include: includeParamSchema(options.include ?? []),
-    near: nearParamSchema,
-  }).refine((data) => !(data.sort.some((s) => s.field === 'distance') && !data.near), {
+    ...(options.near ? { near: nearParamSchema } : {}),
+  }).strict().refine((data) => !(data.sort.some((s) => s.field === 'distance') && !data.near), {
     message: 'Sorting by distance requires the "near" parameter to be provided.'
-  }).transform(({page, filter, sort, include, near}) => ({
+  }).transform(({page, filter: { filters, comparisons }, sort, include, near}) => ({
     pagination: page,
-    filters: filter,
+    filters,
+    comparisons,
     sort,
     include,
-    near,
+    near: near as GeoPoint | undefined,
   }))
 }
 
 const resourceParamsSchema = (options: ResourceParamsOptions) => {
   return z.object({
     include: includeParamSchema(options.include ?? []),
-  })
+  }).strict()
 }
 
 const idParamSchema = z.uuid()

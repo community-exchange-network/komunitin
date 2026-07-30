@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 import { config } from '../config'
+import { clientIds } from '../oidc/clients'
 import { verifySignedToken } from '../oidc/token-verifier'
 import { unauthorized } from '../utils/error'
 import prisma from '../utils/prisma'
@@ -22,14 +23,13 @@ export async function userAuth(req: AuthenticatedRequest, res: Response, next: N
   const token = authHeader.split(' ')[1]
   try {
     const { payload } = await verifySignedToken(token, {
-      issuer: config.ISSUER_URL,
-      audience: 'app',
+      issuer: config.JWT_ISSUER,
+      audience: config.JWT_AUDIENCE,
     })
 
     const userId = typeof payload.sub === 'string' ? payload.sub : undefined
     if (
-      payload.client_id !== 'komunitin-app'
-      || payload.gty === 'client_credentials'
+      payload.client_id !== clientIds.app
       || !userId
       || !isUuid(userId)
     ) {
@@ -71,12 +71,14 @@ export function serviceClientAuth(clientId: string) {
 
     try {
       const { payload } = await verifySignedToken(authHeader.split(' ')[1], {
-        issuer: config.ISSUER_URL,
-        audience: 'app',
+        issuer: config.JWT_ISSUER,
+        audience: config.JWT_AUDIENCE,
       })
 
-      const userId = typeof payload.sub === 'string' ? payload.sub : undefined
-      if (payload.client_id !== clientId || (userId && isUuid(userId))) {
+      if (
+        payload.client_id !== clientId
+        || payload.sub !== clientId
+      ) {
         return next(unauthorized('Invalid or expired token'))
       }
 
@@ -87,6 +89,6 @@ export function serviceClientAuth(clientId: string) {
   }
 }
 
-export const notificationsServiceAuth = serviceClientAuth('komunitin-notifications')
+export const notificationsServiceAuth = serviceClientAuth(clientIds.notifications)
 
-export const socialServiceAuth = serviceClientAuth('komunitin-social')
+export const socialServiceAuth = serviceClientAuth(clientIds.social)

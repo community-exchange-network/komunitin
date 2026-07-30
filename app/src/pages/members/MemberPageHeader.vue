@@ -8,7 +8,7 @@
         <img
           v-if="member.attributes.image"
           class="member-image q-mx-auto"
-          :src="member.attributes.image"
+          :src="member.attributes.image.url"
         >
         <div
           v-else
@@ -80,12 +80,12 @@
         <q-tab
           name="needs"
           icon="loyalty"
-          :label="$t('nNeeds', nNeeds ?? 0)"
+          :label="$t('nNeeds', needsCount)"
         />
         <q-tab
           name="offers"
           icon="local_offer"
-          :label="$t('nOffers', nOffers ?? 0)"
+          :label="$t('nOffers', offersCount)"
         />
         <q-tab
           v-if="transactions"
@@ -134,6 +134,14 @@ export default defineComponent({
       type: Boolean,
       required: false,
       default: true
+    },
+    needsCount: {
+      type: Number,
+      required: true
+    },
+    offersCount: {
+      type: Number,
+      required: true
     }
   },
   emits: ['tab-change'],
@@ -147,15 +155,9 @@ export default defineComponent({
       const labels: { [key: string]: string } = {
         personal: this.$t("personalAccount") as string,
         business: this.$t("businessAccount") as string,
-        public: this.$t("publicAccount") as string
+        organization: this.$t("organizationAccount") as string
       };
       return labels[(this.member as Member).attributes.type];
-    },
-    nNeeds() : number | undefined {
-      return this.member.relationships.needs?.meta.count
-    },
-    nOffers(): number | undefined {
-      return this.member.relationships.offers?.meta.count
     }
   },
   methods: {

@@ -11,6 +11,8 @@
     <avatar-field
       v-model="image"
       :text="name"
+      :code="member.group.attributes.code"
+      resource-type="members"
     />
     <q-input
       v-model="name"
@@ -41,7 +43,7 @@
       </template>
     </q-input>
     <q-input
-      v-model="email"
+      :model-value="email"
       type="text"
       name="email"
       :label="$t('email')"
@@ -60,18 +62,12 @@
     >
       <div class="col-12 col-sm-6">
         <change-email-btn 
-          v-model="email"
-          :user="user"
-          :group="member.group"
+          :model-value="email"
           class="full-width"
         />
       </div>
       <div class="col-12 col-sm-6">
-        <change-password-btn 
-          :user="user"
-          :group="member.group"
-          class="full-width"
-        />
+        <change-password-btn class="full-width" />
       </div>
     </div>
   </div>
@@ -136,26 +132,25 @@
 import AvatarField from "../../components/AvatarField.vue"
 import LocationPicker from "../../components/LocationPicker.vue"
 import CountryChooser from "../../components/CountryChooser.vue"
-import type {PartialContact} from "../../components/MemberContactsField.vue";
 import MemberContactsField from "../../components/MemberContactsField.vue"
-import ChangePasswordBtn from "./ChangePasswordBtn.vue"
 import ChangeEmailBtn from "./ChangeEmailBtn.vue"
+import ChangePasswordBtn from "./ChangePasswordBtn.vue"
 
 import { computed, ref, watch } from "vue";
 import { watchDebounced } from "@vueuse/shared"
 
-import type { Member, User, Group } from '../../store/model';
+import type { Contact, Member, User, Group } from '../../store/model';
 
 const props = defineProps<{
   member: Member & {group: Group}
-  contacts: PartialContact[]
+  contacts: Contact[]
   user: User
   changeCredentials: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:member', value: Member): void
-  (e: 'update:contacts', value: PartialContact[]): void
+  (e: 'update:contacts', value: Contact[]): void
   (e: 'update:user', value: User): void
 }>()
 
@@ -172,11 +167,10 @@ const region = ref(m.value.address?.addressRegion ?? "")
 const country = ref(m.value.address?.addressCountry ?? "")
 
 // Member contacts
+const email = computed(() => props.user.attributes.email)
 const contacts = ref(props.contacts)
 
 // User attributes.
-const email = ref(props.user.attributes.email)
-
 watchDebounced([image, name, description, location, address, postalCode, city, region, country], () => {
   emit('update:member', {
     ...props.member,
@@ -203,20 +197,6 @@ watchDebounced([image, name, description, location, address, postalCode, city, r
 
 watch([contacts], () => {
   emit('update:contacts', contacts.value)
-})
-
-// One of the contacts is the user email, but it is not automatically updated in 
-// the UI when we change the user email. We manually patch that here purely on the
-// UI side.
-watch(email, (email, oldEmail) => {
-  if (email !== oldEmail) {
-    contacts.value = contacts.value.map(c => {
-      if (c.attributes.type === "email" && c.attributes.name === oldEmail) {
-        return {...c, attributes: {...c.attributes, name: email}}
-      }
-      return c
-    })
-  }
 })
 
 </script>

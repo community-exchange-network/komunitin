@@ -3,14 +3,47 @@ import TsJapi, { type Dictionary } from "ts-japi"
 import { config } from "../config"
 import { CollectionParams, PaginationOptions } from "./request"
 
-const { Linker, Metaizer, Paginator, Serializer } = TsJapi
+const { Linker, Metaizer, Paginator, Relator, Serializer } = TsJapi
 
 export type ExternalResource = {
   id: string
   href: string
 }
 
-const getPaginationLinks = (url: string, pagination: PaginationOptions, resultLength: number, totalCount?: number) => {
+/**
+ * Return a hydrated related resource when it was included, or the minimal
+ * resource identifier required for JSON:API relationship linkage.
+ */
+export const relatedResource = <Resource extends { id: string }>(
+  id: string | null,
+  included?: Resource,
+): Resource | null => {
+  return id === null ? null : included ?? { id } as Resource
+}
+
+export class ToManyRelator<Source> extends Relator<Source, { id: string }> {
+  constructor(
+    name: string,
+    private readonly url: (source: Source) => string | undefined,
+    count: (source: Source) => number,
+  ) {
+    super(async () => undefined, new Serializer(name, { version: null, projection: {} }), {
+      relatedName: name,
+      linkers: {
+        related: new Linker((source) => url(source)!),
+      },
+      metaizer: new Metaizer((source) => ({ count: count(source) })),
+    })
+  }
+
+  override async getRelationship(source: Source, relatedDataCache?: Dictionary<any>[]) {
+    return this.url(source)
+      ? super.getRelationship(source, relatedDataCache)
+      : undefined
+  }
+}
+
+const getPaginationLinks = (url: string, pagination: PaginationOptions, totalCount: number) => {
   const base = new URL(url, config.API_BASE_URL)
   
   const withPagination = (cursor: number) => {
@@ -23,8 +56,10 @@ const getPaginationLinks = (url: string, pagination: PaginationOptions, resultLe
   const first = withPagination(0)
   const prev = pagination.cursor >= pagination.size ? withPagination(pagination.cursor - pagination.size) : null
   const self = withPagination(pagination.cursor)
-  const next = resultLength === pagination.size ? withPagination(pagination.cursor + pagination.size) : null
-  const last = totalCount !== undefined ? withPagination(Math.floor((totalCount - 1) / pagination.size) * pagination.size) : undefined
+  const nextCursor = pagination.cursor + pagination.size
+  const next = nextCursor < totalCount ? withPagination(nextCursor) : null
+  const lastCursor = totalCount === 0 ? 0 : Math.floor((totalCount - 1) / pagination.size) * pagination.size
+  const last = withPagination(lastCursor)
   
   return { first, prev, self, next, last }
 }
@@ -51,14 +86,17 @@ export const getResourceLink = (type: "groups" | "members" | "offers" | "needs" 
 /**
  * @param url Use Request.url here to generate correct pagination links.
  */
-export const getCollectionSerializerOptions = <T extends Dictionary<any>>(url:string, collectionOptions: CollectionParams, resultLength: number, totalCount?: number): SerializerOptions<T> => {
-  const paginationLinks = getPaginationLinks(url, collectionOptions.pagination, resultLength, totalCount)
+export const getCollectionSerializerOptions = <T extends Dictionary<any>>(url:string, collectionOptions: CollectionParams, totalCount: number): SerializerOptions<T> => {
+  const paginationLinks = getPaginationLinks(url, collectionOptions.pagination, totalCount)
   return {  
     linkers: {
       paginator: new Paginator(() => paginationLinks),
       document: new Linker(() => paginationLinks.self)
     },
-    include: collectionOptions.include
+    include: collectionOptions.include,
+    metaizers: {
+      document: new Metaizer(() => ({ count: totalCount })),
+    },
   }
 }
 

@@ -48,7 +48,7 @@ const fetchData = async () => {
   // Apply optional URL params.
   const params = route.query
   if (typeof params.state === 'string' && ['hidden', 'published'].includes(params.state)) {
-    fetchedOffer.attributes.state = params.state
+    fetchedOffer.attributes.status = params.state
   }
   if (typeof params.expires === 'string') {
     const expires = new Date(params.expires)

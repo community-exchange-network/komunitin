@@ -6347,9 +6347,10 @@
   "components": {
     "securitySchemes": {
       "authorization": {
-        "name": "authorization",
-        "in": "header",
-        "type": "apiKey"
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT from the configured Auth issuer for audience urn:komunitin:api. Use accounting:read for reads, accounting:write for writes, or superadmin on admin operations."
       }
     }
   }

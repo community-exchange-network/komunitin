@@ -9,6 +9,7 @@ import type {
 } from './types';
 import { renderTemplate } from '../utils/email-template';
 import { TFunction } from 'i18next';
+import { imageUrl } from '../clients/komunitin/image';
 
 
 const formatDistanceLabel = (km: number | undefined): string | undefined => {
@@ -78,7 +79,7 @@ export const generateNewsletterHtml = async (ctx: NewsletterContext): Promise<st
     group: {
       name: groupName,
       code: groupCode,
-      image: group.attributes.image,
+      image: imageUrl(group.attributes.image),
       initial: groupName.charAt(0).toUpperCase(),
     },
     member: {

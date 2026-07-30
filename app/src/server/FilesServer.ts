@@ -1,8 +1,9 @@
 import type { Server } from "miragejs"
 import { Response } from "miragejs"
 import { config } from "src/utils/config"
+import { jsonApiError } from "./ServerUtils"
 
-const fieldName = "files[file]"
+const fieldName = "file"
 
 export interface MockFileUploadAttempt {
   accepted: boolean
@@ -48,8 +49,11 @@ export const getMockFileUploadAttempts = () => state.uploadAttempts
 
 export default {
   routes(server: Server) {
-    server.post(config.FILES_URL, (_schema, request) => {
+    server.post(`${config.SOCIAL_URL}/:code/files/upload`, (_schema, request) => {
       const file = readUploadedFile(request.requestBody)
+      const resourceType = isFormData(request.requestBody)
+        ? request.requestBody.get("resourceType")?.toString()
+        : undefined
       const accepted = file.size <= state.maxUploadSize
       const url = `https://files.example/${file.name}`
 
@@ -62,12 +66,23 @@ export default {
       })
 
       if (!accepted) {
-        return new Response(413, {}, { errors: [{ detail: "File too large" }] })
+        return jsonApiError(413, "File too large")
       }
 
       return new Response(201, {}, {
         data: {
-          attributes: { url }
+          type: "files",
+          id: file.name,
+          attributes: {
+            url,
+            mime: file.type,
+            key: file.name,
+            size: file.size,
+            filename: file.name,
+            resourceType,
+            created: new Date().toJSON(),
+            updated: new Date().toJSON()
+          }
         }
       })
     })

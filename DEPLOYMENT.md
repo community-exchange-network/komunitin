@@ -14,15 +14,15 @@ You need to have a domain name pointing to your server IP address. You will need
  - The main app (eg: `example.com`)
  - The accounting service (eg: `accounting.example.com`)
  - The notifications service (eg: `notifications.example.com`)
- - IntegralCES (eg: `integralces.example.com`)
+ - The auth service (eg: `auth.example.com`)
+ - The social service (eg: `social.example.com`)
 
 With most providers you can use a wildcard DNS record to cover all subdomains with a single record.
 
 ## Get the code
-Clone the Komunitin repository and the IntegralCES repository in the same parent folder.
+Clone the Komunitin repository.
 ```bash
 git clone https://github.com/community-exchange-network/komunitin.git
-git clone https://git.drupalcode.org/project/ices.git
 ```
 ## Configuration
  - Change directory to the komunitin folder.
@@ -44,16 +44,17 @@ Otherwise you can use it as a template to create your own Traefik setup.
 In order to install and start the system for first time run:
 
 ```bash
-./start.sh --up --ices --public
+./start.sh --up --public
 ```
 
-This command builds and starts all the containers with the production network configuration and installs IntegralCES.
+This command builds and starts all containers with the production network
+configuration, applies migrations and bootstraps the configured superadmin.
 
-### Demo
-If you want to seed the system with demo data you can add the `--demo` option:
+### Reset
 
+To reset all service databases before migration, add `--reset`:
 ```bash
-./start.sh --up --ices --public --demo
+./start.sh --up --public --reset
 ```
 
 ## Update the system
@@ -62,21 +63,16 @@ To update the system to the latest version, upgrade the code and rebuild and res
 
 ```bash
 git pull
-cd ices
-git pull
-cd ..
 ./start.sh --up --public
 ```
 
-### Demo
-If you want to wipe up and reseed the demo data you can reinstall the system on each update:
+### Reset
+
+To wipe the service databases during an update:
 
 ```bash
 git pull
-cd ices
-git pull
-cd ..
-./start.sh --up --ices --public --demo
+./start.sh --up --public --reset
 ```
 
 ## Clean up

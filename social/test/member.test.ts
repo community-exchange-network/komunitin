@@ -4,7 +4,7 @@ import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/context'
-import { auth } from './mocks/auth'
+import { auth, serviceAuth } from './mocks/auth'
 import {
   getAccountingRequestPaths,
   getNotificationsEvents,
@@ -55,7 +55,7 @@ describe('Members endpoints', () => {
   })
 
   test('POST /:code/members creates draft member linked to authenticated user', async () => {
-    await seedGroup({ tenantId: 'members-create', status: 'active', access: 'public' })
+    const group = await seedGroup({ tenantId: 'members-create', status: 'active', access: 'public' })
     const user = await auth('member-create-user')
 
     const res = await request(app)
@@ -76,6 +76,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data.attributes.name, 'Alice Member')
     assert.strictEqual(res.body.data.attributes.status, 'draft')
     assert.strictEqual(res.body.data.attributes.code, 'members-create0000')
+    assert.strictEqual(res.body.data.relationships.group.data.id, group.id)
 
     const list = await request(app)
       .get('/members-create/members')
@@ -91,6 +92,41 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(draftList.body.data.length, 1)
     assert.strictEqual(draftList.body.data[0].attributes.name, 'Alice Member')
+  })
+
+  test('POST /:code/members allows repeated member creation by the same user', async () => {
+    await seedGroup({ tenantId: 'members-repeated', status: 'active', access: 'public' })
+    const user = await auth('member-repeated-user')
+    const create = (name: string) => request(app)
+      .post('/members-repeated/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ data: { type: 'members', attributes: { name } } })
+
+    const first = await create('First Member').expect(201)
+    const second = await create('Second Member').expect(201)
+
+    assert.notStrictEqual(first.body.data.id, second.body.data.id)
+    assert.strictEqual(first.body.data.attributes.name, 'First Member')
+    assert.strictEqual(second.body.data.attributes.name, 'Second Member')
+
+    const db = tenantDb(prisma, 'members-repeated')
+    assert.strictEqual(await db.member.count(), 2)
+    assert.strictEqual(await db.memberUser.count({ where: { userId: user.id } }), 2)
+  })
+
+  test('POST /:code/members allocates the first unused numeric code', async () => {
+    await seedGroup({ tenantId: 'members-code-gap', status: 'active', access: 'public' })
+    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0000' })
+    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0002' })
+    const user = await auth('member-code-gap-user')
+
+    const res = await request(app)
+      .post('/members-code-gap/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ data: { type: 'members', attributes: { name: 'Gap Member' } } })
+      .expect(201)
+
+    assert.strictEqual(res.body.data.attributes.code, 'members-code-gap0001')
   })
 
   test('POST /:code/members accepts explicit code only if admin', async () => {
@@ -125,7 +161,7 @@ describe('Members endpoints', () => {
   })
 
   test('GET /:code/members returns only active public members to anonymous users', async () => {
-    await seedGroup({ tenantId: 'members-list-anon', status: 'active', access: 'public' })
+    const group = await seedGroup({ tenantId: 'members-list-anon', status: 'active', access: 'public' })
     await seedMember({ tenantId: 'members-list-anon', code: 'public-active', status: 'active', access: 'public' })
     await seedMember({ tenantId: 'members-list-anon', code: 'group-active', status: 'active', access: 'group' })
     await seedMember({ tenantId: 'members-list-anon', code: 'public-pending', status: 'pending', access: 'public' })
@@ -136,6 +172,40 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'public-active')
+    assert.strictEqual(res.body.data[0].relationships.group.data.id, group.id)
+  })
+
+  test('inactive memberships do not grant restricted member-list access', async () => {
+    await seedGroup({
+      tenantId: 'members-draft-access',
+      status: 'active',
+      access: 'public',
+      settings: { allowAnonymousMemberList: false },
+    })
+    const user = await auth('members-draft-access-user')
+    let draftId = ''
+    for (const status of ['draft', 'pending', 'disabled', 'suspended'] as const) {
+      const member = await seedMember({
+        tenantId: 'members-draft-access',
+        code: `member-${status}`,
+        status,
+        access: 'private',
+        userId: user.id,
+      })
+      if (status === 'draft') {
+        draftId = member.id
+      }
+    }
+
+    await request(app)
+      .get('/members-draft-access/members?filter[status]=draft,pending,disabled,suspended')
+      .set('Authorization', `Bearer ${user.token}`)
+      .expect(403)
+
+    await request(app)
+      .get(`/members-draft-access/members/${draftId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .expect(200)
   })
 
   test('GET /:code/members?include=account includes external account references', async () => {
@@ -295,7 +365,39 @@ describe('Members endpoints', () => {
       .expect(403)
   })
 
-  test('GET /:code/members/:member allows read-all scope for non-public member', async () => {
+  test('member offer and need relationships expose visible published counts', async () => {
+    await seedGroup({ tenantId: 'members-post-counts', status: 'active', access: 'public' })
+    const member = await seedMember({
+      tenantId: 'members-post-counts',
+      status: 'active',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'members-post-counts',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+    await seedPost({
+      tenantId: 'members-post-counts',
+      memberId: member.id,
+      type: 'offers',
+      status: 'draft',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get(`/members-post-counts/members/${member.id}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.relationships.offers.meta.count, 1)
+    assert.strictEqual(res.body.data.relationships.needs.meta.count, 0)
+    const related = new URL(res.body.data.relationships.offers.links.related)
+    assert.strictEqual(related.searchParams.get('filter[status]'), 'published')
+  })
+
+  test('GET /:code/members/:member allows service read access for non-public member', async () => {
     await seedGroup({ tenantId: 'members-read-all-one', status: 'pending', access: 'private' })
     const hiddenMember = await seedMember({
       tenantId: 'members-read-all-one',
@@ -304,7 +406,7 @@ describe('Members endpoints', () => {
       access: 'private',
     })
 
-    const serviceUser = await auth('members-read-all-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get(`/members-read-all-one/members/${hiddenMember.id}`)
       .set('Authorization', `Bearer ${serviceUser.token}`)
@@ -314,12 +416,12 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data.attributes.code, 'hidden-member')
   })
 
-  test('GET /:code/members allows read-all scope for non-public members', async () => {
+  test('GET /:code/members allows service read access for non-public members', async () => {
     await seedGroup({ tenantId: 'members-read-all-list', status: 'pending', access: 'private' })
     await seedMember({ tenantId: 'members-read-all-list', code: 'member-a', status: 'draft', access: 'private' })
     await seedMember({ tenantId: 'members-read-all-list', code: 'member-b', status: 'pending', access: 'group' })
 
-    const serviceUser = await auth('members-read-all-list-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get('/members-read-all-list/members?filter[status]=draft,pending,active')
       .set('Authorization', `Bearer ${serviceUser.token}`)
@@ -1008,6 +1110,27 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'b')
   })
 
+  test('GET /:code/members combines created comparison with status filtering', async () => {
+    await seedGroup({ tenantId: 'members-created-comparison', status: 'active', access: 'public' })
+    const admin = await auth('members-created-comparison-admin')
+    await seedGroupAdmin({ tenantId: 'members-created-comparison', userId: admin.id })
+
+    await seedMember({ tenantId: 'members-created-comparison', code: 'old-active', status: 'active', access: 'public', created: new Date('2026-01-01T00:00:00Z') })
+    await seedMember({ tenantId: 'members-created-comparison', code: 'new-active', status: 'active', access: 'public', created: new Date('2026-01-03T00:00:00Z') })
+    await seedMember({ tenantId: 'members-created-comparison', code: 'new-pending', status: 'pending', access: 'private', created: new Date('2026-01-03T00:00:00Z') })
+
+    const res = await request(app)
+      .get('/members-created-comparison/members?filter[status]=active&filter[created][gt]=2026-01-02T00:00:00Z')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((member: any) => member.attributes.code),
+      ['new-active'],
+    )
+    assert.strictEqual(res.body.meta.count, 1)
+  })
+
   test('GET /:code/members supports admin status/search/sort/page query', async () => {
     await seedGroup({ tenantId: 'members-admin-search-query', status: 'active', access: 'public' })
     const admin = await auth('members-admin-search-query-admin')
@@ -1107,6 +1230,41 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'visible')
+  })
+
+  test('GET /:code/members sorts by distance with null locations last', async () => {
+    await seedGroup({ tenantId: 'members-distance', status: 'active', access: 'public' })
+    await seedMember({
+      tenantId: 'members-distance',
+      code: 'near',
+      status: 'active',
+      access: 'public',
+      longitude: 120,
+      latitude: 45,
+    })
+    await seedMember({
+      tenantId: 'members-distance',
+      code: 'far',
+      status: 'active',
+      access: 'public',
+      longitude: 10,
+      latitude: 20,
+    })
+    await seedMember({
+      tenantId: 'members-distance',
+      code: 'no-location',
+      status: 'active',
+      access: 'public',
+    })
+
+    const res = await request(app)
+      .get('/members-distance/members?near=121,45&sort=distance')
+      .expect(200)
+
+    assert.deepStrictEqual(
+      res.body.data.map((member: any) => member.attributes.code),
+      ['near', 'far', 'no-location'],
+    )
   })
 
   test('PATCH /:code/members/:member returns 404 for unknown id', async () => {

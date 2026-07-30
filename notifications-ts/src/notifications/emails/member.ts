@@ -7,31 +7,31 @@ import type { MessageContext } from "../messages";
 import { excerptPost } from "../messages/post";
 import type { EmailTemplateContext, PostEmailTemplateContext } from "./types";
 import { ctxCommon } from "./utils";
+import { imageUrl } from "../../clients/komunitin/image";
+import { ExpiringPost, hasExpiration, isExpired } from "../../clients/komunitin/post";
 
 const DAY = 24 * 60 * 60 * 1000;
 
-const isExpired = (post: Offer | Need): boolean => new Date(post.attributes.expires).getTime() <= Date.now();
-
-const getExpiredPosts = (event: EnrichedMemberHasExpiredPostsEvent): Array<Offer | Need> => {
-  const expiredOffers = (event.expiredOffers || []).filter(isExpired);
-  const expiredNeeds = (event.expiredNeeds || []).filter(isExpired);
+const getExpiredPosts = (event: EnrichedMemberHasExpiredPostsEvent): ExpiringPost[] => {
+  const expiredOffers = (event.expiredOffers || []).filter(hasExpiration).filter(isExpired);
+  const expiredNeeds = (event.expiredNeeds || []).filter(hasExpiration).filter(isExpired);
   return [...expiredOffers, ...expiredNeeds].sort(
     (a, b) => new Date(b.attributes.expires).getTime() - new Date(a.attributes.expires).getTime()
   );
 };
 
-const buildPostTemplateItem = (event: EnrichedMemberHasExpiredPostsEvent, post: Offer | Need, ctx: MessageContext): TemplatePostItem => {
+const buildPostTemplateItem = (event: EnrichedMemberHasExpiredPostsEvent, post: ExpiringPost, ctx: MessageContext): TemplatePostItem => {
   const { t } = ctx;
   const typeLabel = post.type === 'offers' ? t('offer') : t('need');
   const title = excerptPost(post);
-  const image = post.attributes.images?.[0];
+  const image = imageUrl(post.attributes.images?.[0]);
   const expiresAt = new Date(post.attributes.expires);
   const { time, range } = getTimeAgoParams(expiresAt);
 
   return {
     typeLabel,
     title,
-    description: post.attributes.content,
+    description: post.attributes.description,
     image,
     expiryLabel: t('emails.expired_posts_expired_ago', { time, range }),
     link: `${config.KOMUNITIN_APP_URL}/groups/${event.code}/${post.type}/${post.attributes.code}/edit`,

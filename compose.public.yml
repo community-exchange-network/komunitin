@@ -42,6 +42,20 @@ services:
     networks:
       - proxy
   
+  social:
+    ports: !reset []
+    expose:
+      - "2028"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.social-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=2028"
+      - "traefik.http.routers.social-${COMPOSE_PROJECT_NAME}.rule=Host(`social.${KOMUNITIN_DOMAIN}`)"
+      - "traefik.http.routers.social-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
+      - "traefik.http.routers.social-${COMPOSE_PROJECT_NAME}.tls=true"
+      - "traefik.http.routers.social-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
+    networks:
+      - proxy
+
   accounting:
     ports: !reset []
     expose:
@@ -56,26 +70,7 @@ services:
     networks:
       - proxy
   
-  integralces:
-    ports: !reset []
-    expose:
-      - "2029"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.integralces-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=2029"
-      - "traefik.http.routers.integralces-${COMPOSE_PROJECT_NAME}.rule=Host(`integralces.${KOMUNITIN_DOMAIN}`)"
-      - "traefik.http.routers.integralces-${COMPOSE_PROJECT_NAME}.entrypoints=websec"
-      - "traefik.http.routers.integralces-${COMPOSE_PROJECT_NAME}.tls=true"
-      - "traefik.http.routers.integralces-${COMPOSE_PROJECT_NAME}.tls.certresolver=myresolver"
-    networks:
-      - proxy
-
   db-notifications:
-    ports: !reset []
-    networks:
-      - proxy
-
-  db-integralces:
     ports: !reset []
     networks:
       - proxy
@@ -91,6 +86,11 @@ services:
       - proxy
   
   db-notifications-ts:
+    ports: !reset []
+    networks:
+      - proxy
+
+  db-social:
     ports: !reset []
     networks:
       - proxy

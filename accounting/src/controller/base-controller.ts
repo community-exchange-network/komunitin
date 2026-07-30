@@ -105,7 +105,7 @@ export class BaseControllerImpl implements BasePublicService {
     const settings = {} as Record<string, any>
     for (const key in defaultSettings) {
       const tkey = key as keyof CurrencySettings
-      settings[key] = currency.settings[tkey] ?? defaultSettings[tkey]
+      settings[key] = currency.settings?.[tkey] ?? defaultSettings[tkey]
     }
     currency.settings = settings as CurrencySettings
 

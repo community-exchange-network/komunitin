@@ -1,5 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { Response } from "miragejs";
+
+export function jsonApiError(status: number, detail: string) {
+  return new Response(status, {}, { errors: [{ detail }] });
+}
+
+export function badRequest(message = "Bad request") {
+  return jsonApiError(400, message);
+}
+
+export function notFound(message = "Not found") {
+  return jsonApiError(404, message);
+}
+
 export function search(records: any, request: any) {
   // Poor man search.
   if (request.queryParams["filter[search]"]) {

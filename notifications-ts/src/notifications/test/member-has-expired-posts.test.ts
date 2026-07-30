@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { afterEach, before, beforeEach, describe, it } from 'node:test'
 import { mockDate, restoreDate } from '../../mocks/date'
-import { createNeed, createOffer, db, getUserIdForMember } from '../../mocks/db'
+import { createPost, db, getUserIdForMember } from '../../mocks/db'
 import { daysAgo, hoursAgo, setupNotificationsTest, verifyNotification } from './utils'
 
 const { appNotifications, syntheticQueue: queue } = setupNotificationsTest({
@@ -37,12 +37,12 @@ describe('Member has expired posts (synthetic cron)', () => {
 
     const DAY = 24 * 60 * 60 * 1000
 
-    const offer = createOffer({
+    const offer = createPost('offers', {
       groupCode,
       id: 'offer-expired-GRP1',
       code: 'OFFEREXPRD',
       attributes: {
-        name: 'Old expired offer',
+        title: 'Old expired offer',
         created: daysAgo(40),
         expires: daysAgo(1),
       },
@@ -97,12 +97,12 @@ describe('Member has expired posts (synthetic cron)', () => {
     const groupCode = 'GRP1'
     const DAY = 24 * 60 * 60 * 1000
     
-    const offer = createOffer({
+    const offer = createPost('offers', {
       groupCode,
       id: 'offer-expired-12h-ago',
       code: 'OFFERRECENT',
       attributes: {
-        name: 'Recent expired offer',
+        title: 'Recent expired offer',
         created: daysAgo(30),
         expires: hoursAgo(12),
       },
@@ -137,12 +137,12 @@ describe('Member has expired posts (synthetic cron)', () => {
     // 1) Have an offer expired 25 days ago
     // We use 25 days instead of 10 because the implementation only schedules jobs 
     // that are due within the next 7 days. (30 - 25 = 5 days delay < 7 days).
-    const oldOffer = createOffer({
+    const oldOffer = createPost('offers', {
       groupCode,
       id: 'offer-expired-25d-ago',
       code: 'OFFEROLD',
       attributes: {
-        name: 'Old offer (25d ago)',
+        title: 'Old offer (25d ago)',
         created: new Date(now - 60 * DAY).toISOString(),
         expires: new Date(now - 25 * DAY).toISOString(),
       },
@@ -161,13 +161,13 @@ describe('Member has expired posts (synthetic cron)', () => {
     assert.equal(job1.data.id, oldOffer.id)
 
     // 3) Add now an offer expired yesterday (1 day ago)
-    const newOffer = createOffer({
+    const newOffer = createPost('offers', {
       groupCode,
       id: 'offer-expired-yesterday',
       code: 'OFFERNEW',
       memberId, // Same member
       attributes: {
-        name: 'New offer (yesterday)',
+        title: 'New offer (yesterday)',
         created: daysAgo(30),
         expires: hoursAgo(24),
       },
@@ -207,12 +207,12 @@ describe('Member has expired posts (synthetic cron)', () => {
     }
 
     // SCENARIO 1: Only one expired need (1 day ago)
-    const need1 = createNeed({
+    const need1 = createPost('needs', {
       groupCode,
       id: 'need-1',
       code: 'NEED1',
       attributes: {
-        content: 'Need 1 content',
+        description: 'Need 1 content',
         expires: daysAgo(1),
       },
     })
@@ -230,13 +230,13 @@ describe('Member has expired posts (synthetic cron)', () => {
     // Make need1 older
     db.needs.find((n: any) => n.id === 'need-1').attributes.expires = daysAgo(2)
     // Add a more recent offer
-    createOffer({
+    createPost('offers', {
       groupCode,
       id: 'offer-1',
       code: 'OFFER1',
       memberId,
       attributes: {
-        name: 'Offer 1',
+        title: 'Offer 1',
         expires: new Date(now - 1 * DAY).toISOString(),
       },
     })
@@ -259,36 +259,36 @@ describe('Member has expired posts (synthetic cron)', () => {
     db.offers.find((o: any) => o.id === 'offer-1').attributes.expires = daysAgo(5)
 
     // Add new ones:
-    createNeed({
+    createPost('needs', {
       groupCode,
       id: 'need-featured',
       code: 'NEEDF',
       memberId,
       attributes: {
-        content: 'Need Featured content',
+        description: 'Need Featured content',
         expires: daysAgo(1), // Most recent
       },
     })
     // Move Offer 1 to be older than Need Featured
     db.offers.find((o: any) => o.id === 'offer-1').attributes.expires = hoursAgo(25)
 
-    createNeed({
+    createPost('needs', {
       groupCode,
       id: 'need-2',
       code: 'NEED2',
       memberId,
       attributes: {
-        content: 'Need 2 content',
+        description: 'Need 2 content',
         expires: daysAgo(3),
       },
     })
-    createOffer({
+    createPost('offers', {
       groupCode,
       id: 'offer-2',
       code: 'OFFER2',
       memberId,
       attributes: {
-        name: 'Offer 2',
+        title: 'Offer 2',
         expires: daysAgo(4),
       },
     })

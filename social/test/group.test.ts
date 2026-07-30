@@ -4,9 +4,11 @@ import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/context'
-import { auth } from './mocks/auth'
+import { auth, serviceAuth } from './mocks/auth'
 import {
+  getAccountingRequests,
   getAccountingRequestPaths,
+  getAuthTokenRequests,
   getNotificationsEvents,
   resetMockState,
   seedAccountingCurrency,
@@ -21,6 +23,17 @@ const tinyPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=',
   'base64',
 )
+const testCurrencyAttributes = {
+  name: 'Test Credit',
+  namePlural: 'Test Credits',
+  symbol: 'TCR',
+  decimals: 2,
+  scale: 6,
+  rate: {
+    n: 1,
+    d: 10,
+  },
+}
 
 const postGroup = (
   token: string,
@@ -87,6 +100,13 @@ describe('Groups endpoints', () => {
       .expect(401)
   })
 
+  test('GET /groups rejects malformed optional bearer tokens', async () => {
+    await request(app)
+      .get('/groups')
+      .set('Authorization', 'Bearer not-a-jwt')
+      .expect(401)
+  })
+
   test('POST /groups creates pending group with optional settings include', async () => {
     const { id: subject, token } = await auth('user-1')
 
@@ -127,6 +147,40 @@ describe('Groups endpoints', () => {
     assert.strictEqual(events[0].data.attributes.name, 'GroupRequested')
     assert.strictEqual(events[0].data.attributes.code, 'alpha-group')
     assert.strictEqual(events[0].data.attributes.data.group, 'alpha-group')
+  })
+
+  test('POST /groups stores the public currency request in group meta', async () => {
+    const { token } = await auth('currency-request-user')
+
+    const res = await request(app)
+      .post('/groups')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            code: 'currency-request-group',
+            name: 'Currency request group',
+            meta: {
+              request: {
+                currency: {
+                  ...testCurrencyAttributes,
+                  symbol: 'CRG',
+                },
+              },
+            },
+          },
+        },
+      })
+      .expect(201)
+
+    assert.strictEqual(res.body.data.attributes.code, 'currency-request-group')
+    assert.strictEqual(res.body.data.relationships.currency, undefined)
+    assert.strictEqual(res.body.data.attributes.meta.request.currency.symbol, 'CRG')
+
+    const db = tenantDb(prisma, 'currency-request-group')
+    const group = await db.group.findFirstOrThrow()
+    assert.deepStrictEqual(group.meta, res.body.data.attributes.meta)
   })
 
   test('POST /groups rejects duplicate code', async () => {
@@ -206,6 +260,7 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     assert.strictEqual(firstPage.body.data.length, 1)
+    assert.strictEqual(firstPage.body.meta.count, 2)
     assert.strictEqual(firstPage.body.data[0].attributes.name, 'Alpha Group')
     assert.strictEqual(typeof firstPage.body.links.self, 'string')
     assert.strictEqual(typeof firstPage.body.links.next, 'string')
@@ -216,6 +271,9 @@ describe('Groups endpoints', () => {
 
     assert.strictEqual(secondPage.body.data.length, 1)
     assert.strictEqual(secondPage.body.data[0].attributes.name, 'Bravo Group')
+    assert.strictEqual(secondPage.body.meta.count, 2)
+    assert.strictEqual(secondPage.body.links.next, null)
+    assert.strictEqual(typeof secondPage.body.links.last, 'string')
 
     const superadmin = await auth('superadmin-query', undefined, Scope.Superadmin)
     const filtered = await request(app)
@@ -292,7 +350,7 @@ describe('Groups endpoints', () => {
     await seedGroup({ tenantId: 'loc-charlie', name: 'Charlie Location', status: 'active', access: 'public' })
     
     const res = await request(app)
-      .get('/groups?near=41.8781,-87.6298&sort=distance')
+      .get('/groups?near=-87.6298,41.8781&sort=distance')
       .expect(200)
     assert.strictEqual(res.body.data.length, 3)
     assert.deepStrictEqual(
@@ -301,7 +359,7 @@ describe('Groups endpoints', () => {
     )
 
     const res2 = await request(app)
-      .get('/groups?near=34.0522,-118.2437&sort=distance')
+      .get('/groups?near=-118.2437,34.0522&sort=distance')
       .expect(200)
     assert.strictEqual(res2.body.data.length, 3)
     assert.deepStrictEqual(
@@ -415,7 +473,7 @@ describe('Groups endpoints', () => {
       .expect(200)
   })
 
-  test('GET /:code includes group admins relationship linkage', async () => {
+  test('GET /:code exposes admin metadata and the authorized admins endpoint without linkage', async () => {
     await seedGroup({ tenantId: 'group-admins-include', status: 'active', access: 'public' })
     const admin = await auth('group-admins-user')
     await seedGroupAdmin({ tenantId: 'group-admins-include', userId: admin.id })
@@ -424,12 +482,95 @@ describe('Groups endpoints', () => {
       .get('/group-admins-include')
       .expect(200)
 
-    assert.strictEqual(res.body.data.relationships.admins.data.some((resource: any) => resource.id === admin.id), true)
-    // Not including admins as included resources.
-    assert.strictEqual(Array.isArray(res.body.included) && res.body.included.some((resource: any) => resource.type === 'users' && resource.id === admin.id), false)
+    const relationship = res.body.data.relationships.admins
+    assert.strictEqual(relationship.data, undefined)
+    assert.strictEqual(relationship.meta.count, 2)
+    assert.strictEqual(relationship.links.related, 'http://localhost:2028/group-admins-include/admins')
+
+    await request(app)
+      .get('/group-admins-include/admins')
+      .expect(401)
+
+    const outsider = await auth('group-admins-outsider')
+    await request(app)
+      .get('/group-admins-include/admins')
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .expect(403)
+
+    const admins = await request(app)
+      .get('/group-admins-include/admins?page[size]=10')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(admins.body.meta.count, 2)
+    const adminResource = admins.body.data.find((resource: any) => resource.id === admin.id)
+    assert.strictEqual(typeof adminResource.attributes.email, 'string')
+    assert.strictEqual(adminResource.relationships.settings, undefined)
   })
 
-  test('GET /:code allows read-all scope for pending private group', async () => {
+  test('group members relationship is only exposed to viewers who can list members', async () => {
+    await seedGroup({
+      tenantId: 'private-member-list',
+      status: 'active',
+      access: 'public',
+      settings: { allowAnonymousMemberList: false },
+    })
+    await seedMember({
+      tenantId: 'private-member-list',
+      status: 'active',
+      access: 'public',
+    })
+
+    const hidden = await request(app)
+      .get('/private-member-list')
+      .expect(200)
+
+    assert.strictEqual(hidden.body.data.relationships.members, undefined)
+    await request(app)
+      .get('/private-member-list/members')
+      .expect(403)
+
+    const admin = await auth('member-list-admin')
+    await seedGroupAdmin({ tenantId: 'private-member-list', userId: admin.id })
+    const allowed = await request(app)
+      .get('/private-member-list')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(allowed.body.data.relationships.members.meta.count, 1)
+    assert.strictEqual(
+      allowed.body.data.relationships.members.links.related,
+      'http://localhost:2028/private-member-list/members',
+    )
+    await request(app)
+      .get('/private-member-list/members')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+  })
+
+  test('GET /groups exposes members relationships for the viewer active memberships', async () => {
+    const viewer = await auth('group-list-member')
+    const settings = { allowAnonymousMemberList: false }
+    await seedGroup({ tenantId: 'joined-group', status: 'active', access: 'public', settings })
+    await seedGroup({ tenantId: 'other-group', status: 'active', access: 'public', settings })
+    await seedGroup({ tenantId: 'disabled-member-group', status: 'active', access: 'public', settings })
+    await seedMember({ tenantId: 'joined-group', userId: viewer.id, status: 'active' })
+    await seedMember({ tenantId: 'disabled-member-group', userId: viewer.id, status: 'disabled' })
+
+    const res = await request(app)
+      .get('/groups?filter[code]=joined-group,other-group,disabled-member-group')
+      .set('Authorization', `Bearer ${viewer.token}`)
+      .expect(200)
+
+    const groups = new Map<string, any>(
+      res.body.data.map((group: any) => [group.attributes.code, group]),
+    )
+    assert.strictEqual(groups.get('joined-group').relationships.members.meta.count, 1)
+    assert.strictEqual(groups.get('other-group').relationships.members, undefined)
+    assert.strictEqual(groups.get('disabled-member-group').relationships.members, undefined)
+  })
+
+  test('GET /:code allows service read access for pending private group', async () => {
     await seedGroup({ tenantId: 'group-read-all', status: 'pending', access: 'private' })
 
     const regularUser = await auth('group-read-all-regular')
@@ -438,7 +579,7 @@ describe('Groups endpoints', () => {
       .set('Authorization', `Bearer ${regularUser.token}`)
       .expect(403)
 
-    const serviceUser = await auth('group-read-all-service', undefined, Scope.SocialReadAll)
+    const serviceUser = await serviceAuth()
     const res = await request(app)
       .get('/group-read-all')
       .set('Authorization', `Bearer ${serviceUser.token}`)
@@ -575,6 +716,16 @@ describe('Groups endpoints', () => {
     assert.deepStrictEqual(getAccountingRequestPaths(), [
       'DELETE /delete-group-success/currency',
     ])
+    assert.deepStrictEqual(getAuthTokenRequests(), [{
+      clientId: 'komunitin-social',
+      grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      scope: Scope.AccountingWrite,
+      subjectToken: admin.token,
+    }])
+    assert.strictEqual(
+      getAccountingRequests()[0].authorization,
+      'Bearer exchanged-accounting-write',
+    )
 
     const db = tenantDb(prisma, 'delete-group-success')
     const group = await db.group.findFirstOrThrow()
@@ -742,6 +893,53 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.data.attributes.description, 'Updated description')
   })
 
+  test('PATCH /:code updates a pending currency request for group admin', async () => {
+    const admin = await auth('currency-request-admin')
+    await seedGroup({
+      tenantId: 'patch-currency-request',
+      status: 'pending',
+      access: 'public',
+      meta: {
+        request: {
+          currency: testCurrencyAttributes,
+        },
+      },
+    })
+    await seedGroupAdmin({ tenantId: 'patch-currency-request', userId: admin.id })
+
+    const currency = {
+      ...testCurrencyAttributes,
+      name: 'Reviewed Credit',
+      symbol: 'RC',
+    }
+    const res = await request(app)
+      .patch('/patch-currency-request')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            meta: {
+              request: {
+                currency,
+              },
+            },
+          },
+        },
+      })
+      .expect(200)
+
+    assert.deepStrictEqual(res.body.data.attributes.meta.request.currency, currency)
+
+    const db = tenantDb(prisma, 'patch-currency-request')
+    const group = await db.group.findFirstOrThrow()
+    assert.deepStrictEqual(group.meta, {
+      request: {
+        currency,
+      },
+    })
+  })
+
   test('PATCH /:code denies admin status transition from pending to active', async () => {
     const admin = await auth('admin-status-9')
     await seedGroup({ tenantId: 'status-transition', status: 'pending', access: 'public' })
@@ -771,6 +969,7 @@ describe('Groups endpoints', () => {
       meta: {
         request: {
           currency: {
+            ...testCurrencyAttributes,
             name: 'Activate Currency',
           },
         },
@@ -791,6 +990,7 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     assert.strictEqual(res.body.data.attributes.status, 'active')
+    assert.strictEqual(res.body.data.attributes.meta, null)
     assert.strictEqual(res.body.data.relationships.currency.data.type, 'currencies')
     assert.strictEqual(res.body.data.relationships.currency.data.meta.external, true)
     assert.strictEqual(res.body.data.relationships.currency.data.meta.href, 'http://localhost:2025/activate-group/currency')
@@ -804,13 +1004,7 @@ describe('Groups endpoints', () => {
     const group = await db.group.findFirstOrThrow()
     assert.strictEqual(group.status, 'active')
     assert.strictEqual(group.currencyId, res.body.data.relationships.currency.data.id)
-    assert.deepStrictEqual(group.meta, {
-      request: {
-        currency: {
-          name: 'Activate Currency',
-        },
-      },
-    })
+    assert.strictEqual(group.meta, null)
 
     const events = getNotificationsEvents() as any[]
     assert.strictEqual(events.length, 1)
@@ -829,6 +1023,7 @@ describe('Groups endpoints', () => {
       meta: {
         request: {
           currency: {
+            ...testCurrencyAttributes,
             name: 'Adopt Group Currency',
           },
         },
@@ -853,6 +1048,21 @@ describe('Groups endpoints', () => {
       getAccountingRequestPaths(),
       ['GET /adopt-group/currency'],
     )
+    assert.deepStrictEqual(getAuthTokenRequests(), [{
+      clientId: 'komunitin-social',
+      grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      scope: Scope.AccountingRead,
+      subjectToken: superadmin.token,
+    }])
+    assert.strictEqual(
+      getAccountingRequests()[0].authorization,
+      'Bearer exchanged-accounting-read',
+    )
+
+    const db = tenantDb(prisma, 'adopt-group')
+    const group = await db.group.findFirstOrThrow()
+    assert.strictEqual(group.meta, null)
+    assert.strictEqual(res.body.data.attributes.meta, null)
   })
 
   test('PATCH /:code allows group admin to disable and reactivate with accounting sync', async () => {

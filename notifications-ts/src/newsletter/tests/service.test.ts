@@ -41,6 +41,14 @@ describe('Newsletter Cron Job', () => {
   });
 
   test('should generate and send newsletter', async () => {
+    const actionTokenRequests: { userId: string; purpose: string }[] = [];
+    server.use(
+      http.post('http://auth.test/action-token', async ({ request }) => {
+        actionTokenRequests.push(await request.json() as { userId: string; purpose: string });
+        return HttpResponse.json({ token: 'newsletter-unsubscribe-token' });
+      })
+    );
+
     // Mock date to Sunday 15:30 Madrid time (UTC+1 in winter) -> 14:30 UTC
     mockDate('2026-01-04T14:30:00Z');
     
@@ -54,6 +62,21 @@ describe('Newsletter Cron Job', () => {
     assert.ok(emailOptions.to, 'Email should have a recipient');
     assert.ok(emailOptions.subject, 'Email should have a subject');
     assert.ok(emailOptions.html, 'Email should have HTML content');
+    assert.strictEqual(actionTokenRequests.length, email.sentEmails.length);
+    assert.ok(actionTokenRequests.every(request => request.purpose === 'unsubscribe'));
+
+    const unsubscribeHref = emailOptions.html
+      .match(/href="([^"]*\/unsubscribe\?token[^"]*)"/)?.[1]
+      .replaceAll('&#x3D;', '=')
+      .replaceAll('&amp;', '&');
+    assert.strictEqual(
+      unsubscribeHref,
+      'http://app.test/unsubscribe?token=newsletter-unsubscribe-token'
+    );
+    assert.deepStrictEqual(emailOptions.headers, {
+      'List-Unsubscribe': '<http://social.test/users/unsubscribe?token=newsletter-unsubscribe-token>',
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    });
 
     // Check DB Log
     assert.ok(

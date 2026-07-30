@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { createTransfers, db } from "../../mocks/db";
+import { createTransfers, db, getUserIdForMember } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
 const { put, email } = setupNotificationsTest({ useWorker: true });
@@ -12,9 +12,7 @@ const setupTestTransfer = () => {
 
   const accountUserId = (accountId: string) => {
     const memberId = db.members.find(m => m.relationships.account.data.id === accountId)!.id;
-    return db.users.find(u => {
-      return u.relationships.members.data.some((r: any) => r.id === memberId);
-    })!.id;
+    return getUserIdForMember(memberId);
   };
 
   const payerUserId = accountUserId(transfer.relationships.payer.data.id);

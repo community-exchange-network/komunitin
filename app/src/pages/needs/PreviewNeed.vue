@@ -38,7 +38,7 @@ const router = useRouter()
 const myMember = computed(() => store.getters.myMember)
 
 const publish = async (need: Need) => {
-  need.attributes.state = 'published'
+  need.attributes.status = 'published'
 
   await store.dispatch('needs/update', {
     id: need.id,

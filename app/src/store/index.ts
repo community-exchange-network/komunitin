@@ -1,6 +1,6 @@
 import type { Store } from "vuex";
 import { createStore } from "vuex";
-import type { ResourcesState } from "./resources";
+import type { LoadListPayload, LoadPayload, ResourcesState } from "./resources";
 import { Resources } from "./resources";
 import { NotificationResources } from "./notifications";
 import { config } from "src/utils/config";
@@ -8,7 +8,6 @@ import type {
   User,
   UserSettings,
   Group,
-  Contact,
   Offer,
   Need,
   Category,
@@ -44,11 +43,34 @@ const groupSettings = new (class extends Resources<GroupSettings, unknown> {
   resourceEndpoint = (groupCode: string) => `/${groupCode}/settings`;
 })("group-settings", socialUrl)
 
-const contacts = new Resources<Contact, unknown>("contacts", socialUrl);
 const members = new Resources<Member, unknown>("members", socialUrl);
 
-const offers = new Resources<Offer, unknown>("offers", socialUrl);
-const needs = new Resources<Need, unknown>("needs", socialUrl);
+class PostResources<T extends Offer | Need> extends Resources<T, unknown> {
+  collectionEndpoint = (groupCode: string) => `/${groupCode}/posts`;
+  resourceEndpoint = (groupCode: string, id: string) => `/${groupCode}/posts/${id}`;
+
+  protected buildQuery(payload: LoadListPayload) {
+    return super.buildQuery({
+      ...payload,
+      filter: { ...payload.filter, type: this.type }
+    })
+  }
+
+  protected buildQueryKey(payload: LoadListPayload) {
+    return super.buildQueryKey({
+      ...payload,
+      filter: { ...payload.filter, type: this.type }
+    })
+  }
+
+  protected resourceUrl(payload: LoadPayload) {
+    const url = super.resourceUrl(payload)
+    return `${url}${url.includes("?") ? "&" : "?"}filter[type]=${this.type}`
+  }
+}
+
+const offers = new PostResources<Offer>("offers", socialUrl);
+const needs = new PostResources<Need>("needs", socialUrl);
 const categories = new Resources<Category, unknown>("categories", socialUrl);
 const users = new (class extends Resources<User, unknown> {
   collectionEndpoint = () => "/users";
@@ -126,7 +148,6 @@ const modules = {
     users,
     "user-settings": userSettings,
     groups,
-    contacts,
     members,
     offers,
     needs,
@@ -196,7 +217,6 @@ declare module 'vue' {
     userSettings: ResourcesState<UserSettings>
     groups: ResourcesState<Group>
     groupSettings: ResourcesState<GroupSettings>
-    contacts: ResourcesState<Contact>
     members: ResourcesState<Member>
     offers: ResourcesState<Offer>
     needs: ResourcesState<Need>

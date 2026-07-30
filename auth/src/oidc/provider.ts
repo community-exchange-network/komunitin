@@ -23,7 +23,7 @@ const oidcScopes = new Set(['email', 'offline_access'])
 const allowedScopes = new Set(apiScopes)
 
 const appResourceServer = {
-  audience: 'app',
+  audience: config.JWT_AUDIENCE,
   scope: apiScopes.join(' '),
   accessTokenFormat: 'jwt',
   accessTokenTTL: ACCESS_TOKEN_TTL_SECONDS,
@@ -142,6 +142,9 @@ export async function createProvider(jwks: Jwks) {
         getResourceServerInfo: async () => appResourceServer
       },
     },
+    routes: {
+      jwks: '/.well-known/jwks.json',
+    },
     extraTokenClaims: async (ctx, token) => {
       if (hasAccountId(token)) {
         const account = await findAccount(ctx, token.accountId)
@@ -163,7 +166,7 @@ export async function createProvider(jwks: Jwks) {
     },
   }
 
-  const provider = new Provider(config.ISSUER_URL, oidcConfig)
+  const provider = new Provider(config.JWT_ISSUER, oidcConfig)
 
   const issueTokenResponse = async (
     ctx: any,
@@ -268,18 +271,14 @@ export async function createProvider(jwks: Jwks) {
       }
 
       const verified = await verifySignedToken(subjectToken, {
-        issuer: config.ISSUER_URL,
-        audience: 'app',
+        issuer: config.JWT_ISSUER,
+        audience: config.JWT_AUDIENCE,
       }).catch(() => undefined)
 
       if (!verified) {
         ctx.throw(400, 'invalid_grant', { error_description: 'Invalid subject_token' })
       }
       const tokenPayload = verified!.payload
-
-      if (tokenPayload.gty === 'client_credentials') {
-        ctx.throw(400, 'invalid_grant', { error_description: 'Subject token must represent a user' })
-      }
 
       const accountId = tokenPayload.accountId
         ?? tokenPayload.sub

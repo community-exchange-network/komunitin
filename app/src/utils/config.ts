@@ -21,6 +21,8 @@ declare global {
   }
 }
 
+export const CLIENT_ID = "komunitin-app"
+
 function getValue(key: string, buildTimeValue: string | boolean | undefined): string | boolean | undefined {
   if (typeof window !== 'undefined' && window.__KOMUNITIN_APP_CONFIG__?.[key]) {
     // 1. Try runtime config (Docker injected)
@@ -48,7 +50,6 @@ if (typeof process === 'undefined') {
 }
 
 export const config = {
-  OAUTH_CLIENTID: getString('OAUTH_CLIENTID', process.env.OAUTH_CLIENTID),
   MOCK_ENABLE: getBoolean('MOCK_ENABLE', process.env.MOCK_ENABLE),
   MOCK_ENVIRONMENT: getString('MOCK_ENVIRONMENT', process.env.MOCK_ENVIRONMENT),
   MOCK_AUTH: getBoolean('MOCK_AUTH', process.env.MOCK_AUTH),

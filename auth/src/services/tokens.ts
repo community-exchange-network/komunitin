@@ -3,8 +3,9 @@ import crypto from 'node:crypto'
 import type { Prisma } from '../generated/prisma/client'
 import prisma from '../utils/prisma'
 import { badRequest } from '../utils/error'
+import type { SignupContext } from '../users/signup'
 
-const TOKEN_TTL_MS = 24 * 60 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000
 
 export const userActionTokenPurpose = {
   passwordReset: 'passwordReset',
@@ -15,6 +16,27 @@ export const userActionTokenPurpose = {
 
 export type UserActionTokenPurpose =
   (typeof userActionTokenPurpose)[keyof typeof userActionTokenPurpose]
+
+const defaultPolicy = {
+  ttlMs: DAY_MS,
+  replacePending: true,
+  consumeOnRedeem: true,
+} as const
+
+const actionTokenPolicies = {
+  [userActionTokenPurpose.passwordReset]: defaultPolicy,
+  [userActionTokenPurpose.emailChange]: defaultPolicy,
+  [userActionTokenPurpose.emailVerification]: defaultPolicy,
+  [userActionTokenPurpose.unsubscribe]: {
+    ttlMs: 365 * DAY_MS,
+    replacePending: false,
+    consumeOnRedeem: false,
+  },
+} satisfies Record<UserActionTokenPurpose, {
+  ttlMs: number
+  replacePending: boolean
+  consumeOnRedeem: boolean
+}>
 
 export async function hashPassword(password: string): Promise<string> {
   if (password.length < 8) {
@@ -35,7 +57,11 @@ export function hasExpired(expiresAt: Date): boolean {
   return expiresAt.getTime() <= Date.now()
 }
 
-async function findUserActionTokenByToken(
+/**
+ * Returns an action token matching one of the given purposes, regardless of
+ * whether it has been used or expired.
+ */
+export async function findActionToken(
   token: string,
   purposes: UserActionTokenPurpose | UserActionTokenPurpose[],
 ) {
@@ -51,7 +77,7 @@ async function findUserActionTokenByToken(
     : null
 }
 
-type ActionTokenRecord = NonNullable<Awaited<ReturnType<typeof findUserActionTokenByToken>>>
+type ActionTokenRecord = NonNullable<Awaited<ReturnType<typeof findActionToken>>>
 
 /**
  * Returns a usable action token matching one of the given purposes, or null
@@ -61,7 +87,7 @@ export async function findValidActionToken(
   token: string,
   purposes: UserActionTokenPurpose | UserActionTokenPurpose[],
 ): Promise<ActionTokenRecord | null> {
-  const actionToken = await findUserActionTokenByToken(token, purposes)
+  const actionToken = await findActionToken(token, purposes)
   if (!actionToken || actionToken.usedAt !== null || hasExpired(actionToken.expiresAt)) {
     return null
   }
@@ -96,21 +122,28 @@ async function createUserActionToken({
   userId,
   purpose,
   targetEmail = null,
+  data,
 }: {
   userId: string
   purpose: UserActionTokenPurpose
   targetEmail?: string | null
+  data?: SignupContext
 }): Promise<string> {
   const token = generateToken()
   const tokenHash = hashToken(token)
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS)
+  const now = new Date()
+  const policy = actionTokenPolicies[purpose]
+  const expiresAt = new Date(now.getTime() + policy.ttlMs)
 
   await prisma.$transaction([
     prisma.userActionToken.deleteMany({
       where: {
         userId,
         purpose,
-        usedAt: null,
+        OR: [
+          { expiresAt: { lte: now } },
+          ...(policy.replacePending ? [{ usedAt: null }] : []),
+        ],
       },
     }),
     prisma.userActionToken.create({
@@ -118,6 +151,7 @@ async function createUserActionToken({
         userId,
         purpose,
         targetEmail,
+        data,
         tokenHash,
         expiresAt,
       },
@@ -144,11 +178,16 @@ export async function createEmailChangeToken(userId: string, targetEmail: string
   })
 }
 
-export async function createEmailVerificationToken(userId: string, targetEmail: string): Promise<string> {
+export async function createEmailVerificationToken(
+  userId: string,
+  targetEmail: string,
+  signup?: SignupContext,
+): Promise<string> {
   return createUserActionToken({
     userId,
     purpose: userActionTokenPurpose.emailVerification,
     targetEmail,
+    data: signup,
   })
 }
 
@@ -160,10 +199,8 @@ export async function createUnsubscribeToken(userId: string): Promise<string> {
 }
 
 /**
- * Validates and consumes a purpose-bound action token on behalf of a backend
- * service (e.g. social redeeming an unsubscribe token). The token is marked as
- * used (single-use). Returns the token owner, or null when the token is
- * unknown, of the wrong purpose, already used, or expired.
+ * Resolves a purpose-bound action token on behalf of a backend service.
+ * Purpose policy determines whether successful redemption consumes the token.
  */
 export async function redeemActionToken(
   token: string,
@@ -182,7 +219,9 @@ export async function redeemActionToken(
     return null
   }
 
-  await prisma.$transaction((tx) => consumeActionToken(tx, actionToken))
+  if (actionTokenPolicies[purpose].consumeOnRedeem) {
+    await prisma.$transaction((tx) => consumeActionToken(tx, actionToken))
+  }
 
   return { userId: user.id, email: user.email, purpose: actionToken.purpose as UserActionTokenPurpose }
 }

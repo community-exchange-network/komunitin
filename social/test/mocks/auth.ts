@@ -1,4 +1,6 @@
 import { exportJWK, generateKeyPair, SignJWT } from 'jose'
+import { config } from '../../src/config'
+import { Scope } from '../../src/server/scopes'
 import { toUuid } from './utils'
 import { seedUser } from './seed'
 
@@ -28,20 +30,62 @@ export const signJwt = async (
   userId: string,
   email = 'user@example.org',
   scope?: string | string[],
+  options: {
+    audience?: string
+    clientId?: string
+    includeDefaultScopes?: boolean
+    issuer?: string
+  } = {},
 ) => {
-  const payload: Record<string, unknown> = { email }
-  if (scope) {
-    payload.scope = Array.isArray(scope) ? scope.join(' ') : scope
+  const requestedScopes = scope === undefined ? [] : Array.isArray(scope) ? scope : [scope]
+  const scopes = [
+    ...(options.includeDefaultScopes === false ? [] : [
+      Scope.SocialRead,
+      Scope.SocialWrite,
+      Scope.AccountingRead,
+      Scope.AccountingWrite,
+    ]),
+    ...requestedScopes,
+  ]
+  const payload: Record<string, unknown> = {
+    client_id: options.clientId ?? 'komunitin-app',
+    email,
+    ...(scopes.length > 0 ? { scope: [...new Set(scopes)].join(' ') } : {}),
   }
 
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'RS256', kid: 'test-key-id' })
     .setIssuedAt()
-    .setIssuer('https://komunitin.org')
-    .setAudience('komunitin-app')
+    .setIssuer(options.issuer ?? config.AUTH_JWT_ISSUER)
+    .setAudience(options.audience ?? config.AUTH_JWT_AUDIENCE)
     .setSubject(userId)
     .setExpirationTime('2h')
     .sign(privateKey)
+}
+
+export const signServiceJwt = async (
+  clientId = 'komunitin-notifications',
+  scopes: string[] = [Scope.SocialRead],
+  subject = clientId,
+) => {
+  return await new SignJWT({
+    client_id: clientId,
+    scope: scopes.join(' '),
+  })
+    .setProtectedHeader({ alg: 'RS256', kid: 'test-key-id' })
+    .setIssuedAt()
+    .setIssuer(config.AUTH_JWT_ISSUER)
+    .setAudience(config.AUTH_JWT_AUDIENCE)
+    .setSubject(subject)
+    .setExpirationTime('2h')
+    .sign(privateKey)
+}
+
+export const serviceAuth = async (clientId = 'komunitin-notifications') => {
+  return {
+    id: clientId,
+    token: await signServiceJwt(clientId),
+  }
 }
 
 let userCounter = 0

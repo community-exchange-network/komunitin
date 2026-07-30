@@ -1,4 +1,6 @@
 import { http, HttpResponse } from 'msw'
+import { CLIENT_ID } from '../../src/config'
+import { Scope } from '../../src/server/scopes'
 import { getJwks } from './auth'
 import { toUuid } from './utils'
 
@@ -23,7 +25,22 @@ type AccountingRequest = {
   authorization: string | null
 }
 
+type AuthTokenRequest = {
+  clientId: string | null
+  grantType: string | null
+  scope: string | null
+  subjectToken: string | null
+}
+
+type MockUnsubscribeToken = {
+  userId: string
+  email: string
+}
+
+const authBaseUrl = process.env.AUTH_URL ?? 'http://auth.test'
 const accountingBaseUrl = process.env.ACCOUNTING_URL ?? 'http://localhost:2025'
+let authTokenRequests: AuthTokenRequest[] = []
+let authUnsubscribeTokens = new Map<string, MockUnsubscribeToken>()
 const notificationsBaseUrl = process.env.NOTIFICATIONS_API_URL ?? 'http://notifications.test'
 let accountingCurrencies = new Map<string, MockCurrency>()
 let accountingAccounts = new Map<string, Map<string, MockAccount>>()
@@ -85,6 +102,14 @@ const findAccountingAccountById = (currencyCode: string, accountId: string): Moc
 
 export const getAccountingRequests = (): AccountingRequest[] => {
   return [...accountingRequests]
+}
+
+export const getAuthTokenRequests = (): AuthTokenRequest[] => {
+  return [...authTokenRequests]
+}
+
+export const seedAuthUnsubscribeToken = (token: string, userId: string, email: string) => {
+  authUnsubscribeTokens.set(token, { userId, email })
 }
 
 export const getAccountingRequestPaths = (): string[] => {
@@ -154,6 +179,8 @@ const serializeAccount = (account: MockAccount) => ({
 })
 
 export const resetMockState = () => {
+  authTokenRequests = []
+  authUnsubscribeTokens = new Map()
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
   accountingRequests = []
@@ -169,6 +196,66 @@ export const resetMockState = () => {
 export const handlers = [
   http.get(process.env.AUTH_JWKS_URL!, () => {
     return HttpResponse.json(getJwks())
+  }),
+  http.post(`${authBaseUrl}/token`, async ({ request }) => {
+    const params = new URLSearchParams(await request.text())
+    const tokenRequest: AuthTokenRequest = {
+      clientId: params.get('client_id'),
+      grantType: params.get('grant_type'),
+      scope: params.get('scope'),
+      subjectToken: params.get('subject_token'),
+    }
+    authTokenRequests.push(tokenRequest)
+
+    if (tokenRequest.grantType === 'client_credentials') {
+      if (
+        tokenRequest.clientId !== CLIENT_ID
+        || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
+        || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.NotificationsWrite)
+      ) {
+        return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
+      }
+      return HttpResponse.json({
+        access_token: tokenRequest.scope === Scope.NotificationsWrite
+          ? 'social-notifications-token'
+          : 'social-service-token',
+        expires_in: 3600,
+        scope: tokenRequest.scope,
+        token_type: 'Bearer',
+      })
+    }
+
+    if (
+      tokenRequest.grantType !== 'urn:ietf:params:oauth:grant-type:token-exchange'
+      || tokenRequest.clientId !== CLIENT_ID
+      || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
+      || params.get('subject_token_type') !== 'urn:ietf:params:oauth:token-type:access_token'
+      || !tokenRequest.subjectToken
+      || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.AccountingWrite)
+    ) {
+      return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
+    }
+
+    return HttpResponse.json({
+      access_token: `exchanged-${tokenRequest.scope.replace(':', '-')}`,
+      expires_in: 3600,
+      scope: tokenRequest.scope,
+      token_type: 'Bearer',
+    })
+  }),
+  http.post(`${authBaseUrl}/redeem-action-token`, async ({ request }) => {
+    if (request.headers.get('authorization') !== 'Bearer social-service-token') {
+      return HttpResponse.json({ error: 'invalid_token' }, { status: 401 })
+    }
+    const body = await request.json() as { token?: string; purpose?: string }
+    if (!body.token || body.purpose !== 'unsubscribe') {
+      return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
+    }
+    const record = authUnsubscribeTokens.get(body.token)
+    if (!record) {
+      return HttpResponse.json({ error: 'invalid_action_token' }, { status: 400 })
+    }
+    return HttpResponse.json({ ...record, purpose: 'unsubscribe' })
   }),
   http.get(`${accountingBaseUrl}/:currencyCode/currency`, ({ request, params }) => {
     const unauthorized = requireAccountingAuthorization(request)
@@ -192,20 +279,12 @@ export const handlers = [
       return unauthorized
     }
 
-    const body = await request.json() as {
-      data?: {
-        attributes?: {
-          code?: string
-          status?: string
-        }
-      }
-    }
+    const body = await request.json() as any
 
     const code = body.data?.attributes?.code
     if (typeof code !== 'string' || code.length === 0) {
       return jsonApiError(400, 'Missing currency code')
     }
-
     const currency = accountingCurrencies.get(code) ?? seedAccountingCurrency(code)
 
     const status = body.data?.attributes?.status
@@ -403,8 +482,7 @@ export const handlers = [
       }, { status: notificationsEventStatus })
     }
 
-    const expectedBasic = `Basic ${Buffer.from(`${process.env.NOTIFICATIONS_API_USERNAME}:${process.env.NOTIFICATIONS_API_PASSWORD}`).toString('base64')}`
-    if (authorization !== expectedBasic) {
+    if (authorization !== 'Bearer social-notifications-token') {
       return jsonApiError(401, 'Missing or invalid notifications authorization header')
     }
 

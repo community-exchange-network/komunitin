@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { jsonApiDocumentSchema, jsonApiResourceSchema } from '../../server/jsonapi-schema'
+import {
+  jsonApiDocumentSchema,
+  jsonApiResourceSchema,
+} from '../../server/jsonapi-schema'
 
 export const accessSchema = z.enum(['public', 'group', 'private'])
 export type Access = z.infer<typeof accessSchema>
@@ -30,10 +33,25 @@ export type Contact = z.infer<typeof contactSchema>
 export const locationSchema = z.object({
   name: z.string().optional(),
   type: z.literal('Point'),
-  coordinates: z.tuple([z.number(), z.number()]),
+  coordinates: z.tuple([
+    z.number().min(-180).max(180),
+    z.number().min(-90).max(90),
+  ]),
 }).strict()
 
 export type Location = z.infer<typeof locationSchema>
+
+// Currency attributes are defined and authoritatively validated by Accounting.
+// Social only limits their overall size while the group request is pending.
+export const currencyAttributesSchema = z.object().loose().refine((data) => {
+  return JSON.stringify(data).length < 10000
+})
+
+export const groupMetaSchema = z.object({
+  request: z.object({
+    currency: currencyAttributesSchema,
+  }).strict(),
+}).strict()
 
 const groupEditableAttributesSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
@@ -43,6 +61,7 @@ const groupEditableAttributesSchema = z.object({
   address: addressSchema.optional(),
   contacts: z.array(contactSchema).optional(),
   location: locationSchema.optional(),
+  meta: groupMetaSchema.optional(),
 }).strict()
 
 const createGroupAttributesSchema = groupEditableAttributesSchema.extend({
@@ -62,14 +81,7 @@ export const groupSettingsAttributesSchema = z.object({
 }).strict()
 export type GroupSettings = z.infer<typeof groupSettingsAttributesSchema>
 
-// Currency schema is defined and validated by accounting service. 
-// So we dont define it here. We just validate its overall size is reasonable.
-export const currencyAttributesSchema = z.object().loose().refine((data) => {
-  return JSON.stringify(data).length < 10000
-})
-
 const groupSettingsSchema = jsonApiResourceSchema('group-settings', groupSettingsAttributesSchema)
-const currencySchema = jsonApiResourceSchema('currencies', currencyAttributesSchema)
 
 const groupStatuses = ['pending', 'active', 'disabled'] as const
 export type GroupStatus = typeof groupStatuses[number]
@@ -83,7 +95,7 @@ export type PatchGroupSettingsAttributes = z.infer<typeof groupSettingsAttribute
 
 export const createGroupBodySchema = jsonApiDocumentSchema(
   jsonApiResourceSchema('groups', createGroupAttributesSchema),
-  [groupSettingsSchema, currencySchema],
+  groupSettingsSchema,
 )
 
 export const patchGroupBodySchema = jsonApiDocumentSchema(

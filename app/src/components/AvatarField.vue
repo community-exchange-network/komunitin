@@ -9,6 +9,7 @@
     :url="url"
     :headers="headers"
     :field-name="fieldName"
+    :form-fields="formFields"
     @added="handleAdded"
     @uploaded="uploaded"
   >
@@ -18,7 +19,7 @@
     <template #list>
       <div @click="pickFiles">
         <avatar 
-          :img-src="src" 
+          :img-src="src ? { url: src } : null"
           :text="text"
           size="250px"
           class="q-mx-auto avatar"
@@ -47,23 +48,26 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from "vue"
 import type { QUploader } from "quasar"
+import type { ImageObject } from "src/store/model"
 import { imageFile, useImageUploaderProcessing, useUploaderSettings } from "../composables/uploader"
 import Avatar from "./Avatar.vue"
 
 const props = defineProps<{
-  modelValue: string | null,
-  text: string
+  modelValue: ImageObject | null,
+  text: string,
+  code: string,
+  resourceType: "members" | "groups"
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
+  (e: 'update:modelValue', value: ImageObject): void
 }>()
 
 const uploader = useTemplateRef<QUploader>("uploader")
-const src = computed(() => uploader.value?.files[0]?.__img?.src || props.modelValue)
-const file = computed(() => uploader.value?.files[0] || imageFile(props.modelValue ?? ""))
+const src = computed(() => uploader.value?.files[0]?.__img?.src || props.modelValue?.url)
+const file = computed(() => uploader.value?.files[0] || imageFile(props.modelValue?.url ?? ""))
 
-const { url, headers, fieldName } = useUploaderSettings()
+const { url, headers, fieldName, formFields } = useUploaderSettings(props)
 const { isProcessing, handleAdded } = useImageUploaderProcessing({ uploader })
 
 const pickFiles = (event: Event) => {
@@ -75,7 +79,7 @@ const pickFiles = (event: Event) => {
 const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
   const response = JSON.parse(xhr.responseText)
   const url = response.data.attributes.url
-  emit("update:modelValue", url)
+  emit("update:modelValue", { url })
   uploader.value?.removeUploadedFiles()
 }
 

@@ -2,6 +2,7 @@ import { Prisma } from '../../generated/prisma/client'
 import { OptionalAuthContext } from '../../server/context'
 import { DbClient } from '../../server/multitenant'
 import {
+  type CollectionIds,
   findCollectionIds,
   getFilterValues,
   sqlAnd,
@@ -13,6 +14,7 @@ import {
 import type { CollectionParams } from '../../server/request'
 import { isGroupAdmin, isGroupMember } from '../groups/service'
 import { Group } from '../groups/types'
+import type { PostRelationshipMeta } from './types'
 
 const postTable = sqlTable('Post', 'p')
 const postColumn = (column: string) => sqlColumn('p', column)
@@ -40,9 +42,13 @@ const postColumns: SqlColumnMap = {
 }
 
 const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): Promise<Prisma.Sql | null> => {
-  const isAdmin = ctx.isSuperadmin || await isGroupAdmin(ctx, group)
-  if (isAdmin || ctx.isSocialReadAll) {
-    return Prisma.sql`TRUE`
+  const live = [
+    Prisma.sql`${postColumn('deleted')} IS NULL`,
+    Prisma.sql`${memberColumn('deleted')} IS NULL`,
+  ]
+
+  if (ctx.isSuperadmin || ctx.canReadAllSocial || isGroupAdmin(ctx, group)) {
+    return sqlAnd(live)
   }
 
   const readable: Prisma.Sql[] = []
@@ -75,7 +81,7 @@ const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): P
     return null
   }
 
-  return sqlOr(readable)
+  return sqlAnd([...live, sqlOr(readable)])
 }
 
 const buildExpiredWhere = (rawValue: CollectionParams['filters'][string] | undefined): Prisma.Sql | null => {
@@ -92,11 +98,53 @@ const buildExpiredWhere = (rawValue: CollectionParams['filters'][string] | undef
     : Prisma.sql`(${postColumn('expires')} IS NULL OR ${postColumn('expires')} >= NOW())`
 }
 
+type PostRelationshipCountRow = {
+  relatedId: string
+  type: 'offers' | 'needs'
+  count: number
+}
 
-export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<string[]> => {
+/** Compute visible published offer and need counts for members or categories. */
+export const findPostRelationshipCounts = async (
+  ctx: OptionalAuthContext,
+  db: DbClient,
+  group: Group,
+  relatedBy: 'memberId' | 'categoryId',
+  ids: string[],
+): Promise<Map<string, PostRelationshipMeta>> => {
+  const uniqueIds = [...new Set(ids)]
+  const counts = new Map(uniqueIds.map((id) => [id, { offers: 0, needs: 0 }]))
+  if (uniqueIds.length === 0) {
+    return counts
+  }
+
   const readableWhere = await buildReadablePostWhere(ctx, group)
   if (readableWhere === null) {
-    return []
+    return counts
+  }
+
+  const relatedId = postColumn(relatedBy)
+  const rows = await db.$queryRaw<PostRelationshipCountRow[]>(Prisma.sql`
+    SELECT ${relatedId} AS "relatedId",
+      ${postColumn('type')} AS "type", COUNT(*)::integer AS "count"
+    FROM ${postWithMemberFrom}
+    WHERE ${readableWhere}
+      AND ${postColumn('status')} = 'published'
+      AND ${relatedId} IN (${Prisma.join(uniqueIds)})
+    GROUP BY ${relatedId}, ${postColumn('type')}
+  `)
+
+  for (const row of rows) {
+    counts.get(row.relatedId)![row.type] = row.count
+  }
+
+  return counts
+}
+
+export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<CollectionIds> => {
+  const readableWhere = await buildReadablePostWhere(ctx, group)
+  if (readableWhere === null) {
+    return { ids: [], total: 0 }
   }
 
   const hasSearch = params.filters.search !== undefined
@@ -106,14 +154,13 @@ export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group
   return await findCollectionIds(db, {
     from: postWithMemberFrom,
     columns: postColumns,
+    location: postColumn('location'),
     search: hasSearch ? [postColumn('search'), memberColumn('search')] : postColumn('search'),
     params: {
       ...params,
       filters,
     },
     where: [
-      Prisma.sql`${postColumn('deleted')} IS NULL`,
-      Prisma.sql`${memberColumn('deleted')} IS NULL`,
       readableWhere,
       ...(expiredWhere ? [expiredWhere] : []),
     ],

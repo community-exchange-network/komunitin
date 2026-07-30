@@ -15,7 +15,7 @@ export const findAccount: FindAccount = async (ctx, id, token) => {
   })
 
   if (!user) return undefined
-  
+
   // oidc-provider calls findAccount during refresh; reject sessions whose superadmin identity is no longer configured.
   if (token && 'scopes' in token && token.scopes.has(SUPERADMIN_SCOPE) && user.email !== config.ADMIN_EMAIL) {
     return undefined
@@ -54,7 +54,8 @@ export async function authenticate(email: string, passwordSecret: string) {
   const user = await prisma.user.findUnique({
     where: { 
       email: normalizeEmail(email),
-      status: UserStatus.Active
+      status: UserStatus.Active,
+      emailVerified: true,
     },
   })
 

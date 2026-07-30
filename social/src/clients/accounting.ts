@@ -1,7 +1,9 @@
 import { config } from '../config'
-import { AuthContext } from '../server/context'
+import type { AuthContext } from '../server/context'
+import { Scope } from '../server/scopes'
 import { internalError } from '../utils/error'
-import { fetchWithRetry } from './utils'
+import { exchangeAccountingToken } from './auth'
+import { fetchWithAuth } from './utils'
 
 type JsonApiError = {
   status: string
@@ -83,25 +85,27 @@ const userMap = (ids: string[]) => ids.map((id) => ({ type: 'users', id }))
 class AccountingClient {
   constructor(readonly ctx: AuthContext) {}
 
-  private async getAuthorizationToken(): Promise<string> {
-    // As of now, we simply forward the user's JWT token to the accounting service for authentication,
-    // but we are prepared to implement a token exchange mechanis when the auth service supports it.
-    return this.ctx.token
-  }
-
-  private async request(path: string, init: RequestInit, options: RequestOptions = {}): Promise<JsonApiDoc | undefined> {
-    const token = await this.getAuthorizationToken()
-    
-    const response = await fetchWithRetry(accountingUrl(path), {
-      ...init,
-      headers: {
-        Accept: 'application/vnd.api+json',
-        ...(init.body ? { 'Content-Type': 'application/vnd.api+json' } : {}),
-        Authorization: `Bearer ${token}`,
-        ...init.headers,
+  private async request(
+    path: string,
+    init: RequestInit,
+    options: RequestOptions = {},
+  ): Promise<JsonApiDoc | undefined> {
+    const scope = !init.method || init.method === 'GET'
+      ? Scope.AccountingRead
+      : Scope.AccountingWrite
+    const response = await fetchWithAuth(
+      accountingUrl(path),
+      {
+        ...init,
+        headers: {
+          Accept: 'application/vnd.api+json',
+          ...(init.body ? { 'Content-Type': 'application/vnd.api+json' } : {}),
+          ...init.headers,
+        },
       },
-    })
-    
+      (forceRefresh) => exchangeAccountingToken(this.ctx.token, scope, forceRefresh),
+    )
+
     if (options.allowNotFound && response.status === 404) {
       return undefined
     }
@@ -135,6 +139,8 @@ class AccountingClient {
               },
             },
           },
+          // We could add currency-settings as well, but the accounting service will 
+          // create default settings if none are provided.
           included: userMap(adminUserIds),
         }),
       },
