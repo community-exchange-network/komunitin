@@ -23,7 +23,7 @@ CREATE TABLE "Group" (
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
     "contacts" JSONB,
-    "settings" JSONB,
+    "settings" JSONB NOT NULL DEFAULT '{}',
     "meta" JSONB,
     "currencyId" TEXT,
     "created" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -68,7 +68,7 @@ model Group {
 
   contacts Json? // Contact[]
 
-  settings Json? // GroupSettings
+  settings Json @default("{}") // GroupSettings
   meta     Json? // GroupMeta
 
   // Currency id in accounting service.
