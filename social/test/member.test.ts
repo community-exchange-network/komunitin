@@ -76,6 +76,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data.attributes.name, 'Alice Member')
     assert.strictEqual(res.body.data.attributes.status, 'draft')
     assert.strictEqual(res.body.data.attributes.code, 'members-create0000')
+    assert.deepStrictEqual(res.body.data.attributes.contacts, [])
     assert.strictEqual(res.body.data.relationships.group.data.id, group.id)
 
     const list = await request(app)
@@ -92,6 +93,7 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(draftList.body.data.length, 1)
     assert.strictEqual(draftList.body.data[0].attributes.name, 'Alice Member')
+    assert.deepStrictEqual(draftList.body.data[0].attributes.contacts, [])
   })
 
   test('POST /:code/members allows repeated member creation by the same user', async () => {
