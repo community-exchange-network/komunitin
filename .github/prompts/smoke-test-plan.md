@@ -188,6 +188,7 @@ No application or API changes are required. The output is a test report, evidenc
   - **P3:** visual, wording, or minor usability issue.
 - Record non-bug findings separately: unclear UX, flaky timing, missing observability, configuration gaps, and documentation problems.
 - Preserve failed state until evidence is collected. Reset test data only after the report and defects are complete.
+- Keep updating the report on the go so we can stop and resume the session without losing progress.
 
 ## Acceptance and Assumptions
 
