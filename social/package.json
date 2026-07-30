@@ -20,6 +20,7 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "7.8.0",
     "cors": "^2.8.5",
+    "csv-parse": "^7.0.1",
     "dotenv": "17.4.2",
     "express": "^5.2.1",
     "express-oauth2-jwt-bearer": "^1.8.0",
@@ -32,6 +33,7 @@
     "pino-http": "^11.0.0",
     "qs": "^6.15.0",
     "ts-japi": "^1.12.3",
+    "yauzl": "^3.4.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -43,6 +45,8 @@
     "@types/node-cron": "^3.0.11",
     "@types/qs": "^6.9.18",
     "@types/supertest": "^6.0.3",
+    "@types/yazl": "^3.3.1",
+    "@types/yauzl": "^3.4.0",
     "jose": "^6.2.3",
     "msw": "^2.14.3",
     "pino-pretty": "^10.3.0",
@@ -50,6 +54,7 @@
     "supertest": "^7.1.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3",
-    "unbuild": "^3.6.1"
+    "unbuild": "^3.6.1",
+    "yazl": "^3.3.1"
   }
 }

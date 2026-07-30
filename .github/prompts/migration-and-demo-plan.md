@@ -8,7 +8,7 @@
 - Production imports create new communities only. Existing community codes are rejected again immediately before execution.
 - Imports must contain complete committed transfer history: declared balances must equal that history and all imported account balances must total zero.
 - CSV passwords, overwrite/merge, partial histories, opening-balance adjustments, external transfers, notification history and cross-community accounting links remain out of scope.
-- Images are referenced by HTTP(S) URLs and downloaded to S3 on a best-effort basis. There are no user-supplied file or image checksums.
+- Images are referenced by HTTP(S) URLs and downloaded to S3 on a best-effort basis. There are no user-supplied image keys or checksums; source image keys are derived from owner type, owner source key and zero-based list position.
 - The importer targets only the current documented input bundle format. Preserve compatibility with older bundle shapes only when doing so remains simple.
 
 ## Platform Prerequisite
@@ -22,7 +22,7 @@ The new Auth and Social stack must work end to end before execution is enabled: 
 - Add the format documentation, empty templates and a tiny internally consistent example under `shared/migration/`.
 - Keep community and resource data in the documented CSV files; do not add metadata that is not needed by the importer.
 - Define exact files, headers, stable source keys, relationships, enum values, denormalized optional fields, integer/decimal amount rules, UTC timestamps, required files and optional files.
-- Represent each image with an HTTP(S) source URL. Do not require checksums or licence metadata in the import format.
+- Represent each image with an HTTP(S) source URL. Derive its source key from owner type, owner source key and zero-based position; post list position is identity-bearing. Do not require user-supplied image keys, checksums or licence metadata in the import format.
 - State explicitly that the format accepts only complete, self-balancing histories and new destination community codes.
 - No runtime or service changes.
 
@@ -32,9 +32,9 @@ Review focus: Is the smallest useful format sufficient for users, members, accou
 
 - Parse a ZIP or fixture directory into typed normalized rows.
 - Apply straightforward bundle limits and reject unsafe ZIP paths, but do not add malware scanning or a public-upload threat model.
-- Resolve cross-file keys and validate uniqueness, administrators, statuses, relationships, account limits, post ownership, image keys and image URL syntax.
+- Resolve cross-file keys and validate uniqueness, administrators, statuses, relationships, account limits, post ownership and image URL syntax.
 - Recompute every account balance from committed transfers, reject differences from declared balances and require the imported balances to total zero.
-- Reject unsupported external transfers, partial histories and destination identifiers in source-key fields.
+- Reject unsupported external transfers and partial histories.
 - Return a normalized import plan, count summary and structured errors containing file, row, column, code and message, without mutating services or databases.
 
 Review focus: Parser correctness, domain rules, exact balance arithmetic and useful operator errors.
@@ -47,6 +47,7 @@ Review focus: Parser correctness, domain rules, exact balance arithmetic and use
 - Add superadmin-only list, detail, paginated log, upload and report endpoints.
 - Store the raw bundle and normalized plan under a private S3 migration prefix.
 - Validate on upload and transition the migration to `ready` or `invalid`; execution remains disabled.
+- After offline parsing succeeds, check read-only that the destination community code does not already exist. Do not move this environment-dependent check into the parser.
 - Add a configurable bundle-size limit and 30-day retention for inactive staging data.
 - Keep logs concise and avoid copying sensitive row contents into them.
 
@@ -89,7 +90,7 @@ Review focus: Tenant isolation, canonical user relationships, status fidelity an
 
 ### 7. Downloaded image sync
 
-- Derive a deterministic tenant-scoped S3 object key from each stable source image key.
+- Derive a deterministic tenant-scoped S3 object key from each importer-derived source image key (owner type, owner source key and zero-based position).
 - Reuse an existing Social `File` mapping first. If the database was reset, check S3 and recreate the `File` mapping from the existing object without downloading it again.
 - When the object is missing, download its HTTP(S) source URL with a timeout, response-size limit, small redirect limit and detected MIME validation, then store it using the existing Social S3 behavior.
 - Treat download failures as warnings and continue the migration. On any rerun or resume, retry only images whose `File` mapping and S3 object are still missing.

@@ -19,16 +19,16 @@ Required files must be present even when they have only a header. Optional files
 
 ## Common rules
 
-- CSV is UTF-8 without a byte-order mark, comma-delimited and RFC 4180 quoted. Headers must match the documented headers and example files exactly. Unless a column is explicitly optional or allowed to be empty below, every cell is required. Blank optional cells mean “not provided”; the literal strings `null` and `undefined` have no special meaning.
-- `code` is the stable key for groups, currencies, members, accounts, categories and posts. The single Social group and Accounting currency share the `community.csv` code, while each Social member and its Accounting account share the `members.csv` code. Relationships use the corresponding `*Code` field; generated destination UUIDs never appear in the bundle.
+- CSV is UTF-8, comma-delimited and RFC 4180 quoted. A UTF-8 byte-order mark is accepted. Headers must contain exactly the documented columns, in any order. Unless a column is explicitly optional or allowed to be empty below, every cell is required. Blank optional cells mean “not provided”; the literal strings `null` and `undefined` have no special meaning.
+- `code` is the stable key for groups, currencies, members, accounts, categories and posts. The single Social group and Accounting currency share the `community.csv` code, while each Social member and its Accounting account share the `members.csv` code. Relationships use the corresponding `*Code` field. Keys are opaque: a UUID-shaped value is not assumed to be a destination identifier.
 - Email is the stable user key. Every user relationship must match a `users.csv` email after `trim().toLowerCase()` normalization, and emails must be unique after normalization. Passwords are never included.
 - Multi-value relationship cells contain keys separated by semicolons, with no whitespace around the separator. Email keys are normalized as above; resource codes retain their documented form. A blank cell means no relationships, while empty or duplicate list items are invalid.
-- `sourceKey` is an opaque, bundle-local source key matching `[A-Za-z0-9][A-Za-z0-9._:-]{0,127}`. It is stable across retries and unique within `transfers.csv`.
-- Timestamps are UTC ISO 8601 values in the form `YYYY-MM-DDTHH:mm:ssZ` or `YYYY-MM-DDTHH:mm:ss.sssZ`. Offsets other than `Z` are invalid. No update timestamp may precede its corresponding creation timestamp.
+- `sourceKey` is an opaque, non-blank bundle-local source key of at most 128 characters. It is stable across retries and unique within `transfers.csv`.
+- Timestamps are ISO 8601 date-time values with a UTC offset. They are normalized to UTC with millisecond precision. No update timestamp may precede its corresponding creation timestamp.
 - Contacts use one predefined column per supported contact type. A resource may therefore have at most one contact of each type.
-- `imageUrls` is an ordered semicolon-delimited list of unique image URLs. Semicolons are invalid inside URLs in that column. List position is part of each post image's stable source identity.
+- `imageUrls` is an ordered semicolon-delimited list of image URLs. Semicolons are invalid inside URLs in that column. List position is part of each post image's stable source identity, so repeated URLs are allowed.
 - Image URLs are absolute `http` or `https` URLs of at most 2,048 characters with a hostname and no embedded credentials. Downloads are best-effort. Alt text, checksums and licence metadata are not part of the format.
-- Images do not carry user-supplied keys. The importer derives each image source key as `<owner-type>:<owner-key>:image:<position>`, where `position` is zero-based. The owner type is `community` for `community.csv.imageUrl`, `member` for `members.csv.imageUrl`, and the post's `offer` or `want` type for `posts.csv.imageUrls`. Community and member images always use position `0`; post images use their position in `imageUrls`. For example, the first image of offer `fresh-bread` is `offer:fresh-bread:image:0`. The parser validates these derived keys for uniqueness. Reordering a post's URLs therefore changes which derived identity belongs to each URL.
+- Images do not carry user-supplied keys. The importer derives each image source key as `<owner-type>:<owner-key>:image:<position>`, where `position` is zero-based. The owner type is `community` for `community.csv.imageUrl`, `member` for `members.csv.imageUrl`, and the post's `offer` or `want` type for `posts.csv.imageUrls`. Community and member images always use position `0`; post images use their position in `imageUrls`. For example, the first image of offer `fresh-bread` is `offer:fresh-bread:image:0`. Reordering a post's URLs therefore changes which derived identity belongs to each URL.
 - Enum and boolean values are case-sensitive. Booleans in ordinary CSV cells are `true` or `false`.
 - The destination `community.csv` code must not already exist; imports never overwrite or merge communities. The offline parser intentionally performs no service or database lookup. Upload staging checks existence read-only, and execution checks it again immediately before importing.
 
@@ -48,7 +48,7 @@ code,name,description,access,adminUsers,currency.adminUser,currency.name,currenc
 
 - `code` is the stable key and new destination code for both the Social group and Accounting currency: exactly four uppercase ASCII letters or digits. `name` and both currency names are required and at most 255 characters; `currency.symbol` is required and 1–3 characters.
 - `description` may be empty. `access` is `public`, `group` or `private`. `createdAt` and `updatedAt` belong to the Social community; the corresponding `currency.*` timestamps belong to its Accounting currency. All columns after `currency.updatedAt` are optional and use the denormalized shapes below.
-- `adminUsers` is required and non-empty. Each listed email grants that user the Social community administrator role. `currency.adminUser` is one email from that list and owns the Accounting currency.
+- `adminUsers` is required and non-empty. Each listed email grants that user the Social community administrator role and must also administer a non-deleted member in `members.csv`. `currency.adminUser` must be one email from that list and owns the Accounting currency.
 - `currency.settings.defaultAcceptPaymentsWhitelist` is a semicolon-delimited list of member/account codes. It maps to the Accounting currency default payment-acceptance whitelist; blank means an empty list.
 - A successful execution creates the community as pending and invisible, then activates it only after every import phase succeeds; there is no source status field.
 
@@ -80,7 +80,7 @@ code,name,type,status,access,description,adminUsers,account.balance,account.cred
 sourceKey,payerAccountCode,payeeAccountCode,initiatorUser,amount,description,createdAt,updatedAt
 ```
 
-Every row is imported as a committed historical transfer with no Stellar hash. Payer and payee must be distinct accounts in this bundle. The initiator must own either account or be a community administrator. `description` may be empty. External accounts, opening-balance adjustments and partial histories are not supported.
+Every row is imported as a committed historical transfer with no Stellar hash. Payer and payee must be distinct accounts in this bundle, and the initiator must be present in `users.csv`. Current account or community administration is not used to re-authorize historical transfers. `description` may be empty. External accounts, opening-balance adjustments and partial histories are not supported.
 
 ### `categories.csv`
 
