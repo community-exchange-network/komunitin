@@ -87,7 +87,6 @@ export const useImageUploaderProcessing = ({
       return
     }
 
-    filesToProcess.forEach(file => activeUploader.removeFile(file))
     processingCount.value++
 
     try {
@@ -104,12 +103,18 @@ export const useImageUploaderProcessing = ({
         notifyError()
       }
 
-      if (convertedFiles.length === 0 || uploader.value?.isAlive() === false) {
+      if (activeUploader.isAlive() === false) {
         return
       }
 
-      uploader.value?.addFiles(convertedFiles)
-      uploader.value?.upload()
+      filesToProcess.forEach(file => activeUploader.removeFile(file))
+
+      if (convertedFiles.length === 0) {
+        return
+      }
+
+      activeUploader.addFiles(convertedFiles)
+      activeUploader.upload()
     } finally {
       processingCount.value--
     }
