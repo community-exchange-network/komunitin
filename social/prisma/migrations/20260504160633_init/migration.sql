@@ -60,7 +60,7 @@ CREATE TABLE "Member" (
     "address" JSONB,
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
-    "contacts" JSONB,
+    "contacts" JSONB NOT NULL DEFAULT '[]'::jsonb,
     "meta" JSONB,
     "accountId" UUID,
     "accountHref" VARCHAR(2048),

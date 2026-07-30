@@ -25,7 +25,7 @@ export interface Member extends DbMember {
   image: Image | null
   address: Address | null
   location: Location | null
-  contacts: Contact[] | null
+  contacts: Contact[]
   meta: MemberMeta
   group?: Group
 }
