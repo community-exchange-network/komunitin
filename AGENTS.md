@@ -74,10 +74,16 @@ The development template bootstraps the superadmin
 - For non-user-facing text, use the default terminology guidelines (no flavor) and keep existing API contracts unless specifically changing them.
 
 ## General Development Guidelines
+
 - Keep the code minimal, simple and elegant. Avoid duplication at all costs.
 - Avoid defensive programming. Use the type system to enforce non-nullable values instead of runtime checks.
 - Prefer single return statements. Avoid unnecessary early returns just for tiny performance gain.
 - Avoid unnecessary type annotations when the type is correctly inferred (e.g. function return types).
 - Add concise comments for non-obvious or unreadable logic, for public API functions and for orchestration code.
-- Keep testing code minimal, readable and focused on the service boundary (HTTP api for backend services, user interaction for app).
 - 2-space indentation. No unnecessary trailing semicolons.
+
+## Testing Guidelines
+
+- Focus committed tests on service boundaries: HTTP APIs for backend services and user interactions for the app. Test behavior, not implementation.
+- Keep test code minimal, readable and DRY. Move shared setup and helpers into utility files.
+- Treat unit tests as temporary development and debugging aids. Commit them only for exceptionally complex functions or components. Unit tests do not define product intent and may be freely changed or deleted during refactors.
