@@ -64,6 +64,7 @@ import { QSelect } from 'quasar';
 import { watchDebounced } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { normalizeAccountCode } from 'src/plugins/FormatCurrency';
+import { resolveRelationshipUrl } from 'src/store/relationships';
 
 type ExtendedAccount = Account & {member?: ExtendedMember & {group: Group}, currency?: Currency}
 type ExtendedMember = Member & {account?: ExtendedAccount }
@@ -162,7 +163,7 @@ const fetchExternalAccountByCode = async (search?: string) => {
     }
   } else {
     const code = normalizeAccountCode(search, group.value.currency)
-    const currencyUrl = group.value.relationships.currency.links.related
+    const currencyUrl = resolveRelationshipUrl(group.value.relationships.currency)
     const baseUrl = currencyUrl.replace('/currency', '')
     const accountUrl = `${baseUrl}/accounts?filter[code]=${code}`
 
