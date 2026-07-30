@@ -39,6 +39,17 @@ describe("image upload fields", () => {
   })
 
   it("uploads a resized image from ImageField before the mock files endpoint would reject the original", async () => {
+    let imageDecoded = false
+    const decodeImage = vi.mocked(createImageBitmap).getMockImplementation()
+    vi.mocked(createImageBitmap).mockImplementation(async file => {
+      const image = await decodeImage(file)
+      imageDecoded = true
+      return image
+    })
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:image-preview")
+    const revokePreview = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {
+      expect(imageDecoded).toBe(true)
+    })
     const uploadLimit = 250_000
     const originalImage = createMockImageFile({
       encodedSize: 180_000,
@@ -78,6 +89,7 @@ describe("image upload fields", () => {
       url: "https://files.example/offer-photo.webp"
     })
     expect(upload.size).toBeLessThanOrEqual(uploadLimit)
+    expect(revokePreview).toHaveBeenCalled()
     wrapper.unmount()
   })
 
