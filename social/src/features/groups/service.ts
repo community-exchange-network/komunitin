@@ -358,9 +358,8 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     if (status === 'active' || status === 'disabled') {
       const currencyAttributes = (meta ?? group.meta)?.request?.currency
       const currency = await syncCurrencyStatus(ctx, group, status, currencyAttributes)
-      if (!group.currencyId) {
-        data.currencyId = currency.id
-      }
+      data.currencyId = currency.id
+      data.currencyHref = currency.href
     }
 
     if (group.status === 'pending' && status === 'active') {

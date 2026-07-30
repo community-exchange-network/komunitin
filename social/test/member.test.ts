@@ -3,8 +3,8 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
-import { Scope } from '../src/server/context'
 import { auth, serviceAuth } from './mocks/auth'
+import { accountingAccountHref } from './mocks/accounting'
 import {
   getAccountingRequestPaths,
   getNotificationsEvents,
@@ -227,7 +227,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].relationships.account.data.type, 'accounts')
     assert.strictEqual(res.body.data[0].relationships.account.data.id, accountId)
     assert.strictEqual(res.body.data[0].relationships.account.data.meta.external, true)
-    assert.strictEqual(res.body.data[0].relationships.account.data.meta.href, `http://localhost:2025/members-include-account/accounts/${accountId}`)
+    assert.strictEqual(res.body.data[0].relationships.account.data.meta.href, accountingAccountHref('members-include-account', accountId))
 
     assert.ok(Array.isArray(res.body.included))
     assert.strictEqual(res.body.included.length, 1)
@@ -236,7 +236,7 @@ describe('Members endpoints', () => {
       id: accountId,
       meta: {
         external: true,
-        href: `http://localhost:2025/members-include-account/accounts/${accountId}`,
+        href: accountingAccountHref('members-include-account', accountId),
       },
     })
     assert.deepStrictEqual(getAccountingRequestPaths(), [])
@@ -541,7 +541,9 @@ describe('Members endpoints', () => {
     assert.ok(approved.body.data.attributes.accountId)
     assert.strictEqual(approved.body.data.relationships.account.data.type, 'accounts')
     assert.strictEqual(approved.body.data.relationships.account.data.meta.external, true)
-    assert.strictEqual(approved.body.data.relationships.account.data.meta.href, `http://localhost:2025/${currency.code}/accounts/${approved.body.data.attributes.accountId}`)
+    const accountHref = accountingAccountHref(currency.code, approved.body.data.attributes.accountId)
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.href, accountHref)
+    
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
       [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
@@ -587,10 +589,15 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(approved.body.data.attributes.accountId, account.id)
     assert.strictEqual(approved.body.data.relationships.account.data.id, account.id)
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.href, account.href)
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
       [`GET /${currency.code}/accounts`],
     )
+    const db = tenantDb(prisma, currency.code)
+    const storedMember = await db.member.findFirstOrThrow({ where: { id: member.id } })
+    assert.strictEqual(storedMember.accountId, account.id)
+    assert.strictEqual(storedMember.accountHref, account.href)
   })
 
   test('PATCH /:code/members/:member allows member admin to disable and reactivate with accounting sync', async () => {

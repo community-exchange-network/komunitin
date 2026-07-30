@@ -5,6 +5,7 @@ import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/context'
 import { auth, serviceAuth } from './mocks/auth'
+import { accountingCurrencyHref } from './mocks/accounting'
 import {
   getAccountingRequests,
   getAccountingRequestPaths,
@@ -414,7 +415,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.data[0].relationships.currency.data.type, 'currencies')
     assert.strictEqual(res.body.data[0].relationships.currency.data.id, currencyId)
     assert.strictEqual(res.body.data[0].relationships.currency.data.meta.external, true)
-    assert.strictEqual(res.body.data[0].relationships.currency.data.meta.href, 'http://localhost:2025/currency-include-group/currency')
+    assert.strictEqual(res.body.data[0].relationships.currency.data.meta.href, accountingCurrencyHref('currency-include-group'))
 
     assert.ok(Array.isArray(res.body.included))
     assert.strictEqual(res.body.included.length, 1)
@@ -423,7 +424,7 @@ describe('Groups endpoints', () => {
       id: currencyId,
       meta: {
         external: true,
-        href: 'http://localhost:2025/currency-include-group/currency',
+        href: accountingCurrencyHref('currency-include-group'),
       },
     })
     assert.deepStrictEqual(getAccountingRequestPaths(), [])
@@ -671,7 +672,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.data.relationships.currency.data.type, 'currencies')
     assert.strictEqual(res.body.data.relationships.currency.data.id, currencyId)
     assert.strictEqual(res.body.data.relationships.currency.data.meta.external, true)
-    assert.strictEqual(res.body.data.relationships.currency.data.meta.href, 'http://localhost:2025/single-currency-include-group/currency')
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.href, accountingCurrencyHref('single-currency-include-group'))
 
     assert.ok(Array.isArray(res.body.included))
     assert.deepStrictEqual(res.body.included[0], {
@@ -679,7 +680,7 @@ describe('Groups endpoints', () => {
       id: currencyId,
       meta: {
         external: true,
-        href: 'http://localhost:2025/single-currency-include-group/currency',
+        href: accountingCurrencyHref('single-currency-include-group'),
       },
     })
     assert.deepStrictEqual(getAccountingRequestPaths(), [])
@@ -993,7 +994,8 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.data.attributes.meta, null)
     assert.strictEqual(res.body.data.relationships.currency.data.type, 'currencies')
     assert.strictEqual(res.body.data.relationships.currency.data.meta.external, true)
-    assert.strictEqual(res.body.data.relationships.currency.data.meta.href, 'http://localhost:2025/activate-group/currency')
+    const currencyHref = accountingCurrencyHref('activate-group')
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.href, currencyHref)
 
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
@@ -1004,6 +1006,7 @@ describe('Groups endpoints', () => {
     const group = await db.group.findFirstOrThrow()
     assert.strictEqual(group.status, 'active')
     assert.strictEqual(group.currencyId, res.body.data.relationships.currency.data.id)
+    assert.strictEqual(group.currencyHref, currencyHref)
     assert.strictEqual(group.meta, null)
 
     const events = getNotificationsEvents() as any[]
@@ -1061,6 +1064,9 @@ describe('Groups endpoints', () => {
 
     const db = tenantDb(prisma, 'adopt-group')
     const group = await db.group.findFirstOrThrow()
+    assert.strictEqual(group.currencyId, currency.id)
+    assert.strictEqual(group.currencyHref, currency.href)
+    assert.strictEqual(res.body.data.relationships.currency.data.meta.href, currency.href)
     assert.strictEqual(group.meta, null)
     assert.strictEqual(res.body.data.attributes.meta, null)
   })

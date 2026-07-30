@@ -1,17 +1,20 @@
 import { http, HttpResponse } from 'msw'
 import { CLIENT_ID } from '../../src/config'
 import { Scope } from '../../src/server/scopes'
+import { accountingAccountHref, accountingCurrencyHref } from './accounting'
 import { getJwks } from './auth'
 import { toUuid } from './utils'
 
 type MockCurrency = {
   id: string
+  href: string
   code: string
   status: 'active' | 'disabled' | 'deleted'
 }
 
 type MockAccount = {
   id: string
+  href: string
   code: string
   currencyCode: string
   userIds: string[]
@@ -65,7 +68,7 @@ export const seedAccountingCurrency = (
   id = toUuid(`accounting-currency-${code}`),
   status: MockCurrency['status'] = 'active',
 ): MockCurrency => {
-  const currency = { id, code, status }
+  const currency = { id, href: accountingCurrencyHref(code), code, status }
   accountingCurrencies.set(code, currency)
   return currency
 }
@@ -78,7 +81,15 @@ export const seedAccountingAccount = (
   status: MockAccount['status'] = 'active',
   balance = 0,
 ): MockAccount => {
-  const account = { id, code, currencyCode, userIds, status, balance }
+  const account = {
+    id,
+    href: accountingAccountHref(currencyCode, id),
+    code,
+    currencyCode,
+    userIds,
+    status,
+    balance,
+  }
   const accounts = accountingAccounts.get(currencyCode) ?? new Map<string, MockAccount>()
   accounts.set(code, account)
   accountingAccounts.set(currencyCode, accounts)
@@ -162,6 +173,9 @@ const requireAccountingAuthorization = (request: Request): Response | null => {
 const serializeCurrency = (currency: MockCurrency) => ({
   type: 'currencies',
   id: currency.id,
+  links: {
+    self: currency.href,
+  },
   attributes: {
     code: currency.code,
     status: currency.status,
@@ -171,6 +185,9 @@ const serializeCurrency = (currency: MockCurrency) => ({
 const serializeAccount = (account: MockAccount) => ({
   type: 'accounts',
   id: account.id,
+  links: {
+    self: account.href,
+  },
   attributes: {
     code: account.code,
     status: account.status,

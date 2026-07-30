@@ -1,6 +1,5 @@
 import TsJapi from 'ts-japi'
 import { config } from '../../config'
-import { getAccountingCurrencyUrl } from '../../clients/accounting'
 import { externalResourceSerializer, getResourceLink, SerializerOptions, ToManyRelator } from '../../server/jsonapi-serialize'
 import type { GroupSettings } from './schema'
 import type { Group, SerializableGroup } from './types'
@@ -60,13 +59,13 @@ export const GroupSerializer = new Serializer<SerializableGroup>('groups', {
       }
     }, GroupSettingsSerializer, { relatedName: 'settings' }),
     currency: new Relator<SerializableGroup, { id: string; href: string }>(async (group) => {
-      if (!group.currencyId) {
+      if (!group.currencyId ||!group.currencyHref) {
         return undefined
       }
 
       return {
         id: group.currencyId,
-        href: getAccountingCurrencyUrl(group.code),
+        href: group.currencyHref,
       }
     }, ExternalCurrencySerializer, { relatedName: 'currency' }),
     admins: new ToManyRelator<SerializableGroup>(
