@@ -87,11 +87,11 @@ export const useImageUploaderProcessing = ({
       return
     }
 
-    filesToProcess.forEach(file => activeUploader.removeFile(file))
     processingCount.value++
 
     try {
       const results = await Promise.allSettled(filesToProcess.map(file => transformFile(file)))
+      filesToProcess.forEach(file => activeUploader.removeFile(file))
       const convertedFiles = results.flatMap(result => {
         if (result.status === "fulfilled") {
           processedFiles.add(result.value)
