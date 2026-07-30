@@ -78,6 +78,13 @@ services:
       - ./social/prisma.config.ts:/app/prisma.config.ts
       - ./social/tsconfig.json:/app/tsconfig.json
 
+  s3mock:
+    image: adobe/s3mock:5
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: komunitin
+    ports:
+      - "9191:9191"
+
   notifications-ts:
     command: pnpm dev
     ports:
