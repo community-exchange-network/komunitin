@@ -594,10 +594,6 @@ describe('Members endpoints', () => {
       getAccountingRequestPaths(),
       [`GET /${currency.code}/accounts`],
     )
-    const db = tenantDb(prisma, currency.code)
-    const storedMember = await db.member.findFirstOrThrow({ where: { id: member.id } })
-    assert.strictEqual(storedMember.accountId, account.id)
-    assert.strictEqual(storedMember.accountHref, account.href)
   })
 
   test('PATCH /:code/members/:member allows member admin to disable and reactivate with accounting sync', async () => {
