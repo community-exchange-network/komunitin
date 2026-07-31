@@ -95,9 +95,11 @@ class AccountingClient {
     init: RequestInit,
     options: RequestOptions = {},
   ): Promise<JsonApiDoc | undefined> {
-    const scope = !init.method || init.method === 'GET'
-      ? Scope.AccountingRead
-      : Scope.AccountingWrite
+    const scope = this.ctx.isSuperadmin
+      ? Scope.Superadmin
+      : !init.method || init.method === 'GET'
+        ? Scope.AccountingRead
+        : Scope.AccountingWrite
     const response = await fetchWithAuth(
       accountingUrl(path),
       {
