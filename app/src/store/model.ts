@@ -118,12 +118,23 @@ export interface RelatedLinkedCollection {
  * 
  * Contains linkage to the related resource.
  */
-export interface RelatedResource {
-  links: {
-    related: string;
-  },
-  data: ResourceIdentifierObject | ExternalResourceIdentifierObject
-}
+export type RelatedResource =
+  | {
+      links: {
+        related: string
+      }
+      data: ResourceIdentifierObject & {
+        meta?: Record<string, unknown> & {
+          external?: false
+        }
+      }
+    }
+  | {
+      links?: {
+        related: string
+      }
+      data: ExternalResourceIdentifierObject
+    }
 
 /**
  * Extension Resource Object for the inclusion of external relationships.
@@ -131,13 +142,7 @@ export interface RelatedResource {
  * Defined in External Relationship custom JSON:API profile:
  * https://github.com/komunitin/komunitin-api/blob/master/jsonapi-profiles/external.md
  */
-export interface ExternalResourceObject extends ResourceObject {
-  relationships?: undefined;
-  meta: {
-    external : true
-    href: string
-  }
-}
+export type ExternalResourceObject = ExternalResourceIdentifierObject
 
 /**
  * User model.

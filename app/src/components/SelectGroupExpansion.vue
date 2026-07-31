@@ -60,6 +60,7 @@ import ResourceCards from "../pages/ResourceCards.vue";
 import GroupHeader from "./GroupHeader.vue";
 import type { Ref } from "vue";
 import { computed, ref } from "vue";
+import { resolveRelationshipUrl } from "src/store/relationships";
 
 const props = defineProps<{
   modelValue: Group,
@@ -108,9 +109,7 @@ const checkShowGroup = (group: Group) => {
       // of resource-cards because we need to check also the related settings 
       // object and it is not possible to fetch related of external related objects.
       const checkSetting = async () => {
-        const url = (group.relationships.currency.data.meta && group.relationships.currency.data.meta.external) 
-          ? group.relationships.currency.data.meta.href
-          : group.relationships.currency.links.related
+        const url = resolveRelationshipUrl(group.relationships.currency)
 
         await store.dispatch("currencies/load", {
           url,
