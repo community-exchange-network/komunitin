@@ -60,4 +60,7 @@ RUN chmod +x /usr/local/bin/*.sh
 
 # Set the entrypoint to the custom script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+HEALTHCHECK CMD pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" || exit 1
+
 CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
