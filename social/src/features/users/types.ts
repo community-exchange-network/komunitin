@@ -11,8 +11,5 @@ export interface CreateUserInput extends UserAttributes {
 
 // Output types derived from Prisma models
 export interface User extends DbUser {
-  settings: UserSettings | null
+  settings: UserSettings
 }
-
-
-

@@ -15,7 +15,7 @@ model User {
   id       String   @id @db.Uuid
   email    String   @unique
   name     String?  @db.VarChar(255)
-  settings Json?
+  settings Json @default("{}")
   created  DateTime @default(now())
   updated  DateTime @updatedAt
 
