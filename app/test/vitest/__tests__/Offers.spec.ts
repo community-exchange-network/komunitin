@@ -57,9 +57,16 @@ describe("Offers", () => {
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 2, "Should find 2 offers matching 'pants'");
   })
 
-  it ("renders single offer", async() => {
+  it ("renders a cached offer while revalidating", async() => {
+    const cachedOffer = wrapper.vm.$store.state.offers.resources[offer.id]
     await wrapper.vm.$router.push(`/groups/GRP0/offers/${offer.attributes.code}`);
     const title = requireText(offer.attributes.title, "Offer title");
+    expect(wrapper.text()).toContain(title);
+    await waitFor(
+      () => wrapper.vm.$store.state.offers.resources[offer.id] !== cachedOffer,
+      true,
+      "Offer should be revalidated"
+    )
     await waitFor(() => wrapper.text().includes(title), true, "Offer page should load");
     const text = wrapper.text();
     expect(text).toContain(title);
