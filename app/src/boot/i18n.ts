@@ -200,11 +200,10 @@ export default boot(async ({ app }) => {
   store.watch((_, getters) => {
     return [getters.myUser?.settings?.attributes.language, getters.isAdmin || getters.isSuperadmin]
   }, ([language, isAdmin]) => {
-    if (language && (isAdmin || language !== globalLocale)) {
-      setLocale(language, isAdmin)
+    if (isAdmin || (language && language !== globalLocale)) {
+      setLocale(language ?? globalLocale, isAdmin)
     }
   })
 
 
 });
-

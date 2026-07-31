@@ -1,7 +1,7 @@
 import type { VueWrapper } from "@vue/test-utils";
 import { QList, QMenu } from "quasar";
 import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
-import { seeds } from "src/server";
+import server, { seeds } from "src/server";
 import App from "../../../src/App.vue";
 import { mountComponent, testLogin, waitFor } from "../utils";
 
@@ -48,6 +48,25 @@ describe("Front page and login", () => {
     await waitFor(() => wrapper.vm.$route.path, "/");
   });
 
+  it("superadmin login", async () => {
+    server.schema.userSettings.first().update({ language: undefined });
+
+    await wrapper.vm.$router.push("/superadmin/groups");
+    await waitFor(() => wrapper.vm.$route.path, "/login-mail");
+    await wrapper.get("input[type='email']").setValue("superadmin@example.com");
+    await wrapper.get("input[type='password']").setValue("password");
+    await wrapper.get("button[type='submit']").trigger("click");
+
+    await waitFor(() => wrapper.vm.$store.getters.isSuperadmin, true);
+    await waitFor(() => wrapper.vm.$route.path, "/superadmin/groups");
+
+    await wrapper.vm.$router.push("/groups/GRP0/admin/settings");
+    await waitFor(() => wrapper.text().includes("Community Settings"), true, "Community settings title should be translated");
+
+    await wrapper.vm.$router.push("/logout");
+    await waitFor(() => wrapper.vm.$route.path, "/");
+  });
+
   it("login and logout", async () => {
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
     // Go to login with mail page.
@@ -77,20 +96,6 @@ describe("Front page and login", () => {
       .getComponent(QList)
       .get("#user-menu-logout")
       .trigger("click");
-    await waitFor(() => wrapper.vm.$route.path, "/");
-  });
-
-  it("grants superadmin navigation to the configured account", async () => {
-    await wrapper.vm.$router.push("/superadmin/groups");
-    await waitFor(() => wrapper.vm.$route.path, "/login-mail");
-    await wrapper.get("input[type='email']").setValue("superadmin@example.com");
-    await wrapper.get("input[type='password']").setValue("password");
-    await wrapper.get("button[type='submit']").trigger("click");
-
-    await waitFor(() => wrapper.vm.$store.getters.isSuperadmin, true);
-    await waitFor(() => wrapper.vm.$route.path, "/superadmin/groups");
-
-    await wrapper.vm.$router.push("/logout");
     await waitFor(() => wrapper.vm.$route.path, "/");
   });
 
