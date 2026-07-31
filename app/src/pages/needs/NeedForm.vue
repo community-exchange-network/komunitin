@@ -109,25 +109,22 @@ const rules = {
 }
 const v$ = useVuelidate(rules, {images, description, category, expiration})
 const store = useStore()
-const memberId = computed(() => props.modelValue?.relationships?.member?.data.id || store.getters.myMember.id)
+const memberId = computed(() => props.modelValue?.relationships?.member?.data?.id || store.getters.myMember.id)
 
 const onSubmit = async () => {
   const isFormCorrect = await v$.value.$validate()
   if (isFormCorrect) {
     emit("submit", {
-      ...props.modelValue,
+      ...(props.modelValue?.id ? { id: props.modelValue.id } : {}),
       type: "needs",
       attributes: {
-        ...props.modelValue?.attributes,
         description: description.value,
         expires: expiration.value.toISOString(),
         images: images.value,
         status: state.value
       },
       relationships: {
-        ...props.modelValue?.relationships,
-         
-        category: { data: { type: "categories", id: category.value.id } },
+        category: { data: { type: "categories", id: (category.value as Category).id } },
         member: { data: { type: "members", id: memberId.value } }
       }
     })
