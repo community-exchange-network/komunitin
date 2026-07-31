@@ -38,12 +38,16 @@ const router = useRouter()
 const myMember = computed(() => store.getters.myMember)
 
 const publish = async (need: Need) => {
-  need.attributes.status = 'published'
-
   await store.dispatch('needs/update', {
     id: need.id,
     group: props.code,
-    resource: need
+    resource: {
+      id: need.id,
+      type: 'needs',
+      attributes: {
+        status: 'published'
+      }
+    }
   })
 
   $q.notify({
