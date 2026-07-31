@@ -74,7 +74,7 @@
         </div>
         <!-- sub-page navigation -->
         <nav
-          v-if="group"
+          v-if="group && isLoggedIn"
           class="row q-col-gutter-md q-py-md"
         >
           <router-link :to="`/groups/${code}/members`" 

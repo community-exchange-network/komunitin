@@ -40,14 +40,15 @@ describe("Groups", () => {
     const description = requireTextExcerpt(group.attributes.description, "Group description");
     expect(text).toContain(description);
 
-    // Check cards present.
-    const cards = wrapper.findAllComponents(QCard);
-    cards.forEach((card) => {
-      const isMembersCard = card.text().includes("Members") || false;
-      const isStatsCard = card.text().includes("Statistics") || false;
-      const isMapCard = card.findComponent(SimpleMap)?.exists();
-      expect(isMembersCard || isStatsCard || isMapCard).toBe(true);
+    // Private group pages should not be advertised anonymously.
+    [
+      "/groups/GRP0/members",
+      "/groups/GRP0/offers",
+      "/groups/GRP0/stats"
+    ].forEach((path) => {
+      expect(wrapper.find(`a[href="${path}"]`).exists(), `${path} should be hidden`).toBe(false);
     });
+    expect(wrapper.findComponent(QCard).findComponent(SimpleMap).exists()).toBe(true);
     // Members should not show on map, only group center
     expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(1);
     // Location
@@ -72,6 +73,12 @@ describe("Groups", () => {
     await wrapper.vm.$router.push("/groups/GRP0");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0");
     await waitFor(() => wrapper.vm.$store.getters["members/currentList"]?.length === 31, true, "Api should finish loading");
+    [
+      "/groups/GRP0/members",
+      "/groups/GRP0/stats"
+    ].forEach((path) => {
+      expect(wrapper.find(`a[href="${path}"]`).exists(), `${path} should be visible`).toBe(true);
+    });
     // The empty signup fixture has no location, so 30 of the 31 members are
     // passed to the map as bounds/markers.
     await waitFor(

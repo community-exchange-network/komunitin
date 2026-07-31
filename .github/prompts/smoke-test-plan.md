@@ -46,7 +46,7 @@ No application or API changes are required. The output is a test report, evidenc
 ### Community and identity lifecycle
 
 - **SMK-001 — Anonymous access**
-  - Explore communities, search, open a public community, and inspect public offers/members.
+  - Explore communities, search, open a public community, and inspect its public details.
   - Opening a protected route must redirect to login and preserve the intended destination.
 
 - **SMK-002 — Group-administrator signup**
