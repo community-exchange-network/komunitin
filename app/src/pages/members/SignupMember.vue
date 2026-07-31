@@ -36,8 +36,8 @@
               :member="member"
               :contacts="member.attributes.contacts"
               :user="myUser"
-              @update:member="updateMember"
-              @update:contacts="updateContacts"
+              @update:member="member.attributes = $event.attributes"
+              @update:contacts="member.attributes.contacts = $event"
             />
             <q-btn
               class="full-width q-my-lg"
@@ -106,10 +106,11 @@ import OfferForm from "../offers/OfferForm.vue"
 import { computed, ref, shallowRef, watch } from "vue"
 import { useRouter } from "vue-router"
 import { useStore } from "vuex"
-import type { Contact, Group, GroupSettings, Member, Offer, User } from "src/store/model"
+import type { Group, GroupSettings, Member, Offer, User } from "src/store/model"
 import type { DeepPartial } from "quasar"
 import { scroll } from "quasar"
 import { useI18n } from "vue-i18n"
+import KError, { KErrorCode } from "../../KError.js"
 const { getScrollTarget } = scroll
 
 const props = defineProps<{
@@ -125,8 +126,7 @@ const myUser = computed<User | undefined>(() => store.getters.myUser)
 const group = computed<Group & {settings?: GroupSettings }>(() => store.getters["groups/current"])
 const settings = computed(() => group.value?.settings?.attributes)
 
-// Initialization guarantees that the member is assigned before form actions.
-const member = shallowRef<Member & { group: Group }>(null!)
+const member = shallowRef<Member & { group: Group }>()
 const currentOffer = ref()
 const offers = ref<DeepPartial<Offer>[]>([])
 const page = shallowRef<"profile" | "offer" | "complete">("profile")
@@ -153,6 +153,7 @@ const initializeSignup = async () => {
   currentOfferIndex.value = -1
   currentOffer.value = undefined
   offers.value = []
+  member.value = undefined
   initializing.value = true
   initializationFailed.value = false
   try {
@@ -195,15 +196,14 @@ const initializeSignup = async () => {
   }
 }
 
-const updateMember = (resource: Member) => {
-  member.value.attributes = resource.attributes
+const requireMember = () => {
+  if (!member.value) {
+    throw new KError(KErrorCode.UnknownScript, "Member is not loaded")
+  }
+  return member.value
 }
-
-const updateContacts = (contacts: Contact[]) => {
-  member.value.attributes.contacts = contacts
-}
-
 const saveMember = async () => {
+  const member = requireMember()
   loadingSaveMember.value = true
   try {
     const {
@@ -213,12 +213,12 @@ const saveMember = async () => {
       address,
       contacts,
       location
-    } = member.value.attributes
+    } = member.attributes
     await store.dispatch("members/update", {
-      id: member.value.id,
+      id: member.id,
       group: props.code,
       resource: {
-        id: member.value.id,
+        id: member.id,
         type: "members",
         attributes: {
           name,
@@ -272,11 +272,12 @@ const saveOffer = async (resource: DeepPartial<Offer>) => {
 }
 
 const apply = async () => {
+  const member = requireMember()
   await store.dispatch("members/update", {
-    id: member.value.id,
+    id: member.id,
     group: props.code,
     resource: {
-      id: member.value.id,
+      id: member.id,
       type: "members",
       attributes: {
         status: "pending"
