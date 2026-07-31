@@ -19,6 +19,11 @@ const UserSettingsSerializer = new Serializer<UserSettingsWithUserId>('user-sett
   idKey: 'userId',
 })
 
+const UserSettingsRelator = new Relator<User, UserSettingsWithUserId>(async (user) => ({
+  userId: user.id,
+  ...user.settings,
+}), UserSettingsSerializer, { relatedName: 'settings' })
+
 const UserSerializer = new Serializer<User>('users', {
   version: null,
   projection: {
@@ -27,34 +32,29 @@ const UserSerializer = new Serializer<User>('users', {
     created: 1,
     updated: 1,
   },
-  relators: {
-    settings: new Relator<User, UserSettingsWithUserId>(async (user) => {
-      if (!user.settings) {
-        return undefined
-      }
-
-      return {
-        userId: user.id,
-        ...user.settings,
-      }
-    }, UserSettingsSerializer, { relatedName: 'settings' })
-  },
   linkers: {
     resource: new Linker((user) => `${config.API_BASE_URL}/users/${user.id}`)
   }
 })
 
+const withIncludedRelationships = (params?: SerializerOptions<User>): SerializerOptions<User> => ({
+  ...params,
+  relators: Array.isArray(params?.include) && params.include.some((path) => path === 'settings')
+    ? { settings: UserSettingsRelator }
+    : {},
+})
+
 export const serializeUser = async (user: User, params: {include: string[]}) => {
-  return UserSerializer.serialize(user, params)
+  return UserSerializer.serialize(user, withIncludedRelationships(params))
 }
 
 export const serializeUsers = async (users: User[], params?: SerializerOptions<User>) => {
-  return UserSerializer.serialize(users, params)
+  return UserSerializer.serialize(users, withIncludedRelationships(params))
 }
 
 export const serializeUserSettings = async (user: User) => {
   return UserSettingsSerializer.serialize({
     userId: user.id,
-    ...(user.settings ?? {}),
+    ...user.settings,
   })
 }
