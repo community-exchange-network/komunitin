@@ -13,7 +13,7 @@
       <signup-accept-terms-form
         v-if="page == 'terms' && needsTerms"
         :group="group"
-        :terms="settings.terms ?? ''"
+        :terms="settings.terms"
         @accept="continueSignup"
       />
       <signup-credentials-form
@@ -84,7 +84,7 @@ const continueSignup = async () => {
 
 watchEffect(() => {
   if (settings.value && !needsTerms.value && page.value == "terms") {
-    void continueSignup()
+    continueSignup()
   }
 })
 
