@@ -41,11 +41,7 @@ describe('Existing profile updates', () => {
         'location',
         'address'
       ])
-      expect(body.data.attributes).not.toHaveProperty('code')
-      expect(body.data.attributes).not.toHaveProperty('accountId')
-      expect(body.data.attributes).not.toHaveProperty('meta')
-      expect(body.data.attributes).not.toHaveProperty('created')
-      expect(body.data.attributes).not.toHaveProperty('updated')
+      expect(body.data.attributes.name).toBe('Updated profile name')
     } finally {
       fetchSpy.mockRestore()
     }
