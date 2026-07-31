@@ -23,4 +23,8 @@ const prisma = new PrismaClient({
   ],
 });
 
+export const checkPrismaHealth = async () => {
+  await prisma.$queryRaw`SELECT 1`
+}
+
 export default prisma;
