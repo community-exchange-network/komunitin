@@ -142,7 +142,7 @@ const offer = computed(() => {
 })
 
 const isLoading = computed(() => {
-  return !(ready.value || offer.value && offer.value.category && offer.value.member 
+  return !(ready.value && offer.value && offer.value.category && offer.value.member
     && offer.value.member.attributes.contacts && offer.value.member.group
     && offer.value.member.group.currency)
 })
