@@ -59,7 +59,7 @@ describe("Groups", () => {
     });
   });
 
-  it("Renders group members on map if logged in", async () => {
+  it("Renders group members only for the user's group", async () => {
     // Log in 'manually'
     await wrapper.vm.$router.push("/login-mail");
     await waitFor(() => wrapper.vm.$route.path, "/login-mail");
@@ -79,13 +79,23 @@ describe("Groups", () => {
     ].forEach((path) => {
       expect(wrapper.find(`a[href="${path}"]`).exists(), `${path} should be visible`).toBe(true);
     });
-    // The empty signup fixture has no location, so 30 of the 31 members are
-    // passed to the map as bounds/markers.
+    // The group center and 30 members with locations are rendered as markers.
     await waitFor(
-      () => (wrapper.getComponent(SimpleMap).props("bounds") as unknown[])?.length,
-      30,
-      "Member markers should be passed to the map",
+      () => wrapper.findAllComponents({ name: "LMarker" }).length,
+      31,
+      "Group and member markers should be rendered",
       10000
     );
+
+    await wrapper.vm.$router.push("/groups/GRP1");
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP1");
+    await waitFor(
+      () => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing,
+      false,
+      "Other group should finish loading"
+    );
+    expect(wrapper.find('a[href="/groups/GRP1/members"]').exists()).toBe(false);
+    expect(wrapper.find('a[href="/groups/GRP1/stats"]').exists()).toBe(false);
+    expect(wrapper.findAllComponents({ name: "LMarker" })).toHaveLength(1);
   });
 });
