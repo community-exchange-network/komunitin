@@ -11,6 +11,7 @@ describe('Currencies endpoints', async () => {
 
   const admin1 = userAuth("1")
   const admin2 = userAuth("2")
+  const superadmin = userAuth("superadmin", [Scope.Superadmin])
 
   const currencyPostBody = (attributes: Record<string, any>, user: string, settings: Record<string, any>) => {
     const userId = testUserId(user)
@@ -98,6 +99,42 @@ describe('Currencies endpoints', async () => {
     assert.equal(settings.attributes.defaultInitialCreditLimit, 1000000)
   })
 
+  await it('superadmin creates a currency and its administrator account', async () => {
+    const currency = currencyPostBody({code: "TES3"}, "3", {})
+    const currencyResponse = await t.api.post('/currencies', currency, superadmin)
+    assert.equal(currencyResponse.body.data.attributes.code, 'TES3')
+    assert.equal(currencyResponse.body.data.relationships.admins.data[0].id, testUserId("3"))
+
+    const accountResponse = await t.api.post('/TES3/accounts', {
+      data: {
+        type: "accounts",
+        attributes: {
+          code: "TES30000"
+        },
+        relationships: {
+          users: {
+            data: [{ type: "users", id: testUserId("3") }]
+          }
+        }
+      },
+      included: [{ type: "users", id: testUserId("3") }]
+    }, superadmin)
+
+    assert.equal(accountResponse.body.data.attributes.code, 'TES30000')
+    assert.equal(accountResponse.body.data.attributes.status, 'active')
+    assert.equal(accountResponse.body.data.attributes.balance, 0)
+    assert.equal(accountResponse.body.data.attributes.creditLimit, 1000)
+  })
+
+  await it('superadmin currency creation requires an explicit administrator', async () => {
+    const currency: any = currencyPostBody({code: "TES4"}, "4", {})
+    delete currency.data.relationships.admins
+    currency.included = currency.included.filter(({ type }: { type: string }) => type !== "users")
+
+    const response = await t.api.post('/currencies', currency, superadmin, 400)
+    assert.equal(response.body.errors[0].detail, 'Admin user must be provided explicitly or as logged in user')
+  })
+
   await it('repeated code', async () => badPost({code: "TES1"}))
   await it('incorrect code', async () => badPost({code: "EUR", rate: undefined}))
   await it('missing rate', async () => badPost({code: "ERRO", rate: undefined}))
@@ -138,9 +175,10 @@ describe('Currencies endpoints', async () => {
   await it('list currencies', async () => {
     const response = await t.api.get('/currencies')
     assert(Array.isArray(response.body.data))
-    assert.equal(response.body.data.length,2)
+    assert.equal(response.body.data.length,3)
     assert.equal(response.body.data[0].attributes.code, 'TES1')
     assert.equal(response.body.data[1].attributes.code, 'TES2')
+    assert.equal(response.body.data[2].attributes.code, 'TES3')
   })
   
   // public endpoint
