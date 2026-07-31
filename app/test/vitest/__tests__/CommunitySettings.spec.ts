@@ -25,6 +25,7 @@ describe('Community settings', () => {
         true,
         'Community settings fields should load'
       )
+      // Update the minOffers field to trigger a PATCH request
       await wrapper.findAll("input[type='number']")[0].setValue('2')
 
       await waitFor(
@@ -40,8 +41,7 @@ describe('Community settings', () => {
       )
       const body = JSON.parse(request?.[1]?.body as string)
       expect(Object.keys(body.data)).toEqual(['id', 'type', 'attributes'])
-      expect(body.data).not.toHaveProperty('links')
-      expect(body.data).not.toHaveProperty('relationships')
+      expect(body.data.attributes.minOffers).toBe(2)
     } finally {
       fetchSpy.mockRestore()
     }
