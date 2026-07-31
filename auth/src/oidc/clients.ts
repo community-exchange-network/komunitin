@@ -37,6 +37,16 @@ const socialScopes = [
 
 const publisherScopes = ['notifications:write'] as const
 
+// The allowed scopes for token exchange in each client.
+export const tokenExchangeScopes: Record<string, readonly string[]> = {
+  [clientIds.notifications]: notificationsScopes,
+  [clientIds.social]: [
+    'accounting:read',
+    'accounting:write',
+    SUPERADMIN_SCOPE,
+  ],
+}
+
 const scopeString = (scopes: readonly string[]) => scopes.join(' ')
 
 // oidc-provider requires redirect/response metadata even for token-only clients.

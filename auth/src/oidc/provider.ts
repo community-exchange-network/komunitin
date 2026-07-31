@@ -10,7 +10,7 @@ import Provider, {
 import { config } from '../config'
 import { adapterFactory } from './adapter'
 import { findAccount, authenticate } from './account'
-import { apiScopes, clients, SUPERADMIN_SCOPE } from './clients'
+import { apiScopes, clients, SUPERADMIN_SCOPE, tokenExchangeScopes } from './clients'
 import { verifySignedToken } from './token-verifier'
 import type { Jwks } from './jwks'
 import { isUuid } from '../utils/uuid'
@@ -82,16 +82,21 @@ const clientScopeSet = (client: Client) => {
   return client.scope ? new Set(splitScope(client.scope)) : allowedScopes
 }
 
+const tokenExchangeScopeSet = (client: Client) => {
+  const scopes = tokenExchangeScopes[client.clientId]
+  return scopes ? new Set(scopes) : clientScopeSet(client)
+}
+
 const ensureClientScopesAllowed = (
   ctx: KoaContextWithOIDC,
   client: Client,
   requestedScopes: string[],
+  clientScopes = clientScopeSet(client),
 ) => {
   if (!client.scope) {
     return
   }
 
-  const clientScopes = clientScopeSet(client)
   const disallowedScope = requestedScopes.find((scope) => allowedScopes.has(scope) && !clientScopes.has(scope))
 
   if (disallowedScope) {
@@ -102,8 +107,11 @@ const ensureClientScopesAllowed = (
   }
 }
 
-const filterAllowedScopes = (scopes: string[], client: Client) => {
-  const clientScopes = clientScopeSet(client)
+const filterAllowedScopes = (
+  scopes: string[],
+  client: Client,
+  clientScopes = clientScopeSet(client),
+) => {
   return [...new Set(scopes.filter((scope) => allowedScopes.has(scope) && clientScopes.has(scope)))]
 }
 
@@ -303,12 +311,14 @@ export async function createProvider(jwks: Jwks) {
       const subjectScope = typeof tokenPayload.scope === 'string' ? tokenPayload.scope : ''
       const requestedScopes = getRequestedScopes(scope, splitScope(subjectScope))
       const subjectScopes = new Set(splitScope(subjectScope))
+      const exchangeScopes = tokenExchangeScopeSet(client)
       if (scope) {
-        ensureClientScopesAllowed(ctx, client, requestedScopes)
+        ensureClientScopesAllowed(ctx, client, requestedScopes, exchangeScopes)
       }
       const grantedScopes = filterAllowedScopes(
         requestedScopes.filter((candidate) => subjectScopes.has(candidate)),
         client,
+        exchangeScopes,
       )
 
       if (requestedScopes.length > 0 && grantedScopes.length === 0) {
