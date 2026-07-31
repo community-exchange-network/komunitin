@@ -15,12 +15,15 @@ describe('Member profile without a location', () => {
 
   afterAll(() => wrapper.unmount())
 
-  it('renders the profile and omits the map', async () => {
+  it('renders the profile with a markerless map centered on the group', async () => {
     const member = server.schema.members.first()
     await wrapper.vm.$router.push(`/groups/GRP0/members/${member.code}`)
     await waitFor(() => wrapper.text().includes(member.name), true, 'Member profile should load')
 
-    expect(wrapper.findComponent(SimpleMap).exists()).toBe(false)
+    const map = wrapper.findComponent(SimpleMap)
+    expect(map.props('center')).toEqual(member.group.location.coordinates)
+    expect(map.props('marker')).toBeUndefined()
+    expect(map.findComponent({ name: 'LMarker' }).exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Unknown user interface error')
   })
 })

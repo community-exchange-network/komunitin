@@ -13,16 +13,18 @@
         <!-- eslint-enable vue/no-v-html -->
       </div>
       <!-- LOCATION -->
-      <div v-if="member.attributes.location">
+      <div>
         <div class="text-overline text-uppercase text-onsurface-d">
           {{ $t('location') }}
         </div>
         <SimpleMap
           class="simple-map"
-          :center="member.attributes.location.coordinates"
-          :marker="member.attributes.location.coordinates"
+          :center="mapCenter"
+          :marker="member.attributes.location?.coordinates"
         />
-        <div><q-icon name="place" />{{ member.attributes.location.name }}</div>
+        <div v-if="member.attributes.location">
+          <q-icon name="place" />{{ member.attributes.address.addressLocality }}
+        </div>
       </div>
     </div>
     <!-- CONTACT -->
@@ -38,12 +40,18 @@
   </div>
 </template>
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import SimpleMap from '../../components/SimpleMap.vue'
 import SocialNetworkList from '../../components/SocialNetworkList.vue'
 import md2html from '../../plugins/Md2html'
-import type { Member } from '../../store/model'
+import type { Group, Member } from '../../store/model'
 
-defineProps<{
-  member: Member
+const props = defineProps<{
+  member: Member & { group: Group }
 }>()
+
+const mapCenter = computed(() =>
+  props.member.attributes.location?.coordinates ?? props.member.group.attributes.location.coordinates
+)
 </script>

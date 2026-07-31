@@ -2,7 +2,7 @@
   <div v-if="!isLoading">
     <page-header 
       :title="member.attributes.name"
-      :back="isComplete ? `/groups/${code}/members` : ''"
+      :back="isComplete ? `/groups/${code}/members` : '/'"
     >
       <template #buttons>
         <contact-button
@@ -148,7 +148,7 @@ const fetchData = async (memberCode: string) => {
   await store.dispatch("members/load", {
     code: memberCode,
     group: props.code,
-    include: isComplete.value ? "account" : undefined
+    include: "group" + (isComplete.value ? ",account" : "")
   });
   fetched.value = true;
 }
