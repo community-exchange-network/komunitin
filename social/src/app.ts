@@ -30,6 +30,8 @@ app.use(cors({
   credentials: true,
 }))
 
+app.use(httpLogger)
+
 app.get('/health', healthRoute)
 
 app.use(express.json({
@@ -39,8 +41,6 @@ app.use((req, res, next) => {
   res.type('application/vnd.api+json')
   next()
 })
-
-app.use(httpLogger)
 
 app.use('/', userRoutes)
 app.use('/', groupsRoutes)
