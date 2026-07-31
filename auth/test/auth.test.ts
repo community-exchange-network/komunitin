@@ -1228,6 +1228,105 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(decoded.email, undefined)
   })
 
+  test('POST /token lets Social preserve superadmin only through user token exchange', async () => {
+    const userId = '25252525-2525-4525-8525-252525252525'
+    await prisma.user.create({
+      data: {
+        id: userId,
+        email: 'superadmin@test.com',
+        passwordHash: await hashPassword('password123'),
+        emailVerified: true,
+        status: UserStatus.Active,
+      },
+    })
+
+    const tokenRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'superadmin@test.com',
+        password: 'password123',
+        scope: 'accounting:write superadmin',
+      })
+      .expect(200)
+
+    const exchangeRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        client_id: 'komunitin-social',
+        client_secret: 'komunitin-social-secret',
+        subject_token: tokenRes.body.access_token,
+        subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+        scope: 'superadmin',
+      })
+      .expect(200)
+
+    assertAccessToken(exchangeRes.body.access_token, {
+      subject: userId,
+      clientId: 'komunitin-social',
+      scope: 'superadmin',
+    })
+
+    const credentialsRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'client_credentials',
+        client_id: 'komunitin-social',
+        client_secret: 'komunitin-social-secret',
+        scope: 'superadmin',
+      })
+      .expect(400)
+
+    assert.strictEqual(credentialsRes.body.error, 'invalid_scope')
+  })
+
+  test('POST /token does not delegate superadmin from a normal subject', async () => {
+    const userId = '28282828-2828-4828-8828-282828282828'
+    await prisma.user.create({
+      data: {
+        id: userId,
+        email: 'normal-delegation@example.org',
+        passwordHash: await hashPassword('password123'),
+        emailVerified: true,
+        status: UserStatus.Active,
+      },
+    })
+
+    const tokenRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        client_id: 'komunitin-app',
+        username: 'normal-delegation@example.org',
+        password: 'password123',
+        scope: 'accounting:write superadmin',
+      })
+      .expect(200)
+
+    assert.strictEqual(tokenRes.body.scope, 'accounting:write')
+
+    const exchangeRes = await request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        client_id: 'komunitin-social',
+        client_secret: 'komunitin-social-secret',
+        subject_token: tokenRes.body.access_token,
+        subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+        scope: 'superadmin',
+      })
+      .expect(400)
+
+    assert.strictEqual(exchangeRes.body.error, 'invalid_scope')
+  })
+
   test('POST /token with Token Exchange does not escalate scopes', async () => {
     const userId = '26262626-2626-2626-2626-262626262626'
     const passwordHash = await hashPassword('password123')
@@ -1271,7 +1370,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(decoded.email, undefined)
   })
 
-  test('POST /token with Token Exchange rejects scopes outside the client allowlist', async () => {
+  test('POST /token does not exchange Social notification publishing scope', async () => {
     const userId = '27272727-2727-2727-2727-272727272727'
     const passwordHash = await hashPassword('password123')
     await prisma.user.create({
@@ -1292,7 +1391,7 @@ describe('Auth Service Integration Tests', () => {
         client_id: 'komunitin-app',
         username: 'cross-service@example.org',
         password: 'password123',
-        scope: 'social:read',
+        scope: 'notifications:write',
       })
       .expect(200)
 
@@ -1305,7 +1404,7 @@ describe('Auth Service Integration Tests', () => {
         client_secret: 'komunitin-social-secret',
         subject_token: tokenRes.body.access_token,
         subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
-        scope: 'social:read',
+        scope: 'notifications:write',
       })
       .expect(400)
 

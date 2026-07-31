@@ -3,10 +3,12 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
+import { Scope } from '../src/server/context'
 import { auth, serviceAuth } from './mocks/auth'
 import { accountingAccountHref } from './mocks/accounting'
 import {
   getAccountingRequestPaths,
+  getAuthTokenRequests,
   getNotificationsEvents,
   resetMockState,
   seedAccountingAccount,
@@ -545,15 +547,80 @@ describe('Members endpoints', () => {
     assert.strictEqual(approved.body.data.relationships.account.data.meta.external, true)
     const accountHref = accountingAccountHref(currency.code, approved.body.data.attributes.accountId)
     assert.strictEqual(approved.body.data.relationships.account.data.meta.href, accountHref)
-    
+
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
       [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
     )
+    assert.deepStrictEqual(getAuthTokenRequests(), [
+      {
+        clientId: 'komunitin-social',
+        grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        scope: Scope.AccountingRead,
+        subjectToken: admin.token,
+      },
+      {
+        clientId: 'komunitin-social',
+        grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        scope: Scope.AccountingWrite,
+        subjectToken: admin.token,
+      },
+    ])
     const events = getNotificationsEvents() as any[]
     assert.strictEqual(events.length, 1)
     assert.strictEqual(events[0].data.attributes.name, 'MemberJoined')
     assert.strictEqual(events[0].data.attributes.code, 'members-approve')
+  })
+
+  test('PATCH /:code/members/:member lets superadmin create the Accounting account', async () => {
+    const currency = seedAccountingCurrency('members-superadmin-approve')
+    await seedGroup({
+      tenantId: 'members-superadmin-approve',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('member-superadmin-approve-owner')
+    const superadmin = await auth(
+      'member-superadmin-approver',
+      undefined,
+      Scope.Superadmin,
+    )
+    const member = await seedMember({
+      tenantId: 'members-superadmin-approve',
+      code: 'members-superadmin-approve0001',
+      status: 'pending',
+      userId: owner.id,
+    })
+
+    const approved = await request(app)
+      .patch(`/members-superadmin-approve/members/${member.id}`)
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(approved.body.data.attributes.status, 'active')
+    assert.ok(approved.body.data.attributes.accountId)
+    assert.deepStrictEqual(getAuthTokenRequests(), [{
+      clientId: 'komunitin-social',
+      grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      scope: Scope.Superadmin,
+      subjectToken: superadmin.token,
+    }])
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        `GET /${currency.code}/accounts`,
+        `POST /${currency.code}/accounts`,
+      ],
+    )
   })
 
   test('PATCH /:code/members/:member adopts existing accounting account by member code', async () => {

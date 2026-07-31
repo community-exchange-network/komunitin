@@ -40,10 +40,12 @@ test('isolates cached tokens by subject token and scope', async (t) => {
 
   const subjectRead = await exchangeAccountingToken('isolated-subject-a', Scope.AccountingRead)
   const subjectWrite = await exchangeAccountingToken('isolated-subject-a', Scope.AccountingWrite)
+  const subjectSuperadmin = await exchangeAccountingToken('isolated-subject-a', Scope.Superadmin)
   const otherSubjectRead = await exchangeAccountingToken('isolated-subject-b', Scope.AccountingRead)
 
   assert.strictEqual(subjectRead, 'isolated-subject-a-accounting:read')
   assert.strictEqual(subjectWrite, 'isolated-subject-a-accounting:write')
+  assert.strictEqual(subjectSuperadmin, 'isolated-subject-a-superadmin')
   assert.strictEqual(otherSubjectRead, 'isolated-subject-b-accounting:read')
   assert.strictEqual(
     await exchangeAccountingToken('isolated-subject-a', Scope.AccountingRead),
@@ -54,10 +56,14 @@ test('isolates cached tokens by subject token and scope', async (t) => {
     subjectWrite,
   )
   assert.strictEqual(
+    await exchangeAccountingToken('isolated-subject-a', Scope.Superadmin),
+    subjectSuperadmin,
+  )
+  assert.strictEqual(
     await exchangeAccountingToken('isolated-subject-b', Scope.AccountingRead),
     otherSubjectRead,
   )
-  assert.strictEqual(requests, 3)
+  assert.strictEqual(requests, 4)
 })
 
 test('shares an in-flight exchange for concurrent calls', async (t) => {

@@ -283,7 +283,7 @@ export interface Member extends ResourceObject {
     code: string;
     access: Access;
     name: string;
-    type: "personal" | "business" | "organization";
+    type: "personal" | "business" | "organization" | "public";
     status: MemberStatus;
     description: string;
     image: ImageObject | null;
