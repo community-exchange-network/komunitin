@@ -64,18 +64,18 @@ No application or API changes are required. The output is a test report, evidenc
   - Verify a non-superadmin cannot access `/superadmin`.
   - Log in as superadmin, locate the pending community, and activate it.
   - Verify it becomes public and active, Accounting currency data becomes available, and the administrator receives the activation email.
+  - Verify the administrator has a member record with an active Accounting account and the configured defaults.
 
 - **SMK-005 — Community configuration**
   - As superadmin, edit the community description/contact information.
   - Configure terms, minimum offers, initial limits, email defaults, and a smoke-test category.
   - Reload each page and confirm persisted values.
 
-- **SMK-006 — Administrator membership**
-  - Log in as the community creator and join the newly activated community.
-  - Accept terms, complete the profile, add a contact and required offer, and submit.
-  - Verify the membership is pending.
-  - As superadmin, accept it and verify an Accounting account is created.
-  - Log back in and confirm the group-admin menu and active account are available.
+- **SMK-006 — Group-administrator member and account provisioning**
+  - Log in as the community creator as its group administrator.
+  - Confirm the group-admin menu, account balance, limits, and transaction actions are available.
+  - Verify the Social member update and Accounting account creation both succeed without an unexpected `4xx/5xx` response.
+  - Verify the member is active with an active Accounting account linked to the member, owned by the administrator identity, and initialized with the configured defaults.
 
 - **SMK-007 — Ordinary member signup**
   - In a fresh anonymous context, join the community using a second identity.
