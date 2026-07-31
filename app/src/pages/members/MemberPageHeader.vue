@@ -152,10 +152,11 @@ export default defineComponent({
   },
   computed: {
     memberTypeLabel(): string {
-      const labels: { [key: string]: string } = {
+      const labels: Record<Member["attributes"]["type"], string> = {
         personal: this.$t("personalAccount") as string,
         business: this.$t("businessAccount") as string,
-        organization: this.$t("organizationAccount") as string
+        organization: this.$t("organizationAccount") as string,
+        public: this.$t("publicAccount") as string
       };
       return labels[(this.member as Member).attributes.type];
     }
