@@ -11,9 +11,9 @@
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
     >
       <signup-accept-terms-form
-        v-if="page == 'terms'"  
+        v-if="page == 'terms' && needsTerms"
         :group="group"
-        :terms="settings.terms"
+        :terms="settings.terms ?? ''"
         @accept="continueSignup"
       />
       <signup-credentials-form
@@ -65,7 +65,7 @@ const group = computed(() => store.getters["groups/current"])
 const settings = computed(() => group.value?.settings?.attributes)
 
 const page = ref("terms")
-const needsTerms = computed<boolean|undefined>(() => settings.value?.requireAcceptTerms)
+const needsTerms = computed(() => settings.value?.requireAcceptTerms === true)
 const isLoggedIn = computed(() => store.getters.isLoggedIn)
 
 const toPage = (name: string) => {
@@ -83,7 +83,7 @@ const continueSignup = async () => {
 }
 
 watchEffect(() => {
-  if (needsTerms.value === false && page.value == "terms") {
+  if (settings.value && !needsTerms.value && page.value == "terms") {
     void continueSignup()
   }
 })
