@@ -138,6 +138,7 @@ import ChangePasswordBtn from "./ChangePasswordBtn.vue"
 
 import { computed, ref, watch } from "vue";
 import { watchDebounced } from "@vueuse/shared"
+import type { DeepPartial } from 'quasar'
 
 import type { Contact, Member, User, Group } from '../../store/model';
 
@@ -149,7 +150,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:member', value: Member): void
+  (e: 'update:member', value: DeepPartial<Member>): void
   (e: 'update:contacts', value: Contact[]): void
   (e: 'update:user', value: User): void
 }>()
@@ -173,9 +174,7 @@ const contacts = ref(props.contacts)
 // User attributes.
 watchDebounced([image, name, description, location, address, postalCode, city, region, country], () => {
   emit('update:member', {
-    ...props.member,
     attributes: {
-      ...props.member.attributes,
       image: image.value,
       name: name.value,
       description: description.value,
