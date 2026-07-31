@@ -12,6 +12,7 @@ import { tenantCategoryRoutes } from './features/categories/routes'
 import { tenantMemberRoutes } from './features/members/routes'
 import { tenantPostRoutes } from './features/posts/routes'
 import { tenantFileRoutes } from './features/files/routes'
+import { healthRoute } from './server/health'
 
 const app = express()
 
@@ -28,6 +29,9 @@ app.use(cors({
   origin: true,
   credentials: true,
 }))
+
+app.get('/health', healthRoute)
+
 app.use(express.json({
   type: ['application/vnd.api+json', 'application/json']
 }))
@@ -37,10 +41,6 @@ app.use((req, res, next) => {
 })
 
 app.use(httpLogger)
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' })
-})
 
 app.use('/', userRoutes)
 app.use('/', groupsRoutes)
