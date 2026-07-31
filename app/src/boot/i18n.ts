@@ -198,13 +198,17 @@ export default boot(async ({ app }) => {
   // store does not depend on the i18n infrastructure and therefore it can be used in the service
   // worker.
   store.watch((_, getters) => {
-    return [getters.myUser?.settings?.attributes.language, getters.isAdmin || getters.isSuperadmin]
-  }, ([language, isAdmin]) => {
-    if (language && (isAdmin || language !== globalLocale)) {
-      setLocale(language, isAdmin)
+    return [
+      getters.myUser?.id,
+      getters.myUser?.settings?.attributes.language,
+      getters.isAdmin || getters.isSuperadmin
+    ]
+  }, ([userId, language, isAdmin]) => {
+    // wait for user load before applying language settings.
+    if (userId && (isAdmin || (language && language !== globalLocale))) {
+      setLocale(language ?? globalLocale, isAdmin)
     }
   })
 
 
 });
-
