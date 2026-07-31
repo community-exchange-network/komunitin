@@ -52,8 +52,6 @@ describe('Category updates', () => {
       const body = JSON.parse(request?.[1]?.body as string)
       expect(Object.keys(body.data)).toEqual(['id', 'type', 'attributes'])
       expect(Object.keys(body.data.attributes)).toEqual(['name', 'icon'])
-      expect(body.data).not.toHaveProperty('links')
-      expect(body.data).not.toHaveProperty('relationships')
     } finally {
       fetchSpy.mockRestore()
     }
