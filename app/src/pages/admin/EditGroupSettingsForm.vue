@@ -302,7 +302,8 @@ const defaultEmailFrequency = ref(groupSettings.value.attributes.defaultGroupEma
 
 watchDebounced([requireAcceptTerms, terms, minOffers, minNeeds, allowAnonymousMemberList, enableGroupEmail, defaultEmailFrequency], () => {
   emit('update:group-settings', {
-    ...groupSettings.value,
+    id: groupSettings.value.id,
+    type: groupSettings.value.type,
     attributes: {
       requireAcceptTerms: requireAcceptTerms.value,
       terms: terms.value,
