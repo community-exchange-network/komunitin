@@ -24,13 +24,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusResponse'
+                $ref: '#/components/schemas/HealthResponse'
         '503':
           description: Service is unavailable.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JsonApiErrors'
+                $ref: '#/components/schemas/HealthResponse'
   /register:
     post:
       tags: [Registration]
@@ -369,6 +369,13 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, error]
     StatusResponse:
       type: object
       required: [status]
