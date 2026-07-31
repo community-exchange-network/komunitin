@@ -125,7 +125,8 @@ const myUser = computed<User | undefined>(() => store.getters.myUser)
 const group = computed<Group & {settings?: GroupSettings }>(() => store.getters["groups/current"])
 const settings = computed(() => group.value?.settings?.attributes)
 
-const member = ref<Member & { group: Group }>()
+// Initialization guarantees that the member is assigned before form actions.
+const member = shallowRef<Member & { group: Group }>(null!)
 const currentOffer = ref()
 const offers = ref<DeepPartial<Offer>[]>([])
 const page = shallowRef<"profile" | "offer" | "complete">("profile")
@@ -152,7 +153,6 @@ const initializeSignup = async () => {
   currentOfferIndex.value = -1
   currentOffer.value = undefined
   offers.value = []
-  member.value = undefined
   initializing.value = true
   initializationFailed.value = false
   try {
@@ -195,24 +195,39 @@ const initializeSignup = async () => {
   }
 }
 
-const updateMember = (resource: DeepPartial<Member>) => {
+const updateMember = (resource: Member) => {
   member.value.attributes = resource.attributes
 }
 
-const updateContacts = (contacts: DeepPartial<Contact>[]) => {
+const updateContacts = (contacts: Contact[]) => {
   member.value.attributes.contacts = contacts
 }
 
 const saveMember = async () => {
   loadingSaveMember.value = true
   try {
+    const {
+      name,
+      description,
+      image,
+      address,
+      contacts,
+      location
+    } = member.value.attributes
     await store.dispatch("members/update", {
       id: member.value.id,
       group: props.code,
       resource: {
         id: member.value.id,
         type: "members",
-        attributes: member.value.attributes
+        attributes: {
+          name,
+          description,
+          image,
+          address,
+          contacts,
+          location
+        }
       }
     })
     await nextPage()

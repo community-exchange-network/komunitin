@@ -611,9 +611,23 @@ export default {
       const authUser = getMockAuthUser(token)
       const user = authUser ? schema.users.find(authUser.id) : undefined
       const member = schema.members.create({
+        description: "",
+        image: null,
+        address: {
+          streetAddress: "",
+          postalCode: "",
+          addressLocality: "",
+          addressRegion: "",
+          addressCountry: ""
+        },
+        contacts: [],
+        location: {
+          name: "",
+          type: "Point",
+          coordinates: group.location.coordinates
+        },
         ...body.data.attributes,
         status: "draft",
-        contacts: [],
         group,
         created: new Date().toJSON(),
         updated: new Date().toJSON()
