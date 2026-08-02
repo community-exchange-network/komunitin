@@ -24,7 +24,7 @@
     </page-header>
     <q-page-container>
       <q-page
-        v-if="!isLoading"
+        v-if="isReady"
         class="q-pa-lg"
       >
         <offer-layout :num-images="offer.attributes.images.length">
@@ -111,7 +111,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, watch } from "vue";
 
 import md2html from "../../plugins/Md2html";
 
@@ -136,15 +136,13 @@ const props = defineProps<{
 
 const store = useStore()
 
-const ready = ref(false)
 const offer = computed(() => {
   return store.getters["offers/current"]
 })
 
-const isLoading = computed(() => {
-  return !(ready.value || offer.value && offer.value.category && offer.value.member 
-    && offer.value.member.attributes.contacts && offer.value.member.group
-    && offer.value.member.group.currency)
+const isReady = computed(() => {
+  return Boolean(offer.value && offer.value.category && offer.value.member
+    && offer.value.member.group && offer.value.member.group.currency)
 })
 const price = computed(() => {
   return formatPrice(offer.value.attributes.value ?? '', offer.value.member.group.currency)
@@ -158,7 +156,6 @@ const fetchData = async(offerCode: string) => {
     group: props.code,
     include: "category,member,member.group,member.group.currency"
   });
-  ready.value = true
 }
 
 watch(() => props.offerCode, fetchData, { immediate: true })
