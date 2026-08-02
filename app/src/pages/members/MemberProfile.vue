@@ -22,7 +22,7 @@
           :center="mapCenter"
           :marker="member.attributes.location?.coordinates"
         />
-        <div v-if="member.attributes.location">
+        <div v-if="member.attributes.address.addressLocality">
           <q-icon name="place" />{{ member.attributes.address.addressLocality }}
         </div>
       </div>
