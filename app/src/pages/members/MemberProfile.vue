@@ -52,6 +52,6 @@ const props = defineProps<{
 }>()
 
 const mapCenter = computed(() =>
-  props.member.attributes.location?.coordinates ?? props.member.group.attributes.location.coordinates
+  props.member.attributes.location?.coordinates ?? props.member.group.attributes.location?.coordinates
 )
 </script>
