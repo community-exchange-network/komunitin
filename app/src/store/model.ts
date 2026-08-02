@@ -266,11 +266,11 @@ export interface Category extends ResourceObject {
  * Address interface.
  */
 export interface Address {
-  streetAddress: string;
-  addressLocality: string;
-  postalCode: string;
-  addressRegion: string;
-  addressCountry: string;
+  streetAddress?: string;
+  addressLocality?: string;
+  postalCode?: string;
+  addressRegion?: string;
+  addressCountry?: string;
 }
 
 export type MemberStatus = "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted"

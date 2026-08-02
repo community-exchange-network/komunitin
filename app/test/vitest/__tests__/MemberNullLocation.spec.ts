@@ -9,7 +9,7 @@ describe('Member profile without a location', () => {
 
   beforeAll(async () => {
     seeds()
-    server.schema.members.first().update({ location: null })
+    server.schema.members.first().update({ address: {}, location: null })
     wrapper = await mountComponent(App, { login: true })
   })
 

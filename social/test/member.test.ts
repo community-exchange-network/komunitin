@@ -78,6 +78,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data.attributes.name, 'Alice Member')
     assert.strictEqual(res.body.data.attributes.status, 'draft')
     assert.strictEqual(res.body.data.attributes.code, 'members-create0000')
+    assert.deepStrictEqual(res.body.data.attributes.address, {})
     assert.deepStrictEqual(res.body.data.attributes.contacts, [])
     assert.strictEqual(res.body.data.relationships.group.data.id, group.id)
 
@@ -116,6 +117,31 @@ describe('Members endpoints', () => {
     const db = tenantDb(prisma, 'members-repeated')
     assert.strictEqual(await db.member.count(), 2)
     assert.strictEqual(await db.memberUser.count({ where: { userId: user.id } }), 2)
+  })
+
+  test('POST /:code/members accepts a partial address', async () => {
+    await seedGroup({ tenantId: 'members-partial-address', status: 'active', access: 'public' })
+    const user = await auth('member-partial-address-user')
+
+    const res = await request(app)
+      .post('/members-partial-address/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            name: 'Partial Address Member',
+            address: {
+              addressLocality: 'Riverdale',
+            },
+          },
+        },
+      })
+      .expect(201)
+
+    assert.deepStrictEqual(res.body.data.attributes.address, {
+      addressLocality: 'Riverdale',
+    })
   })
 
   test('POST /:code/members allocates the first unused numeric code', async () => {

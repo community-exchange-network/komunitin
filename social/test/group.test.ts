@@ -119,6 +119,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.data.type, 'groups')
     assert.strictEqual(res.body.data.attributes.code, 'alpha-group')
     assert.strictEqual(res.body.data.attributes.status, 'pending')
+    assert.deepStrictEqual(res.body.data.attributes.address, {})
     assert.ok(Array.isArray(res.body.included))
     assert.strictEqual(res.body.included[0].type, 'group-settings')
     assert.strictEqual(res.body.included[0].attributes.requireAcceptTerms, true)
@@ -197,6 +198,31 @@ describe('Groups endpoints', () => {
       .expect(200)
 
     assert.strictEqual(settings.body.data.attributes.minOffers, 1)
+  })
+
+  test('POST /groups accepts a partial address', async () => {
+    const { token } = await auth('partial-address-user')
+
+    const res = await request(app)
+      .post('/groups')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        data: {
+          type: 'groups',
+          attributes: {
+            code: 'partial-address-group',
+            name: 'Partial Address Group',
+            address: {
+              addressLocality: 'Riverdale',
+            },
+          },
+        },
+      })
+      .expect(201)
+
+    assert.deepStrictEqual(res.body.data.attributes.address, {
+      addressLocality: 'Riverdale',
+    })
   })
 
   test('POST /groups stores the public currency request in group meta', async () => {
