@@ -120,7 +120,10 @@
                   :lat-lng="memberMarker"
                 />
               </simple-map>
-              <q-card-section class="group-footer-card text-onsurface-m">
+              <q-card-section
+                v-if="group.attributes.location?.name"
+                class="group-footer-card text-onsurface-m"
+              >
                 <q-icon name="place" />
                 {{ group.attributes.location.name }}
               </q-card-section>
@@ -188,7 +191,7 @@ const { resource: group, load: loadGroup } = useResource<Group>('groups', groupO
   immediate: false,
 });
 const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id);
-const center = computed(() => group.value?.attributes.location.coordinates);
+const center = computed(() => group.value?.attributes.location?.coordinates);
 const marker = computed(() => center.value);
 
 const memberOptions = computed(() => ({ group: props.code }));

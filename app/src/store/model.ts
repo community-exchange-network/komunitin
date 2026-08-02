@@ -200,7 +200,7 @@ export interface Group extends ResourceObject {
     description: string;
     image: ImageObject | null;
     access: Access;
-    location: Location;
+    location: Location | null;
     address: Address;
     contacts: Contact[];
     meta: {
@@ -289,7 +289,7 @@ export interface Member extends ResourceObject {
     image: ImageObject | null;
     address: Address;
     contacts: Contact[];
-    location: Location;
+    location: Location | null;
     created: string;
     updated: string;
   };

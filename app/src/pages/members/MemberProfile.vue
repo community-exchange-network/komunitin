@@ -17,13 +17,13 @@
         <div class="text-overline text-uppercase text-onsurface-d">
           {{ $t('location') }}
         </div>
-        <SimpleMap
+        <simple-map
           class="simple-map"
           :center="mapCenter"
           :marker="member.attributes.location?.coordinates"
         />
-        <div v-if="member.attributes.address.addressLocality">
-          <q-icon name="place" />{{ member.attributes.address.addressLocality }}
+        <div v-if="member.attributes.location?.name">
+          <q-icon name="place" />{{ member.attributes.location.name }}
         </div>
       </div>
     </div>

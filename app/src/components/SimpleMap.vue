@@ -26,7 +26,7 @@ import { LMap, LTileLayer, LMarker } from "@vue-leaflet/vue-leaflet";
 import { useLeafletSettings } from "../composables/leaflet";
 
 const props = withDefaults(defineProps<{
-  center: [number, number],
+  center?: [number, number],
   zoom?: number
   // bounds prop is directly forwarded to LMap. You can directly pass the list of points you need to be
   // visible and it will compute the bounding box. Note however that this prop requires the coordinates 
