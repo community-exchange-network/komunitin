@@ -175,7 +175,8 @@ const saveCategory = () => {
     })
   } else {
     emit('update:category', {
-      ...editingCategory.value,
+      id: editingCategory.value.id,
+      type: editingCategory.value.type,
       attributes: {
         name: name.value,
         icon: { type: 'material', value: icon.value }
