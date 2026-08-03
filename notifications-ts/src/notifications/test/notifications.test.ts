@@ -3,7 +3,6 @@ import { describe, it } from 'node:test'
 import { signJwt } from '../../mocks/auth'
 import { createNotification, setupNotificationsTest } from './utils'
 import prisma from '../../utils/prisma'
-import { redis } from '../../utils/redis' 
 
 const uid = (c: string) => [8,4,4,4,12].map(len => c.repeat(len)).join('-')
 
@@ -40,6 +39,8 @@ describe('Notifications API', () => {
     })
 
     it('returns 503 when Redis is unavailable', async (t) => {
+      // Import redis after module mocks have been set up.
+      const { redis } = await import('../../utils/redis')
       const ping = redis.ping
 
       t.after(() => {
