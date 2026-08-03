@@ -36,8 +36,8 @@
               :member="member"
               :contacts="member.attributes.contacts"
               :user="myUser"
-              @update:member="member.attributes = $event.attributes"
-              @update:contacts="member.attributes.contacts = $event"
+              @update:member="updateMember"
+              @update:contacts="updateContacts"
             />
             <q-btn
               class="full-width q-my-lg"
@@ -202,6 +202,20 @@ const requireMember = () => {
   }
   return member.value
 }
+
+const updateMember = (value: DeepPartial<Member>) => {
+  const member = requireMember()
+  member.attributes = {
+    ...member.attributes,
+    ...value.attributes as Partial<Member['attributes']>
+  }
+}
+
+const updateContacts = (value: Member['attributes']['contacts']) => {
+  const member = requireMember()
+  member.attributes.contacts = value
+}
+
 const saveMember = async () => {
   const member = requireMember()
   loadingSaveMember.value = true
