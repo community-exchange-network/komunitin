@@ -1,4 +1,4 @@
-import { Account, createAccountingClient } from '../../clients/accounting'
+import { createAccountingClient } from '../../clients/accounting'
 import { Prisma, type Member as DbMemberRecord } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
@@ -14,6 +14,7 @@ import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } 
 import { createNotificationsClient } from '../../clients/notifications'
 import { findPostRelationshipCounts } from '../posts/sql'
 import type { PostRelationshipMeta } from '../posts/types'
+import { syncAccountStatus } from './accounting'
 
 const getMemberLoad = (params: ResourceParams) => ({
   group: hasInclude(params, 'group'),
@@ -161,43 +162,6 @@ const getMemberUserIds = async (member: Pick<Member, 'id' | 'tenantId'>): Promis
   })
 
   return [...new Set(relations.map((relation) => relation.userId))]
-}
-
-type AccountingClient = ReturnType<typeof createAccountingClient>
-
-const findMemberAccount = async (accounting: AccountingClient, member: Member, currencyCode: string): Promise<Account | undefined> => {
-  if (member.accountId) {
-    return await accounting.getAccount(currencyCode, member.accountId)
-  }
-
-  // Just in case the member has an account but the accountId is not set, 
-  // try to find it by code before creating a new one.
-  return await accounting.findAccountByCode(currencyCode, member.code)
-}
-
-/**
- * Synchronize the account status from the accounting service to the provided status.
- * 
- * If the member does not have an account, one will be created. If the account exists 
- * but has a different status, it will be updated.
- */
-const syncAccountStatus = async (ctx: AuthContext, member: Member, currencyCode: string, status: Account["status"]): Promise<Account> => {
-  const accounting = createAccountingClient(ctx)
-  let account = await findMemberAccount(accounting, member, currencyCode)
-
-  if (!account) {
-    const users = await getMemberUserIds(member)
-    account = await accounting.createAccount(currencyCode, {
-      code: member.code,
-    }, users)
-  }
-
-  // Update account status if needed.
-  if (account.status !== status) {
-    account = await accounting.updateAccount(currencyCode, account.id, { status })
-  }
-
-  return account
 }
 
 /**
@@ -371,10 +335,13 @@ export const patchMember = async (
 
     if (to === 'active' || to === 'disabled' || to === 'suspended') {
       const currencyCode = getCurrencyCode(group)
-      const account = await syncAccountStatus(ctx, member, currencyCode, to)
-      if (!member.accountId) {
-        data.accountId = account.id
-      }     
+      const account = await syncAccountStatus(ctx, {
+        accountId: member.accountId,
+        code: member.code,
+        userIds: await getMemberUserIds(member),
+      }, currencyCode, to)
+      data.accountId = account.id
+      data.accountHref = account.href
     }
     data.status = to
   }

@@ -79,7 +79,7 @@ export interface ResourceResponseInclude<
  * the future following the GeoJSON spec.
  */
 export interface Location {
-  name: string;
+  name?: string;
   type: "Point";
   coordinates: [number, number]; //longitude and latitude
 }
@@ -118,12 +118,23 @@ export interface RelatedLinkedCollection {
  * 
  * Contains linkage to the related resource.
  */
-export interface RelatedResource {
-  links: {
-    related: string;
-  },
-  data: ResourceIdentifierObject | ExternalResourceIdentifierObject
-}
+export type RelatedResource =
+  | {
+      links: {
+        related: string
+      }
+      data: ResourceIdentifierObject & {
+        meta?: Record<string, unknown> & {
+          external?: false
+        }
+      }
+    }
+  | {
+      links?: {
+        related: string
+      }
+      data: ExternalResourceIdentifierObject
+    }
 
 /**
  * Extension Resource Object for the inclusion of external relationships.
@@ -131,13 +142,7 @@ export interface RelatedResource {
  * Defined in External Relationship custom JSON:API profile:
  * https://github.com/komunitin/komunitin-api/blob/master/jsonapi-profiles/external.md
  */
-export interface ExternalResourceObject extends ResourceObject {
-  relationships?: undefined;
-  meta: {
-    external : true
-    href: string
-  }
-}
+export type ExternalResourceObject = ExternalResourceIdentifierObject
 
 /**
  * User model.
@@ -195,7 +200,7 @@ export interface Group extends ResourceObject {
     description: string;
     image: ImageObject | null;
     access: Access;
-    location: Location;
+    location: Location | null;
     address: Address;
     contacts: Contact[];
     meta: {
@@ -261,11 +266,11 @@ export interface Category extends ResourceObject {
  * Address interface.
  */
 export interface Address {
-  streetAddress: string;
-  addressLocality: string;
-  postalCode: string;
-  addressRegion: string;
-  addressCountry: string;
+  streetAddress?: string;
+  addressLocality?: string;
+  postalCode?: string;
+  addressRegion?: string;
+  addressCountry?: string;
 }
 
 export type MemberStatus = "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted"
@@ -278,13 +283,13 @@ export interface Member extends ResourceObject {
     code: string;
     access: Access;
     name: string;
-    type: "personal" | "business" | "organization";
+    type: "personal" | "business" | "organization" | "public";
     status: MemberStatus;
     description: string;
     image: ImageObject | null;
     address: Address;
     contacts: Contact[];
-    location: Location;
+    location: Location | null;
     created: string;
     updated: string;
   };

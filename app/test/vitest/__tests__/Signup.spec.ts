@@ -218,8 +218,30 @@ describe("Signup", () => {
     await button?.trigger("click");
     await flushPromises();
     // Save profile
-    await wrapper.get("button[type='submit']").trigger("click");
-    await waitFor(() => wrapper.text().includes("What do you offer?"), true, "Offer creation form should show");
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+    try {
+      await wrapper.get("button[type='submit']").trigger("click");
+      await waitFor(() => wrapper.text().includes("What do you offer?"), true, "Offer creation form should show");
+      const profilePatch = fetchSpy.mock.calls.find(([url, options]) =>
+        url === `${config.SOCIAL_URL}/GRP0/members/${draftMemberId}`
+        && options?.method === "PATCH"
+      )
+      expect(profilePatch).toBeDefined()
+      const profilePatchBody = JSON.parse(profilePatch?.[1]?.body as string)
+      expect(Object.keys(profilePatchBody.data)).toEqual(["id", "type", "attributes"])
+      expect(profilePatchBody.data.id).toBe(draftMemberId)
+      expect(profilePatchBody.data.type).toBe("members")
+      expect(Object.keys(profilePatchBody.data.attributes)).toEqual([
+        "name",
+        "description",
+        "image",
+        "address",
+        "contacts",
+        "location"
+      ])
+    } finally {
+      fetchSpy.mockRestore()
+    }
 
     // Now go with the offer.
     await wrapper.get("[name='title']").setValue("Test Offer");

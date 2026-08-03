@@ -24,9 +24,9 @@ export interface Group extends DbGroup {
   admins: GroupAdmin[]
   status: GroupStatus
   access: Access
-  address: Address | null
+  address: Address
   location: Location | null
-  settings: GroupSettings | null
+  settings: GroupSettings
   contacts: Contact[] | null
   meta: GroupMeta | null
 }

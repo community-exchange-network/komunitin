@@ -89,8 +89,8 @@ export class BaseControllerImpl implements BasePublicService {
       throw badRequest(`Currency with code ${currency.code} already exists`)
     }
 
-    if (ctx.type !== "user" && ctx.type !== "system") {
-      throw unauthorized("Required user or system credentials")
+    if (ctx.type !== "user" && ctx.type !== "system" && ctx.type !== "superadmin") {
+      throw unauthorized("Required user, system or superadmin credentials")
     }
 
     // Create and save a currency key that will be used to encrypt all other keys

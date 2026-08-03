@@ -2,7 +2,8 @@ import { InputJsonObject } from '@prisma/client/runtime/client'
 import { Group as DbGroupRaw, GroupAdminUser, Prisma } from '../../generated/prisma/client'
 import { GroupUpdateInput } from '../../generated/prisma/models'
 import { AuthContext, OptionalAuthContext } from '../../server/context'
-import { createAccountingClient, Currency } from '../../clients/accounting'
+import { createAccountingClient } from '../../clients/accounting'
+import type { Account, Currency } from '../../clients/accounting'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { type CollectionResult, reorderByIds } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
@@ -15,6 +16,7 @@ import { findGroupIds } from './sql'
 import type { CreateGroupInput, Group, GroupMeta, SerializableGroup } from './types'
 import { createNotificationsClient } from '../../clients/notifications'
 import { findUserMembers } from '../users/member-query'
+import { syncAccountStatus } from '../members/accounting'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -69,7 +71,7 @@ export const enrichGroups = async (
     }
     return userMemberGroups
   }
-  
+
   const isMember = (group: Group) => async () => {
     const userMemberGroups = await getUserMemberGroups()
     return userMemberGroups.has(group.id)
@@ -139,7 +141,7 @@ export const createGroup = async (ctx: AuthContext, input: CreateGroupInput): Pr
     latitude: location.latitude,
     longitude: location.longitude,
     
-    settings: input.settings,
+    settings: input.settings ?? {},
     meta: toNullableJsonInput(attributes.meta as GroupMeta),
   }
 
@@ -311,6 +313,41 @@ const syncCurrencyStatus = async (ctx: AuthContext, group: Group, status: Curren
   return currency
 }
 
+type AdminMemberCandidate = {
+  accountId?: string | null
+  adminUserId: string
+  code: string
+  memberId?: string
+}
+
+type AdminMemberProvision = AdminMemberCandidate & {
+  account: Account
+}
+
+const getAdminMemberCandidate = async (group: Group): Promise<AdminMemberCandidate> => {
+  const adminUserId = group.admins[0].id
+  const code = `${group.code}0000`
+  const db = tenantDb(prisma, group.code)
+  const member = await db.member.findFirst({
+    where: { code },
+    include: { users: true },
+  })
+
+  if (member && (
+    member.deleted
+    || !member.users.some(({ userId }) => userId === adminUserId)
+  )) {
+    throw badRequest(`Reserved administrator member ${code} is already in use`)
+  }
+
+  return {
+    adminUserId,
+    accountId: member?.accountId,
+    code,
+    memberId: member?.id,
+  }
+}
+
 export const patchGroupByCode = async (ctx: AuthContext, code: string, attributes: PatchGroupAttributes): Promise<SerializableGroup> => {
   const group = await getGroupByCode(ctx, code)
 
@@ -325,7 +362,8 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     ...rest,
     image: toNullableJsonInput(image),
   }
-  let notifyGroupActivated = false
+  const groupName = attributes.name ?? group.name
+  const groupAccess = attributes.access ?? group.access
 
   if (meta !== undefined) {
     if (group.status !== 'pending') {
@@ -341,6 +379,9 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
   }
 
   // Status transition
+  let adminMemberCandidate: AdminMemberCandidate | undefined
+  let adminMemberProvision: AdminMemberProvision | undefined
+
   if (status !== undefined && status !== group.status) {
     if (status === 'active' && group.status === 'disabled'
       || status === 'disabled' && group.status === 'active') {
@@ -350,6 +391,7 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
       if (!ctx.isSuperadmin) {
         throw forbidden('Only superadmins can activate groups')
       }
+      adminMemberCandidate = await getAdminMemberCandidate(group)
     } else {
       throw badRequest(`Invalid status transition from ${group.status} to ${status}`)
     }
@@ -358,13 +400,21 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
     if (status === 'active' || status === 'disabled') {
       const currencyAttributes = (meta ?? group.meta)?.request?.currency
       const currency = await syncCurrencyStatus(ctx, group, status, currencyAttributes)
-      if (!group.currencyId) {
-        data.currencyId = currency.id
-      }
+      data.currencyId = currency.id
+      data.currencyHref = currency.href
     }
 
-    if (group.status === 'pending' && status === 'active') {
-      notifyGroupActivated = true
+    // If the group is being activated
+    if (adminMemberCandidate) {
+      const account = await syncAccountStatus(ctx, {
+        accountId: adminMemberCandidate.accountId,
+        code: adminMemberCandidate.code,
+        userIds: [adminMemberCandidate.adminUserId],
+      }, getCurrencyCode(group), 'active')
+      adminMemberProvision = {
+        ...adminMemberCandidate,
+        account,
+      }
       // Clear the meta field on activation.
       data.meta = Prisma.DbNull
     }
@@ -373,12 +423,59 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
   }
   
   const db = tenantDb(prisma, code)
-  const dbUpdated = await db.group.update({
-    where: { id: group.id },
-    data,
-    include: {
-      admins: true,
+  const dbUpdated = await db.transaction(async (tx) => {
+    const updatedGroup = await tx.group.update({
+      where: { id: group.id },
+      data,
+      include: {
+        admins: true,
+      },
+    })
+
+    if (adminMemberProvision) {
+      const memberData = {
+        name: groupName,
+        status: 'active',
+        access: groupAccess,
+        accountId: adminMemberProvision.account.id,
+        accountHref: adminMemberProvision.account.href,
+      }
+      const member = adminMemberProvision.memberId
+        ? await tx.member.update({
+            where: { id: adminMemberProvision.memberId },
+            data: memberData,
+          })
+        : await tx.member.create({
+            data: {
+              ...memberData,
+              code: adminMemberProvision.code,
+              type: 'public',
+              description: '',
+              contacts: [],
+              groupId: group.id,
+            },
+          })
+
+      await tx.memberUser.upsert({
+        where: {
+          memberId_userId: {
+            memberId: member.id,
+            userId: adminMemberProvision.adminUserId,
+          },
+        },
+        create: {
+          tenantId: code,
+          memberId: member.id,
+          userId: adminMemberProvision.adminUserId,
+          role: 'admin',
+        },
+        update: {
+          role: 'admin',
+        },
+      })
     }
+
+    return updatedGroup
   })
 
   if (attributes.image !== undefined) {
@@ -387,7 +484,7 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
 
   const updated = await enrichGroup(ctx, toGroup(dbUpdated))
 
-  if (notifyGroupActivated) {
+  if (adminMemberCandidate) {
     const notifications = createNotificationsClient(ctx)
     await notifications.notifyGroupActivated(updated)
   }
@@ -428,7 +525,7 @@ export const patchGroupSettingsByCode = async (
     throw forbidden('You do not have permission to update this group')
   }
 
-  const currentSettings = group.settings as Prisma.JsonObject || {}
+  const currentSettings = group.settings as Prisma.JsonObject
   const mergedSettings: Prisma.InputJsonObject = {
     ...currentSettings,
     ...attributes,

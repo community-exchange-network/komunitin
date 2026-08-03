@@ -155,10 +155,9 @@ const onSubmit = async () => {
   const isFormCorrect = await form.value?.validate()
   if (isFormCorrect) {
     emit("submit", {
-      ...props.modelValue,
+      ...(props.modelValue?.id ? { id: props.modelValue.id } : {}),
       type: "offers",
       attributes: {
-        ...props.modelValue?.attributes,
         title: title.value,
         description: description.value,
         expires: expiration.value.toISOString(),
@@ -167,8 +166,6 @@ const onSubmit = async () => {
         status: state.value
       },
       relationships: {
-        ...props.modelValue?.relationships,
-         
         category: { data: { type: "categories", id: category.value.id } },
         member: { data: { type: "members", id: memberId.value } }
       }

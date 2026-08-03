@@ -16,6 +16,9 @@ type JsonApiResource = {
   id: string
   type: string
   attributes?: Record<string, unknown>
+  links: {
+    self: string
+  }
 }
 
 type JsonApiDoc = {
@@ -30,6 +33,7 @@ type RequestOptions = {
 export type CurrencyStatus = "new" | "active" | "disabled" | "deleted"
 export type Currency = {
   id: string
+  href: string
   type: "currencies"
   code: string
   status: CurrencyStatus
@@ -39,6 +43,7 @@ export type Currency = {
 export type AccountStatus = "active" | "disabled" | "suspended" | "deleted"
 export type Account = {
   id: string
+  href: string
   type: "accounts"
   code: string
   status: AccountStatus
@@ -74,8 +79,8 @@ const toResource = (data: JsonApiResource | JsonApiResource[] | undefined) => {
     throw internalError('Expected single resource but got an array')
   }
   if (typeof data === 'object' && data !== null && 'id' in data && 'type' in data) {
-    const { id, type, attributes } = data as JsonApiResource
-    return { id, type, ...attributes }
+    const { id, type, attributes, links } = data as JsonApiResource
+    return { id, type, ...attributes, href: links.self }
   }
   return undefined
 }
@@ -90,9 +95,11 @@ class AccountingClient {
     init: RequestInit,
     options: RequestOptions = {},
   ): Promise<JsonApiDoc | undefined> {
-    const scope = !init.method || init.method === 'GET'
-      ? Scope.AccountingRead
-      : Scope.AccountingWrite
+    const scope = this.ctx.isSuperadmin
+      ? Scope.Superadmin
+      : !init.method || init.method === 'GET'
+        ? Scope.AccountingRead
+        : Scope.AccountingWrite
     const response = await fetchWithAuth(
       accountingUrl(path),
       {
@@ -266,12 +273,4 @@ class AccountingClient {
 
 export const createAccountingClient = (ctx: AuthContext) => {
   return new AccountingClient(ctx)
-}
-
-export const getAccountingCurrencyUrl = (code: string) => {
-  return accountingUrl(`/${code}/currency`)
-}
-
-export const getAccountingAccountUrl = (currencyCode: string, accountId: string) => {
-  return accountingUrl(`/${currencyCode}/accounts/${accountId}`)
 }

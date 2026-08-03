@@ -6,8 +6,11 @@ import { AsyncCache, type CacheValue } from '../utils/cache'
 import { badRequest, internalError } from '../utils/error'
 import { fetchWithAuth, fetchWithRetry } from './utils'
 
-type AccountingScope = typeof Scope.AccountingRead | typeof Scope.AccountingWrite
-type ServiceScope = AccountingScope | typeof Scope.NotificationsWrite
+type AccountingTokenScope =
+  | typeof Scope.AccountingRead
+  | typeof Scope.AccountingWrite
+  | typeof Scope.Superadmin
+type TokenScope = AccountingTokenScope | typeof Scope.NotificationsWrite
 
 type TokenResponse = {
   access_token?: unknown
@@ -20,7 +23,7 @@ type TokenRequestParameters = Record<string, string> & {
   grant_type:
     | 'client_credentials'
     | 'urn:ietf:params:oauth:grant-type:token-exchange'
-  scope: ServiceScope
+  scope: TokenScope
 }
 
 const redeemedUnsubscribeTokenSchema = z.object({
@@ -50,7 +53,7 @@ const getCachedToken = async (
   return cache.getOrLoad(key, load)
 }
 
-const getCacheKey = (subjectToken: string, scope: AccountingScope): string => {
+const getCacheKey = (subjectToken: string, scope: AccountingTokenScope): string => {
   return createHash('sha256')
     .update(subjectToken)
     .update('\0')
@@ -97,7 +100,7 @@ const requestToken = async (parameters: TokenRequestParameters): Promise<CacheVa
 
 const requestAccountingToken = async (
   subjectToken: string,
-  scope: AccountingScope,
+  scope: AccountingTokenScope,
 ): Promise<CacheValue<string>> => {
   return requestToken({
     grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
@@ -175,7 +178,7 @@ export const redeemUnsubscribeToken = async (token: string): Promise<RedeemedUns
  */
 export const exchangeAccountingToken = async (
   subjectToken: string,
-  scope: AccountingScope,
+  scope: AccountingTokenScope,
   forceRefresh = false,
 ): Promise<string> => {
   const key = getCacheKey(subjectToken, scope)

@@ -1,17 +1,20 @@
 import { http, HttpResponse } from 'msw'
 import { CLIENT_ID } from '../../src/config'
 import { Scope } from '../../src/server/scopes'
+import { accountingAccountHref, accountingCurrencyHref } from './accounting'
 import { getJwks } from './auth'
 import { toUuid } from './utils'
 
 type MockCurrency = {
   id: string
+  href: string
   code: string
   status: 'active' | 'disabled' | 'deleted'
 }
 
 type MockAccount = {
   id: string
+  href: string
   code: string
   currencyCode: string
   userIds: string[]
@@ -49,6 +52,8 @@ let accountingCurrencyDeleteStatus = 204
 let accountingCurrencyDeleteDetail = 'Mock accounting currency delete failure'
 let accountingAccountDeleteStatus = 204
 let accountingAccountDeleteDetail = 'Mock accounting delete failure'
+let accountingAccountCreateStatus = 201
+let accountingAccountCreateDetail = 'Mock accounting account creation failure'
 let notificationsEventStatus = 201
 let notificationsEvents: unknown[] = []
 
@@ -65,7 +70,7 @@ export const seedAccountingCurrency = (
   id = toUuid(`accounting-currency-${code}`),
   status: MockCurrency['status'] = 'active',
 ): MockCurrency => {
-  const currency = { id, code, status }
+  const currency = { id, href: accountingCurrencyHref(code), code, status }
   accountingCurrencies.set(code, currency)
   return currency
 }
@@ -78,7 +83,15 @@ export const seedAccountingAccount = (
   status: MockAccount['status'] = 'active',
   balance = 0,
 ): MockAccount => {
-  const account = { id, code, currencyCode, userIds, status, balance }
+  const account = {
+    id,
+    href: accountingAccountHref(currencyCode, id),
+    code,
+    currencyCode,
+    userIds,
+    status,
+    balance,
+  }
   const accounts = accountingAccounts.get(currencyCode) ?? new Map<string, MockAccount>()
   accounts.set(code, account)
   accountingAccounts.set(currencyCode, accounts)
@@ -119,6 +132,11 @@ export const getAccountingRequestPaths = (): string[] => {
 export const setAccountingAccountDeleteStatus = (status: number, detail = 'Mock accounting delete failure') => {
   accountingAccountDeleteStatus = status
   accountingAccountDeleteDetail = detail
+}
+
+export const setAccountingAccountCreateStatus = (status: number, detail = 'Mock accounting account creation failure') => {
+  accountingAccountCreateStatus = status
+  accountingAccountCreateDetail = detail
 }
 
 export const setAccountingCurrencyDeleteStatus = (status: number, detail = 'Mock accounting currency delete failure') => {
@@ -162,6 +180,9 @@ const requireAccountingAuthorization = (request: Request): Response | null => {
 const serializeCurrency = (currency: MockCurrency) => ({
   type: 'currencies',
   id: currency.id,
+  links: {
+    self: currency.href,
+  },
   attributes: {
     code: currency.code,
     status: currency.status,
@@ -171,6 +192,9 @@ const serializeCurrency = (currency: MockCurrency) => ({
 const serializeAccount = (account: MockAccount) => ({
   type: 'accounts',
   id: account.id,
+  links: {
+    self: account.href,
+  },
   attributes: {
     code: account.code,
     status: account.status,
@@ -188,6 +212,8 @@ export const resetMockState = () => {
   accountingCurrencyDeleteDetail = 'Mock accounting currency delete failure'
   accountingAccountDeleteStatus = 204
   accountingAccountDeleteDetail = 'Mock accounting delete failure'
+  accountingAccountCreateStatus = 201
+  accountingAccountCreateDetail = 'Mock accounting account creation failure'
   notificationsEventStatus = 201
   notificationsEvents = []
   notificationsRequests = []
@@ -231,7 +257,11 @@ export const handlers = [
       || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
       || params.get('subject_token_type') !== 'urn:ietf:params:oauth:token-type:access_token'
       || !tokenRequest.subjectToken
-      || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.AccountingWrite)
+      || (
+        tokenRequest.scope !== Scope.AccountingRead
+        && tokenRequest.scope !== Scope.AccountingWrite
+        && tokenRequest.scope !== Scope.Superadmin
+      )
     ) {
       return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
     }
@@ -364,6 +394,10 @@ export const handlers = [
     const unauthorized = requireAccountingAuthorization(request)
     if (unauthorized) {
       return unauthorized
+    }
+
+    if (accountingAccountCreateStatus !== 201) {
+      return jsonApiError(accountingAccountCreateStatus, accountingAccountCreateDetail)
     }
 
     const currencyCode = String(params.currencyCode)

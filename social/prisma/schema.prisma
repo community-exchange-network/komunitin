@@ -15,7 +15,7 @@ model User {
   id       String   @id @db.Uuid
   email    String   @unique
   name     String?  @db.VarChar(255)
-  settings Json?
+  settings Json @default("{}")
   created  DateTime @default(now())
   updated  DateTime @updatedAt
 
@@ -57,7 +57,7 @@ model Group {
   status      String @default("pending") @db.VarChar(31) // GroupStatus
   access      String @default("public") @db.VarChar(31) // Access
   image       Json? // Image
-  address     Json? // Address
+  address     Json @default("{}") // Address
 
   // We have latitude and longitude for prisma support and then we have a computed
   // geography column for PostGIS spatial queries created via raw SQL migration.
@@ -68,11 +68,12 @@ model Group {
 
   contacts Json? // Contact[]
 
-  settings Json? // GroupSettings
+  settings Json @default("{}") // GroupSettings
   meta     Json? // GroupMeta
 
-  // Currency id in accounting service.
-  currencyId String?
+  // Currency reference in accounting service.
+  currencyId   String?
+  currencyHref String? @db.VarChar(2048)
 
   created DateTime  @default(now())
   updated DateTime  @updatedAt
@@ -113,7 +114,7 @@ model Member {
   access      String @default("public") @db.VarChar(31)
   description String @default("") @db.Text
   image       Json? // Image
-  address     Json? // Address
+  address     Json @default("{}") // Address
 
   // We have latitude and longitude for prisma support and then we have a computed
   // geography column for PostGIS spatial queries created via raw SQL migration.
@@ -122,12 +123,13 @@ model Member {
   // Computed in SQL migration as GENERATED ALWAYS ... STORED.
   location  Unsupported("geography(Point, 4326)")?
 
-  contacts Json? // Contact[]
+  contacts Json @default("[]") // Contact[]
 
   meta Json? // MemberMeta
 
-  // Account id in accounting service.
-  accountId String? @db.Uuid
+  // Account reference in accounting service.
+  accountId   String? @db.Uuid
+  accountHref String? @db.VarChar(2048)
 
   created DateTime  @default(now())
   updated DateTime  @updatedAt

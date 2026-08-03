@@ -17,6 +17,7 @@ import type {
 
 import { config } from "src/utils/config";
 import { apiRequest } from "./request";
+import { resolveRelationshipUrl } from "./relationships";
 import { v4 as uuid } from "uuid";
 
 // Exported just for testing purposes.
@@ -83,7 +84,7 @@ async function loadUser(context: ActionContext<UserState, never>) {
   // A user requesting their first group does not have a membership yet.
   if (member) {
     // This is the currency URL from the Accounting API.
-    const currencyUrl = member.group.relationships.currency.links.related;
+    const currencyUrl = resolveRelationshipUrl(member.group.relationships.currency);
     // https://.../accounting/<GROUP>/currency
     
     // Get the accounting API URL from the currency URL and update it in the store. This is

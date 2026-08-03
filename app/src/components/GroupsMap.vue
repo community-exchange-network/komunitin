@@ -7,7 +7,7 @@
     :center="center"
   >
     <l-marker
-      v-for="group in groups"
+      v-for="group in groupsWithLocation"
       :key="group.id"
       :lat-lng="reverseCoordinates(group.attributes.location.coordinates)"
     >
@@ -33,10 +33,13 @@ const props = defineProps<{
   groups?: Group[]
 }>()
 
+type GroupWithLocation = Group & { attributes: { location: { coordinates: [number, number] } } }
+
 const reverseCoordinates = (coordinates: [number, number]): [number, number] => {
   return [coordinates[1], coordinates[0]]
 }
-const coordinates = computed(() => props.groups?.map((group) => reverseCoordinates(group.attributes.location.coordinates)) ?? [])
+const groupsWithLocation = computed<GroupWithLocation[]>(() => props.groups?.filter((group): group is GroupWithLocation => Boolean(group.attributes.location)) ?? [])
+const coordinates = computed(() => groupsWithLocation.value.map((group) => reverseCoordinates(group.attributes.location.coordinates)))
 
 // Compute the bounds of the map
 const bounds = computed<LatLngBounds>(() => latLngBounds(coordinates.value))

@@ -11,19 +11,12 @@ import { enrichMembers, toMember } from '../members/service'
 import type { SerializableMember } from '../members/types'
 import { countUserMembers, findUserMembers } from './member-query'
 
-const castSettings = (settings: unknown): UserSettings | null => {
-  if (!settings || typeof settings !== 'object') {
-    return null
-  }
-  return settings as UserSettings
-}
-
 const toUser = (user: DbUser): User => {
   return {
     id: user.id,
     email: user.email,
     name: user.name,
-    settings: castSettings(user.settings),
+    settings: user.settings as UserSettings,
     created: user.created,
     updated: user.updated,
   }
@@ -57,7 +50,7 @@ export const listGroupAdmins = async (
   })
 
   return {
-    items: relations.map(({ user }) => ({ ...toUser(user), settings: null })),
+    items: relations.map(({ user }) => toUser(user)),
     total: group.admins.length,
   }
 }
@@ -66,22 +59,22 @@ const canReadUser = (ctx: AuthContext, id: string): boolean => {
   return ctx.userId === id || ctx.isSuperadmin || ctx.canReadAllSocial
 }
 
-const mergeSettings = (current: UserSettings | null, patch: UserSettings): Prisma.InputJsonObject => {
+const mergeSettings = (current: UserSettings, patch: UserSettings): Prisma.InputJsonObject => {
   const merged: UserSettings = {
-    ...(current ?? {}),
+    ...current,
     ...patch,
   }
 
   if (patch.notifications) {
     merged.notifications = {
-      ...current?.notifications,
+      ...current.notifications,
       ...patch.notifications,
     }
   }
 
   if (patch.emails) {
     merged.emails = {
-      ...current?.emails,
+      ...current.emails,
       ...patch.emails,
     }
   }
@@ -160,12 +153,11 @@ export const unsubscribeUser = async (id: string): Promise<void> => {
     return
   }
 
-  const settings = castSettings(user.settings)
   try {
     await db.user.update({
       where: { id },
       data: {
-        settings: mergeSettings(settings, {
+        settings: mergeSettings(user.settings as UserSettings, {
           emails: { group: 'never' },
         }),
       },

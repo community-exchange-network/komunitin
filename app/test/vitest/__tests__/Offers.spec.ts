@@ -9,6 +9,8 @@ import ApiSerializer from "src/server/ApiSerializer";
 import { seeds } from "src/server";
 import SelectCategory from "src/components/SelectCategory.vue";
 import type { Category, Member, Offer } from "src/store/model";
+import DeleteOfferBtn from "src/components/DeleteOfferBtn.vue";
+import ConfirmBtn from "src/components/ConfirmBtn.vue";
 
 type FullOffer = Offer & { member: Member, category: Category };
 type SelectOption = { label: string, value: string };
@@ -55,9 +57,16 @@ describe("Offers", () => {
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 2, "Should find 2 offers matching 'pants'");
   })
 
-  it ("renders single offer", async() => {
+  it ("renders a cached offer while revalidating", async() => {
+    const cachedOffer = wrapper.vm.$store.state.offers.resources[offer.id]
     await wrapper.vm.$router.push(`/groups/GRP0/offers/${offer.attributes.code}`);
     const title = requireText(offer.attributes.title, "Offer title");
+    expect(wrapper.text()).toContain(title);
+    await waitFor(
+      () => wrapper.vm.$store.state.offers.resources[offer.id] !== cachedOffer,
+      true,
+      "Offer should be revalidated"
+    )
     await waitFor(() => wrapper.text().includes(title), true, "Offer page should load");
     const text = wrapper.text();
     expect(text).toContain(title);
@@ -99,6 +108,16 @@ describe("Offers", () => {
     await wrapper.vm.$router.push("/groups/GRP0/offers/The-Offer")
     await waitFor(() => wrapper.text().includes("The Offer"), true, "Offer page should show");
     expect(wrapper.text()).toContain("$10.00");
+  })
+
+  it('deletes an offer without rendering the removed resource', async () => {
+    const offerId = wrapper.vm.$store.getters['offers/current'].id
+    const deleteOffer = wrapper.getComponent(DeleteOfferBtn)
+    deleteOffer.getComponent(ConfirmBtn).vm.$emit('confirm')
+
+    await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/offers')
+    expect(wrapper.vm.$store.getters['offers/one'](offerId)).toBeNull()
+    expect(document.body.textContent).not.toContain('Unknown user interface error')
   })
 
 });

@@ -5,8 +5,10 @@ import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/context'
 import { auth, serviceAuth } from './mocks/auth'
+import { accountingAccountHref } from './mocks/accounting'
 import {
   getAccountingRequestPaths,
+  getAuthTokenRequests,
   getNotificationsEvents,
   resetMockState,
   seedAccountingAccount,
@@ -76,6 +78,8 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data.attributes.name, 'Alice Member')
     assert.strictEqual(res.body.data.attributes.status, 'draft')
     assert.strictEqual(res.body.data.attributes.code, 'members-create0000')
+    assert.deepStrictEqual(res.body.data.attributes.address, {})
+    assert.deepStrictEqual(res.body.data.attributes.contacts, [])
     assert.strictEqual(res.body.data.relationships.group.data.id, group.id)
 
     const list = await request(app)
@@ -92,6 +96,7 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(draftList.body.data.length, 1)
     assert.strictEqual(draftList.body.data[0].attributes.name, 'Alice Member')
+    assert.deepStrictEqual(draftList.body.data[0].attributes.contacts, [])
   })
 
   test('POST /:code/members allows repeated member creation by the same user', async () => {
@@ -112,6 +117,31 @@ describe('Members endpoints', () => {
     const db = tenantDb(prisma, 'members-repeated')
     assert.strictEqual(await db.member.count(), 2)
     assert.strictEqual(await db.memberUser.count({ where: { userId: user.id } }), 2)
+  })
+
+  test('POST /:code/members accepts a partial address', async () => {
+    await seedGroup({ tenantId: 'members-partial-address', status: 'active', access: 'public' })
+    const user = await auth('member-partial-address-user')
+
+    const res = await request(app)
+      .post('/members-partial-address/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            name: 'Partial Address Member',
+            address: {
+              addressLocality: 'Riverdale',
+            },
+          },
+        },
+      })
+      .expect(201)
+
+    assert.deepStrictEqual(res.body.data.attributes.address, {
+      addressLocality: 'Riverdale',
+    })
   })
 
   test('POST /:code/members allocates the first unused numeric code', async () => {
@@ -227,7 +257,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].relationships.account.data.type, 'accounts')
     assert.strictEqual(res.body.data[0].relationships.account.data.id, accountId)
     assert.strictEqual(res.body.data[0].relationships.account.data.meta.external, true)
-    assert.strictEqual(res.body.data[0].relationships.account.data.meta.href, `http://localhost:2025/members-include-account/accounts/${accountId}`)
+    assert.strictEqual(res.body.data[0].relationships.account.data.meta.href, accountingAccountHref('members-include-account', accountId))
 
     assert.ok(Array.isArray(res.body.included))
     assert.strictEqual(res.body.included.length, 1)
@@ -236,7 +266,7 @@ describe('Members endpoints', () => {
       id: accountId,
       meta: {
         external: true,
-        href: `http://localhost:2025/members-include-account/accounts/${accountId}`,
+        href: accountingAccountHref('members-include-account', accountId),
       },
     })
     assert.deepStrictEqual(getAccountingRequestPaths(), [])
@@ -541,15 +571,82 @@ describe('Members endpoints', () => {
     assert.ok(approved.body.data.attributes.accountId)
     assert.strictEqual(approved.body.data.relationships.account.data.type, 'accounts')
     assert.strictEqual(approved.body.data.relationships.account.data.meta.external, true)
-    assert.strictEqual(approved.body.data.relationships.account.data.meta.href, `http://localhost:2025/${currency.code}/accounts/${approved.body.data.attributes.accountId}`)
+    const accountHref = accountingAccountHref(currency.code, approved.body.data.attributes.accountId)
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.href, accountHref)
+
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
       [`GET /${currency.code}/accounts`, `POST /${currency.code}/accounts`],
     )
+    assert.deepStrictEqual(getAuthTokenRequests(), [
+      {
+        clientId: 'komunitin-social',
+        grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        scope: Scope.AccountingRead,
+        subjectToken: admin.token,
+      },
+      {
+        clientId: 'komunitin-social',
+        grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        scope: Scope.AccountingWrite,
+        subjectToken: admin.token,
+      },
+    ])
     const events = getNotificationsEvents() as any[]
     assert.strictEqual(events.length, 1)
     assert.strictEqual(events[0].data.attributes.name, 'MemberJoined')
     assert.strictEqual(events[0].data.attributes.code, 'members-approve')
+  })
+
+  test('PATCH /:code/members/:member lets superadmin create the Accounting account', async () => {
+    const currency = seedAccountingCurrency('members-superadmin-approve')
+    await seedGroup({
+      tenantId: 'members-superadmin-approve',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+    const owner = await auth('member-superadmin-approve-owner')
+    const superadmin = await auth(
+      'member-superadmin-approver',
+      undefined,
+      Scope.Superadmin,
+    )
+    const member = await seedMember({
+      tenantId: 'members-superadmin-approve',
+      code: 'members-superadmin-approve0001',
+      status: 'pending',
+      userId: owner.id,
+    })
+
+    const approved = await request(app)
+      .patch(`/members-superadmin-approve/members/${member.id}`)
+      .set('Authorization', `Bearer ${superadmin.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            status: 'active',
+          },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(approved.body.data.attributes.status, 'active')
+    assert.ok(approved.body.data.attributes.accountId)
+    assert.deepStrictEqual(getAuthTokenRequests(), [{
+      clientId: 'komunitin-social',
+      grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      scope: Scope.Superadmin,
+      subjectToken: superadmin.token,
+    }])
+    assert.deepStrictEqual(
+      getAccountingRequestPaths(),
+      [
+        `GET /${currency.code}/accounts`,
+        `POST /${currency.code}/accounts`,
+      ],
+    )
   })
 
   test('PATCH /:code/members/:member adopts existing accounting account by member code', async () => {
@@ -587,6 +684,7 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(approved.body.data.attributes.accountId, account.id)
     assert.strictEqual(approved.body.data.relationships.account.data.id, account.id)
+    assert.strictEqual(approved.body.data.relationships.account.data.meta.href, account.href)
     assert.deepStrictEqual(
       getAccountingRequestPaths(),
       [`GET /${currency.code}/accounts`],

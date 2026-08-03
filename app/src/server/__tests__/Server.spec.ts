@@ -94,20 +94,48 @@ describe("MirageJS Server", () => {
     const response = await fetch(`${urlSocial}/GRP0?include=currency`);
     const data = await response.json();
     const currency = data.included.find((resource: ResourceObject) => resource.type == "currencies");
-    expect(currency.meta.external).toBe(true);
-    expect(currency.links.self).toBe(`${urlAccounting}/GRP0/currency`);
-    expect(currency.attributes).toBeUndefined();
-    expect(currency.relationships).toBeUndefined();
+    expect(data.data.relationships.currency).toEqual({
+      data: {
+        type: "currencies",
+        id: currency.id,
+        meta: {
+          external: true,
+          href: `${urlAccounting}/GRP0/currency`
+        }
+      }
+    });
+    expect(currency).toEqual({
+      type: "currencies",
+      id: currency.id,
+      meta: {
+        external: true,
+        href: `${urlAccounting}/GRP0/currency`
+      }
+    });
   });
 
   it("includes account external resource", async() => {
     const response = await fetch(`${urlSocial}/GRP0/members?filter[code]=EmilianoLemke57&include=account`);
     const data = await response.json();
     const account = data.included.find((resource: ResourceObject) => resource.type == "accounts");
-    expect(account.meta.external).toBe(true);
-    expect(account.links.self).toBe(`${urlAccounting}/GRP0/accounts/${account.id}`);
-    expect(account.attributes).toBeUndefined();
-    expect(account.relationships).toBeUndefined();
+    expect(data.data[0].relationships.account).toEqual({
+      data: {
+        type: "accounts",
+        id: account.id,
+        meta: {
+          external: true,
+          href: `${urlAccounting}/GRP0/accounts/${account.id}`
+        }
+      }
+    });
+    expect(account).toEqual({
+      type: "accounts",
+      id: account.id,
+      meta: {
+        external: true,
+        href: `${urlAccounting}/GRP0/accounts/${account.id}`
+      }
+    });
   });
 
   it("loads user memberships from /users/:id/members", async () => {

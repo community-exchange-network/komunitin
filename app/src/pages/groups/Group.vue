@@ -74,10 +74,11 @@
         </div>
         <!-- sub-page navigation -->
         <nav
-          v-if="group"
+          v-if="group && own"
           class="row q-col-gutter-md q-py-md"
         >
-          <router-link :to="`/groups/${code}/members`" 
+          <router-link
+            :to="`/groups/${code}/members`"
             style="text-decoration: none; color: inherit; height: fit-content;"
             class="col-6"
           >
@@ -87,7 +88,8 @@
             />
           </router-link>
 
-          <router-link :to="`/groups/${code}/stats`" 
+          <router-link
+            :to="`/groups/${code}/stats`"
             style="text-decoration: none; color: inherit; height: fit-content;"
             class="col-6"
           >
@@ -118,7 +120,10 @@
                   :lat-lng="memberMarker"
                 />
               </simple-map>
-              <q-card-section class="group-footer-card text-onsurface-m">
+              <q-card-section
+                v-if="group.attributes.location?.name"
+                class="group-footer-card text-onsurface-m"
+              >
                 <q-icon name="place" />
                 {{ group.attributes.location.name }}
               </q-card-section>
@@ -185,19 +190,19 @@ const groupOptions = computed(() => ({ group: props.code }));
 const { resource: group, load: loadGroup } = useResource<Group>('groups', groupOptions, {
   immediate: false,
 });
-const own = computed(
-  () => group.value && store.getters['myMember'] && group.value.id == store.getters['myMember'].group.id
-);
-const center = computed(() => group.value?.attributes.location.coordinates);
+const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id);
+const center = computed(() => group.value?.attributes.location?.coordinates);
 const marker = computed(() => center.value);
 
 const memberOptions = computed(() => ({ group: props.code }));
 const { resources: members, loadAll: loadAllMembers } = useAllResources<Member>('members', memberOptions, { immediate: false });
 
 const memberMarkers = computed<LatLngExpression[]>(() => {
-  return (members.value ?? [])
-    .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
-    .filter(Boolean) as LatLngExpression[];
+  return own.value
+    ? members.value
+      .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
+      .filter(Boolean) as LatLngExpression[]
+    : [];
 });
 const membersLabel = computed(
   () => `${t('members')} ${isLoggedIn.value && members.value?.length ? `(${members.value.length})` : ''}`
@@ -227,7 +232,7 @@ const fetchData = async () => {
   isLoading.value = true;
   try {
     await loadGroup();
-    if (isLoggedIn.value) {
+    if (own.value) {
       await loadAllMembers();
     }
   } finally {

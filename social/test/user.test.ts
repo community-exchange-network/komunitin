@@ -168,7 +168,7 @@ describe('Users endpoints', () => {
       .expect(400)
   })
 
-  test('GET /users/me returns authenticated user', async () => {
+  test('POST /users creates default settings returned by GET /users/me?include=settings', async () => {
     const subject = toUuid('3')
     const token = await signJwt(subject, 'third@example.org')
 
@@ -187,12 +187,17 @@ describe('Users endpoints', () => {
       .expect(200)
 
     const res = await request(app)
-      .get('/users/me')
+      .get('/users/me?include=settings')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
 
     assert.strictEqual(res.body.data.id, subject)
     assert.strictEqual(res.body.data.attributes.email, 'third@example.org')
+    assert.deepStrictEqual(res.body.data.relationships.settings.data, {
+      type: 'user-settings',
+      id: subject,
+    })
+    assert.deepStrictEqual(includedResource(res.body, 'user-settings', subject)?.attributes, {})
   })
 
   test('GET /users/me supports settings include but rejects members include', async () => {
@@ -278,27 +283,13 @@ describe('Users endpoints', () => {
       tenantId,
       status: 'active',
       access: 'public',
+      userId: 'linked-user',
     })
 
     const linkedUser = await seedUser({
       id: 'linked-user',
-    })
-
-    await seedMemberUser({
-      tenantId,
-      memberId: member.id,
-      userId: linkedUser.id,
-    })
-
-    await seedUser({
-      id: linkedUser.id,
       email: 'linked@example.org',
       name: 'Linked User',
-      settings: {
-        language: 'en',
-        notifications: { myAccount: true, group: true },
-        emails: { myAccount: false, group: 'weekly' },
-      },
     })
 
     const { token: serviceToken } = await serviceAuth()
@@ -313,11 +304,15 @@ describe('Users endpoints', () => {
     const linkedUserResource = res.body.data.find((resource: any) => resource.id === linkedUser.id)
     assert.strictEqual(linkedUserResource.type, 'users')
     assert.strictEqual(linkedUserResource.attributes.email, 'linked@example.org')
+    assert.deepStrictEqual(linkedUserResource.relationships.settings.data, {
+      type: 'user-settings',
+      id: linkedUser.id,
+    })
 
     assert.strictEqual(Array.isArray(res.body.included), true)
     const linkedSettings = res.body.included.find((resource: any) => resource.type === 'user-settings' && resource.id === linkedUser.id)
     assert.ok(linkedSettings)
-    assert.strictEqual(linkedSettings.attributes.language, 'en')
+    assert.deepStrictEqual(linkedSettings.attributes, {})
   })
 
   test('GET /users paginates unique users when one user belongs to multiple filtered members', async () => {

@@ -409,7 +409,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         await store.dispatch('members/loadList', {
           group,
           filter: {
-            state: memberStatuses
+            status: memberStatuses
           },
           sort,
           search: scope.filter ? scope.filter : undefined,
@@ -465,7 +465,7 @@ const load = async (scope: {pagination: Pagination, filter?: string}) => {
         group: props.code,
         filter: {
           account: loadedAccounts.map((account: Account) => account.id),
-          state: memberStatuses
+          status: memberStatuses
         },
         pageSize,
       })
