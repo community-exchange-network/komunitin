@@ -79,7 +79,7 @@ export interface ResourceResponseInclude<
  * the future following the GeoJSON spec.
  */
 export interface Location {
-  name: string;
+  name?: string;
   type: "Point";
   coordinates: [number, number]; //longitude and latitude
 }

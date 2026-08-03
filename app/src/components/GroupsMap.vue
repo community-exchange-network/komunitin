@@ -38,7 +38,7 @@ type GroupWithLocation = Group & { attributes: { location: { coordinates: [numbe
 const reverseCoordinates = (coordinates: [number, number]): [number, number] => {
   return [coordinates[1], coordinates[0]]
 }
-const groupsWithLocation = computed<GroupWithLocation[]>(() => props.groups?.filter((group): group is GroupWithLocation => group.attributes.location !== undefined) ?? [])
+const groupsWithLocation = computed<GroupWithLocation[]>(() => props.groups?.filter((group): group is GroupWithLocation => Boolean(group.attributes.location)) ?? [])
 const coordinates = computed(() => groupsWithLocation.value.map((group) => reverseCoordinates(group.attributes.location.coordinates)))
 
 // Compute the bounds of the map

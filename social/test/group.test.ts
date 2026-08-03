@@ -120,6 +120,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(res.body.data.attributes.code, 'alpha-group')
     assert.strictEqual(res.body.data.attributes.status, 'pending')
     assert.deepStrictEqual(res.body.data.attributes.address, {})
+    assert.strictEqual(res.body.data.attributes.location, null)
     assert.ok(Array.isArray(res.body.included))
     assert.strictEqual(res.body.included[0].type, 'group-settings')
     assert.strictEqual(res.body.included[0].attributes.requireAcceptTerms, true)
