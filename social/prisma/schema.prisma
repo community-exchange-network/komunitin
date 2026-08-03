@@ -57,7 +57,7 @@ model Group {
   status      String @default("pending") @db.VarChar(31) // GroupStatus
   access      String @default("public") @db.VarChar(31) // Access
   image       Json? // Image
-  address     Json? // Address
+  address     Json @default("{}") // Address
 
   // We have latitude and longitude for prisma support and then we have a computed
   // geography column for PostGIS spatial queries created via raw SQL migration.
@@ -114,7 +114,7 @@ model Member {
   access      String @default("public") @db.VarChar(31)
   description String @default("") @db.Text
   image       Json? // Image
-  address     Json? // Address
+  address     Json @default("{}") // Address
 
   // We have latitude and longitude for prisma support and then we have a computed
   // geography column for PostGIS spatial queries created via raw SQL migration.

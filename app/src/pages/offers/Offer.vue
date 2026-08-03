@@ -93,10 +93,10 @@
           <template #map>
             <simple-map
               class="simple-map"
-              :center="offer.member.attributes.location.coordinates"
-              :marker="offer.member.attributes.location.coordinates"
+              :center="offer.member.attributes.location?.coordinates"
+              :marker="offer.member.attributes.location?.coordinates"
             />
-            <div class="text-onsurface-m">
+            <div class="text-onsurface-m" v-if="offer.member.attributes.location?.name">
               <q-icon name="place" />
               {{ offer.member.attributes.location.name }}
             </div>

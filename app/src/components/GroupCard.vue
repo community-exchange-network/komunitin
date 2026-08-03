@@ -23,8 +23,8 @@
     <q-card-section class="simple-map">
       <simple-map
         :interactive="false"
-        :center="group.attributes.location.coordinates"
-        :marker="group.attributes.location.coordinates"
+        :center="group.attributes.location?.coordinates"
+        :marker="group.attributes.location?.coordinates"
       />
     </q-card-section>
     <!-- Group description -->

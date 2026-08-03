@@ -23,7 +23,7 @@ export interface Member extends DbMember {
   type: MemberType
   status: MemberStatus
   image: Image | null
-  address: Address | null
+  address: Address
   location: Location | null
   contacts: Contact[]
   meta: MemberMeta
