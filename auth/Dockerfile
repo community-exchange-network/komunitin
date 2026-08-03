@@ -17,6 +17,6 @@ ENV DATABASE_URL=postgresql://auth:auth@localhost:5435/auth?schema=public
 RUN pnpm prisma generate
 RUN pnpm run build
 
-HEALTHCHECK CMD node -e "fetch('http://127.0.0.1:2026/health').then(response => process.exit(response.ok ? 0 : 1), () => process.exit(1))"
+HEALTHCHECK CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 2026) + '/health').then(response => process.exit(response.ok ? 0 : 1), () => process.exit(1))"
 
 CMD ["node", "dist/index.mjs"]
