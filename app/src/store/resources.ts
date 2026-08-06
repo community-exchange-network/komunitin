@@ -6,7 +6,8 @@ import type {
   CollectionResponseInclude,
   ExternalResourceObject,
   ResourceIdentifierObject,
-  ResourceObject
+  ResourceObject,
+  SuccessfulResponse
 } from "src/store/model";
 import { apiRequest } from "./request";
 
@@ -23,9 +24,9 @@ export interface ResourcesState<T extends ResourceObject> {
    */
   pages: Record<string, string[][]>
   /**
-   * Id of current resource.
+   * Id of the current resource, or undefined when unresolved.
    */
-  currentId: string | null;
+  currentId: string | undefined;
   /**
    * The url of the next page. null means no next page, undefined means unknown.
    */
@@ -349,7 +350,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     // the next page of a list, where we're given the absolute url directly from the API.
     url = this.absoluteUrl(url)
 
-    return apiRequest(context, url, method, data)
+    return apiRequest<T>(context, url, method, data)
 
   }
 
@@ -526,7 +527,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
   state = {
     resources: {},
     pages: {},
-    currentId: null,
+    currentId: undefined,
     next: undefined,
     prev: undefined,
     currentPage: null,
@@ -582,7 +583,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     },
 
     /**
-     * Gets the current resource.
+     * Gets the current resource, or undefined when unresolved.
      */
     current: (
       state: ResourcesState<T>,
@@ -590,7 +591,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       _rootState: unknown,
       rootGetters: Record<string, Getter>
     ) =>
-      state.currentId != null
+      state.currentId !== undefined
         ? this.relatedGetters(rootGetters, state.resources[state.currentId])
         : undefined,
 
@@ -674,7 +675,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     /**
      * Update the current resource pointer.
      */
-    currentId: (state: ResourcesState<T>, id: string|null) => {
+    currentId: (state: ResourcesState<T>, id: string | undefined) => {
       state.currentId = id;
     },
     /**
@@ -947,7 +948,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     context: ActionContext<ResourcesState<T>, S>,
     payload: LoadPayload
   ) {
-    let id = null
+    let id: string | undefined
     if ("url" in payload) {
       // Try to get the ID from the URL. That may work for accounts and other resources 
       // if the /accounts/:id, but there are other valid URLs that don't have the id.
@@ -979,6 +980,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       }
     }
     context.commit("currentId", id)
+    return id
   }
 
   protected resourceUrl(payload: LoadPayload) {
@@ -1016,12 +1018,12 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
   protected async load(
     context: ActionContext<ResourcesState<T>, S>,
     payload: LoadPayload
-  ) {
+  ): Promise<string> {
     // First, try to find the required resource in cache so we can render
     // some content before hitting the API.
-    this.loadCached(context, payload)
+    const cachedId = this.loadCached(context, payload)
 
-    if (payload.cache && context.state.currentId !== null) {
+    if (payload.cache && cachedId !== undefined) {
       // Check if the resource (and all required included relationships) is already in cache and valid.
       const checkCachedResourceWithRelationships = (id: string, cache: number, context: ActionContext<ResourcesState<T>, S>, include?: string) => {
         const checkCachedResource = <U extends ResourceObject>(id: string, cache: number, state: ResourcesState<U>) => {
@@ -1056,31 +1058,48 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
         return true
       }
       
-      if (checkCachedResourceWithRelationships(context.state.currentId, payload.cache, context, payload.include)) {
-        return
+      if (checkCachedResourceWithRelationships(cachedId, payload.cache, context, payload.include)) {
+        return cachedId
       }
       
     }
     
     // Fetch (or revalidate) the content.
     const url = this.resourceUrl(payload);
-    // Call API
+    // Only a NotFound from this resource's own request invalidates it.
+    let response: SuccessfulResponse<T, ResourceObject> | null
     try {
-      const data = await this.request(context, url);
-      const resource = ((Array.isArray(data.data) && data.data.length == 1) 
-        ? data.data[0] 
-        : data.data) as T
-      // Commit mutation(s).
-      this.setCurrent(context, resource)
-      if ('included' in data) {
-        await this.handleIncluded(
-          data.included,
-          context
-        );
+      response = await this.request(context, url);
+
+      if (
+        response === null
+        || response.data === null
+        || Array.isArray(response.data) && response.data.length === 0
+      ) {
+        throw new KError(KErrorCode.NotFound)
       }
     } catch (error) {
-      throw KError.getKError(error);
+      const kerror = KError.getKError(error)
+      // If the resource was cached, but now is not found, we remove it from cache.
+      if (kerror.code === KErrorCode.NotFound && cachedId !== undefined) {
+        this.removeCachedResource(context, cachedId)
+      }
+      throw kerror
     }
+
+    // The response can be a single resource or a list of one resource for code-based queries.
+    const resource = Array.isArray(response.data) ? response.data[0] : response.data
+
+    this.setCurrent(context, resource)
+
+    if ('included' in response) {
+      try {
+        await this.handleIncluded(response.included, context)
+      } catch (error) {
+        throw KError.getKError(error)
+      }
+    }
+    return resource.id
   }
   /**
    * Creates a resource by posting the given resource to the API.
@@ -1161,34 +1180,48 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     const url = this.resourceEndpoint(payload.group, payload.id)
     try {
       await this.request(context, url, "delete")
-      // Remove from current pointer.
-      if (context.state.currentId == id) {
-        context.commit("currentId", null)
+    } catch (error) {
+      const kerror = KError.getKError(error)
+      if (kerror.code === KErrorCode.NotFound) {
+        this.removeCachedResource(context, id)
       }
-      // Remove from pages.
-      for (const key in context.state.pages) {
-        const pages = context.state.pages[key]
-        let afterDelete = false
-        for (let i = 0; i < pages.length; i++) {
-          // Remove the id from the page
-          if (pages[i].includes(id)) {
-            pages[i] = pages[i].filter(rid => rid != id)
-            afterDelete = true
+      throw kerror
+    }
+    this.removeCachedResource(context, id)
+  }
+
+  /**
+   * Removes a resource and all references to it from the local cache.
+   */
+  protected removeCachedResource(
+    context: ActionContext<ResourcesState<T>, S>,
+    id: string
+  ) {
+    // Remove from current pointer.
+    if (context.state.currentId == id) {
+      context.commit("currentId", undefined)
+    }
+    // Remove from pages.
+    for (const key in context.state.pages) {
+      const pages = context.state.pages[key]
+      let afterDelete = false
+      for (let i = 0; i < pages.length; i++) {
+        // Remove the id from the page
+        if (pages[i].includes(id)) {
+          pages[i] = pages[i].filter(resourceId => resourceId != id)
+          afterDelete = true
+        }
+        // From the altered page onwards, shift one id to the left.
+        if (afterDelete) {
+          if (i < pages.length - 1 && pages[i+1].length > 0) {
+            pages[i].push(pages[i+1].shift())
           }
-          // From the altered page onwards, shift one id to the left.
-          if (afterDelete) {
-            if (i < pages.length - 1 && pages[i+1].length > 0) {
-              pages[i].push(pages[i+1].shift())
-            }
-            context.commit("setPageIds", {key, page: i, ids: pages[i]})
-          }
+          context.commit("setPageIds", {key, page: i, ids: pages[i]})
         }
       }
-      // Remove from store.
-      context.commit("removeResource", id)
-    } catch (error) {
-      throw KError.getKError(error);
-    }  
+    }
+    // Remove from store.
+    context.commit("removeResource", id)
   }
 
   /**
