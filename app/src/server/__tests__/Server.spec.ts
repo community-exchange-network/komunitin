@@ -1,4 +1,5 @@
 import "../index";
+import { KErrorCode } from "src/KError";
 import { config } from "src/utils/config";
 import type { ResourceObject } from "src/store/model";
 import { seeds } from "../index";
@@ -160,6 +161,15 @@ describe("MirageJS Server", () => {
     expect(membersData.included.some((resource: ResourceObject) => resource.type == "groups")).toBe(true);
     expect(membersData.included.some((resource: ResourceObject) => resource.type == "currencies")).toBe(true);
     expect(membersData.included.some((resource: ResourceObject) => resource.type == "accounts")).toBe(true);
+  });
+
+  it("returns the standard NotFound error code", async () => {
+    const response = await fetch(`${urlSocial}/users/me/members`, { headers: authHeaders });
+
+    expect(response.status).toBe(404);
+    expect(await json(response)).toMatchObject({
+      errors: [{ code: KErrorCode.NotFound }]
+    });
   });
 
   it("rejects legacy social shapes", async () => {
