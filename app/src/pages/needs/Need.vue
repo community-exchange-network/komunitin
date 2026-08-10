@@ -1,6 +1,6 @@
 <template>
   <Error404
-    v-if="need === null"
+    v-if="error?.code === KErrorCode.NotFound"
     :to="`/groups/${code}/needs`"
   />
   <div v-else>
@@ -126,6 +126,7 @@ import Error404 from "../Error404.vue";
 
 import { useResource } from "src/composables/useResources";
 import type { Need, Member, Category } from "../../store/model";
+import { KErrorCode } from "src/KError";
 
 type FullNeed = Need & { member: Member, category: Category }
 
@@ -141,7 +142,7 @@ const needOptions = computed(() => ({
   group: props.code,
   include: "category,member,member.account"
 }))
-const { resource: need } = useResource<FullNeed>('needs', needOptions)
+const { resource: need, error } = useResource<FullNeed>('needs', needOptions)
 const canEdit = computed(() =>
   need.value?.member?.id === store.getters.myMember?.id || store.getters.isAdmin
 )

@@ -1,6 +1,6 @@
 <template>
   <Error404
-    v-if="offer === null"
+    v-if="error?.code === KErrorCode.NotFound"
     :to="`/groups/${code}/offers`"
   />
   <div v-else>
@@ -135,6 +135,7 @@ import { formatPrice } from "src/plugins/FormatCurrency";
 import { useStore } from "vuex";
 import { useResource } from "src/composables/useResources";
 import type { Category, Currency, Group, Member, Offer } from "src/store/model";
+import { KErrorCode } from "src/KError";
 
 type FullOffer = Offer & {
   category: Category
@@ -153,7 +154,7 @@ const offerOptions = computed(() => ({
   group: props.code,
   include: "category,member,member.group,member.group.currency"
 }))
-const { resource: offer } = useResource<FullOffer>('offers', offerOptions)
+const { resource: offer, error } = useResource<FullOffer>('offers', offerOptions)
 
 const isReady = computed(() => {
   return Boolean(offer.value && offer.value.category && offer.value.member

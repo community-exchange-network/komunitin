@@ -1,7 +1,8 @@
 import type { VueWrapper } from '@vue/test-utils'
-import { QBtn } from 'quasar'
+import { Notify, QBtn } from 'quasar'
 
 import App from 'src/App.vue'
+import KError, { KErrorCode } from 'src/KError'
 import Error404 from 'src/pages/Error404.vue'
 import { seeds } from 'src/server'
 import { mountComponent, waitFor } from '../utils'
@@ -22,19 +23,93 @@ describe('Not found pages', () => {
     ['/groups/GRP0/members/missing-member', '/groups/GRP0/members'],
     ['/groups/missing-community', '/groups']
   ])('renders a resource 404 for %s and returns to its list', async (path, destination) => {
-    await wrapper.vm.$router.push(path)
-    await waitFor(() => wrapper.findComponent(Error404).exists(), true, '404 page should load')
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.mocked(Notify.create).mockClear()
 
-    const errorPage = wrapper.getComponent(Error404)
-    expect(errorPage.text()).toContain('Sorry, nothing here...')
-    expect(errorPage.get('img').attributes('src')).toContain('acorn-512.png')
-    expect(errorPage.getComponent(QBtn).props()).toMatchObject({
-      label: 'Back',
-      to: destination
+    try {
+      await wrapper.vm.$router.push(path)
+      await waitFor(() => wrapper.findComponent(Error404).exists(), true, '404 page should load')
+
+      const errorPage = wrapper.getComponent(Error404)
+      expect(errorPage.text()).toContain('Sorry, nothing here...')
+      expect(errorPage.get('img').attributes('src')).toContain('acorn-512.png')
+      expect(errorPage.getComponent(QBtn).props()).toMatchObject({
+        label: 'Back',
+        to: destination
+      })
+      expect(Notify.create).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Error: Resource not found'
+      }))
+
+      await errorPage.getComponent(QBtn).trigger('click')
+      await waitFor(() => wrapper.vm.$route.path, destination, 'Back should open the resource list')
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
+
+  test('reports non-NotFound resource errors without rendering a 404', async () => {
+    const originalDispatch = wrapper.vm.$store.dispatch.bind(wrapper.vm.$store)
+    const dispatch = vi.spyOn(wrapper.vm.$store, 'dispatch').mockImplementation((type, payload) =>
+      String(type) === 'groups/load'
+        ? Promise.reject(new KError(KErrorCode.UnknownServer))
+        : originalDispatch(type, payload)
+    )
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.mocked(Notify.create).mockClear()
+
+    try {
+      await wrapper.vm.$router.push('/groups/unavailable-community')
+      await waitFor(
+        () => vi.mocked(Notify.create).mock.calls.length > 0,
+        true,
+        'The global error handler should notify the user'
+      )
+
+      expect(wrapper.findComponent(Error404).exists()).toBe(false)
+    } finally {
+      consoleError.mockRestore()
+      dispatch.mockRestore()
+    }
+  })
+
+  test('reports unhandled promise rejections', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const event = new Event('unhandledrejection', { cancelable: true })
+    Object.defineProperty(event, 'reason', {
+      value: new KError(KErrorCode.UnknownServer)
     })
+    vi.mocked(Notify.create).mockClear()
 
-    await errorPage.getComponent(QBtn).trigger('click')
-    await waitFor(() => wrapper.vm.$route.path, destination, 'Back should open the resource list')
+    try {
+      window.dispatchEvent(event)
+
+      expect(event.defaultPrevented).toBe(true)
+      expect(Notify.create).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Error: Unexpected response from server'
+      }))
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
+
+  test('normalizes global script errors', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.mocked(Notify.create).mockClear()
+
+    try {
+      window.dispatchEvent(new ErrorEvent('error', {
+        error: new Error('Script failed'),
+        message: 'Script failed'
+      }))
+
+      expect(consoleError).toHaveBeenCalledWith('[UnknownScript] Script failed')
+      expect(Notify.create).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Error: Unknown script error'
+      }))
+    } finally {
+      consoleError.mockRestore()
+    }
   })
 
   test('renders an unknown route in the main app shell and returns home', async () => {

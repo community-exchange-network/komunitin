@@ -1,6 +1,6 @@
 <template>
   <Error404
-    v-if="member === null"
+    v-if="error?.code === KErrorCode.NotFound"
     :to="`/groups/${code}/members`"
   />
   <div v-else-if="member">
@@ -133,6 +133,7 @@ import FloatingBtn from "src/components/FloatingBtn.vue";
 import Error404 from "../Error404.vue";
 import { useResource } from "src/composables/useResources";
 import type { Member } from "src/store/model";
+import { KErrorCode } from "src/KError";
 
 
 const props = defineProps<{
@@ -150,7 +151,7 @@ const memberOptions = computed(() => ({
   group: props.code,
   include: "group" + (isComplete.value ? ",account" : "")
 }))
-const { resource: member } = useResource<Member>('members', memberOptions)
+const { resource: member, error } = useResource<Member>('members', memberOptions)
 const needsCount = computed(() => member.value?.relationships.needs.meta.count ?? 0)
 const offersCount = computed(() => member.value?.relationships.offers.meta.count ?? 0)
 const isMe = computed(() => member.value && myMember.value && member.value.id == myMember.value.id)

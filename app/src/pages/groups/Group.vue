@@ -1,6 +1,6 @@
 <template>
   <Error404
-    v-if="group === null"
+    v-if="error?.code === KErrorCode.NotFound"
     to="/groups"
   />
   <div v-else>
@@ -178,6 +178,7 @@ import Error404 from '../Error404.vue';
 import type { Group, Member } from '../../store/model';
 import { useAllResources, useResource } from 'src/composables/useResources';
 import { useI18n } from 'vue-i18n';
+import { KErrorCode } from 'src/KError';
 
 const props = defineProps<{ code: string }>();
 
@@ -192,7 +193,7 @@ const canToggleDescription = shallowRef(false);
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
 const myMember = computed(() => store.getters.myMember);
 const groupOptions = computed(() => ({ group: props.code }));
-const { resource: group, load: loadGroup } = useResource<Group>('groups', groupOptions, {
+const { resource: group, load: loadGroup, error } = useResource<Group>('groups', groupOptions, {
   immediate: false,
 });
 const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id);

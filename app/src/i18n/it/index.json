@@ -398,7 +398,7 @@
   "ErrorIncorrectRequest": "Errore: Richiesta non corretta",
   "ErrorServerNoResponse": "Errore: Il server non risponde",
   "ErrorServerBadResponse": "Errore: Risposta errata dal server",
-  "ErrorResourceNotFound": "Errore: Risorsa non trovata",
+  "ErrorNotFound": "Errore: Risorsa non trovata",
   "ErrorUnknownServer": "Errore: Risposta imprevista dal server",
   "ErrorUnknownVueError": "Errore: Errore sconosciuto dell'interfaccia utente",
   "ErrorUnknownScript": "Errore: Errore di script sconosciuto",
