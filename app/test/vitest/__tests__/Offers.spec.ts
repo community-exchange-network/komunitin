@@ -77,6 +77,17 @@ describe("Offers", () => {
     expect(text).toMatch(/Updated (yesterday|today)/);
   })
 
+  it('reloads when the offer code changes', async () => {
+    const anotherOffer = Object.values(wrapper.vm.$store.state.offers.resources)
+      .find(candidate => candidate.id !== offer.id) as FullOffer
+    const title = requireText(anotherOffer.attributes.title, 'Second offer title')
+
+    await wrapper.vm.$router.push(`/groups/GRP0/offers/${anotherOffer.attributes.code}`)
+
+    await waitFor(() => wrapper.text().includes(title), true, 'Second offer page should load')
+    expect(wrapper.vm.$store.getters['offers/current'].id).toBe(anotherOffer.id)
+  })
+
   it ("creates an offer", async() => {
     await wrapper.vm.$router.push("/groups/GRP0/offers/new")
     await waitFor(() => wrapper.text().includes("Preview"), true, "New offer form should load");
