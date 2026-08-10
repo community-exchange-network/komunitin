@@ -1,12 +1,16 @@
 <template>
-  <div>
+  <Error404
+    v-if="offer === null"
+    :to="`/groups/${code}/offers`"
+  />
+  <div v-else>
     <page-header 
       :title="$t('offer')" 
       :back="`/groups/${code}/offers`"
     >
       <template #buttons>
         <q-btn
-          v-if="canEdit"
+          v-if="offer && canEdit"
           round
           flat
           icon="edit"
@@ -14,7 +18,7 @@
           :title="$t('editOffer')"
         />
         <delete-offer-btn 
-          v-if="canEdit"
+          v-if="offer && canEdit"
           :code="code"
           :offer="offer"          
           :to="`/groups/${code}/offers`"
@@ -24,7 +28,7 @@
     </page-header>
     <q-page-container>
       <q-page
-        v-if="isReady"
+        v-if="offer && isReady"
         class="q-pa-lg"
       >
         <offer-layout :num-images="offer.attributes.images.length">
@@ -111,7 +115,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed } from "vue";
 
 import md2html from "../../plugins/Md2html";
 
@@ -125,9 +129,17 @@ import DeleteOfferBtn from "../../components/DeleteOfferBtn.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
 import ShareButton from "../../components/ShareButton.vue";
 import SimpleMap from "../../components/SimpleMap.vue";
+import Error404 from "../Error404.vue";
 
 import { formatPrice } from "src/plugins/FormatCurrency";
 import { useStore } from "vuex";
+import { useResource } from "src/composables/useResources";
+import type { Category, Currency, Group, Member, Offer } from "src/store/model";
+
+type FullOffer = Offer & {
+  category: Category
+  member: Member & { group: Group & { currency: Currency } }
+}
 
 const props = defineProps<{
   code: string,
@@ -136,27 +148,23 @@ const props = defineProps<{
 
 const store = useStore()
 
-const offer = computed(() => {
-  return store.getters["offers/current"]
-})
+const offerOptions = computed(() => ({
+  code: props.offerCode,
+  group: props.code,
+  include: "category,member,member.group,member.group.currency"
+}))
+const { resource: offer } = useResource<FullOffer>('offers', offerOptions)
 
 const isReady = computed(() => {
   return Boolean(offer.value && offer.value.category && offer.value.member
     && offer.value.member.group && offer.value.member.group.currency)
 })
 const price = computed(() => {
-  return formatPrice(offer.value.attributes.value ?? '', offer.value.member.group.currency)
+  return offer.value
+    ? formatPrice(offer.value.attributes.value ?? '', offer.value.member.group.currency)
+    : ''
 })
 const canEdit = computed(() => {
-  return offer.value?.member?.id == store.getters.myMember.id || store.getters.isAdmin
+  return offer.value?.member?.id == store.getters.myMember?.id || store.getters.isAdmin
 })
-const fetchData = async(offerCode: string) => {
-  await store.dispatch("offers/load", {
-    code: offerCode,
-    group: props.code,
-    include: "category,member,member.group,member.group.currency"
-  });
-}
-
-watch(() => props.offerCode, fetchData, { immediate: true })
 </script>

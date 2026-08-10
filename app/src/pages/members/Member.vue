@@ -1,5 +1,9 @@
 <template>
-  <div v-if="!isLoading">
+  <Error404
+    v-if="member === null"
+    :to="`/groups/${code}/members`"
+  />
+  <div v-else-if="member">
     <page-header 
       :title="member.attributes.name"
       :back="isComplete ? `/groups/${code}/members` : '/'"
@@ -111,7 +115,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, shallowRef, watch } from "vue"
+import { computed } from "vue"
 import { useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 
@@ -126,6 +130,9 @@ import ShareButton from "../../components/ShareButton.vue";
 import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue";
 import TransactionItems from "../transactions/TransactionItems.vue";
 import FloatingBtn from "src/components/FloatingBtn.vue";
+import Error404 from "../Error404.vue";
+import { useResource } from "src/composables/useResources";
+import type { Member } from "src/store/model";
 
 
 const props = defineProps<{
@@ -138,23 +145,14 @@ const store = useStore()
 const myMember = computed(() => store.getters.myMember)
 const isComplete = computed(() => store.getters.isComplete)
 
-const fetched = shallowRef(false)
-const isLoading = computed(() => !(fetched.value || member.value && (!isComplete.value || member.value.account !== null)))
-const needsCount = computed(() => member.value.relationships.needs.meta.count)
-const offersCount = computed(() => member.value.relationships.offers.meta.count)
-
-const fetchData = async (memberCode: string) => {
-  fetched.value = false
-  await store.dispatch("members/load", {
-    code: memberCode,
-    group: props.code,
-    include: "group" + (isComplete.value ? ",account" : "")
-  });
-  fetched.value = true;
-}
-watch(() => props.memberCode, (code) => fetchData(code), {immediate: true})
-
-const member = computed(() => fetched.value ? store.getters['members/current'] : undefined)
+const memberOptions = computed(() => ({
+  code: props.memberCode,
+  group: props.code,
+  include: "group" + (isComplete.value ? ",account" : "")
+}))
+const { resource: member } = useResource<Member>('members', memberOptions)
+const needsCount = computed(() => member.value?.relationships.needs.meta.count ?? 0)
+const offersCount = computed(() => member.value?.relationships.offers.meta.count ?? 0)
 const isMe = computed(() => member.value && myMember.value && member.value.id == myMember.value.id)
 const canEdit = computed(() => isMe.value || store.getters.isAdmin || store.getters.isSuperadmin)
 const editProfileUrl = computed(() => isMe.value ? "/profile" : `/groups/${props.code}/admin/members/${props.memberCode}/profile`)
