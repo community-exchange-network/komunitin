@@ -28,7 +28,7 @@
     </page-header>
     <q-page-container>
       <q-page
-        v-if="need"
+        v-if="need && isReady"
         class="q-pa-lg"
       >
         <offer-layout :num-images="need.attributes.images.length">
@@ -146,4 +146,5 @@ const { resource: need, error } = useResource<FullNeed>('needs', needOptions)
 const canEdit = computed(() =>
   need.value?.member?.id === store.getters.myMember?.id || store.getters.isAdmin
 )
+const isReady = computed(() => Boolean(need.value && need.value.member && need.value.category))
 </script>

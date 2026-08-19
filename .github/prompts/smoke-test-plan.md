@@ -119,7 +119,7 @@ No application or API changes are required. The output is a test report, evidenc
 - **SMK-014 — Notifications**
   - Check notifications resulting from group request/activation, member request/acceptance, post publication, and payment.
   - Verify intended non-actor recipients, unread badge, notification links, mark-as-read behavior, and relevant saved emails.
-  - Actor also have his own publish notifications in the notifications page, but in-app live notification is supressed and own posts don't appear in mails or digested notifications. Actor could receive publish push notification in the edge case he/she closes the browser between publish and the event, as a confirmation.
+  - Actor also has his own publish notifications in the notifications page, but in-app live notification is suppressed and own posts don't appear in mails or digested notifications. Actor could receive publish push notification in the edge case he/she closes the browser between publish and the event, as a confirmation.
   - Poll asynchronous delivery for up to 60 seconds rather than using fixed sleeps.
 
 ### Administration, permissions, and recovery
