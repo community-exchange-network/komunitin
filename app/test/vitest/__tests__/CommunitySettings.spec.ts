@@ -1,5 +1,7 @@
 import type { VueWrapper } from '@vue/test-utils'
 import App from 'src/App.vue'
+import ConfirmBtn from 'src/components/ConfirmBtn.vue'
+import GroupStatusField from 'src/pages/admin/GroupStatusField.vue'
 import { seeds } from 'src/server'
 import { config } from 'src/utils/config'
 import { mountComponent, waitFor } from '../utils'
@@ -45,5 +47,43 @@ describe('Community settings', () => {
     } finally {
       fetchSpy.mockRestore()
     }
+  })
+
+  it('shows the updated community status after disabling and enabling it', async () => {
+    await wrapper.vm.$router.push('/groups/GRP0/admin/settings')
+    await waitFor(
+      () => wrapper.findComponent(GroupStatusField).exists(),
+      true,
+      'Community status field should load',
+    )
+
+    const actionLabels = () => wrapper.getComponent(GroupStatusField)
+      .findAllComponents(ConfirmBtn)
+      .map((button) => button.props('label'))
+    const transition = async (actionLabel: string, statusText: string, nextActionLabel: string) => {
+      const statusField = wrapper.getComponent(GroupStatusField)
+      const action = statusField.findAllComponents(ConfirmBtn)
+        .find((button) => button.props('label') === actionLabel)
+      expect(action, `${actionLabel} action should be available`).toBeDefined()
+
+      action?.vm.$emit('confirm')
+
+      await waitFor(
+        () => wrapper.getComponent(GroupStatusField).text().includes(statusText),
+        true,
+        `Community status should show "${statusText}"`,
+      )
+      expect(actionLabels()).toEqual([nextActionLabel])
+    }
+
+    expect(wrapper.getComponent(GroupStatusField).text()).toContain('The community is active.')
+    expect(actionLabels()).toEqual(['Disable Community'])
+
+    await transition(
+      'Disable Community',
+      'The community is disabled. Members are not able to log in or make transfers.',
+      'Enable Community',
+    )
+    await transition('Enable Community', 'The community is active.', 'Disable Community')
   })
 })

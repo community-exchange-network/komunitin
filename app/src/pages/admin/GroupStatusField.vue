@@ -53,7 +53,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const currentStatus = ref(props.group.attributes.status)
+const currentStatus = computed(() => props.group.attributes.status)
 
 const isActive = computed(() => currentStatus.value === 'active') 
 const isDisabled = computed(() => currentStatus.value === 'disabled')
@@ -67,20 +67,8 @@ const store = useStore()
 const loading = ref(false)
 const q = useQuasar()
 const setGroupStatus = async (status: 'active' | 'disabled') => {
-  // In order to enable/disable a group, we need to change the status both in
-  // the social API (group) and in the accounting API (currency).
   try {
     loading.value = true
-    // Applying changes to currency first since it is more likely to fail
-    await store.dispatch('currencies/update', {
-      group: props.group.attributes.code,
-      resource: {
-        type: 'currencies',
-        attributes: {
-          status
-        }
-      }
-    })
     await store.dispatch('groups/update', {
       group: props.group.attributes.code,
       resource: {
@@ -90,7 +78,9 @@ const setGroupStatus = async (status: 'active' | 'disabled') => {
         }
       }
     })
-    currentStatus.value = status
+    await store.dispatch('currencies/load', {
+      group: props.group.attributes.code
+    })
     q.notify({
       type: 'positive',
       message: t('groupStatusUpdated')
