@@ -342,6 +342,9 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/groups/:code/admin',
         name: 'GroupAdmin',
+        meta: {
+          requiresAdmin: 'group'
+        },
         children: [{
           path: 'edit',
           props: true,
@@ -382,6 +385,9 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/superadmin',
+        meta: {
+          requiresAdmin: 'superadmin'
+        },
         children: [
         {
           path: '',
@@ -483,5 +489,9 @@ declare module 'vue-router' {
      * If true, the next route does not allow going back to this route using the up app button.
      */
     back?: boolean;
+    /**
+     * Restrict the route to administrators of the requested group or to superadmins.
+     */
+    requiresAdmin?: 'group' | 'superadmin';
   }
 }
