@@ -14,6 +14,7 @@ import {
   seedAccountingAccount,
   seedAccountingCurrency,
   setAccountingAccountDeleteStatus,
+  setAccountingAccountPatchStatus,
 } from './mocks/handlers'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser, seedPost } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
@@ -749,6 +750,107 @@ describe('Members endpoints', () => {
       ],
     )
     assert.strictEqual(getNotificationsEvents().length, 0)
+  })
+
+  test('PATCH /:code/members/:member keeps Social unchanged when Accounting fails and succeeds on retry', async () => {
+    const currency = seedAccountingCurrency('members-toggle-retry')
+    await seedGroup({
+      tenantId: 'members-toggle-retry',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-toggle-retry-owner')
+    const account = seedAccountingAccount(currency.code, 'toggle-retry', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-toggle-retry',
+      code: 'toggle-retry',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    setAccountingAccountPatchStatus(503)
+    const failed = await request(app)
+      .patch(`/members-toggle-retry/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: { status: 'disabled' },
+        },
+      })
+      .expect(500)
+
+    assert.strictEqual(failed.body.errors[0].detail, 'Mock accounting account update failure')
+    const db = tenantDb(prisma, 'members-toggle-retry')
+    const unchanged = await db.member.findUnique({ where: { id: member.id } })
+    assert.strictEqual(unchanged?.status, 'active')
+    assert.strictEqual(account.status, 'active')
+
+    setAccountingAccountPatchStatus(200)
+    const retried = await request(app)
+      .patch(`/members-toggle-retry/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: { status: 'disabled' },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(retried.body.data.attributes.status, 'disabled')
+    assert.strictEqual(account.status, 'disabled')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+      `PATCH /${currency.code}/accounts/${account.id}`,
+      `GET /${currency.code}/accounts/${account.id}`,
+      `PATCH /${currency.code}/accounts/${account.id}`,
+    ])
+  })
+
+  test('PATCH /:code/members/:member recovers an interrupted status transition without a duplicate Accounting update', async () => {
+    const currency = seedAccountingCurrency('members-toggle-interrupted')
+    await seedGroup({
+      tenantId: 'members-toggle-interrupted',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-toggle-interrupted-owner')
+    const account = seedAccountingAccount(
+      currency.code,
+      'toggle-interrupted',
+      [owner.id],
+      undefined,
+      'disabled',
+    )
+    const member = await seedMember({
+      tenantId: 'members-toggle-interrupted',
+      code: 'toggle-interrupted',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    const recovered = await request(app)
+      .patch(`/members-toggle-interrupted/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: { status: 'disabled' },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(recovered.body.data.attributes.status, 'disabled')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+    ])
   })
 
   test('PATCH /:code/members/:member allows suspend and resume only by group admin', async () => {

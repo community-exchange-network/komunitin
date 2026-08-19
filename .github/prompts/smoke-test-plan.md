@@ -126,7 +126,7 @@ No application or API changes are required. The output is a test report, evidenc
 
 - **SMK-015 — Member administration**
   - Edit the ordinary member’s profile and account limits.
-  - Suspend the account and verify the member sees an inactive banner and cannot transact or publish.
+  - Suspend the account and verify the member sees an inactive banner and cannot transact or create new posts.
   - Resume it and verify normal operation returns.
   - Disable and re-enable the account, checking Social and Accounting status remain synchronized.
 

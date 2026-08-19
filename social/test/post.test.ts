@@ -109,6 +109,64 @@ describe('Posts endpoints', () => {
       .expect(403)
   })
 
+  test('POST /:code/posts rejects suspended owning members, including when an admin acts for them', async () => {
+    await seedGroup({ tenantId: 'posts-suspended-create', status: 'active', access: 'public' })
+    const owner = await auth('posts-suspended-create-owner')
+    const admin = await auth('posts-suspended-create-admin')
+    await seedGroupAdmin({ tenantId: 'posts-suspended-create', userId: admin.id })
+    const member = await seedMember({
+      tenantId: 'posts-suspended-create',
+      status: 'suspended',
+      userId: owner.id,
+    })
+
+    for (const actor of [owner, admin]) {
+      const res = await request(app)
+        .post('/posts-suspended-create/posts')
+        .set('Authorization', `Bearer ${actor.token}`)
+        .send(postInput('offers', {
+          title: 'Suspended offer',
+          description: 'This should not be created.',
+        }, member.id))
+        .expect(403)
+
+      assert.strictEqual(
+        res.body.errors[0].detail,
+        'You do not have permission to create a post for this member',
+      )
+    }
+  })
+
+  test('POST and PATCH /:code/posts allow a draft member to edit an offer during signup', async () => {
+    await seedGroup({ tenantId: 'posts-signup-draft', status: 'active', access: 'public' })
+    const owner = await auth('posts-signup-draft-owner')
+    const member = await seedMember({
+      tenantId: 'posts-signup-draft',
+      status: 'draft',
+      userId: owner.id,
+    })
+
+    const created = await request(app)
+      .post('/posts-signup-draft/posts')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send(postInput('offers', {
+        title: 'Signup offer',
+        description: 'A draft offer entered during signup.',
+      }, member.id))
+      .expect(201)
+
+    assert.strictEqual(created.body.data.attributes.status, 'draft')
+
+    const updated = await request(app)
+      .patch(`/posts-signup-draft/posts/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ data: { type: 'offers', attributes: { title: 'Updated signup offer' } } })
+      .expect(200)
+
+    assert.strictEqual(updated.body.data.attributes.title, 'Updated signup offer')
+    assert.strictEqual(updated.body.data.attributes.status, 'draft')
+  })
+
   test('POST /:code/posts creates an offer with code slugified from title', async () => {
     await seedGroup({ tenantId: 'posts-create', status: 'active', access: 'public' })
     const user = await auth('posts-create-user')
@@ -318,6 +376,45 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'public-offer')
   })
 
+  test('GET /:code/posts hides posts from inactive members except from their owner', async () => {
+    await seedGroup({ tenantId: 'posts-inactive-owner', status: 'active', access: 'public' })
+    const owner = await auth('posts-inactive-owner-user')
+    const member = await seedMember({
+      tenantId: 'posts-inactive-owner',
+      status: 'suspended',
+      userId: owner.id,
+    })
+    const post = await seedPost({
+      tenantId: 'posts-inactive-owner',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const anonymous = await request(app)
+      .get('/posts-inactive-owner/posts')
+      .expect(200)
+
+    assert.strictEqual(anonymous.body.data.length, 0)
+
+    await request(app)
+      .get(`/posts-inactive-owner/posts/${post.id}`)
+      .expect(403)
+
+    const owned = await request(app)
+      .get('/posts-inactive-owner/posts')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+
+    assert.strictEqual(owned.body.data.length, 1)
+
+    await request(app)
+      .get(`/posts-inactive-owner/posts/${post.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+  })
+
   test('GET /:code/posts returns group-access posts to group members', async () => {
     await seedGroup({ tenantId: 'posts-group-access', status: 'active', access: 'public' })
     const owner = await auth('posts-group-access-owner')
@@ -383,6 +480,43 @@ describe('Posts endpoints', () => {
     const codes = res.body.data.map((item: any) => item.attributes.code)
     assert.strictEqual(codes.includes('draft-offer'), true)
     assert.strictEqual(codes.includes('hidden-offer'), true)
+  })
+
+  test('GET /:code/posts filters service-readable posts by member status', async () => {
+    await seedGroup({ tenantId: 'posts-member-status-filter', status: 'active', access: 'public' })
+    const activeMember = await seedMember({
+      tenantId: 'posts-member-status-filter',
+      status: 'active',
+    })
+    const disabledMember = await seedMember({
+      tenantId: 'posts-member-status-filter',
+      status: 'disabled',
+    })
+
+    await seedPost({
+      tenantId: 'posts-member-status-filter',
+      memberId: activeMember.id,
+      code: 'active-member-offer',
+      type: 'offers',
+      status: 'published',
+    })
+    await seedPost({
+      tenantId: 'posts-member-status-filter',
+      memberId: disabledMember.id,
+      code: 'disabled-member-offer',
+      type: 'offers',
+      status: 'published',
+    })
+
+    const serviceUser = await serviceAuth()
+    const res = await request(app)
+      .get('/posts-member-status-filter/posts?filter[member.status]=active')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'active-member-offer')
+    assert.strictEqual(res.body.meta.count, 1)
   })
 
   test('GET /:code/posts/:post allows service read access for non-public post', async () => {

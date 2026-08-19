@@ -54,6 +54,8 @@ let accountingAccountDeleteStatus = 204
 let accountingAccountDeleteDetail = 'Mock accounting delete failure'
 let accountingAccountCreateStatus = 201
 let accountingAccountCreateDetail = 'Mock accounting account creation failure'
+let accountingAccountPatchStatus = 200
+let accountingAccountPatchDetail = 'Mock accounting account update failure'
 let notificationsEventStatus = 201
 let notificationsEvents: unknown[] = []
 
@@ -139,6 +141,11 @@ export const setAccountingAccountCreateStatus = (status: number, detail = 'Mock 
   accountingAccountCreateDetail = detail
 }
 
+export const setAccountingAccountPatchStatus = (status: number, detail = 'Mock accounting account update failure') => {
+  accountingAccountPatchStatus = status
+  accountingAccountPatchDetail = detail
+}
+
 export const setAccountingCurrencyDeleteStatus = (status: number, detail = 'Mock accounting currency delete failure') => {
   accountingCurrencyDeleteStatus = status
   accountingCurrencyDeleteDetail = detail
@@ -214,6 +221,8 @@ export const resetMockState = () => {
   accountingAccountDeleteDetail = 'Mock accounting delete failure'
   accountingAccountCreateStatus = 201
   accountingAccountCreateDetail = 'Mock accounting account creation failure'
+  accountingAccountPatchStatus = 200
+  accountingAccountPatchDetail = 'Mock accounting account update failure'
   notificationsEventStatus = 201
   notificationsEvents = []
   notificationsRequests = []
@@ -476,6 +485,10 @@ export const handlers = [
     const unauthorized = requireAccountingAuthorization(request)
     if (unauthorized) {
       return unauthorized
+    }
+
+    if (accountingAccountPatchStatus !== 200) {
+      return jsonApiError(accountingAccountPatchStatus, accountingAccountPatchDetail)
     }
 
     const currencyCode = String(params.currencyCode)

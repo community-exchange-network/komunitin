@@ -21,6 +21,7 @@ type MemberCollectionParams = {
 
 type PostCollectionParams = {
   'filter[member]'?: string;
+  'filter[member.status]'?: 'active';
   'filter[status]'?: 'published';
   'filter[expired]'?: 'true' | 'false';
   'filter[created][gt]'?: string;

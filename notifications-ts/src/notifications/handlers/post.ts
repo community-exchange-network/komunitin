@@ -57,6 +57,16 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
     throw internalError(`Missing member ${memberId} in post response for ${dataKey} ${postId}`);
   }
 
+  if (member.attributes.status !== 'active') {
+    logger.info({
+      eventName: event.name,
+      memberId,
+      memberStatus: member.attributes.status,
+      postId,
+    }, 'Skipping post event from inactive member');
+    return;
+  }
+
   // Fetch group
   const groupResponse = await client.getGroup(event.code);
   const group = groupResponse.data;

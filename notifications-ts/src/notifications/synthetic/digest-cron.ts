@@ -88,12 +88,14 @@ const processCommunityDigest = async (
 
   const [offers, needs] = await Promise.all([
     client.getOffers(code, {
+      'filter[member.status]': 'active',
       'filter[status]': 'published',
       'filter[expired]': 'false',
       'filter[created][gt]': lookbackIso,
       sort: '-created'
     }),
     client.getNeeds(code, {
+      'filter[member.status]': 'active',
       'filter[status]': 'published',
       'filter[expired]': 'false',
       'filter[created][gt]': lookbackIso,

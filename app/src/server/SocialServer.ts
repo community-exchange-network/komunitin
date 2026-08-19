@@ -657,6 +657,10 @@ export default {
     server.patch(urlSocial + "/:code/members/:member", (schema: any, request: any) => {
       const member = schema.members.find(request.params.member)
       const body = JSON.parse(request.requestBody);
+      const status = body.data.attributes.status
+      if (['active', 'disabled', 'suspended'].includes(status)) {
+        member.account?.update({ status })
+      }
       member.update(body.data.attributes);
       return member;
     });

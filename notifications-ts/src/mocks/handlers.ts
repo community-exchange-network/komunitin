@@ -165,6 +165,8 @@ export const handlers = [
     const expireLtTime = expireLt ? new Date(expireLt).getTime() : null;
     const memberFilter = url.searchParams.get('filter[member]');
     const memberIds = memberFilter ? memberFilter.split(',') : null;
+    const memberStatusFilter = url.searchParams.get('filter[member.status]');
+    const memberStatuses = memberStatusFilter ? memberStatusFilter.split(',') : null;
     const status = url.searchParams.get('filter[status]');
     const expired = url.searchParams.get('filter[expired]');
     let posts = [...db.offers, ...db.needs]
@@ -174,6 +176,12 @@ export const handlers = [
         if (!memberIds) return true;
         const memberId = post.relationships?.member?.data?.id;
         return memberId ? memberIds.includes(memberId) : false;
+      })
+      .filter(post => {
+        if (!memberStatuses) return true;
+        const memberId = post.relationships?.member?.data?.id;
+        const member = db.members.find(item => item.id === memberId);
+        return member ? memberStatuses.includes(member.attributes.status) : false;
       })
       .filter(post => !status || post.attributes.status === status)
       .filter(post => !createdGt || new Date(post.attributes.created) > new Date(createdGt))

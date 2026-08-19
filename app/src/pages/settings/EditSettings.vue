@@ -192,11 +192,14 @@ const account = ref<Account & {settings: AccountSettings, currency: Currency & {
 // These are the settings model and not need to be in always in sync with the account.settings
 const accountSettings = ref<AccountSettings>()
 
-watch(member, async (member) => {
-  if (member && member.relationships.account.data !== null) {
+watch([
+  () => member.value?.relationships.account.data?.id,
+  actualCode
+], async ([accountId, group]) => {
+  if (accountId && group) {
     await store.dispatch("accounts/load", {
-      id: member.relationships.account.data.id,
-      group: actualCode.value,
+      id: accountId,
+      group,
       include: "settings,currency,currency.settings"
     })
     account.value = store.getters["accounts/current"]
