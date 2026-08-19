@@ -89,6 +89,29 @@ describe("useResources", () => {
 })
 
 describe("useResource", () => {
+  it("does not reload when option watching is disabled", async () => {
+    const groupCode = shallowRef("GRP0")
+    const options = computed(() => ({ group: groupCode.value }))
+    const result = await setupComposable(() =>
+      useResource<Group>("groups", options, { immediate: false, watch: false })
+    )
+    const dispatch = vi.spyOn(store, "dispatch")
+
+    try {
+      await result.load()
+      expect(result.resource.value?.attributes.code).toBe("GRP0")
+
+      dispatch.mockClear()
+      groupCode.value = "GRP1"
+      await nextTick()
+
+      expect(dispatch).not.toHaveBeenCalled()
+      expect(result.resource.value?.attributes.code).toBe("GRP0")
+    } finally {
+      dispatch.mockRestore()
+    }
+  })
+
   it("loads a member by id", async () => {
     // Mirage's schema types do not expose registered models.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -212,6 +235,27 @@ describe("useResource", () => {
 })
 
 describe("resource collection wrappers", () => {
+  it("loads all resources only once when created", async () => {
+    const dispatch = vi.spyOn(store, "dispatch")
+
+    try {
+      const result = await setupComposable(() =>
+        useAllResources<Member>("members", { group: "GRP1" })
+      )
+
+      await waitFor(
+        () => result.loading.value,
+        false,
+        "useAllResources should finish loading"
+      )
+
+      const listLoads = dispatch.mock.calls.filter(([type]) => type === "members/loadList")
+      expect(listLoads).toHaveLength(1)
+    } finally {
+      dispatch.mockRestore()
+    }
+  })
+
   it("stops load-all pagination and exposes the captured error", async () => {
     const result = await setupComposable(() =>
       useAllResources<Member>("members", { group: "GRP0" }, { immediate: false })

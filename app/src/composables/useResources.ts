@@ -8,11 +8,30 @@ import KError, { KErrorCode } from "../KError";
 
 export interface UseResourcesConfig {
   /**
-   * If true, the first page will be loaded immediately. Otherwise, the user
-   * has to call the load method manually. Default: true.
+   * If true, load the current options immediately. Default: true.
    */
   immediate?: boolean;
+  /**
+   * If true, reload automatically when the options change. Default: true.
+   */
+  watch?: boolean;
 }
+
+const useLoader = <T>(
+  options: MaybeRefOrGetter<T>,
+  load: () => Promise<void>,
+  config?: UseResourcesConfig
+) => {
+  if (config?.watch ?? true) {
+    watch(
+      () => toValue(options),
+      () => load(),
+      { deep: true, immediate: config?.immediate ?? true }
+    );
+  } else if (config?.immediate ?? true) {
+    void load();
+  }
+};
 
 const captureError = (error: Ref<KError | undefined>, caught: unknown) => {
   const currentError = KError.getKError(caught);
@@ -55,11 +74,7 @@ export const useResources = <T extends ResourceObject = ResourceObject>(type: st
   };
   const hasNext = computed<boolean | undefined>(() => store.getters[`${type}/hasNext`]);
 
-  watch(
-    () => toValue(options),
-    () => load(),
-    { deep: true, immediate: config?.immediate ?? true }
-  );
+  useLoader(options, load, config);
   
   return { resources, loadNext, hasNext, load, loading, error };
 };
@@ -87,7 +102,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     const currentOptions = { ...toValue(options) }
     error.value = undefined
 
-    if (currentOptions.id === null) {
+    if (currentOptions.id === null) { // Not undefined!
       resourceId.value = undefined
       return
     }
@@ -127,11 +142,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     }
   }
 
-  watch(
-    () => toValue(options),
-    () => load(),
-    { deep: true, immediate: config?.immediate ?? true }
-  )
+  useLoader(options, load, config)
 
   return { resource, loading, error, load, update }
 
@@ -142,7 +153,11 @@ export const useAllResources = <T extends ResourceObject = ResourceObject>(
   options: MaybeRefOrGetter<LoadListPayload>,
   config?: UseResourcesConfig
 ) => {
-  const { resources, hasNext, loadNext, load, loading, error } = useResources(type, options, config);
+  const { resources, hasNext, loadNext, load, loading, error } = useResources<T>(type, options, {
+    ...config,
+    immediate: false,
+    watch: false
+  });
 
   const loadAll = async () => {
     await load();
@@ -151,10 +166,7 @@ export const useAllResources = <T extends ResourceObject = ResourceObject>(
     }
   };
 
-  // Load all resources immediately if configured
-  if (config?.immediate ?? true) {
-    loadAll();
-  }
+  useLoader(options, loadAll, config);
 
   return { resources, loadAll, loading, error };
 };

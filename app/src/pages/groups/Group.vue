@@ -192,16 +192,15 @@ const canToggleDescription = shallowRef(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
 const myMember = computed(() => store.getters.myMember);
+const manualLoad = { immediate: false, watch: false };
 const groupOptions = computed(() => ({ group: props.code }));
-const { resource: group, load: loadGroup, error } = useResource<Group>('groups', groupOptions, {
-  immediate: false,
-});
+const { resource: group, load: loadGroup, error } = useResource<Group>('groups', groupOptions, manualLoad);
 const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id);
 const center = computed(() => group.value?.attributes.location?.coordinates);
 const marker = computed(() => center.value);
 
 const memberOptions = computed(() => ({ group: props.code }));
-const { resources: members, loadAll: loadAllMembers } = useAllResources<Member>('members', memberOptions, { immediate: false });
+const { resources: members, loadAll: loadAllMembers } = useAllResources<Member>('members', memberOptions, manualLoad);
 
 const memberMarkers = computed<LatLngExpression[]>(() => {
   return own.value
