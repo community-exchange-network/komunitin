@@ -124,11 +124,20 @@ const isPostOwner = async (ctx: OptionalAuthContext, post: Post): Promise<boolea
   return await isMemberUser(ctx, { id: post.memberId, tenantId: post.tenantId })
 }
 
-const canReadPost = async (ctx: OptionalAuthContext, group: Group, post: Post): Promise<boolean> => {
+const canReadPost = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+  member: Member,
+  post: Post,
+): Promise<boolean> => {
+  const published = group.status === 'active'
+    && member.status === 'active'
+    && post.status === 'published'
+
   return (ctx.isSuperadmin) 
     || ctx.canReadAllSocial
-    || (group.status === 'active' && post.status === 'published' && post.access === 'public' )
-    || (group.status === 'active' && post.status === 'published' && post.access === 'group' && await isGroupMember(ctx, group))
+    || (published && post.access === 'public')
+    || (published && post.access === 'group' && await isGroupMember(ctx, group))
     || (await isPostOwner(ctx, post))
     || isGroupAdmin(ctx, group)
 }
@@ -227,8 +236,9 @@ export const getPost = async (
   const group = await getGroupByCode(ctx, code)
   const load = getPostLoad(params)
   const post = await getPostById(code, id, load, group)
+  const member = post.member ?? await getMemberById(code, post.memberId)
 
-  const allowed = await canReadPost(ctx, group, post)
+  const allowed = await canReadPost(ctx, group, member, post)
   if (!allowed) {
     throw forbidden('You do not have permission to read this post')
   }
@@ -279,9 +289,8 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
   const member = await getMemberById(code, input.memberId)
 
   // Check access
-  const allowed = ctx.isSuperadmin 
-    || await isMemberUser(ctx, member)  
-    || isGroupAdmin(ctx, group)
+  const allowed = (ctx.isSuperadmin  || isGroupAdmin(ctx, group) || await isMemberUser(ctx, member)) 
+    && ['active', 'pending', 'draft'].includes(member.status)
   
   if (!allowed) {
     throw forbidden('You do not have permission to create a post for this member')

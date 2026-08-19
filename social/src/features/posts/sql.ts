@@ -57,6 +57,7 @@ const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): P
   if (group.status === 'active') {
     const isMember = await isGroupMember(ctx, group)
     readable.push(sqlAnd([
+      Prisma.sql`${memberColumn('status')} = 'active'`,
       Prisma.sql`${postColumn('status')} = 'published'`,
       isMember
         ? Prisma.sql`${postColumn('access')} IN ('public', 'group')`
