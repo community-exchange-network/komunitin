@@ -3,6 +3,7 @@ import App from 'src/App.vue'
 import ConfirmBtn from 'src/components/ConfirmBtn.vue'
 import GroupStatusField from 'src/pages/admin/GroupStatusField.vue'
 import { seeds } from 'src/server'
+import store from 'src/store'
 import { config } from 'src/utils/config'
 import { mountComponent, waitFor } from '../utils'
 
@@ -60,7 +61,12 @@ describe('Community settings', () => {
     const actionLabels = () => wrapper.getComponent(GroupStatusField)
       .findAllComponents(ConfirmBtn)
       .map((button) => button.props('label'))
-    const transition = async (actionLabel: string, statusText: string, nextActionLabel: string) => {
+    const transition = async (
+      actionLabel: string,
+      statusText: string,
+      nextActionLabel: string,
+      status: 'active' | 'disabled',
+    ) => {
       const statusField = wrapper.getComponent(GroupStatusField)
       const action = statusField.findAllComponents(ConfirmBtn)
         .find((button) => button.props('label') === actionLabel)
@@ -74,6 +80,11 @@ describe('Community settings', () => {
         `Community status should show "${statusText}"`,
       )
       expect(actionLabels()).toEqual([nextActionLabel])
+      await waitFor(
+        () => store.getters['currencies/find']({ code: 'GRP0' }).attributes.status,
+        status,
+        `Currency status should be "${status}"`,
+      )
     }
 
     expect(wrapper.getComponent(GroupStatusField).text()).toContain('The community is active.')
@@ -83,7 +94,8 @@ describe('Community settings', () => {
       'Disable Community',
       'The community is disabled. Members are not able to log in or make transfers.',
       'Enable Community',
+      'disabled',
     )
-    await transition('Enable Community', 'The community is active.', 'Disable Community')
+    await transition('Enable Community', 'The community is active.', 'Disable Community', 'active')
   })
 })
