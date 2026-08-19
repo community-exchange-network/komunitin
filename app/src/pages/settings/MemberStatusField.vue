@@ -81,8 +81,8 @@ const show = computed(() => {
   const isAdmin = store.getters.isAdmin
   return {
     enable: (status === 'disabled' || (status === 'suspended' && isAdmin)),
-    disable: (status === 'active' || (status === 'suspended' && isAdmin)),
-    suspend: (isAdmin && (status === 'active' || status === 'disabled'))
+    disable: status === 'active',
+    suspend: isAdmin && status === 'active'
   }
 })
 

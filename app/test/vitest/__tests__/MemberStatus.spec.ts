@@ -62,12 +62,19 @@ describe('Member status settings', () => {
       )
       await waitFor(() => memberPatches().length, count)
     }
+    const actions = () => wrapper.getComponent(MemberStatusField)
+      .findAllComponents(ConfirmBtn)
+      .map((button) => button.props('label'))
 
     try {
       await transition('Suspend Account', 'suspended', 1)
+      expect(actions()).toEqual(['Enable Account'])
       await transition('Enable Account', 'active', 2)
+      expect(actions()).toEqual(['Disable Account', 'Suspend Account'])
       await transition('Disable Account', 'disabled', 3)
+      expect(actions()).toEqual(['Enable Account'])
       await transition('Enable Account', 'active', 4)
+      expect(actions()).toEqual(['Disable Account', 'Suspend Account'])
 
       const statuses = memberPatches().map(([, options]) => {
         const body = JSON.parse(options?.body as string)
