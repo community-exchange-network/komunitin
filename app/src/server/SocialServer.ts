@@ -531,6 +531,9 @@ export default {
           currency
         })
       } else {
+        if (attributes.status === "active" || attributes.status === "disabled") {
+          group.currency.update({ status: attributes.status })
+        }
         group.update(attributes);
       }
       return group;
