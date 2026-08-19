@@ -220,6 +220,8 @@ export default function createPersistPlugin<T>() {
         save([...index, 'pages', key, page + ""], ids)
       } else if (op == 'removeResource') {
         remove([...index, 'resources', value as string])
+      } else if (value === undefined) {
+        remove([...index, op])
       } else {
         save([...index, op], value)
       }
