@@ -1,7 +1,7 @@
 import type { MaybeRefOrGetter} from "@vueuse/shared";
 import { toValue } from "@vueuse/shared";
 import type { Member, User, UserSettings } from "src/store/model";
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 
 /**
@@ -14,7 +14,11 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
   type FullUser = User & {settings: UserSettings}
   
   const user = ref<FullUser>()
-  const member = ref<Member>()
+  const memberId = ref<string>()
+  const member = computed(() => memberId.value
+    ? store.getters["members/one"](memberId.value) as Member
+    : undefined
+  )
 
   watch([
     () => toValue(groupCode),
@@ -31,7 +35,7 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
         code: memberCodeStr,
         group: groupCodeStr
       })
-      member.value = store.getters["members/current"]
+      memberId.value = store.getters["members/current"].id
 
       // load user from server (only one user supported for now)
       await store.dispatch("users/loadList", {
@@ -45,7 +49,7 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
     } else {
       // use data from logged in user
       user.value = myUser
-      member.value = myMember
+      memberId.value = myMember?.id
       // load settings.
       await store.dispatch("user-settings/load", {
         id: user.value?.id,
