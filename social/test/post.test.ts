@@ -482,6 +482,43 @@ describe('Posts endpoints', () => {
     assert.strictEqual(codes.includes('hidden-offer'), true)
   })
 
+  test('GET /:code/posts filters service-readable posts by member status', async () => {
+    await seedGroup({ tenantId: 'posts-member-status-filter', status: 'active', access: 'public' })
+    const activeMember = await seedMember({
+      tenantId: 'posts-member-status-filter',
+      status: 'active',
+    })
+    const disabledMember = await seedMember({
+      tenantId: 'posts-member-status-filter',
+      status: 'disabled',
+    })
+
+    await seedPost({
+      tenantId: 'posts-member-status-filter',
+      memberId: activeMember.id,
+      code: 'active-member-offer',
+      type: 'offers',
+      status: 'published',
+    })
+    await seedPost({
+      tenantId: 'posts-member-status-filter',
+      memberId: disabledMember.id,
+      code: 'disabled-member-offer',
+      type: 'offers',
+      status: 'published',
+    })
+
+    const serviceUser = await serviceAuth()
+    const res = await request(app)
+      .get('/posts-member-status-filter/posts?filter[member.status]=active')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'active-member-offer')
+    assert.strictEqual(res.body.meta.count, 1)
+  })
+
   test('GET /:code/posts/:post allows service read access for non-public post', async () => {
     await seedGroup({ tenantId: 'posts-read-all-one', status: 'pending', access: 'private' })
     const owner = await auth('posts-read-all-one-owner')

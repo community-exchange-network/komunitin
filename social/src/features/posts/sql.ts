@@ -35,6 +35,7 @@ const postColumns: SqlColumnMap = {
   status: postColumn('status'),
   access: postColumn('access'),
   member: postColumn('memberId'),
+  'member.status': memberColumn('status'),
   category: postColumn('categoryId'),
   created: postColumn('created'),
   updated: postColumn('updated'),

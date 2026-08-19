@@ -1,9 +1,9 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import { createMembers, createPost, db, getUserIdForMember } from '../../mocks/db'
-import { createEvent, setupNotificationsTest } from './utils'
+import { createEvent, setupNotificationsTest, subscribeToPushNotifications } from './utils'
 
-const { put, appNotifications } = setupNotificationsTest({
+const { put, appNotifications, pushQueue } = setupNotificationsTest({
   useWorker: true,
   usePushQueue: true,
   useSyntheticQueue: true,
@@ -116,5 +116,43 @@ describe('New post notifications (URGENT)', () => {
     const notification = appNotifications[0]
     assert.equal(notification.title, `New Want from ${authorMember.attributes.name}`)
     assert.equal(notification.body, 'I need some help urgently!')
+  })
+
+  it('should ignore an urgent OfferPublished event from an inactive member', async () => {
+    const groupCode = 'GRP1'
+    createMembers(groupCode)
+    const authorMember = db.members[0]
+    authorMember.attributes.status = 'disabled'
+    const authorUserId = getUserIdForMember(authorMember.id)
+
+    await subscribeToPushNotifications(groupCode, authorUserId)
+
+    const created = new Date()
+    const expires = new Date()
+    expires.setDate(created.getDate() + 5)
+
+    const offer = createPost('offers', {
+      id: 'offer-inactive-member',
+      code: 'OFF3',
+      groupCode,
+      memberId: authorMember.id,
+      attributes: {
+        title: 'Inactive member offer',
+        description: 'This should not produce notifications',
+        created: created.toISOString(),
+        expires: expires.toISOString(),
+      }
+    })
+
+    const eventData = createEvent('OfferPublished', {
+      code: groupCode,
+      user: authorUserId,
+      data: { offer: offer.id }
+    })
+
+    await put(eventData)
+
+    assert.equal(appNotifications.length, 0)
+    assert.equal(pushQueue.add.mock.callCount(), 0)
   })
 })
