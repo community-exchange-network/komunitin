@@ -409,7 +409,7 @@
   "ErrorIncorrectRequest": "Error: Incorrect request",
   "ErrorServerNoResponse": "Error: Server do not respond",
   "ErrorServerBadResponse": "Error: Bad response from server",
-  "ErrorResourceNotFound": "Error: Resource not found",
+  "ErrorNotFound": "Error: Resource not found",
   "ErrorUnknownServer": "Error: Unexpected response from server",
   "ErrorUnknownVueError": "Error: Unknown user interface error",
   "ErrorUnknownScript": "Error: Unknown script error",

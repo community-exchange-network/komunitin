@@ -1,52 +1,82 @@
 import { type LoadByIdPayload, type LoadListPayload } from "../store/resources";
-import { watch, computed, type MaybeRefOrGetter, ref, toValue } from "vue";
+import { watch, computed, type MaybeRefOrGetter, ref, toValue, type Ref } from "vue";
 import { useStore } from "vuex";
 import type { ResourceObject } from "../store/model";
 import { type DeepPartial } from "quasar";
+import KError, { KErrorCode } from "../KError";
 
 
 export interface UseResourcesConfig {
   /**
-   * If true, the first page will be loaded immediately. Otherwise, the user
-   * has to call the load method manually. Default: true.
+   * If true, load the current options immediately. Default: true.
    */
   immediate?: boolean;
+  /**
+   * If true, reload automatically when the options change. Default: true.
+   */
+  watch?: boolean;
 }
+
+const useLoader = <T>(
+  options: MaybeRefOrGetter<T>,
+  load: () => Promise<void>,
+  config?: UseResourcesConfig
+) => {
+  if (config?.watch ?? true) {
+    watch(
+      () => toValue(options),
+      () => load(),
+      { deep: true, immediate: config?.immediate ?? true }
+    );
+  } else if (config?.immediate ?? true) {
+    void load();
+  }
+};
+
+const captureError = (error: Ref<KError | undefined>, caught: unknown) => {
+  const currentError = KError.getKError(caught);
+  error.value = currentError;
+  return currentError;
+};
 
 export const useResources = <T extends ResourceObject = ResourceObject>(type: string, options: MaybeRefOrGetter<LoadListPayload>, config?: UseResourcesConfig) => {
   const store = useStore();
   const resources = computed<T[]>(() => store.getters[`${type}/currentList`] ?? []);
   const loading = ref(false);
+  const error = ref<KError>();
   const lastOptions = ref<LoadListPayload>({ ...toValue(options) });
 
   const load = async (overrides: Partial<LoadListPayload> = {}) => {
     const currentOptions = { ...toValue(options), ...overrides };
     lastOptions.value = currentOptions;
     loading.value = true;
+    error.value = undefined;
     try {
       await store.dispatch(type + "/loadList", {
         ...currentOptions,
       });
+    } catch (caught) {
+      throw captureError(error, caught);
     } finally {
       loading.value = false;
     }
   };
   const loadNext = async () => {
+    loading.value = true;
+    error.value = undefined;
     try {
-      loading.value = true;
       await store.dispatch(`${type}/loadNext`, lastOptions.value);
+    } catch (caught) {
+      throw captureError(error, caught);
     } finally {
       loading.value = false;
     }
   };
   const hasNext = computed<boolean | undefined>(() => store.getters[`${type}/hasNext`]);
 
-  // initially load the first page
-  if (config?.immediate ?? true) {
-    load();
-  }
+  useLoader(options, load, config);
   
-  return { resources, loadNext, hasNext, load, loading };
+  return { resources, loadNext, hasNext, load, loading, error };
 };
 
 export type UseResourceOptions = Omit<LoadByIdPayload, 'id'> & {
@@ -59,28 +89,38 @@ export type UseResourceOptions = Omit<LoadByIdPayload, 'id'> & {
 export const useResource = <T extends ResourceObject = ResourceObject>(type: string, options: MaybeRefOrGetter<UseResourceOptions>, config?: UseResourcesConfig) => {
   const store = useStore()
   
-  const id = ref<string|null|undefined>(toValue(options).id)
-  const resource = computed<T | null>(() => id.value ? store.getters[`${type}/one`](id.value) : null)
+  const resourceId = ref<string>()
+  const resource = computed<T | undefined>(() => resourceId.value
+    ? store.getters[`${type}/one`](resourceId.value)
+    : undefined
+  )
 
   const loading = ref(false)
+  const error = ref<KError>()
 
   const load = async () => {
-    if (id.value === null) {
+    const currentOptions = { ...toValue(options) }
+    error.value = undefined
+
+    if (currentOptions.id === null) { // Not undefined!
+      resourceId.value = undefined
       return
     }
+
+    resourceId.value = currentOptions.id
     loading.value = true
     try {
-      await store.dispatch(type + '/load', {
-        ...toValue(options),
-        id: id.value
-      })
+      const dispatched = store.dispatch(type + '/load', currentOptions) as Promise<string>
 
-      // Update id in case it was not set initially
-      const fetched = store.getters[`${type}/current`]
-      if (fetched) {
-        id.value = fetched.id
+      // The store resolves cached identity synchronously before revalidation.
+      resourceId.value = store.getters[`${type}/current`]?.id
+      resourceId.value = await dispatched
+    } catch (caught) {
+      const currentError = captureError(error, caught)
+      if (currentError.code === KErrorCode.NotFound) {
+        resourceId.value = undefined
       }
-      
+      throw currentError
     } finally {
       loading.value = false
     }
@@ -88,24 +128,23 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
 
   const update = async (data: DeepPartial<T>) => {
     loading.value = true
+    error.value = undefined
     try {
       await store.dispatch(type + '/update', {
-        id: id.value,
+        id: resourceId.value,
         group: toValue(options).group,
         resource: data
       })
+    } catch (caught) {
+      throw captureError(error, caught)
     } finally {
       loading.value = false
     }
   }
 
-  // load resource initially and when id changes
-  watch(() => toValue(options).id, (newid) => {
-    id.value = newid
-    load()
-  }, { immediate: config?.immediate ?? true })
+  useLoader(options, load, config)
 
-  return { resource, load, update, loading }
+  return { resource, loading, error, load, update }
 
 }
 
@@ -114,21 +153,20 @@ export const useAllResources = <T extends ResourceObject = ResourceObject>(
   options: MaybeRefOrGetter<LoadListPayload>,
   config?: UseResourcesConfig
 ) => {
-  const allResources = ref<T[]>([]);
-  const { resources, hasNext, loadNext, load, loading } = useResources(type, options, config);
+  const { resources, hasNext, loadNext, load, loading, error } = useResources<T>(type, options, {
+    ...config,
+    immediate: false,
+    watch: false
+  });
 
   const loadAll = async () => {
     await load();
     while (hasNext.value) {
       await loadNext();
     }
-    allResources.value = resources.value as T[];
   };
 
-  // Load all resources immediately if configured
-  if (config?.immediate ?? true) {
-    loadAll();
-  }
+  useLoader(options, loadAll, config);
 
-  return { resources: allResources, loadAll, loading };
+  return { resources, loadAll, loading, error };
 };

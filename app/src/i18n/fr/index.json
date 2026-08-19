@@ -402,7 +402,7 @@
   "ErrorIncorrectRequest": "Erreur : Requête incorrecte",
   "ErrorServerNoResponse": "Erreur : Le serveur ne répond pas",
   "ErrorServerBadResponse": "Erreur : Mauvaise réponse du serveur",
-  "ErrorResourceNotFound": "Erreur : Ressource non trouvée",
+  "ErrorNotFound": "Erreur : Ressource non trouvée",
   "ErrorUnknownServer": "Erreur : Réponse inattendue du serveur",
   "ErrorUnknownVueError": "Erreur : Erreur d'interface utilisateur inconnue",
   "ErrorUnknownScript": "Erreur : Erreur de script inconnue",

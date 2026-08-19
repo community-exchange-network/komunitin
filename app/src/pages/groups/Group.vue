@@ -1,5 +1,9 @@
 <template>
-  <div>
+  <Error404
+    v-if="error?.code === KErrorCode.NotFound"
+    to="/groups"
+  />
+  <div v-else>
     <page-header
       :title="group ? group.attributes.name : ''"
       :back="own ? '' : '/groups'"
@@ -152,7 +156,7 @@
 /**
  * Page for Group details.
  */
-import { computed, ref, watch, nextTick } from 'vue';
+import { computed, shallowRef, watch, nextTick, useTemplateRef } from 'vue';
 import { useStore } from 'vuex';
 
 import { LMarker } from '@vue-leaflet/vue-leaflet';
@@ -169,33 +173,34 @@ import SocialNetworkList from '../../components/SocialNetworkList.vue';
 import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
 import NavCard from '../../components/NavCard.vue';
+import Error404 from '../Error404.vue';
 
 import type { Group, Member } from '../../store/model';
 import { useAllResources, useResource } from 'src/composables/useResources';
 import { useI18n } from 'vue-i18n';
+import { KErrorCode } from 'src/KError';
 
 const props = defineProps<{ code: string }>();
 
 const store = useStore();
 const { t } = useI18n();
 
-const isLoading = ref(false);
-const isDescriptionOpen = ref(false);
-const descriptionRef = ref<HTMLElement | null>(null);
-const canToggleDescription = ref(false);
+const isLoading = shallowRef(false);
+const isDescriptionOpen = shallowRef(false);
+const descriptionRef = useTemplateRef<HTMLElement>('descriptionRef');
+const canToggleDescription = shallowRef(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
 const myMember = computed(() => store.getters.myMember);
+const manualLoad = { immediate: false, watch: false };
 const groupOptions = computed(() => ({ group: props.code }));
-const { resource: group, load: loadGroup } = useResource<Group>('groups', groupOptions, {
-  immediate: false,
-});
+const { resource: group, load: loadGroup, error } = useResource<Group>('groups', groupOptions, manualLoad);
 const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id);
 const center = computed(() => group.value?.attributes.location?.coordinates);
 const marker = computed(() => center.value);
 
 const memberOptions = computed(() => ({ group: props.code }));
-const { resources: members, loadAll: loadAllMembers } = useAllResources<Member>('members', memberOptions, { immediate: false });
+const { resources: members, loadAll: loadAllMembers } = useAllResources<Member>('members', memberOptions, manualLoad);
 
 const memberMarkers = computed<LatLngExpression[]>(() => {
   return own.value

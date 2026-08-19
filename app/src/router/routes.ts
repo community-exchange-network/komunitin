@@ -423,6 +423,11 @@ const routes: RouteRecordRaw[] = [
           ]
         }]
       },
+      {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import('../pages/Error404.vue')
+      },
     ]
   },
   {
@@ -463,14 +468,6 @@ if (process.env.FEAT_TOPUP === 'true') {
     props: true,
     name: 'TopupSettings',
     component: () => import('../features/topup/TopupSettings.vue'),
-  });
-}
-
-// Always leave this as last one
-if (process.env.MODE !== 'ssr') {
-  routes.push({
-    path: '/:catchAll(.*)*',
-    component: () => import('../pages/Error404.vue')
   });
 }
 
