@@ -1,5 +1,9 @@
 <template>
-  <q-list>
+  <q-list
+    padding
+    separator
+    class="bg-surface shadow-2 rounded-borders"
+  >
     <q-item
       v-for="key of networks"
       :key="key"
@@ -13,7 +17,7 @@
         </q-avatar>
       </q-item-section>
       <q-item-section v-if="type === 'contact'">
-        <q-item-label>{{ contactName(key) }}</q-item-label>
+        <q-item-label class="text-weight-medium text-onsurface">{{ contactName(key) }}</q-item-label>
         <q-item-label caption>
           {{ networkLabel(key) }}
         </q-item-label>
