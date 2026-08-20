@@ -57,22 +57,22 @@
             <!-- eslint-disable vue/no-v-html -->
             <div
               ref="descriptionRef"
-              class="text-onsurface-m"
-              :class="isDescriptionOpen ? '' : 'ellipsis-2-lines'"
+              class="text-onsurface"
+              :class="isDescriptionOpen ? '' : 'ellipsis-3-lines'"
               v-html="md2html(group.attributes.description)"
             />
 
+            <q-btn
+              v-if="canToggleDescription"
+              flat
+              class="toggle-button q-mt-sm"
+              dense
+              :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
+              @click="toggleDescription"
+              style="margin-left:auto;"
+            />
+
           </div>
-        </div>
-        <div class="row justify-center q-mt-sm">
-          <q-btn
-            v-if="canToggleDescription"
-            flat
-            class="toggle-button"
-            dense
-            :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
-            @click="toggleDescription"
-          />
         </div>
         <!-- sub-page navigation -->
         <nav
@@ -173,7 +173,7 @@ const membersLabel = computed(
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;
 };
-const calculateDescriptionOverflow = async (maxLines = 2) => {
+const calculateDescriptionOverflow = async (maxLines = 3) => {
   await nextTick();
 
   const el = descriptionRef.value;
