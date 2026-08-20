@@ -12,7 +12,7 @@
       @click="contact(key)"
     >
       <q-item-section avatar>
-        <q-avatar size="lg">
+        <q-avatar size="xl">
           <img :src="getNetworkIcon(key)">
         </q-avatar>
       </q-item-section>
@@ -23,7 +23,7 @@
         </q-item-label>
       </q-item-section>
       <q-item-section v-else>
-        <q-item-label>{{ networkLabel(key) }}</q-item-label>
+        <q-item-label class="text-weight-medium text-onsurface">{{ networkLabel(key) }}</q-item-label>
       </q-item-section>
     </q-item>
   </q-list>
