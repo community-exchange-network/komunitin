@@ -1,6 +1,5 @@
 <template>
   <q-card
-    flat
   >
     <simple-map
       class="simple-map"
