@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { Notify, type QUploader } from "quasar"
 import { defineComponent, shallowRef } from "vue"
 import Avatar from "../Avatar.vue"
 import AvatarField from "../AvatarField.vue"
 import ImageField from "../ImageField.vue"
 import { useImageUploader } from "src/composables/uploader"
+import { seeds } from "src/server"
 import {
   getMockFileUploadAttempts,
   resetMockFileUploads,
@@ -31,6 +32,10 @@ const uploadFile = async (wrapper: MountedComponent, file: File) => {
 }
 
 describe("image upload fields", () => {
+  beforeAll(() => {
+    seeds()
+  })
+
   beforeEach(() => {
     resetMockFileUploads()
     mockImageUploadProcessing()
@@ -159,7 +164,7 @@ describe("image upload fields", () => {
     )
     expect(getMockFileUploadAttempts()).toHaveLength(0)
 
-    await wrapper.setProps({ code: "NEW1" })
+    await wrapper.setProps({ code: "GRP0" })
     const avatarField = wrapper.vm as unknown as {
       upload: () => Promise<{ url: string } | null>
     }
@@ -170,7 +175,7 @@ describe("image upload fields", () => {
       expect.objectContaining({
         accepted: true,
         name: "new-group.webp",
-        tenantCode: "NEW1"
+        tenantCode: "GRP0"
       })
     ])
 
@@ -223,7 +228,7 @@ describe("image upload fields", () => {
     await Promise.resolve()
 
     expect(result).toBeUndefined()
-    expect(activeUploader.removeFile).not.toHaveBeenCalled()
+    expect(activeUploader.removeFile).toHaveBeenCalledWith(secondFile)
 
     imageUploader.uploaderEvents.finish()
     expect(await upload).toBe(false)

@@ -178,9 +178,7 @@ export const useImageUploader = ({
   }
 
   const failed = ({files}: {files: readonly File[]}) => {
-    if (!deferred) {
-      files.forEach(file => uploader.value?.removeFile(file))
-    }
+    files.forEach(file => uploader.value?.removeFile(file))
     uploadFailed = true
     notifyImageError()
   }
@@ -198,7 +196,7 @@ export const useImageUploader = ({
     await processing
     const activeUploader = uploader.value
 
-    if (activeUploader?.queuedFiles.length === 0) {
+    if (activeUploader.queuedFiles.length === 0) {
       return true
     }
 
@@ -215,7 +213,7 @@ export const useImageUploader = ({
     headers: settings.headers.value,
     formFields: settings.formFields
   }))
-  
+
   const uploaderEvents = {
     added,
     uploaded,

@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { flushPromises } from "@vue/test-utils";
 import type { VueWrapper } from "@vue/test-utils";
 import type * as Quasar from "quasar";
@@ -148,6 +148,11 @@ describe("Signup", () => {
     seeds();
     wrapper = await mountComponent(App);
   });
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
 
   afterAll(() => {
     wrapper.unmount();
@@ -390,6 +395,19 @@ describe("Signup", () => {
     const createdId = wrapper.vm.$store.getters["groups/current"].id
 
     setMockFileUploadLimit(Number.POSITIVE_INFINITY)
+    await selectFile(avatar, createMockImageFile({
+      height: 800,
+      name: "replacement.png",
+      size: 200_000,
+      type: "image/png",
+      width: 800
+    }))
+    await setInput("Community Name", "Updated Image Community")
+    await waitFor(
+      () => (wrapper.getComponent(EditGroupForm).emitted("update:group")?.at(-1)?.[0] as Group).attributes.name,
+      "Updated Image Community",
+      "Edits made before retry should be ready"
+    )
     await request?.trigger("click")
     await waitFor(() => getMockFileUploadAttempts().length, 2, "Failed image upload should be retried")
     await waitFor(() => request?.props("loading"), false, "Failed group image update should finish")
@@ -398,7 +416,7 @@ describe("Signup", () => {
 
     await request?.trigger("click")
     await waitFor(
-      () => wrapper.text().includes("Your request for the new community Image Community has been sent"),
+      () => wrapper.text().includes("Your request for the new community Updated Image Community has been sent"),
       true,
       "Failed group image update should be retried"
     )
@@ -406,10 +424,9 @@ describe("Signup", () => {
     expect(getMockFileUploadAttempts().every(attempt => attempt.tenantCode === "IMAG")).toBe(true)
     expect(wrapper.vm.$store.getters["groups/current"].id).toBe(createdId)
     expect(wrapper.vm.$store.getters["groups/current"].attributes.image).toEqual({
-      url: "https://files.example/community.webp"
+      url: "https://files.example/replacement.webp"
     })
-    vi.unstubAllGlobals()
-    vi.restoreAllMocks()
+    expect(wrapper.vm.$store.getters["groups/current"].attributes.name).toBe("Updated Image Community")
   });
 
   it("lets a logged-in user without a member restart from a community", async () => {

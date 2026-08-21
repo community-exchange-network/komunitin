@@ -89,37 +89,46 @@ const loading = ref(false)
 const submit = async () => {
   try {
     loading.value = true
+    const retrying = createdGroup.value !== undefined
     // We can't upload the image until the group is created, because we need the group code
     // to upload the image to the right resource path. So we first create the group, then upload
-    // the image, then update the group with the image object. 
+    // the image, then update the group with the image object.
+    const attributes = {
+      ...group.value.attributes,
+      contacts: contacts.value,
+      meta: {
+        request: {
+          currency: currency.value
+        }
+      }
+    }
+
     if (!createdGroup.value) {
       await store.dispatch("groups/create", {
         resource: {
           type: "groups",
-          attributes: {
-            ...group.value.attributes,
-            contacts: contacts.value,
-            meta: {
-              request: {
-                currency: currency.value
-              }
-            }
-          }
+          attributes
         }
       })
       createdGroup.value = store.getters["groups/current"]
     }
 
+    
     const image = await groupForm.value.uploadImage()
+    // undefined => error, null => no image
     if (image !== undefined) {
-      if (image !== null) {
+      if (image !== null || retrying) {
+        const { code, ...editAttributes } = attributes
         await store.dispatch("groups/update", {
-          group: createdGroup.value.attributes.code,
+          group: code,
           id: createdGroup.value.id,
           resource: {
             type: "groups",
             id: createdGroup.value.id,
-            attributes: { image }
+            attributes: {
+              ...editAttributes,
+              image
+            }
           }
         })
       }
