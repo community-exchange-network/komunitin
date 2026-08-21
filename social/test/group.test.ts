@@ -1043,6 +1043,7 @@ describe('Groups endpoints', () => {
       tenantId: 'activate-group',
       status: 'pending',
       access: 'public',
+      settings: { defaultGroupEmailFrequency: 'weekly' },
       meta: {
         request: {
           currency: {
@@ -1112,6 +1113,13 @@ describe('Groups endpoints', () => {
       member.relationships.account.data.meta.href,
       accountingAccountHref('activate-group', member.attributes.accountId),
     )
+
+    const db = tenantDb(prisma, 'activate-group')
+    const relation = await db.memberUser.findFirstOrThrow({ where: { memberId: member.id } })
+    assert.deepStrictEqual(relation.settings, {
+      notifications: { myAccount: true, group: true },
+      emails: { myAccount: true, group: 'weekly' },
+    })
 
     const events = getNotificationsEvents() as any[]
     assert.strictEqual(events.length, 1)

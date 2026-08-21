@@ -17,6 +17,7 @@ import type { CreateGroupInput, Group, GroupMeta, SerializableGroup } from './ty
 import { createNotificationsClient } from '../../clients/notifications'
 import { findUserMembers } from '../users/member-query'
 import { syncAccountStatus } from '../members/accounting'
+import { defaultMemberUserSettings } from '../member-users/settings'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -467,11 +468,9 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
           tenantId: code,
           memberId: member.id,
           userId: adminMemberProvision.adminUserId,
-          role: 'admin',
+          settings: defaultMemberUserSettings(group.settings.defaultGroupEmailFrequency),
         },
-        update: {
-          role: 'admin',
-        },
+        update: {},
       })
     }
 

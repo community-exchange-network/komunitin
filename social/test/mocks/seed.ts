@@ -3,6 +3,8 @@ import { privilegedDb } from '../../src/server/multitenant'
 import prisma, { toNullableJsonInput } from '../../src/utils/prisma'
 import { accountingAccountHref, accountingCurrencyHref } from './accounting'
 import { toUuid } from './utils'
+import { defaultMemberUserSettings } from '../../src/features/member-users/settings'
+import type { GroupSettings } from '../../src/features/groups/schema'
 
 let groupCounter = 0
 let memberCounter = 0
@@ -247,6 +249,7 @@ export const seedMemberUser = async (
   }
 ): Promise<MemberUser> => {
   const userId = toUuid(data.userId ?? `seed-member-user-${data.memberId}`)
+  const group = await getGroupByTenant(data.tenantId)
 
   await seedUser({
     id: userId,
@@ -268,7 +271,9 @@ export const seedMemberUser = async (
       tenantId: data.tenantId,
       memberId: toUuid(data.memberId),
       userId,
-      role: data.role ?? 'admin',
+      settings: data.settings ?? defaultMemberUserSettings(
+        (group.settings as GroupSettings).defaultGroupEmailFrequency,
+      ),
     },
   })
 }
