@@ -63,6 +63,16 @@ describe("Public account action links", () => {
       headers: { Authorization: "Bearer test_user_access_token" }
     });
     const me = await meResponse.json();
+    const user = server.schema.users.find(me.data.id);
+    const otherMember = server.schema.members.all().models.find(
+      member => !user.memberIds.includes(member.id),
+    );
+    server.create("memberUser", {
+      user,
+      member: otherMember,
+      notifications: { myAccount: false, group: true },
+      emails: { myAccount: false, group: "weekly" },
+    });
     const token = await actionToken("unsubscribe", me.data.id);
 
     const oneClickResponse = await fetch(`${config.SOCIAL_URL}/users/unsubscribe?token=${token}`, {
@@ -71,9 +81,15 @@ describe("Public account action links", () => {
       body: "List-Unsubscribe=One-Click"
     });
     expect(oneClickResponse.status).toBe(204);
+    const relations = server.schema.memberUsers.where({ userId: me.data.id }).models;
+    expect(relations.length).toBeGreaterThan(1);
+    expect(relations.every(relation => relation.emails.group === "never")).toBe(true);
+    expect(relations.at(-1).emails.myAccount).toBe(false);
+    expect(relations.at(-1).notifications).toEqual({ myAccount: false, group: true });
 
     await wrapper.vm.$router.push({ path: "/unsubscribe", query: { token } });
     await waitFor(() => wrapper.text().includes("You've been unsubscribed"), true, "Unsubscribe status should succeed");
+    expect(wrapper.text()).toContain("any of your communities");
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
   });
 });

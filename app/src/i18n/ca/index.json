@@ -397,7 +397,7 @@
   "loggingOut": "Tancant sessió...",
   "loggedOut": "Has tancat la sessió i no rebràs més notificacions fins que tornis a iniciar sessió.",
   "unsubscribed": "T'has donat de baixa",
-  "unsubscribedText": "Ja no rebràs correus electrònics del butlletí de la comunitat. Pots canviar les teves preferències de correu electrònic en qualsevol moment a la configuració.",
+  "unsubscribedText": "Ja no rebràs correus electrònics de butlletins de cap de les teves comunitats. Això s'aplica a tots els perfils de membre vinculats al teu compte. Pots canviar les teves preferències de correu electrònic en qualsevol moment a la configuració.",
   "unsubscribeError": "Error al donar-se de baixa",
   "today": "Avui",
   "yesterday": "Ahir",

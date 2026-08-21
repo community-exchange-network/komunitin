@@ -1,19 +1,21 @@
 import type { MaybeRefOrGetter} from "@vueuse/shared";
 import { toValue } from "@vueuse/shared";
-import type { Member, User, UserSettings } from "src/store/model";
+import type { Member, MemberUser, User } from "src/store/model";
 import { computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 
 /**
- * Load member, user and user settings. Return member and user refs. If groupCode or memberCode are not provided, use logged in user.
+ * Load a member and its first UUID-sorted member-user relation. If groupCode or
+ * memberCode are not provided, use the logged-in user's current member.
  * @param groupCode 
  * @param memberCode 
  */
 export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined>, memberCode: MaybeRefOrGetter<string|undefined>) => {
   const store = useStore()
-  type FullUser = User & {settings: UserSettings}
-  
-  const user = ref<FullUser>()
+  type FullMemberUser = MemberUser & {user: User}
+
+  const user = ref<User>()
+  const memberUser = ref<FullMemberUser>()
   const memberId = ref<string>()
   const member = computed(() => memberId.value
     ? store.getters["members/one"](memberId.value) as Member
@@ -24,8 +26,14 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
     () => toValue(groupCode),
     () => toValue(memberCode),
     () => store.getters.myMember,
-    () => store.getters.myUser
-  ], async ([groupCodeStr, memberCodeStr, myMember, myUser]) => {
+    () => store.getters.myUser,
+    () => store.getters.myMemberUser,
+  ], async ([groupCodeStr, memberCodeStr, myMember, myUser, myMemberUser], _, onCleanup) => {
+    let cancelled = false
+    onCleanup(() => {
+      cancelled = true
+    })
+
     // Wait for initialization
     if (!myUser) return
 
@@ -35,31 +43,35 @@ export const useFullMemberByCode = (groupCode: MaybeRefOrGetter<string|undefined
         code: memberCodeStr,
         group: groupCodeStr
       })
-      memberId.value = store.getters["members/current"].id
+      if (cancelled) return
+      const targetMember = store.getters["members/current"] as Member
 
-      // load user from server (only one user supported for now)
-      await store.dispatch("users/loadList", {
+      // Only one linked user is presented for now. Pick the first UUID-sorted
+      // relation so the selection remains stable until a linked-user picker exists.
+      await store.dispatch("member-users/loadList", {
+        group: groupCodeStr,
         filter: {
-          members: member.value?.id
+          member: targetMember.id,
         },
-        include: "settings",
+        include: "user",
+        sort: "id",
       })
-      user.value = store.getters["users/currentList"][0]
+      if (cancelled) return
 
+      memberId.value = targetMember.id
+      memberUser.value = store.getters["member-users/currentList"][0]
+      user.value = memberUser.value?.user
     } else {
       // use data from logged in user
       user.value = myUser
       memberId.value = myMember?.id
-      // load settings.
-      await store.dispatch("user-settings/load", {
-        id: user.value?.id,
-        group: groupCodeStr,
-      })
+      memberUser.value = myMemberUser
     }
   }, {immediate: true})
 
   return {
     user,
-    member
+    member,
+    memberUser,
   }
 }
