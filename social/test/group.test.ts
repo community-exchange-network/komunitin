@@ -1038,6 +1038,17 @@ describe('Groups endpoints', () => {
 
   test('PATCH /:code activates pending group via accounting create and exposes external currency relationship', async () => {
     const superadmin = await auth('group-activate-superadmin', undefined, Scope.Superadmin)
+    const address = {
+      streetAddress: 'Carrer de la Comunitat, 1',
+      addressLocality: 'Barcelona',
+      postalCode: '08001',
+      addressRegion: 'Catalonia',
+      addressCountry: 'ES',
+    }
+    const location = {
+      type: 'Point',
+      coordinates: [2.1734, 41.3851],
+    }
 
     await seedGroup({
       tenantId: 'activate-group',
@@ -1061,6 +1072,8 @@ describe('Groups endpoints', () => {
           type: 'groups',
           attributes: {
             status: 'active',
+            address,
+            location,
           }
         }
       })
@@ -1068,6 +1081,11 @@ describe('Groups endpoints', () => {
 
     assert.strictEqual(res.body.data.attributes.status, 'active')
     assert.strictEqual(res.body.data.attributes.meta, null)
+    assert.deepStrictEqual(res.body.data.attributes.address, address)
+    assert.deepStrictEqual(res.body.data.attributes.location, {
+      ...location,
+      name: address.addressLocality,
+    })
     assert.strictEqual(res.body.data.relationships.currency.data.type, 'currencies')
     assert.strictEqual(res.body.data.relationships.currency.data.meta.external, true)
     const currencyHref = accountingCurrencyHref('activate-group')
@@ -1104,6 +1122,11 @@ describe('Groups endpoints', () => {
     assert.strictEqual(member.attributes.code, 'activate-group0000')
     assert.strictEqual(member.attributes.name, res.body.data.attributes.name)
     assert.strictEqual(member.attributes.status, 'active')
+    assert.deepStrictEqual(member.attributes.address, address)
+    assert.deepStrictEqual(member.attributes.location, {
+      ...location,
+      name: address.addressLocality,
+    })
     assert.ok(member.attributes.accountId)
     assert.strictEqual(member.relationships.account.data.type, 'accounts')
     assert.strictEqual(member.relationships.account.data.id, member.attributes.accountId)
@@ -1194,13 +1217,38 @@ describe('Groups endpoints', () => {
     assert.strictEqual(membersRes.body.data[0].relationships.account.data.meta.href, account.href)
   })
 
-  test('PATCH /:code adopts a pending administrator 0000 member and uses the group name', async () => {
+  test('PATCH /:code adopts a pending administrator 0000 member and uses the group profile', async () => {
     const superadmin = await auth('group-member-adopt-superadmin', undefined, Scope.Superadmin)
+    const groupAddress = {
+      streetAddress: 'Community address, 1',
+      addressLocality: 'Barcelona',
+      postalCode: '08001',
+      addressRegion: 'Catalonia',
+      addressCountry: 'ES',
+    }
+    const groupLocation = {
+      type: 'Point',
+      coordinates: [2.1734, 41.3851],
+    }
+    const memberAddress = {
+      streetAddress: 'Existing member address, 2',
+      addressLocality: 'Girona',
+      postalCode: '17001',
+      addressRegion: 'Catalonia',
+      addressCountry: 'ES',
+    }
+    const memberLocation = {
+      type: 'Point',
+      coordinates: [2.8214, 41.9794],
+    }
     const group = await seedGroup({
       tenantId: 'adopt-admin-member',
       name: 'Adopted Community',
       status: 'pending',
       access: 'public',
+      address: groupAddress,
+      latitude: groupLocation.coordinates[1],
+      longitude: groupLocation.coordinates[0],
       meta: {
         request: {
           currency: testCurrencyAttributes,
@@ -1215,6 +1263,9 @@ describe('Groups endpoints', () => {
       name: 'Old administrator name',
       status: 'pending',
       userId: admin.userId,
+      address: memberAddress,
+      latitude: memberLocation.coordinates[1],
+      longitude: memberLocation.coordinates[0],
     })
 
     await request(app)
@@ -1239,6 +1290,11 @@ describe('Groups endpoints', () => {
     assert.strictEqual(member.id, existing.id)
     assert.strictEqual(member.attributes.name, group.name)
     assert.strictEqual(member.attributes.status, 'active')
+    assert.deepStrictEqual(member.attributes.address, groupAddress)
+    assert.deepStrictEqual(member.attributes.location, {
+      ...groupLocation,
+      name: groupAddress.addressLocality,
+    })
     assert.ok(member.attributes.accountId)
     assert.strictEqual(member.relationships.account.data.id, member.attributes.accountId)
     assert.strictEqual(member.relationships.account.data.meta.external, true)
@@ -1350,6 +1406,8 @@ describe('Groups endpoints', () => {
       .expect(200)
     assert.strictEqual(membersRes.body.data.length, 1)
     assert.strictEqual(membersRes.body.data[0].attributes.status, 'active')
+    assert.deepStrictEqual(membersRes.body.data[0].attributes.address, {})
+    assert.strictEqual(membersRes.body.data[0].attributes.location, null)
     assert.ok(membersRes.body.data[0].relationships.account.data.id)
   })
 
