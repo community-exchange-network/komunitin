@@ -1,7 +1,10 @@
-import { describe, it, before, after } from 'node:test';
+import { describe, it, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert';
+import { http, HttpResponse } from 'msw';
 import { KomunitinClient } from './client';
 import { server } from '../../mocks/server';
+import { createMember, createMemberUser, createUser, resetDb } from '../../mocks/db';
+import { SOCIAL_URL } from '../../mocks/handlers';
 
 describe('KomunitinClient', () => {
   before(() => {
@@ -10,6 +13,11 @@ describe('KomunitinClient', () => {
 
   after(() => {
     server.close();
+  });
+
+  beforeEach(() => {
+    resetDb();
+    server.resetHandlers();
   });
 
   it('should fetch currency data', async () => {
@@ -64,5 +72,82 @@ describe('KomunitinClient', () => {
 
     assert.strictEqual(transfers.length, 10);
     assert.ok(transfers.every(transfer => transfer.attributes.state === 'committed'));
+  });
+
+  it('fetches every member-user relation with its included user', async () => {
+    const sharedUser = createUser({ id: 'shared-user', email: 'shared@example.com' });
+    const otherUser = createUser({ id: 'other-user', email: 'other@example.com' });
+    const firstMember = createMember({ groupCode: 'TEST', id: 'member-1', userId: sharedUser.id });
+    const secondMember = createMember({ groupCode: 'TEST', id: 'member-2', userId: sharedUser.id });
+    createMemberUser({ memberId: firstMember.id, userId: otherUser.id });
+
+    const relations = await new KomunitinClient().getMemberUsers('TEST', [firstMember.id, secondMember.id]);
+
+    assert.strictEqual(relations.length, 3);
+    assert.deepStrictEqual(
+      relations.map(({ memberUser, user }) => [
+        memberUser.relationships.member.data.id,
+        user.id,
+      ]).sort(),
+      [
+        ['member-1', 'other-user'],
+        ['member-1', 'shared-user'],
+        ['member-2', 'shared-user'],
+      ],
+    );
+  });
+
+  it('batches member filters and follows member-user pagination', async () => {
+    const requests: URL[] = [];
+    server.use(
+      http.get(`${SOCIAL_URL}/:groupCode/member-users`, ({ request }) => {
+        const url = new URL(request.url);
+        requests.push(url);
+        const memberIds = url.searchParams.get('filter[member]')!.split(',');
+        const after = url.searchParams.get('page[after]');
+        const memberId = after ? memberIds[1] : memberIds[0];
+        const userId = `user-${memberId}`;
+        const next = memberIds.length === 50 && !after
+          ? `${url.origin}${url.pathname}?${new URLSearchParams({
+              ...Object.fromEntries(url.searchParams),
+              'page[after]': 'next',
+            })}`
+          : null;
+
+        return HttpResponse.json({
+          data: [{
+            type: 'member-users',
+            id: `member-user-${memberId}`,
+            attributes: {
+              emails: { group: 'weekly', myAccount: true },
+              notifications: { myAccount: true, group: true },
+            },
+            relationships: {
+              member: { data: { type: 'members', id: memberId } },
+              user: { data: { type: 'users', id: userId } },
+            },
+          }],
+          included: [{
+            type: 'users',
+            id: userId,
+            attributes: { email: `${userId}@example.com`, language: 'en' },
+          }],
+          links: { next },
+        });
+      }),
+    );
+
+    const memberIds = Array.from({ length: 51 }, (_, index) => `member-${index}`);
+    const relations = await new KomunitinClient().getMemberUsers('TEST', memberIds);
+
+    assert.strictEqual(relations.length, 3);
+    assert.deepStrictEqual(
+      requests.map(url => url.searchParams.get('filter[member]')!.split(',').length),
+      [50, 50, 1],
+    );
+    assert.deepStrictEqual(
+      requests.map(url => url.searchParams.get('page[after]')),
+      [null, 'next', null],
+    );
   });
 });

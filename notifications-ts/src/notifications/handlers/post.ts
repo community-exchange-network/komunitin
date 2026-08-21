@@ -1,7 +1,8 @@
 import { KomunitinClient } from '../../clients/komunitin/client';
 import { hasExpiration } from '../../clients/komunitin/post';
-import { Member, Post, User, UserSettings } from '../../clients/komunitin/types';
-import { getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
+import { Member, Post, Recipient } from '../../clients/komunitin/types';
+import { groupRecipients, memberRecipients } from '../../clients/komunitin/recipients';
+import { getCachedGroupMembers } from '../../utils/cached-resources';
 import { internalError } from '../../utils/error';
 import logger from '../../utils/logger';
 import { EnrichedPostEvent } from '../enriched-events';
@@ -73,18 +74,19 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
 
   const isPublishedEvent =
     event.name === EVENT_NAME.OfferPublished || event.name === EVENT_NAME.NeedPublished;
-  let usersWithSettings: Array<{ user: any; settings: any }> = [];
+  let recipients: Recipient[] = [];
 
   // For published events, fetch all member users; for others, just the post author.
   if (isPublishedEvent && isPostUrgent(post)) {
-    const allMembersWithUsers = await getCachedGroupMembersWithUsers(client, event.code);
-    const allUsersMap = allMembersWithUsers.reduce((map, mwu) => {
-      mwu.users.forEach((r) => map.set(r.user.id, r));
-      return map;
-    }, new Map<string, { user: User; settings: UserSettings }>());
-    usersWithSettings = Array.from(allUsersMap.values());
+    const members = await getCachedGroupMembers(client, event.code);
+    const relations = await client.getMemberUsers(event.code, members.map(({ id }) => id));
+    recipients = groupRecipients(relations).filter((recipient) =>
+      recipient.memberUsers.every(
+        (memberUser) => memberUser.relationships.member.data.id !== memberId,
+      ),
+    );
   } else {
-    usersWithSettings = await client.getMemberUsers(memberId);
+    recipients = memberRecipients(await client.getMemberUsers(event.code, [memberId]));
   }
 
   const enrichedEvent: EnrichedPostEvent = {
@@ -93,7 +95,7 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
     post,
     postType: isOfferEvent ? 'offers' : 'needs',
     member,
-    users: usersWithSettings,
+    recipients,
   };
 
   logger.debug({ enrichedEvent }, 'Enriched post event');

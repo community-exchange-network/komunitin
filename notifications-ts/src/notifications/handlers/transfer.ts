@@ -6,6 +6,7 @@ import { EnrichedTransferEvent, EnrichedTransferEventAccountData } from '../enri
 import logger from '../../utils/logger';
 import { config } from '../../config';
 import { getCachedCurrency, getCachedGroup } from '../../utils/cached-resources';
+import { memberRecipients } from '../../clients/komunitin/recipients';
 
 type ExternalAccountData = {
   ref: ExternalResource;
@@ -77,11 +78,11 @@ export const handleTransferEvent = async (event: TransferEvent): Promise<void> =
     if (!member) {
       throw new Error(`Member not found for local account ${account.id}`);
     }
-    const users = await client.getMemberUsers(member.id);
+    const recipients = memberRecipients(await client.getMemberUsers(event.code, [member.id]));
     accountData.push({
       account,
       member,
-      users,
+      recipients,
       currency: localCurrency,
       group: localGroup.data,
     })
@@ -96,7 +97,7 @@ export const handleTransferEvent = async (event: TransferEvent): Promise<void> =
       member,
       currency,
       group,
-      users: []
+      recipients: []
     })
   }
 

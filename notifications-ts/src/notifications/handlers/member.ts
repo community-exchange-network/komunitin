@@ -3,6 +3,7 @@ import { KomunitinClient } from '../../clients/komunitin/client';
 import logger from '../../utils/logger';
 import { eventBus } from '../event-bus';
 import { EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMemberRequestedEvent } from '../enriched-events';
+import { mandatoryRecipients, memberRecipients } from '../../clients/komunitin/recipients';
 
 export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
   logger.info({ event }, 'Handling member event');
@@ -15,9 +16,9 @@ export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
   }
 
   // Fetch member, users, and group in parallel
-  const [member, usersWithSettings, groupResponse] = await Promise.all([
+  const [member, relations, groupResponse] = await Promise.all([
     client.getMember(event.code, memberId),
-    client.getMemberUsers(memberId),
+    client.getMemberUsers(event.code, [memberId]),
     client.getGroup(event.code),
   ]);
 
@@ -27,16 +28,13 @@ export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
     ...event,
     group,
     member,
-    users: usersWithSettings,
+    recipients: memberRecipients(relations),
   };
 
-  // For MemberRequested, fetch admin users with settings
+  // Administrative-duty messages are mandatory and do not need preferences.
   if (event.name === EVENT_NAME.MemberRequested) {
     const admins = await client.getGroupAdmins(event.code);
-    const adminUsers = await Promise.all(
-      admins.map(admin => client.getUserWithSettings(admin.id))
-    );
-    (enrichedEvent as EnrichedMemberRequestedEvent).adminUsers = adminUsers;
+    (enrichedEvent as EnrichedMemberRequestedEvent).adminRecipients = mandatoryRecipients(admins);
   }
 
   // Fetch expired offers and needs if applicable

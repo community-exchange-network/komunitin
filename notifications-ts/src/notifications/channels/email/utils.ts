@@ -6,6 +6,7 @@ import { EmailTemplateContext } from "../../emails/types";
 import { renderTemplate } from "../../../utils/email-template";
 import { config } from "../../../config";
 import logger from "../../../utils/logger";
+import type { Recipient } from "../../../clients/komunitin/types";
 
 const mailer = new Mailer();
 
@@ -29,13 +30,23 @@ const buildAndSendEmail = async <T extends AnyEnrichedEvent>(
   }
 }
 
+export type EmailPolicy = 'account' | 'mandatory';
+
 export const handleEmailEvent = async <T extends AnyEnrichedEvent>(
   event: T,
-  users: Array<{ user: any; settings: any }>,
+  recipients: Recipient[],
   templateName: string,
-  buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null) => {
-  for (const { user, settings } of users) {
-    const locale = settings.attributes.language || 'en';
+  buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null,
+  policy: EmailPolicy,
+) => {
+  const uniqueRecipients = new Map(recipients.map((recipient) => [recipient.user.id, recipient]));
+
+  for (const recipient of uniqueRecipients.values()) {
+    if (policy === 'account' && recipient.memberUser?.attributes.emails.myAccount !== true) {
+      continue;
+    }
+    const { user } = recipient;
+    const locale = user.attributes.language || 'en';
     await buildAndSendEmail(event, user.attributes.email, locale, templateName, buildContext);
   }
 }
@@ -60,4 +71,3 @@ export const handleSuperadminEmailEvent = async <T extends AnyEnrichedEvent>(
   const adminEmail = config.ADMIN_EMAIL;
   await buildAndSendEmail(event, adminEmail, 'en', templateName, buildContext);
 }
-

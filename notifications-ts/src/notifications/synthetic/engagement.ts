@@ -1,7 +1,8 @@
 import { type Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Group } from '../../clients/komunitin/types';
-import { getCachedActiveGroups, getCachedCurrency, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
+import { Group, Recipient } from '../../clients/komunitin/types';
+import { memberRecipients } from '../../clients/komunitin/recipients';
+import { getCachedActiveGroups, getCachedCurrency, getCachedGroupMembers } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import { EVENT_NAME } from '../events';
 import { dispatchSyntheticEnrichedEvent, lastNotificationDateByUser } from './shared';
@@ -55,17 +56,29 @@ const canSendEngagementEvent = (userId: string, lastEngagement: Date | undefined
 
 
 const processEngagementEventsForGroup = async (client: KomunitinClient, group: Group): Promise<void> => {
-  const membersWithUsers = await getCachedGroupMembersWithUsers(client, group.attributes.code);
+  const members = await getCachedGroupMembers(client, group.attributes.code);
+  const relations = await client.getMemberUsers(
+    group.attributes.code,
+    members.map(({ id }) => id),
+  );
+  const recipientsByMemberId = new Map<string, Recipient[]>();
+  for (const recipient of memberRecipients(relations)) {
+    const memberId = recipient.memberUser!.relationships.member.data.id;
+    recipientsByMemberId.set(memberId, [
+      ...(recipientsByMemberId.get(memberId) ?? []),
+      recipient,
+    ]);
+  }
   const currency = await getCachedCurrency(client, group.attributes.code);
 
   const lastEngagementNotificationMap = await lastNotificationDateByUser(group.attributes.code, EVENT_NAME.MemberHasNoPosts);
   const lastNotificationMap = await lastNotificationDateByUser(group.attributes.code);
 
-  for (const mwu of membersWithUsers) {
+  for (const member of members) {
     // For each member, check if we need to send the engagement event. Check first the conditions that do
     // not require fetching additional data from the API.
 
-    const { member, users } = mwu;
+    const recipients = recipientsByMemberId.get(member.id) ?? [];
 
     const needsCounter = member.relationships.needs.meta.count ?? 0
     const offersCounter = member.relationships.offers.meta.count ?? 0
@@ -75,10 +88,11 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
       continue;
     }
 
-    const candidates: Array<{ user: any; settings: any }> = [];
-    for (const { user, settings } of users) {
+    const candidates: Recipient[] = [];
+    for (const recipient of recipients) {
+      const { user } = recipient;
       if (canSendEngagementEvent(user.id, lastEngagementNotificationMap.get(user.id), lastNotificationMap.get(user.id))) {
-        candidates.push({ user, settings });
+        candidates.push(recipient);
       }
     }
 
@@ -117,7 +131,7 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
         member: updatedMember,
         group,
         currency, 
-        users: candidates,
+        recipients: candidates,
       })
     }
   }
@@ -150,4 +164,3 @@ export const initEngagementEvents = (queue: Queue) => {
     stop: async () => stopEngagementEventsCron(queue)
   };
 }
-

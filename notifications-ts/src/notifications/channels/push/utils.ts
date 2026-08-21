@@ -5,8 +5,8 @@ import { EnrichedEvent } from "../../enriched-events";
 import { MessageContext, NotificationMessage } from "../../messages";
 import { createQueue, createWorker } from "../../../utils/queue";
 import { Queue } from "bullmq";
-import { User, UserSettings } from "../../../clients/komunitin/types";
-import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from "../../../utils/cached-resources";
+import { Recipient } from "../../../clients/komunitin/types";
+import { getCachedActiveGroups, getCachedGroupMembers } from "../../../utils/cached-resources";
 import { KomunitinClient } from "../../../clients/komunitin/client";
 import { Prisma, PushSubscription } from '@prisma/client';
 import webpush from 'web-push';
@@ -42,12 +42,15 @@ export const initPushQueue = () => {
   return () => worker.close();
 }
 
-const getUserTimezone = async (user: User, settings: UserSettings, groupCode: string): Promise<string | null> => {
-  // Ideally we should have the TZ in user settings, but this is not the case (yet).
+const getUserTimezone = async (recipient: Recipient, groupCode: string): Promise<string | null> => {
+  // Ideally we should have the TZ on the user, but this is not the case (yet).
   // We can however guess it from their known location (member coordinates) or group location.
   const client = new KomunitinClient();
-  const members = await getCachedGroupMembersWithUsers(client, groupCode, Infinity);
-  const member = members.find(mwu => mwu.users.some(u => u.user.id === user.id))?.member;
+  const members = await getCachedGroupMembers(client, groupCode, Infinity);
+  const memberIds = new Set(
+    recipient.memberUsers.map((relation) => relation.relationships.member.data.id),
+  );
+  const member = members.find(({ id }) => memberIds.has(id));
   
   let coordinates = member?.attributes.location?.coordinates;
   let tz: string | null = null;
@@ -63,17 +66,18 @@ const getUserTimezone = async (user: User, settings: UserSettings, groupCode: st
     }
   }
   if (tz === null) {
-    logger.warn({ user: user.id, group: groupCode, coordinates }, 'Failed to determine timezone for user.');
+    logger.warn({ user: recipient.user.id, group: groupCode, coordinates }, 'Failed to determine timezone for user.');
   }
   return tz;
 }
 
-const shouldSendPushNotificationToUser = (notificationClass: NotificationClass, settings: UserSettings): boolean => {
-  // Check user settings to see if they allow this class of notifications
+const shouldSendPushNotification = (notificationClass: NotificationClass, recipient: Recipient): boolean => {
   if (notificationClass === 'account') {
-    return settings.attributes.notifications.myAccount;
+    return recipient.memberUser?.attributes.notifications.myAccount === true;
   } else if (notificationClass === 'group') {
-    return settings.attributes.notifications.group
+    return recipient.memberUsers.some(
+      (memberUser) => memberUser.attributes.notifications.group,
+    );
   }
   return false;
 }
@@ -113,17 +117,20 @@ const pushNotificationDelay = (priority: PushPriority, timezone: string | null):
  * 3. Sending push notifications via Web Push protocol
  * 4. Handling failed subscriptions (cleanup)
  */
-export const sendPushToUsers = async <T extends EnrichedEvent>(
+export const sendPushToRecipients = async <T extends EnrichedEvent>(
   event: T,
-  users: Array<{ user: User; settings: UserSettings }>,
+  recipients: Recipient[],
   builder: (event: T, ctx: MessageContext) => NotificationMessage | null,
   notificationClass: NotificationClass,
   priority: PushPriority = 'normal'
 ) => {
   const i18n = await initI18n();
 
-  for (const { user, settings } of users) {
-    const locale = settings.attributes.language || 'en';
+  const uniqueRecipients = new Map(recipients.map((recipient) => [recipient.user.id, recipient]));
+
+  for (const recipient of uniqueRecipients.values()) {
+    const { user } = recipient;
+    const locale = user.attributes.language || 'en';
     const t = i18n.getFixedT(locale);
 
     // build message for this user
@@ -133,6 +140,10 @@ export const sendPushToUsers = async <T extends EnrichedEvent>(
     if (!message) {
       continue;
     }
+    if (!shouldSendPushNotification(notificationClass, recipient)) {
+      continue;
+    }
+
     // Get all push subscriptions for this user in this tenant
     const subscriptions = await prisma.pushSubscription.findMany({
       where: {
@@ -145,11 +156,7 @@ export const sendPushToUsers = async <T extends EnrichedEvent>(
       continue;
     }
 
-    if (!shouldSendPushNotificationToUser(notificationClass, settings)) {
-      continue;
-    }
-
-    const timezone = await getUserTimezone(user, settings, event.code);
+    const timezone = await getUserTimezone(recipient, event.code);
     const delay = pushNotificationDelay(priority, timezone);
 
     // Send to all subscriptions

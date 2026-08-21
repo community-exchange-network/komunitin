@@ -1,5 +1,5 @@
 import { GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent, UserEvent } from "./events"
-import { Account, Member, User, Group, Currency, Transfer, UserSettings, Need, Offer, ExternalResource } from "../clients/komunitin/types";
+import { Account, Member, Group, Currency, Transfer, Need, Offer, ExternalResource, Recipient } from "../clients/komunitin/types";
 
 export type EnrichedTransferEventAccountData = {
   // In case of external transfers, the account or other related data 
@@ -8,7 +8,7 @@ export type EnrichedTransferEventAccountData = {
   member: Member | null;
   currency: Currency | null;
   group: Group | null;
-  users: Array<{ user: User; settings: UserSettings }>;
+  recipients: Recipient[];
 }
 
 export type EnrichedTransferEvent = TransferEvent & {
@@ -24,13 +24,13 @@ export type EnrichedPostEvent = PostEvent & {
   post: Offer | Need;
   postType: 'offers' | 'needs';
   member: Member;
-  users: Array<{ user: User; settings: UserSettings }>;
+  recipients: Recipient[];
 };
 
 export type EnrichedMemberEvent = MemberEvent & {
   group: Group;
   member: Member;
-  users: Array<{ user: User; settings: UserSettings }>;
+  recipients: Recipient[];
 };
 
 export type EnrichedMemberHasExpiredPostsEvent = EnrichedMemberEvent & {
@@ -40,18 +40,18 @@ export type EnrichedMemberHasExpiredPostsEvent = EnrichedMemberEvent & {
 
 export type EnrichedMemberRequestedEvent = EnrichedMemberEvent & {
   name: 'MemberRequested';
-  adminUsers: Array<{ user: User; settings: UserSettings }>;
+  adminRecipients: Recipient[];
 };
 
 export type EnrichedGroupEvent = GroupEvent & {
   group: Group;
-  adminUsers: Array<{ user: User; settings: UserSettings }>;
+  adminRecipients: Recipient[];
 };
 
 type EnrichedGroupDigestEvent = NotificationEvent & {
   group: Group;
   members: Member[];
-  users: Array<{ user: User; settings: UserSettings }>;
+  recipients: Recipient[];
   offers: Offer[];
   needs: Need[];
 }
@@ -73,7 +73,7 @@ export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
   member: Member;
   group: Group;
   currency: Currency;
-  users: Array<{ user: User; settings: UserSettings }>;
+  recipients: Recipient[];
 };
 
 export type EnrichedUserEvent = UserEvent & {

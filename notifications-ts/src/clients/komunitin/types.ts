@@ -123,32 +123,43 @@ export interface User {
   type: "users";
   attributes: {
     email: string;
+    name?: string | null;
+    language: string | null;
     created: string;
     updated: string;
   };
-  relationships: {
-    settings: { data: ResourceIdentifier };
-  };
 }
 
-export interface UserSettings {
+export interface MemberUser {
   id: string;
+  type: "member-users";
   attributes: {
-    language: string;
-    komunitin: boolean;
     notifications: {
       myAccount: boolean;
       group: boolean;
     };
     emails: {
       myAccount: boolean;
-      group: "never" | "daily" | "weekly" | "monthly" | "quarterly";
+      group: "never" | "weekly" | "monthly";
     };
   };
   relationships: {
-    user: { data: { id: string, type: string } };
+    user: { data: ResourceIdentifier };
+    member: { data: ResourceIdentifier };
   };
 }
+
+export type MemberUserWithUser = {
+  memberUser: MemberUser;
+  user: User;
+};
+
+export type Recipient = {
+  user: User;
+  memberUsers: MemberUser[];
+  /** The relation that caused a member-specific delivery. */
+  memberUser?: MemberUser;
+};
 
 export interface ExternalResource {
   id: string;

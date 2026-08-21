@@ -172,10 +172,12 @@ describe('Push notifications', () => {
     await subscribeToPushNotifications(groupId, payeeUserId);
 
     // Ensure the user's settings allow account notifications
-    const settings = db.userSettings.find(s => s.id === `${payeeUserId}-settings`);
-    if (settings) {
-      settings.attributes.notifications = {
-        ...(settings.attributes.notifications || {}),
+    const memberUser = db.memberUsers.find(
+      relation => relation.relationships.user.data.id === payeeUserId,
+    );
+    if (memberUser) {
+      memberUser.attributes.notifications = {
+        ...(memberUser.attributes.notifications || {}),
         myAccount: true,
       };
     }
@@ -197,6 +199,38 @@ describe('Push notifications', () => {
     assert.strictEqual(pushNotifications.length, 1);
     assert.strictEqual(pushNotifications[0].tenantId, groupId);
     assert.strictEqual(pushNotifications[0].userId, payeeUserId);
+  });
+
+  it('keeps in-app notifications enabled when account push is disabled', async () => {
+    const groupId = 'GRP1';
+    createTransfers(groupId);
+    const transfer = db.transfers[0];
+    const payeeMember = db.members.find(
+      member => member.relationships.account.data.id === transfer.relationships.payee.data.id,
+    )!;
+    const payeeUserId = getUserIdForMember(payeeMember.id);
+    const payeeRelation = db.memberUsers.find(
+      relation => relation.relationships.member.data.id === payeeMember.id,
+    )!;
+    payeeRelation.attributes.notifications.myAccount = false;
+    await subscribeToPushNotifications(groupId, payeeUserId);
+
+    const eventData = createEvent('TransferCommitted', {
+      code: groupId,
+      user: getUserIdForMember(
+        db.members.find(member =>
+          member.relationships.account.data.id === transfer.relationships.payer.data.id
+        )!.id,
+      ),
+      data: { transfer: transfer.id },
+    });
+    await put(eventData);
+
+    assert.strictEqual(queue.add.mock.callCount(), 0);
+    assert.equal(
+      appNotifications.some(notification => notification.userId === payeeUserId),
+      true,
+    );
   });
 
   describe('Telemetry API', () => {

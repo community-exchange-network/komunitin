@@ -1,5 +1,5 @@
 import { config } from '../../config';
-import { Group, Member, User, Offer, Need, Post, Account, Transfer, Currency, TransferStats, AccountStats, UserSettings, GroupSettings } from './types';
+import { Group, Member, User, Offer, Need, Post, Account, Transfer, Currency, TransferStats, AccountStats, MemberUser, MemberUserWithUser, GroupSettings } from './types';
 import { fetchWithAuth, fetchWithRetry } from './fetchWithAuth';
 
 const jsonApiHeaders = {
@@ -35,6 +35,8 @@ type TransferCollectionParams = {
   'filter[to]'?: string;
   'filter[state]'?: 'committed';
 }
+
+const MEMBER_USER_BATCH_SIZE = 50;
 
 export class KomunitinClient {
   private async request(url: string) {
@@ -110,19 +112,41 @@ export class KomunitinClient {
     return res.data;
   }
 
-  public async getMemberUsers(memberId: string): Promise<Array<{ user: User; settings: UserSettings }>> {
-    // Fetch users with settings included
-    const query = new URLSearchParams({ 'filter[members]': memberId, include: 'settings' }).toString();
-    const url = this.getUrl('social', `/users?${query}`);
-    const body = await this.request(url) as any;
-    const users = body.data as User[];
-    const included = body.included || [];
-    
-    return users.map(user => {
-      const settingsId = user.relationships.settings.data.id;
-      const settings = included.find((r: any) => r.type === 'user-settings' && r.id === settingsId) as UserSettings;
-      return { user, settings };
-    });
+  public async getMemberUsers(groupCode: string, memberIds: string[]): Promise<MemberUserWithUser[]> {
+    const result: MemberUserWithUser[] = [];
+
+    for (let index = 0; index < memberIds.length; index += MEMBER_USER_BATCH_SIZE) {
+      const memberBatch = memberIds.slice(index, index + MEMBER_USER_BATCH_SIZE);
+      const params = new URLSearchParams({
+        'filter[member]': memberBatch.join(','),
+        include: 'user',
+        'page[size]': '200',
+      });
+      let url = this.getUrl('social', `/${groupCode}/member-users?${params}`);
+
+      while (url) {
+        const body = await this.request(url) as any;
+        const memberUsers = body.data as MemberUser[];
+        const users = new Map<string, User>(
+          (body.included ?? [])
+            .filter((resource: { type: string }) => resource.type === 'users')
+            .map((user: User) => [user.id, user]),
+        );
+
+        for (const memberUser of memberUsers) {
+          const userId = memberUser.relationships.user.data.id;
+          const user = users.get(userId);
+          if (!user) {
+            throw new Error(`Missing included user ${userId} for member-user ${memberUser.id}`);
+          }
+          result.push({ memberUser, user });
+        }
+
+        url = body.links?.next ?? '';
+      }
+    }
+
+    return result;
   }
 
   public async getGroupAdmins(groupCode: string): Promise<User[]> {
@@ -182,25 +206,6 @@ export class KomunitinClient {
     const query = new URLSearchParams(params as Record<string, string>).toString();
     const path = `/${groupCode}/stats/accounts${query ? '?' + query : ''}`;
     const res = await this.get('accounting', path);
-    return res.data;
-  }
-
-  public async getUser(userId: string): Promise<User> {
-    const res = await this.get('social', `/users/${userId}`);
-    return res.data;
-  }
-
-  public async getUserWithSettings(userId: string): Promise<{ user: User; settings: UserSettings }> {
-    const res = await this.get('social', `/users/${userId}?include=settings`);
-    const user = res.data as User;
-    const included = res.included || [];
-    const settingsId = user.relationships.settings.data.id;
-    const settings = included.find((r: any) => r.type === 'user-settings' && r.id === settingsId) as UserSettings;
-    return { user, settings };
-  }
-
-  public async getUserSettings(userId: string): Promise<UserSettings> {
-    const res = await this.get('social', `/users/${userId}/settings`);
     return res.data;
   }
 
