@@ -207,7 +207,12 @@ describe('Members endpoints', () => {
   })
 
   test('GET /:code/members resolves a pending member by code', async () => {
-    await seedGroup({ tenantId: 'members-code-identity', status: 'active', access: 'public' })
+    await seedGroup({
+      tenantId: 'members-code-identity',
+      status: 'active',
+      access: 'public',
+      settings: { allowAnonymousMemberList: false },
+    })
     const owner = await auth('members-code-identity-owner')
     await seedMember({
       tenantId: 'members-code-identity',
@@ -300,7 +305,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(accountRes.body.data.length, 0)
   })
 
-  test('inactive memberships do not grant restricted member-list access', async () => {
+  test('inactive memberships grant restricted member-list access to linked members', async () => {
     await seedGroup({
       tenantId: 'members-draft-access',
       status: 'active',
@@ -321,11 +326,15 @@ describe('Members endpoints', () => {
         draftId = member.id
       }
     }
-
-    await request(app)
+    const listRes = await request(app)
       .get('/members-draft-access/members?filter[status]=draft,pending,disabled,suspended')
       .set('Authorization', `Bearer ${user.token}`)
-      .expect(403)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      listRes.body.data.map((member: any) => member.attributes.code).sort(),
+      ['member-disabled', 'member-draft', 'member-pending', 'member-suspended'],
+    )
 
     await request(app)
       .get(`/members-draft-access/members/${draftId}`)
