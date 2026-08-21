@@ -206,6 +206,100 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].relationships.group.data.id, group.id)
   })
 
+  test('GET /:code/members resolves a pending member by code', async () => {
+    await seedGroup({ tenantId: 'members-code-identity', status: 'active', access: 'public' })
+    const owner = await auth('members-code-identity-owner')
+    await seedMember({
+      tenantId: 'members-code-identity',
+      code: 'pending-member',
+      status: 'pending',
+      access: 'private',
+      userId: owner.id,
+    })
+
+    const ownerRes = await request(app)
+      .get('/members-code-identity/members?filter[code]=pending-member')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+
+    assert.strictEqual(ownerRes.body.data.length, 1)
+    assert.strictEqual(ownerRes.body.data[0].attributes.status, 'pending')
+  })
+
+  test('GET /:code/members resolves disabled and suspended members by account', async () => {
+    const disabledAccount = toUuid('members-account-identity-disabled')
+    const suspendedAccount = toUuid('members-account-identity-suspended')
+    const deletedAccount = toUuid('members-account-identity-deleted')
+    await seedGroup({ tenantId: 'members-account-identity', status: 'active', access: 'public' })
+    const admin = await auth('members-account-identity-admin')
+    await seedGroupAdmin({ tenantId: 'members-account-identity', userId: admin.id })
+    await seedMember({
+      tenantId: 'members-account-identity',
+      code: 'disabled-member',
+      status: 'disabled',
+      access: 'private',
+      accountId: disabledAccount,
+    })
+    await seedMember({
+      tenantId: 'members-account-identity',
+      code: 'suspended-member',
+      status: 'suspended',
+      access: 'private',
+      accountId: suspendedAccount,
+    })
+    await seedMember({
+      tenantId: 'members-account-identity',
+      code: 'deleted-member',
+      status: 'deleted',
+      access: 'private',
+      accountId: deletedAccount,
+      deleted: new Date(),
+    })
+
+    const adminRes = await request(app)
+      .get(`/members-account-identity/members?filter[account]=${disabledAccount},${suspendedAccount},${deletedAccount}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      adminRes.body.data.map((member: any) => member.attributes.code).sort(),
+      ['disabled-member', 'suspended-member'],
+    )
+  })
+
+  test('GET /:code/members preserves explicit status filters for identity lookups', async () => {
+    const accountId = toUuid('members-identity-status-account')
+    await seedGroup({ tenantId: 'members-identity-status', status: 'active', access: 'public' })
+    const admin = await auth('members-identity-status-admin')
+    await seedGroupAdmin({ tenantId: 'members-identity-status', userId: admin.id })
+    await seedMember({
+      tenantId: 'members-identity-status',
+      code: 'pending-by-code',
+      status: 'pending',
+      access: 'private',
+    })
+    await seedMember({
+      tenantId: 'members-identity-status',
+      code: 'disabled-by-account',
+      status: 'disabled',
+      access: 'private',
+      accountId,
+    })
+
+    const codeRes = await request(app)
+      .get('/members-identity-status/members?filter[code]=pending-by-code&filter[status]=active')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    const accountRes = await request(app)
+      .get(`/members-identity-status/members?filter[account]=${accountId}&filter[status]=active`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(codeRes.body.data.length, 0)
+    assert.strictEqual(accountRes.body.data.length, 0)
+  })
+
   test('inactive memberships do not grant restricted member-list access', async () => {
     await seedGroup({
       tenantId: 'members-draft-access',

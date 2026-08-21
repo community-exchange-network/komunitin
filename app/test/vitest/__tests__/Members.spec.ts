@@ -34,8 +34,8 @@ describe("Members", () => {
     (wrapper.getComponent(QInfiniteScroll).vm as QInfiniteScroll).trigger();
     await waitFor(
       () => wrapper.getComponent(MemberList).findAllComponents(MemberHeader).length,
-      31,
-      "Should load all 31 members after infinite scroll"
+      30,
+      "Should load all 30 active members after infinite scroll"
     );
     // Check GRP00002 result
     const members = wrapper.getComponent(MemberList).findAllComponents(MemberHeader);

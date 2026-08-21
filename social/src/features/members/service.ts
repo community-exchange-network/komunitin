@@ -167,7 +167,8 @@ const getMemberUserIds = async (member: Pick<Member, 'id' | 'tenantId'>): Promis
 /**
  * Return all members of a group accessible to the given user.
  * 
- * If no status filter is provided, defaults to 'active' members only.
+ * If no status filter is provided, defaults to 'active' members only, except
+ * for identity lookups by code or account, which include every readable status.
  */
 export const listMembers = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<SerializableMember>> => {
   const group = await getGroupByCode(ctx, code)
@@ -176,10 +177,11 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     throw forbidden('You do not have permission to list members in this group')
   }
   const db = tenantDb(prisma, code)
-  
-  const defaultFilters = {
-    status: ['active'],
-  }
+
+  const isIdentityLookup = params.filters.code !== undefined || params.filters.account !== undefined
+  const defaultFilters = params.filters.status === undefined && !isIdentityLookup
+    ? { status: ['active'] }
+    : {}
 
   const result = await findMemberIds(ctx, db, group, {
     ...params,
