@@ -345,7 +345,11 @@ const routes: RouteRecordRaw[] = [
         meta: {
           requiresAdmin: 'group'
         },
-        children: [{
+        children: [
+        {
+          path: '',
+          redirect: { name: 'EditGroup' }
+        },{
           path: 'edit',
           props: true,
           name: 'EditGroup',
