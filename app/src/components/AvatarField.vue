@@ -6,12 +6,8 @@
     flat
     bordered
     hide-upload-btn
-    :url="url"
-    :headers="headers"
-    :field-name="fieldName"
-    :form-fields="formFields"
-    @added="handleAdded"
-    @uploaded="uploaded"
+    v-bind="uploaderProps"
+    v-on="uploaderEvents"
   >
     <template #header>
       <q-uploader-add-trigger />
@@ -49,15 +45,18 @@
 import { computed, useTemplateRef } from "vue"
 import type { QUploader } from "quasar"
 import type { ImageObject } from "src/store/model"
-import { imageFile, useImageUploaderProcessing, useUploaderSettings } from "../composables/uploader"
+import { imageFile, useImageUploader } from "../composables/uploader"
 import Avatar from "./Avatar.vue"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: ImageObject | null,
   text: string,
   code: string,
-  resourceType: "members" | "groups"
-}>()
+  resourceType: "members" | "groups",
+  deferred?: boolean
+}>(), {
+  deferred: false
+})
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: ImageObject): void
@@ -66,9 +65,23 @@ const emit = defineEmits<{
 const uploader = useTemplateRef<QUploader>("uploader")
 const src = computed(() => uploader.value?.files[0]?.__img?.src || props.modelValue?.url)
 const file = computed(() => uploader.value?.files[0] || imageFile(props.modelValue?.url ?? ""))
+let uploadedImage: ImageObject | null = null
 
-const { url, headers, fieldName, formFields } = useUploaderSettings(props)
-const { isProcessing, handleAdded } = useImageUploaderProcessing({ uploader })
+const {
+  uploaderProps,
+  uploaderEvents,
+  isProcessing,
+  upload: uploadFiles
+} = useImageUploader({
+  uploader,
+  code: () => props.code,
+  resourceType: props.resourceType,
+  deferred: props.deferred,
+  onUploaded: image => {
+    uploadedImage = image
+    emit("update:modelValue", image)
+  }
+})
 
 const pickFiles = (event: Event) => {
   if (!isProcessing.value) {
@@ -76,12 +89,15 @@ const pickFiles = (event: Event) => {
   }
 }
 
-const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
-  const response = JSON.parse(xhr.responseText)
-  const url = response.data.attributes.url
-  emit("update:modelValue", { url })
-  uploader.value?.removeUploadedFiles()
-}
+/**
+ * Upload the selected file. To be used in deferred mode by parent component.
+ * (actually used by CreateGroup.vue).
+ * 
+ * Returns the uploaded image object if successful, null if no file was selected,
+ * undefined if the upload failed.
+ */
+const upload = async () => (await uploadFiles()) ? uploadedImage : undefined
+defineExpose({ upload })
 
 </script>
 <style lang="scss" scoped>

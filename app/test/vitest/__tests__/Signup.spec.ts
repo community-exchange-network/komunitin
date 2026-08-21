@@ -5,6 +5,8 @@ import type * as Quasar from "quasar";
 import { seeds } from "src/server";
 import { mountComponent, waitFor } from "../utils";
 import App from "../../../src/App.vue";
+import Avatar from "../../../src/components/Avatar.vue";
+import AvatarField from "../../../src/components/AvatarField.vue";
 import GroupCard from "../../../src/components/GroupCard.vue";
 import { QBtn, QDialog, QInput, QItem, QSelect } from "quasar";
 import CountryChooser from "src/components/CountryChooser.vue";
@@ -14,10 +16,17 @@ import { config } from "src/utils/config";
 import { Auth, type SignupContext } from "src/plugins/Auth";
 import type { Group } from "src/store/model";
 import {
+  failNextMockGroupPatch,
   failNextMockMemberCreate,
   failNextMockMemberCreateResponse,
   getMockMemberCreateCount
 } from "src/server/SocialServer";
+import {
+  getMockFileUploadAttempts,
+  resetMockFileUploads,
+  setMockFileUploadLimit
+} from "src/server/FilesServer";
+import { createMockImageFile, mockImageUploadProcessing } from "../utils/mockImageUpload";
 
 // Mock quasar.scroll used in Signup.vue and SignupMember.vue to scroll to top on step change.
 vi.mock("quasar", async () => {
@@ -96,6 +105,44 @@ describe("Signup", () => {
     await waitFor(() => wrapper.vm.$route.path, destination);
     return token
   };
+
+  const setInput = async (label: string, value: string) => {
+    const field = wrapper.findAllComponents(QInput).find(input => input.props("label") === label)
+    expect(field).toBeDefined()
+    const control = field?.find("input").exists() ? field.get("input") : field?.get("textarea")
+    await control?.setValue(value)
+  }
+
+  const fillGroupForm = async (name: string, code: string) => {
+    await setInput("Community Name", name)
+    await setInput("Community Code", code)
+    await setInput("Description", "A community created through the new social API.")
+    await setInput("City / Municipality", "Testville")
+    await setInput("Region / State", "Testland")
+    await setInput("Currency Name", "test credit")
+    await setInput("Currency Name (plural)", "test credits")
+    await setInput("Currency Symbol", "TC")
+    wrapper.getComponent(LocationPicker).vm.$emit("update:modelValue", [2, 41])
+
+    const country = wrapper.getComponent(CountryChooser).getComponent(QSelect)
+    await waitFor(() => (country.props("options") as unknown[])?.length > 0, true, "Country options should load")
+    await country.setValue("ES")
+
+    await waitFor(
+      () => (wrapper.getComponent(EditGroupForm).emitted("update:group")?.at(-1)?.[0] as Group | undefined)?.attributes.code,
+      code,
+      "Debounced group fields should be ready"
+    )
+  }
+
+  const selectFile = async (component: VueWrapper, file: File) => {
+    const input = component.get("input[type='file']")
+    Object.defineProperty(input.element, "files", {
+      configurable: true,
+      value: [file]
+    })
+    await input.trigger("change")
+  }
   
   beforeAll(async () => {  
     seeds();
@@ -261,6 +308,7 @@ describe("Signup", () => {
   }, 100000)
 
   it("registers an administrator and requests a first group", async () => {
+    resetMockFileUploads()
     await wrapper.vm.$store.dispatch("logout");
     await wrapper.vm.$router.push("/signup-group");
     await waitFor(() => wrapper.find("[name='name']").exists(), true, "Group administrator signup should load");
@@ -276,32 +324,7 @@ describe("Signup", () => {
       language: "en-us"
     }, "/groups/new");
 
-    const setInput = async (label: string, value: string) => {
-      const field = wrapper.findAllComponents(QInput).find(input => input.props("label") === label);
-      expect(field).toBeDefined();
-      const control = field?.find("input").exists() ? field.get("input") : field?.get("textarea");
-      await control?.setValue(value);
-    };
-
-    await setInput("Community Name", "Test Community");
-    await setInput("Community Code", "TEST");
-    await setInput("Description", "A community created through the new social API.");
-    await setInput("City / Municipality", "Testville");
-    await setInput("Region / State", "Testland");
-    await setInput("Currency Name", "test credit");
-    await setInput("Currency Name (plural)", "test credits");
-    await setInput("Currency Symbol", "TC");
-    wrapper.getComponent(LocationPicker).vm.$emit("update:modelValue", [2, 41]);
-
-    const country = wrapper.getComponent(CountryChooser).getComponent(QSelect);
-    await waitFor(() => (country.props("options") as unknown[])?.length > 0, true, "Country options should load");
-    await country.setValue("ES");
-
-    await waitFor(
-      () => (wrapper.getComponent(EditGroupForm).emitted("update:group")?.at(-1)?.[0] as Group | undefined)?.attributes.code,
-      "TEST",
-      "Debounced group fields should be ready"
-    );
+    await fillGroupForm("Test Community", "TEST")
     const request = wrapper.findAllComponents(QBtn).find(button => button.text().includes("Request new community"));
     expect(request).toBeDefined();
     await request?.trigger("click");
@@ -330,6 +353,63 @@ describe("Signup", () => {
         d: 10
       }
     });
+    expect(getMockFileUploadAttempts()).toHaveLength(0)
+  });
+
+  it("defers a new group image and retries only the incomplete stage", async () => {
+    resetMockFileUploads()
+    mockImageUploadProcessing()
+    await wrapper.vm.$router.push("/")
+    await wrapper.vm.$router.push("/groups/new")
+    await waitFor(() => wrapper.findComponent(EditGroupForm).exists(), true, "New group form should load")
+
+    const avatar = wrapper.getComponent(AvatarField)
+    await selectFile(avatar, createMockImageFile({
+      height: 800,
+      name: "community.png",
+      size: 200_000,
+      type: "image/png",
+      width: 800
+    }))
+    await waitFor(
+      () => avatar.getComponent(Avatar).props("imgSrc")?.url?.startsWith("blob:"),
+      true,
+      "Selected group image should have a local preview"
+    )
+    expect(getMockFileUploadAttempts()).toHaveLength(0)
+
+    await fillGroupForm("Image Community", "IMAG")
+    setMockFileUploadLimit(100_000)
+    failNextMockGroupPatch()
+    const request = wrapper.findAllComponents(QBtn).find(button => button.text().includes("Request new community"))
+
+    await request?.trigger("click")
+    await waitFor(() => getMockFileUploadAttempts().length, 1, "Image upload should run after group creation")
+    await waitFor(() => request?.props("loading"), false, "Failed image upload should finish")
+    expect(wrapper.text()).not.toContain("Your request for the new community Image Community has been sent")
+    const createdId = wrapper.vm.$store.getters["groups/current"].id
+
+    setMockFileUploadLimit(Number.POSITIVE_INFINITY)
+    await request?.trigger("click")
+    await waitFor(() => getMockFileUploadAttempts().length, 2, "Failed image upload should be retried")
+    await waitFor(() => request?.props("loading"), false, "Failed group image update should finish")
+    expect(wrapper.text()).not.toContain("Your request for the new community Image Community has been sent")
+    expect(wrapper.vm.$store.getters["groups/current"].id).toBe(createdId)
+
+    await request?.trigger("click")
+    await waitFor(
+      () => wrapper.text().includes("Your request for the new community Image Community has been sent"),
+      true,
+      "Failed group image update should be retried"
+    )
+    expect(getMockFileUploadAttempts()).toHaveLength(2)
+    expect(getMockFileUploadAttempts().every(attempt => attempt.tenantCode === "IMAG")).toBe(true)
+    expect(wrapper.vm.$store.getters["groups/current"].id).toBe(createdId)
+    expect(wrapper.vm.$store.getters["groups/current"].attributes.image).toEqual({
+      url: "https://files.example/community.webp"
+    })
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   });
 
   it("lets a logged-in user without a member restart from a community", async () => {

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type { Server } from "miragejs"
 import { Response } from "miragejs"
 import { config } from "src/utils/config"
@@ -9,6 +11,7 @@ export interface MockFileUploadAttempt {
   accepted: boolean
   name: string
   size: number
+  tenantCode: string
   type: string
   url: string
 }
@@ -49,24 +52,30 @@ export const getMockFileUploadAttempts = () => state.uploadAttempts
 
 export default {
   routes(server: Server) {
-    server.post(`${config.SOCIAL_URL}/:code/files/upload`, (_schema, request) => {
+    server.post(`${config.SOCIAL_URL}/:code/files/upload`, (schema: any, request) => {
+      const tenantCode = request.params.code
       const file = readUploadedFile(request.requestBody)
       const resourceType = isFormData(request.requestBody)
         ? request.requestBody.get("resourceType")?.toString()
         : undefined
       const accepted = file.size <= state.maxUploadSize
+      const tenantExists = schema.groups.findBy({ code: tenantCode }) 
       const url = `https://files.example/${file.name}`
 
       state.uploadAttempts.push({
         accepted,
         name: file.name,
         size: file.size,
+        tenantCode,
         type: file.type,
         url
       })
 
       if (!accepted) {
         return jsonApiError(413, "File too large")
+      }
+      if (!tenantExists) {
+        return jsonApiError(404, "Not found")
       }
 
       return new Response(201, {}, {

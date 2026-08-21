@@ -20,6 +20,11 @@ const contactTypes = getContactNetworkKeys();
 let memberCreateFailures = 0
 let memberCreateResponseFailures = 0
 let memberCreateCount = 0
+let groupPatchFailures = 0
+
+export const failNextMockGroupPatch = () => {
+  groupPatchFailures++
+}
 
 export const failNextMockMemberCreate = () => {
   memberCreateFailures++
@@ -511,6 +516,10 @@ export default {
 
     // Edit group attributes
     server.patch(urlSocial + "/:code", (schema: any, request) => {
+      if (groupPatchFailures > 0) {
+        groupPatchFailures--
+        return new Response(503, {}, { errors: [{ detail: "Group update failed" }] })
+      }
       const group = schema.groups.findBy({ code: request.params.code });
       const body = JSON.parse(request.requestBody);
       const attributes = body.data.attributes
