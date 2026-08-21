@@ -1,10 +1,12 @@
 <template>
   <div class="q-gutter-y-lg">
     <avatar-field
+      ref="avatarField"
       v-model="image"
       :text="name"
-      :code="code"
+      :code="group.attributes.code ?? ''"
       resource-type="groups"
+      :deferred="deferredImageUpload"
     />
     <q-input
       v-model="name"
@@ -111,7 +113,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, watch } from "vue"
+import { ref, useTemplateRef, watch } from "vue"
 import AvatarField from "src/components/AvatarField.vue"
 import LocationPicker from "src/components/LocationPicker.vue"
 import CountryChooser from "src/components/CountryChooser.vue"
@@ -126,6 +128,7 @@ const props = defineProps<{
   contacts: Contact[]
   currency: Partial<Currency["attributes"]>
 }>()
+const deferredImageUpload = props.op === "create"
 
 const emit = defineEmits<{
   (e: "update:group", group: Group): void,
@@ -205,4 +208,11 @@ const checkFreeCode = async (code: string)  => {
   const existing = store.getters["groups/find"]({code})
   return !existing
 }
+
+// Export the uploadImage function to be called from the parent component (CreateGroup.vue)
+// after the group has been created, since the upload endpoint is scoped to the group code.
+const avatarUploader = useTemplateRef<InstanceType<typeof AvatarField>>("avatarField")
+defineExpose({
+  uploadImage: () => avatarUploader.value?.upload()
+})
 </script>

@@ -4,17 +4,19 @@ import { useStore } from "vuex"
 import { config } from "src/utils/config"
 import { resizeImageToWebp } from "src/utils/imageUpload"
 import { i18n } from "src/boot/i18n"
+import type { ImageObject } from "src/store/model"
+
+type FileResourceType = "members" | "groups" | "offers" | "needs"
 
 /**
- * Some configuration to use with QUploader component to send files to the
- * backend (currently Drupal).
+ * Build the tenant-aware configuration expected by QUploader.
  */
-export const useUploaderSettings = ({
+const useUploaderSettings = ({
   code,
   resourceType
 }: {
   code: MaybeRefOrGetter<string>,
-  resourceType: "members" | "groups" | "offers" | "needs"
+  resourceType: FileResourceType
 }) => {
   const store = useStore()
   const fieldName = "file"
@@ -61,22 +63,24 @@ export const imageFile = (url: string) => {
   } as ImageFile
 }
 
-export interface UseImageUploaderProcessingOptions {
+interface UseImageUploaderProcessingOptions {
   uploader: Readonly<Ref<QUploader | null | undefined>>
   transformFile?: (file: File) => Promise<File>
   notifyError?: () => void
+  deferred?: boolean
 }
 
-export const useImageUploaderProcessing = ({
+const useImageUploaderProcessing = ({
   uploader,
   transformFile = resizeImageToWebp,
-  notifyError = notifyImageError
+  notifyError = notifyImageError,
+  deferred = false
 }: UseImageUploaderProcessingOptions) => {
   const processedFiles = new WeakSet<File>()
   const processingCount = shallowRef(0)
   const isProcessing = computed(() => processingCount.value > 0)
 
-  const handleAdded = async (files: readonly File[]) => {
+  const process = async (files: readonly File[]) => {
     const filesToProcess = files.filter(file => !processedFiles.has(file))
     if (filesToProcess.length === 0) {
       return
@@ -114,18 +118,113 @@ export const useImageUploaderProcessing = ({
       }
 
       activeUploader.addFiles(convertedFiles)
-      activeUploader.upload()
+      if (!deferred) {
+        activeUploader.upload()
+      }
     } finally {
       processingCount.value--
     }
   }
 
-  return { isProcessing, handleAdded }
+  return { isProcessing, process }
 }
 
-export function notifyImageError() {
+function notifyImageError() {
   Notify.create({
     type: "negative",
     message: i18n.global.t("imageUploadError").toString()
   })
+}
+
+export interface UseImageUploaderOptions {
+  uploader: Readonly<Ref<QUploader | null>>
+  code: MaybeRefOrGetter<string>
+  resourceType: FileResourceType
+  deferred?: boolean
+  onUploaded: (image: ImageObject) => void
+}
+
+/**
+ * Adapt QUploader's event-based API into the image uploader interface used by
+ * application components.
+ */
+export const useImageUploader = ({
+  uploader,
+  code,
+  resourceType,
+  deferred = false,
+  onUploaded
+}: UseImageUploaderOptions) => {
+  const settings = useUploaderSettings({ code, resourceType })
+  const { isProcessing, process } = useImageUploaderProcessing({
+    uploader,
+    deferred
+  })
+
+  let processing = Promise.resolve()
+  let resolveUpload: ((successful: boolean) => void) | undefined
+  let uploadFailed = false
+
+  const added = (files: readonly File[]) => {
+    processing = process(files)
+    return processing
+  }
+
+  const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
+    const response = JSON.parse(xhr.responseText)
+    const image = { url: response.data.attributes.url }
+    onUploaded(image)
+    uploader.value?.removeUploadedFiles()
+  }
+
+  const failed = ({files}: {files: readonly File[]}) => {
+    files.forEach(file => uploader.value?.removeFile(file))
+    uploadFailed = true
+    notifyImageError()
+  }
+
+  const finish = () => {
+    resolveUpload?.(!uploadFailed)
+    resolveUpload = undefined
+  }
+
+  /** 
+   * Upload all queued files and resolve when the whole batch finishes. 
+   * Return true if all files were uploaded successfully, false otherwise.
+   * */
+  const upload = async (): Promise<boolean> => {
+    await processing
+    const activeUploader = uploader.value
+
+    if (activeUploader.queuedFiles.length === 0) {
+      return true
+    }
+
+    uploadFailed = false
+    return new Promise<boolean>(resolve => {
+      resolveUpload = resolve
+      activeUploader?.upload()
+    })
+  }
+
+  const uploaderProps = computed(() => ({
+    fieldName: settings.fieldName,
+    url: settings.url.value,
+    headers: settings.headers.value,
+    formFields: settings.formFields
+  }))
+
+  const uploaderEvents = {
+    added,
+    uploaded,
+    failed,
+    finish
+  }
+
+  return {
+    uploaderProps,
+    uploaderEvents,
+    isProcessing,
+    upload
+  }
 }
