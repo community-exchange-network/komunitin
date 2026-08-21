@@ -137,7 +137,7 @@ describe("image upload fields", () => {
     wrapper.unmount()
   })
 
-  it("defers an AvatarField upload until requested and uses the latest group code", async () => {
+  it("defers an AvatarField upload, replaces its selection and uses the latest group code", async () => {
     const wrapper = await mountComponent(AvatarField, {
       props: {
         modelValue: null,
@@ -164,17 +164,25 @@ describe("image upload fields", () => {
     )
     expect(getMockFileUploadAttempts()).toHaveLength(0)
 
+    await uploadFile(wrapper, createMockImageFile({
+      height: 800,
+      name: "replacement.png",
+      size: 200_000,
+      type: "image/png",
+      width: 800
+    }))
+
     await wrapper.setProps({ code: "GRP0" })
     const avatarField = wrapper.vm as unknown as {
       upload: () => Promise<{ url: string } | null>
     }
     const image = await avatarField.upload()
 
-    expect(image).toEqual({ url: "https://files.example/new-group.webp" })
+    expect(image).toEqual({ url: "https://files.example/replacement.webp" })
     expect(getMockFileUploadAttempts()).toEqual([
       expect.objectContaining({
         accepted: true,
-        name: "new-group.webp",
+        name: "replacement.webp",
         tenantCode: "GRP0"
       })
     ])

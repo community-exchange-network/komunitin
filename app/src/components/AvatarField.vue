@@ -6,6 +6,7 @@
     flat
     bordered
     hide-upload-btn
+    :filter="replaceQueuedFile"
     v-bind="uploaderProps"
     v-on="uploaderEvents"
   >
@@ -87,6 +88,11 @@ const pickFiles = (event: Event) => {
   if (!isProcessing.value) {
     uploader.value?.pickFiles(event)
   }
+}
+// In deferred mode, only upload the last selected file.
+const replaceQueuedFile = (files: File[]) => {
+  uploader.value?.removeQueuedFiles()
+  return files
 }
 
 /**
