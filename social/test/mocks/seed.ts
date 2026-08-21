@@ -133,7 +133,7 @@ export const seedUser = async (data: Partial<User> = {}): Promise<User> => {
   const input = {
     email: data.email ?? defaults.email,
     name: data.name,
-    settings: toNullableJsonInput(data.settings), 
+    language: data.language,
   }
   
   return db().user.upsert({

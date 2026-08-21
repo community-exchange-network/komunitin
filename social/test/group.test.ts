@@ -582,7 +582,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(admins.body.meta.count, 2)
     const adminResource = admins.body.data.find((resource: any) => resource.id === admin.id)
     assert.strictEqual(typeof adminResource.attributes.email, 'string')
-    assert.strictEqual(adminResource.relationships.settings, undefined)
+    assert.strictEqual(adminResource.relationships, undefined)
   })
 
   test('group members relationship is only exposed to viewers who can list members', async () => {
