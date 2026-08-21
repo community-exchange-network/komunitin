@@ -655,8 +655,8 @@ export default {
           type: "Point",
           coordinates: group.location.coordinates
         },
-        ...body.data.attributes,
         code: nextMemberCode(schema, group),
+        ...body.data.attributes,
         status: "draft",
         group,
         created: new Date().toJSON(),
