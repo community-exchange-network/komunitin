@@ -439,6 +439,9 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
         access: groupAccess,
         accountId: adminMemberProvision.account.id,
         accountHref: adminMemberProvision.account.href,
+        address: updatedGroup.address as Prisma.InputJsonValue,
+        latitude: updatedGroup.latitude,
+        longitude: updatedGroup.longitude,
       }
       const member = adminMemberProvision.memberId
         ? await tx.member.update({
