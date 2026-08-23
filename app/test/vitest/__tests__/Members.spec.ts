@@ -57,6 +57,12 @@ describe("Members", () => {
     expect(other.text()).toContain(otherName);
     expect(other.text()).toContain("GRP00025");
     expect(other.text()).toContain("$-208.12");
+
+    const zeroBalanceMember = members.find(
+      member => member.props("member").account?.attributes.balance === 0
+    );
+    expect(zeroBalanceMember?.text()).toContain("$0.00");
+
     // Search
     const target = members[5].props("member");
     const targetName = requireText(target.attributes.name, "Search target name");
