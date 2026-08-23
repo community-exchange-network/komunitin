@@ -68,7 +68,7 @@ const toError = (status: number, errors: JsonApiError[] | undefined, fallback: s
 }
 
 const parseJsonBody = async <T>(response: Response): Promise<T | undefined> => {
-  return response.headers.get('content-type')?.includes('json')
+  return response.status !== 204 && response.headers.get('content-type')?.includes('json')
     ? await response.json() as T
     : undefined
 }
