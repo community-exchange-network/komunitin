@@ -635,6 +635,7 @@ export default {
         return new Response(503, {}, { errors: [{ detail: "Member creation failed" }] })
       }
       const body = JSON.parse(request.requestBody)
+      const { code, ...attributes } = body.data.attributes
       const group = schema.groups.findBy({ code: request.params.code })
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
@@ -655,8 +656,8 @@ export default {
           type: "Point",
           coordinates: group.location.coordinates
         },
-        code: nextMemberCode(schema, group),
-        ...body.data.attributes,
+        ...attributes,
+        code: code?.trim() || nextMemberCode(schema, group),
         status: "draft",
         group,
         created: new Date().toJSON(),
