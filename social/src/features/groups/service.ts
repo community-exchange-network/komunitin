@@ -178,10 +178,17 @@ export const isGroupAdmin = (
   group: Pick<Group, 'admins'>,
 ): boolean => Boolean(ctx.userId && group.admins.some(({ id }) => id === ctx.userId))
 
+/**
+ * Check if the given context is a member of the group.
+ *
+ * @param statuses Optional list of member statuses to check for.
+ * If not provided, defaults to 'active' members only.
+ * If null, will check for any member regardless of status.
+ */
 export const isGroupMember = async (
   ctx: OptionalAuthContext,
   group: Pick<Group, 'id'>,
-  statuses: MemberStatus[] = ['active'],
+  statuses: MemberStatus[] | null = ['active'],
 ): Promise<boolean> => {
   if (!ctx.userId) {
     return false
@@ -190,7 +197,7 @@ export const isGroupMember = async (
   const members = await findUserMembers(ctx.userId, {
     where: {
       groupId: group.id,
-      status: { in: statuses },
+      ...(statuses ? { status: { in: statuses } } : {}),
     },
     take: 1,
   })
@@ -201,13 +208,12 @@ export const isGroupMember = async (
 /**
  * Return true if the given context has permission to list members of the group.
  *
- * The optional `isMember` checks if the user is a member of the group. This can
- * be used to avoid unnecessary database queries.
+ * The optional `isMember` callback lets callers reuse or customize the membership check.
  */
 export const canListGroupMembers = async (
   ctx: OptionalAuthContext,
   group: Group,
-  isMember = () => isGroupMember(ctx, group),
+  isMember = () => isGroupMember(ctx, group, null),
 ) => {
   return ctx.isSuperadmin || ctx.canReadAllSocial
     || (group.status === 'active' && group.access === 'public' && group.settings?.allowAnonymousMemberList === true)
@@ -219,8 +225,8 @@ export const canReadGroup = async (ctx: OptionalAuthContext, group: Group): Prom
   return ctx.isSuperadmin
     || ctx.canReadAllSocial
     || (group.status === 'active' && group.access === 'public')
-    || await isGroupMember(ctx, group, ['draft', 'pending', 'active', 'disabled', 'suspended'])
     || isGroupAdmin(ctx, group)
+    || await isGroupMember(ctx, group, null)
 }
 
 export const canWriteGroup = (ctx: AuthContext, group: Group): boolean => {
