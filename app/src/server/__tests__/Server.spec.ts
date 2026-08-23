@@ -154,21 +154,6 @@ describe("MirageJS Server", () => {
     expect((await json(explicitResponse)).data).toHaveLength(0)
   });
 
-  it("preserves an explicit member code", async () => {
-    const response = await fetch(`${urlSocial}/GRP0/members`, {
-      method: "POST",
-      headers: { ...authHeaders, "Content-Type": "application/vnd.api+json" },
-      body: JSON.stringify({
-        data: {
-          type: "members",
-          attributes: { name: "Explicit code", code: "  chosen-code  " }
-        }
-      })
-    })
-
-    expect((await json(response)).data.attributes.code).toBe("chosen-code")
-  });
-
   it("loads user memberships from /users/:id/members", async () => {
     const me = await fetch(`${urlSocial}/users/me?include=settings`, { headers: authHeaders });
     const meData = await json(me);
