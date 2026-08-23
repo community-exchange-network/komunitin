@@ -137,6 +137,31 @@ describe('Posts endpoints', () => {
     }
   })
 
+  test('POST /:code/posts rejects active members of a disabled group', async () => {
+    await seedGroup({ tenantId: 'posts-disabled-group', status: 'disabled', access: 'public' })
+    const owner = await auth('posts-disabled-group-owner')
+    const member = await seedMember({
+      tenantId: 'posts-disabled-group',
+      status: 'active',
+      userId: owner.id,
+    })
+
+    const res = await request(app)
+      .post('/posts-disabled-group/posts')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send(postInput('offers', {
+        title: 'Disabled group offer',
+        description: 'This should not be created.',
+      }, member.id))
+      .expect(403)
+
+    assert.strictEqual(
+      res.body.errors[0].detail,
+      'You do not have permission to create a post for this member',
+    )
+    assert.strictEqual(await tenantDb(prisma, 'posts-disabled-group').post.count(), 0)
+  })
+
   test('POST and PATCH /:code/posts allow a draft member to edit an offer during signup', async () => {
     await seedGroup({ tenantId: 'posts-signup-draft', status: 'active', access: 'public' })
     const owner = await auth('posts-signup-draft-owner')

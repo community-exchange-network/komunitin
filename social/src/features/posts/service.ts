@@ -289,7 +289,8 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
   const member = await getMemberById(code, input.memberId)
 
   // Check access
-  const allowed = (ctx.isSuperadmin  || isGroupAdmin(ctx, group) || await isMemberUser(ctx, member)) 
+  const allowed = group.status === 'active'
+    && (ctx.isSuperadmin || isGroupAdmin(ctx, group) || await isMemberUser(ctx, member))
     && ['active', 'pending', 'draft'].includes(member.status)
   
   if (!allowed) {
