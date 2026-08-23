@@ -118,7 +118,7 @@ const description = ref("")
 const category = ref<Category|null>(null)
 const price = ref("")
 const expiration = ref<Date>(new Date())
-const state = ref<OfferStatus>(props.modelValue?.attributes?.status || "published")
+const state = ref<OfferStatus>(props.modelValue?.attributes?.status || "draft")
 
 watch([() => props.modelValue], async () => {
   images.value = props.modelValue?.attributes?.images || []
@@ -136,7 +136,7 @@ watch([() => props.modelValue], async () => {
     expiration.value = date
   }
   
-  state.value = props.modelValue?.attributes?.status || "published"
+  state.value = props.modelValue?.attributes?.status || "draft"
 
   // For some unknown reason the resetValidation needs to be called
   // after changes by this watcher are applied.

@@ -88,10 +88,12 @@ describe("Needs", () => {
     expect(wrapper.vm.$route.path).toBe("/groups/GRP0/needs/I-really-n/preview");
     expect(wrapper.text()).toContain("Updated today");
     expect(wrapper.text()).toContain(selectedCategoryName);
+    expect(wrapper.vm.$store.getters["needs/current"].attributes.status).toBe("draft");
     await wrapper.get(".q-btn--fab").trigger("click");
     
     await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`);
     expect(wrapper.vm.$route.hash).toBe("#needs");
+    expect(wrapper.vm.$store.getters["needs/current"].attributes.status).toBe("published");
     await waitFor(() => wrapper.text().includes("I really need this test to pass."), true, "Need should appear in member page");
   });
 

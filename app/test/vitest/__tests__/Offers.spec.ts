@@ -113,9 +113,11 @@ describe("Offers", () => {
     expect(text).toContain("This offer is a mirage.");
     expect(text).toContain("Updated today");
     expect(text).toContain(selectedCategoryName);
+    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("draft");
     await wrapper.get(".q-btn--fab").trigger("click");
     await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`);
     expect(wrapper.vm.$route.hash).toBe("#offers");
+    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("published");
     await wrapper.vm.$router.push("/groups/GRP0/offers/The-Offer")
     await waitFor(() => wrapper.text().includes("The Offer"), true, "Offer page should show");
     expect(wrapper.text()).toContain("$10.00");
