@@ -72,7 +72,11 @@ describe("Groups", () => {
     
     await wrapper.vm.$router.push("/groups/GRP0");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0");
-    await waitFor(() => wrapper.vm.$store.getters["members/currentList"]?.length === 31, true, "Api should finish loading");
+    await waitFor(
+      () => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing,
+      false,
+      "Group members should finish loading"
+    );
     [
       "/groups/GRP0/members",
       "/groups/GRP0/stats"
