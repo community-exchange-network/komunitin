@@ -383,7 +383,10 @@ export const handlers = [
     }
 
     existing.status = 'deleted'
-    return new HttpResponse(null, { status: 204 })
+    return new HttpResponse(null, {
+      status: 204,
+      headers: { 'Content-Type': 'application/vnd.api+json' },
+    })
   }),
   http.get(`${accountingBaseUrl}/:currencyCode/accounts`, ({ request, params }) => {
     const unauthorized = requireAccountingAuthorization(request)
