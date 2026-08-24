@@ -4,8 +4,8 @@ import type { AuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import type { CollectionResult } from '../../server/query'
 import { indexById } from '../../server/query'
-import { hasInclude, type CollectionParams, type ResourceParams } from '../../server/request'
-import { badRequest, forbidden, notFound } from '../../utils/error'
+import { getFilter, hasInclude, type CollectionParams, type ResourceParams } from '../../server/request'
+import { forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
 import { getGroupByCode, isGroupAdmin } from '../groups/service'
 import { enrichMembers, toMember } from '../members/service'
@@ -14,18 +14,6 @@ import { mergeMemberUserSettings, type MemberUserSettings, type MemberUserSettin
 import type { MemberUser } from './types'
 
 const uuidSchema = z.uuid()
-
-const getFilter = (params: CollectionParams, name: 'user' | 'member') => {
-  const values = params.filters[name]
-  if (values) {
-    for (const value of values) {
-      if (!uuidSchema.safeParse(value).success) {
-        throw badRequest(`Invalid ${name} filter`)
-      }
-    }
-  }
-  return values
-}
 
 const getAuthorization = async (ctx: AuthContext, code: string) => {
   const group = await getGroupByCode(ctx, code)
@@ -73,8 +61,8 @@ export const listMemberUsers = async (
   params: CollectionParams,
 ): Promise<CollectionResult<MemberUser>> => {
   const { canReadAll } = await getAuthorization(ctx, code)
-  const userIds = getFilter(params, 'user')
-  const memberIds = getFilter(params, 'member')
+  const userIds = getFilter(params, 'user', uuidSchema)
+  const memberIds = getFilter(params, 'member', uuidSchema)
 
   if (!canReadAll && userIds?.some((id) => id !== ctx.userId)) {
     throw forbidden('You can only access your own member-user relations')

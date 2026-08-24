@@ -114,6 +114,10 @@ export const patchUser = async (
   return toUser(updated)
 }
 
+/**
+ * Updates all related member-users to set the email group 
+ * notifications to "never".
+ */
 export const unsubscribeUser = async (id: string): Promise<void> => {
   const db = privilegedDb(prisma)
 
