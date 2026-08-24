@@ -1,6 +1,6 @@
 import prisma from '../../utils/prisma'
 import { Prisma, User as DbUser, type Member as DbMember } from '../../generated/prisma/client'
-import type { User, UserSettings, CreateUserInput } from './types'
+import type { User, CreateUserInput } from './types'
 import { badRequest, forbidden, internalError, notFound } from '../../utils/error'
 import { privilegedDb } from '../../server/multitenant'
 import { AuthContext } from '../../server/context'
@@ -10,18 +10,10 @@ import { type DbGroup, getGroupByCode, isGroupAdmin, toGroup } from '../groups/s
 import { enrichMembers, toMember } from '../members/service'
 import type { SerializableMember } from '../members/types'
 import { countUserMembers, findUserMembers } from './member-query'
+import type { MemberUserSettings } from '../member-users/settings'
+import { mergeMemberUserSettings } from '../member-users/settings'
 
-const toUser = (user: DbUser): User => {
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    language: user.language,
-    settings: user.settings as UserSettings,
-    created: user.created,
-    updated: user.updated,
-  }
-}
+export const toUser = (user: DbUser): User => user
 
 export const listGroupAdmins = async (
   ctx: AuthContext,
@@ -60,34 +52,11 @@ const canReadUser = (ctx: AuthContext, id: string): boolean => {
   return ctx.userId === id || ctx.isSuperadmin || ctx.canReadAllSocial
 }
 
-const mergeSettings = (current: UserSettings, patch: UserSettings): Prisma.InputJsonObject => {
-  const merged: UserSettings = {
-    ...current,
-    ...patch,
-  }
-
-  if (patch.notifications) {
-    merged.notifications = {
-      ...current.notifications,
-      ...patch.notifications,
-    }
-  }
-
-  if (patch.emails) {
-    merged.emails = {
-      ...current.emails,
-      ...patch.emails,
-    }
-  }
-
-  return merged as Prisma.InputJsonObject
-}
-
 export const createUser = async ({
   id,
   email,
   name,
-  settings,
+  language,
 }: CreateUserInput): Promise<User> => {
   if (!email) {
     throw badRequest('User email is required in attributes')
@@ -101,12 +70,12 @@ export const createUser = async ({
       id,
       email,
       name,
-      settings,
+      language,
     },
     update: {
       email,
       name,
-      settings,
+      language,
     }
   })
 
@@ -126,42 +95,43 @@ export const getUserById = async (ctx: AuthContext, id: string): Promise<User> =
   return toUser(user)
 }
 
-export const patchUserSettings = async (
+export const patchUser = async (
   ctx: AuthContext,
   id: string,
-  settings: UserSettings,
+  language: string | null,
 ): Promise<User> => {
   if (ctx.userId !== id) {
-    throw forbidden('You can only update your own user settings')
+    throw forbidden('You can only update your own user resource')
   }
 
-  const current = await getUserById(ctx, id)
+  await getUserById(ctx, id)
   const db = privilegedDb(prisma)
   const updated = await db.user.update({
     where: { id },
-    data: {
-      settings: mergeSettings(current.settings, settings),
-    },
+    data: { language },
   })
 
   return toUser(updated)
 }
 
+/**
+ * Updates all related member-users to set the email group 
+ * notifications to "never".
+ */
 export const unsubscribeUser = async (id: string): Promise<void> => {
   const db = privilegedDb(prisma)
-  const user = await db.user.findUnique({ where: { id } })
-  if (!user) {
-    return
-  }
 
   try {
-    await db.user.update({
-      where: { id },
-      data: {
-        settings: mergeSettings(user.settings as UserSettings, {
-          emails: { group: 'never' },
-        }),
-      },
+    await db.transaction(async (tx) => {
+      const relations = await tx.memberUser.findMany({ where: { userId: id } })
+      await Promise.all(relations.map((relation) => tx.memberUser.update({
+        where: { id: relation.id },
+        data: {
+          settings: mergeMemberUserSettings(relation.settings as MemberUserSettings, {
+            emails: { group: 'never' },
+          }),
+        },
+      })))
     })
   } catch (cause) {
     throw internalError(`Failed to unsubscribe user ${id}`, { cause })

@@ -4,7 +4,6 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "name" VARCHAR(255),
     "language" VARCHAR(31),
-    "settings" JSONB NOT NULL DEFAULT '{}',
     "created" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" TIMESTAMP(3) NOT NULL,
 
@@ -81,7 +80,6 @@ CREATE TABLE "MemberUser" (
     "id" UUID NOT NULL,
     "memberId" UUID NOT NULL,
     "userId" UUID NOT NULL,
-    "role" VARCHAR(31) NOT NULL DEFAULT 'admin',
     "settings" JSONB NOT NULL,
 
     CONSTRAINT "MemberUser_pkey" PRIMARY KEY ("id")

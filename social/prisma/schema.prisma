@@ -16,7 +16,6 @@ model User {
   email    String   @unique
   name     String?  @db.VarChar(255)
   language String?  @db.VarChar(31)
-  settings Json     @default("{}")
   created  DateTime @default(now())
   updated  DateTime @updatedAt
 
@@ -156,7 +155,6 @@ model MemberUser {
   id       String @id @default(uuid()) @db.Uuid
   memberId String @db.Uuid
   userId   String @db.Uuid
-  role     String @default("admin") @db.VarChar(31)
   settings Json
 
   member Member @relation(fields: [memberId, tenantId], references: [id, tenantId])

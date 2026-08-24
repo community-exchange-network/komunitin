@@ -9,6 +9,8 @@ import { setupTestServer, teardownTestServer } from './mocks/server'
 import { includedResource, toUuid } from './mocks/utils'
 import { resetDb, seedGroup, seedMember, seedMemberUser, seedPost, seedUser } from './mocks/seed'
 import { seedAuthUnsubscribeToken } from './mocks/handlers'
+import { tenantDb } from '../src/server/multitenant'
+import prisma from '../src/utils/prisma'
 
 let app: any
 
@@ -114,12 +116,12 @@ describe('Users endpoints', () => {
       .expect(403)
   })
 
-  test('POST /users creates authenticated user with optional settings include', async () => {
+  test('POST /users creates authenticated user with language', async () => {
     const subject = toUuid('1')
     const token = await signJwt(subject, 'first@example.org')
 
     const res = await request(app)
-      .post('/users?include=settings')
+      .post('/users')
       .set('Authorization', `Bearer ${token}`)
       .send({
         data: {
@@ -127,16 +129,9 @@ describe('Users endpoints', () => {
           attributes: {
             name: 'Alice',
             email: 'alice@example.org',
+            language: 'en',
           }
         },
-        included: [{
-          type: 'user-settings',
-          attributes: {
-            language: 'en',
-            notifications: { myAccount: true, group: false },
-            emails: { myAccount: true, group: 'weekly' },
-          }
-        }]
       })
       .expect(200)
 
@@ -144,9 +139,7 @@ describe('Users endpoints', () => {
     assert.strictEqual(res.body.data.id, subject)
     assert.strictEqual(res.body.data.attributes.email, 'alice@example.org')
     assert.strictEqual(res.body.data.attributes.name, 'Alice')
-    assert.ok(Array.isArray(res.body.included))
-    assert.strictEqual(res.body.included[0].type, 'user-settings')
-    assert.strictEqual(res.body.included[0].attributes.language, 'en')
+    assert.strictEqual(res.body.data.attributes.language, 'en')
   })
 
   test('POST /users rejects credential fields', async () => {
@@ -168,7 +161,7 @@ describe('Users endpoints', () => {
       .expect(400)
   })
 
-  test('POST /users creates default settings returned by GET /users/me?include=settings', async () => {
+  test('POST /users rejects user-settings includes', async () => {
     const subject = toUuid('3')
     const token = await signJwt(subject, 'third@example.org')
 
@@ -186,41 +179,38 @@ describe('Users endpoints', () => {
       })
       .expect(200)
 
-    const res = await request(app)
-      .get('/users/me?include=settings')
+    await request(app)
+      .post('/users?include=settings')
       .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-
-    assert.strictEqual(res.body.data.id, subject)
-    assert.strictEqual(res.body.data.attributes.email, 'third@example.org')
-    assert.deepStrictEqual(res.body.data.relationships.settings.data, {
-      type: 'user-settings',
-      id: subject,
-    })
-    assert.deepStrictEqual(includedResource(res.body, 'user-settings', subject)?.attributes, {})
+      .send({
+        data: {
+          type: 'users',
+          attributes: { email: 'third@example.org' },
+        },
+        included: [{ type: 'user-settings', attributes: {} }],
+      })
+      .expect(400)
   })
 
-  test('GET /users/me supports settings include but rejects members include', async () => {
+  test('GET /users/me returns language and rejects includes', async () => {
     const subject = toUuid('me-include-settings')
     const token = await signJwt(subject, 'me-include-settings@example.org')
 
     await seedUser({
       id: subject,
       email: 'me-include-settings@example.org',
-      settings: {
-        language: 'ca',
-      },
+      language: 'ca',
     })
 
     const res = await request(app)
-      .get('/users/me?include=settings')
+      .get('/users/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
 
-    assert.ok(includedResource(res.body, 'user-settings', subject))
+    assert.strictEqual(res.body.data.attributes.language, 'ca')
 
     await request(app)
-      .get('/users/me?include=members')
+      .get('/users/me?include=settings')
       .set('Authorization', `Bearer ${token}`)
       .expect(400)
   })
@@ -275,7 +265,7 @@ describe('Users endpoints', () => {
     assert.strictEqual(res.body.data.attributes.name, 'Self User')
   })
 
-  test('GET /users allows service read access with filter[members] and include=settings', async () => {
+  test('GET /users allows service read access with filter[members]', async () => {
     const tenantId = 'users-filter-members'
     await seedGroup({ tenantId, status: 'active', access: 'public' })
 
@@ -290,12 +280,13 @@ describe('Users endpoints', () => {
       id: 'linked-user',
       email: 'linked@example.org',
       name: 'Linked User',
+      language: 'it',
     })
 
     const { token: serviceToken } = await serviceAuth()
 
     const res = await request(app)
-      .get(`/users?filter[members]=${member.id}&include=settings`)
+      .get(`/users?filter[members]=${member.id}`)
       .set('Authorization', `Bearer ${serviceToken}`)
       .expect(200)
 
@@ -304,15 +295,7 @@ describe('Users endpoints', () => {
     const linkedUserResource = res.body.data.find((resource: any) => resource.id === linkedUser.id)
     assert.strictEqual(linkedUserResource.type, 'users')
     assert.strictEqual(linkedUserResource.attributes.email, 'linked@example.org')
-    assert.deepStrictEqual(linkedUserResource.relationships.settings.data, {
-      type: 'user-settings',
-      id: linkedUser.id,
-    })
-
-    assert.strictEqual(Array.isArray(res.body.included), true)
-    const linkedSettings = res.body.included.find((resource: any) => resource.type === 'user-settings' && resource.id === linkedUser.id)
-    assert.ok(linkedSettings)
-    assert.deepStrictEqual(linkedSettings.attributes, {})
+    assert.strictEqual(linkedUserResource.attributes.language, 'it')
   })
 
   test('GET /users paginates unique users when one user belongs to multiple filtered members', async () => {
@@ -529,145 +512,114 @@ describe('Users endpoints', () => {
     assert.strictEqual(superadminRes.body.data[0].id, member.id)
   })
 
-  test('GET /users/:id/settings enforces read permissions', async () => {
-    const subject = toUuid('settings-owner')
-    const token = await signJwt(subject, 'settings-owner@example.org')
-    const outsiderToken = await signJwt(toUuid('settings-outsider'), 'settings-outsider@example.org')
-    const { token: serviceToken } = await serviceAuth()
-    const superadminToken = await signJwt(toUuid('settings-superadmin'), 'settings-superadmin@example.org', Scope.Superadmin)
+  test('PATCH /users/:id updates only the caller language', async () => {
+    const subject = toUuid('language-patch-owner')
+    const other = toUuid('language-patch-other')
+    const token = await signJwt(subject, 'language-patch-owner@example.org')
 
     await seedUser({
       id: subject,
-      email: 'settings-owner@example.org',
-      settings: {
-        language: 'es',
-      },
+      email: 'language-patch-owner@example.org',
+      language: 'en',
     })
+    await seedUser({ id: other, email: 'language-patch-other@example.org' })
 
-    const selfRes = await request(app)
-      .get(`/users/${subject}/settings`)
+    const payload = {
+      data: {
+        type: 'users',
+        attributes: { language: 'ca' },
+      },
+    }
+
+    await request(app)
+      .patch(`/users/${other}`)
       .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-
-    assert.strictEqual(selfRes.body.data.type, 'user-settings')
-    assert.strictEqual(selfRes.body.data.id, subject)
-    assert.strictEqual(selfRes.body.data.attributes.language, 'es')
-
-    await request(app)
-      .get(`/users/${subject}/settings`)
-      .set('Authorization', `Bearer ${serviceToken}`)
-      .expect(200)
-
-    await request(app)
-      .get(`/users/${subject}/settings`)
-      .set('Authorization', `Bearer ${superadminToken}`)
-      .expect(200)
-
-    await request(app)
-      .get(`/users/${subject}/settings`)
-      .set('Authorization', `Bearer ${outsiderToken}`)
-      .expect(403)
-  })
-
-  test('PATCH /users/:id/settings is self-only and deep-merges nested settings', async () => {
-    const subject = toUuid('settings-patch-owner')
-    const token = await signJwt(subject, 'settings-patch-owner@example.org')
-    const { token: serviceToken } = await serviceAuth()
-
-    await seedUser({
-      id: subject,
-      email: 'settings-patch-owner@example.org',
-      settings: {
-        language: 'en',
-        notifications: {
-          myAccount: true,
-          group: false,
-        },
-        emails: {
-          myAccount: true,
-          group: 'weekly',
-        },
-      },
-    })
-
-    await request(app)
-      .patch(`/users/${subject}/settings`)
-      .set('Authorization', `Bearer ${serviceToken}`)
-      .send({
-        data: {
-          type: 'user-settings',
-          attributes: {
-            language: 'ca',
-          },
-        },
-      })
+      .send(payload)
       .expect(403)
 
-    const res = await request(app)
-      .patch(`/users/${subject}/settings`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        data: {
-          type: 'user-settings',
-          attributes: {
-            notifications: {
-              group: true,
-            },
-            emails: {
-              group: 'monthly',
-            },
-          },
-        },
-      })
-      .expect(200)
-
-    assert.strictEqual(res.body.data.id, subject)
-    assert.strictEqual(res.body.data.attributes.language, 'en')
-    assert.deepStrictEqual(res.body.data.attributes.notifications, {
-      myAccount: true,
-      group: true,
-    })
-    assert.deepStrictEqual(res.body.data.attributes.emails, {
-      myAccount: true,
-      group: 'monthly',
-    })
-  })
-
-  test('PATCH /users/:id/settings validates request body', async () => {
-    const subject = toUuid('settings-patch-validation')
-    const token = await signJwt(subject, 'settings-patch-validation@example.org')
-
-    await seedUser({
-      id: subject,
-      email: 'settings-patch-validation@example.org',
-    })
-
     await request(app)
-      .patch(`/users/${subject}/settings`)
+      .patch(`/users/${subject}`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         data: {
-          type: 'user-settings',
-          attributes: {
-            emails: {
-              group: 'daily',
-            },
-          },
+          ...payload.data,
+          id: other,
         },
       })
       .expect(400)
+
+    const unchanged = await request(app)
+      .get(`/users/${subject}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    assert.strictEqual(unchanged.body.data.attributes.language, 'en')
+
+    const res = await request(app)
+      .patch(`/users/${subject}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(payload)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.type, 'users')
+    assert.strictEqual(res.body.data.attributes.language, 'ca')
   })
 
-  test('POST /users/unsubscribe redeems a public token and preserves other settings', async () => {
+  test('PATCH /users/:id rejects preference attributes and old settings routes are gone', async () => {
+    const subject = toUuid('language-patch-validation')
+    const token = await signJwt(subject, 'language-patch-validation@example.org')
+    await seedUser({ id: subject, email: 'language-patch-validation@example.org' })
+
+    await request(app)
+      .patch(`/users/${subject}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        data: {
+          type: 'users',
+          attributes: { notifications: { group: false } },
+        },
+      })
+      .expect(400)
+
+    await request(app)
+      .get(`/users/${subject}/settings`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404)
+
+    await request(app)
+      .patch(`/users/${subject}/settings`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ data: { type: 'user-settings', attributes: {} } })
+      .expect(404)
+  })
+
+  test('POST /users/unsubscribe disables newsletters across every tenant relation', async () => {
     const userId = toUuid('unsubscribe-user')
     const token = 'valid-unsubscribe-token'
     await seedUser({
       id: userId,
       email: 'unsubscribe-user@example.org',
+      language: 'ca',
+    })
+    await seedGroup({ tenantId: 'unsubscribe-one', status: 'active' })
+    await seedGroup({ tenantId: 'unsubscribe-two', status: 'active' })
+    const firstMember = await seedMember({ tenantId: 'unsubscribe-one' })
+    const secondMember = await seedMember({ tenantId: 'unsubscribe-two' })
+    const first = await seedMemberUser({
+      tenantId: 'unsubscribe-one',
+      memberId: firstMember.id,
+      userId,
       settings: {
-        language: 'ca',
-        notifications: { myAccount: true, group: true },
-        emails: { myAccount: true, group: 'weekly' },
+        notifications: { myAccount: false, group: true },
+        emails: { myAccount: false, group: 'weekly' },
+      },
+    })
+    const second = await seedMemberUser({
+      tenantId: 'unsubscribe-two',
+      memberId: secondMember.id,
+      userId,
+      settings: {
+        notifications: { myAccount: true, group: false },
+        emails: { myAccount: true, group: 'monthly' },
       },
     })
     seedAuthUnsubscribeToken(token, userId, 'unsubscribe-user@example.org')
@@ -676,15 +628,16 @@ describe('Users endpoints', () => {
       .post(`/users/unsubscribe?token=${token}`)
       .expect(204)
 
-    const userToken = await signJwt(userId, 'unsubscribe-user@example.org')
-    const settings = await request(app)
-      .get(`/users/${userId}/settings`)
-      .set('Authorization', `Bearer ${userToken}`)
-      .expect(200)
-
-    assert.deepStrictEqual(settings.body.data.attributes, {
-      language: 'ca',
-      notifications: { myAccount: true, group: true },
+    assert.deepStrictEqual((await tenantDb(prisma, 'unsubscribe-one').memberUser.findUniqueOrThrow({
+      where: { id: first.id },
+    })).settings, {
+      notifications: { myAccount: false, group: true },
+      emails: { myAccount: false, group: 'never' },
+    })
+    assert.deepStrictEqual((await tenantDb(prisma, 'unsubscribe-two').memberUser.findUniqueOrThrow({
+      where: { id: second.id },
+    })).settings, {
+      notifications: { myAccount: true, group: false },
       emails: { myAccount: true, group: 'never' },
     })
 
@@ -692,16 +645,83 @@ describe('Users endpoints', () => {
       .post(`/users/unsubscribe?token=${token}`)
       .expect(204)
 
-    const repeatedSettings = await request(app)
-      .get(`/users/${userId}/settings`)
+    assert.deepStrictEqual((await tenantDb(prisma, 'unsubscribe-one').memberUser.findUniqueOrThrow({
+      where: { id: first.id },
+    })).settings, {
+      notifications: { myAccount: false, group: true },
+      emails: { myAccount: false, group: 'never' },
+    })
+
+    const userToken = await signJwt(userId, 'unsubscribe-user@example.org')
+    const user = await request(app)
+      .get(`/users/${userId}`)
       .set('Authorization', `Bearer ${userToken}`)
       .expect(200)
+    assert.strictEqual(user.body.data.attributes.language, 'ca')
+  })
 
-    assert.deepStrictEqual(repeatedSettings.body.data.attributes, {
-      language: 'ca',
-      notifications: { myAccount: true, group: true },
-      emails: { myAccount: true, group: 'never' },
+  test('POST /users/unsubscribe rolls back every relation when one update fails', async () => {
+    const userId = toUuid('unsubscribe-atomic-user')
+    const token = 'atomic-unsubscribe-token'
+    await seedUser({ id: userId, email: 'unsubscribe-atomic@example.org' })
+    await seedGroup({ tenantId: 'unsubscribe-atomic-one', status: 'active' })
+    await seedGroup({ tenantId: 'unsubscribe-atomic-two', status: 'active' })
+    const firstMember = await seedMember({ tenantId: 'unsubscribe-atomic-one' })
+    const secondMember = await seedMember({ tenantId: 'unsubscribe-atomic-two' })
+    const first = await seedMemberUser({
+      tenantId: 'unsubscribe-atomic-one',
+      memberId: firstMember.id,
+      userId,
+      settings: {
+        notifications: { myAccount: true, group: true },
+        emails: { myAccount: true, group: 'weekly' },
+      },
     })
+    const second = await seedMemberUser({
+      tenantId: 'unsubscribe-atomic-two',
+      memberId: secondMember.id,
+      userId,
+      settings: {
+        notifications: { myAccount: true, group: true },
+        emails: { myAccount: true, group: 'monthly' },
+      },
+    })
+    seedAuthUnsubscribeToken(token, userId, 'unsubscribe-atomic@example.org')
+
+    await prisma.$executeRawUnsafe(`
+      CREATE FUNCTION test_fail_second_unsubscribe_update() RETURNS trigger AS $$
+      BEGIN
+        IF current_setting('test.unsubscribe_update_seen', TRUE) = 'yes' THEN
+          RAISE EXCEPTION 'forced second unsubscribe update failure';
+        END IF;
+        PERFORM set_config('test.unsubscribe_update_seen', 'yes', TRUE);
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TRIGGER test_fail_second_unsubscribe_update
+      BEFORE UPDATE OF settings ON "MemberUser"
+      FOR EACH ROW EXECUTE FUNCTION test_fail_second_unsubscribe_update();
+    `)
+
+    try {
+      await request(app)
+        .post(`/users/unsubscribe?token=${token}`)
+        .expect(500)
+    } finally {
+      await prisma.$executeRawUnsafe(
+        'DROP TRIGGER test_fail_second_unsubscribe_update ON "MemberUser"',
+      )
+      await prisma.$executeRawUnsafe('DROP FUNCTION test_fail_second_unsubscribe_update()')
+    }
+
+    assert.deepStrictEqual((await tenantDb(prisma, 'unsubscribe-atomic-one').memberUser.findUniqueOrThrow({
+      where: { id: first.id },
+    })).settings, first.settings)
+    assert.deepStrictEqual((await tenantDb(prisma, 'unsubscribe-atomic-two').memberUser.findUniqueOrThrow({
+      where: { id: second.id },
+    })).settings, second.settings)
   })
 
   test('POST /users/unsubscribe does not disclose a missing social projection', async () => {
@@ -719,8 +739,16 @@ describe('Users endpoints', () => {
     await seedUser({
       id: userId,
       email: 'unsubscribe-retry@example.org',
+    })
+    await seedGroup({ tenantId: 'unsubscribe-retry', status: 'active' })
+    const member = await seedMember({ tenantId: 'unsubscribe-retry' })
+    const relation = await seedMemberUser({
+      tenantId: 'unsubscribe-retry',
+      memberId: member.id,
+      userId,
       settings: {
-        emails: { group: 'weekly' },
+        notifications: { myAccount: true, group: true },
+        emails: { myAccount: true, group: 'weekly' },
       },
     })
     seedAuthUnsubscribeToken(token, userId, 'unsubscribe-retry@example.org')
@@ -732,13 +760,13 @@ describe('Users endpoints', () => {
       .post(`/users/unsubscribe?token=${token}`)
       .expect(204)
 
-    const userToken = await signJwt(userId, 'unsubscribe-retry@example.org')
-    const settings = await request(app)
-      .get(`/users/${userId}/settings`)
-      .set('Authorization', `Bearer ${userToken}`)
-      .expect(200)
-
-    assert.strictEqual(settings.body.data.attributes.emails.group, 'never')
+    const updated = await tenantDb(prisma, 'unsubscribe-retry').memberUser.findUniqueOrThrow({
+      where: { id: relation.id },
+    })
+    assert.deepStrictEqual(updated.settings, {
+      notifications: { myAccount: true, group: true },
+      emails: { myAccount: true, group: 'never' },
+    })
   })
 
   test('POST /users/unsubscribe rejects missing and unknown tokens', async () => {
