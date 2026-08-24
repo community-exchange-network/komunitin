@@ -157,7 +157,7 @@ model MemberUser {
   memberId String @db.Uuid
   userId   String @db.Uuid
   role     String @default("admin") @db.VarChar(31)
-  settings Json   @default("{}")
+  settings Json
 
   member Member @relation(fields: [memberId, tenantId], references: [id, tenantId])
   user   User   @relation(fields: [userId], references: [id])
