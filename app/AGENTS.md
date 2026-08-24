@@ -55,4 +55,5 @@ pnpm test
 - Use narrower unit tests for complex logic, only if necessary.
 - Test files live in `test/vitest/__tests__/**/*.{spec,test}.ts` (e2e-ish) or `src/**/__tests__/*.{spec,test}.ts` (unit).
 - Use `waitFor(fn, expected, message?, timeout?)` from `test/vitest/utils/index.ts`. Do not add arbitrary sleeps.
+- Use `getComponent` to workaround teleports.
 - If Vitest fails because `.quasar/tsconfig.json` is missing, run `pnpm run build` first.
