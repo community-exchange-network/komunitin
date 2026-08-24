@@ -312,6 +312,7 @@ describe("Signup", () => {
     await wrapper.get("button[type='submit']").trigger("click");
 
     await waitFor(() => wrapper.text().includes("Signup complete"), true, "Signup should complete");
+    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("published")
 
     const memberCode = wrapper.vm.$store.getters.myMember.attributes.code
     expect(memberCode).toBe("GRP00000")

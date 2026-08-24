@@ -98,14 +98,17 @@ import type { Category, ImageObject, Offer, OfferStatus } from "src/store/model"
 import { type DeepPartial, type QForm } from "quasar"
 import { useStore } from "vuex"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   code: string
   modelValue?: DeepPartial<Offer> & {category: Category}
+  defaultStatus?: OfferStatus
   showState?: boolean
   submitLabel?: string
   header?: string
   loading?: boolean
-}>()
+}>(), {
+  defaultStatus: "published"
+})
 const emit = defineEmits<{
   (e: "submit", value: DeepPartial<Offer>): void
 }>()
@@ -118,7 +121,7 @@ const description = ref("")
 const category = ref<Category|null>(null)
 const price = ref("")
 const expiration = ref<Date>(new Date())
-const state = ref<OfferStatus>(props.modelValue?.attributes?.status || "draft")
+const state = ref<OfferStatus>(props.modelValue?.attributes?.status ?? props.defaultStatus)
 
 watch([() => props.modelValue], async () => {
   images.value = props.modelValue?.attributes?.images || []
@@ -136,7 +139,7 @@ watch([() => props.modelValue], async () => {
     expiration.value = date
   }
   
-  state.value = props.modelValue?.attributes?.status || "draft"
+  state.value = props.modelValue?.attributes?.status ?? props.defaultStatus
 
   // For some unknown reason the resetValidation needs to be called
   // after changes by this watcher are applied.
