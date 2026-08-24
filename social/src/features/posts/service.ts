@@ -290,8 +290,8 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
 
   // Check access
   const allowed = group.status === 'active'
-    && (ctx.isSuperadmin || isGroupAdmin(ctx, group) || await isMemberUser(ctx, member))
     && ['active', 'pending', 'draft'].includes(member.status)
+    && (ctx.isSuperadmin || isGroupAdmin(ctx, group) || await isMemberUser(ctx, member))
   
   if (!allowed) {
     throw forbidden('You do not have permission to create a post for this member')
