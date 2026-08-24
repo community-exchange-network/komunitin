@@ -12,6 +12,7 @@ import PageHeader from "src/layouts/PageHeader.vue";
 import type { Category, Member, Need } from "src/store/model";
 import ContactButton from "src/components/ContactButton.vue";
 import ShareButton from "src/components/ShareButton.vue";
+import MemberHeader from "src/components/MemberHeader.vue";
 
 type FullNeed = Need & { member: Member, category: Category };
 type SelectOption = { label: string, value: string };
@@ -54,7 +55,11 @@ describe("Needs", () => {
   });
 
   it ("Renders single need", async () => {
-    await wrapper.vm.$router.push(`/groups/GRP0/needs/${need.attributes.code}`);
+    const needCard = wrapper.findAllComponents(NeedCard)
+      .find(card => card.props("need").id === need.id)
+    if (!needCard) throw new Error("Need card not found")
+    await needCard.getComponent(MemberHeader).trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/needs/${need.attributes.code}`)
     const description = requireTextExcerpt(need.attributes.description, "Need description");
     await waitFor(() => wrapper.text().includes(description), true, "Need page should load");
     const text = wrapper.text();
