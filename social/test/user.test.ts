@@ -537,6 +537,23 @@ describe('Users endpoints', () => {
       .send(payload)
       .expect(403)
 
+    await request(app)
+      .patch(`/users/${subject}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        data: {
+          ...payload.data,
+          id: other,
+        },
+      })
+      .expect(400)
+
+    const unchanged = await request(app)
+      .get(`/users/${subject}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+    assert.strictEqual(unchanged.body.data.attributes.language, 'en')
+
     const res = await request(app)
       .patch(`/users/${subject}`)
       .set('Authorization', `Bearer ${token}`)
@@ -641,6 +658,70 @@ describe('Users endpoints', () => {
       .set('Authorization', `Bearer ${userToken}`)
       .expect(200)
     assert.strictEqual(user.body.data.attributes.language, 'ca')
+  })
+
+  test('POST /users/unsubscribe rolls back every relation when one update fails', async () => {
+    const userId = toUuid('unsubscribe-atomic-user')
+    const token = 'atomic-unsubscribe-token'
+    await seedUser({ id: userId, email: 'unsubscribe-atomic@example.org' })
+    await seedGroup({ tenantId: 'unsubscribe-atomic-one', status: 'active' })
+    await seedGroup({ tenantId: 'unsubscribe-atomic-two', status: 'active' })
+    const firstMember = await seedMember({ tenantId: 'unsubscribe-atomic-one' })
+    const secondMember = await seedMember({ tenantId: 'unsubscribe-atomic-two' })
+    const first = await seedMemberUser({
+      tenantId: 'unsubscribe-atomic-one',
+      memberId: firstMember.id,
+      userId,
+      settings: {
+        notifications: { myAccount: true, group: true },
+        emails: { myAccount: true, group: 'weekly' },
+      },
+    })
+    const second = await seedMemberUser({
+      tenantId: 'unsubscribe-atomic-two',
+      memberId: secondMember.id,
+      userId,
+      settings: {
+        notifications: { myAccount: true, group: true },
+        emails: { myAccount: true, group: 'monthly' },
+      },
+    })
+    seedAuthUnsubscribeToken(token, userId, 'unsubscribe-atomic@example.org')
+
+    await prisma.$executeRawUnsafe(`
+      CREATE FUNCTION test_fail_second_unsubscribe_update() RETURNS trigger AS $$
+      BEGIN
+        IF current_setting('test.unsubscribe_update_seen', TRUE) = 'yes' THEN
+          RAISE EXCEPTION 'forced second unsubscribe update failure';
+        END IF;
+        PERFORM set_config('test.unsubscribe_update_seen', 'yes', TRUE);
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TRIGGER test_fail_second_unsubscribe_update
+      BEFORE UPDATE OF settings ON "MemberUser"
+      FOR EACH ROW EXECUTE FUNCTION test_fail_second_unsubscribe_update();
+    `)
+
+    try {
+      await request(app)
+        .post(`/users/unsubscribe?token=${token}`)
+        .expect(500)
+    } finally {
+      await prisma.$executeRawUnsafe(
+        'DROP TRIGGER test_fail_second_unsubscribe_update ON "MemberUser"',
+      )
+      await prisma.$executeRawUnsafe('DROP FUNCTION test_fail_second_unsubscribe_update()')
+    }
+
+    assert.deepStrictEqual((await tenantDb(prisma, 'unsubscribe-atomic-one').memberUser.findUniqueOrThrow({
+      where: { id: first.id },
+    })).settings, first.settings)
+    assert.deepStrictEqual((await tenantDb(prisma, 'unsubscribe-atomic-two').memberUser.findUniqueOrThrow({
+      where: { id: second.id },
+    })).settings, second.settings)
   })
 
   test('POST /users/unsubscribe does not disclose a missing social projection', async () => {

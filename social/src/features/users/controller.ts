@@ -83,6 +83,10 @@ export const patchUserRoute: RequestHandler = async (req, res) => {
   const requestedId = getIdParam(req, 'id')
   const body = getValidatedBody<PatchUserBody>(req)
 
+  if (body.data.id && body.data.id !== requestedId) {
+    throw badRequest('Resource id does not match route id')
+  }
+
   const user = await patchUser(ctx, requestedId, body.data.attributes.language)
   const payload = await serializeUser(user)
   res.status(200).json(payload)
