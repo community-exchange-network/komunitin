@@ -17,7 +17,7 @@ describe("Member-user settings", () => {
   const settingsPage = () => wrapper.findComponent(EditSettings)
   const notificationToggle = () => settingsPage().findAllComponents(ToggleItem).find(
     item => item.props("label") === i18n.global.t("myAccountNotifications"),
-  )!
+  )
 
   beforeAll(async () => {
     seeds()
@@ -50,7 +50,7 @@ describe("Member-user settings", () => {
 
     const language = settingsPage().findAllComponents(QSelect).find(
       select => select.props("label") === i18n.global.t("language"),
-    )!
+    )
     await language.setValue({ label: "Español", value: "es" })
 
     await waitFor(
