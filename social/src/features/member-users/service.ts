@@ -1,17 +1,19 @@
 import { z } from 'zod'
-import type { Prisma } from '../../generated/prisma/client'
+import type { MemberUser as DbMemberUser, Prisma } from '../../generated/prisma/client'
 import type { AuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import type { CollectionResult } from '../../server/query'
-import { indexById } from '../../server/query'
+import { indexById, type CollectionResult, uniqueById } from '../../server/query'
 import { getFilter, hasInclude, type CollectionParams, type ResourceParams } from '../../server/request'
 import { forbidden, notFound } from '../../utils/error'
 import prisma from '../../utils/prisma'
 import { getGroupByCode, isGroupAdmin } from '../groups/service'
+import type { Group } from '../groups/types'
 import { enrichMembers, toMember } from '../members/service'
+import type { Member } from '../members/types'
 import { toUser } from '../users/service'
+import type { User } from '../users/types'
 import { mergeMemberUserSettings, type MemberUserSettings, type MemberUserSettingsPatch } from './settings'
-import type { MemberUser } from './types'
+import type { EnrichedMemberUser, MemberUser } from './types'
 
 const uuidSchema = z.uuid()
 
@@ -23,31 +25,40 @@ const getAuthorization = async (ctx: AuthContext, code: string) => {
   }
 }
 
-const hydrateMemberUsers = async (
+export const toMemberUser = (
+  memberUser: DbMemberUser,
+  member?: Member,
+  user?: User,
+): MemberUser => ({
+  ...memberUser,
+  settings: memberUser.settings as MemberUserSettings,
+  member,
+  user,
+})
+
+export const enrichMemberUsers = async (
   ctx: AuthContext,
-  code: string,
-  rows: any[],
-  params: ResourceParams,
-): Promise<MemberUser[]> => {
-  const includeMembers = hasInclude(params, 'member')
-  const members = includeMembers
-    ? await enrichMembers(
-        ctx,
-        rows.map(({ member }: any) => toMember(member)),
-        [(await getGroupByCode(ctx, code))],
-      )
-    : []
+  memberUsers: MemberUser[],
+  group: Group,
+): Promise<EnrichedMemberUser[]> => {
+  const includedMembers = uniqueById(
+    memberUsers.flatMap(({ member }) => member ? [member] : []),
+  )
+  const members = await enrichMembers(ctx, includedMembers, [group])
   const membersById = indexById(members)
 
-  return rows.map((row) => ({
-    id: row.id,
-    tenantId: row.tenantId,
-    memberId: row.memberId,
-    userId: row.userId,
-    settings: row.settings as MemberUserSettings,
-    member: membersById.get(row.memberId),
-    user: row.user ? toUser(row.user) : undefined,
+  return memberUsers.map((memberUser) => ({
+    ...memberUser,
+    member: memberUser.member ? membersById.get(memberUser.memberId)! : undefined,
   }))
+}
+
+export const enrichMemberUser = async (
+  ctx: AuthContext,
+  memberUser: MemberUser,
+  group: Group,
+): Promise<EnrichedMemberUser> => {
+  return (await enrichMemberUsers(ctx, [memberUser], group))[0]
 }
 
 const getLoad = (params: ResourceParams) => ({
@@ -55,12 +66,43 @@ const getLoad = (params: ResourceParams) => ({
   user: hasInclude(params, 'user'),
 })
 
+const getAuthorizedMemberUser = async (
+  ctx: AuthContext,
+  code: string,
+  id: string,
+  params: ResourceParams,
+) => {
+  const { group, canReadAll } = await getAuthorization(ctx, code)
+  const db = tenantDb(prisma, code)
+  const load = getLoad(params)
+  const row = await db.memberUser.findUnique({
+    where: { id },
+    include: load,
+  })
+
+  if (!row) {
+    throw notFound('Member-user relation not found')
+  }
+  if (!canReadAll && row.userId !== ctx.userId) {
+    throw forbidden('You can only access your own member-user relations')
+  }
+
+  return {
+    group,
+    memberUser: toMemberUser(
+      row,
+      load.member ? toMember(row.member) : undefined,
+      load.user ? toUser(row.user) : undefined,
+    ),
+  }
+}
+
 export const listMemberUsers = async (
   ctx: AuthContext,
   code: string,
   params: CollectionParams,
-): Promise<CollectionResult<MemberUser>> => {
-  const { canReadAll } = await getAuthorization(ctx, code)
+): Promise<CollectionResult<EnrichedMemberUser>> => {
+  const { group, canReadAll } = await getAuthorization(ctx, code)
   const userIds = getFilter(params, 'user', uuidSchema)
   const memberIds = getFilter(params, 'member', uuidSchema)
 
@@ -79,10 +121,11 @@ export const listMemberUsers = async (
   }
 
   const order = params.sort[0]?.order ?? 'asc'
+  const load = getLoad(params)
   const [rows, total] = await Promise.all([
     db.memberUser.findMany({
       where,
-      include: getLoad(params),
+      include: load,
       orderBy: { id: order },
       skip: params.pagination.cursor,
       take: params.pagination.size,
@@ -90,8 +133,14 @@ export const listMemberUsers = async (
     db.memberUser.count({ where }),
   ])
 
+  const items = rows.map((row) => toMemberUser(
+    row,
+    load.member ? toMember(row.member) : undefined,
+    load.user ? toUser(row.user) : undefined,
+  ))
+
   return {
-    items: await hydrateMemberUsers(ctx, code, rows, params),
+    items: await enrichMemberUsers(ctx, items, group),
     total,
   }
 }
@@ -101,22 +150,9 @@ export const getMemberUser = async (
   code: string,
   id: string,
   params: ResourceParams,
-): Promise<MemberUser> => {
-  const { canReadAll } = await getAuthorization(ctx, code)
-  const db = tenantDb(prisma, code)
-  const row = await db.memberUser.findUnique({
-    where: { id },
-    include: getLoad(params),
-  })
-
-  if (!row) {
-    throw notFound('Member-user relation not found')
-  }
-  if (!canReadAll && row.userId !== ctx.userId) {
-    throw forbidden('You can only access your own member-user relations')
-  }
-
-  return (await hydrateMemberUsers(ctx, code, [row], params))[0]
+): Promise<EnrichedMemberUser> => {
+  const { group, memberUser } = await getAuthorizedMemberUser(ctx, code, id, params)
+  return enrichMemberUser(ctx, memberUser, group)
 }
 
 export const patchMemberUser = async (
@@ -125,16 +161,28 @@ export const patchMemberUser = async (
   id: string,
   patch: MemberUserSettingsPatch,
   params: ResourceParams,
-): Promise<MemberUser> => {
-  const current = await getMemberUser(ctx, code, id, { include: [] })
+): Promise<EnrichedMemberUser> => {
+  const { group, memberUser: current } = await getAuthorizedMemberUser(
+    ctx,
+    code,
+    id,
+    { include: [] },
+  )
   const db = tenantDb(prisma, code)
+  const load = getLoad(params)
   const row = await db.memberUser.update({
     where: { id },
     data: {
       settings: mergeMemberUserSettings(current.settings, patch),
     },
-    include: getLoad(params),
+    include: load,
   })
 
-  return (await hydrateMemberUsers(ctx, code, [row], params))[0]
+  const memberUser = toMemberUser(
+    row,
+    load.member ? toMember(row.member) : undefined,
+    load.user ? toUser(row.user) : undefined,
+  )
+
+  return enrichMemberUser(ctx, memberUser, group)
 }

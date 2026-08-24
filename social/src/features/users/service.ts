@@ -122,15 +122,17 @@ export const unsubscribeUser = async (id: string): Promise<void> => {
   const db = privilegedDb(prisma)
 
   try {
-    const relations = await db.memberUser.findMany({ where: { userId: id } })
-    await Promise.all(relations.map((relation) => db.memberUser.update({
-      where: { id: relation.id },
-      data: {
-        settings: mergeMemberUserSettings(relation.settings as MemberUserSettings, {
-          emails: { group: 'never' },
-        }),
-      },
-    })))
+    await db.transaction(async (tx) => {
+      const relations = await tx.memberUser.findMany({ where: { userId: id } })
+      await Promise.all(relations.map((relation) => tx.memberUser.update({
+        where: { id: relation.id },
+        data: {
+          settings: mergeMemberUserSettings(relation.settings as MemberUserSettings, {
+            emails: { group: 'never' },
+          }),
+        },
+      })))
+    })
   } catch (cause) {
     throw internalError(`Failed to unsubscribe user ${id}`, { cause })
   }

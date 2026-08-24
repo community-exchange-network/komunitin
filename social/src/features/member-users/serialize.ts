@@ -4,7 +4,7 @@ import { MemberSerializer } from '../members/serialize'
 import type { SerializableMember } from '../members/types'
 import { UserSerializer } from '../users/serialize'
 import type { User } from '../users/types'
-import type { MemberUser, SerializableMemberUser } from './types'
+import type { EnrichedMemberUser, SerializableMemberUser } from './types'
 
 const { Linker, Relator, Serializer } = TsJapi
 
@@ -31,17 +31,17 @@ const MemberUserSerializer = new Serializer<SerializableMemberUser>('member-user
   },
 })
 
-const toSerializable = (relation: MemberUser): SerializableMemberUser => ({
+const toSerializable = (relation: EnrichedMemberUser): SerializableMemberUser => ({
   ...relation,
   ...relation.settings,
 })
 
 export const serializeMemberUser = async (
-  relation: MemberUser,
+  relation: EnrichedMemberUser,
   options?: SerializerOptions<SerializableMemberUser>,
 ) => MemberUserSerializer.serialize(toSerializable(relation), options)
 
 export const serializeMemberUsers = async (
-  relations: MemberUser[],
+  relations: EnrichedMemberUser[],
   options?: SerializerOptions<SerializableMemberUser>,
 ) => MemberUserSerializer.serialize(relations.map(toSerializable), options)
