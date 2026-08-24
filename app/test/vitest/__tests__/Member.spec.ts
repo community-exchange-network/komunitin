@@ -7,10 +7,23 @@ import OfferCard from "../../../src/components/OfferCard.vue";
 import MemberList from "../../../src/pages/members/MemberList.vue";
 import MemberHeader from "../../../src/components/MemberHeader.vue";
 import TransactionItems from "../../../src/pages/transactions/TransactionItems.vue";
-import { seeds } from "src/server";
+import server, { seeds } from "src/server";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
 import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
 import MenuItem from 'src/components/MenuItem.vue';
+import ContactButton from "src/components/ContactButton.vue";
+import ShareButton from "src/components/ShareButton.vue";
+
+type MockPost = {
+  type: "offers" | "needs"
+  update: (attributes: { status?: string, expires?: string }) => void
+}
+
+type MockSchema = {
+  posts: { where: (attributes: { memberId: string }) => { models: MockPost[] } }
+}
+
+const schema = server.schema as unknown as MockSchema
 
 describe("Member", () => {
   let wrapper: VueWrapper;
@@ -25,6 +38,14 @@ describe("Member", () => {
     await wrapper.vm.$router.push("/login");
     // Wait for the login redirect to Home.
     await waitFor(() => wrapper.vm.$route.path, "/home");
+    const myMember = wrapper.vm.$store.getters.myMember;
+    const myPosts = schema.posts.where({ memberId: myMember.id }).models
+    const myOffers = myPosts.filter(post => post.type === "offers")
+    const myNeeds = myPosts.filter(post => post.type === "needs")
+    myOffers[0].update({ status: "hidden" })
+    myOffers[1].update({ expires: "2000-01-01T00:00:00.000Z" })
+    myNeeds[0].update({ status: "hidden", expires: "2000-01-01T00:00:00.000Z" })
+
     // Open profile menu
     await wrapper.findComponent(ProfileBtnMenu).trigger('click');
     await wrapper.vm.$nextTick();
@@ -36,17 +57,16 @@ describe("Member", () => {
     await memberButton.trigger("click");
     await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members/EmilianoLemke57");
     // Wait for content.
-    await waitFor(() => wrapper.text().includes("GRP0000"), true, "Member page should load content");
+    await waitFor(() => wrapper.text().includes("No Wants"), true, "Member post counts should refresh");
     const text = wrapper.text();
-    const myMember = wrapper.vm.$store.getters.myMember;
     expect(text).toContain("GRP0000");
     expect(text).toContain("$734.69");
     expect(text).toContain("Min $-100");
     expect(text).toContain("Max $500");
     // Tabs
     expect(text).toContain("Profile");
-    expect(text).toContain("1 Want");
-    expect(text).toContain("3 Offers");
+    expect(text).toContain("No Wants");
+    expect(text).toContain("2 Offers");
     expect(wrapper.findAllComponents(QTab).length).toBe(3);
     // Bio
     const description = requireTextExcerpt(myMember.attributes.description, "Member description");
@@ -61,11 +81,24 @@ describe("Member", () => {
     const needsTab = wrapper.findAllComponents(QTab)[1];
     await needsTab.trigger("click");
     await waitFor(() => wrapper.findAllComponents(NeedCard).length, 1, "Should show 1 need");
+    const unavailableNeed = wrapper.getComponent(NeedCard)
+    expect(unavailableNeed.text()).toContain("Hidden")
+    expect(unavailableNeed.text()).toContain("Expired")
+    expect(unavailableNeed.classes()).toContain("muted")
+    expect(unavailableNeed.findComponent(ContactButton).exists()).toBe(false)
+    expect(unavailableNeed.findComponent(ShareButton).exists()).toBe(false)
     
     // Offers
     const offersTab = wrapper.findAllComponents(QTab)[2];
     await offersTab.trigger("click");
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 3, "Should show 3 offers");
+    const hiddenOffer = wrapper.findAllComponents(OfferCard)
+      .find(card => card.props("offer").attributes.status === "hidden")
+    const expiredOffer = wrapper.findAllComponents(OfferCard)
+      .find(card => card.text().includes("Expired"))
+    expect(hiddenOffer?.text()).toContain("Hidden")
+    expect(hiddenOffer?.classes()).toContain("muted")
+    expect(expiredOffer?.classes()).toContain("muted")
   });
 
   it("Navigation from Members List", async () => {
@@ -81,10 +114,12 @@ describe("Member", () => {
     );
     const member = wrapper.getComponent(MemberList).findAllComponents(MemberHeader)[1];
     const selected = member.props("member");
+    const selectedPosts = schema.posts.where({ memberId: selected.id }).models
+    selectedPosts.find(post => post.type === "offers")?.update({ status: "draft" })
     const selectedName = requireText(selected.attributes.name, "Selected member name");
     await member.trigger("click");
     await waitFor(() => wrapper.vm.$route.fullPath, `/groups/GRP0/members/${selected.attributes.code}`);
-    await waitFor(() => wrapper.text().includes(selectedName), true, "Member page should load");
+    await waitFor(() => wrapper.text().includes("2 Offers"), true, "Member post counts should refresh");
     const text = wrapper.text();
     expect(text).toContain(selectedName);
     expect(text).toContain("GRP00001");
@@ -99,7 +134,7 @@ describe("Member", () => {
       expect(text).toContain(requireText(contact.value, "Selected member contact"));
     });
     expect(text).toContain("No Wants");
-    expect(text).toContain("3 Offers");
+    expect(text).toContain("2 Offers");
 
     const tabs = wrapper.findAllComponents(QTab);
     expect(tabs.length).toBe(4);
@@ -114,9 +149,19 @@ describe("Member", () => {
     const offers = wrapper.findAllComponents(OfferCard);
     const offer = offers[0];
     expect(offer.text()).toContain(selectedName);
+    const draftOffer = offers.find(card => card.props("offer").attributes.status === "draft")
+    expect(draftOffer?.text()).toContain("Draft")
+    await draftOffer?.trigger("click")
+    await waitFor(
+      () => wrapper.vm.$route.path,
+      `/groups/GRP0/offers/${draftOffer?.props("offer").attributes.code}/preview`
+    )
+    await wrapper.get(".q-btn--fab").trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${selected.attributes.code}`)
+    expect(wrapper.vm.$route.hash).toBe("#offers")
 
     // Transactions
-    await tabs[3].trigger("click");
+    await wrapper.findAllComponents(QTab)[3].trigger("click");
     await waitFor(
       () => {
         const ti = wrapper.findComponent(TransactionItems);

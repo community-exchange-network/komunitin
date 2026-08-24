@@ -10,6 +10,8 @@ import DeleteNeedBtn from "src/components/DeleteNeedBtn.vue";
 import NeedCard from "src/components/NeedCard.vue";
 import PageHeader from "src/layouts/PageHeader.vue";
 import type { Category, Member, Need } from "src/store/model";
+import ContactButton from "src/components/ContactButton.vue";
+import ShareButton from "src/components/ShareButton.vue";
 
 type FullNeed = Need & { member: Member, category: Category };
 type SelectOption = { label: string, value: string };
@@ -89,9 +91,27 @@ describe("Needs", () => {
     expect(wrapper.text()).toContain("Updated today");
     expect(wrapper.text()).toContain(selectedCategoryName);
     expect(wrapper.vm.$store.getters["needs/current"].attributes.status).toBe("draft");
+
+    const memberPath = `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`
+    await wrapper.vm.$router.push({ path: memberPath, hash: "#needs" })
+    await waitFor(
+      () => wrapper.findAllComponents(NeedCard)
+        .some(card => card.props("need").attributes.code === "I-really-n"),
+      true,
+      "Draft want should appear in the member wants tab"
+    )
+    const draftCard = wrapper.findAllComponents(NeedCard)
+      .find(card => card.props("need").attributes.code === "I-really-n")
+    expect(draftCard?.text()).toContain("Draft")
+    expect(draftCard?.classes()).toContain("muted")
+    expect(draftCard?.findComponent(ContactButton).exists()).toBe(false)
+    expect(draftCard?.findComponent(ShareButton).exists()).toBe(false)
+    await draftCard?.trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/needs/I-really-n/preview")
+
     await wrapper.get(".q-btn--fab").trigger("click");
     
-    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`);
+    await waitFor(() => wrapper.vm.$route.path, memberPath);
     expect(wrapper.vm.$route.hash).toBe("#needs");
     expect(wrapper.vm.$store.getters["needs/current"].attributes.status).toBe("published");
     await waitFor(() => wrapper.text().includes("I really need this test to pass."), true, "Need should appear in member page");

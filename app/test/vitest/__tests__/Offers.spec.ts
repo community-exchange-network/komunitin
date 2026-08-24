@@ -114,8 +114,23 @@ describe("Offers", () => {
     expect(text).toContain("Updated today");
     expect(text).toContain(selectedCategoryName);
     expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("draft");
+
+    const memberPath = `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`
+    await wrapper.vm.$router.push({ path: memberPath, hash: "#offers" })
+    await waitFor(
+      () => wrapper.findAllComponents(OfferCard).some(card => card.props("offer").attributes.code === "The-Offer"),
+      true,
+      "Draft offer should appear in the member offers tab"
+    )
+    const draftCard = wrapper.findAllComponents(OfferCard)
+      .find(card => card.props("offer").attributes.code === "The-Offer")
+    expect(draftCard?.text()).toContain("Draft")
+    expect(draftCard?.classes()).toContain("muted")
+    await draftCard?.trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/offers/The-Offer/preview")
+
     await wrapper.get(".q-btn--fab").trigger("click");
-    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`);
+    await waitFor(() => wrapper.vm.$route.path, memberPath);
     expect(wrapper.vm.$route.hash).toBe("#offers");
     expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("published");
     await wrapper.vm.$router.push("/groups/GRP0/offers/The-Offer")
