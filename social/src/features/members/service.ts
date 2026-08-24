@@ -15,6 +15,7 @@ import { createNotificationsClient } from '../../clients/notifications'
 import { findPostRelationshipCounts } from '../posts/sql'
 import type { PostRelationshipMeta } from '../posts/types'
 import { syncAccountStatus } from './accounting'
+import { defaultMemberUserSettings } from '../member-users/settings'
 
 const getMemberLoad = (params: ResourceParams) => ({
   group: hasInclude(params, 'group'),
@@ -95,7 +96,7 @@ export const getMemberById = async (code: string, id: string, group?: Group): Pr
   return toMember(member, group)
 }
 
-export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member, 'id' | 'tenantId'>, role?: 'admin' ): Promise<boolean> => {
+export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member, 'id' | 'tenantId'>): Promise<boolean> => {
   if (!ctx.userId) {
     return false
   }
@@ -105,7 +106,6 @@ export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member
     where: {
       memberId: member.id,
       userId: ctx.userId,
-      ...(role ? { role } : {}),
     },
   })
 
@@ -123,7 +123,7 @@ const canReadMember = async (ctx: OptionalAuthContext, group: Group, member: Mem
 
 const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): Promise<boolean> => {
   return ctx.isSuperadmin
-    || await isMemberUser(ctx, member, "admin")  
+    || await isMemberUser(ctx, member)
     || isGroupAdmin(ctx, group)
     
 }
@@ -272,7 +272,7 @@ export const createMember = async (
         tenantId: code,
         memberId: member.id,
         userId: ctx.userId,
-        role: 'admin',
+        settings: defaultMemberUserSettings(group.settings.defaultGroupEmailFrequency),
       },
     })
 

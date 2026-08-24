@@ -16,6 +16,7 @@ const toUser = (user: DbUser): User => {
     id: user.id,
     email: user.email,
     name: user.name,
+    language: user.language,
     settings: user.settings as UserSettings,
     created: user.created,
     updated: user.updated,

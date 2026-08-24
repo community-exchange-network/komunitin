@@ -58,7 +58,15 @@ describe('Members endpoints', () => {
   })
 
   test('POST /:code/members creates draft member linked to authenticated user', async () => {
-    const group = await seedGroup({ tenantId: 'members-create', status: 'active', access: 'public' })
+    const group = await seedGroup({
+      tenantId: 'members-create',
+      status: 'active',
+      access: 'public',
+      settings: {
+        allowAnonymousMemberList: true,
+        defaultGroupEmailFrequency: 'weekly',
+      },
+    })
     const user = await auth('member-create-user')
 
     const res = await request(app)
@@ -98,6 +106,14 @@ describe('Members endpoints', () => {
     assert.strictEqual(draftList.body.data.length, 1)
     assert.strictEqual(draftList.body.data[0].attributes.name, 'Alice Member')
     assert.deepStrictEqual(draftList.body.data[0].attributes.contacts, [])
+
+    const db = tenantDb(prisma, 'members-create')
+    const relation = await db.memberUser.findFirstOrThrow({ where: { memberId: res.body.data.id } })
+    assert.match(relation.id, /^[0-9a-f-]{36}$/)
+    assert.deepStrictEqual(relation.settings, {
+      notifications: { myAccount: true, group: true },
+      emails: { myAccount: true, group: 'weekly' },
+    })
   })
 
   test('POST /:code/members allows repeated member creation by the same user', async () => {
@@ -1608,7 +1624,6 @@ describe('Members endpoints', () => {
       tenantId: 'members-linked-user',
       memberId: member.id,
       userId: second.id,
-      role: 'admin',
     })
 
     await request(app)
