@@ -12,6 +12,8 @@ import { QBtn, QDialog, QInput, QItem, QSelect } from "quasar";
 import CountryChooser from "src/components/CountryChooser.vue";
 import LocationPicker from "src/components/LocationPicker.vue";
 import EditGroupForm from "src/pages/admin/EditGroupForm.vue";
+import Error404 from "src/pages/Error404.vue";
+import MemberProfile from "src/pages/members/MemberProfile.vue";
 import { config } from "src/utils/config";
 import { Auth, type SignupContext } from "src/plugins/Auth";
 import type { Group } from "src/store/model";
@@ -310,6 +312,26 @@ describe("Signup", () => {
     await wrapper.get("button[type='submit']").trigger("click");
 
     await waitFor(() => wrapper.text().includes("Signup complete"), true, "Signup should complete");
+
+    const memberCode = wrapper.vm.$store.getters.myMember.attributes.code
+    expect(memberCode).toBe("GRP00000")
+    // Exercise the header's root fallback independently of earlier signup history.
+    wrapper.vm.$store.commit("previousRoute", undefined)
+    await wrapper.get("#back").trigger("click")
+    await waitFor(
+      () => wrapper.vm.$route.path,
+      `/groups/GRP0/members/${memberCode}`,
+      "Back should open the pending member profile"
+    )
+    await waitFor(() => wrapper.findComponent(MemberProfile).exists(), true, "Pending member profile should load")
+    expect(wrapper.findComponent(Error404).exists()).toBe(false)
+    await waitFor(
+      () => wrapper.text().includes("Your account is pending approval."),
+      true,
+      "Pending approval banner should show"
+    )
+    await wrapper.vm.$router.push("/groups")
+    await waitFor(() => wrapper.vm.$route.path, "/groups")
   }, 100000)
 
   it("registers an administrator and requests a first group", async () => {

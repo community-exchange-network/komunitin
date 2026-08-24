@@ -152,6 +152,17 @@ function sortByDistance(records: any, request: any) {
   return records.sort((a: any, b: any) => distance(a) - distance(b));
 }
 
+function nextMemberCode(schema: any, group: any) {
+  const codes = new Set(
+    schema.members.where({ groupId: group.id }).models.map((member: any) => member.code)
+  )
+  let index = 0
+  while (codes.has(`${group.code}${index.toString().padStart(4, "0")}`)) {
+    index++
+  }
+  return `${group.code}${index.toString().padStart(4, "0")}`
+}
+
 /**
  * Object containing the properties to create a MirageJS server that mocks the
  * Komunitin Social API.
@@ -608,7 +619,13 @@ export default {
     // Group members.
     server.get(urlSocial + "/:code/members", (schema: any, request: any) => {
       const group = schema.groups.findBy({ code: request.params.code });
-      const records = filter(schema.members.where({ groupId: group.id }), withoutQuery(request, ["near"]));
+      const filteredRequest = withoutQuery(request, ["near"])
+      const hasIdentityFilter = request.queryParams["filter[code]"] !== undefined
+        || request.queryParams["filter[account]"] !== undefined
+      if (request.queryParams["filter[status]"] === undefined && !hasIdentityFilter) {
+        filteredRequest.queryParams["filter[status]"] = "active"
+      }
+      const records = filter(schema.members.where({ groupId: group.id }), filteredRequest);
       return sortByDistance(records, request);
     });
 
@@ -618,6 +635,7 @@ export default {
         return new Response(503, {}, { errors: [{ detail: "Member creation failed" }] })
       }
       const body = JSON.parse(request.requestBody)
+      const { code, ...attributes } = body.data.attributes
       const group = schema.groups.findBy({ code: request.params.code })
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
@@ -638,7 +656,8 @@ export default {
           type: "Point",
           coordinates: group.location.coordinates
         },
-        ...body.data.attributes,
+        ...attributes,
+        code: code?.trim() || nextMemberCode(schema, group),
         status: "draft",
         group,
         created: new Date().toJSON(),
