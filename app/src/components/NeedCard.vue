@@ -1,10 +1,10 @@
 <template>
   <q-card
     v-if="need"
-    v-card-click-to="`/groups/${code}/needs/${need.attributes.code}`"
+    v-bind="cardClickAttrs"
     flat
     bordered
-    :class="[hidden ? 'not-published' : '', expired ? 'expired' : '' ]"
+    :class="{ muted: isMuted }"
   >
     <!-- Header -->
     <member-header :member="need.member">
@@ -38,7 +38,7 @@
 
     <q-card-actions>
       <contact-button
-        v-if="!expired && !hidden"
+        v-if="isAvailable"
         flat
         color="primary"
         :contacts="need.member.attributes.contacts"
@@ -47,14 +47,15 @@
           $t("reply")
         }}
       </contact-button>
-      <div 
+      <post-status-badges
         v-else
-        class="text-subtitle2 text-onsurface-m text-uppercase q-ml-sm text-negative"
-      >
-        {{ expired ? $t('expired') : $t('hidden') }}
-      </div>
+        :status="need.attributes.status"
+        :expired="expired"
+        :member-active="memberActive"
+      />
       <q-space />
       <share-button
+        v-if="isAvailable"
         icon="share"
         flat
         round
@@ -84,73 +85,60 @@
   </q-card>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
-import cardClickTo from "../plugins/CardClickTo";
-import clamp from "../plugins/Clamp";
-import md2txt from "../plugins/Md2txt";
+<script setup lang="ts">
+import { computed } from "vue"
+import { useStore } from "vuex"
+import type { Category, Member, Need } from "src/store/model"
+import { useCardClickTo } from "src/composables/useCardClickTo"
+import vClamp from "../plugins/Clamp"
+import md2txt from "../plugins/Md2txt"
+import Carousel from "./Carousel.vue"
+import CategoryAvatar from "./CategoryAvatar.vue"
+import ContactButton from "./ContactButton.vue"
+import MemberHeader from "./MemberHeader.vue"
+import ShareButton from "./ShareButton.vue"
+import DeleteNeedBtn from "./DeleteNeedBtn.vue"
+import PostStatusBadges from "./PostStatusBadges.vue"
 
-import Carousel from "./Carousel.vue";
-import CategoryAvatar from "./CategoryAvatar.vue";
-import ContactButton from "./ContactButton.vue";
-import MemberHeader from "./MemberHeader.vue";
-import ShareButton from "./ShareButton.vue";
-import DeleteNeedBtn from "./DeleteNeedBtn.vue";
+type CardNeed = Need & {
+  category: Category
+  member: Member
+}
 
-export default defineComponent({
-  name: "NeedCard",
-  components: {
-    MemberHeader,
-    ShareButton,
-    ContactButton,
-    CategoryAvatar,
-    Carousel,
-    DeleteNeedBtn
-  },
-  directives: {
-    clamp,
-    cardClickTo
-  },
-  props: {
-    // Group code.
-    code: {
-      type: String,
-      required: true,
-    },
-    need: {
-      type: Object,
-      required: true
-    }
-  },
-  setup() {
-    return {
-      md2txt
-    }
-  },
-  data: () => ({
-    slide: 1
-  }),
-  computed: {
-    hasImages(): boolean {
-      return this.need.attributes.images.length > 0;
-    },
-    url(): string {
-      return `${window?.location.origin ?? ''}/groups/${this.code}/needs/${this.need.attributes.code}`
-    },
-    canEdit(): boolean {
-      return this.need.member?.id == this.$store.getters.myMember?.id || this.$store.getters.isAdmin;
-    },
-    hidden(): boolean {
-      return this.need.attributes.status == "hidden"
-    },
-    expired(): boolean {
-      return new Date(this.need.attributes.expires) < new Date()
-    }
-  }
-});
+defineOptions({
+  name: "NeedCard"
+})
+
+const props = defineProps<{
+  code: string
+  need: CardNeed
+}>()
+
+const store = useStore()
+const hasImages = computed(() => props.need.attributes.images.length > 0)
+const url = computed(() =>
+  `${window.location.origin}/groups/${props.code}/needs/${props.need.attributes.code}`
+)
+const canEdit = computed(() =>
+  props.need.member.id === store.getters.myMember?.id
+  || store.getters.isAdmin
+)
+const memberActive = computed(() => props.need.member.attributes.status === "active")
+const expired = computed(() => new Date(props.need.attributes.expires) < new Date())
+const isAvailable = computed(() =>
+  props.need.attributes.status === "published"
+  && memberActive.value
+  && !expired.value
+)
+const isMuted = computed(() => !isAvailable.value)
+const targetUrl = computed(() => {
+  const path = `/groups/${props.code}/needs/${props.need.attributes.code}`
+  return props.need.attributes.status === "draft" ? `${path}/preview` : path
+})
+const cardClickAttrs = useCardClickTo(targetUrl)
 </script>
 <style lang="scss" scoped>
-  .not-published, .expired {
+  .muted {
     opacity: 0.54;
   }
 
