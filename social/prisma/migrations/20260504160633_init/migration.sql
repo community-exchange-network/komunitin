@@ -80,7 +80,7 @@ CREATE TABLE "MemberUser" (
     "id" UUID NOT NULL,
     "memberId" UUID NOT NULL,
     "userId" UUID NOT NULL,
-    "settings" JSONB NOT NULL DEFAULT '{"notifications":{"myAccount":true,"group":true},"emails":{"myAccount":true,"group":"monthly"}}',
+    "settings" JSONB NOT NULL,
 
     CONSTRAINT "MemberUser_pkey" PRIMARY KEY ("id")
 );

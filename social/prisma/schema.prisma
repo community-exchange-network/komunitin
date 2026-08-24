@@ -155,7 +155,7 @@ model MemberUser {
   id       String @id @default(uuid()) @db.Uuid
   memberId String @db.Uuid
   userId   String @db.Uuid
-  settings Json   @default("{\"notifications\":{\"myAccount\":true,\"group\":true},\"emails\":{\"myAccount\":true,\"group\":\"monthly\"}}")
+  settings Json
 
   member Member @relation(fields: [memberId, tenantId], references: [id, tenantId])
   user   User   @relation(fields: [userId], references: [id])

@@ -139,6 +139,21 @@ describe("MirageJS Server", () => {
     });
   });
 
+  it("defaults member lists to active while resolving pending members by code", async () => {
+    const listResponse = await fetch(`${urlSocial}/GRP0/members`)
+    const list = await json(listResponse)
+    expect(list.data.every((member: ResourceObject) => member.attributes.status === "active")).toBe(true)
+    expect(list.data.some((member: ResourceObject) => member.attributes.code === "empty_user")).toBe(false)
+
+    const identityResponse = await fetch(`${urlSocial}/GRP0/members?filter[code]=empty_user`)
+    const identity = await json(identityResponse)
+    expect(identity.data).toHaveLength(1)
+    expect(identity.data[0].attributes.status).toBe("pending")
+
+    const explicitResponse = await fetch(`${urlSocial}/GRP0/members?filter[code]=empty_user&filter[status]=active`)
+    expect((await json(explicitResponse)).data).toHaveLength(0)
+  });
+
   it("loads user memberships from /users/:id/members", async () => {
     const me = await fetch(`${urlSocial}/users/me?include=settings`, { headers: authHeaders });
     const meData = await json(me);
