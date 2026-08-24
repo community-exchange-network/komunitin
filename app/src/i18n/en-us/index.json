@@ -141,6 +141,7 @@
   "offerDeleted": "The offer has been deleted",
   "expired": "Expired",
   "hidden": "Hidden",
+  "draft": "Draft",
   "createOffer": "Create offer",
   "editOffer": "Edit offer",
   "enterOfferData": "What do you offer?",

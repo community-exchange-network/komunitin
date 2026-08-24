@@ -99,7 +99,7 @@ if (props.modelValue?.attributes?.expires) {
 }
 const expiration = ref(date)
 
-const state = ref<NeedStatus>(props.modelValue?.attributes?.status || "published")
+const state = ref<NeedStatus>(props.modelValue?.attributes?.status || "draft")
 
 // Validation
 const rules = {

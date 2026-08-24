@@ -143,6 +143,7 @@
   "offerDeleted": "L'offerta è stata eliminata",
   "expired": "Scaduta",
   "hidden": "Nascosta",
+  "draft": "Bozza",
   "createOffer": "Crea nuova offerta",
   "editOffer": "Modifica offerta",
   "enterOfferData": "Cosa offri?",

@@ -139,6 +139,7 @@
   "offerDeleted": "L'offre a été supprimée",
   "expired": "Expiré",
   "hidden": "Caché",
+  "draft": "Brouillon",
   "createOffer": "Créer une offre",
   "editOffer": "Modifier l'offre",
   "enterOfferData": "Qu'offrez-vous ?",
