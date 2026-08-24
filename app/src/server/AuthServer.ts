@@ -134,6 +134,9 @@ export default {
           })
         }
         const username = params.get("username");
+        if (params.get("grant_type") === "password" && !username?.includes("@")) {
+          return invalidGrant("Invalid credentials")
+        }
         const data = mockToken(params.get("scope") ?? "", param === "empty_user", username === "superadmin@example.com");
         return new Response(200, {}, data);
       }
