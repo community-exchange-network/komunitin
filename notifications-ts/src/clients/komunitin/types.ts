@@ -149,16 +149,22 @@ export interface MemberUser {
   };
 }
 
-export type MemberUserWithUser = {
+export type MemberUserWithResources = {
   memberUser: MemberUser;
   user: User;
+  member: Member;
+};
+
+export type Membership = {
+  memberUser: MemberUser;
+  member: Member;
 };
 
 export type Recipient = {
   user: User;
-  memberUsers: MemberUser[];
+  memberships: Membership[];
   /** The relation that caused a member-specific delivery. */
-  memberUser?: MemberUser;
+  membership?: Membership;
 };
 
 export interface ExternalResource {

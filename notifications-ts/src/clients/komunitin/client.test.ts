@@ -74,43 +74,45 @@ describe('KomunitinClient', () => {
     assert.ok(transfers.every(transfer => transfer.attributes.state === 'committed'));
   });
 
-  it('fetches every member-user relation with its included user', async () => {
+  it('fetches filtered member-user relations with their included resources', async () => {
     const sharedUser = createUser({ id: 'shared-user', email: 'shared@example.com' });
     const otherUser = createUser({ id: 'other-user', email: 'other@example.com' });
     const firstMember = createMember({ groupCode: 'TEST', id: 'member-1', userId: sharedUser.id });
     const secondMember = createMember({ groupCode: 'TEST', id: 'member-2', userId: sharedUser.id });
     createMemberUser({ memberId: firstMember.id, userId: otherUser.id });
 
-    const relations = await new KomunitinClient().getMemberUsers('TEST', [firstMember.id, secondMember.id]);
+    const relations = await new KomunitinClient().getMemberUsers('TEST', {
+      member: [firstMember.id, secondMember.id],
+    });
 
     assert.strictEqual(relations.length, 3);
     assert.deepStrictEqual(
-      relations.map(({ memberUser, user }) => [
+      relations.map(({ memberUser, user, member }) => [
         memberUser.relationships.member.data.id,
         user.id,
+        member.id,
       ]).sort(),
       [
-        ['member-1', 'other-user'],
-        ['member-1', 'shared-user'],
-        ['member-2', 'shared-user'],
+        ['member-1', 'other-user', 'member-1'],
+        ['member-1', 'shared-user', 'member-1'],
+        ['member-2', 'shared-user', 'member-2'],
       ],
     );
   });
 
-  it('batches member filters and follows member-user pagination', async () => {
+  it('lists a group collection and follows member-user pagination', async () => {
     const requests: URL[] = [];
     server.use(
       http.get(`${SOCIAL_URL}/:groupCode/member-users`, ({ request }) => {
         const url = new URL(request.url);
         requests.push(url);
-        const memberIds = url.searchParams.get('filter[member]')!.split(',');
         const after = url.searchParams.get('page[after]');
-        const memberId = after ? memberIds[1] : memberIds[0];
+        const memberId = after ? 'member-1' : 'member-0';
         const userId = `user-${memberId}`;
-        const next = memberIds.length === 50 && !after
+        const next = !after
           ? `${url.origin}${url.pathname}?${new URLSearchParams({
               ...Object.fromEntries(url.searchParams),
-              'page[after]': 'next',
+              'page[after]': '1',
             })}`
           : null;
 
@@ -127,27 +129,34 @@ describe('KomunitinClient', () => {
               user: { data: { type: 'users', id: userId } },
             },
           }],
-          included: [{
-            type: 'users',
-            id: userId,
-            attributes: { email: `${userId}@example.com`, language: 'en' },
-          }],
+          included: [
+            {
+              type: 'users',
+              id: userId,
+              attributes: { email: `${userId}@example.com`, language: 'en' },
+            },
+            {
+              type: 'members',
+              id: memberId,
+              attributes: { name: memberId, status: 'active' },
+            },
+          ],
           links: { next },
         });
       }),
     );
 
-    const memberIds = Array.from({ length: 51 }, (_, index) => `member-${index}`);
-    const relations = await new KomunitinClient().getMemberUsers('TEST', memberIds);
+    const relations = await new KomunitinClient().getMemberUsers('TEST', {
+      memberStatus: 'active',
+    });
 
-    assert.strictEqual(relations.length, 3);
-    assert.deepStrictEqual(
-      requests.map(url => url.searchParams.get('filter[member]')!.split(',').length),
-      [50, 50, 1],
-    );
+    assert.strictEqual(relations.length, 2);
+    assert.deepStrictEqual(relations.map(({ member }) => member.id), ['member-0', 'member-1']);
+    assert.ok(requests.every(url => url.searchParams.get('include') === 'user,member'));
+    assert.ok(requests.every(url => url.searchParams.get('filter[member.status]') === 'active'));
     assert.deepStrictEqual(
       requests.map(url => url.searchParams.get('page[after]')),
-      [null, 'next', null],
+      [null, '1'],
     );
   });
 });

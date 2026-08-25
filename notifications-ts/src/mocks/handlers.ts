@@ -49,6 +49,7 @@ export const handlers = [
     createMembers(groupCode);
     const url = new URL(request.url);
     const memberFilter = url.searchParams.get('filter[member]');
+    const memberStatusFilter = url.searchParams.get('filter[member.status]');
     const userFilter = url.searchParams.get('filter[user]');
     const groupId = `group-${groupCode}`;
     const groupMemberIds = new Set(
@@ -65,6 +66,15 @@ export const handlers = [
       relations = relations.filter(
         relation => memberIds.includes(relation.relationships.member.data.id),
       );
+    }
+    if (memberStatusFilter) {
+      const memberStatuses = memberStatusFilter.split(',');
+      relations = relations.filter((relation) => {
+        const member = db.members.find(
+          item => item.id === relation.relationships.member.data.id,
+        );
+        return member && memberStatuses.includes(member.attributes.status);
+      });
     }
     if (userFilter) {
       const userIds = userFilter.split(',');

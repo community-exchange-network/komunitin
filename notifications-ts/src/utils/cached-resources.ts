@@ -23,17 +23,3 @@ export const getCachedGroup = async (client: KomunitinClient, groupCode: string,
 export const getCachedCurrency = async (client: KomunitinClient, groupCode: string, ttl: number = DEFAULT_TTL) => {
   return await cache.get(`currency:${groupCode}`, async () => client.getCurrency(groupCode), ttl);
 };
-
-/**
- * Get group members from cache or API. Preference-bearing member-user
- * resources are intentionally fetched separately for every notification run.
- */
-export const getCachedGroupMembers = async (client: KomunitinClient, groupCode: string, ttl: number = DEFAULT_TTL) => {
-  const key = `group:${groupCode}:members`;
-
-  return await cache.get(
-    key,
-    async () => client.getMembers(groupCode, { 'filter[status]': 'active' }),
-    ttl,
-  );
-};

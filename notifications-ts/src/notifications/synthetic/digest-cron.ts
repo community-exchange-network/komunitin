@@ -2,7 +2,7 @@ import { Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
 import { Group, Need, Offer } from '../../clients/komunitin/types';
 import { groupRecipients } from '../../clients/komunitin/recipients';
-import { getCachedActiveGroups, getCachedGroupMembers } from '../../utils/cached-resources';
+import { getCachedActiveGroups } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import { EVENT_NAME } from '../events';
 import { isPostUrgent } from '../handlers/post';
@@ -120,14 +120,16 @@ const processCommunityDigest = async (
     return;
   }
 
-  const members = await getCachedGroupMembers(client, code);
-  const relations = await client.getMemberUsers(code, members.map(({ id }) => id));
+  const relations = await client.getMemberUsers(code, { memberStatus: 'active' });
+  const members = [...new Map(
+    relations.map(({ member }) => [member.id, member]),
+  ).values()];
   const recipients = groupRecipients(relations);
   const memberIdsByUser = new Map(
     recipients.map((recipient) => [
       recipient.user.id,
-      new Set(recipient.memberUsers.map(
-        (memberUser) => memberUser.relationships.member.data.id,
+      new Set(recipient.memberships.map(
+        ({ member }) => member.id,
       )),
     ]),
   );

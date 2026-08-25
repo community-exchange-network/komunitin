@@ -5,9 +5,7 @@ import { EnrichedEvent } from "../../enriched-events";
 import { MessageContext, NotificationMessage } from "../../messages";
 import { createQueue, createWorker } from "../../../utils/queue";
 import { Queue } from "bullmq";
-import { Recipient } from "../../../clients/komunitin/types";
-import { getCachedActiveGroups, getCachedGroupMembers } from "../../../utils/cached-resources";
-import { KomunitinClient } from "../../../clients/komunitin/client";
+import { Group, Recipient } from "../../../clients/komunitin/types";
 import { Prisma, PushSubscription } from '@prisma/client';
 import webpush from 'web-push';
 import { config } from "../../../config";
@@ -42,41 +40,35 @@ export const initPushQueue = () => {
   return () => worker.close();
 }
 
-const getUserTimezone = async (recipient: Recipient, groupCode: string): Promise<string | null> => {
+const getUserTimezone = (recipient: Recipient, group: Group): string | null => {
   // Ideally we should have the TZ on the user, but this is not the case (yet).
   // We can however guess it from their known location (member coordinates) or group location.
-  const client = new KomunitinClient();
-  const members = await getCachedGroupMembers(client, groupCode, Infinity);
-  const memberIds = new Set(
-    recipient.memberUsers.map((relation) => relation.relationships.member.data.id),
-  );
-  const member = members.find(({ id }) => memberIds.has(id));
-  
+  const member = recipient.memberships.find(
+    (membership) => membership.member.attributes.location,
+  )?.member;
   let coordinates = member?.attributes.location?.coordinates;
   let tz: string | null = null;
   if (coordinates) {
     tz = timezone(coordinates);
   }
   if (tz === null) {
-    const groups = await getCachedActiveGroups(client, Infinity);
-    const group = groups.find(g => g.attributes.code === groupCode);
-    coordinates = group?.attributes.location?.coordinates;
+    coordinates = group.attributes.location?.coordinates;
     if (coordinates) {
       tz = timezone(coordinates);
     }
   }
   if (tz === null) {
-    logger.warn({ user: recipient.user.id, group: groupCode, coordinates }, 'Failed to determine timezone for user.');
+    logger.warn({ user: recipient.user.id, group: group.attributes.code, coordinates }, 'Failed to determine timezone for user.');
   }
   return tz;
 }
 
 const shouldSendPushNotification = (notificationClass: NotificationClass, recipient: Recipient): boolean => {
   if (notificationClass === 'account') {
-    return recipient.memberUser?.attributes.notifications.myAccount === true;
+    return recipient.membership?.memberUser.attributes.notifications.myAccount === true;
   } else if (notificationClass === 'group') {
-    return recipient.memberUsers.some(
-      (memberUser) => memberUser.attributes.notifications.group,
+    return recipient.memberships.some(
+      ({ memberUser }) => memberUser.attributes.notifications.group,
     );
   }
   return false;
@@ -126,9 +118,7 @@ export const sendPushToRecipients = async <T extends EnrichedEvent>(
 ) => {
   const i18n = await initI18n();
 
-  const uniqueRecipients = new Map(recipients.map((recipient) => [recipient.user.id, recipient]));
-
-  for (const recipient of uniqueRecipients.values()) {
+  for (const recipient of recipients) {
     const { user } = recipient;
     const locale = user.attributes.language || 'en';
     const t = i18n.getFixedT(locale);
@@ -156,7 +146,7 @@ export const sendPushToRecipients = async <T extends EnrichedEvent>(
       continue;
     }
 
-    const timezone = await getUserTimezone(recipient, event.code);
+    const timezone = getUserTimezone(recipient, event.group);
     const delay = pushNotificationDelay(priority, timezone);
 
     // Send to all subscriptions

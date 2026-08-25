@@ -1,8 +1,8 @@
 import { type Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
 import { Group, Recipient } from '../../clients/komunitin/types';
-import { memberRecipients } from '../../clients/komunitin/recipients';
-import { getCachedActiveGroups, getCachedCurrency, getCachedGroupMembers } from '../../utils/cached-resources';
+import { recipientsByMember } from '../../clients/komunitin/recipients';
+import { getCachedActiveGroups, getCachedCurrency } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import { EVENT_NAME } from '../events';
 import { dispatchSyntheticEnrichedEvent, lastNotificationDateByUser } from './shared';
@@ -56,20 +56,14 @@ const canSendEngagementEvent = (userId: string, lastEngagement: Date | undefined
 
 
 const processEngagementEventsForGroup = async (client: KomunitinClient, group: Group): Promise<void> => {
-  const members = await getCachedGroupMembers(client, group.attributes.code);
-  const relations = await client.getMemberUsers(
-    group.attributes.code,
-    members.map(({ id }) => id),
-  );
-  const recipientsByMemberId = new Map<string, Recipient[]>();
-  for (const recipient of memberRecipients(relations)) {
-    const memberId = recipient.memberUser!.relationships.member.data.id;
-    recipientsByMemberId.set(memberId, [
-      ...(recipientsByMemberId.get(memberId) ?? []),
-      recipient,
-    ]);
-  }
-  const currency = await getCachedCurrency(client, group.attributes.code);
+  const [relations, currency] = await Promise.all([
+    client.getMemberUsers(group.attributes.code, { memberStatus: 'active' }),
+    getCachedCurrency(client, group.attributes.code),
+  ]);
+  const members = [...new Map(
+    relations.map(({ member }) => [member.id, member]),
+  ).values()];
+  const recipientsByMemberId = recipientsByMember(relations);
 
   const lastEngagementNotificationMap = await lastNotificationDateByUser(group.attributes.code, EVENT_NAME.MemberHasNoPosts);
   const lastNotificationMap = await lastNotificationDateByUser(group.attributes.code);

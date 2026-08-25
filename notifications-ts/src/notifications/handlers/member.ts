@@ -4,6 +4,7 @@ import logger from '../../utils/logger';
 import { eventBus } from '../event-bus';
 import { EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMemberRequestedEvent } from '../enriched-events';
 import { mandatoryRecipients, memberRecipients } from '../../clients/komunitin/recipients';
+import { internalError } from '../../utils/error';
 
 export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
   logger.info({ event }, 'Handling member event');
@@ -15,13 +16,16 @@ export const handleMemberEvent = async (event: MemberEvent): Promise<void> => {
     throw new Error(`Missing member id in member event ${event.name}`);
   }
 
-  // Fetch member, users, and group in parallel
-  const [member, relations, groupResponse] = await Promise.all([
-    client.getMember(event.code, memberId),
-    client.getMemberUsers(event.code, [memberId]),
+  // Fetch member-user resources and group in parallel.
+  const [relations, groupResponse] = await Promise.all([
+    client.getMemberUsers(event.code, { member: memberId }),
     client.getGroup(event.code),
   ]);
 
+  const member = relations[0]?.member;
+  if (!member) {
+    throw internalError(`Missing member-user resources for member ${memberId}`);
+  }
   const group = groupResponse.data;
 
   const enrichedEvent: EnrichedMemberEvent = {

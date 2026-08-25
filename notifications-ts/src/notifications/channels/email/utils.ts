@@ -39,10 +39,8 @@ export const handleEmailEvent = async <T extends AnyEnrichedEvent>(
   buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null,
   policy: EmailPolicy,
 ) => {
-  const uniqueRecipients = new Map(recipients.map((recipient) => [recipient.user.id, recipient]));
-
-  for (const recipient of uniqueRecipients.values()) {
-    if (policy === 'account' && recipient.memberUser?.attributes.emails.myAccount !== true) {
+  for (const recipient of recipients) {
+    if (policy === 'account' && recipient.membership?.memberUser.attributes.emails.myAccount !== true) {
       continue;
     }
     const { user } = recipient;

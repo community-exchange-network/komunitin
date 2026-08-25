@@ -50,9 +50,8 @@ export const handleNotificationForRecipients = async <T extends EnrichedEvent>(
 ) => {
   const i18n = await initI18n();
   let notificationCount = 0;
-  const uniqueRecipients = new Map(recipients.map((recipient) => [recipient.user.id, recipient]));
 
-  for (const { user } of uniqueRecipients.values()) {
+  for (const { user } of recipients) {
     const locale = user.attributes.language || 'en';
     const t = i18n.getFixedT(locale);
     const message = builder({ t, locale }, event);

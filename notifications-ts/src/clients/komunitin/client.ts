@@ -1,5 +1,5 @@
 import { config } from '../../config';
-import { Group, Member, User, Offer, Need, Post, Account, Transfer, Currency, TransferStats, AccountStats, MemberUser, MemberUserWithUser, GroupSettings } from './types';
+import { Group, Member, User, Offer, Need, Post, Account, Transfer, Currency, TransferStats, AccountStats, MemberUser, MemberUserWithResources, GroupSettings } from './types';
 import { fetchWithAuth, fetchWithRetry } from './fetchWithAuth';
 
 const jsonApiHeaders = {
@@ -36,7 +36,10 @@ type TransferCollectionParams = {
   'filter[state]'?: 'committed';
 }
 
-const MEMBER_USER_BATCH_SIZE = 50;
+type MemberUserCollectionParams = {
+  member?: string | string[];
+  memberStatus?: Member['attributes']['status'];
+}
 
 export class KomunitinClient {
   private async request(url: string) {
@@ -68,26 +71,24 @@ export class KomunitinClient {
     return this.request(url);
   }
 
-  // Helper for pagination
-  private async paginate<T>(service: 'social' | 'accounting', path: string, params: Record<string, string> = {}): Promise<T[]> {
+  // Helper for pagination. The mapper may combine primary and included resources from each page.
+  private async paginate<T>(
+    service: 'social' | 'accounting',
+    path: string,
+    params: Record<string, string> = {},
+    mapPage: (body: any) => T[] = (body) => body.data ?? [],
+  ): Promise<T[]> {
     const query = new URLSearchParams(params).toString();
     let url = this.getUrl(service, query ? `${path}?${query}` : path);
-    let allData: T[] = [];
+    const allData: T[] = [];
 
     while (url) {
       const body = await this.request(url) as any;
-      if (body.data) {
-        allData = allData.concat(body.data);
-      }
+      allData.push(...mapPage(body));
 
-      // Update URL for next page
-      if (body.links && body.links.next) {
-        // links.next is usually a full URL
-        url = body.links.next;
-        // Add a small delay to avoid overwhelming the server
+      url = body.links?.next ?? '';
+      if (url) {
         await new Promise(resolve => setTimeout(resolve, 100));
-      } else {
-        url = '';
       }
     }
 
@@ -112,41 +113,58 @@ export class KomunitinClient {
     return res.data;
   }
 
-  public async getMemberUsers(groupCode: string, memberIds: string[]): Promise<MemberUserWithUser[]> {
-    const result: MemberUserWithUser[] = [];
+  public async getMemberUsers(
+    groupCode: string,
+    filters: MemberUserCollectionParams = {},
+  ): Promise<MemberUserWithResources[]> {
+    if (Array.isArray(filters.member) && filters.member.length === 0) {
+      return [];
+    }
+    const params: Record<string, string> = {
+      include: 'user,member',
+      'page[size]': '200',
+    };
+    if (filters.member) {
+      params['filter[member]'] = Array.isArray(filters.member)
+        ? filters.member.join(',')
+        : filters.member;
+    }
+    if (filters.memberStatus) {
+      params['filter[member.status]'] = filters.memberStatus;
+    }
 
-    for (let index = 0; index < memberIds.length; index += MEMBER_USER_BATCH_SIZE) {
-      const memberBatch = memberIds.slice(index, index + MEMBER_USER_BATCH_SIZE);
-      const params = new URLSearchParams({
-        'filter[member]': memberBatch.join(','),
-        include: 'user',
-        'page[size]': '200',
-      });
-      let url = this.getUrl('social', `/${groupCode}/member-users?${params}`);
-
-      while (url) {
-        const body = await this.request(url) as any;
+    return this.paginate<MemberUserWithResources>(
+      'social',
+      `/${groupCode}/member-users`,
+      params,
+      (body) => {
         const memberUsers = body.data as MemberUser[];
         const users = new Map<string, User>(
           (body.included ?? [])
             .filter((resource: { type: string }) => resource.type === 'users')
             .map((user: User) => [user.id, user]),
         );
+        const members = new Map<string, Member>(
+          (body.included ?? [])
+            .filter((resource: { type: string }) => resource.type === 'members')
+            .map((member: Member) => [member.id, member]),
+        );
 
-        for (const memberUser of memberUsers) {
+        return memberUsers.map((memberUser) => {
           const userId = memberUser.relationships.user.data.id;
+          const memberId = memberUser.relationships.member.data.id;
           const user = users.get(userId);
+          const member = members.get(memberId);
           if (!user) {
             throw new Error(`Missing included user ${userId} for member-user ${memberUser.id}`);
           }
-          result.push({ memberUser, user });
-        }
-
-        url = body.links?.next ?? '';
-      }
-    }
-
-    return result;
+          if (!member) {
+            throw new Error(`Missing included member ${memberId} for member-user ${memberUser.id}`);
+          }
+          return { memberUser, user, member };
+        });
+      },
+    );
   }
 
   public async getGroupAdmins(groupCode: string): Promise<User[]> {

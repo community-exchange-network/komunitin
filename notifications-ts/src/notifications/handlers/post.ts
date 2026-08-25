@@ -2,7 +2,6 @@ import { KomunitinClient } from '../../clients/komunitin/client';
 import { hasExpiration } from '../../clients/komunitin/post';
 import { Member, Post, Recipient } from '../../clients/komunitin/types';
 import { groupRecipients, memberRecipients } from '../../clients/komunitin/recipients';
-import { getCachedGroupMembers } from '../../utils/cached-resources';
 import { internalError } from '../../utils/error';
 import logger from '../../utils/logger';
 import { EnrichedPostEvent } from '../enriched-events';
@@ -78,15 +77,10 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
 
   // For published events, fetch all member users; for others, just the post author.
   if (isPublishedEvent && isPostUrgent(post)) {
-    const members = await getCachedGroupMembers(client, event.code);
-    const relations = await client.getMemberUsers(event.code, members.map(({ id }) => id));
-    recipients = groupRecipients(relations).filter((recipient) =>
-      recipient.memberUsers.every(
-        (memberUser) => memberUser.relationships.member.data.id !== memberId,
-      ),
-    );
+    const relations = await client.getMemberUsers(event.code, { memberStatus: 'active' });
+    recipients = groupRecipients(relations);
   } else {
-    recipients = memberRecipients(await client.getMemberUsers(event.code, [memberId]));
+    recipients = memberRecipients(await client.getMemberUsers(event.code, { member: memberId }));
   }
 
   const enrichedEvent: EnrichedPostEvent = {

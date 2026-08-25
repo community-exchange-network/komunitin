@@ -47,12 +47,12 @@ describe('New post notifications (URGENT)', () => {
     // The worker handles it. In other tests they don't seem to wait much but since I added 50ms delay * 5 members = 250ms+
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    assert.equal(appNotifications.length, 4, "Should notify every group user except the author")
+    assert.equal(appNotifications.length, 5, "Should notify every group user")
 
     assert.equal(
       appNotifications.some(n => n.userId === authorUserId),
-      false,
-      "Author should not receive their own urgent post notification",
+      true,
+      "Author should receive their own urgent post notification",
     )
     const notification = appNotifications[0]
 
@@ -121,8 +121,8 @@ describe('New post notifications (URGENT)', () => {
     await put(eventData)
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    assert.equal(appNotifications.length, 4)
-    assert.equal(appNotifications.some(n => n.userId === authorUserId), false)
+    assert.equal(appNotifications.length, 5)
+    assert.equal(appNotifications.some(n => n.userId === authorUserId), true)
     const notification = appNotifications[0]
     assert.equal(notification.title, `New Want from ${authorMember.attributes.name}`)
     assert.equal(notification.body, 'I need some help urgently!')
@@ -187,6 +187,43 @@ describe('New post notifications (URGENT)', () => {
       appNotifications.filter(notification => notification.userId === sharedUserId).length,
       2,
       'In-app notifications stay enabled when every push preference is off',
+    )
+  })
+
+  it('excludes users whose members are inactive from community recipients', async () => {
+    const groupCode = 'GRP1'
+    const members = createMembers(groupCode)
+    const authorMember = members[0]
+    const authorUserId = getUserIdForMember(authorMember.id)
+    const disabledMember = members[1]
+    const disabledUserId = getUserIdForMember(disabledMember.id)
+    disabledMember.attributes.status = 'disabled'
+
+    const created = new Date()
+    const expires = new Date(created)
+    expires.setDate(created.getDate() + 2)
+    const offer = createPost('offers', {
+      id: 'offer-inactive-recipient',
+      code: 'OFF-INACTIVE-RECIPIENT',
+      groupCode,
+      memberId: authorMember.id,
+      attributes: {
+        title: 'Urgent offer',
+        created: created.toISOString(),
+        expires: expires.toISOString(),
+      },
+    })
+
+    await put(createEvent('OfferPublished', {
+      code: groupCode,
+      user: authorUserId,
+      data: { offer: offer.id },
+    }))
+
+    assert.strictEqual(appNotifications.length, 4)
+    assert.strictEqual(
+      appNotifications.some(notification => notification.userId === disabledUserId),
+      false,
     )
   })
 

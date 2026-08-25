@@ -91,6 +91,9 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     'filter[status]': 'active',
     sort: '-created'
   });
+  const allMemberUsers = await client.getMemberUsers(group.attributes.code, {
+    memberStatus: 'active',
+  });
 
   const currency = await client.getCurrency(group.attributes.code);
 
@@ -121,6 +124,12 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
   // 4. Iterate Members
   const memberMap = new Map<string, Member>(allMembers.map((m: any) => [m.id, m]));
+  const memberUsersByMemberId = new Map<string, typeof allMemberUsers>();
+  for (const relation of allMemberUsers) {
+    const relations = memberUsersByMemberId.get(relation.member.id) ?? [];
+    relations.push(relation);
+    memberUsersByMemberId.set(relation.member.id, relations);
+  }
   const globalFeaturedIndex = new Map<string, number>();
 
   for (const member of allMembers) {
@@ -129,7 +138,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     }
 
     // Check Recipients (Users)
-    const memberUsers = await client.getMemberUsers(group.attributes.code, [member.id]);
+    const memberUsers = memberUsersByMemberId.get(member.id) ?? [];
     const recipientsToProcess = [] as typeof memberUsers;
 
     // Fetch history for frequency check (last 50 logs should cover > 1 month even if daily)
