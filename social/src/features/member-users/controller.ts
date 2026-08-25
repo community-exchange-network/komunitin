@@ -12,7 +12,7 @@ export const getMemberUsersRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const code = getCode(req)
   const params = getCollectionParams(req, {
-    filter: ['user', 'member'],
+    filter: ['user', 'member', 'member.status'],
     sort: ['id'],
     include: ['user', 'member'],
   })

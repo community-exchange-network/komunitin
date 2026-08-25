@@ -100,7 +100,7 @@ describe('Users endpoints', () => {
       'different-service-subject',
     )
     await request(app)
-      .get('/users?filter[members]=00000000-0000-4000-8000-000000000001')
+      .get('/scope-test/member-users')
       .set('Authorization', `Bearer ${forgedService}`)
       .expect(401)
 
@@ -263,90 +263,6 @@ describe('Users endpoints', () => {
 
     assert.strictEqual(res.body.data.id, subject)
     assert.strictEqual(res.body.data.attributes.name, 'Self User')
-  })
-
-  test('GET /users allows service read access with filter[members]', async () => {
-    const tenantId = 'users-filter-members'
-    await seedGroup({ tenantId, status: 'active', access: 'public' })
-
-    const member = await seedMember({
-      tenantId,
-      status: 'active',
-      access: 'public',
-      userId: 'linked-user',
-    })
-
-    const linkedUser = await seedUser({
-      id: 'linked-user',
-      email: 'linked@example.org',
-      name: 'Linked User',
-      language: 'it',
-    })
-
-    const { token: serviceToken } = await serviceAuth()
-
-    const res = await request(app)
-      .get(`/users?filter[members]=${member.id}`)
-      .set('Authorization', `Bearer ${serviceToken}`)
-      .expect(200)
-
-    assert.strictEqual(Array.isArray(res.body.data), true)
-    assert.strictEqual(res.body.data.some((resource: any) => resource.id === linkedUser.id), true)
-    const linkedUserResource = res.body.data.find((resource: any) => resource.id === linkedUser.id)
-    assert.strictEqual(linkedUserResource.type, 'users')
-    assert.strictEqual(linkedUserResource.attributes.email, 'linked@example.org')
-    assert.strictEqual(linkedUserResource.attributes.language, 'it')
-  })
-
-  test('GET /users paginates unique users when one user belongs to multiple filtered members', async () => {
-    const tenantId = 'users-filter-members-unique'
-    const duplicateUserId = toUuid('duplicate-member-user')
-    const uniqueUserId = toUuid('unique-member-user')
-
-    await seedGroup({ tenantId, status: 'active', access: 'public' })
-    const firstMember = await seedMember({
-      tenantId,
-      status: 'active',
-      access: 'public',
-      userId: duplicateUserId,
-    })
-    const secondMember = await seedMember({
-      tenantId,
-      status: 'active',
-      access: 'public',
-      userId: duplicateUserId,
-    })
-
-    await seedUser({
-      id: uniqueUserId,
-      email: 'unique-member-user@example.org',
-    })
-    await seedMemberUser({
-      tenantId,
-      memberId: secondMember.id,
-      userId: uniqueUserId,
-    })
-
-    const { token: serviceToken } = await serviceAuth()
-    const memberFilter = `${firstMember.id},${secondMember.id}`
-
-    const res = await request(app)
-      .get(`/users?filter[members]=${memberFilter}&sort=created&page[size]=2`)
-      .set('Authorization', `Bearer ${serviceToken}`)
-      .expect(200)
-
-    const ids = res.body.data.map((resource: any) => resource.id)
-    assert.deepStrictEqual(ids, [duplicateUserId, uniqueUserId])
-    assert.strictEqual(res.body.meta.count, 2)
-  })
-
-  test('GET /users rejects regular user tokens', async () => {
-    const token = await signJwt(toUuid('regular-user'), 'regular@example.org')
-
-    await request(app)
-      .get('/users')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(403)
   })
 
   test('GET /users/:id allows service cross-user access', async () => {

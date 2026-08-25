@@ -1,12 +1,20 @@
 import { KomunitinClient } from '../../clients/komunitin/client';
 import { hasExpiration } from '../../clients/komunitin/post';
-import { Member, Post, User, UserSettings } from '../../clients/komunitin/types';
-import { getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
+import { Member, Post } from '../../clients/komunitin/types';
+import { groupRecipients, memberRecipients } from '../../clients/komunitin/recipients';
 import { internalError } from '../../utils/error';
 import logger from '../../utils/logger';
-import { EnrichedPostEvent } from '../enriched-events';
+import {
+  EnrichedAccountPostEvent,
+  EnrichedPostEvent,
+  EnrichedPublishedPostEvent,
+} from '../enriched-events';
 import { eventBus } from '../event-bus';
 import { EVENT_NAME, PostEvent } from '../events';
+
+type EnrichedPostRecipients =
+  | Pick<EnrichedPublishedPostEvent, 'name' | 'recipients'>
+  | Pick<EnrichedAccountPostEvent, 'name' | 'recipients'>;
 
 /**
  * Expiry window (created - expires in days) to consider a post as "urgent".
@@ -71,30 +79,33 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
   const groupResponse = await client.getGroup(event.code);
   const group = groupResponse.data;
 
-  const isPublishedEvent =
-    event.name === EVENT_NAME.OfferPublished || event.name === EVENT_NAME.NeedPublished;
-  let usersWithSettings: Array<{ user: any; settings: any }> = [];
+  const eventName = event.name;
+  let recipientData: EnrichedPostRecipients;
 
-  // For published events, fetch all member users; for others, just the post author.
-  if (isPublishedEvent && isPostUrgent(post)) {
-    const allMembersWithUsers = await getCachedGroupMembersWithUsers(client, event.code);
-    const allUsersMap = allMembersWithUsers.reduce((map, mwu) => {
-      mwu.users.forEach((r) => map.set(r.user.id, r));
-      return map;
-    }, new Map<string, { user: User; settings: UserSettings }>());
-    usersWithSettings = Array.from(allUsersMap.values());
+  if (eventName === EVENT_NAME.OfferPublished || eventName === EVENT_NAME.NeedPublished) {
+    // Urgent posts notify the whole group; regular posts only confirm publication to the author.
+    const relations = isPostUrgent(post)
+      ? await client.getMemberUsers(event.code, { memberStatus: 'active' })
+      : await client.getMemberUsers(event.code, { member: memberId });
+    recipientData = {
+      name: eventName,
+      recipients: groupRecipients(relations),
+    };
   } else {
-    usersWithSettings = await client.getMemberUsers(memberId);
+    recipientData = {
+      name: eventName,
+      recipients: memberRecipients(await client.getMemberUsers(event.code, { member: memberId })),
+    };
   }
 
-  const enrichedEvent: EnrichedPostEvent = {
+  const enrichedEvent = {
     ...event,
+    ...recipientData,
     group,
     post,
     postType: isOfferEvent ? 'offers' : 'needs',
     member,
-    users: usersWithSettings,
-  };
+  } satisfies EnrichedPostEvent;
 
   logger.debug({ enrichedEvent }, 'Enriched post event');
 

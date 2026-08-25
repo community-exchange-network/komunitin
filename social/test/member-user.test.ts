@@ -144,6 +144,36 @@ describe('Member-user endpoints', () => {
       .expect(400)
   })
 
+  test('collection filters by member status and excludes deleted members', async () => {
+    await seedGroup({ tenantId: 'member-user-status-group' })
+    const active = await seedMember({
+      tenantId: 'member-user-status-group',
+      status: 'active',
+    })
+    await seedMember({
+      tenantId: 'member-user-status-group',
+      status: 'disabled',
+    })
+    const deleted = await seedMember({
+      tenantId: 'member-user-status-group',
+      status: 'active',
+    })
+    await tenantDb(prisma, 'member-user-status-group').member.update({
+      where: { id: deleted.id },
+      data: { deleted: new Date() },
+    })
+    const service = await serviceAuth()
+
+    const response = await request(app)
+      .get('/member-user-status-group/member-users?filter[member.status]=active&include=member,user')
+      .set('Authorization', `Bearer ${service.token}`)
+      .expect(200)
+
+    assert.strictEqual(response.body.meta.count, 1)
+    assert.strictEqual(response.body.data.length, 1)
+    assert.strictEqual(response.body.data[0].relationships.member.data.id, active.id)
+  })
+
   test('owners can patch settings with a nested merge', async () => {
     const owner = await auth('member-user-patch-owner')
     await seedGroup({ tenantId: 'member-user-patch-group' })

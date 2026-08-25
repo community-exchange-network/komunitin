@@ -1,5 +1,5 @@
 import prisma from '../../utils/prisma'
-import { Prisma, User as DbUser, type Member as DbMember } from '../../generated/prisma/client'
+import { User as DbUser, type Member as DbMember } from '../../generated/prisma/client'
 import type { User, CreateUserInput } from './types'
 import { badRequest, forbidden, internalError, notFound } from '../../utils/error'
 import { privilegedDb } from '../../server/multitenant'
@@ -176,55 +176,4 @@ export const listUserMembers = async (
     items: await enrichMembers(ctx, items, groups),
     total,
   }
-}
-
-/**
- * List users provided a list of member IDs.
- * 
- * This feature is used by the notifications service with its social:read service token.
- */
-export const listUsers = async (ctx: AuthContext, params: CollectionParams): Promise<CollectionResult<User>> => {
-  
-  const allowed = ctx.isSuperadmin || ctx.canReadAllSocial
-  
-  if (!allowed) {
-    throw forbidden('You do not have permission to list users')
-  }
-
-  if (!params.filters.members) {
-    throw badRequest('Filtering by member id(s) is required to list users')
-  }
-
-  const memberIds = params.filters.members
-
-  if (memberIds.length === 0) {
-     return { items: [], total: 0 }
-  }
-
-  const order = params.sort[0]?.order ?? 'asc'
-
-  const db = privilegedDb(prisma)
-  const where: Prisma.UserWhereInput = {
-    members: {
-      some: {
-        memberId: {
-          in: memberIds,
-        },
-      },
-    },
-  }
-  const [users, total] = await Promise.all([
-    db.user.findMany({
-      where,
-      orderBy: [
-        { created: order },
-        { id: 'asc' },
-      ],
-      skip: params.pagination.cursor,
-      take: params.pagination.size
-    }),
-    db.user.count({ where }),
-  ])
-
-  return { items: users.map(toUser), total }
 }
