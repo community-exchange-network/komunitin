@@ -1,6 +1,6 @@
 import { type Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Group, Recipient } from '../../clients/komunitin/types';
+import { AccountRecipient, Group } from '../../clients/komunitin/types';
 import { recipientsByMember } from '../../clients/komunitin/recipients';
 import { getCachedActiveGroups, getCachedCurrency } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
@@ -82,7 +82,7 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
       continue;
     }
 
-    const candidates: Recipient[] = [];
+    const candidates: AccountRecipient[] = [];
     for (const recipient of recipients) {
       const { user } = recipient;
       if (canSendEngagementEvent(user.id, lastEngagementNotificationMap.get(user.id), lastNotificationMap.get(user.id))) {

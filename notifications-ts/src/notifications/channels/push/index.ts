@@ -17,15 +17,20 @@ import {
   buildMemberHasNoPostsMessage,
 } from '../../messages';
 import {
+  EnrichedAccountPostEvent,
   EnrichedTransferEvent,
-  EnrichedPostEvent,
+  EnrichedPublishedPostEvent,
   EnrichedPostsPublishedDigestEvent,
   EnrichedMemberHasExpiredPostsEvent,
   EnrichedMembersJoinedDigestEvent,
   EnrichedMemberEvent,
   EnrichedMemberHasNoPostsEvent,
 } from '../../enriched-events';
-import { initPushQueue, sendPushToRecipients } from './utils';
+import {
+  initPushQueue,
+  sendAccountPushToRecipients,
+  sendGroupPushToRecipients,
+} from './utils';
 
 export const initPushChannel = (): (() => void) => {
   logger.info('Initializing push notification channel');
@@ -36,62 +41,60 @@ export const initPushChannel = (): (() => void) => {
     // Transfer events
     eventBus.on(EVENT_NAME.TransferCommitted, async (event: EnrichedTransferEvent) => {
       const { payer, payee } = event;
-      await sendPushToRecipients(event, payer.recipients, buildTransferSentMessage, 'account');
-      await sendPushToRecipients(event, payee.recipients, buildTransferReceivedMessage, 'account');
+      await sendAccountPushToRecipients(event, payer.recipients, buildTransferSentMessage);
+      await sendAccountPushToRecipients(event, payee.recipients, buildTransferReceivedMessage);
     }),
     eventBus.on(EVENT_NAME.TransferPending, async (event: EnrichedTransferEvent) => {
       const { payer } = event;
-      await sendPushToRecipients(event, payer.recipients, buildTransferPendingMessage, 'account', 'high');
+      await sendAccountPushToRecipients(event, payer.recipients, buildTransferPendingMessage, 'high');
     }),
     eventBus.on(EVENT_NAME.TransferRejected, async (event: EnrichedTransferEvent) => {
       const { payee } = event;
-      await sendPushToRecipients(event, payee.recipients, buildTransferRejectedMessage, 'account', 'high');
+      await sendAccountPushToRecipients(event, payee.recipients, buildTransferRejectedMessage, 'high');
     }),
     eventBus.on(EVENT_NAME.TransferStillPending, async (event: EnrichedTransferEvent) => {
       const { payer } = event;
-      await sendPushToRecipients(event, payer.recipients, buildTransferStillPendingMessage, 'account');
+      await sendAccountPushToRecipients(event, payer.recipients, buildTransferStillPendingMessage);
     }),
 
     // Post events
-    eventBus.on(EVENT_NAME.NeedExpired, async (event: EnrichedPostEvent) => {
-      await sendPushToRecipients(event, event.recipients, buildPostExpiredMessage, 'account');
+    eventBus.on(EVENT_NAME.NeedExpired, async (event: EnrichedAccountPostEvent) => {
+      await sendAccountPushToRecipients(event, event.recipients, buildPostExpiredMessage);
     }),
-    eventBus.on(EVENT_NAME.OfferExpired, async (event: EnrichedPostEvent) => {
-      await sendPushToRecipients(event, event.recipients, buildPostExpiredMessage, 'account');
+    eventBus.on(EVENT_NAME.OfferExpired, async (event: EnrichedAccountPostEvent) => {
+      await sendAccountPushToRecipients(event, event.recipients, buildPostExpiredMessage);
     }),
-    eventBus.on(EVENT_NAME.PostExpiresSoon, async (event: EnrichedPostEvent) => {
-      await sendPushToRecipients(event, event.recipients, buildPostExpiresSoonMessage, 'account');
+    eventBus.on(EVENT_NAME.PostExpiresSoon, async (event: EnrichedAccountPostEvent) => {
+      await sendAccountPushToRecipients(event, event.recipients, buildPostExpiresSoonMessage);
     }),
-    eventBus.on(EVENT_NAME.OfferPublished, async (event: EnrichedPostEvent) => {
+    eventBus.on(EVENT_NAME.OfferPublished, async (event: EnrichedPublishedPostEvent) => {
       const { post, member } = event;
-      await sendPushToRecipients(event, event.recipients,
-        (event, ctx) => buildSinglePostPublishedMessage(event, post, member, ctx),
-        'group');
+      await sendGroupPushToRecipients(event, event.recipients,
+        (event, ctx) => buildSinglePostPublishedMessage(event, post, member, ctx));
     }),
-    eventBus.on(EVENT_NAME.NeedPublished, async (event: EnrichedPostEvent) => {
+    eventBus.on(EVENT_NAME.NeedPublished, async (event: EnrichedPublishedPostEvent) => {
       const { post, member } = event;
-      await sendPushToRecipients(event, event.recipients,
-        (event, ctx) => buildSinglePostPublishedMessage(event, post, member, ctx),
-        'group');
+      await sendGroupPushToRecipients(event, event.recipients,
+        (event, ctx) => buildSinglePostPublishedMessage(event, post, member, ctx));
     }),
     eventBus.on(EVENT_NAME.PostsPublishedDigest, async (event: EnrichedPostsPublishedDigestEvent) => {
-      await sendPushToRecipients(event, event.recipients, buildPostsPublishedDigestMessage, 'group');
+      await sendGroupPushToRecipients(event, event.recipients, buildPostsPublishedDigestMessage);
     }),
 
     // Member events
     eventBus.on(EVENT_NAME.MemberHasExpiredPosts, async (event: EnrichedMemberHasExpiredPostsEvent) => {
-      await sendPushToRecipients(event, event.recipients, buildMemberHasExpiredPostsMessage, 'account');
+      await sendAccountPushToRecipients(event, event.recipients, buildMemberHasExpiredPostsMessage);
     }),
     eventBus.on(EVENT_NAME.MembersJoinedDigest, async (event: EnrichedMembersJoinedDigestEvent) => {
-      await sendPushToRecipients(event, event.recipients, buildMembersJoinedDigestMessage, 'group');
+      await sendGroupPushToRecipients(event, event.recipients, buildMembersJoinedDigestMessage);
     }),
     eventBus.on(EVENT_NAME.MemberJoined, async (event: EnrichedMemberEvent) => {
-      await sendPushToRecipients(event, event.recipients, buildMemberJoinedMessage, 'account');
+      await sendAccountPushToRecipients(event, event.recipients, buildMemberJoinedMessage);
     }),
 
     // Engagement synthetic events
     eventBus.on(EVENT_NAME.MemberHasNoPosts, async (event: EnrichedMemberHasNoPostsEvent) => {
-      await sendPushToRecipients(event, event.recipients, buildMemberHasNoPostsMessage, 'account');
+      await sendAccountPushToRecipients(event, event.recipients, buildMemberHasNoPostsMessage);
     })
   ];
 

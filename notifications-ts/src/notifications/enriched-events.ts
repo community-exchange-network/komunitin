@@ -1,5 +1,17 @@
 import { GroupEvent, MemberEvent, NotificationEvent, PostEvent, TransferEvent, UserEvent } from "./events"
-import { Account, Member, Group, Currency, Transfer, Need, Offer, ExternalResource, Recipient } from "../clients/komunitin/types";
+import {
+  Account,
+  AccountRecipient,
+  Currency,
+  ExternalResource,
+  Group,
+  GroupRecipient,
+  MandatoryRecipient,
+  Member,
+  Need,
+  Offer,
+  Transfer,
+} from "../clients/komunitin/types";
 
 export type EnrichedTransferEventAccountData = {
   // In case of external transfers, the account or other related data 
@@ -8,7 +20,7 @@ export type EnrichedTransferEventAccountData = {
   member: Member | null;
   currency: Currency | null;
   group: Group | null;
-  recipients: Recipient[];
+  recipients: AccountRecipient[];
 }
 
 export type EnrichedTransferEvent = TransferEvent & {
@@ -19,18 +31,29 @@ export type EnrichedTransferEvent = TransferEvent & {
   payee: EnrichedTransferEventAccountData;
 };
 
-export type EnrichedPostEvent = PostEvent & {
+type EnrichedPostEventData = {
   group: Group;
   post: Offer | Need;
   postType: 'offers' | 'needs';
   member: Member;
-  recipients: Recipient[];
 };
+
+export type EnrichedPublishedPostEvent = PostEvent & EnrichedPostEventData & {
+  name: 'OfferPublished' | 'NeedPublished';
+  recipients: GroupRecipient[];
+};
+
+export type EnrichedAccountPostEvent = PostEvent & EnrichedPostEventData & {
+  name: 'OfferExpired' | 'NeedExpired' | 'PostExpiresSoon';
+  recipients: AccountRecipient[];
+};
+
+export type EnrichedPostEvent = EnrichedPublishedPostEvent | EnrichedAccountPostEvent;
 
 export type EnrichedMemberEvent = MemberEvent & {
   group: Group;
   member: Member;
-  recipients: Recipient[];
+  recipients: AccountRecipient[];
 };
 
 export type EnrichedMemberHasExpiredPostsEvent = EnrichedMemberEvent & {
@@ -40,18 +63,18 @@ export type EnrichedMemberHasExpiredPostsEvent = EnrichedMemberEvent & {
 
 export type EnrichedMemberRequestedEvent = EnrichedMemberEvent & {
   name: 'MemberRequested';
-  adminRecipients: Recipient[];
+  adminRecipients: MandatoryRecipient[];
 };
 
 export type EnrichedGroupEvent = GroupEvent & {
   group: Group;
-  adminRecipients: Recipient[];
+  adminRecipients: MandatoryRecipient[];
 };
 
 type EnrichedGroupDigestEvent = NotificationEvent & {
   group: Group;
   members: Member[];
-  recipients: Recipient[];
+  recipients: GroupRecipient[];
   offers: Offer[];
   needs: Need[];
 }
@@ -73,7 +96,7 @@ export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
   member: Member;
   group: Group;
   currency: Currency;
-  recipients: Recipient[];
+  recipients: AccountRecipient[];
 };
 
 export type EnrichedUserEvent = UserEvent & {

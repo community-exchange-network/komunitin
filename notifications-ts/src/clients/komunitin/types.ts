@@ -160,12 +160,21 @@ export type Membership = {
   member: Member;
 };
 
-export type Recipient = {
+export type AccountRecipient = {
+  user: User;
+  membership: Membership;
+};
+
+export type GroupRecipient = {
   user: User;
   memberships: Membership[];
-  /** The relation that caused a member-specific delivery. */
-  membership?: Membership;
 };
+
+export type MandatoryRecipient = {
+  user: User;
+};
+
+export type Recipient = AccountRecipient | GroupRecipient | MandatoryRecipient;
 
 export interface ExternalResource {
   id: string;

@@ -6,7 +6,12 @@ import { EnrichedTransferEvent, EnrichedMemberEvent, EnrichedMemberHasExpiredPos
 import { ctxTransferSent, ctxTransferReceived, ctxTransferPending, ctxTransferRejected } from '../../emails/transfer';
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
-import { handleEmailAddressEvent, handleEmailEvent, handleSuperadminEmailEvent } from './utils';
+import {
+  handleAccountEmailEvent,
+  handleEmailAddressEvent,
+  handleMandatoryEmailEvent,
+  handleSuperadminEmailEvent,
+} from './utils';
 
 export const initEmailChannel = (): (() => void) => {
   logger.info('Initializing email notification channel');
@@ -15,13 +20,13 @@ export const initEmailChannel = (): (() => void) => {
   const unsubscribers = [
     // Member events
     eventBus.on(EVENT_NAME.MemberJoined, async (event: EnrichedMemberEvent) => 
-      handleEmailEvent(event, event.recipients, "message", ctxWelcomeEmail, 'account'
+      handleAccountEmailEvent(event, event.recipients, "message", ctxWelcomeEmail
     )),
     eventBus.on(EVENT_NAME.MemberRequested, async (event: EnrichedMemberRequestedEvent) => 
-      handleEmailEvent(event, event.adminRecipients, "message", ctxMemberRequestedEmail, 'mandatory'
+      handleMandatoryEmailEvent(event, event.adminRecipients, "message", ctxMemberRequestedEmail
     )),
     eventBus.on(EVENT_NAME.MemberHasExpiredPostsRecently, async (event: EnrichedMemberHasExpiredPostsEvent) =>
-      handleEmailEvent(event, event.recipients, "post", ctxMemberExpiredPostsEmail, 'account'
+      handleAccountEmailEvent(event, event.recipients, "post", ctxMemberExpiredPostsEmail
     )),
 
     // Group events
@@ -29,7 +34,7 @@ export const initEmailChannel = (): (() => void) => {
       handleSuperadminEmailEvent(event, "message", ctxGroupRequestedEmail)
     ),
     eventBus.on(EVENT_NAME.GroupActivated, async (event: EnrichedGroupEvent) => 
-      handleEmailEvent(event, event.adminRecipients, "message", ctxGroupActivatedEmail, 'mandatory'
+      handleMandatoryEmailEvent(event, event.adminRecipients, "message", ctxGroupActivatedEmail
     )),
 
     // User events
@@ -48,17 +53,17 @@ export const initEmailChannel = (): (() => void) => {
     // Transfer events
     eventBus.on(EVENT_NAME.TransferCommitted, async (event: EnrichedTransferEvent) => {
       // Payer gets "sent" email
-      await handleEmailEvent(event, event.payer.recipients, "transfer", ctxTransferSent, 'account');
+      await handleAccountEmailEvent(event, event.payer.recipients, "transfer", ctxTransferSent);
       // Payee gets "received" email
-      await handleEmailEvent(event, event.payee.recipients, "transfer", ctxTransferReceived, 'account');
+      await handleAccountEmailEvent(event, event.payee.recipients, "transfer", ctxTransferReceived);
     }),
     eventBus.on(EVENT_NAME.TransferPending, async (event: EnrichedTransferEvent) => {
       // Payer gets "pending" email (they need to accept/reject)
-      await handleEmailEvent(event, event.payer.recipients, "transfer", ctxTransferPending, 'account');
+      await handleAccountEmailEvent(event, event.payer.recipients, "transfer", ctxTransferPending);
     }),
     eventBus.on(EVENT_NAME.TransferRejected, async (event: EnrichedTransferEvent) => {
       // Payee gets "rejected" email
-      await handleEmailEvent(event, event.payee.recipients, "transfer", ctxTransferRejected, 'account');
+      await handleAccountEmailEvent(event, event.payee.recipients, "transfer", ctxTransferRejected);
     }),
   ];
 

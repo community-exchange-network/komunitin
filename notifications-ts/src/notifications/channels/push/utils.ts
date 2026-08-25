@@ -5,7 +5,7 @@ import { EnrichedEvent } from "../../enriched-events";
 import { MessageContext, NotificationMessage } from "../../messages";
 import { createQueue, createWorker } from "../../../utils/queue";
 import { Queue } from "bullmq";
-import { Group, Recipient } from "../../../clients/komunitin/types";
+import { AccountRecipient, Group, GroupRecipient } from "../../../clients/komunitin/types";
 import { Prisma, PushSubscription } from '@prisma/client';
 import webpush from 'web-push';
 import { config } from "../../../config";
@@ -16,7 +16,6 @@ const JOB_NAME_SEND_PUSH = 'send-push-notification';
 let queue: Queue | null = null;
 
 export type PushPriority = 'high' | 'normal';
-export type NotificationClass = 'account' | 'group';
 
 
 export const initPushQueue = () => {
@@ -40,10 +39,15 @@ export const initPushQueue = () => {
   return () => worker.close();
 }
 
-const getUserTimezone = (recipient: Recipient, group: Group): string | null => {
+type PushRecipient = AccountRecipient | GroupRecipient;
+
+const getUserTimezone = (recipient: PushRecipient, group: Group): string | null => {
   // Ideally we should have the TZ on the user, but this is not the case (yet).
   // We can however guess it from their known location (member coordinates) or group location.
-  const member = recipient.memberships.find(
+  const memberships = 'membership' in recipient
+    ? [recipient.membership]
+    : recipient.memberships;
+  const member = memberships.find(
     (membership) => membership.member.attributes.location,
   )?.member;
   let coordinates = member?.attributes.location?.coordinates;
@@ -63,18 +67,15 @@ const getUserTimezone = (recipient: Recipient, group: Group): string | null => {
   return tz;
 }
 
-const shouldSendPushNotification = (notificationClass: NotificationClass, recipient: Recipient): boolean => {
-  // For an account-targeted notification, we check the user preference related to target member.
-  // For group-targeted notifications, we check if any of the user's memberships have group notifications enabled.
-  if (notificationClass === 'account') {
-    return recipient.membership?.memberUser.attributes.notifications.myAccount === true;
-  } else if (notificationClass === 'group') {
-    return recipient.memberships.some(
-      ({ memberUser }) => memberUser.attributes.notifications.group,
-    );
-  }
-  return false;
-}
+// For an account-targeted notification, we check the user preference related to target member.
+const shouldSendAccountPushNotification = (recipient: AccountRecipient) =>
+  recipient.membership.memberUser.attributes.notifications.myAccount;
+
+// For group-targeted notifications, we check if any of the user's memberships have group notifications enabled.
+const shouldSendGroupPushNotification = (recipient: GroupRecipient) =>
+  recipient.memberships.some(
+    ({ memberUser }) => memberUser.attributes.notifications.group,
+  );
 
 const QUIET_HOURS_START = 22; // 10 PM
 const QUIET_HOURS_END = 8;    // 8 AM
@@ -111,11 +112,11 @@ const pushNotificationDelay = (priority: PushPriority, timezone: string | null):
  * 3. Sending push notifications via Web Push protocol
  * 4. Handling failed subscriptions (cleanup)
  */
-export const sendPushToRecipients = async <T extends EnrichedEvent>(
+const sendPushToRecipients = async <T extends EnrichedEvent, R extends PushRecipient>(
   event: T,
-  recipients: Recipient[],
+  recipients: R[],
   builder: (event: T, ctx: MessageContext) => NotificationMessage | null,
-  notificationClass: NotificationClass,
+  shouldSend: (recipient: R) => boolean,
   priority: PushPriority = 'normal'
 ) => {
   const i18n = await initI18n();
@@ -132,7 +133,7 @@ export const sendPushToRecipients = async <T extends EnrichedEvent>(
     if (!message) {
       continue;
     }
-    if (!shouldSendPushNotification(notificationClass, recipient)) {
+    if (!shouldSend(recipient)) {
       continue;
     }
 
@@ -157,6 +158,32 @@ export const sendPushToRecipients = async <T extends EnrichedEvent>(
     }
   }
 };
+
+export const sendAccountPushToRecipients = async <T extends EnrichedEvent>(
+  event: T,
+  recipients: AccountRecipient[],
+  builder: (event: T, ctx: MessageContext) => NotificationMessage | null,
+  priority: PushPriority = 'normal',
+) => sendPushToRecipients(
+  event,
+  recipients,
+  builder,
+  shouldSendAccountPushNotification,
+  priority,
+);
+
+export const sendGroupPushToRecipients = async <T extends EnrichedEvent>(
+  event: T,
+  recipients: GroupRecipient[],
+  builder: (event: T, ctx: MessageContext) => NotificationMessage | null,
+  priority: PushPriority = 'normal',
+) => sendPushToRecipients(
+  event,
+  recipients,
+  builder,
+  shouldSendGroupPushNotification,
+  priority,
+);
 
 const queueWebPush = async (
   subscription: PushSubscription,
