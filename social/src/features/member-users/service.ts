@@ -9,6 +9,7 @@ import prisma from '../../utils/prisma'
 import { getGroupByCode, isGroupAdmin } from '../groups/service'
 import type { Group } from '../groups/types'
 import { enrichMembers, toMember } from '../members/service'
+import { memberStatusSchema } from '../members/schema'
 import type { Member } from '../members/types'
 import { toUser } from '../users/service'
 import type { User } from '../users/types'
@@ -75,8 +76,11 @@ const getAuthorizedMemberUser = async (
   const { group, canReadAll } = await getAuthorization(ctx, code)
   const db = tenantDb(prisma, code)
   const load = getLoad(params)
-  const row = await db.memberUser.findUnique({
-    where: { id },
+  const row = await db.memberUser.findFirst({
+    where: {
+      id,
+      member: { deleted: null },
+    },
     include: load,
   })
 
@@ -105,6 +109,7 @@ export const listMemberUsers = async (
   const { group, canReadAll } = await getAuthorization(ctx, code)
   const userIds = getFilter(params, 'user', uuidSchema)
   const memberIds = getFilter(params, 'member', uuidSchema)
+  const memberStatuses = getFilter(params, 'member.status', memberStatusSchema)
 
   if (!canReadAll && userIds?.some((id) => id !== ctx.userId)) {
     throw forbidden('You can only access your own member-user relations')
@@ -113,6 +118,10 @@ export const listMemberUsers = async (
   const where: Prisma.MemberUserWhereInput = {
     ...(!canReadAll ? { userId: ctx.userId } : userIds ? { userId: { in: userIds } } : {}),
     ...(memberIds ? { memberId: { in: memberIds } } : {}),
+    member: {
+      deleted: null,
+      ...(memberStatuses ? { status: { in: memberStatuses } } : {}),
+    },
   }
   const db = tenantDb(prisma, code)
 

@@ -6,25 +6,10 @@ import { getValidatedBody } from '../../server/validation'
 import { serializeMembers } from '../members/serialize'
 import type { CreateUserBody, PatchUserBody } from './schema'
 import { unsubscribeQuerySchema } from './schema'
-import { serializeUser, serializeUsers } from './serialize'
-import { createUser, getUserById, listUserMembers, listUsers, patchUser, unsubscribeUser } from './service'
+import { serializeUser } from './serialize'
+import { createUser, getUserById, listUserMembers, patchUser, unsubscribeUser } from './service'
 import { redeemUnsubscribeToken } from '../../clients/auth'
 import { badRequest } from '../../utils/error'
-
-
-export const getUsersRoute: RequestHandler = async (req, res) => {
-  const ctx = getAuthContext(req)
-
-  const params = getCollectionParams(req, {
-    filter: ['members'],
-    sort: ['created'],
-  })
-
-  const result = await listUsers(ctx, params)
-  const payload = await serializeUsers(result.items, getCollectionSerializerOptions(req.url, params, result.total))
-
-  res.status(200).json(payload)
-}
 
 export const postUsers: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
