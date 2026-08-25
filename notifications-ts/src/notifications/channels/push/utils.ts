@@ -64,6 +64,8 @@ const getUserTimezone = (recipient: Recipient, group: Group): string | null => {
 }
 
 const shouldSendPushNotification = (notificationClass: NotificationClass, recipient: Recipient): boolean => {
+  // For an account-targeted notification, we check the user preference related to target member.
+  // For group-targeted notifications, we check if any of the user's memberships have group notifications enabled.
   if (notificationClass === 'account') {
     return recipient.membership?.memberUser.attributes.notifications.myAccount === true;
   } else if (notificationClass === 'group') {

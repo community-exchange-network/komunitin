@@ -78,7 +78,7 @@ export class KomunitinClient {
     params: Record<string, string> = {},
     mapPage: (body: any) => T[] = (body) => body.data ?? [],
   ): Promise<T[]> {
-    const actualParams = { 
+    const actualParams = {
       'page[size]': '200',
       ...params
     };
