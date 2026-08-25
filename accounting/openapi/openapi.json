@@ -10,6 +10,45 @@
     "description": "API for the Komunitin payments system. This documentation is automatically generated from the serivce test suite."
   },
   "paths": {
+    "/health": {
+      "get": {
+        "summary": "/health",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "ok"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
     "/": {
       "get": {
         "summary": "/",
@@ -5920,7 +5959,7 @@
                       "status": "500",
                       "code": "InternalError",
                       "title": "Internal Error",
-                      "detail": "\nInvalid `this.db().creditCommonsNode.create()` invocation in\n/Users/michiel/gh/komunitin/komunitin/accounting/src/creditcommons/credit-commons-controller.ts:95:39\n\n  92 async createNode(ctx: Context, peerNodePath: string, lastHash: string, vostroId: string): Promise<CreditCommonsNode> {\n  93   // Only admins are allowed to set the trunkward node:\n  94   await this.users().checkAdmin(ctx)\n\u2192 95   await this.db().creditCommonsNode.create({\n         data: {\n           tenantId: \"TEST\",\n           peerNodePath: \"trunk\",\n           lastHash: \"asdf\",\n           vostroId: \"a9fb66cf-468a-482d-a0b5-14d0d0e98539\",\n       +   ourNodePath: String\n         }\n       })\n\nArgument `ourNodePath` is missing."
+                      "detail": "\nInvalid `this.db().creditCommonsNode.create()` invocation in\n/Users/michiel/gh/komunitin/komunitin/accounting/src/creditcommons/credit-commons-controller.ts:95:39\n\n  92 async createNode(ctx: Context, peerNodePath: string, lastHash: string, vostroId: string): Promise<CreditCommonsNode> {\n  93   // Only admins are allowed to set the trunkward node:\n  94   await this.users().checkAdmin(ctx)\n→ 95   await this.db().creditCommonsNode.create({\n         data: {\n           tenantId: \"TEST\",\n           peerNodePath: \"trunk\",\n           lastHash: \"asdf\",\n           vostroId: \"a9fb66cf-468a-482d-a0b5-14d0d0e98539\",\n       +   ourNodePath: String\n         }\n       })\n\nArgument `ourNodePath` is missing."
                     }
                   ]
                 }
@@ -6067,10 +6106,10 @@
   ],
   "securityDefinitions": {
     "authorization": {
-      "name": "Authorization",
-      "in": "header",
-      "type": "apiKey",
-      "description": "Bearer JWT from the configured Auth issuer for audience urn:komunitin:api. Use accounting:read for reads, accounting:write for writes, or superadmin on admin operations."
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT",
+      "description": "JWT from the configured Auth issuer for audience urn:komunitin:api. Use accounting:read for reads, accounting:write for writes, or superadmin on admin operations."
     }
   },
   "servers": [

@@ -165,7 +165,25 @@ describe('Auth Service Integration Tests', () => {
       .get('/health')
       .expect(200)
 
-    assert.strictEqual(res.body.status, 'ok')
+    assert.deepStrictEqual(res.body, { status: 'ok' })
+    assert.match(res.headers['content-type'], /^application\/json/)
+  })
+
+  test('GET /health returns 503 when the database is unavailable', async (t) => {
+    const queryRaw = prisma.$queryRaw
+    t.after(() => {
+      prisma.$queryRaw = queryRaw
+    })
+    prisma.$queryRaw = (async () => {
+      throw new Error('Database unavailable')
+    }) as typeof prisma.$queryRaw
+
+    const res = await request(app)
+      .get('/health')
+      .expect(503)
+
+    assert.deepStrictEqual(res.body, { status: 'error' })
+    assert.match(res.headers['content-type'], /^application\/json/)
   })
 
   test('POST /register creates an unverified user and sends validation email', async () => {

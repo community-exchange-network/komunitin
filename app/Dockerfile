@@ -60,3 +60,5 @@ COPY docker/replace_env_vars.sh /docker-entrypoint.d/replace_env_vars.sh
 RUN chmod +x /docker-entrypoint.d/replace_env_vars.sh
 
 EXPOSE 80
+
+HEALTHCHECK CMD wget --no-verbose --tries=1 --spider http://127.0.0.1/health || exit 1

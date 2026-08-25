@@ -21,5 +21,7 @@ RUN pnpm prisma generate
 # Build App
 RUN pnpm run build
 
+HEALTHCHECK CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 2025) + '/health').then(response => process.exit(response.ok ? 0 : 1), () => process.exit(1))"
+
 # Run accounting service
 CMD ["node", "dist/index.mjs"]

@@ -2,11 +2,63 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import { signJwt } from '../../mocks/auth'
 import { createNotification, setupNotificationsTest } from './utils'
+import prisma from '../../utils/prisma'
 
 const uid = (c: string) => [8,4,4,4,12].map(len => c.repeat(len)).join('-')
 
 describe('Notifications API', () => {
   const { app, appNotifications } = setupNotificationsTest()
+
+  describe('GET /health', () => {
+    it('returns 200 when PostgreSQL and Redis are available', async () => {
+      const res = await app
+        .get('/health')
+        .expect(200)
+
+      assert.deepEqual(res.body, { status: 'ok' })
+      assert.match(res.headers['content-type'], /^application\/json/)
+    })
+
+    it('returns 503 when PostgreSQL is unavailable', async (t) => {
+      const queryRaw = prisma.$queryRaw
+      
+      t.after(() => {
+        prisma.$queryRaw = queryRaw
+      })
+
+      prisma.$queryRaw = (async () => {
+        throw new Error('Database unavailable')
+      }) as typeof prisma.$queryRaw
+
+      const res = await app
+        .get('/health')
+        .expect(503)
+
+      assert.deepEqual(res.body, { status: 'error' })
+      assert.match(res.headers['content-type'], /^application\/json/)
+    })
+
+    it('returns 503 when Redis is unavailable', async (t) => {
+      // Import redis after module mocks have been set up.
+      const { redis } = await import('../../utils/redis')
+      const ping = redis.ping
+
+      t.after(() => {
+        redis.ping = ping
+      })
+      
+      redis.ping = async () => {
+        throw new Error('Redis unavailable')
+      }
+
+      const res = await app
+        .get('/health')
+        .expect(503)
+
+      assert.deepEqual(res.body, { status: 'error' })
+      assert.match(res.headers['content-type'], /^application\/json/)
+    })
+  })
 
   describe('GET /:code/notifications', () => {
     it('Returns notifications for authenticated user', async () => {

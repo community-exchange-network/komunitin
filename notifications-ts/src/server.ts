@@ -6,6 +6,7 @@ import { config } from './config'
 import notificationsRouter from './notifications/server/routes'
 import eventsRouter from './events/server/routes'
 import { errorHandler } from './server/errors'
+import { healthRoute } from './server/health'
 import { httpLogger } from './server/http-logger'
 import logger from './utils/logger'
 
@@ -25,19 +26,17 @@ app.use(cors({
   credentials: true,
 }))
 
+app.use(httpLogger)
+
+app.get('/health', healthRoute)
+
 app.use(express.json({
   type: ['application/vnd.api+json', 'application/json']
 }))
 
-app.use(httpLogger)
-
 app.use(notificationsRouter)
 
 app.use(eventsRouter)
-
-app.get('/health', (req, res) => {
-  res.send('OK')
-})
 
 app.use(errorHandler)
 

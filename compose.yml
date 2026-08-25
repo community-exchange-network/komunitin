@@ -101,6 +101,7 @@ services:
       - db-accounting
     restart: unless-stopped
     environment:
+      PORT: 2025
       DATABASE_URL: postgresql://accounting:accounting@db-accounting:5432/accounting?schema=public
       MASTER_PASSWORD: ${KOMUNITIN_ACCOUNTING_MASTER_PASSWORD}
       STELLAR_NETWORK: ${STELLAR_NETWORK}
