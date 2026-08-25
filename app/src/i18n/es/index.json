@@ -398,7 +398,7 @@
   "loggingOut": "Cerrando sesión...",
   "loggedOut": "Has cerrado la sesión y no recibirás más notificaciones hasta que vuelvas a iniciar sesión.",
   "unsubscribed": "Te has dado de baja",
-  "unsubscribedText": "Ya no recibirás correos electrónicos de boletines de ninguna de tus comunidades. Esto se aplica a todos los perfiles de miembro vinculados a tu cuenta. Puedes cambiar tus preferencias de correo electrónico en cualquier momento en la configuración.",
+  "unsubscribedText": "Ya no recibirás correos electrónicos del boletín de la comunidad. Puedes cambiar tus preferencias de correo electrónico en cualquier momento en la configuración.",
   "unsubscribeError": "Error al darse de baja",
   "today": "Hoy",
   "yesterday": "Ayer",

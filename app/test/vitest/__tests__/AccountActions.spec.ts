@@ -89,7 +89,7 @@ describe("Public account action links", () => {
 
     await wrapper.vm.$router.push({ path: "/unsubscribe", query: { token } });
     await waitFor(() => wrapper.text().includes("You've been unsubscribed"), true, "Unsubscribe status should succeed");
-    expect(wrapper.text()).toContain("any of your communities");
+    expect(wrapper.text()).toContain("community newsletter emails");
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
   });
 });

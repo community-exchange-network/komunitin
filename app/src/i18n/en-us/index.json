@@ -397,7 +397,7 @@
   "create": "Create",
   "backToTransfers": "Back to transfers",
   "unsubscribed": "You've been unsubscribed",
-  "unsubscribedText": "You will no longer receive newsletter emails from any of your communities. This applies to every member profile linked to your account. You can change your email preferences at any time in your settings.",
+  "unsubscribedText": "You will no longer receive community newsletter emails. You can change your email preferences at any time in your settings.",
   "unsubscribeError": "Unsubscribe failed",
   "today": "Today",
   "yesterday": "Yesterday",
