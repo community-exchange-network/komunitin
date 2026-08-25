@@ -78,7 +78,11 @@ export class KomunitinClient {
     params: Record<string, string> = {},
     mapPage: (body: any) => T[] = (body) => body.data ?? [],
   ): Promise<T[]> {
-    const query = new URLSearchParams(params).toString();
+    const actualParams = { 
+      'page[size]': '200',
+      ...params
+    };
+    const query = new URLSearchParams(actualParams).toString();
     let url = this.getUrl(service, query ? `${path}?${query}` : path);
     const allData: T[] = [];
 
@@ -88,6 +92,7 @@ export class KomunitinClient {
 
       url = body.links?.next ?? '';
       if (url) {
+        // Add a small delay to avoid overwhelming the server
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
@@ -121,8 +126,7 @@ export class KomunitinClient {
       return [];
     }
     const params: Record<string, string> = {
-      include: 'user,member',
-      'page[size]': '200',
+      include: 'user,member'
     };
     if (filters.member) {
       params['filter[member]'] = Array.isArray(filters.member)
