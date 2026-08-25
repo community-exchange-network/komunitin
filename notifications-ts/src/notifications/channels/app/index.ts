@@ -83,7 +83,6 @@ export const initInAppChannel = (): (() => void) => {
         event,
         event.recipients,
         (ctx) => buildSinglePostPublishedMessage(event, post, member, ctx),
-        true,
       );
     }),
     eventBus.on(EVENT_NAME.NeedPublished, async (event: EnrichedPostEvent) => {
@@ -92,7 +91,6 @@ export const initInAppChannel = (): (() => void) => {
         event,
         event.recipients,
         (ctx) => buildSinglePostPublishedMessage(event, post, member, ctx),
-        true,
       );
     }),
     eventBus.on(EVENT_NAME.PostsPublishedDigest, async (event: EnrichedPostsPublishedDigestEvent) => {
@@ -100,7 +98,6 @@ export const initInAppChannel = (): (() => void) => {
         event,
         event.recipients,
         (ctx) => buildPostsPublishedDigestMessage(event, ctx),
-        true,
       );
     }),
 
@@ -115,7 +112,6 @@ export const initInAppChannel = (): (() => void) => {
         event,
         event.recipients,
         (ctx) => buildMembersJoinedDigestMessage(event, ctx),
-        true,
       );
     }),
     eventBus.on(EVENT_NAME.MemberJoined, async (event: EnrichedMemberEvent) => {
