@@ -159,7 +159,7 @@ const sendPushToRecipients = async <T extends EnrichedEvent, R extends PushRecip
   }
 };
 
-export const sendAccountPushToRecipients = async <T extends EnrichedEvent>(
+export const sendPushToAccountRecipients = async <T extends EnrichedEvent>(
   event: T,
   recipients: AccountRecipient[],
   builder: (event: T, ctx: MessageContext) => NotificationMessage | null,
@@ -172,7 +172,7 @@ export const sendAccountPushToRecipients = async <T extends EnrichedEvent>(
   priority,
 );
 
-export const sendGroupPushToRecipients = async <T extends EnrichedEvent>(
+export const sendPushToGroupRecipients = async <T extends EnrichedEvent>(
   event: T,
   recipients: GroupRecipient[],
   builder: (event: T, ctx: MessageContext) => NotificationMessage | null,

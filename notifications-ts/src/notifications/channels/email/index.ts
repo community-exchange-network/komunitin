@@ -7,10 +7,10 @@ import { ctxTransferSent, ctxTransferReceived, ctxTransferPending, ctxTransferRe
 import { eventBus } from '../../event-bus';
 import { EVENT_NAME } from '../../events';
 import {
-  handleAccountEmailEvent,
   handleEmailAddressEvent,
-  handleMandatoryEmailEvent,
   handleSuperadminEmailEvent,
+  sendEmailToAccountRecipients,
+  sendEmailToMandatoryRecipients,
 } from './utils';
 
 export const initEmailChannel = (): (() => void) => {
@@ -20,13 +20,13 @@ export const initEmailChannel = (): (() => void) => {
   const unsubscribers = [
     // Member events
     eventBus.on(EVENT_NAME.MemberJoined, async (event: EnrichedMemberEvent) => 
-      handleAccountEmailEvent(event, event.recipients, "message", ctxWelcomeEmail
+      sendEmailToAccountRecipients(event, event.recipients, "message", ctxWelcomeEmail
     )),
     eventBus.on(EVENT_NAME.MemberRequested, async (event: EnrichedMemberRequestedEvent) => 
-      handleMandatoryEmailEvent(event, event.adminRecipients, "message", ctxMemberRequestedEmail
+      sendEmailToMandatoryRecipients(event, event.adminRecipients, "message", ctxMemberRequestedEmail
     )),
     eventBus.on(EVENT_NAME.MemberHasExpiredPostsRecently, async (event: EnrichedMemberHasExpiredPostsEvent) =>
-      handleAccountEmailEvent(event, event.recipients, "post", ctxMemberExpiredPostsEmail
+      sendEmailToAccountRecipients(event, event.recipients, "post", ctxMemberExpiredPostsEmail
     )),
 
     // Group events
@@ -34,7 +34,7 @@ export const initEmailChannel = (): (() => void) => {
       handleSuperadminEmailEvent(event, "message", ctxGroupRequestedEmail)
     ),
     eventBus.on(EVENT_NAME.GroupActivated, async (event: EnrichedGroupEvent) => 
-      handleMandatoryEmailEvent(event, event.adminRecipients, "message", ctxGroupActivatedEmail
+      sendEmailToMandatoryRecipients(event, event.adminRecipients, "message", ctxGroupActivatedEmail
     )),
 
     // User events
@@ -53,17 +53,17 @@ export const initEmailChannel = (): (() => void) => {
     // Transfer events
     eventBus.on(EVENT_NAME.TransferCommitted, async (event: EnrichedTransferEvent) => {
       // Payer gets "sent" email
-      await handleAccountEmailEvent(event, event.payer.recipients, "transfer", ctxTransferSent);
+      await sendEmailToAccountRecipients(event, event.payer.recipients, "transfer", ctxTransferSent);
       // Payee gets "received" email
-      await handleAccountEmailEvent(event, event.payee.recipients, "transfer", ctxTransferReceived);
+      await sendEmailToAccountRecipients(event, event.payee.recipients, "transfer", ctxTransferReceived);
     }),
     eventBus.on(EVENT_NAME.TransferPending, async (event: EnrichedTransferEvent) => {
       // Payer gets "pending" email (they need to accept/reject)
-      await handleAccountEmailEvent(event, event.payer.recipients, "transfer", ctxTransferPending);
+      await sendEmailToAccountRecipients(event, event.payer.recipients, "transfer", ctxTransferPending);
     }),
     eventBus.on(EVENT_NAME.TransferRejected, async (event: EnrichedTransferEvent) => {
       // Payee gets "rejected" email
-      await handleAccountEmailEvent(event, event.payee.recipients, "transfer", ctxTransferRejected);
+      await sendEmailToAccountRecipients(event, event.payee.recipients, "transfer", ctxTransferRejected);
     }),
   ];
 

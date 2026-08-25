@@ -49,7 +49,7 @@ const handleEmailRecipients = async <
   }
 }
 
-export const handleAccountEmailEvent = async <T extends AnyEnrichedEvent>(
+export const sendEmailToAccountRecipients = async <T extends AnyEnrichedEvent>(
   event: T,
   recipients: AccountRecipient[],
   templateName: string,
@@ -62,7 +62,7 @@ export const handleAccountEmailEvent = async <T extends AnyEnrichedEvent>(
   ({ membership }) => membership.memberUser.attributes.emails.myAccount,
 );
 
-export const handleMandatoryEmailEvent = async <T extends AnyEnrichedEvent>(
+export const sendEmailToMandatoryRecipients = async <T extends AnyEnrichedEvent>(
   event: T,
   recipients: MandatoryRecipient[],
   templateName: string,
