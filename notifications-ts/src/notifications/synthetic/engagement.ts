@@ -104,14 +104,8 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
       continue;
     }
 
-    // Cached data may be up to 24h old, re-fetch member to get latest needs/offers count 
-    // before sending engagement event
-    const updatedMember = await client.getMember(group.attributes.code, member.id);
-    const updatedNeedsCounter = updatedMember.relationships.needs.meta.count ?? 0
-    const updatedOffersCounter = updatedMember.relationships.offers.meta.count ?? 0
-
-    const sendNoOffers = balance <= 0 && updatedOffersCounter === 0;
-    const sendNoNeeds = balance > 0 && updatedNeedsCounter === 0;
+    const sendNoOffers = balance <= 0 && offersCounter === 0;
+    const sendNoNeeds = balance > 0 && needsCounter === 0;
 
     if (sendNoOffers || sendNoNeeds) {
       // Send engagement event
@@ -122,7 +116,7 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
           balance,
           type: sendNoOffers ? 'offers' : 'needs'
         },
-        member: updatedMember,
+        member,
         group,
         currency, 
         recipients: candidates,
