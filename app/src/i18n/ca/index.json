@@ -100,7 +100,7 @@
   "create": "Crea",
   "backToTransfers": "Torna a moviments",
   "description": "Descripció",
-  "transactionDescriptionHint": "Breu descripció del concepte de l'intercanvi. Per exemple '2kg de patates'.",
+  "transactionDescriptionHint": "Breu descripció d'allò que s'ha intercanviat, per exemple '2kg de patates'.",
   "amount": "Quantitat",
   "amountIn": "Quantitat en {currency}",
   "transactionAmountHint": "Quantitat de moneda a transferir",
