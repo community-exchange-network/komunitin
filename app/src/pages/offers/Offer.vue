@@ -18,7 +18,7 @@
           :code="code"
           :offer="offer"          
           :to="`/groups/${code}/offers`"
-          color="white"
+          color="onsurface-m"
         />
       </template>
     </page-header>
@@ -32,22 +32,28 @@
             <member-header
               :to="`/groups/${code}/members/${offer.member.attributes.code}`"
               :member="offer.member"
-              class="q-pa-none"
-            />
+              class="bg-surface rounded-borders shadow-2 q-pa-md"
+            >
+            <template #side>
+              <q-icon
+                name="chevron_right"
+              />
+            </template>
+          </member-header>
           </template>
           <template #category>
-            <category-avatar
-              type="offer"
-              :category="offer.category"
-              caption
-            />
+              <category-pill
+                type="offer"
+                :category="offer.category"
+              />
           </template>
           <template #images>
             <carousel
-              :images="offer.attributes.images"
-              thumbnails
-              height="400px"
-            />
+                class="rounded-borders shadow-2"
+                :images="offer.attributes.images"
+                thumbnails
+                height="400px"
+              />
           </template>
           <template #content>
             <div class="text-h4 q-pb-sm">
@@ -119,7 +125,7 @@ import OfferLayout from "../../layouts/OfferLayout.vue";
 import PageHeader from "../../layouts/PageHeader.vue";
 
 import Carousel from "../../components/Carousel.vue";
-import CategoryAvatar from "../../components/CategoryAvatar.vue";
+import CategoryPill from "../../components/CategoryPill.vue";
 import ContactButton from "../../components/ContactButton.vue";
 import DeleteOfferBtn from "../../components/DeleteOfferBtn.vue";
 import MemberHeader from "../../components/MemberHeader.vue";

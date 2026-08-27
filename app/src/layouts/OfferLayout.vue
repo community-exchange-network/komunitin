@@ -9,14 +9,19 @@
       </div>
       <div
         v-if="numImages > 0"
-        class="col-auto item"
+        class="col-auto item relative-position"
       >
         <slot name="images" />
+        <div class="q-ml-lg q-mb-sm absolute-bottom-left">
+          <slot name="category" />
+        </div>
       </div>
       <div class="col-auto item sm-last">
         <slot name="map" />
       </div>
-      <div class="col-auto item">
+      <div 
+        v-if="numImages === 0"
+        class="col-auto item">
         <slot name="category" />
       </div>
       <div class="col-auto item content">
