@@ -4,13 +4,12 @@
   >
     <span class="q-focus-helper"></span>
     <q-card-section class="text-center">
-      <q-avatar 
-        rounded 
-        :color="props.iconColor" 
-        :icon="props.icon"
-        size="lg"
+      <q-icon
+        class="q-pa-sm rounded-borders"
+        :class="`bg-${props.iconColor}`"
+        :name="props.icon"
+        size="sm"
       />
-
       <div class="text-weight-medium text-onsurface q-mt-sm">
         {{ props.label }}
       </div>
