@@ -10,7 +10,7 @@
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
     >
       <profile-form
-        v-if="member && memberUser"
+        v-if="memberLoaded && member && memberUser"
         :member="member"
         :email="email"
         :change-credentials="isSelf"
@@ -39,7 +39,7 @@ const props = defineProps<{
   memberCode?: string
 }>()
 
-const { resource: member, update: updateMember, isSelf } = useEditableMember(
+const { resource: member, update: updateMember, loaded: memberLoaded, isSelf } = useEditableMember(
   () => props.code,
   () => props.memberCode
 )

@@ -29,7 +29,7 @@
         />
       </div>  
       <account-settings-fields
-        v-if="accountSettings && currency && defaultSettings"
+        v-if="accountLoaded && accountSettings && currency && defaultSettings"
         v-model:settings="accountSettings"
         v-model:credit-limit="creditLimit"
         v-model:maximum-balance="maximumBalance"
@@ -202,14 +202,15 @@ const accountOptions = computed(() => ({
   group: actualCode.value ?? "",
   include: "settings,currency,currency.settings"
 }))
-const { resource: account, update: updateAccount } = useResource<FullAccount>("accounts", accountOptions)
+const {
+  resource: account,
+  loaded: accountLoaded,
+  update: updateAccount
+} = useResource<FullAccount>("accounts", accountOptions)
 
 const accountSettings = ref<AccountSettings>()
-watch(() => account.value?.settings, settings => {
-  // Refresh account settings only after full reload.
-  if (!settings || settings.id !== accountSettings.value?.id) {
-    accountSettings.value = settings
-  }
+watch(accountLoaded, loaded => {
+  accountSettings.value = loaded ? account.value?.settings : undefined
 }, {immediate: true})
 
 const currency = computed(() => account.value?.currency)

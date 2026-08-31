@@ -35,7 +35,11 @@ describe("logged in", () => {
 
   it("changes the current user's password through auth", async () => {
     await wrapper.vm.$router.push("/profile");
-    await waitFor(() => wrapper.text().includes("Edit profile"), true, "Profile form should load");
+    await waitFor(
+      () => wrapper.findComponent(ChangePasswordBtn).exists(),
+      true,
+      "Profile form should load"
+    );
     const passwordControl = wrapper.getComponent(ChangePasswordBtn);
     await passwordControl.findAllComponents(QBtn)[0].trigger("click");
     await waitFor(() => passwordControl.getComponent(QDialog).props("modelValue"), true, "Password dialog should open");
@@ -48,6 +52,25 @@ describe("logged in", () => {
     expect(submit).toBeDefined();
     await submit?.trigger("click");
     await waitFor(() => passwordControl.getComponent(QDialog).props("modelValue"), false, "Password dialog should close");
+  });
+
+  it("initializes the profile with the revalidated member", async () => {
+    await wrapper.vm.$router.push("/home")
+    const member = wrapper.vm.$store.getters.myMember
+    const name = `${member.attributes.name} refreshed`
+    // Mirage's schema types do not expose registered models.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(server.schema as any).members.find(member.id).update({ name })
+
+    await wrapper.vm.$router.push("/profile")
+    await waitFor(
+      () => {
+        const input = wrapper.find<HTMLInputElement>("input[name='name']")
+        return input.exists() ? input.element.value : undefined
+      },
+      name,
+      "Profile form should use the revalidated member"
+    )
   });
 
   it("reactively updates the profile after posting the Social user", async () => {

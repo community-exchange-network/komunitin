@@ -4,6 +4,7 @@ import App from "src/App.vue"
 import ToggleItem from "src/components/ToggleItem.vue"
 import { i18n } from "src/boot/i18n"
 import EditSettings from "src/pages/settings/EditSettings.vue"
+import AccountSettingsFields from "src/pages/settings/AccountSettingsFields.vue"
 import server, { seeds } from "src/server"
 import {
   getMockPreferencePatchRequests,
@@ -23,14 +24,44 @@ describe("Member-user settings", () => {
     seeds()
     server.schema.users.first().update({ language: "ca" })
     wrapper = await mountComponent(App, { login: true })
-    await wrapper.vm.$router.push("/settings")
+    await wrapper.vm.$router.push("/home")
     await waitFor(() => wrapper.vm.$store.getters.myMemberUser !== undefined)
+    await wrapper.vm.$router.push("/settings")
   })
 
   afterAll(() => wrapper.unmount())
 
   beforeEach(() => {
     resetMockPreferencePatchRequests()
+  })
+
+  it("initializes account settings from the revalidated resource", async () => {
+    await wrapper.vm.$router.push("/home")
+    const account = wrapper.vm.$store.getters.myAccount
+    await wrapper.vm.$store.dispatch("accounts/load", {
+      id: account.id,
+      group: wrapper.vm.$store.getters.myMember.group.attributes.code,
+      include: "settings,currency,currency.settings",
+    })
+    expect(wrapper.vm.$store.getters["accounts/current"].settings.attributes.acceptPaymentsAutomatically)
+      .toBe(true)
+    // Keep the cached value stale so the settings page must wait for server revalidation.
+    // Mirage's schema types do not expose registered models.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(server.schema as any).accountSettings.findBy({ accountId: account.id }).update({
+      acceptPaymentsAutomatically: false,
+    })
+    await wrapper.vm.$router.push("/settings")
+    await waitFor(
+      () => settingsPage().findComponent(AccountSettingsFields).exists(),
+      true,
+      "Revalidated account settings should render",
+    )
+    const fields = settingsPage().getComponent(AccountSettingsFields)
+    const automaticPayments = fields.findAllComponents(ToggleItem).find(
+      item => item.props("label") === i18n.global.t("acceptPaymentsAutomatically"),
+    )
+    expect(automaticPayments?.props("modelValue")).toBe(false)
   })
 
   it("loads identity language and patches self preferences through their owners", async () => {
