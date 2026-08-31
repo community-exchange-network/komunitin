@@ -211,7 +211,8 @@ const activateGroup = async (code: string) => {
 }
 const deleteGroup = async (code: string) => {
   await store.dispatch('groups/delete', {
-    group: code
+    group: code,
+    id: code
   })
   await loadGroups()
 }
