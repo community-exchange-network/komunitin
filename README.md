@@ -13,7 +13,7 @@ Quickly check Komunitin in action at [demo.komunitin.org](https://demo.komunitin
 The Komunitin system is made of several microservices:
  - Komunitin app: The client application with user interface. See the [app](app/) folder.
  - Auth service: Identity, login, registration and service authentication. See the [auth](auth/) folder.
- - Social service: Communities, members, marketplace and member-user preferences. See the [social](social/) folder.
+ - Social service: Communities, marketplace, members and preferences. See the [social](social/) folder.
  - Notifications service: The backend service for the messaging system including mails and push notifications. See the [notifications-ts](notifications-ts/) folder.
  - Accounting service: The decentralized backend for the accounting API based on the [Stellar](https://stellar.org) blockchain. See the [accounting](accounting) folder.
 

@@ -39,7 +39,7 @@ Each channel implements its own delivery mechanism but uses shared message gener
 - Sends Web Push notifications to subscribed devices
 - Queries `PushSubscription` model for user devices
 - Handles subscription cleanup (expired/invalid tokens)
-- Applies the originating relation's account preference to member events
+- Applies the originating relation's account preference to targeted events
 - Applies any-opt-in semantics across all applicable relations before deduplicating community events by user
 
 **Structure:**

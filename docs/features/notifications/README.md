@@ -1,6 +1,6 @@
 # Notifications
 
-The platform may deliver messages to users using three different channels: email, push notifications and in-app notifications. Notification and email preferences belong to a member profile in a community, while the selected language belongs to the user's identity and applies everywhere.
+The platform may deliver messages to users using three different channels: email, push notifications and in-app notifications. Users can configure their notification preferences and enable or disable different kinds of notifications.
 
 ## Email
 Email messages are divided into two categories: *My account* and *Community news*.
@@ -12,7 +12,7 @@ These emails are tied to events that affect a user directly and that are importa
 - Offers/needs: expired.
 - Security-related messages: email validation, password reset.
 
-Users can enable/disable *My account* emails for each member profile from its notification settings. We highly recommend keeping them enabled, since they act as an audit trail for key account actions. Authentication, security and mandatory administrative messages are always delivered.
+Users can enable/disable *My account* emails from their notification settings. We highly recommend keeping them enabled, since they act as an audit trail for key account actions. Authentication, security and mandatory administrative messages are always delivered.
 
 ### Community news
 These emails are a periodic newsletter designed to help users keep up with the community without receiving a message for every single event. They include:
@@ -22,7 +22,7 @@ These emails are a periodic newsletter designed to help users keep up with the c
 - An alert box for your account (eg no active offers)
 - Community-level statistics and news.
 
-Users can configure the frequency of *Community news* emails (weekly or monthly) or disable them for that member profile. A linked user may receive a separate newsletter for each profile. The unsubscribe link disables newsletters for every profile and community linked to the identity, without changing other preferences.
+Users can configure the frequency of *Community news* emails (weekly or monthly) or disable them for that member profile. The unsubscribe link disables newsletters for every profile and community linked to the identity, without changing other preferences.
 
 ## Push Notifications
 Push notifications are short messages sent to users' devices to inform them about important events or updates. Users need to provide explicit consent to receive push notifications and they can manage their preferences in the app settings. We also divide push notifications into the same two categories *My account* and *Community news*. Users can choose to enable or disable each category independently.
@@ -37,7 +37,7 @@ These notifications inform users about important events related to their account
 - Occasional account health nudges (e.g. no active offers/needs).
 - Welcome message for new members.
 
-Users can enable/disable *My account* push notifications for each member profile from its notification settings. We highly recommend keeping them enabled to stay informed about critical account activities.
+Users can enable/disable *My account* push notifications from their notification settings. We highly recommend keeping them enabled to stay informed about critical account activities.
 
 ### Community news
 These notifications inform users about community-related updates, such as:
