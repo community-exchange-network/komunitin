@@ -1,12 +1,17 @@
 import assert from 'node:assert'
-import { describe, it } from 'node:test'
-import { createMembers, createPost, db, getUserIdForMember } from '../../mocks/db'
+import { beforeEach, describe, it } from 'node:test'
+import { createMember, createMembers, createPost, db, getUserIdForMember } from '../../mocks/db'
+import { resetWebPushMocks } from '../../mocks/web-push'
 import { createEvent, setupNotificationsTest, subscribeToPushNotifications } from './utils'
 
 const { put, appNotifications, pushQueue } = setupNotificationsTest({
   useWorker: true,
   usePushQueue: true,
   useSyntheticQueue: true,
+})
+
+beforeEach(() => {
+  resetWebPushMocks()
 })
 
 describe('New post notifications (URGENT)', () => {
@@ -42,10 +47,14 @@ describe('New post notifications (URGENT)', () => {
     // The worker handles it. In other tests they don't seem to wait much but since I added 50ms delay * 5 members = 250ms+
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    assert.equal(appNotifications.length, 5, "Should create notifications for all 5 users in the group")
+    assert.equal(appNotifications.length, 5, "Should notify every group user")
 
-    const notification = appNotifications.find(n => n.userId === authorUserId)
-    assert.ok(notification, "Author should also receive notification")
+    assert.equal(
+      appNotifications.some(n => n.userId === authorUserId),
+      true,
+      "Author should receive their own urgent post notification",
+    )
+    const notification = appNotifications[0]
 
     const expectedTitle = `New Offer from ${authorMember.attributes.name}`
     assert.equal(notification.title, expectedTitle)
@@ -113,9 +122,109 @@ describe('New post notifications (URGENT)', () => {
     await new Promise(resolve => setTimeout(resolve, 1000))
 
     assert.equal(appNotifications.length, 5)
+    assert.equal(appNotifications.some(n => n.userId === authorUserId), true)
     const notification = appNotifications[0]
     assert.equal(notification.title, `New Want from ${authorMember.attributes.name}`)
     assert.equal(notification.body, 'I need some help urgently!')
+  })
+
+  it('deduplicates community recipients and uses fresh member preferences', async () => {
+    const groupCode = 'GRP1'
+    const members = createMembers(groupCode)
+    const authorMember = members[0]
+    const authorUserId = getUserIdForMember(authorMember.id)
+    const sharedUserId = getUserIdForMember(members[1].id)
+    const linkedMember = createMember({
+      groupCode,
+      id: 'member-GRP1-linked',
+      userId: sharedUserId,
+    })
+    const sharedRelations = db.memberUsers.filter(
+      relation => relation.relationships.user.data.id === sharedUserId,
+    )
+    sharedRelations[0].attributes.notifications.group = false
+    sharedRelations[1].attributes.notifications.group = true
+    await subscribeToPushNotifications(groupCode, sharedUserId)
+
+    const publishUrgentOffer = async (suffix: string) => {
+      const created = new Date()
+      const expires = new Date(created)
+      expires.setDate(created.getDate() + 2)
+      const offer = createPost('offers', {
+        id: `offer-${suffix}`,
+        code: `OFF-${suffix}`,
+        groupCode,
+        memberId: authorMember.id,
+        attributes: {
+          title: `Urgent offer ${suffix}`,
+          created: created.toISOString(),
+          expires: expires.toISOString(),
+        },
+      })
+      await put(createEvent('OfferPublished', {
+        code: groupCode,
+        user: authorUserId,
+        data: { offer: offer.id },
+      }))
+    }
+
+    await publishUrgentOffer('first')
+
+    assert.strictEqual(pushQueue.add.mock.callCount(), 1)
+    assert.strictEqual(
+      appNotifications.filter(notification => notification.userId === sharedUserId).length,
+      1,
+    )
+
+    const linkedRelation = sharedRelations.find(
+      relation => relation.relationships.member.data.id === linkedMember.id,
+    )!
+    linkedRelation.attributes.notifications.group = false
+    await publishUrgentOffer('second')
+
+    assert.strictEqual(pushQueue.add.mock.callCount(), 1)
+    assert.strictEqual(
+      appNotifications.filter(notification => notification.userId === sharedUserId).length,
+      2,
+      'In-app notifications stay enabled when every push preference is off',
+    )
+  })
+
+  it('excludes users whose members are inactive from community recipients', async () => {
+    const groupCode = 'GRP1'
+    const members = createMembers(groupCode)
+    const authorMember = members[0]
+    const authorUserId = getUserIdForMember(authorMember.id)
+    const disabledMember = members[1]
+    const disabledUserId = getUserIdForMember(disabledMember.id)
+    disabledMember.attributes.status = 'disabled'
+
+    const created = new Date()
+    const expires = new Date(created)
+    expires.setDate(created.getDate() + 2)
+    const offer = createPost('offers', {
+      id: 'offer-inactive-recipient',
+      code: 'OFF-INACTIVE-RECIPIENT',
+      groupCode,
+      memberId: authorMember.id,
+      attributes: {
+        title: 'Urgent offer',
+        created: created.toISOString(),
+        expires: expires.toISOString(),
+      },
+    })
+
+    await put(createEvent('OfferPublished', {
+      code: groupCode,
+      user: authorUserId,
+      data: { offer: offer.id },
+    }))
+
+    assert.strictEqual(appNotifications.length, 4)
+    assert.strictEqual(
+      appNotifications.some(notification => notification.userId === disabledUserId),
+      false,
+    )
   })
 
   it('should ignore an urgent OfferPublished event from an inactive member', async () => {

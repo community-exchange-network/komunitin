@@ -1,5 +1,5 @@
 import { config } from '../../config';
-import { Group, Member, User, Offer, Need, Post, Account, Transfer, Currency, TransferStats, AccountStats, UserSettings, GroupSettings } from './types';
+import { Group, Member, User, Offer, Need, Post, Account, Transfer, Currency, TransferStats, AccountStats, MemberUser, MemberUserWithResources, GroupSettings } from './types';
 import { fetchWithAuth, fetchWithRetry } from './fetchWithAuth';
 
 const jsonApiHeaders = {
@@ -36,6 +36,11 @@ type TransferCollectionParams = {
   'filter[state]'?: 'committed';
 }
 
+type MemberUserCollectionParams = {
+  member?: string | string[];
+  memberStatus?: Member['attributes']['status'];
+}
+
 export class KomunitinClient {
   private async request(url: string) {
     const response = await fetchWithAuth(url, { headers: jsonApiHeaders });
@@ -66,26 +71,29 @@ export class KomunitinClient {
     return this.request(url);
   }
 
-  // Helper for pagination
-  private async paginate<T>(service: 'social' | 'accounting', path: string, params: Record<string, string> = {}): Promise<T[]> {
-    const query = new URLSearchParams(params).toString();
+  // Helper for pagination. The mapper may combine primary and included resources from each page.
+  private async paginate<T>(
+    service: 'social' | 'accounting',
+    path: string,
+    params: Record<string, string> = {},
+    mapPage: (body: any) => T[] = (body) => body.data ?? [],
+  ): Promise<T[]> {
+    const actualParams = {
+      'page[size]': '200',
+      ...params
+    };
+    const query = new URLSearchParams(actualParams).toString();
     let url = this.getUrl(service, query ? `${path}?${query}` : path);
-    let allData: T[] = [];
+    const allData: T[] = [];
 
     while (url) {
       const body = await this.request(url) as any;
-      if (body.data) {
-        allData = allData.concat(body.data);
-      }
+      allData.push(...mapPage(body));
 
-      // Update URL for next page
-      if (body.links && body.links.next) {
-        // links.next is usually a full URL
-        url = body.links.next;
+      url = body.links?.next ?? '';
+      if (url) {
         // Add a small delay to avoid overwhelming the server
         await new Promise(resolve => setTimeout(resolve, 100));
-      } else {
-        url = '';
       }
     }
 
@@ -110,19 +118,57 @@ export class KomunitinClient {
     return res.data;
   }
 
-  public async getMemberUsers(memberId: string): Promise<Array<{ user: User; settings: UserSettings }>> {
-    // Fetch users with settings included
-    const query = new URLSearchParams({ 'filter[members]': memberId, include: 'settings' }).toString();
-    const url = this.getUrl('social', `/users?${query}`);
-    const body = await this.request(url) as any;
-    const users = body.data as User[];
-    const included = body.included || [];
-    
-    return users.map(user => {
-      const settingsId = user.relationships.settings.data.id;
-      const settings = included.find((r: any) => r.type === 'user-settings' && r.id === settingsId) as UserSettings;
-      return { user, settings };
-    });
+  public async getMemberUsers(
+    groupCode: string,
+    filters: MemberUserCollectionParams = {},
+  ): Promise<MemberUserWithResources[]> {
+    if (Array.isArray(filters.member) && filters.member.length === 0) {
+      return [];
+    }
+    const params: Record<string, string> = {
+      include: 'user,member'
+    };
+    if (filters.member) {
+      params['filter[member]'] = Array.isArray(filters.member)
+        ? filters.member.join(',')
+        : filters.member;
+    }
+    if (filters.memberStatus) {
+      params['filter[member.status]'] = filters.memberStatus;
+    }
+
+    return this.paginate<MemberUserWithResources>(
+      'social',
+      `/${groupCode}/member-users`,
+      params,
+      (body) => {
+        const memberUsers = body.data as MemberUser[];
+        const users = new Map<string, User>(
+          (body.included ?? [])
+            .filter((resource: { type: string }) => resource.type === 'users')
+            .map((user: User) => [user.id, user]),
+        );
+        const members = new Map<string, Member>(
+          (body.included ?? [])
+            .filter((resource: { type: string }) => resource.type === 'members')
+            .map((member: Member) => [member.id, member]),
+        );
+
+        return memberUsers.map((memberUser) => {
+          const userId = memberUser.relationships.user.data.id;
+          const memberId = memberUser.relationships.member.data.id;
+          const user = users.get(userId);
+          const member = members.get(memberId);
+          if (!user) {
+            throw new Error(`Missing included user ${userId} for member-user ${memberUser.id}`);
+          }
+          if (!member) {
+            throw new Error(`Missing included member ${memberId} for member-user ${memberUser.id}`);
+          }
+          return { memberUser, user, member };
+        });
+      },
+    );
   }
 
   public async getGroupAdmins(groupCode: string): Promise<User[]> {
@@ -182,25 +228,6 @@ export class KomunitinClient {
     const query = new URLSearchParams(params as Record<string, string>).toString();
     const path = `/${groupCode}/stats/accounts${query ? '?' + query : ''}`;
     const res = await this.get('accounting', path);
-    return res.data;
-  }
-
-  public async getUser(userId: string): Promise<User> {
-    const res = await this.get('social', `/users/${userId}`);
-    return res.data;
-  }
-
-  public async getUserWithSettings(userId: string): Promise<{ user: User; settings: UserSettings }> {
-    const res = await this.get('social', `/users/${userId}?include=settings`);
-    const user = res.data as User;
-    const included = res.included || [];
-    const settingsId = user.relationships.settings.data.id;
-    const settings = included.find((r: any) => r.type === 'user-settings' && r.id === settingsId) as UserSettings;
-    return { user, settings };
-  }
-
-  public async getUserSettings(userId: string): Promise<UserSettings> {
-    const res = await this.get('social', `/users/${userId}/settings`);
     return res.data;
   }
 

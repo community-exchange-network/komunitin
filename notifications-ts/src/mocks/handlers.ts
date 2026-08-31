@@ -44,41 +44,74 @@ export const handlers = [
   }),
 
   // Social API
-  http.get(`${SOCIAL_URL}/users/:id`, ({ params }) => {
-    const { id } = params;
-    const user = db.users.find(u => u.id === id);
-    if (!user) return new HttpResponse(null, { status: 404 });
-    const settings = db.userSettings.find(s => s.id === user.relationships.settings.data.id);
-    return HttpResponse.json({ data: user, included: settings ? [settings] : [] });
-  }),
-
-  http.get(`${SOCIAL_URL}/users/:id/settings`, ({ params }) => {
-    const { id } = params;
-    const settings = db.userSettings.find(s => s.id === `${id}-settings`);
-    if (!settings) return new HttpResponse(null, { status: 404 });
-    return HttpResponse.json({ data: settings });
-  }),
-  
-  http.get(`${SOCIAL_URL}/users`, ({ request }) => {
+  http.get(`${SOCIAL_URL}/:groupCode/member-users`, ({ params, request }) => {
+    const groupCode = params.groupCode as string;
+    createMembers(groupCode);
     const url = new URL(request.url);
-    const memberFilter = url.searchParams.get('filter[members]');
-    
-    let users = db.users;
+    const memberFilter = url.searchParams.get('filter[member]');
+    const memberStatusFilter = url.searchParams.get('filter[member.status]');
+    const userFilter = url.searchParams.get('filter[user]');
+    const groupId = `group-${groupCode}`;
+    const groupMemberIds = new Set(
+      db.members
+        .filter(member => member.relationships.group.data.id === groupId)
+        .map(member => member.id),
+    );
+
+    let relations = db.memberUsers.filter(
+      relation => groupMemberIds.has(relation.relationships.member.data.id),
+    );
     if (memberFilter) {
-        const memberIds = memberFilter.split(',');
-        const userIds = db.members
-          .filter(member => memberIds.includes(member.id))
-          .map(member => member.relationships.user.data.id);
-        users = users.filter(user => userIds.includes(user.id));
+      const memberIds = memberFilter.split(',');
+      relations = relations.filter(
+        relation => memberIds.includes(relation.relationships.member.data.id),
+      );
     }
-    
+    if (memberStatusFilter) {
+      const memberStatuses = memberStatusFilter.split(',');
+      relations = relations.filter((relation) => {
+        const member = db.members.find(
+          item => item.id === relation.relationships.member.data.id,
+        );
+        return member && memberStatuses.includes(member.attributes.status);
+      });
+    }
+    if (userFilter) {
+      const userIds = userFilter.split(',');
+      relations = relations.filter(
+        relation => userIds.includes(relation.relationships.user.data.id),
+      );
+    }
+
+    relations.sort((left, right) => left.id.localeCompare(right.id));
+    const size = Number(url.searchParams.get('page[size]') ?? 20);
+    const after = Number(url.searchParams.get('page[after]') ?? 0);
+    const page = relations.slice(after, after + size);
     const include = url.searchParams.get('include');
     let included: any[] = [];
-    if (include && include.includes('settings')) {
-       included = db.userSettings.filter(s => users.some((u: any) => u.relationships.settings.data.id === s.id));
+    if (include?.includes('user')) {
+      const userIds = new Set(page.map(relation => relation.relationships.user.data.id));
+      included.push(...db.users.filter(user => userIds.has(user.id)));
     }
-    
-    return HttpResponse.json({ data: users, included });
+    if (include?.includes('member')) {
+      const memberIds = new Set(page.map(relation => relation.relationships.member.data.id));
+      included.push(...db.members.filter(member => memberIds.has(member.id)));
+    }
+
+    const nextOffset = after + page.length;
+    const next = nextOffset < relations.length
+      ? `${url.origin}${url.pathname}?${new URLSearchParams({
+          ...Object.fromEntries(url.searchParams),
+          'page[after]': String(nextOffset),
+        })}`
+      : null;
+
+    return HttpResponse.json({
+      data: page,
+      included,
+      links: { next },
+      meta: { count: relations.length },
+    });
   }),
 
   http.get(`${SOCIAL_URL}/:groupCode`, ({ params }) => {

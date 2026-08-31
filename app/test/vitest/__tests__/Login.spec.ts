@@ -49,7 +49,7 @@ describe("Front page and login", () => {
   });
 
   it("superadmin login", async () => {
-    server.schema.userSettings.first().update({ language: undefined });
+    server.schema.users.first().update({ language: undefined });
 
     await wrapper.vm.$router.push("/superadmin/groups");
     await waitFor(() => wrapper.vm.$route.path, "/login-mail");

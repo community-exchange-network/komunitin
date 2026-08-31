@@ -201,7 +201,7 @@ describe("Signup", () => {
     await retry?.trigger("click")
     await waitFor(() => wrapper.find("[name='name']").exists(), true, "Retry should initialize the draft")
     expect(wrapper.find("[name='password']").exists()).toBe(false);
-    expect(wrapper.vm.$store.getters.myUser.settings.attributes.language).toBe("en-us");
+    expect(wrapper.vm.$store.getters.myUser.attributes.language).toBe("en-us");
     draftMemberId = wrapper.vm.$store.getters.myMember.id
     expect(getMockMemberCreateCount()).toBe(memberCreateCount + 1)
   })

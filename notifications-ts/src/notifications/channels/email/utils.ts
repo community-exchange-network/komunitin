@@ -5,7 +5,7 @@ import { Mailer } from "../../../clients/email/mailer";
 import { EmailTemplateContext } from "../../emails/types";
 import { renderTemplate } from "../../../utils/email-template";
 import { config } from "../../../config";
-import logger from "../../../utils/logger";
+import type { AccountRecipient, MandatoryRecipient } from "../../../clients/komunitin/types";
 
 const mailer = new Mailer();
 
@@ -29,16 +29,45 @@ const buildAndSendEmail = async <T extends AnyEnrichedEvent>(
   }
 }
 
-export const handleEmailEvent = async <T extends AnyEnrichedEvent>(
+const handleEmailRecipients = async <
+  T extends AnyEnrichedEvent,
+  R extends AccountRecipient | MandatoryRecipient,
+>(
   event: T,
-  users: Array<{ user: any; settings: any }>,
+  recipients: R[],
   templateName: string,
-  buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null) => {
-  for (const { user, settings } of users) {
-    const locale = settings.attributes.language || 'en';
+  buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null,
+  shouldSend: (recipient: R) => boolean,
+) => {
+  for (const recipient of recipients) {
+    if (!shouldSend(recipient)) {
+      continue;
+    }
+    const { user } = recipient;
+    const locale = user.attributes.language || 'en';
     await buildAndSendEmail(event, user.attributes.email, locale, templateName, buildContext);
   }
 }
+
+export const sendEmailToAccountRecipients = async <T extends AnyEnrichedEvent>(
+  event: T,
+  recipients: AccountRecipient[],
+  templateName: string,
+  buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null,
+) => handleEmailRecipients(
+  event,
+  recipients,
+  templateName,
+  buildContext,
+  ({ membership }) => membership.memberUser.attributes.emails.myAccount,
+);
+
+export const sendEmailToMandatoryRecipients = async <T extends AnyEnrichedEvent>(
+  event: T,
+  recipients: MandatoryRecipient[],
+  templateName: string,
+  buildContext: (event: T, ctx: MessageContext) => EmailTemplateContext | null,
+) => handleEmailRecipients(event, recipients, templateName, buildContext, () => true);
 
 export const handleEmailAddressEvent = async <T extends AnyEnrichedEvent>(
   event: T,
@@ -60,4 +89,3 @@ export const handleSuperadminEmailEvent = async <T extends AnyEnrichedEvent>(
   const adminEmail = config.ADMIN_EMAIL;
   await buildAndSendEmail(event, adminEmail, 'en', templateName, buildContext);
 }
-

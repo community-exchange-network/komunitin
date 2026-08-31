@@ -1,7 +1,8 @@
 import { Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
 import { Group, Need, Offer } from '../../clients/komunitin/types';
-import { getCachedActiveGroups, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
+import { groupRecipients } from '../../clients/komunitin/recipients';
+import { getCachedActiveGroups } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import { EVENT_NAME } from '../events';
 import { isPostUrgent } from '../handlers/post';
@@ -119,22 +120,19 @@ const processCommunityDigest = async (
     return;
   }
 
-  // Get members with users (cached)
-  const membersWithUsers = await getCachedGroupMembersWithUsers(client, code);
-  
-  // Compute flat users with settings
-  const usersWithSettingsMap = new Map(
-    membersWithUsers.flatMap(mwu => mwu.users).map(u => [u.user.id, u])
-  )
-  const usersWithSettings = usersWithSettingsMap.values()
-  const memberIdsByUser = new Map<string, Set<string>>();
-  for (const { member, users } of membersWithUsers) {
-    for (const { user } of users) {
-      const memberIds = memberIdsByUser.get(user.id) ?? new Set<string>();
-      memberIds.add(member.id);
-      memberIdsByUser.set(user.id, memberIds);
-    }
-  }
+  const relations = await client.getMemberUsers(code, { memberStatus: 'active' });
+  const members = [...new Map(
+    relations.map(({ member }) => [member.id, member]),
+  ).values()];
+  const recipients = groupRecipients(relations);
+  const memberIdsByUser = new Map(
+    recipients.map((recipient) => [
+      recipient.user.id,
+      new Set(recipient.memberships.map(
+        ({ member }) => member.id,
+      )),
+    ]),
+  );
 
 
   // Get lastest PostsPublishedDigest notifications for all users in this community = tenant
@@ -142,7 +140,8 @@ const processCommunityDigest = async (
   const lastMembersMap = await lastNotificationDateByUser(code, EVENT_NAME.MembersJoinedDigest);
 
   // For each user, determine if they should receive a digest
-  for (const { user, settings } of usersWithSettings) {
+  for (const recipient of recipients) {
+    const { user } = recipient;
     const lastSentForPosts = lastPostsMap.get(user.id) || null;
     const lastSentForMembers = lastMembersMap.get(user.id) || null;
     const lastSentGlobal = maxDate(lastSentForPosts, lastSentForMembers);
@@ -191,7 +190,7 @@ const processCommunityDigest = async (
         group,
         data: {},
         members: eligibleNewMembers,
-        users: [{ user, settings }],
+        recipients: [recipient],
         offers: digestOffers,
         needs: digestNeeds,
       });
@@ -200,8 +199,7 @@ const processCommunityDigest = async (
       const digestOffers = regularPosts.filter((p): p is Offer => p.type === 'offers');
       const digestNeeds = regularPosts.filter((p): p is Need => p.type === 'needs');
       const postMemberIds = new Set(regularPosts.map(post => post.relationships.member.data.id));
-      const digestMembers = membersWithUsers
-        .map(mwu => mwu.member)
+      const digestMembers = members
         .filter(member => postMemberIds.has(member.id));
 
       await dispatchSyntheticEnrichedEvent({
@@ -210,7 +208,7 @@ const processCommunityDigest = async (
         group,
         data: {},
         members: digestMembers,
-        users: [{ user, settings }],
+        recipients: [recipient],
         offers: digestOffers,
         needs: digestNeeds,
       });

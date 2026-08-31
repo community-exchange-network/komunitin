@@ -17,7 +17,7 @@
         to=""
       />
 
-      <div>
+      <div v-if="isSelf">
         <div class="text-overline text-uppercase text-onsurface-m q-mb-sm">
           {{ $t('app') }}
         </div>
@@ -29,7 +29,7 @@
         />
       </div>  
       <account-settings-fields
-        v-if="accountSettings && currency && defaultSettings"
+        v-if="accountLoaded && accountSettings && currency && defaultSettings"
         v-model:settings="accountSettings"
         v-model:credit-limit="creditLimit"
         v-model:maximum-balance="maximumBalance"
@@ -65,6 +65,7 @@
         </div>
 
         <notifications-banner
+          v-if="isSelf"
           ref="notifications-banner"
           :dismissable="false"
           class="q-my-md inline-banner"
@@ -161,12 +162,13 @@ import MemberStatusField from './MemberStatusField.vue';
 
 import type {LangName} from "../../i18n";
 import langs, { normalizeLocale} from "../../i18n";
-import type { AccountSettings, MailingFrequency, AccountTag, UserSettings, Member, Account, Group, Currency, CurrencySettings } from '../../store/model';
+import type { AccountSettings, MailingFrequency, AccountTag, MemberUser, User, Account, Currency, CurrencySettings } from '../../store/model';
 import type { DeepPartial } from 'quasar';
 import { useLocale } from "../../boot/i18n"
 import { watchDebounced } from "@vueuse/shared";
 import { currencySettingsToAccountSettingsAttributes, useEffectiveSettings } from 'src/composables/accountSettings';
-import { useFullMemberByCode } from 'src/composables/fullMember';
+import { useResource } from 'src/composables/useResources';
+import { useEditableMember, useEditableMemberUser } from 'src/composables/editableMember';
 import { isEqual } from 'lodash-es';
 
 const props = defineProps<{
@@ -179,32 +181,36 @@ const router = useRouter()
 
 const isAdmin = computed(() => store.getters.isAdmin || store.getters.isSuperadmin)
 
-// Load member & user.
-const {user, member} = useFullMemberByCode(() => props.code, () => props.memberCode)
+type FullAccount = Account & {
+  settings: AccountSettings,
+  currency: Currency & {settings: CurrencySettings}
+}
 
-const userSettings = computed(() => user.value?.settings)
+const myUser = computed<User | undefined>(() => store.getters.myUser)
+const { resource: member, isSelf } = useEditableMember(
+  () => props.code,
+  () => props.memberCode
+)
 
-const actualCode = computed(() => (member.value as (Member & {group: Group}))?.group.attributes.code)
+const actualCode = computed(() => member.value?.group.attributes.code)
 const actualMemberCode = computed(() => member.value?.attributes.code)
+const { resource: memberUser } = useEditableMemberUser(member, isSelf)
 
-// Load account and settings
-const account = ref<Account & {settings: AccountSettings, currency: Currency & {settings: CurrencySettings}}>()
-// These are the settings model and not need to be in always in sync with the account.settings
+const accountId = computed(() => member.value?.relationships.account.data?.id)
+const accountOptions = computed(() => ({
+  id: accountId.value ?? null,
+  group: actualCode.value ?? "",
+  include: "settings,currency,currency.settings"
+}))
+const {
+  resource: account,
+  loaded: accountLoaded,
+  update: updateAccount
+} = useResource<FullAccount>("accounts", accountOptions)
+
 const accountSettings = ref<AccountSettings>()
-
-watch([
-  () => member.value?.relationships.account.data?.id,
-  actualCode
-], async ([accountId, group]) => {
-  if (accountId && group) {
-    await store.dispatch("accounts/load", {
-      id: accountId,
-      group,
-      include: "settings,currency,currency.settings"
-    })
-    account.value = store.getters["accounts/current"]
-    accountSettings.value = account.value?.settings
-  }
+watch(accountLoaded, loaded => {
+  accountSettings.value = loaded ? account.value?.settings : undefined
 }, {immediate: true})
 
 const currency = computed(() => account.value?.currency)
@@ -221,7 +227,7 @@ const defaultSettings = computed(() => {
 })
 
 const userLanguage = computed(() => {
-  const lang = userSettings.value?.attributes.language
+  const lang = myUser.value?.attributes.language
   return lang ? normalizeLocale(lang) : undefined
 })
 
@@ -240,9 +246,18 @@ const saveAccountSettings = async (resource: DeepPartial<AccountSettings>) => {
   await changes.value?.save(fn)
 }
 
-const saveUserSettings = async (resource: DeepPartial<UserSettings>) => {
-  const fn = () => store.dispatch("user-settings/update", {
-    id: user.value?.id,
+const saveUser = async (resource: DeepPartial<User>) => {
+  const fn = () => store.dispatch("users/update", {
+    id: myUser.value?.id,
+    group: actualCode.value,
+    resource
+  })
+  await changes.value?.save(fn)
+}
+
+const saveMemberUser = async (resource: DeepPartial<MemberUser>) => {
+  const fn = () => store.dispatch("member-users/update", {
+    id: memberUser.value?.id,
     group: actualCode.value,
     resource
   })
@@ -297,11 +312,7 @@ watch([accountSettings, tags], async () => {
 const saveAccount = async (resource: DeepPartial<Account>, loading: Ref<boolean>) => {
   try {
     loading.value = true
-    const fn = () => store.dispatch("accounts/update", {
-      id: account.value?.id,
-      group: actualCode.value,
-      resource
-    })
+    const fn = () => updateAccount(resource)
     await changes.value?.save(fn)
   } finally {
     loading.value = false
@@ -340,7 +351,7 @@ watch(maximumBalance, async () => {
 })
 
 
-// User settings
+// User and member-user settings
 
 const language = ref()
 
@@ -354,29 +365,42 @@ const emailGroup = ref<MailingFrequency>()
 watchEffect(() => {
   const lang = userLanguage.value
   language.value = lang ? {label: langs[lang].label, value: lang} : undefined
-  
-  const notifications = userSettings.value?.attributes.notifications
+})
+
+watchEffect(() => {
+  const notifications = memberUser.value?.attributes.notifications
   notiMyAccount.value = notifications?.myAccount
   notiGroup.value = notifications?.group
 
-  const emails = userSettings.value?.attributes.emails
+  const emails = memberUser.value?.attributes.emails
   emailMyAccount.value = emails?.myAccount
   emailGroup.value = emails?.group
 })
 
 const locale = useLocale()
 
-watchDebounced([language, notiMyAccount, notiGroup, emailMyAccount, emailGroup], () => {
-  const notis = userSettings.value?.attributes.notifications  
-  const emails = userSettings.value?.attributes.emails
-  if (language.value !== undefined && language.value.value !== userLanguage.value
-    || notiMyAccount.value !== undefined && notiMyAccount.value !== notis?.myAccount
+watchDebounced(language, () => {
+  if (isSelf.value && language.value !== undefined && language.value.value !== userLanguage.value) {
+    saveUser({
+      type: "users",
+      id: myUser.value?.id,
+      attributes: { language: language.value.value },
+    })
+    locale.value = language.value.value
+  }
+}, {debounce: 1000})
+
+watchDebounced([notiMyAccount, notiGroup, emailMyAccount, emailGroup], () => {
+  const notis = memberUser.value?.attributes.notifications
+  const emails = memberUser.value?.attributes.emails
+  if (notiMyAccount.value !== undefined && notiMyAccount.value !== notis?.myAccount
     || notiGroup.value !== undefined && notiGroup.value !== notis?.group
     || emailMyAccount.value !== undefined && emailMyAccount.value !== emails?.myAccount
     || emailGroup.value !== undefined && emailGroup.value !== emails?.group) {
-    saveUserSettings({
+    saveMemberUser({
+      type: "member-users",
+      id: memberUser.value?.id,
       attributes: {
-        language: language.value.value,
         notifications: {
           myAccount: notiMyAccount.value,
           group: notiGroup.value,
@@ -387,11 +411,6 @@ watchDebounced([language, notiMyAccount, notiGroup, emailMyAccount, emailGroup],
         }
       }
     })
-    // This triggers a language app update if this is the current user.
-    if (store.getters.myUser.id === user.value?.id) {
-      locale.value = language.value.value
-    }
-    
   }
 }, {debounce: 1000})
 

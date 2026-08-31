@@ -12,6 +12,7 @@ import { tenantCategoryRoutes } from './features/categories/routes'
 import { tenantMemberRoutes } from './features/members/routes'
 import { tenantPostRoutes } from './features/posts/routes'
 import { tenantFileRoutes } from './features/files/routes'
+import { tenantMemberUserRoutes } from './features/member-users/routes'
 
 const app = express()
 
@@ -47,6 +48,7 @@ app.use('/', groupsRoutes)
 app.use('/:code', tenantGroupRoutes)
 app.use('/:code', tenantCategoryRoutes)
 app.use('/:code', tenantMemberRoutes)
+app.use('/:code', tenantMemberUserRoutes)
 app.use('/:code', tenantPostRoutes)
 app.use('/:code', tenantFileRoutes)
 

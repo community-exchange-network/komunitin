@@ -91,6 +91,9 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     'filter[status]': 'active',
     sort: '-created'
   });
+  const allMemberUsers = await client.getMemberUsers(group.attributes.code, {
+    memberStatus: 'active',
+  });
 
   const currency = await client.getCurrency(group.attributes.code);
 
@@ -121,6 +124,12 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
   // 4. Iterate Members
   const memberMap = new Map<string, Member>(allMembers.map((m: any) => [m.id, m]));
+  const memberUsersByMemberId = new Map<string, typeof allMemberUsers>();
+  for (const relation of allMemberUsers) {
+    const relations = memberUsersByMemberId.get(relation.member.id) ?? [];
+    relations.push(relation);
+    memberUsersByMemberId.set(relation.member.id, relations);
+  }
   const globalFeaturedIndex = new Map<string, number>();
 
   for (const member of allMembers) {
@@ -129,8 +138,8 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     }
 
     // Check Recipients (Users)
-    const usersAndSettings = await client.getMemberUsers(member.id);
-    const recipientsToProcess: { user: any, settings: any }[] = [];
+    const memberUsers = memberUsersByMemberId.get(member.id) ?? [];
+    const recipientsToProcess = [] as typeof memberUsers;
 
     // Fetch history for frequency check (last 50 logs should cover > 1 month even if daily)
     const history = await prisma.newsletterLog.findMany({
@@ -139,8 +148,9 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       take: 50
     }) as HistoryLog[];
 
-    for (const { user, settings } of usersAndSettings) {
-      const frequency = settings.attributes.emails.group; // 'weekly', 'monthly', etc.
+    for (const relation of memberUsers) {
+      const { memberUser, user } = relation;
+      const frequency = memberUser.attributes.emails.group;
       if (!frequency || frequency === 'never') continue;
 
       // Check last sent
@@ -152,7 +162,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       const shouldSend = forceSend || shouldSendNewsletter(frequency, lastSentDate, new Date());
 
       if (shouldSend) {
-        recipientsToProcess.push({ user, settings });
+        recipientsToProcess.push(relation);
       }
     }
 
@@ -256,7 +266,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       appUrl: config.KOMUNITIN_APP_URL
     };
 
-    for (const { user, settings: userSettings } of recipientsToProcess) {
+    for (const { user } of recipientsToProcess) {
       let unsubscribeToken: string | undefined;
       try {
         unsubscribeToken = await getUnsubscribeToken(user.id);
@@ -271,7 +281,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
         recipient: {
           userId: user.id,
           email: user.attributes.email,
-          language: userSettings.attributes.language,
+          language: user.attributes.language || 'en',
           unsubscribeToken
         }
       };
@@ -279,7 +289,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
       try {
         // Send Email
-        const lng = userSettings.attributes.language || 'en';
+        const lng = user.attributes.language || 'en';
         const subject = i18n.t('newsletter.subject', { lng, group: group.attributes.name });
         await mailer.sendEmail({
           to: user.attributes.email,

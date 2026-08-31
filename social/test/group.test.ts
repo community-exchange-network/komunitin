@@ -582,7 +582,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(admins.body.meta.count, 2)
     const adminResource = admins.body.data.find((resource: any) => resource.id === admin.id)
     assert.strictEqual(typeof adminResource.attributes.email, 'string')
-    assert.strictEqual(adminResource.relationships.settings, undefined)
+    assert.strictEqual(adminResource.relationships, undefined)
   })
 
   test('group members relationship is only exposed to viewers who can list members', async () => {
@@ -1054,6 +1054,7 @@ describe('Groups endpoints', () => {
       tenantId: 'activate-group',
       status: 'pending',
       access: 'public',
+      settings: { defaultGroupEmailFrequency: 'weekly' },
       meta: {
         request: {
           currency: {
@@ -1135,6 +1136,13 @@ describe('Groups endpoints', () => {
       member.relationships.account.data.meta.href,
       accountingAccountHref('activate-group', member.attributes.accountId),
     )
+
+    const db = tenantDb(prisma, 'activate-group')
+    const relation = await db.memberUser.findFirstOrThrow({ where: { memberId: member.id } })
+    assert.deepStrictEqual(relation.settings, {
+      notifications: { myAccount: true, group: true },
+      emails: { myAccount: true, group: 'weekly' },
+    })
 
     const events = getNotificationsEvents() as any[]
     assert.strictEqual(events.length, 1)

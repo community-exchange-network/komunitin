@@ -27,8 +27,9 @@ Each channel implements its own delivery mechanism but uses shared message gener
 
 #### In-App Channel (`src/notifications/channels/app/`)
 - Stores notifications in database (`AppNotification` model)
-- Uses `handleNotificationForUsers` utility
+- Uses `handleNotificationForRecipients` utility
 - Users fetch notifications via API
+- Does not apply member-user preferences; group-wide events may request event-level deduplication per user
 
 **Structure:**
 - `utils.ts`: Database notification creation
@@ -38,11 +39,17 @@ Each channel implements its own delivery mechanism but uses shared message gener
 - Sends Web Push notifications to subscribed devices
 - Queries `PushSubscription` model for user devices
 - Handles subscription cleanup (expired/invalid tokens)
+- Applies the originating relation's account preference to targeted events
+- Applies any-opt-in semantics across all applicable relations before deduplicating community events by user
 
 **Structure:**
-- `utils.ts`: Push notification sending (`sendPushToUsers`)
+- `utils.ts`: Push notification sending (`sendPushToRecipients`)
 - `transfer.ts`, `post.ts`, `member.ts`: Event handlers that call shared message builders
-- **Note**: Web Push implementation is stubbed (needs `web-push` library integration)
+
+#### Email Channel (`src/notifications/channels/email/`)
+- Applies the originating relation's account-email preference to ordinary member events
+- Bypasses preferences for authentication, security, and administrative-duty messages
+- Uses the user's identity-wide language for localized content
 
 ### 3. Event Flow
 
@@ -53,8 +60,7 @@ Channel Handler (e.g., handleTransferCommitted)
     ↓
 Shared Message Builder (e.g., buildTransferSentMessage)
     ↓ (returns NotificationMessage)
-Channel Utility (handleNotificationForUsers or sendPushToUsers)
+Channel Utility (handleNotificationForRecipients or sendPushToRecipients)
     ↓
 Delivery (Database or Web Push)
 ```
-

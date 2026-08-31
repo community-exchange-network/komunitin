@@ -18,7 +18,6 @@ import type {
 import { config } from "src/utils/config";
 import { apiRequest } from "./request";
 import { resolveRelationshipUrl } from "./relationships";
-import { v4 as uuid } from "uuid";
 
 // Exported just for testing purposes.
 export const auth = new Auth()
@@ -37,6 +36,7 @@ export interface UserState {
   tokens?: AuthData;
   myUserId?: string;
   myMemberId?: string;
+  myMemberUserId?: string;
   /**
    * Current location, provided by device.
    */
@@ -57,9 +57,7 @@ export interface UserState {
  */
 async function loadUser(context: ActionContext<UserState, never>) {
   const { commit, dispatch, getters, rootGetters } = context
-  await dispatch("users/load", {
-    include: "settings"
-  });
+  await dispatch("users/load", {});
   const user = rootGetters["users/current"];
   commit("myUserId", user.id);
 
@@ -80,9 +78,21 @@ async function loadUser(context: ActionContext<UserState, never>) {
     ? rootGetters["members/one"](response.data[0].id) as Member & { group: Group }
     : undefined
   commit("myMemberId", member?.id)
+  commit("myMemberUserId", undefined)
 
   // A user requesting their first group does not have a membership yet.
   if (member) {
+    await dispatch("member-users/loadList", {
+      group: member.group.attributes.code,
+      filter: {
+        user: user.id,
+        member: member.id,
+      },
+      sort: "id",
+      pageSize: 1,
+    })
+    commit("myMemberUserId", rootGetters["member-users/currentList"][0]?.id)
+
     // This is the currency URL from the Accounting API.
     const currencyUrl = resolveRelationshipUrl(member.group.relationships.currency);
     // https://.../accounting/<GROUP>/currency
@@ -144,14 +154,10 @@ async function provisionSignup(
       type: "users",
       attributes: {
         name: signup.name,
-        email
+        email,
+        language: signup.language,
       }
-    },
-    included: [{
-      type: "user-settings",
-      id: uuid(),
-      attributes: { language: signup.language }
-    }]
+    }
   }, { root: true })
 }
 
@@ -161,6 +167,7 @@ export default {
     // It is important to define the properties even if undefined in order to add the reactivity.
     myUserId: undefined,
     myMemberId: undefined,
+    myMemberUserId: undefined,
     location: undefined,
     subscription: undefined,
   } as UserState),
@@ -181,6 +188,11 @@ export default {
     myMember: (state, _getters, _rootState, rootGetters) => {
       return state.myMemberId
         ? rootGetters["members/one"](state.myMemberId)
+        : undefined
+    },
+    myMemberUser: (state, _getters, _rootState, rootGetters) => {
+      return state.myMemberUserId
+        ? rootGetters["member-users/one"](state.myMemberUserId)
         : undefined
     },
     myAccount: (state, getters) => {
@@ -221,6 +233,7 @@ export default {
     tokens: (state, tokens) => (state.tokens = tokens),
     myUserId: (state, myUserId) => (state.myUserId = myUserId),
     myMemberId: (state, myMemberId) => (state.myMemberId = myMemberId),
+    myMemberUserId: (state, myMemberUserId) => (state.myMemberUserId = myMemberUserId),
     location: (state, location) => (state.location = location),
     subscription: (state, subscription) => (state.subscription = subscription),
   },
@@ -285,6 +298,7 @@ export default {
       context.commit("tokens", undefined);
       context.commit("myUserId", undefined);
       context.commit("myMemberId", undefined);
+      context.commit("myMemberUserId", undefined);
     },
     /**
      * Get the current location from the device.

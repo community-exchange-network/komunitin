@@ -97,7 +97,7 @@ async function getCurrentLocale($q: QSingletonGlobals) {
  * This function sets the current locale for the app. Use it from outside a .vue file.
  * Otherwise use the useLocale composable. 
  * 
- * Note that this function does not update the user.settings.language attribute.
+ * Note that this function does not update the user language attribute.
  */
 export function setLocale(locale: string, admin=false) {
   const lang = normalizeLocale(locale);
@@ -169,7 +169,7 @@ export function useLocale() {
 
 function getUserLocaleState(getters: typeof store.getters, fallback = globalLocale.value) {
   const user = getters.myUser
-  const lang = (user?.settings?.attributes.language ?? fallback) as string
+  const lang = (user?.attributes.language ?? fallback) as string
   const admin = Boolean(getters.isAdmin || getters.isSuperadmin)
   return { user, lang, admin }
 }
