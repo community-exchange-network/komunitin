@@ -162,12 +162,13 @@ import MemberStatusField from './MemberStatusField.vue';
 
 import type {LangName} from "../../i18n";
 import langs, { normalizeLocale} from "../../i18n";
-import type { AccountSettings, MailingFrequency, AccountTag, MemberUser, User, Member, Account, Group, Currency, CurrencySettings } from '../../store/model';
+import type { AccountSettings, MailingFrequency, AccountTag, MemberUser, User, Account, Currency, CurrencySettings } from '../../store/model';
 import type { DeepPartial } from 'quasar';
 import { useLocale } from "../../boot/i18n"
 import { watchDebounced } from "@vueuse/shared";
 import { currencySettingsToAccountSettingsAttributes, useEffectiveSettings } from 'src/composables/accountSettings';
-import { useFullMemberByCode } from 'src/composables/fullMember';
+import { useResource } from 'src/composables/useResources';
+import { useEditableMember, useEditableMemberUser } from 'src/composables/editableMember';
 import { isEqual } from 'lodash-es';
 
 const props = defineProps<{
@@ -180,30 +181,34 @@ const router = useRouter()
 
 const isAdmin = computed(() => store.getters.isAdmin || store.getters.isSuperadmin)
 
-// Load member & user.
-const {user, member, memberUser} = useFullMemberByCode(() => props.code, () => props.memberCode)
-const isSelf = computed(() => user.value?.id === store.getters.myUser?.id)
+type FullAccount = Account & {
+  settings: AccountSettings,
+  currency: Currency & {settings: CurrencySettings}
+}
 
-const actualCode = computed(() => (member.value as (Member & {group: Group}))?.group.attributes.code)
+const myUser = computed<User | undefined>(() => store.getters.myUser)
+const { resource: member, isSelf } = useEditableMember(
+  () => props.code,
+  () => props.memberCode
+)
+
+const actualCode = computed(() => member.value?.group.attributes.code)
 const actualMemberCode = computed(() => member.value?.attributes.code)
+const { resource: memberUser } = useEditableMemberUser(member, isSelf)
 
-// Load account and settings
-const account = ref<Account & {settings: AccountSettings, currency: Currency & {settings: CurrencySettings}}>()
-// These are the settings model and not need to be in always in sync with the account.settings
+const accountId = computed(() => member.value?.relationships.account.data?.id)
+const accountOptions = computed(() => ({
+  id: accountId.value ?? null,
+  group: actualCode.value ?? "",
+  include: "settings,currency,currency.settings"
+}))
+const { resource: account, update: updateAccount } = useResource<FullAccount>("accounts", accountOptions)
+
 const accountSettings = ref<AccountSettings>()
-
-watch([
-  () => member.value?.relationships.account.data?.id,
-  actualCode
-], async ([accountId, group]) => {
-  if (accountId && group) {
-    await store.dispatch("accounts/load", {
-      id: accountId,
-      group,
-      include: "settings,currency,currency.settings"
-    })
-    account.value = store.getters["accounts/current"]
-    accountSettings.value = account.value?.settings
+watch(() => account.value?.settings, settings => {
+  // Refresh account settings only after full reload.
+  if (!settings || settings.id !== accountSettings.value?.id) {
+    accountSettings.value = settings
   }
 }, {immediate: true})
 
@@ -221,7 +226,7 @@ const defaultSettings = computed(() => {
 })
 
 const userLanguage = computed(() => {
-  const lang = user.value?.attributes.language
+  const lang = myUser.value?.attributes.language
   return lang ? normalizeLocale(lang) : undefined
 })
 
@@ -242,12 +247,11 @@ const saveAccountSettings = async (resource: DeepPartial<AccountSettings>) => {
 
 const saveUser = async (resource: DeepPartial<User>) => {
   const fn = () => store.dispatch("users/update", {
-    id: user.value?.id,
+    id: myUser.value?.id,
     group: actualCode.value,
     resource
   })
   await changes.value?.save(fn)
-  user.value = store.getters["users/one"](user.value?.id)
 }
 
 const saveMemberUser = async (resource: DeepPartial<MemberUser>) => {
@@ -257,7 +261,6 @@ const saveMemberUser = async (resource: DeepPartial<MemberUser>) => {
     resource
   })
   await changes.value?.save(fn)
-  memberUser.value = store.getters["member-users/one"](memberUser.value?.id)
 }
 
 // Account settings
@@ -308,11 +311,7 @@ watch([accountSettings, tags], async () => {
 const saveAccount = async (resource: DeepPartial<Account>, loading: Ref<boolean>) => {
   try {
     loading.value = true
-    const fn = () => store.dispatch("accounts/update", {
-      id: account.value?.id,
-      group: actualCode.value,
-      resource
-    })
+    const fn = () => updateAccount(resource)
     await changes.value?.save(fn)
   } finally {
     loading.value = false
@@ -383,7 +382,7 @@ watchDebounced(language, () => {
   if (isSelf.value && language.value !== undefined && language.value.value !== userLanguage.value) {
     saveUser({
       type: "users",
-      id: user.value?.id,
+      id: myUser.value?.id,
       attributes: { language: language.value.value },
     })
     locale.value = language.value.value

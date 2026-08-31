@@ -1,9 +1,10 @@
 import type { VueWrapper } from "@vue/test-utils";
-import { seeds } from "src/server";
+import server, { seeds } from "src/server";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
 import { QBtn, QDialog } from "quasar";
 import PasswordField from "src/components/PasswordField.vue";
+import ChangeEmailBtn from "src/pages/members/ChangeEmailBtn.vue";
 import ChangePasswordBtn from "src/pages/members/ChangePasswordBtn.vue";
 import { config } from "src/utils/config";
 
@@ -64,6 +65,51 @@ describe("logged in", () => {
       "updated@example.com",
       "Profile email should react to the updated Social user"
     );
+  });
+
+  it("shows the email but hides credential controls when editing another member", async () => {
+    await wrapper.vm.$router.push("/profile");
+    await waitFor(() => wrapper.find("input[name='email']").exists(), true, "Self identity controls should load");
+    expect(wrapper.findComponent(ChangeEmailBtn).exists()).toBe(true);
+    expect(wrapper.findComponent(ChangePasswordBtn).exists()).toBe(true);
+
+    const currentMemberId = wrapper.vm.$store.getters.myMember.id;
+    type MockMember = { id: string, code: string, name: string, group: { code: string } };
+    const schema = server.schema as unknown as { members: { all(): { models: MockMember[] } } };
+    const targetMember = schema.members.all().models.find(
+      member => member.id !== currentMemberId && member.group.code === "GRP0"
+    );
+    if (!targetMember) throw new Error("Admin target member not found");
+    const targetRelation = server.schema.memberUsers.findBy({ memberId: targetMember.id });
+    const targetEmail = targetRelation.user.email;
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    try {
+      await wrapper.vm.$router.push(`/groups/GRP0/admin/members/${targetMember.code}/profile`);
+      await waitFor(
+        () => {
+          const input = wrapper.find<HTMLInputElement>("input[name='name']")
+          return input.exists() ? input.element.value : undefined
+        },
+        targetMember.name,
+        "Admin target profile should load"
+      );
+
+      await waitFor(
+        () => wrapper.get<HTMLInputElement>("input[name='email']").element.value,
+        targetEmail,
+        "Admin target email should load"
+      );
+      expect(wrapper.findComponent(ChangeEmailBtn).exists()).toBe(false);
+      expect(wrapper.findComponent(ChangePasswordBtn).exists()).toBe(false);
+
+      const identityRequests = fetchSpy.mock.calls
+        .map(([url]) => new URL(url.toString()))
+        .filter(url => url.pathname.includes("/member-users") || url.pathname.startsWith("/social/users"));
+      expect(identityRequests).toHaveLength(1);
+      expect(identityRequests[0].searchParams.get("include")).toBe("user");
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it("posts a confirmed email to the Social user", async () => {
