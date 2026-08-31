@@ -19,6 +19,9 @@ describe("Member-user settings", () => {
   const notificationToggle = () => settingsPage().findAllComponents(ToggleItem).find(
     item => item.props("label") === i18n.global.t("myAccountNotifications"),
   )
+  const groupNotificationToggle = () => settingsPage().findAllComponents(ToggleItem).find(
+    item => item.props("label") === i18n.global.t("groupNotifications"),
+  )
 
   beforeAll(async () => {
     seeds()
@@ -94,6 +97,40 @@ describe("Member-user settings", () => {
       `/social/GRP0/member-users/${relationId}`,
       `/social/users/${userId}`,
     ])
+  })
+
+  it("revalidates self preferences before editing them", async () => {
+    await wrapper.vm.$router.push("/home")
+    const relationId = wrapper.vm.$store.getters.myMemberUser.id
+    const group = wrapper.vm.$store.getters.myMember.group.attributes.code
+    const relation = server.schema.memberUsers.find(relationId)
+
+    relation.update({
+      notifications: { ...relation.notifications, group: true },
+    })
+    await wrapper.vm.$store.dispatch("member-users/load", { id: relationId, group })
+
+    // Simulate a preference changed by an unsubscribe link or another session.
+    relation.update({
+      notifications: { ...relation.notifications, group: false },
+    })
+    await wrapper.vm.$router.push("/settings")
+    await waitFor(
+      () => groupNotificationToggle()?.props("modelValue"),
+      false,
+      "Revalidated member-user preferences should render",
+    )
+
+    const myAccount = notificationToggle()
+    const nextMyAccount = !myAccount?.props("modelValue")
+    myAccount?.vm.$emit("update:modelValue", nextMyAccount)
+    await waitFor(
+      () => server.schema.memberUsers.find(relationId).notifications.myAccount,
+      nextMyAccount,
+      "Changed preferences should patch the current member-user",
+      3000,
+    )
+    expect(server.schema.memberUsers.find(relationId).notifications.group).toBe(false)
   })
 
   it("uses the first relation for admin editing and hides identity-only controls", async () => {

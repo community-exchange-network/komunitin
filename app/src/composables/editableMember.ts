@@ -55,19 +55,21 @@ export const useEditableMemberUser = (
   const myMemberUserId = computed<string | undefined>(() => store.getters.myMemberUser?.id)
   const memberId = computed(() => toValue(member)?.id)
   const groupCode = computed(() => toValue(member)?.group.attributes.code)
-  const resourceId = computed(() => toValue(isSelf)
-    ? myMemberUserId.value
-    : targetMemberUserId.value
-  )
-  const resource = computed<EditableMemberUser | undefined>(() => resourceId.value
-    ? store.getters["member-users/one"](resourceId.value)
+  const resource = computed<EditableMemberUser | undefined>(() => targetMemberUserId.value
+    ? store.getters["member-users/one"](targetMemberUserId.value)
     : undefined
   )
 
-  // Load the member-user relation for the targeted member, if not self.
-  watch([memberId, groupCode, () => toValue(isSelf)], async ([id, group, self]) => {
+  // Load the member-user relation before exposing it so cached preferences are revalidated.
+  watch([memberId, groupCode, () => toValue(isSelf), myMemberUserId], async ([id, group, self, ownId]) => {
     targetMemberUserId.value = undefined
-    if (id && group && !self) {
+    if (id && group && self && ownId) {
+      targetMemberUserId.value = await store.dispatch("member-users/load", {
+        id: ownId,
+        group,
+        include: "user"
+      })
+    } else if (id && group && !self) {
       await store.dispatch("member-users/loadList", {
         group,
         filter: { member: id },
