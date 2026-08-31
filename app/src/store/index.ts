@@ -27,6 +27,7 @@ import me from "./me";
 import type { UIState } from "./ui";
 import ui from "./ui";
 import createPersistPlugin from "./persist";
+export { storeReady } from "./persist";
 import KError, { KErrorCode } from "src/KError";
 import type { Topup, AccountTopupSettings, TopupSettings } from "../features/topup/model";
 
