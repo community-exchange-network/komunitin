@@ -88,7 +88,9 @@ Administrators can manage the following settings at the community level:
 Individual members can personalize their own experience through their app settings:
 
 * 
-**Frequency Selection**: Users can choose to receive the newsletter **weekly**, **monthly**, or opt-out entirely by selecting **never**.
+**Frequency Selection**: Users can choose to receive the newsletter **weekly**, **monthly**, or opt out for that member profile by selecting **never**. A user linked to multiple member profiles may receive a separate newsletter for each profile.
+
+The newsletter's unsubscribe link applies to the whole user identity: it disables community newsletters for every linked member profile in every community while leaving all other notification and email preferences unchanged.
 
 # Newsletter Algorithms
 

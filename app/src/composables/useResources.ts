@@ -96,11 +96,13 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
   )
 
   const loading = ref(false)
+  const loaded = ref(false)
   const error = ref<KError>()
 
   const load = async () => {
     const currentOptions = { ...toValue(options) }
     error.value = undefined
+    loaded.value = false
 
     if (currentOptions.id === null) { // Not undefined!
       resourceId.value = undefined
@@ -115,6 +117,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
       // The store resolves cached identity synchronously before revalidation.
       resourceId.value = store.getters[`${type}/current`]?.id
       resourceId.value = await dispatched
+      loaded.value = true
     } catch (caught) {
       const currentError = captureError(error, caught)
       if (currentError.code === KErrorCode.NotFound) {
@@ -144,7 +147,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
 
   useLoader(options, load, config)
 
-  return { resource, loading, error, load, update }
+  return { resource, loading, loaded, error, load, update }
 
 }
 

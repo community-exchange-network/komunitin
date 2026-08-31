@@ -6,7 +6,7 @@ import { NotificationResources } from "./notifications";
 import { config } from "src/utils/config";
 import type {
   User,
-  UserSettings,
+  MemberUser,
   Group,
   Offer,
   Need,
@@ -77,10 +77,7 @@ const users = new (class extends Resources<User, unknown> {
   resourceEndpoint = (groupCode: string, id?: string) => id ? `/users/${id}` : "/users/me";
 })("users", socialUrl);
 
-const userSettings = new (class extends Resources<UserSettings, unknown> {
-  collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "User settings cannot be listed");};
-  resourceEndpoint = (groupCode: string, id: string) => `/users/${id}/settings`;
-})("user-settings", socialUrl);
+const memberUsers = new Resources<MemberUser, unknown>("member-users", socialUrl);
 
 // Build modules for Accounting API:
 const accountingUrl = config.ACCOUNTING_URL;
@@ -146,7 +143,7 @@ const modules = {
 
     // Social API resource modules.
     users,
-    "user-settings": userSettings,
+    "member-users": memberUsers,
     groups,
     members,
     offers,
@@ -214,7 +211,7 @@ declare module 'vue' {
     me: UserState
     ui: UIState
     users: ResourcesState<User>
-    userSettings: ResourcesState<UserSettings>
+    memberUsers: ResourcesState<MemberUser>
     groups: ResourcesState<Group>
     groupSettings: ResourcesState<GroupSettings>
     members: ResourcesState<Member>
@@ -267,14 +264,6 @@ export const parseResourceUrl = (url: string, type: string) : {baseUrl: string, 
         baseUrl: match[1],
         group: match[2],
         id: match[3]
-      }
-    }
-  } else if (type === "user-settings") {
-    const match = url.match(new RegExp(`^([.]*)/users/([^/]*)/settings$`))
-    if (match) {
-      return {
-        baseUrl: match[1],
-        id: match[2]
       }
     }
   } else if (type === "group") {

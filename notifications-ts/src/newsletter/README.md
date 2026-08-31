@@ -2,6 +2,12 @@
 
 This document describes the logic behind the function used to select relevant Offers and Needs for members in the newsletter.
 
+## Recipient semantics
+
+Newsletters are generated for a member profile, not once per identity. Each linked user is evaluated using that member-user relation's `emails.group` frequency, so one user may receive distinct newsletters for multiple member profiles. The user's identity-wide language determines the locale.
+
+The unsubscribe token identifies the global user. Unsubscribing sets the newsletter frequency to `never` on every member-user relation for that identity across all communities while preserving account-email and notification preferences.
+
 ## Overview
 
 The algorithm selects a mix of `M` "Fresh & Close" items and `N` "Random" items to ensure relevance while maintaining variety.

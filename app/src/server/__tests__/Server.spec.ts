@@ -155,9 +155,10 @@ describe("MirageJS Server", () => {
   });
 
   it("loads user memberships from /users/:id/members", async () => {
-    const me = await fetch(`${urlSocial}/users/me?include=settings`, { headers: authHeaders });
+    const me = await fetch(`${urlSocial}/users/me`, { headers: authHeaders });
     const meData = await json(me);
     expect((meData.included ?? []).some((resource: ResourceObject) => resource.type == "members")).toBe(false);
+    expect(meData.data.attributes.language).toBe("en-us");
 
     const members = await fetch(`${urlSocial}/users/${meData.data.id}/members?include=group,group.currency,account&page[size]=1`, {
       headers: authHeaders
@@ -176,6 +177,17 @@ describe("MirageJS Server", () => {
     expect(membersData.included.some((resource: ResourceObject) => resource.type == "groups")).toBe(true);
     expect(membersData.included.some((resource: ResourceObject) => resource.type == "currencies")).toBe(true);
     expect(membersData.included.some((resource: ResourceObject) => resource.type == "accounts")).toBe(true);
+
+    const memberUsers = await fetch(
+      `${urlSocial}/GRP0/member-users?filter[user]=${meData.data.id}&filter[member]=${membersData.data[0].id}&include=user,member`,
+      { headers: authHeaders },
+    )
+    const memberUsersData = await json(memberUsers)
+    expect(memberUsersData.data).toHaveLength(1)
+    expect(memberUsersData.data[0].relationships.user.data.id).toBe(meData.data.id)
+    expect(memberUsersData.data[0].relationships.member.data.id).toBe(membersData.data[0].id)
+    expect(memberUsersData.included.map((resource: ResourceObject) => resource.type).sort())
+      .toEqual(["members", "users"])
   });
 
   it("returns the standard NotFound error code", async () => {

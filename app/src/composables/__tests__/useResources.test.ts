@@ -223,14 +223,18 @@ describe("useResource", () => {
 
     const firstLoad = result.first.load()
     expect(result.first.resource.value?.attributes.code).toBe("GRP0")
+    expect(result.first.loaded.value).toBe(false)
 
     const secondLoad = result.second.load()
     expect(result.second.resource.value?.attributes.code).toBe("GRP1")
+    expect(result.second.loaded.value).toBe(false)
 
     await Promise.all([firstLoad, secondLoad])
 
     expect(result.first.resource.value?.attributes.code).toBe("GRP0")
     expect(result.second.resource.value?.attributes.code).toBe("GRP1")
+    expect(result.first.loaded.value).toBe(true)
+    expect(result.second.loaded.value).toBe(true)
   })
 })
 
