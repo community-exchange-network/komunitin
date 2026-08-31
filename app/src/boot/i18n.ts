@@ -1,12 +1,12 @@
 import type { Locale } from "date-fns";
 import { formatRelative } from "date-fns";
-import type { QSingletonGlobals, QVueGlobals } from "quasar";
-import { Quasar, useQuasar } from "quasar";
+import type { QSingletonGlobals } from "quasar";
+import { Quasar } from "quasar";
 import { boot } from "quasar/wrappers";
 import type { LangName } from "src/i18n";
 import langs, { DEFAULT_LANG, normalizeLocale } from "src/i18n";
-import store from "src/store";
-import { ref, watch } from "vue";
+import store, { storeReady } from "src/store";
+import { computed, ref } from "vue";
 import { createI18n } from "vue-i18n";
 import { useStore } from "vuex";
 import LocalStorage from "../plugins/LocalStorage";
@@ -74,7 +74,8 @@ let dateLocale: Locale | undefined = undefined;
  */
 export const getDateLocale = () => dateLocale;
 
-let globalLocale = DEFAULT_LANG
+const globalLocale = ref(DEFAULT_LANG)
+let localeUpdate = Promise.resolve()
 
 const loadedAdminLocales = new Set<string>();
 
@@ -98,9 +99,14 @@ async function getCurrentLocale($q: QSingletonGlobals) {
  * 
  * Note that this function does not update the user.settings.language attribute.
  */
-export async function setLocale(locale: string, admin=false) {
+export function setLocale(locale: string, admin=false) {
   const lang = normalizeLocale(locale);
-  await setCurrentLocale(Quasar, lang, admin)
+  globalLocale.value = lang
+  // Queue locale changes so asynchronous loads finish in request order.
+  localeUpdate = localeUpdate
+    .catch(() => undefined)
+    .then(() => setCurrentLocale(Quasar, lang, admin))
+  return localeUpdate
 }
 
 async function loadLocaleMessages(locale: LangName, admin=false) {
@@ -135,50 +141,38 @@ async function loadLocaleMessages(locale: LangName, admin=false) {
   }
 }
 
-async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: string, admin=false) {
-  globalLocale = locale
-  // Set VueI18n lang.
-  const setI18nLocale = async (locale: LangName) => {
-    await loadLocaleMessages(locale, admin)
-    if (i18n.global.locale.value !== locale) {
-      i18n.global.locale.value = locale;
-    }
-  }
-
-  // Set Quasar lang.
-  const setQuasarLang = async (locale: LangName) => {
-    const quasarLanguage = await langs[locale].loadQuasar()
-    $q.lang.set(quasarLanguage);
-  }
-
-  // Set date-fns lang.
-  const setDateLocale = async (locale: LangName) => {
-    dateLocale = await langs[locale].loadDateFNS()
-  }
-
-  const lang = normalizeLocale(locale);
-  
-  await Promise.all([
-    setI18nLocale(lang),
-    setQuasarLang(lang),
-    setDateLocale(lang),
+async function setCurrentLocale($q: QSingletonGlobals, locale: LangName, admin=false) {
+  const [, quasarLanguage, loadedDateLocale] = await Promise.all([
+    loadLocaleMessages(locale, admin),
+    langs[locale].loadQuasar(),
+    langs[locale].loadDateFNS(),
     LocalStorage.set(LOCALE_KEY, locale)
-  ]);
+  ])
+
+  i18n.global.locale.value = locale
+  $q.lang.set(quasarLanguage)
+  dateLocale = loadedDateLocale
 }
 
 /**
  * Use this composable to implement language chooser components.
  */
 export function useLocale() {
-  const locale = ref(globalLocale)
-  const $q = useQuasar()   
   const store = useStore()
-  watch(locale, async (locale) => {
-    await setCurrentLocale($q, locale, store.getters.isAdmin)
+  return computed({
+    get: () => globalLocale.value,
+    set: locale => {
+      setLocale(locale, getUserLocaleState(store.getters).admin)
+    }
   })
-  return locale;
 }
 
+function getUserLocaleState(getters: typeof store.getters, fallback = globalLocale.value) {
+  const user = getters.myUser
+  const lang = (user?.settings?.attributes.language ?? fallback) as string
+  const admin = Boolean(getters.isAdmin || getters.isSuperadmin)
+  return { user, lang, admin }
+}
 
 // Default export for Quasar boot files.
 export default boot(async ({ app }) => {
@@ -189,26 +183,22 @@ export default boot(async ({ app }) => {
   app.config.globalProperties.$formatDate = (date: string) =>
     formatRelative(new Date(date), new Date(), { locale: dateLocale })
 
-  // Initially set the current locale.
-  const lang = await getCurrentLocale(Quasar)
-  const isAdmin = store.getters.isAdmin || store.getters.isSuperadmin
-  await setCurrentLocale(Quasar, lang, isAdmin)
+  // storeReady resolves after persisted Vuex state has been restored.
+  const [lang] = await Promise.all([
+    getCurrentLocale(Quasar),
+    storeReady
+  ])
+  const initialLocale = getUserLocaleState(store.getters, lang)
+  await setLocale(initialLocale.lang, initialLocale.admin)
 
-  // Change the current locale to the user defined settings. Note that we do it that way so the
-  // store does not depend on the i18n infrastructure and therefore it can be used in the service
-  // worker.
   store.watch((_, getters) => {
-    return [
-      getters.myUser?.id,
-      getters.myUser?.settings?.attributes.language,
-      getters.isAdmin || getters.isSuperadmin
-    ]
-  }, ([userId, language, isAdmin]) => {
+    const { user, lang, admin } = getUserLocaleState(getters)
+    return user ? `${lang}:${admin}` : undefined
+  }, () => {
+    const { user, lang, admin } = getUserLocaleState(store.getters)
     // wait for user load before applying language settings.
-    if (userId && (isAdmin || (language && language !== globalLocale))) {
-      setLocale(language ?? globalLocale, isAdmin)
+    if (user) {
+      setLocale(lang, admin)
     }
   })
-
-
 });

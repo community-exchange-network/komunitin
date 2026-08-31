@@ -14,6 +14,11 @@ const DATABASE_NAME = "komunitin"
 
 const CURRENT_VERSION = process.env.APP_VERSION
 
+let markStoreReady: () => void = () => undefined
+
+/** Resolves after persisted Vuex state has been restored. */
+export const storeReady = new Promise<void>(resolve => { markStoreReady = resolve })
+
 /**
  * Iterate over all values in the storage and call the async callback function for each one. This
  * function does not wait for each iteration step to complete before starting the next one.
@@ -186,9 +191,9 @@ export default function createPersistPlugin<T>() {
       store.replaceState(merge(store.state, state))
     }
 
-    initialize().catch((error) => {
-      console.error("Error initializing persisted state:", error);
-    });
+    initialize()
+      .catch(error => console.error("Error initializing persisted state:", error))
+      .finally(markStoreReady)
 
     // Subscribe to mutations
     store.subscribe(({type, payload}) => {
