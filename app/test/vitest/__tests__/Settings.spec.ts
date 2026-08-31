@@ -84,6 +84,15 @@ describe("Member-user settings", () => {
       notifications: { myAccount: true, group: true },
     })
 
+    await wrapper.vm.$router.push(
+      `/groups/GRP0/admin/members/${targetMember.code}/settings`,
+    )
+    await waitFor(() => wrapper.vm.$route.name, "AdminEditSettings")
+    await waitFor(
+      () => wrapper.vm.$store.getters["member-users/currentList"]?.[0]?.relationships.member.data.id,
+      targetMember.id,
+      "Target member-user should load",
+    )
     await waitFor(() => settingsPage().find(".inline-banner").exists(), false)
 
     expect(settingsPage().findAllComponents(QSelect).some(
