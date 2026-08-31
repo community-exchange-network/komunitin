@@ -100,7 +100,6 @@
   "no": "No",
   "creditLimitHint": "The maximum negative balance that this account can have.",
   "maximumBalanceHint": "The maximum positive balance that this account can have. Leave to 0 for unlimited.",
-  "move": "Move",
   "allowAnonymousMemberList": "Allow external users to list community members",
   "allowAnonymousMemberListHint": "Allow users from any other community to see the list of names, avatars and account numbers of the members of this community. No emails or other personal information is shared.",
   "memberRequests": "Member Requests",

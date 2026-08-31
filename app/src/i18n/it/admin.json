@@ -99,7 +99,6 @@
   "no": "No",
   "creditLimitHint": "Il saldo negativo massimo che questo account può avere.",
   "maximumBalanceHint": "Il saldo positivo massimo che questo account può avere. Lasciare a 0 per un numero illimitato.",
-  "move": "Muovi",
   "allowAnonymousMemberList": "Consenti agli utenti esterni di elencare i membri della comunità",
   "allowAnonymousMemberListHint": "Consenti agli utenti di qualsiasi altra comunità di vedere l'elenco di nomi, avatar e numeri di conto dei membri di questa comunità. Non vengono condivise e-mail o altre informazioni personali.",
   "memberRequests": "Richieste di membri",

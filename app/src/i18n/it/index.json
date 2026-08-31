@@ -271,6 +271,7 @@
   "selectPayee": "A",
   "send": "Invia",
   "receive": "Ricevi",
+  "move": "Muovi",
   "accountCode": "Codice account",
   "accountCodeHint": "Numero conto {code}0123",
   "setAccount": "Seleziona account",
