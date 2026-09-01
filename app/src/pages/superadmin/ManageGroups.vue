@@ -81,7 +81,7 @@
               </confirm-btn>
               <delete-btn
                 color="icon-dark"
-                @confirm="deleteGroup(props.row.code)"
+                @confirm="deleteGroup(props.row.code, props.row.id)"
               >
                 Are you sure you want to delete group {{props.row.name}}?
               </delete-btn>
@@ -209,10 +209,10 @@ const activateGroup = async (code: string) => {
     quasar.loading.hide()
   }
 }
-const deleteGroup = async (code: string) => {
+const deleteGroup = async (code: string, id: string) => {
   await store.dispatch('groups/delete', {
     group: code,
-    id: code
+    id
   })
   await loadGroups()
 }
