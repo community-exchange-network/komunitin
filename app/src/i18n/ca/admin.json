@@ -99,6 +99,7 @@
   "no": "No",
   "creditLimitHint": "El saldo negatiu màxim que aquest compte pot tenir.",
   "maximumBalanceHint": "El saldo positiu màxim que aquest compte pot tenir. Deixa-ho a 0 per a il·limitat.",
+  "move": "Moure",
   "allowAnonymousMemberList": "Permetre que els usuaris externs llistin els membres de la comunitat",
   "allowAnonymousMemberListHint": "Permet als usuaris de qualsevol altra comunitat veure la llista de noms, avatars i números de compte dels membres d'aquesta comunitat. No es comparteixen correus electrònics ni altra informació personal.",
   "memberRequests": "Sol·licituds de membres",

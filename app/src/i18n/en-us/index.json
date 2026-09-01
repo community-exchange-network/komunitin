@@ -269,7 +269,6 @@
   "selectPayee": "To",
   "send": "Send",
   "receive": "Receive",
-  "move": "Move",
   "accountCode": "Account code",
   "accountCodeHint": "Account number in the form {code}0123",
   "setAccount": "Set account",

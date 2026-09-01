@@ -96,6 +96,7 @@
   "no": "Non",
   "creditLimitHint": "Le solde négatif maximum que ce compte peut avoir.",
   "maximumBalanceHint": "Le solde positif maximum que ce compte peut avoir. Laissez à 0 pour illimité.",
+  "move": "Déplacer",
   "allowAnonymousMemberList": "Permettre aux utilisateurs externes de lister les membres de la communauté",
   "allowAnonymousMemberListHint": "Permettre aux utilisateurs de toute autre communauté de voir la liste des noms, avatars et numéros de compte des membres de cette communauté. Aucun courriel ni autre information personnelle n'est partagé.",
   "memberRequests": "Demandes d'adhésion",

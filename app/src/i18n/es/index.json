@@ -271,7 +271,6 @@
   "selectPayee": "A",
   "send": "Enviar",
   "receive": "Recibir",
-  "move": "Mover",
   "accountCode": "Número de cuenta",
   "accountCodeHint": "Número de cuenta en la forma {code}0123",
   "setAccount": "Establecer cuenta",

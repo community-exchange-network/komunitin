@@ -271,7 +271,6 @@
   "selectPayee": "A",
   "send": "Enviar",
   "receive": "Rebre",
-  "move": "Moure",
   "accountCode": "Número de compte",
   "accountCodeHint": "Número de compte de la forma {code}0123",
   "setAccount": "Estableix compte",
