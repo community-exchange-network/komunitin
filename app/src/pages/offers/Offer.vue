@@ -51,7 +51,6 @@
           </template>
           <template #images>
             <carousel
-                class="rounded-borders shadow-2"
                 :images="offer.attributes.images"
                 thumbnails
                 height="400px"

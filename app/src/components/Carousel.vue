@@ -4,6 +4,7 @@
       v-if="images && images.length"
       v-model="slide"
       v-bind="$attrs"
+      class="rounded-borders shadow-2"
       animated
       swipeable
       infinite
@@ -36,7 +37,7 @@
       >
         <img
           :src="image"
-          class="thumbnail vertical-bottom cursor-pointer"
+          class="thumbnail vertical-bottom cursor-pointer rounded-borders"
           :class="'thumbnail-' + (slide == i + 1 ? 'active' : 'inactive')"
           @click="slide = i + 1"
         >
