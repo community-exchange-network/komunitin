@@ -56,8 +56,8 @@ export default defineComponent({
         // This is the height of the category pill (48) and its padding (16).
         height += 64;
       }
-      // This is the height of the map (200), its padding (16) and its label (21).
-      height += 237;
+      // This is the height of the map (200), its padding (16) and its label (53).
+      height += 269;
       return height;
     }
   }
