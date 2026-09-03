@@ -57,8 +57,7 @@
               />
           </template>
           <template #content>
-            <div class="bg-surface rounded-borders shadow-2 q-pa-md">
-
+            <div class="bg-surface rounded-borders shadow-2 q-pa-md q-mb-md">
               <div class="text-h4 text-bold text-serif q-mb-xs">
                 {{ offer.attributes.name }}
               </div>
@@ -83,7 +82,7 @@
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
-              class="col text-body1 text-onsurface"
+              class="col text-body1 text-onsurface bg-surface rounded-borders shadow-2 q-pa-md"
               v-html="md2html(offer.attributes.content)"
             />
             <div class="q-pb-lg row q-gutter-x-md justify-end">
