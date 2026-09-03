@@ -9,15 +9,22 @@
       </div>
       <div
         v-if="numImages > 0"
-        class="col-auto item"
+        class="col-auto item relative-position"
       >
         <slot name="images" />
+        <div 
+          class="q-ml-lg q-mb-sm absolute-bottom-left"
+        >
+          <slot name="category" />
+        </div>
+      </div>
+      <div 
+        v-if="numImages === 0"
+        class="col-auto item">
+        <slot name="category" />
       </div>
       <div class="col-auto item sm-last">
         <slot name="map" />
-      </div>
-      <div class="col-auto item">
-        <slot name="category" />
       </div>
       <div class="col-auto item content">
         <slot name="content" />
@@ -37,17 +44,20 @@ export default defineComponent({
   computed: {
     parentHeight(): number {
       // This is the height (in pixels) of the member header.
-      let height = 64;
+      let height = 88;
       if (this.numImages > 0) {
         // This is the height of the image (400) and its padding (16).
         height += 416;
         // This is the height of the thumbnails.
         if (this.numImages > 1) {
-          height += 94 * Math.ceil(this.numImages / 4);
+          height += 72 * Math.ceil(this.numImages / 4);
         }
+      } else {
+        // This is the height of the category pill (48) and its padding (16).
+        height += 64;
       }
-      // This is the height of the map (200), its padding (16) and its label (21).
-      height += 237;
+      // This is the height of the map (200), its padding (16) and its label (53).
+      height += 269;
       return height;
     }
   }

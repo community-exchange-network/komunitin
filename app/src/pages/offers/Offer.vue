@@ -18,7 +18,7 @@
           :code="code"
           :offer="offer"          
           :to="`/groups/${code}/offers`"
-          color="white"
+          color="onsurface-m"
         />
       </template>
     </page-header>
@@ -32,48 +32,59 @@
             <member-header
               :to="`/groups/${code}/members/${offer.member.attributes.code}`"
               :member="offer.member"
-              class="q-pa-none"
-            />
+              class="bg-surface rounded-borders shadow-2 q-pa-md"
+            >
+            <template #side>
+              <q-icon
+                name="chevron_right"
+              />
+            </template>
+          </member-header>
           </template>
           <template #category>
-            <category-avatar
-              type="offer"
-              :category="offer.category"
-              caption
-            />
+              <!-- Ensure the category pill isn't positioned on top of thumbnails, if they exist -->
+              <category-pill
+                :style="offer.attributes.images.length > 1 && $q.screen.gt.sm ? `transform: translateY(-${72 * Math.ceil(offer.attributes.images.length / 4)}px);` : ''"
+                type="offer"
+                :category="offer.category"
+              />
           </template>
           <template #images>
             <carousel
-              :images="offer.attributes.images"
-              thumbnails
-              height="400px"
-            />
+                :images="offer.attributes.images"
+                thumbnails
+                height="400px"
+              />
           </template>
           <template #content>
-            <div class="text-h4 q-pb-sm">
-              {{ offer.attributes.name }}
-            </div>
-            <div class="text-h6 q-pb-sm">
-              <span class="text-onsurface-m">{{ $t('price') }}</span>
-              <span>&nbsp;</span>
-              <span class="negative-amount">{{ price }}</span>
-            </div>
-            <div class="text-body2 text-onsurface-m q-pb-md">
-              <span>{{ $t('updatedAt', {
-                date: $formatDate(offer.attributes.updated)
-              }) }}</span>
+            <div class="bg-surface rounded-borders shadow-2 q-pa-md q-mb-md">
+              <div class="text-h4 text-bold text-serif q-mb-xs">
+                {{ offer.attributes.name }}
+              </div>
+              <div class="row justify-between items-end text-caption text-muted q-pb-sm"
+                style="line-height: 1.7rem;"
+              >
+                <div>
+                  <span>{{ $t('price') }}</span>
+                  <span>&nbsp;</span>
+                  <span class="text-serif text-h6 text-bold positive-amount">{{ price }}</span>
+                </div>
+                <span>{{ $t('updatedAt', {
+                  date: $formatDate(offer.attributes.updated)
+                }) }}</span>
+              </div>
+              <q-separator class="q-mb-sm"/>
+              <div class="text-caption text-muted row items-center">
+                <q-icon name="schedule" class="q-mr-xs"/>
+                 <span>{{ $t('expiresAt') }}</span>
+                 <q-chip color="accent-muted" text-color="muted">{{ $formatDate(offer.attributes.expires) }}</q-chip>
+              </div>
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
-              class="col text-body1 text-onsurface"
+              class="col text-body1 text-onsurface bg-surface rounded-borders shadow-2 q-pa-md"
               v-html="md2html(offer.attributes.content)"
             />
-            <!-- eslint-enable vue/no-v-html -->
-            <div class="text-body2 text-onsurface-m q-pb-md">
-              <span>{{ $t('expiresAt', {
-                date: $formatDate(offer.attributes.expires)
-              }) }}</span>
-            </div>
             <div class="q-pb-lg row q-gutter-x-md justify-end">
               <share-button 
                 flat
@@ -91,15 +102,17 @@
             </div>
           </template>
           <template #map>
-            <simple-map
-              class="simple-map"
-              :center="offer.member.attributes.location.coordinates"
-              :marker="offer.member.attributes.location.coordinates"
-            />
-            <div class="text-onsurface-m">
-              <q-icon name="place" />
-              {{ offer.member.attributes.location.name }}
-            </div>
+            <q-card>
+              <simple-map
+                class="simple-map"
+                :center="offer.member.attributes.location.coordinates"
+                :marker="offer.member.attributes.location.coordinates"
+              />
+              <q-card-section class="text-onsurface-m">
+                <q-icon name="place" />
+                {{ offer.member.attributes.location.name }}
+              </q-card-section>
+            </q-card>
           </template>
         </offer-layout>
         <slot 
@@ -119,7 +132,7 @@ import OfferLayout from "../../layouts/OfferLayout.vue";
 import PageHeader from "../../layouts/PageHeader.vue";
 
 import Carousel from "../../components/Carousel.vue";
-import CategoryAvatar from "../../components/CategoryAvatar.vue";
+import CategoryPill from "../../components/CategoryPill.vue";
 import ContactButton from "../../components/ContactButton.vue";
 import DeleteOfferBtn from "../../components/DeleteOfferBtn.vue";
 import MemberHeader from "../../components/MemberHeader.vue";

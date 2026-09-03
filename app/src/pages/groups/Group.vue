@@ -33,13 +33,14 @@
 
         <div
           v-if="group"
-          class="row q-col-gutter-md"
+          class="row"
         >
           <!-- image -->
           <div class="col-4 q-px-md">
             <div class="q-mx-auto" style="max-width: 152px; line-height: 0;">
               <fit-text update>
                 <avatar
+                  class="group-avatar"
                   size="inherit"
                   :text="group.attributes.name"
                   :img-src="group.attributes.image"
@@ -50,13 +51,13 @@
 
           <!-- description -->
           <div class="col column">
-            <div class="text-h6">
+            <div class="text-h5 text-serif text-bold">
               {{ group.attributes.code }}
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
               ref="descriptionRef"
-              class="text-onsurface-m"
+              class="text-onsurface"
               :class="isDescriptionOpen ? '' : 'ellipsis-3-lines'"
               v-html="md2html(group.attributes.description)"
             />
@@ -64,12 +65,13 @@
             <q-btn
               v-if="canToggleDescription"
               flat
-              round
+              class="toggle-button q-mt-sm"
               dense
               :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
-              style="margin-left:auto;"
               @click="toggleDescription"
+              style="margin-left:auto;"
             />
+
           </div>
         </div>
         <!-- sub-page navigation -->
@@ -83,6 +85,7 @@
           >
             <nav-card
               icon="people"
+              icon-color="accent-muted"
               :label="membersLabel"
             />
           </router-link>
@@ -92,7 +95,8 @@
             class="col-6"
           >
             <nav-card
-              icon="insert_chart"
+              icon="bar_chart"
+              icon-color="background"
               :label="$t('statistics')"
             />
           </router-link>
@@ -190,3 +194,13 @@ watch(group, async () => {
 }, { immediate: true });
 
 </script>
+
+<style lang="scss" scoped>
+.group-avatar {
+  outline: 3px solid white;
+  box-shadow: $shadow-4;
+}
+.toggle-button {
+  background: $background;
+}
+</style>

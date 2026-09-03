@@ -25,7 +25,7 @@
       </template>
     </page-header>
     <q-page-container>
-      <q-page>
+      <q-page class="q-px-md q-pt-md">
         <transaction-items
           :code="props.code"
           :member="myMember"
@@ -39,25 +39,29 @@
     </q-page-container>
     <q-drawer 
       v-model="filterDrawer"
-      side="right" 
-      bordered
+      side="right"
+      class="rounded-drawer-left" 
       show-if-above
     >
-      <div class="q-pa-md column q-gutter-md">
-        <div class="text-h6 text-onsurface-m">{{ $t("filters") }}</div>
-        <date-field
-          v-model="startDate"
-          :label="$t('startDate')"
-          clearable
-        />
-        <date-field
-          v-model="endDate"
-          :label="$t('endDate')"
-          clearable
-          :options="{
-            min: startDate
-          }"
-        />
+      <div class="column">
+        <div class="q-px-md q-pt-md q-pb-sm text-serif text-bold text-subtitle1 text-onsurface-h">{{ $t("filters") }}</div>
+        <q-separator />
+        <div class="q-pa-md q-gutter-sm">
+          <p class="text-caption-sm text-uppercase text-weight-bold text-onsurface-m">{{ $t("dateRange") }}</p>
+          <date-field
+            v-model="startDate"
+            :label="$t('startDate')"
+            clearable
+          />
+          <date-field
+            v-model="endDate"
+            :label="$t('endDate')"
+            clearable
+            :options="{
+              min: startDate
+            }"
+          />
+        </div>
       </div>      
     </q-drawer>
   </div>

@@ -12,6 +12,7 @@
     <q-list
       v-if="slotProps.resources"
       padding
+      class="bg-surface shadow-2 rounded-borders"
     >
       <div
         v-if="slotProps.resources.length > 0"
