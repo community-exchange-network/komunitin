@@ -57,30 +57,35 @@
               />
           </template>
           <template #content>
-            <div class="text-h4 q-pb-sm">
-              {{ offer.attributes.name }}
-            </div>
-            <div class="text-h6 q-pb-sm">
-              <span class="text-onsurface-m">{{ $t('price') }}</span>
-              <span>&nbsp;</span>
-              <span class="negative-amount">{{ price }}</span>
-            </div>
-            <div class="text-body2 text-onsurface-m q-pb-md">
-              <span>{{ $t('updatedAt', {
-                date: $formatDate(offer.attributes.updated)
-              }) }}</span>
+            <div class="bg-surface rounded-borders shadow-2 q-pa-md">
+
+              <div class="text-h4 text-bold text-serif q-mb-xs">
+                {{ offer.attributes.name }}
+              </div>
+              <div class="row justify-between items-end text-caption text-muted q-pb-sm"
+                style="line-height: 1.7rem;"
+              >
+                <div>
+                  <span>{{ $t('price') }}</span>
+                  <span>&nbsp;</span>
+                  <span class="text-serif text-h6 text-bold positive-amount">{{ price }}</span>
+                </div>
+                <span>{{ $t('updatedAt', {
+                  date: $formatDate(offer.attributes.updated)
+                }) }}</span>
+              </div>
+              <q-separator class="q-mb-sm"/>
+              <div class="text-caption text-muted row items-center">
+                <q-icon name="schedule" class="q-mr-xs"/>
+                 <span>{{ $t('expiresAt') }}</span>
+                 <q-chip color="accent-muted" text-color="muted">{{ $formatDate(offer.attributes.expires) }}</q-chip>
+              </div>
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
               class="col text-body1 text-onsurface"
               v-html="md2html(offer.attributes.content)"
             />
-            <!-- eslint-enable vue/no-v-html -->
-            <div class="text-body2 text-onsurface-m q-pb-md">
-              <span>{{ $t('expiresAt', {
-                date: $formatDate(offer.attributes.expires)
-              }) }}</span>
-            </div>
             <div class="q-pb-lg row q-gutter-x-md justify-end">
               <share-button 
                 flat
