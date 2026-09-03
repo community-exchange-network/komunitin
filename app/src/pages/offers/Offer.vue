@@ -42,7 +42,9 @@
           </member-header>
           </template>
           <template #category>
+              <!-- Ensure the category pill isn't positioned on top of thumbnails, if they exist -->
               <category-pill
+                :style="offer.attributes.images.length > 1 && $q.screen.gt.sm ? `transform: translateY(-${72 * Math.ceil(offer.attributes.images.length / 4)}px);` : ''"
                 type="offer"
                 :category="offer.category"
               />
