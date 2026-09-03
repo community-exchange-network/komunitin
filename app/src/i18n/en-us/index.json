@@ -98,7 +98,7 @@
   "transactionPayerHint": "Choose the account from which the amount will be transferred.",
   "transactionPayeeHint": "Choose the account that will receive the transfer.",
   "description": "Description",
-  "transactionDescriptionHint": "Brief description of the concept of the exchange, for example '2kg of potatoes'.",
+  "transactionDescriptionHint": "Brief description of what was exchanged, for example '2kg of potatoes'.",
   "amount": "Amount",
   "amountIn": "Amount in {currency}",
   "transactionAmountHint": "Quantity to transfer.",
