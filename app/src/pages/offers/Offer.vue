@@ -102,15 +102,17 @@
             </div>
           </template>
           <template #map>
-            <simple-map
-              class="simple-map"
-              :center="offer.member.attributes.location.coordinates"
-              :marker="offer.member.attributes.location.coordinates"
-            />
-            <div class="text-onsurface-m">
-              <q-icon name="place" />
-              {{ offer.member.attributes.location.name }}
-            </div>
+            <q-card>
+              <simple-map
+                class="simple-map"
+                :center="offer.member.attributes.location.coordinates"
+                :marker="offer.member.attributes.location.coordinates"
+              />
+              <q-card-section class="text-onsurface-m">
+                <q-icon name="place" />
+                {{ offer.member.attributes.location.name }}
+              </q-card-section>
+            </q-card>
           </template>
         </offer-layout>
         <slot 
