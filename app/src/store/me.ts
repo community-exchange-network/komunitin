@@ -51,13 +51,9 @@ export interface UserState {
 /**
  * Helper function that loads the user data after being logged in and having
  * the credentials.
- *
- * @param accessToken The access token
- * @param commit The local commit function.
- * @param dispatch The vuex Dispatch object.
  */
 async function loadUser(context: ActionContext<UserState, never>) {
-  const { commit, dispatch, state, rootGetters } = context
+  const { commit, dispatch, state, getters, rootGetters } = context
   const tokens = state.tokens
   await dispatch("users/load", {});
   const user = rootGetters["users/current"];
@@ -112,7 +108,7 @@ async function loadUser(context: ActionContext<UserState, never>) {
     const currencyCode = currencyUrl.split('/').slice(-2)[0];
 
     // pending or deleted members don't have related account. Superadmins neither do.
-    if (["active", "disabled", "suspended"].includes(member.attributes.status) && !tokens?.scopes.includes(Auth.SUPERADMIN_SCOPE)) {
+    if (["active", "disabled", "suspended"].includes(member.attributes.status) && !getters.isSuperadmin) {
       const accountId = member.relationships.account.data.id
       await dispatch("accounts/load", {
         id: accountId, 
