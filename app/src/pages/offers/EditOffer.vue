@@ -13,6 +13,7 @@
         v-if="offer"
         :code="code"
         :model-value="offer"
+        :currency="currency"
         show-state
         :submit-label="$t('save')"
         @submit="onSubmit"
@@ -21,11 +22,13 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import KError, { KErrorCode } from 'src/KError'
+import { usePostPermissions } from 'src/composables/postPermissions'
 import PageHeader from "../../layouts/PageHeader.vue"
 import OfferForm from "./OfferForm.vue"
 import { useStore } from 'vuex';
-import type { Offer, Category } from '../../store/model';
+import type { Offer, Category, Currency } from '../../store/model';
 import type { DeepPartial } from 'quasar';
 import { useRouter, useRoute } from 'vue-router';
 
@@ -35,33 +38,53 @@ const props = defineProps<{
 }>()
 const store = useStore()
 const route = useRoute()
+const currency = ref<Currency>()
 const offer = ref<Offer & {category: Category} | null>(null)
 
-const fetchData = async () => {
-  await store.dispatch("offers/load", {
-    code: props.offerCode,
-    group: props.code,
-    include: "category"
-  })
-  const fetchedOffer = store.getters["offers/current"]
+const router = useRouter()
+const canEdit = usePostPermissions()
 
-  // Apply optional URL params.
-  const params = route.query
-  if (typeof params.state === 'string' && ['hidden', 'published'].includes(params.state)) {
-    fetchedOffer.attributes.status = params.state
-  }
-  if (typeof params.expires === 'string') {
-    const expires = new Date(params.expires)
-    if (!isNaN(expires.getTime())) {
-      fetchedOffer.attributes.expires = expires.toISOString()
+watch(() => [props.code, props.offerCode], async (_value, _oldValue, onCleanup) => {
+  let cancelled = false
+  onCleanup(() => { cancelled = true })
+  offer.value = null
+  try {
+    const id = await store.dispatch("offers/load", {
+      code: props.offerCode,
+      group: props.code,
+      include: "category"
+    })
+    if (cancelled) return
+    const fetchedOffer = store.getters["offers/one"](id)
+    if (!canEdit(fetchedOffer, props.code)) {
+      throw new KError(KErrorCode.Forbidden)
+    }
+    await store.dispatch("currencies/load", { group: props.code })
+    if (cancelled) return
+    currency.value = store.getters["currencies/current"]
+
+    // Apply optional URL params only after checking edit access.
+    const params = route.query
+    if (typeof params.state === 'string' && ['hidden', 'published'].includes(params.state)) {
+      fetchedOffer.attributes.status = params.state
+    }
+    if (typeof params.expires === 'string') {
+      const expires = new Date(params.expires)
+      if (!isNaN(expires.getTime())) {
+        fetchedOffer.attributes.expires = expires.toISOString()
+      }
+    }
+    offer.value = fetchedOffer
+  } catch (error) {
+    if (!cancelled) {
+      if (error instanceof KError && [KErrorCode.Forbidden, KErrorCode.NotFound].includes(error.code as KErrorCode)) {
+        await router.replace('/404')
+      } else {
+        throw error
+      }
     }
   }
-
-  offer.value = fetchedOffer
-}
-
-fetchData()
-const router = useRouter()
+}, { immediate: true })
 
 const onSubmit = async (resource: DeepPartial<Offer>) => {
   await store.dispatch("offers/update", {
