@@ -362,6 +362,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JsonApiErrors'
+  /users/{id}:
+    delete:
+      tags: [Registration]
+      summary: Delete an identity after its last membership is removed
+      description: |
+        Internal endpoint restricted to the Social client-credentials principal.
+        Social must authorize membership deletion and verify that the identity has
+        no remaining memberships. Deletes credentials and action tokens and revokes
+        persisted OAuth sessions. Existing access JWTs expire normally.
+        Repeating the request for an absent identity succeeds.
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Identity is absent and its persisted sessions are revoked.
+        '400':
+          description: Invalid identity UUID.
+        '401':
+          description: Missing or invalid Social client-credentials token.
 components:
   securitySchemes:
     bearerAuth:

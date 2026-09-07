@@ -29,6 +29,22 @@ type RegisteredUser = {
 
 const registeredUsers = new Map<string, RegisteredUser>();
 const accessTokenUsers = new Map<string, RegisteredUser>();
+const deletedEmails = new Set<string>()
+const revokedRefreshTokens = new Set<string>()
+
+/** Mirror Auth identity deletion when Social removes the last mock membership. */
+export function deleteMockIdentity(userId: string, email: string) {
+  const user = registeredUsers.get(email)
+  deletedEmails.add(email)
+  revokedRefreshTokens.add(user?.refreshToken ?? "test_user_refresh_token")
+  registeredUsers.delete(email)
+  for (const [token, user] of accessTokenUsers) {
+    if (user.id === userId) accessTokenUsers.delete(token)
+  }
+  for (const action of actionTokens.values()) {
+    if (action.userId === userId) action.used = true
+  }
+}
 
 export function getMockAuthUser(accessToken: string) {
   return accessTokenUsers.get(accessToken)
@@ -116,6 +132,9 @@ export default {
           return badRequest("Unsupported grant type");
         }
         const param = params.get("refresh_token") || params.get("username") || "test_user";
+        if (deletedEmails.has(param) || revokedRefreshTokens.has(param)) {
+          return invalidGrant("Invalid credentials")
+        }
         const registered = registeredUsers.get(param)
           ?? [...registeredUsers.values()].find(user => user.refreshToken === param)
         if (registered) {
@@ -162,6 +181,7 @@ export default {
         password: body.password,
         refreshToken: `${id}_refresh_token`,
       }
+      deletedEmails.delete(body.email)
       registeredUsers.set(body.email, user)
       return new Response(201, {}, publicUser(user, body.signup));
     });
@@ -171,8 +191,8 @@ export default {
       if (!body?.email) {
         return badRequest("Expected JSON email");
       }
-      const user = registeredUsers.get(body.email)
-      newActionToken("passwordReset", user?.id ?? "test_user", body.email);
+      const user = registeredUsers.get(body.email) ?? _schema.users.findBy({ email: body.email })
+      if (user) newActionToken("passwordReset", user.id, body.email)
       return statusOk();
     });
 

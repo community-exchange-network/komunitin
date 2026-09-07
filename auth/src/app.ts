@@ -8,6 +8,7 @@ import emailRoutes from './routes/email'
 import actionTokenRoutes from './routes/action-token'
 import registerRoutes from './routes/register'
 import healthRoutes from './routes/health'
+import userRoutes from './routes/users'
 import { oidcProviderMiddleware, startJwksRotationJob } from './oidc/provider-runtime'
 import logger from './utils/logger'
 import { config } from './config'
@@ -39,6 +40,7 @@ app.use(registerRoutes)
 app.use(passwordRoutes)
 app.use(emailRoutes)
 app.use(actionTokenRoutes)
+app.use(userRoutes)
 
 let providerMounted = false
 

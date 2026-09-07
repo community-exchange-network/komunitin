@@ -597,3 +597,9 @@ These need explicit decisions before the migration can be considered complete:
 
 - Will passwords be migrated with temporary legacy-hash verification or forced reset?
 - What is the final scope matrix for read/write/admin operations in accounting and social?
+
+## Identity deletion after the last membership
+
+Social owns membership-deletion authorization and the count of remaining memberships across communities. After deleting a membership, it calls Auth `DELETE /users/:id` for each linked user with no other non-deleted membership. All statuses count, including draft, pending, disabled, and suspended.
+
+Auth accepts only the Social service principal, removes the identity and action tokens, and revokes persisted OAuth sessions in one transaction. Deletion is idempotent. Social keeps its soft-deleted member and user projection for domain history and retries; its DELETE endpoint can retry Auth cleanup while normal reads still exclude the deleted membership. Deploy Auth before Social. Existing access JWTs remain valid until their normal expiry at downstream services.

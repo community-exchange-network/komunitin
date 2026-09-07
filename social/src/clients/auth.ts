@@ -189,3 +189,15 @@ export const exchangeAccountingToken = async (
     forceRefresh,
   )
 }
+
+/** Delete an identity after Social has removed its last membership. Safe to retry. */
+export const deleteIdentity = async (userId: string): Promise<void> => {
+  const response = await fetchWithAuth(
+    new URL(`/users/${userId}`, config.AUTH_URL),
+    { method: 'DELETE' },
+    getSocialServiceToken,
+  )
+  if (response.status !== 204) {
+    throw internalError('Auth identity deletion failed')
+  }
+}

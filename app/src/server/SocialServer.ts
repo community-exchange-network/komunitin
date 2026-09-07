@@ -10,7 +10,7 @@ import { getContactNetworkKeys } from "../utils/social-networks";
 import { config } from "src/utils/config";
 import ApiSerializer from "./ApiSerializer";
 import { inflections } from "inflected"
-import { getMockAuthUser, redeemMockActionToken } from "./AuthServer"
+import { deleteMockIdentity, getMockAuthUser, redeemMockActionToken } from "./AuthServer"
 
 
 const urlSocial = config.SOCIAL_URL;
@@ -36,6 +36,9 @@ export const failNextMockGroupPatch = () => {
 export const failNextMockMemberCreate = () => {
   memberCreateFailures++
 }
+
+let identityDeletionFailures = 0
+export const failNextMockIdentityDeletion = () => { identityDeletionFailures++ }
 
 export const failNextMockMemberCreateResponse = () => {
   memberCreateResponseFailures++
@@ -625,7 +628,7 @@ export default {
     // Group posts.
     server.get(urlSocial + "/:code/posts", (schema: any, request: any) => {
       const group = schema.groups.findBy({ code: request.params.code });
-      const records = filter(schema.posts.where({ groupId: group.id }), withoutQuery(request, ["near"]));
+      const records = filter(schema.posts.where((post: any) => post.groupId === group.id && !schema.members.find(post.memberId)?.deleted), withoutQuery(request, ["near"]));
       return sortByDistance(records, request);
     });
 
@@ -638,14 +641,14 @@ export default {
       if (request.queryParams["filter[status]"] === undefined && !hasIdentityFilter) {
         filteredRequest.queryParams["filter[status]"] = "active"
       }
-      const records = filter(schema.members.where({ groupId: group.id }), filteredRequest);
+      const records = filter(schema.members.where((member: any) => member.groupId === group.id && !member.deleted), filteredRequest);
       return sortByDistance(records, request);
     });
 
     server.get(urlSocial + "/:code/member-users", (schema: any, request: any) => {
       const group = schema.groups.findBy({ code: request.params.code })
       const records = schema.memberUsers.where(
-        (relation: any) => group.memberIds.includes(relation.memberId),
+        (relation: any) => group.memberIds.includes(relation.memberId) && !schema.members.find(relation.memberId)?.deleted,
       )
       return filter(records, request)
     })
@@ -734,7 +737,8 @@ export default {
 
     // Single member.
     server.get(urlSocial + "/:code/members/:member", (schema: any, request: any) => {
-      return schema.members.find(request.params.member)
+      const member = schema.members.find(request.params.member)
+      return member && !member.deleted ? member : notFound()
     });
 
     // Edit member profile
@@ -751,21 +755,27 @@ export default {
 
     // Delete member
     server.delete(urlSocial + "/:code/members/:id", (schema: any, request: any) => {
-      const member = schema.members.find(request.params.id);
-      const account = member.account;
-      const users = schema.users.where((user: any) => user.memberIds.some((id: any) => id == member.id));
-
-      schema.memberUsers.where({ memberId: member.id }).models.forEach((relation: any) => relation.destroy())
-      account.destroy();
-      member.destroy();
-      users.models.forEach((user: any) => user.destroy());
-
-      return undefined as any;
+      const member = schema.members.find(request.params.id)
+      const users = schema.users.where((user: any) => user.memberIds.includes(member.id))
+      member.account?.update({ status: "deleted" })
+      member.update({ deleted: new Date().toJSON() })
+      if (identityDeletionFailures > 0) {
+        identityDeletionFailures--
+        return new Response(503, {}, { errors: [{ detail: "Auth cleanup unavailable" }] })
+      }
+      users.models.forEach((user: any) => {
+        if (user.members.models.every((membership: any) => membership.deleted)) {
+          deleteMockIdentity(user.id, user.email)
+          user.update({ email: `${user.id}@deleted.invalid`, name: null, language: null })
+        }
+      })
+      return new Response(204)
     })
 
     // Single post.
     server.get(urlSocial + "/:code/posts/:post", (schema: any, request: any) => {
-      return schema.posts.find(request.params.post);
+      const post = schema.posts.find(request.params.post)
+      return post && !post.member?.deleted ? post : notFound()
     });
 
     // Create post
@@ -813,7 +823,7 @@ export default {
       if (request.params.id == "me") {
         return notFound();
       }
-      return filter(schema.users.find(request.params.id).members, request);
+      return filter(schema.users.find(request.params.id).members.filter((member: any) => !member.deleted), request);
     });
 
     // Logged-in User

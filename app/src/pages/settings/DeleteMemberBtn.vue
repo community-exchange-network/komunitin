@@ -44,6 +44,7 @@
 </template>
 <script setup lang="ts">
 import DeleteBtn from "src/components/DeleteBtn.vue"
+import { Auth } from "src/plugins/Auth"
 import SelectAccount from "src/components/SelectAccount.vue";
 import MemberHeader from "src/components/MemberHeader.vue";
 import PasswordField from "src/components/PasswordField.vue";
@@ -85,18 +86,20 @@ const { t } = useI18n()
 const router = useRouter()
 
 const deleteMember = async () => {
+  const member = props.member
+  const isSelf = member.id === store.getters.myMember?.id
   if (!zeroBalance.value && !recipientAccount.value || !isAdmin.value && !password.value) {
     return
   }
   try {
     quasar.loading.show()
     // 1. Move balance
-    if (props.member.account && !zeroBalance.value) {
-      const currency = props.member.account.currency
-      const balance = props.member.account.attributes.balance
+    if (member.account && !zeroBalance.value) {
+      const currency = member.account.currency
+      const balance = member.account.attributes.balance
       const payment = balance >= 0
-      const payer = payment ? props.member.account : recipientAccount.value
-      const payee = payment ? recipientAccount.value : props.member.account
+      const payer = payment ? member.account : recipientAccount.value
+      const payee = payment ? recipientAccount.value : member.account
     
       const resource = {
         type: "transfers",
@@ -110,7 +113,7 @@ const deleteMember = async () => {
         relationships: transferAccountRelationships(payer, payee, currency)
       }
       await store.dispatch("transfers/create", {
-        group: props.member.group.attributes.code,
+        group: member.group.attributes.code,
         resource
       })
     }
@@ -121,17 +124,20 @@ const deleteMember = async () => {
     //    delete action.
     if (!isAdmin.value) {
       const email = store.getters.myUser.attributes.email
-      await store.dispatch("login", {email, password: password.value})
+      // Verify credentials without reloading a membership that may already be
+      // deleted by an earlier attempt whose Auth cleanup failed.
+      const tokens = await new Auth().login({ email, password: password.value })
+      store.commit("tokens", tokens)
     }
 
     // 3. Delete member
     await store.dispatch("members/delete", {
-      group: props.member.group.attributes.code,
-      id: props.member.id
+      group: member.group.attributes.code,
+      id: member.id
     } as DeletePayload)
 
-    // 4. Logout (definitely)
-    if (!isAdmin.value) {
+    // Clear the selected membership even when an administrator deletes their own.
+    if (isSelf) {
       await router.push("/logout")
     } else {
       emit("delete")

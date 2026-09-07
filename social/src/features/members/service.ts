@@ -1,13 +1,15 @@
 import { createAccountingClient } from '../../clients/accounting'
+import { deleteIdentity } from '../../clients/auth'
+import { countUserMembers } from '../users/member-query'
 import { Prisma, type Member as DbMemberRecord } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
-import { tenantDb } from '../../server/multitenant'
+import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { type CollectionResult, indexById, reorderByIds } from '../../server/query'
 import { hasInclude, type CollectionParams, type ResourceParams } from '../../server/request'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
@@ -378,33 +380,54 @@ export const patchMember = async (
   return enrichMember(ctx, toMember(updated), group)
 }
 
+/** Delete membership and then remove any identities left without memberships. */
 export const deleteMember = async (ctx: AuthContext, code: string, id: string): Promise<void> => {
-  const group = await getGroupByCode(ctx, code)
-  const member = await getMemberById(code, id)
-
-  const allowed = await canWriteMember(ctx, group, member)
-  if (!allowed) {
+  const db = tenantDb(prisma, code)
+  // Keep deleted rows addressable only here so failed Auth cleanup can be retried,
+  // including by the owner of a last membership in a private community.
+  const row = await db.member.findFirst({
+    where: { id, group: { deleted: null } },
+    include: { users: true, group: { include: { admins: true } } },
+  })
+  if (!row) {
+    throw notFound('Member not found')
+  }
+  const member = toMember(row)
+  const group = toGroup(row.group)
+  if (!await canWriteMember(ctx, group, member)) {
     throw forbidden('You do not have permission to delete this member')
   }
 
-  const currencyCode = getCurrencyCode(group)
-  const accounting = createAccountingClient(ctx)
-  const account = member.accountId
-    ? await accounting.findAccountById(currencyCode, member.accountId)
-    : await accounting.findAccountByCode(currencyCode, member.code)
+  if (!member.deleted) {
+    const currencyCode = getCurrencyCode(group)
+    const accounting = createAccountingClient(ctx)
+    const account = member.accountId
+      ? await accounting.findAccountById(currencyCode, member.accountId)
+      : await accounting.findAccountByCode(currencyCode, member.code)
 
-  if (account && account.status !== 'deleted') {
-    if (account.balance !== undefined && account.balance !== 0) {
-      throw badRequest('Account balance must be zero to delete account')
+    if (account && account.status !== 'deleted') {
+      if (account.balance !== undefined && account.balance !== 0) {
+        throw badRequest('Account balance must be zero to delete account')
+      }
+      await accounting.deleteAccount(currencyCode, account.id)
     }
-    await accounting.deleteAccount(currencyCode, account.id)
+
+    await db.member.update({
+      where: { id: member.id },
+      data: { deleted: new Date() },
+    })
   }
-
-  const db = tenantDb(prisma, code)
-  await db.member.update({
-    where: { id: member.id },
-    data: { deleted: new Date() },
-  })
-
   await syncResourceFiles(code, 'members', member.id, [])
+
+  // This query spans all tenants and counts every non-deleted membership status.
+  for (const { userId } of row.users) {
+    if (await countUserMembers(userId) === 0) {
+      await deleteIdentity(userId)
+      // Retain historical relations without reserving the deleted identity's email.
+      await privilegedDb(prisma).user.update({
+        where: { id: userId },
+        data: { email: `${userId}@deleted.invalid`, name: null, language: null },
+      })
+    }
+  }
 }

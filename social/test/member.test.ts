@@ -9,6 +9,8 @@ import { accountingAccountHref } from './mocks/accounting'
 import {
   getAccountingRequestPaths,
   getAuthTokenRequests,
+  getIdentityDeleteRequests,
+  setIdentityDeleteStatus,
   getNotificationsEvents,
   resetMockState,
   seedAccountingAccount,
@@ -1383,6 +1385,53 @@ describe('Members endpoints', () => {
     const db = tenantDb(prisma, 'members-delete-posts')
     const unchangedPost = await db.post.findUnique({ where: { id: post.id } })
     assert.strictEqual(unchangedPost?.deleted, null)
+  })
+
+  test('deletes only identities whose last membership is removed, across tenants and shared memberships', async () => {
+    const owner = await auth('delete-last-owner')
+    const shared = await auth('delete-shared-owner')
+    const admin = await auth('delete-last-admin')
+    await seedGroup({ tenantId: 'delete-last', status: 'active', access: 'private' })
+    await seedGroup({ tenantId: 'delete-other', status: 'active', access: 'private' })
+    await seedGroupAdmin({ tenantId: 'delete-last', userId: admin.id })
+    const member = await seedMember({ tenantId: 'delete-last', userId: owner.id })
+    const identity = await request(app).get(`/users/${owner.id}`)
+      .set('Authorization', `Bearer ${owner.token}`).expect(200)
+    await seedMemberUser({ tenantId: 'delete-last', memberId: member.id, userId: shared.id })
+    // Even a draft membership in another community keeps the identity alive.
+    const other = await seedMember({ tenantId: 'delete-other', userId: shared.id, status: 'draft' })
+    await request(app).delete(`/delete-last/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`).expect(204)
+    assert.deepStrictEqual(getIdentityDeleteRequests(), [owner.id])
+    await request(app).get(`/delete-other/members/${other.id}`)
+      .set('Authorization', `Bearer ${shared.token}`).expect(200)
+    await request(app).delete(`/delete-other/members/${other.id}`)
+      .set('Authorization', `Bearer ${shared.token}`).expect(204)
+    assert.deepStrictEqual(getIdentityDeleteRequests(), [owner.id, shared.id])
+    const replacement = await auth('replacement-identity')
+    await request(app).post('/users')
+      .set('Authorization', `Bearer ${replacement.token}`)
+      .send({ data: { type: 'users', attributes: { email: identity.body.data.attributes.email } } })
+      .expect(200)
+  })
+
+  test('an owner can retry identity cleanup after deleting their last private-community membership', async () => {
+    const owner = await auth('retry-delete-owner')
+    const outsider = await auth('retry-delete-outsider')
+    await seedGroup({ tenantId: 'retry-delete', status: 'active', access: 'private' })
+    const member = await seedMember({ tenantId: 'retry-delete', userId: owner.id })
+    const remove = (token: string) => request(app).delete(`/retry-delete/members/${member.id}`)
+      .set('Authorization', `Bearer ${token}`)
+    setIdentityDeleteStatus(503)
+    await remove(owner.token).expect(500)
+    await request(app).get(`/retry-delete/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`).expect(403)
+    const accountingRequests = getAccountingRequestPaths().length
+    await remove(outsider.token).expect(403)
+    setIdentityDeleteStatus(204)
+    await remove(owner.token).expect(204)
+    assert.deepStrictEqual(getIdentityDeleteRequests(), [owner.id, owner.id])
+    assert.strictEqual(getAccountingRequestPaths().length, accountingRequests)
   })
 
   test('PATCH /:code/members/:member denies non-member and non-admin', async () => {
