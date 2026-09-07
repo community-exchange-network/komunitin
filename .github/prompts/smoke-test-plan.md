@@ -4,25 +4,50 @@
 
 Run a comprehensive smoke test against a reset local Docker stack with mocks disabled. Exercise the Vue app through the browser while verifying the Auth → Social → Accounting → Notifications integration chain.
 
-No application or API changes are required. The output is a test report, evidence bundle, and actionable defect list.
+The output is a test report, evidence bundle, actionable defect list, follow-up plan for each defect, and a set of PRs for the trivial defects that can be trivially fixed without UX or product decisions.
 
 ## Preparation
 
 - Start from a clean stack with `./start.sh --up --dev --reset` and confirm `KOMUNITIN_APP_MOCK=false`.
+- Use the installed **Playwright MCP** as the browser surface for the entire run,
+  with a dedicated isolated Chrome profile. Do not switch to the in-app Browser or
+  an extension-backed Chrome session: their shared browser state works against the
+  persona isolation and reproducible evidence required by this runbook.
 - Record commit SHA, environment configuration, browser/version, viewport, start time, and run ID.
 - The development TLS certificate is issued by an `mkcert` CA created inside the
   app image, so host browser automation does not trust it by default. Use a
   disposable localhost-only browser context with certificate validation disabled.
-  For Playwright, `ignoreHTTPSErrors` alone is insufficient because the service
-  worker still rejects the certificate; apply the bypass at browser/CDP level too:
+  For Playwright, the context-level HTTPS bypass alone is insufficient because the
+  service worker still rejects the certificate; apply the bypass at browser/CDP
+  level too. With Playwright MCP, put the CDP bypass in an `--init-page` hook:
 
   ```ts
-  const browserSession = await browser.newBrowserCDPSession()
-  await browserSession.send("Security.setIgnoreCertificateErrors", { ignore: true })
-  const context = await browser.newContext({ ignoreHTTPSErrors: true })
+  // playwright-local-tls.ts
+  export default async ({ page }) => {
+    const browserSession = await page.context().browser().newBrowserCDPSession()
+    await browserSession.send("Security.setIgnoreCertificateErrors", { ignore: true })
+  }
   ```
 
-  Do not reuse this certificate bypass for non-local targets.
+  Start a dedicated MCP server for this run with an isolated profile, Chromium,
+  the context-level bypass, and the hook above. For example, in Codex MCP config:
+
+  ```toml
+  [mcp_servers.playwright]
+  command = "npx"
+  args = [
+    "-y", "@playwright/mcp@latest",
+    "--browser", "chrome",
+    "--isolated",
+    "--ignore-https-errors",
+    "--init-page", "/absolute/path/to/playwright-local-tls.ts",
+  ]
+  ```
+
+  Restart the Playwright MCP connection after changing its launch arguments; the
+  application stack does not need to be restarted. Do not reuse this MCP instance
+  or certificate bypass for non-local targets. After loading the app, reload once
+  and verify `navigator.serviceWorker.controller` is set.
 - Verify:
   - App loads at `https://localhost:2030`.
   - Auth, Social, and Notifications `/health` endpoints return success.
@@ -196,3 +221,7 @@ No application or API changes are required. The output is a test report, evidenc
 - The run is green only if all non-optional cases pass, there are no P0/P1 defects, no unauthorized access, no unexplained browser errors, and no unexpected API `4xx/5xx` responses.
 - Default target is a reset local stack with saved HTML emails and comprehensive coverage because no environment preference was supplied.
 - Optional external SMTP delivery, push permission/device delivery, NFC hardware, top-ups, Credit Commons transfers, and IntegralCES migration are outside this core run unless their dependencies are explicitly configured.
+
+
+## Defects Follow Up
+After the smoke test run, create a plan for each of the defects found to address them. Then choose the ones that are just one line or a few lines of code to fix with no UX or product decisions, and create a branch for each of them and fix them (if any), and create a PR with short descriptions. The complex defects (if any) will be plan only, so no branch and no code work.
