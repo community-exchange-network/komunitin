@@ -360,6 +360,11 @@ export const handlers = [
     if (nextStatus === 'active' || nextStatus === 'disabled') {
       existing.status = nextStatus
       accountingCurrencies.set(currencyCode, existing)
+      if (nextStatus === 'disabled') {
+        for (const account of accountingAccounts.get(currencyCode)?.values() ?? []) {
+          if (account.status === 'active') account.status = 'disabled'
+        }
+      }
     }
 
     return HttpResponse.json({

@@ -15,6 +15,7 @@ import {
   seedAccountingAccount,
   seedAccountingCurrency,
   setAccountingAccountCreateStatus,
+  setAccountingAccountPatchStatus,
   setAccountingCurrencyDeleteStatus,
 } from './mocks/handlers'
 import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
@@ -1468,6 +1469,67 @@ describe('Groups endpoints', () => {
         'PATCH /group-toggle/currency',
       ],
     )
+    assert.strictEqual(getNotificationsEvents().length, 0)
+  })
+
+  test('enabling recovers only disabled accounts of active members and can be retried', async () => {
+    const code = 'recover-group'
+    const currency = seedAccountingCurrency(code)
+    const admin = await auth('recover-admin')
+    await seedGroup({ tenantId: code, status: 'active', currencyId: currency.id })
+    await seedGroupAdmin({ tenantId: code, userId: admin.id })
+    const cases = [
+      ['active', 'active', 'active'],
+      ['active', 'disabled', 'active'],
+      ['active', 'suspended', 'suspended'],
+      ['active', 'deleted', 'deleted'],
+      ['disabled', 'disabled', 'disabled'],
+      ['suspended', 'suspended', 'suspended'],
+      ['pending', 'disabled', 'disabled'],
+      ['draft', 'disabled', 'disabled'],
+    ] as const
+    const fixtures = await Promise.all(cases.map(async ([socialStatus, ledgerStatus, expected], i) => {
+      const account = seedAccountingAccount(code, `${code}${i}`, [admin.id], undefined, ledgerStatus)
+      const member = await seedMember({
+        tenantId: code, userId: admin.id, code: account.code,
+        accountId: account.id, status: socialStatus,
+      })
+      return { account, member, expected }
+    }))
+    const deletedAccount = seedAccountingAccount(code, 'deleted-member', [admin.id], undefined, 'disabled')
+    await seedMember({ tenantId: code, userId: admin.id, accountId: deletedAccount.id, deleted: new Date() })
+    await seedGroup({ tenantId: 'other-recovery-group', status: 'active' })
+    const otherAccount = seedAccountingAccount('other-recovery-group', 'other-account', [admin.id], undefined, 'disabled')
+    await seedMember({ tenantId: 'other-recovery-group', userId: admin.id, accountId: otherAccount.id })
+    const patch = (status: string) => request(app).patch(`/${code}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ data: { type: 'groups', attributes: { status } } })
+
+    await patch('disabled').expect(200)
+    assert.strictEqual(fixtures[0].account.status, 'disabled')
+    const db = tenantDb(prisma, code)
+    for (const { member } of fixtures) {
+      assert.strictEqual((await db.member.findUniqueOrThrow({ where: { id: member.id } })).status, member.status)
+    }
+
+    // Currency enabling may succeed before an account fails. Retrying resumes recovery.
+    setAccountingAccountPatchStatus(503)
+    await patch('active').expect(500)
+    assert.strictEqual(currency.status, 'active')
+    assert.strictEqual((await db.group.findFirstOrThrow()).status, 'disabled')
+    setAccountingAccountPatchStatus(200)
+    await patch('active').expect(200)
+    for (const { account, expected } of fixtures) assert.strictEqual(account.status, expected)
+
+    // An explicit enable is also a reconciliation command when Social is already active.
+    fixtures[0].account.status = 'disabled'
+    await patch('active').expect(200)
+    assert.strictEqual(fixtures[0].account.status, 'active')
+    const writes = getAccountingRequests().filter(({ method }) => method === 'PATCH').length
+    await patch('active').expect(200)
+    assert.strictEqual(getAccountingRequests().filter(({ method }) => method === 'PATCH').length, writes)
+    assert.strictEqual(deletedAccount.status, 'disabled')
+    assert.strictEqual(otherAccount.status, 'disabled')
     assert.strictEqual(getNotificationsEvents().length, 0)
   })
 
