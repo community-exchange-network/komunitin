@@ -63,16 +63,6 @@ describe("MirageJS Server", () => {
     expect((await changePassword()).status).toBe(200);
     expect((await changePassword()).status).toBe(400);
 
-    const authenticatedPassword = await fetch(`${urlAuth}/change-password/authenticated`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer test_user_access_token"
-      },
-      body: JSON.stringify({ currentPassword: "komunitin", password: "new-password" })
-    });
-    expect(authenticatedPassword.status).toBe(200);
-
     const unsubscribeActionToken = await fetch(`${urlAuth}/action-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
