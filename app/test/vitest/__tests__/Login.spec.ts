@@ -48,6 +48,95 @@ describe("Front page and login", () => {
     await waitFor(() => wrapper.vm.$route.path, "/");
   });
 
+  it.each(["success", "failure", "logout"])("keeps delayed bootstrap private: %s", async outcome => {
+    const store = wrapper.vm.$store
+    await store.dispatch("logout")
+    await wrapper.vm.$router.push("/login-mail")
+    const accounts = Object.values(store.state.accounts.resources)
+    const currencies = Object.values(store.state.currencies.resources)
+    for (const id of Object.keys(store.state.accounts.resources)) {
+      store.commit("accounts/removeResource", id)
+    }
+    for (const id of Object.keys(store.state.currencies.resources)) {
+      store.commit("currencies/removeResource", id)
+    }
+
+    let release!: () => void
+    const pending = new Promise<void>(resolve => { release = resolve })
+    let requested = false
+    const fetch = globalThis.fetch
+    const delayedFetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
+      if (String(url).includes("/accounts/")) {
+        requested = true
+        await pending
+        if (outcome === "failure") {
+          return new Response(JSON.stringify({ errors: [{ code: "NotFound" }] }), { status: 404 })
+        }
+      }
+      return fetch(url, options)
+    })
+    const login = store.dispatch("login", { email: "example@example.com", password: "password" })
+      .catch(error => error)
+    try {
+      await waitFor(() => requested, true)
+      expect(store.getters.isLoggedIn).toBe(false)
+      expect(store.getters.myMember).toBeUndefined()
+      expect(wrapper.find("input[type='email']").exists()).toBe(true)
+      if (outcome === "logout") {
+        await store.dispatch("logout")
+      }
+      release()
+      await login
+      expect(store.getters.isLoggedIn).toBe(outcome === "success")
+      if (outcome === "success") {
+        expect(store.getters.myCurrency.attributes.code).toBeDefined()
+        await wrapper.vm.$router.push("/home")
+        await waitFor(() => wrapper.vm.$route.path, "/home")
+      }
+    } finally {
+      release()
+      delayedFetch.mockRestore()
+      store.commit("accounts/addResources", accounts)
+      store.commit("currencies/addResources", currencies)
+    }
+    if (outcome === "failure") {
+      await store.dispatch("login", { email: "example@example.com", password: "password" })
+      expect(store.getters.isLoggedIn).toBe(true)
+    }
+    await wrapper.vm.$router.push("/logout")
+    await waitFor(() => wrapper.vm.$route.path, "/")
+  })
+
+  it("keeps the newer session when an older authorization finishes late", async () => {
+    const store = wrapper.vm.$store
+    await testLogin()
+    let release!: () => void
+    const pending = new Promise<void>(resolve => { release = resolve })
+    let delayed = false
+    const fetch = globalThis.fetch
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
+      if (!delayed && String(url).includes("/accounts/")) {
+        delayed = true
+        await pending
+      }
+      return fetch(url, options)
+    })
+    const older = store.dispatch("authorize", { force: true }).catch(error => error)
+    try {
+      await waitFor(() => delayed, true)
+      await store.dispatch("authorize", { force: true })
+      expect(store.getters.isLoggedIn).toBe(true)
+      release()
+      await older
+      expect(store.getters.isLoggedIn).toBe(true)
+    } finally {
+      release()
+      fetchSpy.mockRestore()
+      await wrapper.vm.$router.push("/logout")
+      await waitFor(() => wrapper.vm.$route.path, "/")
+    }
+  })
+
   it("superadmin login", async () => {
     server.schema.users.first().update({ language: undefined });
 
