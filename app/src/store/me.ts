@@ -273,6 +273,10 @@ export default {
         try {
           const storedTokens = await auth.getStoredTokens();
           const tokens = await auth.authorize(storedTokens, payload?.force);
+          // A logout or newer authorization cancels this pending attempt.
+          if (context.state.tokens !== sessionTokens) {
+            return
+          }
           context.commit("tokens", tokens);
           sessionTokens = context.state.tokens
           await loadUser(context);
