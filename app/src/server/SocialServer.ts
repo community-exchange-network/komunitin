@@ -227,7 +227,8 @@ export default {
       selfLink: (member: any) =>
         urlSocial + "/" + member.group.code + "/members/" + member.id,
       isExternal(relationshipKey: string) {
-        return relationshipKey == "account";
+        // Nested group.currency includes also belong to the Accounting API.
+        return relationshipKey == "account" || relationshipKey == "currency";
       },
       links: (member: any) => {
         return {
