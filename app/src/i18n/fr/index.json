@@ -406,7 +406,7 @@
   "ErrorIncorrectRequest": "Erreur : Requête incorrecte",
   "ErrorServerNoResponse": "Erreur : Le serveur ne répond pas",
   "ErrorServerBadResponse": "Erreur : Mauvaise réponse du serveur",
-  "ErrorForbidden": "Erreur : Vous n’avez pas l’autorisation d’effectuer cette action.",
+  "ErrorForbidden": "Erreur : Autorisation refusée",
   "ErrorNotFound": "Erreur : Ressource non trouvée",
   "ErrorUnknownServer": "Erreur : Réponse inattendue du serveur",
   "ErrorUnknownVueError": "Erreur : Erreur d'interface utilisateur inconnue",
