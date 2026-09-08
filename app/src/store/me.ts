@@ -126,7 +126,7 @@ async function loadUser(context: ActionContext<UserState, never>) {
 
   // A logout or a newer authorization must not publish this obsolete session.
   if (state.tokens !== tokens) {
-    throw new KError(KErrorCode.Unauthorized)
+    return
   }
 
   // Publish the identity only after its required relationships are available.
