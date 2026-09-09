@@ -389,20 +389,18 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
   let adminMemberCandidate: AdminMemberCandidate | undefined
   let adminMemberProvision: AdminMemberProvision | undefined
 
-  if (status !== undefined) {
-    if (status !== group.status) {
-      if (status === 'active' && group.status === 'disabled'
-        || status === 'disabled' && group.status === 'active') {
-        // group admins can enable/disable the group.
-      } else if (group.status === 'pending' && status === 'active') {
-        // Only superadmins can activate a group.
-        if (!ctx.isSuperadmin) {
-          throw forbidden('Only superadmins can activate groups')
-        }
-        adminMemberCandidate = await getAdminMemberCandidate(group)
-      } else {
-        throw badRequest(`Invalid status transition from ${group.status} to ${status}`)
+  if (status !== undefined && status !== group.status) {
+    if (status === 'active' && group.status === 'disabled'
+      || status === 'disabled' && group.status === 'active') {
+      // group admins can enable/disable the group.
+    } else if (group.status === 'pending' && status === 'active') {
+      // Only superadmins can activate a group.
+      if (!ctx.isSuperadmin) {
+        throw forbidden('Only superadmins can activate groups')
       }
+      adminMemberCandidate = await getAdminMemberCandidate(group)
+    } else {
+      throw badRequest(`Invalid status transition from ${group.status} to ${status}`)
     }
 
     // Handle side effects of status transitions.
@@ -428,24 +426,24 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
       data.meta = Prisma.DbNull
     }
 
-    data.status = status
-  }
-  
-  // Social preserves membership status while Accounting releases ledger resources.
-  // Repeat explicit enable requests to resume a partially completed recovery.
-  if (status === 'active' && group.status !== 'pending') {
-    const members = await tenantDb(prisma, code).member.findMany({
-      where: { groupId: group.id, status: 'active', deleted: null, accountId: { not: null } },
-      include: { users: true },
-      orderBy: { id: 'asc' },
-    })
-    for (const member of members) {
-      await syncAccountStatus(ctx, {
-        accountId: member.accountId,
-        code: member.code,
-        userIds: member.users.map(({ userId }) => userId),
-      }, getCurrencyCode(group), 'active', 'disabled')
+    // Social preserves membership status while Accounting releases ledger resources.
+    // Complete recovery before updating the group status so failures can be retried.
+    if (status === 'active' && group.status === 'disabled') {
+      const members = await tenantDb(prisma, code).member.findMany({
+        where: { groupId: group.id, status: 'active', deleted: null, accountId: { not: null } },
+        include: { users: true },
+        orderBy: { id: 'asc' },
+      })
+      for (const member of members) {
+        await syncAccountStatus(ctx, {
+          accountId: member.accountId,
+          code: member.code,
+          userIds: member.users.map(({ userId }) => userId),
+        }, getCurrencyCode(group), 'active')
+      }
     }
+
+    data.status = status
   }
 
   const db = tenantDb(prisma, code)

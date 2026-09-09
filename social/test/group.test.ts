@@ -1472,7 +1472,7 @@ describe('Groups endpoints', () => {
     assert.strictEqual(getNotificationsEvents().length, 0)
   })
 
-  test('enabling recovers only disabled accounts of active members and can be retried', async () => {
+  test('enabling synchronizes accounts of active Social members and can be retried', async () => {
     const code = 'recover-group'
     const currency = seedAccountingCurrency(code)
     const admin = await auth('recover-admin')
@@ -1481,8 +1481,7 @@ describe('Groups endpoints', () => {
     const cases = [
       ['active', 'active', 'active'],
       ['active', 'disabled', 'active'],
-      ['active', 'suspended', 'suspended'],
-      ['active', 'deleted', 'deleted'],
+      ['active', 'suspended', 'active'],
       ['disabled', 'disabled', 'disabled'],
       ['suspended', 'suspended', 'suspended'],
       ['pending', 'disabled', 'disabled'],
@@ -1507,6 +1506,9 @@ describe('Groups endpoints', () => {
 
     await patch('disabled').expect(200)
     assert.strictEqual(fixtures[0].account.status, 'disabled')
+    const disabledRequests = getAccountingRequests().length
+    await patch('disabled').expect(200)
+    assert.strictEqual(getAccountingRequests().length, disabledRequests)
     const db = tenantDb(prisma, code)
     for (const { member } of fixtures) {
       assert.strictEqual((await db.member.findUniqueOrThrow({ where: { id: member.id } })).status, member.status)
@@ -1521,16 +1523,34 @@ describe('Groups endpoints', () => {
     await patch('active').expect(200)
     for (const { account, expected } of fixtures) assert.strictEqual(account.status, expected)
 
-    // An explicit enable is also a reconciliation command when Social is already active.
+    // Same-status requests skip Accounting even if an account is disabled.
     fixtures[0].account.status = 'disabled'
+    const requests = getAccountingRequests().length
     await patch('active').expect(200)
-    assert.strictEqual(fixtures[0].account.status, 'active')
-    const writes = getAccountingRequests().filter(({ method }) => method === 'PATCH').length
-    await patch('active').expect(200)
-    assert.strictEqual(getAccountingRequests().filter(({ method }) => method === 'PATCH').length, writes)
+    assert.strictEqual(fixtures[0].account.status, 'disabled')
+    assert.strictEqual(getAccountingRequests().length, requests)
     assert.strictEqual(deletedAccount.status, 'disabled')
     assert.strictEqual(otherAccount.status, 'disabled')
     assert.strictEqual(getNotificationsEvents().length, 0)
+  })
+
+  test('enabling fails if Accounting rejects activation of a deleted account', async () => {
+    const code = 'deleted-account-recovery'
+    const currency = seedAccountingCurrency(code, undefined, 'disabled')
+    const admin = await auth('deleted-account-recovery-admin')
+    await seedGroup({ tenantId: code, status: 'disabled', currencyId: currency.id })
+    await seedGroupAdmin({ tenantId: code, userId: admin.id })
+    const account = seedAccountingAccount(code, `${code}0001`, [admin.id], undefined, 'deleted')
+    await seedMember({ tenantId: code, userId: admin.id, accountId: account.id, status: 'active' })
+
+    await request(app).patch(`/${code}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ data: { type: 'groups', attributes: { status: 'active' } } })
+      .expect(500)
+
+    assert.strictEqual(account.status, 'deleted')
+    assert.strictEqual(currency.status, 'active')
+    assert.strictEqual((await tenantDb(prisma, code).group.findFirstOrThrow()).status, 'disabled')
   })
 
   test('PATCH /:code denies non-admin and allows superadmin for non-status updates', async () => {

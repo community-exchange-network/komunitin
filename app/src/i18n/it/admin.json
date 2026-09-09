@@ -111,7 +111,7 @@
   "groupStatusActiveText": "La comunità è attiva.",
   "groupStatusDisabledText": "La comunità è disabilitata. Non è possibile effettuare movimenti.",
   "disableGroupConfirmText": "Disabilitare la comunità {name} ({code})? I suoi conti attivi verranno disabilitati per liberare risorse del registro. Gli stati dei membri saranno conservati per ripristinare i conti dei membri attivi alla riattivazione della comunità.",
-  "enableGroupConfirmText": "Abilitare la comunità {name} ({code})? La comunità e le linee di fiducia saranno ripristinate e i conti disabilitati dei membri attivi saranno riabilitati. I conti sospesi rimarranno sospesi.",
+  "enableGroupConfirmText": "Abilitare la comunità {name} ({code})? La comunità e le linee di fiducia saranno ripristinate e i conti dei membri attivi saranno riabilitati.",
   "enableGroup": "Abilita comunità",
   "disableGroup": "Disabilita comunità",
   "groupStatus": "Stato della comunità",

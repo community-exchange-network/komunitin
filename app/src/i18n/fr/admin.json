@@ -108,7 +108,7 @@
   "groupStatusActiveText": "La communauté est active.",
   "groupStatusDisabledText": "La communauté est désactivée. Les transferts sont indisponibles.",
   "disableGroupConfirmText": "Désactiver la communauté {name} ({code}) ? Ses comptes actifs seront désactivés pour libérer des ressources du registre. Les statuts des membres seront conservés afin de restaurer les comptes des membres actifs lors de la réactivation.",
-  "enableGroupConfirmText": "Activer la communauté {name} ({code}) ? La communauté et les lignes de confiance seront restaurées et les comptes désactivés des membres actifs seront réactivés. Les comptes suspendus resteront suspendus.",
+  "enableGroupConfirmText": "Activer la communauté {name} ({code}) ? La communauté et les lignes de confiance seront restaurées et les comptes des membres actifs seront réactivés.",
   "enableGroup": "Activer la communauté",
   "disableGroup": "Désactiver la communauté",
   "groupStatus": "État de la communauté",

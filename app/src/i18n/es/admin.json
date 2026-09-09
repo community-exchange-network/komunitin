@@ -111,7 +111,7 @@
   "groupStatusActiveText": "El grupo está activo.",
   "groupStatusDisabledText": "La comunidad está desactivada. No se pueden realizar movimientos.",
   "disableGroupConfirmText": "¿Quieres desactivar la comunidad {name} ({code})? Se desactivarán sus cuentas activas y se liberarán recursos del registro. Se conservará el estado de los miembros para restaurar las cuentas de los miembros activos cuando vuelvas a activar la comunidad.",
-  "enableGroupConfirmText": "¿Quieres activar la comunidad {name} ({code})? Se restaurarán la comunidad y las líneas de confianza y se reactivarán las cuentas desactivadas de los miembros activos. Las cuentas suspendidas seguirán suspendidas.",
+  "enableGroupConfirmText": "¿Quieres activar la comunidad {name} ({code})? Se restaurarán la comunidad y las líneas de confianza y se reactivarán las cuentas de los miembros activos.",
   "enableGroup": "Activar comunidad",
   "disableGroup": "Desactivar comunidad",
   "groupStatus": "Estado de la comunidad",

@@ -111,7 +111,7 @@
   "groupStatusActiveText": "La comunitat està activa.",
   "groupStatusDisabledText": "La comunitat està desactivada. No es poden fer moviments.",
   "disableGroupConfirmText": "Vols desactivar la comunitat {name} ({code})? Es desactivaran els comptes actius i s’alliberaran recursos del registre. Es conservarà l’estat dels membres per restaurar els comptes dels membres actius quan tornis a activar la comunitat.",
-  "enableGroupConfirmText": "Vols activar la comunitat {name} ({code})? Es restauraran la comunitat i les línies de confiança i es reactivaran els comptes desactivats dels membres actius. Els comptes suspesos continuaran suspesos.",
+  "enableGroupConfirmText": "Vols activar la comunitat {name} ({code})? Es restauraran la comunitat i les línies de confiança i es reactivaran els comptes dels membres actius.",
   "enableGroup": "Activar comunitat",
   "disableGroup": "Desactivar comunitat",
   "groupStatus": "Estat de la comunitat",

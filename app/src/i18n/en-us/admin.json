@@ -112,7 +112,7 @@
   "groupStatusActiveText": "The community is active.",
   "groupStatusDisabledText": "The community is disabled. Transfers are unavailable.",
   "disableGroupConfirmText": "Disable the community {name} ({code})? This disables its active accounts and releases ledger resources. Membership statuses are preserved so active members’ accounts can be restored when you enable the community again.",
-  "enableGroupConfirmText": "Enable the community {name} ({code})? This restores the community and trustlines and re-enables disabled accounts belonging to active members. Suspended accounts remain suspended.",
+  "enableGroupConfirmText": "Enable the community {name} ({code})? This restores the community and trustlines and re-enables accounts belonging to active members.",
   "enableGroup": "Enable Community",
   "disableGroup": "Disable Community",
   "groupStatus": "Community Status",

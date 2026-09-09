@@ -1,6 +1,5 @@
 import { type Account, createAccountingClient } from '../../clients/accounting'
 import type { AuthContext } from '../../server/context'
-import { internalError } from '../../utils/error'
 
 type AccountSyncInput = {
   accountId?: string | null
@@ -29,29 +28,24 @@ const findAccount = async (
  * This operation is idempotent so callers can retry a cross-service transition.
  * It adopts an account created by an interrupted attempt and skips an update when
  * Accounting already has the requested status. The Social member must only be
- * updated after this function succeeds. A source status limits recovery to existing
- * accounts in that state, preserving independent Accounting restrictions.
+ * updated after this function succeeds.
  */
 export const syncAccountStatus = async (
   ctx: AuthContext,
   member: AccountSyncInput,
   currencyCode: string,
   status: Account['status'],
-  fromStatus?: Account['status'],
 ): Promise<Account> => {
   const accounting = createAccountingClient(ctx)
   let account = await findAccount(accounting, member, currencyCode)
 
   if (!account) {
-    if (fromStatus) {
-      throw internalError('Cannot recover a missing Accounting account')
-    }
     account = await accounting.createAccount(currencyCode, {
       code: member.code,
     }, member.userIds)
   }
 
-  if (account.status !== status && (fromStatus === undefined || account.status === fromStatus)) {
+  if (account.status !== status) {
     account = await accounting.updateAccount(currencyCode, account.id, { status })
   }
 
