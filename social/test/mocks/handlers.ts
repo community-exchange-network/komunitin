@@ -360,6 +360,11 @@ export const handlers = [
     if (nextStatus === 'active' || nextStatus === 'disabled') {
       existing.status = nextStatus
       accountingCurrencies.set(currencyCode, existing)
+      if (nextStatus === 'disabled') {
+        for (const account of accountingAccounts.get(currencyCode)?.values() ?? []) {
+          if (account.status === 'active') account.status = 'disabled'
+        }
+      }
     }
 
     return HttpResponse.json({
@@ -510,6 +515,9 @@ export const handlers = [
     }
 
     const nextStatus = body.data?.attributes?.status
+    if (account.status === 'deleted') {
+      return jsonApiError(404, `Account ${accountId} not found`)
+    }
     if (nextStatus === 'active' || nextStatus === 'disabled' || nextStatus === 'suspended' || nextStatus === 'deleted') {
       account.status = nextStatus
     }

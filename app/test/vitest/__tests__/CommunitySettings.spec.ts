@@ -92,7 +92,7 @@ describe('Community settings', () => {
 
     await transition(
       'Disable Community',
-      'The community is disabled. Members are not able to log in or make transfers.',
+      'The community is disabled. Transfers are unavailable.',
       'Enable Community',
       'disabled',
     )

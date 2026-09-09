@@ -565,8 +565,16 @@ export default {
           currency
         })
       } else {
-        if (attributes.status === "active" || attributes.status === "disabled") {
+        if (attributes.status !== group.status && (attributes.status === "active" || attributes.status === "disabled")) {
           group.currency.update({ status: attributes.status })
+          group.members.models.forEach((member: any) => {
+            const account = member.account
+            if (attributes.status === "disabled" && account?.status === "active") {
+              account.update({ status: "disabled" })
+            } else if (attributes.status === "active" && member.status === "active" && account && account.status !== "active") {
+              account.update({ status: "active" })
+            }
+          })
         }
         group.update(attributes);
       }
