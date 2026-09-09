@@ -3,7 +3,7 @@ import type { AuthContext } from '../server/context'
 import logger from '../utils/logger'
 import type { Group } from '../features/groups/types'
 import type { Member } from '../features/members/types'
-import type { Post } from '../features/posts/types'
+import type { Post } from '../generated/prisma/client'
 import { fetchWithAuth } from './utils'
 import { getNotificationsToken } from './auth'
 
@@ -89,12 +89,11 @@ class NotificationsClient {
     }
   }
 
-  public async notifyOfferPublished(code: string, post: Pick<Post, 'id'>): Promise<void> {
-    await this.sendEvent('OfferPublished', code, { offer: post.id })
-  }
-
-  public async notifyNeedPublished(code: string, post: Pick<Post, 'id'>): Promise<void> {
-    await this.sendEvent('NeedPublished', code, { need: post.id })
+  public async notifyPostPublished(code: string, post: Pick<Post, 'id' | 'type'>): Promise<void> {
+    const offer = post.type === 'offers'
+    await this.sendEvent(offer ? 'OfferPublished' : 'NeedPublished', code, {
+      [offer ? 'offer' : 'need']: post.id,
+    })
   }
 
   public async notifyMemberRequested(code: string, member: Pick<Member, 'id'>): Promise<void> {

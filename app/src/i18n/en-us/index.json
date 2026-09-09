@@ -413,6 +413,7 @@
   "ErrorIncorrectRequest": "Error: Incorrect request",
   "ErrorServerNoResponse": "Error: Server do not respond",
   "ErrorServerBadResponse": "Error: Bad response from server",
+  "ErrorForbidden": "Error: Permission denied",
   "ErrorNotFound": "Error: Resource not found",
   "ErrorUnknownServer": "Error: Unexpected response from server",
   "ErrorUnknownVueError": "Error: Unknown user interface error",
