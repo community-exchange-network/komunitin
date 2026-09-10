@@ -223,30 +223,9 @@ This is the correct use of the new auth service and removes the legacy dependenc
 
 ### 5. Logged-in password change
 
-Current app behavior:
+The profile button sends `POST /reset-password` with the current user's email, using the same email validation flow as Forgot Password. It does not collect either password in the profile and does not call an authenticated password-change endpoint.
 
-- `ChangePasswordBtn.vue` updates the user resource with `password` and `newPassword`
-
-The new auth service does not currently expose an authenticated self-service password-change endpoint. It only supports reset-token based password changes.
-
-Required auth-side gap to close before app migration is complete:
-
-- add an authenticated endpoint for changing the current user password using bearer auth
-- recommended shape:
-
-```text
-POST /change-password/authenticated
-Authorization: Bearer <user access token>
-{ currentPassword, newPassword }
-```
-
-Security expectations:
-
-- validate the current password
-- hash with bcrypt
-- ideally revoke existing refresh-token chains for that user after change
-
-Until this exists, the current logged-in change-password UI cannot be migrated cleanly.
+The email opens the public `/set-password?token=<auth reset token>` page. This page sends `{ token, password }` to `POST /change-password`. On success Auth consumes the purpose-specific token and revokes refresh sessions; the app clears its current session and redirects to sign-in. Invalid or expired links offer a new reset request. No Social profile mutation is involved.
 
 ### 6. Logged-in email change
 

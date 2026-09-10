@@ -59,6 +59,12 @@ function newActionToken(purpose: ActionTokenPurpose, userId: string, email: stri
   return token;
 }
 
+export function getMockPasswordResetToken(email: string) {
+  return [...actionTokens.entries()].reverse().find(([, action]) =>
+    action.email === email && action.purpose === "passwordReset"
+  )?.[0]
+}
+
 function latestEmailVerification(userId: string) {
   return [...actionTokens.entries()].reverse().find(([, action]) =>
     action.userId === userId && action.purpose === "emailVerification"
@@ -187,25 +193,6 @@ export default {
       }
       const user = [...registeredUsers.values()].find(candidate => candidate.id === action.userId)
       if (user) {
-        user.password = body.password
-      }
-      return statusOk();
-    });
-
-    server.post(config.AUTH_URL + "/change-password/authenticated", (_schema: any, request) => {
-      const body = jsonBody(request);
-      const accessToken = request.requestHeaders.Authorization?.split(" ")[1];
-      if (!accessToken || !body?.currentPassword || !body?.password) {
-        return badRequest("Expected bearer auth and JSON currentPassword and password");
-      }
-      if (body.currentPassword === "incorrect") {
-        return new Response(403, {}, { errors: [{ detail: "Current password is incorrect" }] });
-      }
-      const user = accessTokenUsers.get(accessToken)
-      if (user) {
-        if (user.password !== body.currentPassword) {
-          return new Response(403, {}, { errors: [{ detail: "Current password is incorrect" }] });
-        }
         user.password = body.password
       }
       return statusOk();
