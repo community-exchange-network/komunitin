@@ -26,6 +26,7 @@
       <q-page
         v-if="!isLoading"
         class="q-pa-lg"
+        style="padding-bottom:100px;"
       >
         <offer-layout :num-images="offer.attributes.images.length">
           <template #member>
@@ -53,7 +54,7 @@
             <carousel
                 :images="offer.attributes.images"
                 thumbnails
-                height="400px"
+                height="300px"
               />
           </template>
           <template #content>
@@ -67,7 +68,7 @@
                 <div>
                   <span>{{ $t('price') }}</span>
                   <span>&nbsp;</span>
-                  <span class="text-serif text-h6 text-bold positive-amount">{{ price }}</span>
+                  <span class="text-h5 text-bold positive-amount">{{ price }}</span>
                 </div>
                 <span>{{ $t('updatedAt', {
                   date: $formatDate(offer.attributes.updated)
@@ -85,21 +86,6 @@
               class="col text-body1 text-onsurface bg-surface rounded-borders shadow-2 q-pa-md"
               v-html="md2html(offer.attributes.content)"
             />
-            <div class="q-pb-lg row q-gutter-x-md justify-end">
-              <share-button 
-                flat
-                color="primary"
-                :label="$t('share')"
-                :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
-                :text="`${offer.attributes.name}\n${offer.attributes.content}`"
-              />
-              <contact-button
-                unelevated
-                color="primary"
-                :label="$t('contact')"
-                :contacts="offer.member.contacts"
-              /> 
-            </div>
           </template>
           <template #map>
             <q-card>
@@ -115,6 +101,23 @@
             </q-card>
           </template>
         </offer-layout>
+        <q-page-sticky expand position="bottom" class="shadow-2">
+          <q-toolbar class="bg-light full-width justify-center q-gutter-x-md">
+            <share-button 
+              outline
+              color="primary"
+              :label="$t('share')"
+              :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
+              :text="`${offer.attributes.name}\n${offer.attributes.content}`"
+              />
+              <contact-button
+              unelevated
+              color="primary"
+              :label="$t('contact')"
+              :contacts="offer.member.contacts"
+            /> 
+          </q-toolbar>
+        </q-page-sticky>
         <slot 
           name="after" 
           :offer="offer" 

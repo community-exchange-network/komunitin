@@ -21,6 +21,7 @@
     <carousel
       :images="offer.attributes.images"
       height="200px"
+      flat
     />
 
     <!-- offer title and description -->
