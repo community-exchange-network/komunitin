@@ -21,7 +21,9 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import KError, { KErrorCode } from 'src/KError'
+import { usePostPermissions } from 'src/composables/postPermissions'
 import PageHeader from "../../layouts/PageHeader.vue"
 import NeedForm from "./NeedForm.vue"
 import { useStore } from 'vuex';
@@ -37,30 +39,47 @@ const store = useStore()
 const route = useRoute()
 const need = ref<Need & {category: Category} |null>(null)
 
-const fetchData = async () => {
-  await store.dispatch("needs/load", {
-    code: props.needCode,
-    group: props.code,
-    include: "category"
-  })
-  const fetchedNeed = store.getters["needs/current"]
-  // Apply optional URL params.
-  const params = route.query
-  if (typeof params.state === 'string' && ['hidden', 'published'].includes(params.state)) {
-    fetchedNeed.attributes.status = params.state
-  }
-  if (typeof params.expires === 'string') {
-    const expires = new Date(params.expires)
-    if (!isNaN(expires.getTime())) {
-      fetchedNeed.attributes.expires = expires.toISOString()
+const router = useRouter()
+const canEdit = usePostPermissions()
+
+watch(() => [props.code, props.needCode], async (_value, _oldValue, onCleanup) => {
+  let cancelled = false
+  onCleanup(() => { cancelled = true })
+  need.value = null
+  try {
+    const id = await store.dispatch("needs/load", {
+      code: props.needCode,
+      group: props.code,
+      include: "category"
+    })
+    if (cancelled) return
+    const fetchedNeed = store.getters["needs/one"](id)
+    if (!canEdit(fetchedNeed, props.code)) {
+      throw new KError(KErrorCode.Forbidden)
+    }
+
+    // Apply optional URL params only after checking edit access.
+    const params = route.query
+    if (typeof params.state === 'string' && ['hidden', 'published'].includes(params.state)) {
+      fetchedNeed.attributes.status = params.state
+    }
+    if (typeof params.expires === 'string') {
+      const expires = new Date(params.expires)
+      if (!isNaN(expires.getTime())) {
+        fetchedNeed.attributes.expires = expires.toISOString()
+      }
+    }
+    need.value = fetchedNeed
+  } catch (error) {
+    if (!cancelled) {
+      if (error instanceof KError && [KErrorCode.Forbidden, KErrorCode.NotFound].includes(error.code as KErrorCode)) {
+        await router.replace('/404')
+      } else {
+        throw error
+      }
     }
   }
-
-  need.value = fetchedNeed
-}
-
-fetchData()
-const router = useRouter()
+}, { immediate: true })
 
 const onSubmit = async (resource: DeepPartial<Need>) => {
   await store.dispatch("needs/update", {
