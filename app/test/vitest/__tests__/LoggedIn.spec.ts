@@ -2,7 +2,7 @@ import type { VueWrapper } from "@vue/test-utils";
 import server, { seeds } from "src/server";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
-import { QBtn } from "quasar";
+import { Notify, QBtn } from "quasar";
 import { getMockPasswordResetToken } from "src/server/AuthServer";
 import PasswordField from "src/components/PasswordField.vue";
 import ChangeEmailBtn from "src/pages/members/ChangeEmailBtn.vue";
@@ -40,10 +40,16 @@ describe("logged in", () => {
     const email = wrapper.vm.$store.getters.myUser.attributes.email
     const control = wrapper.getComponent(ChangePasswordBtn)
     const fetchSpy = vi.spyOn(globalThis, "fetch")
+    vi.mocked(Notify.create).mockClear()
     try {
       expect(control.findComponent(PasswordField).exists()).toBe(false)
       await control.getComponent(QBtn).trigger("click")
-      await waitFor(() => control.text().includes("Check your inbox"), true)
+      await waitFor(() => vi.mocked(Notify.create).mock.calls.length, 1)
+      expect(Notify.create).toHaveBeenCalledWith({
+        message: "We have sent you an email with a link to reset your password. Check your inbox and follow the instructions.",
+        color: 'positive',
+        icon: 'mail'
+      })
       expect(wrapper.vm.$store.getters.isLoggedIn).toBe(true)
       const resetRequest = fetchSpy.mock.calls.find(([url]) => String(url).endsWith("/reset-password"))
       expect(JSON.parse(resetRequest?.[1]?.body as string)).toEqual({ email })
