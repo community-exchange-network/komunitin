@@ -4,7 +4,7 @@
       v-if="images && images.length"
       v-model="slide"
       v-bind="$attrs"
-      class="rounded-borders shadow-2"
+      :class="!flat && 'rounded-borders shadow-2'"
       animated
       swipeable
       infinite
@@ -64,6 +64,11 @@ export default defineComponent({
     images: {
       type: Array,
       required: true,
+    },
+    flat: {
+      type: Boolean,
+      required: false,
+      default: false,
     }
   },
   data: () => ({

@@ -21,6 +21,7 @@
       v-if="hasImages"
       :images="need.attributes.images"
       height="200px"
+      flat
     />
 
     <!-- Need text -->
