@@ -12,6 +12,7 @@
       :vertical-actions-align="q.screen.gt.sm ? 'center': 'right'"
       v-model="expanded"
       :hide-label="expanded"
+      class="shadow-2"
     >
       <q-fab-action
         v-for="action in actions" 
@@ -22,7 +23,7 @@
         :text-color="action.textColor"
         :disable="action.disable"
         :to="action.to"
-        class="q-pa-md"
+        class="q-pa-md shadow-2"
         style="margin-right: 0"
       />
     </q-fab>

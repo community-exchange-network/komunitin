@@ -1,0 +1,189 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap');
+// App global CSS classes beyond default Quasar classes.
+
+// 1. Custom background colors
+.bg-surface {
+  background: $surface;
+}
+.bg-surface-container-h {
+  background: $surface-container-h;
+}
+.bg-background {
+  background: $background;
+}
+.bg-light {
+  background: $light-background;
+}
+.bg-outside {
+  background: $outside;
+}
+.bg-error {
+  background: $error;
+}
+.bg-active {
+  background: $active;
+}
+.bg-kblue {
+  background: $kblue;
+}
+.bg-kyellow {
+  background: $kyellow;
+}
+.bg-kred {
+  background: $kred;
+}
+.bg-icon-dark {
+  background: $icon-dark;
+}
+.bg-pending {
+  background: $pending;
+}
+.bg-rejected {
+  background: $rejected;
+}
+.bg-failed {
+  background: $failed;
+}
+.bg-primary-container {
+  background: $primary-container;
+}
+.bg-accent-muted {
+  background: $accent-muted;
+}
+
+// 2. custom foreground colors
+.text-onprimary {
+  color: $onprimary;
+}
+.text-onprimary-m {
+  color: $onprimary-m;
+}
+.text-onsecondary {
+  color: $onsecondary;
+}
+.text-onsurface {
+  color: $onsurface;
+}
+.text-onsurface-m {
+  color: $onsurface-m;
+}
+.text-onsurface-d {
+  color: $onsurface-d;
+}
+.text-onoutside {
+  color: $onoutside;
+}
+.text-onoutside-m {
+  color: $onoutside-m;
+}
+.text-muted {
+  color: $muted;
+}
+.text-icon-dark {
+  color: $icon-dark;
+}
+.text-icon-dark-inactive {
+  color: $icon-dark-inactive;
+}
+.text-icon-light {
+  color: $icon-light;
+}
+.text-icon-light-inactive {
+  color: $icon-light-inactive;
+}
+.positive-amount {
+  color: $positive-amount;
+}
+.negative-amount {
+  color: $negative-amount;
+}
+
+// 3. Custom fill colors
+.fill-primary {
+  fill: $primary;
+}
+
+// 4. Custom typography classes
+.text-serif {
+  font-family: $display-serif-family;
+}
+.text-overline {
+  letter-spacing: 1.5px;
+  line-height: 1.5rem;
+}
+.text-caption-sm {
+  font-size: 0.65rem; 
+  line-height: 1rem;
+}
+
+// 5. Custom icon weights and fills
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 1, 'wght' 800, 'opsz' 40 !important;
+}
+
+// 6. Custom component classes
+// 'Actual' app bg, so we can change the html/body bg for better visibility on xl screens
+#q-app #container:first-child {
+  background: $light-background;
+}
+// Remove borders from rounded outlined inputs.
+.input-borderless {
+  &.q-field--outlined {
+    .q-field__control:before {
+      border: none !important;
+    }
+    .q-field__control:after {
+      border: none !important;
+    }
+  }
+}
+// 'Commons' input style: no resting border, but custom border on hover and focus. 
+// Quasar doesn't allow us to achieve this style using component api and scss variables only.
+.commons-input {
+  &.q-field--outlined .q-field__control:before {
+    border: 1.5px solid transparent !important;
+  }
+
+  /* 2. HOVER STATE: Add your custom color and thickness on hover */
+  &.q-field--outlined .q-field__control:hover:before {
+    /* Set your custom thickness and color here */
+    border: 1.5px solid $chip-border !important;
+  }
+
+  /* 3. FOCUS STATE: Ensure Quasar's default active indicator matches your design */
+  &.q-field--focused.q-field--outlined .q-field__control:after {
+    /* Match your hover thickness and color, or style it completely differently */
+    border: 1.5px solid $chip-border !important;
+  }
+}
+// Because we set the generic border radius to 8px, we need to override badges to be more square-shaped.
+.badge-square {
+  border-radius: 4px;
+}
+// Make menu drawers have rounded borders on the correct side
+// We need to do it this way because we need to target the rendered parent of the q-drawer component
+aside.q-drawer:has(.rounded-drawer-left) {
+  border-top-left-radius: $generic-border-radius !important;
+  border-bottom-left-radius: $generic-border-radius !important;
+}
+aside.q-drawer:has(.rounded-drawer-right) {
+  border-top-right-radius: $generic-border-radius !important;
+  border-bottom-right-radius: $generic-border-radius !important;
+}
+
+// 7. General purpose helper classes
+// Align flat button content with the start of the content, as with card action buttons.
+.k-inset-actions-md {
+  margin-left: -8px;
+
+  .q-btn__wrapper {
+    padding: 0 8px;
+  }
+}
+.link {
+  text-decoration: none;
+  font-weight: 500;
+  &.text-onoutside-m:hover {
+    color: $onoutside;
+  }
+}
