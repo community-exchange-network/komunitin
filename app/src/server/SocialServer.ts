@@ -227,7 +227,8 @@ export default {
       selfLink: (member: any) =>
         urlSocial + "/" + member.group.code + "/members/" + member.id,
       isExternal(relationshipKey: string) {
-        return relationshipKey == "account";
+        // Nested group.currency includes also belong to the Accounting API.
+        return relationshipKey == "account" || relationshipKey == "currency";
       },
       links: (member: any) => {
         return {
@@ -564,8 +565,16 @@ export default {
           currency
         })
       } else {
-        if (attributes.status === "active" || attributes.status === "disabled") {
+        if (attributes.status !== group.status && (attributes.status === "active" || attributes.status === "disabled")) {
           group.currency.update({ status: attributes.status })
+          group.members.models.forEach((member: any) => {
+            const account = member.account
+            if (attributes.status === "disabled" && account?.status === "active") {
+              account.update({ status: "disabled" })
+            } else if (attributes.status === "active" && member.status === "active" && account && account.status !== "active") {
+              account.update({ status: "active" })
+            }
+          })
         }
         group.update(attributes);
       }

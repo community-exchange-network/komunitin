@@ -1,5 +1,5 @@
 import type { VueWrapper } from "@vue/test-utils";
-import { QList, QMenu } from "quasar";
+import { Notify, QList, QMenu, QToolbarTitle } from "quasar";
 import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
 import server, { seeds } from "src/server";
 import App from "../../../src/App.vue";
@@ -48,6 +48,48 @@ describe("Front page and login", () => {
     await waitFor(() => wrapper.vm.$route.path, "/");
   });
 
+  // Run before any other login so the first session starts with an empty resource cache.
+  it("first login and logout without errors", async () => {
+    const consoleError = vi.spyOn(console, "error")
+    try {
+      vi.mocked(Notify.create).mockClear()
+      // Go to login with mail page.
+      await wrapper.get("#login").trigger("click");
+      await waitFor(() => wrapper.vm.$route.path, "/login-mail");
+      await waitFor(() => wrapper.find("button[type='submit']").exists(), true, "Login form should render");
+      // Button is disabled since form is empty.
+      expect(wrapper.get("button[type='submit']").attributes("disabled"))
+        .toBeDefined();
+      await wrapper.get("input[type='email']").setValue("example@example.com");
+      await wrapper.get("input[type='password']").setValue("password");
+      await wrapper.vm.$nextTick();
+      // Button is enabled now.
+      expect(
+        wrapper.get("button[type='submit']").attributes("disabled")
+      ).toBeUndefined();
+      await wrapper.get("button[type='submit']").trigger("click");
+      await waitFor(() => wrapper.vm.$route.path, "/home");
+      await waitFor(() => {
+        const title = wrapper.findComponent(QToolbarTitle)
+        return title.exists() ? title.text() : undefined
+      }, "Home", "Home should render on the first login without reloading");
+      expect(Notify.create).not.toHaveBeenCalled()
+      expect(consoleError).not.toHaveBeenCalled()
+      // Open profile menu
+      await wrapper.findComponent(ProfileBtnMenu).trigger('click');
+      await wrapper.vm.$nextTick();
+      // Click logout (be careful with teleports when finding the element)
+      await wrapper
+        .getComponent(QMenu)
+        .getComponent(QList)
+        .get("#user-menu-logout")
+        .trigger("click");
+      await waitFor(() => wrapper.vm.$route.path, "/");
+    } finally {
+      consoleError.mockRestore()
+    }
+  });
+
   it("superadmin login", async () => {
     server.schema.users.first().update({ language: undefined });
 
@@ -64,38 +106,6 @@ describe("Front page and login", () => {
     await waitFor(() => wrapper.text().includes("Community Settings"), true, "Community settings title should be translated");
 
     await wrapper.vm.$router.push("/logout");
-    await waitFor(() => wrapper.vm.$route.path, "/");
-  });
-
-  it("login and logout", async () => {
-    expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
-    // Go to login with mail page.
-    await wrapper.vm.$router.push("/login-mail");
-    await waitFor(() => wrapper.vm.$route.path, "/login-mail");
-    await waitFor(() => wrapper.find("button[type='submit']").exists(), true, "Login form should render");
-    // Button is disabled since form is empty.
-    expect(wrapper.get("button[type='submit']").attributes("disabled"))
-      .toBeDefined();
-    await wrapper.get("input[type='email']").setValue("example@example.com");
-    await wrapper.get("input[type='password']").setValue("password");
-    await wrapper.vm.$nextTick();
-    // Button is enabled now.
-    expect(
-      wrapper.get("button[type='submit']").attributes("disabled")
-    ).toBeUndefined();
-    await wrapper.get("button[type='submit']").trigger("click");
-    await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true, "User should be logged in");
-    expect(wrapper.vm.$store.getters.isSuperadmin).toBe(false);
-    await waitFor(() => wrapper.vm.$route.path, "/home");
-    // Open profile menu
-    await wrapper.findComponent(ProfileBtnMenu).trigger('click');
-    await wrapper.vm.$nextTick();
-    // Click logout (be careful with teleports when finding the element)
-    await wrapper
-      .getComponent(QMenu)
-      .getComponent(QList)
-      .get("#user-menu-logout")
-      .trigger("click");
     await waitFor(() => wrapper.vm.$route.path, "/");
   });
 

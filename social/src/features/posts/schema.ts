@@ -1,4 +1,4 @@
-import { json, z } from 'zod'
+import { z } from 'zod'
 import { accessSchema, imageSchema, locationSchema } from '../groups/schema'
 import { jsonApiDocumentSchema, jsonApiResourceSchema, jsonApiToOneNullableRelationshipSchema, jsonApiToOneRelationshipSchema } from '../../server/jsonapi-schema'
 
@@ -22,32 +22,22 @@ const postEditableAttributesSchema = z.object({
 }).strict()
 
 
-const createOfferAttributesSchema = postEditableAttributesSchema.extend({
-  title: z.string().trim().min(1).max(255),
-  description: z.string().min(1).max(16384),
-  value: z.string().trim().min(1).max(255).optional(),
-}).strict()
-
-export type CreateOfferAttributes = z.infer<typeof createOfferAttributesSchema>
-
 const patchOfferAttributesSchema = postEditableAttributesSchema.extend({
   value: z.string().trim().min(1).max(255).optional(),
-}).strict()
+})
 
+const createOfferAttributesSchema = patchOfferAttributesSchema.required({ title: true, description: true })
+
+export type CreateOfferAttributes = z.infer<typeof createOfferAttributesSchema>
 export type PatchOfferAttributes = z.infer<typeof patchOfferAttributesSchema>
-
-
-const createNeedAttributesSchema = postEditableAttributesSchema.extend({
-  description: z.string().min(1).max(16384),
-  fulfilled: z.iso.datetime().optional(),
-}).strict()
-
-export type CreateNeedAttributes = z.infer<typeof createNeedAttributesSchema>
 
 const patchNeedAttributesSchema = postEditableAttributesSchema.extend({
   fulfilled: z.iso.datetime().optional(),
-}).strict()
+})
 
+const createNeedAttributesSchema = patchNeedAttributesSchema.required({ description: true })
+
+export type CreateNeedAttributes = z.infer<typeof createNeedAttributesSchema>
 export type PatchNeedAttributes = z.infer<typeof patchNeedAttributesSchema>
 
 const categoryRelationshipSchema = jsonApiToOneNullableRelationshipSchema('categories')

@@ -159,14 +159,6 @@ export class Auth {
     await this.jsonRequest(config.AUTH_URL + "/change-password", { token, password })
   }
 
-  public async changeAuthenticatedPassword(currentPassword: string, password: string, accessToken: string): Promise<void> {
-    await this.jsonRequest(
-      config.AUTH_URL + "/change-password/authenticated",
-      { currentPassword, password },
-      accessToken
-    )
-  }
-
   public async changeEmail(email: string, accessToken: string): Promise<void> {
     await this.jsonRequest(config.AUTH_URL + "/change-email", { email }, accessToken)
   }

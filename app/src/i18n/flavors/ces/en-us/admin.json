@@ -48,7 +48,7 @@
     "enableCreditCommonsPaymentsHint": "Enable the Credit Commons protocol to record and receive trades with accounts in other currencies. Not recommended for production use yet.",
     "trustlinesText": "Trustlines enable external trades by defining the maximum trade surplus between your community and a specific external community. It is the maximum amount the external community can owe to your community.",
     "suspendAccountConfirmText": "Are you sure you want to suspend this account? The account won't be able to make or receive trades until re-enabled by an admin.",
-    "groupStatusDisabledText": "The community is disabled. Users are not able to log in or make trades.",
-    "disableGroupConfirmText": "Are you sure you want to disable the community {name} with code {code}? This action will disable all {members} users and remove all related accounts from the ledger. You can re-enable the community later, but all accounts will also need to be re-enabled. Only proceed if your project is finished and you want to prevent any further activity.",
-    "enableGroupConfirmText": "Are you sure you want to enable the community {name} with code {code}? This action will restore the community and trustlines but does not automatically re-enable users or accounts. You will need to re-enable them manually."
+    "groupStatusDisabledText": "The community is disabled. Trades cannot be recorded.",
+    "disableGroupConfirmText": "Disable the community {name} ({code})? This disables its active accounts and releases ledger resources. User statuses are preserved so active users’ accounts can be restored when you enable the community again.",
+    "enableGroupConfirmText": "Enable the community {name} ({code})? This restores the community and trustlines and re-enables accounts belonging to active users."
 }
