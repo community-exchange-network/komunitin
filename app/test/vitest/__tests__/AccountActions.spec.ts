@@ -59,11 +59,7 @@ describe("Public account action links", () => {
   });
 
   it("reuses one unsubscribe token for one-click and application flows", async () => {
-    const meResponse = await fetch(`${config.SOCIAL_URL}/users/me`, {
-      headers: { Authorization: "Bearer test_user_access_token" }
-    });
-    const me = await meResponse.json();
-    const user = server.schema.users.find(me.data.id);
+    const user = server.schema.users.first();
     const otherMember = server.schema.members.all().models.find(
       member => !user.memberIds.includes(member.id),
     );
@@ -73,7 +69,7 @@ describe("Public account action links", () => {
       notifications: { myAccount: false, group: true },
       emails: { myAccount: false, group: "weekly" },
     });
-    const token = await actionToken("unsubscribe", me.data.id);
+    const token = await actionToken("unsubscribe", user.id);
 
     const oneClickResponse = await fetch(`${config.SOCIAL_URL}/users/unsubscribe?token=${token}`, {
       method: "POST",
@@ -81,7 +77,7 @@ describe("Public account action links", () => {
       body: "List-Unsubscribe=One-Click"
     });
     expect(oneClickResponse.status).toBe(204);
-    const relations = server.schema.memberUsers.where({ userId: me.data.id }).models;
+    const relations = server.schema.memberUsers.where({ userId: user.id }).models;
     expect(relations.length).toBeGreaterThan(1);
     expect(relations.every(relation => relation.emails.group === "never")).toBe(true);
     expect(relations.at(-1).emails.myAccount).toBe(false);

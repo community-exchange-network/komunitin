@@ -831,17 +831,8 @@ export default {
         return badRequest("Use /users/:id/members");
       }
       const accessToken = request.requestHeaders.Authorization.split(" ")[1]
-      const authUser = getMockAuthUser(accessToken)
-      if (authUser) {
-        return schema.users.find(authUser.id)
-      } else if (accessToken == "empty_user_access_token") {
-        return schema.users.findBy({ email: "empty@example.com" });
-      } else {
-        return (request.params.id === "me" 
-          ? schema.users.first() 
-          : schema.users.find(request.params.id)
-        );
-      }
+      const userId = request.params.id === "me" ? getMockAuthUser(accessToken)?.id : request.params.id
+      return schema.users.find(userId)
     });
 
     server.patch(urlSocial + "/users/:id", (schema: any, request: any) => {
@@ -877,9 +868,7 @@ export default {
 
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
-      const user = authUser
-        ? schema.users.find(authUser.id)
-        : token === "test_user_access_token" ? schema.users.first() : undefined
+      const user = authUser ? schema.users.find(authUser.id) : undefined
       const attributes = body.data.attributes
 
       if (user) {
