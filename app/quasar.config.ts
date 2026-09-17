@@ -76,6 +76,7 @@ export default defineConfig((ctx) => {
       all: "auto",
       iconSet: "material-symbols-rounded", // Quasar icon set
       lang: "en-US", // Quasar language pack
+      cssAddon: true,
 
 
       // Quasar plugins
