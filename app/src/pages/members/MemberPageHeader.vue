@@ -61,34 +61,42 @@
     <template #fixed>
       <q-tabs
         :model-value="tab"
-        active-bg-color="active"
         active-color="primary"
-        class="bg-surface text-onsurface-m full-width"
+        class="bg-light text-onsurface-m full-width"
         align="justify"
+        no-caps
         @update:model-value="tabChange"
       >
         <q-tab
           name="profile"
-          icon="account_circle"
           :label="$t('profile')"
         />
         <q-tab
           name="needs"
-          icon="loyalty"
-          :label="$t('nNeeds', nNeeds ?? 0)"
-        />
+          :label="$t('Needs')"
+        >
+          <q-badge 
+            v-if="nNeeds > 0"
+            color="primary" 
+            floating>{{nNeeds}}</q-badge>
+        </q-tab>
         <q-tab
           name="offers"
-          icon="local_offer"
-          :label="$t('nOffers', nOffers ?? 0)"
-        />
+          :label="$t('Offers')"
+        >
+          <q-badge
+            v-if="nOffers > 0" 
+            color="primary" 
+            floating>{{nOffers}}
+          </q-badge>
+        </q-tab>
         <q-tab
           v-if="transactions"
           name="transactions"
-          icon="account_balance_wallet"
           :label="$t('transactions')"
         />
       </q-tabs>
+     
     </template>
   </collapsible-header>
 </template>
