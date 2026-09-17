@@ -1,42 +1,37 @@
 <template>
   <collapsible-header
-    :collapsible-height="200"
+    :collapsible-height="220"
     :fixed-height="72"
   >
-    <div class="row q-py-lg text-onsurface-m bg-active collapsible-content">
-      <div class="col-md-4 col-6 q-px-md">
-        <img
-          v-if="member.attributes.image"
-          class="member-image q-mx-auto"
-          :src="member.attributes.image"
-        >
-        <div
-          v-else
-          class="member-image q-mx-auto"
-        >
+    <div class="row q-py-lg text-onsurface-m collapsible-content">
+      <div class="col-4 q-px-md">
+        <div class="q-mx-auto" style="max-width: 152px; line-height: 0;">
           <fit-text update>
             <avatar
-              :text="member.attributes.name"
+              class="member-avatar"
               size="inherit"
+              :text="member.attributes.name"
+              :img-src="member.attributes.image"
             />
           </fit-text>
         </div>
       </div>
+
       <div class="col column">
-        <div>
-          <div class="text-overline text-uppercase text-onsurface-d">
-            {{ memberTypeLabel }}
-          </div>
-          <div 
-            v-if="member.account" 
-            class="text-h6 text-onsurface"
-          >
-            {{ member.account.attributes.code }}
-          </div>
+        <div class="text-overline text-uppercase text-onsurface-d">
+          {{ memberTypeLabel }}
         </div>
-        <div v-if="member.account?.attributes.balance !== undefined">
-          <div 
-            class="text-overline text-uppercase text-onsurface-d q-mt-md">
+
+        <div class="text-h5 text-serif text-bold text-onsurface">
+          {{ member.attributes.name }}
+        </div>
+
+        <div v-if="member.account" class="text-body2 text-weight-medium text-onsurface-m">
+          {{ member.account.attributes.code }}
+        </div>
+
+        <div v-if="member.account?.attributes.balance !== undefined" class="q-mt-md">
+          <div class="text-overline text-uppercase text-onsurface-d">
             {{ $t("balance") }}
           </div>
           <div>
@@ -167,18 +162,12 @@ export default defineComponent({
 });
 </script>
 <style lang="scss" scoped>
-// Style image:
-.member-image {
-  display: block;
-  width: 100%;
-  max-height: 152px;
-  max-width: 152px;
-  border-radius: 76px;
-  line-height: 0;
-  object-fit: cover;
-  aspect-ratio: 1/1;
+.member-avatar {
+  outline: 3px solid white;
+  box-shadow: $shadow-4;
 }
+
 .collapsible-content {
-  height: 200px;
+  height: 220px;
 }
 </style>

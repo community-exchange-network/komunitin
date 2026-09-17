@@ -53,6 +53,7 @@
         <q-tab-panels
           :model-value="hashTab"  
           @update:model-value="onTabChange"
+          class="bg-light"
         >
           <q-tab-panel
             name="profile"
