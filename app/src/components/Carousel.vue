@@ -79,6 +79,7 @@ export default defineComponent({
 <style lang="scss" scoped>
 .thumbnail {
   width: 100%;
+  height: 64px;
   max-height: 64px;
   object-fit: cover;
   object-position: center;
