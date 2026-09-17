@@ -64,6 +64,7 @@
           <q-tab-panel
             name="needs"
             keep-alive
+            class="q-pa-none"
           >
             <member-needs
               :member="member"
@@ -80,6 +81,7 @@
           <q-tab-panel
             name="offers"
             keep-alive
+            class="q-pa-none"
           >
             <member-offers
               :member="member"
