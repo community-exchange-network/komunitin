@@ -25,7 +25,7 @@
     <q-page-container>
       <q-page
         v-if="!isLoading"
-        class="q-pa-lg"
+        class="q-pa-md"
         style="padding-bottom:100px;"
       >
         <offer-layout :num-images="offer.attributes.images.length">
