@@ -1,40 +1,39 @@
 <template>
-  <div class="row text-onsurface-m">
+  <div class="row text-onsurface q-col-gutter-md">
     <!-- BIO -->
     <div class="column col-12 col-md-8">
-      <div v-if="member.attributes.description">
-        <div class="text-overline text-uppercase text-onsurface-d">
-          {{ $t('bio') }}
+      <div class="bg-surface rounded-borders shadow-2 q-pa-md">
+        <div v-if="member.attributes.description">
+          <!-- eslint-disable vue/no-v-html -->
+          <div 
+            v-html="md2html(member.attributes.description)"
+          />
+          <!-- eslint-enable vue/no-v-html -->
         </div>
-        <!-- eslint-disable vue/no-v-html -->
-        <div 
-          v-html="md2html(member.attributes.description)"
-        />
-        <!-- eslint-enable vue/no-v-html -->
       </div>
+    </div>
       <!-- LOCATION -->
-      <div>
-        <div class="text-overline text-uppercase text-onsurface-d">
-          {{ $t('location') }}
-        </div>
-        <simple-map
-          class="simple-map"
-          :center="member.attributes.location.coordinates"
-          :marker="member.attributes.location.coordinates"
+      <div class="col-12 col-md-8 order-md-last">
+        <q-card>
+          <simple-map
+            class="simple-map"
+            :center="member.attributes.location.coordinates"
+            :marker="member.attributes.location.coordinates"
+          />
+          <q-card-section class="text-onsurface-m">
+            <q-icon name="place" />
+            {{ member.attributes.location.name }}
+          </q-card-section>
+        </q-card>
+      </div>
+      <!-- CONTACT -->
+      <div class="col-12 col-md-4">
+        <social-network-list
+          type="contact"
+          :contacts="member.contacts"
         />
-        <div><q-icon name="place" />{{ member.attributes.location.name }}</div>
       </div>
-    </div>
-    <!-- CONTACT -->
-    <div class="col-12 col-md-4">
-      <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
-        {{ $t('contact') }}
-      </div>
-      <social-network-list
-        type="contact"
-        :contacts="member.contacts"
-      />
-    </div>
+    
   </div>
 </template>
 <script lang="ts">
