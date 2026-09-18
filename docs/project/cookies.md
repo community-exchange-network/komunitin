@@ -4,7 +4,7 @@ Last updated: 18 September 2026.
 
 This policy covers cookies and browser storage used by [komunitin.org](https://komunitin.org). It does not apply to CES or other instances of the Komunitin platform.
 
-Cookies and similar technologies store information on your device. [komunitin.org](https://komunitin.org) uses them for the purposes below. The [Legal notice](terms-of-use.md) identifies the platform operator; the [Privacy policy](privacy.md) explains personal-data processing and your rights.
+Cookies and similar technologies store information on your device. [komunitin.org](https://komunitin.org) uses them for the purposes below.
 
 ## Application storage
 
@@ -20,4 +20,4 @@ Google receives page addresses, usage information, browser/device details, pseud
 
 Use your browser's site settings to block or delete cookies and storage. Clearing all site data signs you out and resets local preferences; your account and exchange records remain on the service. Blocking application storage can prevent app functions from working.
 
-For questions or privacy requests, contact [info@komunitin.org](mailto:info@komunitin.org).
+The [Legal notice](terms-of-use.md) identifies the platform operator; the [Privacy policy](privacy.md) explains personal-data processing and your rights.

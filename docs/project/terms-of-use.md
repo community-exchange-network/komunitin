@@ -54,7 +54,7 @@ You can close your account yourself from Settings when your balance is zero or p
 
 Komunitin software is distributed under the GNU Affero General Public License, version 3.0, as specified in the [source code repository](https://github.com/komunitin/komunitin). Rights granted by that licence remain in force.
 
-The [Privacy policy](privacy.md) describes personal-data processing and rights. The [Cookie and browser storage policy](cookies.md) lists the technologies used and their purposes. Optional processing requiring consent is subject to a separate choice.
+The [Privacy policy](privacy.md) describes personal-data processing and rights. The [Cookie and browser storage policy](cookies.md) lists the technologies used and their purposes.
 
 ## Shared maintenance
 
