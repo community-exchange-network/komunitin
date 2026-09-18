@@ -42,7 +42,8 @@ const buildReadableMemberWhere = async (ctx: OptionalAuthContext, group: Group):
 
   const readable: Prisma.Sql[] = []
 
-  // Regular group members can read active members of their group, with access level 'public' or 'group'
+  // Anyone admitted by the collection access check can read active public members.
+  // Active group members can also read active group-only members.
   const groupMember = await isGroupMember(ctx, group)
   if (group.status === 'active') {
     readable.push(sqlAnd([

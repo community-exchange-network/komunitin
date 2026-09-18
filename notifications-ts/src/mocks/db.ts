@@ -13,7 +13,7 @@ export const db = {
   currencies: [] as any[],
   members: [] as any[],
   users: [] as any[],
-  userSettings: [] as any[],
+  memberUsers: [] as any[],
   accounts: [] as any[],
   offers: [] as any[],
   needs: [] as any[],
@@ -32,7 +32,7 @@ export const resetDb = () => {
   db.currencies.length = 0;
   db.members.length = 0;
   db.users.length = 0;
-  db.userSettings.length = 0;
+  db.memberUsers.length = 0;
   db.accounts.length = 0;
   db.offers.length = 0;
   db.needs.length = 0;
@@ -44,7 +44,9 @@ export const resetDb = () => {
 };
 
 export const getUserIdForMember = (memberId: string) => {
-  const userId = db.members.find(member => member.id === memberId)?.relationships.user.data.id;
+  const userId = db.memberUsers.find(
+    relation => relation.relationships.member.data.id === memberId
+  )?.relationships.user.data.id;
   const user = db.users.find(u => u.id === userId);
   if (!user) {
     throw new Error(`No user found for member ${memberId}`);
@@ -75,26 +77,14 @@ export const createGroup = (code: string) => {
   db.users.push({
     type: 'users',
     id: adminUserId,
-    attributes: { email: `admin-${code.toLowerCase()}@example.com`, created: new Date().toISOString(), updated: new Date().toISOString() },
-    relationships: {
-      settings: { data: { type: 'user-settings', id: `${adminUserId}-settings` } }
-    }
+    attributes: {
+      email: `admin-${code.toLowerCase()}@example.com`,
+      language: 'en',
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    },
   });
   db.groupAdmins.push({ groupId: id, userId: adminUserId });
-
-  db.userSettings.push({
-    type: 'user-settings',
-    id: `${adminUserId}-settings`,
-    attributes: {
-      language: 'en',
-      komunitin: true,
-      emails: { group: 'weekly', myAccount: true },
-      notifications: { myAccount: true, group: true }
-    },
-    relationships: {
-      user: { data: { type: 'users', id: adminUserId } }
-    }
-  });
 
   // Group
   db.groups.push({
@@ -200,6 +190,8 @@ export const createMember = (opts: {
     email: `${userCode}@example.com`
   });
 
+  createMemberUser({ memberId: id, userId });
+
   // Account
   db.accounts.push({
     type: 'accounts',
@@ -221,32 +213,57 @@ export const createMember = (opts: {
 export const createUser = (opts: {
   id: string;
   email: string;
+  language?: string | null;
 }) => {
+  const existing = db.users.find(user => user.id === opts.id);
+  if (existing) {
+    return existing;
+  }
+
   const user = {
     type: 'users',
     id: opts.id,
     attributes: {
       email: opts.email,
+      language: opts.language ?? 'en',
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
     },
-    relationships: {
-      settings: { data: { type: 'user-settings', id: `${opts.id}-settings` } }
-    }
   };
   db.users.push(user);
 
-  db.userSettings.push({
-    type: 'user-settings',
-    id: `${opts.id}-settings`,
-    attributes: {
-      language: 'en',
-      emails: { group: 'weekly', myAccount: true },
-      notifications: { myAccount: true, group: true }
-    }
-  });
-
   return user;
+}
+
+export const createMemberUser = (opts: {
+  memberId: string;
+  userId: string;
+  emails?: { group?: 'daily' | 'weekly' | 'monthly' | 'never'; myAccount?: boolean };
+  notifications?: { myAccount?: boolean; group?: boolean };
+}) => {
+  const existing = db.memberUsers.find(relation =>
+    relation.relationships.member.data.id === opts.memberId &&
+    relation.relationships.user.data.id === opts.userId
+  );
+  if (existing) {
+    return existing;
+  }
+
+  const memberUser = {
+    type: 'member-users',
+    id: `member-user-${opts.memberId}-${opts.userId}`,
+    attributes: {
+      emails: { group: 'weekly', myAccount: true, ...opts.emails },
+      notifications: { myAccount: true, group: true, ...opts.notifications },
+    },
+    relationships: {
+      member: { data: { type: 'members', id: opts.memberId } },
+      user: { data: { type: 'users', id: opts.userId } },
+    },
+  };
+  db.memberUsers.push(memberUser);
+
+  return memberUser;
 }
 
 export const createMembers = (code: string) => {

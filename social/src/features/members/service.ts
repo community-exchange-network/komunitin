@@ -15,6 +15,7 @@ import { createNotificationsClient } from '../../clients/notifications'
 import { findPostRelationshipCounts } from '../posts/sql'
 import type { PostRelationshipMeta } from '../posts/types'
 import { syncAccountStatus } from './accounting'
+import { defaultMemberUserSettings } from '../member-users/settings'
 
 const getMemberLoad = (params: ResourceParams) => ({
   group: hasInclude(params, 'group'),
@@ -95,7 +96,7 @@ export const getMemberById = async (code: string, id: string, group?: Group): Pr
   return toMember(member, group)
 }
 
-export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member, 'id' | 'tenantId'>, role?: 'admin' ): Promise<boolean> => {
+export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member, 'id' | 'tenantId'>): Promise<boolean> => {
   if (!ctx.userId) {
     return false
   }
@@ -105,7 +106,6 @@ export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member
     where: {
       memberId: member.id,
       userId: ctx.userId,
-      ...(role ? { role } : {}),
     },
   })
 
@@ -123,7 +123,7 @@ const canReadMember = async (ctx: OptionalAuthContext, group: Group, member: Mem
 
 const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): Promise<boolean> => {
   return ctx.isSuperadmin
-    || await isMemberUser(ctx, member, "admin")  
+    || await isMemberUser(ctx, member)
     || isGroupAdmin(ctx, group)
     
 }
@@ -167,7 +167,8 @@ const getMemberUserIds = async (member: Pick<Member, 'id' | 'tenantId'>): Promis
 /**
  * Return all members of a group accessible to the given user.
  * 
- * If no status filter is provided, defaults to 'active' members only.
+ * If no status filter is provided, defaults to 'active' members only, except
+ * for identity lookups by code or account, which include every readable status.
  */
 export const listMembers = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<SerializableMember>> => {
   const group = await getGroupByCode(ctx, code)
@@ -176,10 +177,11 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     throw forbidden('You do not have permission to list members in this group')
   }
   const db = tenantDb(prisma, code)
-  
-  const defaultFilters = {
-    status: ['active'],
-  }
+
+  const isIdentityLookup = params.filters.code !== undefined || params.filters.account !== undefined
+  const defaultFilters = params.filters.status === undefined && !isIdentityLookup
+    ? { status: ['active'] }
+    : {}
 
   const result = await findMemberIds(ctx, db, group, {
     ...params,
@@ -270,7 +272,7 @@ export const createMember = async (
         tenantId: code,
         memberId: member.id,
         userId: ctx.userId,
-        role: 'admin',
+        settings: defaultMemberUserSettings(group.settings.defaultGroupEmailFrequency),
       },
     })
 

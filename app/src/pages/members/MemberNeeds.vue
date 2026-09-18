@@ -13,6 +13,7 @@ import ResourceCards from "../ResourceCards.vue";
 import NeedCard from "../../components/NeedCard.vue";
 import type { Member } from "../../store/model";
 import { useStore } from "vuex";
+import { getMemberPostsFilter } from "src/composables/memberPostsFilter";
 
 const props = defineProps<{
   groupCode: string,
@@ -21,12 +22,10 @@ const props = defineProps<{
 
 const card = NeedCard.name
 const store = useStore()
-const canEdit = computed(() => props.member?.id == store.getters.myMember.id || store.getters.isAdmin)
-
-const filter = computed(() => ({
-  member: props.member.id,
-  expired: 'false' + (canEdit.value ? ',true' : ''),
-  status: 'published' + (canEdit.value ? ',hidden' : '')
-}))
+const filter = computed(() => getMemberPostsFilter(
+  props.member.id,
+  store.getters.myMember?.id,
+  store.getters.isAdmin
+))
 
 </script>

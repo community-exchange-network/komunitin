@@ -4,40 +4,23 @@ import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
 import { getCollectionParams, getIdParam, getResourceParams } from '../../server/request'
 import { getValidatedBody } from '../../server/validation'
 import { serializeMembers } from '../members/serialize'
-import type { CreateUserBody, PatchUserSettingsBody } from './schema'
+import type { CreateUserBody, PatchUserBody } from './schema'
 import { unsubscribeQuerySchema } from './schema'
-import { serializeUser, serializeUsers, serializeUserSettings } from './serialize'
-import { createUser, getUserById, listUserMembers, listUsers, patchUserSettings, unsubscribeUser } from './service'
+import { serializeUser } from './serialize'
+import { createUser, getUserById, listUserMembers, patchUser, unsubscribeUser } from './service'
 import { redeemUnsubscribeToken } from '../../clients/auth'
 import { badRequest } from '../../utils/error'
-
-
-export const getUsersRoute: RequestHandler = async (req, res) => {
-  const ctx = getAuthContext(req)
-
-  const params = getCollectionParams(req, {
-    filter: ['members'],
-    sort: ['created'],
-    include: ['settings'],
-  })
-
-  const result = await listUsers(ctx, params)
-  const payload = await serializeUsers(result.items, getCollectionSerializerOptions(req.url, params, result.total))
-
-  res.status(200).json(payload)
-}
 
 export const postUsers: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const body = getValidatedBody<CreateUserBody>(req)
-  const userSettings = body.included?.find((resource) => resource.type === 'user-settings')?.attributes
-  const params = getResourceParams(req, { include: ['settings'] })
+  const params = getResourceParams(req, {})
 
   const user = await createUser({
     id: ctx.userId,
     email: body.data.attributes?.email,
     name: body.data.attributes?.name,
-    settings: userSettings,
+    language: body.data.attributes?.language,
   })
 
   const payload = await serializeUser(user, params)
@@ -46,7 +29,7 @@ export const postUsers: RequestHandler = async (req, res) => {
 
 export const getUsersMe: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
-  const params = getResourceParams(req, { include: ['settings'] })  
+  const params = getResourceParams(req, {})
   
   const user = await getUserById(ctx, ctx.userId)
   const payload = await serializeUser(user, params)
@@ -56,7 +39,7 @@ export const getUsersMe: RequestHandler = async (req, res) => {
 export const getUserByIdRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const requestedId = getIdParam(req, 'id')
-  const params = getResourceParams(req, { include: ['settings'] })
+  const params = getResourceParams(req, {})
 
   const user = await getUserById(ctx, requestedId)
   const payload = await serializeUser(user, params)
@@ -80,22 +63,17 @@ export const getUserMembersRoute: RequestHandler = async (req, res) => {
   res.status(200).json(payload)
 }
 
-export const getUserSettingsRoute: RequestHandler = async (req, res) => {
+export const patchUserRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const requestedId = getIdParam(req, 'id')
+  const body = getValidatedBody<PatchUserBody>(req)
 
-  const user = await getUserById(ctx, requestedId)
-  const payload = await serializeUserSettings(user)
-  res.status(200).json(payload)
-}
+  if (body.data.id && body.data.id !== requestedId) {
+    throw badRequest('Resource id does not match route id')
+  }
 
-export const patchUserSettingsRoute: RequestHandler = async (req, res) => {
-  const ctx = getAuthContext(req)
-  const requestedId = getIdParam(req, 'id')
-  const body = getValidatedBody<PatchUserSettingsBody>(req)
-
-  const user = await patchUserSettings(ctx, requestedId, body.data.attributes)
-  const payload = await serializeUserSettings(user)
+  const user = await patchUser(ctx, requestedId, body.data.attributes.language)
+  const payload = await serializeUser(user)
   res.status(200).json(payload)
 }
 

@@ -21,11 +21,12 @@
           </div>
         </div>
         <edit-group-form 
+          ref="editGroupForm"
           v-if="group"
           v-model:group="group"
           v-model:contacts="contacts"
           v-model:currency="currency"
-          op="create"
+          :op="createdGroup ? 'edit' : 'create'"
         />
         <q-btn
           class="q-mt-lg q-mx-auto"
@@ -62,7 +63,7 @@
 import { useStore } from "vuex";
 import EditGroupForm from "src/pages/admin/EditGroupForm.vue"
 import PageHeader from "src/layouts/PageHeader.vue";
-import { ref } from "vue";
+import { ref, shallowRef, useTemplateRef } from "vue";
 import type { Contact, Currency, Group } from "src/store/model";
 
 const store = useStore()
@@ -70,6 +71,8 @@ const store = useStore()
 const group = ref<Group>({
   attributes: {},
 } as Group)
+const groupForm = useTemplateRef<InstanceType<typeof EditGroupForm>>("editGroupForm")
+const createdGroup = shallowRef<Group>()
 
 const done = ref(false)
 
@@ -86,21 +89,51 @@ const loading = ref(false)
 const submit = async () => {
   try {
     loading.value = true
-    await store.dispatch("groups/create", {
-      resource: {
-        type: "groups",
-        attributes: {
-          ...group.value.attributes,
-          contacts: contacts.value,
-          meta: {
-            request: {
-              currency: currency.value
-            }
-          }
+    const retrying = createdGroup.value !== undefined
+    // We can't upload the image until the group is created, because we need the group code
+    // to upload the image to the right resource path. So we first create the group, then upload
+    // the image, then update the group with the image object.
+    const attributes = {
+      ...group.value.attributes,
+      contacts: contacts.value,
+      meta: {
+        request: {
+          currency: currency.value
         }
       }
-    })
-    done.value = true
+    }
+
+    if (!createdGroup.value) {
+      await store.dispatch("groups/create", {
+        resource: {
+          type: "groups",
+          attributes
+        }
+      })
+      createdGroup.value = store.getters["groups/current"]
+    }
+
+    
+    const image = await groupForm.value.uploadImage()
+    // undefined => error, null => no image
+    if (image !== undefined) {
+      if (image !== null || retrying) {
+        const { code, ...editAttributes } = attributes
+        await store.dispatch("groups/update", {
+          group: code,
+          id: createdGroup.value.id,
+          resource: {
+            type: "groups",
+            id: createdGroup.value.id,
+            attributes: {
+              ...editAttributes,
+              image
+            }
+          }
+        })
+      }
+      done.value = true
+    }
   } finally {
     loading.value = false
   }

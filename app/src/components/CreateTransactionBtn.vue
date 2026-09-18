@@ -19,10 +19,9 @@
 import FloatingBtnMenu, { type FABAction } from './FloatingBtnMenu.vue'
 import FloatingBtn from './FloatingBtn.vue'
 import { useMyAccountSettings } from 'src/composables/accountSettings'
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { ref } from 'vue'
 import { useTopupSettings } from '../features/topup/useTopup'
 
 const store = useStore()
@@ -48,50 +47,40 @@ const isDisabled = computed(
   () => myMember.value?.attributes.status !== 'active' || myMember.value?.group.attributes.status !== 'active'
 )
 
-const actions = ref<FABAction[]>([])
-
-function setAction(enable: boolean, action: Pick<FABAction, 'label' | 'icon' | 'to'>) {
-  actions.value = actions.value.filter(a => a.label !== action.label)
-  if (enable) {
-    actions.value.push({
-      ...action,
-      color: 'surface',
-      textColor: 'primary',
-      disable: isDisabled.value
-    })
+function createAction(label: string, icon: string, path: string) {
+  return {
+    label,
+    icon,
+    to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/${path}`,
+    color: 'surface',
+    textColor: 'primary',
+    disable: isDisabled.value
   }
 }
 
-watch([showMakePayment, showRequestPayment, showTransfer, myMember],() => {
-  setAction(showMakePayment.value, {
-    label: t('send'),
-    icon: 'arrow_upward',
-    to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/send`,
-  })
-  setAction(showRequestPayment.value, {
-    label: t('receive'),
-    icon: 'arrow_downward',
-    to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/receive`,
-  })
-  setAction(showTransfer.value, {
-    label: t('move'),
-    icon: 'arrow_forward',
-    to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/transactions/transfer`,
-  })
-}, {immediate: true})
+const coreActions = computed<FABAction[]>(() => {
+  const visibleActions = []
+
+  if (showMakePayment.value) {
+    visibleActions.push(createAction(t('send'), 'arrow_upward', 'transactions/send'))
+  }
+  if (showRequestPayment.value) {
+    visibleActions.push(createAction(t('receive'), 'arrow_downward', 'transactions/receive'))
+  }
+  if (showTransfer.value) {
+    visibleActions.push(createAction(t('move'), 'arrow_forward', 'transactions/transfer'))
+  }
+
+  return visibleActions
+})
+
+let actions = coreActions
 
 if (process.env.FEAT_TOPUP === 'true') {
   const topupSettings = useTopupSettings()
-  const showTopup = computed(
-    () => topupSettings.value?.allowTopup
+  actions = computed(() => topupSettings.value?.allowTopup
+    ? [...coreActions.value, createAction(t('topup'), 'add', 'topup')]
+    : coreActions.value
   )
-  watch([showTopup, myMember], () => {
-    setAction(showTopup.value, {
-      label: t('topup'),
-      icon: 'add',
-      to: `/groups/${myMember.value.group.attributes.code}/members/${myMember.value.attributes.code}/topup`,
-    })
-  }, {immediate: true})
 }
 </script>
-

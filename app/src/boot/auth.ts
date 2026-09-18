@@ -33,13 +33,19 @@ export default boot(({ router }) => {
           return "/groups";
         }
       }
-      // Prevent non-superadmin users from accessing superadmin pages.
-      if (to.path.startsWith("/superadmin") && !store.getters.isSuperadmin) {
-        // Help users trying to access superadmin pages by redirecting them to the correct login page.
-        return {
-          path: "/logout",
-          query: {
-            redirect: to.path
+      const requiredAdmin = to.meta.requiresAdmin
+      if (requiredAdmin) {
+        const requestedGroupCode = to.params.code
+        const isRequestedGroupAdmin = requiredAdmin === "group"
+          && store.getters.isAdmin
+          && store.getters.myGroup?.attributes.code === requestedGroupCode
+
+        if (!store.getters.isSuperadmin && !isRequestedGroupAdmin) {
+          return {
+            path: "/logout",
+            query: {
+              redirect: to.path
+            }
           }
         }
       }

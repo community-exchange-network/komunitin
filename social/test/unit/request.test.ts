@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import qs from 'qs'
 import type { Request } from 'express'
-import { getCode, getCollectionParams, getIdParam, getResourceParams } from '../../src/server/request'
+import { z } from 'zod'
+import { getCode, getCollectionParams, getFilter, getIdParam, getResourceParams } from '../../src/server/request'
 
 const createRequest = (query: string, params: Record<string, string> = {}): Request => ({
 	query: qs.parse(query, { comma: true }),
@@ -77,6 +78,32 @@ test('getCollectionParams supports comma separated filter values', () => {
 	assert.deepStrictEqual(params.filters, {
 		code: ['code-one', 'code-two'],
 	})
+})
+
+test('getFilter optionally parses filter values with a schema', () => {
+	const params = getCollectionParams(
+		createRequest('filter[score]=1,2&filter[name]=Alice'),
+		{
+			filter: ['score', 'name'],
+			sort: ['created'],
+		},
+	)
+
+	assert.deepStrictEqual(getFilter(params, 'name'), ['Alice'])
+	assert.deepStrictEqual(getFilter(params, 'score', z.coerce.number().int()), [1, 2])
+	assert.strictEqual(getFilter(params, 'missing'), undefined)
+})
+
+test('getFilter rejects filter values that do not match its schema', () => {
+	const params = getCollectionParams(
+		createRequest('filter[id]=not-a-uuid'),
+		{ filter: ['id'], sort: ['created'] },
+	)
+
+	assert.throws(
+		() => getFilter(params, 'id', z.uuid()),
+		/Invalid id filter/,
+	)
 })
 
 test('getCollectionParams parses allowlisted comparisons alongside equality filters', () => {

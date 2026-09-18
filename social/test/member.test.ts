@@ -14,6 +14,7 @@ import {
   seedAccountingAccount,
   seedAccountingCurrency,
   setAccountingAccountDeleteStatus,
+  setAccountingAccountPatchStatus,
 } from './mocks/handlers'
 import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser, seedPost } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
@@ -57,7 +58,15 @@ describe('Members endpoints', () => {
   })
 
   test('POST /:code/members creates draft member linked to authenticated user', async () => {
-    const group = await seedGroup({ tenantId: 'members-create', status: 'active', access: 'public' })
+    const group = await seedGroup({
+      tenantId: 'members-create',
+      status: 'active',
+      access: 'public',
+      settings: {
+        allowAnonymousMemberList: true,
+        defaultGroupEmailFrequency: 'weekly',
+      },
+    })
     const user = await auth('member-create-user')
 
     const res = await request(app)
@@ -97,6 +106,14 @@ describe('Members endpoints', () => {
     assert.strictEqual(draftList.body.data.length, 1)
     assert.strictEqual(draftList.body.data[0].attributes.name, 'Alice Member')
     assert.deepStrictEqual(draftList.body.data[0].attributes.contacts, [])
+
+    const db = tenantDb(prisma, 'members-create')
+    const relation = await db.memberUser.findFirstOrThrow({ where: { memberId: res.body.data.id } })
+    assert.match(relation.id, /^[0-9a-f-]{36}$/)
+    assert.deepStrictEqual(relation.settings, {
+      notifications: { myAccount: true, group: true },
+      emails: { myAccount: true, group: 'weekly' },
+    })
   })
 
   test('POST /:code/members allows repeated member creation by the same user', async () => {
@@ -205,7 +222,106 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data[0].relationships.group.data.id, group.id)
   })
 
-  test('inactive memberships do not grant restricted member-list access', async () => {
+  test('GET /:code/members resolves a pending member by code', async () => {
+    await seedGroup({
+      tenantId: 'members-code-identity',
+      status: 'active',
+      access: 'public',
+      settings: { allowAnonymousMemberList: false },
+    })
+    const owner = await auth('members-code-identity-owner')
+    await seedMember({
+      tenantId: 'members-code-identity',
+      code: 'pending-member',
+      status: 'pending',
+      access: 'private',
+      userId: owner.id,
+    })
+
+    const ownerRes = await request(app)
+      .get('/members-code-identity/members?filter[code]=pending-member')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+
+    assert.strictEqual(ownerRes.body.data.length, 1)
+    assert.strictEqual(ownerRes.body.data[0].attributes.status, 'pending')
+  })
+
+  test('GET /:code/members resolves disabled and suspended members by account', async () => {
+    const disabledAccount = toUuid('members-account-identity-disabled')
+    const suspendedAccount = toUuid('members-account-identity-suspended')
+    const deletedAccount = toUuid('members-account-identity-deleted')
+    await seedGroup({ tenantId: 'members-account-identity', status: 'active', access: 'public' })
+    const admin = await auth('members-account-identity-admin')
+    await seedGroupAdmin({ tenantId: 'members-account-identity', userId: admin.id })
+    await seedMember({
+      tenantId: 'members-account-identity',
+      code: 'disabled-member',
+      status: 'disabled',
+      access: 'private',
+      accountId: disabledAccount,
+    })
+    await seedMember({
+      tenantId: 'members-account-identity',
+      code: 'suspended-member',
+      status: 'suspended',
+      access: 'private',
+      accountId: suspendedAccount,
+    })
+    await seedMember({
+      tenantId: 'members-account-identity',
+      code: 'deleted-member',
+      status: 'deleted',
+      access: 'private',
+      accountId: deletedAccount,
+      deleted: new Date(),
+    })
+
+    const adminRes = await request(app)
+      .get(`/members-account-identity/members?filter[account]=${disabledAccount},${suspendedAccount},${deletedAccount}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      adminRes.body.data.map((member: any) => member.attributes.code).sort(),
+      ['disabled-member', 'suspended-member'],
+    )
+  })
+
+  test('GET /:code/members preserves explicit status filters for identity lookups', async () => {
+    const accountId = toUuid('members-identity-status-account')
+    await seedGroup({ tenantId: 'members-identity-status', status: 'active', access: 'public' })
+    const admin = await auth('members-identity-status-admin')
+    await seedGroupAdmin({ tenantId: 'members-identity-status', userId: admin.id })
+    await seedMember({
+      tenantId: 'members-identity-status',
+      code: 'pending-by-code',
+      status: 'pending',
+      access: 'private',
+    })
+    await seedMember({
+      tenantId: 'members-identity-status',
+      code: 'disabled-by-account',
+      status: 'disabled',
+      access: 'private',
+      accountId,
+    })
+
+    const codeRes = await request(app)
+      .get('/members-identity-status/members?filter[code]=pending-by-code&filter[status]=active')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    const accountRes = await request(app)
+      .get(`/members-identity-status/members?filter[account]=${accountId}&filter[status]=active`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(codeRes.body.data.length, 0)
+    assert.strictEqual(accountRes.body.data.length, 0)
+  })
+
+  test('inactive memberships grant restricted member-list access to linked members', async () => {
     await seedGroup({
       tenantId: 'members-draft-access',
       status: 'active',
@@ -226,11 +342,15 @@ describe('Members endpoints', () => {
         draftId = member.id
       }
     }
-
-    await request(app)
+    const listRes = await request(app)
       .get('/members-draft-access/members?filter[status]=draft,pending,disabled,suspended')
       .set('Authorization', `Bearer ${user.token}`)
-      .expect(403)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      listRes.body.data.map((member: any) => member.attributes.code).sort(),
+      ['member-disabled', 'member-draft', 'member-pending', 'member-suspended'],
+    )
 
     await request(app)
       .get(`/members-draft-access/members/${draftId}`)
@@ -749,6 +869,107 @@ describe('Members endpoints', () => {
       ],
     )
     assert.strictEqual(getNotificationsEvents().length, 0)
+  })
+
+  test('PATCH /:code/members/:member keeps Social unchanged when Accounting fails and succeeds on retry', async () => {
+    const currency = seedAccountingCurrency('members-toggle-retry')
+    await seedGroup({
+      tenantId: 'members-toggle-retry',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-toggle-retry-owner')
+    const account = seedAccountingAccount(currency.code, 'toggle-retry', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-toggle-retry',
+      code: 'toggle-retry',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    setAccountingAccountPatchStatus(503)
+    const failed = await request(app)
+      .patch(`/members-toggle-retry/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: { status: 'disabled' },
+        },
+      })
+      .expect(500)
+
+    assert.strictEqual(failed.body.errors[0].detail, 'Mock accounting account update failure')
+    const db = tenantDb(prisma, 'members-toggle-retry')
+    const unchanged = await db.member.findUnique({ where: { id: member.id } })
+    assert.strictEqual(unchanged?.status, 'active')
+    assert.strictEqual(account.status, 'active')
+
+    setAccountingAccountPatchStatus(200)
+    const retried = await request(app)
+      .patch(`/members-toggle-retry/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: { status: 'disabled' },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(retried.body.data.attributes.status, 'disabled')
+    assert.strictEqual(account.status, 'disabled')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+      `PATCH /${currency.code}/accounts/${account.id}`,
+      `GET /${currency.code}/accounts/${account.id}`,
+      `PATCH /${currency.code}/accounts/${account.id}`,
+    ])
+  })
+
+  test('PATCH /:code/members/:member recovers an interrupted status transition without a duplicate Accounting update', async () => {
+    const currency = seedAccountingCurrency('members-toggle-interrupted')
+    await seedGroup({
+      tenantId: 'members-toggle-interrupted',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-toggle-interrupted-owner')
+    const account = seedAccountingAccount(
+      currency.code,
+      'toggle-interrupted',
+      [owner.id],
+      undefined,
+      'disabled',
+    )
+    const member = await seedMember({
+      tenantId: 'members-toggle-interrupted',
+      code: 'toggle-interrupted',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    const recovered = await request(app)
+      .patch(`/members-toggle-interrupted/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: { status: 'disabled' },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(recovered.body.data.attributes.status, 'disabled')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+    ])
   })
 
   test('PATCH /:code/members/:member allows suspend and resume only by group admin', async () => {
@@ -1403,7 +1624,6 @@ describe('Members endpoints', () => {
       tenantId: 'members-linked-user',
       memberId: member.id,
       userId: second.id,
-      role: 'admin',
     })
 
     await request(app)

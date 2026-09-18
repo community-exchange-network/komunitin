@@ -61,6 +61,23 @@ export const hasInclude = (params: ResourceParams, path: string) => {
   return params.include.some((item) => item === path || item.startsWith(`${path}.`))
 }
 
+/** Returns the named filter values, parsing each value with the schema when provided. */
+export function getFilter(params: CollectionParams, name: string): string[] | undefined
+export function getFilter<T>(params: CollectionParams, name: string, schema: z.ZodType<T>): T[] | undefined
+export function getFilter<T>(params: CollectionParams, name: string, schema?: z.ZodType<T>) {
+  const values = params.filters[name]
+  if (!values || !schema) {
+    return values
+  }
+
+  const result = z.array(schema).safeParse(values)
+  if (!result.success) {
+    throw badRequest(`Invalid ${name} filter`, { details: result.error.issues })
+  }
+
+  return result.data
+}
+
 // qs splits commas before URL decoding, so URLSearchParams values need normalization after parsing.
 const splitCommaSeparated = (value: unknown) => typeof value === 'string' ? value.split(',') : value
 

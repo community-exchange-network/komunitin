@@ -17,6 +17,7 @@ import type { CreateGroupInput, Group, GroupMeta, SerializableGroup } from './ty
 import { createNotificationsClient } from '../../clients/notifications'
 import { findUserMembers } from '../users/member-query'
 import { syncAccountStatus } from '../members/accounting'
+import { defaultMemberUserSettings } from '../member-users/settings'
 
 type WithAddressAndCoords = Pick<DbGroup, 'address' | 'latitude' | 'longitude'>
 
@@ -178,10 +179,17 @@ export const isGroupAdmin = (
   group: Pick<Group, 'admins'>,
 ): boolean => Boolean(ctx.userId && group.admins.some(({ id }) => id === ctx.userId))
 
+/**
+ * Check if the given context is a member of the group.
+ *
+ * @param statuses Optional list of member statuses to check for.
+ * If not provided, defaults to 'active' members only.
+ * If null, will check for any member regardless of status.
+ */
 export const isGroupMember = async (
   ctx: OptionalAuthContext,
   group: Pick<Group, 'id'>,
-  statuses: MemberStatus[] = ['active'],
+  statuses: MemberStatus[] | null = ['active'],
 ): Promise<boolean> => {
   if (!ctx.userId) {
     return false
@@ -190,7 +198,7 @@ export const isGroupMember = async (
   const members = await findUserMembers(ctx.userId, {
     where: {
       groupId: group.id,
-      status: { in: statuses },
+      ...(statuses ? { status: { in: statuses } } : {}),
     },
     take: 1,
   })
@@ -201,13 +209,12 @@ export const isGroupMember = async (
 /**
  * Return true if the given context has permission to list members of the group.
  *
- * The optional `isMember` checks if the user is a member of the group. This can
- * be used to avoid unnecessary database queries.
+ * The optional `isMember` callback lets callers reuse or customize the membership check.
  */
 export const canListGroupMembers = async (
   ctx: OptionalAuthContext,
   group: Group,
-  isMember = () => isGroupMember(ctx, group),
+  isMember = () => isGroupMember(ctx, group, null),
 ) => {
   return ctx.isSuperadmin || ctx.canReadAllSocial
     || (group.status === 'active' && group.access === 'public' && group.settings?.allowAnonymousMemberList === true)
@@ -219,8 +226,8 @@ export const canReadGroup = async (ctx: OptionalAuthContext, group: Group): Prom
   return ctx.isSuperadmin
     || ctx.canReadAllSocial
     || (group.status === 'active' && group.access === 'public')
-    || await isGroupMember(ctx, group, ['draft', 'pending', 'active', 'disabled', 'suspended'])
     || isGroupAdmin(ctx, group)
+    || await isGroupMember(ctx, group, null)
 }
 
 export const canWriteGroup = (ctx: AuthContext, group: Group): boolean => {
@@ -419,9 +426,26 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
       data.meta = Prisma.DbNull
     }
 
+    // Social preserves membership status while Accounting releases ledger resources.
+    // Complete recovery before updating the group status so failures can be retried.
+    if (status === 'active' && group.status === 'disabled') {
+      const members = await tenantDb(prisma, code).member.findMany({
+        where: { groupId: group.id, status: 'active', deleted: null, accountId: { not: null } },
+        include: { users: true },
+        orderBy: { id: 'asc' },
+      })
+      for (const member of members) {
+        await syncAccountStatus(ctx, {
+          accountId: member.accountId,
+          code: member.code,
+          userIds: member.users.map(({ userId }) => userId),
+        }, getCurrencyCode(group), 'active')
+      }
+    }
+
     data.status = status
   }
-  
+
   const db = tenantDb(prisma, code)
   const dbUpdated = await db.transaction(async (tx) => {
     const updatedGroup = await tx.group.update({
@@ -439,6 +463,9 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
         access: groupAccess,
         accountId: adminMemberProvision.account.id,
         accountHref: adminMemberProvision.account.href,
+        address: updatedGroup.address as Prisma.InputJsonObject,
+        latitude: updatedGroup.latitude,
+        longitude: updatedGroup.longitude,
       }
       const member = adminMemberProvision.memberId
         ? await tx.member.update({
@@ -467,11 +494,9 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
           tenantId: code,
           memberId: member.id,
           userId: adminMemberProvision.adminUserId,
-          role: 'admin',
+          settings: defaultMemberUserSettings(group.settings.defaultGroupEmailFrequency),
         },
-        update: {
-          role: 'admin',
-        },
+        update: {},
       })
     }
 

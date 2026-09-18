@@ -44,7 +44,7 @@ export const ctxMemberRequestedEmail = (event: EnrichedMemberRequestedEvent, ctx
   const common = ctxCommon(event, ctx);
 
   const memberName = event.member.attributes.name;
-  const memberEmail = event.users[0]?.user.attributes.email ?? '';
+  const memberEmail = event.recipients[0]?.user.attributes.email ?? '';
   const memberTown = event.member.attributes.address?.addressLocality ?? '';
 
   // Rendered through {{{this}}} in templates/partials/intro.hbs, so force interpolation escaping here.

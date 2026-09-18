@@ -19,10 +19,9 @@ import { useQuasar } from 'quasar';
 import FloatingBtn from '../../components/FloatingBtn.vue'
 import { useI18n } from 'vue-i18n'
 import OfferPage from './Offer.vue'
-import type { Offer } from '../../store/model'
+import type { Member, Offer } from '../../store/model'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { computed } from 'vue';
 
  
 const props = defineProps<{
@@ -35,9 +34,9 @@ const { t } = useI18n()
 const store = useStore()
 const router = useRouter()
 
-const myMember = computed(() => store.getters.myMember)
+type FullOffer = Offer & { member: Member }
 
-const publish = async (offer: Offer) => {
+const publish = async (offer: FullOffer) => {
   await store.dispatch('offers/update', {
     id: offer.id,
     group: props.code,
@@ -56,7 +55,7 @@ const publish = async (offer: Offer) => {
   })
 
   router.push({
-    path: `/groups/${props.code}/members/${myMember.value.attributes.code}`,
+    path: `/groups/${props.code}/members/${offer.member.attributes.code}`,
     hash: '#offers'
   })
 }

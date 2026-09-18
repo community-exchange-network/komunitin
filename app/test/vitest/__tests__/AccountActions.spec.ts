@@ -1,7 +1,7 @@
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { config } from "src/utils/config";
-import { seeds } from "src/server";
+import server, { seeds } from "src/server";
 import { mountComponent, waitFor } from "../utils";
 
 async function actionToken(purpose: string, userId = "action-user") {
@@ -59,11 +59,17 @@ describe("Public account action links", () => {
   });
 
   it("reuses one unsubscribe token for one-click and application flows", async () => {
-    const meResponse = await fetch(`${config.SOCIAL_URL}/users/me`, {
-      headers: { Authorization: "Bearer test_user_access_token" }
+    const user = server.schema.users.first();
+    const otherMember = server.schema.members.all().models.find(
+      member => !user.memberIds.includes(member.id),
+    );
+    server.create("memberUser", {
+      user,
+      member: otherMember,
+      notifications: { myAccount: false, group: true },
+      emails: { myAccount: false, group: "weekly" },
     });
-    const me = await meResponse.json();
-    const token = await actionToken("unsubscribe", me.data.id);
+    const token = await actionToken("unsubscribe", user.id);
 
     const oneClickResponse = await fetch(`${config.SOCIAL_URL}/users/unsubscribe?token=${token}`, {
       method: "POST",
@@ -71,9 +77,15 @@ describe("Public account action links", () => {
       body: "List-Unsubscribe=One-Click"
     });
     expect(oneClickResponse.status).toBe(204);
+    const relations = server.schema.memberUsers.where({ userId: user.id }).models;
+    expect(relations.length).toBeGreaterThan(1);
+    expect(relations.every(relation => relation.emails.group === "never")).toBe(true);
+    expect(relations.at(-1).emails.myAccount).toBe(false);
+    expect(relations.at(-1).notifications).toEqual({ myAccount: false, group: true });
 
     await wrapper.vm.$router.push({ path: "/unsubscribe", query: { token } });
     await waitFor(() => wrapper.text().includes("You've been unsubscribed"), true, "Unsubscribe status should succeed");
+    expect(wrapper.text()).toContain("community newsletter emails");
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
   });
 });

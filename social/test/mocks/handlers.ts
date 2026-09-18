@@ -54,6 +54,8 @@ let accountingAccountDeleteStatus = 204
 let accountingAccountDeleteDetail = 'Mock accounting delete failure'
 let accountingAccountCreateStatus = 201
 let accountingAccountCreateDetail = 'Mock accounting account creation failure'
+let accountingAccountPatchStatus = 200
+let accountingAccountPatchDetail = 'Mock accounting account update failure'
 let notificationsEventStatus = 201
 let notificationsEvents: unknown[] = []
 
@@ -139,6 +141,11 @@ export const setAccountingAccountCreateStatus = (status: number, detail = 'Mock 
   accountingAccountCreateDetail = detail
 }
 
+export const setAccountingAccountPatchStatus = (status: number, detail = 'Mock accounting account update failure') => {
+  accountingAccountPatchStatus = status
+  accountingAccountPatchDetail = detail
+}
+
 export const setAccountingCurrencyDeleteStatus = (status: number, detail = 'Mock accounting currency delete failure') => {
   accountingCurrencyDeleteStatus = status
   accountingCurrencyDeleteDetail = detail
@@ -214,6 +221,8 @@ export const resetMockState = () => {
   accountingAccountDeleteDetail = 'Mock accounting delete failure'
   accountingAccountCreateStatus = 201
   accountingAccountCreateDetail = 'Mock accounting account creation failure'
+  accountingAccountPatchStatus = 200
+  accountingAccountPatchDetail = 'Mock accounting account update failure'
   notificationsEventStatus = 201
   notificationsEvents = []
   notificationsRequests = []
@@ -351,6 +360,11 @@ export const handlers = [
     if (nextStatus === 'active' || nextStatus === 'disabled') {
       existing.status = nextStatus
       accountingCurrencies.set(currencyCode, existing)
+      if (nextStatus === 'disabled') {
+        for (const account of accountingAccounts.get(currencyCode)?.values() ?? []) {
+          if (account.status === 'active') account.status = 'disabled'
+        }
+      }
     }
 
     return HttpResponse.json({
@@ -374,7 +388,10 @@ export const handlers = [
     }
 
     existing.status = 'deleted'
-    return new HttpResponse(null, { status: 204 })
+    return new HttpResponse(null, {
+      status: 204,
+      headers: { 'Content-Type': 'application/vnd.api+json' },
+    })
   }),
   http.get(`${accountingBaseUrl}/:currencyCode/accounts`, ({ request, params }) => {
     const unauthorized = requireAccountingAuthorization(request)
@@ -478,6 +495,10 @@ export const handlers = [
       return unauthorized
     }
 
+    if (accountingAccountPatchStatus !== 200) {
+      return jsonApiError(accountingAccountPatchStatus, accountingAccountPatchDetail)
+    }
+
     const currencyCode = String(params.currencyCode)
     const accountId = String(params.accountId)
     const account = findAccountingAccountById(currencyCode, accountId)
@@ -494,6 +515,9 @@ export const handlers = [
     }
 
     const nextStatus = body.data?.attributes?.status
+    if (account.status === 'deleted') {
+      return jsonApiError(404, `Account ${accountId} not found`)
+    }
     if (nextStatus === 'active' || nextStatus === 'disabled' || nextStatus === 'suspended' || nextStatus === 'deleted') {
       account.status = nextStatus
     }

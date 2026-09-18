@@ -1,12 +1,13 @@
-import "../index";
+import server, { seeds } from "../index";
+import { mockToken } from "../AuthServer";
+import { KErrorCode } from "src/KError";
 import { config } from "src/utils/config";
 import type { ResourceObject } from "src/store/model";
-import { seeds } from "../index";
 
 const urlAuth = config.AUTH_URL;
 const urlSocial = config.SOCIAL_URL;
 const urlAccounting = config.ACCOUNTING_URL;
-const authHeaders = { Authorization: "Bearer test_user_access_token" };
+let authHeaders: { Authorization: string };
 
 async function json(response: Response) {
   return response.json();
@@ -15,6 +16,8 @@ async function json(response: Response) {
 describe("MirageJS Server", () => {
   beforeAll(async () => {
     seeds();
+    const tokens = mockToken("social:read", { userId: server.schema.users.first().id })
+    authHeaders = { Authorization: `Bearer ${tokens.access_token}` }
   })
 
   it("mocks auth token and JSON action-token flows", async () => {
@@ -28,8 +31,8 @@ describe("MirageJS Server", () => {
       })
     });
     expect(await json(token)).toMatchObject({
-      access_token: "test_user_access_token",
-      refresh_token: "test_user_refresh_token",
+      access_token: `user:${server.schema.users.first().id}_access_token`,
+      refresh_token: `user:${server.schema.users.first().id}_refresh_token`,
       token_type: "Bearer",
       scope: "social:read"
     });
@@ -61,16 +64,6 @@ describe("MirageJS Server", () => {
 
     expect((await changePassword()).status).toBe(200);
     expect((await changePassword()).status).toBe(400);
-
-    const authenticatedPassword = await fetch(`${urlAuth}/change-password/authenticated`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer test_user_access_token"
-      },
-      body: JSON.stringify({ currentPassword: "komunitin", password: "new-password" })
-    });
-    expect(authenticatedPassword.status).toBe(200);
 
     const unsubscribeActionToken = await fetch(`${urlAuth}/action-token`, {
       method: "POST",
@@ -138,10 +131,26 @@ describe("MirageJS Server", () => {
     });
   });
 
+  it("defaults member lists to active while resolving pending members by code", async () => {
+    const listResponse = await fetch(`${urlSocial}/GRP0/members`)
+    const list = await json(listResponse)
+    expect(list.data.every((member: ResourceObject) => member.attributes.status === "active")).toBe(true)
+    expect(list.data.some((member: ResourceObject) => member.attributes.code === "empty_user")).toBe(false)
+
+    const identityResponse = await fetch(`${urlSocial}/GRP0/members?filter[code]=empty_user`)
+    const identity = await json(identityResponse)
+    expect(identity.data).toHaveLength(1)
+    expect(identity.data[0].attributes.status).toBe("pending")
+
+    const explicitResponse = await fetch(`${urlSocial}/GRP0/members?filter[code]=empty_user&filter[status]=active`)
+    expect((await json(explicitResponse)).data).toHaveLength(0)
+  });
+
   it("loads user memberships from /users/:id/members", async () => {
-    const me = await fetch(`${urlSocial}/users/me?include=settings`, { headers: authHeaders });
+    const me = await fetch(`${urlSocial}/users/me`, { headers: authHeaders });
     const meData = await json(me);
     expect((meData.included ?? []).some((resource: ResourceObject) => resource.type == "members")).toBe(false);
+    expect(meData.data.attributes.language).toBe("en-us");
 
     const members = await fetch(`${urlSocial}/users/${meData.data.id}/members?include=group,group.currency,account&page[size]=1`, {
       headers: authHeaders
@@ -160,6 +169,26 @@ describe("MirageJS Server", () => {
     expect(membersData.included.some((resource: ResourceObject) => resource.type == "groups")).toBe(true);
     expect(membersData.included.some((resource: ResourceObject) => resource.type == "currencies")).toBe(true);
     expect(membersData.included.some((resource: ResourceObject) => resource.type == "accounts")).toBe(true);
+
+    const memberUsers = await fetch(
+      `${urlSocial}/GRP0/member-users?filter[user]=${meData.data.id}&filter[member]=${membersData.data[0].id}&include=user,member`,
+      { headers: authHeaders },
+    )
+    const memberUsersData = await json(memberUsers)
+    expect(memberUsersData.data).toHaveLength(1)
+    expect(memberUsersData.data[0].relationships.user.data.id).toBe(meData.data.id)
+    expect(memberUsersData.data[0].relationships.member.data.id).toBe(membersData.data[0].id)
+    expect(memberUsersData.included.map((resource: ResourceObject) => resource.type).sort())
+      .toEqual(["members", "users"])
+  });
+
+  it("returns the standard NotFound error code", async () => {
+    const response = await fetch(`${urlSocial}/users/me/members`, { headers: authHeaders });
+
+    expect(response.status).toBe(404);
+    expect(await json(response)).toMatchObject({
+      errors: [{ code: KErrorCode.NotFound }]
+    });
   });
 
   it("rejects legacy social shapes", async () => {

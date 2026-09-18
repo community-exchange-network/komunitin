@@ -198,4 +198,50 @@ describe('PostsPublishedDigest notifications', () => {
      const result2 = appNotifications.filter(n => n.userId === otherUserId && n.id !== 'old-digest-5');
      assert.equal(result2.length, 1, 'Should trigger digest when enough NON-urgent posts exist');
   })
+
+  it('should not count posts from inactive members toward the digest threshold', async () => {
+    authorMember.attributes.status = 'disabled'
+
+    createTestPost({ type: 'offer', authorId: members[2].id })
+    createTestPost({ type: 'need', authorId: members[2].id })
+    createTestPost({ type: 'offer', authorId: authorMember.id })
+
+    const otherUserId = getUserIdForMember(otherMember.id)
+    const fiveDaysAgo = new Date()
+    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5)
+    appNotifications.push({
+      id: 'old-digest-inactive-threshold',
+      userId: otherUserId,
+      tenantId: groupCode,
+      eventName: EVENT_NAME.PostsPublishedDigest,
+      createdAt: fiveDaysAgo,
+      updatedAt: fiveDaysAgo,
+    })
+
+    await runDigest()
+
+    const notifications = appNotifications.filter(notification =>
+      notification.userId === otherUserId && notification.id !== 'old-digest-inactive-threshold'
+    )
+    assert.equal(notifications.length, 0)
+  })
+
+  it('should exclude posts from inactive members from digest content', async () => {
+    authorMember.attributes.status = 'disabled'
+    const activeAuthor = members[2]
+
+    createTestPost({ type: 'offer', authorId: activeAuthor.id })
+    createTestPost({ type: 'offer', authorId: activeAuthor.id })
+    createTestPost({ type: 'need', authorId: activeAuthor.id })
+    const inactivePost = createTestPost({ type: 'need', authorId: authorMember.id })
+    inactivePost.attributes.description = 'Inactive member content'
+
+    await runDigest()
+
+    const otherUserId = getUserIdForMember(otherMember.id)
+    const notification = appNotifications.find(item => item.userId === otherUserId)
+    assert.ok(notification)
+    assert.doesNotMatch(notification.title, new RegExp(authorMember.attributes.name))
+    assert.doesNotMatch(notification.body, /Inactive member content/)
+  })
 });

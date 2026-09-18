@@ -342,7 +342,14 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/groups/:code/admin',
         name: 'GroupAdmin',
-        children: [{
+        meta: {
+          requiresAdmin: 'group'
+        },
+        children: [
+        {
+          path: '',
+          redirect: { name: 'EditGroup' }
+        },{
           path: 'edit',
           props: true,
           name: 'EditGroup',
@@ -382,6 +389,9 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/superadmin',
+        meta: {
+          requiresAdmin: 'superadmin'
+        },
         children: [
         {
           path: '',
@@ -422,6 +432,11 @@ const routes: RouteRecordRaw[] = [
             }
           ]
         }]
+      },
+      {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import('../pages/Error404.vue')
       },
     ]
   },
@@ -466,14 +481,6 @@ if (process.env.FEAT_TOPUP === 'true') {
   });
 }
 
-// Always leave this as last one
-if (process.env.MODE !== 'ssr') {
-  routes.push({
-    path: '/:catchAll(.*)*',
-    component: () => import('../pages/Error404.vue')
-  });
-}
-
 export default routes;
 
 declare module 'vue-router' {
@@ -486,5 +493,9 @@ declare module 'vue-router' {
      * If true, the next route does not allow going back to this route using the up app button.
      */
     back?: boolean;
+    /**
+     * Restrict the route to administrators of the requested group or to superadmins.
+     */
+    requiresAdmin?: 'group' | 'superadmin';
   }
 }

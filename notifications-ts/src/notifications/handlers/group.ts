@@ -3,6 +3,7 @@ import logger from '../../utils/logger';
 import { EnrichedGroupEvent } from '../enriched-events';
 import { eventBus } from '../event-bus';
 import { GroupEvent } from '../events';
+import { mandatoryRecipients } from '../../clients/komunitin/recipients';
 
 export const handleGroupEvent = async (event: GroupEvent): Promise<void> => {
   logger.info({ event }, 'Handling group event');
@@ -13,16 +14,13 @@ export const handleGroupEvent = async (event: GroupEvent): Promise<void> => {
   const groupResponse = await client.getGroup(event.code);
   const group = groupResponse.data;
 
-  // Fetch admin users with settings in parallel
+  // Administrative-duty messages are mandatory and do not need preferences.
   const admins = await client.getGroupAdmins(event.code);
-  const adminUsers = await Promise.all(
-    admins.map(admin => client.getUserWithSettings(admin.id))
-  );
 
   const enrichedEvent: EnrichedGroupEvent = {
     ...event,
     group,
-    adminUsers,
+    adminRecipients: mandatoryRecipients(admins),
   };
 
   logger.info({ enrichedEvent }, 'Enriched group event');

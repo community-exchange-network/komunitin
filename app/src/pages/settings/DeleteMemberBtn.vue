@@ -121,7 +121,7 @@ const deleteMember = async () => {
     //    delete action.
     if (!isAdmin.value) {
       const email = store.getters.myUser.attributes.email
-      await store.dispatch("login", {email: email.value, password: password.value})
+      await store.dispatch("login", {email, password: password.value})
     }
 
     // 3. Delete member

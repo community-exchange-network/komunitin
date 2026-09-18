@@ -35,6 +35,7 @@ const postColumns: SqlColumnMap = {
   status: postColumn('status'),
   access: postColumn('access'),
   member: postColumn('memberId'),
+  'member.status': memberColumn('status'),
   category: postColumn('categoryId'),
   created: postColumn('created'),
   updated: postColumn('updated'),
@@ -57,6 +58,7 @@ const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): P
   if (group.status === 'active') {
     const isMember = await isGroupMember(ctx, group)
     readable.push(sqlAnd([
+      Prisma.sql`${memberColumn('status')} = 'active'`,
       Prisma.sql`${postColumn('status')} = 'published'`,
       isMember
         ? Prisma.sql`${postColumn('access')} IN ('public', 'group')`

@@ -124,11 +124,20 @@ const isPostOwner = async (ctx: OptionalAuthContext, post: Post): Promise<boolea
   return await isMemberUser(ctx, { id: post.memberId, tenantId: post.tenantId })
 }
 
-const canReadPost = async (ctx: OptionalAuthContext, group: Group, post: Post): Promise<boolean> => {
+const canReadPost = async (
+  ctx: OptionalAuthContext,
+  group: Group,
+  member: Member,
+  post: Post,
+): Promise<boolean> => {
+  const published = group.status === 'active'
+    && member.status === 'active'
+    && post.status === 'published'
+
   return (ctx.isSuperadmin) 
     || ctx.canReadAllSocial
-    || (group.status === 'active' && post.status === 'published' && post.access === 'public' )
-    || (group.status === 'active' && post.status === 'published' && post.access === 'group' && await isGroupMember(ctx, group))
+    || (published && post.access === 'public')
+    || (published && post.access === 'group' && await isGroupMember(ctx, group))
     || (await isPostOwner(ctx, post))
     || isGroupAdmin(ctx, group)
 }
@@ -139,23 +148,16 @@ const canWritePost = async (ctx: AuthContext, group: Group, post: Post): Promise
     || await isPostOwner(ctx, post)
 }
 
-const validateStatusTransition = async (
-  ctx: AuthContext,
-  group: Group,
-  post: Post,
-  to: PostStatus,
-): Promise<void> => {
-  const from = post.status
-  if (from === to) return
+/** Validate lifecycle changes after the caller has checked write access. */
+const validateStatusTransition = (from: PostStatus, to: PostStatus) => {
+  const allowed = from === to
+    || (from === 'draft' && to === 'published')
+    || (from === 'published' && to === 'hidden')
+    || (from === 'hidden' && to === 'published')
 
-  const admin = ctx.isSuperadmin || isGroupAdmin(ctx, group)
-  const owner = await isPostOwner(ctx, post)
-
-  if (from === 'draft' && to === 'published' && (owner || admin)) return
-  if (from === 'published' && to === 'hidden' && (owner || admin)) return
-  if (from === 'hidden' && to === 'published' && (owner || admin)) return
-
-  throw badRequest('Status transition is not allowed')
+  if (!allowed) {
+    throw badRequest('Status transition is not allowed')
+  }
 }
 
 const findFreePostCode = async (code: string, baseCode: string): Promise<string> => {
@@ -227,8 +229,9 @@ export const getPost = async (
   const group = await getGroupByCode(ctx, code)
   const load = getPostLoad(params)
   const post = await getPostById(code, id, load, group)
+  const member = post.member ?? await getMemberById(code, post.memberId)
 
-  const allowed = await canReadPost(ctx, group, post)
+  const allowed = await canReadPost(ctx, group, member, post)
   if (!allowed) {
     throw forbidden('You do not have permission to read this post')
   }
@@ -279,9 +282,9 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
   const member = await getMemberById(code, input.memberId)
 
   // Check access
-  const allowed = ctx.isSuperadmin 
-    || await isMemberUser(ctx, member)  
-    || isGroupAdmin(ctx, group)
+  const allowed = group.status === 'active'
+    && ['active', 'pending', 'draft'].includes(member.status)
+    && (ctx.isSuperadmin || isGroupAdmin(ctx, group) || await isMemberUser(ctx, member))
   
   if (!allowed) {
     throw forbidden('You do not have permission to create a post for this member')
@@ -330,12 +333,7 @@ export const createPost = async (ctx: AuthContext, code: string, input: CreatePo
   await syncResourceFiles(code, input.type, created.id, (input.images ?? []).map((image) => image.url))
 
   if (created.status === 'published') {
-    const notifications = createNotificationsClient(ctx)
-    if (created.type === 'offers') {
-      await notifications.notifyOfferPublished(code, created)
-    } else {
-      await notifications.notifyNeedPublished(code, created)
-    }
+    await createNotificationsClient(ctx).notifyPostPublished(code, created)
   }
 
   return enrichPost(ctx, group, toPost(created))
@@ -351,7 +349,7 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
   }
 
   if (input.status !== undefined) {
-    await validateStatusTransition(ctx, group, post, input.status)
+    validateStatusTransition(post.status, input.status)
   }
 
   if (input.categoryId !== undefined && input.categoryId !== null) {
@@ -399,12 +397,7 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
   }
 
   if (post.status !== 'published' && updated.status === 'published') {
-    const notifications = createNotificationsClient(ctx)
-    if (updated.type === 'offers') {
-      await notifications.notifyOfferPublished(code, updated)
-    } else {
-      await notifications.notifyNeedPublished(code, updated)
-    }
+    await createNotificationsClient(ctx).notifyPostPublished(code, updated)
   }
 
   return enrichPost(ctx, group, toPost(updated))

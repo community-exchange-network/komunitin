@@ -1,7 +1,7 @@
 <template>
   <q-card
     v-if="group"
-    v-card-click-to="`/groups/${group.attributes.code}`"
+    v-bind="cardClickAttrs"
     flat
     bordered
   >
@@ -60,7 +60,7 @@
 import { defineComponent, computed } from "vue"
 import { useStore } from "vuex"
 
-import cardClickTo from "../plugins/CardClickTo";
+import { useCardClickTo } from "src/composables/useCardClickTo"
 import clamp from "../plugins/Clamp";
 import md2txt from "../plugins/Md2txt";
 
@@ -76,8 +76,7 @@ export default defineComponent({
     GroupHeader
   },
   directives: {
-    clamp,
-    cardClickTo
+    clamp
   },
   props: {
     group: {
@@ -85,13 +84,15 @@ export default defineComponent({
       required: true,
     }
   },
-  setup() {
+  setup(props) {
     const store = useStore()
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
+    const cardClickAttrs = useCardClickTo(() => `/groups/${props.group.attributes.code}`)
 
     return {
       md2txt,
-      isLoggedIn
+      isLoggedIn,
+      cardClickAttrs
     }
   },
   computed: {

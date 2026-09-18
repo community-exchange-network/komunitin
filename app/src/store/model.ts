@@ -151,20 +151,16 @@ export interface User extends ResourceObject {
   attributes: {
     email: string,
     name?: string,
+    language: string | null,
     created: string,
     updated: string,
-  },
-  relationships: {
-    settings: RelatedResource
   }
 }
 
 export type MailingFrequency = "never" | "weekly" | "monthly";
 
-export interface UserSettings extends ResourceObject {
+export interface MemberUser extends ResourceObject {
   attributes: {
-    language: string
-    komunitin: boolean
     notifications: {
       myAccount: boolean
       group: boolean
@@ -176,6 +172,7 @@ export interface UserSettings extends ResourceObject {
   },
   relationships: {
     user: RelatedResource
+    member: RelatedResource
   }
 }
 

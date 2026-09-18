@@ -1,9 +1,11 @@
 import type { VueWrapper } from "@vue/test-utils";
-import { seeds } from "src/server";
+import server, { seeds } from "src/server";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
-import { QBtn, QDialog } from "quasar";
+import { Notify, QBtn } from "quasar";
+import { getMockPasswordResetToken } from "src/server/AuthServer";
 import PasswordField from "src/components/PasswordField.vue";
+import ChangeEmailBtn from "src/pages/members/ChangeEmailBtn.vue";
 import ChangePasswordBtn from "src/pages/members/ChangePasswordBtn.vue";
 import { config } from "src/utils/config";
 
@@ -32,21 +34,68 @@ describe("logged in", () => {
     expect(text).toContain("Group 0");
   })
 
-  it("changes the current user's password through auth", async () => {
-    await wrapper.vm.$router.push("/profile");
-    await waitFor(() => wrapper.text().includes("Edit profile"), true, "Profile form should load");
-    const passwordControl = wrapper.getComponent(ChangePasswordBtn);
-    await passwordControl.findAllComponents(QBtn)[0].trigger("click");
-    await waitFor(() => passwordControl.getComponent(QDialog).props("modelValue"), true, "Password dialog should open");
+  it("emails a password reset link and signs out after choosing the new password", async () => {
+    await wrapper.vm.$router.push("/profile")
+    await waitFor(() => wrapper.findComponent(ChangePasswordBtn).exists(), true)
+    const email = wrapper.vm.$store.getters.myUser.attributes.email
+    const control = wrapper.getComponent(ChangePasswordBtn)
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+    vi.mocked(Notify.create).mockClear()
+    try {
+      expect(control.findComponent(PasswordField).exists()).toBe(false)
+      await control.getComponent(QBtn).trigger("click")
+      await waitFor(() => vi.mocked(Notify.create).mock.calls.length, 1)
+      expect(Notify.create).toHaveBeenCalledWith({
+        message: "We have sent you an email with a link to reset your password. Check your inbox and follow the instructions.",
+        color: 'positive',
+        icon: 'mail'
+      })
+      expect(wrapper.vm.$store.getters.isLoggedIn).toBe(true)
+      const resetRequest = fetchSpy.mock.calls.find(([url]) => String(url).endsWith("/reset-password"))
+      expect(JSON.parse(resetRequest?.[1]?.body as string)).toEqual({ email })
+      const token = getMockPasswordResetToken(email)
+      expect(token).toBeDefined()
+      await wrapper.vm.$router.push({ path: "/set-password", query: { token } })
+      await waitFor(() => wrapper.find("button[type='submit']").exists(), true)
+      await wrapper.getComponent(PasswordField).get("input").setValue("new-password")
+      await wrapper.get("button[type='submit']").trigger("click")
+      await waitFor(() => wrapper.vm.$route.path, "/login-mail")
+      expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false)
+      const changeRequest = fetchSpy.mock.calls.find(([url]) => String(url).endsWith("/change-password"))
+      expect(JSON.parse(changeRequest?.[1]?.body as string)).toEqual({ token, password: "new-password" })
+      expect(fetchSpy.mock.calls.some(([url]) => String(url).endsWith("/change-password/authenticated"))).toBe(false)
 
-    const inputs = passwordControl.findAllComponents(PasswordField);
-    await inputs[0].get("input").setValue("komunitin");
-    await inputs[1].get("input").setValue("new-password");
-    const submit = passwordControl.findAllComponents(QBtn)
-      .find(button => button.props("type") === "submit" && button.text().includes("Change password"));
-    expect(submit).toBeDefined();
-    await submit?.trigger("click");
-    await waitFor(() => passwordControl.getComponent(QDialog).props("modelValue"), false, "Password dialog should close");
+      // A consumed email link cannot change the password again.
+      await wrapper.vm.$router.push({ path: "/set-password", query: { token } })
+      await wrapper.getComponent(PasswordField).get("input").setValue("another-password")
+      await wrapper.get("button[type='submit']").trigger("click")
+      await waitFor(() => wrapper.text().includes("invalid or has expired"), true)
+      expect(wrapper.find("button[type='submit']").exists()).toBe(false)
+      expect(wrapper.find("a[href='/forgot-password']").exists()).toBe(true)
+    } finally {
+      fetchSpy.mockRestore()
+    }
+    await wrapper.vm.$store.dispatch("login", { email, password: "new-password" })
+    await wrapper.vm.$router.push("/home")
+  })
+
+  it("initializes the profile with the revalidated member", async () => {
+    await wrapper.vm.$router.push("/home")
+    const member = wrapper.vm.$store.getters.myMember
+    const name = `${member.attributes.name} refreshed`
+    // Mirage's schema types do not expose registered models.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(server.schema as any).members.find(member.id).update({ name })
+
+    await wrapper.vm.$router.push("/profile")
+    await waitFor(
+      () => {
+        const input = wrapper.find<HTMLInputElement>("input[name='name']")
+        return input.exists() ? input.element.value : undefined
+      },
+      name,
+      "Profile form should use the revalidated member"
+    )
   });
 
   it("reactively updates the profile after posting the Social user", async () => {
@@ -64,6 +113,51 @@ describe("logged in", () => {
       "updated@example.com",
       "Profile email should react to the updated Social user"
     );
+  });
+
+  it("shows the email but hides credential controls when editing another member", async () => {
+    await wrapper.vm.$router.push("/profile");
+    await waitFor(() => wrapper.find("input[name='email']").exists(), true, "Self identity controls should load");
+    expect(wrapper.findComponent(ChangeEmailBtn).exists()).toBe(true);
+    expect(wrapper.findComponent(ChangePasswordBtn).exists()).toBe(true);
+
+    const currentMemberId = wrapper.vm.$store.getters.myMember.id;
+    type MockMember = { id: string, code: string, name: string, group: { code: string } };
+    const schema = server.schema as unknown as { members: { all(): { models: MockMember[] } } };
+    const targetMember = schema.members.all().models.find(
+      member => member.id !== currentMemberId && member.group.code === "GRP0"
+    );
+    if (!targetMember) throw new Error("Admin target member not found");
+    const targetRelation = server.schema.memberUsers.findBy({ memberId: targetMember.id });
+    const targetEmail = targetRelation.user.email;
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    try {
+      await wrapper.vm.$router.push(`/groups/GRP0/admin/members/${targetMember.code}/profile`);
+      await waitFor(
+        () => {
+          const input = wrapper.find<HTMLInputElement>("input[name='name']")
+          return input.exists() ? input.element.value : undefined
+        },
+        targetMember.name,
+        "Admin target profile should load"
+      );
+
+      await waitFor(
+        () => wrapper.get<HTMLInputElement>("input[name='email']").element.value,
+        targetEmail,
+        "Admin target email should load"
+      );
+      expect(wrapper.findComponent(ChangeEmailBtn).exists()).toBe(false);
+      expect(wrapper.findComponent(ChangePasswordBtn).exists()).toBe(false);
+
+      const identityRequests = fetchSpy.mock.calls
+        .map(([url]) => new URL(url.toString()))
+        .filter(url => url.pathname.includes("/member-users") || url.pathname.startsWith("/social/users"));
+      expect(identityRequests).toHaveLength(1);
+      expect(identityRequests[0].searchParams.get("include")).toBe("user");
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it("posts a confirmed email to the Social user", async () => {

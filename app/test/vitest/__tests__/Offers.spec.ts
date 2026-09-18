@@ -6,7 +6,7 @@ import { QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
 import ApiSerializer from "src/server/ApiSerializer";
-import { seeds } from "src/server";
+import server, { seeds } from "src/server";
 import SelectCategory from "src/components/SelectCategory.vue";
 import type { Category, Member, Offer } from "src/store/model";
 import DeleteOfferBtn from "src/components/DeleteOfferBtn.vue";
@@ -22,7 +22,8 @@ describe("Offers", () => {
 
   beforeAll(async () => {
     seeds();
-    wrapper = await mountComponent(App, { login: true });
+    const nonAdmin = server.schema.users.all().models[1]
+    wrapper = await mountComponent(App, { login: nonAdmin });
   });
   afterAll(() => wrapper.unmount());
 
@@ -77,6 +78,17 @@ describe("Offers", () => {
     expect(text).toMatch(/Updated (yesterday|today)/);
   })
 
+  it('reloads when the offer code changes', async () => {
+    const anotherOffer = Object.values(wrapper.vm.$store.state.offers.resources)
+      .find(candidate => candidate.id !== offer.id) as FullOffer
+    const title = requireText(anotherOffer.attributes.title, 'Second offer title')
+
+    await wrapper.vm.$router.push(`/groups/GRP0/offers/${anotherOffer.attributes.code}`)
+
+    await waitFor(() => wrapper.text().includes(title), true, 'Second offer page should load')
+    expect(wrapper.vm.$store.getters['offers/current'].id).toBe(anotherOffer.id)
+  })
+
   it ("creates an offer", async() => {
     await wrapper.vm.$router.push("/groups/GRP0/offers/new")
     await waitFor(() => wrapper.text().includes("Preview"), true, "New offer form should load");
@@ -102,9 +114,26 @@ describe("Offers", () => {
     expect(text).toContain("This offer is a mirage.");
     expect(text).toContain("Updated today");
     expect(text).toContain(selectedCategoryName);
+    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("draft");
+
+    const memberPath = `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`
+    await wrapper.vm.$router.push({ path: memberPath, hash: "#offers" })
+    await waitFor(
+      () => wrapper.findAllComponents(OfferCard).some(card => card.props("offer").attributes.code === "The-Offer"),
+      true,
+      "Draft offer should appear in the member offers tab"
+    )
+    const draftCard = wrapper.findAllComponents(OfferCard)
+      .find(card => card.props("offer").attributes.code === "The-Offer")
+    expect(draftCard?.text()).toContain("Draft")
+    expect(draftCard?.classes()).toContain("muted")
+    await draftCard?.trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/offers/The-Offer/preview")
+
     await wrapper.get(".q-btn--fab").trigger("click");
-    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`);
+    await waitFor(() => wrapper.vm.$route.path, memberPath);
     expect(wrapper.vm.$route.hash).toBe("#offers");
+    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("published");
     await wrapper.vm.$router.push("/groups/GRP0/offers/The-Offer")
     await waitFor(() => wrapper.text().includes("The Offer"), true, "Offer page should show");
     expect(wrapper.text()).toContain("$10.00");
@@ -118,6 +147,25 @@ describe("Offers", () => {
     await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/offers')
     expect(wrapper.vm.$store.getters['offers/one'](offerId)).toBeNull()
     expect(document.body.textContent).not.toContain('Unknown user interface error')
+  })
+
+  it('shows 404 when editing a non-existing offer', async () => {
+    await wrapper.vm.$router.push('/groups/GRP0/offers/missing/edit')
+    await waitFor(() => wrapper.text().includes('Sorry, nothing here...'), true)
+    expect(wrapper.find("[name='title']").exists()).toBe(false)
+  })
+
+  it('shows 404 when editing an offer without permission', async () => {
+    await wrapper.vm.$router.push('/groups/GRP0/offers')
+    await waitFor(() => wrapper.findAllComponents(OfferCard).length > 0, true)
+    expect(wrapper.vm.$store.getters.isAdmin).toBe(false)
+    const anotherOffer = wrapper.findAllComponents(OfferCard)
+      .find(card => card.props('offer').member.id !== wrapper.vm.$store.getters.myMember.id)
+      .props('offer') as FullOffer
+
+    await wrapper.vm.$router.push(`/groups/GRP0/offers/${anotherOffer.attributes.code}/edit`)
+    await waitFor(() => wrapper.text().includes('Sorry, nothing here...'), true)
+    expect(wrapper.find("[name='title']").exists()).toBe(false)
   })
 
 });

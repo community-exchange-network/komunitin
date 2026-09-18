@@ -42,7 +42,7 @@ export default class ApiSerializer extends JSONAPISerializer {
       const relationship = model[key];
       const relationshipKey = (this as any).keyForRelationship(key);
       
-      const jsonRelationship = json.relationships[relationshipKey];
+      const jsonRelationship = json.relationships?.[relationshipKey];
       // External relationships have associations but their relationships are deleted
       // from the hash in getHashForIncludedResource(), so this variable may be undefined.
       if (jsonRelationship) {

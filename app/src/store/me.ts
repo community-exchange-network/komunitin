@@ -8,6 +8,7 @@ import type { SignupContext } from "../plugins/Auth";
 import { getNotificationPermission, subscribe, unsubscribe } from "../plugins/Notifications";
 import type {
   CollectionResponseInclude,
+  Currency,
   ExternalResourceObject,
   Group,
   Member,
@@ -18,7 +19,6 @@ import type {
 import { config } from "src/utils/config";
 import { apiRequest } from "./request";
 import { resolveRelationshipUrl } from "./relationships";
-import { v4 as uuid } from "uuid";
 
 // Exported just for testing purposes.
 export const auth = new Auth()
@@ -37,6 +37,7 @@ export interface UserState {
   tokens?: AuthData;
   myUserId?: string;
   myMemberId?: string;
+  myMemberUserId?: string;
   /**
    * Current location, provided by device.
    */
@@ -50,18 +51,12 @@ export interface UserState {
 /**
  * Helper function that loads the user data after being logged in and having
  * the credentials.
- *
- * @param accessToken The access token
- * @param commit The local commit function.
- * @param dispatch The vuex Dispatch object.
  */
 async function loadUser(context: ActionContext<UserState, never>) {
-  const { commit, dispatch, getters, rootGetters } = context
-  await dispatch("users/load", {
-    include: "settings"
-  });
+  const { commit, dispatch, state, getters, rootGetters } = context
+  const tokens = state.tokens
+  await dispatch("users/load", {});
   const user = rootGetters["users/current"];
-  commit("myUserId", user.id);
 
   const query = new URLSearchParams({
     include: "group,group.currency,account",
@@ -79,10 +74,21 @@ async function loadUser(context: ActionContext<UserState, never>) {
   const member = response.data[0]
     ? rootGetters["members/one"](response.data[0].id) as Member & { group: Group }
     : undefined
-  commit("myMemberId", member?.id)
+  let memberUserId: string | undefined
 
   // A user requesting their first group does not have a membership yet.
   if (member) {
+    await dispatch("member-users/loadList", {
+      group: member.group.attributes.code,
+      filter: {
+        user: user.id,
+        member: member.id,
+      },
+      sort: "id",
+      pageSize: 1,
+    })
+    memberUserId = rootGetters["member-users/currentList"][0]?.id
+
     // This is the currency URL from the Accounting API.
     const currencyUrl = resolveRelationshipUrl(member.group.relationships.currency);
     // https://.../accounting/<GROUP>/currency
@@ -118,11 +124,16 @@ async function loadUser(context: ActionContext<UserState, never>) {
     }
   }
 
-  // Initialize the location to the member configured location.
-  if (getters.myMember) {
-    const member = getters.myMember as Member
-    commit("location", member.attributes.location?.coordinates)
+  // A logout or a newer authorization must not publish this obsolete session.
+  if (state.tokens !== tokens) {
+    return
   }
+
+  // Publish the identity only after its required relationships are available.
+  commit("myMemberId", member?.id)
+  commit("myMemberUserId", memberUserId)
+  commit("myUserId", user.id)
+  commit("location", member?.attributes.location?.coordinates)
 
   // Fetch initial unread notifications count.
   dispatch("notifications/updateUnreadCount", null, { root: true })
@@ -144,14 +155,10 @@ async function provisionSignup(
       type: "users",
       attributes: {
         name: signup.name,
-        email
+        email,
+        language: signup.language,
       }
-    },
-    included: [{
-      type: "user-settings",
-      id: uuid(),
-      attributes: { language: signup.language }
-    }]
+    }
   }, { root: true })
 }
 
@@ -161,6 +168,7 @@ export default {
     // It is important to define the properties even if undefined in order to add the reactivity.
     myUserId: undefined,
     myMemberId: undefined,
+    myMemberUserId: undefined,
     location: undefined,
     subscription: undefined,
   } as UserState),
@@ -183,12 +191,17 @@ export default {
         ? rootGetters["members/one"](state.myMemberId)
         : undefined
     },
+    myMemberUser: (state, _getters, _rootState, rootGetters) => {
+      return state.myMemberUserId
+        ? rootGetters["member-users/one"](state.myMemberUserId)
+        : undefined
+    },
     myAccount: (state, getters) => {
       return getters.isComplete 
         ? getters.myMember?.account 
         : false
     },
-    myCurrency: (state, getters) => {
+    myCurrency: (state, getters): Currency | null | undefined => {
       return getters.myAccount?.currency ??
         getters.myMember?.group?.currency
     },
@@ -203,7 +216,7 @@ export default {
       // This next check implies that the group is using the legacy accounting API, 
       // since the old api don't have the admins relationship. Otherwise the admin
       // interface is disabled.
-      return (getters.myCurrency !== undefined) 
+      return (getters.myCurrency != null)
         ? !getters.myCurrency.relationships.admins
         : undefined
     },
@@ -221,6 +234,7 @@ export default {
     tokens: (state, tokens) => (state.tokens = tokens),
     myUserId: (state, myUserId) => (state.myUserId = myUserId),
     myMemberId: (state, myMemberId) => (state.myMemberId = myMemberId),
+    myMemberUserId: (state, myMemberUserId) => (state.myMemberUserId = myMemberUserId),
     location: (state, location) => (state.location = location),
     subscription: (state, subscription) => (state.subscription = subscription),
   },
@@ -255,15 +269,20 @@ export default {
       payload: AuthorizePayload
     ) => {
       if (!context.getters.isLoggedIn || payload?.force) {
+        let sessionTokens = context.state.tokens
         try {
           const storedTokens = await auth.getStoredTokens();
           const tokens = await auth.authorize(storedTokens, payload?.force);
+          // A logout or newer authorization cancels this pending attempt.
+          if (context.state.tokens !== sessionTokens) {
+            return
+          }
           context.commit("tokens", tokens);
+          sessionTokens = context.state.tokens
           await loadUser(context);
         } catch (error) {
-          // Couldn't authorize. Delete credentials so we don't attempt another
-          // call next time.
-          if (context.state.tokens) {
+          // Clear only this attempt's credentials, preserving a newer session.
+          if (context.state.tokens && context.state.tokens === sessionTokens) {
             await context.dispatch("logout", { authorizationError: true });
           }
           throw error;
@@ -285,6 +304,7 @@ export default {
       context.commit("tokens", undefined);
       context.commit("myUserId", undefined);
       context.commit("myMemberId", undefined);
+      context.commit("myMemberUserId", undefined);
     },
     /**
      * Get the current location from the device.

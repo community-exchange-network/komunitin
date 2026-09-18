@@ -1,7 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { Notify } from "quasar"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { Notify, type QUploader } from "quasar"
+import { defineComponent, shallowRef } from "vue"
+import Avatar from "../Avatar.vue"
 import AvatarField from "../AvatarField.vue"
 import ImageField from "../ImageField.vue"
+import { useImageUploader } from "src/composables/uploader"
+import { seeds } from "src/server"
 import {
   getMockFileUploadAttempts,
   resetMockFileUploads,
@@ -28,6 +32,10 @@ const uploadFile = async (wrapper: MountedComponent, file: File) => {
 }
 
 describe("image upload fields", () => {
+  beforeAll(() => {
+    seeds()
+  })
+
   beforeEach(() => {
     resetMockFileUploads()
     mockImageUploadProcessing()
@@ -125,6 +133,115 @@ describe("image upload fields", () => {
       accepted: false,
       name: "avatar.webp",
       type: "image/webp"
+    })
+    wrapper.unmount()
+  })
+
+  it("defers an AvatarField upload, replaces its selection and uses the latest group code", async () => {
+    const wrapper = await mountComponent(AvatarField, {
+      props: {
+        modelValue: null,
+        text: "New group",
+        code: "",
+        resourceType: "groups",
+        deferred: true
+      },
+      login: true
+    })
+
+    await uploadFile(wrapper, createMockImageFile({
+      height: 800,
+      name: "new-group.png",
+      size: 200_000,
+      type: "image/png",
+      width: 800
+    }))
+
+    await waitFor(
+      () => wrapper.getComponent(Avatar).props("imgSrc")?.url?.startsWith("blob:"),
+      true,
+      "Deferred avatar should show a local preview"
+    )
+    expect(getMockFileUploadAttempts()).toHaveLength(0)
+
+    await uploadFile(wrapper, createMockImageFile({
+      height: 800,
+      name: "replacement.png",
+      size: 200_000,
+      type: "image/png",
+      width: 800
+    }))
+
+    await wrapper.setProps({ code: "GRP0" })
+    const avatarField = wrapper.vm as unknown as {
+      upload: () => Promise<{ url: string } | null>
+    }
+    const image = await avatarField.upload()
+
+    expect(image).toEqual({ url: "https://files.example/replacement.webp" })
+    expect(getMockFileUploadAttempts()).toEqual([
+      expect.objectContaining({
+        accepted: true,
+        name: "replacement.webp",
+        tenantCode: "GRP0"
+      })
+    ])
+
+    const repeatedImage = await avatarField.upload()
+    expect(repeatedImage).toEqual(image)
+    expect(getMockFileUploadAttempts()).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it("resolves a deferred upload after every request finishes", async () => {
+    const firstFile = new File(["first"], "first.webp", { type: "image/webp" })
+    const secondFile = new File(["second"], "second.webp", { type: "image/webp" })
+    const activeUploader = {
+      queuedFiles: [firstFile, secondFile],
+      upload: vi.fn(),
+      removeUploadedFiles: vi.fn(),
+      removeFile: vi.fn()
+    } as unknown as QUploader
+    const onUploaded = vi.fn()
+    let imageUploader!: ReturnType<typeof useImageUploader>
+
+    const Harness = defineComponent({
+      setup() {
+        imageUploader = useImageUploader({
+          uploader: shallowRef(activeUploader),
+          code: "GRP0",
+          resourceType: "offers",
+          deferred: true,
+          onUploaded
+        })
+        return () => null
+      }
+    })
+    const wrapper = await mountComponent(Harness, { login: true })
+    let result: boolean | undefined
+    const upload = imageUploader.upload().then(value => {
+      result = value
+      return value
+    })
+
+    await waitFor(() => activeUploader.upload.mock.calls.length, 1)
+    imageUploader.uploaderEvents.uploaded({
+      xhr: {
+        responseText: JSON.stringify({
+          data: { attributes: { url: "https://files.example/first.webp" } }
+        })
+      } as XMLHttpRequest
+    })
+    imageUploader.uploaderEvents.failed({ files: [secondFile] })
+    await Promise.resolve()
+
+    expect(result).toBeUndefined()
+    expect(activeUploader.removeFile).toHaveBeenCalledWith(secondFile)
+
+    imageUploader.uploaderEvents.finish()
+    expect(await upload).toBe(false)
+    expect(onUploaded).toHaveBeenCalledWith({
+      url: "https://files.example/first.webp"
     })
     wrapper.unmount()
   })

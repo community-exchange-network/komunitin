@@ -14,12 +14,14 @@ import '../../../src/boot/mirage';
 import bootAuth from '../../../src/boot/auth';
 import { Auth } from '../../../src/plugins/Auth';
 import { auth } from '../../../src/store/me';
+import server from 'src/server';
 import { mockToken } from 'src/server/AuthServer';
 import { type RouteLocationRaw } from 'vue-router';
 
-export async function testLogin() {
+/** Log in as the default seeded admin, or as the supplied user. */
+export async function testLogin(user: { id: string } = server.schema.users.first()) {
   // This call actually saves the mocked token in LocalStorage.
-  await auth.processTokenResponse(mockToken(Auth.SCOPES));
+  await auth.processTokenResponse(mockToken(Auth.SCOPES, { userId: user.id }));
 }
 
 /** Assert that fixture text is usable before matching it against rendered text. */
@@ -34,13 +36,14 @@ export function requireTextExcerpt(value: string, label: string): string {
   return requireText(value.replace(/[*_]/g, "").slice(0, 20), label);
 }
 
+/** Mount with app plugins; login accepts true for the default admin or a seeded user. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true }): Promise<VueWrapper> {
+export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true | { id: string } }): Promise<VueWrapper> {
   await auth.logout();
 
-  // Login state. We must do that before createStore().
+  // Save credentials before mounting so route guards load the selected user.
   if (options?.login) {
-    await testLogin();
+    await testLogin(options.login === true ? undefined : options.login);
   }
 
   // Set the router mode to "history", as we have in our Quasar config file.

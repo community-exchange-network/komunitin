@@ -1,6 +1,6 @@
 <template>
   <q-card
-    v-card-click-to="href"
+    v-bind="cardClickAttrs"
     flat
     bordered
   >
@@ -43,7 +43,7 @@
 </template>
 <script lang="ts">
 import { defineComponent } from "vue";
-import cardClickTo from "../plugins/CardClickTo";
+import { useCardClickTo } from "src/composables/useCardClickTo"
 
 /**
  * This component wraps a card with a predefined structure to be used in
@@ -61,9 +61,6 @@ import cardClickTo from "../plugins/CardClickTo";
  */
 export default defineComponent({
   name: "GroupStats",
-  directives: {
-    cardClickTo
-  },
   props: {
     icon: {
       type: String,
@@ -91,8 +88,10 @@ export default defineComponent({
       required: true
     }
   },
-  data() {
-    return {};
+  setup(props) {
+    return {
+      cardClickAttrs: useCardClickTo(() => props.href)
+    }
   }
 });
 </script>

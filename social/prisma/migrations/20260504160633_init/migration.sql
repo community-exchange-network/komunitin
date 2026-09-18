@@ -3,7 +3,7 @@ CREATE TABLE "User" (
     "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
     "name" VARCHAR(255),
-    "settings" JSONB NOT NULL DEFAULT '{}',
+    "language" VARCHAR(31),
     "created" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" TIMESTAMP(3) NOT NULL,
 
@@ -77,11 +77,12 @@ CREATE TABLE "Member" (
 -- CreateTable
 CREATE TABLE "MemberUser" (
     "tenantId" VARCHAR(31) NOT NULL DEFAULT (current_setting('app.current_tenant_id', true))::text,
+    "id" UUID NOT NULL,
     "memberId" UUID NOT NULL,
     "userId" UUID NOT NULL,
-    "role" VARCHAR(31) NOT NULL DEFAULT 'admin',
+    "settings" JSONB NOT NULL,
 
-    CONSTRAINT "MemberUser_pkey" PRIMARY KEY ("memberId","userId")
+    CONSTRAINT "MemberUser_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -149,6 +150,12 @@ CREATE UNIQUE INDEX "Member_id_tenantId_key" ON "Member"("id", "tenantId");
 
 -- CreateIndex
 CREATE INDEX "MemberUser_tenantId_userId_idx" ON "MemberUser"("tenantId", "userId");
+
+-- CreateIndex
+CREATE INDEX "MemberUser_userId_idx" ON "MemberUser"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MemberUser_memberId_userId_key" ON "MemberUser"("memberId", "userId");
 
 -- CreateIndex
 CREATE INDEX "Category_tenantId_groupId_idx" ON "Category"("tenantId", "groupId");

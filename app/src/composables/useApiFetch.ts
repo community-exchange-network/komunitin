@@ -14,7 +14,7 @@ export interface AuthService {
 /**
  * Use useApiFetch instead of this function if outside of the store.
  */
-export const request = async <T extends ResourceObject> (url: string, options: FetchOptions = {}, auth: AuthService) => {
+export const request = async <T extends ResourceObject> (url: string, options: FetchOptions = {}, auth: AuthService): Promise<SuccessfulResponse<T, ResourceObject> | null> => {
   const doRequest = (accessToken: string | undefined) => fetch(url, {
     ...options,
     headers: {

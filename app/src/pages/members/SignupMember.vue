@@ -34,10 +34,8 @@
             <profile-form
               :change-credentials="false"
               :member="member"
-              :contacts="member.attributes.contacts"
-              :user="myUser"
+              :email="myUser.attributes.email"
               @update:member="updateMember"
-              @update:contacts="updateContacts"
             />
             <q-btn
               class="full-width q-my-lg"
@@ -209,11 +207,6 @@ const updateMember = (value: DeepPartial<Member>) => {
     ...member.attributes,
     ...value.attributes as Partial<Member['attributes']>
   }
-}
-
-const updateContacts = (value: Member['attributes']['contacts']) => {
-  const member = requireMember()
-  member.attributes.contacts = value
 }
 
 const saveMember = async () => {

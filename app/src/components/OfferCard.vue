@@ -1,10 +1,10 @@
 <template>
   <q-card
     v-if="offer"
-    v-card-click-to="`/groups/${code}/offers/${offer.attributes.code}`"
+    v-bind="cardClickAttrs"
     flat
     bordered
-    :class="{isHidden, isExpired}"
+    :class="{ muted: isMuted }"
   >
     <!-- Header -->
     <member-header :member="offer.member">
@@ -46,10 +46,16 @@
     </q-card-section>
     <q-card-section 
       v-if="canEdit"
-      class="row justify-end items-center"
+      class="row items-center"
     >
+      <post-status-badges
+        v-if="isMuted"
+        :status="offer.attributes.status"
+        :expired="isExpired"
+        :member-active="isMemberActive"
+      />
+      <q-space />
       <q-btn
-        v-if="canEdit"
         icon="edit"
         flat
         round
@@ -68,71 +74,62 @@
     </q-card-section>
   </q-card>
 </template>
-<script lang="ts">
-import { computed, defineComponent, ref, watch } from "vue";
-import cardClickTo from "../plugins/CardClickTo";
-import clamp from "../plugins/Clamp";
-import md2txt from "../plugins/Md2txt";
-
-import Carousel from "./Carousel.vue";
-import CategoryAvatar from "./CategoryAvatar.vue";
-import MemberHeader from "./MemberHeader.vue";
-import DeleteOfferBtn from "./DeleteOfferBtn.vue";
-
+<script setup lang="ts">
+import { computed } from "vue"
+import { useStore } from "vuex"
+import type { Category, Currency, Group, Member, Offer } from "src/store/model"
+import { useCardClickTo } from "src/composables/useCardClickTo"
+import vClamp from "../plugins/Clamp"
+import md2txt from "../plugins/Md2txt"
 import { formatPrice } from "../plugins/FormatCurrency"
-import { useStore } from "vuex";
+import Carousel from "./Carousel.vue"
+import CategoryAvatar from "./CategoryAvatar.vue"
+import MemberHeader from "./MemberHeader.vue"
+import DeleteOfferBtn from "./DeleteOfferBtn.vue"
+import PostStatusBadges from "./PostStatusBadges.vue"
 
-export default defineComponent({
-  name: "OfferCard",
-  components: {
-    MemberHeader,
-    CategoryAvatar,
-    Carousel,
-    DeleteOfferBtn
-  },
-  directives: {
-    cardClickTo,
-    clamp
-  },
-  props: {
-    // Group code.
-    code: {
-      type: String,
-      required: true
-    },
-    offer: {
-      type: Object,
-      required: true
+type CardOffer = Offer & {
+  category: Category
+  member: Member & {
+    group: Group & {
+      currency?: Currency
     }
-  },
-  setup(props) {
-    const store = useStore()
-    const group = computed(() => props.offer.member.group)
-    
-    const currency = ref(group.value.currency)
-    watch(() => group.value.currency, (value) => currency.value = value)
-    
-    const price = computed(() => currency.value ? formatPrice(props.offer.attributes.value ?? '', currency.value) : '')
-    const canEdit = computed(() => 
-    props.offer.member.id === store.getters.myMember.id
-    || store.getters.isAdmin
-  )
-  const hidden = computed(() => props.offer.attributes.status === "hidden" || props.offer.member.attributes.status !== "active")
-  const expired = computed(() => new Date(props.offer.attributes.expires) < new Date())
-  
-  return {
-    price,
-    canEdit,
-    md2txt,
-    isHidden: hidden,
-    isExpired: expired
   }
 }
+
+defineOptions({
+  name: "OfferCard"
 })
 
+const props = defineProps<{
+  code: string
+  offer: CardOffer
+}>()
+
+const store = useStore()
+const price = computed(() => {
+  const currency = props.offer.member.group.currency
+  return currency ? formatPrice(props.offer.attributes.value ?? "", currency) : ""
+})
+const canEdit = computed(() =>
+  props.offer.member.id === store.getters.myMember?.id
+  || store.getters.isAdmin
+)
+const isMemberActive = computed(() => props.offer.member.attributes.status === "active")
+const isExpired = computed(() => new Date(props.offer.attributes.expires) < new Date())
+const isMuted = computed(() =>
+  props.offer.attributes.status !== "published"
+  || !isMemberActive.value
+  || isExpired.value
+)
+const targetUrl = computed(() => {
+  const path = `/groups/${props.code}/offers/${props.offer.attributes.code}`
+  return props.offer.attributes.status === "draft" ? `${path}/preview` : path
+})
+const cardClickAttrs = useCardClickTo(targetUrl)
 </script>
 <style lang="scss" scoped>
-  .isHidden, .isExpired {
+  .muted {
     opacity: 0.54;
   }
 </style>

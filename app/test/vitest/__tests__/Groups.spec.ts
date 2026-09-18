@@ -26,6 +26,17 @@ describe("Groups", () => {
     expect((wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing).toBe(false);
   });
 
+  it("Navigates a focused group card with Enter", async () => {
+    await wrapper.vm.$router.push("/groups");
+    await waitFor(() => wrapper.findAllComponents(GroupCard).length, 7, "Should load group cards");
+    const card = wrapper.getComponent(GroupCard)
+    const code = card.props("group").attributes.code
+    expect(card.attributes("role")).toBe("link")
+    expect(card.attributes("tabindex")).toBe("0")
+    await card.trigger("keyup", { key: "Enter" })
+    await waitFor(() => wrapper.vm.$route.path, `/groups/${code}`)
+  })
+
   it("Renders group page", async () => {
     await wrapper.vm.$router.push("/groups/GRP0");
     await wrapper.vm.$nextTick();
@@ -72,7 +83,11 @@ describe("Groups", () => {
     
     await wrapper.vm.$router.push("/groups/GRP0");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0");
-    await waitFor(() => wrapper.vm.$store.getters["members/currentList"]?.length === 31, true, "Api should finish loading");
+    await waitFor(
+      () => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing,
+      false,
+      "Group members should finish loading"
+    );
     [
       "/groups/GRP0/members",
       "/groups/GRP0/stats"

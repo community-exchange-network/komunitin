@@ -20,6 +20,18 @@ const contactTypes = getContactNetworkKeys();
 let memberCreateFailures = 0
 let memberCreateResponseFailures = 0
 let memberCreateCount = 0
+let groupPatchFailures = 0
+const preferencePatchRequests: string[] = []
+
+export const getMockPreferencePatchRequests = () => [...preferencePatchRequests]
+
+export const resetMockPreferencePatchRequests = () => {
+  preferencePatchRequests.length = 0
+}
+
+export const failNextMockGroupPatch = () => {
+  groupPatchFailures++
+}
 
 export const failNextMockMemberCreate = () => {
   memberCreateFailures++
@@ -32,7 +44,7 @@ export const failNextMockMemberCreateResponse = () => {
 export const getMockMemberCreateCount = () => memberCreateCount
 
 inflections("en", function (inflect) {
-  inflect.irregular("userSettings", "userSettings")
+  inflect.irregular("memberUsers", "memberUsers")
   inflect.irregular("groupSettings", "groupSettings")
 })
 
@@ -147,6 +159,17 @@ function sortByDistance(records: any, request: any) {
   return records.sort((a: any, b: any) => distance(a) - distance(b));
 }
 
+function nextMemberCode(schema: any, group: any) {
+  const codes = new Set(
+    schema.members.where({ groupId: group.id }).models.map((member: any) => member.code)
+  )
+  let index = 0
+  while (codes.has(`${group.code}${index.toString().padStart(4, "0")}`)) {
+    index++
+  }
+  return `${group.code}${index.toString().padStart(4, "0")}`
+}
+
 /**
  * Object containing the properties to create a MirageJS server that mocks the
  * Komunitin Social API.
@@ -204,7 +227,8 @@ export default {
       selfLink: (member: any) =>
         urlSocial + "/" + member.group.code + "/members/" + member.id,
       isExternal(relationshipKey: string) {
-        return relationshipKey == "account";
+        // Nested group.currency includes also belong to the Accounting API.
+        return relationshipKey == "account" || relationshipKey == "currency";
       },
       links: (member: any) => {
         return {
@@ -258,13 +282,16 @@ export default {
     user: ApiSerializer.extend({
       getResourceObjectForModel(model: any) {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
-        delete json.relationships.members
+        if (json.relationships) {
+          delete json.relationships.members
+          delete json.relationships.memberUsers
+        }
         return json
       },
       selfLink: (user: any) => `${urlSocial}/users/${user.id}`,
     }),
-    userSettings: ApiSerializer.extend({
-      selfLink: (settings: any) => `${urlSocial}/users/${settings.id}/settings`
+    memberUser: ApiSerializer.extend({
+      selfLink: (relation: any) => `${urlSocial}/${relation.member.group.code}/member-users/${relation.id}`
     }),
     groupSettings: ApiSerializer.extend({
       selfLink: (groupSettings: any) => urlSocial + "/" + groupSettings.group.code + "/settings"
@@ -273,10 +300,11 @@ export default {
   models: {
     user: Model.extend({
       members: hasMany(),
-      settings: belongsTo("userSettings")
+      memberUsers: hasMany("memberUser"),
     }),
-    userSettings: Model.extend({
-      user: belongsTo()
+    memberUser: Model.extend({
+      user: belongsTo("user"),
+      member: belongsTo("member"),
     }),
     group: Model.extend({
       admins: hasMany("user"),
@@ -293,6 +321,7 @@ export default {
       group: belongsTo(),
       account: belongsTo(),
       posts: hasMany(),
+      memberUsers: hasMany("memberUser"),
     }),
     category: Model.extend({
       group: belongsTo(),
@@ -307,18 +336,19 @@ export default {
   factories: {
     user: Factory.extend({
       email: () => faker.internet.email(),
+      language: "en-us",
       created: () => faker.date.past(),
       updated: () => faker.date.past(),
     }),
-    userSettings: Factory.extend({
-      language: "en-us",
+    memberUser: Factory.extend({
+      id: () => faker.random.uuid(),
       notifications: {
         myAccount: true,
         group: true
       },
       emails: {
         myAccount: true,
-        group: "weekly"
+        group: "monthly"
       }
     }),
     group: Factory.extend({
@@ -398,7 +428,8 @@ export default {
       requireAcceptTerms: true,
       terms: () => fakeMarkdown(2),
       minOffers: 1,
-      minNeeds: 0
+      minNeeds: 0,
+      defaultGroupEmailFrequency: "monthly",
     })
   },
   seeds(server: Server) {
@@ -449,32 +480,31 @@ export default {
       }
     });
 
-    // Users and user settings for all members
+    // Users and member-user preferences for all members
     (server.schema as any).members.all().models.forEach((member: any) => {
       const user = server.create("user", {
         members: [member]
       } as any);
-      server.create("userSettings", { user } as any);	
+      server.create("memberUser", { user, member } as any);
     });
     
     // Create empty user (for signup testing).
-    server.create("user", {
-      email: "empty@example.com",
-      members: [
-        server.create("member", { 
-          name: "Empty User",
-          code: "empty_user",
-          status: "pending",
-          type: undefined,
-          description: undefined,
-          image: undefined,
-          address: undefined,
-          location: undefined,
-          group: (server.schema as any).groups.first()
-        } as any)
-      ],
-      settings: server.create("userSettings")
+    const emptyMember = server.create("member", {
+      name: "Empty User",
+      code: "empty_user",
+      status: "pending",
+      type: undefined,
+      description: undefined,
+      image: undefined,
+      address: undefined,
+      location: undefined,
+      group: (server.schema as any).groups.first()
     } as any)
+    const emptyUser = server.create("user", {
+      email: "empty@example.com",
+      members: [emptyMember],
+    } as any)
+    server.create("memberUser", { user: emptyUser, member: emptyMember } as any)
   },
   routes(server: Server) {
     // All groups
@@ -511,6 +541,10 @@ export default {
 
     // Edit group attributes
     server.patch(urlSocial + "/:code", (schema: any, request) => {
+      if (groupPatchFailures > 0) {
+        groupPatchFailures--
+        return new Response(503, {}, { errors: [{ detail: "Group update failed" }] })
+      }
       const group = schema.groups.findBy({ code: request.params.code });
       const body = JSON.parse(request.requestBody);
       const attributes = body.data.attributes
@@ -531,6 +565,17 @@ export default {
           currency
         })
       } else {
+        if (attributes.status !== group.status && (attributes.status === "active" || attributes.status === "disabled")) {
+          group.currency.update({ status: attributes.status })
+          group.members.models.forEach((member: any) => {
+            const account = member.account
+            if (attributes.status === "disabled" && account?.status === "active") {
+              account.update({ status: "disabled" })
+            } else if (attributes.status === "active" && member.status === "active" && account && account.status !== "active") {
+              account.update({ status: "active" })
+            }
+          })
+        }
         group.update(attributes);
       }
       return group;
@@ -596,9 +641,44 @@ export default {
     // Group members.
     server.get(urlSocial + "/:code/members", (schema: any, request: any) => {
       const group = schema.groups.findBy({ code: request.params.code });
-      const records = filter(schema.members.where({ groupId: group.id }), withoutQuery(request, ["near"]));
+      const filteredRequest = withoutQuery(request, ["near"])
+      const hasIdentityFilter = request.queryParams["filter[code]"] !== undefined
+        || request.queryParams["filter[account]"] !== undefined
+      if (request.queryParams["filter[status]"] === undefined && !hasIdentityFilter) {
+        filteredRequest.queryParams["filter[status]"] = "active"
+      }
+      const records = filter(schema.members.where({ groupId: group.id }), filteredRequest);
       return sortByDistance(records, request);
     });
+
+    server.get(urlSocial + "/:code/member-users", (schema: any, request: any) => {
+      const group = schema.groups.findBy({ code: request.params.code })
+      const records = schema.memberUsers.where(
+        (relation: any) => group.memberIds.includes(relation.memberId),
+      )
+      return filter(records, request)
+    })
+
+    server.get(urlSocial + "/:code/member-users/:id", (schema: any, request: any) => {
+      return schema.memberUsers.find(request.params.id)
+    })
+
+    server.patch(urlSocial + "/:code/member-users/:id", (schema: any, request: any) => {
+      preferencePatchRequests.push(new URL(request.url).pathname)
+      const relation = schema.memberUsers.find(request.params.id)
+      const attributes = JSON.parse(request.requestBody).data.attributes
+      relation.update({
+        notifications: {
+          ...relation.notifications,
+          ...attributes.notifications,
+        },
+        emails: {
+          ...relation.emails,
+          ...attributes.emails,
+        },
+      })
+      return relation
+    })
 
     server.post(urlSocial + "/:code/members", (schema: any, request: any) => {
       if (memberCreateFailures > 0) {
@@ -606,6 +686,7 @@ export default {
         return new Response(503, {}, { errors: [{ detail: "Member creation failed" }] })
       }
       const body = JSON.parse(request.requestBody)
+      const { code, ...attributes } = body.data.attributes
       const group = schema.groups.findBy({ code: request.params.code })
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
@@ -626,7 +707,8 @@ export default {
           type: "Point",
           coordinates: group.location.coordinates
         },
-        ...body.data.attributes,
+        ...attributes,
+        code: code?.trim() || nextMemberCode(schema, group),
         status: "draft",
         group,
         created: new Date().toJSON(),
@@ -634,6 +716,17 @@ export default {
       })
       user?.members.add(member)
       user?.save()
+      if (user) {
+        schema.memberUsers.create({
+          user,
+          member,
+          notifications: { myAccount: true, group: true },
+          emails: {
+            myAccount: true,
+            group: group.settings?.defaultGroupEmailFrequency ?? "monthly",
+          },
+        })
+      }
       memberCreateCount++
       if (memberCreateResponseFailures > 0) {
         memberCreateResponseFailures--
@@ -657,6 +750,10 @@ export default {
     server.patch(urlSocial + "/:code/members/:member", (schema: any, request: any) => {
       const member = schema.members.find(request.params.member)
       const body = JSON.parse(request.requestBody);
+      const status = body.data.attributes.status
+      if (['active', 'disabled', 'suspended'].includes(status)) {
+        member.account?.update({ status })
+      }
       member.update(body.data.attributes);
       return member;
     });
@@ -666,7 +763,8 @@ export default {
       const member = schema.members.find(request.params.id);
       const account = member.account;
       const users = schema.users.where((user: any) => user.memberIds.some((id: any) => id == member.id));
-      
+
+      schema.memberUsers.where({ memberId: member.id }).models.forEach((relation: any) => relation.destroy())
       account.destroy();
       member.destroy();
       users.models.forEach((user: any) => user.destroy());
@@ -733,37 +831,16 @@ export default {
         return badRequest("Use /users/:id/members");
       }
       const accessToken = request.requestHeaders.Authorization.split(" ")[1]
-      const authUser = getMockAuthUser(accessToken)
-      if (authUser) {
-        return schema.users.find(authUser.id)
-      } else if (accessToken == "empty_user_access_token") {
-        return schema.users.findBy({ email: "empty@example.com" });
-      } else {
-        return (request.params.id === "me" 
-          ? schema.users.first() 
-          : schema.users.find(request.params.id)
-        );
-      }
+      const userId = request.params.id === "me" ? getMockAuthUser(accessToken)?.id : request.params.id
+      return schema.users.find(userId)
     });
 
-    // User settings
-    server.get(urlSocial + "/users/:id/settings", (schema: any, request: any) => {
-      return (request.params.id === "me" 
-        ? schema.userSettings.first() 
-        : schema.users.find(request.params.id).settings
-      )
-    });
-
-    // Edit user settings
-    server.patch(urlSocial + "/users/:id/settings", (schema: any, request: any) => {
-      const body = JSON.parse(request.requestBody);
-      const settings = (request.params.id === "me" 
-        ? schema.userSettings.first() 
-        : schema.users.find(request.params.id).settings
-      )
-      settings.update(body.data.attributes);
-      return settings;
-    });
+    server.patch(urlSocial + "/users/:id", (schema: any, request: any) => {
+      preferencePatchRequests.push(new URL(request.url).pathname)
+      const user = schema.users.find(request.params.id)
+      user.update(JSON.parse(request.requestBody).data.attributes)
+      return user
+    })
 
     server.post(urlSocial + "/users/unsubscribe", (schema: any, request: any) => {
       const action = redeemMockActionToken(request.queryParams.token, "unsubscribe")
@@ -771,12 +848,13 @@ export default {
         return badRequest("Invalid or expired unsubscribe token")
       }
       const user = schema.users.find(action.userId)
-      user.settings.update({
-        ...user.settings.attrs,
-        emails: {
-          ...user.settings.emails,
-          group: "never"
-        }
+      schema.memberUsers.where({ userId: user.id }).models.forEach((relation: any) => {
+        relation.update({
+          emails: {
+            ...relation.emails,
+            group: "never"
+          },
+        })
       })
       return new Response(204)
     })
@@ -788,18 +866,10 @@ export default {
         return badRequest("Social users do not include credentials or members");
       }
 
-      const userSettingsData = body.included?.find((record: any) => record.type == "user-settings")
       const token = request.requestHeaders.Authorization.split(" ")[1]
       const authUser = getMockAuthUser(token)
-      const user = authUser
-        ? schema.users.find(authUser.id)
-        : token === "test_user_access_token" ? schema.users.first() : undefined
-      const userSettings = user?.settings
-        ?? (userSettingsData ? schema.userSettings.create(userSettingsData.attributes) : undefined)
-      const attributes = {
-        ...body.data.attributes,
-        settings: userSettings
-      }
+      const user = authUser ? schema.users.find(authUser.id) : undefined
+      const attributes = body.data.attributes
 
       if (user) {
         user.update(attributes)

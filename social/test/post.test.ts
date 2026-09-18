@@ -109,6 +109,89 @@ describe('Posts endpoints', () => {
       .expect(403)
   })
 
+  test('POST /:code/posts rejects suspended owning members, including when an admin acts for them', async () => {
+    await seedGroup({ tenantId: 'posts-suspended-create', status: 'active', access: 'public' })
+    const owner = await auth('posts-suspended-create-owner')
+    const admin = await auth('posts-suspended-create-admin')
+    await seedGroupAdmin({ tenantId: 'posts-suspended-create', userId: admin.id })
+    const member = await seedMember({
+      tenantId: 'posts-suspended-create',
+      status: 'suspended',
+      userId: owner.id,
+    })
+
+    for (const actor of [owner, admin]) {
+      const res = await request(app)
+        .post('/posts-suspended-create/posts')
+        .set('Authorization', `Bearer ${actor.token}`)
+        .send(postInput('offers', {
+          title: 'Suspended offer',
+          description: 'This should not be created.',
+        }, member.id))
+        .expect(403)
+
+      assert.strictEqual(
+        res.body.errors[0].detail,
+        'You do not have permission to create a post for this member',
+      )
+    }
+  })
+
+  test('POST /:code/posts rejects active members of a disabled group', async () => {
+    await seedGroup({ tenantId: 'posts-disabled-group', status: 'disabled', access: 'public' })
+    const owner = await auth('posts-disabled-group-owner')
+    const member = await seedMember({
+      tenantId: 'posts-disabled-group',
+      status: 'active',
+      userId: owner.id,
+    })
+
+    const res = await request(app)
+      .post('/posts-disabled-group/posts')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send(postInput('offers', {
+        title: 'Disabled group offer',
+        description: 'This should not be created.',
+      }, member.id))
+      .expect(403)
+
+    assert.strictEqual(
+      res.body.errors[0].detail,
+      'You do not have permission to create a post for this member',
+    )
+    assert.strictEqual(await tenantDb(prisma, 'posts-disabled-group').post.count(), 0)
+  })
+
+  test('POST and PATCH /:code/posts allow a draft member to edit an offer during signup', async () => {
+    await seedGroup({ tenantId: 'posts-signup-draft', status: 'active', access: 'public' })
+    const owner = await auth('posts-signup-draft-owner')
+    const member = await seedMember({
+      tenantId: 'posts-signup-draft',
+      status: 'draft',
+      userId: owner.id,
+    })
+
+    const created = await request(app)
+      .post('/posts-signup-draft/posts')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send(postInput('offers', {
+        title: 'Signup offer',
+        description: 'A draft offer entered during signup.',
+      }, member.id))
+      .expect(201)
+
+    assert.strictEqual(created.body.data.attributes.status, 'draft')
+
+    const updated = await request(app)
+      .patch(`/posts-signup-draft/posts/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ data: { type: 'offers', attributes: { title: 'Updated signup offer' } } })
+      .expect(200)
+
+    assert.strictEqual(updated.body.data.attributes.title, 'Updated signup offer')
+    assert.strictEqual(updated.body.data.attributes.status, 'draft')
+  })
+
   test('POST /:code/posts creates an offer with code slugified from title', async () => {
     await seedGroup({ tenantId: 'posts-create', status: 'active', access: 'public' })
     const user = await auth('posts-create-user')
@@ -127,37 +210,64 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data.relationships.member.data.id, member.id)
   })
 
-  test('POST /:code/posts emits OfferPublished when created as published', async () => {
-    await seedGroup({ tenantId: 'posts-create-published', status: 'active', access: 'public' })
-    const user = await auth('posts-create-published-user')
-    const member = await seedMember({ tenantId: 'posts-create-published', status: 'active', userId: user.id })
+  for (const [type, event, key] of [
+    ['offers', 'OfferPublished', 'offer'],
+    ['needs', 'NeedPublished', 'need'],
+  ] as const) {
+    for (const method of ['post', 'patch'] as const) {
+      test(`${method.toUpperCase()} /:code/posts emits ${event} when published`, async () => {
+        const tenantId = 'posts-published'
+        await seedGroup({ tenantId, status: 'active', access: 'public' })
+        const user = await auth('posts-published-user')
+        const member = await seedMember({ tenantId, status: 'active', userId: user.id })
+        const post = method === 'patch'
+          ? await seedPost({ tenantId, memberId: member.id, type, status: 'draft' })
+          : undefined
 
-    await request(app)
-      .post('/posts-create-published/posts')
-      .set('Authorization', `Bearer ${user.token}`)
-      .send(postInput('offers', {
-        title: 'Published Offer',
-        description: 'A published offer',
-        status: 'published',
-      }, member.id))
-      .expect(201)
+        const res = await request(app)[method](`/${tenantId}/posts${post ? `/${post.id}` : ''}`)
+          .set('Authorization', `Bearer ${user.token}`)
+          .send(postInput(type, {
+            title: 'Published post',
+            description: 'A published post',
+            status: 'published',
+          }, member.id))
+          .expect(method === 'post' ? 201 : 200)
 
-    const requests = getNotificationsRequests()
-    assert.strictEqual(requests.length, 1)
-    assert.strictEqual(requests[0].method, 'POST')
-    assert.strictEqual(requests[0].path, '/events')
-    assert.strictEqual(requests[0].authorization, 'Bearer social-notifications-token')
+        assert.strictEqual(res.body.data.attributes.status, 'published')
+        const requests = getNotificationsRequests()
+        assert.strictEqual(requests.length, 1)
+        assert.strictEqual(requests[0].method, 'POST')
+        assert.strictEqual(requests[0].path, '/events')
+        assert.strictEqual(requests[0].authorization, 'Bearer social-notifications-token')
 
-    const events = getNotificationsEvents() as any[]
-    assert.strictEqual(events.length, 1)
-    assert.strictEqual(events[0].data.type, 'events')
-    assert.strictEqual(events[0].data.attributes.name, 'OfferPublished')
-    assert.strictEqual(events[0].data.attributes.source, 'social')
-    assert.strictEqual(events[0].data.attributes.code, 'posts-create-published')
-    assert.strictEqual(typeof events[0].data.attributes.time, 'string')
-    assert.strictEqual(typeof events[0].data.attributes.data.offer, 'string')
-    assert.strictEqual(events[0].data.relationships.user.data.type, 'users')
-    assert.strictEqual(events[0].data.relationships.user.data.id, user.id)
+        const events = getNotificationsEvents() as any[]
+        assert.strictEqual(events.length, 1)
+        assert.strictEqual(events[0].data.type, 'events')
+        assert.strictEqual(events[0].data.attributes.name, event)
+        assert.strictEqual(events[0].data.attributes.source, 'social')
+        assert.strictEqual(events[0].data.attributes.code, tenantId)
+        assert.strictEqual(typeof events[0].data.attributes.time, 'string')
+        assert.deepStrictEqual(events[0].data.attributes.data, { [key]: res.body.data.id })
+        assert.strictEqual(events[0].data.relationships.user.data.type, 'users')
+        assert.strictEqual(events[0].data.relationships.user.data.id, user.id)
+      })
+    }
+  }
+
+  test('POST /:code/posts validates required and type-specific attributes', async () => {
+    const user = await auth('posts-validation-user')
+    for (const [type, attributes] of [
+      ['offers', { description: 'Missing title' }],
+      ['offers', { title: 'Missing description' }],
+      ['needs', {}],
+      ['offers', { title: 'Offer', description: 'Text', fulfilled: '2026-01-01T00:00:00Z' }],
+      ['needs', { description: 'Text', value: '10' }],
+    ] as const) {
+      await request(app).post('/posts-validation/posts')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send(postInput(type, attributes, toUuid('validation-member')))
+        .expect(400)
+    }
   })
 
   test('POST /:code/posts does not emit notification for draft post creation', async () => {
@@ -318,6 +428,45 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'public-offer')
   })
 
+  test('GET /:code/posts hides posts from inactive members except from their owner', async () => {
+    await seedGroup({ tenantId: 'posts-inactive-owner', status: 'active', access: 'public' })
+    const owner = await auth('posts-inactive-owner-user')
+    const member = await seedMember({
+      tenantId: 'posts-inactive-owner',
+      status: 'suspended',
+      userId: owner.id,
+    })
+    const post = await seedPost({
+      tenantId: 'posts-inactive-owner',
+      memberId: member.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+    })
+
+    const anonymous = await request(app)
+      .get('/posts-inactive-owner/posts')
+      .expect(200)
+
+    assert.strictEqual(anonymous.body.data.length, 0)
+
+    await request(app)
+      .get(`/posts-inactive-owner/posts/${post.id}`)
+      .expect(403)
+
+    const owned = await request(app)
+      .get('/posts-inactive-owner/posts')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+
+    assert.strictEqual(owned.body.data.length, 1)
+
+    await request(app)
+      .get(`/posts-inactive-owner/posts/${post.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+  })
+
   test('GET /:code/posts returns group-access posts to group members', async () => {
     await seedGroup({ tenantId: 'posts-group-access', status: 'active', access: 'public' })
     const owner = await auth('posts-group-access-owner')
@@ -383,6 +532,43 @@ describe('Posts endpoints', () => {
     const codes = res.body.data.map((item: any) => item.attributes.code)
     assert.strictEqual(codes.includes('draft-offer'), true)
     assert.strictEqual(codes.includes('hidden-offer'), true)
+  })
+
+  test('GET /:code/posts filters service-readable posts by member status', async () => {
+    await seedGroup({ tenantId: 'posts-member-status-filter', status: 'active', access: 'public' })
+    const activeMember = await seedMember({
+      tenantId: 'posts-member-status-filter',
+      status: 'active',
+    })
+    const disabledMember = await seedMember({
+      tenantId: 'posts-member-status-filter',
+      status: 'disabled',
+    })
+
+    await seedPost({
+      tenantId: 'posts-member-status-filter',
+      memberId: activeMember.id,
+      code: 'active-member-offer',
+      type: 'offers',
+      status: 'published',
+    })
+    await seedPost({
+      tenantId: 'posts-member-status-filter',
+      memberId: disabledMember.id,
+      code: 'disabled-member-offer',
+      type: 'offers',
+      status: 'published',
+    })
+
+    const serviceUser = await serviceAuth()
+    const res = await request(app)
+      .get('/posts-member-status-filter/posts?filter[member.status]=active')
+      .set('Authorization', `Bearer ${serviceUser.token}`)
+      .expect(200)
+
+    assert.strictEqual(res.body.data.length, 1)
+    assert.strictEqual(res.body.data[0].attributes.code, 'active-member-offer')
+    assert.strictEqual(res.body.meta.count, 1)
   })
 
   test('GET /:code/posts/:post allows service read access for non-public post', async () => {
@@ -954,25 +1140,6 @@ describe('Posts endpoints', () => {
       .set('Authorization', `Bearer ${other.token}`)
       .send({ data: { type: 'offers', attributes: { title: 'Hack' } } })
       .expect(403)
-  })
-
-  test('PATCH /:code/posts/:post allows status transition draft→published by owner', async () => {
-    await seedGroup({ tenantId: 'posts-status', status: 'active', access: 'public' })
-    const user = await auth('posts-status-user')
-    const member = await seedMember({ tenantId: 'posts-status', status: 'active', userId: user.id })
-    const post = await seedPost({ tenantId: 'posts-status', memberId: member.id, type: 'offers', status: 'draft' })
-
-    const res = await request(app)
-      .patch(`/posts-status/posts/${post.id}`)
-      .set('Authorization', `Bearer ${user.token}`)
-      .send({ data: { type: 'offers', attributes: { status: 'published' } } })
-      .expect(200)
-
-    assert.strictEqual(res.body.data.attributes.status, 'published')
-
-    const events = getNotificationsEvents() as any[]
-    assert.strictEqual(events.length, 1)
-    assert.strictEqual(events[0].data.attributes.name, 'OfferPublished')
   })
 
   test('PATCH /:code/posts/:post does not emit duplicate event for already published post edits', async () => {
