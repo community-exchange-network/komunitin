@@ -65,7 +65,10 @@ export const config = {
   MATOMO_URL: getString('MATOMO_URL', process.env.MATOMO_URL),
   MATOMO_SITE_ID: getString('MATOMO_SITE_ID', process.env.MATOMO_SITE_ID),
   FEEDBACK_URL: getString('FEEDBACK_URL', process.env.FEEDBACK_URL),
-  DOCS_URL: getString('DOCS_URL', process.env.DOCS_URL)
+  DOCS_URL: getString('DOCS_URL', process.env.DOCS_URL),
+  PRIVACY_URL: getString('PRIVACY_URL', process.env.PRIVACY_URL),
+  TERMS_URL: getString('TERMS_URL', process.env.TERMS_URL),
+  COOKIES_URL: getString('COOKIES_URL', process.env.COOKIES_URL)
 };
 
 export function setConfig(newConfig: Record<string, string>) {
