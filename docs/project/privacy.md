@@ -35,7 +35,6 @@ Community administrators and the platform operator can access all data held for 
 | Language, notification choices, push subscriptions and delivery, click and dismissal events | Private to your account. |
 | IP address, browser/device details, timestamps, requested resources, diagnostic logs, page views and usage information | Not visible to other members. Used for troubleshooting, security and usage analytics. |
 | Community applications, support requests, reports and correspondence | Not visible to other members. |
-| Top-up amounts, references and statuses, where enabled | Not visible to other members. |
 
 Depending on community and account settings, your profile name, avatar and account number, together with your offers and wants, may also be shared with members of other communities. Your full profile is not shared with those members. Public community information is visible without signing in.
 
@@ -48,7 +47,7 @@ Depending on community and account settings, your profile name, avatar and accou
 | **Google Analytics** | Audience measurement. Receives page addresses, usage information, browser/device details, pseudonymous identifiers and your IP address through the connection. See the [Cookie policy](cookies.md). |
 | **OpenStreetMap Foundation and its tile delivery providers** | Map display. Receive your IP address, browser request details and the requested map area. See the [OpenStreetMap privacy policy](https://osmfoundation.org/wiki/Privacy_Policy). |
 | **Your browser or device's push provider** | Push notification delivery, when enabled. Receives the subscription endpoint, encrypted notification contents and delivery metadata. |
-| **Mollie** | Top-up processing, where enabled. Receives the amount, currency, reference, description, community code and return/notification URLs. Payment details are collected directly by Mollie under its [Privacy policy](https://www.mollie.com/legal/privacy). |
+| **Mollie** | Payment processing, where enabled. Receives the amount, currency, description and return/notification URLs. Payment details are collected directly by Mollie under its [Privacy policy](https://www.mollie.com/legal/privacy). |
 | **Stellar network** | Public accounting ledger. Receive transfer amounts, the participants' public account addresses, currency identifiers and account operations, including balances and limits. Profile information and transfer descriptions are stored in the service databases and are not sent to Stellar. |
 
 ## Notifications and automated features
