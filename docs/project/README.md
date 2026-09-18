@@ -8,12 +8,11 @@ Komunitin aims to be the leading open source project for community currency exch
 
 As a community currency administrator you can use Komunitin in two ways:
 
-* From one of the public instances. Just fill a form to create your own currency, wait for it to be accepted and you can start configuring the details of your currency and onboarding new members. You need to accept the [terms of use](terms-of-use.md) and contribute to the system maintenance.
+* From one of the open instances. Just fill a form to create your own currency, wait for it to be accepted and you can start configuring the details of your currency and onboarding new members. 
+Open instances are:
+   *  [**komunitin.org**](https://komunitin.org). Check the [terms of use](terms-of-use.md).
+   *  [**app.ces.community**](https://app.ces.community). Community Exchange System PILOT instance.
 
-Public instances:
- -  [komunitin.org](https://komunitin.org). 
- -  [app.ces.community](https://app.ces.community) (pilot). 
- 
 * Deploy your own instance. All the software in komunitin project is open source and ready to be deployed in your own server, provided you have the required infrastructure and technical skills.
 
 ## Roadmap

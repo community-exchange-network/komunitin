@@ -8,7 +8,9 @@ This policy covers personal data processed through [komunitin.org](https://komun
 
 **Your community is the controller of its member data.** It decides membership, required information, profile visibility and the use of exchange records. Its privacy notice must identify the responsible entity or representatives, contact details, purposes and legal bases. Your community administrator can provide that notice.
 
-The platform operator is the processor for community data and follows the community's instructions under the [Data processing agreement](new-community.md#data-processing-agreement). It is the controller for its own support, hosting administration, service security, legal compliance and analytics.
+The platform operator is the processor for community data and follows the community's instructions. The [Terms of use](terms-of-use.md#data-protection-responsibilities) summarise the responsibilities of the community and the platform operator. Detailed processing terms will be set out in a separate data processing agreement between them.
+
+The platform operator is the controller for community requests, its own support, hosting administration, service security, legal compliance and analytics.
 
 Platform operator identification and contact details:
 

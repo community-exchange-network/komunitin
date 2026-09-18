@@ -56,6 +56,20 @@ Komunitin software is distributed under the GNU Affero General Public License, v
 
 The [Privacy policy](privacy.md) describes personal-data processing and rights. The [Cookie and browser storage policy](cookies.md) lists the technologies used and their purposes. Optional processing requiring consent is subject to a separate choice.
 
+## Shared maintenance
+
+Each community using the hosted service contributes collectively to hosting, service administration, software maintenance and development. The community is responsible for organising its contribution and explaining any arrangements affecting its members.
+
+The minimum contribution is **0.1 HOUR per account per year**: a community with 100 accounts contributes 10 HOUR annually. HOUR is the reference unit used to compare community currencies. The number of exchanges does not affect the contribution.
+
+Contributions support the maintenance and development of the service and can be made in the community's own currency when external transfers are enabled. Community administrators can [contact the platform operator](mailto:info@komunitin.org) to agree the arrangements. The platform operator will communicate changes to contributions to affected communities in advance.
+
+## Data protection responsibilities
+
+For community data processed through the hosted service, each community's responsible organisation or identified representatives act as the **data controller**, with primary responsibility for members' personal data. The community decides which data to collect, who can access it and how long to keep it. It must establish a lawful basis, inform members and handle their data-protection requests.
+
+The **platform operator** identified above acts as **processor** for community data and follows the community's documented instructions to provide the service. It assists with members' data-protection requests, notifies the community of personal-data breaches, and returns or deletes data at the community's direction when hosting ends, subject to legal retention requirements. The [Privacy policy](privacy.md) describes the data processed and its visibility.
+
 ## Applicable law
 
 Spanish law governs the hosted service, together with mandatory protections applicable to members, including consumer and data-protection rights. Each party remains responsible under applicable law. Disputes are heard by the courts competent under that law.
