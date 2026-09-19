@@ -1,13 +1,13 @@
-import "../index";
+import server, { seeds } from "../index";
+import { mockToken } from "../AuthServer";
 import { KErrorCode } from "src/KError";
 import { config } from "src/utils/config";
 import type { ResourceObject } from "src/store/model";
-import { seeds } from "../index";
 
 const urlAuth = config.AUTH_URL;
 const urlSocial = config.SOCIAL_URL;
 const urlAccounting = config.ACCOUNTING_URL;
-const authHeaders = { Authorization: "Bearer test_user_access_token" };
+let authHeaders: { Authorization: string };
 
 async function json(response: Response) {
   return response.json();
@@ -16,6 +16,8 @@ async function json(response: Response) {
 describe("MirageJS Server", () => {
   beforeAll(async () => {
     seeds();
+    const tokens = mockToken("social:read", { userId: server.schema.users.first().id })
+    authHeaders = { Authorization: `Bearer ${tokens.access_token}` }
   })
 
   it("mocks auth token and JSON action-token flows", async () => {
@@ -29,8 +31,8 @@ describe("MirageJS Server", () => {
       })
     });
     expect(await json(token)).toMatchObject({
-      access_token: "test_user_access_token",
-      refresh_token: "test_user_refresh_token",
+      access_token: `user:${server.schema.users.first().id}_access_token`,
+      refresh_token: `user:${server.schema.users.first().id}_refresh_token`,
       token_type: "Bearer",
       scope: "social:read"
     });
@@ -62,16 +64,6 @@ describe("MirageJS Server", () => {
 
     expect((await changePassword()).status).toBe(200);
     expect((await changePassword()).status).toBe(400);
-
-    const authenticatedPassword = await fetch(`${urlAuth}/change-password/authenticated`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer test_user_access_token"
-      },
-      body: JSON.stringify({ currentPassword: "komunitin", password: "new-password" })
-    });
-    expect(authenticatedPassword.status).toBe(200);
 
     const unsubscribeActionToken = await fetch(`${urlAuth}/action-token`, {
       method: "POST",

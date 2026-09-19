@@ -426,9 +426,26 @@ export const patchGroupByCode = async (ctx: AuthContext, code: string, attribute
       data.meta = Prisma.DbNull
     }
 
+    // Social preserves membership status while Accounting releases ledger resources.
+    // Complete recovery before updating the group status so failures can be retried.
+    if (status === 'active' && group.status === 'disabled') {
+      const members = await tenantDb(prisma, code).member.findMany({
+        where: { groupId: group.id, status: 'active', deleted: null, accountId: { not: null } },
+        include: { users: true },
+        orderBy: { id: 'asc' },
+      })
+      for (const member of members) {
+        await syncAccountStatus(ctx, {
+          accountId: member.accountId,
+          code: member.code,
+          userIds: member.users.map(({ userId }) => userId),
+        }, getCurrencyCode(group), 'active')
+      }
+    }
+
     data.status = status
   }
-  
+
   const db = tenantDb(prisma, code)
   const dbUpdated = await db.transaction(async (tx) => {
     const updatedGroup = await tx.group.update({

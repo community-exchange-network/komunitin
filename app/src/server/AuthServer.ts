@@ -36,7 +36,7 @@ const revokedRefreshTokens = new Set<string>()
 export function deleteMockIdentity(userId: string, email: string) {
   const user = registeredUsers.get(email)
   deletedEmails.add(email)
-  revokedRefreshTokens.add(user?.refreshToken ?? "test_user_refresh_token")
+  revokedRefreshTokens.add(user?.refreshToken ?? `user:${userId}_refresh_token`)
   registeredUsers.delete(email)
   for (const [token, user] of accessTokenUsers) {
     if (user.id === userId) accessTokenUsers.delete(token)
@@ -46,8 +46,10 @@ export function deleteMockIdentity(userId: string, email: string) {
   }
 }
 
+/** Resolve tokens for registered users or specific seeded users. */
 export function getMockAuthUser(accessToken: string) {
-  return accessTokenUsers.get(accessToken)
+  const userId = /^user:(.+)_access_token$/.exec(accessToken)?.[1]
+  return accessTokenUsers.get(accessToken) ?? (userId ? { id: userId } : undefined)
 }
 
 function statusOk() {
@@ -73,6 +75,12 @@ function newActionToken(purpose: ActionTokenPurpose, userId: string, email: stri
   const token = `${purpose}-${actionTokens.size + 1}`;
   actionTokens.set(token, { purpose, userId, email, signup });
   return token;
+}
+
+export function getMockPasswordResetToken(email: string) {
+  return [...actionTokens.entries()].reverse().find(([, action]) =>
+    action.email === email && action.purpose === "passwordReset"
+  )?.[0]
 }
 
 function latestEmailVerification(userId: string) {
@@ -107,10 +115,14 @@ export function redeemMockActionToken(token: string, purpose: ActionTokenPurpose
   return consumeActionToken(token, [purpose]);
 }
 
-export function mockToken(scope: string | null, emptyUser = false, superadmin = false): TokenResponse & { token_type: "Bearer" } {
+/** Issue mock tokens for a specific user. */
+export function mockToken(scope: string | null, { superadmin = false, userId }: {
+  superadmin?: boolean
+  userId: string
+}): TokenResponse & { token_type: "Bearer" } {
   return {
-    access_token: emptyUser ? "empty_user_access_token" : "test_user_access_token",
-    refresh_token: emptyUser ? "empty_user_refresh_token" : "test_user_refresh_token",
+    access_token: `user:${userId}_access_token`,
+    refresh_token: `user:${userId}_refresh_token`,
     expires_in: 3600,
     token_type: "Bearer",
     scope: (scope ?? "").split(" ").filter(value => value !== Auth.SUPERADMIN_SCOPE || superadmin).join(" ")
@@ -131,7 +143,7 @@ export default {
         if (params.get("grant_type") == "authorization_code") {
           return badRequest("Unsupported grant type");
         }
-        const param = params.get("refresh_token") || params.get("username") || "test_user";
+        const param = params.get("refresh_token") || params.get("username") || "";
         if (deletedEmails.has(param) || revokedRefreshTokens.has(param)) {
           return invalidGrant("Invalid credentials")
         }
@@ -147,7 +159,10 @@ export default {
           const accessToken = `${registered.id}_access_token`
           accessTokenUsers.set(accessToken, registered)
           return new Response(200, {}, {
-            ...mockToken(params.get("scope"), false, registered.email === "superadmin@example.com"),
+            ...mockToken(params.get("scope"), {
+              userId: registered.id,
+              superadmin: registered.email === "superadmin@example.com"
+            }),
             access_token: accessToken,
             refresh_token: registered.refreshToken
           })
@@ -156,7 +171,10 @@ export default {
         if (params.get("grant_type") === "password" && !username?.includes("@")) {
           return invalidGrant("Invalid credentials")
         }
-        const data = mockToken(params.get("scope") ?? "", param === "empty_user", username === "superadmin@example.com");
+        const data = mockToken(params.get("scope") ?? "", {
+          superadmin: username === "superadmin@example.com",
+          userId: /^user:(.+)_refresh_token$/.exec(param)?.[1] ?? schema.users.first().id
+        });
         return new Response(200, {}, data);
       }
     );
@@ -186,12 +204,12 @@ export default {
       return new Response(201, {}, publicUser(user, body.signup));
     });
 
-    server.post(config.AUTH_URL + "/reset-password", (_schema: any, request) => {
+    server.post(config.AUTH_URL + "/reset-password", (schema: any, request) => {
       const body = jsonBody(request);
       if (!body?.email) {
         return badRequest("Expected JSON email");
       }
-      const user = registeredUsers.get(body.email) ?? _schema.users.findBy({ email: body.email })
+      const user = registeredUsers.get(body.email) ?? schema.users.findBy({ email: body.email })
       if (user) newActionToken("passwordReset", user.id, body.email)
       return statusOk();
     });
@@ -212,33 +230,14 @@ export default {
       return statusOk();
     });
 
-    server.post(config.AUTH_URL + "/change-password/authenticated", (_schema: any, request) => {
-      const body = jsonBody(request);
-      const accessToken = request.requestHeaders.Authorization?.split(" ")[1];
-      if (!accessToken || !body?.currentPassword || !body?.password) {
-        return badRequest("Expected bearer auth and JSON currentPassword and password");
-      }
-      if (body.currentPassword === "incorrect") {
-        return new Response(403, {}, { errors: [{ detail: "Current password is incorrect" }] });
-      }
-      const user = accessTokenUsers.get(accessToken)
-      if (user) {
-        if (user.password !== body.currentPassword) {
-          return new Response(403, {}, { errors: [{ detail: "Current password is incorrect" }] });
-        }
-        user.password = body.password
-      }
-      return statusOk();
-    });
-
-    server.post(config.AUTH_URL + "/change-email", (_schema: any, request) => {
+    server.post(config.AUTH_URL + "/change-email", (schema: any, request) => {
       const body = jsonBody(request);
       if (!body?.email) {
         return badRequest("Expected JSON email");
       }
       const accessToken = request.requestHeaders.Authorization?.split(" ")[1]
-      const user = accessToken ? accessTokenUsers.get(accessToken) : undefined
-      newActionToken("emailChange", user?.id ?? "test_user", body.email);
+      const user = accessToken ? getMockAuthUser(accessToken) : undefined
+      newActionToken("emailChange", user?.id ?? schema.users.first().id, body.email);
       return statusOk();
     });
 
@@ -273,14 +272,14 @@ export default {
       });
     });
 
-    server.post(config.AUTH_URL + "/resend-validation", (_schema: any, request) => {
+    server.post(config.AUTH_URL + "/resend-validation", (schema: any, request) => {
       const body = jsonBody(request);
       if (!body?.email) {
         return badRequest("Expected JSON email");
       }
       const user = registeredUsers.get(body.email)
       const signup = user ? latestEmailVerification(user.id)?.[1].signup : undefined
-      newActionToken("emailVerification", user?.id ?? "test_user", body.email, signup);
+      newActionToken("emailVerification", user?.id ?? schema.users.first().id, body.email, signup);
       return statusOk();
     });
 

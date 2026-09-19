@@ -94,12 +94,13 @@ import DateField from "../../components/DateField.vue"
 import ImageField from "../../components/ImageField.vue"
 import SelectCategory from "../../components/SelectCategory.vue"
 import ToggleItem from "../../components/ToggleItem.vue"
-import type { Category, ImageObject, Offer, OfferStatus } from "src/store/model"
+import type { Category, Currency, ImageObject, Offer, OfferStatus } from "src/store/model"
 import { type DeepPartial, type QForm } from "quasar"
 import { useStore } from "vuex"
 
 const props = withDefaults(defineProps<{
   code: string
+  currency?: Currency
   modelValue?: DeepPartial<Offer> & {category: Category}
   defaultStatus?: OfferStatus
   showState?: boolean
@@ -150,7 +151,7 @@ watch([() => props.modelValue], async () => {
 
 const store = useStore()
 
-const currency = computed(() => store.getters.myCurrency)
+const currency = computed(() => props.currency ?? store.getters.myCurrency)
 
 const memberId = computed(() => props.modelValue?.relationships?.member?.data.id || store.getters.myMember.id)
 

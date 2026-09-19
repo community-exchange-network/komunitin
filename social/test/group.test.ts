@@ -15,6 +15,7 @@ import {
   seedAccountingAccount,
   seedAccountingCurrency,
   setAccountingAccountCreateStatus,
+  setAccountingAccountPatchStatus,
   setAccountingCurrencyDeleteStatus,
 } from './mocks/handlers'
 import { resetDb, seedCategory, seedGroup, seedGroupAdmin, seedMember } from './mocks/seed'
@@ -1469,6 +1470,87 @@ describe('Groups endpoints', () => {
       ],
     )
     assert.strictEqual(getNotificationsEvents().length, 0)
+  })
+
+  test('enabling synchronizes accounts of active Social members and can be retried', async () => {
+    const code = 'recover-group'
+    const currency = seedAccountingCurrency(code)
+    const admin = await auth('recover-admin')
+    await seedGroup({ tenantId: code, status: 'active', currencyId: currency.id })
+    await seedGroupAdmin({ tenantId: code, userId: admin.id })
+    const cases = [
+      ['active', 'active', 'active'],
+      ['active', 'disabled', 'active'],
+      ['active', 'suspended', 'active'],
+      ['disabled', 'disabled', 'disabled'],
+      ['suspended', 'suspended', 'suspended'],
+      ['pending', 'disabled', 'disabled'],
+      ['draft', 'disabled', 'disabled'],
+    ] as const
+    const fixtures = await Promise.all(cases.map(async ([socialStatus, ledgerStatus, expected], i) => {
+      const account = seedAccountingAccount(code, `${code}${i}`, [admin.id], undefined, ledgerStatus)
+      const member = await seedMember({
+        tenantId: code, userId: admin.id, code: account.code,
+        accountId: account.id, status: socialStatus,
+      })
+      return { account, member, expected }
+    }))
+    const deletedAccount = seedAccountingAccount(code, 'deleted-member', [admin.id], undefined, 'disabled')
+    await seedMember({ tenantId: code, userId: admin.id, accountId: deletedAccount.id, deleted: new Date() })
+    await seedGroup({ tenantId: 'other-recovery-group', status: 'active' })
+    const otherAccount = seedAccountingAccount('other-recovery-group', 'other-account', [admin.id], undefined, 'disabled')
+    await seedMember({ tenantId: 'other-recovery-group', userId: admin.id, accountId: otherAccount.id })
+    const patch = (status: string) => request(app).patch(`/${code}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ data: { type: 'groups', attributes: { status } } })
+
+    await patch('disabled').expect(200)
+    assert.strictEqual(fixtures[0].account.status, 'disabled')
+    const disabledRequests = getAccountingRequests().length
+    await patch('disabled').expect(200)
+    assert.strictEqual(getAccountingRequests().length, disabledRequests)
+    const db = tenantDb(prisma, code)
+    for (const { member } of fixtures) {
+      assert.strictEqual((await db.member.findUniqueOrThrow({ where: { id: member.id } })).status, member.status)
+    }
+
+    // Currency enabling may succeed before an account fails. Retrying resumes recovery.
+    setAccountingAccountPatchStatus(503)
+    await patch('active').expect(500)
+    assert.strictEqual(currency.status, 'active')
+    assert.strictEqual((await db.group.findFirstOrThrow()).status, 'disabled')
+    setAccountingAccountPatchStatus(200)
+    await patch('active').expect(200)
+    for (const { account, expected } of fixtures) assert.strictEqual(account.status, expected)
+
+    // Same-status requests skip Accounting even if an account is disabled.
+    fixtures[0].account.status = 'disabled'
+    const requests = getAccountingRequests().length
+    await patch('active').expect(200)
+    assert.strictEqual(fixtures[0].account.status, 'disabled')
+    assert.strictEqual(getAccountingRequests().length, requests)
+    assert.strictEqual(deletedAccount.status, 'disabled')
+    assert.strictEqual(otherAccount.status, 'disabled')
+    assert.strictEqual(getNotificationsEvents().length, 0)
+  })
+
+  test('enabling fails if Accounting rejects activation of a deleted account', async () => {
+    const code = 'deleted-account-recovery'
+    const currency = seedAccountingCurrency(code, undefined, 'disabled')
+    const admin = await auth('deleted-account-recovery-admin')
+    await seedGroup({ tenantId: code, status: 'disabled', currencyId: currency.id })
+    await seedGroupAdmin({ tenantId: code, userId: admin.id })
+    const account = seedAccountingAccount(code, `${code}0001`, [admin.id], undefined, 'deleted')
+    await seedMember({ tenantId: code, userId: admin.id, accountId: account.id, status: 'active' })
+
+    await request(app).patch(`/${code}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ data: { type: 'groups', attributes: { status: 'active' } } })
+      .expect(500)
+
+    assert.strictEqual(account.status, 'deleted')
+    assert.strictEqual(currency.status, 'active')
+    assert.strictEqual((await tenantDb(prisma, code).group.findFirstOrThrow()).status, 'disabled')
   })
 
   test('PATCH /:code denies non-admin and allows superadmin for non-status updates', async () => {
