@@ -1,0 +1,3 @@
+member,user,notifications.myAccount,notifications.group,emails.myAccount,emails.group
+EXMP0001,alice@example.org,true,true,true,weekly
+EXMP0002,bob@example.org,,,,

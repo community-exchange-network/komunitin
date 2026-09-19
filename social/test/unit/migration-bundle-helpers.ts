@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { buffer } from 'node:stream/consumers'
@@ -48,6 +49,7 @@ export const mutateCsv = (
   const mutated = new Map(files)
   const records = parse(files.get(filename)!.toString('utf8'), { relax_column_count: true }) as string[][]
   const columnIndex = records[0].indexOf(column)
+  assert.notEqual(columnIndex, -1, `Unknown ${filename} column: ${column}`)
   records[dataRow][columnIndex] = value
   mutated.set(filename, encodeCsv(records))
   return mutated
@@ -55,3 +57,14 @@ export const mutateCsv = (
 
 export const resultCodes = (result: { success: boolean, errors?: Array<{ code: string }> }): string[] =>
   result.success ? [] : result.errors!.map((error) => error.code)
+
+export const appendCsvRow = (
+  files: Map<MigrationBundleFilename, Buffer>,
+  filename: MigrationBundleFilename,
+  sourceRow: number,
+  overrides: Record<string, string>,
+): Map<MigrationBundleFilename, Buffer> => {
+  const records = parse(files.get(filename)!.toString('utf8')) as string[][]
+  records.push(records[0].map((header, index) => overrides[header] ?? records[sourceRow][index]))
+  return new Map(files).set(filename, encodeCsv(records))
+}

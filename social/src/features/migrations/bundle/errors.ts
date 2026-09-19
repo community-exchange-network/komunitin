@@ -1,13 +1,7 @@
+import { MIGRATION_BUNDLE_FILENAMES } from './constants'
 import type { MigrationValidationError } from './types'
 
-const FILE_ORDER = new Map([
-  ['community.csv', 0],
-  ['users.csv', 1],
-  ['members.csv', 2],
-  ['transfers.csv', 3],
-  ['categories.csv', 4],
-  ['posts.csv', 5],
-])
+const FILE_ORDER = new Map<string, number>(MIGRATION_BUNDLE_FILENAMES.map((file, index) => [file, index]))
 
 export class ErrorCollector {
   readonly #errors: MigrationValidationError[] = []

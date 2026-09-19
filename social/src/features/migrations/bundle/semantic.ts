@@ -35,7 +35,7 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
   const users = uniqueMap(rows.users, (user) => user.email, 'users.csv', 'email', errors)
   const members = uniqueMap(rows.members, (member) => member.code, 'members.csv', 'code', errors)
   uniqueMap(
-    rows.transfers, (transfer) => transfer.sourceKey, 'transfers.csv', 'sourceKey', errors,
+    rows.transfers, (transfer) => transfer.id, 'transfers.csv', 'id', errors,
   )
   const categories = uniqueMap(rows.categories, (category) => category.code, 'categories.csv', 'code', errors)
   uniqueMap(rows.posts, (post) => post.code, 'posts.csv', 'code', errors)
@@ -63,22 +63,40 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
         'code',
       )
     }
-    for (const email of member.adminUsers) {
-      requireUser(email, 'members.csv', memberRow.row, 'adminUsers')
-    }
   }
 
-  const activeMembershipAdmins = new Set(
-    rows.members
-      .filter(({ value }) => value.status !== 'deleted')
-      .flatMap(({ value }) => value.adminUsers),
+  const memberUsers = uniqueMap(
+    rows.memberUsers,
+    (relation) => JSON.stringify([relation.member, relation.user]),
+    'member-users.csv',
+    'user',
+    errors,
   )
+  const membersWithUsers = new Set<string>()
+  const communityMembers = new Set<string>()
+  for (const { value: relation, row } of memberUsers.values()) {
+    requireUser(relation.user, 'member-users.csv', row, 'user')
+    const member = members.get(relation.member)
+    if (!member) {
+      addFieldError(errors, 'MISSING_REFERENCE',
+        `Member ${relation.member} is not present in members.csv`, 'member-users.csv', row, 'member')
+    } else {
+      membersWithUsers.add(relation.member)
+      if (member.value.status !== 'deleted') communityMembers.add(relation.user)
+    }
+  }
+  for (const { value: member, row } of rows.members) {
+    if (member.status !== 'deleted' && !membersWithUsers.has(member.code)) {
+      addFieldError(errors, 'MISSING_MEMBER_USER',
+        'Every non-deleted member must have a member-users.csv relationship', 'members.csv', row, 'code')
+    }
+  }
   for (const email of community.adminUsers) {
-    if (!activeMembershipAdmins.has(email)) {
+    if (!communityMembers.has(email)) {
       addFieldError(
         errors,
         'ADMIN_NOT_MEMBER',
-        `Community administrator ${email} must administer a non-deleted member`,
+        `Community administrator ${email} must belong to a non-deleted member`,
         'community.csv',
         rows.community.row,
         'adminUsers',
@@ -116,48 +134,48 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
   const calculatedBalances = new Map([...accounts.keys()].map((code) => [code, 0n]))
   for (const transferRow of rows.transfers) {
     const transfer = transferRow.value
-    requireUser(transfer.initiatorUser, 'transfers.csv', transferRow.row, 'initiatorUser')
+    requireUser(transfer.user, 'transfers.csv', transferRow.row, 'user')
     const payerExists = requireAccount(
-      transfer.payerAccountCode, 'transfers.csv', transferRow.row, 'payerAccountCode',
+      transfer.payer, 'transfers.csv', transferRow.row, 'payer',
     )
     const payeeExists = requireAccount(
-      transfer.payeeAccountCode, 'transfers.csv', transferRow.row, 'payeeAccountCode',
+      transfer.payee, 'transfers.csv', transferRow.row, 'payee',
     )
-    if (transfer.payerAccountCode === transfer.payeeAccountCode) {
+    if (transfer.payer === transfer.payee) {
       addFieldError(
         errors,
         'SELF_TRANSFER',
         'Payer and payee accounts must be distinct',
         'transfers.csv',
         transferRow.row,
-        'payeeAccountCode',
+        'payee',
       )
     }
 
-    if (payerExists && payeeExists && transfer.payerAccountCode !== transfer.payeeAccountCode) {
+    if (payerExists && payeeExists && transfer.payer !== transfer.payee) {
       const amount = BigInt(transfer.amount)
       calculatedBalances.set(
-        transfer.payerAccountCode,
-        calculatedBalances.get(transfer.payerAccountCode)! - amount,
+        transfer.payer,
+        calculatedBalances.get(transfer.payer)! - amount,
       )
       calculatedBalances.set(
-        transfer.payeeAccountCode,
-        calculatedBalances.get(transfer.payeeAccountCode)! + amount,
+        transfer.payee,
+        calculatedBalances.get(transfer.payee)! + amount,
       )
     }
   }
 
   for (const postRow of rows.posts) {
     const post = postRow.value
-    const owner = members.get(post.memberCode)
+    const owner = members.get(post.member)
     if (!owner) {
       addFieldError(
         errors,
         'MISSING_REFERENCE',
-        `Member ${post.memberCode} is not present in members.csv`,
+        `Member ${post.member} is not present in members.csv`,
         'posts.csv',
         postRow.row,
-        'memberCode',
+        'member',
       )
     } else if (post.status === 'published' && owner.value.status !== 'active') {
       addFieldError(
@@ -166,17 +184,17 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
         'Published posts must belong to an active member',
         'posts.csv',
         postRow.row,
-        'memberCode',
+        'member',
       )
     }
-    if (post.categoryCode !== null && !categories.has(post.categoryCode)) {
+    if (post.category !== null && !categories.has(post.category)) {
       addFieldError(
         errors,
         'MISSING_REFERENCE',
-        `Category ${post.categoryCode} is not present in categories.csv`,
+        `Category ${post.category} is not present in categories.csv`,
         'posts.csv',
         postRow.row,
-        'categoryCode',
+        'category',
       )
     }
   }

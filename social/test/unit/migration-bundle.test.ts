@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 import test from 'node:test'
 import { parse } from 'csv-parse/sync'
 import { parseExactAmount } from '../../src/features/migrations/bundle/amounts'
@@ -19,33 +18,55 @@ test('parses the canonical example directory into a normalized JSON-safe plan', 
   if (!result.success) return
 
   assert.doesNotThrow(() => JSON.stringify(result.plan))
-  assert.equal(
-    createHash('sha256').update(JSON.stringify(result.plan)).digest('hex'),
-    '0ee9b4548ccfdfe816511ea7ca680734981af04574c305a7d5f47d81033bef81',
-    'normalized example plan snapshot changed',
-  )
   assert.deepStrictEqual(result.summary, {
     users: 2,
+    memberUsers: 2,
     members: 2,
     accounts: 2,
     transfers: 1,
     categories: 1,
     offers: 1,
-    wants: 1,
+    needs: 1,
     images: 2,
   })
   assert.deepStrictEqual(result.plan.members.map((member) => member.account?.balance), ['-500', '500'])
-  assert.equal(result.plan.transfers[0].amount, '500')
+  assert.deepStrictEqual(result.plan.transfers[0], {
+    id: 'transfer-alice-bob-1',
+    payer: 'EXMP0001',
+    payee: 'EXMP0002',
+    user: 'alice@example.org',
+    amount: '500',
+    description: 'Example payment',
+    createdAt: '2025-02-01T12:00:00.000Z',
+    updatedAt: '2025-02-01T12:00:00.000Z',
+  })
+  assert.equal(result.plan.users[0].language, 'en')
+  assert.equal(result.plan.users[0].status, 'active')
+  assert.ok(result.plan.members.every((member) => member.deleted === null))
+  assert.deepStrictEqual(result.plan.memberUsers[0], {
+    member: 'EXMP0001',
+    user: 'alice@example.org',
+    notifications: { myAccount: true, group: true },
+    emails: { myAccount: true, group: 'weekly' },
+  })
+  assert.deepStrictEqual(result.plan.members.map((member) => member.account?.users), [
+    ['alice@example.org'], ['bob@example.org'],
+  ])
+  assert.equal(result.plan.community.currency.rateNumerator, 1)
+  assert.equal(result.plan.community.currency.rateDenominator, 1)
+  assert.equal(result.plan.community.settings.minNeeds, 0)
+  assert.equal(result.plan.community.address?.locality, 'Barcelona')
+  assert.deepStrictEqual(result.plan.community.location, { type: 'Point', longitude: 2.1734, latitude: 41.3851 })
+  assert.equal(result.plan.categories[0].description, 'Things neighbours can share or do together.')
+  assert.deepStrictEqual(result.plan.posts.map(({ type }) => type), ['offer', 'need'])
   assert.deepStrictEqual(result.plan.images, [
     {
-      sourceKey: 'community:EXMP:image:0',
       sourceUrl: 'https://example.org/community.jpg',
       ownerType: 'community',
       ownerKey: 'EXMP',
       position: 0,
     },
     {
-      sourceKey: 'offer:fresh-bread:image:0',
       sourceUrl: 'https://example.org/bread.jpg',
       ownerType: 'offer',
       ownerKey: 'fresh-bread',
@@ -68,6 +89,7 @@ test('parses generated ZIP entries identically regardless of entry order', async
 test('normalizes email, timestamps, quoted commas, and quoted newlines', async () => {
   let files = await loadExampleFiles()
   files = mutateCsv(files, 'users.csv', 1, 'email', ' Alice@Example.ORG ')
+  files = mutateCsv(files, 'member-users.csv', 1, 'user', ' ALICE@EXAMPLE.ORG ')
   files = mutateCsv(files, 'users.csv', 1, 'createdAt', '2025-01-01T10:00:00+01:00')
   files = mutateCsv(files, 'users.csv', 1, 'name', 'Alice, Example\nOperator')
   files = mutateCsv(files, 'community.csv', 1, 'adminUsers', 'alice@example.org;BOB@EXAMPLE.ORG')
@@ -75,6 +97,7 @@ test('normalizes email, timestamps, quoted commas, and quoted newlines', async (
   assert.equal(result.success, true)
   if (!result.success) return
   assert.equal(result.plan.users[0].email, 'alice@example.org')
+  assert.equal(result.plan.memberUsers[0].user, 'alice@example.org')
   assert.equal(result.plan.users[0].name, 'Alice, Example\nOperator')
   assert.equal(result.plan.users[0].createdAt, '2025-01-01T09:00:00.000Z')
   assert.deepStrictEqual(result.plan.community.adminUsers, ['alice@example.org', 'bob@example.org'])
@@ -105,11 +128,22 @@ test('validates each CSV header exactly', async (t) => {
 test('reports representative structural field errors with record and column', async (t) => {
   const cases = [
     ['community.csv', 'access', 'Public', 'INVALID_ENUM'],
-    ['users.csv', 'settings.notifications.group', 'TRUE', 'INVALID_BOOLEAN'],
+    ['member-users.csv', 'notifications.group', 'TRUE', 'INVALID_BOOLEAN'],
+    ['users.csv', 'passwordHash', 'plaintext-password', 'INVALID_PASSWORD_HASH'],
+    ['users.csv', 'language', 'x'.repeat(32), 'MAX_LENGTH'],
+    ['users.csv', 'status', 'pending', 'INVALID_ENUM'],
     ['members.csv', 'status', 'ACTIVE', 'INVALID_ENUM'],
+    ['members.csv', 'code', 'EXMP' + 'x'.repeat(252), 'MAX_LENGTH'],
+    ['members.csv', 'account.settings.acceptPaymentsAfter', 'false', 'INVALID_INTEGER'],
+    ['members.csv', 'account.settings.acceptPaymentsAfter', '-1', 'INVALID_INTEGER'],
+    ['members.csv', 'account.settings.onPaymentCreditLimit', 'false', 'INVALID_AMOUNT'],
+    ['members.csv', 'account.settings.onPaymentCreditLimit', '-1', 'INVALID_AMOUNT'],
     ['transfers.csv', 'amount', '5e2', 'INVALID_AMOUNT'],
     ['categories.csv', 'icon.value', '', 'INVALID_FIELD_GROUP'],
     ['posts.csv', 'title', '', 'REQUIRED_FIELD'],
+    ['community.csv', 'location.longitude', '181', 'INVALID_COORDINATE'],
+    ['posts.csv', 'imageUrls', 'file:///tmp/image.jpg', 'INVALID_URL'],
+    ['transfers.csv', 'id', '', 'REQUIRED_FIELD'],
   ] as const
   const example = await loadExampleFiles()
 
@@ -178,5 +212,37 @@ test('enforces missing-file, byte, row, and error-reporting limits', async () =>
   const truncated = await parseMigrationBundle(
     { type: 'zip', bytes: await zipFromFiles(manyErrors) }, { maxErrors: 1 },
   )
-  assert.deepStrictEqual(resultCodes(truncated), ['INVALID_TIMESTAMP', 'ERROR_LIMIT_EXCEEDED'])
+  assert.deepStrictEqual(resultCodes(truncated), ['INVALID_EMAIL', 'ERROR_LIMIT_EXCEEDED'])
+})
+
+test('preserves compatible password hashes and rejects unsupported credentials without echoing them', async (t) => {
+  const example = await loadExampleFiles()
+  const records = parse(example.get('users.csv')!.toString('utf8')) as string[][]
+  const hash = records[1][records[0].indexOf('passwordHash')]
+  const cases = [
+    ['Auth bcrypt', hash, true],
+    ['older bcrypt', hash.replace('$2b$', '$2a$'), true],
+    ['no password', '', true],
+    ['plaintext', 'do-not-echo-this-password', false],
+    ['Drupal', '$S$' + 'a'.repeat(52), false],
+    ['truncated bcrypt', hash.slice(0, -1), false],
+    ['unsupported bcrypt version', hash.replace('$2b$', '$2y$'), false],
+    ['invalid cost', hash.replace('$10$', '$03$'), false],
+  ] as const
+  for (const [name, value, valid] of cases) {
+    await t.test(name, async () => {
+      const files = mutateCsv(example, 'users.csv', 1, 'passwordHash', value)
+      const result = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) })
+      assert.equal(result.success, valid, JSON.stringify(result))
+      if (result.success) {
+        assert.equal(result.plan.users[0].passwordHash, value || null)
+        assert.equal(result.plan.users[1].passwordHash, null)
+      } else {
+        assert.deepStrictEqual(result.errors.map(({ code, file, row, column }) => ({ code, file, row, column })), [
+          { code: 'INVALID_PASSWORD_HASH', file: 'users.csv', row: 2, column: 'passwordHash' },
+        ])
+        assert.ok(!JSON.stringify(result.errors).includes(value))
+      }
+    })
+  }
 })

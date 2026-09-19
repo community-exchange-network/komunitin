@@ -21,7 +21,6 @@ export interface MigrationAddress {
 }
 
 export interface MigrationLocation {
-  name: string | null
   type: 'Point'
   longitude: number
   latitude: number
@@ -32,8 +31,7 @@ export interface MigrationContact {
   value: string
 }
 
-export interface MigrationUserSettings {
-  language: string | null
+export interface MigrationMemberUserSettings {
   notifications: {
     myAccount: boolean | null
     group: boolean | null
@@ -48,7 +46,7 @@ export interface MigrationCommunitySettings {
   requireAcceptTerms: boolean | null
   terms: string | null
   minOffers: number | null
-  minWants: number | null
+  minNeeds: number | null
   allowAnonymousMemberList: boolean | null
   enableGroupEmail: boolean | null
   defaultGroupEmailFrequency: 'never' | 'weekly' | 'monthly' | null
@@ -100,8 +98,8 @@ export interface MigrationCurrencySettings {
 }
 
 export interface MigrationAccountSettings extends MigrationPaymentSettings {
-  onPaymentCreditLimit: string | false | null
-  acceptPaymentsAfter: number | false | null
+  onPaymentCreditLimit: string | null
+  acceptPaymentsAfter: number | null
   acceptPaymentsWhitelist: string[]
   hideBalance: boolean | null
 }
@@ -138,15 +136,22 @@ export interface MigrationCommunity {
 export interface MigrationUser {
   email: string
   name: string | null
+  status: 'active' | 'disabled'
   createdAt: string
   updatedAt: string
-  settings: MigrationUserSettings
+  passwordHash: string | null
+  language: string | null
+}
+
+export interface MigrationMemberUser extends MigrationMemberUserSettings {
+  member: string
+  user: string
 }
 
 export interface MigrationAccount {
   code: string
   status: 'active' | 'disabled' | 'suspended' | 'deleted'
-  owners: string[]
+  users: string[]
   balance: string
   creditLimit: string
   maximumBalance: string | null
@@ -158,13 +163,13 @@ export interface MigrationAccount {
 export interface MigrationMember {
   code: string
   name: string
-  type: 'personal' | 'business' | 'organization'
+  type: 'personal' | 'business' | 'organization' | 'public'
   status: 'draft' | 'pending' | 'active' | 'disabled' | 'suspended' | 'deleted'
   access: 'public' | 'group' | 'private'
   description: string
-  adminUsers: string[]
   createdAt: string
   updatedAt: string
+  deleted: string | null
   imageUrl: string | null
   address: MigrationAddress | null
   location: MigrationLocation | null
@@ -173,10 +178,10 @@ export interface MigrationMember {
 }
 
 export interface MigrationTransfer {
-  sourceKey: string
-  payerAccountCode: string
-  payeeAccountCode: string
-  initiatorUser: string
+  id: string
+  payer: string
+  payee: string
+  user: string
   amount: string
   description: string
   createdAt: string
@@ -195,9 +200,9 @@ export interface MigrationCategory {
 
 export interface MigrationPost {
   code: string
-  type: 'offer' | 'want'
-  memberCode: string
-  categoryCode: string | null
+  type: 'offer' | 'need'
+  member: string
+  category: string | null
   title: string | null
   description: string
   status: 'draft' | 'published' | 'hidden'
@@ -211,10 +216,9 @@ export interface MigrationPost {
   imageUrls: string[]
 }
 
-export type MigrationImageOwnerType = 'community' | 'member' | 'offer' | 'want'
+export type MigrationImageOwnerType = 'community' | 'member' | 'offer' | 'need'
 
 export interface MigrationImage {
-  sourceKey: string
   sourceUrl: string
   ownerType: MigrationImageOwnerType
   ownerKey: string
@@ -224,6 +228,7 @@ export interface MigrationImage {
 export interface MigrationImportPlan {
   community: MigrationCommunity
   users: MigrationUser[]
+  memberUsers: MigrationMemberUser[]
   members: MigrationMember[]
   transfers: MigrationTransfer[]
   categories: MigrationCategory[]
@@ -233,12 +238,13 @@ export interface MigrationImportPlan {
 
 export interface MigrationSummary {
   users: number
+  memberUsers: number
   members: number
   accounts: number
   transfers: number
   categories: number
   offers: number
-  wants: number
+  needs: number
   images: number
 }
 
