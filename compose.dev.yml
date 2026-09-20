@@ -45,7 +45,7 @@ services:
       - ./accounting/pnpm-lock.yaml:/app/pnpm-lock.yaml
 
   auth:
-    command: pnpm dev
+    command: sh -c 'pnpm prisma generate && pnpm dev'
     ports: !override
       - "2026:2026"
       - "9226:9226"
@@ -62,7 +62,7 @@ services:
       - ./auth/tsconfig.json:/app/tsconfig.json
   
   social:
-    command: pnpm dev
+    command: sh -c 'pnpm prisma generate && pnpm dev'
     ports:
       - "2028:2028"
       - "9228:9228"
