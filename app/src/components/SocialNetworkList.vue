@@ -13,7 +13,7 @@
         </q-avatar>
       </q-item-section>
       <q-item-section v-if="type === 'contact'">
-        <q-item-label>{{ contactName(key) }}</q-item-label>
+        <q-item-label style="overflow-wrap: anywhere">{{ contactName(key) }}</q-item-label>
         <q-item-label caption>
           {{ networkLabel(key) }}
         </q-item-label>
