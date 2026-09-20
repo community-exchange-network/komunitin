@@ -274,6 +274,8 @@ describe("Signup", () => {
     // Save profile
     const fetchSpy = vi.spyOn(globalThis, "fetch")
     try {
+      // An explicit save must include edits made immediately before clicking.
+      await wrapper.get("[name='description']").setValue("Profile updated just before saving.")
       await wrapper.get("button[type='submit']").trigger("click");
       await waitFor(() => wrapper.text().includes("What do you offer?"), true, "Offer creation form should show");
       const profilePatch = fetchSpy.mock.calls.find(([url, options]) =>
@@ -285,6 +287,7 @@ describe("Signup", () => {
       expect(Object.keys(profilePatchBody.data)).toEqual(["id", "type", "attributes"])
       expect(profilePatchBody.data.id).toBe(draftMemberId)
       expect(profilePatchBody.data.type).toBe("members")
+      expect(profilePatchBody.data.attributes.description).toBe("Profile updated just before saving.")
       expect(Object.keys(profilePatchBody.data.attributes)).toEqual([
         "name",
         "description",
