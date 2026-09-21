@@ -278,7 +278,12 @@ describe("Transactions", () => {
     await waitFor(() => dialog.findAllComponents(AccountHeader).length, 0, "External group should have no accounts");
     
     await input.setValue("002")
-    await waitFor(() => dialog.findAllComponents(AccountHeader).length, 1)
+    // Other requests can briefly put an unrelated account in the shared store.
+    await waitFor(
+      () => dialog.findAllComponents(AccountHeader)[0]?.text().includes("GRP20002"),
+      true,
+      "External account search should find GRP20002"
+    )
     // Found account
     await dialog.getComponent(AccountHeader).trigger("click")
     await flushPromises()
@@ -288,7 +293,7 @@ describe("Transactions", () => {
     await wrapper.get("[name='amount']").setValue("13")
     await flushPromises()
     await waitFor(
-      () => (wrapper.get("input[aria-label='Amount in feeds']").element as HTMLInputElement).value,
+      () => wrapper.find<HTMLInputElement>("input[aria-label='Amount in feeds']").element?.value,
       "1,300.00",
       "External currency amount should be calculated"
     );
