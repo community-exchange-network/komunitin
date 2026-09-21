@@ -1,5 +1,5 @@
 import { VueWrapper } from "@vue/test-utils";
-import { seeds } from "src/server";
+import { seeds } from "@/server";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
 

@@ -5,9 +5,9 @@ import { mountComponent, waitFor } from "../utils";
 import { QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
-import ApiSerializer from "src/server/ApiSerializer";
-import { seeds } from "src/server";
-import SelectCategory from "src/components/SelectCategory.vue";
+import ApiSerializer from "@/server/ApiSerializer";
+import { seeds } from "@/server";
+import SelectCategory from "@/components/SelectCategory.vue";
 
 
 describe("Offers", () => {

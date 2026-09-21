@@ -6,20 +6,13 @@ services:
     ports: !override
       - 2030:2030
     volumes:
-    # Can't use the whole app folder because it contains node_modules and dist and
-    # since the volume is mounted after the image is built, the node_modules and dist
-    # folders are then not available in the container. If you need to change any of
-    # the files not included, you can rebuild the image or add the file to the volumes.
-      - ./app/public:/app/public
-      - ./app/src:/app/src
-      - ./app/src-pwa:/app/src-pwa
-      - ./app/test:/app/test
-      - ./app/quasar.config.ts:/app/quasar.config.ts
-      - ./app/package.json:/app/package.json
-      - ./app/pnpm-lock.yaml:/app/pnpm-lock.yaml
-      - ./app/.env:/app/.env
-      - ./app/.env.flavor.komunitin:/app/.env.flavor.komunitin
-      - ./app/.env.flavor.ces:/app/.env.flavor.ces
+      - ./app:/app
+      # Keep container dependencies, generated files and HTTPS certificates separate.
+      - /app/node_modules
+      - /app/src-pwa/node_modules
+      - /app/dist
+      - /app/.quasar
+      - /app/tmp
 
     environment:
       MOCK_ENABLE: ${KOMUNITIN_APP_MOCK}

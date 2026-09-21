@@ -2,7 +2,7 @@ import type { ComponentPublicInstance } from 'vue';
 
 import KError, { KErrorCode } from '../KError';
 import { Notify } from 'quasar'
-import { boot } from 'quasar/wrappers';
+import { defineBoot } from '#q-app';
 import {i18n} from './i18n'
 
 
@@ -106,7 +106,7 @@ if (window !== undefined) {
     // furthermore, safari may hide the error details from the script, just giving "Script error"
     if (event.message.includes("ResizeObserver loop") || event.message == "Script error.") {
       // TODO: Maybe remove this warning in production.
-      if (process.env.DEV) {
+      if (import.meta.env.QUASAR_DEV) {
          
         console.warn(event.message);
       }
@@ -128,7 +128,7 @@ if (window !== undefined) {
   });
 }
 
-export default boot(({app}) => {
+export default defineBoot(({app}) => {
   // Add handleError() function to Vue prototype.
   app.config.globalProperties.$handleError = handleError;
   // Set Vue warning handler.

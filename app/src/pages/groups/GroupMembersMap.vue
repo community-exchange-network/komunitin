@@ -30,9 +30,9 @@ import { LMarker } from "@vue-leaflet/vue-leaflet"
 
 import SimpleMap from "../../components/SimpleMap.vue"
 
-import { useAllResources } from "src/composables/useResources"
-import { getBoundsAroundCenter, isUsableLngLat, toLeafletLatLng, type LngLat } from "src/composables/leaflet"
-import type { Group, Member } from "src/store/model"
+import { useAllResources } from "@/composables/useResources"
+import { getBoundsAroundCenter, isUsableLngLat, toLeafletLatLng, type LngLat } from "@/composables/leaflet"
+import type { Group, Member } from "@/store/model"
 
 const props = defineProps<{
   group: Group

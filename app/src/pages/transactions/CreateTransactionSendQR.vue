@@ -25,18 +25,18 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "src/store/model"
+import type { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "@/store/model"
 import type { Ref} from "vue";
 import { computed, ref, watch } from "vue"
 import { useStore } from "vuex"
-import type { ExtendedAccountWithSettings} from "src/composables/fullAccount";
-import { transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
+import type { ExtendedAccountWithSettings} from "@/composables/fullAccount";
+import { transferAccountRelationships, useCreateTransferPayerAccount } from "@/composables/fullAccount"
 import { QrcodeStream } from "vue-qrcode-reader"
 import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue"
-import KError, { KErrorCode } from "src/KError"
-import type { LoadByUrlPayload } from "src/store/resources"
-import { loadExternalAccountRelationships, useFullTransferByResource } from "src/composables/fullTransfer"
-import { convertCurrency } from "src/plugins/FormatCurrency"
+import KError, { KErrorCode } from "@/KError"
+import type { LoadByUrlPayload } from "@/store/resources"
+import { loadExternalAccountRelationships, useFullTransferByResource } from "@/composables/fullTransfer"
+import { convertCurrency } from "@/plugins/FormatCurrency"
 import { useAccountSettings } from "../../composables/accountSettings"
 
 type DetectedCode = {

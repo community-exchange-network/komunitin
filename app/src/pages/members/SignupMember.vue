@@ -82,7 +82,7 @@ import ProfileForm from "./ProfileForm.vue"
 import OfferForm from "../offers/OfferForm.vue"
 import { computed, ref } from "vue"
 import { useStore } from "vuex"
-import type { Contact, Member, Offer } from "src/store/model"
+import type { Contact, Member, Offer } from "@/store/model"
 import type { DeepPartial } from "quasar"
 import { scroll } from "quasar";
 import { useI18n } from "vue-i18n"

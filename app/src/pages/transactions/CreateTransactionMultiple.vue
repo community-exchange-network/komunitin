@@ -23,9 +23,9 @@
 <script setup lang="ts">
 import CreateTransactionMultipleForm from './CreateTransactionMultipleForm.vue'
 import CreateTransactionMultipleConfirm from './CreateTransactionMultipleConfirm.vue'
-import type { ExtendedAccount } from 'src/store/model';
+import type { ExtendedAccount } from '@/store/model';
 import { computed, ref } from 'vue';
-import { useCreateTransferPayeeAccount, useCreateTransferPayerAccount } from 'src/composables/fullAccount';
+import { useCreateTransferPayeeAccount, useCreateTransferPayerAccount } from '@/composables/fullAccount';
 
 export type TransferRow = {
   payer?: ExtendedAccount,

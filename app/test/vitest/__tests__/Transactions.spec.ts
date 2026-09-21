@@ -1,18 +1,18 @@
 import { flushPromises, type VueWrapper } from "@vue/test-utils";
-import App from "src/App.vue";
+import App from "@/App.vue";
 import { mountComponent, waitFor } from "../utils";
-import TransactionList from "src/pages/transactions/TransactionList.vue";
-import AccountHeader from "src/components/AccountHeader.vue";
-import SelectAccount from "src/components/SelectAccount.vue";
-import PageHeader from "src/layouts/PageHeader.vue";
-import { seeds } from "src/server";
+import TransactionList from "@/pages/transactions/TransactionList.vue";
+import AccountHeader from "@/components/AccountHeader.vue";
+import SelectAccount from "@/components/SelectAccount.vue";
+import PageHeader from "@/layouts/PageHeader.vue";
+import { seeds } from "@/server";
 import { QFabAction, QInput, QList, QMenu } from "quasar";
-import SelectGroupExpansion from "src/components/SelectGroupExpansion.vue";
-import GroupHeader from "src/components/GroupHeader.vue";
-import CreateTransactionSendQR from "src/pages/transactions/CreateTransactionSendQR.vue";
-import NfcTagScanner from "src/components/NfcTagScanner.vue";
+import SelectGroupExpansion from "@/components/SelectGroupExpansion.vue";
+import GroupHeader from "@/components/GroupHeader.vue";
+import CreateTransactionSendQR from "@/pages/transactions/CreateTransactionSendQR.vue";
+import NfcTagScanner from "@/components/NfcTagScanner.vue";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
-import DateField from "src/components/DateField.vue";
+import DateField from "@/components/DateField.vue";
 import { addDays, format } from "date-fns";
 
 // Payment address URL used in QR, link, and scan tests.
@@ -270,6 +270,7 @@ describe("Transactions", () => {
     await groups.trigger("click")
     
     // Choose group 2
+    await waitFor(() => groups.getComponent(QList).findAllComponents(GroupHeader).length, 7)
     const group2 = groups.getComponent(QList).findAllComponents(GroupHeader)[2]
     expect(group2.text()).toContain("Group 2")
     await group2.trigger("click")

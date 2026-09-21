@@ -30,7 +30,7 @@ import DialogFormBtn from '../../components/DialogFormBtn.vue'
 import PasswordField from '../../components/PasswordField.vue'
 import { Notify } from "quasar"
 import { useI18n } from 'vue-i18n'
-import KError, { KErrorCode } from 'src/KError'
+import KError, { KErrorCode } from '@/KError'
 
 const props = defineProps<{
   user: User

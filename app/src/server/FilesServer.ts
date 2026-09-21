@@ -1,6 +1,6 @@
 import type { Server } from "miragejs"
 import { Response } from "miragejs"
-import { config } from "src/utils/config"
+import { config } from "@/utils/config"
 
 const fieldName = "files[file]"
 

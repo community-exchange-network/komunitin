@@ -3,8 +3,8 @@ import { type defineComponent } from 'vue';
 import { flushPromises, mount, type MountingOptions, type VueWrapper } from "@vue/test-utils";
 import { Notify, LocalStorage } from "quasar";
 import { quasarPlugin, qComponents } from "./quasar-plugin";
-import store from 'src/store/index';
-import createRouter from 'src/router/index';
+import store from '@/store/index';
+import createRouter from '@/router/index';
 
 
 // Boot files.
@@ -14,7 +14,7 @@ import '../../../src/boot/mirage';
 import bootAuth from '../../../src/boot/auth';
 import { Auth } from '../../../src/plugins/Auth';
 import { auth } from '../../../src/store/me';
-import { mockToken } from 'src/server/AuthServer';
+import { mockToken } from '@/server/AuthServer';
 import { type RouteLocationRaw } from 'vue-router';
 
 export function testLogin() {
@@ -31,8 +31,6 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
     testLogin();  
   }
 
-  // Set the router mode to "history", as we have in our Quasar config file.
-  process.env.VUE_ROUTER_MODE = "history";
   const router = createRouter();
 
   const mountOptions = {

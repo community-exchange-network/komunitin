@@ -1,11 +1,11 @@
 import { vi } from 'vitest';
 import { VueWrapper, flushPromises } from "@vue/test-utils";
-import { seeds } from "src/server";
+import { seeds } from "@/server";
 import { mountComponent, waitFor } from "../utils";
 import App from "../../../src/App.vue";
 import GroupCard from "../../../src/components/GroupCard.vue";
 import { QBtn, QDialog, QInput, QItem, QSelect } from "quasar";
-import CountryChooser from "src/components/CountryChooser.vue";
+import CountryChooser from "@/components/CountryChooser.vue";
 
 // Mock quasar.scroll used in Signup.vue and SignupMember.vue to scroll to top on step change.
 vi.mock("quasar", async () => {

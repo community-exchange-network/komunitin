@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useStore } from 'vuex';
-import { config } from 'src/utils/config';
+import { config } from '@/utils/config';
 
 import Avatar from "./Avatar.vue";
 import MenuItem from '../components/MenuItem.vue';

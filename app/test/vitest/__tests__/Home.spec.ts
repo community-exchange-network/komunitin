@@ -9,10 +9,10 @@ import {
 } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
-import { seeds } from "src/server";
-import NeedCard from "src/components/NeedCard.vue";
-import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
-import MenuItem from 'src/components/MenuItem.vue';
+import { seeds } from "@/server";
+import NeedCard from "@/components/NeedCard.vue";
+import ProfileBtnMenu from '@/components/ProfileBtnMenu.vue';
+import MenuItem from '@/components/MenuItem.vue';
 
 describe("Home", () => {
   let wrapper: VueWrapper;
