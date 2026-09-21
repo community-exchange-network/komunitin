@@ -3,6 +3,8 @@
 Production uses Quasar SSG to generate only `/` in English (`en-us`). The browser
 replaces that content with the normal application, using the visitor's language
 and session; it does not hydrate the static HTML. Other routes use `csr.html`.
+The final auth boot awaits initial navigation before mounting, keeping the static
+page visible while authentication and lazy-loaded route components resolve.
 Deploy the whole `dist/ssg` directory with the Nginx configuration in `docker/`.
 `pnpm dev` continues to use PWA mode without static generation.
 

@@ -22,12 +22,13 @@ export default defineConfig((ctx) => {
     boot: [
       { path: "errors", server: false },
       "i18n",
-      { path: "auth", server: false },
       "store",
       { path: "push-notifications", server: false },
       ...(environment.FEAT_GTM === "true" ? [{ path: "gtm", server: false as const }] : []),
       ...(environment.FEAT_MATOMO === "true" ? [{ path: "matomo", server: false as const }] : []),
-      ...(environment.MOCK_ENABLE === "true" ? [{ path: "mirage", server: false as const }] : [])
+      ...(environment.MOCK_ENABLE === "true" ? [{ path: "mirage", server: false as const }] : []),
+      // Resolve initial navigation after all plugins and route hooks are ready.
+      { path: "auth", server: false }
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
