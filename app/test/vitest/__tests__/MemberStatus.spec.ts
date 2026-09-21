@@ -1,11 +1,11 @@
 import type { VueWrapper } from '@vue/test-utils'
-import App from 'src/App.vue'
-import ConfirmBtn from 'src/components/ConfirmBtn.vue'
-import MemberStatusChip from 'src/components/MemberStatusChip.vue'
-import MemberStatusField from 'src/pages/settings/MemberStatusField.vue'
-import server, { seeds } from 'src/server'
-import type { Account, Member } from 'src/store/model'
-import { config } from 'src/utils/config'
+import App from '@/App.vue'
+import ConfirmBtn from '@/components/ConfirmBtn.vue'
+import MemberStatusChip from '@/components/MemberStatusChip.vue'
+import MemberStatusField from '@/pages/settings/MemberStatusField.vue'
+import server, { seeds } from '@/server'
+import type { Account, Member } from '@/store/model'
+import { config } from '@/utils/config'
 import { mountComponent, waitFor } from '../utils'
 
 describe('Member status settings', () => {

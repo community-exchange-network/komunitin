@@ -43,7 +43,7 @@
 </template>
 <script lang="ts">
 import { defineComponent } from "vue";
-import { useCardClickTo } from "src/composables/useCardClickTo"
+import { useCardClickTo } from "@/composables/useCardClickTo"
 
 /**
  * This component wraps a card with a predefined structure to be used in

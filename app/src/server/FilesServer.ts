@@ -2,7 +2,7 @@
 
 import type { Server } from "miragejs"
 import { Response } from "miragejs"
-import { config } from "src/utils/config"
+import { config } from "@/utils/config"
 import { jsonApiError } from "./ServerUtils"
 
 const fieldName = "file"

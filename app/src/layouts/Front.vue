@@ -27,7 +27,7 @@
         <div>
           <img
             class="logo"
-            src="~assets/logo.svg"
+            src="~@/assets/logo.svg"
             alt="Komunitin"
           >
         </div>
@@ -41,27 +41,34 @@
       <router-view />
     </q-page-container>
 
-    <q-footer class="bg-transparent q-py-md text-center text-onoutside-m q-gutter-md">
-      <select-lang />
-      <q-btn
-        flat
-        type="a"
-        :href="docsUrl"
-        target="__blank"
-        :label="$t('documentation')"
-      />
-      <q-btn
-        flat
-        type="a"
-        href="https://github.com/komunitin/komunitin"
-        target="__blank"
-        :label="$t('contribute')"
-      />
-      <q-btn
-        flat
-        to="/signup-group"
-        :label="$t('newGroup')"
-      />
+    <q-footer class="bg-transparent q-py-md text-center text-onoutside-m">
+      <div class="q-gutter-md">
+        <select-lang />
+        <q-btn
+          flat
+          type="a"
+          :href="docsUrl"
+          target="__blank"
+          :label="$t('documentation')"
+        />
+        <q-btn
+          flat
+          type="a"
+          href="https://github.com/komunitin/komunitin"
+          target="__blank"
+          :label="$t('contribute')"
+        />
+        <q-btn
+          flat
+          to="/signup-group"
+          :label="$t('newGroup')"
+        />
+      </div>
+      <div v-if="privacyUrl || termsUrl || cookiesUrl" class="legal-links row justify-center q-mt-md">
+        <q-btn v-if="privacyUrl" flat no-caps class="text-caption" padding="xs sm" :href="privacyUrl" :label="$t('privacyPolicy')" />
+        <q-btn v-if="termsUrl" flat no-caps class="text-caption" padding="xs sm" :href="termsUrl" :label="$t('terms')" />
+        <q-btn v-if="cookiesUrl" flat no-caps class="text-caption" padding="xs sm" :href="cookiesUrl" :label="$t('cookies')" />
+      </div>
     </q-footer>
   </q-layout>
 </template>
@@ -70,11 +77,14 @@
 import { computed } from 'vue';
 import FitText from '../components/FitText.vue';
 import selectLang from '../components/SelectLang.vue';
-import bgImage from 'assets/home_background-700.jpg';
+import bgImage from '@/assets/home_background-700.jpg';
 import { useRoute, useRouter } from 'vue-router';
 import { config } from '../utils/config';
 
 const docsUrl = config.DOCS_URL
+const privacyUrl = config.PRIVACY_URL
+const termsUrl = config.TERMS_URL
+const cookiesUrl = config.COOKIES_URL
 
 const route = useRoute();
 const router = useRouter();

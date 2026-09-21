@@ -154,8 +154,8 @@ import ToggleItem from '../../components/ToggleItem.vue';
 import ToggleBtnItem from '../../components/ToggleBtnItem.vue';
 import SaveChanges from '../../components/SaveChanges.vue';
 import NfcTagsList from '../../components/NfcTagsList.vue';
-import NotificationsBanner from 'src/components/NotificationsBanner.vue';
-import AccountHeader from 'src/components/AccountHeader.vue';
+import NotificationsBanner from '@/components/NotificationsBanner.vue';
+import AccountHeader from '@/components/AccountHeader.vue';
 import AccountSettingsFields from './AccountSettingsFields.vue';
 import DeleteMemberBtn from './DeleteMemberBtn.vue';
 import MemberStatusField from './MemberStatusField.vue';
@@ -166,9 +166,9 @@ import type { AccountSettings, MailingFrequency, AccountTag, MemberUser, User, A
 import type { DeepPartial } from 'quasar';
 import { useLocale } from "../../boot/i18n"
 import { watchDebounced } from "@vueuse/shared";
-import { currencySettingsToAccountSettingsAttributes, useEffectiveSettings } from 'src/composables/accountSettings';
-import { useResource } from 'src/composables/useResources';
-import { useEditableMember, useEditableMemberUser } from 'src/composables/editableMember';
+import { currencySettingsToAccountSettingsAttributes, useEffectiveSettings } from '@/composables/accountSettings';
+import { useResource } from '@/composables/useResources';
+import { useEditableMember, useEditableMemberUser } from '@/composables/editableMember';
 import { isEqual } from 'lodash-es';
 
 const props = defineProps<{

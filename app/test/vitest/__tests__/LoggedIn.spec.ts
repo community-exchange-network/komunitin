@@ -1,13 +1,13 @@
 import type { VueWrapper } from "@vue/test-utils";
-import server, { seeds } from "src/server";
+import server, { seeds } from "@/server";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
 import { Notify, QBtn } from "quasar";
-import { getMockPasswordResetToken } from "src/server/AuthServer";
-import PasswordField from "src/components/PasswordField.vue";
-import ChangeEmailBtn from "src/pages/members/ChangeEmailBtn.vue";
-import ChangePasswordBtn from "src/pages/members/ChangePasswordBtn.vue";
-import { config } from "src/utils/config";
+import { getMockPasswordResetToken } from "@/server/AuthServer";
+import PasswordField from "@/components/PasswordField.vue";
+import ChangeEmailBtn from "@/pages/members/ChangeEmailBtn.vue";
+import ChangePasswordBtn from "@/pages/members/ChangePasswordBtn.vue";
+import { config } from "@/utils/config";
 
 describe("logged in", () => {
   let wrapper: VueWrapper;

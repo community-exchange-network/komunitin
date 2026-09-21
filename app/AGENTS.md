@@ -15,7 +15,7 @@ pnpm lint
 pnpm test
 ```
 
-- Docker builds use Node.js 22 and pnpm.
+- Docker builds and local development use Node.js 24 and pnpm.
 - Standalone dev uses `.env.test` and mocked backend APIs. Use this environment for frontend-only development.
 - To run against the root Docker stack, stop the `app` container, configure `.env` to point at the local services, and run `pnpm dev`.
 - Local HTTPS dev requires `tmp/certs/localhost.pem`, `tmp/certs/localhost-key.pem`, and `LOCAL_CA_ROOT` as described in `DEVELOP.md`.

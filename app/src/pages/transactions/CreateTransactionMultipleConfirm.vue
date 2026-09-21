@@ -39,11 +39,11 @@
 import { useStore } from 'vuex';
 import type { TransferRow } from './CreateTransactionMultiple.vue';
 import { computed, ref, watch } from 'vue';
-import type { Currency, ExtendedAccount, ExtendedTransfer, Transfer, TransferState } from 'src/store/model';
-import TransactionItem from 'src/components/TransactionItem.vue';
+import type { Currency, ExtendedAccount, ExtendedTransfer, Transfer, TransferState } from '@/store/model';
+import TransactionItem from '@/components/TransactionItem.vue';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
-import { notifyTransactionStateMultiple } from 'src/plugins/NotifyTransactionState';
+import { notifyTransactionStateMultiple } from '@/plugins/NotifyTransactionState';
 import { useRouter } from 'vue-router';
 import KError, { KErrorCode } from '../../KError';
 

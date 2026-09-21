@@ -1,10 +1,10 @@
 import type { VueWrapper } from '@vue/test-utils'
 import { Notify, QBtn } from 'quasar'
 
-import App from 'src/App.vue'
-import KError, { KErrorCode } from 'src/KError'
-import Error404 from 'src/pages/Error404.vue'
-import { seeds } from 'src/server'
+import App from '@/App.vue'
+import KError, { KErrorCode } from '@/KError'
+import Error404 from '@/pages/Error404.vue'
+import { seeds } from '@/server'
 import { mountComponent, waitFor } from '../utils'
 
 describe('Not found pages', () => {

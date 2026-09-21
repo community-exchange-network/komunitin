@@ -7,12 +7,12 @@ import OfferCard from "../../../src/components/OfferCard.vue";
 import MemberList from "../../../src/pages/members/MemberList.vue";
 import MemberHeader from "../../../src/components/MemberHeader.vue";
 import TransactionItems from "../../../src/pages/transactions/TransactionItems.vue";
-import server, { seeds } from "src/server";
+import server, { seeds } from "@/server";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
-import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
-import MenuItem from 'src/components/MenuItem.vue';
-import ContactButton from "src/components/ContactButton.vue";
-import ShareButton from "src/components/ShareButton.vue";
+import ProfileBtnMenu from '@/components/ProfileBtnMenu.vue';
+import MenuItem from '@/components/MenuItem.vue';
+import ContactButton from "@/components/ContactButton.vue";
+import ShareButton from "@/components/ShareButton.vue";
 
 type MockPost = {
   type: "offers" | "needs"

@@ -1,7 +1,7 @@
 import type { VueWrapper } from '@vue/test-utils'
-import App from 'src/App.vue'
-import SimpleMap from 'src/components/SimpleMap.vue'
-import server, { seeds } from 'src/server'
+import App from '@/App.vue'
+import SimpleMap from '@/components/SimpleMap.vue'
+import server, { seeds } from '@/server'
 import { mountComponent, waitFor } from '../utils'
 
 describe('Member profile without a location', () => {

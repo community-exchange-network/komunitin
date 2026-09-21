@@ -1,6 +1,6 @@
 import type { VueWrapper } from "@vue/test-utils"
-import App from "src/App.vue"
-import server, { seeds } from "src/server"
+import App from "@/App.vue"
+import server, { seeds } from "@/server"
 import { mountComponent, testLogin, waitFor } from "../utils"
 
 describe("admin routes", () => {

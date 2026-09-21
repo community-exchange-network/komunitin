@@ -77,8 +77,8 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useStore } from "vuex"
-import type { Category, Currency, Group, Member, Offer } from "src/store/model"
-import { useCardClickTo } from "src/composables/useCardClickTo"
+import type { Category, Currency, Group, Member, Offer } from "@/store/model"
+import { useCardClickTo } from "@/composables/useCardClickTo"
 import vClamp from "../plugins/Clamp"
 import md2txt from "../plugins/Md2txt"
 import { formatPrice } from "../plugins/FormatCurrency"

@@ -1,4 +1,4 @@
-import type { Currency } from "src/store/model";
+import type { Currency } from "@/store/model";
 import { i18n } from "../boot/i18n";
 import type { NumberOptions } from "vue-i18n";
 

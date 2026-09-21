@@ -91,7 +91,7 @@ elif [ "$dev" = true ]; then
   # which causes the services to fail to start.
   touch -a app/.env accounting/.env notifications-ts/.env auth/.env social/.env
   mkdir -p notifications-ts/tmp
-  docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans
+  docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans --renew-anon-volumes
   docker compose exec auth pnpm prisma generate
   docker compose exec social pnpm prisma generate
   docker compose exec accounting pnpm prisma generate

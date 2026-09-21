@@ -9,12 +9,12 @@ import { clientsClaim } from 'workbox-core'
 import { Queue } from 'workbox-background-sync'
 // Komunitin
 import { getConfig, setConfig } from "./sw-config"
-import { getActionRoute, type PushPayload } from '../src/utils/push-notifications'
+import { getActionRoute, type PushPayload } from '@/utils/push-notifications'
 
 declare const self: ServiceWorkerGlobalScope
 
 // This version will be replaced by DefinePlugin at build time
-const SW_VERSION = process.env.APP_VERSION
+const SW_VERSION = import.meta.env.APP_VERSION
 
 const requestQueue = new Queue('request-queue', {
   maxRetentionTime: 48 * 60, // Retry for max of 48 hours (in minutes)
@@ -23,7 +23,7 @@ const requestQueue = new Queue('request-queue', {
 // Keep track of clicked notifications to avoid double telemetry on notificationclose
 const clickedNotifications = new Set<string>()
 
-// Add a listener for messages from the client (register-service-worker.ts).
+// Add a listener for messages from the client (register-sw.ts).
 self.addEventListener('message', (event: MessageEvent) => {
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: SW_VERSION })
@@ -34,7 +34,7 @@ self.addEventListener('message', (event: MessageEvent) => {
   }
   if (event.data && event.data.type === 'SET_CONFIG') {
     setConfig(event.data.config)
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
       console.log("Service worker config set:", event.data.config)
     }
   }

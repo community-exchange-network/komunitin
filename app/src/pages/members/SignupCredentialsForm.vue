@@ -57,7 +57,7 @@
   </q-form>
 </template>
 <script setup lang="ts">
-import PasswordField from 'src/components/PasswordField.vue'
+import PasswordField from '@/components/PasswordField.vue'
 import useVuelidate from "@vuelidate/core"
 import { required, email as vemail } from "@vuelidate/validators"
 import { ref, watchEffect } from 'vue'

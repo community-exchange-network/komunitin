@@ -22,8 +22,8 @@ import {
   Quasar
 } from "quasar";
 import PageHeader from "../PageHeader.vue";
-import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
-import MenuItem from 'src/components/MenuItem.vue';
+import ProfileBtnMenu from '@/components/ProfileBtnMenu.vue';
+import MenuItem from '@/components/MenuItem.vue';
 import { createI18n } from "vue-i18n";
 import { defineComponent } from "vue";
 

@@ -2,32 +2,32 @@ import { afterEach, vi } from 'vitest';
 import { flushPromises } from "@vue/test-utils";
 import type { VueWrapper } from "@vue/test-utils";
 import type * as Quasar from "quasar";
-import { seeds } from "src/server";
+import { seeds } from "@/server";
 import { mountComponent, waitFor } from "../utils";
 import App from "../../../src/App.vue";
 import Avatar from "../../../src/components/Avatar.vue";
 import AvatarField from "../../../src/components/AvatarField.vue";
 import GroupCard from "../../../src/components/GroupCard.vue";
 import { QBtn, QDialog, QInput, QItem, QSelect } from "quasar";
-import CountryChooser from "src/components/CountryChooser.vue";
-import LocationPicker from "src/components/LocationPicker.vue";
-import EditGroupForm from "src/pages/admin/EditGroupForm.vue";
-import Error404 from "src/pages/Error404.vue";
-import MemberProfile from "src/pages/members/MemberProfile.vue";
-import { config } from "src/utils/config";
-import { Auth, type SignupContext } from "src/plugins/Auth";
-import type { Group } from "src/store/model";
+import CountryChooser from "@/components/CountryChooser.vue";
+import LocationPicker from "@/components/LocationPicker.vue";
+import EditGroupForm from "@/pages/admin/EditGroupForm.vue";
+import Error404 from "@/pages/Error404.vue";
+import MemberProfile from "@/pages/members/MemberProfile.vue";
+import { config } from "@/utils/config";
+import { Auth, type SignupContext } from "@/plugins/Auth";
+import type { Group } from "@/store/model";
 import {
   failNextMockGroupPatch,
   failNextMockMemberCreate,
   failNextMockMemberCreateResponse,
   getMockMemberCreateCount
-} from "src/server/SocialServer";
+} from "@/server/SocialServer";
 import {
   getMockFileUploadAttempts,
   resetMockFileUploads,
   setMockFileUploadLimit
-} from "src/server/FilesServer";
+} from "@/server/FilesServer";
 import { createMockImageFile, mockImageUploadProcessing } from "../utils/mockImageUpload";
 
 // Mock quasar.scroll used in Signup.vue and SignupMember.vue to scroll to top on step change.
