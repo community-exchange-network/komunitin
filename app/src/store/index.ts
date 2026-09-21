@@ -170,7 +170,7 @@ if (import.meta.env.FEAT_TOPUP === 'true') {
 
 export default createStore({
   modules,
-  // It is generaly advisable to enable strict mode in development. That checks state is
+  // It is generally advisable to enable strict mode in development. That checks state is
   // not mutated outside commit actions. However we're mutating nested records within 
   // resource modules (eg we directly change the state outside of a commit when we delete
   // a resource), so we should address that before enabling strict mode.
