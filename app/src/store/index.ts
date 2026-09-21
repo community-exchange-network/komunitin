@@ -175,7 +175,7 @@ export default createStore({
   // resource modules (eg we directly change the state outside of a commit when we delete
   // a resource), so we should address that before enabling strict mode.
   strict: false,
-  plugins: [createPersistPlugin()]
+  plugins: import.meta.env.QUASAR_SERVER ? [] : [createPersistPlugin()]
 });
 
 export const setAccountingApiUrl = (url: string) => {
