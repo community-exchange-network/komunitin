@@ -70,7 +70,6 @@ export default defineConfig((ctx) => {
       // Existing Options API components still need Vue's runtime support.
       vueOptionsAPI: true,
       sourcemap: true,      
-      // Preserve env values as strings, matching Docker's config.js overrides.
       defineEnv: environment,
       vitePlugins: [
         ctx.prod ? ['rollup-plugin-visualizer', { filename: 'dist/stats.html', gzipSize: true }] : null,
@@ -113,7 +112,7 @@ export default defineConfig((ctx) => {
       https: {
         key: readFileSync("./tmp/certs/localhost-key.pem"),
         cert: readFileSync("./tmp/certs/localhost.pem"),
-        ca: readFileSync(environment.LOCAL_CA_ROOT ?? "~/.local/share/mkcert/rootCA.pem")
+        ca: readFileSync(process.env.LOCAL_CA_ROOT ?? environment.LOCAL_CA_ROOT ?? "~/.local/share/mkcert/rootCA.pem")
       },
       // Disable auto updating when checking PWA update process.
       // hot: false,
