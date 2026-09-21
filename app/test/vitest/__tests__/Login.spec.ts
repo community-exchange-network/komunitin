@@ -92,5 +92,10 @@ describe("Front page and login", () => {
     await waitFor(() => wrapper.vm.$route.path === "/", true, "Should navigate back to front page after logout", 1500)
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
   })
-  
+  it('accepts a token and redirect query on the root page', async () => {
+    await wrapper.vm.$router.push('/?token=test_user&redirect=/home');
+    await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true);
+    await waitFor(() => wrapper.vm.$route.path, '/home');
+  });
+
 });

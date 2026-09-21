@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 // Workbox
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
-import { registerRoute } from 'workbox-routing'
+import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { CacheFirst } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { ExpirationPlugin } from 'workbox-expiration'
@@ -46,6 +46,14 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 clientsClaim()
 cleanupOutdatedCaches()
+
+// Dev serves HTML on demand and has no precached application shell.
+if (!import.meta.env.QUASAR_DEV) {
+  // Controlled visits start from cache; first visits receive the generated HTML.
+  registerRoute(new NavigationRoute(
+    createHandlerBoundToURL(import.meta.env.QUASAR_PWA_FALLBACK_HTML)
+  ))
+}
 
 // JS and CSS and assets should be already precached so we don't need to do any
 // runtime caching.
