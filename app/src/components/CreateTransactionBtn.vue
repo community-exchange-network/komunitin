@@ -18,7 +18,7 @@
 <script lang="ts" setup>
 import FloatingBtnMenu, { type FABAction } from './FloatingBtnMenu.vue'
 import FloatingBtn from './FloatingBtn.vue'
-import { useMyAccountSettings } from 'src/composables/accountSettings'
+import { useMyAccountSettings } from '@/composables/accountSettings'
 import { computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
@@ -80,7 +80,7 @@ watch([showMakePayment, showRequestPayment, showTransfer, myMember],() => {
   })
 }, {immediate: true})
 
-if (process.env.FEAT_TOPUP === 'true') {
+if (import.meta.env.FEAT_TOPUP === 'true') {
   const topupSettings = useTopupSettings()
   const showTopup = computed(
     () => topupSettings.value?.allowTopup

@@ -215,17 +215,17 @@
 </template>
 <script setup lang="ts">
 import { QTable } from 'quasar';
-import PageHeader from 'src/layouts/PageHeader.vue';
-import Avatar from 'src/components/Avatar.vue';
-import MemberHeader from 'src/components/MemberHeader.vue';
-import DeleteMemberBtn from 'src/pages/settings/DeleteMemberBtn.vue';
+import PageHeader from '@/layouts/PageHeader.vue';
+import Avatar from '@/components/Avatar.vue';
+import MemberHeader from '@/components/MemberHeader.vue';
+import DeleteMemberBtn from '@/pages/settings/DeleteMemberBtn.vue';
 import MemberStatusChip from '../../components/MemberStatusChip.vue';
-import type { Account, AccountSettings, CurrencySettings, Group, Member } from 'src/store/model';
-import type { LoadListPayload } from 'src/store/resources';
+import type { Account, AccountSettings, CurrencySettings, Group, Member } from '@/store/model';
+import type { LoadListPayload } from '@/store/resources';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import formatCurrency from 'src/plugins/FormatCurrency';
+import formatCurrency from '@/plugins/FormatCurrency';
 import { useRouter } from 'vue-router';
 import { useAccountsCsv } from '../../composables/downloadCsv';
 

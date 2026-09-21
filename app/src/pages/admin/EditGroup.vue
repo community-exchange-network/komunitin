@@ -35,11 +35,11 @@
 <script setup lang="ts">
 import { useStore } from "vuex";
 import EditGroupForm from "./EditGroupForm.vue"
-import PageHeader from "src/layouts/PageHeader.vue";
-import SaveChanges from "src/components/SaveChanges.vue";
+import PageHeader from "@/layouts/PageHeader.vue";
+import SaveChanges from "@/components/SaveChanges.vue";
 import { computed, ref, watch } from "vue";
-import type { Currency, Group } from "src/store/model";
-import type { PartialContact } from "src/components/MemberContactsField.vue";
+import type { Currency, Group } from "@/store/model";
+import type { PartialContact } from "@/components/MemberContactsField.vue";
 
 const store = useStore()
 const props = defineProps<{

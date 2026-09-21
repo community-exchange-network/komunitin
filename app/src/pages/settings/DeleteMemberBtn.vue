@@ -43,19 +43,19 @@
   </delete-btn>
 </template>
 <script setup lang="ts">
-import DeleteBtn from "src/components/DeleteBtn.vue"
-import SelectAccount from "src/components/SelectAccount.vue";
-import MemberHeader from "src/components/MemberHeader.vue";
-import PasswordField from "src/components/PasswordField.vue";
+import DeleteBtn from "@/components/DeleteBtn.vue"
+import SelectAccount from "@/components/SelectAccount.vue";
+import MemberHeader from "@/components/MemberHeader.vue";
+import PasswordField from "@/components/PasswordField.vue";
 
 import { computed, ref } from "vue"
 import { useStore } from "vuex"
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 
-import type { Account, Currency, Group, Member } from "src/store/model";
-import { transferAccountRelationships } from "src/composables/fullAccount";
-import type { DeletePayload } from "src/store/resources";
+import type { Account, Currency, Group, Member } from "@/store/model";
+import { transferAccountRelationships } from "@/composables/fullAccount";
+import type { DeletePayload } from "@/store/resources";
 import { useRouter } from "vue-router";
 
 

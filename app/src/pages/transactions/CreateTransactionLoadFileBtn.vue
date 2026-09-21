@@ -29,13 +29,13 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
-import KError, { KErrorCode } from 'src/KError';
-import DialogFormBtn from 'src/components/DialogFormBtn.vue';
-import { readCSV } from 'src/plugins/Files';
-import { normalizeAccountCode, parseAmount } from 'src/plugins/FormatCurrency';
+import KError, { KErrorCode } from '@/KError';
+import DialogFormBtn from '@/components/DialogFormBtn.vue';
+import { readCSV } from '@/plugins/Files';
+import { normalizeAccountCode, parseAmount } from '@/plugins/FormatCurrency';
 import type { TransferRow } from "./CreateTransactionMultiple.vue";
 import { useStore } from "vuex";
-import type { ExtendedAccount } from "src/store/model";
+import type { ExtendedAccount } from "@/store/model";
 import type { QRejectedEntry } from "quasar";
 
 const props = defineProps<{

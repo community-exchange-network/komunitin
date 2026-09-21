@@ -27,7 +27,7 @@
         <div>
           <img
             class="logo"
-            src="~assets/logo.svg"
+            src="~@/assets/logo.svg"
             alt="Komunitin"
           >
         </div>
@@ -77,7 +77,7 @@
 import { computed } from 'vue';
 import FitText from '../components/FitText.vue';
 import selectLang from '../components/SelectLang.vue';
-import bgImage from 'assets/home_background-700.jpg';
+import bgImage from '@/assets/home_background-700.jpg';
 import { useRoute, useRouter } from 'vue-router';
 import { config } from '../utils/config';
 

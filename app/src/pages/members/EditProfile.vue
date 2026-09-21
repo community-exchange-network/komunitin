@@ -35,7 +35,7 @@ import { computed, ref } from "vue"
 import type { DeepPartial } from "quasar"
 
 import type { Contact, Group, Member } from "../../store/model"
-import { useFullMemberByCode } from "src/composables/fullMember"
+import { useFullMemberByCode } from "@/composables/fullMember"
 
 const props = defineProps<{
   code?: string,

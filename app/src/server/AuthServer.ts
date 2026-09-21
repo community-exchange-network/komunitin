@@ -1,7 +1,7 @@
 // Mirage typings are not perfect and sometimes we must use any.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { config } from "src/utils/config";
+import { config } from "@/utils/config";
 import type { TokenResponse } from "../plugins/Auth";
 import type { Server} from "miragejs";
 import { Response } from "miragejs";

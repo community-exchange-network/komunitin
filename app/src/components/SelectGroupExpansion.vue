@@ -48,14 +48,14 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { useStore } from "vuex";
-import { handleError } from "src/boot/errors";
-import KError from "src/KError";
+import { handleError } from "@/boot/errors";
+import KError from "@/KError";
 export default defineComponent({
   inheritAttrs: false,
 })
 </script>
 <script setup lang="ts">
-import type { Currency, CurrencySettings, Group } from "src/store/model";
+import type { Currency, CurrencySettings, Group } from "@/store/model";
 import ResourceCards from "../pages/ResourceCards.vue";
 import GroupHeader from "./GroupHeader.vue";
 import type { Ref } from "vue";

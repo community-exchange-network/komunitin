@@ -1,5 +1,5 @@
-import KError, { KErrorCode } from "src/KError";
-import locate from "src/plugins/Location";
+import KError, { KErrorCode } from "@/KError";
+import locate from "@/plugins/Location";
 import type { ActionContext, Module } from "vuex";
 import { setAccountingApiUrl } from ".";
 import type { AuthData } from "../plugins/Auth";
@@ -7,7 +7,7 @@ import { Auth } from "../plugins/Auth";
 import { getNotificationPermission, subscribe, unsubscribe } from "../plugins/Notifications";
 import type { Member, NotificationsSubscription, } from "./model";
 
-import { config } from "src/utils/config";
+import { config } from "@/utils/config";
 import { apiRequest } from "./request";
 
 // Exported just for testing purposes.

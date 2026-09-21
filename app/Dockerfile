@@ -6,7 +6,7 @@
 # Build stage
 
 
-FROM node:22 AS komunitin-app-build
+FROM node:24 AS komunitin-app-build
 
 ARG FLAVOR=komunitin 
 
@@ -30,9 +30,10 @@ RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 # Copy just package.json (and pnpm-lock.yaml) so when there's no package changes we don't 
 # need to redo the install step.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY src-pwa/package.json src-pwa/pnpm-lock.yaml src-pwa/pnpm-workspace.yaml ./src-pwa/
 
 # Install dependencies.
-RUN pnpm install
+RUN pnpm install --frozen-lockfile && pnpm --dir src-pwa install --frozen-lockfile
 
 # Copy sources 
 COPY . .

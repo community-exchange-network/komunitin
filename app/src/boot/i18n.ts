@@ -2,10 +2,10 @@ import type { Locale } from "date-fns";
 import { formatRelative } from "date-fns";
 import type { QSingletonGlobals, QVueGlobals } from "quasar";
 import { Quasar, useQuasar } from "quasar";
-import { boot } from "quasar/wrappers";
-import type { LangName } from "src/i18n";
-import langs, { DEFAULT_LANG, normalizeLocale } from "src/i18n";
-import store from "src/store";
+import { defineBoot } from "#q-app";
+import type { LangName } from "@/i18n";
+import langs, { DEFAULT_LANG, normalizeLocale } from "@/i18n";
+import store from "@/store";
 import { ref, watch } from "vue";
 import { createI18n } from "vue-i18n";
 import { useStore } from "vuex";
@@ -181,7 +181,7 @@ export function useLocale() {
 
 
 // Default export for Quasar boot files.
-export default boot(async ({ app }) => {
+export default defineBoot(async ({ app }) => {
   // Install 'vue-i18n' plugin.
   app.use(i18n);
 

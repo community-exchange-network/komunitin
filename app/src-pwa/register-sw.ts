@@ -1,16 +1,16 @@
 import { register } from "register-service-worker";
 import { Notify } from "quasar";
 import { major, minor } from "semver";
-import { i18n } from "src/boot/i18n";
-import { config } from "src/utils/config";
+import { i18n } from "@/boot/i18n";
+import { config } from "@/utils/config";
 
 // This is the version of the currently running application, set in build time from package.json.
-const CURRENT_VERSION = process.env.APP_VERSION;
+const CURRENT_VERSION = import.meta.env.APP_VERSION;
 
 // The ready(), registered(), cached(), updatefound() and updated()
 // events passes a ServiceWorkerRegistration instance in their arguments.
 // ServiceWorkerRegistration: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration
-register(process.env.SERVICE_WORKER_FILE, {
+register(import.meta.env.QUASAR_SERVICE_WORKER_FILE, {
   // The registrationOptions object will be passed as the second argument
   // to ServiceWorkerContainer.register()
   // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register#Parameter
@@ -21,34 +21,34 @@ register(process.env.SERVICE_WORKER_FILE, {
   ready(registration) {
     // Send config to the service worker.
     registration.active?.postMessage({ type: 'SET_CONFIG', config })       
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
       console.log("App is being served from cache by a service worker.");
     }
   },
 
   registered(/* registration */) {
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
        
       console.log("Service worker has been registered.");
     }
   },
 
   cached(/* registration */) {
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
        
       console.log("Content has been cached for offline use.");
     }
   },
 
   updatefound(/* registration */) {
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
        
       console.log("New content is downloading.");
     }
   },
 
   updated(registration) {
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
        
       console.log("New content is available; please inspect.");
     }
@@ -65,7 +65,7 @@ register(process.env.SERVICE_WORKER_FILE, {
       if (event.data && event.data.version) {
         const newVersion = event.data.version as string;
 
-        if (process.env.DEV) {
+        if (import.meta.env.QUASAR_DEV) {
            
           console.log(`Update available. Current: ${CURRENT_VERSION}, New: ${newVersion}`);
         }
@@ -75,7 +75,7 @@ register(process.env.SERVICE_WORKER_FILE, {
                            minor(newVersion) != minor(CURRENT_VERSION);
 
         if (isBreaking) {
-          if (process.env.DEV) {
+          if (import.meta.env.QUASAR_DEV) {
              
             console.log("Breaking change detected. Prompting user.");
           }
@@ -88,7 +88,7 @@ register(process.env.SERVICE_WORKER_FILE, {
                 label: i18n.global.t('update'),
                 color: 'white',
                 handler: () => {
-                  if (process.env.DEV) {
+                  if (import.meta.env.QUASAR_DEV) {
                     console.log("User accepted update. Activating new service worker.");
                   }
 
@@ -105,7 +105,7 @@ register(process.env.SERVICE_WORKER_FILE, {
             ]
           });
         } else {
-          if (process.env.DEV) {
+          if (import.meta.env.QUASAR_DEV) {
              
             console.log("Non-breaking change detected. New version will be active on next refresh.");
           }
@@ -121,7 +121,7 @@ register(process.env.SERVICE_WORKER_FILE, {
   },
 
   offline() {
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
        
       console.log(
         "No internet connection found. App is running in offline mode."
@@ -130,7 +130,7 @@ register(process.env.SERVICE_WORKER_FILE, {
   },
 
   error(err) {
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
        
       console.error("Error during service worker registration:", err);
     }
@@ -144,13 +144,13 @@ let reloadOnControllerChange = false;
 navigator.serviceWorker.addEventListener('controllerchange', () => {
   // Only reload if the controller change was triggered by our update button.
   if (reloadOnControllerChange) {
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
        
       console.log('Controller changed after user update. Reloading the page.');
     }
     window.location.reload();
   } else {
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
        
       console.log('Controller changed naturally. No reload needed.');
     }

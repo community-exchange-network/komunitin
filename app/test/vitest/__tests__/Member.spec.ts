@@ -7,10 +7,10 @@ import OfferCard from "../../../src/components/OfferCard.vue";
 import MemberList from "../../../src/pages/members/MemberList.vue";
 import MemberHeader from "../../../src/components/MemberHeader.vue";
 import TransactionItems from "../../../src/pages/transactions/TransactionItems.vue";
-import { seeds } from "src/server";
+import { seeds } from "@/server";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
-import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
-import MenuItem from 'src/components/MenuItem.vue';
+import ProfileBtnMenu from '@/components/ProfileBtnMenu.vue';
+import MenuItem from '@/components/MenuItem.vue';
 
 describe("Member", () => {
   let wrapper: VueWrapper;

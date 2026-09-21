@@ -1,9 +1,11 @@
 import { defineConfig } from 'vitest/config'
-import path from 'path'
+import path from 'node:path'
 import vue from '@vitejs/plugin-vue'
-import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets'
+import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets.ts'
+import { loadEnvironment } from './build-tools/environment.ts'
 
-const FLAVOR = process.env.FLAVOR || 'komunitin'
+const environment = loadEnvironment('.env.test')
+const { FLAVOR } = environment
 
 export default defineConfig({
   plugins: [
@@ -12,19 +14,22 @@ export default defineConfig({
   ],
   resolve: {
     alias: [
-      { find: /^quasar$/, replacement: path.resolve(__dirname, './node_modules/quasar/dist/quasar.client.js') },
-      { find: 'src', replacement: path.resolve(__dirname, './src') },
-      { find: 'app', replacement: path.resolve(__dirname, '.') },
-      { find: 'components', replacement: path.resolve(__dirname, './src/components') },
-      { find: 'layouts', replacement: path.resolve(__dirname, './src/layouts') },
-      { find: 'pages', replacement: path.resolve(__dirname, './src/pages') },
-      { find: 'assets', replacement: path.resolve(__dirname, './src/assets') },
-      { find: 'boot', replacement: path.resolve(__dirname, './src/boot') },
+      { find: /^quasar$/, replacement: path.resolve(import.meta.dirname, './node_modules/quasar/dist/quasar.client.js') },
+      { find: '@', replacement: path.resolve(import.meta.dirname, './src') },
+      { find: '#q-app', replacement: '@quasar/app-vite' },
     ]
   },
   test: {
     globals: true,
     environment: 'jsdom',
+    env: {
+      ...environment,
+      MOCK_ENVIRONMENT: 'test',
+      // Leave QUASAR_DEV and QUASAR_SERVER unset: test.env values are strings.
+      QUASAR_MODE: 'pwa',
+      QUASAR_VUE_ROUTER_MODE: 'history',
+      QUASAR_VUE_ROUTER_BASE: '/',
+    },
     setupFiles: ['./test/vitest/setup.ts'],
     include: [
       'src/**/__tests__/*.spec.ts',

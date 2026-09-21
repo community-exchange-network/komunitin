@@ -73,7 +73,7 @@ import PageHeader from "../../layouts/PageHeader.vue";
 import ResourceCards from "../ResourceCards.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
 import { useStore } from "vuex";
-import { useResource } from 'src/composables/useResources';
+import { useResource } from '@/composables/useResources';
 import type { Currency, CurrencySettings } from "../../store/model";
 
 const props = defineProps<{

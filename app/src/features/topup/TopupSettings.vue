@@ -23,13 +23,13 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import SaveChanges from 'src/components/SaveChanges.vue';
-import PageHeader from 'src/layouts/PageHeader.vue';
+import SaveChanges from '@/components/SaveChanges.vue';
+import PageHeader from '@/layouts/PageHeader.vue';
 import TopupSettingsForm from './TopupSettingsForm.vue';
 
 import type { DeepPartial } from 'quasar';
-import type { TopupSettings } from 'src/features/topup/model';
-import type { Currency, ResourceIdentifierObject } from 'src/store/model';
+import type { TopupSettings } from '@/features/topup/model';
+import type { Currency, ResourceIdentifierObject } from '@/store/model';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';

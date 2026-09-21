@@ -1,9 +1,9 @@
 import { Notify, type QUploader } from "quasar"
 import { computed, shallowRef, type Ref } from "vue"
 import { useStore } from "vuex"
-import { config } from "src/utils/config"
-import { resizeImageToWebp } from "src/utils/imageUpload"
-import { i18n } from "src/boot/i18n"
+import { config } from "@/utils/config"
+import { resizeImageToWebp } from "@/utils/imageUpload"
+import { i18n } from "@/boot/i18n"
 
 /**
  * Some configuration to use with QUploader component to send files to the
