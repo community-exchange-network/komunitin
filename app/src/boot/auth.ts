@@ -3,7 +3,7 @@ import store from "@/store";
 import { handleError } from "@/boot/errors"
 
 
-export default defineBoot(({ router }) => {
+export default defineBoot(async ({ router, urlPath }) => {
   // Revalidate the user's session and account settings on app boot.
   if (store.getters.isLoggedIn) {
     store.dispatch("reloadUser").catch(handleError)
@@ -72,4 +72,8 @@ export default defineBoot(({ router }) => {
       return true
     }
   });
+
+  // This wait forces the router to resolve the initial route before Quasar mounts and clears the
+  // static HTML, preventing a blank flash.
+  await router.push(urlPath);
 });

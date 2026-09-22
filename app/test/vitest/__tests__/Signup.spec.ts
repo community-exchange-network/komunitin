@@ -359,6 +359,7 @@ describe("Signup", () => {
     await wrapper.get("#menu-transactions").trigger("click")
     await waitFor(() => wrapper.findComponent(CreateTransactionBtn).exists(), true)
     const controls = wrapper.getComponent(CreateTransactionBtn)
+    await waitFor(() => controls.find(".q-fab").exists(), true)
     await controls.get(".q-fab").trigger("click")
     const send = controls.findAllComponents(QFabAction).find(action => action.props("label") === "Send")
     expect(send).toBeDefined()

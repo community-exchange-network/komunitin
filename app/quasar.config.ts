@@ -20,14 +20,15 @@ export default defineConfig((ctx) => {
     // --> boot files are part of "main.js"
     // https://quasar.dev/quasar-cli/cli-documentation/boot-files
     boot: [
-      "errors",
+      { path: "errors", server: false },
       "i18n",
-      "auth",
       "store",
-      "push-notifications",
-      ...(environment.FEAT_GTM === "true" ? ["gtm"] : []),
-      ...(environment.FEAT_MATOMO === "true" ? ["matomo"] : []),
-      ...(environment.MOCK_ENABLE === "true" ? ["mirage"]: [])
+      { path: "push-notifications", server: false },
+      ...(environment.FEAT_GTM === "true" ? [{ path: "gtm", server: false as const }] : []),
+      ...(environment.FEAT_MATOMO === "true" ? [{ path: "matomo", server: false as const }] : []),
+      ...(environment.MOCK_ENABLE === "true" ? [{ path: "mirage", server: false as const }] : []),
+      // Resolve initial navigation after all plugins and route hooks are ready.
+      { path: "auth", server: false }
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
@@ -72,7 +73,7 @@ export default defineConfig((ctx) => {
       sourcemap: true,      
       defineEnv: environment,
       vitePlugins: [
-        ctx.prod ? ['rollup-plugin-visualizer', { filename: 'dist/stats.html', gzipSize: true }] : null,
+        ctx.prod ? ['rollup-plugin-visualizer', { filename: 'dist/stats.html', gzipSize: true }, { server: false }] : null,
         [vitePluginChecker, {
           eslint: {
             lintCommand: 'eslint "./src*/**/*.{ts,js,mjs,cjs,vue}"',
@@ -82,7 +83,7 @@ export default defineConfig((ctx) => {
         }, {server: false}],
         [vitePluginFlavorPublic, {
           flavor: FLAVOR
-        }],
+        }, { server: false }],
         [vitePluginFlavorAssets, {
           flavor: FLAVOR
         }],
@@ -125,6 +126,17 @@ export default defineConfig((ctx) => {
       "fadeInDown",
       "fadeOutUp"
     ],
+
+    ssg: {
+      pwa: true,
+      error404HtmlFilename: false,
+      pwaOfflineHtmlFilename: 'csr.html',
+      clientSideRenderingRoutes: ['/?*', '/?*/**'],
+      extendSSGInjectManifestOptions(options) {
+        // Exclude temporary renderer files, which Quasar deletes after generation.
+        options.globIgnores!.push('__ssg__/**/*')
+      }
+    },
 
     // https://quasar.dev/quasar-cli/developing-pwa/configuring-pwa
     pwa: {
