@@ -87,3 +87,7 @@ The development template bootstraps the superadmin
 - Focus committed tests on service boundaries: HTTP APIs for backend services and user interactions for the app. Test behavior, not implementation. Test only with the boundary inputs and outputs if possible.
 - Keep test code minimal, readable and DRY. Move shared setup and helpers into utility files.
 - Treat unit tests as temporary development and debugging aids. Commit them only for exceptionally complex functions or components. Unit tests do not define product intent and may be freely changed or deleted during refactors.
+
+## Agent Guidelines
+- Prefer the patch tool over scripts for file edits.
+- Copy review comments in chat.
