@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 usage() {
   cat <<EOF
 Usage: $0 [OPTIONS]
