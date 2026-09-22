@@ -29,13 +29,9 @@ services:
       - "2025:2025"
       - "9225:9225"
     volumes:
-      - ./accounting/openapi:/app/openapi
-      - ./accounting/prisma:/app/prisma
-      - ./accounting/src:/app/src
-      - ./accounting/test:/app/test
-      - ./accounting/.env:/app/.env
-      - ./accounting/package.json:/app/package.json
-      - ./accounting/pnpm-lock.yaml:/app/pnpm-lock.yaml
+      - ./accounting:/app
+      - /app/node_modules
+      - /app/dist
 
   auth:
     command: pnpm dev
@@ -43,16 +39,10 @@ services:
       - "2026:2026"
       - "9226:9226"
     volumes:
-      - ./auth/src:/app/src
-      - ./auth/prisma:/app/prisma
-      - ./auth/test:/app/test
-      - ./auth/.env:/app/.env
-      - ./auth/build.config.ts:/app/build.config.ts
-      - ./auth/package.json:/app/package.json
-      - ./auth/pnpm-lock.yaml:/app/pnpm-lock.yaml
-      - ./auth/pnpm-workspace.yaml:/app/pnpm-workspace.yaml
-      - ./auth/prisma.config.ts:/app/prisma.config.ts
-      - ./auth/tsconfig.json:/app/tsconfig.json
+      - ./auth:/app
+      - /app/node_modules
+      - /app/src/generated
+      - /app/dist
   
   social:
     command: pnpm dev
@@ -60,16 +50,10 @@ services:
       - "2028:2028"
       - "9228:9228"
     volumes:
-      - ./social/src:/app/src
-      - ./social/prisma:/app/prisma
-      - ./social/test:/app/test
-      - ./social/.env:/app/.env
-      - ./social/build.config.ts:/app/build.config.ts
-      - ./social/package.json:/app/package.json
-      - ./social/pnpm-lock.yaml:/app/pnpm-lock.yaml
-      - ./social/pnpm-workspace.yaml:/app/pnpm-workspace.yaml
-      - ./social/prisma.config.ts:/app/prisma.config.ts
-      - ./social/tsconfig.json:/app/tsconfig.json
+      - ./social:/app
+      - /app/node_modules
+      - /app/src/generated
+      - /app/dist
 
   s3mock:
     image: adobe/s3mock:5
@@ -84,12 +68,9 @@ services:
       - "2023:2023"
       - "9223:9223"
     volumes:
-      - ./notifications-ts/src:/app/src
-      - ./notifications-ts/prisma:/app/prisma
-      - ./notifications-ts/.env:/app/.env
-      - ./notifications-ts/package.json:/app/package.json
-      - ./notifications-ts/pnpm-lock.yaml:/app/pnpm-lock.yaml
-      - ./notifications-ts/tmp:/app/tmp
+      - ./notifications-ts:/app
+      - /app/node_modules
+      - /app/dist
 
   cc:
     build:
