@@ -1,10 +1,10 @@
 import type { VueWrapper } from '@vue/test-utils'
-import App from 'src/App.vue'
-import ConfirmBtn from 'src/components/ConfirmBtn.vue'
-import GroupStatusField from 'src/pages/admin/GroupStatusField.vue'
-import { seeds } from 'src/server'
-import store from 'src/store'
-import { config } from 'src/utils/config'
+import App from '@/App.vue'
+import ConfirmBtn from '@/components/ConfirmBtn.vue'
+import GroupStatusField from '@/pages/admin/GroupStatusField.vue'
+import { seeds } from '@/server'
+import store from '@/store'
+import { config } from '@/utils/config'
 import { mountComponent, waitFor } from '../utils'
 
 describe('Community settings', () => {

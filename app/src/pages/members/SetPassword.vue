@@ -46,11 +46,11 @@ import PasswordField from "../../components/PasswordField.vue"
 
 import { computed, ref } from "vue"
 import { useStore } from "vuex"
-import KError, { KErrorCode } from "src/KError"
+import KError, { KErrorCode } from "@/KError"
 import { Notify } from "quasar"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
-import { Auth } from "src/plugins/Auth"
+import { Auth } from "@/plugins/Auth"
 
 
 const newPassword = ref("")

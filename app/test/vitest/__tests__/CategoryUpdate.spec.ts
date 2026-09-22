@@ -1,9 +1,9 @@
 import type { VueWrapper } from '@vue/test-utils'
 import { QBtn, QDialog, QInput } from 'quasar'
-import App from 'src/App.vue'
-import CategoriesField from 'src/pages/admin/CategoriesField.vue'
-import { seeds } from 'src/server'
-import { config } from 'src/utils/config'
+import App from '@/App.vue'
+import CategoriesField from '@/pages/admin/CategoriesField.vue'
+import { seeds } from '@/server'
+import { config } from '@/utils/config'
 import { mountComponent, waitFor } from '../utils'
 
 describe('Category updates', () => {

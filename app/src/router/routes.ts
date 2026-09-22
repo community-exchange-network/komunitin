@@ -458,7 +458,7 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
-if (process.env.FEAT_TOPUP === 'true') {
+if (import.meta.env.FEAT_TOPUP === 'true') {
   const mainLayout = routes.find(route => route.name === 'MainLayout');
   mainLayout?.children?.push({
     path: '/groups/:code/members/:memberCode/topup',

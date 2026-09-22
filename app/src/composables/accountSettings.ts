@@ -1,7 +1,7 @@
 
 import type { MaybeRefOrGetter} from "@vueuse/shared";
 import { toValue } from "@vueuse/shared"
-import type { Account, AccountSettings, Currency, CurrencySettings } from "src/store/model"
+import type { Account, AccountSettings, Currency, CurrencySettings } from "@/store/model"
 import { computed } from "vue"
 import { useStore } from "vuex"
 

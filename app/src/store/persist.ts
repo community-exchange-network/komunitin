@@ -12,7 +12,7 @@ const EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30 // 30 days.
 
 const DATABASE_NAME = "komunitin"
 
-const CURRENT_VERSION = process.env.APP_VERSION
+const CURRENT_VERSION = import.meta.env.APP_VERSION
 
 let markStoreReady: () => void = () => undefined
 
@@ -135,7 +135,7 @@ export default function createPersistPlugin<T>() {
   const checkBreakingUpgrade = async () => {
     const existingVersion = (await getInternalItem("version") ?? "0.0.0") as string
     if (isBreakingUpgrade(existingVersion)) {
-      if (process.env.DEV) {
+      if (import.meta.env.QUASAR_DEV) {
          
         console.log(`Breaking upgrade detected from ${existingVersion} to ${CURRENT_VERSION}. Clearing persisted data.`);
       }

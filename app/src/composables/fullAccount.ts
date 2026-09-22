@@ -1,6 +1,6 @@
 import type { MaybeRefOrGetter} from "@vueuse/core";
 import { toValue } from "@vueuse/core"
-import type { Account, AccountSettings, Currency, CurrencySettings, ExtendedAccount, RelatedResource } from "src/store/model"
+import type { Account, AccountSettings, Currency, CurrencySettings, ExtendedAccount, RelatedResource } from "@/store/model"
 import { ref, watchEffect } from "vue"
 import { useStore } from "vuex"
 import type { LoadByUrlPayload } from "../store/resources"

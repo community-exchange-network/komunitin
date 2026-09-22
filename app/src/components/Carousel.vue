@@ -46,7 +46,7 @@
 </template>
 <script setup lang="ts">
 import { ref } from "vue";
-import type { ImageObject } from "src/store/model";
+import type { ImageObject } from "@/store/model";
 import FitText from "./FitText.vue";
 /**
  * Almost just a wrapper around Quasar QCarousel to avoid repetition and unify behavior across the app.

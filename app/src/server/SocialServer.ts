@@ -7,7 +7,7 @@ import faker from "faker";
 import { badRequest, filter, notFound } from "./ServerUtils"
 
 import { getContactNetworkKeys } from "../utils/social-networks";
-import { config } from "src/utils/config";
+import { config } from "@/utils/config";
 import ApiSerializer from "./ApiSerializer";
 import { inflections } from "inflected"
 import { getMockAuthUser, redeemMockActionToken } from "./AuthServer"

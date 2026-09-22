@@ -1,8 +1,8 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
-import { KErrorCode } from 'src/KError'
-import type { Category, Need, Offer } from 'src/store/model'
+import { KErrorCode } from '@/KError'
+import type { Category, Need, Offer } from '@/store/model'
 import { useResource } from './useResources'
 
 /** Load an editable post and apply URL prefills to a copy after checking access. */

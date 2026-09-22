@@ -1,9 +1,9 @@
 import type { VueWrapper } from '@vue/test-utils'
 import { QBtn, QDialog } from 'quasar'
-import App from 'src/App.vue'
-import PasswordField from 'src/components/PasswordField.vue'
-import DeleteMemberBtn from 'src/pages/settings/DeleteMemberBtn.vue'
-import server, { seeds } from 'src/server'
+import App from '@/App.vue'
+import PasswordField from '@/components/PasswordField.vue'
+import DeleteMemberBtn from '@/pages/settings/DeleteMemberBtn.vue'
+import server, { seeds } from '@/server'
 import { mountComponent, waitFor } from '../utils'
 
 describe('Member deletion', () => {
