@@ -318,10 +318,12 @@
   "scanNfc": "Escanea NFC",
   "bringNfcTag": "Acerca la etiqueta NFC al lector.",
   "deleteAccount": "Borrar cuenta",
-  "deleteAccountText": "Elimina el perfil y la cuenta de esta comunidad. Las ofertas y necesidades dejarán de ser visibles. Se requiere un saldo positivo o cero; en caso contrario, contacta con la administración.",
-  "deleteAccountConfirmation": "¿Seguro que quieres eliminar esta cuenta de la comunidad? Si es la última comunidad de la persona, también se eliminarán sus datos de acceso y ya no podrá iniciar sesión. Si tiene un saldo positivo, se moverá a la cuenta seleccionada.",
+  "deleteAccountText": "Borrar completamente tu cuenta y todos los datos asociados, incluyendo tu perfil, ofertas, necesidades y tu cuenta. Tienes que tener un saldo positivo o cero para borrar tu cuenta. En caso contrario contacta con tu administrador.",
+  "deleteAccountConfirmation": "Se eliminarán el perfil y la cuenta del miembro de la comunidad y se ocultarán sus ofertas y necesidades. Podrás seguir accediendo a los demás miembros que controlas.",
+  "deleteAccountEmailText": "Te enviaremos un correo para confirmar la eliminación. Tu cuenta seguirá abierta hasta que la confirmes mediante el enlace.",
+  "deleteAccountEmailError": "No se ha podido completar la eliminación. Inténtalo de nuevo o solicita otro correo de confirmación desde la configuración.",
   "moveBalanceTo": "Receptor del saldo",
-  "moveBalanceToHint": "Escoge la cuenta que recibirá tu saldo.",
+  "moveBalanceToHint": "El saldo se pondrá a cero ahora mediante esta cuenta, aunque no completes la eliminación.",
   "paymentRequests": "Solicitudes de movimientos",
   "acceptExternalPaymentsAutomatically": "Acepta movimientos externos automáticamente",
   "acceptExternalPaymentsAutomaticallyHint": "Acepta automáticamente todos los movimientos hacia de miembros de otras comunidades.",
@@ -432,5 +434,4 @@
   "ErrorAccountIsNotYours": "La cuenta especificada no es tu cuenta activa actual.",
   "ErrorDescriptionRequired" : "Entra una descripción del intercambio.",
   "ErrorInvalidAmount" : "Cantidad inválida. Entra un número positivo."
-
 }

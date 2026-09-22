@@ -81,7 +81,7 @@
   "payee": "À",
   "feedback": "Retour",
   "komunitinProject": "Projet Komunitin",
-  "about": "À propos", 
+  "about": "À propos",
   "nothingHere": "Rien ici... Pour l'instant!",
   "enableNotificationsText": "Activez les notifications pour être informé des mouvements sur votre compte et des actualités importantes de votre communauté. Vous pourrez les configurer ou les désactiver plus tard.",
   "deniedNotificationsText": "Cet appareil bloque nos notifications. Vous pouvez autoriser les notifications de Komunitin dans les paramètres de votre navigateur.",
@@ -315,10 +315,12 @@
   "scanNfc": "Scanner NFC",
   "bringNfcTag": "Approchez l'étiquette NFC de l'appareil pour la scanner.",
   "deleteAccount": "Supprimer le compte",
-  "deleteAccountText": "Supprimez le profil et le compte de cette communauté. Les offres et les besoins ne seront plus visibles. Un solde positif ou nul est requis ; sinon, contactez l’administration.",
-  "deleteAccountConfirmation": "Voulez-vous vraiment supprimer ce compte de la communauté ? S’il s’agit de la dernière communauté de cette personne, ses identifiants seront également supprimés et elle ne pourra plus se connecter. Tout solde positif sera transféré vers le compte sélectionné.",
+  "deleteAccountText": "Supprimez complètement votre compte et effacez toutes vos données sur cette plateforme, y compris votre profil, vos offres, vos besoins et votre compte. Vous devez avoir une position positive ou nulle pour supprimer votre compte, contactez votre administrateur sinon.",
+  "deleteAccountConfirmation": "Le profil et le compte du membre seront retirés de la communauté et ses offres et besoins seront masqués. Les autres membres que vous contrôlez resteront accessibles.",
+  "deleteAccountEmailText": "Nous vous enverrons un e-mail pour confirmer la suppression. Votre compte restera ouvert jusqu’à votre confirmation via le lien.",
+  "deleteAccountEmailError": "La suppression n’a pas pu être effectuée. Réessayez ou demandez un nouvel e-mail de confirmation dans les paramètres.",
   "moveBalanceTo": "Destinataire de la position",
-  "moveBalanceToHint": "Sélectionnez le compte où votre position sera transférée avant de supprimer votre compte",
+  "moveBalanceToHint": "Le solde sera ramené à zéro maintenant à l’aide de ce compte, même si vous ne terminez pas la suppression.",
   "paymentRequests": "Demandes d'échange",
   "acceptExternalPaymentsAutomatically": "Accepter automatiquement les transferts externes",
   "acceptExternalPaymentsAutomaticallyHint": "Accepter automatiquement toutes les demandes de transfert externes.",
@@ -402,7 +404,6 @@
   "pleaseReviewTransfer": "Veuillez accepter ou rejeter ce transfert.",
   "createGroupBanner": "Veuillez lire attentivement la documentation avant de demander une nouvelle communauté. Si vous voulez simplement tester l'application, vous pouvez utiliser le site de démonstration. En demandant une nouvelle communauté, vous acceptez les conditions d'utilisation de ce service et reconnaissez vos responsabilités en tant qu'administrateur de la communauté.",
   "learnMore": "En savoir plus",
-  
   "ErrorUnknown": "Erreur : Inconnue",
   "ErrorIncorrectRequest": "Erreur : Requête incorrecte",
   "ErrorServerNoResponse": "Erreur : Le serveur ne répond pas",
@@ -422,7 +423,6 @@
   "ErrorNotImplemented": "Erreur : Non implémenté",
   "ErrorInvalidTransferState": "Erreur : État d'échange invalide",
   "ErrorBadRequest": "Erreur : Échec de validation des données sur le serveur",
-  
   "ErrorAuthNoCredentials": "Courriel ou mot de passe incorrect",
   "ErrorInvalidPassword": "Le mot de passe n'est pas correct",
   "ErrorInsufficientBalance": "Solde insuffisant",
@@ -441,5 +441,4 @@
   "ErrorAccountIsNotYours": "Le compte spécifié n'est pas votre compte actif actuel.",
   "ErrorInvalidAmount": "Montant invalide. Entrez un nombre positif.",
   "ErrorDescriptionRequired": "La description de l'échange est requise."
-  
 }

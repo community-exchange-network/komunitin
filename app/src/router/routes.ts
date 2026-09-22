@@ -55,6 +55,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/settings/EditSettings.vue')
       },
       {
+        path: '/groups/:code/members/:memberId/delete',
+        name: 'ConfirmMemberDeletion',
+        component: () => import('../pages/settings/ConfirmMemberDeletion.vue'),
+        meta: { public: true, back: false }
+      },
+      {
         path: '/notifications',
         name: 'Notifications',
         component: () => import('../pages/user/Notifications.vue'),

@@ -1,5 +1,6 @@
 <template>
   <delete-btn
+    v-model="confirmDialog"
     outline
     icon="delete"
     :round="false"
@@ -9,7 +10,7 @@
     @confirm="deleteMember"
   >
     <template #default>
-      <div 
+      <div
         class="q-gutter-y-md"
       >
         <member-header
@@ -27,27 +28,24 @@
           :code="props.member.group.attributes.code"
           :label="$t('moveBalanceTo')"
           :hint="$t('moveBalanceToHint')"
-          :account-disabled="(account: Account) => account.id === props.member.account?.id"
+          :account-disabled="(candidate: Account) => candidate.id === account?.id"
           :rules="[() => !!recipientAccount || $t('fieldRequired')]"
           outlined
         />
-        <password-field
-          v-if="!isAdmin"
-          v-model="password"
-          :label="$t('password')"
-          :hint="$t('oldPasswordHint')"
-          :rules="[() => !!password || $t('fieldRequired')]"
-        />
+        <div v-if="isOwn">
+          {{ $t('deleteAccountEmailText') }}
+        </div>
       </div>
     </template>
   </delete-btn>
 </template>
 <script setup lang="ts">
 import DeleteBtn from "src/components/DeleteBtn.vue"
-import { Auth } from "src/plugins/Auth"
+import { useApiFetch } from "src/composables/useApiFetch"
+import { useResource } from "src/composables/useResources"
+import { config } from "src/utils/config"
 import SelectAccount from "src/components/SelectAccount.vue";
 import MemberHeader from "src/components/MemberHeader.vue";
-import PasswordField from "src/components/PasswordField.vue";
 
 import { computed, ref } from "vue"
 import { useStore } from "vuex"
@@ -57,7 +55,6 @@ import { useI18n } from "vue-i18n";
 import type { Account, Currency, Group, Member } from "src/store/model";
 import { transferAccountRelationships } from "src/composables/fullAccount";
 import type { DeletePayload } from "src/store/resources";
-import { useRouter } from "vue-router";
 
 
 const props = defineProps<{
@@ -69,80 +66,72 @@ const emit = defineEmits<{
 }>()
 
 const store = useStore()
+const apiFetch = useApiFetch()
 const isAdmin = computed(() => store.getters.isAdmin)
-
-const password = ref("")
+const isOwn = computed(() => props.member.id === store.getters.myMember?.id)
 const recipientAccount = ref<Account>()
+const confirmDialog = ref(false)
 
+const { resource: account, load: loadAccount } = useResource<Account & {currency: Currency}>("accounts", () => ({
+  id: props.member.relationships.account.data?.id ?? null,
+  group: props.member.group.attributes.code,
+  include: "currency",
+}))
 const hasAccount = computed(() => props.member.relationships.account.data !== null)
-const balance = computed(() => props.member.account?.attributes.balance ?? 0)
-
+const balance = computed(() => account.value?.attributes.balance ?? 0)
 const zeroBalance = computed(() => balance.value === 0)
-const canDelete = computed(() => isAdmin.value || !hasAccount.value || balance.value >= 0)
+
+const canDelete = computed(() =>
+  (isAdmin.value || isOwn.value) &&
+  (!hasAccount.value || !!account.value && (isAdmin.value || balance.value >= 0))
+)
 
 const quasar = useQuasar()
 const { t } = useI18n()
 
-const router = useRouter()
-
+// Both flows settle the balance using the user's normal Accounting permissions.
 const deleteMember = async () => {
-  const member = props.member
-  const isSelf = member.id === store.getters.myMember?.id
-  if (!zeroBalance.value && !recipientAccount.value || !isAdmin.value && !password.value) {
-    return
-  }
   try {
     quasar.loading.show()
-    // 1. Move balance
-    if (member.account && !zeroBalance.value) {
-      const currency = member.account.currency
-      const balance = member.account.attributes.balance
-      const payment = balance >= 0
-      const payer = payment ? member.account : recipientAccount.value
-      const payee = payment ? recipientAccount.value : member.account
-    
-      const resource = {
-        type: "transfers",
-        attributes: {
-          amount: Math.abs(balance),
-          state: "committed",
-          meta: {
-            description: t('setZeroBalance')
-          }
+    // A previous attempt may have transferred the balance but failed to request deletion.
+    await loadAccount()
+
+    if (canDelete.value && account.value && recipientAccount.value && !zeroBalance.value) {
+      const payer = balance.value > 0 ? account.value : recipientAccount.value
+      const payee = balance.value > 0 ? recipientAccount.value : account.value
+      await store.dispatch('transfers/create', {
+        group: account.value.currency.attributes.code,
+        resource: {
+          type: 'transfers',
+          attributes: {
+            amount: Math.abs(balance.value),
+            state: 'committed',
+            meta: { description: t('setZeroBalance') },
+          },
+          relationships: transferAccountRelationships(payer, payee, account.value.currency),
         },
-        relationships: transferAccountRelationships(payer, payee, currency)
-      }
-      await store.dispatch("transfers/create", {
-        group: member.group.attributes.code,
-        resource
       })
+      await loadAccount()
     }
 
-    // 2. Re-login. At this point this is just a UI measure to prevent the user from
-    //    accidentally deleting the account. However, using the same workflow we could
-    //    convert it to a safety measure by requiring an additional scope for the 
-    //    delete action.
-    if (!isAdmin.value) {
-      const email = store.getters.myUser.attributes.email
-      // Verify credentials without reloading a membership that may already be
-      // deleted by an earlier attempt whose Auth cleanup failed.
-      const tokens = await new Auth().login({ email, password: password.value })
-      store.commit("tokens", tokens)
-    }
-
-    // 3. Delete member
-    await store.dispatch("members/delete", {
-      group: member.group.attributes.code,
-      id: member.id
-    } as DeletePayload)
-
-    // Clear the selected membership even when an administrator deletes their own.
-    if (isSelf) {
-      await router.push("/logout")
+    if (canDelete.value && zeroBalance.value) {
+      const member = props.member
+      if (isOwn.value) {
+        await apiFetch(`${config.SOCIAL_URL}/${encodeURIComponent(member.group.attributes.code)}/members/${member.id}/request-deletion`, {
+          method: 'POST',
+        })
+        quasar.notify({ message: t('resetLinkSent'), color: 'positive', icon: 'mail' })
+      } else {
+        await store.dispatch('members/delete', {
+          group: member.group.attributes.code,
+          id: member.id,
+        } as DeletePayload)
+        emit('delete')
+      }
     } else {
-      emit("delete")
+      // A changed balance or missing recipient needs another confirmation.
+      confirmDialog.value = true
     }
-
   } finally {
     quasar.loading.hide()
   }
