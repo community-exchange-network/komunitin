@@ -10,7 +10,7 @@ import { getContactNetworkKeys } from "../utils/social-networks";
 import { config } from "src/utils/config";
 import ApiSerializer from "./ApiSerializer";
 import { inflections } from "inflected"
-import { deleteMockIdentity, getMockAuthUser, redeemMockActionToken } from "./AuthServer"
+import { deleteMockIdentity, getMockAuthUser, redeemMockActionToken, redeemMockMemberDeletion, requestMockMemberDeletion } from "./AuthServer"
 
 
 const urlSocial = config.SOCIAL_URL;
@@ -762,10 +762,36 @@ export default {
       return member;
     });
 
+    server.post(urlSocial + "/:code/members/:id/request-deletion", (schema: any, request: any) => {
+      const token = request.requestHeaders.Authorization?.split(' ')[1]
+      if (!token) return new Response(401)
+      const identity = getMockAuthUser(token)
+      const user = identity ? schema.users.find(identity.id) : schema.users.first()
+      const member = schema.members.find(request.params.id)
+      if (!member || member.deleted || member.group.code !== request.params.code) return notFound()
+      if (!user.memberIds.includes(member.id)) return new Response(403)
+      requestMockMemberDeletion(user.id, user.email, {
+        memberId: member.id, groupCode: request.params.code,
+      })
+      return new Response(204)
+    })
+
     // Delete member
     server.delete(urlSocial + "/:code/members/:id", (schema: any, request: any) => {
       const member = schema.members.find(request.params.id)
       const users = schema.users.where((user: any) => user.memberIds.includes(member.id))
+      const token = JSON.parse(request.requestBody || '{}').meta?.token
+      if (!token && !request.requestHeaders.Authorization) return new Response(401)
+      const confirmation = token ? redeemMockMemberDeletion(token, request.params.code, member.id) : undefined
+      if (token && (!confirmation || !users.models.some((user: any) => user.id === confirmation.userId))) {
+        return badRequest('Invalid or expired deletion token')
+      }
+      if (confirmation?.used && !member.deleted) {
+        return badRequest('Request a new confirmation email')
+      }
+      if (!member.deleted && (member.account?.balance ?? 0) !== 0) {
+        return badRequest('Account balance must be zero to delete account')
+      }
       member.account?.update({ status: "deleted" })
       member.update({ deleted: new Date().toJSON() })
       if (identityDeletionFailures > 0) {

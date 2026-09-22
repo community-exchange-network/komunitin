@@ -8,13 +8,19 @@ import { Response } from "miragejs";
 import { badRequest } from "./ServerUtils";
 import { v4 as uuid } from "uuid";
 
-type ActionTokenPurpose = "passwordReset" | "emailChange" | "emailVerification" | "unsubscribe";
+type ActionTokenPurpose = "passwordReset" | "emailChange" | "emailVerification" | "unsubscribe" | "memberDeletion";
+
+type MemberDeletion = {
+  memberId: string
+  groupCode: string
+}
 
 type ActionToken = {
   purpose: ActionTokenPurpose
   userId: string
   email: string
   signup?: SignupContext
+  deletion?: MemberDeletion
   used?: boolean
 }
 
@@ -71,9 +77,9 @@ function jsonBody(request: any) {
   return JSON.parse(request.requestBody || "{}");
 }
 
-function newActionToken(purpose: ActionTokenPurpose, userId: string, email: string, signup?: SignupContext) {
+function newActionToken(purpose: ActionTokenPurpose, userId: string, email: string, signup?: SignupContext, deletion?: MemberDeletion) {
   const token = `${purpose}-${actionTokens.size + 1}`;
-  actionTokens.set(token, { purpose, userId, email, signup });
+  actionTokens.set(token, { purpose, userId, email, signup, deletion });
   return token;
 }
 
@@ -113,6 +119,33 @@ export function redeemMockActionToken(token: string, purpose: ActionTokenPurpose
     return record;
   }
   return consumeActionToken(token, [purpose]);
+}
+
+/** Simulate Notifications requesting a member-bound token from Auth. */
+export function requestMockMemberDeletion(userId: string, email: string, deletion: MemberDeletion) {
+  for (const [key, action] of actionTokens) {
+    if (action.userId === userId && action.purpose === 'memberDeletion' && !action.used) actionTokens.delete(key)
+  }
+  newActionToken('memberDeletion', userId, email, undefined, deletion)
+}
+
+/** The confirmation link delivered by the mocked deletion email. */
+export function getMockMemberDeletionLink() {
+  const latest = [...actionTokens.entries()].reverse()
+    .find(([, action]) => action.purpose === 'memberDeletion')
+  if (!latest) return undefined
+  const [token, action] = latest
+  const deletion = action.deletion
+  return `/groups/${deletion.groupCode}/members/${deletion.memberId}/delete?token=${token}`
+}
+
+export function redeemMockMemberDeletion(token: string, groupCode: string, memberId: string) {
+  const action = actionTokens.get(token)
+  if (action?.purpose !== 'memberDeletion' || action.deletion?.groupCode !== groupCode
+    || action.deletion.memberId !== memberId) return undefined
+  const result = { ...action, deletion: action.deletion }
+  action.used = true
+  return result
 }
 
 /** Issue mock tokens for a specific user. */
