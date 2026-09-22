@@ -1,8 +1,14 @@
 import { defineBoot } from "#q-app";
 import store from "@/store";
+import { handleError } from "@/boot/errors"
 
 
 export default defineBoot(({ router }) => {
+  // Revalidate the user's session and account settings on app boot.
+  if (store.getters.isLoggedIn) {
+    store.dispatch("reloadUser").catch(handleError)
+  }
+
   // Prevent access to paths that need authorization.
   router.beforeEach(async (to) => {
     try {

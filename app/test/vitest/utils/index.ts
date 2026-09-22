@@ -36,13 +36,15 @@ export function requireTextExcerpt(value: string, label: string): string {
   return requireText(value.replace(/[*_]/g, "").slice(0, 20), label);
 }
 
-/** Mount with app plugins; login accepts true for the default admin or a seeded user. */
+/** Mount with app plugins; login accepts the default admin, a seeded user, or the cached session. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true | { id: string } }): Promise<VueWrapper> {
-  await auth.logout();
+export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true | { id: string } | "cached" }): Promise<VueWrapper> {
+  if (options?.login !== "cached") {
+    await auth.logout();
+  }
 
   // Save credentials before mounting so route guards load the selected user.
-  if (options?.login) {
+  if (options?.login && options.login !== "cached") {
     await testLogin(options.login === true ? undefined : options.login);
   }
 

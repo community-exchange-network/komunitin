@@ -2,13 +2,14 @@ import { afterEach, vi } from 'vitest';
 import { flushPromises } from "@vue/test-utils";
 import type { VueWrapper } from "@vue/test-utils";
 import type * as Quasar from "quasar";
-import { seeds } from "@/server";
+import server, { seeds } from "@/server";
 import { mountComponent, waitFor } from "../utils";
 import App from "../../../src/App.vue";
 import Avatar from "../../../src/components/Avatar.vue";
 import AvatarField from "../../../src/components/AvatarField.vue";
 import GroupCard from "../../../src/components/GroupCard.vue";
-import { QBtn, QDialog, QInput, QItem, QSelect } from "quasar";
+import { QBtn, QDialog, QFabAction, QInput, QItem, QSelect } from "quasar";
+import CreateTransactionBtn from "@/components/CreateTransactionBtn.vue";
 import CountryChooser from "@/components/CountryChooser.vue";
 import LocationPicker from "@/components/LocationPicker.vue";
 import EditGroupForm from "@/pages/admin/EditGroupForm.vue";
@@ -331,12 +332,42 @@ describe("Signup", () => {
       true,
       "Pending approval banner should show"
     )
-    await wrapper.vm.$router.push("/groups")
-    await waitFor(() => wrapper.vm.$route.path, "/groups")
   }, 100000)
+
+  it("enables transfers after approval and reloading the cached session", async () => {
+    // Pending members have no wallet menu or transfer actions yet.
+    expect(wrapper.text()).toContain("Your account is pending approval.")
+    expect(wrapper.find("#menu-transactions").exists()).toBe(false)
+    expect(wrapper.findComponent(CreateTransactionBtn).exists()).toBe(false)
+
+    // Simulate approval and account provisioning in another administrator's session.
+    const member = server.schema.find("member", draftMemberId)
+    const account = server.create("account")
+    account.update({
+      code: wrapper.vm.$store.getters.myMember.attributes.code,
+      currency: server.schema.find("currency", wrapper.vm.$store.getters.myCurrency.id)
+    })
+    server.create("accountSettings").update({ account })
+    member.update({ status: "active", account })
+
+    // Remount with the cached session to simulate reloading the app.
+    wrapper.unmount()
+    wrapper = await mountComponent(App, { login: "cached" })
+    await waitFor(() => wrapper.find("#menu-transactions").exists(), true, "Approval should restore the wallet menu")
+    expect(wrapper.text()).not.toContain("Your account is pending approval.")
+
+    await wrapper.get("#menu-transactions").trigger("click")
+    await waitFor(() => wrapper.findComponent(CreateTransactionBtn).exists(), true)
+    const controls = wrapper.getComponent(CreateTransactionBtn)
+    await controls.get(".q-fab").trigger("click")
+    const send = controls.findAllComponents(QFabAction).find(action => action.props("label") === "Send")
+    expect(send).toBeDefined()
+    expect(send.props("disable")).toBe(false)
+  })
 
   it("registers an administrator and requests a first group", async () => {
     resetMockFileUploads()
+    await wrapper.vm.$router.push("/groups")
     await wrapper.vm.$store.dispatch("logout");
     await wrapper.vm.$router.push("/signup-group");
     await waitFor(() => wrapper.find("[name='name']").exists(), true, "Group administrator signup should load");
