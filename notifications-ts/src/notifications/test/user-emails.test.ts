@@ -89,6 +89,32 @@ describe('User emails', () => {
     
   });
 
+  it('sends a member deletion link using a purpose-bound token and the existing message template', async () => {
+    const { user, member } = createUserAndMember('GRP1');
+    member.attributes.name = '<b>Member</b>';
+    let tokenRequest: unknown;
+    server!.use(http.post(`${AUTH_URL}/action-token`, async ({ request }) => {
+      tokenRequest = await request.json();
+      return HttpResponse.json({ token: 'delete-member-token', email: user.attributes.email });
+    }));
+    await put({ ...createEvent('MemberDeletionRequested', { code: 'GRP1', user: user.id,
+      data: { user: user.id, memberId: member.id },
+    }), source: 'social' });
+    assert.deepStrictEqual(tokenRequest, {
+      userId: user.id, purpose: 'memberDeletion',
+      memberId: member.id,
+    });
+    assert.strictEqual(email.sentEmails.length, 1);
+    const message = email.lastEmail();
+    assert.strictEqual(message.to, user.attributes.email);
+    assert.ok(message.subject.includes('Confirm deletion'));
+    assert.ok(message.text.includes('Group GRP1'));
+    assert.ok(message.text.includes('<b>Member</b>'));
+    assert.ok(!message.html.includes('<b>Member</b>'));
+    assert.match(message.html, /(&lt;|&#x3C;|&#60;)b/);
+    assert.ok(message.text.includes(`/groups/GRP1/members/${member.id}/delete?token=delete-member-token`));
+  });
+
   it('should send welcome email when member joins', async () => {
     const { member, user } = createUserAndMember('GRP1');
     const eventData = createEvent('MemberJoined', { code: 'GRP1', user: user.id, data: { member: member.id } });
@@ -124,7 +150,7 @@ describe('User emails', () => {
     assert.ok(server);
     server.use(http.post(`${AUTH_URL}/action-token`, async ({ request }) => {
       actionTokenRequest = await request.json();
-      return HttpResponse.json({ token: 'group-validation-token' });
+      return HttpResponse.json({ token: 'group-validation-token', email: user.attributes.email });
     }));
     const eventData = createEvent('ValidationEmailRequested', {
       code: null,

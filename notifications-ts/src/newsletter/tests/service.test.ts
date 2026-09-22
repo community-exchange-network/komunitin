@@ -50,8 +50,12 @@ describe('Newsletter Cron Job', () => {
     const actionTokenRequests: { userId: string; purpose: string }[] = [];
     server.use(
       http.post('http://auth.test/action-token', async ({ request }) => {
-        actionTokenRequests.push(await request.json() as { userId: string; purpose: string });
-        return HttpResponse.json({ token: 'newsletter-unsubscribe-token' });
+        const actionTokenRequest = await request.json() as { userId: string; purpose: string };
+        actionTokenRequests.push(actionTokenRequest);
+        return HttpResponse.json({
+          token: 'newsletter-unsubscribe-token',
+          email: db.users.find(user => user.id === actionTokenRequest.userId)!.attributes.email,
+        });
       })
     );
 
