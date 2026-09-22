@@ -770,19 +770,18 @@ export default {
       const member = schema.members.find(request.params.id)
       if (!member || member.deleted || member.group.code !== request.params.code) return notFound()
       if (!user.memberIds.includes(member.id)) return new Response(403)
-      requestMockMemberDeletion(user.id, user.email, {
-        memberId: member.id, groupCode: request.params.code,
-      })
+      requestMockMemberDeletion(user.id, user.email, member.id, request.params.code)
       return new Response(204)
     })
 
     // Delete member
     server.delete(urlSocial + "/:code/members/:id", (schema: any, request: any) => {
       const member = schema.members.find(request.params.id)
+      if (!member || member.group.code !== request.params.code) return notFound()
       const users = schema.users.where((user: any) => user.memberIds.includes(member.id))
       const token = JSON.parse(request.requestBody || '{}').meta?.token
       if (!token && !request.requestHeaders.Authorization) return new Response(401)
-      const confirmation = token ? redeemMockMemberDeletion(token, request.params.code, member.id) : undefined
+      const confirmation = token ? redeemMockMemberDeletion(token, member.id) : undefined
       if (token && (!confirmation || !users.models.some((user: any) => user.id === confirmation.userId))) {
         return badRequest('Invalid or expired deletion token')
       }

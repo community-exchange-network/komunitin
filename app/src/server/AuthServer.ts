@@ -10,17 +10,12 @@ import { v4 as uuid } from "uuid";
 
 type ActionTokenPurpose = "passwordReset" | "emailChange" | "emailVerification" | "unsubscribe" | "memberDeletion";
 
-type MemberDeletion = {
-  memberId: string
-  groupCode: string
-}
-
 type ActionToken = {
   purpose: ActionTokenPurpose
   userId: string
   email: string
   signup?: SignupContext
-  deletion?: MemberDeletion
+  memberId?: string
   used?: boolean
 }
 
@@ -77,9 +72,9 @@ function jsonBody(request: any) {
   return JSON.parse(request.requestBody || "{}");
 }
 
-function newActionToken(purpose: ActionTokenPurpose, userId: string, email: string, signup?: SignupContext, deletion?: MemberDeletion) {
+function newActionToken(purpose: ActionTokenPurpose, userId: string, email: string, signup?: SignupContext, memberId?: string) {
   const token = `${purpose}-${actionTokens.size + 1}`;
-  actionTokens.set(token, { purpose, userId, email, signup, deletion });
+  actionTokens.set(token, { purpose, userId, email, signup, memberId });
   return token;
 }
 
@@ -121,29 +116,26 @@ export function redeemMockActionToken(token: string, purpose: ActionTokenPurpose
   return consumeActionToken(token, [purpose]);
 }
 
-/** Simulate Notifications requesting a member-bound token from Auth. */
-export function requestMockMemberDeletion(userId: string, email: string, deletion: MemberDeletion) {
+let memberDeletionLink: string | undefined
+
+/** Simulate Notifications requesting a member-bound token and building the email link. */
+export function requestMockMemberDeletion(userId: string, email: string, memberId: string, groupCode: string) {
   for (const [key, action] of actionTokens) {
     if (action.userId === userId && action.purpose === 'memberDeletion' && !action.used) actionTokens.delete(key)
   }
-  newActionToken('memberDeletion', userId, email, undefined, deletion)
+  const token = newActionToken('memberDeletion', userId, email, undefined, memberId)
+  memberDeletionLink = `/groups/${encodeURIComponent(groupCode)}/members/${memberId}/delete?token=${token}`
 }
 
 /** The confirmation link delivered by the mocked deletion email. */
 export function getMockMemberDeletionLink() {
-  const latest = [...actionTokens.entries()].reverse()
-    .find(([, action]) => action.purpose === 'memberDeletion')
-  if (!latest) return undefined
-  const [token, action] = latest
-  const deletion = action.deletion
-  return `/groups/${deletion.groupCode}/members/${deletion.memberId}/delete?token=${token}`
+  return memberDeletionLink
 }
 
-export function redeemMockMemberDeletion(token: string, groupCode: string, memberId: string) {
+export function redeemMockMemberDeletion(token: string, memberId: string) {
   const action = actionTokens.get(token)
-  if (action?.purpose !== 'memberDeletion' || action.deletion?.groupCode !== groupCode
-    || action.deletion.memberId !== memberId) return undefined
-  const result = { ...action, deletion: action.deletion }
+  if (action?.purpose !== 'memberDeletion' || action.memberId !== memberId) return undefined
+  const result = { ...action }
   action.used = true
   return result
 }

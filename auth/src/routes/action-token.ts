@@ -6,6 +6,7 @@ import {
   createEmailVerificationToken,
   createPasswordResetTokenForUser,
   createUnsubscribeToken,
+  createMemberDeletionToken,
   redeemActionToken,
   userActionTokenPurpose,
 } from '../services/tokens'
@@ -17,6 +18,11 @@ import { signupContextSchema } from '../users/signup'
 const router = Router()
 
 const actionTokenPayloadSchema = z.discriminatedUnion('purpose', [
+  z.object({
+    memberId: z.uuid(),
+    purpose: z.literal(userActionTokenPurpose.memberDeletion),
+    userId: z.uuid(),
+  }),
   z.object({
     purpose: z.enum([userActionTokenPurpose.passwordReset, userActionTokenPurpose.unsubscribe]),
     userId: z.uuid(),
@@ -57,6 +63,8 @@ router.post('/action-token', express.json(), notificationsServiceAuth, async (re
       token = await createEmailChangeToken(user.id, email)
     } else if (purpose === userActionTokenPurpose.emailVerification) {
       token = await createEmailVerificationToken(user.id, user.email, parsed.data.signup)
+    } else if (purpose === userActionTokenPurpose.memberDeletion) {
+      token = await createMemberDeletionToken(user.id, parsed.data.memberId)
     } else {
       token = await createUnsubscribeToken(user.id)
     }
@@ -69,7 +77,7 @@ router.post('/action-token', express.json(), notificationsServiceAuth, async (re
 
 const redeemActionTokenPayloadSchema = z.object({
   token: z.string().min(1),
-  purpose: z.literal(userActionTokenPurpose.unsubscribe),
+  purpose: z.enum([userActionTokenPurpose.unsubscribe, userActionTokenPurpose.memberDeletion]),
 })
 
 router.post('/redeem-action-token', express.json(), socialServiceAuth, async (req, res, next) => {

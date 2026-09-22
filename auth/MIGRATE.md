@@ -421,13 +421,13 @@ Content-Type: application/json
 Success response:
 
 ```json
-{ "userId": "<uuid>", "email": "<user email>", "purpose": "unsubscribe" }
+{ "userId": "<uuid>", "email": "<user email>", "purpose": "unsubscribe", "data": null }
 ```
 
 Properties:
 
 - authenticated as the `komunitin-social` service client (client credentials)
-- `purpose` is restricted to `unsubscribe`; social cannot redeem password-reset,
+- `purpose` is restricted to `unsubscribe` or `memberDeletion`; social cannot redeem password-reset,
   email-change, or email-verification tokens
 - the token is replayable until expiry so retries remain possible after Auth
   resolution but before the Social mutation completes
@@ -443,9 +443,11 @@ How social must adapt:
 4. Do not decode, verify, or persist the raw token locally, and do not attempt
    to redeem it through `/token`.
 
-Action-token lifetime, replacement, and consumption are purpose policies.
-Credential and identity mutations remain short-lived and consumable;
-unsubscribe remains long-lived and replayable. Do not revive `/get-auth-code`.
+Action-token lifetime and replacement are purpose policies. Password and email
+routes consume tokens within their mutation transactions; service redemption leaves tokens replayable.
+Password and email tokens remain short-lived and consumable; unsubscribe remains
+long-lived and replayable. Membership deletion tokens expire after 24 hours and
+are replayable until replaced or expired. Do not revive `/get-auth-code`.
 
 ## User Data Migration From Drupal
 
@@ -578,6 +580,27 @@ These need explicit decisions before the migration can be considered complete:
 - What is the final scope matrix for read/write/admin operations in accounting and social?
 
 ## Identity deletion after the last membership
+
+The UI first settles any nonzero balance through the normal Accounting transfer
+endpoint, using the user's credentials. This step is shared with administrator
+deletion and completes before any confirmation email is requested.
+Self-deletion then calls Social `POST /:code/members/:member/request-deletion`
+using the user's bearer token, with no request body. The UI checks that the balance
+is zero before proceeding. Social checks ownership and emits `MemberDeletionRequested`. The endpoint returns 204 once
+Notifications accepts the event. Requests are limited to 100 per user per 15 minutes.
+Notifications obtains a purpose-bound token from Auth using `userId` and the membership
+context. Auth requires the identity's email to be verified and resolves it from `userId`.
+The token binds only `memberId`; it carries no transfer details or
+member name and requires no separate request record. Auth returns the member UUID as
+`data` through the generic `POST /redeem-action-token` endpoint. Social checks the
+member ID, looks up the member within the requested community, and rechecks ownership
+when the emailed link is confirmed. Notifications keeps `groupCode` in the event
+to build the confirmation URL. The token remains replayable for 24 hours so Accounting failures and
+identity cleanup can be retried with the same link. Requesting a new link replaces
+the previous one; deleting the identity also invalidates it. Changing the email
+does not invalidate deletion tokens.
+Accounting enforces zero balance when deleting the account, before Social deletes
+the membership.
 
 Social owns membership-deletion authorization and the count of remaining memberships across communities. After deleting a membership, it calls Auth `DELETE /users/:id` for each linked user with no other non-deleted membership. All statuses count, including draft, pending, disabled, and suspended.
 

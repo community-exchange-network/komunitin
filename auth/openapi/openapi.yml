@@ -298,6 +298,8 @@ paths:
         email tokens expire after 24 hours and replace an earlier pending token
         of the same purpose. Unsubscribe tokens expire after one year and do
         not replace earlier unsubscribe tokens.
+        Membership deletion tokens also expire after 24 hours and replace
+        pending deletion tokens. They bind the globally unique member ID.
       operationId: postActionToken
       security:
         - bearerAuth: []
@@ -329,11 +331,15 @@ paths:
   /redeem-action-token:
     post:
       tags: [Email]
-      summary: Resolve an unsubscribe action token
+      summary: Resolve an unsubscribe or membership deletion action token
       description: |
         Internal endpoint for the Social service. Valid unsubscribe tokens are
         replayable until expiry so the preference mutation can be retried
         safely. This endpoint never creates an OAuth session.
+        Deletion tokens are also replayable until expiry or replacement so
+        deletion and cleanup can be retried. Social must check the returned
+        member ID in data against the requested membership and
+        verify ownership. Deletion tokens remain valid after an email change.
       operationId: postRedeemActionToken
       security:
         - bearerAuth: []
@@ -345,7 +351,7 @@ paths:
               $ref: '#/components/schemas/RedeemActionTokenPayload'
       responses:
         '200':
-          description: Resolved unsubscribe action.
+          description: Resolved action and its stored context.
           content:
             application/json:
               schema:
@@ -505,6 +511,18 @@ components:
     ActionTokenPayload:
       oneOf:
         - type: object
+          required: [userId, purpose, memberId]
+          properties:
+            userId:
+              type: string
+              format: uuid
+            purpose:
+              type: string
+              enum: [memberDeletion]
+            memberId:
+              type: string
+              format: uuid
+        - type: object
           required: [userId, purpose]
           properties:
             userId:
@@ -562,10 +580,10 @@ components:
           type: string
         purpose:
           type: string
-          enum: [unsubscribe]
+          enum: [unsubscribe, memberDeletion]
     RedeemedActionToken:
       type: object
-      required: [userId, email, purpose]
+      required: [userId, email, purpose, data]
       properties:
         userId:
           type: string
@@ -575,7 +593,13 @@ components:
           format: email
         purpose:
           type: string
-          enum: [unsubscribe]
+          enum: [unsubscribe, memberDeletion]
+        data:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          description: Stored action context; member UUID for memberDeletion, null for unsubscribe.
     JsonApiErrors:
       type: object
       required: [errors]
