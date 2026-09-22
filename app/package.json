@@ -8,8 +8,8 @@
   "type": "module",
   "scripts": {
     "dev": "quasar dev -m pwa",
-    "build": "quasar build -m pwa",
-    "test": "vitest run",
+    "build": "quasar build -m ssg",
+    "test": "vitest run && node --test test/build/ssg.test.mjs",
     "lint": "eslint --max-warnings 0 \"./src*/**/*.{ts,js,mjs,cjs,vue}\"",
     "lint-fix": "eslint --fix \"./src*/**/*.{ts,js,mjs,cjs,vue}\"",
     "testAll": "pnpm run typecheck && pnpm run test && pnpm run lint",

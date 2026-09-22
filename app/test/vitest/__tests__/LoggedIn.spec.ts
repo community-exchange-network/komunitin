@@ -18,12 +18,13 @@ describe("logged in", () => {
   });
   afterAll(() => wrapper.unmount());
 
-  it("redirects when logged in", async () => {
+  it.each(['/', '/login'])("redirects from %s when logged in", async (path) => {
     const router = wrapper.vm.$router;
     await router.isReady();
     // Router guards are installed after router has its initial push in test environment. 
-    // That's why we force a push so the guard is executed.
-    await router.push("/login")
+    // Leave the initial root route so navigating back executes the guard.
+    await router.push('/home')
+    await router.push(path)
     await waitFor(() => wrapper.vm.$route.path, "/home");
     expect(wrapper.vm.$route.path).toBe("/home");
     
@@ -33,6 +34,11 @@ describe("logged in", () => {
     // Group name
     expect(text).toContain("Group 0");
   })
+
+  it('honors the redirect query on the root page', async () => {
+    await wrapper.vm.$router.push('/?redirect=/settings');
+    await waitFor(() => wrapper.vm.$route.path, '/settings');
+  });
 
   it("emails a password reset link and signs out after choosing the new password", async () => {
     await wrapper.vm.$router.push("/profile")
