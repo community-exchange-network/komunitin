@@ -1,12 +1,12 @@
 import { createAccountingClient } from '../../clients/accounting'
-import { deleteIdentity } from '../../clients/auth'
+import { deleteIdentity, redeemMemberDeletionToken } from '../../clients/auth'
 import { countUserMembers } from '../users/member-query'
 import { Prisma, type Member as DbMemberRecord } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { type CollectionResult, indexById, reorderByIds } from '../../server/query'
 import { hasInclude, type CollectionParams, type ResourceParams } from '../../server/request'
-import { badRequest, forbidden, notFound } from '../../utils/error'
+import { badRequest, forbidden, notFound, unauthorized } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
 import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
@@ -380,8 +380,24 @@ export const patchMember = async (
   return enrichMember(ctx, toMember(updated), group)
 }
 
+/** Authorize ownership before requesting a deletion confirmation email. */
+export const requestMemberDeletion = async (ctx: AuthContext, code: string, id: string) => {
+  const group = await getGroupByCode(ctx, code)
+  const member = await getMemberById(code, id, group)
+  if (!await isMemberUser(ctx, member)) {
+    throw forbidden('You do not have permission to delete this member')
+  }
+
+  await createNotificationsClient(ctx).notifyMemberDeletionRequested(code, member)
+}
+
 /** Delete membership and then remove any identities left without memberships. */
-export const deleteMember = async (ctx: AuthContext, code: string, id: string): Promise<void> => {
+export const deleteMember = async (ctx: OptionalAuthContext, code: string, id: string, token?: string): Promise<void> => {
+  if (!token && !ctx.userId) {
+    throw unauthorized('Authentication or email confirmation is required')
+  }
+
+  const confirmation = token ? await redeemMemberDeletionToken(token, id) : undefined
   const db = tenantDb(prisma, code)
   // Keep deleted rows addressable only here so failed Auth cleanup can be retried,
   // including by the owner of a last membership in a private community.
@@ -394,21 +410,24 @@ export const deleteMember = async (ctx: AuthContext, code: string, id: string): 
   }
   const member = toMember(row)
   const group = toGroup(row.group)
-  if (!await canWriteMember(ctx, group, member)) {
+  const ownerId = confirmation?.userId ?? ctx.userId
+  const isOwner = row.users.some(({ userId }) => userId === ownerId)
+  const isAdmin = !confirmation && (ctx.isSuperadmin || isGroupAdmin(ctx, group))
+  if (!isOwner && !isAdmin) {
     throw forbidden('You do not have permission to delete this member')
+  }
+  if (!confirmation && isOwner && !member.deleted) {
+    throw forbidden('Email confirmation is required to delete your membership')
   }
 
   if (!member.deleted) {
     const currencyCode = getCurrencyCode(group)
-    const accounting = createAccountingClient(ctx)
+    const accounting = createAccountingClient(ctx.userId && !confirmation ? ctx : undefined)
     const account = member.accountId
       ? await accounting.findAccountById(currencyCode, member.accountId)
       : await accounting.findAccountByCode(currencyCode, member.code)
 
     if (account && account.status !== 'deleted') {
-      if (account.balance !== undefined && account.balance !== 0) {
-        throw badRequest('Account balance must be zero to delete account')
-      }
       await accounting.deleteAccount(currencyCode, account.id)
     }
 
@@ -419,6 +438,8 @@ export const deleteMember = async (ctx: AuthContext, code: string, id: string): 
   }
   await syncResourceFiles(code, 'members', member.id, [])
 
+  // Keep the confirming identity (and its retry token) until other cleanup succeeds.
+  row.users.sort((a, b) => Number(a.userId === ownerId) - Number(b.userId === ownerId))
   // This query spans all tenants and counts every non-deleted membership status.
   for (const { userId } of row.users) {
     if (await countUserMembers(userId) === 0) {

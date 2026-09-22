@@ -4,21 +4,23 @@ import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/context'
-import { auth, serviceAuth } from './mocks/auth'
+import { auth, serviceAuth, signJwt } from './mocks/auth'
 import { accountingAccountHref } from './mocks/accounting'
 import {
+  memberDeletionToken,
   getAccountingRequestPaths,
   getAuthTokenRequests,
   getIdentityDeleteRequests,
   setIdentityDeleteStatus,
   getNotificationsEvents,
+  setNotificationsEventStatus,
   resetMockState,
   seedAccountingAccount,
   seedAccountingCurrency,
   setAccountingAccountDeleteStatus,
   setAccountingAccountPatchStatus,
 } from './mocks/handlers'
-import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser, seedPost } from './mocks/seed'
+import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser, seedPost, seedUser } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { toUuid } from './mocks/utils'
 
@@ -1047,7 +1049,45 @@ describe('Members endpoints', () => {
     )
   })
 
-  test('DELETE /:code/members/:member soft-deletes as member admin after accounting delete', async () => {
+  test('requesting deletion requires ownership and emits only user and member IDs without changing the member or balance', async () => {
+    const owner = await auth('request-deletion-owner')
+    const admin = await auth('request-deletion-admin')
+    const outsider = await auth('request-deletion-outsider')
+    const currency = seedAccountingCurrency('request-deletion')
+    await seedGroup({ tenantId: currency.code, currencyId: currency.id, status: 'active' })
+    await seedGroupAdmin({ tenantId: currency.code, userId: admin.id })
+    const account = seedAccountingAccount(currency.code, 'owner', [owner.id])
+    account.balance = 50
+    const member = await seedMember({
+      tenantId: currency.code, userId: owner.id, accountId: account.id, name: 'My member',
+    })
+    await seedUser({ id: owner.id, email: owner.email })
+    const url = `/${currency.code}/members/${member.id}/request-deletion`
+    const send = (token = owner.token) => request(app).post(url)
+      .set('Authorization', `Bearer ${token}`)
+
+    await request(app).post(url).expect(401)
+    await send(outsider.token).expect(403)
+    await send(admin.token).expect(403)
+    await send().expect(204)
+    const event = getNotificationsEvents()[0] as any
+    assert.strictEqual(event.data.attributes.source, 'social')
+    assert.strictEqual(event.data.attributes.name, 'MemberDeletionRequested')
+    assert.strictEqual(event.data.attributes.code, currency.code)
+    assert.deepStrictEqual(event.data.attributes.data, {
+      user: owner.id, memberId: member.id,
+    })
+    assert.strictEqual(event.data.relationships.user.data.id, owner.id)
+    assert.strictEqual(account.balance, 50)
+    assert.strictEqual((await tenantDb(prisma, currency.code).member.findUniqueOrThrow({ where: { id: member.id } })).deleted, null)
+    assert.deepStrictEqual(getIdentityDeleteRequests(), [])
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+
+    setNotificationsEventStatus(500)
+    await send().expect(500)
+  })
+
+  test('DELETE /:code/members/:member confirms deletion without login after accounting delete', async () => {
     const currency = seedAccountingCurrency('members-delete')
     await seedGroup({
       tenantId: 'members-delete',
@@ -1067,7 +1107,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -1093,6 +1133,47 @@ describe('Members endpoints', () => {
     assert.strictEqual(deleted?.status, 'active')
   })
 
+  test('email confirmation binds the member and owner before deleting', async () => {
+    const currency = seedAccountingCurrency('confirm-deletion')
+    await seedGroup({ tenantId: currency.code, status: 'active', access: 'private', currencyId: currency.id })
+    const owner = await auth('confirm-deletion-owner')
+    await seedGroup({ tenantId: 'remaining-membership', status: 'active' })
+    await seedMember({ tenantId: 'remaining-membership', userId: owner.id })
+    const other = await auth('confirm-deletion-other')
+    const account = seedAccountingAccount(currency.code, 'owner', [owner.id], undefined, 'active', 0)
+    const member = await seedMember({ tenantId: currency.code, userId: owner.id, accountId: account.id })
+    const path = `/${currency.code}/members/${member.id}`
+    const token = memberDeletionToken(owner.id, member.id)
+
+    await request(app).delete(path).expect(401)
+    await request(app).delete(path).send({ meta: { token: '' } }).expect(401)
+    await request(app).delete(path).send({ meta: { token: 123 } }).expect(401)
+    await request(app).delete(path).set('Authorization', 'Bearer invalid-token')
+      .send({ meta: { token } }).expect(401)
+    await request(app).delete(path).set('Authorization', `Bearer ${owner.token}`).expect(403)
+    // Administrators must also confirm deletion of their own membership.
+    await seedGroupAdmin({ tenantId: currency.code, userId: owner.id })
+    await request(app).delete(path).set('Authorization', `Bearer ${owner.token}`).expect(403)
+    for (const invalid of [
+      'invalid-token',
+      memberDeletionToken(owner.id, toUuid('another-member')),
+    ]) {
+      await request(app).delete(path).send({ meta: { token: invalid } }).expect(400)
+    }
+    await request(app).delete(`/remaining-membership/members/${member.id}`)
+      .send({ meta: { token } }).expect(404)
+    await request(app).delete(path).send({ meta: {
+      token: memberDeletionToken(other.id, member.id),
+    } }).expect(403)
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+    assert.strictEqual(account.balance, 0)
+
+    await request(app).delete(path).send({ meta: { token } }).expect(204)
+    assert.strictEqual(account.balance, 0)
+    assert.strictEqual(account.status, 'deleted')
+    await request(app).delete(path).send({ meta: { token } }).expect(204)
+  })
+
   test('DELETE /:code/members/:member allows group admin to delete another member', async () => {
     const currency = seedAccountingCurrency('members-delete-admin')
     await seedGroup({
@@ -1112,6 +1193,13 @@ describe('Members endpoints', () => {
       userId: owner.id,
       accountId: account.id,
     })
+
+    const readOnlyToken = await signJwt(admin.id, admin.email, Scope.SocialRead, { includeDefaultScopes: false })
+    await request(app)
+      .delete(`/members-delete-admin/members/${member.id}`)
+      .set('Authorization', `Bearer ${readOnlyToken}`)
+      .expect(403)
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
 
     await request(app)
       .delete(`/members-delete-admin/members/${member.id}`)
@@ -1162,7 +1250,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-no-account/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -1193,7 +1281,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-account-by-code/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -1206,7 +1294,7 @@ describe('Members endpoints', () => {
     assert.ok(deleted?.deleted)
   })
 
-  test('DELETE /:code/members/:member returns bad request and keeps social member when accounting account has nonzero balance', async () => {
+  test('DELETE /:code/members/:member keeps the member when Accounting rejects a nonzero balance', async () => {
     const currency = seedAccountingCurrency('members-delete-accounting-400')
     await seedGroup({
       tenantId: 'members-delete-accounting-400',
@@ -1227,13 +1315,14 @@ describe('Members endpoints', () => {
 
     const res = await request(app)
       .delete(`/members-delete-accounting-400/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
-      .expect(400)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
+      .expect(500)
 
-    assert.strictEqual(res.body.errors[0].code, 'BadRequest')
+    assert.strictEqual(res.body.errors[0].code, 'InternalError')
     assert.strictEqual(res.body.errors[0].detail, 'Account balance must be zero to delete account')
     assert.deepStrictEqual(getAccountingRequestPaths(), [
       `GET /${currency.code}/accounts/${account.id}`,
+      `DELETE /${currency.code}/accounts/${account.id}`,
     ])
 
     const db = tenantDb(prisma, 'members-delete-accounting-400')
@@ -1246,7 +1335,7 @@ describe('Members endpoints', () => {
       .expect(200)
   })
 
-  test('DELETE /:code/members/:member returns internal error when accounting delete fails after preflight', async () => {
+  test('DELETE /:code/members/:member can retry the same confirmation after accounting delete fails', async () => {
     const currency = seedAccountingCurrency('members-delete-accounting-500')
     await seedGroup({
       tenantId: 'members-delete-accounting-500',
@@ -1264,10 +1353,11 @@ describe('Members endpoints', () => {
       accountId: account.id,
     })
     setAccountingAccountDeleteStatus(400, 'Mock accounting delete failure')
+    const token = memberDeletionToken(owner.id, member.id)
 
     const res = await request(app)
       .delete(`/members-delete-accounting-500/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token } })
       .expect(500)
 
     assert.strictEqual(res.body.errors[0].code, 'InternalError')
@@ -1280,6 +1370,13 @@ describe('Members endpoints', () => {
     const db = tenantDb(prisma, 'members-delete-accounting-500')
     const notDeleted = await db.member.findUnique({ where: { id: member.id } })
     assert.strictEqual(notDeleted?.deleted, null)
+
+    setAccountingAccountDeleteStatus(204)
+    await request(app).delete(`/members-delete-accounting-500/members/${member.id}`)
+      .send({ meta: { token } }).expect(204)
+    assert.strictEqual(account.status, 'deleted')
+    const deleted = await db.member.findUniqueOrThrow({ where: { id: member.id } })
+    assert.ok(deleted.deleted)
   })
 
   test('DELETE /:code/members/:member treats missing accounting account as deleted', async () => {
@@ -1301,7 +1398,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-accounting-404/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -1334,7 +1431,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-account-deleted/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -1369,7 +1466,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-posts/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     await request(app)
@@ -1406,7 +1503,7 @@ describe('Members endpoints', () => {
     await request(app).get(`/delete-other/members/${other.id}`)
       .set('Authorization', `Bearer ${shared.token}`).expect(200)
     await request(app).delete(`/delete-other/members/${other.id}`)
-      .set('Authorization', `Bearer ${shared.token}`).expect(204)
+      .send({ meta: { token: memberDeletionToken(shared.id, other.id) } }).expect(204)
     assert.deepStrictEqual(getIdentityDeleteRequests(), [owner.id, shared.id])
     const replacement = await auth('replacement-identity')
     await request(app).post('/users')
@@ -1423,13 +1520,16 @@ describe('Members endpoints', () => {
     const remove = (token: string) => request(app).delete(`/retry-delete/members/${member.id}`)
       .set('Authorization', `Bearer ${token}`)
     setIdentityDeleteStatus(503)
-    await remove(owner.token).expect(500)
+    const token = memberDeletionToken(owner.id, member.id)
+    await request(app).delete(`/retry-delete/members/${member.id}`)
+      .send({ meta: { token } }).expect(500)
     await request(app).get(`/retry-delete/members/${member.id}`)
       .set('Authorization', `Bearer ${owner.token}`).expect(403)
     const accountingRequests = getAccountingRequestPaths().length
     await remove(outsider.token).expect(403)
     setIdentityDeleteStatus(204)
-    await remove(owner.token).expect(204)
+    await request(app).delete(`/retry-delete/members/${member.id}`)
+      .send({ meta: { token } }).expect(204)
     assert.deepStrictEqual(getIdentityDeleteRequests(), [owner.id, owner.id])
     assert.strictEqual(getAccountingRequestPaths().length, accountingRequests)
   })
@@ -1831,7 +1931,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-files/members/${memberId}`)
-      .set('Authorization', `Bearer ${user.token}`)
+      .send({ meta: { token: memberDeletionToken(user.id, memberId) } })
       .expect(204)
 
     files = await db.file.findMany({

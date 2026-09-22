@@ -41,6 +41,15 @@ type MockUnsubscribeToken = {
 }
 
 const authBaseUrl = process.env.AUTH_URL ?? 'http://auth.test'
+const deletionTokens = new Map<string, {
+  userId: string; memberId: string;
+}>()
+
+export const memberDeletionToken = (userId: string, memberId: string) => {
+  const token = `deletion-${deletionTokens.size}`
+  deletionTokens.set(token, { userId, memberId })
+  return token
+}
 const accountingBaseUrl = process.env.ACCOUNTING_URL ?? 'http://localhost:2025'
 let authTokenRequests: AuthTokenRequest[] = []
 let identityDeleteRequests: string[] = []
@@ -215,6 +224,7 @@ const serializeAccount = (account: MockAccount) => ({
 })
 
 export const resetMockState = () => {
+  deletionTokens.clear()
   authTokenRequests = []
   identityDeleteRequests = []
   identityDeleteStatus = 204
@@ -260,7 +270,7 @@ export const handlers = [
       if (
         tokenRequest.clientId !== CLIENT_ID
         || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
-        || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.NotificationsWrite)
+        || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.AccountingWrite && tokenRequest.scope !== Scope.NotificationsWrite)
       ) {
         return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
       }
@@ -301,6 +311,14 @@ export const handlers = [
       return HttpResponse.json({ error: 'invalid_token' }, { status: 401 })
     }
     const body = await request.json() as { token?: string; purpose?: string }
+    if (body.purpose === 'memberDeletion') {
+      const action = deletionTokens.get(body.token ?? '')
+      if (!action) {
+        return HttpResponse.json({ error: 'invalid_action_token' }, { status: 400 })
+      }
+      const { userId, memberId } = action
+      return HttpResponse.json({ userId, purpose: 'memberDeletion', data: memberId })
+    }
     if (!body.token || body.purpose !== 'unsubscribe') {
       return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
     }
@@ -500,6 +518,9 @@ export const handlers = [
       return jsonApiError(404, `Account ${accountId} not found`)
     }
 
+    if (account.balance !== 0) {
+      return jsonApiError(400, 'Account balance must be zero to delete account')
+    }
     account.status = 'deleted'
     return new HttpResponse(null, { status: 204 })
   }),
