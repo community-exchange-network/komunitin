@@ -3,7 +3,7 @@
     <div class="col-12 col-sm-6 col-md-4 q-pa-lg xs-last">
       <img
         class="full-width empty-img"
-        src="~assets/acorn-512.png"
+        src="~@/assets/acorn-512.png"
       >
     </div>
     <div class="col-12 col-sm-6 col-md-8 q-pa-lg self-center">

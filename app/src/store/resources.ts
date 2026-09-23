@@ -1,5 +1,5 @@
 import { cloneDeep } from "lodash-es";
-import KError, { KErrorCode } from "src/KError";
+import KError, { KErrorCode } from "@/KError";
 import type { ActionContext, Module } from "vuex";
 
 import type {
@@ -7,7 +7,7 @@ import type {
   ExternalResourceObject,
   ResourceIdentifierObject,
   ResourceObject
-} from "src/store/model";
+} from "@/store/model";
 import { apiRequest } from "./request";
 
 export const DEFAULT_PAGE_SIZE = 20

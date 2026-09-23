@@ -1,13 +1,13 @@
 import type { VueWrapper } from "@vue/test-utils";
 import { QList, QMenu } from "quasar";
-import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
-import { seeds } from "src/server";
+import ProfileBtnMenu from '@/components/ProfileBtnMenu.vue';
+import { seeds } from "@/server";
 import App from "../../../src/App.vue";
 import { mountComponent, testLogin, waitFor } from "../utils";
 
 const mockUnsubscribe = vi.fn(() => Promise.resolve());
 
-vi.mock("src/plugins/Notifications", async () => {
+vi.mock("@/plugins/Notifications", async () => {
   const actual = await vi.importActual("../../../src/plugins/Notifications");
   return {
     ...actual,
@@ -92,5 +92,10 @@ describe("Front page and login", () => {
     await waitFor(() => wrapper.vm.$route.path === "/", true, "Should navigate back to front page after logout", 1500)
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
   })
-  
+  it('accepts a token and redirect query on the root page', async () => {
+    await wrapper.vm.$router.push('/?token=test_user&redirect=/home');
+    await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true);
+    await waitFor(() => wrapper.vm.$route.path, '/home');
+  });
+
 });

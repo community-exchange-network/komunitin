@@ -41,9 +41,9 @@ import SignupVerifyForm from "./SignupVerifyForm.vue"
 import { useStore } from "vuex";
 import { computed, ref, watchEffect } from "vue";
 import { scroll } from "quasar";
-import { useLocale } from "src/boot/i18n";
+import { useLocale } from "@/boot/i18n";
 import { Auth } from "../../plugins/Auth"
-import KError, { KErrorCode } from "src/KError";
+import KError, { KErrorCode } from "@/KError";
 import { Notify } from "quasar";
 import { useI18n } from "vue-i18n";
 import { v4 as uuid } from "uuid"

@@ -2,7 +2,7 @@
   <q-layout
     view="hhh lpr fff"
     class="home column justify-start items-center"
-    :style="`background-image: url(${bgImage});`"
+    :style="layoutStyle"
   >
     <q-header class="bg-transparent">
       <q-toolbar>
@@ -27,7 +27,7 @@
         <div>
           <img
             class="logo"
-            src="~assets/logo.svg"
+            src="~@/assets/logo.svg"
             alt="Komunitin"
           >
         </div>
@@ -77,9 +77,15 @@
 import { computed } from 'vue';
 import FitText from '../components/FitText.vue';
 import selectLang from '../components/SelectLang.vue';
-import bgImage from 'assets/home_background-700.jpg';
+import bgImage from '@/assets/home_background-700.jpg';
 import { useRoute, useRouter } from 'vue-router';
 import { config } from '../utils/config';
+
+const layoutStyle = {
+  backgroundImage: `url(${bgImage})`,
+  // QLayout cannot measure the viewport during static generation.
+  ...(import.meta.env.QUASAR_SERVER ? { minHeight: '100vh' } : {})
+}
 
 const docsUrl = config.DOCS_URL
 const privacyUrl = config.PRIVACY_URL

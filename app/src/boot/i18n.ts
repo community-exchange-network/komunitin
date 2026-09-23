@@ -2,10 +2,11 @@ import type { Locale } from "date-fns";
 import { formatRelative } from "date-fns";
 import type { QSingletonGlobals, QVueGlobals } from "quasar";
 import { Quasar, useQuasar } from "quasar";
-import { boot } from "quasar/wrappers";
-import type { LangName } from "src/i18n";
-import langs, { DEFAULT_LANG, normalizeLocale } from "src/i18n";
-import store from "src/store";
+import { defineBoot } from "#q-app";
+import type { QSsrContext } from "#q-app";
+import type { LangName } from "@/i18n";
+import langs, { DEFAULT_LANG, normalizeLocale } from "@/i18n";
+import store from "@/store";
 import { ref, watch } from "vue";
 import { createI18n } from "vue-i18n";
 import { useStore } from "vuex";
@@ -82,6 +83,11 @@ const loadedAdminLocales = new Set<string>();
  * Return the user locale based on previous session or browser.
  */
 async function getCurrentLocale($q: QSingletonGlobals) {
+  // Static generation has no browser preferences or persistent storage.
+  if (import.meta.env.QUASAR_SERVER) {
+    return DEFAULT_LANG;
+  }
+
   // Option 1: Locale saved in LocalStorage from previous session.
   const savedLang = await LocalStorage.getItem(LOCALE_KEY);
   if (savedLang !== null) {
@@ -135,7 +141,7 @@ async function loadLocaleMessages(locale: LangName, admin=false) {
   }
 }
 
-async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: string, admin=false) {
+async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: string, admin=false, ssrContext?: QSsrContext | null) {
   globalLocale = locale
   // Set VueI18n lang.
   const setI18nLocale = async (locale: LangName) => {
@@ -148,7 +154,7 @@ async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: strin
   // Set Quasar lang.
   const setQuasarLang = async (locale: LangName) => {
     const quasarLanguage = await langs[locale].loadQuasar()
-    $q.lang.set(quasarLanguage);
+    $q.lang.set(quasarLanguage, ssrContext);
   }
 
   // Set date-fns lang.
@@ -162,7 +168,7 @@ async function setCurrentLocale($q: QSingletonGlobals|QVueGlobals, locale: strin
     setI18nLocale(lang),
     setQuasarLang(lang),
     setDateLocale(lang),
-    LocalStorage.set(LOCALE_KEY, locale)
+    ...(!import.meta.env.QUASAR_SERVER ? [LocalStorage.set(LOCALE_KEY, locale)] : [])
   ]);
 }
 
@@ -181,7 +187,7 @@ export function useLocale() {
 
 
 // Default export for Quasar boot files.
-export default boot(async ({ app }) => {
+export default defineBoot(async ({ app, ssrContext }) => {
   // Install 'vue-i18n' plugin.
   app.use(i18n);
 
@@ -192,7 +198,7 @@ export default boot(async ({ app }) => {
   // Initially set the current locale.
   const lang = await getCurrentLocale(Quasar)
   const isAdmin = store.getters.isAdmin || store.getters.isSuperadmin
-  await setCurrentLocale(Quasar, lang, isAdmin)
+  await setCurrentLocale(Quasar, lang, isAdmin, ssrContext)
 
   // Change the current locale to the user defined settings. Note that we do it that way so the
   // store does not depend on the i18n infrastructure and therefore it can be used in the service
@@ -207,4 +213,3 @@ export default boot(async ({ app }) => {
 
 
 });
-

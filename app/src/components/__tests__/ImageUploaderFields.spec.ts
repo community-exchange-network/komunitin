@@ -6,7 +6,7 @@ import {
   getMockFileUploadAttempts,
   resetMockFileUploads,
   setMockFileUploadLimit
-} from "src/server/FilesServer"
+} from "@/server/FilesServer"
 import { mountComponent, waitFor } from "../../../test/vitest/utils"
 import { createMockImageFile, mockImageUploadProcessing } from "../../../test/vitest/utils/mockImageUpload"
 

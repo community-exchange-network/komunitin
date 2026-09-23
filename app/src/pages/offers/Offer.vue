@@ -126,7 +126,7 @@ import MemberHeader from "../../components/MemberHeader.vue";
 import ShareButton from "../../components/ShareButton.vue";
 import SimpleMap from "../../components/SimpleMap.vue";
 
-import { formatPrice } from "src/plugins/FormatCurrency";
+import { formatPrice } from "@/plugins/FormatCurrency";
 import { useStore } from "vuex";
 
 const props = defineProps<{

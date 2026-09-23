@@ -1,6 +1,6 @@
 import "../index";
-import { config } from "src/utils/config";
-import type { ResourceObject } from "src/store/model";
+import { config } from "@/utils/config";
+import type { ResourceObject } from "@/store/model";
 import { seeds } from "../index";
 
 const urlSocial = config.SOCIAL_URL;

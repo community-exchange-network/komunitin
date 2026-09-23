@@ -41,16 +41,16 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import PageHeader from 'src/layouts/PageHeader.vue';
+import PageHeader from '@/layouts/PageHeader.vue';
 import EditGroupSettingsForm from './EditGroupSettingsForm.vue';
-import SaveChanges from 'src/components/SaveChanges.vue';
+import SaveChanges from '@/components/SaveChanges.vue';
 
 import type { Ref} from 'vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import type { DeepPartial } from 'quasar';
-import type { Category, Currency, CurrencySettings, GroupSettings, ResourceIdentifierObject, ResourceObject, Trustline } from 'src/store/model';
-import type { CreatePayload, DeletePayload, UpdatePayload } from 'src/store/resources';
+import type { Category, Currency, CurrencySettings, GroupSettings, ResourceIdentifierObject, ResourceObject, Trustline } from '@/store/model';
+import type { CreatePayload, DeletePayload, UpdatePayload } from '@/store/resources';
 import type { ExtendedTrustline } from './TrustlinesField.vue';
 
 const props = defineProps<{

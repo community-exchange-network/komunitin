@@ -2,7 +2,6 @@
   "name": "Komunitin",
   "short_name": "Komunitin",
   "description": "Open System for Exchange Communities",
-  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#98c725",

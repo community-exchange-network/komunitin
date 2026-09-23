@@ -6,7 +6,7 @@ import { QInnerLoading, QInfiniteScroll, QAvatar } from "quasar";
 import MemberHeader from "../../../src/components/MemberHeader.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
 import MemberList from "../../../src/pages/members/MemberList.vue";
-import { seeds } from "src/server";
+import { seeds } from "@/server";
 
 // See also Offers.spec.ts
 describe("Members", () => {

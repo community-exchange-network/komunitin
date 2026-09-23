@@ -3,12 +3,12 @@ import { flushPromises, VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
 import { QItem, QSelect, QDialog, QBtn, QInnerLoading } from "quasar";
-import { seeds } from "src/server";
-import SelectCategory from "src/components/SelectCategory.vue";
-import DeleteNeedBtn from "src/components/DeleteNeedBtn.vue";
+import { seeds } from "@/server";
+import SelectCategory from "@/components/SelectCategory.vue";
+import DeleteNeedBtn from "@/components/DeleteNeedBtn.vue";
 
-import NeedCard from "src/components/NeedCard.vue";
-import PageHeader from "src/layouts/PageHeader.vue";
+import NeedCard from "@/components/NeedCard.vue";
+import PageHeader from "@/layouts/PageHeader.vue";
 
 // See also Offers.spec.ts
 describe("Needs", () => {

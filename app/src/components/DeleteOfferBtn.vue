@@ -18,7 +18,7 @@ import { useQuasar } from "quasar"
 import { computed } from "vue"
 import { useStore } from "vuex"
 import { useI18n } from "vue-i18n"
-import type { Offer } from "src/store/model"
+import type { Offer } from "@/store/model"
 import DeleteBtn from "./DeleteBtn.vue"
 import { useRouter } from "vue-router"
 

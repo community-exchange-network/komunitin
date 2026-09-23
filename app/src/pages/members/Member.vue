@@ -123,7 +123,7 @@ import MemberProfile from "./MemberProfile.vue";
 import ShareButton from "../../components/ShareButton.vue";
 import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue";
 import TransactionItems from "../transactions/TransactionItems.vue";
-import FloatingBtn from "src/components/FloatingBtn.vue";
+import FloatingBtn from "@/components/FloatingBtn.vue";
 
 
 const props = defineProps<{

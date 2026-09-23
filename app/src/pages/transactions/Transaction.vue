@@ -62,7 +62,7 @@ import { useI18n } from "vue-i18n"
 import TransactionCard from "../../components/TransactionCard.vue"
 import type { UpdatePayload } from "../../store/resources"
 import {notifyTransactionState} from "../../plugins/NotifyTransactionState"
-import { useFullTransferById } from "src/composables/fullTransfer"
+import { useFullTransferById } from "@/composables/fullTransfer"
 
 const props = defineProps<{
   code: string,

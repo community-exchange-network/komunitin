@@ -1,6 +1,6 @@
 import type { VueWrapper } from '@vue/test-utils';
-import App from 'src/App.vue';
-import { config } from 'src/utils/config';
+import App from '@/App.vue';
+import { config } from '@/utils/config';
 import { mountComponent, waitFor } from '../utils';
 
 describe('Legal footer links', () => {

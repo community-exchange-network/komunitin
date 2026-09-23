@@ -143,7 +143,7 @@ import NavCard from '../../components/NavCard.vue';
 import GroupMembersMap from './GroupMembersMap.vue';
 
 import type { Group, Contact } from '../../store/model';
-import { useResource } from 'src/composables/useResources';
+import { useResource } from '@/composables/useResources';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{ code: string }>();

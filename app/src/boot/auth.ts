@@ -1,8 +1,8 @@
-import { boot } from "quasar/wrappers";
-import store from "src/store";
+import { defineBoot } from "#q-app";
+import store from "@/store";
 
 
-export default boot(({ router }) => {
+export default defineBoot(async ({ router, urlPath }) => {
   // Prevent access to paths that need authorization.
   router.beforeEach(async (to) => {
     try {
@@ -64,4 +64,8 @@ export default boot(({ router }) => {
       return true
     }
   });
+
+  // This wait forces the router to resolve the initial route before Quasar mounts and clears the 
+  // static HTML, preventing a blank flash.
+  await router.push(urlPath);
 });
