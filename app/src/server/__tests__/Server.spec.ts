@@ -1,8 +1,8 @@
 import server, { seeds } from "../index";
 import { mockToken } from "../AuthServer";
-import { KErrorCode } from "src/KError";
-import { config } from "src/utils/config";
-import type { ResourceObject } from "src/store/model";
+import { KErrorCode } from "@/KError";
+import { config } from "@/utils/config";
+import type { ResourceObject } from "@/store/model";
 
 const urlAuth = config.AUTH_URL;
 const urlSocial = config.SOCIAL_URL;

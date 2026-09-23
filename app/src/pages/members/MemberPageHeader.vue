@@ -104,8 +104,8 @@ import CollapsibleHeader from "../../layouts/CollapsibleHeader.vue";
 
 import AccountLimits from "./AccountLimits.vue";
 
-import Avatar from "src/components/Avatar.vue";
-import FitText from "src/components/FitText.vue";
+import Avatar from "@/components/Avatar.vue";
+import FitText from "@/components/FitText.vue";
 
 import type { Member } from "../../store/model";
 import FormatCurrency from "../../plugins/FormatCurrency"

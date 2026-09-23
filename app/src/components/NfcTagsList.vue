@@ -97,7 +97,7 @@ import { computed, ref } from "vue"
 import DeleteBtn from "./DeleteBtn.vue"
 import NfcTagInput from "./NfcTagInput.vue"
 import { useI18n } from "vue-i18n"
-import type { AccountTag } from "src/store/model"
+import type { AccountTag } from "@/store/model"
 
 const props = defineProps<{
   modelValue?: AccountTag[]

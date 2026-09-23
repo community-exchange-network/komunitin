@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from "vue"
 import type { QUploader } from "quasar"
-import type { ImageObject } from "src/store/model"
+import type { ImageObject } from "@/store/model"
 import { imageFile, useImageUploader } from "../composables/uploader"
 import Avatar from "./Avatar.vue"
 

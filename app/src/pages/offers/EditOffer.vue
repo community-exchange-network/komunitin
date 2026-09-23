@@ -29,8 +29,8 @@
   </template>
 </template>
 <script setup lang="ts">
-import { useEditablePost } from 'src/composables/editablePost'
-import { useResource } from 'src/composables/useResources'
+import { useEditablePost } from '@/composables/editablePost'
+import { useResource } from '@/composables/useResources'
 import PageHeader from "../../layouts/PageHeader.vue"
 import OfferForm from "./OfferForm.vue"
 import Error404 from '../Error404.vue'

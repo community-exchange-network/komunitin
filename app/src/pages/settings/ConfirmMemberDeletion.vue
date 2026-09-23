@@ -29,12 +29,12 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
-import PageHeader from 'src/layouts/PageHeader.vue'
-import MemberHeader from 'src/components/MemberHeader.vue'
-import { useResource } from 'src/composables/useResources'
-import type { Member } from 'src/store/model'
-import { checkFetchResponse } from 'src/KError'
-import { config } from 'src/utils/config'
+import PageHeader from '@/layouts/PageHeader.vue'
+import MemberHeader from '@/components/MemberHeader.vue'
+import { useResource } from '@/composables/useResources'
+import type { Member } from '@/store/model'
+import { checkFetchResponse } from '@/KError'
+import { config } from '@/utils/config'
 
 const route = useRoute()
 const store = useStore()

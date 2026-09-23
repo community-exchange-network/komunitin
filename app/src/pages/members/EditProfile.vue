@@ -32,7 +32,7 @@ import { computed, ref } from "vue"
 import type { DeepPartial } from "quasar"
 
 import type { Member } from "../../store/model"
-import { useEditableMember, useEditableMemberUser } from "src/composables/editableMember"
+import { useEditableMember, useEditableMemberUser } from "@/composables/editableMember"
 
 const props = defineProps<{
   code?: string,

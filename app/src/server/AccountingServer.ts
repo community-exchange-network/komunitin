@@ -3,7 +3,7 @@
 import type { Server, ModelInstance} from "miragejs";
 import { Model, Factory, Response, belongsTo, hasMany, Collection } from "miragejs";
 import faker from "faker";
-import { config } from "src/utils/config";
+import { config } from "@/utils/config";
 import ApiSerializer from "./ApiSerializer";
 import { filter, sort, search } from "./ServerUtils";
 import { inflections } from "inflected"

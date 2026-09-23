@@ -1,7 +1,7 @@
-import { config } from "src/utils/config";
-import { checkFetchResponse } from "src/KError";
-import formatCurrency, { formatGlobalCurrency } from "src/plugins/FormatCurrency";
-import type { Currency } from "src/store/model";
+import { config } from "@/utils/config";
+import { checkFetchResponse } from "@/KError";
+import formatCurrency, { formatGlobalCurrency } from "@/plugins/FormatCurrency";
+import type { Currency } from "@/store/model";
 import type { MaybeRefOrGetter} from "vue";
 import { computed, ref, toRef, toValue, watch, watchEffect } from "vue";
 import { useStore } from "vuex";

@@ -60,7 +60,7 @@
 import { defineComponent, computed } from "vue"
 import { useStore } from "vuex"
 
-import { useCardClickTo } from "src/composables/useCardClickTo"
+import { useCardClickTo } from "@/composables/useCardClickTo"
 import clamp from "../plugins/Clamp";
 import md2txt from "../plugins/Md2txt";
 

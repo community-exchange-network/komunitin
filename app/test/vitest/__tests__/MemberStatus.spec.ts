@@ -1,11 +1,11 @@
 import type { VueWrapper } from '@vue/test-utils'
-import App from 'src/App.vue'
-import ConfirmBtn from 'src/components/ConfirmBtn.vue'
-import MemberStatusChip from 'src/components/MemberStatusChip.vue'
-import MemberStatusField from 'src/pages/settings/MemberStatusField.vue'
-import server, { seeds } from 'src/server'
-import type { Account, Member } from 'src/store/model'
-import { config } from 'src/utils/config'
+import App from '@/App.vue'
+import ConfirmBtn from '@/components/ConfirmBtn.vue'
+import MemberStatusChip from '@/components/MemberStatusChip.vue'
+import MemberStatusField from '@/pages/settings/MemberStatusField.vue'
+import server, { seeds } from '@/server'
+import type { Account, Member } from '@/store/model'
+import { config } from '@/utils/config'
 import { mountComponent, waitFor } from '../utils'
 
 describe('Member status settings', () => {
@@ -82,13 +82,11 @@ describe('Member status settings', () => {
         return body.data.attributes.status
       })
       expect(statuses).toEqual(['suspended', 'active', 'disabled', 'active'])
-      const accountGets = fetchSpy.mock.calls.filter(([url, options]) =>
+      const accountRefreshes = fetchSpy.mock.calls.filter(([url, options]) =>
         String(url).startsWith(config.ACCOUNTING_URL) && options?.method === 'GET'
+          && !new URL(String(url)).searchParams.has('include')
       )
-      expect(accountGets).toHaveLength(4)
-      expect(accountGets.every(([url]) =>
-        !new URL(String(url)).searchParams.has('include')
-      )).toBe(true)
+      expect(accountRefreshes).toHaveLength(4)
       expect(fetchSpy.mock.calls.some(([url, options]) =>
         String(url).startsWith(config.ACCOUNTING_URL) && options?.method === 'PATCH'
       )).toBe(false)

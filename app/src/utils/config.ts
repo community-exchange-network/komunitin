@@ -7,12 +7,11 @@
  *    - Allows changing configuration without rebuilding the app
  * 
  * 2. BUILD-TIME CONFIG (Development/Fallback):
- *    - process.env.* values replaced by Quasar at build time
- *    - Uses values from .env files and quasar.config.ts build.env
- *    - Defined at build time, properly typed (string/boolean)
+ *    - import.meta.env.* values replaced by Quasar at build time
+ *    - Uses values from .env files and quasar.config.ts build.defineEnv
+ *    - Strings from the build environment; missing values use empty/false defaults
  * 
  * Usage: Simply import and use config.PROPERTY_NAME anywhere in the app.
- * All values are guaranteed to be available since they're defined in quasar.config.ts.
  */
 
 declare global {
@@ -28,7 +27,7 @@ function getValue(key: string, buildTimeValue: string | boolean | undefined): st
     // 1. Try runtime config (Docker injected)
     return window.__KOMUNITIN_APP_CONFIG__[key];
   } else {
-    // 2. Use build-time config (Quasar replaced process.env)
+    // 2. Use build-time config (Quasar replaced import.meta.env)
     return buildTimeValue;
   }
 }
@@ -43,30 +42,27 @@ function getString(key: string, buildTimeValue: string | boolean | undefined): s
   return value !== undefined ? String(value) : ""
 }
 
-// Ensure global process object exists avoiding errors in the service worker.
-if (typeof process === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).process = { env: {} };
-}
-
 export const config = {
-  MOCK_ENABLE: getBoolean('MOCK_ENABLE', process.env.MOCK_ENABLE),
-  MOCK_ENVIRONMENT: getString('MOCK_ENVIRONMENT', process.env.MOCK_ENVIRONMENT),
-  MOCK_AUTH: getBoolean('MOCK_AUTH', process.env.MOCK_AUTH),
-  MOCK_ACCOUNTING: getBoolean('MOCK_ACCOUNTING', process.env.MOCK_ACCOUNTING),
-  MOCK_SOCIAL: getBoolean('MOCK_SOCIAL', process.env.MOCK_SOCIAL),
-  MOCK_NOTIFICATIONS: getBoolean('MOCK_NOTIFICATIONS', process.env.MOCK_NOTIFICATIONS),
-  AUTH_URL: getString('AUTH_URL', process.env.AUTH_URL),
-  ACCOUNTING_URL: getString('ACCOUNTING_URL', process.env.ACCOUNTING_URL),
-  SOCIAL_URL: getString('SOCIAL_URL', process.env.SOCIAL_URL),
-  FILES_URL: getString('FILES_URL', process.env.FILES_URL),
-  NOTIFICATIONS_URL: getString('NOTIFICATIONS_URL', process.env.NOTIFICATIONS_URL),
-  PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: getString('PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY', process.env.PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY),
-  GTAG_ID: getString('GTAG_ID', process.env.GTAG_ID),
-  MATOMO_URL: getString('MATOMO_URL', process.env.MATOMO_URL),
-  MATOMO_SITE_ID: getString('MATOMO_SITE_ID', process.env.MATOMO_SITE_ID),
-  FEEDBACK_URL: getString('FEEDBACK_URL', process.env.FEEDBACK_URL),
-  DOCS_URL: getString('DOCS_URL', process.env.DOCS_URL)
+  MOCK_ENABLE: getBoolean('MOCK_ENABLE', import.meta.env.MOCK_ENABLE),
+  MOCK_ENVIRONMENT: getString('MOCK_ENVIRONMENT', import.meta.env.MOCK_ENVIRONMENT),
+  MOCK_AUTH: getBoolean('MOCK_AUTH', import.meta.env.MOCK_AUTH),
+  MOCK_ACCOUNTING: getBoolean('MOCK_ACCOUNTING', import.meta.env.MOCK_ACCOUNTING),
+  MOCK_SOCIAL: getBoolean('MOCK_SOCIAL', import.meta.env.MOCK_SOCIAL),
+  MOCK_NOTIFICATIONS: getBoolean('MOCK_NOTIFICATIONS', import.meta.env.MOCK_NOTIFICATIONS),
+  AUTH_URL: getString('AUTH_URL', import.meta.env.AUTH_URL),
+  ACCOUNTING_URL: getString('ACCOUNTING_URL', import.meta.env.ACCOUNTING_URL),
+  SOCIAL_URL: getString('SOCIAL_URL', import.meta.env.SOCIAL_URL),
+  FILES_URL: getString('FILES_URL', import.meta.env.FILES_URL),
+  NOTIFICATIONS_URL: getString('NOTIFICATIONS_URL', import.meta.env.NOTIFICATIONS_URL),
+  PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY: getString('PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY', import.meta.env.PUSH_NOTIFICATIONS_VAPID_PUBLIC_KEY),
+  GTAG_ID: getString('GTAG_ID', import.meta.env.GTAG_ID),
+  MATOMO_URL: getString('MATOMO_URL', import.meta.env.MATOMO_URL),
+  MATOMO_SITE_ID: getString('MATOMO_SITE_ID', import.meta.env.MATOMO_SITE_ID),
+  FEEDBACK_URL: getString('FEEDBACK_URL', import.meta.env.FEEDBACK_URL),
+  DOCS_URL: getString('DOCS_URL', import.meta.env.DOCS_URL),
+  PRIVACY_URL: getString('PRIVACY_URL', import.meta.env.PRIVACY_URL),
+  TERMS_URL: getString('TERMS_URL', import.meta.env.TERMS_URL),
+  COOKIES_URL: getString('COOKIES_URL', import.meta.env.COOKIES_URL)
 };
 
 export function setConfig(newConfig: Record<string, string>) {

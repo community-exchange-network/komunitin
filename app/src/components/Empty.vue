@@ -2,7 +2,7 @@
   <div class="column items-center justify-center text-center q-pa-lg">
     <img
       class="empty-img q-mb-lg"
-      src="~assets/acorn-512.png"
+      src="~@/assets/acorn-512.png"
       alt=""
     >
     <div class="text-h4 text-onsurface-m">

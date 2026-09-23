@@ -40,21 +40,21 @@
   </delete-btn>
 </template>
 <script setup lang="ts">
-import DeleteBtn from "src/components/DeleteBtn.vue"
-import { useApiFetch } from "src/composables/useApiFetch"
-import { useResource } from "src/composables/useResources"
-import { config } from "src/utils/config"
-import SelectAccount from "src/components/SelectAccount.vue";
-import MemberHeader from "src/components/MemberHeader.vue";
+import DeleteBtn from "@/components/DeleteBtn.vue"
+import { useApiFetch } from "@/composables/useApiFetch"
+import { useResource } from "@/composables/useResources"
+import { config } from "@/utils/config"
+import SelectAccount from "@/components/SelectAccount.vue";
+import MemberHeader from "@/components/MemberHeader.vue";
 
 import { computed, ref } from "vue"
 import { useStore } from "vuex"
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 
-import type { Account, Currency, Group, Member } from "src/store/model";
-import { transferAccountRelationships } from "src/composables/fullAccount";
-import type { DeletePayload } from "src/store/resources";
+import type { Account, Currency, Group, Member } from "@/store/model";
+import { transferAccountRelationships } from "@/composables/fullAccount";
+import type { DeletePayload } from "@/store/resources";
 
 
 const props = defineProps<{

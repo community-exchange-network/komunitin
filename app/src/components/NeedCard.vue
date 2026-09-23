@@ -88,8 +88,8 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useStore } from "vuex"
-import type { Category, Member, Need } from "src/store/model"
-import { useCardClickTo } from "src/composables/useCardClickTo"
+import type { Category, Member, Need } from "@/store/model"
+import { useCardClickTo } from "@/composables/useCardClickTo"
 import vClamp from "../plugins/Clamp"
 import md2txt from "../plugins/Md2txt"
 import Carousel from "./Carousel.vue"

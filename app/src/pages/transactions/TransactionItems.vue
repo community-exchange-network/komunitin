@@ -43,10 +43,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
 import ResourceCards from "../ResourceCards.vue";
-import TransactionItem from "src/components/TransactionItem.vue";
+import TransactionItem from "@/components/TransactionItem.vue";
 import { useStore } from "vuex";
 import type { ExtendedTransfer, Account, Currency, ResourceObject } from "../../store/model";
-import type { LoadListPayload } from "src/store/resources";
+import type { LoadListPayload } from "@/store/resources";
 
 const props = defineProps<{
   code: string,

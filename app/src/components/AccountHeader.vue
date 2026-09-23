@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useStore } from "vuex"
-import type { Account, Currency, Group, Member } from "src/store/model"
+import type { Account, Currency, Group, Member } from "@/store/model"
 import AccountItemContent from "./AccountItemContent.vue"
 
 
