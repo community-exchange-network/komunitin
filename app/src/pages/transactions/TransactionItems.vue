@@ -1,5 +1,6 @@
 <template>
   <ResourceCards
+    v-if="bothAccounts || member?.account"
     v-slot="slotProps"
     :code="code"
     type="transfers"
