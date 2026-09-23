@@ -584,12 +584,12 @@ These need explicit decisions before the migration can be considered complete:
 The UI first settles any nonzero balance through the normal Accounting transfer
 endpoint, using the user's credentials. This step is shared with administrator
 deletion and completes before any confirmation email is requested.
-Self-deletion then calls Social `POST /:code/members/:member/request-deletion`
+Non-admin self-deletion then calls Social `POST /:code/members/:member/request-deletion`
 using the user's bearer token, with no request body. The UI checks that the balance
 is zero before proceeding. Social checks ownership and emits `MemberDeletionRequested`. The endpoint returns 204 once
 Notifications accepts the event. Requests are limited to 100 per user per 15 minutes.
 Notifications obtains a purpose-bound token from Auth using `userId` and the membership
-context. Auth requires the identity's email to be verified and resolves it from `userId`.
+context. Auth resolves the identity's email from `userId`; prior email verification is not required.
 The token binds only `memberId`; it carries no transfer details or
 member name and requires no separate request record. Auth returns the member UUID as
 `data` through the generic `POST /redeem-action-token` endpoint. Social checks the
@@ -602,6 +602,8 @@ does not invalidate deletion tokens.
 Accounting enforces zero balance when deleting the account, before Social deletes
 the membership.
 
-Social owns membership-deletion authorization and the count of remaining memberships across communities. After deleting a membership, it calls Auth `DELETE /users/:id` for each linked user with no other non-deleted membership. All statuses count, including draft, pending, disabled, and suspended.
+Group administrators and superadmins can delete members directly, including their own memberships, without email confirmation.
+
+Social owns membership-deletion authorization and the count of remaining memberships across communities. After deleting a membership, it anonymizes the local user projections for linked users with no other non-deleted membership, then calls Auth `DELETE /users/:id` for those users. All local cleanup completes before any identity is deleted. All statuses count, including draft, pending, disabled, and suspended.
 
 Auth accepts only the Social service principal, removes the identity and action tokens, and revokes persisted OAuth sessions in one transaction. Deletion is idempotent. Social keeps its soft-deleted member and user projection for domain history and retries; its DELETE endpoint can retry Auth cleanup while normal reads still exclude the deleted membership. Deploy Auth before Social. Existing access JWTs remain valid until their normal expiry at downstream services.

@@ -1,7 +1,7 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
-import { tenantDb } from '../src/server/multitenant'
+import { privilegedDb, tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/context'
 import { auth, serviceAuth, signJwt } from './mocks/auth'
@@ -1151,9 +1151,6 @@ describe('Members endpoints', () => {
     await request(app).delete(path).set('Authorization', 'Bearer invalid-token')
       .send({ meta: { token } }).expect(401)
     await request(app).delete(path).set('Authorization', `Bearer ${owner.token}`).expect(403)
-    // Administrators must also confirm deletion of their own membership.
-    await seedGroupAdmin({ tenantId: currency.code, userId: owner.id })
-    await request(app).delete(path).set('Authorization', `Bearer ${owner.token}`).expect(403)
     for (const invalid of [
       'invalid-token',
       memberDeletionToken(owner.id, toUuid('another-member')),
@@ -1523,6 +1520,10 @@ describe('Members endpoints', () => {
     const token = memberDeletionToken(owner.id, member.id)
     await request(app).delete(`/retry-delete/members/${member.id}`)
       .send({ meta: { token } }).expect(500)
+    const projection = await privilegedDb(prisma).user.findUniqueOrThrow({ where: { id: owner.id } })
+    assert.strictEqual(projection.email, `${owner.id}@deleted.invalid`)
+    assert.strictEqual(projection.name, null)
+    assert.strictEqual(projection.language, null)
     await request(app).get(`/retry-delete/members/${member.id}`)
       .set('Authorization', `Bearer ${owner.token}`).expect(403)
     const accountingRequests = getAccountingRequestPaths().length

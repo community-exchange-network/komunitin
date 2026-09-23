@@ -32,7 +32,7 @@
           :rules="[() => !!recipientAccount || $t('fieldRequired')]"
           outlined
         />
-        <div v-if="isOwn">
+        <div v-if="!isAdmin">
           {{ $t('deleteAccountEmailText') }}
         </div>
       </div>
@@ -67,7 +67,7 @@ const emit = defineEmits<{
 
 const store = useStore()
 const apiFetch = useApiFetch()
-const isAdmin = computed(() => store.getters.isAdmin)
+const isAdmin = computed(() => store.getters.isAdmin || store.getters.isSuperadmin)
 const isOwn = computed(() => props.member.id === store.getters.myMember?.id)
 const recipientAccount = ref<Account>()
 const confirmDialog = ref(false)
@@ -116,16 +116,20 @@ const deleteMember = async () => {
 
     if (canDelete.value && zeroBalance.value) {
       const member = props.member
-      if (isOwn.value) {
+      if (!isAdmin.value) {
         await apiFetch(`${config.SOCIAL_URL}/${encodeURIComponent(member.group.attributes.code)}/members/${member.id}/request-deletion`, {
           method: 'POST',
         })
         quasar.notify({ message: t('resetLinkSent'), color: 'positive', icon: 'mail' })
       } else {
+        const adminOwnMember = isOwn.value
         await store.dispatch('members/delete', {
           group: member.group.attributes.code,
           id: member.id,
         } as DeletePayload)
+        if (adminOwnMember) {
+          await store.dispatch('logout')
+        }
         emit('delete')
       }
     } else {

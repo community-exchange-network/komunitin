@@ -1034,7 +1034,8 @@ describe('Auth Service Integration Tests', () => {
     await prisma.userActionToken.update({ where: { tokenHash: hashToken(expired.token) }, data: { expiresAt: new Date(0) } })
     await redeem(expired.token).expect(400)
     await prisma.user.update({ where: { id: user.id }, data: { email: user.email, emailVerified: false } })
-    await requestActionToken({ userId: user.id, purpose: 'memberDeletion', memberId }, 400)
+    const unverified = await issue()
+    assert.deepStrictEqual((await redeem(unverified.token).expect(200)).body, expected)
   })
 
   test('POST /redeem-action-token resolves unsubscribe tokens repeatedly until expiry', async () => {

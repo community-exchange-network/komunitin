@@ -416,7 +416,7 @@ export const deleteMember = async (ctx: OptionalAuthContext, code: string, id: s
   if (!isOwner && !isAdmin) {
     throw forbidden('You do not have permission to delete this member')
   }
-  if (!confirmation && isOwner && !member.deleted) {
+  if (!confirmation && !isAdmin && !member.deleted) {
     throw forbidden('Email confirmation is required to delete your membership')
   }
 
@@ -440,15 +440,20 @@ export const deleteMember = async (ctx: OptionalAuthContext, code: string, id: s
 
   // Keep the confirming identity (and its retry token) until other cleanup succeeds.
   row.users.sort((a, b) => Number(a.userId === ownerId) - Number(b.userId === ownerId))
+  const identitiesToDelete: string[] = []
   // This query spans all tenants and counts every non-deleted membership status.
   for (const { userId } of row.users) {
     if (await countUserMembers(userId) === 0) {
-      await deleteIdentity(userId)
       // Retain historical relations without reserving the deleted identity's email.
       await privilegedDb(prisma).user.update({
         where: { id: userId },
         data: { email: `${userId}@deleted.invalid`, name: null, language: null },
       })
+      identitiesToDelete.push(userId)
     }
+  }
+  // Finish all local cleanup before Auth invalidates any confirmation tokens.
+  for (const userId of identitiesToDelete) {
+    await deleteIdentity(userId)
   }
 }
