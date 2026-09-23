@@ -72,12 +72,15 @@ const isOwn = computed(() => props.member.id === store.getters.myMember?.id)
 const recipientAccount = ref<Account>()
 const confirmDialog = ref(false)
 
+// Reload only when the account identity changes, not when the member object is replaced.
+const accountId = computed(() => props.member.relationships.account.data?.id ?? null)
+const groupCode = computed(() => props.member.group.attributes.code)
 const { resource: account, load: loadAccount } = useResource<Account & {currency: Currency}>("accounts", () => ({
-  id: props.member.relationships.account.data?.id ?? null,
-  group: props.member.group.attributes.code,
+  id: accountId.value,
+  group: groupCode.value,
   include: "currency",
 }))
-const hasAccount = computed(() => props.member.relationships.account.data !== null)
+const hasAccount = computed(() => accountId.value !== null)
 const balance = computed(() => account.value?.attributes.balance ?? 0)
 const zeroBalance = computed(() => balance.value === 0)
 

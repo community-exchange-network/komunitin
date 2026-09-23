@@ -88,6 +88,9 @@ describe('Member deletion', () => {
     const recipientBalance = recipientAccount.balance
     await recipient.trigger('click')
 
+    // The balance changes on the server while the confirmation dialog is open.
+    member.account.update({ balance: -75 })
+
     const transfers = schema.transfers.all().length
     const previousLink = getMockMemberDeletionLink()
     await dialog.findAllComponents(QBtn).find(button => button.text() === 'Delete account').trigger('click')
@@ -95,7 +98,7 @@ describe('Member deletion', () => {
     expect(member.account.balance).toBe(0)
     expect(member.account.status).toBe('deleted')
     expect(schema.transfers.all().length).toBe(transfers + 1)
-    expect(schema.accounts.find(recipientAccount.id).balance).toBe(recipientBalance - 50)
+    expect(schema.accounts.find(recipientAccount.id).balance).toBe(recipientBalance - 75)
     expect(getMockMemberDeletionLink()).toBe(previousLink)
   })
 })

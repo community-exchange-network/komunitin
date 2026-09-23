@@ -84,7 +84,6 @@ describe('Member status settings', () => {
       expect(statuses).toEqual(['suspended', 'active', 'disabled', 'active'])
       const accountRefreshes = fetchSpy.mock.calls.filter(([url, options]) =>
         String(url).startsWith(config.ACCOUNTING_URL) && options?.method === 'GET'
-          && !new URL(String(url)).searchParams.has('include')
       )
       expect(accountRefreshes).toHaveLength(4)
       expect(fetchSpy.mock.calls.some(([url, options]) =>
