@@ -107,7 +107,7 @@ const store = useStore();
 
 const myMember = computed(() => store.getters.myMember);
 const groupCode = computed(() => myMember.value?.group?.attributes.code ?? '');
-const account = computed(() => myMember?.value.account.attributes.code || '')
+const account = computed(() => myMember.value?.account?.attributes.code ?? '')
 
 const feedbackURL = config.FEEDBACK_URL;
 
