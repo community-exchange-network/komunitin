@@ -47,7 +47,7 @@ export const ctxValidationEmail = (event: EnrichedUserEvent, ctx: MessageContext
 
 }
 
-export const ctxPasswordReset = (event: EnrichedUserEvent, ctx: MessageContext): EmailTemplateContext => {
+export const ctxPasswordResetEmail = (event: Extract<EnrichedUserEvent, { name: 'PasswordResetRequested' }>, ctx: MessageContext): EmailTemplateContext => {
   const { t } = ctx;
   const common = ctxCommon(event, ctx);
   
@@ -80,6 +80,44 @@ export const ctxPasswordReset = (event: EnrichedUserEvent, ctx: MessageContext):
       interpolation: { escapeValue: true },
     })
 
-  } as EmailTemplateContext;
+  }
   return data;
+}
+
+export const ctxMemberDeletionEmail = (event: Extract<EnrichedUserEvent, { name: 'MemberDeletionRequested' }>, ctx: MessageContext): EmailTemplateContext => {
+  const { t } = ctx
+  const common = ctxCommon(event, ctx)
+  const { memberId } = event.data
+
+  const data = {
+    ...common,
+    subject: t('emails.delete_member_subject', { name: common.group.name }),
+
+    label: {
+      icon: '🗑️',
+      iconBg: '#FEF3C7',
+      text: t('emails.delete_member_label'),
+    },
+
+    greeting: t('emails.hello'),
+    paragraphs: [t('emails.delete_member_text', {
+      name: common.group.name,
+      member: event.member!.attributes.name,
+      interpolation: { escapeValue: true },
+    })],
+
+    cta: {
+      main: {
+        text: t('emails.delete_member_cta'),
+        url: `${common.appUrl}/groups/${encodeURIComponent(event.code)}/members/${memberId}/delete?token=${event.token}`
+      }
+    },
+
+    postscript: t('emails.safely_ignore'),
+    reason: t('emails.delete_member_reason', {
+      appName: t('app_name'),
+      interpolation: { escapeValue: true },
+    })
+  }
+  return data
 }

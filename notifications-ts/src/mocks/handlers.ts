@@ -25,8 +25,11 @@ export const handlers = [
   }),
 
   http.post(`${AUTH_URL}/action-token`, async ({ request }) => {
-    const { purpose } = await request.json() as { purpose: string };
-    return HttpResponse.json({ token: `mock-${purpose}-token` });
+    const { userId, purpose, email } = await request.json() as { userId: string; purpose: string; email?: string };
+    return HttpResponse.json({
+      token: `mock-${purpose}-token`,
+      email: purpose === 'emailChange' ? email : db.users.find(user => user.id === userId)!.attributes.email,
+    });
   }),
 
   http.get(`${AUTH_URL}/.well-known/jwks.json`, () => {

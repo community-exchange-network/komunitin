@@ -8,13 +8,14 @@ import { Response } from "miragejs";
 import { badRequest } from "./ServerUtils";
 import { v4 as uuid } from "uuid";
 
-type ActionTokenPurpose = "passwordReset" | "emailChange" | "emailVerification" | "unsubscribe";
+type ActionTokenPurpose = "passwordReset" | "emailChange" | "emailVerification" | "unsubscribe" | "memberDeletion";
 
 type ActionToken = {
   purpose: ActionTokenPurpose
   userId: string
   email: string
   signup?: SignupContext
+  memberId?: string
   used?: boolean
 }
 
@@ -29,6 +30,22 @@ type RegisteredUser = {
 
 const registeredUsers = new Map<string, RegisteredUser>();
 const accessTokenUsers = new Map<string, RegisteredUser>();
+const deletedEmails = new Set<string>()
+const revokedRefreshTokens = new Set<string>()
+
+/** Mirror Auth identity deletion when Social removes the last mock membership. */
+export function deleteMockIdentity(userId: string, email: string) {
+  const user = registeredUsers.get(email)
+  deletedEmails.add(email)
+  revokedRefreshTokens.add(user?.refreshToken ?? `user:${userId}_refresh_token`)
+  registeredUsers.delete(email)
+  for (const [token, user] of accessTokenUsers) {
+    if (user.id === userId) accessTokenUsers.delete(token)
+  }
+  for (const action of actionTokens.values()) {
+    if (action.userId === userId) action.used = true
+  }
+}
 
 /** Resolve tokens for registered users or specific seeded users. */
 export function getMockAuthUser(accessToken: string) {
@@ -55,9 +72,9 @@ function jsonBody(request: any) {
   return JSON.parse(request.requestBody || "{}");
 }
 
-function newActionToken(purpose: ActionTokenPurpose, userId: string, email: string, signup?: SignupContext) {
+function newActionToken(purpose: ActionTokenPurpose, userId: string, email: string, signup?: SignupContext, memberId?: string) {
   const token = `${purpose}-${actionTokens.size + 1}`;
-  actionTokens.set(token, { purpose, userId, email, signup });
+  actionTokens.set(token, { purpose, userId, email, signup, memberId });
   return token;
 }
 
@@ -99,6 +116,30 @@ export function redeemMockActionToken(token: string, purpose: ActionTokenPurpose
   return consumeActionToken(token, [purpose]);
 }
 
+let memberDeletionLink: string | undefined
+
+/** Simulate Notifications requesting a member-bound token and building the email link. */
+export function requestMockMemberDeletion(userId: string, email: string, memberId: string, groupCode: string) {
+  for (const [key, action] of actionTokens) {
+    if (action.userId === userId && action.purpose === 'memberDeletion' && !action.used) actionTokens.delete(key)
+  }
+  const token = newActionToken('memberDeletion', userId, email, undefined, memberId)
+  memberDeletionLink = `/groups/${encodeURIComponent(groupCode)}/members/${memberId}/delete?token=${token}`
+}
+
+/** The confirmation link delivered by the mocked deletion email. */
+export function getMockMemberDeletionLink() {
+  return memberDeletionLink
+}
+
+export function redeemMockMemberDeletion(token: string, memberId: string) {
+  const action = actionTokens.get(token)
+  if (action?.purpose !== 'memberDeletion' || action.memberId !== memberId) return undefined
+  const result = { ...action }
+  action.used = true
+  return result
+}
+
 /** Issue mock tokens for a specific user. */
 export function mockToken(scope: string | null, { superadmin = false, userId }: {
   superadmin?: boolean
@@ -128,6 +169,9 @@ export default {
           return badRequest("Unsupported grant type");
         }
         const param = params.get("refresh_token") || params.get("username") || "";
+        if (deletedEmails.has(param) || revokedRefreshTokens.has(param)) {
+          return invalidGrant("Invalid credentials")
+        }
         const registered = registeredUsers.get(param)
           ?? [...registeredUsers.values()].find(user => user.refreshToken === param)
         if (registered) {
@@ -180,6 +224,7 @@ export default {
         password: body.password,
         refreshToken: `${id}_refresh_token`,
       }
+      deletedEmails.delete(body.email)
       registeredUsers.set(body.email, user)
       return new Response(201, {}, publicUser(user, body.signup));
     });
@@ -189,8 +234,8 @@ export default {
       if (!body?.email) {
         return badRequest("Expected JSON email");
       }
-      const user = registeredUsers.get(body.email)
-      newActionToken("passwordReset", user?.id ?? schema.users.first().id, body.email);
+      const user = registeredUsers.get(body.email) ?? schema.users.findBy({ email: body.email })
+      if (user) newActionToken("passwordReset", user.id, body.email)
       return statusOk();
     });
 

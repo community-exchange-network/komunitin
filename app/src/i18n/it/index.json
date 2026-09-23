@@ -322,9 +322,11 @@
   "bringNfcTag": "Avvicinare il tag NFC al dispositivo per scansionarlo.",
   "deleteAccount": "Elimina account",
   "deleteAccountText": "Elimina completamente il tuo account e cancella tutti i tuoi dati in questa piattaforma, incluso il tuo profilo, gli annunci e il tuo account. Devi avere un saldo positivo o pari a zero per eliminare il tuo account, altrimenti contatta l'amministrazione.",
-  "deleteAccountConfirmation": "Sei sicuro di voler eliminare il tuo account? Questa azione eliminerà per sempre tutti i tuoi dati sulla piattaforma e non potrai più effettuare l'accesso. Se il tuo account ha un saldo positivo, verrà spostato sull'account selezionato.",
+  "deleteAccountConfirmation": "Il profilo e il conto del membro saranno rimossi dalla comunità e le sue offerte e necessità saranno nascoste. Potrai continuare ad accedere agli altri membri che controlli.",
+  "deleteAccountEmailText": "Ti invieremo un’email per confermare l’eliminazione. Il conto resterà aperto finché non confermerai tramite il link.",
+  "deleteAccountEmailError": "Non è stato possibile completare l’eliminazione. Riprova o richiedi una nuova email di conferma dalle impostazioni.",
   "moveBalanceTo": "Destinatario del saldo",
-  "moveBalanceToHint": "Seleziona il conto su cui verrà trasferito il tuo saldo prima di eliminare il tuo conto",
+  "moveBalanceToHint": "Il saldo verrà azzerato ora tramite questo conto, anche se non completi l’eliminazione.",
   "paymentRequests": "Richieste in entrata",
   "acceptExternalPaymentsAutomatically": "Accetta movimenti esterni automaticamente",
   "acceptExternalPaymentsAutomaticallyHint": "Accetta automaticamente tutte le richieste di movimenti esterni.",
@@ -436,7 +438,6 @@
 
   "ErrorInvalidTransferState": "Errore: statistica di trasferimento non valida",
   "ErrorBadRequest": "Errore: la convalida dei dati non è riuscita nel server",
-  
   "ErrorAuthNoCredentials": "Email o password errate",
   "ErrorInvalidPassword": "La password non è corretta",
   "ErrorInsufficientBalance": "Credito insufficiente",

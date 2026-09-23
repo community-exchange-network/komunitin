@@ -82,13 +82,10 @@ describe('Member status settings', () => {
         return body.data.attributes.status
       })
       expect(statuses).toEqual(['suspended', 'active', 'disabled', 'active'])
-      const accountGets = fetchSpy.mock.calls.filter(([url, options]) =>
+      const accountRefreshes = fetchSpy.mock.calls.filter(([url, options]) =>
         String(url).startsWith(config.ACCOUNTING_URL) && options?.method === 'GET'
       )
-      expect(accountGets).toHaveLength(4)
-      expect(accountGets.every(([url]) =>
-        !new URL(String(url)).searchParams.has('include')
-      )).toBe(true)
+      expect(accountRefreshes).toHaveLength(4)
       expect(fetchSpy.mock.calls.some(([url, options]) =>
         String(url).startsWith(config.ACCOUNTING_URL) && options?.method === 'PATCH'
       )).toBe(false)

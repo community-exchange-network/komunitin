@@ -12,6 +12,7 @@ export const userActionTokenPurpose = {
   emailChange: 'emailChange',
   emailVerification: 'emailVerification',
   unsubscribe: 'unsubscribe',
+  memberDeletion: 'memberDeletion',
 } as const
 
 export type UserActionTokenPurpose =
@@ -20,22 +21,20 @@ export type UserActionTokenPurpose =
 const defaultPolicy = {
   ttlMs: DAY_MS,
   replacePending: true,
-  consumeOnRedeem: true,
 } as const
 
 const actionTokenPolicies = {
   [userActionTokenPurpose.passwordReset]: defaultPolicy,
   [userActionTokenPurpose.emailChange]: defaultPolicy,
   [userActionTokenPurpose.emailVerification]: defaultPolicy,
+  [userActionTokenPurpose.memberDeletion]: defaultPolicy,
   [userActionTokenPurpose.unsubscribe]: {
     ttlMs: 365 * DAY_MS,
     replacePending: false,
-    consumeOnRedeem: false,
   },
 } satisfies Record<UserActionTokenPurpose, {
   ttlMs: number
   replacePending: boolean
-  consumeOnRedeem: boolean
 }>
 
 export async function hashPassword(password: string): Promise<string> {
@@ -105,9 +104,10 @@ export async function consumeActionToken(
   actionToken: ActionTokenRecord,
 ) {
   await tx.userActionToken.update({
-    where: { id: actionToken.id },
+    where: { id: actionToken.id, usedAt: null },
     data: { usedAt: new Date() },
   })
+
   await tx.userActionToken.deleteMany({
     where: {
       userId: actionToken.userId,
@@ -127,7 +127,7 @@ async function createUserActionToken({
   userId: string
   purpose: UserActionTokenPurpose
   targetEmail?: string | null
-  data?: SignupContext
+  data?: SignupContext | string
 }): Promise<string> {
   const token = generateToken()
   const tokenHash = hashToken(token)
@@ -198,14 +198,25 @@ export async function createUnsubscribeToken(userId: string): Promise<string> {
   })
 }
 
+export async function createMemberDeletionToken(
+  userId: string,
+  memberId: string,
+) {
+  return createUserActionToken({
+    userId,
+    purpose: userActionTokenPurpose.memberDeletion,
+    data: memberId,
+  })
+}
+
 /**
  * Resolves a purpose-bound action token on behalf of a backend service.
- * Purpose policy determines whether successful redemption consumes the token.
+ * Tokens remain replayable so Social can retry its mutation after resolution.
  */
 export async function redeemActionToken(
   token: string,
-  purpose: UserActionTokenPurpose,
-): Promise<{ userId: string; email: string; purpose: UserActionTokenPurpose } | null> {
+  purpose: typeof userActionTokenPurpose.unsubscribe | typeof userActionTokenPurpose.memberDeletion,
+) {
   const actionToken = await findValidActionToken(token, purpose)
   if (!actionToken) {
     return null
@@ -219,9 +230,10 @@ export async function redeemActionToken(
     return null
   }
 
-  if (actionTokenPolicies[purpose].consumeOnRedeem) {
-    await prisma.$transaction((tx) => consumeActionToken(tx, actionToken))
+  return {
+    userId: user.id,
+    email: user.email,
+    purpose,
+    data: actionToken.data,
   }
-
-  return { userId: user.id, email: user.email, purpose: actionToken.purpose as UserActionTokenPurpose }
 }
