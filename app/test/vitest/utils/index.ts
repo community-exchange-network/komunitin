@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { type defineComponent } from 'vue';
 import { flushPromises, mount, type MountingOptions, type VueWrapper } from "@vue/test-utils";
 import { Notify } from "quasar";
@@ -11,12 +11,17 @@ import createRouter from '@/router/index';
 import bootErrors from '../../../src/boot/errors';
 import bootI18n from '../../../src/boot/i18n';
 import '../../../src/boot/mirage';
-import bootAuth from '../../../src/boot/auth';
+import bootAuth, { authReady } from '../../../src/boot/auth';
 import { Auth } from '../../../src/plugins/Auth';
 import { auth } from '../../../src/store/me';
 import server from '@/server';
 import { mockToken } from '@/server/AuthServer';
 import { type RouteLocationRaw } from 'vue-router';
+
+// Finish the background session refresh before the next test or jsdom teardown.
+afterEach(async () => {
+  await authReady
+})
 
 /** Log in as the default seeded admin, or as the supplied user. */
 export async function testLogin(user: { id: string } = server.schema.users.first()) {

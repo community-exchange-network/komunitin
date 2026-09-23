@@ -2,19 +2,20 @@ import { defineBoot } from "#q-app";
 import store from "@/store";
 import { handleError } from "@/boot/errors"
 
+/** Completion of the current boot's background session refresh. */
+export let authReady = Promise.resolve()
 
 export default defineBoot(async ({ router, urlPath }) => {
-  // Revalidate the user's session and account settings on app boot.
+  // Revalidate in background the user's session and account settings on app boot.
   if (store.getters.isLoggedIn) {
-    store.dispatch("reloadUser").catch(handleError)
+    authReady = store.dispatch("reloadUser").catch(handleError)
   }
 
   // Prevent access to paths that need authorization.
   router.beforeEach(async (to) => {
     try {
-      if (!store.getters.isLoggedIn) {
-        await store.dispatch("authorize");
-      }
+      await store.dispatch("authorize");
+
       // User is logged in.
       if (to.path == "/" || to.path.startsWith("/login")) {
         
