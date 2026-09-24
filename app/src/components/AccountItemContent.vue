@@ -8,7 +8,7 @@
   <q-item-section>
     <q-item-label  
       lines="1" 
-      class="text-weight-medium text-onsurface"
+      class="text-weight-semi-bold text-onsurface"
     >
       {{ primaryText }} 
     </q-item-label>
