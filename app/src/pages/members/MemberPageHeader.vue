@@ -73,7 +73,7 @@
         />
         <q-tab
           name="needs"
-          :label="$t('Needs')"
+          :label="$t('needs')"
         >
           <q-badge 
             v-if="nNeeds > 0"
@@ -82,7 +82,7 @@
         </q-tab>
         <q-tab
           name="offers"
-          :label="$t('Offers')"
+          :label="$t('offers')"
         >
           <q-badge
             v-if="nOffers > 0" 
