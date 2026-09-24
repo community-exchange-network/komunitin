@@ -27,9 +27,11 @@ export interface MigrationLocation {
 }
 
 export interface MigrationContact {
-  type: 'phone' | 'email' | 'telegram' | 'whatsapp' | 'website'
+  type: 'phone' | 'email' | 'telegram' | 'whatsapp' | 'website' | 'instagram' | 'facebook' | 'twitter'
   value: string
 }
+
+export type MigrationEmailFrequency = 'never' | 'daily' | 'weekly' | 'monthly' | 'quarterly'
 
 export interface MigrationMemberUserSettings {
   notifications: {
@@ -38,7 +40,7 @@ export interface MigrationMemberUserSettings {
   }
   emails: {
     myAccount: boolean | null
-    group: 'never' | 'weekly' | 'monthly' | null
+    group: MigrationEmailFrequency | null
   }
 }
 
@@ -49,7 +51,7 @@ export interface MigrationCommunitySettings {
   minNeeds: number | null
   allowAnonymousMemberList: boolean | null
   enableGroupEmail: boolean | null
-  defaultGroupEmailFrequency: 'never' | 'weekly' | 'monthly' | null
+  defaultGroupEmailFrequency: MigrationEmailFrequency | null
 }
 
 export interface MigrationPaymentSettings {
@@ -105,6 +107,9 @@ export interface MigrationAccountSettings extends MigrationPaymentSettings {
 }
 
 export interface MigrationCommunity {
+  id: string | null
+  currencyId: string | null
+  status: 'pending' | 'active' | 'disabled'
   code: string
   name: string
   description: string
@@ -119,31 +124,33 @@ export interface MigrationCommunity {
   settings: MigrationCommunitySettings
   currency: {
     code: string
-    adminUser: string
-    name: string
-    namePlural: string
-    symbol: string
-    decimals: number
-    scale: number
-    rateNumerator: number
-    rateDenominator: number
-    createdAt: string
-    updatedAt: string
+    adminUser: string | null
+    name: string | null
+    namePlural: string | null
+    symbol: string | null
+    decimals: number | null
+    scale: number | null
+    rateNumerator: number | null
+    rateDenominator: number | null
+    createdAt: string | null
+    updatedAt: string | null
     settings: MigrationCurrencySettings
-  }
+  } | null
 }
 
 export interface MigrationUser {
+  id: string | null
   email: string
   name: string | null
-  status: 'active' | 'disabled'
-  createdAt: string
-  updatedAt: string
+  status: 'active' | 'disabled' | null
+  createdAt: string | null
+  updatedAt: string | null
   passwordHash: string | null
   language: string | null
 }
 
 export interface MigrationMemberUser extends MigrationMemberUserSettings {
+  id: string | null
   member: string
   user: string
 }
@@ -152,15 +159,16 @@ export interface MigrationAccount {
   code: string
   status: 'active' | 'disabled' | 'suspended' | 'deleted'
   users: string[]
-  balance: string
-  creditLimit: string
+  balance: string | null
+  creditLimit: string | null
   maximumBalance: string | null
-  createdAt: string
-  updatedAt: string
+  createdAt: string | null
+  updatedAt: string | null
   settings: MigrationAccountSettings
 }
 
 export interface MigrationMember {
+  id: string | null
   code: string
   name: string
   type: 'personal' | 'business' | 'organization' | 'public'
@@ -174,11 +182,12 @@ export interface MigrationMember {
   address: MigrationAddress | null
   location: MigrationLocation | null
   contacts: MigrationContact[]
+  accountId: string | null
   account: MigrationAccount | null
 }
 
 export interface MigrationTransfer {
-  id: string
+  id: string | null
   payer: string
   payee: string
   user: string
@@ -189,6 +198,7 @@ export interface MigrationTransfer {
 }
 
 export interface MigrationCategory {
+  id: string | null
   code: string
   name: string
   description: string | null
@@ -199,6 +209,7 @@ export interface MigrationCategory {
 }
 
 export interface MigrationPost {
+  id: string | null
   code: string
   type: 'offer' | 'need'
   member: string

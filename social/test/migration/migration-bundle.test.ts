@@ -17,6 +17,7 @@ test('parses the canonical example directory into a normalized JSON-safe plan', 
   assert.equal(result.success, true)
   if (!result.success) return
 
+  assert.equal(result.plan.community.status, 'active')
   assert.doesNotThrow(() => JSON.stringify(result.plan))
   assert.deepStrictEqual(result.summary, {
     users: 2,
@@ -31,7 +32,7 @@ test('parses the canonical example directory into a normalized JSON-safe plan', 
   })
   assert.deepStrictEqual(result.plan.members.map((member) => member.account?.balance), ['-500', '500'])
   assert.deepStrictEqual(result.plan.transfers[0], {
-    id: 'transfer-alice-bob-1',
+    id: '123e4567-e89b-42d3-a456-426614174000',
     payer: 'EXMP0001',
     payee: 'EXMP0002',
     user: 'alice@example.org',
@@ -44,6 +45,7 @@ test('parses the canonical example directory into a normalized JSON-safe plan', 
   assert.equal(result.plan.users[0].status, 'active')
   assert.ok(result.plan.members.every((member) => member.deleted === null))
   assert.deepStrictEqual(result.plan.memberUsers[0], {
+    id: null,
     member: 'EXMP0001',
     user: 'alice@example.org',
     notifications: { myAccount: true, group: true },
@@ -52,8 +54,8 @@ test('parses the canonical example directory into a normalized JSON-safe plan', 
   assert.deepStrictEqual(result.plan.members.map((member) => member.account?.users), [
     ['alice@example.org'], ['bob@example.org'],
   ])
-  assert.equal(result.plan.community.currency.rateNumerator, 1)
-  assert.equal(result.plan.community.currency.rateDenominator, 1)
+  assert.equal(result.plan.community.currency!.rateNumerator, 1)
+  assert.equal(result.plan.community.currency!.rateDenominator, 1)
   assert.equal(result.plan.community.settings.minNeeds, 0)
   assert.equal(result.plan.community.address?.locality, 'Barcelona')
   assert.deepStrictEqual(result.plan.community.location, { type: 'Point', longitude: 2.1734, latitude: 41.3851 })
@@ -143,7 +145,7 @@ test('reports representative structural field errors with record and column', as
     ['posts.csv', 'title', '', 'REQUIRED_FIELD'],
     ['community.csv', 'location.longitude', '181', 'INVALID_COORDINATE'],
     ['posts.csv', 'imageUrls', 'file:///tmp/image.jpg', 'INVALID_URL'],
-    ['transfers.csv', 'id', '', 'REQUIRED_FIELD'],
+    ['transfers.csv', 'id', 'not-a-uuid', 'INVALID_UUID'],
   ] as const
   const example = await loadExampleFiles()
 
@@ -245,4 +247,34 @@ test('preserves compatible password hashes and rejects unsupported credentials w
       }
     })
   }
+})
+
+
+test('omitting transfers still enforces complete history for created accounts', async () => {
+  const files = await loadExampleFiles()
+  files.delete('transfers.csv')
+  const result = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) })
+  assert.ok(!result.success)
+  assert.ok(result.errors.some(({ code }) => code === 'BALANCE_MISMATCH'))
+})
+
+test('bundles retain the same contact types for communities and members', async () => {
+  const contacts = [
+    { type: 'phone', value: '+34123456789' },
+    { type: 'email', value: 'contact@example.org' },
+    { type: 'telegram', value: '@telegram' },
+    { type: 'whatsapp', value: '+34987654321' },
+    { type: 'website', value: 'https://example.org/' },
+    { type: 'instagram', value: '@instagram' },
+    { type: 'facebook', value: 'https://facebook.com/example' },
+    { type: 'twitter', value: '@twitter' },
+  ]
+  let files = await loadExampleFiles()
+  for (const file of ['community.csv', 'members.csv'] as const) {
+    for (const { type, value } of contacts) files = mutateCsv(files, file, 1, `contact.${type}`, value)
+  }
+  const result = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) })
+  assert.ok(result.success, JSON.stringify(result))
+  assert.deepEqual(result.plan.community.contacts, contacts)
+  assert.deepEqual(result.plan.members[0].contacts, contacts)
 })

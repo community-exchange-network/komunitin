@@ -15,7 +15,6 @@ export const REQUIRED_MIGRATION_BUNDLE_FILENAMES: readonly MigrationBundleFilena
   'users.csv',
   'member-users.csv',
   'members.csv',
-  'transfers.csv',
 ]
 
 export interface MigrationParserLimits {

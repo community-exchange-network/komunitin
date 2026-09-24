@@ -1,6 +1,6 @@
 import { z, type RefinementCtx } from 'zod'
 import { parseExactAmount } from './amounts'
-import type { DecodedCsvBundle, CsvRecord } from './csv'
+import type { DecodedCsvBundle, CsvRecord, CsvValue } from './csv'
 import { ErrorCollector } from './errors'
 import type {
   MigrationAddress,
@@ -36,7 +36,7 @@ const COORDINATE_PATTERN = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/
 const TIMESTAMP_SCHEMA = z.iso.datetime({ offset: true })
 
 const ACCESS_VALUES = ['public', 'group', 'private'] as const
-const EMAIL_FREQUENCY_VALUES = ['never', 'weekly', 'monthly'] as const
+const EMAIL_FREQUENCY_VALUES = ['never', 'daily', 'weekly', 'monthly', 'quarterly'] as const
 
 interface CsvIssue {
   code: string
@@ -64,6 +64,10 @@ const field = <T>(parse: (raw: string) => FieldResult<T>) => z.string().transfor
   addIssue(ctx, result.code, result.message)
   return z.NEVER
 })
+
+const optionalUuid = field<string | null>((value) => value === '' ? valid(null)
+  : z.uuid().safeParse(value).success ? valid(value.toLowerCase())
+    : invalid('INVALID_UUID', 'Value must be a UUID or blank'))
 
 const required = (maxLength?: number) => field<string>((value) => {
   if (value.length === 0 || value.trim().length === 0) {
@@ -211,8 +215,9 @@ interface AmountOptions {
   positive?: boolean
 }
 
-const parseAmount = (value: string, scale: number, options: AmountOptions = {}): FieldResult<string> => {
+const parseAmount = (value: string, scale: number | null, options: AmountOptions = {}): FieldResult<string> => {
   if (value === '') return invalid('REQUIRED_FIELD', 'Amount is required')
+  if (scale === null) return invalid('MISSING_CURRENCY_SCALE', 'Monetary values require currency.scale')
   const result = parseExactAmount(value, scale)
   if (!result.success) return invalid(result.code, result.message)
   if (options.positive && result.value <= 0n) {
@@ -224,11 +229,11 @@ const parseAmount = (value: string, scale: number, options: AmountOptions = {}):
   return valid(result.value.toString())
 }
 
-const amount = (scale: number, options?: AmountOptions) =>
+const amount = (scale: number | null, options?: AmountOptions) =>
   field<string>((value) => parseAmount(value, scale, options))
-const optionalAmount = (scale: number, options?: AmountOptions) =>
+const optionalAmount = (scale: number | null, options?: AmountOptions) =>
   field<string | null>((value) => value === '' ? valid(null) : parseAmount(value, scale, options))
-const optionalAmountOrFalse = (scale: number, options?: AmountOptions) =>
+const optionalAmountOrFalse = (scale: number | null, options?: AmountOptions) =>
   field<string | false | null>((value) => value === ''
     ? valid(null)
     : value === 'false'
@@ -295,6 +300,9 @@ const contactSchema = z.object({
   telegram: optional(),
   whatsapp: optional(),
   website: optionalUrl,
+  instagram: optional(),
+  facebook: optional(),
+  twitter: optional(),
 })
 type ContactRow = z.output<typeof contactSchema>
 
@@ -332,7 +340,7 @@ const paymentSettingsFields = {
   acceptExternalPaymentsAutomatically: booleanValue,
 }
 
-const currencySettingsSchema = (scale: number) => z.object({
+const currencySettingsSchema = (scale: number | null) => z.object({
   defaultInitialCreditLimit: optionalAmount(scale, { nonNegative: true }),
   externalTraderCreditLimit: optionalAmount(scale, { nonNegative: true }),
   defaultInitialMaximumBalance: optionalAmountOrFalse(scale, { nonNegative: true }),
@@ -360,7 +368,7 @@ const currencySettingsSchema = (scale: number) => z.object({
   defaultHideBalance: booleanValue,
 })
 
-const accountSettingsSchema = (scale: number) => z.object({
+const accountSettingsSchema = (scale: number | null) => z.object({
   ...paymentSettingsFields,
   onPaymentCreditLimit: optionalAmount(scale, { nonNegative: true }),
   acceptPaymentsAfter: optionalInteger(),
@@ -368,12 +376,16 @@ const accountSettingsSchema = (scale: number) => z.object({
   hideBalance: booleanValue,
 })
 
-const communityRowSchema = (scale: number) => z.object({
+const communityBaseSchema = z.object({
+  id: optionalUuid,
+  status: enumValue(['pending', 'active', 'disabled']),
   code: required(),
   name: required(255),
   description: z.string(),
   access: enumValue(ACCESS_VALUES),
-  adminUsers: list({ email: true }),
+  adminUsers: list({ email: true }).superRefine((users, ctx) => {
+    if (users.length === 0) addIssue(ctx, 'REQUIRED_FIELD', 'At least one community administrator is required')
+  }),
   createdAt: timestamp,
   updatedAt: timestamp,
   imageUrl: optionalUrl,
@@ -389,56 +401,51 @@ const communityRowSchema = (scale: number) => z.object({
     enableGroupEmail: booleanValue,
     defaultGroupEmailFrequency: optionalEnumValue(EMAIL_FREQUENCY_VALUES),
   }),
-  currency: z.object({
-    adminUser: email,
-    name: required(255),
-    namePlural: required(255),
-    symbol: required(),
-    decimals: integer({ maximum: 8 }),
-    scale: integer({ maximum: 12 }),
-    rateNumerator: integer({ minimum: 1, maximum: 2_147_483_647 }),
-    rateDenominator: integer({ minimum: 1, maximum: 2_147_483_647 }),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    settings: currencySettingsSchema(scale),
-  }),
+})
+
+const currencyRowSchema = (scale: number | null) => z.object({
+  id: optionalUuid,
+  adminUser: optionalEmail,
+  name: optional(255),
+  namePlural: optional(255),
+  symbol: optional(),
+  decimals: optionalInteger({ maximum: 8 }),
+  scale: optionalInteger({ maximum: 12 }),
+  rateNumerator: optionalInteger({ minimum: 1, maximum: 2_147_483_647 }),
+  rateDenominator: optionalInteger({ minimum: 1, maximum: 2_147_483_647 }),
+  createdAt: optionalTimestamp,
+  updatedAt: optionalTimestamp,
+  settings: currencySettingsSchema(scale),
+}).superRefine((currency, ctx) => {
+  const symbolLength = currency.symbol === null ? null : Array.from(currency.symbol).length
+  if (symbolLength !== null && (symbolLength < 1 || symbolLength > 3)) {
+    addIssue(ctx, 'INVALID_VALUE', 'Currency symbol must contain between one and three characters', ['symbol'])
+  }
+  if (currency.decimals !== null && currency.scale !== null && currency.decimals > currency.scale) {
+    addIssue(ctx, 'INVALID_CURRENCY_SCALE', 'Currency decimals cannot exceed currency scale', ['decimals'])
+  }
+  timestampOrder(ctx, currency.createdAt, currency.updatedAt, 'updatedAt')
+}).transform(({ id, ...data }) => ({ id, data }))
+
+const communityRowSchema = (scale: number | null, hasCurrencyData: boolean) => communityBaseSchema.extend({
+  currency: currencyRowSchema(scale),
 }).superRefine((row, ctx) => {
   if (!/^[A-Z0-9]{4}$/.test(row.code)) {
     addIssue(ctx, 'INVALID_CODE', 'Community code must contain exactly four uppercase ASCII letters or digits', ['code'])
   }
-  if (!row.adminUsers.includes(row.currency.adminUser)) {
+  if (row.currency.data.adminUser !== null && !row.adminUsers.includes(row.currency.data.adminUser)) {
     addIssue(ctx, 'INVALID_CURRENCY_ADMIN',
       'Currency administrator must also be a community administrator', ['currency', 'adminUser'])
   }
-  const symbolLength = Array.from(row.currency.symbol).length
-  if (symbolLength < 1 || symbolLength > 3) {
-    addIssue(ctx, 'INVALID_VALUE', 'Currency symbol must contain between one and three characters',
-      ['currency', 'symbol'])
-  }
-  if (row.currency.decimals > row.currency.scale) {
-    addIssue(ctx, 'INVALID_CURRENCY_SCALE', 'Currency decimals cannot exceed currency scale',
-      ['currency', 'decimals'])
-  }
   timestampOrder(ctx, row.createdAt, row.updatedAt, 'updatedAt')
-  timestampOrder(ctx, row.currency.createdAt, row.currency.updatedAt, 'currency.updatedAt')
   validateLocation(row.location, ctx)
 }).transform(({ address, location, contact, currency, ...community }): MigrationCommunity => ({
-  code: community.code,
-  name: community.name,
-  description: community.description,
-  access: community.access,
-  adminUsers: community.adminUsers,
-  createdAt: community.createdAt,
-  updatedAt: community.updatedAt,
-  imageUrl: community.imageUrl,
+  ...community,
+  currencyId: currency.id,
   address: toAddress(address),
   location: toLocation(location),
   contacts: toContacts(contact),
-  settings: community.settings,
-  currency: {
-    code: community.code,
-    ...currency,
-  },
+  currency: hasCurrencyData ? { code: community.code, ...currency.data } : null,
 }))
 
 // Auth generates $2b$ bcrypt hashes (cost 10) and also verifies $2a$ hashes.
@@ -449,16 +456,18 @@ const passwordHash = field<string | null>((value) => value === ''
     : invalid('INVALID_PASSWORD_HASH', 'Value must be an Auth-compatible bcrypt hash or blank'))
 
 const userRowSchema = z.object({
+  id: optionalUuid,
   email,
   name: optional(255),
-  status: enumValue(['active', 'disabled']),
+  status: optionalEnumValue(['active', 'disabled']),
   passwordHash,
   language: optional(31),
-  createdAt: timestamp,
-  updatedAt: timestamp,
+  createdAt: optionalTimestamp,
+  updatedAt: optionalTimestamp,
 }).superRefine((row, ctx) => timestampOrder(ctx, row.createdAt, row.updatedAt, 'updatedAt'))
 
 const memberUserRowSchema = z.object({
+  id: optionalUuid,
   member: required(255),
   user: email,
   notifications: z.object({
@@ -471,7 +480,8 @@ const memberUserRowSchema = z.object({
   }),
 })
 
-const memberRowSchema = (scale: number) => z.object({
+const memberBaseSchema = z.object({
+  id: optionalUuid,
   code: required(255),
   name: required(255),
   type: enumValue(['personal', 'business', 'organization', 'public']),
@@ -484,7 +494,11 @@ const memberRowSchema = (scale: number) => z.object({
   address: addressSchema,
   location: locationSchema,
   contact: contactSchema,
+})
+
+const memberRowSchema = (scale: number | null, hasAccountData: boolean) => memberBaseSchema.extend({
   account: z.object({
+    id: optionalUuid,
     balance: optionalAmount(scale),
     creditLimit: optionalAmount(scale, { nonNegative: true }),
     createdAt: optionalTimestamp,
@@ -511,20 +525,6 @@ const memberRowSchema = (scale: number) => z.object({
     return
   }
 
-  if (row.account.balance === null) {
-    addIssue(ctx, 'REQUIRED_FIELD', 'Amount is required', ['account', 'balance'])
-  }
-  if (row.account.creditLimit === null) {
-    addIssue(ctx, 'REQUIRED_FIELD', 'Amount is required', ['account', 'creditLimit'])
-  }
-  if (row.account.createdAt === null) {
-    addIssue(ctx, 'INVALID_TIMESTAMP',
-      'Timestamp must be an ISO 8601 date and time with a UTC offset', ['account', 'createdAt'])
-  }
-  if (row.account.updatedAt === null) {
-    addIssue(ctx, 'INVALID_TIMESTAMP',
-      'Timestamp must be an ISO 8601 date and time with a UTC offset', ['account', 'updatedAt'])
-  }
   timestampOrder(ctx, row.account.createdAt, row.account.updatedAt, 'account.updatedAt')
 
   if (row.account.balance !== null && row.account.creditLimit !== null
@@ -541,9 +541,7 @@ const memberRowSchema = (scale: number) => z.object({
   }
 }).transform(({ address, location, contact, ...row }): MigrationMember => {
   let account: MigrationMember['account'] = null
-  if (row.status !== 'draft' && row.status !== 'pending'
-    && row.account.balance !== null && row.account.creditLimit !== null
-    && row.account.createdAt !== null && row.account.updatedAt !== null) {
+  if (row.status !== 'draft' && row.status !== 'pending' && hasAccountData) {
     account = {
       code: row.code,
       status: row.status,
@@ -557,6 +555,8 @@ const memberRowSchema = (scale: number) => z.object({
     }
   }
   return {
+    id: row.id,
+    accountId: row.account.id,
     code: row.code,
     name: row.name,
     type: row.type,
@@ -574,8 +574,8 @@ const memberRowSchema = (scale: number) => z.object({
   }
 })
 
-const transferRowSchema = (scale: number) => z.object({
-  id: required(128),
+const transferRowSchema = (scale: number | null) => z.object({
+  id: optionalUuid,
   payer: required(255),
   payee: required(255),
   user: email,
@@ -587,6 +587,7 @@ const transferRowSchema = (scale: number) => z.object({
   .transform((row): MigrationTransfer => row)
 
 const categoryRowSchema = z.object({
+  id: optionalUuid,
   code: required(255),
   name: required(255),
   description: optional(1000),
@@ -611,6 +612,7 @@ const categoryRowSchema = z.object({
 }))
 
 const postRowSchema = z.object({
+  id: optionalUuid,
   code: required(255),
   type: enumValue(['offer', 'need']),
   member: required(255),
@@ -674,6 +676,13 @@ const parseRecords = <T>(
   return value === null ? [] : [{ value, row: record.row }]
 })
 
+const hasValue = (value: CsvValue): boolean => typeof value === 'string'
+  ? value !== '' : Object.values(value).some(hasValue)
+
+/** Preserve supplied accounting fields; execution resolves existing records by code. */
+const hasAccountingData = (value: CsvValue | undefined) => value !== undefined && typeof value !== 'string'
+  && Object.entries(value).some(([key, cell]) => key !== 'id' && hasValue(cell))
+
 export const parseMigrationRows = (
   csv: DecodedCsvBundle,
   errors: ErrorCollector,
@@ -694,19 +703,23 @@ export const parseMigrationRows = (
     ? integer({ maximum: 12 }).safeParse(currency.scale)
     : null
   const communityValue = communityRecord
-    ? parseRecord(communityRowSchema(parsedScale?.success ? parsedScale.data : 0),
+    ? parseRecord(communityRowSchema(parsedScale?.success ? parsedScale.data : null, hasAccountingData(currency)),
         'community.csv', communityRecord, errors)
     : null
   const community = communityValue === null || csv['community.csv'].length !== 1
     ? null
     : { value: communityValue, row: communityRecord.row }
-  const scale = communityValue?.currency.scale ?? 0
+  const scale = communityValue?.currency?.scale ?? null
+
+  const members = csv['members.csv'].flatMap((record) => parseRecords(
+    [record], memberRowSchema(scale, hasAccountingData(record.cells.account)), 'members.csv', errors,
+  ))
 
   return {
     community,
     users: parseRecords(csv['users.csv'], userRowSchema, 'users.csv', errors),
     memberUsers: parseRecords(csv['member-users.csv'], memberUserRowSchema, 'member-users.csv', errors),
-    members: parseRecords(csv['members.csv'], memberRowSchema(scale), 'members.csv', errors),
+    members,
     transfers: parseRecords(csv['transfers.csv'], transferRowSchema(scale), 'transfers.csv', errors),
     categories: parseRecords(csv['categories.csv'], categoryRowSchema, 'categories.csv', errors),
     posts: parseRecords(csv['posts.csv'], postRowSchema, 'posts.csv', errors),

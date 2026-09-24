@@ -7,6 +7,9 @@ import { parse } from 'csv-parse/sync'
 import { ZipFile } from 'yazl'
 import { MIGRATION_BUNDLE_FILENAMES, type MigrationBundleFilename } from '../../src/features/migrations/bundle/constants'
 
+import { encodeCsv } from '../../src/features/migrations/bundle/csv'
+export { encodeCsv }
+
 export const exampleDirectory = fileURLToPath(new URL('../../../shared/migration/example/', import.meta.url))
 
 export const loadExampleFiles = async (): Promise<Map<MigrationBundleFilename, Buffer>> => {
@@ -30,14 +33,6 @@ export const zipFromFiles = async (
   zip.end()
   return contents
 }
-
-const encodeCell = (cell: string): string => /[",\r\n]/.test(cell)
-  ? `"${cell.replaceAll('"', '""')}"`
-  : cell
-
-export const encodeCsv = (records: string[][]): Buffer => Buffer.from(
-  `${records.map((record) => record.map(encodeCell).join(',')).join('\n')}\n`,
-)
 
 export const mutateCsv = (
   files: Map<MigrationBundleFilename, Buffer>,
@@ -68,3 +63,13 @@ export const appendCsvRow = (
   records.push(records[0].map((header, index) => overrides[header] ?? records[sourceRow][index]))
   return new Map(files).set(filename, encodeCsv(records))
 }
+
+/** Omit columns whose values are blank in every data row. */
+export const omitBlankColumns = (files: Map<MigrationBundleFilename, Buffer>) => new Map(
+  [...files].map(([filename, bytes]) => {
+    const records = parse(bytes.toString('utf8')) as string[][]
+    const kept = records[0].map((_, index) => index)
+      .filter((index) => records.slice(1).some((row) => row[index] !== ''))
+    return [filename, encodeCsv(records.map((row) => kept.map((index) => row[index])))]
+  }),
+)

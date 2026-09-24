@@ -3,15 +3,19 @@ import { parse } from 'csv-parse/sync'
 import { MIGRATION_BUNDLE_FILENAMES, type MigrationBundleFilename, type MigrationParserLimits } from './constants'
 import { ErrorCollector } from './errors'
 
+const CONTACT_COLUMNS = [
+  'contact.phone', 'contact.email', 'contact.telegram', 'contact.whatsapp', 'contact.website',
+  'contact.instagram', 'contact.facebook', 'contact.twitter',
+]
+
 export const CSV_HEADERS: Record<MigrationBundleFilename, readonly string[]> = {
   'community.csv': [
-    'code', 'name', 'description', 'access', 'adminUsers', 'currency.adminUser', 'currency.name',
+    'id', 'code', 'name', 'status', 'description', 'access', 'adminUsers', 'currency.id', 'currency.adminUser', 'currency.name',
     'currency.namePlural', 'currency.symbol', 'currency.decimals', 'currency.scale',
     'currency.rateNumerator', 'currency.rateDenominator', 'createdAt', 'updatedAt', 'currency.createdAt',
     'currency.updatedAt', 'imageUrl', 'address.streetAddress', 'address.locality',
     'address.postalCode', 'address.region', 'address.country',
-    'location.type', 'location.longitude', 'location.latitude', 'contact.phone',
-    'contact.email', 'contact.telegram', 'contact.whatsapp', 'contact.website',
+    'location.type', 'location.longitude', 'location.latitude', ...CONTACT_COLUMNS,
     'settings.requireAcceptTerms', 'settings.terms', 'settings.minOffers', 'settings.minNeeds',
     'settings.allowAnonymousMemberList', 'settings.enableGroupEmail',
     'settings.defaultGroupEmailFrequency', 'currency.settings.defaultInitialCreditLimit',
@@ -37,19 +41,18 @@ export const CSV_HEADERS: Record<MigrationBundleFilename, readonly string[]> = {
     'currency.settings.enableCreditCommonsPayments', 'currency.settings.defaultHideBalance',
   ],
   'users.csv': [
-    'email', 'name', 'status', 'passwordHash', 'language', 'createdAt', 'updatedAt',
+    'id', 'email', 'name', 'status', 'passwordHash', 'language', 'createdAt', 'updatedAt',
   ],
   'member-users.csv': [
-    'member', 'user', 'notifications.myAccount', 'notifications.group', 'emails.myAccount',
+    'id', 'member', 'user', 'notifications.myAccount', 'notifications.group', 'emails.myAccount',
     'emails.group',
   ],
   'members.csv': [
-    'code', 'name', 'type', 'status', 'access', 'description', 'account.balance',
+    'id', 'code', 'name', 'type', 'status', 'access', 'description', 'account.id', 'account.balance',
     'account.creditLimit', 'createdAt', 'updatedAt', 'account.createdAt', 'account.updatedAt',
     'account.maximumBalance', 'imageUrl', 'address.streetAddress', 'address.locality',
     'address.postalCode', 'address.region', 'address.country',
-    'location.type', 'location.longitude', 'location.latitude', 'contact.phone',
-    'contact.email', 'contact.telegram', 'contact.whatsapp', 'contact.website',
+    'location.type', 'location.longitude', 'location.latitude', ...CONTACT_COLUMNS,
     'account.settings.onPaymentCreditLimit', 'account.settings.acceptPaymentsAfter',
     'account.settings.acceptPaymentsWhitelist', 'account.settings.allowPayments',
     'account.settings.allowPaymentRequests', 'account.settings.allowSimplePayments',
@@ -64,10 +67,10 @@ export const CSV_HEADERS: Record<MigrationBundleFilename, readonly string[]> = {
     'id', 'payer', 'payee', 'user', 'amount', 'description', 'createdAt', 'updatedAt',
   ],
   'categories.csv': [
-    'code', 'name', 'description', 'access', 'createdAt', 'updatedAt', 'icon.type', 'icon.value',
+    'id', 'code', 'name', 'description', 'access', 'createdAt', 'updatedAt', 'icon.type', 'icon.value',
   ],
   'posts.csv': [
-    'code', 'type', 'member', 'category', 'title', 'description', 'status', 'access', 'value',
+    'id', 'code', 'type', 'member', 'category', 'title', 'description', 'status', 'access', 'value',
     'fulfilledAt', 'expiresAt', 'createdAt', 'updatedAt', 'location.type',
     'location.longitude', 'location.latitude', 'imageUrls',
   ],
@@ -108,9 +111,8 @@ const decodeUtf8 = (filename: string, buffer: Buffer, errors: ErrorCollector): s
 }
 
 const headersMatch = (actual: string[], expected: readonly string[]): boolean =>
-  actual.length === expected.length
-  && new Set(actual).size === actual.length
-  && expected.every((header) => actual.includes(header))
+  new Set(actual).size === actual.length
+  && actual.every((header) => expected.includes(header))
 
 const structuredCells = (headers: readonly string[], row: string[]): Record<string, CsvValue> => {
   const cells: Record<string, CsvValue> = {}
@@ -163,15 +165,15 @@ export const decodeCsvBundle = (
       continue
     }
 
-    const expectedHeaders = CSV_HEADERS[filename]
     const actualHeaders = records[0]
+    const expectedHeaders = CSV_HEADERS[filename]
     if (!actualHeaders || !headersMatch(actualHeaders, expectedHeaders)) {
       const mismatch = actualHeaders?.find((header) => !expectedHeaders.includes(header))
-        ?? expectedHeaders.find((header) => !actualHeaders?.includes(header))
+        ?? actualHeaders?.find((header, index) => actualHeaders.indexOf(header) !== index)
         ?? null
       errors.add({
         code: 'INVALID_HEADER',
-        message: `Header must contain exactly the documented ${filename} columns`,
+        message: `Header must contain only documented ${filename} columns without duplicates`,
         file: filename,
         row: 1,
         column: mismatch,
@@ -179,6 +181,7 @@ export const decodeCsvBundle = (
       continue
     }
 
+    const missingHeaders = expectedHeaders.filter((header) => !actualHeaders.includes(header))
     const dataRows = records.slice(1)
     totalRows += dataRows.length
     if (totalRows > limits.maxRows) {
@@ -195,10 +198,10 @@ export const decodeCsvBundle = (
     for (let index = 0; index < dataRows.length; index += 1) {
       const row = dataRows[index]
       const recordNumber = index + 2
-      if (row.length !== expectedHeaders.length) {
+      if (row.length !== actualHeaders.length) {
         errors.add({
           code: 'INVALID_COLUMN_COUNT',
-          message: `Record has ${row.length} columns; expected ${expectedHeaders.length}`,
+          message: `Record has ${row.length} columns; expected ${actualHeaders.length}`,
           file: filename,
           row: recordNumber,
           column: null,
@@ -208,10 +211,17 @@ export const decodeCsvBundle = (
 
       decoded[filename].push({
         row: recordNumber,
-        cells: structuredCells(actualHeaders, row),
+        // Omitted columns have the same validation and defaults as blank cells.
+        cells: structuredCells([...actualHeaders, ...missingHeaders], [...row, ...missingHeaders.map(() => '')]),
       })
     }
   }
 
   return decoded
 }
+
+/** Encode UTF-8 RFC 4180 CSV without changing quoted text or line breaks. */
+export const encodeCsv = (records: readonly (readonly string[])[]): Buffer => Buffer.from(
+  records.map((record) => record.map((cell) => /[",\r\n]/.test(cell)
+    ? `"${cell.replaceAll('"', '""')}"` : cell).join(',')).join('\r\n') + '\r\n',
+)

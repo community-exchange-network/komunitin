@@ -28,11 +28,6 @@ test('reports representative semantic relationship and uniqueness failures', asy
       mutateCsv(files, 'transfers.csv', 1, 'user', 'missing@example.org'), 'MISSING_REFERENCE'],
     ['unknown member owner', (files: typeof example) =>
       mutateCsv(files, 'member-users.csv', 1, 'user', 'missing@example.org'), 'MISSING_REFERENCE'],
-    ['community admin without membership', (files: typeof example) => {
-      let changed = mutateCsv(files, 'community.csv', 1, 'adminUsers', 'alice@example.org;bob@example.org')
-      changed = mutateCsv(changed, 'member-users.csv', 2, 'user', 'alice@example.org')
-      return changed
-    }, 'ADMIN_NOT_MEMBER'],
     ['currency admin outside group admins', (files: typeof example) =>
       mutateCsv(files, 'community.csv', 1, 'adminUsers', 'bob@example.org'), 'INVALID_CURRENCY_ADMIN'],
     ['unknown transfer account', (files: typeof example) =>
@@ -41,8 +36,6 @@ test('reports representative semantic relationship and uniqueness failures', asy
       mutateCsv(files, 'transfers.csv', 1, 'payee', 'EXMP0001'), 'SELF_TRANSFER'],
     ['unknown category', (files: typeof example) =>
       mutateCsv(files, 'posts.csv', 1, 'category', 'missing'), 'MISSING_REFERENCE'],
-    ['inactive published owner', (files: typeof example) =>
-      mutateCsv(files, 'members.csv', 1, 'status', 'disabled'), 'INACTIVE_POST_OWNER'],
     ['invalid payment whitelist', (files: typeof example) =>
       mutateCsv(
         files,
@@ -108,7 +101,7 @@ test('uses the documented currency scale for every exact amount', async () => {
   if (!result.success) return
   assert.equal(result.plan.members[0].account?.balance, '-5000')
   assert.equal(result.plan.transfers[0].amount, '5000')
-  assert.equal(result.plan.community.currency.settings.defaultInitialCreditLimit, '100000')
+  assert.equal(result.plan.community.currency!.settings.defaultInitialCreditLimit, '100000')
 })
 
 test('preserves post image order without derived keys', async () => {
@@ -278,7 +271,7 @@ test('preserves API-compatible account settings and explicit empty whitelists', 
   assert.equal(settings.acceptPaymentsAfter, 0)
   assert.equal(settings.onPaymentCreditLimit, '25')
   assert.deepStrictEqual(settings.acceptPaymentsWhitelist, [])
-  assert.equal(result.plan.community.currency.settings.defaultAcceptPaymentsAfter, false)
-  assert.equal(result.plan.community.currency.settings.defaultOnPaymentCreditLimit, false)
-  assert.deepStrictEqual(result.plan.community.currency.settings.defaultAcceptPaymentsWhitelist, ['EXMP0002'])
+  assert.equal(result.plan.community.currency!.settings.defaultAcceptPaymentsAfter, false)
+  assert.equal(result.plan.community.currency!.settings.defaultOnPaymentCreditLimit, false)
+  assert.deepStrictEqual(result.plan.community.currency!.settings.defaultAcceptPaymentsWhitelist, ['EXMP0002'])
 })
