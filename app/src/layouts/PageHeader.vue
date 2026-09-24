@@ -201,7 +201,7 @@ let balanceScaleFactor: MaybeRef<number> = 0
 // Universal scroll handler for detecting scrolling and handling balance scaling
 const scrollHandler = (details: { position: { top: number } }) => {
   // If balance feature is enabled, handle balance scaling
-  if (process.env.FEAT_HEADER_BALANCE === 'true') {
+  if (import.meta.env.FEAT_HEADER_BALANCE === 'true') {
     const originalHeight = toValue(requireBalance) ? 2 * 50 + 70 : headerHeight
     offset.value = Math.min(details.position.top, originalHeight - headerHeight)
     scrollOffset.value = details.position.top
