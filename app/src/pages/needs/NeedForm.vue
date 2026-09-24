@@ -11,6 +11,8 @@
       </div>
       <image-field
         v-model="images"
+        :code="code"
+        resource-type="needs"
         :label="$t('uploadImages')" 
         :hint="$t('uploadNeedImagesHint')"
       />
@@ -67,7 +69,7 @@ import DateField from "../../components/DateField.vue"
 import ImageField from "../../components/ImageField.vue"
 import SelectCategory from "../../components/SelectCategory.vue"
 import ToggleItem from "../../components/ToggleItem.vue"
-import type { Category, Need, NeedState } from "@/store/model"
+import type { Category, ImageObject, Need, NeedStatus } from "@/store/model"
 import useVuelidate from "@vuelidate/core"
 import { minLength, required } from "@vuelidate/validators"
 import type { DeepPartial } from "quasar"
@@ -83,8 +85,8 @@ const emit = defineEmits<{
   (e: "submit", value: DeepPartial<Need>): void
 }>()
 
-const images = ref<string[]>(props.modelValue?.attributes?.images || [])
-const description = ref(props.modelValue?.attributes?.content || "")
+const images = ref<ImageObject[]>(props.modelValue?.attributes?.images || [])
+const description = ref(props.modelValue?.attributes?.description || "")
 const category = ref<Category|null>(props.modelValue?.category || null)
 
 let date: Date
@@ -97,7 +99,7 @@ if (props.modelValue?.attributes?.expires) {
 }
 const expiration = ref(date)
 
-const state = ref<NeedState>(props.modelValue?.attributes?.state || "published")
+const state = ref<NeedStatus>(props.modelValue?.attributes?.status || "draft")
 
 // Validation
 const rules = {
@@ -107,25 +109,22 @@ const rules = {
 }
 const v$ = useVuelidate(rules, {images, description, category, expiration})
 const store = useStore()
-const memberId = computed(() => props.modelValue?.relationships?.member?.data.id || store.getters.myMember.id)
+const memberId = computed(() => props.modelValue?.relationships?.member?.data?.id || store.getters.myMember.id)
 
 const onSubmit = async () => {
   const isFormCorrect = await v$.value.$validate()
   if (isFormCorrect) {
     emit("submit", {
-      ...props.modelValue,
+      ...(props.modelValue?.id ? { id: props.modelValue.id } : {}),
       type: "needs",
       attributes: {
-        ...props.modelValue?.attributes,
-        content: description.value,
+        description: description.value,
         expires: expiration.value.toISOString(),
         images: images.value,
-        state: state.value
+        status: state.value
       },
       relationships: {
-        ...props.modelValue?.relationships,
-         
-        category: { data: { type: "categories", id: category.value.id } },
+        category: { data: { type: "categories", id: (category.value as Category).id } },
         member: { data: { type: "members", id: memberId.value } }
       }
     })

@@ -1,12 +1,16 @@
 <template>
-  <div>
+  <Error404
+    v-if="error?.code === KErrorCode.NotFound"
+    :to="`/groups/${code}/offers`"
+  />
+  <div v-else>
     <page-header 
       :title="$t('offer')" 
       :back="`/groups/${code}/offers`"
     >
       <template #buttons>
         <q-btn
-          v-if="canEdit"
+          v-if="offer && canEdit"
           round
           flat
           icon="edit"
@@ -14,7 +18,7 @@
           :title="$t('editOffer')"
         />
         <delete-offer-btn 
-          v-if="canEdit"
+          v-if="offer && canEdit"
           :code="code"
           :offer="offer"          
           :to="`/groups/${code}/offers`"
@@ -24,7 +28,7 @@
     </page-header>
     <q-page-container>
       <q-page
-        v-if="!isLoading"
+        v-if="offer && isReady"
         class="q-pa-lg"
       >
         <offer-layout :num-images="offer.attributes.images.length">
@@ -51,7 +55,7 @@
           </template>
           <template #content>
             <div class="text-h4 q-pb-sm">
-              {{ offer.attributes.name }}
+              {{ offer.attributes.title }}
             </div>
             <div class="text-h6 q-pb-sm">
               <span class="text-onsurface-m">{{ $t('price') }}</span>
@@ -66,7 +70,7 @@
             <!-- eslint-disable vue/no-v-html -->
             <div
               class="col text-body1 text-onsurface"
-              v-html="md2html(offer.attributes.content)"
+              v-html="md2html(offer.attributes.description)"
             />
             <!-- eslint-enable vue/no-v-html -->
             <div class="text-body2 text-onsurface-m q-pb-md">
@@ -80,23 +84,23 @@
                 color="primary"
                 :label="$t('share')"
                 :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
-                :text="`${offer.attributes.name}\n${offer.attributes.content}`"
+                :text="`${offer.attributes.title}\n${offer.attributes.description}`"
               />
               <contact-button
                 unelevated
                 color="primary"
                 :label="$t('contact')"
-                :contacts="offer.member.contacts"
+                :contacts="offer.member.attributes.contacts"
               /> 
             </div>
           </template>
           <template #map>
             <simple-map
               class="simple-map"
-              :center="offer.member.attributes.location.coordinates"
-              :marker="offer.member.attributes.location.coordinates"
+              :center="offer.member.attributes.location?.coordinates"
+              :marker="offer.member.attributes.location?.coordinates"
             />
-            <div class="text-onsurface-m">
+            <div class="text-onsurface-m" v-if="offer.member.attributes.location?.name">
               <q-icon name="place" />
               {{ offer.member.attributes.location.name }}
             </div>
@@ -111,7 +115,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 
 import md2html from "../../plugins/Md2html";
 
@@ -125,9 +129,18 @@ import DeleteOfferBtn from "../../components/DeleteOfferBtn.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
 import ShareButton from "../../components/ShareButton.vue";
 import SimpleMap from "../../components/SimpleMap.vue";
+import Error404 from "../Error404.vue";
 
 import { formatPrice } from "@/plugins/FormatCurrency";
 import { useStore } from "vuex";
+import { useResource } from "@/composables/useResources";
+import type { Category, Currency, Group, Member, Offer } from "@/store/model";
+import { KErrorCode } from "@/KError";
+
+type FullOffer = Offer & {
+  category: Category
+  member: Member & { group: Group & { currency: Currency } }
+}
 
 const props = defineProps<{
   code: string,
@@ -136,30 +149,23 @@ const props = defineProps<{
 
 const store = useStore()
 
-const ready = ref(false)
-const offer = computed(() => {
-  return store.getters["offers/current"]
-})
+const offerOptions = computed(() => ({
+  code: props.offerCode,
+  group: props.code,
+  include: "category,member,member.group,member.group.currency"
+}))
+const { resource: offer, error } = useResource<FullOffer>('offers', offerOptions)
 
-const isLoading = computed(() => {
-  return !(ready.value || offer.value && offer.value.category && offer.value.member 
-    && offer.value.member.contacts && offer.value.member.group 
-    && offer.value.member.group.currency)
+const isReady = computed(() => {
+  return Boolean(offer.value && offer.value.category && offer.value.member
+    && offer.value.member.group && offer.value.member.group.currency)
 })
 const price = computed(() => {
-  return formatPrice(offer.value.attributes.price, offer.value.member.group.currency)
+  return offer.value
+    ? formatPrice(offer.value.attributes.value ?? '', offer.value.member.group.currency)
+    : ''
 })
 const canEdit = computed(() => {
-  return offer.value?.member?.id == store.getters.myMember.id || store.getters.isAdmin
+  return offer.value?.member?.id == store.getters.myMember?.id || store.getters.isAdmin
 })
-const fetchData = async(offerCode: string) => {
-  await store.dispatch("offers/load", {
-    code: offerCode,
-    group: props.code,
-    include: "category,member,member.contacts,member.group,member.group.currency"
-  });
-  ready.value = true
-}
-
-watch(() => props.offerCode, fetchData, { immediate: true })
 </script>

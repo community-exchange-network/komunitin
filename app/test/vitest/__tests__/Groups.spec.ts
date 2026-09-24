@@ -1,11 +1,11 @@
  
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../utils";
 import { QInnerLoading, QCard } from "quasar";
 import SimpleMap from '../../../src/components/SimpleMap.vue';
 import GroupCard from "../../../src/components/GroupCard.vue";
-import { seeds } from "../../../src/server";
+import server, { seeds } from "../../../src/server";
 
 // See also Offers.spec.ts
 describe("Groups", () => {
@@ -14,6 +14,7 @@ describe("Groups", () => {
   beforeAll(async () => {
     wrapper = await mountComponent(App);
     seeds();
+    server.schema.db.groups.update({ code: "GRP6" }, { location: null });
   });
   afterAll(() => wrapper.unmount());
 
@@ -26,6 +27,17 @@ describe("Groups", () => {
     expect((wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing).toBe(false);
   });
 
+  it("Navigates a focused group card with Enter", async () => {
+    await wrapper.vm.$router.push("/groups");
+    await waitFor(() => wrapper.findAllComponents(GroupCard).length, 7, "Should load group cards");
+    const card = wrapper.getComponent(GroupCard)
+    const code = card.props("group").attributes.code
+    expect(card.attributes("role")).toBe("link")
+    expect(card.attributes("tabindex")).toBe("0")
+    await card.trigger("keyup", { key: "Enter" })
+    await waitFor(() => wrapper.vm.$route.path, `/groups/${code}`)
+  })
+
   it("Renders group page", async () => {
     await wrapper.vm.$router.push("/groups/GRP0");
     await wrapper.vm.$nextTick();
@@ -36,29 +48,42 @@ describe("Groups", () => {
     expect(text).toContain("Group 0");
     // Code
     expect(text).toContain("GRP0");
-    // Description
-    expect(text).toContain("Et facere placeat molestiae");
+    const group = wrapper.vm.$store.getters["groups/find"]({ code: "GRP0" });
+    const description = requireTextExcerpt(group.attributes.description, "Group description");
+    expect(text).toContain(description);
 
-    // Check cards present.
-    const cards = wrapper.findAllComponents(QCard);
-    cards.forEach((card) => {
-      const isMembersCard = card.text().includes("Members") || false;
-      const isStatsCard = card.text().includes("Statistics") || false;
-      const isMapCard = card.findComponent(SimpleMap)?.exists();
-      expect(isMembersCard || isStatsCard || isMapCard).toBe(true);
+    // Private group pages should not be advertised anonymously.
+    [
+      "/groups/GRP0/members",
+      "/groups/GRP0/offers",
+      "/groups/GRP0/stats"
+    ].forEach((path) => {
+      expect(wrapper.find(`a[href="${path}"]`).exists(), `${path} should be hidden`).toBe(false);
     });
+    expect(wrapper.findComponent(QCard).findComponent(SimpleMap).exists()).toBe(true);
     // Members should not show on map, only group center
     expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(1);
     // Location
-    expect(text).toContain("Buckinghamshire");
-    // Contact
-    expect(text).toContain("363-958-4365");
-    expect(text).toContain("Kaci.Donnelly31@yahoo.com");
-    expect(text).toContain("Amir_Mann");
-    expect(text).toContain("186-667-337");
+    expect(text).toContain(requireText(group.attributes.location.name, "Group location"));
+    expect(group.attributes.contacts).not.toHaveLength(0);
+    group.attributes.contacts.forEach((contact: { value: string }) => {
+      expect(text).toContain(requireText(contact.value, "Group contact"));
+    });
   });
 
-  it("Renders group members on map if logged in", async () => {
+  it("Renders a group without a location", async () => {
+    await wrapper.vm.$router.push("/groups/GRP6");
+    await waitFor(() => wrapper.text().includes("Group 6"), true, "Group should load");
+    await waitFor(() => wrapper.getComponent(QInnerLoading).props("showing"), false);
+
+    const map = wrapper.getComponent(SimpleMap);
+    expect(map.props("center")).toBeUndefined();
+    expect(map.props("marker")).toBeUndefined();
+    expect(wrapper.findAllComponents({ name: "LMarker" })).toHaveLength(0);
+    expect(wrapper.text()).not.toContain("Unknown user interface error");
+  });
+
+  it("Renders group members only for the user's group", async () => {
     // Log in 'manually'
     await wrapper.vm.$router.push("/login-mail");
     await waitFor(() => wrapper.vm.$route.path, "/login-mail");
@@ -67,12 +92,38 @@ describe("Groups", () => {
     await wrapper.vm.$nextTick();
     await wrapper.get("button[type='submit']").trigger("click");
     await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true, "User should be logged in");
+    await waitFor(() => wrapper.vm.$route.path, "/home", "Login redirect should finish");
     
     await wrapper.vm.$router.push("/groups/GRP0");
-    await waitFor(() => wrapper.vm.$store.getters["members/currentList"]?.length === 31, true, "Api should finish loading");
-    // Members should show on map
-    // There should really be 32 markers (1 group marker + 31 member markers),
-    // but one of the members has no location data and is filtered out on the page
-    expect(wrapper.findAllComponents({ name: "LMarker" }).length).toEqual(31);
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0");
+    await waitFor(
+      () => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing,
+      false,
+      "Group members should finish loading"
+    );
+    [
+      "/groups/GRP0/members",
+      "/groups/GRP0/stats"
+    ].forEach((path) => {
+      expect(wrapper.find(`a[href="${path}"]`).exists(), `${path} should be visible`).toBe(true);
+    });
+    // The group center and 30 members with locations are rendered as markers.
+    await waitFor(
+      () => wrapper.findAllComponents({ name: "LMarker" }).length,
+      31,
+      "Group and member markers should be rendered",
+      10000
+    );
+
+    await wrapper.vm.$router.push("/groups/GRP1");
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP1");
+    await waitFor(
+      () => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing,
+      false,
+      "Other group should finish loading"
+    );
+    expect(wrapper.find('a[href="/groups/GRP1/members"]').exists()).toBe(false);
+    expect(wrapper.find('a[href="/groups/GRP1/stats"]').exists()).toBe(false);
+    expect(wrapper.findAllComponents({ name: "LMarker" })).toHaveLength(1);
   });
 });

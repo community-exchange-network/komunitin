@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { afterEach, before, describe, it } from 'node:test'
 import { mockDate, restoreDate } from '../../mocks/date'
-import { createNeed, createOffer, db, getUserIdForMember } from '../../mocks/db'
+import { createPost, db, getUserIdForMember } from '../../mocks/db'
 import { createEvent, daysAgo, setupNotificationsTest } from './utils'
 import { NotifyExpiryData } from '../synthetic/post'
 import { Job } from 'bullmq/dist/esm/classes/job'
@@ -33,12 +33,12 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
     mockDate('2026-01-13T00:00:00.000Z')
     const groupCode = 'GRP1'
 
-    const featuredOffer = createOffer({
+    const featuredOffer = createPost('offers', {
       groupCode,
       id: 'offer-email-featured',
       code: 'OFFEMAIL1',
       attributes: {
-        name: 'Recent expired offer',
+        title: 'Recent expired offer',
         created: daysAgo(30),
         expires: daysAgo(1),
       },
@@ -47,24 +47,24 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
     const memberId = featuredOffer.relationships.member.data.id
     const userId = getUserIdForMember(memberId)
 
-    createNeed({
+    createPost('needs', {
       groupCode,
       id: 'need-email-old-1',
       code: 'NDEMAIL1',
       memberId,
       attributes: {
-        content: 'Older expired need',
+        description: 'Older expired need',
         expires: daysAgo(5),
       },
     })
 
-    createOffer({
+    createPost('offers', {
       groupCode,
       id: 'offer-email-old-2',
       code: 'OFFEMAIL2',
       memberId,
       attributes: {
-        name: 'Older expired offer',
+        title: 'Older expired offer',
         expires: daysAgo(10),
       },
     })
@@ -83,7 +83,7 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
     assert.ok(sentEmail.html.includes('Recent expired offer'))
     assert.ok(sentEmail.html.includes('Other expired posts'))
     assert.ok(sentEmail.html.includes('Older expired need'))
-    assert.ok(sentEmail.html.includes(featuredOffer.attributes.images?.[0] ?? ''))
+    assert.ok(sentEmail.html.includes(featuredOffer.attributes.images?.[0]?.url ?? ''))
 
     assert.equal(appNotifications.length, 0, 'In-app channel should not handle MemberHasExpiredPostsRecently')
   })
@@ -92,12 +92,12 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
     mockDate('2026-01-13T00:00:00.000Z')
     const groupCode = 'GRP1'
 
-    const offer = createOffer({
+    const offer = createPost('offers', {
       groupCode,
       id: 'offer-expired',
       code: 'OFFEXPIRED',
       attributes: {
-        name: 'Expired offer',
+        title: 'Expired offer',
         created: daysAgo(20),
         expires: daysAgo(1),
       },
@@ -121,12 +121,12 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
     mockDate('2026-01-13T00:00:00.000Z')
     const groupCode = 'GRP1'
 
-    const offer = createOffer({
+    const offer = createPost('offers', {
       groupCode,
       id: 'offer-email-stale',
       code: 'OFFSTALE',
       attributes: {
-        name: 'Stale expired offer',
+        title: 'Stale expired offer',
         created: daysAgo(40),
         expires: daysAgo(3),
       },
@@ -151,12 +151,12 @@ describe('MemberHasExpiredPostsRecently email notifications', () => {
     const groupCode = 'GRP1'
     const DAY = 24 * 60 * 60 * 1000
 
-    const offer = createOffer({
+    const offer = createPost('offers', {
       groupCode,
       id: 'offer-expired-extended-before-send',
       code: 'OFFEXTENDED',
       attributes: {
-        name: 'Soon-to-be-extended offer',
+        title: 'Soon-to-be-extended offer',
         created: daysAgo(5),
         expires: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
       },

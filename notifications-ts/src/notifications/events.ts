@@ -19,13 +19,15 @@ export const EVENT_NAME = {
   MemberHasNoPosts: 'MemberHasNoPosts',
   ValidationEmailRequested: 'ValidationEmailRequested',
   PasswordResetRequested: 'PasswordResetRequested',
+  MemberDeletionRequested: 'MemberDeletionRequested',
 
 } as const;
 
 export type EventName = (typeof EVENT_NAME)[keyof typeof EVENT_NAME];
 type UserEventName =
   | typeof EVENT_NAME.ValidationEmailRequested
-  | typeof EVENT_NAME.PasswordResetRequested;
+  | typeof EVENT_NAME.PasswordResetRequested
+  | typeof EVENT_NAME.MemberDeletionRequested;
 type NotificationEventName = Exclude<EventName, UserEventName>;
 
 type BaseEvent = {
@@ -89,8 +91,17 @@ export type GroupEvent = NotificationEvent & {
   };
 };
 
-export type UserEvent = BaseEvent & {
-  name: UserEventName;
+export type SignupContext = {
+  name: string;
+  language: string;
+} & ({
+  type: 'group';
+} | {
+  type: 'member';
+  groupCode: string;
+});
+
+type UserEventBase = Omit<BaseEvent, 'name' | 'data'> & {
   code: string | null;
   data: {
     // That should usually be the same as the user field, 
@@ -100,5 +111,28 @@ export type UserEvent = BaseEvent & {
     user: string;
   };
 };
+
+export type UserEvent =
+  | UserEventBase & {
+      name: typeof EVENT_NAME.MemberDeletionRequested;
+      code: string;
+      data: UserEventBase['data'] & {
+        memberId: string;
+      };
+    }
+  | UserEventBase & {
+      name: typeof EVENT_NAME.ValidationEmailRequested;
+      data: UserEventBase['data'] & {
+        email: string;
+        purpose: 'emailChange' | 'emailVerification';
+        signup?: SignupContext;
+      };
+    }
+  | UserEventBase & {
+      name: typeof EVENT_NAME.PasswordResetRequested;
+      data: UserEventBase['data'] & {
+        email: string;
+      };
+    };
 
 export type AnyNotificationEvent = NotificationEvent | UserEvent;

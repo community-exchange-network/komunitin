@@ -1,21 +1,29 @@
  
-import { type VueWrapper, flushPromises } from "@vue/test-utils";
+import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, waitFor } from "../utils";
 import { QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
 import ApiSerializer from "@/server/ApiSerializer";
-import { seeds } from "@/server";
+import server, { seeds } from "@/server";
 import SelectCategory from "@/components/SelectCategory.vue";
+import type { Category, Member, Offer } from "@/store/model";
+import DeleteOfferBtn from "@/components/DeleteOfferBtn.vue";
+import ConfirmBtn from "@/components/ConfirmBtn.vue";
+
+type FullOffer = Offer & { member: Member, category: Category };
+type SelectOption = { label: string, value: string };
 
 
 describe("Offers", () => {
   let wrapper: VueWrapper;
+  let offer: FullOffer;
 
   beforeAll(async () => {
     seeds();
-    wrapper = await mountComponent(App, { login: true });
+    const nonAdmin = server.schema.users.all().models[1]
+    wrapper = await mountComponent(App, { login: nonAdmin });
   });
   afterAll(() => wrapper.unmount());
 
@@ -34,6 +42,7 @@ describe("Offers", () => {
     // with the tech layer, just call the trigger() function in QInfiniteScroll.
     (wrapper.findComponent(QInfiniteScroll).vm as QInfiniteScroll).trigger();
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 30, "Should load 30 offers after scroll");
+    offer = wrapper.findAllComponents(OfferCard)[0].props("offer") as FullOffer;
     // Category icon
     expect(wrapper.findAllComponents(OfferCard)[0].text()).toContain("accessibility_new");
   });
@@ -49,17 +58,35 @@ describe("Offers", () => {
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 2, "Should find 2 offers matching 'pants'");
   })
 
-  it ("renders single offer", async() => {
-    await wrapper.vm.$router.push("/groups/GRP0/offers/Tuna5");
-    await waitFor(() => wrapper.text().includes("Tuna"), true, "Offer page should load");
+  it ("renders a cached offer while revalidating", async() => {
+    const cachedOffer = wrapper.vm.$store.state.offers.resources[offer.id]
+    await wrapper.vm.$router.push(`/groups/GRP0/offers/${offer.attributes.code}`);
+    const title = requireText(offer.attributes.title, "Offer title");
+    expect(wrapper.text()).toContain(title);
+    await waitFor(
+      () => wrapper.vm.$store.state.offers.resources[offer.id] !== cachedOffer,
+      true,
+      "Offer should be revalidated"
+    )
+    await waitFor(() => wrapper.text().includes(title), true, "Offer page should load");
     const text = wrapper.text();
-    expect(text).toContain("Tuna");
-    expect(text).toContain("Arnoldo");
-    expect(text).toContain("GRP00001");
-    expect(text).toContain("$0.88");
+    expect(text).toContain(title);
+    expect(text).toContain(requireText(offer.member.attributes.name, "Offer member name"));
+    expect(text).toContain(requireText(offer.category.attributes.name, "Offer category name"));
     // The date is generated with faker.date.recent() so it could be "today" or "yesterday"
     // depending on when the test runs (especially around midnight boundaries).
     expect(text).toMatch(/Updated (yesterday|today)/);
+  })
+
+  it('reloads when the offer code changes', async () => {
+    const anotherOffer = Object.values(wrapper.vm.$store.state.offers.resources)
+      .find(candidate => candidate.id !== offer.id) as FullOffer
+    const title = requireText(anotherOffer.attributes.title, 'Second offer title')
+
+    await wrapper.vm.$router.push(`/groups/GRP0/offers/${anotherOffer.attributes.code}`)
+
+    await waitFor(() => wrapper.text().includes(title), true, 'Second offer page should load')
+    expect(wrapper.vm.$store.getters['offers/current'].id).toBe(anotherOffer.id)
   })
 
   it ("creates an offer", async() => {
@@ -67,12 +94,14 @@ describe("Offers", () => {
     await waitFor(() => wrapper.text().includes("Preview"), true, "New offer form should load");
 
     const select = wrapper.getComponent(SelectCategory).getComponent(QSelect)
-    await waitFor(() => (select.props("options") as any[])?.length > 0, true, "Categories should load");
+    await waitFor(() => (select.props("options") as unknown[])?.length > 0, true, "Categories should load");
     await select.trigger("click");
     await waitFor(() => select.findAllComponents(QItem).length > 0, true, "Category dropdown should open");
     const menu = select.findAllComponents(QItem);
+    const selectedCategory = (select.props("options") as SelectOption[])[1];
+    const selectedCategoryName = requireText(selectedCategory.label, "Selected category name");
     await menu[1].trigger("click");
-    await flushPromises();
+    await waitFor(() => select.props("modelValue")?.value, selectedCategory.value, "Category should be selected");
 
     await wrapper.get("[name='title']").setValue("The Offer")
     await wrapper.get("[name='description']").setValue("This offer is a mirage.")
@@ -84,13 +113,59 @@ describe("Offers", () => {
     const text = wrapper.text();
     expect(text).toContain("This offer is a mirage.");
     expect(text).toContain("Updated today");
-    expect(text).toContain("Games");
+    expect(text).toContain(selectedCategoryName);
+    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("draft");
+
+    const memberPath = `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`
+    await wrapper.vm.$router.push({ path: memberPath, hash: "#offers" })
+    await waitFor(
+      () => wrapper.findAllComponents(OfferCard).some(card => card.props("offer").attributes.code === "The-Offer"),
+      true,
+      "Draft offer should appear in the member offers tab"
+    )
+    const draftCard = wrapper.findAllComponents(OfferCard)
+      .find(card => card.props("offer").attributes.code === "The-Offer")
+    expect(draftCard?.text()).toContain("Draft")
+    expect(draftCard?.classes()).toContain("muted")
+    await draftCard?.trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/offers/The-Offer/preview")
+
     await wrapper.get(".q-btn--fab").trigger("click");
-    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/members/EmilianoLemke57");
+    await waitFor(() => wrapper.vm.$route.path, memberPath);
     expect(wrapper.vm.$route.hash).toBe("#offers");
+    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("published");
     await wrapper.vm.$router.push("/groups/GRP0/offers/The-Offer")
     await waitFor(() => wrapper.text().includes("The Offer"), true, "Offer page should show");
     expect(wrapper.text()).toContain("$10.00");
+  })
+
+  it('deletes an offer without rendering the removed resource', async () => {
+    const offerId = wrapper.vm.$store.getters['offers/current'].id
+    const deleteOffer = wrapper.getComponent(DeleteOfferBtn)
+    deleteOffer.getComponent(ConfirmBtn).vm.$emit('confirm')
+
+    await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/offers')
+    expect(wrapper.vm.$store.getters['offers/one'](offerId)).toBeNull()
+    expect(document.body.textContent).not.toContain('Unknown user interface error')
+  })
+
+  it('shows 404 when editing a non-existing offer', async () => {
+    await wrapper.vm.$router.push('/groups/GRP0/offers/missing/edit')
+    await waitFor(() => wrapper.text().includes('Sorry, nothing here...'), true)
+    expect(wrapper.find("[name='title']").exists()).toBe(false)
+  })
+
+  it('shows 404 when editing an offer without permission', async () => {
+    await wrapper.vm.$router.push('/groups/GRP0/offers')
+    await waitFor(() => wrapper.findAllComponents(OfferCard).length > 0, true)
+    expect(wrapper.vm.$store.getters.isAdmin).toBe(false)
+    const anotherOffer = wrapper.findAllComponents(OfferCard)
+      .find(card => card.props('offer').member.id !== wrapper.vm.$store.getters.myMember.id)
+      .props('offer') as FullOffer
+
+    await wrapper.vm.$router.push(`/groups/GRP0/offers/${anotherOffer.attributes.code}/edit`)
+    await waitFor(() => wrapper.text().includes('Sorry, nothing here...'), true)
+    expect(wrapper.find("[name='title']").exists()).toBe(false)
   })
 
 });

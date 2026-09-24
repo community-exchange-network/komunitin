@@ -20,6 +20,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/home/LoginMail.vue')
       },
       {
+        path: '/confirm-email',
+        name: 'ConfirmEmail',
+        component: () => import('../pages/home/ConfirmEmail.vue')
+      },
+      {
         path: '/forgot-password',
         name: 'ForgotPassword',
         component: () => import('../pages/home/ForgotPassword.vue')
@@ -50,6 +55,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/settings/EditSettings.vue')
       },
       {
+        path: '/groups/:code/members/:memberId/delete',
+        name: 'ConfirmMemberDeletion',
+        component: () => import('../pages/settings/ConfirmMemberDeletion.vue'),
+        meta: { public: true, back: false }
+      },
+      {
         path: '/notifications',
         name: 'Notifications',
         component: () => import('../pages/user/Notifications.vue'),
@@ -77,6 +88,7 @@ const routes: RouteRecordRaw[] = [
         name: 'SetPassword',
         component: () => import('../pages/members/SetPassword.vue'),
         meta: {
+          public: true,
           back: false
         }
       },
@@ -336,7 +348,14 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/groups/:code/admin',
         name: 'GroupAdmin',
-        children: [{
+        meta: {
+          requiresAdmin: 'group'
+        },
+        children: [
+        {
+          path: '',
+          redirect: { name: 'EditGroup' }
+        },{
           path: 'edit',
           props: true,
           name: 'EditGroup',
@@ -376,6 +395,9 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/superadmin',
+        meta: {
+          requiresAdmin: 'superadmin'
+        },
         children: [
         {
           path: '',
@@ -416,6 +438,11 @@ const routes: RouteRecordRaw[] = [
             }
           ]
         }]
+      },
+      {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import('../pages/Error404.vue')
       },
     ]
   },
@@ -460,14 +487,6 @@ if (import.meta.env.FEAT_TOPUP === 'true') {
   });
 }
 
-// Always leave this as last one
-if (import.meta.env.QUASAR_MODE !== 'ssr') {
-  routes.push({
-    path: '/:catchAll(.*)*',
-    component: () => import('../pages/Error404.vue')
-  });
-}
-
 export default routes;
 
 declare module 'vue-router' {
@@ -480,5 +499,9 @@ declare module 'vue-router' {
      * If true, the next route does not allow going back to this route using the up app button.
      */
     back?: boolean;
+    /**
+     * Restrict the route to administrators of the requested group or to superadmins.
+     */
+    requiresAdmin?: 'group' | 'superadmin';
   }
 }

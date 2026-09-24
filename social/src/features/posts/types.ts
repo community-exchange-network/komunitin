@@ -1,0 +1,77 @@
+import type { Post as DbPost } from '../../generated/prisma/client'
+import type { Category, SerializableCategory } from '../categories/types'
+import type { Access, Location } from '../groups/schema'
+import type { Member, SerializableMember } from '../members/types'
+import type { CreateNeedAttributes, CreateOfferAttributes, Image, PatchNeedAttributes, PatchOfferAttributes, PostStatus } from './schema'
+
+// Input types derived from request schema
+type PatchPostExtraFields = {
+  categoryId?: string | null
+}
+
+type CreatePostExtraFields = PatchPostExtraFields & {
+  memberId: string
+}
+
+type OfferType = {
+  type: 'offers'
+}
+type NeedType = {
+  type: 'needs'
+}
+
+export type CreateOfferInput = CreateOfferAttributes & CreatePostExtraFields & OfferType
+
+export type CreateNeedInput = CreateNeedAttributes & CreatePostExtraFields & NeedType
+
+export type CreatePostInput = CreateOfferInput | CreateNeedInput
+
+export type PatchOfferInput = PatchOfferAttributes & PatchPostExtraFields & OfferType
+
+export type PatchNeedInput = PatchNeedAttributes & PatchPostExtraFields & NeedType
+
+export type PatchPostInput = PatchOfferInput | PatchNeedInput
+  
+
+// Output type derived from Prisma model
+interface BasePost extends Omit<DbPost, "data" | "latitude" | "longitude"> {
+  status: PostStatus
+  access: Access
+  images: Image[] | null
+  location: Location | null
+  // Optional related resources are hydrated only when included.
+  member?: Member
+  category?: Category
+}
+
+export type OfferData = {
+  value: string | null
+}
+
+export type NeedData = {
+  fulfilled: Date | null
+}
+
+export type Offer = BasePost & OfferData & {
+  type: 'offers'
+}
+
+export type Need = BasePost & NeedData & {
+  type: 'needs'
+}
+
+export type Post = Offer | Need
+
+type SerializablePostRelationships = {
+  member?: SerializableMember
+  category?: SerializableCategory
+}
+
+export type SerializablePost =
+  | Omit<Offer, 'member' | 'category'> & SerializablePostRelationships
+  | Omit<Need, 'member' | 'category'> & SerializablePostRelationships
+
+export type PostRelationshipMeta = {
+  offers: number
+  needs: number
+}

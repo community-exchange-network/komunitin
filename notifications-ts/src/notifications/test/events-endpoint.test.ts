@@ -1,226 +1,170 @@
-import assert from 'node:assert';
-import { describe, it } from 'node:test';
-import { createEventBody, setupNotificationsTest } from './utils';
-import { EVENT_NAME } from '../events';
-
-const credentials = Buffer.from('testuser:testpass').toString('base64');
-const badCredentials = Buffer.from('wrong:creds').toString('base64');
+import assert from 'node:assert'
+import { describe, it } from 'node:test'
+import { signJwt, signServiceJwt } from '../../mocks/auth'
+import { createEventBody, setupNotificationsTest } from './utils'
 
 const { app, eventsQueue } = setupNotificationsTest({
   useWorker: true,
-});
+})
+
+const ids = {
+  user: 'user-1',
+  member: 'member-1',
+  post: 'post-1',
+  transfer: 'transfer-1',
+  payer: 'payer-1',
+  payee: 'payee-1',
+}
+
+const authEvent = () => createEventBody('PasswordResetRequested', {
+  code: null,
+  user: ids.user,
+  data: { user: ids.user, email: 'user@example.org' },
+})
+
+const socialEvent = () => createEventBody('MemberJoined', {
+  code: 'GRP1',
+  user: ids.user,
+  data: { member: ids.member },
+})
+
+const accountingEvent = () => createEventBody('TransferCommitted', {
+  code: 'GRP1',
+  user: ids.user,
+  data: { transfer: ids.transfer, payer: ids.payer, payee: ids.payee },
+})
+
+const post = async (body: object, token: string) => app
+  .post('/events')
+  .set('Content-Type', 'application/vnd.api+json')
+  .set('Authorization', `Bearer ${token}`)
+  .send(body)
 
 describe('POST /events', () => {
-  describe('Authentication', () => {
-    it('rejects requests without auth', async () => {
-      const body = createEventBody('TransferCommitted', { code: 'GRP1', user: 'user-1', data: { transfer: 'tx-1' } });
-      const res = await app
-        .post('/events')
-        .set('Content-Type', 'application/vnd.api+json')
-        .send(body)
-        .expect(401);
+  describe('authentication', () => {
+    it('accepts service publishers with notifications:write', async () => {
+      const cases = [
+        ['komunitin-auth', authEvent()],
+        ['komunitin-social', socialEvent()],
+        ['komunitin-accounting', accountingEvent()]
+      ] as const
 
-      assert.ok(res.body.errors);
-      assert.strictEqual(res.body.errors[0].status, '401');
-    });
+      for (const [clientId, body] of cases) {
+        await post(body, await signServiceJwt(clientId)).then(response => {
+          assert.strictEqual(response.status, 201)
+          assert.strictEqual(response.body.data.type, 'events')
+        })
+      }
+    })
 
-    it('rejects requests with invalid credentials', async () => {
-      const body = createEventBody('TransferCommitted', { code: 'GRP1', user: 'user-1', data: { transfer: 'tx-1' } });
-      const res = await app
-        .post('/events')
-        .set('Content-Type', 'application/vnd.api+json')
-        .set('Authorization', `Basic ${badCredentials}`)
-        .send(body)
-        .expect(401);
-
-      assert.ok(res.body.errors);
-      assert.strictEqual(res.body.errors[0].status, '401');
-    });
-
-    it('accepts requests with valid credentials', async () => {
-      const body = createEventBody('TransferCommitted', { code: 'GRP1', user: 'user-1', data: { transfer: 'tx-1' } });
-      const res = await app
-        .post('/events')
-        .set('Content-Type', 'application/vnd.api+json')
-        .set('Authorization', `Basic ${credentials}`)
-        .send(body)
-        .expect(201);
-
-      assert.strictEqual(res.body.data.type, 'events');
-    });
-  });
-
-  describe('Validation', () => {
-    const post = (body: any) =>
-      app
-        .post('/events')
-        .set('Content-Type', 'application/vnd.api+json')
-        .set('Authorization', `Basic ${credentials}`)
-        .send(body);
-
-    it('rejects missing body data', async () => {
-      const res = await post({}).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('data'));
-    });
-
-    it('rejects invalid resource type', async () => {
-      const res = await post({
-        data: {
-          type: 'wrong',
-          attributes: { name: 'TransferCommitted' },
-          relationships: { user: { data: { type: 'users', id: 'u1' } } },
-        },
-      }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('events'));
-    });
-
-    it('rejects invalid event name', async () => {
-      const res = await post({
-        data: {
-          type: 'events',
-          attributes: { name: 'NonExistentEvent', source: 's', code: 'c', time: new Date().toISOString(), data: {} },
-          relationships: { user: { data: { type: 'users', id: 'u1' } } },
-        },
-      }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('name'));
-    });
-
-    it('rejects missing user relationship', async () => {
-      const res = await post({
-        data: {
-          type: 'events',
-          attributes: { name: 'TransferCommitted', source: 's', code: 'c', time: new Date().toISOString(), data: {} },
-        },
-      }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('relationships'));
-    });
-
-    it('rejects non-string data values', async () => {
-      const res = await post({
-        data: {
-          type: 'events',
-          attributes: { name: 'TransferCommitted', source: 's', code: 'c', time: new Date().toISOString(), data: { key: 123 } },
-          relationships: { user: { data: { type: 'users', id: 'u1' } } },
-        },
-      }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('string'));
-    });
-
-    it('rejects invalid time format', async () => {
-      const res = await post({
-        data: {
-          type: 'events',
-          attributes: { name: 'TransferCommitted', source: 's', code: 'c', time: 'not-a-date', data: {} },
-          relationships: { user: { data: { type: 'users', id: 'u1' } } },
-        },
-      }).expect(400);
-      assert.ok(res.body.errors[0].detail.includes('Invalid'));
-    });
-
-    it('rejects null code for non-user events', async () => {
-      const res = await post({
-        data: {
-          type: 'events',
-          attributes: { name: 'TransferCommitted', source: 's', code: null, time: new Date().toISOString(), data: {} },
-          relationships: { user: { data: { type: 'users', id: 'u1' } } },
-        },
-      }).expect(400);
-
-      assert.ok(res.body.errors[0].detail.includes('code'));
-    });
-  });
-
-  describe('Successful event creation', () => {
-    it('returns 201 with JSON:API response', async () => {
-      const body = createEventBody('TransferCommitted', { code: 'GRP1', user: 'user-42', data: { transfer: 'tx-100' } });
-      const res = await app
-        .post('/events')
-        .set('Content-Type', 'application/vnd.api+json')
-        .set('Authorization', `Basic ${credentials}`)
-        .send(body)
-        .expect(201);
-
-      const { data } = res.body;
-      assert.strictEqual(data.type, 'events');
-      assert.ok(data.id, 'Response should include a job ID');
-      assert.strictEqual(data.attributes.name, 'TransferCommitted');
-      assert.strictEqual(data.attributes.code, 'GRP1');
-      assert.deepStrictEqual(data.attributes.data, { transfer: 'tx-100' });
-      assert.strictEqual(data.relationships.user.data.id, 'user-42');
-      assert.strictEqual(data.relationships.user.data.type, 'users');
-    });
-
-    it('accepts ValidationEmailRequested with null code', async () => {
-      const body = createEventBody('ValidationEmailRequested', {
-        code: null,
-        user: 'user-42',
-        data: { user: 'user-42', token: 'token-123' },
-      });
-
-      const res = await app
-        .post('/events')
-        .set('Content-Type', 'application/vnd.api+json')
-        .set('Authorization', `Basic ${credentials}`)
-        .send(body)
-        .expect(201);
-
-      const { data } = res.body;
-      assert.strictEqual(data.attributes.name, 'ValidationEmailRequested');
-      assert.strictEqual(data.attributes.code, null);
-      assert.strictEqual(data.relationships.user.data.id, 'user-42');
-    });
-
-    it('accepts PasswordResetRequested with null code', async () => {
-      const body = createEventBody('PasswordResetRequested', {
-        code: null,
-        user: 'user-42',
-        data: { user: 'user-42', token: 'token-456' },
-      });
-
-      const res = await app
-        .post('/events')
-        .set('Content-Type', 'application/vnd.api+json')
-        .set('Authorization', `Basic ${credentials}`)
-        .send(body)
-        .expect(201);
-
-      const { data } = res.body;
-      assert.strictEqual(data.attributes.name, 'PasswordResetRequested');
-      assert.strictEqual(data.attributes.code, null);
-      assert.strictEqual(data.relationships.user.data.id, 'user-42');
-    });
-
-    it('enqueues the event in the BullMQ events queue', async () => {
-      const body = createEventBody('MemberJoined', { code: 'GRP1', user: 'user-1', data: { member: 'member-1' } });
+    it('rejects requests without authentication', async () => {
       await app
         .post('/events')
         .set('Content-Type', 'application/vnd.api+json')
-        .set('Authorization', `Basic ${credentials}`)
-        .send(body)
-        .expect(201);
+        .send(accountingEvent())
+        .expect(400)
+    })
 
-      // The mock queue should have received the add call
-      assert.strictEqual(eventsQueue.add.mock.callCount(), 1);
-      const [jobName, jobData] = eventsQueue.add.mock.calls[0].arguments;
-      assert.strictEqual(jobName, 'MemberJoined');
-      assert.strictEqual(jobData.name, 'MemberJoined');
-      assert.strictEqual(jobData.code, 'GRP1');
-      assert.strictEqual(jobData.user, 'user-1');
-      assert.deepStrictEqual(jobData.data, { member: 'member-1' });
-    });
+    it('rejects an app user token', async () => {
+      await post(accountingEvent(), await signJwt(ids.user, ['notifications:write']))
+        .then(response => assert.strictEqual(response.status, 403))
+    })
 
-    it('accepts all valid event types', async () => {
-      const eventNames = Object.values(EVENT_NAME);
+    it('rejects a publisher without notifications:write', async () => {
+      await post(accountingEvent(), await signServiceJwt('komunitin-accounting', ['accounting:write']))
+        .then(response => assert.strictEqual(response.status, 403))
+    })
 
-      for (const name of eventNames) {
-        const body = createEventBody(name, { code: 'GRP1', user: 'user-1', data: { transfer: 'payload-1' } });
-        await app
-          .post('/events')
-          .set('Content-Type', 'application/vnd.api+json')
-          .set('Authorization', `Basic ${credentials}`)
-          .send(body)
-          .expect(201);
+    it('rejects a service token whose subject differs from client_id', async () => {
+      await post(accountingEvent(), await signServiceJwt('komunitin-accounting', ['notifications:write'], 'other-subject'))
+        .then(response => assert.strictEqual(response.status, 403))
+    })
+  })
+
+  describe('schema', () => {
+    it('accepts every public event variant', async () => {
+      const cases = [
+        ['komunitin-auth', createEventBody('ValidationEmailRequested', {
+          code: 'GRP1',
+          user: ids.user,
+          data: {
+            user: ids.user,
+            email: 'user@example.org',
+            purpose: 'emailVerification',
+            signup: { type: 'member', groupCode: 'GRP1', name: 'Ada', language: 'en' },
+          },
+        })],
+        ['komunitin-auth', authEvent()],
+        ['komunitin-social', createEventBody('OfferPublished', {
+          code: 'GRP1', user: ids.user, data: { offer: ids.post },
+        })],
+        ['komunitin-social', createEventBody('NeedPublished', {
+          code: 'GRP1', user: ids.user, data: { need: ids.post },
+        })],
+        ['komunitin-social', createEventBody('MemberRequested', {
+          code: 'GRP1', user: ids.user, data: { member: ids.member },
+        })],
+        ['komunitin-social', socialEvent()],
+        ['komunitin-social', createEventBody('GroupRequested', {
+          code: 'GRP1', user: ids.user, data: { group: 'GRP1' },
+        })],
+        ['komunitin-social', createEventBody('GroupActivated', {
+          code: 'GRP1', user: ids.user, data: { group: 'GRP1' },
+        })],
+        ['komunitin-accounting', accountingEvent()],
+        ['komunitin-accounting', createEventBody('TransferPending', {
+          code: 'GRP1',
+          user: ids.user,
+          data: { transfer: ids.transfer, payer: ids.payer, payee: ids.payee },
+        })],
+        ['komunitin-accounting', createEventBody('TransferRejected', {
+          code: 'GRP1',
+          user: ids.user,
+          data: { transfer: ids.transfer, payer: ids.payer, payee: ids.payee },
+        })],
+      ] as const
+
+      for (const [clientId, body] of cases) {
+        await post(body, await signServiceJwt(clientId))
+          .then(response => assert.strictEqual(response.status, 201))
       }
-    });
-  });
-});
+    })
+
+    it('accepts publisher-specific payload data without interpreting it', async () => {
+      const body = accountingEvent()
+      body.data.attributes.data.transfer = '123'
+
+      const response = await post(body, await signServiceJwt('komunitin-accounting'))
+      assert.strictEqual(response.status, 201)
+      assert.strictEqual(response.body.data.attributes.data.transfer, '123')
+    })
+
+    it('rejects a missing group code for non-auth events', async () => {
+      const body = socialEvent()
+      body.data.attributes.code = null
+
+      const response = await post(body, await signServiceJwt('komunitin-social'))
+      assert.strictEqual(response.status, 400)
+    })
+
+    it('treats source as opaque metadata', async () => {
+      const body = socialEvent()
+      body.data.attributes.source = 'legacy-social'
+
+      const response = await post(body, await signServiceJwt('komunitin-social'))
+      assert.strictEqual(response.status, 201)
+      assert.strictEqual(response.body.data.attributes.source, 'legacy-social')
+    })
+  })
+
+  it('enqueues the validated event', async () => {
+    await post(socialEvent(), await signServiceJwt('komunitin-social'))
+      .then(response => assert.strictEqual(response.status, 201))
+
+    assert.strictEqual(eventsQueue.add.mock.callCount(), 1)
+    const [jobName, jobData] = eventsQueue.add.mock.calls[0].arguments
+    assert.strictEqual(jobName, 'MemberJoined')
+    assert.strictEqual(jobData.user, ids.user)
+    assert.deepStrictEqual(jobData.data, { member: ids.member })
+  })
+})

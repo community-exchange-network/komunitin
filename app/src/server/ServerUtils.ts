@@ -1,5 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { Response } from "miragejs";
+import { KErrorCode } from "../KError";
+
+export function jsonApiError(status: number, detail: string, code?: KErrorCode) {
+  return new Response(status, {}, { errors: [{ status: status.toString(), code, title: detail, detail }] });
+}
+
+export function badRequest(message = "Bad request") {
+  return jsonApiError(400, message, KErrorCode.BadRequest);
+}
+
+export function notFound(message = "Not found") {
+  return jsonApiError(404, message, KErrorCode.NotFound);
+}
+
 export function search(records: any, request: any) {
   // Poor man search.
   if (request.queryParams["filter[search]"]) {

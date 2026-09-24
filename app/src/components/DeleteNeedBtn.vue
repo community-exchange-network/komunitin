@@ -49,6 +49,6 @@ const deleteNeed = async () => {
     router.push(props.to)
   }
 }
-const name = computed(() => truncate(props.need.attributes?.content ?? "", 20))
+const name = computed(() => truncate(props.need.attributes?.description ?? "", 20))
 
 </script>

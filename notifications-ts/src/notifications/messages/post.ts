@@ -1,4 +1,6 @@
 import { Member, Need, Offer } from "../../clients/komunitin/types";
+import { imageUrl } from "../../clients/komunitin/image";
+import { ExpiringPost, hasExpiration, isExpired } from "../../clients/komunitin/post";
 import { EnrichedPostEvent, EnrichedPostsPublishedDigestEvent } from "../enriched-events";
 import { MessageContext, NotificationActions, NotificationMessage } from "./types";
 
@@ -7,8 +9,8 @@ import { MessageContext, NotificationActions, NotificationMessage } from "./type
  */
 export const excerptPost = (post: Offer | Need): string => {
   const text = post.type === 'offers'
-    ? post.attributes.name
-    : post.attributes.content;
+    ? post.attributes.title ?? post.attributes.description
+    : post.attributes.description;
 
   // Truncate excerpt if too long
   return text && text.length > 40
@@ -23,8 +25,8 @@ export const excerptPost = (post: Offer | Need): string => {
  * @param post 
  * @returns 
  */
-export const extendPostDuration = (post: Offer | Need): { expire: Date; duration: Intl.Duration } => {
-  const currentExpiry = new Date(post.attributes.expires ?? 0);
+export const extendPostDuration = (post: ExpiringPost): { expire: Date; duration: Intl.Duration } => {
+  const currentExpiry = new Date(post.attributes.expires);
   const creation = new Date(post.attributes.created);
   const ageDays = (currentExpiry.getTime() - creation.getTime()) / (1000 * 60 * 60 * 24);
   
@@ -95,7 +97,7 @@ export const buildSinglePostPublishedMessage = (
   return {
     title: t('notifications.new_post_title', { type, name: member.attributes.name }),
     body: t('notifications.new_post_body', { excerpt }),
-    image: member.attributes.image ?? event.group.attributes.image,
+    image: imageUrl(member.attributes.image ?? event.group.attributes.image),
     route,
     actions: [
       {
@@ -139,7 +141,7 @@ export const buildPostsPublishedDigestMessage = (
     return memberMap.get(memberId)!.attributes.name;
   };
   const getMemberImage = (memberId: string): string | undefined => {
-    return memberMap.get(memberId)!.attributes.image;
+    return imageUrl(memberMap.get(memberId)!.attributes.image);
   };
 
   const featuredPosts = selectFeaturedPosts(items);
@@ -149,7 +151,7 @@ export const buildPostsPublishedDigestMessage = (
   const uniqueMembersCount = memberMap.size;
   const extraMembersCount = uniqueMembersCount - featuredMemberIds.length;
   const extraPostsCount = items.length - featuredPosts.length;
-  const image = getMemberImage(featuredMemberIds[0]) ?? group.attributes.image;
+  const image = getMemberImage(featuredMemberIds[0]) ?? imageUrl(group.attributes.image);
 
   const title = t('notifications.posts_published_digest_title', {
     names: [
@@ -188,8 +190,11 @@ export const buildPostsPublishedDigestMessage = (
 export const buildPostExpiredMessage = (
   event: EnrichedPostEvent,
   { t }: MessageContext
-): NotificationMessage => {
+): NotificationMessage | null => {
   const { post, postType, code, group } = event;
+  if (!hasExpiration(post) || !isExpired(post)) {
+    return null;
+  }
 
   const excerpt = excerptPost(post);
   const route = `/groups/${code}/${postType}/${post.attributes.code}/edit`;
@@ -200,7 +205,7 @@ export const buildPostExpiredMessage = (
   return {
     title: t('notifications.post_expired_title', { type }),
     body: t('notifications.post_expired_body', { type, excerpt }),
-    image: group.attributes.image,
+    image: imageUrl(group.attributes.image),
     route,
     actions: [
       {
@@ -231,10 +236,13 @@ export const buildPostExpiresSoonMessage = (
   { t }: MessageContext
 ): NotificationMessage | null => {
   const { post, postType, code, group } = event;
+  if (!hasExpiration(post) || isExpired(post)) {
+    return null;
+  }
 
   const timeToExpiryHours = (new Date(post.attributes.expires).getTime() - Date.now()) / (1000 * 60 * 60);
 
-  if (timeToExpiryHours <= 0 || timeToExpiryHours > 24 * 7) {
+  if (timeToExpiryHours > 24 * 7) {
     // Not in the "soon" window anymore
     return null;
   }
@@ -252,7 +260,7 @@ export const buildPostExpiresSoonMessage = (
   return {
     title: t('notifications.post_expires_soon_title', { type, time, range }),
     body: t('notifications.post_expires_soon_body', { type, excerpt }),
-    image: group.attributes.image,
+    image: imageUrl(group.attributes.image),
     route,
     actions: [
     {

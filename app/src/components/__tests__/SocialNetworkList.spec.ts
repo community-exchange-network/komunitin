@@ -15,20 +15,12 @@ vi.mock("vue-i18n", () => ({
     
 describe("SocialNetworkList", () => {
   const contacts = [
-    { type: "phone", name: "+34 666 77 88 99" },
-    { type: "email", name: "exhange@easterisland.com" },
-    { type: "whatsapp", name: "+34 666 66 66 66" },
-    { type: "telegram", name: "@example" },
-    { type: "unkonwn", name: "unknown" }
-  ].map(obj => ({
-    attributes: {
-      ...obj,
-      created: new Date().toJSON(),
-      updated: new Date().toJSON()
-    }
-  
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any));
+    { type: "phone", value: "+34 666 77 88 99" },
+    { type: "email", value: "exhange@easterisland.com" },
+    { type: "whatsapp", value: "+34 666 66 66 66" },
+    { type: "telegram", value: "@example" },
+    { type: "unkonwn", value: "unknown" }
+  ];
 
   let contact: VueWrapper;
   let share: VueWrapper;

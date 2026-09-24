@@ -43,6 +43,12 @@ This section extensively use the [JSON:API](https://jsonapi.org/) language.
 
 Filtering is available in all endpoints that return a collection following the custom [Simple filtering](https://github.com/komunitin/komunitin-api/blob/master/jsonapi-profiles/filter.md) JSON:API profile.
 
+Date comparisons use `filter[field][operator]=value`, where the value is an
+RFC 3339 timestamp and the operator is `gt`, `gte`, `lt`, or `lte`. Posts allow
+comparisons on `created` and `expires`; members allow them on `created`.
+Multiple comparisons are combined with `AND`. Unsupported fields, operators,
+malformed dates, arrays, and mixed equality/comparison values return `400`.
+
 #### Pagination
 
 Pagination is available in all endpoints that return a collection following the official [Cursor Pagination](https://jsonapi.org/profiles/ethanresnick/cursor-pagination/) JSON:API profile.
@@ -109,7 +115,7 @@ In a future, other access labels may be added (friends, contacts, community:XXXX
 
 Authorization endpoints are out of the scope of this API, which expects the user to be authorized with an OAuth2 access token. The access token is provided by a separate authorization API. The recommended OAuth2 flow for web apps and native apps is the Authorization Code Flow with Proof Key for Code Exchange (PKCE).
 
-A general `komunitin_social` OAuth2 scope is required to access this API.
+Read operations require the `social:read` OAuth2 scope, while write operations require `social:write`.
 
 #### Accounting
 

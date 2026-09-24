@@ -7,6 +7,7 @@ import { mockDate, restoreDate } from '../../mocks/date';
 import { mockDb } from '../../mocks/prisma';
 import { mockRedis } from '../../mocks/redis';
 import { mockEmail } from '../../mocks/email';
+import { createMembers, db, getUserIdForMember, resetDb } from '../../mocks/db';
 
 const email = mockEmail();
 
@@ -16,7 +17,11 @@ const { newsletterLog } = mockDb();
 const { reset: resetRedis } = mockRedis();
 
 describe('Newsletter Cron Job', () => {
-  let runNewsletter: (options?: { forceSend?: boolean }) => Promise<void>;
+  let runNewsletter: (options?: {
+    groupCode?: string;
+    memberCode?: string;
+    forceSend?: boolean;
+  }) => Promise<void>;
   before(async () => {
     // We need to delay import until mocks (redis) are set up.
     const newsletterModule = await import('../service');
@@ -27,6 +32,7 @@ describe('Newsletter Cron Job', () => {
   
   beforeEach(() => {
     server.resetHandlers();
+    resetDb();
     email.reset();
     newsletterLog.length = 0;
     // @ts-ignore
@@ -41,6 +47,18 @@ describe('Newsletter Cron Job', () => {
   });
 
   test('should generate and send newsletter', async () => {
+    const actionTokenRequests: { userId: string; purpose: string }[] = [];
+    server.use(
+      http.post('http://auth.test/action-token', async ({ request }) => {
+        const actionTokenRequest = await request.json() as { userId: string; purpose: string };
+        actionTokenRequests.push(actionTokenRequest);
+        return HttpResponse.json({
+          token: 'newsletter-unsubscribe-token',
+          email: db.users.find(user => user.id === actionTokenRequest.userId)!.attributes.email,
+        });
+      })
+    );
+
     // Mock date to Sunday 15:30 Madrid time (UTC+1 in winter) -> 14:30 UTC
     mockDate('2026-01-04T14:30:00Z');
     
@@ -54,6 +72,21 @@ describe('Newsletter Cron Job', () => {
     assert.ok(emailOptions.to, 'Email should have a recipient');
     assert.ok(emailOptions.subject, 'Email should have a subject');
     assert.ok(emailOptions.html, 'Email should have HTML content');
+    assert.strictEqual(actionTokenRequests.length, email.sentEmails.length);
+    assert.ok(actionTokenRequests.every(request => request.purpose === 'unsubscribe'));
+
+    const unsubscribeHref = emailOptions.html
+      .match(/href="([^"]*\/unsubscribe\?token[^"]*)"/)?.[1]
+      .replaceAll('&#x3D;', '=')
+      .replaceAll('&amp;', '&');
+    assert.strictEqual(
+      unsubscribeHref,
+      'http://app.test/unsubscribe?token=newsletter-unsubscribe-token'
+    );
+    assert.deepStrictEqual(emailOptions.headers, {
+      'List-Unsubscribe': '<http://social.test/users/unsubscribe?token=newsletter-unsubscribe-token>',
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    });
 
     // Check DB Log
     assert.ok(
@@ -111,6 +144,30 @@ describe('Newsletter Cron Job', () => {
       prisma.newsletterLog.create.mock.calls.length,
       0,
       'Should not create any log entries when enableGroupEmail is false'
+    );
+  });
+
+  test('sends a separate newsletter for each member linked to the same user', async () => {
+    const members = createMembers('GRP1');
+    const sharedUserId = getUserIdForMember(members[0].id);
+    const secondRelation = db.memberUsers.find(
+      relation => relation.relationships.member.data.id === members[1].id,
+    )!;
+    secondRelation.relationships.user.data.id = sharedUserId;
+    const sharedUser = db.users.find(user => user.id === sharedUserId)!;
+
+    await runNewsletter({ groupCode: 'GRP1', forceSend: true });
+
+    assert.strictEqual(
+      email.sentEmails.filter(message => message.to === sharedUser.attributes.email).length,
+      2,
+    );
+    const sharedMemberLogs = newsletterLog.filter(
+      data => [members[0].id, members[1].id].includes(data.memberId),
+    );
+    assert.deepStrictEqual(
+      sharedMemberLogs.map(data => data.recipients[0].userId),
+      [sharedUserId, sharedUserId],
     );
   });
 

@@ -8,6 +8,8 @@
   "pendingAccountText": "Your account is pending approval. You can't record trades or see other users' offers and wants until your account is activated by the community administrators.",
   "groupEmailsHint": "Receive a compilation of latest offers, wants and statistics from your community.",
   "deleteAccountText": "Completely delete your account and delete all your data in this platform inlcuding your profile, offers, wants and your account. You need to have a positive or zero balance to delete your account, contact your administrator otherwise.",
+  "deleteAccountConfirmation": "This removes the user’s profile and account from the community and hides their offers and wants. Other users you control remain accessible.",
+  "moveBalanceToHint": "The trade to bring community standing to zero will be recorded now, even if you do not complete deletion.",
   "transactionPayerHint": "Select the user who received the service.",
   "createTransaction": "Record a trade",
   "enterTransactionData": "Enter information about the trade",

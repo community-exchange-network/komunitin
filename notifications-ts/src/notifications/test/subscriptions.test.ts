@@ -59,7 +59,7 @@ describe('Subscriptions API', () => {
   it('User can create own subscription', async () => {
     const groupCode = 'GRP1'
     const userId = uid('1')
-    const token = await signJwt(userId, ['komunitin_social'])
+    const token = await signJwt(userId, ['notifications:write'])
 
     const endpoint = 'https://example.com/endpoint/1'
     const body = makeSubscriptionBody(userId, endpoint, { foo: 'bar' })
@@ -94,7 +94,7 @@ describe('Subscriptions API', () => {
     const groupCode = 'GRP1'
     const userA = uid('3')
     const userB = uid('4')
-    const token = await signJwt(userA, ['komunitin_social'])
+    const token = await signJwt(userA, ['notifications:write'])
 
     const body = makeSubscriptionBody(userB, 'https://example.com/endpoint/forbidden')
 
@@ -110,7 +110,7 @@ describe('Subscriptions API', () => {
   it('User can delete own subscription', async () => {
     const groupCode = 'GRP1'
     const userId = uid('5')
-    const token = await signJwt(userId, ['komunitin_social'])
+    const token = await signJwt(userId, ['notifications:write'])
 
     // create subscription directly in the mocked store
     const created = await createSubscription({ tenantId: groupCode, userId, endpoint: 'https://example.com/delete-me' })
@@ -128,7 +128,7 @@ describe('Subscriptions API', () => {
     const groupCode = 'GRP1'
     const owner = uid('6')
     const attacker = uid('7')
-    const token = await signJwt(attacker, ['komunitin_social'])
+    const token = await signJwt(attacker, ['notifications:write'])
 
     const created = await createSubscription({ tenantId: groupCode, userId: owner, endpoint: 'https://example.com/delete-other' })
 
@@ -140,26 +140,5 @@ describe('Subscriptions API', () => {
     // subscription still exists
     assert.ok(subscriptions.find(s => s.id === created.id))
     assert.equal(res.body.errors[0].status, '403')
-  })
-
-  it('supports the legacy user id from IntegralCES', async () => {
-    const authId = '123'
-    // This is the expected userId derived from authId, with fixed prefix
-    // and authId in hexadecimal form as the suffix.
-    const bodyId = '75736572-2020-1234-5678-00000000007b'
-
-    const token = await signJwt(authId, ['komunitin_social'])
-    const body = makeSubscriptionBody(bodyId)
-
-    const groupCode = 'GRP1'
-
-    await app
-      .post(`/${groupCode}/subscriptions`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(body)
-      .expect(200)
-    
-    assert.equal(subscriptions.length, 1)
-    assert.equal(subscriptions[0].userId, bodyId)
   })
 })

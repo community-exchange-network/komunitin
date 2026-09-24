@@ -1,4 +1,3 @@
-import { Scope } from "../../src/server/auth"
 import { Express } from "express"
 import request, { Response, Request } from "supertest"
 import assert from "node:assert"
@@ -17,12 +16,14 @@ export function norl(url: string) {
   return norm
 }
 
-export type AuthInfo = {user: string|null, scopes: Scope[], audience?: string, ccNode?: string, lastHash?: string}
+export type AuthInfo = {user: string|null, scopes: string[], audience?: string, issuer?: string, clientId?: string, ccNode?: string, lastHash?: string}
 export function client(app: Express) {
   const completeRequest = async (req: Request, auth: AuthInfo | undefined, status: number, contentType: string) => {
     if (auth && typeof auth === "object") {
-      const access = await token(auth.user, auth.scopes, auth.audience)
-      req.set('Authorization', `Bearer ${access}`)
+      if (auth.user !== null) {
+        const access = await token(auth.user, auth.scopes, auth.audience, auth.clientId, auth.issuer)
+        req.set('Authorization', `Bearer ${access}`)
+      }
       if (auth.ccNode) {
         req.set('cc-node', auth.ccNode)
       }

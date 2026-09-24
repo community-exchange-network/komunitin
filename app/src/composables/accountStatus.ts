@@ -1,6 +1,6 @@
 import type { MaybeRefOrGetter } from "vue";
 import { computed, toValue } from "vue"
-import type { MemberState } from "../store/model"
+import type { MemberStatus } from "../store/model"
 import { useI18n } from "vue-i18n"
 
 type T = ReturnType<typeof useI18n>['t']
@@ -12,7 +12,7 @@ const STATUS_MAP = {
   suspended: { color: 'deep-orange', icon: 'block', label: (t: T) => t('suspended'), text: (t: T) => t('suspendedAccountText') },
 }
 
-export const useAccountStatus = (status: MaybeRefOrGetter<MemberState>) => {
+export const useAccountStatus = (status: MaybeRefOrGetter<MemberStatus>) => {
   const { t } = useI18n()
 
   const entry = computed(() => STATUS_MAP[toValue(status)])

@@ -1,7 +1,8 @@
 import { http, HttpResponse } from 'msw';
 import { faker } from '@faker-js/faker';
 import { getJwks } from './auth';
-import { createGroup, createGroups, createMembers, createNeeds, createOffers, createTransfers, db } from './db';
+import { createGroup, createGroups, createMembers, createPosts, createTransfers, db } from './db';
+import { isExpired } from '../clients/komunitin/post';
 
 faker.seed(123);
 
@@ -19,59 +20,101 @@ export const handlers = [
       access_token: 'mock-token',
       expires_in: 3600,
       token_type: 'Bearer',
-      scope: 'komunitin_social_read_all komunitin_accounting_read_all'
+      scope: 'email social:read accounting:read'
     });
   }),
-  
-  http.post(`${AUTH_URL}/get-auth-code`, () => {
-    return HttpResponse.json({ code: 'mock-unsubscribe-token' });
+
+  http.post(`${AUTH_URL}/action-token`, async ({ request }) => {
+    const { userId, purpose, email } = await request.json() as { userId: string; purpose: string; email?: string };
+    return HttpResponse.json({
+      token: `mock-${purpose}-token`,
+      email: purpose === 'emailChange' ? email : db.users.find(user => user.id === userId)!.attributes.email,
+    });
   }),
 
   http.get(`${AUTH_URL}/.well-known/jwks.json`, () => {
     return HttpResponse.json(getJwks());
   }),
 
-  http.get(`${SOCIAL_URL}/groups`, () => {
+  http.get(`${SOCIAL_URL}/groups`, ({ request }) => {
     createGroups();
-    return HttpResponse.json({ data: db.groups });
+    const url = new URL(request.url);
+    const status = url.searchParams.get('filter[status]');
+    const groups = status
+      ? db.groups.filter(group => group.attributes.status === status)
+      : db.groups;
+    return HttpResponse.json({ data: groups });
   }),
 
   // Social API
-  http.get(`${SOCIAL_URL}/users/:id`, ({ params }) => {
-    const { id } = params;
-    const user = db.users.find(u => u.id === id);
-    if (!user) return new HttpResponse(null, { status: 404 });
-    const settings = db.userSettings.find(s => s.id === user.relationships.settings.data.id);
-    return HttpResponse.json({ data: user, included: settings ? [settings] : [] });
-  }),
-
-  http.get(`${SOCIAL_URL}/users/:id/settings`, ({ params }) => {
-    const { id } = params;
-    const settings = db.userSettings.find(s => s.id === `${id}-settings`);
-    if (!settings) return new HttpResponse(null, { status: 404 });
-    return HttpResponse.json({ data: settings });
-  }),
-  
-  http.get(`${SOCIAL_URL}/users`, ({ request }) => {
+  http.get(`${SOCIAL_URL}/:groupCode/member-users`, ({ params, request }) => {
+    const groupCode = params.groupCode as string;
+    createMembers(groupCode);
     const url = new URL(request.url);
-    const memberFilter = url.searchParams.get('filter[members]');
-    
-    let users = db.users;
+    const memberFilter = url.searchParams.get('filter[member]');
+    const memberStatusFilter = url.searchParams.get('filter[member.status]');
+    const userFilter = url.searchParams.get('filter[user]');
+    const groupId = `group-${groupCode}`;
+    const groupMemberIds = new Set(
+      db.members
+        .filter(member => member.relationships.group.data.id === groupId)
+        .map(member => member.id),
+    );
+
+    let relations = db.memberUsers.filter(
+      relation => groupMemberIds.has(relation.relationships.member.data.id),
+    );
     if (memberFilter) {
-        const memberIds = memberFilter.split(',');
-        users = users.filter((u: any) => {
-            const userMemberIds = u.relationships.members.data.map((r: any) => r.id);
-            return userMemberIds.some((id: string) => memberIds.includes(id));
-        });
+      const memberIds = memberFilter.split(',');
+      relations = relations.filter(
+        relation => memberIds.includes(relation.relationships.member.data.id),
+      );
     }
-    
+    if (memberStatusFilter) {
+      const memberStatuses = memberStatusFilter.split(',');
+      relations = relations.filter((relation) => {
+        const member = db.members.find(
+          item => item.id === relation.relationships.member.data.id,
+        );
+        return member && memberStatuses.includes(member.attributes.status);
+      });
+    }
+    if (userFilter) {
+      const userIds = userFilter.split(',');
+      relations = relations.filter(
+        relation => userIds.includes(relation.relationships.user.data.id),
+      );
+    }
+
+    relations.sort((left, right) => left.id.localeCompare(right.id));
+    const size = Number(url.searchParams.get('page[size]') ?? 20);
+    const after = Number(url.searchParams.get('page[after]') ?? 0);
+    const page = relations.slice(after, after + size);
     const include = url.searchParams.get('include');
     let included: any[] = [];
-    if (include && include.includes('settings')) {
-       included = db.userSettings.filter(s => users.some((u: any) => u.relationships.settings.data.id === s.id));
+    if (include?.includes('user')) {
+      const userIds = new Set(page.map(relation => relation.relationships.user.data.id));
+      included.push(...db.users.filter(user => userIds.has(user.id)));
     }
-    
-    return HttpResponse.json({ data: users, included });
+    if (include?.includes('member')) {
+      const memberIds = new Set(page.map(relation => relation.relationships.member.data.id));
+      included.push(...db.members.filter(member => memberIds.has(member.id)));
+    }
+
+    const nextOffset = after + page.length;
+    const next = nextOffset < relations.length
+      ? `${url.origin}${url.pathname}?${new URLSearchParams({
+          ...Object.fromEntries(url.searchParams),
+          'page[after]': String(nextOffset),
+        })}`
+      : null;
+
+    return HttpResponse.json({
+      data: page,
+      included,
+      links: { next },
+      meta: { count: relations.length },
+    });
   }),
 
   http.get(`${SOCIAL_URL}/:groupCode`, ({ params }) => {
@@ -98,6 +141,18 @@ export const handlers = [
     return new HttpResponse(null, { status: 404 });
   }),
 
+  http.get(`${SOCIAL_URL}/:groupCode/admins`, ({ params }) => {
+    const { groupCode } = params;
+    createGroup(groupCode as string);
+    const group = db.groups.find(g => g.attributes.code === groupCode);
+    const adminIds = db.groupAdmins
+      .filter(admin => admin.groupId === group?.id)
+      .map(admin => admin.userId);
+    return HttpResponse.json({
+      data: db.users.filter(user => adminIds.includes(user.id)),
+    });
+  }),
+
   http.get(`${SOCIAL_URL}/:groupCode/members`, ({ params, request }) => {
     const { groupCode } = params;
     createMembers(groupCode as string);
@@ -106,6 +161,7 @@ export const handlers = [
     const url = new URL(request.url);
     const accountFilter = url.searchParams.get('filter[account]');
     const createdGt = url.searchParams.get('filter[created][gt]');
+    const status = url.searchParams.get('filter[status]');
 
     let members = db.members.filter(m => m.relationships.group.data.id === groupId);
 
@@ -116,6 +172,9 @@ export const handlers = [
     
     if (createdGt) {
         members = members.filter(m => new Date(m.attributes.created) > new Date(createdGt));
+    }
+    if (status) {
+      members = members.filter(m => m.attributes.status === status);
     }
     
     return HttpResponse.json({ data: members });
@@ -129,62 +188,62 @@ export const handlers = [
     return HttpResponse.json({ data: member });
   }),
 
-  http.get(`${SOCIAL_URL}/:groupCode/offers`, ({ params, request }) => {
+  http.get(`${SOCIAL_URL}/:groupCode/posts`, ({ params, request }) => {
     const { groupCode } = params;
-    createOffers(groupCode as string);
+    createPosts('offers', groupCode as string);
+    createPosts('needs', groupCode as string);
     const groupId = `group-${groupCode}`;
 
     const url = new URL(request.url);
-    const expireLt = url.searchParams.get('filter[expire][lt]');
+    const type = url.searchParams.get('filter[type]');
+    const createdGt = url.searchParams.get('filter[created][gt]');
+    const expireLt = url.searchParams.get('filter[expires][lt]');
     const expireLtTime = expireLt ? new Date(expireLt).getTime() : null;
-
-    const memberFilter = url.searchParams.get('filter[member]') || url.searchParams.get('filter[members]');
+    const memberFilter = url.searchParams.get('filter[member]');
     const memberIds = memberFilter ? memberFilter.split(',') : null;
-
-    const offers = db.offers
-      .filter(o => o.relationships.group.data.id === groupId)
-      .filter(o => {
+    const memberStatusFilter = url.searchParams.get('filter[member.status]');
+    const memberStatuses = memberStatusFilter ? memberStatusFilter.split(',') : null;
+    const status = url.searchParams.get('filter[status]');
+    const expired = url.searchParams.get('filter[expired]');
+    let posts = [...db.offers, ...db.needs]
+      .filter(post => post.relationships.group.data.id === groupId)
+      .filter(post => !type || post.type === type)
+      .filter(post => {
         if (!memberIds) return true;
-        const memberId = o.relationships?.member?.data?.id;
+        const memberId = post.relationships?.member?.data?.id;
         return memberId ? memberIds.includes(memberId) : false;
       })
-      .filter(o => {
-        if (expireLtTime === null) return true;
-        const expires = o.attributes?.expires;
-        if (!expires) return false;
-        return new Date(expires).getTime() < expireLtTime;
-      });
-
-    return HttpResponse.json({ data: offers });
-  }),
-
-  http.get(`${SOCIAL_URL}/:groupCode/needs`, ({ params, request }) => {
-    const { groupCode } = params;
-    createNeeds(groupCode as string);
-    const groupId = `group-${groupCode}`;
-
-    const url = new URL(request.url);
-    const expireLt = url.searchParams.get('filter[expire][lt]');
-    const expireLtTime = expireLt ? new Date(expireLt).getTime() : null;
-
-    const memberFilter = url.searchParams.get('filter[member]') || url.searchParams.get('filter[members]');
-    const memberIds = memberFilter ? memberFilter.split(',') : null;
-
-    const needs = db.needs
-      .filter(n => n.relationships.group.data.id === groupId)
-      .filter(n => {
-        if (!memberIds) return true;
-        const memberId = n.relationships?.member?.data?.id;
-        return memberId ? memberIds.includes(memberId) : false;
+      .filter(post => {
+        if (!memberStatuses) return true;
+        const memberId = post.relationships?.member?.data?.id;
+        const member = db.members.find(item => item.id === memberId);
+        return member ? memberStatuses.includes(member.attributes.status) : false;
       })
-      .filter(n => {
+      .filter(post => !status || post.attributes.status === status)
+      .filter(post => !createdGt || new Date(post.attributes.created) > new Date(createdGt))
+      .filter(post => {
         if (expireLtTime === null) return true;
-        const expires = n.attributes?.expires;
+        const expires = post.attributes?.expires;
         if (!expires) return false;
         return new Date(expires).getTime() < expireLtTime;
+      })
+      .filter(post => {
+        if (!expired) return true;
+        return expired === String(isExpired(post));
       });
 
-    return HttpResponse.json({ data: needs });
+    const sort = url.searchParams.get('sort');
+    if (sort) {
+      const descending = sort.startsWith('-');
+      const field = descending ? sort.slice(1) : sort;
+      posts = posts.sort((a, b) => {
+        const left = new Date(a.attributes[field] ?? 0).getTime();
+        const right = new Date(b.attributes[field] ?? 0).getTime();
+        return descending ? right - left : left - right;
+      });
+    }
+
+    return HttpResponse.json({ data: posts });
   }),
   
   
@@ -197,34 +256,20 @@ export const handlers = [
     return HttpResponse.json({ data: group });
   }),
 
-  http.get(`${SOCIAL_URL}/:groupCode/offers/:id`, ({ request, params }) => {
+  http.get(`${SOCIAL_URL}/:groupCode/posts/:id`, ({ request, params }) => {
     const { groupCode, id } = params;
-    createOffers(groupCode as string);
-    const offer = db.offers.find(o => o.id === id);
-    if (!offer) return new HttpResponse(null, { status: 404 });
+    createPosts('offers', groupCode as string);
+    createPosts('needs', groupCode as string);
+    const post = [...db.offers, ...db.needs].find(item => item.id === id);
+    if (!post) return new HttpResponse(null, { status: 404 });
 
     const included: any[] = [];
     const url = new URL(request.url);
     if (url.searchParams.get('include')?.includes('member')) {
-      const member = db.members.find(m => m.id === offer.relationships.member.data.id);
+      const member = db.members.find(m => m.id === post.relationships.member.data.id);
       if (member) included.push(member);
     }
-    return HttpResponse.json({ data: offer, included });
-  }),
-
-  http.get(`${SOCIAL_URL}/:groupCode/needs/:id`, ({ request, params }) => {
-    const { groupCode, id } = params;
-    createNeeds(groupCode as string);
-    const need = db.needs.find(n => n.id === id);
-    if (!need) return new HttpResponse(null, { status: 404 });
-
-    const included: any[] = [];
-    const url = new URL(request.url);
-    if (url.searchParams.get('include')?.includes('member')) {
-      const member = db.members.find(m => m.id === need.relationships.member.data.id);
-      if (member) included.push(member);
-    }
-    return HttpResponse.json({ data: need, included });
+    return HttpResponse.json({ data: post, included });
   }),
 
   // Accounting API
@@ -274,10 +319,13 @@ export const handlers = [
      return HttpResponse.json({ data: transfer, included });
   }),
   
-  http.get(`${ACCOUNTING_URL}/:groupCode/transfers`, ({ params }) => {
+  http.get(`${ACCOUNTING_URL}/:groupCode/transfers`, ({ params, request }) => {
       const { groupCode } = params;
       createTransfers(groupCode as string);
-      const transfers = db.transfers.filter(t => t.id.startsWith(`transfer-${groupCode}`));
+      const state = new URL(request.url).searchParams.get('filter[state]');
+      const transfers = db.transfers
+        .filter(t => t.id.startsWith(`transfer-${groupCode}`))
+        .filter(t => !state || t.attributes.state === state);
       return HttpResponse.json({ data: transfers });
   }),
   

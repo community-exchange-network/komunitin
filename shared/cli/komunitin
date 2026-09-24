@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+cli_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+project_dir=$(CDPATH= cd -- "$cli_dir/../.." && pwd)
+
+exec docker run --rm \
+  --add-host host.docker.internal:host-gateway \
+  --env-file "$project_dir/.env" \
+  -v "$cli_dir:/app:ro" \
+  -w /app \
+  node:24 node index.ts "$@"

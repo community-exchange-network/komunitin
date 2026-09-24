@@ -28,7 +28,7 @@ import { LMap, LTileLayer, LMarker } from "@vue-leaflet/vue-leaflet";
 import { toLeafletBounds, toLeafletLatLng, type LngLat, useLeafletSettings } from "../composables/leaflet";
 
 const props = withDefaults(defineProps<{
-  center: LngLat,
+  center?: LngLat,
   zoom?: number
   // Points that need to remain visible, using the app-wide [longitude, latitude] convention.
   bounds?: LngLat[],
@@ -42,7 +42,7 @@ const props = withDefaults(defineProps<{
 })
 
 const { url, zoom: defaultZoom, markerIcon } = useLeafletSettings()
-const centerLatLng = computed<LatLngExpression>(() => toLeafletLatLng(props.center))
+const centerLatLng = computed<LatLngExpression>(() => toLeafletLatLng(props.center ?? [0, 0]))
 const markerLatLng = computed<LatLngExpression | undefined>(() => props.marker ? toLeafletLatLng(props.marker) : undefined)
 const leafletBounds = computed(() => toLeafletBounds(props.bounds))
 const map = useTemplateRef<{ leafletObject?: LeafletMap }>("map")

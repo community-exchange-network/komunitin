@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert'
-import { db, createTransfers } from '../../mocks/db'
+import { db, createTransfers, getUserIdForMember } from '../../mocks/db'
 import { createEvent, setupNotificationsTest, verifyNotification } from './utils'
 
 const { put, appNotifications, syntheticQueue: queue } = setupNotificationsTest({
@@ -17,9 +17,7 @@ describe('App notifications', () => {
 
     const accountUserId = (accountId: string) => {
       const memberId = db.members.find(m => m.relationships.account.data.id === accountId)!.id
-      return db.users.find(u => {
-        return u.relationships.members.data.some((r: any) => r.id === memberId)
-      })!.id
+      return getUserIdForMember(memberId)
     }
 
     const payerUserId = accountUserId(transfer.relationships.payer.data.id)

@@ -51,7 +51,7 @@ const {resource: topupSettings} = useResource<TopupSettings>('topup-settings', {
 })
 
 const ready = computed(() => {
-  return currency.value !== null && topupSettings.value !== null
+  return Boolean(currency.value && topupSettings.value)
 })
 
 const changes = ref<typeof SaveChanges>()

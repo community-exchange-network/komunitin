@@ -3,11 +3,12 @@ import initI18n from "../../../utils/i18n";
 import prisma from "../../../utils/prisma";
 import { EnrichedEvent } from "../../enriched-events";
 import { MessageContext, NotificationMessage } from "../../messages";
+import type { Recipient } from "../../../clients/komunitin/types";
 
 const createNotification = async (
   event: { id: string; name: string; code: string },
   user: { id: string },
-  message: NotificationMessage
+  message: NotificationMessage,
 ) => {
   const data = {
     route: message.route,
@@ -29,16 +30,16 @@ const createNotification = async (
   });
 };
 
-export const handleNotificationForUsers = async <T extends EnrichedEvent>(
+export const handleNotificationForRecipients = async <T extends EnrichedEvent>(
   event: T,
-  users: Array<{ user: any; settings: any }>,
-  builder: (ctx: MessageContext, event: T) => NotificationMessage | null
+  recipients: Recipient[],
+  builder: (ctx: MessageContext, event: T) => NotificationMessage | null,
 ) => {
   const i18n = await initI18n();
   let notificationCount = 0;
 
-  for (const { user, settings } of users) {
-    const locale = settings.attributes.language || 'en';
+  for (const { user } of recipients) {
+    const locale = user.attributes.language || 'en';
     const t = i18n.getFixedT(locale);
     const message = builder({ t, locale }, event);
 

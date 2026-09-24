@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, it, before, beforeEach, afterEach } from 'node:test'
-import { createOffer, getUserIdForMember, db } from '../../mocks/db'
+import { createPost, getUserIdForMember, db } from '../../mocks/db'
 import { mockDate, restoreDate } from '../../mocks/date'
 import { setupNotificationsTest, verifyNotification } from './utils'
 
@@ -34,12 +34,12 @@ describe('Post expires soon (synthetic cron)', () => {
 
     const DAY = 24 * 60 * 60 * 1000
     const now = Date.now()
-    const offer = createOffer({
+    const offer = createPost('offers', {
       groupCode,
       id: 'offer-expiring-soon-GRP1',
       code: 'OFFEREXPR',
       attributes: {
-        name: 'Offer that will expire soon',
+        title: 'Offer that will expire soon',
         created: new Date(now - 40 * DAY).toISOString(),
         expires: new Date(now + 6 * DAY).toISOString(),
       }
@@ -88,12 +88,12 @@ describe('Post expires soon (synthetic cron)', () => {
     const now = Date.now()
 
     // 1) Set a post expiring in 3 days ( < 7 days but > 24h)
-    const offer = createOffer({
+    const offer = createPost('offers', {
       groupCode,
       id: 'offer-extensible',
       code: 'OFFEREXT',
       attributes: {
-        name: 'Extensible Offer',
+        title: 'Extensible Offer',
         created: new Date(now - 365 * DAY).toISOString(), // Ensure +30d expiry window
         expires: new Date(now + 3 * DAY).toISOString(),
       }

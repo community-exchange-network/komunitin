@@ -89,12 +89,13 @@ export const defaultCurrencySettings = (currency: CreateCurrency) => ({
 
 export const currencyConfig = (currency: CreateCurrency): LedgerCurrencyConfig => {
   const defaultSettings = defaultCurrencySettings(currency)
+  const settings = currency.settings ?? {}
   // Compute external trader initial credit and maximum balance
-  const externalTraderInitialCreditSetting = currency.settings.externalTraderCreditLimit ?? defaultSettings.externalTraderCreditLimit
+  const externalTraderInitialCreditSetting = settings.externalTraderCreditLimit ?? defaultSettings.externalTraderCreditLimit
   const externalTraderInitialCredit = toStringAmount(currency, externalTraderInitialCreditSetting)
   
-  const externalTraderMaximumBalanceSetting = currency.settings.externalTraderMaximumBalance !== undefined && currency.settings.externalTraderMaximumBalance !== false 
-    ? currency.settings.externalTraderMaximumBalance
+  const externalTraderMaximumBalanceSetting = settings.externalTraderMaximumBalance !== undefined && settings.externalTraderMaximumBalance !== false
+    ? settings.externalTraderMaximumBalance
     : defaultSettings.externalTraderMaximumBalance
   const externalTraderMaximumBalance = toStringAmount(currency, externalTraderMaximumBalanceSetting + externalTraderInitialCreditSetting)
 
@@ -217,6 +218,28 @@ export class CurrencyControllerImpl implements CurrencyService {
     // (eg credit limit), so no heavy lifting is required.
 
     return this.model
+  }
+
+  async deleteCurrency(ctx: Context) {
+    await this.users.checkAdmin(ctx)
+
+    if (this.model.status === "active") {
+      await this.disableCurrency(ctx)
+    } else if (this.model.status !== "disabled") {
+      // Currencies should only be in "new" status while the ledger operations are
+      // being performed, so we should not allow deleting a currency in "new" status.
+      throw badRequest(`Can't delete currency with status ${this.model.status}`)
+    }
+
+    await this.db.currency.update({
+      data: {
+        status: "deleted"
+      },
+      where: {
+        id: this.model.id
+      }
+    })
+    this.model.status = "deleted"
   }
   /**
    * Implements {@link CurrencyPublicService.getCurrencySettings}

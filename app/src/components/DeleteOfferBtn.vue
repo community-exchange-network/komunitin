@@ -47,6 +47,6 @@ const deleteOffer = async () => {
     router.push(props.to)
   }
 }
-const name = computed(() => props.offer.attributes?.name)
+const name = computed(() => props.offer.attributes?.title)
 
 </script>

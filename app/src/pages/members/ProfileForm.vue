@@ -11,6 +11,8 @@
     <avatar-field
       v-model="image"
       :text="name"
+      :code="member.group.attributes.code"
+      resource-type="members"
     />
     <q-input
       v-model="name"
@@ -40,40 +42,36 @@
         <q-icon name="notes" />
       </template>
     </q-input>
-    <q-input
-      v-model="email"
-      type="text"
-      name="email"
-      :label="$t('email')"
-      :hint="$t('emailHint')"
-      outlined
-      required
-      disable
-    >
-      <template #append>
-        <q-icon name="email" />
-      </template>
-    </q-input>
-    <div 
-      v-if="changeCredentials"
-      class="row q-col-gutter-md"
-    >
-      <div class="col-12 col-sm-6">
-        <change-email-btn 
-          v-model="email"
-          :user="user"
-          :group="member.group"
-          class="full-width"
-        />
+    <template v-if="email !== undefined">
+      <q-input
+        :model-value="email"
+        type="text"
+        name="email"
+        :label="$t('email')"
+        :hint="$t('emailHint')"
+        outlined
+        required
+        disable
+      >
+        <template #append>
+          <q-icon name="email" />
+        </template>
+      </q-input>
+      <div
+        v-if="changeCredentials"
+        class="row q-col-gutter-md"
+      >
+        <div class="col-12 col-sm-6">
+          <change-email-btn
+            :model-value="email"
+            class="full-width"
+          />
+        </div>
+        <div class="col-12 col-sm-6">
+          <change-password-btn class="full-width" />
+        </div>
       </div>
-      <div class="col-12 col-sm-6">
-        <change-password-btn 
-          :user="user"
-          :group="member.group"
-          class="full-width"
-        />
-      </div>
-    </div>
+    </template>
   </div>
   <div class="q-pt-lg">
     <div class="text-overline text-uppercase text-onsurface-m text-bold q-my-sm">
@@ -136,27 +134,25 @@
 import AvatarField from "../../components/AvatarField.vue"
 import LocationPicker from "../../components/LocationPicker.vue"
 import CountryChooser from "../../components/CountryChooser.vue"
-import type {PartialContact} from "../../components/MemberContactsField.vue";
 import MemberContactsField from "../../components/MemberContactsField.vue"
-import ChangePasswordBtn from "./ChangePasswordBtn.vue"
 import ChangeEmailBtn from "./ChangeEmailBtn.vue"
+import ChangePasswordBtn from "./ChangePasswordBtn.vue"
 
 import { computed, ref, watch } from "vue";
 import { watchDebounced } from "@vueuse/shared"
+import type { DeepPartial } from 'quasar'
 
-import type { Member, User, Group } from '../../store/model';
+import type { Member, Group } from '../../store/model';
 
 const props = defineProps<{
   member: Member & {group: Group}
-  contacts: PartialContact[]
-  user: User
+  email?: string
   changeCredentials: boolean
+  debounce: number
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:member', value: Member): void
-  (e: 'update:contacts', value: PartialContact[]): void
-  (e: 'update:user', value: User): void
+  (e: 'update:member', value: DeepPartial<Member>): void
 }>()
 
 // Member attributes.
@@ -172,16 +168,12 @@ const region = ref(m.value.address?.addressRegion ?? "")
 const country = ref(m.value.address?.addressCountry ?? "")
 
 // Member contacts
-const contacts = ref(props.contacts)
+const contacts = ref(m.value.contacts)
 
-// User attributes.
-const email = ref(props.user.attributes.email)
-
+// Member attributes.
 watchDebounced([image, name, description, location, address, postalCode, city, region, country], () => {
   emit('update:member', {
-    ...props.member,
     attributes: {
-      ...props.member.attributes,
       image: image.value,
       name: name.value,
       description: description.value,
@@ -199,24 +191,14 @@ watchDebounced([image, name, description, location, address, postalCode, city, r
       }
     }
   })
-}, {debounce: 1000})
+}, { debounce: props.debounce })
 
 watch([contacts], () => {
-  emit('update:contacts', contacts.value)
-})
-
-// One of the contacts is the user email, but it is not automatically updated in 
-// the UI when we change the user email. We manually patch that here purely on the
-// UI side.
-watch(email, (email, oldEmail) => {
-  if (email !== oldEmail) {
-    contacts.value = contacts.value.map(c => {
-      if (c.attributes.type === "email" && c.attributes.name === oldEmail) {
-        return {...c, attributes: {...c.attributes, name: email}}
-      }
-      return c
-    })
-  }
+  emit('update:member', {
+    attributes: {
+      contacts: contacts.value
+    }
+  })
 })
 
 </script>

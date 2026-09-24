@@ -107,7 +107,7 @@ export type CurrencySettings = {
 
 export type UpdateCurrencySettings = AtLeast<CurrencySettings, "id">
 
-export type CurrencyStatus = "new" | "active" | "disabled"
+export type CurrencyStatus = "new" | "active" | "disabled" | "deleted"
 
 /**
  * Currency model
@@ -150,7 +150,7 @@ export interface Currency {
 export type CreateCurrency = Optional<
   Pick<Currency, "id" | "code" | "status" | "name" | "namePlural" | "symbol" | "decimals" | "scale" | "rate"  | "created" | "updated">, 
   "id" | "created" | "updated" > 
-  & { admins?: User[], settings: Partial<CurrencySettings> }
+  & { admins?: User[], settings?: Partial<CurrencySettings> }
 export type UpdateCurrency = Partial<CreateCurrency>
 
 export function currencyToRecord(currency: CreateCurrency): Prisma.CurrencyCreateInput

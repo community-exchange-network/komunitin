@@ -1,18 +1,18 @@
 import { z } from 'zod';
 
+export const APP_CLIENT_ID = 'komunitin-app';
+export const CLIENT_ID = 'komunitin-notifications';
+
 const envSchema = z.object({
   KOMUNITIN_AUTH_URL: z.string().url(),
   KOMUNITIN_SOCIAL_URL: z.string().url(),
   KOMUNITIN_SOCIAL_PUBLIC_URL: z.string().url(),
   KOMUNITIN_ACCOUNTING_URL: z.string().url(),
   KOMUNITIN_APP_URL: z.string().url(),
-  AUTH_JWT_ISSUER: z.string().default('https://komunitin.org'),
-  AUTH_JWT_AUDIENCE: z.string().default('komunitin-app,komunitin-notifications').transform((s) => s.split(',')),
-  AUTH_JWKS_URL: z.string().url().default('https://komunitin.org/.well-known/jwks.json'),
-  NOTIFICATIONS_CLIENT_ID: z.string().min(1),
+  AUTH_JWT_ISSUER: z.string().url().default('http://auth:2026'),
+  AUTH_JWT_AUDIENCE: z.string().min(1).default('urn:komunitin:api'),
+  AUTH_JWKS_URL: z.string().url().default('http://auth:2026/.well-known/jwks.json'),
   NOTIFICATIONS_CLIENT_SECRET: z.string().min(1),
-  NOTIFICATIONS_EVENTS_USERNAME: z.string().min(1).default('komunitin'),
-  NOTIFICATIONS_EVENTS_PASSWORD: z.string().min(1),
   REDIS_URL: z.string().url().default('redis://db-notifications:6379'),
   // If left empty, no email will be sent
   SMTP_HOST: z.string().optional(),
@@ -29,7 +29,7 @@ const envSchema = z.object({
 
   FLAVOR: z.string().default('komunitin'),
 
-  DEV_SAVE_NEWSLETTERS: z.coerce.boolean().optional().default(false),
+  DEV_SAVE_EMAILS: z.enum(['true', 'false']).default('false').transform(value => value === 'true'),
   PORT: z.coerce.number().int().positive().default(2023),
 });
 

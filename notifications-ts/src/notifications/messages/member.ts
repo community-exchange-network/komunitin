@@ -3,6 +3,8 @@ import { formatAmount, getTimeAgoParams } from "../../utils/format";
 import { EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMemberHasNoPostsEvent, EnrichedMembersJoinedDigestEvent } from "../enriched-events";
 import { excerptPost, extendPostDuration } from "./post";
 import { MessageContext, NotificationActions, NotificationMessage, NotificationMessageAction } from "./types";
+import { hasExpiration, isExpired } from "../../clients/komunitin/post";
+import { imageUrl } from "../../clients/komunitin/image";
 
 /**
  * Get member label with city if available
@@ -32,12 +34,8 @@ export const buildMemberHasExpiredPostsMessage = (
   event: EnrichedMemberHasExpiredPostsEvent,
   { t, locale }: MessageContext
 ): NotificationMessage | null => {
-  const expiredOffers = (event.expiredOffers || []).filter(
-    o => new Date(o.attributes.expires).getTime() <= Date.now()
-  );
-  const expiredNeeds = (event.expiredNeeds || []).filter(
-    n => new Date(n.attributes.expires).getTime() <= Date.now()
-  );
+  const expiredOffers = (event.expiredOffers || []).filter(hasExpiration).filter(isExpired);
+  const expiredNeeds = (event.expiredNeeds || []).filter(hasExpiration).filter(isExpired);
 
   const expiredPosts = [...expiredOffers, ...expiredNeeds];
   const totalCount = expiredPosts.length;
@@ -120,7 +118,7 @@ export const buildMemberHasExpiredPostsMessage = (
       range,
       countsSentence,
     }),
-    image: event.group.attributes.image,
+    image: imageUrl(event.group.attributes.image),
     route,
     actions,
     data
@@ -239,9 +237,9 @@ export const buildMembersJoinedDigestMessage = (
   }
   const body = bodyLines.join('\n');
 
-  const image = members.length === 1
+  const image = imageUrl(members.length === 1
     ? members[0].attributes.image || group.attributes.image
-    : group.attributes.image;
+    : group.attributes.image);
 
   return {
     title,
@@ -265,7 +263,7 @@ export const buildMemberJoinedMessage = (
   return {
     title: t('notifications.welcome_new_member_title', { groupName }),
     body: t('notifications.welcome_new_member_body', { name: memberName }),
-    image: event.group.attributes.image,
+    image: imageUrl(event.group.attributes.image),
     route: `/home`,
     actions: [
       {
@@ -295,7 +293,7 @@ export const buildMemberHasNoPostsMessage = (
     return {
       title: t('notifications.member_no_offers_title'),
       body: t('notifications.member_no_offers_body', { balance }),
-      image: event.group.attributes.image,
+      image: imageUrl(event.group.attributes.image),
       route: `/groups/${event.code}/members/${event.member.attributes.code}#offers`,
       data: {
         route2: `/groups/${event.code}/offers/new`,
@@ -310,7 +308,7 @@ export const buildMemberHasNoPostsMessage = (
     return {
       title: t('notifications.member_no_needs_title', { balance }),
       body: t('notifications.member_no_needs_body'),
-      image: event.group.attributes.image,
+      image: imageUrl(event.group.attributes.image),
       route: `/groups/${event.code}/members/${event.member.attributes.code}#needs`,
       data: {
         route2: `/groups/${event.code}/needs/new`,
@@ -323,4 +321,3 @@ export const buildMemberHasNoPostsMessage = (
   }
 };
   
-

@@ -11,6 +11,8 @@
       </div>
       <image-field
         v-model="images"
+        :code="code"
+        resource-type="offers"
         :label="$t('uploadImages')" 
         :hint="$t('uploadOfferImagesHint')"
       />
@@ -92,38 +94,42 @@ import DateField from "../../components/DateField.vue"
 import ImageField from "../../components/ImageField.vue"
 import SelectCategory from "../../components/SelectCategory.vue"
 import ToggleItem from "../../components/ToggleItem.vue"
-import type { Category, Offer, OfferState } from "@/store/model"
+import type { Category, Currency, ImageObject, Offer, OfferStatus } from "@/store/model"
 import { type DeepPartial, type QForm } from "quasar"
 import { useStore } from "vuex"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   code: string
+  currency?: Currency
   modelValue?: DeepPartial<Offer> & {category: Category}
+  defaultStatus?: OfferStatus
   showState?: boolean
   submitLabel?: string
   header?: string
   loading?: boolean
-}>()
+}>(), {
+  defaultStatus: "published"
+})
 const emit = defineEmits<{
   (e: "submit", value: DeepPartial<Offer>): void
 }>()
 
 const form = ref<InstanceType<typeof QForm>>()
 
-const images = ref<string[]>([])
+const images = ref<ImageObject[]>([])
 const title = ref("")
 const description = ref("")
 const category = ref<Category|null>(null)
 const price = ref("")
 const expiration = ref<Date>(new Date())
-const state = ref<OfferState>(props.modelValue?.attributes?.state || "published")
+const state = ref<OfferStatus>(props.modelValue?.attributes?.status ?? props.defaultStatus)
 
 watch([() => props.modelValue], async () => {
   images.value = props.modelValue?.attributes?.images || []
-  title.value = props.modelValue?.attributes?.name || ""
-  description.value = props.modelValue?.attributes?.content || ""
+  title.value = props.modelValue?.attributes?.title || ""
+  description.value = props.modelValue?.attributes?.description || ""
   category.value = props.modelValue?.category || null
-  price.value = props.modelValue?.attributes?.price || ""
+  price.value = props.modelValue?.attributes?.value || ""
   
   if (props.modelValue?.attributes?.expires) {
     expiration.value = new Date(props.modelValue.attributes.expires)
@@ -134,7 +140,7 @@ watch([() => props.modelValue], async () => {
     expiration.value = date
   }
   
-  state.value = props.modelValue?.attributes?.state || "published"
+  state.value = props.modelValue?.attributes?.status ?? props.defaultStatus
 
   // For some unknown reason the resetValidation needs to be called
   // after changes by this watcher are applied.
@@ -145,7 +151,7 @@ watch([() => props.modelValue], async () => {
 
 const store = useStore()
 
-const currency = computed(() => store.getters.myCurrency)
+const currency = computed(() => props.currency ?? store.getters.myCurrency)
 
 const memberId = computed(() => props.modelValue?.relationships?.member?.data.id || store.getters.myMember.id)
 
@@ -153,20 +159,17 @@ const onSubmit = async () => {
   const isFormCorrect = await form.value?.validate()
   if (isFormCorrect) {
     emit("submit", {
-      ...props.modelValue,
+      ...(props.modelValue?.id ? { id: props.modelValue.id } : {}),
       type: "offers",
       attributes: {
-        ...props.modelValue?.attributes,
-        name: title.value,
-        content: description.value,
+        title: title.value,
+        description: description.value,
         expires: expiration.value.toISOString(),
         images: images.value,
-        price: price.value,
-        state: state.value
+        value: price.value,
+        status: state.value
       },
       relationships: {
-        ...props.modelValue?.relationships,
-         
         category: { data: { type: "categories", id: category.value.id } },
         member: { data: { type: "members", id: memberId.value } }
       }

@@ -76,6 +76,7 @@ export const dispatchEvent = async (event: AnyNotificationEvent): Promise<void> 
 
     case EVENT_NAME.ValidationEmailRequested:
     case EVENT_NAME.PasswordResetRequested:
+    case EVENT_NAME.MemberDeletionRequested:
       return handleUserEvent(event as UserEvent);
 
     default:

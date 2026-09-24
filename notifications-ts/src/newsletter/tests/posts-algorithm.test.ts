@@ -9,16 +9,20 @@ import { SeededRandom } from '../../utils/seededRandom';
 // Helpers
 const createMember = (id: string, lat?: number, lon?: number): Member => ({
   id,
+  type: 'members',
   attributes: {
     location: (lat !== undefined && lon !== undefined) ? {
       type: 'Point',
       coordinates: [lon, lat]
-    } : undefined,
+    } : null,
     name: `Member ${id}`,
-    image: 'img',
+    image: { url: 'img' },
+    address: null,
     description: 'desc',
     code: `member-${id}`,
-    created: new Date().toISOString()    
+    status: 'active',
+    created: new Date().toISOString(),
+    updated: new Date().toISOString()
   },
   relationships: {
     account: { data: { type: 'accounts', id: `account-${id}` } },
@@ -30,13 +34,14 @@ const createMember = (id: string, lat?: number, lon?: number): Member => ({
 const createItem = (id: string, authorId: string, created: string, category?: string): Item => ({
   id,
   attributes: {
-    name: `Item ${id}`,
-    content: 'desc',
+    title: `Item ${id}`,
+    description: 'desc',
     created,
     updated: created,
     expires: '2099-01-01',
     images: [],
-    code: id
+    code: id,
+    status: 'published'
   },
   relationships: {
     member: { data: { id: authorId } },
@@ -291,7 +296,7 @@ describe('Feedback Algorithm', () => {
     const oldDate = new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString(); // 2 years ago
     
     const itemWithImages = createItem('withImages', 'm1', oldDate);
-    itemWithImages.attributes.images = ['image1.jpg'];
+    itemWithImages.attributes.images = [{ url: 'image1.jpg' }];
     
     const itemWithoutImages = createItem('withoutImages', 'm2', oldDate);
     itemWithoutImages.attributes.images = [];

@@ -1,16 +1,20 @@
 <template>
-  <div v-if="!isLoading">
+  <Error404
+    v-if="error?.code === KErrorCode.NotFound"
+    :to="`/groups/${code}/members`"
+  />
+  <div v-else-if="member">
     <page-header 
       :title="member.attributes.name"
-      :back="isComplete ? `/groups/${code}/members` : ''"
+      :back="isComplete ? `/groups/${code}/members` : '/'"
     >
       <template #buttons>
         <contact-button
-          v-if="!isMe && member.contacts"
+          v-if="!isMe && member.attributes.contacts"
           icon="message"
           round
           flat
-          :contacts="member.contacts"
+          :contacts="member.attributes.contacts"
         />
         <share-button
           icon="share"
@@ -48,6 +52,8 @@
           :member="member"
           :tab="hashTab"
           :transactions="!isMe"
+          :needs-count="needsCount"
+          :offers-count="offersCount"
           @tab-change="onTabChange"
         />
         <q-tab-panels
@@ -109,7 +115,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch } from "vue"
+import { computed } from "vue"
 import { useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 
@@ -124,6 +130,10 @@ import ShareButton from "../../components/ShareButton.vue";
 import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue";
 import TransactionItems from "../transactions/TransactionItems.vue";
 import FloatingBtn from "@/components/FloatingBtn.vue";
+import Error404 from "../Error404.vue";
+import { useResource } from "@/composables/useResources";
+import type { Member } from "@/store/model";
+import { KErrorCode } from "@/KError";
 
 
 const props = defineProps<{
@@ -136,20 +146,14 @@ const store = useStore()
 const myMember = computed(() => store.getters.myMember)
 const isComplete = computed(() => store.getters.isComplete)
 
-const fetched = ref(false)
-const isLoading = computed(() => !(fetched.value || member.value && member.value.contacts !== null && (!isComplete.value || member.value.account !== null)))
-
-const fetchData = async (memberCode: string) => {
-  await store.dispatch("members/load", {
-    code: memberCode,
-    group: props.code,
-    include: "contacts,offers,needs" + (isComplete.value ? ",account" : "")
-  });
-  fetched.value = true;
-}
-watch(() => props.memberCode, (code) => fetchData(code), {immediate: true})
-
-const member = computed(() => fetched.value ? store.getters['members/current'] : undefined)
+const memberOptions = computed(() => ({
+  code: props.memberCode,
+  group: props.code,
+  include: "group" + (isComplete.value ? ",account" : "")
+}))
+const { resource: member, error } = useResource<Member>('members', memberOptions)
+const needsCount = computed(() => member.value?.relationships.needs.meta.count ?? 0)
+const offersCount = computed(() => member.value?.relationships.offers.meta.count ?? 0)
 const isMe = computed(() => member.value && myMember.value && member.value.id == myMember.value.id)
 const canEdit = computed(() => isMe.value || store.getters.isAdmin || store.getters.isSuperadmin)
 const editProfileUrl = computed(() => isMe.value ? "/profile" : `/groups/${props.code}/admin/members/${props.memberCode}/profile`)

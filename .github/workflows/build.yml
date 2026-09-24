@@ -140,9 +140,116 @@ jobs:
         docker push komunitin/komunitin-accounting
         docker push komunitin/komunitin-db
 
+  build-social:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./social
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set environment and start dependent services
+      shell: bash
+      run: cp .env.test .env && docker compose up -d
+      
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - uses: actions/cache@v4
+      name: Setup pnpm cache
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+    - name: Install dependencies & typecheck
+      run: |
+        pnpm install
+        pnpm prisma generate
+        pnpm typecheck
+    
+    - name: Install database
+      run: pnpm prisma migrate deploy
+    - name: Run tests
+      run: pnpm test
+    - name: Build production image
+      run: docker build --tag komunitin/komunitin-social .
+    - name: Publish to Docker Hub
+      if: github.ref == 'refs/heads/master'
+      run: |
+        docker login -u komunitin -p ${{ secrets.DOCKER_PASS }}
+        docker push komunitin/komunitin-social
+
+  build-auth:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./auth
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set environment and start dependent services
+      shell: bash
+      run: cp .env.test .env && docker compose up -d
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - uses: actions/cache@v4
+      name: Setup pnpm cache
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies and typecheck
+      run: |
+        pnpm install
+        pnpm prisma generate
+        pnpm typecheck
+
+    - name: Install database
+      run: pnpm prisma migrate deploy
+
+    - name: Run tests
+      run: pnpm test
+
+    - name: Build production image
+      run: docker build --tag komunitin/komunitin-auth .
+
+    - name: Publish to Docker Hub
+      if: github.ref == 'refs/heads/master'
+      run: |
+        docker login -u komunitin -p ${{ secrets.DOCKER_PASS }}
+        docker push komunitin/komunitin-auth
   update-server:
     runs-on: ubuntu-latest
-    needs: [build-app, build-accounting, build-notifications-ts]
+    needs: [build-app, build-accounting, build-notifications-ts, build-social, build-auth]
     steps:
     - uses: actions/checkout@v4
 
@@ -159,27 +266,24 @@ jobs:
         ssh-keyscan -H direct.demo.komunitin.org >> ~/.ssh/known_hosts &&
         ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@direct.demo.komunitin.org 
         "cd /opt/demo.komunitin.org
-        && cd ices && git pull && cd ..
         && cd komunitin && git pull
         && docker compose down -v --remove-orphans
-        && ./start.sh --up --ices --demo --public"
+        && ./start.sh --up --reset --public"
     - name: Deploy preview.komunitin.org
       if: github.event_name == 'pull_request'
       run: > 
         ssh-keyscan -H direct.preview.komunitin.org >> ~/.ssh/known_hosts &&
         ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@direct.preview.komunitin.org
         "cd /opt/preview.komunitin.org
-        && cd ices && git pull && cd ..
         && cd komunitin && git fetch origin && git checkout origin/${{ github.head_ref }}
         && docker compose down -v --remove-orphans
-        && ./start.sh --up --ices --demo --public"
+        && ./start.sh --up --reset --public"
     - name: Deploy staging.komunitin.org
       if: github.ref == 'refs/heads/master'
       run: > 
         ssh-keyscan -H direct.staging.komunitin.org >> ~/.ssh/known_hosts &&
         ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@direct.staging.komunitin.org
         "cd /opt/staging.komunitin.org
-        && cd ices && git pull && cd ..
         && cd komunitin && git pull
         && ./start.sh --up --public"
     - name: Deploy ces2demo.community-exchange.org
@@ -188,7 +292,6 @@ jobs:
         ssh-keyscan -H demo2.community-exchange.org >> ~/.ssh/known_hosts &&
         ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@demo2.community-exchange.org 
         "cd /opt/ces2demo.community-exchange.org
-        && cd ices && git pull && cd ..
         && cd komunitin && git pull
         && docker compose down -v --remove-orphans
-        && ./start.sh --up --ices --demo --public"
+        && ./start.sh --up --reset --public"

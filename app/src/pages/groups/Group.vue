@@ -1,5 +1,9 @@
 <template>
-  <div>
+  <Error404
+    v-if="error?.code === KErrorCode.NotFound"
+    to="/groups"
+  />
+  <div v-else>
     <page-header
       :title="group ? group.attributes.name : ''"
       :back="own ? '' : '/groups'"
@@ -10,7 +14,7 @@
           icon="message"
           round
           flat
-          :contacts="group.contacts"
+          :contacts="group.attributes.contacts"
         />
         <share-button
           v-if="group"
@@ -74,10 +78,11 @@
         </div>
         <!-- sub-page navigation -->
         <nav
-          v-if="group"
+          v-if="group && own"
           class="row q-col-gutter-md q-py-md"
         >
-          <router-link :to="`/groups/${code}/members`" 
+          <router-link
+            :to="`/groups/${code}/members`"
             style="text-decoration: none; color: inherit; height: fit-content;"
             class="col-6"
           >
@@ -87,7 +92,8 @@
             />
           </router-link>
 
-          <router-link :to="`/groups/${code}/stats`" 
+          <router-link
+            :to="`/groups/${code}/stats`"
             style="text-decoration: none; color: inherit; height: fit-content;"
             class="col-6"
           >
@@ -107,11 +113,11 @@
           <div class="col-12 col-sm-6 col-lg-4 relative-position">
             <social-network-list
               type="contact"
-              :contacts="group.contacts"
+              :contacts="group.attributes.contacts"
             />
           </div>
           <floating-btn
-            v-if="!isLoggedIn"
+            v-if="!isLoggedIn || !myMember"
             :label="$t('signUp')"
             icon="add"
             color="primary"
@@ -127,7 +133,7 @@
 /**
  * Page for Group details.
  */
-import { computed, ref, watch, nextTick } from 'vue';
+import { computed, shallowRef, watch, nextTick, useTemplateRef } from 'vue';
 import { useStore } from 'vuex';
 
 import md2html from '../../plugins/Md2html';
@@ -140,31 +146,33 @@ import SocialNetworkList from '../../components/SocialNetworkList.vue';
 import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
 import NavCard from '../../components/NavCard.vue';
+import Error404 from '../Error404.vue';
 import GroupMembersMap from './GroupMembersMap.vue';
 
-import type { Group, Contact } from '../../store/model';
+import type { Group } from '../../store/model';
 import { useResource } from '@/composables/useResources';
 import { useI18n } from 'vue-i18n';
+import { KErrorCode } from '@/KError';
 
 const props = defineProps<{ code: string }>();
 
 const store = useStore();
 const { t } = useI18n();
 
-const isDescriptionOpen = ref(false);
-const descriptionRef = ref<HTMLElement | null>(null);
-const canToggleDescription = ref(false);
+const isDescriptionOpen = shallowRef(false);
+const descriptionRef = useTemplateRef<HTMLElement>('descriptionRef');
+const canToggleDescription = shallowRef(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
-const groupOptions = computed(() => ({ group: props.code, include: 'contacts' }));
-const { resource: group, loading } = useResource<Group & { contacts: Contact[] }>('groups', groupOptions);
-const own = computed(
-  () => group.value && store.getters['myMember'] && group.value.id == store.getters['myMember'].group.id
-);
+const myMember = computed(() => store.getters.myMember);
+const groupOptions = computed(() => ({ group: props.code }));
+const { resource: group, loading, error } = useResource<Group>('groups', groupOptions);
+const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id);
 const memberCount = computed(() => group.value?.relationships.members.meta.count)
 const membersLabel = computed(
   () => `${t('members')} ${isLoggedIn.value && memberCount.value ? `(${memberCount.value})` : ''}`
 );
+
 
 const toggleDescription = () => {
   isDescriptionOpen.value = !isDescriptionOpen.value;

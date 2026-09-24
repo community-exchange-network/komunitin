@@ -1,14 +1,13 @@
 import type { Store } from "vuex";
 import { createStore } from "vuex";
-import type { ResourcesState } from "./resources";
+import type { LoadListPayload, LoadPayload, ResourcesState } from "./resources";
 import { Resources } from "./resources";
 import { NotificationResources } from "./notifications";
 import { config } from "@/utils/config";
 import type {
   User,
-  UserSettings,
+  MemberUser,
   Group,
-  Contact,
   Offer,
   Need,
   Category,
@@ -28,6 +27,7 @@ import me from "./me";
 import type { UIState } from "./ui";
 import ui from "./ui";
 import createPersistPlugin from "./persist";
+export { storeReady } from "./persist";
 import KError, { KErrorCode } from "@/KError";
 import type { Topup, AccountTopupSettings, TopupSettings } from "../features/topup/model";
 
@@ -44,21 +44,41 @@ const groupSettings = new (class extends Resources<GroupSettings, unknown> {
   resourceEndpoint = (groupCode: string) => `/${groupCode}/settings`;
 })("group-settings", socialUrl)
 
-const contacts = new Resources<Contact, unknown>("contacts", socialUrl);
 const members = new Resources<Member, unknown>("members", socialUrl);
 
-const offers = new Resources<Offer, unknown>("offers", socialUrl);
-const needs = new Resources<Need, unknown>("needs", socialUrl);
+class PostResources<T extends Offer | Need> extends Resources<T, unknown> {
+  collectionEndpoint = (groupCode: string) => `/${groupCode}/posts`;
+  resourceEndpoint = (groupCode: string, id: string) => `/${groupCode}/posts/${id}`;
+
+  protected buildQuery(payload: LoadListPayload) {
+    return super.buildQuery({
+      ...payload,
+      filter: { ...payload.filter, type: this.type }
+    })
+  }
+
+  protected buildQueryKey(payload: LoadListPayload) {
+    return super.buildQueryKey({
+      ...payload,
+      filter: { ...payload.filter, type: this.type }
+    })
+  }
+
+  protected resourceUrl(payload: LoadPayload) {
+    const url = super.resourceUrl(payload)
+    return `${url}${url.includes("?") ? "&" : "?"}filter[type]=${this.type}`
+  }
+}
+
+const offers = new PostResources<Offer>("offers", socialUrl);
+const needs = new PostResources<Need>("needs", socialUrl);
 const categories = new Resources<Category, unknown>("categories", socialUrl);
 const users = new (class extends Resources<User, unknown> {
   collectionEndpoint = () => "/users";
   resourceEndpoint = (groupCode: string, id?: string) => id ? `/users/${id}` : "/users/me";
 })("users", socialUrl);
 
-const userSettings = new (class extends Resources<UserSettings, unknown> {
-  collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "User settings cannot be listed");};
-  resourceEndpoint = (groupCode: string, id: string) => `/users/${id}/settings`;
-})("user-settings", socialUrl);
+const memberUsers = new Resources<MemberUser, unknown>("member-users", socialUrl);
 
 // Build modules for Accounting API:
 const accountingUrl = config.ACCOUNTING_URL;
@@ -124,9 +144,8 @@ const modules = {
 
     // Social API resource modules.
     users,
-    "user-settings": userSettings,
+    "member-users": memberUsers,
     groups,
-    contacts,
     members,
     offers,
     needs,
@@ -171,7 +190,7 @@ if (import.meta.env.FEAT_TOPUP === 'true') {
 export default createStore({
   modules,
   // It is generally advisable to enable strict mode in development. That checks state is
-  // not mutated outside commit actions. However we're mutating nested records within 
+  // not mutated outside commit actions. However we're mutating nested records within
   // resource modules (eg we directly change the state outside of a commit when we delete
   // a resource), so we should address that before enabling strict mode.
   strict: false,
@@ -196,10 +215,9 @@ declare module 'vue' {
     me: UserState
     ui: UIState
     users: ResourcesState<User>
-    userSettings: ResourcesState<UserSettings>
+    memberUsers: ResourcesState<MemberUser>
     groups: ResourcesState<Group>
     groupSettings: ResourcesState<GroupSettings>
-    contacts: ResourcesState<Contact>
     members: ResourcesState<Member>
     offers: ResourcesState<Offer>
     needs: ResourcesState<Need>
@@ -250,14 +268,6 @@ export const parseResourceUrl = (url: string, type: string) : {baseUrl: string, 
         baseUrl: match[1],
         group: match[2],
         id: match[3]
-      }
-    }
-  } else if (type === "user-settings") {
-    const match = url.match(new RegExp(`^([.]*)/users/([^/]*)/settings$`))
-    if (match) {
-      return {
-        baseUrl: match[1],
-        id: match[2]
       }
     }
   } else if (type === "group") {

@@ -10,7 +10,7 @@
       <resource-cards
         :code="code"
         :type="['offers', 'needs']"
-        include="category,member,member.group,member.group.currency,member.account,member.contacts"
+        include="category,member,member.group,member.group.currency,member.account"
         sort="-updated"
         :query="query"
       />

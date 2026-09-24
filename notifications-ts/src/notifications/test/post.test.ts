@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
-import { createNeeds, createOffers, db } from '../../mocks/db'
+import { createPosts, db, getUserIdForMember } from '../../mocks/db'
 import '../../mocks/web-push'
 import { createEvent, setupNotificationsTest, verifyNotification } from './utils'
 
@@ -11,15 +11,9 @@ const { put, appNotifications } = setupNotificationsTest({
 })
 
 describe('Post notifications', () => {
-  const getUserIdForMember = (memberId: string) => {
-    return db.users.find(u => {
-      return u.relationships.members.data.some((r: any) => r.id === memberId)
-    })!.id
-  }
-
   const setupTestOffer = (atts: Record<string, any>) => {
     const groupId = 'GRP1'
-    createOffers(groupId)
+    createPosts('offers', groupId)
     const offer = db.offers[0]
     offer.attributes = { ...offer.attributes, ...atts }
     const memberId = offer.relationships.member.data.id
@@ -29,7 +23,7 @@ describe('Post notifications', () => {
 
   const setupTestNeed = (atts: Record<string, any>) => {
     const groupId = 'GRP1'
-    createNeeds(groupId)
+    createPosts('needs', groupId)
     const need = db.needs[0]
     need.attributes = { ...need.attributes, ...atts }
     const memberId = need.relationships.member.data.id

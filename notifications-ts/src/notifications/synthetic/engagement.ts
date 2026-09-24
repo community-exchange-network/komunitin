@@ -1,7 +1,8 @@
 import { type Queue } from 'bullmq';
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { Group } from '../../clients/komunitin/types';
-import { getCachedActiveGroups, getCachedCurrency, getCachedGroupMembersWithUsers } from '../../utils/cached-resources';
+import { AccountRecipient, Group } from '../../clients/komunitin/types';
+import { recipientsByMember } from '../../clients/komunitin/recipients';
+import { getCachedActiveGroups, getCachedCurrency } from '../../utils/cached-resources';
 import logger from '../../utils/logger';
 import { EVENT_NAME } from '../events';
 import { dispatchSyntheticEnrichedEvent, lastNotificationDateByUser } from './shared';
@@ -55,17 +56,23 @@ const canSendEngagementEvent = (userId: string, lastEngagement: Date | undefined
 
 
 const processEngagementEventsForGroup = async (client: KomunitinClient, group: Group): Promise<void> => {
-  const membersWithUsers = await getCachedGroupMembersWithUsers(client, group.attributes.code);
-  const currency = await getCachedCurrency(client, group.attributes.code);
+  const [relations, currency] = await Promise.all([
+    client.getMemberUsers(group.attributes.code, { memberStatus: 'active' }),
+    getCachedCurrency(client, group.attributes.code),
+  ]);
+  const members = [...new Map(
+    relations.map(({ member }) => [member.id, member]),
+  ).values()];
+  const recipientsByMemberId = recipientsByMember(relations);
 
   const lastEngagementNotificationMap = await lastNotificationDateByUser(group.attributes.code, EVENT_NAME.MemberHasNoPosts);
   const lastNotificationMap = await lastNotificationDateByUser(group.attributes.code);
 
-  for (const mwu of membersWithUsers) {
+  for (const member of members) {
     // For each member, check if we need to send the engagement event. Check first the conditions that do
     // not require fetching additional data from the API.
 
-    const { member, users } = mwu;
+    const recipients = recipientsByMemberId.get(member.id) ?? [];
 
     const needsCounter = member.relationships.needs.meta.count ?? 0
     const offersCounter = member.relationships.offers.meta.count ?? 0
@@ -75,10 +82,11 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
       continue;
     }
 
-    const candidates: Array<{ user: any; settings: any }> = [];
-    for (const { user, settings } of users) {
+    const candidates: AccountRecipient[] = [];
+    for (const recipient of recipients) {
+      const { user } = recipient;
       if (canSendEngagementEvent(user.id, lastEngagementNotificationMap.get(user.id), lastNotificationMap.get(user.id))) {
-        candidates.push({ user, settings });
+        candidates.push(recipient);
       }
     }
 
@@ -96,14 +104,8 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
       continue;
     }
 
-    // Cached data may be up to 24h old, re-fetch member to get latest needs/offers count 
-    // before sending engagement event
-    const updatedMember = await client.getMember(group.attributes.code, member.id);
-    const updatedNeedsCounter = updatedMember.relationships.needs.meta.count ?? 0
-    const updatedOffersCounter = updatedMember.relationships.offers.meta.count ?? 0
-
-    const sendNoOffers = balance <= 0 && updatedOffersCounter === 0;
-    const sendNoNeeds = balance > 0 && updatedNeedsCounter === 0;
+    const sendNoOffers = balance <= 0 && offersCounter === 0;
+    const sendNoNeeds = balance > 0 && needsCounter === 0;
 
     if (sendNoOffers || sendNoNeeds) {
       // Send engagement event
@@ -114,10 +116,10 @@ const processEngagementEventsForGroup = async (client: KomunitinClient, group: G
           balance,
           type: sendNoOffers ? 'offers' : 'needs'
         },
-        member: updatedMember,
+        member,
         group,
         currency, 
-        users: candidates,
+        recipients: candidates,
       })
     }
   }
@@ -150,4 +152,3 @@ export const initEngagementEvents = (queue: Queue) => {
     stop: async () => stopEngagementEventsCron(queue)
   };
 }
-
