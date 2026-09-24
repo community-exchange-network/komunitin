@@ -9,7 +9,7 @@
     @ready="onReady"
   >
     <l-tile-layer :url="url" />
-    <l-marker
+    <styled-marker
       v-if="markerLatLng"
       draggable
       :icon="markerIcon" 
@@ -40,8 +40,9 @@ import { useStore } from 'vuex'
 
 import type { LeafletMouseEvent, LocationEvent } from 'leaflet'
 import "leaflet/dist/leaflet.css";
-import { LMap, LMarker, LTileLayer } from '@vue-leaflet/vue-leaflet'
+import { LMap, LTileLayer } from '@vue-leaflet/vue-leaflet'
 import { fromLeafletLatLng, toLeafletLatLng, useLeafletSettings } from '../composables/leaflet'
+import StyledMarker from './StyledMarker.vue';
 
 
 

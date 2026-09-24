@@ -1,26 +1,39 @@
 <template>
   <div>
     <div
-      class="column q-col-gutter-md"
-      :style="$q.screen.gt.sm ? `height: ${parentHeight}px` : ''"
+      class="row q-col-gutter-md"
     >
-      <div class="col-auto item">
-        <slot name="member" />
+      <div class="col-md-6 col-12 column q-gutter-y-md">
+        <div>
+          <slot name="member" />
+        </div>
+        <div
+          v-if="numImages > 0"
+          class="item relative-position"
+        >
+          <slot name="images" />
+          <div 
+            class="q-ml-sm q-mb-sm absolute-bottom-left"
+          >
+            <slot name="category" />
+          </div>
+        </div>
+        <div 
+          v-if="numImages === 0"
+          class="">
+          <slot name="category" />
+        </div>
+        <div v-if="$q.screen.gt.sm">
+          <slot name="map" />
+        </div>
       </div>
-      <div
-        v-if="numImages > 0"
-        class="col-auto item"
-      >
-        <slot name="images" />
-      </div>
-      <div class="col-auto item sm-last">
-        <slot name="map" />
-      </div>
-      <div class="col-auto item">
-        <slot name="category" />
-      </div>
-      <div class="col-auto item content">
-        <slot name="content" />
+      <div class="col-md-6 col-12 column q-gutter-y-md">
+        <div class="content">
+          <slot name="content" />
+        </div>
+        <div v-if="!$q.screen.gt.sm">
+          <slot name="map" />
+        </div>
       </div>
     </div>
   </div>
@@ -34,41 +47,5 @@ export default defineComponent({
       required: true
     }
   },
-  computed: {
-    parentHeight(): number {
-      // This is the height (in pixels) of the member header.
-      let height = 64;
-      if (this.numImages > 0) {
-        // This is the height of the image (400) and its padding (16).
-        height += 416;
-        // This is the height of the thumbnails.
-        if (this.numImages > 1) {
-          height += 94 * Math.ceil(this.numImages / 4);
-        }
-      }
-      // This is the height of the map (200), its padding (16) and its label (21).
-      height += 237;
-      return height;
-    }
-  }
 })
 </script>
-<style lang="scss" scoped>
-/* 
-On large screens, make two columns layout and send the content to the last position,
-that ends being the first element of the second column.
-*/
-@media (min-width: $breakpoint-md-min){
-  .item {
-    width: 50%;
-  }
-  .content {
-    height: 0;
-  }
-}
-@media (max-width: $breakpoint-sm-max){
-  .sm-last {
-    order: 1000;
-  }
-}
-</style>

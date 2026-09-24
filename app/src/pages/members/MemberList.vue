@@ -6,21 +6,7 @@
       @search="query = $event"
     />
     <q-page-container>
-      <q-page>
-        <div 
-          class="text-overline text-uppercase text-onsurface-d q-pt-md q-px-md row justify-between"
-        >
-          <div>
-            {{ $t('account') }}
-          </div>
-          <div 
-            v-if="showBalances" 
-            class="text-right"
-          >
-            {{ $t('balance') }}
-          </div>
-        </div>
-          
+      <q-page class="q-pa-md">
         <resource-cards
           v-slot="slotProps"
           :code="code"
@@ -31,34 +17,46 @@
           <q-list
             v-if="slotProps.resources"
             padding
+            class="bg-surface shadow-2 rounded-borders"
           >
-            <member-header
+            <div class="row justify-between text-overline text-uppercase text-onsurface-d q-px-md q-pb-xs">
+              <div>
+                {{ $t('account') }}
+              </div>
+              <div
+                v-if="showBalances"
+                class="text-right"
+              >
+                {{ $t('balance') }}
+              </div>
+            </div>
+
+            <div
               v-for="member of slotProps.resources"
               :key="member.id"
-              :member="member"
-              :to="`/groups/${code}/members/${member.attributes.code}`"
             >
-              <template v-if="showBalances && member.account?.attributes?.balance" #side>
-                <div class="column items-end">
-                  <div
-                    v-if="member.account"
-                    class="col currency text-h6"
-                    :class="
-                      member.account.attributes.balance >= 0
-                        ? 'positive-amount'
-                        : 'negative-amount'
-                    "
-                  >
-                    {{
-                      FormatCurrency(
-                        member.account.attributes.balance,
-                        member.account.currency
-                      )
-                    }}
+              <q-separator />
+              <member-header
+                :member="member"
+                :to="`/groups/${code}/members/${member.attributes.code}`"
+              >
+                <template
+                  v-if="showBalances && member.account?.attributes?.balance"
+                  #side
+                >
+                  <div class="column items-end">
+                    <div
+                      v-if="member.account"
+                      class="col currency text-subtitle1 text-weight-bold"
+                      :class="member.account.attributes.balance >= 0 ? 'positive-amount' : 'negative-amount'"
+                    >
+                      {{ FormatCurrency(member.account.attributes.balance, member.account.currency) }}
+                    </div>
                   </div>
-                </div>
-              </template>
-            </member-header>
+                </template>
+                <q-separator />
+              </member-header>
+            </div>
           </q-list>
         </resource-cards>
       </q-page>
@@ -66,30 +64,27 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref } from 'vue';
 
-import FormatCurrency from "../../plugins/FormatCurrency";
-import PageHeader from "../../layouts/PageHeader.vue";
-import ResourceCards from "../ResourceCards.vue";
-import MemberHeader from "../../components/MemberHeader.vue";
-import { useStore } from "vuex";
+import FormatCurrency from '../../plugins/FormatCurrency';
+import PageHeader from '../../layouts/PageHeader.vue';
+import ResourceCards from '../ResourceCards.vue';
+import MemberHeader from '../../components/MemberHeader.vue';
+import { useStore } from 'vuex';
 import { useResource } from '@/composables/useResources';
-import type { Currency, CurrencySettings } from "../../store/model";
+import type { Currency, CurrencySettings } from '../../store/model';
 
 const props = defineProps<{
-  code: string
+  code: string;
 }>();
 
 const store = useStore();
 const options = computed(() => ({ group: props.code, include: 'settings' }));
-const { resource: currency } = useResource<Currency & {settings: CurrencySettings}>('currencies', options);
+const { resource: currency } = useResource<Currency & { settings: CurrencySettings }>('currencies', options);
 
-const showBalances = computed(() => 
-  currency.value?.settings?.attributes.defaultHideBalance !== true
-  || store.getters.isAdmin
+const showBalances = computed(
+  () => currency.value?.settings?.attributes.defaultHideBalance !== true || store.getters.isAdmin
 );
 
-const query = ref("");
-
-
+const query = ref('');
 </script>

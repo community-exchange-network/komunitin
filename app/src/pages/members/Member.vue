@@ -53,6 +53,7 @@
         <q-tab-panels
           :model-value="hashTab"  
           @update:model-value="onTabChange"
+          class="bg-light"
         >
           <q-tab-panel
             name="profile"
@@ -63,6 +64,7 @@
           <q-tab-panel
             name="needs"
             keep-alive
+            class="q-pa-none"
           >
             <member-needs
               :member="member"
@@ -79,6 +81,7 @@
           <q-tab-panel
             name="offers"
             keep-alive
+            class="q-pa-none"
           >
             <member-offers
               :member="member"
