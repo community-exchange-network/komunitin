@@ -33,6 +33,7 @@
           >
             <profile-form
               :change-credentials="false"
+              :debounce="0"
               :member="member"
               :email="myUser.attributes.email"
               @update:member="updateMember"

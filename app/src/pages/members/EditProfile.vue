@@ -14,6 +14,7 @@
         :member="member"
         :email="email"
         :change-credentials="isSelf"
+        :debounce="500"
         @update:member="saveMember"
       />
       <save-changes
