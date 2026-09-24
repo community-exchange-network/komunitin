@@ -1,7 +1,7 @@
 import { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
-import { QMenu, QTab } from "quasar";
+import { QMenu, QTab, QBadge } from "quasar";
 import NeedCard from "../../../src/components/NeedCard.vue";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import MemberList from "../../../src/pages/members/MemberList.vue";
@@ -45,9 +45,17 @@ describe("Member", () => {
     expect(text).toContain("Max $500");
     // Tabs
     expect(text).toContain("Profile");
-    expect(text).toContain("1 Want");
-    expect(text).toContain("3 Offers");
     expect(wrapper.findAllComponents(QTab).length).toBe(3);
+
+    const wantsTab = wrapper.findAllComponents(QTab).find((tab) => tab.text().includes('Wants'));
+    expect(wantsTab).toBeTruthy();
+    expect(wantsTab?.findComponent(QBadge).exists()).toBe(true);
+    expect(wantsTab?.findComponent(QBadge).text()).toBe('1');
+    const offersTab = wrapper.findAllComponents(QTab).find((tab) => tab.text().includes('Offers'));
+    expect(offersTab).toBeTruthy();
+    expect(offersTab?.findComponent(QBadge).exists()).toBe(true);
+    expect(offersTab?.findComponent(QBadge).text()).toBe('3');
+
     // Bio
     expect(text).toContain("Est placeat ex ut voluptas enim ex");
     // Contact
@@ -57,13 +65,11 @@ describe("Member", () => {
     expect(text).toContain("Borders");
     
     // Needs
-    const needsTab = wrapper.findAllComponents(QTab)[1];
-    await needsTab.trigger("click");
+    await wantsTab?.trigger("click");
     await waitFor(() => wrapper.findAllComponents(NeedCard).length, 1, "Should show 1 need");
     
     // Offers
-    const offersTab = wrapper.findAllComponents(QTab)[2];
-    await offersTab.trigger("click");
+    await offersTab?.trigger("click");
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 3, "Should show 3 offers");
   });
 
@@ -88,18 +94,25 @@ describe("Member", () => {
     expect(text).toContain("$208.42");
     expect(text).toContain("Voluptates totam quaerat eius aut odio adipisci");
     expect(text).toContain("@yahoo.com");
-    expect(text).toContain("No Wants");
-    expect(text).toContain("3 Offers");
 
     const tabs = wrapper.findAllComponents(QTab);
     expect(tabs.length).toBe(4);
 
     // Needs (empty)
-    await tabs[1].trigger("click");
+    const wantsTab = wrapper.findAllComponents(QTab).find((tab) => tab.text().includes('Wants'));
+    expect(wantsTab).toBeTruthy();
+    expect(wantsTab?.findComponent(QBadge).exists()).not.toBe(true);
+    
+    await wantsTab?.trigger("click");
     await waitFor(() => wrapper.text().includes("nothing here"), true, "Needs tab should show empty state");
-
+    
     //Offers
-    await tabs[2].trigger("click");
+    const offersTab = wrapper.findAllComponents(QTab).find((tab) => tab.text().includes('Offers'));
+    expect(offersTab).toBeTruthy();
+    expect(offersTab?.findComponent(QBadge).exists()).toBe(true);
+    expect(offersTab?.findComponent(QBadge).text()).toBe('3');
+    
+    await offersTab?.trigger("click");
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 3, "Should show 3 offers");
     const offers = wrapper.findAllComponents(OfferCard);
     const offer = offers[0];
