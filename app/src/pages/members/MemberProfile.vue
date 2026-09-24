@@ -2,12 +2,13 @@
   <div class="row text-onsurface q-col-gutter-md">
     <div class="col-md-8 col-12 column q-gutter-y-md">
       <!-- BIO -->
-      <div class="bg-surface rounded-borders shadow-2 q-pa-md">
-        <div v-if="member.attributes.description">
-          <!-- eslint-disable vue/no-v-html -->
-          <div v-html="md2html(member.attributes.description)" />
-          <!-- eslint-enable vue/no-v-html -->
-        </div>
+      <div
+        v-if="member.attributes.description"
+        class="bg-surface rounded-borders shadow-2 q-pa-md"
+      >
+        <!-- eslint-disable vue/no-v-html -->
+        <div v-html="md2html(member.attributes.description)" />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
       <!-- LOCATION -->
       <q-card v-if="$q.screen.gt.sm">
