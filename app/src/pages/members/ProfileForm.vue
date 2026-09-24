@@ -148,7 +148,7 @@ const props = defineProps<{
   member: Member & {group: Group}
   email?: string
   changeCredentials: boolean
-  debounce?: number
+  debounce: number
 }>()
 
 const emit = defineEmits<{
@@ -191,7 +191,7 @@ watchDebounced([image, name, description, location, address, postalCode, city, r
       }
     }
   })
-}, {debounce: () => props.debounce ?? 1000})
+}, { debounce: props.debounce })
 
 watch([contacts], () => {
   emit('update:member', {
