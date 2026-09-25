@@ -1,8 +1,8 @@
 # Community migration bundle format
 
-This document defines the input format for importing one community into Komunitin. The directory contains a tiny, self-balancing [example](example/) whose CSVs are also the header references. The offline parser lives in [social/src/features/migrations/bundle](../../social/src/features/migrations/bundle/); execution is not implemented yet.
+This document defines the input format for importing one community into Komunitin. The directory contains a tiny, self-balancing [example](example/) whose CSVs are also the header references. The offline parser lives in [social/src/features/migrations/bundle](../../social/src/features/migrations/bundle/); the [executor](../../social/src/features/migrations/README.md) currently supports only communities whose Accounting data is already migrated.
 
-The importer accepts either a directory or a ZIP whose root contains these case-sensitive filenames directly. Nested paths and unlisted files are invalid. A bundle has no manifest: all imported community and resource data belongs in the CSV files below.
+The offline parser accepts either a directory or a ZIP; the HTTP executor accepts only a ZIP whose root contains these case-sensitive filenames directly. Nested paths and unlisted files are invalid. A bundle has no manifest: all imported community and resource data belongs in the CSV files below.
 
 All bundles use the same columns and validation rules. [IntegralCES social migration](#integralces-social-migration) shows how the exporter uses this format.
 
@@ -33,17 +33,17 @@ Required files must be present even when they have only a header. Optional files
 - Image URLs are absolute `http` or `https` URLs of at most 2,048 characters with a hostname and no embedded credentials. Downloads are best-effort. Alt text, checksums and licence metadata are not part of the format.
 - Images have no separate keys, supplied or derived. The normalized plan carries the source URL, owning resource and zero-based position so an executor can associate each download with its destination. Reordering URLs only changes display order.
 - Enum and boolean values are case-sensitive. Booleans in ordinary CSV cells are `true` or `false`.
-- The destination `community.csv` code must not already exist; imports never overwrite or merge communities. The offline parser intentionally performs no service or database lookup. Upload staging checks existence read-only, and execution checks it again immediately before importing.
+- The executor can import an existing community: create missing records, reuse matching records, preserve existing values, and reject conflicting UUIDs or relationships for manual resolution. Re-upload a corrected bundle to retry. The offline parser intentionally performs no service or database lookup.
 
 ## Reconciliation
 
-Migration looks up the currency by the community code and accounts by member code within that currency. Existing records are reused and supplied fields are reconciled with them. If no record exists, migration creates it from the supplied fields and applicable defaults. Missing information needed for creation must be resolved before execution.
+The current executor requires Accounting to be migrated already. It looks up the currency by community code and accounts by member code within that currency, validates UUIDs and account owners, and links Social records to those existing resources. Missing required Accounting records fail the attempt. Accounting fields, balances, settings and transfers are not written or reconciled; supplied Accounting data is reported as ignored. The format also retains those fields for a future Accounting executor.
 
-`currency.id` and `account.id` are optional. When supplied, they must agree with the record found by code, or be preserved when creating a new record. Blank or omitted fields do not request that existing values be cleared. Supplying a field does not force creation of a new record.
+`currency.id` and `account.id` are optional. When supplied, they must agree with the record found by code, or the executor fails the attempt. The current executor never creates Accounting records. Blank or omitted fields do not request that existing values be cleared. Supplying a field does not force creation of a new record.
 
 Active, disabled, suspended and deleted members require an account. Draft and pending members have no account and must leave all `account.*` fields blank.
 
-The offline parser validates supplied values and relationships without querying the destination. Existence checks, creation requirements and reconciliation with existing balances and history happen during execution. Existing transfers must not be replayed or balances reset merely because records appear in a bundle.
+The offline parser validates supplied values and relationships without querying the destination. The current executor checks existence and identity relationships, but does not compare balances or history. Existing transfers are never replayed and balances are never reset.
 
 ### Exact amounts
 
@@ -63,7 +63,7 @@ id,code,name,status,description,access,adminUsers,currency.id,currency.adminUser
 - `description` may be empty. `access` is `public`, `group` or `private`. `createdAt` and `updatedAt` belong to the Social community; the corresponding `currency.*` timestamps belong to its currency. All `currency.*` fields and columns after `currency.updatedAt` are optional and use the denormalized shapes below.
 - `adminUsers` is required and non-empty. Each listed email must exist in `users.csv` and grants that user the Social community administrator role; a member relationship is not required. When supplied, `currency.adminUser` must be one email from that list and owns the currency.
 - `currency.settings.defaultAcceptPaymentsWhitelist` is a semicolon-delimited list of member/account codes. It maps to the currency default payment-acceptance whitelist; blank leaves an existing whitelist unchanged, or defaults to an empty list for a new record.
-- `status` is required and must be `pending`, `active` or `disabled`. Execution stages the community invisibly, then restores the supplied status only after every import phase succeeds.
+- `status` is required and must be `pending`, `active` or `disabled`. New communities retain the supplied status immediately. Partially imported data may be visible; downtime is acceptable and the migration is not atomic.
 
 ### `users.csv`
 
@@ -71,10 +71,10 @@ id,code,name,status,description,access,adminUsers,currency.id,currency.adminUser
 id,email,name,status,passwordHash,language,createdAt,updatedAt
 ```
 
-- `email` is required. `status` is `active` or `disabled`, matching Auth, or blank when unknown. `createdAt` and `updatedAt` may also be blank when unknown. Unknown values are retained as `null`; execution must resolve them explicitly before creating an Auth identity. `name` (at most 255 characters), `language` (at most 31 characters) and `passwordHash` are optional. These are global identities, so an email occurs once even when it belongs to several members. Name, language and timestamps populate the Social user projection; Auth owns credentials and has no `name` field.
+- `email` is required. `status` is `active` or `disabled`, matching Auth, or blank when unknown. `createdAt` and `updatedAt` may also be blank when unknown. Unknown values are retained as `null` in the plan. For new identities, execution defaults unknown status to `disabled` with a warning, missing creation time to update time or import time, and missing update time to creation time. `name` (at most 255 characters), `language` (at most 31 characters) and `passwordHash` are optional. These are global identities, so an email occurs once even when it belongs to several members. Name, language and timestamps populate the Social user projection; Auth owns credentials and has no `name` field.
 - Existing Auth users are reused by normalized email. Their status, passwords and existing global Social profiles are not overwritten by a community import. New Auth and Social users must share the supplied user UUID, or the same Auth-generated UUID when blank. A supplied UUID that conflicts with an existing user’s UUID must be rejected rather than silently replaced; execution must also reject destination ID collisions.
 - `passwordHash` accepts bcrypt (`$2a$` or `$2b$`, costs 04–31) and native Drupal 7 SHA-512 (`$S$`, 55 characters, encoded iteration counts 7–30). Copy the complete hash unchanged; do not hash the hash. Plaintext, malformed hashes and older Drupal formats (`$P$`, `$H$`, `U`-prefixed hashes) are rejected without echoing their contents in errors.
-- A blank `passwordHash` means a new identity has no usable password and must set one through Auth's password-reset flow. Auth currently verifies only bcrypt; accepting Drupal 7 hashes in the bundle preserves credentials for a later Auth upgrade and does not enable login with them yet. A hash does not establish email verification or account status. The example Alice hash is for the demonstration password `komunitin-example`; Bob has no imported password.
+- A blank `passwordHash` means a new identity has no usable password and must set one through Auth's password-reset flow. Auth verifies bcrypt and Drupal 7 hashes, upgrading Drupal hashes to bcrypt on successful login. The current migration policy marks newly imported email addresses verified; existing verification and status values are preserved. The example Alice hash is for the demonstration password `komunitin-example`; Bob has no imported password.
 
 ### `member-users.csv`
 
@@ -107,7 +107,7 @@ id,code,name,type,status,access,description,account.id,account.balance,account.c
 id,payer,payee,user,amount,description,createdAt,updatedAt
 ```
 
-Every row is imported as a committed historical transfer with no Stellar hash. Payer and payee must be distinct accounts in this bundle, and `user` identifies the initiator by email and must be present in `users.csv`. Current account or community administration is not used to re-authorize historical transfers. `description` may be empty. External accounts, opening-balance adjustments and partial histories are not supported.
+This format represents committed historical transfers with no Stellar hash. The current Social executor does not import transfers; it preserves existing Accounting history. Payer and payee must be distinct accounts in this bundle, and `user` identifies the initiator by email and must be present in `users.csv`. Current account or community administration is not used to re-authorize historical transfers. `description` may be empty. External accounts, opening-balance adjustments and partial histories are not supported.
 
 ### `categories.csv`
 
@@ -147,13 +147,13 @@ Structured properties use predefined scalar columns with readable dotted names. 
 
 When balances are supplied for every account, the parser starts at zero, adds each incoming transfer and subtracts each outgoing transfer. The result must equal each declared `account.balance`, and their total must be zero. A complete bundle that omits history or needs opening-balance adjustments is invalid.
 
-When balances are omitted, execution must reconcile the bundle with existing balances and history before making changes. The offline parser cannot establish those remote facts or decide which records need creation.
+When balances are omitted, the current Social executor leaves balances and history unchanged. A future Accounting executor must reconcile them before writing Accounting data. The offline parser cannot establish those remote facts.
 
 In the example, Alice pays Bob `5.00`, producing balances of `-5.00` and `5.00`. The account totals are zero.
 
 ## IntegralCES social migration
 
-The [ICES exporter](ices/) exports Auth/Social data for a community whose currency and accounts already exist in Accounting. It produces an ordinary bundle using the reconciliation rules above:
+The [ICES exporter](../cli/migration/ices/) exports Auth/Social data for a community whose currency and accounts already exist in Accounting. It produces an ordinary bundle using the reconciliation rules above:
 
 - `community.csv` contains the social data, original `id` and `status`, and `currency.id` when available. The currency can also be found by code. Other `currency.*` fields are omitted.
 - `members.csv` contains the social data and original member IDs. Active, disabled, suspended and deleted members retain `account.id` when available and can otherwise be matched by code. Draft and pending members leave it blank. Other `account.*` fields are omitted.
