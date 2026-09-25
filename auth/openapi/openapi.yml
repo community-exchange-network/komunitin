@@ -12,7 +12,58 @@ tags:
   - name: Password
   - name: Email
   - name: OAuth2
+  - name: Migrations
 paths:
+  /migrations/users:
+    post:
+      tags: [Migrations]
+      operationId: importMigrationUsers
+      summary: Import users.csv from Social using service credentials
+      description: >-
+        Requires a komunitin-social client-credentials bearer token. Accepts the
+        migration users.csv columns (id,email,name,status,passwordHash,language,createdAt,updatedAt).
+        Email is required; other columns may be omitted. Up to 100 MiB and 100000 users.
+        Existing identities are reused by normalized email without changing any fields;
+        supplied UUID conflicts are rejected. New identities retain supported bcrypt or
+        Drupal hashes unchanged and have verified email. Missing status defaults to disabled
+        with a warning, and a blank hash requires password reset. Missing timestamps default
+        to the supplied counterpart or import time. Inserts before a conflict are retained;
+        callers can explicitly retry the CSV. No notifications are emitted.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          text/csv:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Canonical identity mapping and warnings. Credentials are never returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users, warnings]
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, email, created]
+                      properties:
+                        id: { type: string, format: uuid }
+                        email: { type: string, format: email }
+                        created: { type: boolean }
+                  warnings:
+                    type: array
+                    items: { type: string }
+        '400':
+          description: Invalid CSV, fields or duplicate identity keys.
+        '401':
+          description: Missing or invalid Social service credential.
+        '409':
+          description: Conflicting destination identity; resolve manually and retry.
   /health:
     get:
       tags: [Health]

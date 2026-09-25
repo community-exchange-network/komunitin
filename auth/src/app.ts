@@ -8,6 +8,7 @@ import emailRoutes from './routes/email'
 import actionTokenRoutes from './routes/action-token'
 import registerRoutes from './routes/register'
 import healthRoutes from './routes/health'
+import migrationRoutes from './features/migrations/routes'
 import { oidcProviderMiddleware, startJwksRotationJob } from './oidc/provider-runtime'
 import logger from './utils/logger'
 import { config } from './config'
@@ -35,6 +36,7 @@ app.use(httpLogger)
 
 app.use(healthRoutes)
 
+app.use(migrationRoutes)
 app.use(registerRoutes)
 app.use(passwordRoutes)
 app.use(emailRoutes)
