@@ -235,3 +235,31 @@ model Post {
   @@index([tenantId, updated])
   @@index([location], type: Gist, map: "Post_location_gix")
 }
+
+// Cross-tenant operational records, exposed only to superadmins. One record per upload attempt.
+model Migration {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String?  @db.VarChar(31)
+  status      String   @default("running") @db.VarChar(31)
+  requestedBy String   @db.Uuid
+  data        Json     @default("{}")
+  created     DateTime @default(now())
+  updated     DateTime @updatedAt
+  finished    DateTime?
+  events      MigrationEvent[]
+
+  @@index([code, status])
+}
+
+model MigrationEvent {
+  id          Int      @id @default(autoincrement())
+  migrationId String   @db.Uuid
+  migration   Migration @relation(fields: [migrationId], references: [id])
+  created     DateTime @default(now())
+  level       String   @db.VarChar(31)
+  step        String   @db.VarChar(31)
+  message     String   @db.Text
+  data        Json     @default("{}")
+
+  @@index([migrationId, id])
+}

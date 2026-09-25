@@ -127,7 +127,7 @@ const requestNotificationsToken = async (): Promise<CacheValue<string>> => {
 /**
  * Get a service token to call the accounting service on behalf of the social service.
  */
-const getSocialServiceToken = async (forceRefresh = false): Promise<string> => {
+export const getSocialServiceToken = async (forceRefresh = false): Promise<string> => {
   return getCachedToken(
     serviceTokenCache,
     CLIENT_ID,

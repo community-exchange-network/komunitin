@@ -4,7 +4,7 @@ import { setupServer } from 'msw/node'
 import { handlers, resetMockState } from './handlers'
 import { installS3Mock, resetS3MockState } from './s3'
 
-const server = setupServer(...handlers)
+export const server = setupServer(...handlers)
 
 type SetupTestServerResult = {
   app: Express

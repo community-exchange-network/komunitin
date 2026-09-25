@@ -449,7 +449,7 @@ const communityRowSchema = (scale: number | null, hasCurrencyData: boolean) => c
 }))
 
 // Drupal 7 SHA-512 hashes encode an iteration count from 7 to 30.
-// These are preserved for migration; Auth currently verifies only bcrypt.
+// Auth verifies imported Drupal hashes and upgrades them to bcrypt on login.
 const bcryptHash = /^\$2[ab]\$(?:0[4-9]|[12][0-9]|3[01])\$[./A-Za-z0-9]{53}$/
 const drupalHash = /^\$S\$[5-9A-S][./A-Za-z0-9]{51}$/
 const passwordHash = field<string | null>((value) => value === ''
