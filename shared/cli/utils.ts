@@ -34,11 +34,13 @@ export const requiredEnv = (name: string) => {
   return value.replace(/^"|"$/g, '')
 }
 
-export const publicApiUrl = (name: string) => {
-  const url = new URL(requiredEnv(name))
+export const apiUrl = (value: string) => {
+  const url = new URL(value)
   if (process.env.KOMUNITIN_CLI_DOCKER === 'true' && url.hostname === 'localhost') url.hostname = 'host.docker.internal'
   return url.toString()
 }
+
+export const publicApiUrl = (name: string) => apiUrl(requiredEnv(name))
 
 export const parseMailbox = (value: string, source = 'ADMIN_EMAIL') => {
   const address = value.trim()
@@ -65,13 +67,16 @@ export const responseError = async (response: Response) => {
     ?? `${response.status} ${response.statusText}`
 }
 
-export const requestJson = async <T>(description: string, url: URL, init: RequestInit = {}) => {
+export const request = async (description: string, url: URL, init: RequestInit = {}) => {
   const response = await fetch(url, init)
   if (!response.ok) {
     throw new Error(`${description}: ${await responseError(response)}`)
   }
-  return await response.json() as T
+  return response
 }
+
+export const requestJson = async <T>(description: string, url: URL, init: RequestInit = {}) =>
+  await (await request(description, url, init)).json() as T
 
 export const tokenRequest = (authUrl: string, body: Record<string, string>) => requestJson<TokenResponse>(
   'Could not obtain access token',

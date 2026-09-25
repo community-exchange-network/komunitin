@@ -3,6 +3,7 @@ import { bearerJsonRequest, parseCredentialArgs, publicApiUrl, requestJson, user
 type CurrencyDocument = {
   data: {
     id: string
+    links: { self: string }
   }
 }
 
@@ -50,7 +51,7 @@ export const trustCurrency = async (args: string[]) => {
                 id: trusted.data.id,
                 meta: {
                   external: true,
-                  href: trustedUrl.toString(),
+                  href: trusted.data.links.self,
                 },
               },
             },

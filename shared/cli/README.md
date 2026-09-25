@@ -6,6 +6,7 @@ The shared TypeScript CLI contains administrative commands that coordinate Komun
 ./shared/cli/komunitin admin migrate ./community.zip
 ./shared/cli/komunitin admin bundle ices --url https://ices.example.org --code ABCD --output ABCD.zip
 ./shared/cli/komunitin admin bootstrap
+./shared/cli/komunitin accounting migrate-ices NET1 https://ices.example.org
 ./shared/cli/komunitin accounting trust NET1 NET2 100
 ./shared/cli/komunitin accounting create-credit-commons-node NET1 https://credit-commons.example.org
 ```
@@ -18,11 +19,13 @@ The shared TypeScript CLI contains administrative commands that coordinate Komun
 
 `admin bootstrap [--password <password>]` creates and verifies the configured superadmin in Auth, then provisions the corresponding Social user. It reads `ADMIN_EMAIL`, optionally reads `ADMIN_PASSWORD`, and uses `KOMUNITIN_NOTIFICATIONS_SECRET` to verify a newly registered user.
 
+`accounting migrate-ices <currency-code> <ices-url> [--email <email>] [--password <password>]` runs the legacy accounting migration and waits up to five minutes for completion. Destination credentials default to `ADMIN_EMAIL`/`ADMIN_PASSWORD` and require the new Auth superadmin scope. Source credentials come from `ICES_ADMIN_EMAIL`/`ICES_ADMIN_PASSWORD` in the root `.env`; the source URL must be reachable by both the CLI and Accounting. Failed or timed-out migrations exit unsuccessfully. Run this before generating and applying the Social bundle.
+
 `accounting trust <currency-code> <trusted-code> <amount>` creates a trustline. The amount is expressed in currency units and may have up to six decimal places.
 
 `accounting create-credit-commons-node <currency-code> <node-url>` finds the administrator's account for the currency through Social and uses it as the Credit Commons `vostro` account.
 
-Both accounting commands accept `--email` and `--password`. They default to `ADMIN_EMAIL` and `ADMIN_PASSWORD` and request only the OAuth scopes needed by the command.
+The trustline and Credit Commons commands accept `--email` and `--password`. They default to `ADMIN_EMAIL` and `ADMIN_PASSWORD` and request only the OAuth scopes needed by the command.
 
 ## Environment
 
@@ -35,7 +38,7 @@ Docker-backed commands load the root `.env` file. Bundle generation loads it whe
 
 URLs containing `localhost` are translated to `host.docker.internal` so the containerized CLI can reach services running on the host. The CLI never prints credentials or tokens.
 
-The obsolete IntegralCES shell migration is not part of this CLI.
+`start.sh --demo` uses `compose.demo.yml` and the CLI Docker image to migrate the temporary IntegralCES demo. The image includes bundle exporter dependencies and reaches the source database over the private Compose network.
 
 ## Development
 
