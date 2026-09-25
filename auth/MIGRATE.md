@@ -487,25 +487,19 @@ legacy_drupal_user_id -> komunitin_user_uuid
 
 ### Password migration strategy
 
-This repo currently only supports bcrypt password hashes in auth.
+Import Drupal password hashes directly into auth's existing `passwordHash` field.
+Auth selects verification by the stored prefix: bcrypt or Drupal 7 `$S$`
+(SHA-512). Older Drupal / phpass hash formats are not supported.
 
-The migration must choose one of these two strategies:
+On successful password authentication, auth replaces a Drupal hash with bcrypt
+using the current cost of 10. Incorrect passwords, disabled accounts, and
+unverified accounts leave the stored hash unchanged. Existing legacy passwords
+can migrate even if they are shorter than the minimum for newly set passwords.
+The update only replaces the hash that was verified, preserving concurrent
+password resets. No separate legacy field or schema migration is needed.
 
-#### Option 1. Temporary legacy password verification
-
-Preferred for user experience.
-
-- auth accepts imported Drupal password hashes temporarily
-- on first successful login, auth rehashes to bcrypt and removes the legacy hash
-- after the migration window, remove legacy-hash support
-
-#### Option 2. Force password reset
-
-Simpler to implement, higher user-friction.
-
-- import users without usable passwords
-- mark them for password reset
-- send reset emails after cutover
+After the migration window, legacy-hash support can be removed once remaining
+users have reset their passwords.
 
 Do not attempt to migrate legacy access tokens or refresh tokens. They belong to the old issuer and should not survive the cutover.
 
@@ -574,5 +568,4 @@ The target state is:
 
 These need explicit decisions before the migration can be considered complete:
 
-- Will passwords be migrated with temporary legacy-hash verification or forced reset?
 - What is the final scope matrix for read/write/admin operations in accounting and social?
