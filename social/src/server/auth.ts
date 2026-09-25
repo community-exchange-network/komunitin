@@ -41,7 +41,7 @@ export const userAuth = (scope: SocialScope | typeof Scope.Superadmin) => {
   }
 }
 
-export const optionalUserAuth = () => {
+export const optionalUserAuth = (scope: SocialScope = Scope.SocialRead) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authorization = req.headers.authorization
     if (typeof authorization !== 'string' || !authorization.toLowerCase().startsWith('bearer ')) {
@@ -49,7 +49,7 @@ export const optionalUserAuth = () => {
       return
     }
 
-    handleAuthRequest(Scope.SocialRead, req, res, next)
+    handleAuthRequest(scope, req, res, next)
   }
 }
 

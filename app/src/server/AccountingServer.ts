@@ -3,7 +3,7 @@
 import type { Server, ModelInstance} from "miragejs";
 import { Model, Factory, Response, belongsTo, hasMany, Collection } from "miragejs";
 import faker from "faker";
-import { config } from "src/utils/config";
+import { config } from "@/utils/config";
 import ApiSerializer from "./ApiSerializer";
 import { filter, sort, search } from "./ServerUtils";
 import { inflections } from "inflected"
@@ -411,24 +411,32 @@ export default {
         const body = JSON.parse(request.requestBody)
         const data = body.data;
 
-        const dbResource = (resource: any) => ({
-          id: resource.id, 
-          type: resource.type, 
-          ...resource.attributes,
-          payer: schema.accounts.find(resource.relationships.payer.data.id),
-          payee: schema.accounts.find(resource.relationships.payee.data.id),
-        })
+        const transfer = (resource: any) => {
+          const payer = schema.accounts.find(resource.relationships.payer.data.id)
+          const payee = schema.accounts.find(resource.relationships.payee.data.id)
+          if (resource.attributes.state === 'committed') {
+            payer.update({ balance: payer.balance - resource.attributes.amount })
+            payee.update({ balance: payee.balance + resource.attributes.amount })
+          }
+          return {
+            id: resource.id,
+            type: resource.type,
+            ...resource.attributes,
+            payer,
+            payee,
+          }
+        }
 
         let created
         if (Array.isArray(data)) {
           created = data.map((resource: any) => 
-            schema.transfers.create(dbResource(resource))
+            schema.transfers.create(transfer(resource))
           )
           // eslint-disable-next-line
           // @ts-ignore
           created = new Collection("transfer", created)
         } else {
-          created = schema.transfers.create(dbResource(data))
+          created = schema.transfers.create(transfer(data))
         }
         
         return new Response(201, undefined, created)

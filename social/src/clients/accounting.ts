@@ -2,7 +2,7 @@ import { config } from '../config'
 import type { AuthContext } from '../server/context'
 import { Scope } from '../server/scopes'
 import { internalError } from '../utils/error'
-import { exchangeAccountingToken } from './auth'
+import { exchangeAccountingToken, getSocialServiceToken } from './auth'
 import { fetchWithAuth } from './utils'
 
 type JsonApiError = {
@@ -88,14 +88,14 @@ const toResource = (data: JsonApiResource | JsonApiResource[] | undefined) => {
 const userMap = (ids: string[]) => ids.map((id) => ({ type: 'users', id }))
 
 class AccountingClient {
-  constructor(readonly ctx: AuthContext) {}
+  constructor(readonly ctx?: AuthContext) {}
 
   private async request(
     path: string,
     init: RequestInit,
     options: RequestOptions = {},
   ): Promise<JsonApiDoc | undefined> {
-    const scope = this.ctx.isSuperadmin
+    const scope = this.ctx?.isSuperadmin
       ? Scope.Superadmin
       : !init.method || init.method === 'GET'
         ? Scope.AccountingRead
@@ -110,7 +110,9 @@ class AccountingClient {
           ...init.headers,
         },
       },
-      (forceRefresh) => exchangeAccountingToken(this.ctx.token, scope, forceRefresh),
+      (forceRefresh) => this.ctx
+        ? exchangeAccountingToken(this.ctx.token, scope, forceRefresh)
+        : getSocialServiceToken(forceRefresh, scope),
     )
 
     if (options.allowNotFound && response.status === 404) {
@@ -271,6 +273,6 @@ class AccountingClient {
   }
 }
 
-export const createAccountingClient = (ctx: AuthContext) => {
+export const createAccountingClient = (ctx?: AuthContext) => {
   return new AccountingClient(ctx)
 }

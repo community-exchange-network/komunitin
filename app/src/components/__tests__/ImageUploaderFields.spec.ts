@@ -4,13 +4,13 @@ import { defineComponent, shallowRef } from "vue"
 import Avatar from "../Avatar.vue"
 import AvatarField from "../AvatarField.vue"
 import ImageField from "../ImageField.vue"
-import { useImageUploader } from "src/composables/uploader"
-import { seeds } from "src/server"
+import { useImageUploader } from "@/composables/uploader"
+import { seeds } from "@/server"
 import {
   getMockFileUploadAttempts,
   resetMockFileUploads,
   setMockFileUploadLimit
-} from "src/server/FilesServer"
+} from "@/server/FilesServer"
 import { mountComponent, waitFor } from "../../../test/vitest/utils"
 import { createMockImageFile, mockImageUploadProcessing } from "../../../test/vitest/utils/mockImageUpload"
 

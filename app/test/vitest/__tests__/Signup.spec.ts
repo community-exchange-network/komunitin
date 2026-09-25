@@ -2,32 +2,33 @@ import { afterEach, vi } from 'vitest';
 import { flushPromises } from "@vue/test-utils";
 import type { VueWrapper } from "@vue/test-utils";
 import type * as Quasar from "quasar";
-import { seeds } from "src/server";
+import server, { seeds } from "@/server";
 import { mountComponent, waitFor } from "../utils";
 import App from "../../../src/App.vue";
 import Avatar from "../../../src/components/Avatar.vue";
 import AvatarField from "../../../src/components/AvatarField.vue";
 import GroupCard from "../../../src/components/GroupCard.vue";
-import { QBtn, QDialog, QInput, QItem, QSelect } from "quasar";
-import CountryChooser from "src/components/CountryChooser.vue";
-import LocationPicker from "src/components/LocationPicker.vue";
-import EditGroupForm from "src/pages/admin/EditGroupForm.vue";
-import Error404 from "src/pages/Error404.vue";
-import MemberProfile from "src/pages/members/MemberProfile.vue";
-import { config } from "src/utils/config";
-import { Auth, type SignupContext } from "src/plugins/Auth";
-import type { Group } from "src/store/model";
+import { QBtn, QDialog, QFabAction, QInput, QItem, QSelect } from "quasar";
+import CreateTransactionBtn from "@/components/CreateTransactionBtn.vue";
+import CountryChooser from "@/components/CountryChooser.vue";
+import LocationPicker from "@/components/LocationPicker.vue";
+import EditGroupForm from "@/pages/admin/EditGroupForm.vue";
+import Error404 from "@/pages/Error404.vue";
+import MemberProfile from "@/pages/members/MemberProfile.vue";
+import { config } from "@/utils/config";
+import { Auth, type SignupContext } from "@/plugins/Auth";
+import type { Group } from "@/store/model";
 import {
   failNextMockGroupPatch,
   failNextMockMemberCreate,
   failNextMockMemberCreateResponse,
   getMockMemberCreateCount
-} from "src/server/SocialServer";
+} from "@/server/SocialServer";
 import {
   getMockFileUploadAttempts,
   resetMockFileUploads,
   setMockFileUploadLimit
-} from "src/server/FilesServer";
+} from "@/server/FilesServer";
 import { createMockImageFile, mockImageUploadProcessing } from "../utils/mockImageUpload";
 
 // Mock quasar.scroll used in Signup.vue and SignupMember.vue to scroll to top on step change.
@@ -274,6 +275,8 @@ describe("Signup", () => {
     // Save profile
     const fetchSpy = vi.spyOn(globalThis, "fetch")
     try {
+      // An explicit save must include edits made immediately before clicking.
+      await wrapper.get("[name='description']").setValue("Profile updated just before saving.")
       await wrapper.get("button[type='submit']").trigger("click");
       await waitFor(() => wrapper.text().includes("What do you offer?"), true, "Offer creation form should show");
       const profilePatch = fetchSpy.mock.calls.find(([url, options]) =>
@@ -285,6 +288,7 @@ describe("Signup", () => {
       expect(Object.keys(profilePatchBody.data)).toEqual(["id", "type", "attributes"])
       expect(profilePatchBody.data.id).toBe(draftMemberId)
       expect(profilePatchBody.data.type).toBe("members")
+      expect(profilePatchBody.data.attributes.description).toBe("Profile updated just before saving.")
       expect(Object.keys(profilePatchBody.data.attributes)).toEqual([
         "name",
         "description",
@@ -331,12 +335,43 @@ describe("Signup", () => {
       true,
       "Pending approval banner should show"
     )
-    await wrapper.vm.$router.push("/groups")
-    await waitFor(() => wrapper.vm.$route.path, "/groups")
   }, 100000)
+
+  it("enables transfers after approval and reloading the cached session", async () => {
+    // Pending members have no wallet menu or transfer actions yet.
+    expect(wrapper.text()).toContain("Your account is pending approval.")
+    expect(wrapper.find("#menu-transactions").exists()).toBe(false)
+    expect(wrapper.findComponent(CreateTransactionBtn).exists()).toBe(false)
+
+    // Simulate approval and account provisioning in another administrator's session.
+    const member = server.schema.find("member", draftMemberId)
+    const account = server.create("account")
+    account.update({
+      code: wrapper.vm.$store.getters.myMember.attributes.code,
+      currency: server.schema.find("currency", wrapper.vm.$store.getters.myCurrency.id)
+    })
+    server.create("accountSettings").update({ account })
+    member.update({ status: "active", account })
+
+    // Remount with the cached session to simulate reloading the app.
+    wrapper.unmount()
+    wrapper = await mountComponent(App, { login: "cached" })
+    await waitFor(() => wrapper.find("#menu-transactions").exists(), true, "Approval should restore the wallet menu")
+    expect(wrapper.text()).not.toContain("Your account is pending approval.")
+
+    await wrapper.get("#menu-transactions").trigger("click")
+    await waitFor(() => wrapper.findComponent(CreateTransactionBtn).exists(), true)
+    const controls = wrapper.getComponent(CreateTransactionBtn)
+    await waitFor(() => controls.find(".q-fab").exists(), true)
+    await controls.get(".q-fab").trigger("click")
+    const send = controls.findAllComponents(QFabAction).find(action => action.props("label") === "Send")
+    expect(send).toBeDefined()
+    expect(send.props("disable")).toBe(false)
+  })
 
   it("registers an administrator and requests a first group", async () => {
     resetMockFileUploads()
+    await wrapper.vm.$router.push("/groups")
     await wrapper.vm.$store.dispatch("logout");
     await wrapper.vm.$router.push("/signup-group");
     await waitFor(() => wrapper.find("[name='name']").exists(), true, "Group administrator signup should load");

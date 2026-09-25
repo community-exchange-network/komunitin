@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 // Workbox
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
-import { registerRoute } from 'workbox-routing'
+import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { CacheFirst } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { ExpirationPlugin } from 'workbox-expiration'
@@ -9,12 +9,12 @@ import { clientsClaim } from 'workbox-core'
 import { Queue } from 'workbox-background-sync'
 // Komunitin
 import { getConfig, setConfig } from "./sw-config"
-import { getActionRoute, type PushPayload } from '../src/utils/push-notifications'
+import { getActionRoute, type PushPayload } from '@/utils/push-notifications'
 
 declare const self: ServiceWorkerGlobalScope
 
 // This version will be replaced by DefinePlugin at build time
-const SW_VERSION = process.env.APP_VERSION
+const SW_VERSION = import.meta.env.APP_VERSION
 
 const requestQueue = new Queue('request-queue', {
   maxRetentionTime: 48 * 60, // Retry for max of 48 hours (in minutes)
@@ -23,7 +23,7 @@ const requestQueue = new Queue('request-queue', {
 // Keep track of clicked notifications to avoid double telemetry on notificationclose
 const clickedNotifications = new Set<string>()
 
-// Add a listener for messages from the client (register-service-worker.ts).
+// Add a listener for messages from the client (register-sw.ts).
 self.addEventListener('message', (event: MessageEvent) => {
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: SW_VERSION })
@@ -34,7 +34,7 @@ self.addEventListener('message', (event: MessageEvent) => {
   }
   if (event.data && event.data.type === 'SET_CONFIG') {
     setConfig(event.data.config)
-    if (process.env.DEV) {
+    if (import.meta.env.QUASAR_DEV) {
       console.log("Service worker config set:", event.data.config)
     }
   }
@@ -46,6 +46,14 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 clientsClaim()
 cleanupOutdatedCaches()
+
+// Dev serves HTML on demand and has no precached application shell.
+if (!import.meta.env.QUASAR_DEV) {
+  // Controlled visits start from cache; first visits receive the generated HTML.
+  registerRoute(new NavigationRoute(
+    createHandlerBoundToURL(import.meta.env.QUASAR_PWA_FALLBACK_HTML)
+  ))
+}
 
 // JS and CSS and assets should be already precached so we don't need to do any
 // runtime caching.

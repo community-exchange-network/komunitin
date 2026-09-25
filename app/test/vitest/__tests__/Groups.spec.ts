@@ -5,7 +5,7 @@ import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../uti
 import { QInnerLoading, QCard } from "quasar";
 import SimpleMap from '../../../src/components/SimpleMap.vue';
 import GroupCard from "../../../src/components/GroupCard.vue";
-import { seeds } from "../../../src/server";
+import server, { seeds } from "../../../src/server";
 
 // See also Offers.spec.ts
 describe("Groups", () => {
@@ -14,6 +14,7 @@ describe("Groups", () => {
   beforeAll(async () => {
     wrapper = await mountComponent(App);
     seeds();
+    server.schema.db.groups.update({ code: "GRP6" }, { location: null });
   });
   afterAll(() => wrapper.unmount());
 
@@ -68,6 +69,18 @@ describe("Groups", () => {
     group.attributes.contacts.forEach((contact: { value: string }) => {
       expect(text).toContain(requireText(contact.value, "Group contact"));
     });
+  });
+
+  it("Renders a group without a location", async () => {
+    await wrapper.vm.$router.push("/groups/GRP6");
+    await waitFor(() => wrapper.text().includes("Group 6"), true, "Group should load");
+    await waitFor(() => wrapper.getComponent(QInnerLoading).props("showing"), false);
+
+    const map = wrapper.getComponent(SimpleMap);
+    expect(map.props("center")).toBeUndefined();
+    expect(map.props("marker")).toBeUndefined();
+    expect(wrapper.findAllComponents({ name: "LMarker" })).toHaveLength(0);
+    expect(wrapper.text()).not.toContain("Unknown user interface error");
   });
 
   it("Renders group members only for the user's group", async () => {

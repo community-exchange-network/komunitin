@@ -61,7 +61,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import PageHeader from '../../layouts/PageHeader.vue';
-import { config } from 'src/utils/config'
+import { config } from '@/utils/config'
 import KError, { checkFetchResponse } from '../../KError';
 
 const { t } = useI18n();

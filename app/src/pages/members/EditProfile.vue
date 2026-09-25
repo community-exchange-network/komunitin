@@ -14,6 +14,7 @@
         :member="member"
         :email="email"
         :change-credentials="isSelf"
+        :debounce="500"
         @update:member="saveMember"
       />
       <save-changes
@@ -32,7 +33,7 @@ import { computed, ref } from "vue"
 import type { DeepPartial } from "quasar"
 
 import type { Member } from "../../store/model"
-import { useEditableMember, useEditableMemberUser } from "src/composables/editableMember"
+import { useEditableMember, useEditableMemberUser } from "@/composables/editableMember"
 
 const props = defineProps<{
   code?: string,

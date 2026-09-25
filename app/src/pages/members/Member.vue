@@ -129,11 +129,11 @@ import MemberProfile from "./MemberProfile.vue";
 import ShareButton from "../../components/ShareButton.vue";
 import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue";
 import TransactionItems from "../transactions/TransactionItems.vue";
-import FloatingBtn from "src/components/FloatingBtn.vue";
+import FloatingBtn from "@/components/FloatingBtn.vue";
 import Error404 from "../Error404.vue";
-import { useResource } from "src/composables/useResources";
-import type { Member } from "src/store/model";
-import { KErrorCode } from "src/KError";
+import { useResource } from "@/composables/useResources";
+import type { Member } from "@/store/model";
+import { KErrorCode } from "@/KError";
 
 
 const props = defineProps<{

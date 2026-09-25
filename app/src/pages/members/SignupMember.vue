@@ -33,6 +33,7 @@
           >
             <profile-form
               :change-credentials="false"
+              :debounce="0"
               :member="member"
               :email="myUser.attributes.email"
               @update:member="updateMember"
@@ -104,7 +105,7 @@ import OfferForm from "../offers/OfferForm.vue"
 import { computed, ref, shallowRef, watch } from "vue"
 import { useRouter } from "vue-router"
 import { useStore } from "vuex"
-import type { Group, GroupSettings, Member, Offer, User } from "src/store/model"
+import type { Group, GroupSettings, Member, Offer, User } from "@/store/model"
 import type { DeepPartial } from "quasar"
 import { scroll } from "quasar"
 import { useI18n } from "vue-i18n"

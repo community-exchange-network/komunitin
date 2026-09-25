@@ -18,7 +18,7 @@
 <script lang="ts" setup>
 import FloatingBtnMenu, { type FABAction } from './FloatingBtnMenu.vue'
 import FloatingBtn from './FloatingBtn.vue'
-import { useMyAccountSettings } from 'src/composables/accountSettings'
+import { useMyAccountSettings } from '@/composables/accountSettings'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
@@ -76,7 +76,7 @@ const coreActions = computed<FABAction[]>(() => {
 
 let actions = coreActions
 
-if (process.env.FEAT_TOPUP === 'true') {
+if (import.meta.env.FEAT_TOPUP === 'true') {
   const topupSettings = useTopupSettings()
   actions = computed(() => topupSettings.value?.allowTopup
     ? [...coreActions.value, createAction(t('topup'), 'add', 'topup')]

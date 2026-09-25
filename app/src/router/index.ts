@@ -1,7 +1,7 @@
 import type { Router } from 'vue-router';
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
 import routes from "./routes";
-import store from 'src/store';
+import store from '@/store';
 /*
  * If not building with SSR mode, you can
  * directly export the Router instantiation;
@@ -12,9 +12,9 @@ import store from 'src/store';
  */
 
 export default function( ): Router {
-  const createHistory = process.env.SERVER
+  const createHistory = import.meta.env.QUASAR_SERVER
     ? createMemoryHistory
-    : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
+    : import.meta.env.QUASAR_VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
 
   const router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
@@ -23,7 +23,7 @@ export default function( ): Router {
     // Leave these as they are and change in quasar.conf.js instead!
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
-    history: createHistory(process.env.VUE_ROUTER_BASE)
+    history: createHistory(import.meta.env.QUASAR_VUE_ROUTER_BASE)
   });
 
 

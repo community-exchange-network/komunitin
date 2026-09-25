@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useStore } from 'vuex';
-import { config } from 'src/utils/config';
+import { config } from '@/utils/config';
 
 import Avatar from "./Avatar.vue";
 import MenuItem from '../components/MenuItem.vue';
@@ -107,7 +107,7 @@ const store = useStore();
 
 const myMember = computed(() => store.getters.myMember);
 const groupCode = computed(() => myMember.value?.group?.attributes.code ?? '');
-const account = computed(() => myMember?.value.account.attributes.code || '')
+const account = computed(() => myMember.value?.account?.attributes.code ?? '')
 
 const feedbackURL = config.FEEDBACK_URL;
 

@@ -1,7 +1,7 @@
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { config } from "src/utils/config";
-import server, { seeds } from "src/server";
+import { config } from "@/utils/config";
+import server, { seeds } from "@/server";
 import { mountComponent, waitFor } from "../utils";
 
 async function actionToken(purpose: string, userId = "action-user") {

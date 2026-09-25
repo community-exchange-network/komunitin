@@ -12,8 +12,8 @@ describe.skip('Crypto', () => {
   it('Concurrent test', async () => {
     const a1 = Keypair.random()
     const a2 = Keypair.random()
-    await friendbot(config.STELLAR_FRIENDBOT_URL, a1.publicKey())
-    await friendbot(config.STELLAR_FRIENDBOT_URL, a2.publicKey())
+    await friendbot(config.STELLAR_FRIENDBOT_URL, config.STELLAR_HORIZON_URL, a1.publicKey())
+    await friendbot(config.STELLAR_FRIENDBOT_URL, config.STELLAR_HORIZON_URL, a2.publicKey())
 
     const ledger = await createStellarLedger({
       server: config.STELLAR_HORIZON_URL,

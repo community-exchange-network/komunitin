@@ -101,6 +101,9 @@ export type EnrichedMemberHasNoPostsEvent = NotificationEvent & {
 
 export type EnrichedUserEvent = UserEvent & {
   token: string;
+  data: { email: string };
+  // Populated for member deletion requests.
+  member?: Member;
   // Some user events may not be associated to any group (eg email validation when creating a new group).
   group?: Group;
 };

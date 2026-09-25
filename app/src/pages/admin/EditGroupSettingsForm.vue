@@ -244,18 +244,18 @@
 </template>
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import ToggleItem from 'src/components/ToggleItem.vue';
-import ToggleBtnItem from 'src/components/ToggleBtnItem.vue';
-import InputUpdate from 'src/components/InputUpdate.vue';
-import AmountInput from 'src/components/AmountInput.vue';
+import ToggleItem from '@/components/ToggleItem.vue';
+import ToggleBtnItem from '@/components/ToggleBtnItem.vue';
+import InputUpdate from '@/components/InputUpdate.vue';
+import AmountInput from '@/components/AmountInput.vue';
 import TrustlinesField from './TrustlinesField.vue';
 import CategoriesField from './CategoriesField.vue';
-import AccountSettingsFields from 'src/pages/settings/AccountSettingsFields.vue';
+import AccountSettingsFields from '@/pages/settings/AccountSettingsFields.vue';
 import GroupStatusField from './GroupStatusField.vue';
-import type { Group, GroupSettings, Currency, CurrencySettings, Trustline, Category, AccountSettings } from 'src/store/model';
+import type { Group, GroupSettings, Currency, CurrencySettings, Trustline, Category, AccountSettings } from '@/store/model';
 import { watchDebounced } from '@vueuse/shared';
 import type { DeepPartial } from 'quasar';
-import { accountSettingsToCurrencySettingsAttributes, currencySettingsToAccountSettingsAttributes } from 'src/composables/accountSettings';
+import { accountSettingsToCurrencySettingsAttributes, currencySettingsToAccountSettingsAttributes } from '@/composables/accountSettings';
 
 
 const props = defineProps<{
@@ -406,7 +406,7 @@ watch(externalTraderMaximumBalance, (value) => {
   })
 })
 const externalTraderMaximumBalanceLoading = computed(() => lastCurrencySettingsUpdate.value === "externalTraderMaximumBalance" && props.updatingCurrencySettings)
-const featTopup = process.env.FEAT_TOPUP === 'true'
+const featTopup = import.meta.env.FEAT_TOPUP === 'true'
 
 </script>
 <style lang="scss" scoped>

@@ -1,5 +1,6 @@
 <template>
   <delete-btn
+    v-model="confirmDialog"
     outline
     icon="delete"
     :round="false"
@@ -9,7 +10,7 @@
     @confirm="deleteMember"
   >
     <template #default>
-      <div 
+      <div
         class="q-gutter-y-md"
       >
         <member-header
@@ -27,36 +28,33 @@
           :code="props.member.group.attributes.code"
           :label="$t('moveBalanceTo')"
           :hint="$t('moveBalanceToHint')"
-          :account-disabled="(account: Account) => account.id === props.member.account?.id"
+          :account-disabled="(candidate: Account) => candidate.id === account?.id"
           :rules="[() => !!recipientAccount || $t('fieldRequired')]"
           outlined
         />
-        <password-field
-          v-if="!isAdmin"
-          v-model="password"
-          :label="$t('password')"
-          :hint="$t('oldPasswordHint')"
-          :rules="[() => !!password || $t('fieldRequired')]"
-        />
+        <div v-if="!isAdmin">
+          {{ $t('deleteAccountEmailText') }}
+        </div>
       </div>
     </template>
   </delete-btn>
 </template>
 <script setup lang="ts">
-import DeleteBtn from "src/components/DeleteBtn.vue"
-import SelectAccount from "src/components/SelectAccount.vue";
-import MemberHeader from "src/components/MemberHeader.vue";
-import PasswordField from "src/components/PasswordField.vue";
+import DeleteBtn from "@/components/DeleteBtn.vue"
+import { useApiFetch } from "@/composables/useApiFetch"
+import { useResource } from "@/composables/useResources"
+import { config } from "@/utils/config"
+import SelectAccount from "@/components/SelectAccount.vue";
+import MemberHeader from "@/components/MemberHeader.vue";
 
 import { computed, ref } from "vue"
 import { useStore } from "vuex"
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 
-import type { Account, Currency, Group, Member } from "src/store/model";
-import { transferAccountRelationships } from "src/composables/fullAccount";
-import type { DeletePayload } from "src/store/resources";
-import { useRouter } from "vue-router";
+import type { Account, Currency, Group, Member } from "@/store/model";
+import { transferAccountRelationships } from "@/composables/fullAccount";
+import type { DeletePayload } from "@/store/resources";
 
 
 const props = defineProps<{
@@ -68,75 +66,79 @@ const emit = defineEmits<{
 }>()
 
 const store = useStore()
-const isAdmin = computed(() => store.getters.isAdmin)
-
-const password = ref("")
+const apiFetch = useApiFetch()
+const isAdmin = computed(() => store.getters.isAdmin || store.getters.isSuperadmin)
+const isOwn = computed(() => props.member.id === store.getters.myMember?.id)
 const recipientAccount = ref<Account>()
+const confirmDialog = ref(false)
 
-const hasAccount = computed(() => props.member.relationships.account.data !== null)
-const balance = computed(() => props.member.account?.attributes.balance ?? 0)
-
+// Reload only when the account identity changes, not when the member object is replaced.
+const accountId = computed(() => props.member.relationships.account.data?.id ?? null)
+const groupCode = computed(() => props.member.group.attributes.code)
+const { resource: account, load: loadAccount } = useResource<Account & {currency: Currency}>("accounts", () => ({
+  id: accountId.value,
+  group: groupCode.value,
+  include: "currency",
+}))
+const hasAccount = computed(() => accountId.value !== null)
+const balance = computed(() => account.value?.attributes.balance ?? 0)
 const zeroBalance = computed(() => balance.value === 0)
-const canDelete = computed(() => isAdmin.value || !hasAccount.value || balance.value >= 0)
+
+const canDelete = computed(() =>
+  (isAdmin.value || isOwn.value) &&
+  (!hasAccount.value || !!account.value && (isAdmin.value || balance.value >= 0))
+)
 
 const quasar = useQuasar()
 const { t } = useI18n()
 
-const router = useRouter()
-
+// Both flows settle the balance using the user's normal Accounting permissions.
 const deleteMember = async () => {
-  if (!zeroBalance.value && !recipientAccount.value || !isAdmin.value && !password.value) {
-    return
-  }
   try {
     quasar.loading.show()
-    // 1. Move balance
-    if (props.member.account && !zeroBalance.value) {
-      const currency = props.member.account.currency
-      const balance = props.member.account.attributes.balance
-      const payment = balance >= 0
-      const payer = payment ? props.member.account : recipientAccount.value
-      const payee = payment ? recipientAccount.value : props.member.account
-    
-      const resource = {
-        type: "transfers",
-        attributes: {
-          amount: Math.abs(balance),
-          state: "committed",
-          meta: {
-            description: t('setZeroBalance')
-          }
+    // A previous attempt may have transferred the balance but failed to request deletion.
+    await loadAccount()
+
+    if (canDelete.value && account.value && recipientAccount.value && !zeroBalance.value) {
+      const payer = balance.value > 0 ? account.value : recipientAccount.value
+      const payee = balance.value > 0 ? recipientAccount.value : account.value
+      await store.dispatch('transfers/create', {
+        group: account.value.currency.attributes.code,
+        resource: {
+          type: 'transfers',
+          attributes: {
+            amount: Math.abs(balance.value),
+            state: 'committed',
+            meta: { description: t('setZeroBalance') },
+          },
+          relationships: transferAccountRelationships(payer, payee, account.value.currency),
         },
-        relationships: transferAccountRelationships(payer, payee, currency)
-      }
-      await store.dispatch("transfers/create", {
-        group: props.member.group.attributes.code,
-        resource
       })
+      await loadAccount()
     }
 
-    // 2. Re-login. At this point this is just a UI measure to prevent the user from
-    //    accidentally deleting the account. However, using the same workflow we could
-    //    convert it to a safety measure by requiring an additional scope for the 
-    //    delete action.
-    if (!isAdmin.value) {
-      const email = store.getters.myUser.attributes.email
-      await store.dispatch("login", {email, password: password.value})
-    }
-
-    // 3. Delete member
-    await store.dispatch("members/delete", {
-      group: props.member.group.attributes.code,
-      id: props.member.id
-    } as DeletePayload)
-
-    // 4. Logout (definitely)
-    if (!isAdmin.value) {
-      await router.push("/logout")
+    if (canDelete.value && zeroBalance.value) {
+      const member = props.member
+      if (!isAdmin.value) {
+        await apiFetch(`${config.SOCIAL_URL}/${encodeURIComponent(member.group.attributes.code)}/members/${member.id}/request-deletion`, {
+          method: 'POST',
+        })
+        quasar.notify({ message: t('resetLinkSent'), color: 'positive', icon: 'mail' })
+      } else {
+        const adminOwnMember = isOwn.value
+        await store.dispatch('members/delete', {
+          group: member.group.attributes.code,
+          id: member.id,
+        } as DeletePayload)
+        if (adminOwnMember) {
+          await store.dispatch('logout')
+        }
+        emit('delete')
+      }
     } else {
-      emit("delete")
+      // A changed balance or missing recipient needs another confirmation.
+      confirmDialog.value = true
     }
-
   } finally {
     quasar.loading.hide()
   }

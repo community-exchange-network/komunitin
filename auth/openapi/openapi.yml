@@ -349,6 +349,8 @@ paths:
         email tokens expire after 24 hours and replace an earlier pending token
         of the same purpose. Unsubscribe tokens expire after one year and do
         not replace earlier unsubscribe tokens.
+        Membership deletion tokens also expire after 24 hours and replace
+        pending deletion tokens. They bind the globally unique member ID.
       operationId: postActionToken
       security:
         - bearerAuth: []
@@ -380,11 +382,15 @@ paths:
   /redeem-action-token:
     post:
       tags: [Email]
-      summary: Resolve an unsubscribe action token
+      summary: Resolve an unsubscribe or membership deletion action token
       description: |
         Internal endpoint for the Social service. Valid unsubscribe tokens are
         replayable until expiry so the preference mutation can be retried
         safely. This endpoint never creates an OAuth session.
+        Deletion tokens are also replayable until expiry or replacement so
+        deletion and cleanup can be retried. Social must check the returned
+        member ID in data against the requested membership and
+        verify ownership. Deletion tokens remain valid after an email change.
       operationId: postRedeemActionToken
       security:
         - bearerAuth: []
@@ -396,7 +402,7 @@ paths:
               $ref: '#/components/schemas/RedeemActionTokenPayload'
       responses:
         '200':
-          description: Resolved unsubscribe action.
+          description: Resolved action and its stored context.
           content:
             application/json:
               schema:
@@ -413,6 +419,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JsonApiErrors'
+  /users/{id}:
+    delete:
+      tags: [Registration]
+      summary: Delete an identity after its last membership is removed
+      description: |
+        Internal endpoint restricted to the Social client-credentials principal.
+        Social must authorize membership deletion and verify that the identity has
+        no remaining memberships. Deletes credentials and action tokens and revokes
+        persisted OAuth sessions. Existing access JWTs expire normally.
+        Repeating the request for an absent identity succeeds.
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Identity is absent and its persisted sessions are revoked.
+        '400':
+          description: Invalid identity UUID.
+        '401':
+          description: Missing or invalid Social client-credentials token.
 components:
   securitySchemes:
     bearerAuth:
@@ -529,6 +562,18 @@ components:
     ActionTokenPayload:
       oneOf:
         - type: object
+          required: [userId, purpose, memberId]
+          properties:
+            userId:
+              type: string
+              format: uuid
+            purpose:
+              type: string
+              enum: [memberDeletion]
+            memberId:
+              type: string
+              format: uuid
+        - type: object
           required: [userId, purpose]
           properties:
             userId:
@@ -586,10 +631,10 @@ components:
           type: string
         purpose:
           type: string
-          enum: [unsubscribe]
+          enum: [unsubscribe, memberDeletion]
     RedeemedActionToken:
       type: object
-      required: [userId, email, purpose]
+      required: [userId, email, purpose, data]
       properties:
         userId:
           type: string
@@ -599,7 +644,13 @@ components:
           format: email
         purpose:
           type: string
-          enum: [unsubscribe]
+          enum: [unsubscribe, memberDeletion]
+        data:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          description: Stored action context; member UUID for memberDeletion, null for unsubscribe.
     JsonApiErrors:
       type: object
       required: [errors]

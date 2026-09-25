@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Registry} from "miragejs";
 import { Server } from "miragejs";
-import { config } from "src/utils/config";
+import { config } from "@/utils/config";
 
 import SocialServer from "./SocialServer";
 import AuthServer from "./AuthServer";

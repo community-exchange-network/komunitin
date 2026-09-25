@@ -1,7 +1,7 @@
 
 import type { MaybeRefOrGetter} from "@vueuse/shared";
 import { toValue } from "@vueuse/shared"
-import type { Account, AccountSettings, Currency, CurrencySettings } from "src/store/model"
+import type { Account, AccountSettings, Currency, CurrencySettings } from "@/store/model"
 import { computed } from "vue"
 import { useStore } from "vuex"
 
@@ -64,9 +64,9 @@ export const useEffectiveSettings = (accountSettings: MaybeRefOrGetter<AccountSe
   })  
 }
 export type AccountWithSettingsAndCurrencySettings = Account & { settings: AccountSettings, currency: Currency & {settings: CurrencySettings}}
-export const useAccountSettings = (account: MaybeRefOrGetter<AccountWithSettingsAndCurrencySettings >) => {
-  const accountSettings = computed(() => toValue(account).settings)
-  const currencySettings = computed(() => toValue(account).currency.settings)
+export const useAccountSettings = (account: MaybeRefOrGetter<AccountWithSettingsAndCurrencySettings | undefined>) => {
+  const accountSettings = computed(() => toValue(account)?.settings)
+  const currencySettings = computed(() => toValue(account)?.currency?.settings)
   return useEffectiveSettings(accountSettings, currencySettings)
 }
 
