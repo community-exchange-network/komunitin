@@ -37,6 +37,7 @@ export const serveIces = async (t: TestContext) => {
     currency: relation('currencies', 2) as { data: ReturnType<typeof ref> | null }, settings: relation('group-settings', 10),
     admins: { data: [ref('users', 200)] }, contacts: { data: [] },
   })
+  const groups = [group]
   const states = ['draft', 'pending', 'active', 'disabled', 'suspended', 'deleted']
   const contacts = states.map((_, index) => resource('contacts', 400 + index, {
     type: 'email', name: `member${index}@example.org`, ...dates,
@@ -79,8 +80,9 @@ export const serveIces = async (t: TestContext) => {
       body = override.body
     } else if (url.pathname === '/drupal/oauth2/token') {
       body = { access_token: 'fixture-token', expires_in: 3600 }
-    } else if (url.pathname === '/drupal/ces/api/social/ICES') {
-      body = { data: group, included: [groupSettings, users[0], userSettings[0]] }
+    } else if (groups.some((group) => url.pathname === `/drupal/ces/api/social/${group.attributes.code}`)) {
+      body = { data: groups.find((group) => url.pathname.endsWith(`/${group.attributes.code}`)),
+        included: [groupSettings, users[0], userSettings[0]] }
     } else if (url.pathname === '/drupal/ces/api/social/users') {
       const index = members.findIndex(({ id }) => id === url.searchParams.get('filter[members]'))
       // The first two members share an owner. Admin user 0 has no membership.
@@ -88,7 +90,8 @@ export const serveIces = async (t: TestContext) => {
       body = { data: [users[owner]], included: [userSettings[owner]], links: { next: 'http://public.example/ignored' } }
     } else {
       const type = url.pathname.split('/').at(-1)!
-      const data = { members, categories, offers: posts, needs }[type]
+      const source = { groups, members, categories, offers: posts, needs }[type]
+      const data = type === 'groups' || url.pathname.includes('/ICES/') ? source : source && []
       if (data) {
         const after = Number(url.searchParams.get('page[after]') ?? 0)
         const size = Number(url.searchParams.get('page[size]') ?? 2)
@@ -109,5 +112,5 @@ export const serveIces = async (t: TestContext) => {
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('Missing test server address')
   t.after(() => new Promise<void>((resolve) => server.close(() => resolve())))
-  return { url: `http://127.0.0.1:${address.port}/drupal`, requests, overrides, group, members, posts, users, userSettings, contacts, categories, socialContact }
+  return { url: `http://127.0.0.1:${address.port}/drupal`, requests, overrides, group, groups, members, posts, users, userSettings, contacts, categories, socialContact }
 }

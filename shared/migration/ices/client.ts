@@ -17,7 +17,7 @@ const documentSchema = z.object({
 
 export type IcesResource = z.infer<typeof resourceSchema>
 export type IcesDocument = z.infer<typeof documentSchema>
-export type IcesAuth = { accessToken: string } | { clientId: string, clientSecret: string }
+export type IcesAuth = { email: string, password: string }
 
 export const identifiers = (resource: IcesResource, relationship: string) => {
   const data = resource.relationships[relationship]?.data
@@ -55,16 +55,16 @@ export class IcesClient {
   }
 
   private async accessToken() {
-    if ('accessToken' in this.auth) {
-      this.token = this.auth.accessToken
-    } else if (Date.now() >= this.expiresAt) {
+    if (Date.now() >= this.expiresAt) {
       const json = await this.request(new URL('oauth2/token', this.baseUrl), {
         method: 'POST',
         body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: this.auth.clientId,
-          client_secret: this.auth.clientSecret,
-          scope: 'komunitin_social_read_all',
+          grant_type: 'password',
+          client_id: 'komunitin-app',
+          username: this.auth.email,
+          password: this.auth.password,
+          // Site admins need read-all access to export other users' settings.
+          scope: 'komunitin_social komunitin_social_read_all',
         }),
       })
       const result = z.object({ access_token: z.string().min(1), expires_in: z.number().positive() }).safeParse(json)

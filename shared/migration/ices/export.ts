@@ -86,8 +86,24 @@ const preferences = (resource: IcesResource) => fields(resource, {
 
 /** Export one community through the legacy API to the common CSV bundle format. */
 export const createIcesMigrationBundle = async (options: IcesExportOptions): Promise<IcesExportResult> => {
-  if (!/^[A-Z0-9]{4}$/.test(options.code)) throw new Error('ICES community code must be four uppercase letters or digits')
   const client = new IcesClient(options.url, options.auth, options.pageSize)
+  return exportBundle(client, options.code)
+}
+
+/** List every community state and reuse one authenticated client across bundles. */
+export async function* createAllIcesMigrationBundles(options: Omit<IcesExportOptions, 'code'>) {
+  const client = new IcesClient(options.url, options.auth, options.pageSize)
+  for await (const document of client.pages('groups', { 'filter[status]': 'pending,active,disabled' })) {
+    for (const community of collection(document)) {
+      requireType(community, 'groups')
+      const code = cell(community.attributes.code)
+      yield { code, ...await exportBundle(client, code) }
+    }
+  }
+}
+
+const exportBundle = async (client: IcesClient, code: string): Promise<IcesExportResult> => {
+  if (!/^[A-Z0-9]{4}$/.test(code)) throw new Error('ICES community code must be four uppercase letters or digits')
   const rows = Object.fromEntries(MIGRATION_BUNDLE_FILENAMES.map((file) => [file, [] as Row[]])) as Record<MigrationBundleFilename, Row[]>
   const warnings = new Set([
     'ICES does not expose password hashes, identity status, identity name or identity timestamps. These user fields are blank; Auth migration requires an explicit credential and status policy or a supplemental export.',
@@ -112,10 +128,10 @@ export const createIcesMigrationBundle = async (options: IcesExportOptions): Pro
     return { row, preferences: preferences(userSettings) }
   }
 
-  const communityDocument = await client.document(options.code, { include: 'contacts,settings,admins,admins.settings' })
+  const communityDocument = await client.document(code, { include: 'contacts,settings,admins,admins.settings' })
   const community = single(communityDocument)
   requireType(community, 'groups')
-  if (community.attributes.code !== options.code) throw new Error('ICES returned a different community')
+  if (community.attributes.code !== code) throw new Error('ICES returned a different community')
   const communitySettings = settings(communityDocument, community, 'group-settings')
   const admins = includedResources(communityDocument, community, 'admins').map((user) => addUser(communityDocument, user).row.email)
   if (admins.length === 0) throw new Error('ICES did not expose any community administrators')
@@ -132,7 +148,7 @@ export const createIcesMigrationBundle = async (options: IcesExportOptions): Pro
   add('community.csv', communityRow)
 
   const members = new Map<string, string>()
-  for await (const document of client.pages(`${options.code}/members`, {
+  for await (const document of client.pages(`${code}/members`, {
     include: 'contacts', sort: 'code', 'filter[state]': 'draft,pending,active,disabled,suspended,deleted',
   })) {
     for (const member of collection(document)) {
@@ -156,7 +172,7 @@ export const createIcesMigrationBundle = async (options: IcesExportOptions): Pro
   }
 
   // ICES returns every category at once and may incorrectly advertise a next page.
-  const categoryDocument = await client.document(`${options.code}/categories`)
+  const categoryDocument = await client.document(`${code}/categories`)
   const categories = new Map<string, string>()
   for (const category of collection(categoryDocument)) {
     requireType(category, 'categories')
@@ -169,7 +185,7 @@ export const createIcesMigrationBundle = async (options: IcesExportOptions): Pro
   }
 
   for (const type of ['offers', 'needs'] as const) {
-    const document = await client.posts(`${options.code}/${type}`, {
+    const document = await client.posts(`${code}/${type}`, {
       'filter[state]': 'published,hidden', 'filter[expired]': 'true,false',
     })
     for (const post of collection(document)) {

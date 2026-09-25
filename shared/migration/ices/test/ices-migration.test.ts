@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parse } from 'csv-parse/sync'
-import { createIcesMigrationBundle } from '../index'
+import { createAllIcesMigrationBundles, createIcesMigrationBundle } from '../index'
 import { parseMigrationBundle, MIGRATION_PARSER_LIMITS } from '../../../../social/src/features/migrations/bundle'
 import { loadMigrationBundle } from '../../../../social/src/features/migrations/bundle/container'
 import { CSV_HEADERS } from '../../../../social/src/features/migrations/bundle/csv'
@@ -14,7 +14,7 @@ import { encodeCsv, mutateCsv, omitBlankColumns, resultCodes, zipFromFiles } fro
 test('exports legacy auth/social HTTP resources to a valid CSV ZIP without querying accounting', async (t) => {
   const fixture = await serveIces(t)
   const result = await createIcesMigrationBundle({
-    url: fixture.url, code: 'ICES', auth: { clientId: 'exporter', clientSecret: 'secret' }, pageSize: 2,
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, pageSize: 2,
   })
   const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
   assert.ok(parsed.success, JSON.stringify(parsed))
@@ -59,7 +59,8 @@ test('exports legacy auth/social HTTP resources to a valid CSV ZIP without query
   const tokenRequests = fixture.requests.filter(({ url }) => url.pathname.endsWith('/token'))
   assert.equal(tokenRequests.length, 1)
   assert.deepEqual(Object.fromEntries(new URLSearchParams(tokenRequests[0].body)), {
-    grant_type: 'client_credentials', client_id: 'exporter', client_secret: 'secret', scope: 'komunitin_social_read_all',
+    grant_type: 'password', client_id: 'komunitin-app', username: 'admin@example.org', password: 'secret',
+    scope: 'komunitin_social komunitin_social_read_all',
   })
   const requests = fixture.requests.filter(({ url }) => !url.pathname.endsWith('/token'))
   assert.ok(requests.every(({ authorization }) => authorization === 'Bearer fixture-token'))
@@ -87,7 +88,7 @@ test('fails on incomplete or malformed source responses', async (t) => {
     await t.test(scenario.name, async (t) => {
       const fixture = await serveIces(t)
       fixture.overrides.set(`/drupal/ces/api/social/${scenario.path}`, () => scenario)
-      await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { accessToken: 'token' } }), scenario.message)
+      await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' } }), scenario.message)
     })
   }
   await t.test('repeated pagination', async (t) => {
@@ -95,19 +96,19 @@ test('fails on incomplete or malformed source responses', async (t) => {
     fixture.overrides.set('/drupal/ces/api/social/ICES/members', () => ({ body: {
       data: [fixture.members[0]], included: [fixture.contacts[0], fixture.socialContact], links: { next: 'https://public.example/?page[after]=1' },
     } }))
-    await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { accessToken: 'token' }, pageSize: 1 }), /repeated/)
+    await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, pageSize: 1 }), /repeated/)
   })
   await t.test('source reference missing', async (t) => {
     const fixture = await serveIces(t)
     fixture.posts[0].relationships.member.data.id = icesId(999)
-    await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { accessToken: 'token' } }), /outside the exported community/)
+    await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' } }), /outside the exported community/)
   })
 })
 
 test('exports source values for separate import validation', async (t) => {
   const fixture = await serveIces(t)
   fixture.members[0].attributes.name = ''
-  const exported = await createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { accessToken: 'token' } })
+  const exported = await createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' } })
   const parsed = await parseMigrationBundle({ type: 'zip', bytes: exported.bytes })
   assert.ok(!parsed.success)
   assert.ok(parsed.errors.some((issue) => issue.file === 'members.csv' && issue.column === 'name'))
@@ -115,7 +116,7 @@ test('exports source values for separate import validation', async (t) => {
 
 test('IntegralCES social bundles validate supplied accounting data, UUIDs and references', async (t) => {
   const fixture = await serveIces(t)
-  const exported = await createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { accessToken: 'token' } })
+  const exported = await createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' } })
   const { files } = await loadMigrationBundle({ type: 'zip', bytes: exported.bytes }, MIGRATION_PARSER_LIMITS)
   const cases = [
     ['community.csv', 'status', 'unknown', 'INVALID_ENUM'],
@@ -146,7 +147,7 @@ test('IntegralCES social bundles validate supplied accounting data, UUIDs and re
 
 test('accepts omitted or header-only transfers in ZIP and directory IntegralCES social bundles', async (t) => {
   const fixture = await serveIces(t)
-  const exported = await createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { accessToken: 'token' } })
+  const exported = await createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' } })
   const { files } = await loadMigrationBundle({ type: 'zip', bytes: exported.bytes }, MIGRATION_PARSER_LIMITS)
   assert.equal(files.has('transfers.csv'), false)
   const expected = await parseMigrationBundle({ type: 'zip', bytes: exported.bytes })
@@ -169,10 +170,47 @@ test('exports social data when the source exposes no currency or account UUIDs',
   const fixture = await serveIces(t)
   fixture.group.relationships.currency.data = null
   for (const member of fixture.members) member.relationships.account.data = null
-  const exported = await createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { accessToken: 'token' } })
+  const exported = await createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' } })
   const parsed = await parseMigrationBundle({ type: 'zip', bytes: exported.bytes })
   assert.ok(parsed.success, JSON.stringify(parsed))
   assert.equal(parsed.plan.community.code, 'ICES')
   assert.equal(parsed.plan.community.currencyId, null)
   assert.ok(parsed.plan.members.every(({ accountId }) => accountId === null))
+})
+
+
+test('exports every community state across group pages with one admin login', async (t) => {
+  const fixture = await serveIces(t)
+  for (const [index, status] of ['pending', 'active'].entries()) {
+    fixture.groups.push({ ...fixture.group, id: icesId(900 + index),
+      attributes: { ...fixture.group.attributes, code: `NET${index}`, status } })
+  }
+  const codes = []
+  for await (const result of createAllIcesMigrationBundles({
+    url: fixture.url, auth: { email: 'admin@example.org', password: 'secret' }, pageSize: 2,
+  })) {
+    const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
+    assert.ok(parsed.success, JSON.stringify(parsed))
+    assert.equal(parsed.plan.community.code, result.code)
+    codes.push(result.code)
+  }
+  assert.deepEqual(codes, ['ICES', 'NET0', 'NET1'])
+  const pages = fixture.requests.filter(({ url }) => url.pathname.endsWith('/groups'))
+  assert.deepEqual(pages.map(({ url }) => url.searchParams.get('page[after]')), ['0', '2'])
+  assert.ok(pages.every(({ url }) => url.searchParams.get('filter[status]') === 'pending,active,disabled'))
+  assert.equal(fixture.requests.filter(({ url }) => url.pathname.endsWith('/token')).length, 1)
+})
+
+test('rejects invalid admin authentication before reading source data', async (t) => {
+  for (const scenario of [
+    { status: 401, body: { error: 'invalid_grant' }, message: /HTTP 401/ },
+    { body: { access_token: '', expires_in: 3600 }, message: /invalid OAuth token/ },
+  ]) {
+    const fixture = await serveIces(t)
+    fixture.overrides.set('/drupal/oauth2/token', () => scenario)
+    await assert.rejects(createIcesMigrationBundle({
+      url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'wrong' },
+    }), scenario.message)
+    assert.equal(fixture.requests.length, 1)
+  }
 })

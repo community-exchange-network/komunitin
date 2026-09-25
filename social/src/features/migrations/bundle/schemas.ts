@@ -448,12 +448,15 @@ const communityRowSchema = (scale: number | null, hasCurrencyData: boolean) => c
   currency: hasCurrencyData ? { code: community.code, ...currency.data } : null,
 }))
 
-// Auth generates $2b$ bcrypt hashes (cost 10) and also verifies $2a$ hashes.
+// Drupal 7 SHA-512 hashes encode an iteration count from 7 to 30.
+// These are preserved for migration; Auth currently verifies only bcrypt.
+const bcryptHash = /^\$2[ab]\$(?:0[4-9]|[12][0-9]|3[01])\$[./A-Za-z0-9]{53}$/
+const drupalHash = /^\$S\$[5-9A-S][./A-Za-z0-9]{51}$/
 const passwordHash = field<string | null>((value) => value === ''
   ? valid(null)
-  : /^\$2[ab]\$(?:0[4-9]|[12][0-9]|3[01])\$[./A-Za-z0-9]{53}$/.test(value)
+  : (bcryptHash.test(value) || drupalHash.test(value))
     ? valid(value)
-    : invalid('INVALID_PASSWORD_HASH', 'Value must be an Auth-compatible bcrypt hash or blank'))
+    : invalid('INVALID_PASSWORD_HASH', 'Value must be a bcrypt or Drupal hash or blank'))
 
 const userRowSchema = z.object({
   id: optionalUuid,
