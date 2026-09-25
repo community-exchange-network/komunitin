@@ -25,7 +25,7 @@ paths:
         Email is required; other columns may be omitted. Up to 100 MiB and 100000 users.
         Existing identities are reused by normalized email without changing any fields;
         supplied UUID conflicts are rejected. New identities retain supported bcrypt or
-        Drupal hashes unchanged and have verified email. Missing status defaults to disabled
+        Drupal hashes unchanged and have verified email. Omitted or blank status defaults to active
         with a warning, and a blank hash requires password reset. Missing timestamps default
         to the supplied counterpart or import time. Inserts before a conflict are retained;
         callers can explicitly retry the CSV. No notifications are emitted.

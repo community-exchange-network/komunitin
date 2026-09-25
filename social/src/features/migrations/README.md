@@ -68,7 +68,7 @@ Social sends a normalized `users.csv`, with resolved UUIDs where known, to `POST
 
 Auth validates the entire CSV before inserting. Conflicts encountered during inserts may leave earlier identities imported; retries reuse them. Existing identities retain all their fields. New identities copy bcrypt or native Drupal 7 `$S$` hashes unchanged and are **email verified**, as the migration policy. Auth upgrades Drupal hashes after successful password login.
 
-For a new identity, a blank hash means no usable password and a password reset is required. Unknown status becomes `disabled`, with a warning. A missing creation timestamp uses the update timestamp or import time; a missing update timestamp uses the resolved creation timestamp. No verification or notification emails are sent by migration.
+For a new identity, a blank hash means no usable password and a password reset is required. Omitted or blank status defaults to `active`. A missing creation timestamp uses the update timestamp or import time; a missing update timestamp uses the resolved creation timestamp. No verification or notification emails are sent by migration.
 
 ## Images
 

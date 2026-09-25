@@ -68,16 +68,24 @@ test('reuses existing identities without changing status, verification, password
   assert.equal(await prisma.user.count(), 1)
 })
 
-test('generates reusable IDs and reports missing credentials or unknown status', async () => {
-  const response = await importCsv('email\nunknown@example.org\n').expect(200)
-  assert.equal(response.body.warnings.length, 2)
-  const id = response.body.users[0].id
-  const user = await prisma.user.findUniqueOrThrow({ where: { id } })
-  assert.equal(user.status, 'disabled')
-  assert.equal(user.passwordHash, '')
-  await importCsv('email\nunknown@example.org\n').expect(200)
-  assert.equal(await prisma.user.count(), 1)
-})
+for (const [status, body] of [
+  ['omitted', 'email\nunknown@example.org\n'],
+  ['blank', 'email,status\nunknown@example.org,\n'],
+]) {
+  test(`defaults ${status} status to active, generates reusable IDs and reports missing credentials`, async () => {
+    const response = await importCsv(body).expect(200)
+    assert.deepEqual(response.body.warnings, [
+      'User unknown@example.org: missing status; created active',
+      'User unknown@example.org: no password; password reset required',
+    ])
+    const id = response.body.users[0].id
+    const user = await prisma.user.findUniqueOrThrow({ where: { id } })
+    assert.equal(user.status, 'active')
+    assert.equal(user.passwordHash, '')
+    await importCsv(body).expect(200)
+    assert.equal(await prisma.user.count(), 1)
+  })
+}
 
 test('validates the full file before inserts and never echoes malformed credential values', async () => {
   const invalid = 'not-a-hash-secret'
