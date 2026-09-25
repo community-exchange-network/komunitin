@@ -13,13 +13,13 @@ The shared TypeScript CLI contains administrative commands that coordinate Komun
 
 ## Commands
 
-`admin migrate <bundle.zip> [--email <email>] [--password <password>]` uploads a CSV ZIP to Social and streams durable progress. It requires a superadmin and existing Accounting data. Credentials default to `ADMIN_EMAIL`/`ADMIN_PASSWORD`; the bundle can default to `MIGRATION_BUNDLE`. A disconnect does not stop the worker. Fix failures and re-upload to retry. The Docker wrapper mounts the invoking directory read-only, so place the bundle there (or use native Node 24 for other paths). See the [migration API and retry policy](../../social/src/features/migrations/README.md).
+`admin migrate <bundle.zip> [--email <email>] [--password <password>]` uploads a CSV ZIP to Social and streams durable progress. It requires a superadmin and existing Accounting data. Credentials default to `ADMIN_EMAIL`/`ADMIN_PASSWORD`; the bundle can default to `MIGRATION_BUNDLE`. A disconnect does not stop the worker. Fix failures and re-upload to retry. Run the wrapper from the directory containing the bundle. See the [migration API and retry policy](../../social/src/features/migrations/README.md).
 
-`admin bundle ices --url <site> (--code <CODE> | --all) --output <path>` generates ICES bundles and enriches identities from the source database. Set `ICES_ADMIN_EMAIL`, `ICES_ADMIN_PASSWORD`, and `ICES_DATABASE_URL`, then run `pnpm install` in `shared/cli`. See the [ICES export guide](migration/ices/README.md). This command uses local Node 24 because the generator uses CLI dependencies and writes private ZIPs to the requested path.
+`admin bundle ices --url <site> (--code <CODE> | --all) --output <path>` generates ICES bundles and enriches identities from the source database. Set `ICES_ADMIN_EMAIL`, `ICES_ADMIN_PASSWORD`, and `ICES_DATABASE_URL` in the root `.env`. The wrapper mounts the invoking directory writable for output. Use an output path within that directory. No host Node.js or pnpm installation is needed. See the [ICES export guide](migration/ices/README.md).
 
 `admin bootstrap [--password <password>]` creates and verifies the configured superadmin in Auth, then provisions the corresponding Social user. It reads `ADMIN_EMAIL`, optionally reads `ADMIN_PASSWORD`, and uses `KOMUNITIN_NOTIFICATIONS_SECRET` to verify a newly registered user.
 
-`accounting migrate-ices <currency-code> <ices-url> [--email <email>] [--password <password>]` runs the legacy accounting migration and waits up to five minutes for completion. Destination credentials default to `ADMIN_EMAIL`/`ADMIN_PASSWORD` and require the new Auth superadmin scope. Source credentials come from `ICES_ADMIN_EMAIL`/`ICES_ADMIN_PASSWORD` in the root `.env`; the source URL must be reachable by both the CLI and Accounting. Failed or timed-out migrations exit unsuccessfully. Run this before generating and applying the Social bundle.
+`accounting migrate-ices <currency-code> <ices-url> [--email <email>] [--password <password>]` runs the legacy accounting migration and waits up to five minutes for completion. Destination credentials default to `ADMIN_EMAIL`/`ADMIN_PASSWORD` and require the new Auth superadmin scope. Source credentials come from `ICES_ADMIN_EMAIL`/`ICES_ADMIN_PASSWORD`; the source URL must be reachable by both the CLI and Accounting. Failed or timed-out migrations exit unsuccessfully. Run this before generating and applying the Social bundle.
 
 `accounting trust <currency-code> <trusted-code> <amount>` creates a trustline. The amount is expressed in currency units and may have up to six decimal places.
 
@@ -29,16 +29,18 @@ The trustline and Credit Commons commands accept `--email` and `--password`. The
 
 ## Environment
 
-Docker-backed commands load the root `.env` file. Bundle generation loads it when present and reads exported ICES credentials and `ICES_DATABASE_URL`. The commands use:
+The wrapper builds `shared/cli/Dockerfile` and runs the CLI with the repository root `.env` and the current directory mounted. Node reads `.env` directly, including quoted values. Shell environment variables are not forwarded. Configure these values in `.env`:
 
 - `KOMUNITIN_AUTH_URL`
 - `KOMUNITIN_SOCIAL_URL` for migrations and Credit Commons account discovery
 - `KOMUNITIN_ACCOUNTING_URL`
 - `ADMIN_EMAIL` and `ADMIN_PASSWORD` as default credentials
+- `KOMUNITIN_NOTIFICATIONS_SECRET` for superadmin bootstrap
+- `ICES_ADMIN_EMAIL`, `ICES_ADMIN_PASSWORD`, and `ICES_DATABASE_URL` for the migration source
 
-URLs containing `localhost` are translated to `host.docker.internal` so the containerized CLI can reach services running on the host. The CLI never prints credentials or tokens.
+API URLs and `ICES_DATABASE_URL` containing `localhost` are translated to `host.docker.internal` so the containerized CLI can reach services running on the host. The CLI never prints credentials or tokens.
 
-`start.sh --demo` uses `compose.demo.yml` and the CLI Docker image to migrate the temporary IntegralCES demo. The image includes bundle exporter dependencies and reaches the source database over the private Compose network.
+`start.sh --demo` calls `shared/demo/demo.sh`, which runs `shared/demo/compose.demo.yml` as a separate temporary Compose project containing only IntegralCES and MariaDB. HTTP and MySQL are published on ports `2029` and `3307` (override with `ICES_PORT` and `ICES_MYSQL_PORT`). The CLI and backend services access the source through the host. The `.env` templates include demo source credentials. Keep `ICES_DATABASE_URL` consistent with the source database password and published port. The script removes source containers, volumes, and temporary bundles on exit.
 
 ## Development
 

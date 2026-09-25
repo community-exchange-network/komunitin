@@ -42,9 +42,7 @@ In order to have everything working (mailing, push notifications, backups, analy
 
 ### Start
 Run the start script with `--up` to build and start the containers, `--dev` to
-enable hot reload, debuggers and development utilities, and `--reset` to reset
-the service databases before applying migrations. The configured superadmin is
-bootstrapped after migration.
+enable hot reload, debuggers and development utilities, and `--reset` to clear the service databases.
 
 ```bash
 ./start.sh --up --dev --reset
@@ -52,6 +50,15 @@ bootstrapped after migration.
 
 > The first build downloads and compiles everything from scratch — expect it to take some minutes.
 
+#### Demo
+The demo flag currently spins up a temporary IntegralCES instance and migrates its data into Komunitin.
+
+```bash
+cd ..
+git clone https://git.drupalcode.org/project/ices.git
+cd komunitin
+./start.sh --up --dev --demo
+```
 Docker resources are preserved by default. Pass `--prune` explicitly if you
 want to remove unused Docker resources after startup.
 
