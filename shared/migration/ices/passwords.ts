@@ -6,35 +6,41 @@ import { loadMigrationBundle } from '../../../social/src/features/migrations/bun
 import { MIGRATION_PARSER_LIMITS } from '../../../social/src/features/migrations/bundle/constants'
 import { encodeCsv } from '../../../social/src/features/migrations/bundle/csv'
 
-/** Complete an API bundle from Drupal's users table, matching normalized emails. */
+type DrupalUser = RowDataPacket & { mail: string, pass: string, status: 0 | 1 }
+
+/** Add password hashes and identity statuses from Drupal, matching normalized emails. */
 export const addIcesPasswordHashes = async (bytes: Buffer, db: Connection) => {
   const { files, errors } = await loadMigrationBundle({ type: 'zip', bytes }, MIGRATION_PARSER_LIMITS)
   if (errors.length) throw new Error('Invalid migration ZIP')
   const [headers, ...users] = parse(files.get('users.csv')!, { bom: true }) as string[][]
   const emailColumn = headers.indexOf('email')
   if (emailColumn < 0) throw new Error('users.csv is missing email')
-  if (!headers.includes('passwordHash')) headers.push('passwordHash')
+  for (const column of ['passwordHash', 'status']) {
+    if (!headers.includes(column)) headers.push(column)
+  }
   const hashColumn = headers.indexOf('passwordHash')
+  const statusColumn = headers.indexOf('status')
 
   // Query only exported identities, in bounded batches. Duplicate source emails
   // must fail instead of assigning an arbitrary identity's credential.
   for (let offset = 0; offset < users.length; offset += 500) {
     const batch = users.slice(offset, offset + 500)
     const emails = batch.map((row) => row[emailColumn].trim().toLowerCase())
-    const [records] = await db.execute<RowDataPacket[]>(
-      `SELECT mail, pass FROM \`users\` WHERE uid <> 0 AND LOWER(TRIM(mail)) IN (${emails.map(() => '?').join(',')})`,
+    const [records] = await db.execute<DrupalUser[]>(
+      `SELECT mail, pass, status FROM \`users\` WHERE uid <> 0 AND LOWER(TRIM(mail)) IN (${emails.map(() => '?').join(',')})`,
       emails,
     )
-    const hashes = new Map<string, string>()
+    const sourceUsers = new Map<string, DrupalUser>()
     for (const record of records) {
-      const email = (record.mail as string).trim().toLowerCase()
-      if (hashes.has(email)) throw new Error('Multiple Drupal users match an exported email')
-      hashes.set(email, record.pass as string)
+      const email = record.mail.trim().toLowerCase()
+      if (sourceUsers.has(email)) throw new Error('Multiple Drupal users match an exported email')
+      sourceUsers.set(email, record)
     }
     for (const [index, row] of batch.entries()) {
-      const hash = hashes.get(emails[index])
-      if (hash === undefined) throw new Error(`No Drupal user matches users.csv row ${offset + index + 2}`)
-      row[hashColumn] = hash
+      const source = sourceUsers.get(emails[index])
+      if (source === undefined) throw new Error(`No Drupal user matches users.csv row ${offset + index + 2}`)
+      row[hashColumn] = source.pass
+      row[statusColumn] = source.status === 1 ? 'active' : 'disabled'
     }
   }
   files.set('users.csv', encodeCsv([headers, ...users]))

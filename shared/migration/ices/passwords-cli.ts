@@ -6,7 +6,7 @@ import { addIcesPasswordHashes } from './passwords'
 
 const usage = `Usage: pnpm passwords:ices --bundle <bundle.zip>
 Database: ICES_DATABASE_URL (mysql://user:password@host:3306/database).
-Replaces the bundle atomically with an owner-only ZIP containing password hashes.`
+Replaces the bundle atomically with an owner-only ZIP containing password hashes and user statuses.`
 
 try {
   const { values } = parseArgs({ options: { bundle: { type: 'string' }, help: { type: 'boolean' } } })
