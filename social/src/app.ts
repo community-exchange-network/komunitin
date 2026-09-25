@@ -7,6 +7,7 @@ import { httpLogger } from './server/http-logger'
 import { config } from './config'
 import logger from './utils/logger'
 import userRoutes from './features/users/routes'
+import migrationRoutes from './features/migrations/routes'
 import { groupsRoutes, tenantGroupRoutes } from './features/groups/routes'
 import { tenantCategoryRoutes } from './features/categories/routes'
 import { tenantMemberRoutes } from './features/members/routes'
@@ -43,6 +44,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' })
 })
 
+app.use('/', migrationRoutes)
 app.use('/', userRoutes)
 app.use('/', groupsRoutes)
 app.use('/:code', tenantGroupRoutes)

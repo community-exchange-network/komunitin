@@ -4,9 +4,18 @@ set -eu
 cli_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 project_dir=$(CDPATH= cd -- "$cli_dir/../.." && pwd)
 
+if [ "${1:-}" = admin ] && [ "${2:-}" = bundle ] && [ "${3:-}" = ices ]; then
+  if [ -f "$project_dir/.env" ]; then
+    exec node --env-file="$project_dir/.env" "$cli_dir/index.ts" "$@"
+  fi
+  exec node "$cli_dir/index.ts" "$@"
+fi
+
 exec docker run --rm \
   --add-host host.docker.internal:host-gateway \
+  -e KOMUNITIN_CLI_DOCKER=true \
   --env-file "$project_dir/.env" \
   -v "$cli_dir:/app:ro" \
-  -w /app \
-  node:24 node index.ts "$@"
+  -v "$PWD:$PWD:ro" \
+  -w "$PWD" \
+  node:24 node /app/index.ts "$@"

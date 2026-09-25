@@ -1,13 +1,12 @@
-import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import type { Request } from 'express'
 import { fileTypeFromBuffer } from 'file-type'
 import { randomUUID } from 'node:crypto'
 import { config } from '../../config'
-import { s3 } from '../../clients/s3'
+import { publicUrlBase, uploadToS3 } from '../../clients/s3'
 import type { File as DbFile } from '../../generated/prisma/client'
 import type { AuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
-import { badRequest, forbidden, internalError } from '../../utils/error'
+import { badRequest, forbidden } from '../../utils/error'
 import prisma from '../../utils/prisma'
 import { getGroupByCode, isGroupAdmin, isGroupMember } from '../groups/service'
 import { parseUploadMultipart } from './multipart'
@@ -20,38 +19,6 @@ const MIME_TO_EXT: Record<string, string> = {
   'image/webp': 'webp',
   'image/gif': 'gif',
 }
-
-// Remove slashes "/" from the end of a string.
-const trimTrailingSlash = (url: string): string => url.replace(/\/+$/, '')
-// Remove slashes "/" from the start and end of a string.
-const trimSlashes = (value: string): string => value.replace(/^\/+|\/+$/g, '')
-
-// s3://bucket-name/optional/prefix -> bucket-name, optional/prefix
-const uploadPrefixUrl = new URL(config.UPLOAD_S3_PREFIX)
-const uploadBucket = uploadPrefixUrl.hostname
-const uploadBaseKeyPrefix = trimSlashes(uploadPrefixUrl.pathname)
-
-/**
- * The public base URL for accessing files, derived from the S3 endpoint URL.
- */
-const defaultPublicUrl = (): string => {
-  const endpoint = trimTrailingSlash(config.UPLOAD_S3_ENDPOINT)
-  if (config.UPLOAD_S3_FORCE_PATH_STYLE) {
-    const pathBase = `${endpoint}/${uploadBucket}`
-    return uploadBaseKeyPrefix ? `${pathBase}/${uploadBaseKeyPrefix}` : pathBase
-  }
-
-  const parsed = new URL(endpoint)
-  const endpointPath = trimSlashes(parsed.pathname)
-  const fullPath = [endpointPath, uploadBaseKeyPrefix].filter(Boolean).join('/')
-  const hostBase = `${parsed.protocol}//${uploadBucket}.${parsed.host}`
-  return fullPath ? `${hostBase}/${fullPath}` : hostBase
-}
-
-/**
- * The public base URL for accessing files.
- */
-const publicUrlBase = trimTrailingSlash(config.UPLOAD_PUBLIC_URL ?? defaultPublicUrl())
 
 const assertMimeAllowed = (mime: string): void => {
   if (!config.UPLOAD_ALLOWED_MIME_TYPES.includes(mime)) {
@@ -66,36 +33,6 @@ const extensionFromMime = (mime: string): string => {
   }
 
   return ext
-}
-
-const fullObjectKey = (key: string): string => {
-  return uploadBaseKeyPrefix ? `${uploadBaseKeyPrefix}/${key}` : key
-}
-
-const uploadToS3 = async (key: string, contentType: string, data: Buffer): Promise<void> => {
-  try {
-    await s3.send(new PutObjectCommand({
-      Bucket: uploadBucket,
-      Key: fullObjectKey(key),
-      Body: data,
-      ContentType: contentType,
-      ContentLength: data.length,
-      CacheControl: 'public, max-age=31536000, immutable',
-    }))
-  } catch (cause) {
-    throw internalError('Failed to upload file', { cause })
-  }
-}
-
-export const deleteFromS3 = async (key: string): Promise<void> => {
-  try {
-    await s3.send(new DeleteObjectCommand({
-      Bucket: uploadBucket,
-      Key: fullObjectKey(key),
-    }))
-  } catch (cause) {
-    throw internalError('Failed to delete file', { cause })
-  }
 }
 
 /**

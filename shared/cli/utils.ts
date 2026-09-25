@@ -36,7 +36,7 @@ export const requiredEnv = (name: string) => {
 
 export const publicApiUrl = (name: string) => {
   const url = new URL(requiredEnv(name))
-  if (url.hostname === 'localhost') url.hostname = 'host.docker.internal'
+  if (process.env.KOMUNITIN_CLI_DOCKER === 'true' && url.hostname === 'localhost') url.hostname = 'host.docker.internal'
   return url.toString()
 }
 

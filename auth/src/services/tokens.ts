@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt'
+import { hashPassword as createPasswordHash } from './passwords'
 import crypto from 'node:crypto'
 import type { Prisma } from '../generated/prisma/client'
 import prisma from '../utils/prisma'
@@ -41,7 +41,7 @@ export async function hashPassword(password: string): Promise<string> {
   if (password.length < 8) {
     throw badRequest('Password must be at least 8 characters long')
   }
-  return bcrypt.hash(password, 10)
+  return createPasswordHash(password)
 }
 
 export function generateToken(): string {
