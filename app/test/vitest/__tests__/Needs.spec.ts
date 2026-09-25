@@ -3,16 +3,16 @@ import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../utils";
 import { QItem, QSelect, QDialog, QBtn, QInnerLoading } from "quasar";
-import { seeds } from "src/server";
-import SelectCategory from "src/components/SelectCategory.vue";
-import DeleteNeedBtn from "src/components/DeleteNeedBtn.vue";
+import { seeds } from "@/server";
+import SelectCategory from "@/components/SelectCategory.vue";
+import DeleteNeedBtn from "@/components/DeleteNeedBtn.vue";
 
-import NeedCard from "src/components/NeedCard.vue";
-import PageHeader from "src/layouts/PageHeader.vue";
-import type { Category, Member, Need } from "src/store/model";
-import ContactButton from "src/components/ContactButton.vue";
-import ShareButton from "src/components/ShareButton.vue";
-import MemberHeader from "src/components/MemberHeader.vue";
+import NeedCard from "@/components/NeedCard.vue";
+import PageHeader from "@/layouts/PageHeader.vue";
+import type { Category, Member, Need } from "@/store/model";
+import ContactButton from "@/components/ContactButton.vue";
+import ShareButton from "@/components/ShareButton.vue";
+import MemberHeader from "@/components/MemberHeader.vue";
 
 type FullNeed = Need & { member: Member, category: Category };
 type SelectOption = { label: string, value: string };

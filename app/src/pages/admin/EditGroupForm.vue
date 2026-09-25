@@ -114,11 +114,11 @@
 </template>
 <script setup lang="ts">
 import { ref, useTemplateRef, watch } from "vue"
-import AvatarField from "src/components/AvatarField.vue"
-import LocationPicker from "src/components/LocationPicker.vue"
-import CountryChooser from "src/components/CountryChooser.vue"
-import MemberContactsField from "src/components/MemberContactsField.vue"
-import type { Contact, Currency, Group } from "src/store/model"
+import AvatarField from "@/components/AvatarField.vue"
+import LocationPicker from "@/components/LocationPicker.vue"
+import CountryChooser from "@/components/CountryChooser.vue"
+import MemberContactsField from "@/components/MemberContactsField.vue"
+import type { Contact, Currency, Group } from "@/store/model"
 import { watchDebounced } from "@vueuse/shared"
 import { useStore } from "vuex"
 

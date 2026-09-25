@@ -1,8 +1,8 @@
 import type { VueWrapper } from "@vue/test-utils"
 import { QInput, QTable } from "quasar"
-import App from "src/App.vue"
-import ManageAccounts from "src/pages/admin/ManageAccounts.vue"
-import { seeds } from "src/server"
+import App from "@/App.vue"
+import ManageAccounts from "@/pages/admin/ManageAccounts.vue"
+import { seeds } from "@/server"
 import { mountComponent, waitFor } from "../utils"
 
 describe("Manage accounts", () => {

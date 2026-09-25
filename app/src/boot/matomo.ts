@@ -1,5 +1,5 @@
-import { boot } from "quasar/wrappers"
-import { config } from "src/utils/config"
+import { defineBoot } from "#q-app"
+import { config } from "@/utils/config"
 
 type MatomoCommand = [string, ...unknown[]]
 
@@ -30,7 +30,7 @@ const trackPageView = (path: string) => {
 /**
  * Add Matomo analytics to the app and track page views on route changes.
  */
-export default boot(({ router }) => {
+export default defineBoot(({ router }) => {
   const matomoUrl = config.MATOMO_URL
   const matomoSiteId = config.MATOMO_SITE_ID
 

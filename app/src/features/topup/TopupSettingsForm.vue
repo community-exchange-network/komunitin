@@ -119,9 +119,9 @@
 <script setup lang="ts">
 import { watchDebounced } from '@vueuse/shared';
 import type { DeepPartial } from 'quasar';
-import ToggleItem from 'src/components/ToggleItem.vue';
-import type { TopupSettings } from 'src/features/topup/model';
-import formatCurrency from 'src/plugins/FormatCurrency';
+import ToggleItem from '@/components/ToggleItem.vue';
+import type { TopupSettings } from '@/features/topup/model';
+import formatCurrency from '@/plugins/FormatCurrency';
 import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import AccountItemContent from '../../components/AccountItemContent.vue';

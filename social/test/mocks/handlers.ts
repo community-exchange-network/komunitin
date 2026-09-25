@@ -41,8 +41,19 @@ type MockUnsubscribeToken = {
 }
 
 const authBaseUrl = process.env.AUTH_URL ?? 'http://auth.test'
+const deletionTokens = new Map<string, {
+  userId: string; memberId: string;
+}>()
+
+export const memberDeletionToken = (userId: string, memberId: string) => {
+  const token = `deletion-${deletionTokens.size}`
+  deletionTokens.set(token, { userId, memberId })
+  return token
+}
 const accountingBaseUrl = process.env.ACCOUNTING_URL ?? 'http://localhost:2025'
 let authTokenRequests: AuthTokenRequest[] = []
+let identityDeleteRequests: string[] = []
+let identityDeleteStatus = 204
 let authUnsubscribeTokens = new Map<string, MockUnsubscribeToken>()
 const notificationsBaseUrl = process.env.NOTIFICATIONS_API_URL ?? 'http://notifications.test'
 let accountingCurrencies = new Map<string, MockCurrency>()
@@ -118,6 +129,9 @@ const findAccountingAccountById = (currencyCode: string, accountId: string): Moc
 export const getAccountingRequests = (): AccountingRequest[] => {
   return [...accountingRequests]
 }
+
+export const getIdentityDeleteRequests = () => [...identityDeleteRequests]
+export const setIdentityDeleteStatus = (status: number) => { identityDeleteStatus = status }
 
 export const getAuthTokenRequests = (): AuthTokenRequest[] => {
   return [...authTokenRequests]
@@ -212,7 +226,10 @@ const serializeAccount = (account: MockAccount) => ({
 })
 
 export const resetMockState = () => {
+  deletionTokens.clear()
   authTokenRequests = []
+  identityDeleteRequests = []
+  identityDeleteStatus = 204
   authUnsubscribeTokens = new Map()
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
@@ -234,6 +251,13 @@ export const handlers = [
   http.get(process.env.AUTH_JWKS_URL!, () => {
     return HttpResponse.json(getJwks())
   }),
+  http.delete(`${authBaseUrl}/users/:userId`, ({ request, params }) => {
+    if (request.headers.get('authorization') !== 'Bearer social-service-token') {
+      return new HttpResponse(null, { status: 401 })
+    }
+    identityDeleteRequests.push(String(params.userId))
+    return new HttpResponse(null, { status: identityDeleteStatus })
+  }),
   http.post(`${authBaseUrl}/token`, async ({ request }) => {
     const params = new URLSearchParams(await request.text())
     const tokenRequest: AuthTokenRequest = {
@@ -248,7 +272,7 @@ export const handlers = [
       if (
         tokenRequest.clientId !== CLIENT_ID
         || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
-        || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.NotificationsWrite)
+        || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.AccountingWrite && tokenRequest.scope !== Scope.NotificationsWrite)
       ) {
         return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
       }
@@ -289,6 +313,14 @@ export const handlers = [
       return HttpResponse.json({ error: 'invalid_token' }, { status: 401 })
     }
     const body = await request.json() as { token?: string; purpose?: string }
+    if (body.purpose === 'memberDeletion') {
+      const action = deletionTokens.get(body.token ?? '')
+      if (!action) {
+        return HttpResponse.json({ error: 'invalid_action_token' }, { status: 400 })
+      }
+      const { userId, memberId } = action
+      return HttpResponse.json({ userId, purpose: 'memberDeletion', data: memberId })
+    }
     if (!body.token || body.purpose !== 'unsubscribe') {
       return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
     }
@@ -488,6 +520,9 @@ export const handlers = [
       return jsonApiError(404, `Account ${accountId} not found`)
     }
 
+    if (account.balance !== 0) {
+      return jsonApiError(400, 'Account balance must be zero to delete account')
+    }
     account.status = 'deleted'
     return new HttpResponse(null, { status: 204 })
   }),

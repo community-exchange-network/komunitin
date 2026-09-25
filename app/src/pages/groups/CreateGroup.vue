@@ -61,10 +61,10 @@
 </template>
 <script setup lang="ts">
 import { useStore } from "vuex";
-import EditGroupForm from "src/pages/admin/EditGroupForm.vue"
-import PageHeader from "src/layouts/PageHeader.vue";
+import EditGroupForm from "@/pages/admin/EditGroupForm.vue"
+import PageHeader from "@/layouts/PageHeader.vue";
 import { ref, shallowRef, useTemplateRef } from "vue";
-import type { Contact, Currency, Group } from "src/store/model";
+import type { Contact, Currency, Group } from "@/store/model";
 
 const store = useStore()
 

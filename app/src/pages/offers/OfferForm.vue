@@ -94,7 +94,7 @@ import DateField from "../../components/DateField.vue"
 import ImageField from "../../components/ImageField.vue"
 import SelectCategory from "../../components/SelectCategory.vue"
 import ToggleItem from "../../components/ToggleItem.vue"
-import type { Category, Currency, ImageObject, Offer, OfferStatus } from "src/store/model"
+import type { Category, Currency, ImageObject, Offer, OfferStatus } from "@/store/model"
 import { type DeepPartial, type QForm } from "quasar"
 import { useStore } from "vuex"
 

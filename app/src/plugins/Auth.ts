@@ -1,5 +1,5 @@
-import { CLIENT_ID, config } from "src/utils/config";
-import KError, { KErrorCode } from "src/KError";
+import { CLIENT_ID, config } from "@/utils/config";
+import KError, { KErrorCode } from "@/KError";
 //https://quasar.dev/quasar-plugins/web-storage
 
 import LocalStorage from "./LocalStorage";

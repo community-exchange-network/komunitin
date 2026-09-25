@@ -1,7 +1,7 @@
 import type { VueWrapper } from '@vue/test-utils'
-import App from 'src/App.vue'
-import { seeds } from 'src/server'
-import { config } from 'src/utils/config'
+import App from '@/App.vue'
+import { seeds } from '@/server'
+import { config } from '@/utils/config'
 import { mountComponent, waitFor } from '../utils'
 
 describe('Existing profile updates', () => {

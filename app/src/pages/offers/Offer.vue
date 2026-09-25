@@ -131,11 +131,11 @@ import ShareButton from "../../components/ShareButton.vue";
 import SimpleMap from "../../components/SimpleMap.vue";
 import Error404 from "../Error404.vue";
 
-import { formatPrice } from "src/plugins/FormatCurrency";
+import { formatPrice } from "@/plugins/FormatCurrency";
 import { useStore } from "vuex";
-import { useResource } from "src/composables/useResources";
-import type { Category, Currency, Group, Member, Offer } from "src/store/model";
-import { KErrorCode } from "src/KError";
+import { useResource } from "@/composables/useResources";
+import type { Category, Currency, Group, Member, Offer } from "@/store/model";
+import { KErrorCode } from "@/KError";
 
 type FullOffer = Offer & {
   category: Category

@@ -13,11 +13,11 @@ import type { ChartData, ChartOptions } from 'chart.js'
 import { Line as LineChart } from 'vue-chartjs'
 import "chartjs-adapter-date-fns" //overrides default date adapter as a side effect
 
-import type { StatsInterval } from 'src/composables/currencyStats';
-import { previousDate, roundDate } from 'src/composables/currencyStats'
-import type { Currency } from 'src/store/model'
+import type { StatsInterval } from '@/composables/currencyStats';
+import { previousDate, roundDate } from '@/composables/currencyStats'
+import type { Currency } from '@/store/model'
 import { getDateLocale } from "../boot/i18n"
-import formatCurrency from 'src/plugins/FormatCurrency'
+import formatCurrency from '@/plugins/FormatCurrency'
 
 Chart.register(Tooltip, Filler, LinearScale, TimeScale, PointElement, LineElement)
 

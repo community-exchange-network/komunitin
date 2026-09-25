@@ -68,12 +68,12 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
 
-import PageHeader from "src/layouts/PageHeader.vue";
-import GroupsMap from "src/components/GroupsMap.vue";
-import StatsCard from "src/components/StatsCard.vue";
+import PageHeader from "@/layouts/PageHeader.vue";
+import GroupsMap from "@/components/GroupsMap.vue";
+import StatsCard from "@/components/StatsCard.vue";
 
 import { computed } from "vue";
-import type { Group } from "src/store/model";
+import type { Group } from "@/store/model";
 import { useStore } from "vuex";
 
 const { t } = useI18n()

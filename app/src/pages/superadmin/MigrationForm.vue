@@ -82,7 +82,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Migration } from './migrations'
-import { config } from 'src/utils/config';
+import { config } from '@/utils/config';
 import type { CollectionResponse, Group } from '../../store/model';
 import { useStore } from 'vuex';
 import { useApiFetch } from '../../composables/useApiFetch';

@@ -38,7 +38,7 @@ const tokenUrl = new URL('/token', config.AUTH_URL).toString()
 const MAX_CACHED_TOKENS = 1000
 const TOKEN_EXPIRY_MARGIN_MS = 60 * 1000
 const tokenCache = new AsyncCache<string, string>(MAX_CACHED_TOKENS)
-const serviceTokenCache = new AsyncCache<string, string>(1)
+const serviceTokenCache = new AsyncCache<string, string>(2)
 const notificationsTokenCache = new AsyncCache<string, string>(1)
 
 const getCachedToken = async (
@@ -110,10 +110,10 @@ const requestAccountingToken = async (
   })
 }
 
-const requestSocialServiceToken = async (): Promise<CacheValue<string>> => {
+const requestSocialServiceToken = async (scope: AccountingTokenScope): Promise<CacheValue<string>> => {
   return requestToken({
     grant_type: 'client_credentials',
-    scope: Scope.AccountingRead,
+    scope,
   })
 }
 
@@ -127,11 +127,11 @@ const requestNotificationsToken = async (): Promise<CacheValue<string>> => {
 /**
  * Get a service token to call the accounting service on behalf of the social service.
  */
-export const getSocialServiceToken = async (forceRefresh = false): Promise<string> => {
+export const getSocialServiceToken = async (forceRefresh = false, scope: AccountingTokenScope = Scope.AccountingRead): Promise<string> => {
   return getCachedToken(
     serviceTokenCache,
-    CLIENT_ID,
-    requestSocialServiceToken,
+    scope,
+    () => requestSocialServiceToken(scope),
     forceRefresh,
   )
 }
@@ -173,6 +173,31 @@ export const redeemUnsubscribeToken = async (token: string): Promise<RedeemedUns
   return parsed.data
 }
 
+const redeemedDeletionSchema = z.object({
+  userId: z.uuid(),
+  data: z.uuid(),
+})
+
+/** Redeem a deletion token bound to this membership, without creating a user session. */
+export const redeemMemberDeletionToken = async (token: string, memberId: string) => {
+  const response = await fetchWithAuth(new URL('/redeem-action-token', config.AUTH_URL), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, purpose: 'memberDeletion' }),
+  }, getSocialServiceToken)
+  if (response.status === 400) {
+    throw badRequest('Invalid or expired deletion token. Request a new confirmation email.')
+  }
+  if (!response.ok) {
+    throw internalError('Auth action token redemption failed')
+  }
+  const redeemed = redeemedDeletionSchema.parse(await response.json())
+  if (redeemed.data !== memberId) {
+    throw badRequest('Deletion token does not match this membership')
+  }
+  return redeemed
+}
+
 /**
  * Get an access token to call the accounting service on behalf of a user.
  */
@@ -188,4 +213,16 @@ export const exchangeAccountingToken = async (
     () => requestAccountingToken(subjectToken, scope),
     forceRefresh,
   )
+}
+
+/** Delete an identity after Social has removed its last membership. Safe to retry. */
+export const deleteIdentity = async (userId: string): Promise<void> => {
+  const response = await fetchWithAuth(
+    new URL(`/users/${userId}`, config.AUTH_URL),
+    { method: 'DELETE' },
+    getSocialServiceToken,
+  )
+  if (response.status !== 204) {
+    throw internalError('Auth identity deletion failed')
+  }
 }

@@ -31,7 +31,7 @@ describe('Creates stellar elements', async () => {
     logger.level = "debug"
     // Create and fund a sponsor account.
     sponsor = Keypair.random()
-    await friendbot(config.STELLAR_FRIENDBOT_URL, sponsor.publicKey())
+    await friendbot(config.STELLAR_FRIENDBOT_URL, config.STELLAR_HORIZON_URL, sponsor.publicKey())
 
     // Instantiate the ledger.
     ledger = await createStellarLedger({

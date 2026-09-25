@@ -124,9 +124,9 @@ import SimpleMap from "../../components/SimpleMap.vue";
 import DeleteNeedBtn from "../../components/DeleteNeedBtn.vue";
 import Error404 from "../Error404.vue";
 
-import { useResource } from "src/composables/useResources";
+import { useResource } from "@/composables/useResources";
 import type { Need, Member, Category } from "../../store/model";
-import { KErrorCode } from "src/KError";
+import { KErrorCode } from "@/KError";
 
 type FullNeed = Need & { member: Member, category: Category }
 

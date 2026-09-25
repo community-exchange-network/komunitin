@@ -21,7 +21,7 @@
   </q-item-section>
 </template>
 <script setup lang="ts">
-import type { Account, Currency, Group, Member } from "src/store/model"
+import type { Account, Currency, Group, Member } from "@/store/model"
 import Avatar from "./Avatar.vue"
 import { computed } from "vue"
 

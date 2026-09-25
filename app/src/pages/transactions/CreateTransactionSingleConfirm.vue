@@ -37,8 +37,8 @@ import type { DeepPartial} from "quasar";
 import { useQuasar } from "quasar"
 import TransactionCard from '../../components/TransactionCard.vue'
 import {notifyTransactionState} from "../../plugins/NotifyTransactionState"
-import type { Transfer } from "src/store/model"
-import KError, { KErrorCode } from "src/KError"
+import type { Transfer } from "@/store/model"
+import KError, { KErrorCode } from "@/KError"
 import { onMounted } from "vue"
 
 const props = defineProps<{

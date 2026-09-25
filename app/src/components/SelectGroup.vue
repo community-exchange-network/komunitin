@@ -24,7 +24,7 @@ import { ref, computed, onMounted,  } from 'vue'
 import { useStore } from 'vuex'
 
 import GroupHeader from './GroupHeader.vue'
-import type { Group } from 'src/store/model'
+import type { Group } from '@/store/model'
 
 const props = defineProps<{
   modelValue?: Group|undefined

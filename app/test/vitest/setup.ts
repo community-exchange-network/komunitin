@@ -1,15 +1,4 @@
-// Load environment variables from file ".env.test"
-import { config } from "dotenv"
-import packageJson from "../../package.json"
 import { vi } from "vitest"
-
-config({ path: ".env.test" })
-const flavor = process.env.FLAVOR || "komunitin"
-config({ path: `.env.flavor.${flavor}` })
-
-// Fine-tune some variables specifically for testing:
-process.env.MOCK_ENVIRONMENT = "test"
-process.env.APP_VERSION = packageJson.version
 
 // Mock localforage to prevent "ReferenceError: localStorage is not defined"
 vi.mock("localforage", () => {
@@ -41,6 +30,17 @@ vi.mock("localforage", () => {
 
 // Mock window.scrollTo so it doesn't throw a "Not Implemented" error (by jsdom lib).
 window.scrollTo = vi.fn();
+Element.prototype.scrollTo = vi.fn();
+
+// Environment shims must survive tests calling vi.unstubAllGlobals().
+class MockObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+for (const name of ['ResizeObserver', 'IntersectionObserver']) {
+  Object.defineProperty(globalThis, name, { value: MockObserver, configurable: true, writable: true })
+}
 
 // Mock navigator.geolocation
 const mockGeolocation = {
@@ -106,7 +106,4 @@ Object.defineProperty(globalThis, "NDEFReader", { value: MockNDEFReader, configu
 Object.defineProperty(HTMLDivElement.prototype, "scrollHeight", { configurable: true, value: 1500 });
 Object.defineProperty(SVGSVGElement.prototype, "pauseAnimations", { value: vi.fn(), configurable: true });
 Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", { value: vi.fn(), configurable: true });
-
-
-
 

@@ -10,7 +10,7 @@
     >
       <template #buttons>
         <contact-button
-          v-if="!isLoading && group"
+          v-if="!loading && group"
           icon="message"
           round
           flat
@@ -30,7 +30,7 @@
       <q-page class="q-pa-md">
         <!-- Loading spinner -->
         <q-inner-loading
-          :showing="isLoading"
+          :showing="loading"
           color="icon-dark"
         />
         <!-- Group view -->
@@ -108,30 +108,7 @@
           class="row q-col-gutter-md"
         >
           <div class="col-12 col-sm-6 col-lg-8">
-            <q-card
-              square
-              flat
-            >
-              <simple-map
-                class="simple-map"
-                :center="center"
-                :marker="marker"
-                :bounds="memberMarkers"
-              >
-                <l-marker
-                  v-for="(memberMarker, i) of memberMarkers"
-                  :key="i"
-                  :lat-lng="memberMarker"
-                />
-              </simple-map>
-              <q-card-section
-                v-if="group.attributes.location?.name"
-                class="group-footer-card text-onsurface-m"
-              >
-                <q-icon name="place" />
-                {{ group.attributes.location.name }}
-              </q-card-section>
-            </q-card>
+            <group-members-map :group="group" />
           </div>
           <div class="col-12 col-sm-6 col-lg-4 relative-position">
             <social-network-list
@@ -159,58 +136,41 @@
 import { computed, shallowRef, watch, nextTick, useTemplateRef } from 'vue';
 import { useStore } from 'vuex';
 
-import { LMarker } from '@vue-leaflet/vue-leaflet';
-import type { LatLngExpression } from 'leaflet';
-
 import md2html from '../../plugins/Md2html';
 
 import PageHeader from '../../layouts/PageHeader.vue';
 import Avatar from '../../components/Avatar.vue';
 import ContactButton from '../../components/ContactButton.vue';
 import ShareButton from '../../components/ShareButton.vue';
-import SimpleMap from '../../components/SimpleMap.vue';
 import SocialNetworkList from '../../components/SocialNetworkList.vue';
 import FloatingBtn from '../../components/FloatingBtn.vue';
 import FitText from '../../components/FitText.vue';
 import NavCard from '../../components/NavCard.vue';
 import Error404 from '../Error404.vue';
+import GroupMembersMap from './GroupMembersMap.vue';
 
-import type { Group, Member } from '../../store/model';
-import { useAllResources, useResource } from 'src/composables/useResources';
+import type { Group } from '../../store/model';
+import { useResource } from '@/composables/useResources';
 import { useI18n } from 'vue-i18n';
-import { KErrorCode } from 'src/KError';
+import { KErrorCode } from '@/KError';
 
 const props = defineProps<{ code: string }>();
 
 const store = useStore();
 const { t } = useI18n();
 
-const isLoading = shallowRef(false);
 const isDescriptionOpen = shallowRef(false);
 const descriptionRef = useTemplateRef<HTMLElement>('descriptionRef');
 const canToggleDescription = shallowRef(false);
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn);
 const myMember = computed(() => store.getters.myMember);
-const manualLoad = { immediate: false, watch: false };
 const groupOptions = computed(() => ({ group: props.code }));
-const { resource: group, load: loadGroup, error } = useResource<Group>('groups', groupOptions, manualLoad);
+const { resource: group, loading, error } = useResource<Group>('groups', groupOptions);
 const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id);
-const center = computed(() => group.value?.attributes.location?.coordinates);
-const marker = computed(() => center.value);
-
-const memberOptions = computed(() => ({ group: props.code }));
-const { resources: members, loadAll: loadAllMembers } = useAllResources<Member>('members', memberOptions, manualLoad);
-
-const memberMarkers = computed<LatLngExpression[]>(() => {
-  return own.value
-    ? members.value
-      .map((member: Member) => member.attributes?.location?.coordinates.slice().reverse())
-      .filter(Boolean) as LatLngExpression[]
-    : [];
-});
+const memberCount = computed(() => group.value?.relationships.members.meta.count)
 const membersLabel = computed(
-  () => `${t('members')} ${isLoggedIn.value && members.value?.length ? `(${members.value.length})` : ''}`
+  () => `${t('members')} ${isLoggedIn.value && memberCount.value ? `(${memberCount.value})` : ''}`
 );
 
 
@@ -233,24 +193,8 @@ const calculateDescriptionOverflow = async (maxLines = 3) => {
   canToggleDescription.value = el.scrollHeight > maxHeight + 1;
 };
 
-const fetchData = async () => {
-  isLoading.value = true;
-  try {
-    await loadGroup();
-    if (own.value) {
-      await loadAllMembers();
-    }
-  } finally {
-    isLoading.value = false;
-  }
-};
+watch(group, async () => {
+  await calculateDescriptionOverflow();
+}, { immediate: true });
 
-watch(
-  () => props.code,
-  async () => {
-    await fetchData();
-    await calculateDescriptionOverflow();
-  },
-  { immediate: true }
-);
 </script>

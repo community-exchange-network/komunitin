@@ -6,7 +6,7 @@ import {
   getResizedImageDimensions,
   getUploadImageFileName,
   resizeImageToWebp
-} from "src/utils/imageUpload"
+} from "@/utils/imageUpload"
 
 interface MockImageBitmap {
   width: number

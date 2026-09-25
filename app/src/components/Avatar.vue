@@ -17,7 +17,7 @@
 <script setup lang="ts">
 import { colors } from "quasar";
 import { computed } from "vue";
-import type { ImageObject } from "src/store/model";
+import type { ImageObject } from "@/store/model";
 
 const props = withDefaults(defineProps<{
   imgSrc?: ImageObject | null,

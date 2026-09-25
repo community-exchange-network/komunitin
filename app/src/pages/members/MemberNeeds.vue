@@ -13,7 +13,7 @@ import ResourceCards from "../ResourceCards.vue";
 import NeedCard from "../../components/NeedCard.vue";
 import type { Member } from "../../store/model";
 import { useStore } from "vuex";
-import { getMemberPostsFilter } from "src/composables/memberPostsFilter";
+import { getMemberPostsFilter } from "@/composables/memberPostsFilter";
 
 const props = defineProps<{
   groupCode: string,

@@ -31,9 +31,9 @@
   </q-form>
 </template>
 <script setup lang="ts">
-import type { Group } from 'src/store/model';
-import md2html from 'src/plugins/Md2html';
-import GroupHeader from 'src/components/GroupHeader.vue'
+import type { Group } from '@/store/model';
+import md2html from '@/plugins/Md2html';
+import GroupHeader from '@/components/GroupHeader.vue'
 
 defineProps<{
   group: Group

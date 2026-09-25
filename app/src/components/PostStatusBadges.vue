@@ -21,7 +21,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { PostStatus } from "src/store/model"
+import type { PostStatus } from "@/store/model"
 import PillBadge from "./PillBadge.vue"
 
 defineProps<{

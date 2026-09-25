@@ -44,8 +44,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { isNfcAvailable, scan } from 'src/composables/webNfc'
-import KError, { KErrorCode } from 'src/KError'
+import { isNfcAvailable, scan } from '@/composables/webNfc'
+import KError, { KErrorCode } from '@/KError'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 defineProps<{

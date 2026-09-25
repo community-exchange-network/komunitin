@@ -1,5 +1,5 @@
 import logger from '../../../utils/logger';
-import { ctxPasswordReset, ctxValidationEmail } from '../../emails/user';
+import { ctxPasswordResetEmail, ctxMemberDeletionEmail, ctxValidationEmail } from '../../emails/user';
 import { ctxWelcomeEmail, ctxMemberRequestedEmail, ctxMemberExpiredPostsEmail } from '../../emails/member';
 import { ctxGroupActivatedEmail, ctxGroupRequestedEmail } from '../../emails/group';
 import { EnrichedTransferEvent, EnrichedMemberEvent, EnrichedMemberHasExpiredPostsEvent, EnrichedMemberRequestedEvent, EnrichedGroupEvent, EnrichedUserEvent } from '../../enriched-events';
@@ -46,9 +46,12 @@ export const initEmailChannel = (): (() => void) => {
         "message",
         ctxValidationEmail
     )),
-    eventBus.on(EVENT_NAME.PasswordResetRequested, async (event: EnrichedUserEvent) => 
-      handleEmailAddressEvent(event, event.data.email, undefined, "message", ctxPasswordReset
+    eventBus.on(EVENT_NAME.PasswordResetRequested, async (event: Extract<EnrichedUserEvent, { name: 'PasswordResetRequested' }>) =>
+      handleEmailAddressEvent(event, event.data.email, undefined, "message", ctxPasswordResetEmail
     )),
+    eventBus.on(EVENT_NAME.MemberDeletionRequested, async (event: Extract<EnrichedUserEvent, { name: 'MemberDeletionRequested' }>) =>
+      handleEmailAddressEvent(event, event.data.email, undefined, "message", ctxMemberDeletionEmail)
+    ),
 
     // Transfer events
     eventBus.on(EVENT_NAME.TransferCommitted, async (event: EnrichedTransferEvent) => {

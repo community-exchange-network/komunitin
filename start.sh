@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 usage() {
   cat <<EOF
 Usage: $0 [OPTIONS]
@@ -86,15 +88,9 @@ if [ "$up" = true ]; then
 if [ "$public" = true ]; then
   docker compose -f compose.yml -f compose.public.yml up -d --build --remove-orphans
 elif [ "$dev" = true ]; then
-  # Create .env files required by compose.dev.yml volume mounts if they don't exist.
-  # Docker creates empty directories in their place if the host files are missing,
-  # which causes the services to fail to start.
-  touch -a app/.env accounting/.env notifications-ts/.env auth/.env social/.env
   mkdir -p notifications-ts/tmp
-  docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans
-  docker compose exec auth pnpm prisma generate
-  docker compose exec social pnpm prisma generate
-  docker compose exec accounting pnpm prisma generate
+  # Refresh dependencies and generated code from the rebuilt images.
+  docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans --renew-anon-volumes
 else
   docker compose up -d --build --remove-orphans
 fi

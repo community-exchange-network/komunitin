@@ -22,9 +22,9 @@
 import { shallowRef } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useStore } from "vuex"
-import { Auth } from "src/plugins/Auth"
-import type { ConfirmedAuthUser } from "src/plugins/Auth"
-import { useEmailConfirmation } from "src/composables/useEmailConfirmation"
+import { Auth } from "@/plugins/Auth"
+import type { ConfirmedAuthUser } from "@/plugins/Auth"
+import { useEmailConfirmation } from "@/composables/useEmailConfirmation"
 
 const route = useRoute()
 const router = useRouter()

@@ -77,7 +77,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import type { QUploader } from 'quasar'
-import type { ImageObject } from 'src/store/model'
+import type { ImageObject } from '@/store/model'
 import ImageFieldItem from './ImageFieldItem.vue'
 import { imageFile, useImageUploader } from '../composables/uploader'
 

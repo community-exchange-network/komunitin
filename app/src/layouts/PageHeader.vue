@@ -135,7 +135,7 @@ import { useStore } from "vuex"
 import { useRoute, useRouter } from "vue-router"
 import FormatCurrency from "../plugins/FormatCurrency";
 import Banner from "./Banner.vue";
-import ProfileBtnMenu from 'src/components/ProfileBtnMenu.vue';
+import ProfileBtnMenu from '@/components/ProfileBtnMenu.vue';
 
 const props = withDefaults(defineProps<{
   title?: string;
@@ -194,7 +194,7 @@ let balanceScaleFactor: MaybeRef<number> = 0
 let scrollHandler: (details: {position: {top: number}}) => void | undefined = undefined
 
 // This code is stripped out if the feature is disabled
-if (process.env.FEAT_HEADER_BALANCE === 'true') {
+if (import.meta.env.FEAT_HEADER_BALANCE === 'true') {
   /**
    * Constant value for the toolbar height.
    */

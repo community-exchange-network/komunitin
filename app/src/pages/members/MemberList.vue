@@ -73,7 +73,7 @@ import PageHeader from "../../layouts/PageHeader.vue";
 import ResourceCards from "../ResourceCards.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
 import { useStore } from "vuex";
-import { useResource } from 'src/composables/useResources';
+import { useResource } from '@/composables/useResources';
 import type { Currency, CurrencySettings } from "../../store/model";
 
 const props = defineProps<{
@@ -81,7 +81,8 @@ const props = defineProps<{
 }>();
 
 const store = useStore();
-const { resource: currency } = useResource<Currency & { settings: CurrencySettings }>('currencies', { group: props.code, include: 'settings' });
+const options = computed(() => ({ group: props.code, include: 'settings' }));
+const { resource: currency } = useResource<Currency & {settings: CurrencySettings}>('currencies', options);
 
 const showBalances = computed(() => 
   currency.value?.settings?.attributes.defaultHideBalance !== true

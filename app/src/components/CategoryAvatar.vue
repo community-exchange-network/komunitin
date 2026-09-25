@@ -22,7 +22,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from "vue"
-import type { Category } from "src/store/model"
+import type { Category } from "@/store/model"
 
 const props = withDefaults(defineProps<{
   category: Category,

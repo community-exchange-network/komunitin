@@ -68,7 +68,7 @@ import { useStore } from "vuex"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 import { useRedirectQuery } from "../../composables/useRedirectQuery"
-import { useEmailConfirmation } from "src/composables/useEmailConfirmation"
+import { useEmailConfirmation } from "@/composables/useEmailConfirmation"
 
 const { confirmation, clearConfirmation } = useEmailConfirmation()
 const email = shallowRef(confirmation.value?.email ?? "")

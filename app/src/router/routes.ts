@@ -55,6 +55,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/settings/EditSettings.vue')
       },
       {
+        path: '/groups/:code/members/:memberId/delete',
+        name: 'ConfirmMemberDeletion',
+        component: () => import('../pages/settings/ConfirmMemberDeletion.vue'),
+        meta: { public: true, back: false }
+      },
+      {
         path: '/notifications',
         name: 'Notifications',
         component: () => import('../pages/user/Notifications.vue'),
@@ -458,7 +464,7 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
-if (process.env.FEAT_TOPUP === 'true') {
+if (import.meta.env.FEAT_TOPUP === 'true') {
   const mainLayout = routes.find(route => route.name === 'MainLayout');
   mainLayout?.children?.push({
     path: '/groups/:code/members/:memberCode/topup',

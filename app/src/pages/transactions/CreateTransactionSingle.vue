@@ -32,7 +32,7 @@ import { useI18n } from "vue-i18n"
 import CreateTransactionSingleForm from "./CreateTransactionSingleForm.vue"
 import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue"
 import type { DeepPartial } from "quasar"
-import { useCreateTransferPayeeAccount, useCreateTransferPayerAccount } from "src/composables/fullAccount"
+import { useCreateTransferPayeeAccount, useCreateTransferPayerAccount } from "@/composables/fullAccount"
 
 const props = defineProps<{
   /**

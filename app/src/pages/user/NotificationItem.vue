@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { type Notification } from '../../store/model';
-import Avatar from 'src/components/Avatar.vue';
+import Avatar from '@/components/Avatar.vue';
 
 const props = defineProps<{
   notification: Notification

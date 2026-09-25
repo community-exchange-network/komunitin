@@ -26,7 +26,7 @@
   </q-banner>
 </template>
 <script setup lang="ts">
-import KError, { KErrorCode } from "src/KError";
+import KError, { KErrorCode } from "@/KError";
 import { ref, computed, onBeforeMount } from "vue";
 import { useStore } from "vuex";
 

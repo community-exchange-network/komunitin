@@ -184,6 +184,11 @@
     "expired_posts_cta_secondary": "Voir vos {{type}}",
     "expired_posts_postscript": "Tenir vos publications à jour est vital pour le bon fonctionnement de la communauté. Merci pour votre collaboration !",
     "expired_posts_more_title": "Autres publications expirées",
-    "expired_posts_expired_ago": "Expiré {{time, relativetime}}"
+    "expired_posts_expired_ago": "Expiré {{time, relativetime}}",
+    "delete_member_subject": "Confirmez la suppression – {{name}}",
+    "delete_member_label": "Confirmer la suppression",
+    "delete_member_text": "Vous avez demandé la suppression de {{member}} dans {{name}}. Utilisez le lien pour confirmer.",
+    "delete_member_cta": "Confirmer la suppression",
+    "delete_member_reason": "Vous recevez cet e-mail car une suppression a été demandée dans {{appName}}."
   }
 }

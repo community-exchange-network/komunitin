@@ -1,5 +1,5 @@
 import localforage from 'localforage'
-import { config, setConfig as loadConfig } from '../src/utils/config'
+import { config, setConfig as loadConfig } from '@/utils/config'
 
 const CONFIG_STORAGE_KEY = 'app-config'
 let configRestored = false

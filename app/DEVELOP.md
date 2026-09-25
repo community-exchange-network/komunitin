@@ -15,7 +15,7 @@ cd komunitin/app
 
 ### Install
 
-Install the [Quasar framework](https://quasar.dev/), a develompent framework built over [Vue.js](https://vuejs.org/).
+Use Node.js 24 and `pnpm` package manager.
 
 ```bash
 pnpm install
@@ -55,6 +55,26 @@ pnpm dev
 
 We use the de development IDE Visual Studio Code. [Follow this page](https://quasar.dev/start/vs-code-configuration) to set it up.
 
+### Lint
+
+We use the [ESLint](https://eslint.org/) linter for static code analysis. Launch it with:
+```bash
+pnpm lint
+```
+
+### Typecheck
+
+Run the `tsc` compiler to check both the application and the service worker code.
+
+```bash
+pnpm run typecheck
+```
+
+### Build
+```bash
+pnpm build
+```
+
 ### Test
 
 Run the app tests. Tests are executed using [vitest](https://vitest.dev/) framework and with mocked backend services.
@@ -67,16 +87,7 @@ pnpm test
 
 We use [Mirage](https://miragejs.com/) library for backend API mocking. It is enabled by default in `pnpm dev` script.
 
-### Lint
-We use the [ESLint](https://eslint.org/) linter for static code analysis. Launch it with:
-```bash
-pnpm lint
-```
 
-### Build
-```bash
-pnpm build
-```
 
 ### Docker
 

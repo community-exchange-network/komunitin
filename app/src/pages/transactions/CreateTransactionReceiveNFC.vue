@@ -67,17 +67,17 @@
   </div>
 </template>
 <script setup lang="ts">
-import { transferAccountRelationships, useCreateTransferPayeeAccount } from 'src/composables/fullAccount';
-import type { Currency, ExtendedTransfer } from 'src/store/model';
+import { transferAccountRelationships, useCreateTransferPayeeAccount } from '@/composables/fullAccount';
+import type { Currency, ExtendedTransfer } from '@/store/model';
 import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
-import FormatCurrency from 'src/plugins/FormatCurrency';
+import FormatCurrency from '@/plugins/FormatCurrency';
 import CreateTransactionSingleForm from './CreateTransactionSingleForm.vue';
 import CreateTransactionSingleConfirm from './CreateTransactionSingleConfirm.vue';
-import AccountHeader from 'src/components/AccountHeader.vue';
-import NfcTagScanner from 'src/components/NfcTagScanner.vue';
-import KError, { KErrorCode } from 'src/KError';
-import { useFullTransferByResource } from 'src/composables/fullTransfer';
+import AccountHeader from '@/components/AccountHeader.vue';
+import NfcTagScanner from '@/components/NfcTagScanner.vue';
+import KError, { KErrorCode } from '@/KError';
+import { useFullTransferByResource } from '@/composables/fullTransfer';
 
 const props = defineProps<{
   code: string,

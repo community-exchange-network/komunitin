@@ -1,6 +1,6 @@
-node_modules
+**/node_modules
 .quasar
 dist
-coverage
 tmp
+coverage
 *.log

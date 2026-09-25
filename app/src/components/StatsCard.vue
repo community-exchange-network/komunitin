@@ -34,9 +34,9 @@
   </q-card>
 </template>
 <script setup lang="ts">
-import type { StatsValue} from 'src/composables/currencyStats';
-import { useCurrencyStatsFormattedValue  } from 'src/composables/currencyStats';
-import type { Currency } from 'src/store/model';
+import type { StatsValue} from '@/composables/currencyStats';
+import { useCurrencyStatsFormattedValue  } from '@/composables/currencyStats';
+import type { Currency } from '@/store/model';
 import { computed } from 'vue';
 
  

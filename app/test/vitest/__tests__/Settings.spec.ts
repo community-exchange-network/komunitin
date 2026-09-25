@@ -1,15 +1,15 @@
 import type { VueWrapper } from "@vue/test-utils"
 import { QSelect } from "quasar"
-import App from "src/App.vue"
-import ToggleItem from "src/components/ToggleItem.vue"
-import { i18n } from "src/boot/i18n"
-import EditSettings from "src/pages/settings/EditSettings.vue"
-import AccountSettingsFields from "src/pages/settings/AccountSettingsFields.vue"
-import server, { seeds } from "src/server"
+import App from "@/App.vue"
+import ToggleItem from "@/components/ToggleItem.vue"
+import { i18n } from "@/boot/i18n"
+import EditSettings from "@/pages/settings/EditSettings.vue"
+import AccountSettingsFields from "@/pages/settings/AccountSettingsFields.vue"
+import server, { seeds } from "@/server"
 import {
   getMockPreferencePatchRequests,
   resetMockPreferencePatchRequests,
-} from "src/server/SocialServer"
+} from "@/server/SocialServer"
 import { mountComponent, waitFor } from "../utils"
 
 describe("Member-user settings", () => {

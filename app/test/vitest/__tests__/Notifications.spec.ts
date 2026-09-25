@@ -1,11 +1,11 @@
 import { type VueWrapper } from "@vue/test-utils";
-import App from "src/App.vue";
+import App from "@/App.vue";
 import { mountComponent, waitFor } from "../utils";
-import { seeds } from "src/server";
+import { seeds } from "@/server";
 import { QBadge, QMenu } from "quasar";
-import ProfileBtnMenu from "src/components/ProfileBtnMenu.vue";
-import NotificationsMenuItem from "src/components/NotificationsMenuItem.vue";
-import NotificationItem from "src/pages/user/NotificationItem.vue";
+import ProfileBtnMenu from "@/components/ProfileBtnMenu.vue";
+import NotificationsMenuItem from "@/components/NotificationsMenuItem.vue";
+import NotificationItem from "@/pages/user/NotificationItem.vue";
 
 describe("Notifications", () => {
   let wrapper: VueWrapper;

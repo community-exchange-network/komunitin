@@ -1,5 +1,5 @@
-import KError, { KErrorCode } from "src/KError";
-import locate from "src/plugins/Location";
+import KError, { KErrorCode } from "@/KError";
+import locate from "@/plugins/Location";
 import type { ActionContext, Module } from "vuex";
 import { setAccountingApiUrl } from ".";
 import type { AuthData } from "../plugins/Auth";
@@ -16,7 +16,7 @@ import type {
   ResourceObject,
 } from "./model";
 
-import { config } from "src/utils/config";
+import { config } from "@/utils/config";
 import { apiRequest } from "./request";
 import { resolveRelationshipUrl } from "./relationships";
 

@@ -65,8 +65,8 @@ import { useStore } from "vuex";
 import TransactionCardAccount from "./TransactionCardAccount.vue";
 import PillBadge from "./PillBadge.vue";
 import FormatCurrency, { convertCurrency } from "../plugins/FormatCurrency"
-import type { Currency, ExtendedTransfer, Group } from "src/store/model";
-import { useTransferStatus } from "src/composables/transferStatus";
+import type { Currency, ExtendedTransfer, Group } from "@/store/model";
+import { useTransferStatus } from "@/composables/transferStatus";
 
 const props = defineProps<{
   transfer: ExtendedTransfer

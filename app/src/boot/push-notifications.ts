@@ -1,8 +1,8 @@
 import { Notify } from "quasar";
-import { boot } from "quasar/wrappers";
-import store from "src/store";
-import { config } from "src/utils/config";
-import { getActionRoute, type NotificationData, type PushPayload } from "src/utils/push-notifications";
+import { defineBoot } from "#q-app";
+import store from "@/store";
+import { config } from "@/utils/config";
+import { getActionRoute, type NotificationData, type PushPayload } from "@/utils/push-notifications";
 import type { Router } from "vue-router";
 import { i18n } from "./i18n";
 
@@ -11,7 +11,7 @@ import { i18n } from "./i18n";
  * It receives messages via the Service Worker postMessage API and displays them as in-app notifications
  * using Quasar's Notify plugin.
  */
-export default boot(({ router }) => {
+export default defineBoot(({ router }) => {
   if (!("serviceWorker" in navigator)) {
     return;
   }

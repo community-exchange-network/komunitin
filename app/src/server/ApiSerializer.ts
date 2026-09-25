@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Request } from "miragejs";
 import { JSONAPISerializer } from "miragejs";
-import type { ResourceIdentifierObject, ResourceObject } from "src/store/model";
+import type { ResourceIdentifierObject, ResourceObject } from "@/store/model";
 
 declare module "miragejs/serializer" {
   interface JSONAPISerializer {

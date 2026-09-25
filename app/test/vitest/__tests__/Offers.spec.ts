@@ -5,12 +5,12 @@ import { mountComponent, requireText, waitFor } from "../utils";
 import { QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
-import ApiSerializer from "src/server/ApiSerializer";
-import server, { seeds } from "src/server";
-import SelectCategory from "src/components/SelectCategory.vue";
-import type { Category, Member, Offer } from "src/store/model";
-import DeleteOfferBtn from "src/components/DeleteOfferBtn.vue";
-import ConfirmBtn from "src/components/ConfirmBtn.vue";
+import ApiSerializer from "@/server/ApiSerializer";
+import server, { seeds } from "@/server";
+import SelectCategory from "@/components/SelectCategory.vue";
+import type { Category, Member, Offer } from "@/store/model";
+import DeleteOfferBtn from "@/components/DeleteOfferBtn.vue";
+import ConfirmBtn from "@/components/ConfirmBtn.vue";
 
 type FullOffer = Offer & { member: Member, category: Category };
 type SelectOption = { label: string, value: string };

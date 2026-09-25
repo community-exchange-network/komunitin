@@ -53,14 +53,14 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { Currency, ExtendedTransfer, Account } from "src/store/model";
+import type { Currency, ExtendedTransfer, Account } from "@/store/model";
 import { computed, ref } from "vue"
 import { useStore } from "vuex";
 import CreateTransactionSingleForm from "./CreateTransactionSingleForm.vue";
-import AccountHeader from "src/components/AccountHeader.vue";
-import QrCode from "src/components/QrCode.vue";
-import { useCreateTransferPayeeAccount } from "src/composables/fullAccount";
-import FormatCurrency from "src/plugins/FormatCurrency";
+import AccountHeader from "@/components/AccountHeader.vue";
+import QrCode from "@/components/QrCode.vue";
+import { useCreateTransferPayeeAccount } from "@/composables/fullAccount";
+import FormatCurrency from "@/plugins/FormatCurrency";
 
 const props = defineProps<{
   code: string,

@@ -3,7 +3,7 @@ import { createStore } from "vuex";
 import type { LoadListPayload, LoadPayload, ResourcesState } from "./resources";
 import { Resources } from "./resources";
 import { NotificationResources } from "./notifications";
-import { config } from "src/utils/config";
+import { config } from "@/utils/config";
 import type {
   User,
   MemberUser,
@@ -20,7 +20,7 @@ import type {
   CurrencySettings,
   Trustline,
   Notification
-} from "src/store/model";
+} from "@/store/model";
 // Import logged-in user module
 import type { UserState } from "./me";
 import me from "./me";
@@ -28,7 +28,7 @@ import type { UIState } from "./ui";
 import ui from "./ui";
 import createPersistPlugin from "./persist";
 export { storeReady } from "./persist";
-import KError, { KErrorCode } from "src/KError";
+import KError, { KErrorCode } from "@/KError";
 import type { Topup, AccountTopupSettings, TopupSettings } from "../features/topup/model";
 
 // Build modules for Social API:
@@ -164,7 +164,7 @@ const modules = {
     notifications,
   }
 
-if (process.env.FEAT_TOPUP === "true") {
+if (import.meta.env.FEAT_TOPUP === 'true') {
   modules["topup-settings"] = new (class extends Resources<TopupSettings, unknown> {
     collectionEndpoint = () => {throw new KError(KErrorCode.ScriptError, "Topup settings cannot be listed");}
     resourceEndpoint = (groupCode: string) => `/${groupCode}/currency/topup-settings`;
@@ -189,9 +189,12 @@ if (process.env.FEAT_TOPUP === "true") {
 
 export default createStore({
   modules,
-  // enable strict mode (adds overhead!) for dev mode only
-  strict: process.env.DEV === "true",
-  plugins: [createPersistPlugin()]
+  // It is generally advisable to enable strict mode in development. That checks state is
+  // not mutated outside commit actions. However we're mutating nested records within
+  // resource modules (eg we directly change the state outside of a commit when we delete
+  // a resource), so we should address that before enabling strict mode.
+  strict: false,
+  plugins: import.meta.env.QUASAR_SERVER ? [] : [createPersistPlugin()]
 });
 
 export const setAccountingApiUrl = (url: string) => {

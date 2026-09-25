@@ -1,10 +1,10 @@
 import { Notify, type QUploader } from "quasar"
 import { computed, shallowRef, toValue, type MaybeRefOrGetter, type Ref } from "vue"
 import { useStore } from "vuex"
-import { config } from "src/utils/config"
-import { resizeImageToWebp } from "src/utils/imageUpload"
-import { i18n } from "src/boot/i18n"
-import type { ImageObject } from "src/store/model"
+import { config } from "@/utils/config"
+import { resizeImageToWebp } from "@/utils/imageUpload"
+import { i18n } from "@/boot/i18n"
+import type { ImageObject } from "@/store/model"
 
 type FileResourceType = "members" | "groups" | "offers" | "needs"
 

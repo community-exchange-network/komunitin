@@ -6,7 +6,7 @@
 # Build stage
 
 
-FROM node:22 AS komunitin-app-build
+FROM node:24 AS komunitin-app-build
 
 ARG FLAVOR=komunitin 
 
@@ -30,9 +30,11 @@ RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 # Copy just package.json (and pnpm-lock.yaml) so when there's no package changes we don't 
 # need to redo the install step.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY src-pwa/package.json src-pwa/pnpm-lock.yaml src-pwa/pnpm-workspace.yaml ./src-pwa/
+COPY src-ssg/package.json src-ssg/pnpm-lock.yaml src-ssg/pnpm-workspace.yaml ./src-ssg/
 
 # Install dependencies.
-RUN pnpm install
+RUN pnpm install --frozen-lockfile && pnpm --dir src-pwa install --frozen-lockfile && pnpm --dir src-ssg install --frozen-lockfile
 
 # Copy sources 
 COPY . .
@@ -49,7 +51,7 @@ RUN pnpm run build
 FROM nginx:stable-alpine AS komunitin-app
 
 # Copy the built application from Build stage to nginx HTML folder.
-COPY --from=komunitin-app-build /app/dist/pwa /usr/share/nginx/html
+COPY --from=komunitin-app-build /app/dist/ssg /usr/share/nginx/html
 
 # Configure nginx so that load/refresh works with virtual routes
 RUN rm /etc/nginx/conf.d/default.conf

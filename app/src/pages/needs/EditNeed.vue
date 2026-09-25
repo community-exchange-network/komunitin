@@ -28,7 +28,7 @@
   </template>
 </template>
 <script setup lang="ts">
-import { useEditablePost } from 'src/composables/editablePost'
+import { useEditablePost } from '@/composables/editablePost'
 import PageHeader from "../../layouts/PageHeader.vue"
 import NeedForm from "./NeedForm.vue"
 import Error404 from '../Error404.vue'

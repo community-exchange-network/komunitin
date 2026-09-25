@@ -5,7 +5,7 @@ import { getCollectionParams, getCode, getIdParam, getResourceParams } from '../
 import { getValidatedBody } from '../../server/validation'
 import type { CreateMemberBody, PatchMemberBody } from './schema'
 import { serializeMember, serializeMembers } from './serialize'
-import { createMember, deleteMember, getMember, listMembers, patchMember } from './service'
+import { createMember, deleteMember, getMember, listMembers, patchMember, requestMemberDeletion } from './service'
 
 export const getMembersRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
@@ -64,10 +64,20 @@ export const patchMemberRoute: RequestHandler = async (req, res) => {
 }
 
 export const deleteMemberRoute: RequestHandler = async (req, res) => {
+  const ctx = getOptionalAuthContext(req)
+  const code = getCode(req)
+  const memberId = getIdParam(req, 'member')
+  const token = typeof req.body?.meta?.token === 'string' ? req.body.meta.token : undefined
+
+  await deleteMember(ctx, code, memberId, token)
+  res.status(204).send()
+}
+
+export const requestMemberDeletionRoute: RequestHandler = async (req, res) => {
   const ctx = getAuthContext(req)
   const code = getCode(req)
   const memberId = getIdParam(req, 'member')
 
-  await deleteMember(ctx, code, memberId)
+  await requestMemberDeletion(ctx, code, memberId)
   res.status(204).send()
 }
