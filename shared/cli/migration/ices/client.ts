@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { MAX_MIGRATION_DATA_ROWS } from '../../../social/src/features/migrations/bundle/constants'
+import { MAX_MIGRATION_DATA_ROWS } from '../../../../social/src/features/migrations/bundle/constants'
 
 const identifierSchema = z.object({ type: z.string(), id: z.string() })
 const linkSchema = z.union([z.string(), z.object({ href: z.string() })]).nullable()

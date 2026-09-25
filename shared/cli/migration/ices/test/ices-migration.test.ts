@@ -5,11 +5,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parse } from 'csv-parse/sync'
 import { createAllIcesMigrationBundles, createIcesMigrationBundle } from '../index'
-import { parseMigrationBundle, MIGRATION_PARSER_LIMITS } from '../../../../social/src/features/migrations/bundle'
-import { loadMigrationBundle } from '../../../../social/src/features/migrations/bundle/container'
-import { CSV_HEADERS } from '../../../../social/src/features/migrations/bundle/csv'
+import { parseMigrationBundle, MIGRATION_PARSER_LIMITS } from '../../../../../social/src/features/migrations/bundle'
+import { loadMigrationBundle } from '../../../../../social/src/features/migrations/bundle/container'
+import { CSV_HEADERS } from '../../../../../social/src/features/migrations/bundle/csv'
 import { icesId, serveIces } from './mocks/ices'
-import { encodeCsv, mutateCsv, omitBlankColumns, resultCodes, zipFromFiles } from '../../../../social/test/migration/migration-bundle-helpers'
+import { encodeCsv, mutateCsv, omitBlankColumns, resultCodes, zipFromFiles } from '../../../../../social/test/migration/migration-bundle-helpers'
 
 test('exports legacy auth/social HTTP resources to a valid CSV ZIP without querying accounting', async (t) => {
   const fixture = await serveIces(t)
@@ -53,7 +53,6 @@ test('exports legacy auth/social HTTP resources to a valid CSV ZIP without query
   assert.deepEqual(plan.posts[0].imageUrls, ['https://example.org/a.jpg', 'https://example.org/a.jpg'])
   assert.equal(plan.posts[3].category, null)
   assert.equal(plan.posts[3].title, null)
-  assert.ok(result.warnings.some((warning) => warning.includes('password hashes')))
   assert.ok(result.warnings.some((warning) => warning.includes('daily/quarterly')))
 
   const tokenRequests = fixture.requests.filter(({ url }) => url.pathname.endsWith('/token'))

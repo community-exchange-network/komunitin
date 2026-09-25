@@ -1,8 +1,8 @@
 import { buffer } from 'node:stream/consumers'
 import { ZipFile } from 'yazl'
-import { MIGRATION_BUNDLE_FILENAMES, MAX_MIGRATION_DATA_ROWS, type MigrationBundleFilename } from '../../../social/src/features/migrations/bundle/constants'
-import { encodeCsv, CSV_HEADERS } from '../../../social/src/features/migrations/bundle/csv'
-import type { MigrationSummary } from '../../../social/src/features/migrations/bundle/types'
+import { MIGRATION_BUNDLE_FILENAMES, MAX_MIGRATION_DATA_ROWS, type MigrationBundleFilename } from '../../../../social/src/features/migrations/bundle/constants'
+import { encodeCsv, CSV_HEADERS } from '../../../../social/src/features/migrations/bundle/csv'
+import type { MigrationSummary } from '../../../../social/src/features/migrations/bundle/types'
 import { collection, identifiers, includedResources, IcesClient, single, type IcesAuth, type IcesDocument, type IcesResource } from './client'
 
 export interface IcesExportOptions {
@@ -106,7 +106,6 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
   if (!/^[A-Z0-9]{4}$/.test(code)) throw new Error('ICES community code must be four uppercase letters or digits')
   const rows = Object.fromEntries(MIGRATION_BUNDLE_FILENAMES.map((file) => [file, [] as Row[]])) as Record<MigrationBundleFilename, Row[]>
   const warnings = new Set([
-    'ICES does not expose password hashes, identity status, identity name or identity timestamps. These user fields are blank; Auth migration requires an explicit credential and status policy or a supplemental export.',
     'ICES exposes only the first owner of each member through filter[members]. Additional shared-account owners and identities without a member or community administrator relationship cannot be discovered through this API.',
   ])
   let rowCount = 0

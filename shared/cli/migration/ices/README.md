@@ -1,23 +1,23 @@
 # ICES auth/social export
 
-Exports one or all communities from the Drupal-based Komunitin API into the CSV migration bundle format. Currencies and accounts are reconciled by code; IDs are retained when the source exposes them. The result is a CSV ZIP. The exporter does not run the bundle parser; import validation is a separate step, and tests check exported bundles against the parser. Import execution is separate and is not implemented yet.
+Exports one or all communities from the Drupal-based Komunitin API into the CSV migration bundle format. Currencies and accounts are reconciled by code; IDs are retained when the source exposes them. The result is a CSV ZIP. The exporter does not run the bundle parser; import validation is a separate step, and tests check exported bundles against the parser. Import execution is provided by the [Social migration endpoint and CLI](../../../../social/src/features/migrations/README.md), for communities already migrated to Accounting.
 
-From `shared/migration/ices/` (Node.js 24):
+From the repository root (Node.js 24 and pnpm):
 
 ```sh
-pnpm --dir ../../../social install
-pnpm install
+pnpm --dir social install
+pnpm --dir shared/cli install
 export ICES_ADMIN_EMAIL=admin@example.org
 read -rs ICES_ADMIN_PASSWORD
 export ICES_ADMIN_PASSWORD
 read -rs ICES_DATABASE_URL
 export ICES_DATABASE_URL
 # mysql://read_only_user:password@host:3306/drupal_database
-pnpm migrate:ices --url https://ices.example.org --code ABCD --output ABCD.zip
+./shared/cli/komunitin admin bundle ices --url https://ices.example.org --code ABCD --output ABCD.zip
 unset ICES_ADMIN_PASSWORD ICES_DATABASE_URL
 ```
 
-`migrate:ices` runs the API exporter followed by the separate database enrichment script. Both steps can also be run independently:
+The CLI generates the API bundle, then enriches it from the source database. Both steps can also be run independently from `shared/cli/`:
 
 ```sh
 pnpm export:ices --url https://ices.example.org --code ABCD --output ABCD.zip
@@ -27,16 +27,16 @@ pnpm passwords:ices --bundle ABCD.zip
 To generate all communities, replace `--code` with `--all` and use a directory for `--output`:
 
 ```sh
-pnpm migrate:ices --url https://ices.example.org --all --output ./bundles
-# API-only export supports the same option:
-pnpm export:ices --url https://ices.example.org --all --output ./api-bundles
+./shared/cli/komunitin admin bundle ices --url https://ices.example.org --all --output ./bundles
 ```
 
-`--all` pages through `/groups` including pending, active and disabled communities and creates `<CODE>.zip` for each, sharing the authenticated session. `migrate:ices` enriches each bundle before proceeding to the next community. Existing ZIPs are never overwritten. If generation fails, earlier completed bundles remain; an enrichment failure retains the API-only ZIP for that community. The command stops at the first failure.
+The API-only `pnpm export:ices` script supports `--all` as well.
+
+`--all` pages through `/groups` including pending, active and disabled communities and creates `<CODE>.zip` for each, sharing the authenticated session. The CLI enriches each bundle before proceeding to the next community. Existing ZIPs are never overwritten. If generation fails, earlier completed bundles remain; an enrichment failure retains the API-only ZIP for that community. The command stops at the first failure.
 
 The second step needs a MySQL/MariaDB connection in `ICES_DATABASE_URL` with read access to the Drupal `users` table. It matches exported emails after trimming and lowercasing against `users.mail` and copies `users.pass` unchanged into `passwordHash`, and maps `users.status` to the identity `status` (`1` → `active`, `0` → `disabled`). User status is independent of member state; disabled identities include users awaiting email validation. Missing or ambiguous matches abort. Empty source passwords remain blank. No identities are added, and no fields other than `passwordHash` and `status` or other files are changed. Source writes must stay paused across both steps; the database must belong to the same ICES installation as the API.
 
-Enrichment atomically replaces the ZIP with owner-only permissions after all queries succeed. On failure, the API-only ZIP is retained; retry `passwords:ices` on that file. Database credentials and hashes are not printed. Keep the completed ZIP private: it contains password hashes. The enrichment step does not validate hash formats; run bundle validation separately. Drupal 7 `$S$` hashes are accepted by the parser, but Auth verification support is still pending.
+Enrichment atomically replaces the ZIP with owner-only permissions after all queries succeed. On failure, the API-only ZIP is retained; retry `passwords:ices` on that file. Database credentials and hashes are not printed. Keep the completed ZIP private: it contains password hashes. The enrichment step does not validate hash formats; run bundle validation separately. Drupal 7 `$S$` hashes are accepted by the parser and upgraded by Auth after a successful login.
 
 Set `ICES_ADMIN_EMAIL` and `ICES_ADMIN_PASSWORD` to Drupal site administrator credentials. The exporter obtains a password-grant token from Drupal using the built-in `komunitin-app` client and the `komunitin_social komunitin_social_read_all` scopes. It reuses the token throughout generation and renews it before expiry. Credentials and tokens are not written to the bundle. The site URL may include a Drupal installation subdirectory; do not pass `/oauth2` or `/ces/api/social` as part of it. `--page-size` defaults to 100.
 
@@ -83,9 +83,11 @@ Legacy fields map as follows: `created/updated` → `createdAt/updatedAt`, membe
 - Administrators without a member and published posts belonging to inactive members are preserved under the common migration rules. They are valid legacy states, and migration must not silently drop them or change their status.
 - ICES does not provide snapshot isolation. Pause source writes during the final export. Repeated resources or invalid pagination abort rather than looping, but concurrent changes cannot all be detected. The bundle row limit applies during export; byte limits are checked by import validation.
 
-See [IntegralCES social migration](../FORMAT.md#integralces-social-migration) for the bundle layout and import-plan semantics.
+See [IntegralCES social migration](../../../migration/FORMAT.md#integralces-social-migration) for the bundle layout and import-plan semantics.
 
 ## Verification
+
+From `shared/cli/`:
 
 ```sh
 pnpm typecheck
@@ -96,15 +98,15 @@ The HTTP fixture tests legacy filtering, pagination, auth, field mapping, ZIP va
 
 ## Bundle format
 
-- [FORMAT.md](../FORMAT.md) defines the exact files, headers, denormalized values, relationships and validation invariants.
-- [example/](../example/) is a tiny complete bundle and the header reference for every CSV file, with two global users, member-user preferences, combined member/account records, marketplace content, image URLs and one committed transfer.
+- [FORMAT.md](../../../migration/FORMAT.md) defines the exact files, headers, denormalized values, relationships and validation invariants.
+- [example/](../../../migration/example/) is a tiny complete bundle and the header reference for every CSV file, with two global users, member-user preferences, combined member/account records, marketplace content, image URLs and one committed transfer.
 
-The example is self-balancing: Alice pays Bob `5.00`, so their declared balances are `-5.00` and `5.00`. Complete bundles must likewise contain complete committed history and total zero. Every bundle requires a new Social community; currencies and accounts are reconciled by code, reusing existing records and creating missing ones.
+The example is self-balancing: Alice pays Bob `5.00`, so their declared balances are `-5.00` and `5.00`. Complete bundles must likewise contain complete committed history and total zero. The executor supports new or existing Social communities, creating missing records and preserving existing values. Currency and required accounts must already exist in Accounting; they are checked by code and never modified.
 
 Images have no separate source keys. The plan records their owner and position, preserving URL order and duplicates.
 
-The offline parser reads only the bundle. It does not check deployed communities; upload staging performs that read-only existence check, and execution repeats it immediately before import.
+The offline parser reads only the bundle. It does not check deployed communities. The executor checks destination identities and relationships, logs conflicts, and supports re-uploading after manual resolution.
 
-`users.csv` holds global identities, including optional `passwordHash` values in bcrypt or Drupal 7 `$S$` format. `member-users.csv` links users by email to members and carries per-membership preferences without a `settings.` prefix. Membership rows also determine account ownership. Compatible hashes preserve passwords; unsupported legacy hashes require a password reset or separate Auth support. See [the credential rules](../FORMAT.md#userscsv).
+`users.csv` holds global identities, including optional `passwordHash` values in bcrypt or Drupal 7 `$S$` format. `member-users.csv` links users by email to members and carries per-membership preferences without a `settings.` prefix. Membership rows also determine account ownership. Compatible hashes preserve passwords; unsupported legacy hashes require a password reset or separate Auth support. See [the credential rules](../../../migration/FORMAT.md#userscsv).
 
-The [Social parser](../../../social/src/features/migrations/bundle/) and its tests remain in Social. From `social/`, run `pnpm test-one 'test/migration/migration-bundle*.test.ts'` to verify import validation.
+The [Social parser](../../../../social/src/features/migrations/bundle/) and its tests remain in Social. From `social/`, run `pnpm test-one 'test/migration/migration-bundle*.test.ts'` to verify import validation.

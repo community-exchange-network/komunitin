@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { createAllIcesMigrationBundles, createIcesMigrationBundle } from './export'
 
-const usage = `Usage: pnpm export:ices --url <ICES site URL> (--code <CODE> | --all) --output <path> [--page-size <100>]
+const usage = (enrich: boolean) => `Usage: ${enrich ? 'komunitin admin bundle ices' : 'pnpm export:ices'} --url <ICES site URL> (--code <CODE> | --all) --output <path> [--page-size <100>]
 Credentials: ICES_ADMIN_EMAIL and ICES_ADMIN_PASSWORD for a Drupal site administrator.
 --code writes one ZIP; --all writes <CODE>.zip for every community into the output directory.`
 
@@ -14,12 +14,12 @@ export const runIcesExport = async (enrich?: (path: string) => void) => {
     'page-size': { type: 'string' }, help: { type: 'boolean' },
   } })
   if (values.help) {
-    console.log(usage)
-    if (enrich) console.log('pnpm migrate:ices uses the same options and enriches each ZIP from ICES_DATABASE_URL.')
+    console.log(usage(Boolean(enrich)))
+    if (enrich) console.log('This command enriches each ZIP from ICES_DATABASE_URL. Use pnpm export:ices for API-only output.')
   } else {
     const { ICES_ADMIN_EMAIL: email, ICES_ADMIN_PASSWORD: password } = process.env
     if (!values.url || !values.output || !email || !password || Boolean(values.code) === Boolean(values.all)) {
-      throw new Error(usage)
+      throw new Error(usage(Boolean(enrich)))
     }
     if (enrich && !process.env.ICES_DATABASE_URL) throw new Error('Set ICES_DATABASE_URL for password enrichment')
     const options = {

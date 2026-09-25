@@ -2,9 +2,9 @@ import { parse } from 'csv-parse/sync'
 import { buffer } from 'node:stream/consumers'
 import { ZipFile } from 'yazl'
 import type { Connection, RowDataPacket } from 'mysql2/promise'
-import { loadMigrationBundle } from '../../../social/src/features/migrations/bundle/container'
-import { MIGRATION_PARSER_LIMITS } from '../../../social/src/features/migrations/bundle/constants'
-import { encodeCsv } from '../../../social/src/features/migrations/bundle/csv'
+import { loadMigrationBundle } from '../../../../social/src/features/migrations/bundle/container'
+import { MIGRATION_PARSER_LIMITS } from '../../../../social/src/features/migrations/bundle/constants'
+import { encodeCsv } from '../../../../social/src/features/migrations/bundle/csv'
 
 type DrupalUser = RowDataPacket & { mail: string, pass: string, status: 0 | 1 }
 
