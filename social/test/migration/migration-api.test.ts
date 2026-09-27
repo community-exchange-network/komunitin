@@ -68,6 +68,7 @@ test('imports every Social resource, preserves timestamps and credentials, maps 
   assert.equal((offer.images as any[]).length, 2)
   assert.equal((offer.images as any[])[0].url, (offer.images as any[])[1].url)
   const need = await db.post.findUniqueOrThrow({ where: { id: ids.need } })
+  assert.deepEqual(need.images, [])
   assert.deepEqual(need.data, { fulfilled: '2025-02-01T09:00:00.000Z' })
   assert.equal(need.expires!.toISOString(), '2025-03-01T09:00:00.000Z')
   const memberships = await db.memberUser.findMany({ orderBy: { memberId: 'asc' } })
