@@ -348,14 +348,12 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/groups/:code/admin',
         name: 'GroupAdmin',
+        redirect: { name: 'EditGroup' },
         meta: {
           requiresAdmin: 'group'
         },
         children: [
         {
-          path: '',
-          redirect: { name: 'EditGroup' }
-        },{
           path: 'edit',
           props: true,
           name: 'EditGroup',
