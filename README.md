@@ -21,7 +21,11 @@ The Komunitin system is made of several microservices:
 ### Requirements
 Before starting, be sure you have:
  - [docker](https://docs.docker.com/engine/install/)
- - the cli util [jq](https://jqlang.org/)
+ - [mkcert](https://github.com/FiloSottile/mkcert#installation) for trusted local HTTPS.
+
+```bash
+mkcert -install
+```
 
 Clone Komunitin:
 
@@ -42,7 +46,7 @@ In order to have everything working (mailing, push notifications, backups, analy
 
 ### Start
 Run the start script with `--up` to build and start the containers, `--dev` to
-enable hot reload, debuggers and development utilities, and `--reset` to reset
+enable hot reload, debuggers, development utilities and local certificates, and `--reset` to reset
 the service databases before applying migrations. The configured superadmin is
 bootstrapped after migration.
 

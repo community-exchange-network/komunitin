@@ -42,7 +42,7 @@ IntegralCES instance.
   ```bash
   docker compose -f compose.yml -f compose.dev.yml up -d
   ```
-
+- Host's mkcert is used for HTTPS.
 - `compose.public.yml` and `compose.proxy.yml` are for production.
 - Service-local compose files `accounting/compose.yaml` and `notifications-ts/compose.yml` are dependency-only stacks for developing locally and testing the service in isolation. Develop this way when you don't need to test service interdependence.
 

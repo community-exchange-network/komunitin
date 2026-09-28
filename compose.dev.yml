@@ -8,12 +8,11 @@ services:
       - 2030:2030
     volumes:
       - ./app:/app
-      # Keep container dependencies, generated files and HTTPS certificates separate.
+      # Keep container dependencies and generated files separate.
       - /app/node_modules
       - /app/src-pwa/node_modules
       - /app/dist
       - /app/.quasar
-      - /app/tmp
 
     environment:
       MOCK_ENABLE: ${KOMUNITIN_APP_MOCK}
@@ -59,6 +58,9 @@ services:
     image: adobe/s3mock:5
     environment:
       COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: komunitin
+      SPRING_CONFIG_IMPORT: optional:file:/certs/s3mock.properties
+    volumes:
+      - ./app/tmp/certs:/certs:ro
     ports:
       - "9191:9191"
 

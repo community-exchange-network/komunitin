@@ -14,40 +14,8 @@ The output is a test report, evidence bundle, actionable defect list, follow-up 
   an extension-backed Chrome session: their shared browser state works against the
   persona isolation and reproducible evidence required by this runbook.
 - Record commit SHA, environment configuration, browser/version, viewport, start time, and run ID.
-- The development TLS certificate is issued by an `mkcert` CA created inside the
-  app image, so host browser automation does not trust it by default. Use a
-  disposable localhost-only browser context with certificate validation disabled.
-  For Playwright, the context-level HTTPS bypass alone is insufficient because the
-  service worker still rejects the certificate; apply the bypass at browser/CDP
-  level too. With Playwright MCP, put the CDP bypass in an `--init-page` hook:
-
-  ```ts
-  // playwright-local-tls.ts
-  export default async ({ page }) => {
-    const browserSession = await page.context().browser().newBrowserCDPSession()
-    await browserSession.send("Security.setIgnoreCertificateErrors", { ignore: true })
-  }
-  ```
-
-  Start a dedicated MCP server for this run with an isolated profile, Chromium,
-  the context-level bypass, and the hook above. For example, in Codex MCP config:
-
-  ```toml
-  [mcp_servers.playwright]
-  command = "npx"
-  args = [
-    "-y", "@playwright/mcp@latest",
-    "--browser", "chrome",
-    "--isolated",
-    "--ignore-https-errors",
-    "--init-page", "/absolute/path/to/playwright-local-tls.ts",
-  ]
-  ```
-
-  Restart the Playwright MCP connection after changing its launch arguments; the
-  application stack does not need to be restarted. Do not reuse this MCP instance
-  or certificate bypass for non-local targets. After loading the app, reload once
-  and verify `navigator.serviceWorker.controller` is set.
+- Trust the host's mkcert CA in the automation browser; keep TLS validation enabled.
+  After loading the app, reload once and verify `navigator.serviceWorker.controller` is set.
 - Verify:
   - App loads at `https://localhost:2030`.
   - Auth, Social, and Notifications `/health` endpoints return success.
