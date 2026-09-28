@@ -33,12 +33,15 @@ const props = defineProps<{
   groups?: Group[]
 }>()
 
-const coordinates = computed<LngLat[]>(() => props.groups?.map((group) => group.attributes.location.coordinates) ?? [])
+type GroupWithLocation = Group & { attributes: { location: { coordinates: LngLat } } }
+const groupsWithLocation = computed(() => props.groups?.filter((group): group is GroupWithLocation => Boolean(group.attributes.location)) ?? [])
+
+const coordinates = computed<LngLat[]>(() => groupsWithLocation.value.map((group) => group.attributes.location.coordinates))
 const groupMarkers = computed<{ group: Group, latLng: LatLngExpression }[]>(() =>
-  props.groups?.map((group) => ({
+  groupsWithLocation.value.map((group) => ({
     group,
     latLng: toLeafletLatLng(group.attributes.location.coordinates),
-  })) ?? []
+  }))
 )
 
 // Compute the bounds of the map

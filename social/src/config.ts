@@ -1,0 +1,41 @@
+import { z } from 'zod'
+
+export const APP_CLIENT_ID = 'komunitin-app'
+export const CLIENT_ID = 'komunitin-social'
+
+const envBoolean = (defaultValue: boolean) => z.preprocess(
+  (value) => {
+    if (value === '') return undefined
+    if (value === 'false') return false
+    return value
+  },
+  z.coerce.boolean().default(defaultValue),
+)
+
+const envSchema = z.object({
+  PORT: z.coerce.number().int().positive().default(2028),
+  DATABASE_URL: z.string().default('postgresql://social:social@localhost:5434/social?schema=public'),
+  API_BASE_URL: z.string().default('http://localhost:2028'),
+  ACCOUNTING_URL: z.url().default('http://localhost:2025'),
+  AUTH_URL: z.url().default('http://localhost:2026'),
+  SOCIAL_CLIENT_SECRET: z.string().trim().min(1).default('komunitin-social-secret'),
+  NOTIFICATIONS_API_URL: z.url().default('http://localhost:2023'),
+  AUTH_JWT_ISSUER: z.url().default('http://localhost:2026'),
+  AUTH_JWT_AUDIENCE: z.string().default('urn:komunitin:api'),
+  AUTH_JWKS_URL: z.url().default('http://localhost:2026/.well-known/jwks.json'),
+  UPLOAD_S3_PREFIX: z.url({protocol: /^s3$/}).default('s3://komunitin/uploads'),
+  UPLOAD_S3_ENDPOINT: z.url().default('http://s3.test'),
+  UPLOAD_S3_REGION: z.string().trim().min(1).default('us-east-1'),
+  UPLOAD_S3_ACCESS_KEY: z.string().trim().min(1).default('test-access-key'),
+  UPLOAD_S3_SECRET_KEY: z.string().trim().min(1).default('test-secret-key'),
+  UPLOAD_S3_FORCE_PATH_STYLE: envBoolean(false),
+  UPLOAD_PUBLIC_URL: z.url().optional(),
+  UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(2 * 1024 * 1024),
+  UPLOAD_ALLOWED_MIME_TYPES: z.string()
+    .default('image/jpeg,image/png,image/webp,image/gif')
+    .transform((s) => s.split(',').map((it) => it.trim()).filter(Boolean)),
+  UPLOAD_CLEANUP_ENABLED: envBoolean(true),
+  UPLOAD_CLEANUP_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
+})
+
+export const config = envSchema.parse(process.env)

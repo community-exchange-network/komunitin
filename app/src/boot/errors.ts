@@ -72,6 +72,14 @@ function logErrorHandling(error: Error) {
   console.error(`[${KErrorCode.ErrorHandling}] Error while handling another error: ${error.message}`);
 }
 
+function handleUnknownError(error: unknown) {
+  try {
+    handleError(KError.getKError(error));
+  } catch (caught) {
+    logErrorHandling(KError.getKError(caught));
+  }
+}
+
 export function handleError(error: KError): void {
   logError(error);
   showError(error);
@@ -96,19 +104,12 @@ function vueWarnHandler(message: string, instance: ComponentPublicInstance | nul
  */
 if (window !== undefined) {
   window.addEventListener('error', function(event: ErrorEvent) {
-    let kerror: KError;
-    if (event.error instanceof KError) {
-      kerror = event.error;
-    }
-    else {
-      kerror = new KError(KErrorCode.UnknownScript, event.message, event.error, {url: event.filename , line: event.lineno, column: event.colno})
-    }
-    try {
-      handleError(kerror);
-    }
-    catch {
-      logErrorHandling(kerror);
-    }
+    handleUnknownError(event.error ?? new Error(event.message));
+  });
+
+  window.addEventListener('unhandledrejection', function(event: PromiseRejectionEvent) {
+    event.preventDefault();
+    handleUnknownError(event.reason);
   });
 }
 

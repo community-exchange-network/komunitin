@@ -1,7 +1,7 @@
 import type { VueWrapper } from "@vue/test-utils";
-import { QList, QMenu } from "quasar";
+import { Notify, QList, QMenu, QToolbarTitle } from "quasar";
 import ProfileBtnMenu from '@/components/ProfileBtnMenu.vue';
-import { seeds } from "@/server";
+import server, { seeds } from "@/server";
 import App from "../../../src/App.vue";
 import { mountComponent, testLogin, waitFor } from "../utils";
 
@@ -48,41 +48,71 @@ describe("Front page and login", () => {
     await waitFor(() => wrapper.vm.$route.path, "/");
   });
 
-  it("login and logout", async () => {
-    expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
-    // Go to login with mail page.
-    await wrapper.vm.$router.push("/login-mail");
+  // Run before any other login so the first session starts with an empty resource cache.
+  it("first login and logout without errors", async () => {
+    const consoleError = vi.spyOn(console, "error")
+    try {
+      vi.mocked(Notify.create).mockClear()
+      // Go to login with mail page.
+      await wrapper.get("#login").trigger("click");
+      await waitFor(() => wrapper.vm.$route.path, "/login-mail");
+      await waitFor(() => wrapper.find("button[type='submit']").exists(), true, "Login form should render");
+      // Button is disabled since form is empty.
+      expect(wrapper.get("button[type='submit']").attributes("disabled"))
+        .toBeDefined();
+      await wrapper.get("input[type='email']").setValue("example@example.com");
+      await wrapper.get("input[type='password']").setValue("password");
+      await wrapper.vm.$nextTick();
+      // Button is enabled now.
+      expect(
+        wrapper.get("button[type='submit']").attributes("disabled")
+      ).toBeUndefined();
+      await wrapper.get("button[type='submit']").trigger("click");
+      await waitFor(() => wrapper.vm.$route.path, "/home");
+      await waitFor(() => {
+        const title = wrapper.findComponent(QToolbarTitle)
+        return title.exists() ? title.text() : undefined
+      }, "Home", "Home should render on the first login without reloading");
+      expect(Notify.create).not.toHaveBeenCalled()
+      expect(consoleError).not.toHaveBeenCalled()
+      // Open profile menu
+      await wrapper.findComponent(ProfileBtnMenu).trigger('click');
+      await wrapper.vm.$nextTick();
+      // Click logout (be careful with teleports when finding the element)
+      await wrapper
+        .getComponent(QMenu)
+        .getComponent(QList)
+        .get("#user-menu-logout")
+        .trigger("click");
+      await waitFor(() => wrapper.vm.$route.path, "/");
+    } finally {
+      consoleError.mockRestore()
+    }
+  });
+
+  it("superadmin login", async () => {
+    server.schema.users.first().update({ language: undefined });
+
+    await wrapper.vm.$router.push("/superadmin/groups");
     await waitFor(() => wrapper.vm.$route.path, "/login-mail");
-    await waitFor(() => wrapper.find("button[type='submit']").exists(), true, "Login form should render");
-    // Button is disabled since form is empty.
-    expect(wrapper.get("button[type='submit']").attributes("disabled"))
-      .toBeDefined();
-    await wrapper.get("input[type='email']").setValue("example@example.com");
+    await wrapper.get("input[type='email']").setValue("superadmin@example.com");
     await wrapper.get("input[type='password']").setValue("password");
-    await wrapper.vm.$nextTick();
-    // Button is enabled now.
-    expect(
-      wrapper.get("button[type='submit']").attributes("disabled")
-    ).toBeUndefined();
     await wrapper.get("button[type='submit']").trigger("click");
-    await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true, "User should be logged in");
-    await waitFor(() => wrapper.vm.$route.path, "/home");
-    // Open profile menu
-    await wrapper.findComponent(ProfileBtnMenu).trigger('click');
-    await wrapper.vm.$nextTick();
-    // Click logout (be careful with teleports when finding the element)
-    await wrapper
-      .getComponent(QMenu)
-      .getComponent(QList)
-      .get("#user-menu-logout")
-      .trigger("click");
+
+    await waitFor(() => wrapper.vm.$store.getters.isSuperadmin, true);
+    await waitFor(() => wrapper.vm.$route.path, "/superadmin/groups");
+
+    await wrapper.vm.$router.push("/groups/GRP0/admin/settings");
+    await waitFor(() => wrapper.text().includes("Community Settings"), true, "Community settings title should be translated");
+
+    await wrapper.vm.$router.push("/logout");
     await waitFor(() => wrapper.vm.$route.path, "/");
   });
 
   it("lag in unsubscription should not block logout", async() => {
     // Mock the browser unsubscribe() to take a long time.
     mockUnsubscribe.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 5000)));
-    testLogin();
+    await testLogin();
     // logout
     await wrapper.vm.$router.push("/logout");
     // after 1 sec it should still be logging out, since the unsubscription is taking a long time.
@@ -92,8 +122,9 @@ describe("Front page and login", () => {
     await waitFor(() => wrapper.vm.$route.path === "/", true, "Should navigate back to front page after logout", 1500)
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
   })
-  it('accepts a token and redirect query on the root page', async () => {
-    await wrapper.vm.$router.push('/?token=test_user&redirect=/home');
+  it('uses stored credentials and a redirect query on the root page', async () => {
+    await testLogin();
+    await wrapper.vm.$router.push('/?redirect=/home');
     await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, true);
     await waitFor(() => wrapper.vm.$route.path, '/home');
   });

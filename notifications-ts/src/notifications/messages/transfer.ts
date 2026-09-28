@@ -2,6 +2,7 @@ import { formatAmount } from "../../utils/format";
 import { EnrichedTransferEvent } from "../enriched-events";
 import { getTransferPartyDisplayName } from "./transfer-members";
 import { MessageContext, NotificationActions, NotificationMessage } from "./types";
+import { imageUrl } from "../../clients/komunitin/image";
 
 const transferRoute = (code: string, transferId: string): string => {
   return `/groups/${code}/transactions/${transferId}`;
@@ -28,7 +29,7 @@ export const buildTransferSentMessage = (
       title: t('notifications.action_view'),
       action: NotificationActions.OPEN_ROUTE,
     }],
-    image: payee.member?.attributes.image,
+    image: imageUrl(payee.member?.attributes.image),
     route,
   };
 };
@@ -54,7 +55,7 @@ export const buildTransferReceivedMessage = (
       title: t('notifications.action_view'),
       action: NotificationActions.OPEN_ROUTE,
     }],
-    image: payer.member?.attributes.image,
+    image: imageUrl(payer.member?.attributes.image),
     route,
   };
 };
@@ -82,7 +83,7 @@ export const buildTransferPendingMessage = (
       amount: formatAmount(amount, currency, locale),
       sender: getTransferPartyDisplayName(event, 'payee'),
     }),
-    image: payee.member?.attributes.image,
+    image: imageUrl(payee.member?.attributes.image),
     route,
     actions: [{
       title: t('notifications.action_respond'),
@@ -115,7 +116,7 @@ export const buildTransferRejectedMessage = (
       title: t('notifications.action_view'),
       action: NotificationActions.OPEN_ROUTE,
     }],
-    image: payer.member?.attributes.image,
+    image: imageUrl(payer.member?.attributes.image),
     route,
   };
 };
@@ -148,7 +149,7 @@ export const buildTransferStillPendingMessage = (
       title: t('notifications.action_respond'),
       action: NotificationActions.OPEN_ROUTE,
     }],
-    image: payee.member?.attributes.image,
+    image: imageUrl(payee.member?.attributes.image),
     route,
   };
 };

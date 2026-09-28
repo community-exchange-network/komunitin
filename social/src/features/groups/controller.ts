@@ -1,0 +1,108 @@
+import type { RequestHandler } from 'express'
+import { getAuthContext, getOptionalAuthContext } from '../../server/context'
+import { getCollectionSerializerOptions } from '../../server/jsonapi-serialize'
+import { getCode, getCollectionParams, getResourceParams } from '../../server/request'
+import { getValidatedBody } from '../../server/validation'
+import type { CreateGroupBody, PatchGroupBody, PatchGroupSettingsBody } from './schema'
+import { serializeGroup, serializeGroups, serializeGroupSettings } from './serialize'
+import { createGroup, deleteGroupByCode, enrichGroup, getGroupByCode, listGroups, patchGroupByCode, patchGroupSettingsByCode } from './service'
+import { listGroupAdmins } from '../users/service'
+import { serializeUsers } from '../users/serialize'
+
+export const postGroups: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const body = getValidatedBody<CreateGroupBody>(req)
+
+  const attributes = body.data.attributes
+  const settings = body.included?.find((resource) => resource.type === 'group-settings')?.attributes
+
+  const group = await createGroup(ctx, {
+    attributes,
+    settings,
+  })
+  const params = getResourceParams(req, { include: ['settings', 'currency'] })
+  const payload = await serializeGroup(group, params)
+  res.status(201).json(payload)
+}
+
+export const getGroups: RequestHandler = async (req, res) => {
+  const ctx = getOptionalAuthContext(req)
+  const params = getCollectionParams(req, {
+    filter: ['code', 'name', 'status', 'access', 'search'],
+    sort: ['created', 'updated', 'name', 'code', 'distance'],
+    include: ['settings', 'currency'],
+    near: true,
+  })
+
+  const result = await listGroups(ctx, params)
+  
+  const payload = await serializeGroups(result.items, getCollectionSerializerOptions(req.url, params, result.total))
+
+  res.status(200).json(payload)
+}
+
+export const getGroupByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getOptionalAuthContext(req)
+  const code = getCode(req)
+  const params = getResourceParams(req, { include: ['settings', 'currency'] })
+
+  const group = await enrichGroup(ctx, await getGroupByCode(ctx, code))
+
+  const payload = await serializeGroup(group, params)
+  res.status(200).json(payload)
+}
+
+export const getGroupSettingsByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getOptionalAuthContext(req)
+  const code = getCode(req)
+
+  const group = await getGroupByCode(ctx, code)
+
+  const payload = await serializeGroupSettings(group)
+  res.status(200).json(payload)
+}
+
+export const getGroupAdminsRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+  const params = getCollectionParams(req, {
+    sort: ['created'],
+  })
+  const result = await listGroupAdmins(ctx, code, params)
+  const payload = await serializeUsers(
+    result.items,
+    getCollectionSerializerOptions(req.url, params, result.total),
+  )
+
+  res.status(200).json(payload)
+}
+
+export const patchGroupByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+  const body = getValidatedBody<PatchGroupBody>(req)
+
+  const group = await patchGroupByCode(ctx, code, body.data.attributes)
+
+  const payload = await serializeGroup(group)
+  res.status(200).json(payload)
+}
+
+export const deleteGroupByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+
+  await deleteGroupByCode(ctx, code)
+  res.status(204).send()
+}
+
+export const patchGroupSettingsByCodeRoute: RequestHandler = async (req, res) => {
+  const ctx = getAuthContext(req)
+  const code = getCode(req)
+  const body = getValidatedBody<PatchGroupSettingsBody>(req)
+
+  const group = await patchGroupSettingsByCode(ctx, code, body.data.attributes)
+
+  const payload = await serializeGroupSettings(group)
+  res.status(200).json(payload)
+}

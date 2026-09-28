@@ -1,15 +1,39 @@
-import { vi } from 'vitest';
-import { VueWrapper, flushPromises } from "@vue/test-utils";
-import { seeds } from "@/server";
+import { afterEach, vi } from 'vitest';
+import { flushPromises } from "@vue/test-utils";
+import type { VueWrapper } from "@vue/test-utils";
+import type * as Quasar from "quasar";
+import server, { seeds } from "@/server";
 import { mountComponent, waitFor } from "../utils";
 import App from "../../../src/App.vue";
+import Avatar from "../../../src/components/Avatar.vue";
+import AvatarField from "../../../src/components/AvatarField.vue";
 import GroupCard from "../../../src/components/GroupCard.vue";
-import { QBtn, QDialog, QInput, QItem, QSelect } from "quasar";
+import { QBtn, QDialog, QFabAction, QInput, QItem, QSelect } from "quasar";
+import CreateTransactionBtn from "@/components/CreateTransactionBtn.vue";
 import CountryChooser from "@/components/CountryChooser.vue";
+import LocationPicker from "@/components/LocationPicker.vue";
+import EditGroupForm from "@/pages/admin/EditGroupForm.vue";
+import Error404 from "@/pages/Error404.vue";
+import MemberProfile from "@/pages/members/MemberProfile.vue";
+import { config } from "@/utils/config";
+import { Auth, type SignupContext } from "@/plugins/Auth";
+import type { Group } from "@/store/model";
+import {
+  failNextMockGroupPatch,
+  failNextMockMemberCreate,
+  failNextMockMemberCreateResponse,
+  getMockMemberCreateCount
+} from "@/server/SocialServer";
+import {
+  getMockFileUploadAttempts,
+  resetMockFileUploads,
+  setMockFileUploadLimit
+} from "@/server/FilesServer";
+import { createMockImageFile, mockImageUploadProcessing } from "../utils/mockImageUpload";
 
 // Mock quasar.scroll used in Signup.vue and SignupMember.vue to scroll to top on step change.
 vi.mock("quasar", async () => {
-  const actual = await vi.importActual<typeof import("quasar")>("quasar");
+  const actual = await vi.importActual<typeof Quasar>("quasar");
   return {
     ...actual,
     scroll: {
@@ -20,11 +44,118 @@ vi.mock("quasar", async () => {
 
 describe("Signup", () => {
   let wrapper: VueWrapper;
+  let confirmationToken = ""
+  let draftMemberId = ""
+  let memberCreateCount = 0
+
+  const confirmAndLogin = async (
+    email: string,
+    password: string,
+    signup: SignupContext,
+    destination: string
+  ) => {
+    // The verification link may open in a different browser, where none of the
+    // local state from registration exists.
+    await new Auth().logout()
+    const resumedRegistration = await fetch(`${config.AUTH_URL}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, signup })
+    })
+    expect(resumedRegistration.status).toBe(200)
+
+    const rejectedRegistration = await fetch(`${config.AUTH_URL}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: "wrong-password", signup })
+    })
+    expect(rejectedRegistration.status).toBe(403)
+
+    const prematureLogin = await fetch(`${config.AUTH_URL}/token`, {
+      method: "POST",
+      body: new URLSearchParams({
+        grant_type: "password",
+        username: email,
+        password
+      })
+    })
+    expect(prematureLogin.status).toBe(400)
+    expect(await prematureLogin.json()).toMatchObject({ error: "invalid_grant" })
+
+    const response = await fetch(`${config.AUTH_URL}/action-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ purpose: "emailVerification", userId: email, email, signup })
+    });
+    const { token } = await response.json();
+    await wrapper.vm.$router.push({ path: "/confirm-email", query: { token } });
+    await flushPromises()
+    expect(wrapper.text()).not.toContain("Your email has been confirmed")
+    await wrapper.get("#confirm-email").trigger("click")
+    await waitFor(() => wrapper.text().includes("Your email has been confirmed"), true, "Email should be confirmed");
+    expect(wrapper.vm.$route.path).toBe("/login-mail")
+    expect(wrapper.vm.$route.query.redirect).toBe(destination)
+    expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
+
+    // Reopening a consumed verification link must recover the same flow.
+    await wrapper.vm.$router.push("/groups")
+    await wrapper.vm.$router.push({ path: "/confirm-email", query: { token } })
+    await wrapper.get("#confirm-email").trigger("click")
+    await waitFor(() => wrapper.text().includes("Your email has been confirmed"), true, "Used token should resume confirmation")
+    expect(wrapper.get<HTMLInputElement>("input[type='email']").element.value).toBe(email)
+    await wrapper.get("input[type='password']").setValue(password);
+    await wrapper.get("button[type='submit']").trigger("click");
+    await waitFor(() => wrapper.vm.$route.path, destination);
+    return token
+  };
+
+  const setInput = async (label: string, value: string) => {
+    const field = wrapper.findAllComponents(QInput).find(input => input.props("label") === label)
+    expect(field).toBeDefined()
+    const control = field?.find("input").exists() ? field.get("input") : field?.get("textarea")
+    await control?.setValue(value)
+  }
+
+  const fillGroupForm = async (name: string, code: string) => {
+    await setInput("Community Name", name)
+    await setInput("Community Code", code)
+    await setInput("Description", "A community created through the new social API.")
+    await setInput("City / Municipality", "Testville")
+    await setInput("Region / State", "Testland")
+    await setInput("Currency Name", "test credit")
+    await setInput("Currency Name (plural)", "test credits")
+    await setInput("Currency Symbol", "TC")
+    wrapper.getComponent(LocationPicker).vm.$emit("update:modelValue", [2, 41])
+
+    const country = wrapper.getComponent(CountryChooser).getComponent(QSelect)
+    await waitFor(() => (country.props("options") as unknown[])?.length > 0, true, "Country options should load")
+    await country.setValue("ES")
+
+    await waitFor(
+      () => (wrapper.getComponent(EditGroupForm).emitted("update:group")?.at(-1)?.[0] as Group | undefined)?.attributes.code,
+      code,
+      "Debounced group fields should be ready"
+    )
+  }
+
+  const selectFile = async (component: VueWrapper, file: File) => {
+    const input = component.get("input[type='file']")
+    Object.defineProperty(input.element, "files", {
+      configurable: true,
+      value: [file]
+    })
+    await input.trigger("change")
+  }
   
   beforeAll(async () => {  
     seeds();
     wrapper = await mountComponent(App);
   });
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
 
   afterAll(() => {
     wrapper.unmount();
@@ -41,7 +172,6 @@ describe("Signup", () => {
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/signup");
     await waitFor(() => wrapper.text().includes("Membership terms"), true, "Signup page should show terms");
     expect(wrapper.text()).toContain("Group 0");
-    expect(wrapper.text()).toContain("Voluptatibus");
     await wrapper.get("button[type='submit']").trigger("click");
     await flushPromises();
     expect(wrapper.text()).toContain("Set your credentials");
@@ -50,11 +180,57 @@ describe("Signup", () => {
     await wrapper.get("[name='password']").setValue("password");
     await wrapper.get("button[type='submit']").trigger("click");
     await flushPromises();
-    await waitFor(() => wrapper.text().includes("Verify your email"), true, "Verification email page should show");
+    await waitFor(() => wrapper.text().includes("Verify your email"), true, "Verification waiting page should show");
+    expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
+    memberCreateCount = getMockMemberCreateCount()
+    failNextMockMemberCreate()
+    confirmationToken = await confirmAndLogin("empty@example.com", "password", {
+      type: "member",
+      name: "Empty User",
+      language: "en-us",
+      groupCode: "GRP0"
+    }, "/groups/GRP0/signup-member");
+    await waitFor(
+      () => wrapper.text().includes("Could not start signup"),
+      true,
+      "Signup initialization failure should show"
+    )
+    expect(wrapper.vm.$store.getters.myMember).toBeUndefined()
+    expect(getMockMemberCreateCount()).toBe(memberCreateCount)
+    const retry = wrapper.findAllComponents(QBtn).find(button => button.text().includes("Retry now"))
+    expect(retry).toBeDefined()
+    await retry?.trigger("click")
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Retry should initialize the draft")
+    expect(wrapper.find("[name='password']").exists()).toBe(false);
+    expect(wrapper.vm.$store.getters.myUser.attributes.language).toBe("en-us");
+    draftMemberId = wrapper.vm.$store.getters.myMember.id
+    expect(getMockMemberCreateCount()).toBe(memberCreateCount + 1)
+  })
+
+  it("resumes the existing draft on reload and repeated confirmation", async () => {
+    await wrapper.vm.$router.push("/groups")
+    await wrapper.vm.$router.push("/groups/GRP0/signup-member")
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Reloaded signup should show the draft")
+    expect(wrapper.vm.$store.getters.myMember.id).toBe(draftMemberId)
+    expect(getMockMemberCreateCount()).toBe(memberCreateCount + 1)
+
+    await wrapper.vm.$router.push("/groups")
+    await wrapper.vm.$router.push({ path: "/confirm-email", query: { token: confirmationToken } })
+    await wrapper.get("#confirm-email").trigger("click")
+    await waitFor(
+      () => wrapper.text().includes("Your email has been confirmed"),
+      true,
+      "Consumed confirmation should resume signup"
+    )
+    await wrapper.get("input[type='password']").setValue("password")
+    await wrapper.get("button[type='submit']").trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/signup-member")
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Resumed signup should show the draft")
+    expect(wrapper.vm.$store.getters.myMember.id).toBe(draftMemberId)
+    expect(getMockMemberCreateCount()).toBe(memberCreateCount + 1)
   })
 
   it('Creates member', async () => {
-    await wrapper.vm.$router.push("/groups/GRP0/signup-member?token=empty_user")
     await waitFor(() => wrapper.find("[name='name']").exists(), true, "Signup member form should load");
     // Check that the inactive banner does not show yet.
     expect(wrapper.text()).not.toContain("Your account is inactive.");
@@ -69,7 +245,7 @@ describe("Signup", () => {
     // Select Andorra
     const select = wrapper.getComponent(CountryChooser).getComponent(QSelect)
     // Wait for country list to be loaded asynchronously (onMounted)
-    await waitFor(() => (select.props("options") as any[])?.length > 0, true, "Country options should load");
+    await waitFor(() => (select.props("options") as unknown[])?.length > 0, true, "Country options should load");
     await select.trigger("click");
     await waitFor(() => select.findAllComponents(QItem).length > 0, true, "Country dropdown should open");
     const andorra = select.findAllComponents(QItem).find(i => i.text().includes("Andorra"));
@@ -97,8 +273,33 @@ describe("Signup", () => {
     await button?.trigger("click");
     await flushPromises();
     // Save profile
-    await wrapper.get("button[type='submit']").trigger("click");
-    await waitFor(() => wrapper.text().includes("What do you offer?"), true, "Offer creation form should show");
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+    try {
+      // An explicit save must include edits made immediately before clicking.
+      await wrapper.get("[name='description']").setValue("Profile updated just before saving.")
+      await wrapper.get("button[type='submit']").trigger("click");
+      await waitFor(() => wrapper.text().includes("What do you offer?"), true, "Offer creation form should show");
+      const profilePatch = fetchSpy.mock.calls.find(([url, options]) =>
+        url === `${config.SOCIAL_URL}/GRP0/members/${draftMemberId}`
+        && options?.method === "PATCH"
+      )
+      expect(profilePatch).toBeDefined()
+      const profilePatchBody = JSON.parse(profilePatch?.[1]?.body as string)
+      expect(Object.keys(profilePatchBody.data)).toEqual(["id", "type", "attributes"])
+      expect(profilePatchBody.data.id).toBe(draftMemberId)
+      expect(profilePatchBody.data.type).toBe("members")
+      expect(profilePatchBody.data.attributes.description).toBe("Profile updated just before saving.")
+      expect(Object.keys(profilePatchBody.data.attributes)).toEqual([
+        "name",
+        "description",
+        "image",
+        "address",
+        "contacts",
+        "location"
+      ])
+    } finally {
+      fetchSpy.mockRestore()
+    }
 
     // Now go with the offer.
     await wrapper.get("[name='title']").setValue("Test Offer");
@@ -107,7 +308,7 @@ describe("Signup", () => {
 
     const cat = wrapper.getComponent(QSelect)
     // Wait for categories to load (they're fetched asynchronously via store)
-    await waitFor(() => (cat.props("options") as any[])?.length > 0, true, "Category options should load");
+    await waitFor(() => (cat.props("options") as unknown[])?.length > 0, true, "Category options should load");
     await cat.trigger("click");
     await waitFor(() => cat.findAllComponents(QItem).length > 2, true, "Category dropdown should open")
     await cat.findAllComponents(QItem)[1].trigger("click");
@@ -115,6 +316,212 @@ describe("Signup", () => {
     await wrapper.get("button[type='submit']").trigger("click");
 
     await waitFor(() => wrapper.text().includes("Signup complete"), true, "Signup should complete");
+    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("published")
+
+    const memberCode = wrapper.vm.$store.getters.myMember.attributes.code
+    expect(memberCode).toBe("GRP00000")
+    // Exercise the header's root fallback independently of earlier signup history.
+    wrapper.vm.$store.commit("previousRoute", undefined)
+    await wrapper.get("#back").trigger("click")
+    await waitFor(
+      () => wrapper.vm.$route.path,
+      `/groups/GRP0/members/${memberCode}`,
+      "Back should open the pending member profile"
+    )
+    await waitFor(() => wrapper.findComponent(MemberProfile).exists(), true, "Pending member profile should load")
+    expect(wrapper.findComponent(Error404).exists()).toBe(false)
+    await waitFor(
+      () => wrapper.text().includes("Your account is pending approval."),
+      true,
+      "Pending approval banner should show"
+    )
   }, 100000)
+
+  it("enables transfers after approval and reloading the cached session", async () => {
+    // Pending members have no wallet menu or transfer actions yet.
+    expect(wrapper.text()).toContain("Your account is pending approval.")
+    expect(wrapper.find("#menu-transactions").exists()).toBe(false)
+    expect(wrapper.findComponent(CreateTransactionBtn).exists()).toBe(false)
+
+    // Simulate approval and account provisioning in another administrator's session.
+    const member = server.schema.find("member", draftMemberId)
+    const account = server.create("account")
+    account.update({
+      code: wrapper.vm.$store.getters.myMember.attributes.code,
+      currency: server.schema.find("currency", wrapper.vm.$store.getters.myCurrency.id)
+    })
+    server.create("accountSettings").update({ account })
+    member.update({ status: "active", account })
+
+    // Remount with the cached session to simulate reloading the app.
+    wrapper.unmount()
+    wrapper = await mountComponent(App, { login: "cached" })
+    await waitFor(() => wrapper.find("#menu-transactions").exists(), true, "Approval should restore the wallet menu")
+    expect(wrapper.text()).not.toContain("Your account is pending approval.")
+
+    await wrapper.get("#menu-transactions").trigger("click")
+    await waitFor(() => wrapper.findComponent(CreateTransactionBtn).exists(), true)
+    const controls = wrapper.getComponent(CreateTransactionBtn)
+    await waitFor(() => controls.find(".q-fab").exists(), true)
+    await controls.get(".q-fab").trigger("click")
+    const send = controls.findAllComponents(QFabAction).find(action => action.props("label") === "Send")
+    expect(send).toBeDefined()
+    expect(send.props("disable")).toBe(false)
+  })
+
+  it("registers an administrator and requests a first group", async () => {
+    resetMockFileUploads()
+    await wrapper.vm.$router.push("/groups")
+    await wrapper.vm.$store.dispatch("logout");
+    await wrapper.vm.$router.push("/signup-group");
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Group administrator signup should load");
+    await wrapper.get("[name='name']").setValue("Test Administrator");
+    await wrapper.get("[name='email']").setValue("group-admin@example.com");
+    await wrapper.get("[name='password']").setValue("password");
+    await wrapper.get("button[type='submit']").trigger("click");
+    await waitFor(() => wrapper.text().includes("Verify your email"), true, "Verification waiting page should show");
+    expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
+    await confirmAndLogin("group-admin@example.com", "password", {
+      type: "group",
+      name: "Test Administrator",
+      language: "en-us"
+    }, "/groups/new");
+
+    await fillGroupForm("Test Community", "TEST")
+    const request = wrapper.findAllComponents(QBtn).find(button => button.text().includes("Request new community"));
+    expect(request).toBeDefined();
+    await request?.trigger("click");
+    await waitFor(
+      () => wrapper.text().includes("Your request for the new community Test Community has been sent"),
+      true,
+      "Pending group confirmation should show"
+    );
+    expect(wrapper.vm.$store.getters["groups/current"].attributes.status).toBe("pending");
+    const createdGroup = wrapper.vm.$store.getters["groups/current"];
+    expect(createdGroup.relationships.admins.links.related).toBe(`${config.SOCIAL_URL}/TEST/admins`);
+    const adminsResponse = await fetch(createdGroup.relationships.admins.links.related, {
+      headers: { Authorization: `Bearer ${wrapper.vm.$store.getters.accessToken}` }
+    });
+    const admins = await adminsResponse.json();
+    expect(admins.data[0].id).toBe(wrapper.vm.$store.getters.myUser.id);
+    expect(createdGroup.relationships.currency).toBeUndefined();
+    expect(createdGroup.attributes.meta.request.currency).toEqual({
+      name: "test credit",
+      namePlural: "test credits",
+      symbol: "TC",
+      decimals: 2,
+      scale: 6,
+      rate: {
+        n: 1,
+        d: 10
+      }
+    });
+    expect(getMockFileUploadAttempts()).toHaveLength(0)
+  });
+
+  it("defers a new group image and retries only the incomplete stage", async () => {
+    resetMockFileUploads()
+    mockImageUploadProcessing()
+    await wrapper.vm.$router.push("/")
+    await wrapper.vm.$router.push("/groups/new")
+    await waitFor(() => wrapper.findComponent(EditGroupForm).exists(), true, "New group form should load")
+
+    const avatar = wrapper.getComponent(AvatarField)
+    await selectFile(avatar, createMockImageFile({
+      height: 800,
+      name: "community.png",
+      size: 200_000,
+      type: "image/png",
+      width: 800
+    }))
+    await waitFor(
+      () => avatar.getComponent(Avatar).props("imgSrc")?.url?.startsWith("blob:"),
+      true,
+      "Selected group image should have a local preview"
+    )
+    expect(getMockFileUploadAttempts()).toHaveLength(0)
+
+    await fillGroupForm("Image Community", "IMAG")
+    setMockFileUploadLimit(100_000)
+    failNextMockGroupPatch()
+    const request = wrapper.findAllComponents(QBtn).find(button => button.text().includes("Request new community"))
+
+    await request?.trigger("click")
+    await waitFor(() => getMockFileUploadAttempts().length, 1, "Image upload should run after group creation")
+    await waitFor(() => request?.props("loading"), false, "Failed image upload should finish")
+    expect(wrapper.text()).not.toContain("Your request for the new community Image Community has been sent")
+    const createdId = wrapper.vm.$store.getters["groups/current"].id
+
+    setMockFileUploadLimit(Number.POSITIVE_INFINITY)
+    await selectFile(avatar, createMockImageFile({
+      height: 800,
+      name: "replacement.png",
+      size: 200_000,
+      type: "image/png",
+      width: 800
+    }))
+    await setInput("Community Name", "Updated Image Community")
+    await waitFor(
+      () => (wrapper.getComponent(EditGroupForm).emitted("update:group")?.at(-1)?.[0] as Group).attributes.name,
+      "Updated Image Community",
+      "Edits made before retry should be ready"
+    )
+    await request?.trigger("click")
+    await waitFor(() => getMockFileUploadAttempts().length, 2, "Failed image upload should be retried")
+    await waitFor(() => request?.props("loading"), false, "Failed group image update should finish")
+    expect(wrapper.text()).not.toContain("Your request for the new community Image Community has been sent")
+    expect(wrapper.vm.$store.getters["groups/current"].id).toBe(createdId)
+
+    await request?.trigger("click")
+    await waitFor(
+      () => wrapper.text().includes("Your request for the new community Updated Image Community has been sent"),
+      true,
+      "Failed group image update should be retried"
+    )
+    expect(getMockFileUploadAttempts()).toHaveLength(2)
+    expect(getMockFileUploadAttempts().every(attempt => attempt.tenantCode === "IMAG")).toBe(true)
+    expect(wrapper.vm.$store.getters["groups/current"].id).toBe(createdId)
+    expect(wrapper.vm.$store.getters["groups/current"].attributes.image).toEqual({
+      url: "https://files.example/replacement.webp"
+    })
+    expect(wrapper.vm.$store.getters["groups/current"].attributes.name).toBe("Updated Image Community")
+  });
+
+  it("lets a logged-in user without a member restart from a community", async () => {
+    const createsBeforeRecovery = getMockMemberCreateCount()
+    failNextMockMemberCreateResponse()
+    await wrapper.vm.$router.push("/groups/GRP0")
+    await waitFor(
+      () => wrapper.find("a[href='/groups/GRP0/signup']").exists(),
+      true,
+      "Community signup action should be available"
+    )
+    await wrapper.get("a[href='/groups/GRP0/signup']").trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/signup")
+    await waitFor(() => wrapper.text().includes("Membership terms"), true, "Terms should be shown")
+    expect(wrapper.find("[name='password']").exists()).toBe(false)
+    await wrapper.get("button[type='submit']").trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/signup-member")
+    await waitFor(
+      () => wrapper.text().includes("Could not start signup"),
+      true,
+      "Lost create response should show retry"
+    )
+    expect(getMockMemberCreateCount()).toBe(createsBeforeRecovery + 1)
+    const retry = wrapper.findAllComponents(QBtn).find(button => button.text().includes("Retry now"))
+    expect(retry).toBeDefined()
+    await retry?.trigger("click")
+    await waitFor(() => wrapper.find("[name='name']").exists(), true, "Committed draft should load on retry")
+    expect(wrapper.get<HTMLInputElement>("[name='name']").element.value).toBe("Test Administrator")
+    expect(getMockMemberCreateCount()).toBe(createsBeforeRecovery + 1)
+
+    await wrapper.vm.$router.push("/groups/GRP1/signup-member")
+    await waitFor(
+      () => wrapper.vm.$route.path,
+      "/groups/GRP0/signup-member",
+      "A draft in another community should be resumed"
+    )
+    expect(getMockMemberCreateCount()).toBe(createsBeforeRecovery + 1)
+  })
   
 })

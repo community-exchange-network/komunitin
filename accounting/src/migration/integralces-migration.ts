@@ -189,7 +189,6 @@ export class ICESMigrationController {
         grant_type: "refresh_token",
         refresh_token: tokens.refreshToken as string,
         client_id: "komunitin-app",
-        scope: "komunitin_social komunitin_accounting",
       });
       const response = await fetch(fixUrl(authUrl), {
         method: "POST",

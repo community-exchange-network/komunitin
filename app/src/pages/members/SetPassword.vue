@@ -1,8 +1,7 @@
 <template>
   <page-header 
     :title="$t('setPassword')" 
-    balance 
-    :back="`/groups/${code}/members/${memberCode}`"
+    back="/login-mail"
   />
   <q-page-container class="row justify-center">
     <q-page 
@@ -17,7 +16,11 @@
           {{ $t('setPasswordText') }}
         </div>
       </div>
-      <form @submit.prevent="onSubmit">
+      <div v-if="invalidToken" role="alert">
+        <p>{{ $t('passwordResetError') }}</p>
+        <router-link to="/forgot-password">{{ $t('sendResetLink') }}</router-link>
+      </div>
+      <form v-else @submit.prevent="onSubmit">
         <password-field
           v-model="newPassword"
           :label="$t('newPassword')"
@@ -41,18 +44,14 @@
 import PageHeader from "../../layouts/PageHeader.vue"
 import PasswordField from "../../components/PasswordField.vue"
 
-import { useStore } from "vuex"
 import { computed, ref } from "vue"
+import { useStore } from "vuex"
+import KError, { KErrorCode } from "@/KError"
 import { Notify } from "quasar"
 import { useI18n } from "vue-i18n"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
+import { Auth } from "@/plugins/Auth"
 
-
-const store = useStore()
-
-const myMember = computed(() => store.getters.myMember)
-const code = computed(() => myMember.value.group.attributes.code)
-const memberCode = computed(() => myMember.value.attributes.code)
 
 const newPassword = ref("")
 
@@ -62,33 +61,29 @@ const valid = computed(() => newPassword.value.length >= 8)
 const {t} = useI18n()
 
 const router = useRouter()
-
-const myUser = computed(() => store.getters.myUser)
+const route = useRoute()
+const auth = new Auth()
+const store = useStore()
+const invalidToken = ref(typeof route.query.token !== "string" || !route.query.token)
 
 const onSubmit = async () => {
   loading.value = true
   try {
-    await store.dispatch("users/update", {
-      id: myUser.value.id,
-      group: code.value,
-      resource: {
-        attributes: {
-          newPassword: newPassword.value,
-        }
-      }
-    })
+    await auth.changePassword(route.query.token as string, newPassword.value)
+    newPassword.value = ""
+    await store.dispatch("logout")
     Notify.create({
       message: t('passwordChanged'),
       color: 'positive',
     })
     
-    // Renew tokens.
-    await store.dispatch("login", {
-      email: myUser.value.attributes.email,
-      password: newPassword.value
-    })
-
-    router.push(`/groups/${code.value}/members/${memberCode.value}`)
+    await router.replace("/login-mail")
+  } catch (error) {
+    if (error instanceof KError && error.code === KErrorCode.IncorrectRequest) {
+      invalidToken.value = true
+    } else {
+      throw error
+    }
   } finally {
     loading.value = false
   }

@@ -19,10 +19,9 @@ import { useQuasar } from 'quasar';
 import FloatingBtn from '../../components/FloatingBtn.vue'
 import { useI18n } from 'vue-i18n'
 import NeedPage from './Need.vue'
-import type { Need } from '../../store/model'
+import type { Member, Need } from '../../store/model'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { computed } from 'vue';
 
  
 const props = defineProps<{
@@ -35,15 +34,19 @@ const { t } = useI18n()
 const store = useStore()
 const router = useRouter()
 
-const myMember = computed(() => store.getters.myMember)
+type FullNeed = Need & { member: Member }
 
-const publish = async (need: Need) => {
-  need.attributes.state = 'published'
-
+const publish = async (need: FullNeed) => {
   await store.dispatch('needs/update', {
     id: need.id,
     group: props.code,
-    resource: need
+    resource: {
+      id: need.id,
+      type: 'needs',
+      attributes: {
+        status: 'published'
+      }
+    }
   })
 
   $q.notify({
@@ -52,7 +55,7 @@ const publish = async (need: Need) => {
   })
 
   router.push({
-    path:`/groups/${props.code}/members/${myMember.value.attributes.code}`, 
+    path:`/groups/${props.code}/members/${need.member.attributes.code}`,
     hash: '#needs'
   })
 }

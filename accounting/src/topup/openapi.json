@@ -13,7 +13,10 @@
         "tags": ["Topups"],
         "security": [
           {
-            "oauth2": ["accounting"]
+            "oauth2": ["accounting:write"]
+          },
+          {
+            "oauth2": ["superadmin"]
           }
         ],
         "parameters": [
@@ -68,7 +71,10 @@
         "tags": ["Topups"],
         "security": [
           {
-            "oauth2": ["accounting"]
+            "oauth2": ["accounting:read"]
+          },
+          {
+            "oauth2": ["superadmin"]
           }
         ],
         "parameters": [
@@ -125,7 +131,10 @@
         "tags": ["Topups"],
         "security": [
           {
-            "oauth2": ["accounting"]
+            "oauth2": ["accounting:write"]
+          },
+          {
+            "oauth2": ["superadmin"]
           }
         ],
         "parameters": [
@@ -234,7 +243,10 @@
         "tags": ["Settings"],
         "security": [
           {
-            "oauth2": ["accounting"]
+            "oauth2": ["accounting:read"]
+          },
+          {
+            "oauth2": ["superadmin"]
           }
         ],
         "parameters": [
@@ -268,7 +280,10 @@
         "tags": ["Settings"],
         "security": [
           {
-            "oauth2": ["accounting"]
+            "oauth2": ["accounting:write"]
+          },
+          {
+            "oauth2": ["superadmin"]
           }
         ],
         "parameters": [
@@ -314,7 +329,10 @@
         "tags": ["Settings"],
         "security": [
           {
-            "oauth2": ["accounting"]
+            "oauth2": ["accounting:read"]
+          },
+          {
+            "oauth2": ["superadmin"]
           }
         ],
         "parameters": [
@@ -358,7 +376,10 @@
         "tags": ["Settings"],
         "security": [
           {
-            "oauth2": ["accounting"]
+            "oauth2": ["accounting:write"]
+          },
+          {
+            "oauth2": ["superadmin"]
           }
         ],
         "parameters": [
@@ -412,14 +433,21 @@
     "securitySchemes": {
       "oauth2": {
         "type": "oauth2",
-        "description": "OAuth2 authentication with Accounting or Superadmin scope",
+        "description": "OAuth2 bearer tokens issued by the Komunitin Auth service for audience urn:komunitin:api",
         "flows": {
-          "authorizationCode": {
-            "authorizationUrl": "https://id.komunitin.org/oauth/authorize",
-            "tokenUrl": "https://id.komunitin.org/oauth/token",
+          "password": {
+            "tokenUrl": "https://auth.komunitin.org/token",
             "scopes": {
-              "accounting": "Access to accounting operations",
+              "accounting:read": "Read accounting resources",
+              "accounting:write": "Create and update accounting resources",
               "superadmin": "Superadmin access"
+            }
+          },
+          "clientCredentials": {
+            "tokenUrl": "https://auth.komunitin.org/token",
+            "scopes": {
+              "accounting:read": "Read accounting resources",
+              "accounting:write": "Create and update accounting resources"
             }
           }
         }

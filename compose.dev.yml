@@ -1,4 +1,5 @@
 services:
+  # Node inspect ports mirror service HTTP ports: 2023 -> 9223, 2025 -> 9225, 2026 -> 9226, 2028 -> 9228.
   app:
     build:
       target: komunitin-app-build
@@ -26,28 +27,50 @@ services:
     command: pnpm dev
     ports:
       - "2025:2025"
-      - "9229:9229"
+      - "9225:9225"
     volumes:
-      - ./accounting/cli:/app/cli
-      - ./accounting/openapi:/app/openapi
-      - ./accounting/prisma:/app/prisma
-      - ./accounting/src:/app/src
-      - ./accounting/test:/app/test
-      - ./accounting/.env:/app/.env
-      - ./accounting/package.json:/app/package.json
-      - ./accounting/pnpm-lock.yaml:/app/pnpm-lock.yaml
+      - ./accounting:/app
+      - /app/node_modules
+      - /app/dist
+
+  auth:
+    command: pnpm dev
+    ports: !override
+      - "2026:2026"
+      - "9226:9226"
+    volumes:
+      - ./auth:/app
+      - /app/node_modules
+      - /app/src/generated
+      - /app/dist
   
+  social:
+    command: pnpm dev
+    ports:
+      - "2028:2028"
+      - "9228:9228"
+    volumes:
+      - ./social:/app
+      - /app/node_modules
+      - /app/src/generated
+      - /app/dist
+
+  s3mock:
+    image: adobe/s3mock:5
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: komunitin
+    ports:
+      - "9191:9191"
+
   notifications-ts:
     command: pnpm dev
     ports:
       - "2023:2023"
-      - "9223:9229"
+      - "9223:9223"
     volumes:
-      - ./notifications-ts/src:/app/src
-      - ./notifications-ts/prisma:/app/prisma
-      - ./notifications-ts/.env:/app/.env
-      - ./notifications-ts/package.json:/app/package.json
-      - ./notifications-ts/pnpm-lock.yaml:/app/pnpm-lock.yaml
+      - ./notifications-ts:/app
+      - /app/node_modules
+      - /app/dist
 
   cc:
     build:
@@ -60,16 +83,6 @@ services:
       - "trunk.cc-server:127.0.0.1"
       - "branch2.cc-server:127.0.0.1"
 
-  phpmyadmin:
-    image: phpmyadmin
-    restart: unless-stopped
-    depends_on:
-      - db-integralces
-    environment:
-      PMA_HOSTS: "db-integralces,db-accounting"
-      PMA_PORTS: "3306,5432"
-    ports:
-      - "2026:80"
   db-notifications:
     ports:
       - "6379:6379"

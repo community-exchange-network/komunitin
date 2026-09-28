@@ -192,6 +192,11 @@
     "group_requested_label": "Community requested",
     "group_requested_text": "A new community <strong>{{groupName}}</strong> has just been requested.",
     "group_requested_subtext": "Please review the request and activate or delete the community as soon as possible.",
-    "group_requested_cta": "Review communities"
+    "group_requested_cta": "Review communities",
+    "delete_member_subject": "Confirm deletion – {{name}}",
+    "delete_member_label": "Confirm deletion",
+    "delete_member_text": "You requested deletion of {{member}} in {{name}}. Use the link to confirm.",
+    "delete_member_cta": "Confirm deletion",
+    "delete_member_reason": "You received this email because deletion was requested in {{appName}}."
   }
 }

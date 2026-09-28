@@ -11,7 +11,7 @@ export const shouldProcessGroup = (group: Group, isManualRun: boolean): boolean 
 
   const coordinates = group.attributes.location?.coordinates;
 
-  let timeZone = timezone(coordinates)
+  let timeZone = coordinates ? timezone(coordinates) : null
   if (timeZone === null) {
     timeZone = 'UTC';
     logger.warn({ coordinates, group: group.attributes.code }, 'Failed to determine timezone from coordinates, defaulting to UTC timezone');

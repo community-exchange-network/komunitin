@@ -36,7 +36,7 @@ export const createExternalToken = async (key: Keypair) => {
   const token = await new SignJWT({})
     .setProtectedHeader({alg: "EdDSA"})
     .setIssuer(config.API_BASE_URL)
-    .setAudience("komunitin-app")
+    .setAudience(config.AUTH_JWT_AUDIENCE)
     .setExpirationTime("1h")
     .setIssuedAt()
     .setSubject(key.publicKey())

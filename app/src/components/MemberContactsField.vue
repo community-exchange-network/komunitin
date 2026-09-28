@@ -1,23 +1,23 @@
 <template>
   <q-input
     v-for="(contact, index) in contacts"
-    :key="`${contact.id}`"
-    :model-value="contact.attributes.name"
+    :key="contact.type"
+    :model-value="contact.value"
     type="text"
-    :label="getNetworkLabel(contact.attributes.type)"
+    :label="getNetworkLabel(contact.type)"
     outlined
-    :disable="contact.attributes.type === 'email'"
+    :disable="contact.type === 'email'"
     class="q-mb-md"
     @update:model-value="(name) => updateContact(index, name as string)"
   >
     <template #prepend>
       <q-avatar size="md">
-        <img :src="getNetworkIcon(contact.attributes.type)">
+        <img :src="getNetworkIcon(contact.type)">
       </q-avatar>
     </template>
     <template #append>
       <q-btn
-        v-if="contact.attributes.type !== 'email'" 
+        v-if="contact.type !== 'email'"
         flat
         round
         icon="delete"
@@ -78,24 +78,14 @@ import { computed, ref } from "vue"
 import { getNetworkIcon, getContactUrl, getNetwork, getContactNetworkKeys } from "../utils/social-networks"
 import { useI18n } from "vue-i18n"
 import type { Contact } from "../store/model"
-import type { DeepPartial } from "quasar"
-import { v4 as uuid } from "uuid"
 import DialogFormBtn from "./DialogFormBtn.vue"
 
-// This component accepts and emits an array of contact-like objects,
-// having at least the basic attributes type and name.
-export type PartialContact = DeepPartial<Contact> & {
-  id: string,
-  type: "contacts",
-  attributes: {type: string, name: string}
-}
-
 const props = defineProps<{
-  modelValue: PartialContact[]
+  modelValue: Contact[]
 }>()
 
 const emit = defineEmits<{
-  (e: "update:modelValue", value: PartialContact[]): void
+  (e: "update:modelValue", value: Contact[]): void
 }>()
 
 const contacts = computed({
@@ -132,7 +122,7 @@ const newContactName = ref<string>()
 const newContactOptions = computed(() => getContactNetworkKeys().map((key) => ({
   label: getNetworkLabel(key),
   value: key,
-  disable: contacts.value.some(contact => contact.attributes?.type === key)
+  disable: contacts.value.some(contact => contact.type === key)
 })))
 
 const testNewContact = () => {
@@ -147,12 +137,8 @@ const addContact = () => {
     contacts.value = [
       ...contacts.value,
       {
-        id: uuid(),
-        type: "contacts",
-        attributes: {
-          type: newContactType.value.value,
-          name: newContactName.value
-        }
+        type: newContactType.value.value,
+        value: newContactName.value
       }
     ]
     newContactType.value = undefined
@@ -160,8 +146,8 @@ const addContact = () => {
   }
 }
 
-const deleteContact = (contact: PartialContact) => {
-  contacts.value = contacts.value.filter(c => c.attributes.type !== contact.attributes.type || c.attributes.name !== contact.attributes.name)
+const deleteContact = (contact: Contact) => {
+  contacts.value = contacts.value.filter(c => c.type !== contact.type || c.value !== contact.value)
 }
 
 const updateContact = (index: number, name: string) => {
@@ -170,10 +156,7 @@ const updateContact = (index: number, name: string) => {
     ...contacts.value.slice(0, index),
     {
       ...contacts.value[index],
-      attributes: {
-        ...contacts.value[index].attributes,
-        name
-      }
+      value: name
     },
     ...contacts.value.slice(index + 1)
   ]

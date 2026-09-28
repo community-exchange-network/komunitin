@@ -41,7 +41,7 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
   const test = {
     app: undefined as any as ExpressExtended,
     api: undefined as any as TestApiClient,
-    superadmin: userAuth("superadmin", [Scope.Superadmin, Scope.Accounting]),
+    superadmin: userAuth("superadmin", [Scope.Superadmin]),
     admin: userAuth("0"),
     user1: userAuth("1"),
     user2: userAuth("2"),
@@ -109,4 +109,3 @@ export function setupServerTest(createData: boolean = true, graftCreditCommons: 
 
   return test
 }
-

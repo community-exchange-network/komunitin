@@ -15,7 +15,10 @@
         :lat-lng="memberMarker"
       />
     </simple-map>
-    <q-card-section class="group-footer-card text-onsurface-m">
+    <q-card-section
+      v-if="group.attributes.location?.name"
+      class="group-footer-card text-onsurface-m"
+    >
       <q-icon name="place" />
       {{ group.attributes.location.name }}
     </q-card-section>
@@ -31,7 +34,7 @@ import { LMarker } from "@vue-leaflet/vue-leaflet"
 import SimpleMap from "../../components/SimpleMap.vue"
 
 import { useAllResources } from "@/composables/useResources"
-import { getBoundsAroundCenter, isUsableLngLat, toLeafletLatLng, type LngLat } from "@/composables/leaflet"
+import { getBoundsAroundCenter, getBoundsAroundPoints, isUsableLngLat, toLeafletLatLng, type LngLat } from "@/composables/leaflet"
 import type { Group, Member } from "@/store/model"
 
 const props = defineProps<{
@@ -39,19 +42,19 @@ const props = defineProps<{
 }>()
 
 const store = useStore()
-const isLoggedIn = computed(() => store.getters.isLoggedIn)
-const center = computed(() => props.group.attributes.location.coordinates)
+const own = computed(() => props.group.id === store.getters.myMember?.group.id)
+const center = computed(() => props.group.attributes.location?.coordinates)
 const memberOptions = computed(() => ({ group: props.group.attributes.code, cache: 10 * 60 * 1000 }))
-const { resources: members, loadAll } = useAllResources<Member>("members", memberOptions, { immediate: false })
+const { resources: members, loadAll } = useAllResources<Member>("members", memberOptions, { immediate: false, watch: false })
 
-watch([isLoggedIn, () => props.group.attributes.code], async ([loggedIn]) => {
-  if (loggedIn) {
+watch([own, () => props.group.attributes.code], async ([isOwnGroup]) => {
+  if (isOwnGroup) {
     await loadAll()
   }
 }, { immediate: true })
 
 const memberMarkers = computed<LngLat[]>(() => {
-  if (!isLoggedIn.value) {
+  if (!own.value) {
     return []
   }
 
@@ -63,6 +66,9 @@ const memberMarkers = computed<LngLat[]>(() => {
     .filter(isUsableLngLat)
 })
 
-const bounds = computed(() => getBoundsAroundCenter(center.value, memberMarkers.value, 0.8, 0.1))
+const bounds = computed(() => center.value
+  ? getBoundsAroundCenter(center.value, memberMarkers.value, 0.8, 0.1)
+  : getBoundsAroundPoints(memberMarkers.value)
+)
 const memberMarkerLatLngs = computed<LatLngExpression[]>(() => memberMarkers.value.map(toLeafletLatLng))
 </script>

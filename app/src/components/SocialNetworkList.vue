@@ -54,8 +54,8 @@ const contact = (network: string) => {
 
 const contactName = (network: string): string => {
   if (props.type === "contact") {
-    const contact = (props.contacts).find(c => c.attributes.type === network);
-    return contact ? contact.attributes.name : "";
+    const contact = props.contacts.find(c => c.type === network);
+    return contact?.value ?? "";
   }
   return "";
 }
@@ -73,7 +73,7 @@ const networkLabel = (key: string): string => {
 const networks = computed(() => {
   if (props.type === "contact") {
     return getContactNetworkKeys().filter(key => {
-      return props.contacts?.some(c => c.attributes.type === key);
+      return props.contacts.some(c => c.type === key);
     })
   } else {
     return getShareNetworkKeys()

@@ -42,7 +42,7 @@ export const createNotification = async (
 /**
  * Create event data in the format expected by addEvent / the events queue.
  */
-export const createEvent = (name: EventName, params: { code: string | null; user: string; data: Record<string, string> }): AnyNotificationEvent => {
+export const createEvent = (name: EventName, params: { code: string | null; user: string; data: Record<string, unknown> }): AnyNotificationEvent => {
   return {
     id: randomUUID(),
     name,
@@ -57,13 +57,18 @@ export const createEvent = (name: EventName, params: { code: string | null; user
 /**
  * Create a JSON:API event body for the POST /events endpoint.
  */
-export const createEventBody = (name: EventName, params: { code: string | null; user: string; data: Record<string, string> }) => {
+export const createEventBody = (name: EventName, params: { code: string | null; user: string; data: Record<string, unknown> }) => {
+  const source = name === 'ValidationEmailRequested' || name === 'PasswordResetRequested'
+    ? 'auth'
+    : name.startsWith('Transfer')
+      ? 'accounting'
+      : 'social'
   return {
     data: {
       type: 'events',
       attributes: {
         name,
-        source: 'mock-accounting',
+        source,
         code: params.code,
         time: new Date().toISOString(),
         data: params.data,
@@ -86,7 +91,7 @@ export const verifyNotification = async (
   const expectedTitle = typeof expected === 'string' ? expected : expected.title;
   const expectedBody = typeof expected === 'string' ? undefined : expected.body;
 
-  const token = await signJwt(userId, ['komunitin_social'])
+  const token = await signJwt(userId, ['notifications:read'])
   const app = await getApp()
   const response = await app
     .get(`/${groupId}/notifications`)
