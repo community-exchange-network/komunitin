@@ -96,22 +96,6 @@ function vueWarnHandler(message: string, instance: ComponentPublicInstance | nul
  */
 if (window !== undefined) {
   window.addEventListener('error', function(event: ErrorEvent) {
-    // This error is thrown but is harmless, so we can safely ignore it.
-    // In fact, it is mandatory that we ignore it since otherwise we show
-    // very annoying error messages to users. Note that in chrome this 
-    // error is 
-    // "ResizeObserver loop limit exceeded" 
-    // and  in Safari it is:
-    // "ResizeObserver loop completed with undelivered notifications."
-    // furthermore, safari may hide the error details from the script, just giving "Script error"
-    if (event.message.includes("ResizeObserver loop") || event.message == "Script error.") {
-      // TODO: Maybe remove this warning in production.
-      if (import.meta.env.QUASAR_DEV) {
-         
-        console.warn(event.message);
-      }
-      return;
-    }
     let kerror: KError;
     if (event.error instanceof KError) {
       kerror = event.error;
