@@ -38,15 +38,16 @@ const defaultPublicUrl = () => {
 /** The public base URL for uploaded files. */
 export const publicUrlBase = trimTrailingSlash(config.UPLOAD_PUBLIC_URL ?? defaultPublicUrl())
 
-export const uploadToS3 = async (key: string, contentType: string, data: Buffer): Promise<void> => {
+export const uploadToS3 = async (key: string, contentType: string, data: Buffer, access: 'public' | 'private'): Promise<void> => {
   try {
     await s3.send(new PutObjectCommand({
       Bucket: uploadBucket,
       Key: fullObjectKey(key),
       Body: data,
+      ACL: access === 'public' ? 'public-read' : 'private',
       ContentType: contentType,
       ContentLength: data.length,
-      CacheControl: 'public, max-age=31536000, immutable',
+      CacheControl: `${access}, max-age=31536000, immutable`,
     }))
   } catch (cause) {
     throw internalError('Failed to upload file', { cause })

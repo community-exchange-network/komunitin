@@ -1,16 +1,30 @@
-import { createHash } from 'node:crypto'
+import { v5 as uuidv5 } from 'uuid'
 import { fileTypeFromBuffer } from 'file-type'
 import { getS3ObjectMetadata, publicUrlBase, uploadToS3 } from '../../clients/s3'
 import { config } from '../../config'
 import { Prisma } from '../../generated/prisma/client'
 import { privilegedDb } from '../../server/multitenant'
 import prisma from '../../utils/prisma'
-import { syncResourceFiles } from '../files/service'
+import { extensionFromMime, syncResourceFiles } from '../files/service'
 import type { ImageOwner } from './persistence'
 import type { MigrationLog } from './types'
 
 const imageKey = (code: string, owner: ImageOwner, source: string) =>
-  `${code}/${owner.type}/migration-${owner.id}-${createHash('sha256').update(source).digest('hex')}`
+  `${code}/${owner.type}/${uuidv5(source, owner.id)}`
+
+/** Find interrupted uploads without needing the source image to remain available. */
+const findUploadedImage = async (baseKey: string) => {
+  let object: { key: string, mime: string, size: number } | null = null
+  for (const mime of config.UPLOAD_ALLOWED_MIME_TYPES) {
+    const key = `${baseKey}.${extensionFromMime(mime)}`
+    const metadata = await getS3ObjectMetadata(key)
+    if (metadata) {
+      object = { key, ...metadata }
+      break
+    }
+  }
+  return object
+}
 
 const download = async (url: string) => {
   const response = await fetch(url, { signal: AbortSignal.timeout(30_000) })
@@ -54,7 +68,6 @@ export const importImages = async (
       ],
     }, orderBy: { id: 'desc' } })
     const lastImages = (previous?.data as { images?: Prisma.JsonValue } | undefined)?.images ?? null
-    const destinationUrls = owner.urls.map(url => `${publicUrlBase}/${imageKey(code, owner, url)}`)
     // Only finish images on migration-created resources, while preserving subsequent manual edits.
     if (!provenance || JSON.stringify(current) !== JSON.stringify(lastImages)) {
       await log('info', 'images', `Preserved existing images on ${owner.type} ${owner.id}`)
@@ -62,9 +75,8 @@ export const importImages = async (
     }
     const images: { url: string }[] = []
     for (const [position, source] of owner.urls.entries()) {
-      const key = imageKey(code, owner, source)
-      const url = destinationUrls[position]
-      let object = await getS3ObjectMetadata(key)
+      const baseKey = imageKey(code, owner, source)
+      let object = await findUploadedImage(baseKey)
       if (!object) {
         let image: Awaited<ReturnType<typeof download>>
         try {
@@ -74,9 +86,12 @@ export const importImages = async (
           continue
         }
         assertActive()
-        await uploadToS3(key, image.mime, image.bytes)
-        object = image
+        const key = `${baseKey}.${extensionFromMime(image.mime)}`
+        await uploadToS3(key, image.mime, image.bytes, 'public')
+        object = { key, ...image }
       }
+      const { key } = object
+      const url = `${publicUrlBase}/${key}`
       const file = await db.file.findFirst({ where: { tenantId: code, key } })
       assertActive()
       if (!file) await db.file.create({ data: {

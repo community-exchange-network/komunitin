@@ -26,7 +26,8 @@ const assertMimeAllowed = (mime: string): void => {
   }
 }
 
-const extensionFromMime = (mime: string): string => {
+/** Use the same canonical image extensions for uploads and imports. */
+export const extensionFromMime = (mime: string): string => {
   const ext = MIME_TO_EXT[mime]
   if (!ext) {
     throw badRequest('Unsupported file type')
@@ -157,7 +158,7 @@ export const createUploadedFile = async (
   const key = buildObjectKey(code, fields.resourceType, generatedFilename)
 
   // Upload to S3.
-  await uploadToS3(key, detected.mime, data)
+  await uploadToS3(key, detected.mime, data, 'public')
 
   // Create the file record in the database.
   const filename = file.originalFilename ? file.originalFilename.slice(0, 255) : generatedFilename

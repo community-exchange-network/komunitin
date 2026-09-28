@@ -72,7 +72,7 @@ For a new identity, a blank hash means no usable password and a password reset i
 
 ## Images
 
-Images are copied to the configured upload bucket with deterministic keys derived from community, owning resource UUID and source URL. A HEAD request checks for an existing object before download/upload; an object left by an interrupted run is reused even if its `File` row was not yet written. File rows are reused by key within the community. Source order and repeated post URLs are retained.
+Images are copied to the configured upload bucket with a public-read object ACL, as with ordinary Social image uploads. This does not change bucket permissions or backup objects, which must remain private. Keys use `<community>/<resource-type>/<uuid>.<extension>`: a deterministic UUID derived from the owning resource UUID and source URL, and an extension derived from the detected MIME type. HEAD requests check the supported extensions before download/upload; an object left by an interrupted run is reused even if its `File` row was not yet written. File rows are reused by key within the community. Source order and repeated post URLs are retained.
 
 Downloads have a 30-second timeout and use the ordinary upload size and MIME allowlist. Download, size and MIME failures omit the image and append a warning. Re-uploading retries those failures, even after a completed attempt. Destination storage or database failures fail the attempt. The uploader is the first linked member user, falling back to the first community administrator; group images use that administrator.
 

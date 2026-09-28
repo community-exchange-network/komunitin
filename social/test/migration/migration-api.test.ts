@@ -3,6 +3,7 @@ import { once } from 'node:events'
 import { setTimeout } from 'node:timers/promises'
 import { after, before, beforeEach, test } from 'node:test'
 import request from 'supertest'
+import { http, HttpResponse } from 'msw'
 import type { Express } from 'express'
 import { privilegedDb } from '../../src/server/multitenant'
 import prisma from '../../src/utils/prisma'
@@ -11,7 +12,7 @@ import { auth, signJwt, signServiceJwt } from '../mocks/auth'
 import { getAccountingRequests, getNotificationsEvents, seedAccountingAccount, seedAccountingCurrency } from '../mocks/handlers'
 import { resetDb, seedCategory, seedGroup } from '../mocks/seed'
 import { server, setupTestServer, teardownTestServer } from '../mocks/server'
-import { getS3UploadCount } from '../mocks/s3'
+import { getS3UploadCount, getS3UploadRequests } from '../mocks/s3'
 import { mutateCsv, zipFromFiles } from './migration-bundle-helpers'
 import { eventsFrom, ids, migrationFiles, migrationMocks, passwordHash, timestamp } from './migration-api-helpers'
 
@@ -67,6 +68,11 @@ test('imports every Social resource, preserves timestamps and credentials, maps 
   assert.deepEqual(offer.data, { value: '5 credits' })
   assert.equal((offer.images as any[]).length, 2)
   assert.equal((offer.images as any[])[0].url, (offer.images as any[])[1].url)
+  for (const upload of getS3UploadRequests()) {
+    assert.equal(upload.ACL, 'public-read')
+    assert.equal(upload.ContentType, 'image/png')
+    assert.match(upload.Key!, /\/[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.png$/)
+  }
   const need = await db.post.findUniqueOrThrow({ where: { id: ids.need } })
   assert.deepEqual(need.images, [])
   assert.deepEqual(need.data, { fulfilled: '2025-02-01T09:00:00.000Z' })
@@ -113,6 +119,32 @@ test('retry preserves existing values, fills omitted images in source order, and
   await upload()
   assert.equal(getS3UploadCount(), uploads + 2)
   assert.equal(await db.file.count(), 4)
+})
+
+test('uses detected image extensions and recovers an uploaded object without its File row or source', async () => {
+  const source = 'https://images.test/download.jpg'
+  const files = mutateCsv(migrationFiles(), 'community.csv', 1, 'imageUrl', source)
+  const first = await upload(files)
+  assert.equal((await migration(first)).status, 'completed', first.text)
+  const original = await db.file.findFirstOrThrow({ where: { resourceId: ids.group } })
+  assert.match(original.key, /\.png$/)
+  const uploads = getS3UploadCount()
+
+  // Reproduce a crash after the S3 write but before the File row and image event were saved.
+  await db.file.delete({ where: { id: original.id } })
+  await db.group.update({ where: { id: ids.group }, data: { image: Prisma.DbNull } })
+  await db.migrationEvent.deleteMany({ where: {
+    step: 'images', data: { path: ['resourceId'], equals: ids.group },
+  } })
+  server.use(http.get(source, () => new HttpResponse(null, { status: 404 })))
+
+  const retry = await upload(files)
+  assert.equal((await migration(retry)).status, 'completed', retry.text)
+  const recovered = await db.file.findFirstOrThrow({ where: { resourceId: ids.group } })
+  assert.equal(recovered.key, original.key)
+  assert.equal(recovered.url, original.url)
+  assert.deepEqual((await db.group.findUniqueOrThrow({ where: { id: ids.group } })).image, { url: original.url })
+  assert.equal(getS3UploadCount(), uploads)
 })
 
 test('corrected image URLs unlink replaced files and relink them when restored on retry', async () => {
