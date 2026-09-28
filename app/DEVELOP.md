@@ -22,15 +22,16 @@ pnpm install
 ```
 ### Install local certificates
  - Install [mkcert](https://github.com/FiloSottile/mkcert#installation)
- - Create local CA root and set the `LOCAL_CA_ROOT` env variable:
+ - Create local CA root:
 ```bash
 mkcert -install
-export LOCAL_CA_ROOT="$(mkcert -CAROOT)/rootCA.pem"
 ```
  - Create certificates for localhost
 ```bash
-mkdir -p tmp/certs && cd tmp/certs
+mkdir -p tmp/certs
+cd tmp/certs
 mkcert localhost
+cd ../..
 ```
 
 ### Run standalone

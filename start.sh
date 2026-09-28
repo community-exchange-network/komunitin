@@ -13,7 +13,7 @@ Options:
   --up          Build and start the services
   --reset       Reset the service databases before applying migrations
   --demo        Reset and populate demo data via a temporary IntegralCES service
-  --dev         Start with development config (requires --up)
+  --dev         Set up local HTTPS and start with development config (requires --up)
   --public      Start with production config (requires --up)
   --prune       Remove unused Docker resources after startup
   -h, --help    Show this help message
@@ -76,6 +76,27 @@ fi
 set -a
 . .env
 set +a
+
+# Prepare trusted HTTPS when mkcert is available; containers provide the fallback.
+if [ "$dev" = true ]; then
+  cert_dir="$PWD/app/tmp/certs"
+  mkdir -p "$cert_dir"
+  if { [ ! -f "$cert_dir/localhost.pem" ] || [ ! -f "$cert_dir/localhost-key.pem" ]; } && command -v mkcert >/dev/null; then
+    (cd "$cert_dir" && mkcert localhost)
+  fi
+  if [ -f "$cert_dir/localhost.pem" ] && [ -f "$cert_dir/localhost-key.pem" ]; then
+    # Let S3Mock read the PEM files directly instead of its default keystore.
+    cat > "$cert_dir/s3mock.properties" <<'EOF'
+server.ssl.key-store=
+server.ssl.key-password=
+server.ssl.certificate=file:/certs/localhost.pem
+server.ssl.certificate-private-key=file:/certs/localhost-key.pem
+EOF
+  else
+    rm -f "$cert_dir/s3mock.properties"
+    echo "Warning: using untrusted self-signed HTTPS certificates. Install mkcert for trusted HTTPS and PWA features." >&2
+  fi
+fi
 
 # for social db, prisma reset does not work well so we remove the volume and let docker 
 # compose recreate it.
