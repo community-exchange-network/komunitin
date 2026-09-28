@@ -199,6 +199,7 @@ const requireAccountingAuthorization = (request: Request): Response | null => {
 }
 
 const serializeCurrency = (currency: MockCurrency) => ({
+  relationships: { admins: { data: [] } },
   type: 'currencies',
   id: currency.id,
   links: {
@@ -211,6 +212,7 @@ const serializeCurrency = (currency: MockCurrency) => ({
 })
 
 const serializeAccount = (account: MockAccount) => ({
+  relationships: { users: { data: account.userIds.map(id => ({ type: 'users', id })) } },
   type: 'accounts',
   id: account.id,
   links: {

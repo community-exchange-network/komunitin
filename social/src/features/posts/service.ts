@@ -52,6 +52,7 @@ const toPost = (
   return {
     ...post,
     ...dataObj,
+    images: post.images ?? [],
     location,
     member,
     category,

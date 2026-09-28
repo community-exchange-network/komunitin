@@ -12,7 +12,7 @@ build and start the services first.
 Options:
   --up          Build and start the services
   --reset       Reset the service databases before applying migrations
-  --demo        Deprecated alias for --reset
+  --demo        Reset and populate demo data via a temporary IntegralCES service
   --dev         Set up local HTTPS and start with development config (requires --up)
   --public      Start with production config (requires --up)
   --prune       Remove unused Docker resources after startup
@@ -21,6 +21,7 @@ EOF
 }
 
 reset=false
+demo=false
 public=false
 up=false
 prune=false
@@ -35,7 +36,7 @@ while (( $# > 0 )); do
       reset=true
       ;;
     --demo)
-      echo "Warning: --demo is deprecated; use --reset." >&2
+      demo=true
       reset=true
       ;;
     --public)
@@ -67,7 +68,7 @@ if [ "$dev" = true ] && [ "$public" = true ]; then
 fi
 
 if [ "$up" = false ] && { [ "$reset" = true ] || [ "$dev" = true ] || [ "$public" = true ] || [ "$prune" = true ]; }; then
-  echo "Options --reset, --dev, --public and --prune require --up." >&2
+  echo "Options --reset, --demo, --dev, --public and --prune require --up." >&2
   exit 1
 fi
 
@@ -143,3 +144,6 @@ fi
 
 # Bootstrap the configured superadmin in Auth and Social.
 ./shared/cli/komunitin admin bootstrap
+if [ "$demo" = true ]; then
+  bash shared/demo/demo.sh "$dev"
+fi

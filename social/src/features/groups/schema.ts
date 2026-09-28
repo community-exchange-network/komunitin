@@ -21,7 +21,9 @@ export const addressSchema = z.object({
 }).strict()
 export type Address = z.infer<typeof addressSchema>
 
-export const contactTypeSchema = z.enum(['phone', 'email', 'telegram', 'whatsapp', 'website'])
+export const contactTypeSchema = z.enum([
+  'phone', 'email', 'telegram', 'whatsapp', 'website', 'instagram', 'facebook', 'twitter',
+])
 
 export const contactSchema = z.object({
   type: contactTypeSchema,

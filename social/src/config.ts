@@ -29,7 +29,7 @@ const envSchema = z.object({
   UPLOAD_S3_ACCESS_KEY: z.string().trim().min(1).default('test-access-key'),
   UPLOAD_S3_SECRET_KEY: z.string().trim().min(1).default('test-secret-key'),
   UPLOAD_S3_FORCE_PATH_STYLE: envBoolean(false),
-  UPLOAD_PUBLIC_URL: z.url().optional(),
+  UPLOAD_PUBLIC_URL: z.preprocess(v => v || undefined, z.url().optional()),
   UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(2 * 1024 * 1024),
   UPLOAD_ALLOWED_MIME_TYPES: z.string()
     .default('image/jpeg,image/png,image/webp,image/gif')
