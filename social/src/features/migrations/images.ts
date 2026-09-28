@@ -5,6 +5,7 @@ import { config } from '../../config'
 import { Prisma } from '../../generated/prisma/client'
 import { privilegedDb } from '../../server/multitenant'
 import prisma from '../../utils/prisma'
+import { syncResourceFiles } from '../files/service'
 import type { ImageOwner } from './persistence'
 import type { MigrationLog } from './types'
 
@@ -105,5 +106,6 @@ export const importImages = async (
         data: { resourceType: owner.type, resourceId: owner.id, images: value, copied: images.length, total: owner.urls.length },
       } })
     })
+    await syncResourceFiles(code, owner.type, owner.id, images.map(image => image.url))
   }
 }

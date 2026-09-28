@@ -115,6 +115,26 @@ test('retry preserves existing values, fills omitted images in source order, and
   assert.equal(await db.file.count(), 4)
 })
 
+test('corrected image URLs unlink replaced files and relink them when restored on retry', async () => {
+  await upload()
+  const original = await db.file.findFirstOrThrow({ where: { resourceId: ids.group } })
+  const uploads = getS3UploadCount()
+  const corrected = mutateCsv(migrationFiles(), 'community.csv', 1, 'imageUrl', 'https://images.test/replacement.png')
+  const response = await upload(corrected)
+  assert.equal((await migration(response)).status, 'completed', response.text)
+  const replacement = await db.file.findFirstOrThrow({ where: { resourceId: ids.group } })
+  assert.notEqual(replacement.id, original.id)
+  assert.equal((await db.file.findUniqueOrThrow({ where: { id: original.id } })).resourceId, null)
+  assert.deepEqual((await db.group.findUniqueOrThrow({ where: { id: ids.group } })).image, { url: replacement.url })
+
+  const retry = await upload()
+  assert.equal((await migration(retry)).status, 'completed', retry.text)
+  assert.equal((await db.file.findUniqueOrThrow({ where: { id: original.id } })).resourceId, ids.group)
+  assert.equal((await db.file.findUniqueOrThrow({ where: { id: replacement.id } })).resourceId, null)
+  assert.deepEqual((await db.group.findUniqueOrThrow({ where: { id: ids.group } })).image, { url: original.url })
+  assert.equal(getS3UploadCount(), uploads + 1)
+})
+
 test('fails missing Accounting and identity conflicts without writing Accounting; a corrected re-upload succeeds', async () => {
   seedAccountingCurrency('EXMP', ids.admin)
   const failed = await upload()
