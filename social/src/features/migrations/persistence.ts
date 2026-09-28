@@ -161,6 +161,8 @@ export const persistSocial = async (
       id: row.id ?? undefined, tenantId, groupId: group.id, memberId, categoryId, type,
       code: row.code, title: row.title, description: row.description, status: row.status, access: row.access,
       data: type === 'offers' ? { value: row.value } : { fulfilled: row.fulfilledAt },
+      // Pending image imports need the null baseline used by retry provenance checks.
+      images: row.imageUrls.length ? undefined : [],
       latitude: row.location?.latitude, longitude: row.location?.longitude,
       expires: row.expiresAt ? new Date(row.expiresAt) : null, ...dates(row),
     } }))

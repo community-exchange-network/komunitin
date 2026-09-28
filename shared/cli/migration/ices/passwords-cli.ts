@@ -3,6 +3,7 @@ import { dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { createConnection } from 'mysql2/promise'
 import { addIcesPasswordHashes } from './passwords'
+import { apiUrl } from '../../utils'
 
 const usage = `Usage: pnpm passwords:ices --bundle <bundle.zip>
 Database: ICES_DATABASE_URL (mysql://user:password@host:3306/database).
@@ -16,7 +17,7 @@ try {
     if (!values.bundle || !process.env.ICES_DATABASE_URL) throw new Error(usage)
     const path = resolve(values.bundle)
     const bytes = await readFile(path)
-    const db = await createConnection(process.env.ICES_DATABASE_URL)
+    const db = await createConnection(apiUrl(process.env.ICES_DATABASE_URL))
     try {
       const result = await addIcesPasswordHashes(bytes, db)
       // A temporary sibling ensures rename stays on the same filesystem.

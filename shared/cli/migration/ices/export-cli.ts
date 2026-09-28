@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { createAllIcesMigrationBundles, createIcesMigrationBundle } from './export'
+import { apiUrl } from '../../utils'
 
 const usage = (enrich: boolean) => `Usage: ${enrich ? 'komunitin admin bundle ices' : 'pnpm export:ices'} --url <ICES site URL> (--code <CODE> | --all) --output <path> [--page-size <100>]
 Credentials: ICES_ADMIN_EMAIL and ICES_ADMIN_PASSWORD for a Drupal site administrator.
@@ -23,7 +24,7 @@ export const runIcesExport = async (enrich?: (path: string) => void) => {
     }
     if (enrich && !process.env.ICES_DATABASE_URL) throw new Error('Set ICES_DATABASE_URL for password enrichment')
     const options = {
-      url: values.url, auth: { email, password },
+      url: apiUrl(values.url), auth: { email, password },
       pageSize: values['page-size'] === undefined ? undefined : Number(values['page-size']),
     }
     const bundles = values.all

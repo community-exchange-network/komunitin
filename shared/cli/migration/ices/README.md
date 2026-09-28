@@ -2,22 +2,21 @@
 
 Exports one or all communities from the Drupal-based Komunitin API into the CSV migration bundle format. Currencies and accounts are reconciled by code; IDs are retained when the source exposes them. The result is a CSV ZIP. The exporter does not run the bundle parser; import validation is a separate step, and tests check exported bundles against the parser. Import execution is provided by the [Social migration endpoint and CLI](../../../../social/src/features/migrations/README.md), for communities already migrated to Accounting.
 
-From the repository root (Node.js 24 and pnpm):
+Set the source credentials in the repository root `.env`:
 
-```sh
-pnpm --dir social install
-pnpm --dir shared/cli install
-export ICES_ADMIN_EMAIL=admin@example.org
-read -rs ICES_ADMIN_PASSWORD
-export ICES_ADMIN_PASSWORD
-read -rs ICES_DATABASE_URL
-export ICES_DATABASE_URL
-# mysql://read_only_user:password@host:3306/drupal_database
-./shared/cli/komunitin admin bundle ices --url https://ices.example.org --code ABCD --output ABCD.zip
-unset ICES_ADMIN_PASSWORD ICES_DATABASE_URL
+```dotenv
+ICES_ADMIN_EMAIL=admin@example.org
+ICES_ADMIN_PASSWORD=source-admin-password
+ICES_DATABASE_URL=mysql://read_only_user:password@host:3306/drupal_database
 ```
 
-The CLI generates the API bundle, then enriches it from the source database. Both steps can also be run independently from `shared/cli/`:
+Run from the repository root (Docker only; dependencies are included in the CLI image):
+
+```sh
+./shared/cli/komunitin admin bundle ices --url https://ices.example.org --code ABCD --output ABCD.zip
+```
+
+The CLI generates the API bundle, then enriches it from the source database. The output path must be inside the invoking directory, which the wrapper mounts writable. Both steps can also be run independently with local Node.js 24 and pnpm after installing dependencies in `social/` and `shared/cli/` and exporting the source credentials:
 
 ```sh
 pnpm export:ices --url https://ices.example.org --code ABCD --output ABCD.zip

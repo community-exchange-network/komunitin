@@ -333,6 +333,19 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data.relationships.category.data.id, category.id)
   })
 
+  test('GET /:code/posts/:id returns [] for null images', async () => {
+    const tenantId = 'posts-empty-images'
+    await seedGroup({ tenantId, status: 'active', access: 'public' })
+    const member = await seedMember({ tenantId, status: 'active' })
+    const post = await seedPost({
+      tenantId, memberId: member.id, type: 'offers', status: 'published', access: 'public', images: null,
+    })
+
+    const res = await request(app).get(`/${tenantId}/posts/${post.id}`).expect(200)
+
+    assert.deepStrictEqual(res.body.data.attributes.images, [])
+  })
+
   test('POST, PATCH and DELETE /:code/posts sync post image files by URL', async () => {
     await seedGroup({ tenantId: 'posts-files', status: 'active', access: 'public' })
     const user = await auth('posts-files-user')

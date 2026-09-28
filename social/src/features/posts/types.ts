@@ -37,7 +37,7 @@ export type PatchPostInput = PatchOfferInput | PatchNeedInput
 interface BasePost extends Omit<DbPost, "data" | "latitude" | "longitude"> {
   status: PostStatus
   access: Access
-  images: Image[] | null
+  images: Image[]
   location: Location | null
   // Optional related resources are hydrated only when included.
   member?: Member
