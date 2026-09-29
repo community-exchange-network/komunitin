@@ -8,6 +8,7 @@ import { systemContext } from "../utils/context";
 import { fixUrl } from "../utils/net";
 import { Migration, MigrationAccount, MigrationData, MigrationLogEntry, MigrationTransfer } from "./migration";
 import { MigrationController } from "./migration-controller";
+import { config } from "../config";
 
 const UNLIMITED_CREDIT_LIMIT = 10 ** 6
 
@@ -775,13 +776,19 @@ export class ICESMigrationController {
         }
         const getExternalAccount = async ({id, code}: {id: string, code: string}) => {
           const currencyCode = code.substring(0, 4);
-          return await currencyController.externalResources.getExternalResource(systemContext(), {
+          // Read from ICES even if the remote community has not migrated yet.
+          await currencyController.externalResources.getExternalResource(systemContext(), {
             type: "accounts",
             id: id,
             meta: {
               external: true,
               href: this.accountingUrl() + `/${currencyCode}/accounts/${id}`
             }
+          })
+          // All migrated accounts retain their UUID on this accounting server.
+          return await db.externalResource.update({
+            where: { tenantId_id: { tenantId: db.tenantId, id } },
+            data: { href: `${config.API_BASE_URL}/${currencyCode}/accounts/${id}` }
           })
         }
         try {

@@ -5,6 +5,7 @@
     :code="code"
     type="transfers"
     include="payer,payee,payee.currency"
+    ignore-external-errors
     sort="-updated"
     :filter="filter"
     :query="props.query"
@@ -94,22 +95,20 @@ const fetchMembers = async (page: number) => {
     // the transfers for the updated query which will return undefined until the 2nd load completes.
     return;
   }
-  const accountIds = new Set<string>();
-  transfers
-    .forEach((transfer: ExtendedTransfer) => {
-      [transfer.payer.id, transfer.payee.id].forEach(id => {
-        if (id !== account.value?.id) {
-          accountIds.add(id);
-        }
-      })
-    });
-  await store.dispatch("members/loadList", {
-    group: props.code,
-    filter: {
-      account: Array.from(accountIds).join(",")
-    },
-    onlyResources: true
-  } as LoadListPayload);
+  const accountIds = new Set(transfers.flatMap((transfer: ExtendedTransfer) =>
+    [transfer.relationships.payer.data, transfer.relationships.payee.data]
+      .filter(({ id, meta }) => !meta?.external && id !== account.value?.id)
+      .map(({ id }) => id)
+  ))
+  if (accountIds.size > 0) {
+    await store.dispatch("members/loadList", {
+      group: props.code,
+      filter: {
+        account: Array.from(accountIds).join(",")
+      },
+      onlyResources: true
+    } as LoadListPayload)
+  }
   transfers.forEach((transfer: ExtendedTransfer) => {
     transferLoaded.value[transfer.id] = true
   });

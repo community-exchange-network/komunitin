@@ -5,8 +5,8 @@ import TransactionList from "@/pages/transactions/TransactionList.vue";
 import AccountHeader from "@/components/AccountHeader.vue";
 import SelectAccount from "@/components/SelectAccount.vue";
 import PageHeader from "@/layouts/PageHeader.vue";
-import { seeds } from "@/server";
-import { QFabAction, QInput, QList, QMenu } from "quasar";
+import server, { seeds } from "@/server";
+import { Notify, QFabAction, QInput, QList, QMenu } from "quasar";
 import SelectGroupExpansion from "@/components/SelectGroupExpansion.vue";
 import GroupHeader from "@/components/GroupHeader.vue";
 import CreateTransactionSendQR from "@/pages/transactions/CreateTransactionSendQR.vue";
@@ -159,6 +159,40 @@ describe("Transactions", () => {
     expect(text).toContain("Committed");
     expect(text).toContain("Group 0");
   })
+  it("shows a transaction when its external account is unreachable", async () => {
+    await wrapper.vm.$router.push("/home")
+    const payer = server.schema.find("account", wrapper.vm.$store.getters.myAccount.id)
+    const href = "http://legacy.test/accounts/unreachable-account"
+    const payee = server.create("account", { id: "unreachable-account" })
+    payee.update({ meta: { external: true, href } })
+    const transfer = server.create("transfer")
+    transfer.update({
+      payer, payee, amount: 12300, state: "committed",
+      updated: new Date().toISOString(),
+      meta: { description: "Payment to an unavailable account" }
+    })
+    const fetch = globalThis.fetch
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((url, options) =>
+      url === href ? Promise.reject(new TypeError("Failed to fetch")) : fetch(url, options)
+    )
+    onTestFinished(() => {
+      fetchMock.mockRestore()
+      transfer.destroy()
+      payee.destroy()
+    })
+    vi.mocked(Notify.create).mockClear()
+
+    await wrapper.vm.$router.push(TRANSFERS_ROUTE)
+    const transaction = () => wrapper.findAllComponents(TransactionItem)
+      .find(item => item.props("transfer").id === transfer.id)
+    await waitFor(() => transaction()?.text().includes("Payment to an unavailable account"), true)
+    expect(transaction()?.text()).toContain("$-1.23")
+    await wrapper.vm.$router.push(`/groups/GRP0/transactions/${transfer.id}`)
+    await waitFor(() => wrapper.text().includes("Payment to an unavailable account"), true)
+    expect(wrapper.text()).toContain("Committed")
+    expect(Notify.create).not.toHaveBeenCalled()
+  })
+
   it("creates payment request", async () =>  {
     await wrapper.vm.$router.push("/login");
     await waitFor(() => wrapper.vm.$route.path, "/home");

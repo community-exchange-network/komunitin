@@ -71,7 +71,7 @@ const getHandlers = (app: Express) => [
     if (info.request.headers.get("authorization") !== "Bearer accounting-notifications-token") {
       return HttpResponse.json({ error: "invalid_token" }, { status: 401 })
     }
-    const doc = (await new Response(info.request.body).json()) as any
+    const doc = await info.request.json() as any
     const event = doc.data
     event.id = (events.length + 1).toString()
     events.push(event)
