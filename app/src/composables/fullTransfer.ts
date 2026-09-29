@@ -8,8 +8,7 @@ import { useStore } from 'vuex'
 
 /**
  * Loads all associated resources to this transfer resource: member,
- * currency and group for both payer and payee. Not that the transfer
- * must have at least the payer and payee accounts already loaded.
+ * currency and group for both payer and payee when their accounts are available.
  */
 export const useFullTransferByResource = (transfer: Ref<ExtendedTransfer|undefined>) => {
   const store = useStore()
@@ -39,14 +38,15 @@ export const useFullTransferByResource = (transfer: Ref<ExtendedTransfer|undefin
         onlyResources: true
       })
     }
-    // If there are no external accounts we're done, since we have accounts, members 
-    // and also currency and group since they are the same as the ones for the logged 
-    // in account.
-    if (isExternalPayee) {
-      await loadExternalAccountRelationships(transfer.payee, store)
-    }
-    if (isExternalPayer) {
-      await loadExternalAccountRelationships(transfer.payer, store)
+    // External relationships may not be available when displaying a transfer.
+    const externalAccounts = [isExternalPayee && transfer.payee, isExternalPayer && transfer.payer]
+      .filter(account => !!account)
+    for (const account of externalAccounts) {
+      try {
+        await loadExternalAccountRelationships(account, store)
+      } catch (error) {
+        console.warn(`Failed to load external account relationships: ${account.id}`, error)
+      }
     }
     ready.value = true
   })

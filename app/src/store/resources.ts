@@ -410,25 +410,37 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       }
     }
 
+    // Move grouped resources with only one item to the single list
+    for (const [prefix, resources] of Object.entries(grouped)) {
+      if (resources.length === 1) {
+        single[resources[0].meta.href] = resources[0]
+        delete grouped[prefix]
+      }
+    }
+
+    // A failed external request must not prevent loading the remaining resources.
     // Fetch single resources
     for (const [url, resource] of Object.entries(single)) {
-      await context.dispatch(`${resource.type}/load`, { url }, { root: true })
+      try {
+        await context.dispatch(`${resource.type}/load`, { url }, { root: true })
+      } catch (error) {
+        console.warn(`Failed to load external resource: ${url}`, error)
+      }
     }
 
     // Fetch grouped resources
     for (const [prefix, resources] of Object.entries(grouped)) {
       const type = resources[0].type
-      if (resources.length == 1) {
-        await context.dispatch(`${type}/load`, { url: resources[0].meta.href }, { root: true })
-      } else {
-        // Actually more than just 1 recource.
-        // We fetch them all at once by getting /type?filter[id]=id1,id2,...
-        const ids = resources.map(resource => resource.id).join(",")
-        const query = new URLSearchParams()
-        query.set("filter[id]", ids)
-        const url = prefix + "?" + query.toString()
+      // Fetch the group at once with /type?filter[id]=id1,id2,...
+      const ids = resources.map(resource => resource.id).join(",")
+      const query = new URLSearchParams()
+      query.set("filter[id]", ids)
+      const url = prefix + "?" + query.toString()
+      try {
         const data = await this.request(context, url)
         context.commit(`${type}/addResources`, data.data, { root: true })
+      } catch (error) {
+        console.warn(`Failed to load external resource: ${url}`, error)
       }
     }
   }

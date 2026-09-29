@@ -81,8 +81,8 @@ const transferId = computed(() => ({
   id: props.transferCode
 }))
 const {transfer, ready, refresh} = useFullTransferById(transferId)
-const isLoading = computed(() => !(ready.value || transfer.value && transfer.value.payee.member && transfer.value.payer.member))
-const isPendingMe = computed(() => (transfer.value?.attributes.state == 'pending') && (myAccount.value.id == transfer.value.payer.id))
+const isLoading = computed(() => !(ready.value || transfer.value && transfer.value.payee?.member && transfer.value.payer?.member))
+const isPendingMe = computed(() => (transfer.value?.attributes.state == 'pending') && (myAccount.value.id == transfer.value.relationships.payer.data.id))
 
 const updateTransactionState = async(state: TransferState) => {
   try {

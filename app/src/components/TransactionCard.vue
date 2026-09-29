@@ -79,23 +79,23 @@ const myAccount = store.getters.myAccount
 // Note that when the current account is neither the payer nor the payee,
 // the amount is considered as positive.
 const positive = computed(() => {
-  return props.transfer.payer.id != myAccount.id;
+  return props.transfer.relationships.payer.data.id != myAccount.id;
 });
 
-const payerGroup = computed(() => (props.transfer.payer.currency as Currency & {group: Group}).group)
+const payerGroup = computed(() => (props.transfer.payer?.currency as undefined | Currency & {group: Group})?.group)
 const payeeGroup = computed(() => (props.transfer.payee?.currency as undefined | Currency & {group: Group})?.group)
 
-const payerCurrency = computed(() => props.transfer.payer.currency)
+const payerCurrency = computed<Currency|undefined>(() => props.transfer.payer?.currency)
 const payeeCurrency = computed<Currency|undefined>(() => props.transfer.payee?.currency)
 
 const myCurrency = computed(() => myAccount.currency)
 
 const otherCurrency = computed(() => {
-  if (myCurrency.value.id == payerCurrency.value.id) {
+  if (myCurrency.value.id == payerCurrency.value?.id) {
     return payeeCurrency.value?.id == myCurrency.value.id ? null : payeeCurrency.value;
   } else {
     // We're assuming that the user has the same currency as one of the two.
-    return payerCurrency.value.id == myCurrency.value.id ? null : payerCurrency.value;
+    return payerCurrency.value?.id == myCurrency.value.id ? null : payerCurrency.value;
   }
 })
 
