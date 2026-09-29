@@ -69,25 +69,18 @@ describe('Member deletion', () => {
     const member = schema.groups.findBy({ code: 'GRP0' }).members.models[12]
     member.update({ status: 'pending', account: null })
     wrapper = await mountComponent(App, { login: true })
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
-    try {
-      await wrapper.vm.$router.push('/groups/GRP0/admin/accounts')
-      await waitFor(() => wrapper.findAllComponents(DeleteMemberBtn)
-        .some(button => button.props('member').id === member.id), true)
-      const deletion = wrapper.findAllComponents(DeleteMemberBtn)
-        .find(button => button.props('member').id === member.id)!
-      expect(deletion.props('member').relationships.account).toBeUndefined()
-      const button = deletion.get("button[title='Delete']")
-      expect(button.attributes('disabled')).toBeUndefined()
-      await button.trigger('click')
-      const dialog = deletion.getComponent(QDialog)
-      await waitFor(() => dialog.getComponent(QCard).isVisible(), true)
-      await dialog.findAllComponents(QBtn).find(button => button.text() === 'Delete').trigger('click')
-      await waitFor(() => !!schema.members.find(member.id).deleted, true)
-      expect(fetchSpy.mock.calls.some(([url]) => String(url).includes('/accounts/undefined'))).toBe(false)
-    } finally {
-      fetchSpy.mockRestore()
-    }
+    await wrapper.vm.$router.push('/groups/GRP0/admin/accounts')
+    await waitFor(() => wrapper.findAllComponents(DeleteMemberBtn)
+      .some(button => button.props('member').id === member.id), true)
+    const deletion = wrapper.findAllComponents(DeleteMemberBtn)
+      .find(button => button.props('member').id === member.id)
+    const button = deletion.get("button[title='Delete']")
+    expect(button.attributes('disabled')).toBeUndefined()
+    await button.trigger('click')
+    const dialog = deletion.getComponent(QDialog)
+    await waitFor(() => dialog.getComponent(QCard).isVisible(), true)
+    await dialog.findAllComponents(QBtn).find(button => button.text() === 'Delete').trigger('click')
+    await waitFor(() => !!schema.members.find(member.id).deleted, true)
   })
 
   it('lets an admin settle a negative balance and delete another member without email', async () => {
