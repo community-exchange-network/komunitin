@@ -14,7 +14,8 @@ export const useFullTransferByResource = (transfer: Ref<ExtendedTransfer|undefin
   const store = useStore()
   const ready = ref(false)
   
-  watch(transfer, async (transfer) => {
+  // External accounts can arrive after the transfer itself is stored.
+  watch([transfer, () => transfer.value?.payer, () => transfer.value?.payee], async ([transfer]) => {
     if (!transfer) { return }
     const isExternalPayer = transfer.relationships.payer?.data.meta?.external
     const isExternalPayee = transfer.relationships.payee?.data.meta?.external
@@ -49,7 +50,7 @@ export const useFullTransferByResource = (transfer: Ref<ExtendedTransfer|undefin
       }
     }
     ready.value = true
-  })
+  }, { immediate: true })
   
   return {
     ready
@@ -120,4 +121,3 @@ export const loadExternalAccountRelationships = async (account: Account & {membe
     })
   }
 }
-

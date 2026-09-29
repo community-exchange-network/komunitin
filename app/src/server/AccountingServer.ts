@@ -374,12 +374,10 @@ export default {
     // Account transfers.
     server.get(`${urlAccounting}/:currency/transfers`,
       (schema: any, request: any) => {
-        if (!request.queryParams["filter[account]"]) {
-          throw new Error("Unexpected request!");
-        }
-        
+        const currency = schema.currencies.findBy({ code: request.params.currency })
         let transfers = schema.transfers.where((transfer: any) => {
-          let keep = true
+          let keep = [transfer.payerId, transfer.payeeId]
+            .some(id => schema.accounts.find(id).currencyId === currency.id)
           if (request.queryParams["filter[account]"]) {
             // Custom filtering.
             const accountId = request.queryParams["filter[account]"];
