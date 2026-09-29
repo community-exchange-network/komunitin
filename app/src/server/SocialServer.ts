@@ -215,6 +215,9 @@ export default {
     member: ApiSerializer.extend({
       getResourceObjectForModel(model: any) {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
+        if (!model.account) {
+          delete json.relationships.account
+        }
         const posts = model.posts.models
         json.relationships.offers = {
           links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=offers&filter[status]=published` },
