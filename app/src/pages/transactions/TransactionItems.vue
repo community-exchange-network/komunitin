@@ -5,6 +5,7 @@
     :code="code"
     type="transfers"
     include="payer,payee,payee.currency"
+    ignore-external-errors
     sort="-updated"
     :filter="filter"
     :query="props.query"

@@ -187,6 +187,9 @@ describe("Transactions", () => {
       .find(item => item.props("transfer").id === transfer.id)
     await waitFor(() => transaction()?.text().includes("Payment to an unavailable account"), true)
     expect(transaction()?.text()).toContain("$-1.23")
+    await wrapper.vm.$router.push(`/groups/GRP0/transactions/${transfer.id}`)
+    await waitFor(() => wrapper.text().includes("Payment to an unavailable account"), true)
+    expect(wrapper.text()).toContain("Committed")
     expect(Notify.create).not.toHaveBeenCalled()
   })
 

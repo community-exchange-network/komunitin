@@ -72,7 +72,8 @@ export const useFullTransferById = (id: Ref<{group: string, id: string}>) => {
     await store.dispatch('transfers/load', { 
       id: id.value.id,
       group: id.value.group,
-      include: "payer,payee"
+      include: "payer,payee",
+      ignoreExternalErrors: true
     } as LoadPayload)
   }
   
