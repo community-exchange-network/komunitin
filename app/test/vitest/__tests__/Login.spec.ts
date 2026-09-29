@@ -3,6 +3,7 @@ import { Notify, QList, QMenu, QToolbarTitle } from "quasar";
 import ProfileBtnMenu from '@/components/ProfileBtnMenu.vue';
 import server, { seeds } from "@/server";
 import App from "../../../src/App.vue";
+import { authReady } from "@/boot/auth";
 import { mountComponent, testLogin, waitFor } from "../utils";
 
 const mockUnsubscribe = vi.fn(() => Promise.resolve());
@@ -85,10 +86,32 @@ describe("Front page and login", () => {
         .get("#user-menu-logout")
         .trigger("click");
       await waitFor(() => wrapper.vm.$route.path, "/");
+      expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false)
+      expect(Notify.create).not.toHaveBeenCalled()
+      expect(consoleError).not.toHaveBeenCalled()
     } finally {
       consoleError.mockRestore()
     }
   });
+
+  it('logs out without errors when opening /logout with an active session', async () => {
+    await testLogin()
+    await wrapper.vm.$router.push('/home')
+    expect(wrapper.vm.$store.getters.isLoggedIn).toBe(true)
+    wrapper.unmount()
+
+    const consoleError = vi.spyOn(console, 'error')
+    try {
+      wrapper = await mountComponent(App, { login: 'cached', urlPath: '/logout' })
+      await authReady
+      await waitFor(() => wrapper.vm.$route.path, '/')
+      expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false)
+      expect(Notify.create).not.toHaveBeenCalled()
+      expect(consoleError).not.toHaveBeenCalled()
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
 
   it("superadmin login", async () => {
     server.schema.users.first().update({ language: undefined });
