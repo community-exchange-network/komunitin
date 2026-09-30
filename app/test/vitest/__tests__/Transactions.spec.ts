@@ -12,9 +12,11 @@ import GroupHeader from "@/components/GroupHeader.vue";
 import CreateTransactionSendQR from "@/pages/transactions/CreateTransactionSendQR.vue";
 import NfcTagScanner from "@/components/NfcTagScanner.vue";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
+import TransactionCard from "@/components/TransactionCard.vue";
 import AccountItemContent from "@/components/AccountItemContent.vue";
 import DateField from "@/components/DateField.vue";
 import { addDays, format } from "date-fns";
+import { createExternalMemberTransfer } from "../utils/transactions";
 
 // Payment address URL used in QR, link, and scan tests.
 const PAYMENT_ADDRESS_URL = "http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a"
@@ -191,6 +193,31 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.text().includes("Payment to an unavailable account"), true)
     expect(wrapper.text()).toContain("Committed")
     expect(Notify.create).not.toHaveBeenCalled()
+  })
+
+  it("batches external members in the transaction list and shows their details", async () => {
+    await wrapper.vm.$router.push("/home")
+    const payments = [0, 1, 2].map(index => createExternalMemberTransfer(wrapper.vm.$store.getters.myAccount.id, index))
+    const { memberName, transferId } = payments[0]
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+    onTestFinished(() => fetchMock.mockRestore())
+
+    await wrapper.vm.$router.push("/groups/GRP0/admin/transactions")
+    const transaction = () => wrapper.findAllComponents(TransactionItem)
+      .find(item => item.text().includes(memberName))
+    await waitFor(() => transaction()?.exists(), true, "The list should show the external member's name")
+
+    await waitFor(() => payments.every(({ memberName }) => wrapper.text().includes(memberName)), true)
+    const memberRequests = fetchMock.mock.calls.map(([url]) => new URL(String(url)))
+      .filter(url => url.pathname.endsWith("/GRP1/members"))
+    expect(memberRequests).toHaveLength(1)
+    expect(memberRequests[0].searchParams.get("filter[account]")?.split(",").sort())
+      .toEqual(payments.map(({ accountId }) => accountId).sort())
+
+    await transaction()!.trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/transactions/${transferId}`)
+    await waitFor(() => wrapper.findComponent(TransactionCard).exists(), true)
+    expect(wrapper.getComponent(TransactionCard).text()).toContain(memberName)
   })
 
   it("creates payment request", async () =>  {

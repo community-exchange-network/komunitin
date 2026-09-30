@@ -48,7 +48,7 @@ import ResourceCards from "../ResourceCards.vue";
 import TransactionItem from "@/components/TransactionItem.vue";
 import { useStore } from "vuex";
 import type { ExtendedTransfer, Account, Currency, ResourceObject } from "../../store/model";
-import type { LoadListPayload } from "@/store/resources";
+import { loadTransfersRelationships } from "@/composables/fullTransfer";
 
 const props = defineProps<{
   code: string,
@@ -95,20 +95,7 @@ const fetchMembers = async (page: number) => {
     // the transfers for the updated query which will return undefined until the 2nd load completes.
     return;
   }
-  const accountIds = new Set(transfers.flatMap((transfer: ExtendedTransfer) =>
-    [transfer.relationships.payer.data, transfer.relationships.payee.data]
-      .filter(({ id, meta }) => !meta?.external && id !== account.value?.id)
-      .map(({ id }) => id)
-  ))
-  if (accountIds.size > 0) {
-    await store.dispatch("members/loadList", {
-      group: props.code,
-      filter: {
-        account: Array.from(accountIds).join(",")
-      },
-      onlyResources: true
-    } as LoadListPayload)
-  }
+  await loadTransfersRelationships(transfers, store, account.value?.id)
   transfers.forEach((transfer: ExtendedTransfer) => {
     transferLoaded.value[transfer.id] = true
   });
