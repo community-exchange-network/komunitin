@@ -64,23 +64,24 @@ export const useFullTransferById = (id: Ref<{group: string, id: string}>) => {
 
 /** Load transfer relationships in batches, allowing unavailable external groups. */
 export const loadTransfersRelationships = async (transfers: ExtendedTransfer[], store: Store<unknown>, accountId?: string) => {
-  const groups: Record<string, Map<string, Account>> = {}
+  const groups: Record<string, { accounts: Map<string, Account>, external: boolean }> = {}
   for (const transfer of transfers) {
     for (const role of ["payer", "payee"] as const) {
       const account = transfer[role]
       if (account && account.id !== accountId) {
         const url = account.links.self.split("/accounts/")[0]
-        groups[url] ??= new Map<string, Account>()
-        groups[url].set(account.id, account)
+        groups[url] ??= {
+          accounts: new Map<string, Account>(),
+          external: !!transfer.relationships[role].data.meta?.external
+        }
+        groups[url].accounts.set(account.id, account)
       }
     }
   }
-  for (const [url, accounts] of Object.entries(groups)) {
-    const accountsArray = Array.from(accounts.values())
+  for (const [url, { accounts, external }] of Object.entries(groups)) {
     try {
-      await loadAccountsRelationships(accountsArray, store)
+      await loadAccountsRelationships(Array.from(accounts.values()), store)
     } catch (error) {
-      const external = accountsArray.every(account => account.meta?.external)
       if (!external) throw error
       console.warn(`Failed to load external account relationships: ${url}`, error)
     }
@@ -88,7 +89,7 @@ export const loadTransfersRelationships = async (transfers: ExtendedTransfer[], 
 }
 
 /** Load currency and missing members for accounts belonging to one group. */
-export const loadAccountsRelationships = async (accounts: (Account & {member?: Member, currency?: Currency})[], store: Store<unknown>) => {  
+export const loadAccountsRelationships = async (accounts: (Account & {member?: Member, currency?: Currency})[], store: Store<unknown>) => {
   const accountUrl = accounts[0].links.self
   const urlPrefix = accountUrl.substring(0, accountUrl.indexOf("/accounts/"))
 
