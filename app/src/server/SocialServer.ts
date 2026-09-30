@@ -228,6 +228,9 @@ export default {
           meta: { count: posts.filter((post: any) => post.type === "needs" && post.status === "published").length }
         }
         delete json.relationships.posts
+        if (!model.accountId) {
+          delete json.relationships.account
+        }
         return json
       },
       selfLink: (member: any) =>
