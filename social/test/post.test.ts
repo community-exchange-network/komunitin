@@ -765,6 +765,36 @@ describe('Posts endpoints', () => {
     assert.ok(includedResource(res.body, 'accounts', memberAccountId))
   })
 
+  test('mixed post lists include each related resource once and preserve post order', async () => {
+    const tenantId = 'posts-mixed-includes'
+    const group = await seedGroup({ tenantId })
+    const member = await seedMember({ tenantId })
+    const otherMember = await seedMember({ tenantId })
+    // Resource identity includes the type, even when IDs coincide.
+    const category = await seedCategory({ tenantId, id: member.id })
+    const posts = await Promise.all((['offers', 'needs', 'offers'] as const).map((type, index) =>
+      seedPost({
+        tenantId,
+        type,
+        status: 'published',
+        memberId: index === 2 ? otherMember.id : member.id,
+        categoryId: category.id,
+        created: new Date(`2026-01-0${index + 1}T00:00:00.000Z`),
+      }),
+    ))
+
+    const res = await request(app)
+      .get(`/${tenantId}/posts?include=member,member.group,category&sort=created`)
+      .expect(200)
+
+    assert.deepStrictEqual(res.body.data.map(({ id }: { id: string }) => id), posts.map(({ id }) => id))
+    assert.strictEqual(res.body.meta.count, 3)
+    assert.deepStrictEqual(
+      res.body.included.map(({ type, id }: { type: string; id: string }) => `${type}:${id}`).sort(),
+      [`groups:${group.id}`, `members:${member.id}`, `members:${otherMember.id}`, `categories:${category.id}`].sort(),
+    )
+  })
+
   test('GET /:code/posts supports offer code lookup app query', async () => {
     const { admin, category, currencyId, member } = await postQueryFixture('posts-app-offer-code')
     await seedPost({

@@ -36,7 +36,7 @@
               v-for="member of slotProps.resources"
               :key="member.id"
               :member="member"
-              :to="`/groups/${code}/members/${member.attributes.code}`"
+              :to="isMyGroup ? `/groups/${code}/members/${member.attributes.code}` : ''"
             >
               <template v-if="showBalances && member.account?.attributes.balance !== undefined" #side>
                 <div class="column items-end">
@@ -81,6 +81,7 @@ const props = defineProps<{
 }>();
 
 const store = useStore();
+const isMyGroup = computed(() => props.code === store.getters.myGroup?.attributes.code);
 const options = computed(() => ({ group: props.code, include: 'settings' }));
 const { resource: currency } = useResource<Currency & {settings: CurrencySettings}>('currencies', options);
 

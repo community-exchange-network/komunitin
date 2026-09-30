@@ -246,10 +246,37 @@ describe('Members endpoints', () => {
       assert.strictEqual(res.body.meta.count, 1)
       assert.strictEqual(res.body.data.length, 1)
       assert.strictEqual(res.body.data[0].id, member.id)
-      assert.deepStrictEqual(res.body.data[0].attributes, { name: member.name, image: member.image })
+      assert.deepStrictEqual(res.body.data[0].attributes, { code: member.code, name: member.name, image: member.image })
       assert.deepStrictEqual(Object.keys(res.body.data[0].relationships).sort(), ['account', 'group'])
       assert.strictEqual(res.body.data[0].relationships.account.data.id, accountId)
       assert.strictEqual(res.body.included[0].id, group.id)
+    }
+  })
+
+  test('member listing preserves ownership and requires active membership for full group profiles', async () => {
+    const tenantId = 'members-list-permissions'
+    const group = await seedGroup({ tenantId, settings: { allowAnonymousMemberList: true } })
+    const owner = await auth('members-list-permissions-owner')
+    const owned = await seedMember({ tenantId, access: 'private', status: 'pending', userId: owner.id })
+    const groupProfile = await seedMember({ tenantId, access: 'group' })
+    const privateProfile = await seedMember({ tenantId, access: 'private' })
+
+    for (const status of ['pending', 'active'] as const) {
+      await tenantDb(prisma, tenantId).member.update({ where: { id: owned.id }, data: { status } })
+      const res = await request(app)
+        .get(`/${tenantId}/members?filter[status]=active,pending&include=group`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .expect(200)
+
+      assert.strictEqual(res.body.data.length, 3)
+      assert.deepStrictEqual(res.body.included.map(({ id }: { id: string }) => id), [group.id])
+      const profiles = new Map<string, any>(res.body.data.map((member: any) => [member.id, member.attributes]))
+      assert.strictEqual(profiles.get(owned.id).code, owned.code)
+      assert.strictEqual(profiles.get(owned.id).status, status)
+      assert.strictEqual(profiles.get(groupProfile.id).code, groupProfile.code)
+      assert.strictEqual(profiles.get(groupProfile.id).status, status === 'active' ? groupProfile.status : undefined)
+      assert.strictEqual(profiles.get(privateProfile.id).code, privateProfile.code)
+      assert.strictEqual(profiles.get(privateProfile.id).status, undefined)
     }
   })
 

@@ -1,6 +1,6 @@
 import { createAccountingClient } from '../../clients/accounting'
 import { deleteIdentity, redeemMemberDeletionToken } from '../../clients/auth'
-import { countUserMembers } from '../users/member-query'
+import { countUserMembers, findUserMembers } from '../users/member-query'
 import { Prisma, type Member as DbMemberRecord } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
@@ -9,7 +9,7 @@ import { hasInclude, type CollectionParams, type ResourceParams } from '../../se
 import { badRequest, forbidden, notFound, unauthorized } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, MinimalMember, PatchMemberInput, SerializableMember } from './types'
@@ -69,6 +69,7 @@ export const enrichMembers = async (
 
   return members.map((member) => ({
     ...member,
+    profile: 'status' in member ? 'full' : 'minimal',
     group: member.group ? groupsById.get(member.groupId)! : undefined,
     relationshipMeta: postCounts.get(member.id)!,
   }))
@@ -114,13 +115,27 @@ export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member
   return Boolean(relation)
 }
 
+// Load ownership and active membership once, then check profiles without database queries.
+const getCanReadMember = async (ctx: OptionalAuthContext, group: Group) => {
+  const readAll = ctx.isSuperadmin || ctx.canReadAllSocial || isGroupAdmin(ctx, group)
+  const userMembers = ctx.userId && !readAll
+    ? await findUserMembers(ctx.userId, {
+      where: { groupId: group.id },
+      select: { id: true, status: true },
+    })
+    : []
+  const groupMember = userMembers.some(({ status }) => status === 'active')
+  const ownedMemberIds = new Set(userMembers.map(({ id }) => id))
+
+  return (member: Member) => readAll
+    || (group.status === 'active' && member.status === 'active'
+      && (member.access === 'public' || (member.access === 'group' && groupMember)))
+    || ownedMemberIds.has(member.id)
+}
+
 const canReadMember = async (ctx: OptionalAuthContext, group: Group, member: Member): Promise<boolean> => {
-  return ctx.isSuperadmin
-    || ctx.canReadAllSocial
-    || (group.status === 'active' && member.status === 'active' && member.access === 'public')  
-    || (group.status === 'active' && member.status === 'active' && member.access === 'group' && await isGroupMember(ctx, group))
-    || await isMemberUser(ctx, member)
-    || isGroupAdmin(ctx, group)
+  const checker = await getCanReadMember(ctx, group)
+  return checker(member)
 }
 
 const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): Promise<boolean> => {
@@ -201,14 +216,15 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
 
   const load = getMemberLoad(params)
   const includedGroup = load.group ? group : undefined
+  const canReadMember = await getCanReadMember(ctx, group)
   // Discard restricted fields before passing profiles to enrichment or serialization.
-  const items = await Promise.all(members.map(async (record) => {
+  const items = members.map((record) => {
     const member = toMember(record, includedGroup)
-    const { id, tenantId, name, image, groupId, accountId, accountHref } = member
-    return await canReadMember(ctx, group, member)
+    const { id, tenantId, code, name, image, groupId, accountId, accountHref } = member
+    return canReadMember(member)
       ? member
-      : { id, tenantId, name, image, groupId, group: includedGroup, accountId, accountHref }
-  }))
+      : { id, tenantId, code, name, image, groupId, group: includedGroup, accountId, accountHref }
+  })
   return {
     items: await enrichMembers(ctx, reorderByIds(items, result.ids), [group]),
     total: result.total,

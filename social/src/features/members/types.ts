@@ -31,10 +31,11 @@ export interface Member extends DbMember {
 }
 
 export type MinimalMember = Pick<Member,
-  'id' | 'tenantId' | 'name' | 'image' | 'groupId' | 'group' | 'accountId' | 'accountHref'
+  'id' | 'tenantId' | 'code' | 'name' | 'image' | 'groupId' | 'group' | 'accountId' | 'accountHref'
 >
 
 export type SerializableMember = (Omit<Member, 'group'> | Omit<MinimalMember, 'group'>) & {
+  profile: 'full' | 'minimal'
   // Optional related resources are hydrated only when included.
   group?: SerializableGroup
   relationshipMeta: PostRelationshipMeta
