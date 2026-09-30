@@ -4,9 +4,9 @@ import { config } from "@/utils/config"
 import { requireText } from "./index"
 
 /** Create a payment to an existing member of the seeded external group. */
-export const createExternalMemberTransfer = (payerId: string) => {
+export const createExternalMemberTransfer = (payerId: string, memberIndex = 0) => {
   const group = server.schema.db.groups.findBy({ code: "GRP1" })
-  const member = server.schema.db.members.findBy({ groupId: group.id })
+  const member = server.schema.db.members.where({ groupId: group.id })[memberIndex]
   const payee = server.schema.find("account", member.accountId)
   const originalMeta = server.schema.db.accounts.find(member.accountId).meta
   payee.update({ meta: {
@@ -20,6 +20,7 @@ export const createExternalMemberTransfer = (payerId: string) => {
     payee.update({ meta: originalMeta })
   })
   return {
+    accountId: payee.id,
     memberName: requireText(member.name, "External member name"),
     transferId: transfer.id
   }

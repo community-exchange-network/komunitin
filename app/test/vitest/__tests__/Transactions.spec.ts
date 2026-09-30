@@ -195,14 +195,24 @@ describe("Transactions", () => {
     expect(Notify.create).not.toHaveBeenCalled()
   })
 
-  it("shows an external member in the transaction list and details", async () => {
+  it("batches external members in the transaction list and shows their details", async () => {
     await wrapper.vm.$router.push("/home")
-    const { memberName, transferId } = createExternalMemberTransfer(wrapper.vm.$store.getters.myAccount.id)
+    const payments = [0, 1, 2].map(index => createExternalMemberTransfer(wrapper.vm.$store.getters.myAccount.id, index))
+    const { memberName, transferId } = payments[0]
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+    onTestFinished(() => fetchMock.mockRestore())
 
     await wrapper.vm.$router.push("/groups/GRP0/admin/transactions")
     const transaction = () => wrapper.findAllComponents(TransactionItem)
       .find(item => item.text().includes(memberName))
     await waitFor(() => transaction()?.exists(), true, "The list should show the external member's name")
+
+    await waitFor(() => payments.every(({ memberName }) => wrapper.text().includes(memberName)), true)
+    const memberRequests = fetchMock.mock.calls.map(([url]) => new URL(String(url)))
+      .filter(url => url.pathname.endsWith("/GRP1/members"))
+    expect(memberRequests).toHaveLength(1)
+    expect(memberRequests[0].searchParams.get("filter[account]")?.split(",").sort())
+      .toEqual(payments.map(({ accountId }) => accountId).sort())
 
     await transaction()!.trigger("click")
     await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/transactions/${transferId}`)
