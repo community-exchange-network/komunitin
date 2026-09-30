@@ -67,8 +67,15 @@ export class IcesClient {
           scope: 'komunitin_social komunitin_social_read_all',
         }),
       })
-      const result = z.object({ access_token: z.string().min(1), expires_in: z.number().positive() }).safeParse(json)
-      if (!result.success) throw new Error('ICES returned an invalid OAuth token response')
+      const result = z.object({
+        access_token: z.string().min(1),
+        // Drupal OAuth can serialize the configured token lifetime as a string.
+        expires_in: z.union([z.number(), z.string()]).transform(Number).pipe(z.number().positive()),
+      }).safeParse(json)
+      if (!result.success) {
+        const fields = result.error.issues.map(({ path }) => path.join('.')).join(', ')
+        throw new Error(`ICES returned an invalid OAuth token response (invalid fields: ${fields})`)
+      }
       this.token = result.data.access_token
       this.expiresAt = Date.now() + Math.max(0, result.data.expires_in - 30) * 1000
     }
