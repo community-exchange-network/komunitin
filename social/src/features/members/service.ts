@@ -12,7 +12,7 @@ import { syncResourceFiles } from '../files/service'
 import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
-import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
+import type { CreateMemberInput, Member, MinimalMember, PatchMemberInput, SerializableMember } from './types'
 import { createNotificationsClient } from '../../clients/notifications'
 import { findPostRelationshipCounts } from '../posts/sql'
 import type { PostRelationshipMeta } from '../posts/types'
@@ -34,7 +34,7 @@ export const toMember = (member: DbMemberRecord, group?: Group): Member => {
 /** Add post counts and enrich member groups. */
 export const enrichMembers = async (
   ctx: OptionalAuthContext,
-  members: Member[],
+  members: (Member | MinimalMember)[],
   groups: Group[],
 ): Promise<SerializableMember[]> => {
   if (members.length === 0) {
@@ -201,10 +201,16 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
 
   const load = getMemberLoad(params)
   const includedGroup = load.group ? group : undefined
-  const items = reorderByIds(members, result.ids)
-    .map((member) => toMember(member, includedGroup))
+  // Discard restricted fields before passing profiles to enrichment or serialization.
+  const items = await Promise.all(members.map(async (record) => {
+    const member = toMember(record, includedGroup)
+    const { id, tenantId, name, image, groupId, accountId, accountHref } = member
+    return await canReadMember(ctx, group, member)
+      ? member
+      : { id, tenantId, name, image, groupId, group: includedGroup, accountId, accountHref }
+  }))
   return {
-    items: await enrichMembers(ctx, items, [group]),
+    items: await enrichMembers(ctx, reorderByIds(items, result.ids), [group]),
     total: result.total,
   }
 }

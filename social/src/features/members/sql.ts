@@ -42,16 +42,15 @@ const buildReadableMemberWhere = async (ctx: OptionalAuthContext, group: Group):
 
   const readable: Prisma.Sql[] = []
 
-  // Anyone admitted by the collection access check can read active public members.
-  // Active group members can also read active group-only members.
-  const groupMember = await isGroupMember(ctx, group)
   if (group.status === 'active') {
-    readable.push(sqlAnd([
-      Prisma.sql`${memberColumn('status')} = 'active'`,
-      groupMember
-        ? Prisma.sql`${memberColumn('access')} IN ('public', 'group')`
-        : Prisma.sql`${memberColumn('access')} = 'public'`,
-    ]))
+    const conditions = [Prisma.sql`${memberColumn('status')} = 'active'`]
+    const allowAnonymous = group.access === 'public' && group.settings.allowAnonymousMemberList
+    // Anonymous listing exposes minimal profiles regardless of profile access.
+    if (!allowAnonymous) {
+      const access = await isGroupMember(ctx, group) ? ['public', 'group'] : ['public']
+      conditions.push(Prisma.sql`${memberColumn('access')} IN (${Prisma.join(access)})`)
+    }
+    readable.push(sqlAnd(conditions))
   }
 
   // If the user is authenticated, they can read members they are directly related to, regardless of 

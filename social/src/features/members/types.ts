@@ -30,7 +30,11 @@ export interface Member extends DbMember {
   group?: Group
 }
 
-export interface SerializableMember extends Omit<Member, 'group'> {
+export type MinimalMember = Pick<Member,
+  'id' | 'tenantId' | 'name' | 'image' | 'groupId' | 'group' | 'accountId' | 'accountHref'
+>
+
+export type SerializableMember = (Omit<Member, 'group'> | Omit<MinimalMember, 'group'>) & {
   // Optional related resources are hydrated only when included.
   group?: SerializableGroup
   relationshipMeta: PostRelationshipMeta

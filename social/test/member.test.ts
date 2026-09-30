@@ -211,7 +211,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(adminRes.body.data.attributes.code, 'custom-member')
   })
 
-  test('GET /:code/members returns only active public members to anonymous users', async () => {
+  test('GET /:code/members lists active members and preserves full public profiles', async () => {
     const group = await seedGroup({ tenantId: 'members-list-anon', status: 'active', access: 'public' })
     await seedMember({ tenantId: 'members-list-anon', code: 'public-active', status: 'active', access: 'public' })
     await seedMember({ tenantId: 'members-list-anon', code: 'group-active', status: 'active', access: 'group' })
@@ -221,9 +221,36 @@ describe('Members endpoints', () => {
       .get('/members-list-anon/members')
       .expect(200)
 
-    assert.strictEqual(res.body.data.length, 1)
-    assert.strictEqual(res.body.data[0].attributes.code, 'public-active')
+    assert.strictEqual(res.body.data.length, 2)
+    assert.strictEqual(res.body.data.filter((member: any) => member.attributes.code === 'public-active').length, 1)
     assert.strictEqual(res.body.data[0].relationships.group.data.id, group.id)
+  })
+
+  test('anonymous member listing returns minimal restricted profiles, including account lookups', async () => {
+    const tenantId = 'members-minimal'
+    const group = await seedGroup({ tenantId, settings: { allowAnonymousMemberList: true } })
+    const accountId = toUuid('minimal-account')
+    const member = await seedMember({
+      tenantId, access: 'group', accountId,
+      image: { url: 'https://example.org/avatar.png' },
+      contacts: [{ type: 'email', value: 'private@example.org' }],
+    })
+    const disabledAccountId = toUuid('disabled-account')
+    await seedMember({ tenantId, status: 'disabled', access: 'group', accountId: disabledAccountId })
+    const outsider = await auth('minimal-outsider')
+
+    for (const token of [null, outsider.token]) {
+      const query = request(app).get(`/${tenantId}/members?filter[account]=${accountId},${disabledAccountId}&include=group`)
+      if (token) query.set('Authorization', `Bearer ${token}`)
+      const res = await query.expect(200)
+      assert.strictEqual(res.body.meta.count, 1)
+      assert.strictEqual(res.body.data.length, 1)
+      assert.strictEqual(res.body.data[0].id, member.id)
+      assert.deepStrictEqual(res.body.data[0].attributes, { name: member.name, image: member.image })
+      assert.deepStrictEqual(Object.keys(res.body.data[0].relationships).sort(), ['account', 'group'])
+      assert.strictEqual(res.body.data[0].relationships.account.data.id, accountId)
+      assert.strictEqual(res.body.included[0].id, group.id)
+    }
   })
 
   test('GET /:code/members resolves a pending member by code', async () => {
