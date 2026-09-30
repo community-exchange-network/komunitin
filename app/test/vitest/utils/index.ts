@@ -43,7 +43,7 @@ export function requireTextExcerpt(value: string, label: string): string {
 
 /** Mount with app plugins; login accepts the default admin, a seeded user, or the cached session. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true | { id: string } | "cached" }): Promise<VueWrapper> {
+export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true | { id: string } | "cached", urlPath?: string }): Promise<VueWrapper> {
   if (options?.login !== "cached") {
     await auth.logout();
   }
@@ -83,7 +83,7 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   const redirect = (url: RouteLocationRaw) => { window.location.href = url.toString() };
   for (const boot of boots) {
     await boot({
-      app, router, urlPath: "", publicPath: "", redirect
+      app, router, urlPath: options?.urlPath ?? "", publicPath: "", redirect
     });
   }
 

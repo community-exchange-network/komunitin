@@ -56,6 +56,8 @@ async function loadUser(context: ActionContext<UserState, never>) {
   const { commit, dispatch, state, getters, rootGetters } = context
   const tokens = state.tokens
   await dispatch("users/load", {});
+  // Check after each async operation for a racing logout or newer authorization.
+  if (state.tokens !== tokens) return
   const user = rootGetters["users/current"];
 
   const query = new URLSearchParams({
@@ -66,6 +68,7 @@ async function loadUser(context: ActionContext<UserState, never>) {
     context,
     `${config.SOCIAL_URL}/users/${user.id}/members?${query}`
   ) as CollectionResponseInclude<Member, ResourceObject>
+  if (state.tokens !== tokens) return
   (response.included ?? [])
     .filter(resource => !(resource as ExternalResourceObject).meta?.external)
     .forEach(resource => commit(`${resource.type}/addResource`, resource, { root: true }))
@@ -87,6 +90,7 @@ async function loadUser(context: ActionContext<UserState, never>) {
       sort: "id",
       pageSize: 1,
     })
+    if (state.tokens !== tokens) return
     memberUserId = rootGetters["member-users/currentList"][0]?.id
 
     // This is the currency URL from the Accounting API.
@@ -125,9 +129,7 @@ async function loadUser(context: ActionContext<UserState, never>) {
   }
 
   // A logout or a newer authorization must not publish this obsolete session.
-  if (state.tokens !== tokens) {
-    return
-  }
+  if (state.tokens !== tokens) return
 
   // Publish the identity only after its required relationships are available.
   commit("myMemberId", member?.id)
