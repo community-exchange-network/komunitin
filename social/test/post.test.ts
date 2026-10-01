@@ -765,6 +765,66 @@ describe('Posts endpoints', () => {
     assert.ok(includedResource(res.body, 'accounts', memberAccountId))
   })
 
+  test('mixed post lists include each related resource once and preserve post order', async () => {
+    const tenantId = 'posts-mixed-includes'
+    const group = await seedGroup({ tenantId })
+    const member = await seedMember({ tenantId })
+    const otherMember = await seedMember({ tenantId })
+    // Resource identity includes the type, even when IDs coincide.
+    const category = await seedCategory({ tenantId, id: member.id })
+    const posts = await Promise.all((['offers', 'needs', 'offers'] as const).map((type, index) =>
+      seedPost({
+        tenantId,
+        type,
+        status: 'published',
+        memberId: index === 2 ? otherMember.id : member.id,
+        categoryId: category.id,
+        created: new Date(`2026-01-0${index + 1}T00:00:00.000Z`),
+      }),
+    ))
+
+    const res = await request(app)
+      .get(`/${tenantId}/posts?include=member,member.group,category&sort=created`)
+      .expect(200)
+
+    assert.deepStrictEqual(res.body.data.map(({ id }: { id: string }) => id), posts.map(({ id }) => id))
+    assert.strictEqual(res.body.meta.count, 3)
+    assert.deepStrictEqual(
+      res.body.included.map(({ type, id }: { type: string; id: string }) => `${type}:${id}`).sort(),
+      [`groups:${group.id}`, `members:${member.id}`, `members:${otherMember.id}`, `categories:${category.id}`].sort(),
+    )
+  })
+
+  test('post includes redact private profiles for anonymous readers and preserve owner access', async () => {
+    const tenantId = 'posts-member-privacy'
+    const group = await seedGroup({ tenantId, status: 'active', access: 'public' })
+    const owner = await auth('posts-profile-owner')
+    const member = await seedMember({
+      tenantId, access: 'private', status: 'active', userId: owner.id,
+      contacts: [{ type: 'email', value: 'private@example.org' }],
+    })
+    const post = await seedPost({
+      tenantId, memberId: member.id, type: 'offers', status: 'published', access: 'public',
+    })
+
+    const anonymous = await request(app)
+      .get(`/${tenantId}/posts?include=member`)
+      .expect(200)
+    assert.deepStrictEqual(includedResource(anonymous.body, 'members', member.id).attributes, {
+      code: member.code, name: member.name, image: member.image,
+    })
+
+    const authenticated = await request(app)
+      .get(`/${tenantId}/posts/${post.id}?include=member.group`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+    assert.deepStrictEqual(
+      includedResource(authenticated.body, 'members', member.id).attributes.contacts,
+      member.contacts,
+    )
+    assert.ok(includedResource(authenticated.body, 'groups', group.id))
+  })
+
   test('GET /:code/posts supports offer code lookup app query', async () => {
     const { admin, category, currencyId, member } = await postQueryFixture('posts-app-offer-code')
     await seedPost({
@@ -879,7 +939,7 @@ describe('Posts endpoints', () => {
     assert.ok(includedResource(res.body, 'accounts', memberAccountId))
   })
 
-  test('GET /:code/posts supports search across post data and member search fields', async () => {
+  test('GET /:code/posts searches post data and member name/code but excludes other member fields', async () => {
     await seedGroup({ tenantId: 'posts-search', status: 'active', access: 'public' })
     const owner = await auth('posts-search-owner')
     const member = await seedMember({
@@ -888,6 +948,8 @@ describe('Posts endpoints', () => {
       userId: owner.id,
       code: 'member-alpha',
       name: 'Olivia Rivera',
+      description: 'Pottery enthusiast',
+      contacts: [{ type: 'email', value: 'confidential@hidden.invalid' }],
       address: {
         addressLocality: 'Riverdale',
       },
@@ -940,11 +1002,14 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(byMemberCode.body.data.length, 2)
 
-    const byMemberAddress = await request(app)
-      .get('/posts-search/posts?filter[search]=riverdale')
-      .expect(200)
+    for (const search of ['riverdale', 'confidential@hidden.invalid', 'pottery']) {
+      const byExcludedMemberField = await request(app)
+        .get(`/posts-search/posts?filter[search]=${encodeURIComponent(search)}`)
+        .expect(200)
 
-    assert.strictEqual(byMemberAddress.body.data.length, 2)
+      assert.deepStrictEqual(byExcludedMemberField.body.data, [], search)
+      assert.strictEqual(byExcludedMemberField.body.meta.count, 0, search)
+    }
 
     const byDescription = await request(app)
       .get('/posts-search/posts?filter[search]=tune')

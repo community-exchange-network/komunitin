@@ -51,16 +51,14 @@ ALTER TABLE "Group"
 CREATE INDEX "Group_tenantId_search_gin_idx"
   ON "Group" USING GIN ("tenantId", "search" gin_trgm_ops);
 
+-- Search only minimal-profile fields to avoid exposing protected data through matches.
 ALTER TABLE "Member"
   ADD COLUMN "search" text
   GENERATED ALWAYS AS (
     left(
       normalize_search_text(
         coalesce("code", '') || ' ' ||
-        coalesce("name", '') || ' ' ||
-        coalesce(jsonb_scalar_values_text("address"), '') || ' ' ||
-        coalesce(jsonb_scalar_values_text("contacts"), '') || ' ' ||
-        coalesce("description", '')
+        coalesce("name", '')
       ),
       255
     )

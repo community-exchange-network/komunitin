@@ -1,6 +1,6 @@
 import { createAccountingClient } from '../../clients/accounting'
 import { deleteIdentity, redeemMemberDeletionToken } from '../../clients/auth'
-import { countUserMembers } from '../users/member-query'
+import { countUserMembers, findUserMembers } from '../users/member-query'
 import { Prisma, type Member as DbMemberRecord } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { privilegedDb, tenantDb } from '../../server/multitenant'
@@ -9,7 +9,7 @@ import { hasInclude, type CollectionParams, type ResourceParams } from '../../se
 import { badRequest, forbidden, notFound, unauthorized } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
@@ -31,7 +31,7 @@ export const toMember = (member: DbMemberRecord, group?: Group): Member => {
   } as Member
 }
 
-/** Add post counts and enrich member groups. */
+/** Project readable member profiles, add post counts and enrich member groups. */
 export const enrichMembers = async (
   ctx: OptionalAuthContext,
   members: Member[],
@@ -41,8 +41,20 @@ export const enrichMembers = async (
     return []
   }
 
+  const checkers = new Map(await Promise.all(
+    groups.map(async (group) =>
+      [group.id, await getCanReadMember(ctx, group)] as const),
+  ))
+  // Discard restricted fields for every caller, including nested post members.
+  const profiles = members.map((member) => {
+    const { id, tenantId, code, name, image, groupId, group, accountId, accountHref } = member
+    return checkers.get(groupId)!(member)
+      ? member
+      : { id, tenantId, code, name, image, groupId, group, accountId, accountHref }
+  })
+
   const includedGroups = groups.filter((group) =>
-      members.some((member) => member.group?.id === group.id))
+      profiles.some((member) => member.group?.id === group.id))
 
   const [countMaps, serializableGroups] = await Promise.all([
     Promise.all(groups.map(async (group) => {
@@ -52,7 +64,7 @@ export const enrichMembers = async (
         db,
         group,
         'memberId',
-        members
+        profiles
           .filter(({ groupId }) => groupId === group.id)
           .map(({ id }) => id),
       )
@@ -67,8 +79,9 @@ export const enrichMembers = async (
     countMaps.flatMap((counts) => [...counts.entries()]),
   )
 
-  return members.map((member) => ({
+  return profiles.map((member) => ({
     ...member,
+    profile: 'status' in member ? 'full' : 'minimal',
     group: member.group ? groupsById.get(member.groupId)! : undefined,
     relationshipMeta: postCounts.get(member.id)!,
   }))
@@ -114,13 +127,27 @@ export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member
   return Boolean(relation)
 }
 
+// Load ownership and active membership once, then check profiles without database queries.
+const getCanReadMember = async (ctx: OptionalAuthContext, group: Group) => {
+  const readAll = ctx.isSuperadmin || ctx.canReadAllSocial || isGroupAdmin(ctx, group)
+  const userMembers = ctx.userId && !readAll
+    ? await findUserMembers(ctx.userId, {
+      where: { groupId: group.id },
+      select: { id: true, status: true },
+    })
+    : []
+  const groupMember = userMembers.some(({ status }) => status === 'active')
+  const ownedMemberIds = new Set(userMembers.map(({ id }) => id))
+
+  return (member: Member) => readAll
+    || (group.status === 'active' && member.status === 'active'
+      && (member.access === 'public' || (member.access === 'group' && groupMember)))
+    || ownedMemberIds.has(member.id)
+}
+
 const canReadMember = async (ctx: OptionalAuthContext, group: Group, member: Member): Promise<boolean> => {
-  return ctx.isSuperadmin
-    || ctx.canReadAllSocial
-    || (group.status === 'active' && member.status === 'active' && member.access === 'public')  
-    || (group.status === 'active' && member.status === 'active' && member.access === 'group' && await isGroupMember(ctx, group))
-    || await isMemberUser(ctx, member)
-    || isGroupAdmin(ctx, group)
+  const checker = await getCanReadMember(ctx, group)
+  return checker(member)
 }
 
 const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): Promise<boolean> => {
@@ -201,10 +228,9 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
 
   const load = getMemberLoad(params)
   const includedGroup = load.group ? group : undefined
-  const items = reorderByIds(members, result.ids)
-    .map((member) => toMember(member, includedGroup))
+  const items = members.map((record) => toMember(record, includedGroup))
   return {
-    items: await enrichMembers(ctx, items, [group]),
+    items: await enrichMembers(ctx, reorderByIds(items, result.ids), [group]),
     total: result.total,
   }
 }

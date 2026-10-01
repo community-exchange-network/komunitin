@@ -211,19 +211,167 @@ describe('Members endpoints', () => {
     assert.strictEqual(adminRes.body.data.attributes.code, 'custom-member')
   })
 
-  test('GET /:code/members returns only active public members to anonymous users', async () => {
+  test('GET /:code/members lists active members in code order', async () => {
     const group = await seedGroup({ tenantId: 'members-list-anon', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-list-anon', code: 'public-active', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-list-anon', code: 'group-active', status: 'active', access: 'group' })
+    await seedMember({ tenantId: 'members-list-anon', code: 'public-active', name: 'Alpha', status: 'active', access: 'public', created: new Date('2026-01-01T00:00:00Z') })
+    await seedMember({ tenantId: 'members-list-anon', code: 'group-active', name: 'Zeta', status: 'active', access: 'group', created: new Date('2026-01-02T00:00:00Z') })
     await seedMember({ tenantId: 'members-list-anon', code: 'public-pending', status: 'pending', access: 'public' })
 
     const res = await request(app)
       .get('/members-list-anon/members')
       .expect(200)
 
-    assert.strictEqual(res.body.data.length, 1)
-    assert.strictEqual(res.body.data[0].attributes.code, 'public-active')
+    assert.deepStrictEqual(res.body.data.map((member: any) => member.attributes.code), ['group-active', 'public-active'])
     assert.strictEqual(res.body.data[0].relationships.group.data.id, group.id)
+  })
+
+  test('anonymous member listing returns minimal restricted profiles, including account lookups', async () => {
+    const tenantId = 'members-minimal'
+    const group = await seedGroup({ tenantId, settings: { allowAnonymousMemberList: true } })
+    const accountId = toUuid('minimal-account')
+    const member = await seedMember({
+      tenantId, access: 'group', accountId,
+      image: { url: 'https://example.org/avatar.png' },
+      contacts: [{ type: 'email', value: 'private@example.org' }],
+    })
+    const disabledAccountId = toUuid('disabled-account')
+    await seedMember({ tenantId, status: 'disabled', access: 'group', accountId: disabledAccountId })
+    const outsider = await auth('minimal-outsider')
+
+    for (const token of [null, outsider.token]) {
+      const query = request(app).get(`/${tenantId}/members?filter[account]=${accountId},${disabledAccountId}&filter[status]=active,disabled&include=group&near=0,0`)
+      if (token) query.set('Authorization', `Bearer ${token}`)
+      const res = await query.expect(200)
+      assert.strictEqual(res.body.meta.count, 1)
+      assert.strictEqual(res.body.data.length, 1)
+      assert.strictEqual(res.body.data[0].id, member.id)
+      assert.deepStrictEqual(res.body.data[0].attributes, { code: member.code, name: member.name, image: member.image })
+      assert.deepStrictEqual(Object.keys(res.body.data[0].relationships).sort(), ['account', 'group'])
+      assert.strictEqual(res.body.data[0].relationships.account.data.id, accountId)
+      assert.strictEqual(res.body.included[0].id, group.id)
+    }
+  })
+
+  test('member listing preserves sort order across full and minimal profiles', async () => {
+    const tenantId = 'members-mixed-sort'
+    const group = await seedGroup({ tenantId, settings: { allowAnonymousMemberList: true } })
+    const members = await Promise.all(['public', 'group', 'public', 'private'].map((access, index) =>
+      seedMember({ tenantId, code: `member-${index}`, name: `Member ${index}`, access }),
+    ))
+
+    for (const sort of ['code', '-code', 'name', '-name']) {
+      const res = await request(app)
+        .get(`/${tenantId}/members?sort=${sort}&include=group`)
+        .expect(200)
+
+      const expected = sort.startsWith('-') ? members.toReversed() : members
+      assert.deepStrictEqual(res.body.data.map((member: any) => member.id), expected.map(member => member.id))
+      assert.deepStrictEqual(res.body.data.map((member: any) => member.attributes.status), expected.map(member => member.access === 'public' ? 'active' : undefined))
+      assert.deepStrictEqual(res.body.included.map((resource: any) => resource.id), [group.id])
+    }
+  })
+
+  test('protected member queries return an empty collection when no full profiles are readable', async () => {
+    await seedGroup({ tenantId: 'members-anon-query' })
+    await seedMember({ tenantId: 'members-anon-query', access: 'group' })
+    const outsider = await auth('members-query-outsider')
+    await seedGroup({ tenantId: 'members-query-other' })
+    await seedMember({ tenantId: 'members-query-other', userId: outsider.id })
+    await seedGroupAdmin({ tenantId: 'members-query-other', userId: outsider.id })
+
+    for (const token of [null, outsider.token]) {
+      for (const query of [
+        'filter[created][gt]=2026-01-01T00:00:00Z',
+        'filter[type]=personal',
+        'filter[access]=group',
+        'sort=created',
+        'sort=-updated',
+        'sort=distance&near=0,0',
+      ]) {
+        const req = request(app).get(`/members-anon-query/members?${query}`)
+        if (token) req.set('Authorization', `Bearer ${token}`)
+        const res = await req.expect(200)
+        assert.deepStrictEqual(res.body.data, [])
+        assert.strictEqual(res.body.meta.count, 0)
+      }
+    }
+  })
+
+  test('protected member queries select full profiles before filtering and pagination', async () => {
+    const tenantId = 'members-protected-query'
+    await seedGroup({ tenantId })
+    const owner = await auth('members-query-owner')
+    const admin = await auth('members-query-admin')
+    await seedGroupAdmin({ tenantId, userId: admin.id })
+    const profiles = [
+      { code: 'a-private', access: 'private' },
+      { code: 'b-public', access: 'public' },
+      { code: 'c-group', access: 'group' },
+      { code: 'd-owned', access: 'private', userId: owner.id },
+    ]
+    for (const [index, profile] of profiles.entries()) {
+      await seedMember({
+        tenantId, ...profile,
+        created: new Date(`2026-01-0${index + 2}T00:00:00Z`),
+        updated: new Date(`2026-01-0${index + 2}T00:00:00Z`),
+        longitude: index,
+        latitude: 0,
+      })
+    }
+    await seedMember({ tenantId, code: 'e-old-public', created: new Date('2025-01-01T00:00:00Z') })
+
+    for (const { token, codes } of [
+      { token: null, codes: ['b-public'] },
+      { token: owner.token, codes: ['b-public', 'c-group', 'd-owned'] },
+      { token: admin.token, codes: profiles.map(({ code }) => code) },
+    ]) {
+      for (const query of [
+        'filter[created][gt]=2026-01-01T00:00:00Z',
+        'filter[type]=personal',
+        'filter[access]=public,group,private',
+        'sort=created',
+        'sort=updated',
+        'sort=distance&near=0,0',
+      ]) {
+        // Exclude the older public profile except when testing the date filter itself.
+        const filter = query.startsWith('filter[created]') ? '' : `&filter[code]=${profiles.map(({ code }) => code).join(',')}`
+        for (let page = 0; page < codes.length; page++) {
+          const req = request(app).get(`/${tenantId}/members?${query}${filter}&page[size]=1&page[after]=${page}`)
+          if (token) req.set('Authorization', `Bearer ${token}`)
+          const res = await req.expect(200)
+          assert.strictEqual(res.body.meta.count, codes.length)
+          assert.deepStrictEqual(res.body.data.map((member: any) => member.attributes.code), [codes[page]])
+          assert.strictEqual(res.body.data[0].attributes.status, 'active')
+        }
+      }
+    }
+  })
+
+  test('member listing preserves ownership and requires active membership for full group profiles', async () => {
+    const tenantId = 'members-list-permissions'
+    const group = await seedGroup({ tenantId, settings: { allowAnonymousMemberList: true } })
+    const owner = await auth('members-list-permissions-owner')
+    const owned = await seedMember({ tenantId, access: 'private', status: 'pending', userId: owner.id })
+    const groupProfile = await seedMember({ tenantId, access: 'group' })
+    const privateProfile = await seedMember({ tenantId, access: 'private' })
+
+    for (const status of ['pending', 'active'] as const) {
+      await tenantDb(prisma, tenantId).member.update({ where: { id: owned.id }, data: { status } })
+      const res = await request(app)
+        .get(`/${tenantId}/members?filter[status]=active,pending&include=group`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .expect(200)
+
+      assert.strictEqual(res.body.data.length, 3)
+      assert.deepStrictEqual(res.body.included.map(({ id }: { id: string }) => id), [group.id])
+      const profiles = new Map<string, any>(res.body.data.map((member: any) => [member.id, member.attributes]))
+      assert.strictEqual(profiles.get(owned.id).code, owned.code)
+      assert.strictEqual(profiles.get(owned.id).status, status)
+      assert.strictEqual(profiles.get(groupProfile.id).code, groupProfile.code)
+      assert.strictEqual(profiles.get(groupProfile.id).status, status === 'active' ? groupProfile.status : undefined)
+      assert.strictEqual(profiles.get(privateProfile.id).code, privateProfile.code)
+      assert.strictEqual(profiles.get(privateProfile.id).status, undefined)
+    }
   })
 
   test('GET /:code/members resolves a pending member by code', async () => {
@@ -1644,20 +1792,15 @@ describe('Members endpoints', () => {
     )
   })
 
-  test('GET /:code/members supports search across text and JSON scalar values', async () => {
+  test('anonymous member search matches name and code but not hidden email', async () => {
     await seedGroup({ tenantId: 'members-search', status: 'active', access: 'public' })
     await seedMember({
       tenantId: 'members-search',
-      code: 'alpha-code',
+      code: 'ABCD0001',
       name: 'Alpha Person',
       status: 'active',
-      access: 'public',
-      address: {
-        addressLocality: 'Riverdale',
-      },
-      contacts: [
-        { type: 'email', value: 'alpha@example.org' },
-      ],
+      access: 'group',
+      contacts: [{ type: 'email', value: 'confidential@hidden.invalid' }],
     })
     await seedMember({
       tenantId: 'members-search',
@@ -1667,25 +1810,21 @@ describe('Members endpoints', () => {
       access: 'public',
     })
 
-    const byName = await request(app)
-      .get('/members-search/members?filter[search]=alpha')
+    for (const search of ['alpha', 'ABCD0001']) {
+      const res = await request(app)
+        .get(`/members-search/members?filter[search]=${search}`)
+        .expect(200)
+
+      assert.strictEqual(res.body.data.length, 1)
+      assert.strictEqual(res.body.data[0].attributes.code, 'ABCD0001')
+      assert.strictEqual(res.body.data[0].attributes.contacts, undefined)
+    }
+
+    const byEmail = await request(app)
+      .get('/members-search/members?filter[search]=confidential%40hidden.invalid')
       .expect(200)
-
-    assert.strictEqual(byName.body.data.length, 1)
-    assert.strictEqual(byName.body.data[0].attributes.code, 'alpha-code')
-
-    const byAddressValue = await request(app)
-      .get('/members-search/members?filter[search]=riverdale')
-      .expect(200)
-
-    assert.strictEqual(byAddressValue.body.data.length, 1)
-    assert.strictEqual(byAddressValue.body.data[0].attributes.code, 'alpha-code')
-
-    const byAddressKey = await request(app)
-      .get('/members-search/members?filter[search]=addressLocality')
-      .expect(200)
-
-    assert.strictEqual(byAddressKey.body.data.length, 0)
+    assert.deepStrictEqual(byEmail.body.data, [])
+    assert.strictEqual(byEmail.body.meta.count, 0)
   })
 
   test('GET /:code/members paginates after visibility filtering', async () => {
@@ -1703,9 +1842,11 @@ describe('Members endpoints', () => {
 
   test('GET /:code/members sorts by distance with null locations last', async () => {
     await seedGroup({ tenantId: 'members-distance', status: 'active', access: 'public' })
+    const user = await auth('members-distance-user')
     await seedMember({
       tenantId: 'members-distance',
       code: 'near',
+      userId: user.id,
       status: 'active',
       access: 'public',
       longitude: 120,
@@ -1728,6 +1869,7 @@ describe('Members endpoints', () => {
 
     const res = await request(app)
       .get('/members-distance/members?near=121,45&sort=distance')
+      .set('Authorization', `Bearer ${user.token}`)
       .expect(200)
 
     assert.deepStrictEqual(
