@@ -44,6 +44,9 @@
 .bg-failed {
   background: $failed;
 }
+.bg-committed {
+  background: $committed;
+}
 .bg-primary-container {
   background: $primary-container;
 }
@@ -162,6 +165,8 @@
 // Because we set the generic border radius to 8px, we need to override badges to be more square-shaped.
 .badge-square {
   border-radius: 4px;
+  font-size: 0.625rem;
+  line-height: 0.8rem;
 }
 // Make menu drawers have rounded borders on the correct side
 // We need to do it this way because we need to target the rendered parent of the q-drawer component

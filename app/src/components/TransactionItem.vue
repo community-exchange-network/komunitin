@@ -33,7 +33,7 @@
             color="pending" 
             text-color="primary"
             v-if="transfer.attributes.state == 'pending'"
-            class="badge-square text-uppercase text-weight-bold text-badge"
+            class="badge-square text-uppercase text-weight-bold"
             >
             {{ $t("pending") }}
           </q-badge>
@@ -41,7 +41,7 @@
             color="rejected" 
             text-color="onsurface-m"
             v-else-if="transfer.attributes.state == 'rejected'"
-            class="badge-square text-uppercase text-weight-bold text-badge"
+            class="badge-square text-uppercase text-weight-bold"
             >
             {{ $t("rejected") }}
           </q-badge>
@@ -49,7 +49,7 @@
             color="failed" 
             text-color="onsurface-d"
             v-else-if="transfer.attributes.state == 'failed'"
-            class="badge-square text-uppercase text-weight-bold text-badge"
+            class="badge-square text-uppercase text-weight-bold"
             >
             {{ $t("failed") }}
           </q-badge>
@@ -172,9 +172,5 @@ const overrideCaption = computed(() => {
     .positive-amount, .negative-amount, .section-extra {
       color: $onsurface-d;
     }
-  }
-  .text-badge {
-    font-size: 0.625rem;
-    line-height: 0.8rem;
   }
 </style>
