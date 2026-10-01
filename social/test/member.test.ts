@@ -252,6 +252,25 @@ describe('Members endpoints', () => {
     }
   })
 
+  test('member listing preserves sort order across full and minimal profiles', async () => {
+    const tenantId = 'members-mixed-sort'
+    const group = await seedGroup({ tenantId, settings: { allowAnonymousMemberList: true } })
+    const members = await Promise.all(['public', 'group', 'public', 'private'].map((access, index) =>
+      seedMember({ tenantId, code: `member-${index}`, name: `Member ${index}`, access }),
+    ))
+
+    for (const sort of ['code', '-code', 'name', '-name']) {
+      const res = await request(app)
+        .get(`/${tenantId}/members?sort=${sort}&include=group`)
+        .expect(200)
+
+      const expected = sort.startsWith('-') ? members.toReversed() : members
+      assert.deepStrictEqual(res.body.data.map((member: any) => member.id), expected.map(member => member.id))
+      assert.deepStrictEqual(res.body.data.map((member: any) => member.attributes.status), expected.map(member => member.access === 'public' ? 'active' : undefined))
+      assert.deepStrictEqual(res.body.included.map((resource: any) => resource.id), [group.id])
+    }
+  })
+
   test('protected member queries return an empty collection when no full profiles are readable', async () => {
     await seedGroup({ tenantId: 'members-anon-query' })
     await seedMember({ tenantId: 'members-anon-query', access: 'group' })
