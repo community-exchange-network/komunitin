@@ -1,15 +1,14 @@
 <template>
-  <div class="row">
-    <div class="col-12 col-sm-6 col-md-4 q-pa-lg xs-last">
-      <img
-        class="full-width empty-img"
-        src="~@/assets/acorn-512.png"
-      >
-    </div>
-    <div class="col-12 col-sm-6 col-md-8 q-pa-lg self-center">
-      <div class="text-h4 text-onsurface-m">
-        {{ header }}
-      </div>
+  <div class="row justify-center q-pa-md">
+    <div class="col-12 col-sm-10 col-md-8">
+      <q-card class="q-pa-md">
+        <q-card-section class="flex justify-center q-mt-md">
+          <q-avatar color="light" text-color="muted" icon="upcoming" size="4rem"/>
+        </q-card-section>
+        <section class="flex justify-center q-mb-md">
+          <span class="text-h6 text-weight-semi-bold text-onsurface-m">{{  header }}</span>
+        </section>
+      </q-card>
     </div>
   </div>
 </template>
@@ -30,14 +29,3 @@ export default defineComponent({
   }
 })
 </script>
-<style lang="scss" scoped>
-  .empty-img {
-    opacity: 75%;
-  }
-  @media (max-width: $breakpoint-xs-max) {
-    .xs-last {
-      order: 2;
-    }
-  }
-
-</style>

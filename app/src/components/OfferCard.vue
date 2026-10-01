@@ -2,8 +2,6 @@
   <q-card
     v-if="offer"
     v-card-click-to="`/groups/${code}/offers/${offer.attributes.code}`"
-    flat
-    bordered
     :class="{isHidden, isExpired}"
   >
     <!-- Header -->
@@ -23,12 +21,13 @@
     <carousel
       :images="offer.attributes.images"
       height="200px"
+      flat
     />
 
     <!-- offer title and description -->
     <q-card-section>
       <span class="text-uppercase text-onsurface-m text-overline">{{$t('offer')}}</span>
-      <div class="text-h6">
+      <div class="text-h6 text-weight-bold">
         {{ offer.attributes.name }}
       </div>
       <!-- TODO: Add price -->

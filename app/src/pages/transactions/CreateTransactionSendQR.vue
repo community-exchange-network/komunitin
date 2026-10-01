@@ -1,17 +1,22 @@
 <template>
-  <div class="row justify-center">
-    <div class="q-py-lg q-px-md col-12 col-sm-8 col-md-6">
-      <div 
+  <div class="row justify-center q-pa-md">
+    <div class="col-12 col-sm-8 col-lg-6">
+      <div
         v-if="state === 'scan'"
       >
-        <div class="text-subtitle1 q-pb-lg"> 
-          {{ $t('scanQRCode') }}
+        <div class="bg-surface rounded-borders shadow-2 q-mb-xl">
+          <div class="q-pa-md text-subtitle1 text-serif text-bold text-onsurface">
+            {{ $t('scanQRCode') }}
+          </div>
+          <q-separator />
+          <div class="q-pa-md">
+            <qrcode-stream
+              class="qr-scanner"
+              @error="onError"
+              @detect="onDetect"
+            />
+          </div>
         </div>
-        <qrcode-stream 
-          class="qr-scanner q-mb-xl"
-          @error="onError"
-          @detect="onDetect" 
-        />
         <div style="width: 100%; aspect-ratio: 2/1;" />
       </div>
       
@@ -187,7 +192,7 @@ watch(() => props.qr, async () => {
 <style scoped lang="scss">
   .qr-scanner {
     aspect-ratio: 1;
-    border-radius: 8px;
+    border-radius: $generic-border-radius;
     overflow: hidden;
   }
 </style>
