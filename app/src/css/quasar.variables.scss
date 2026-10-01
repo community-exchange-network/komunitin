@@ -9,7 +9,7 @@
 // ============================================================
 //  Commons — Quasar SCSS Theme
 //  Design: Community currency/exchange app
-//  Palette: Ember · Grove · Wheat · Linen · Parchment · Soil
+//  Palette: Ember · Grove · Moss · Tide · Wheat · Linen · Parchment · Soil
 // ============================================================
 
 
@@ -26,6 +26,12 @@ $ember-dark     : #8F5520;
 
 $grove          : #3D6E5A;
 $grove-light    : #5A9478;
+
+$tide           : #376976;   // muted river blue — same weight as Grove
+$tide-light     : #568C99;
+
+$moss           : #72932E;   // olive leaf green — warmer, brighter sibling of Grove
+$moss-light     : #97BC4E;
 
 $wheat          : #E8C87A;
 $wheat-soft     : #F2DFA8;   // accent muted — chip active bg etc.
@@ -293,8 +299,8 @@ $onsurface-d: rgba(30, 26, 20, 0.38); // Soil at 38% — disabled text on light 
 $muted: $soil-muted;
 
 // Currency  colors
-$positive-amount: $primary;
-$negative-amount: $secondary;
+$positive-amount: $moss;
+$negative-amount: $tide;
 
 // Icon colors
 $icon-dark: rgba(0,0,0,.54);
