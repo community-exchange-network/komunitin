@@ -1,31 +1,35 @@
 <template>
-  <q-form @submit="onSubmit">
-    <div class="q-gutter-y-lg">  
-      <div>
-        <div class="text-subtitle1">
-          {{ $t('enterMultipleTransactions') }}
-        </div>
-        <div class="text-onsurface-m">
-          {{ $t('enterMultipleTransactionsText') }}
-        </div>
+  <q-form
+    class="bg-surface rounded-borders shadow-2"
+    @submit="onSubmit"
+  >
+    <div class="q-pa-md">
+      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+        {{ $t('enterMultipleTransactions') }}
       </div>
-      <div>
-        <q-toggle
-          v-model="copyDescription"
-          :label="$t('copyDescription')"
-        />
-        <q-input
-          v-if="copyDescription"
-          v-model="description"
-          class="q-mt-md"
-          :label="$t('description')"
-          :hint="$t('transactionDescriptionHint')" 
-          outlined
-          required
-          :rules="[() => (description !== '') || $t('ErrorDescriptionRequired')]"
-        />
+      <div class="text-body2 text-onsurface-m">
+        {{ $t('enterMultipleTransactionsText') }}
       </div>
-      <div>
+    </div>
+    <q-separator />
+    <div class="q-pa-md">
+      <q-toggle
+        v-model="copyDescription"
+        class="text-onsurface"
+        :label="$t('copyDescription')"
+      />
+      <q-input
+        v-if="copyDescription"
+        v-model="description"
+        class="q-mt-md commons-input"
+        bg-color="surface-container-h"
+        :label="$t('description')"
+        :hint="$t('transactionDescriptionHint')"
+        outlined
+        required
+        :rules="[() => (description !== '') || $t('ErrorDescriptionRequired')]"
+      />
+      <div class="q-mt-md k-inset-actions-md">
         <create-transaction-load-file-btn
           :direction="direction"
           :code="code"
@@ -34,102 +38,107 @@
           @import="onImport"
         />
       </div>
-      <q-table
-        class="text-onsurface-m full-width"
-        :rows="rows"
-        :columns="columns"
-        :visible-columns="copyDescription ? [] : ['description']"
-        flat
-      >
-        <template #body="slot">
-          <q-tr :props="slot">
-            <q-td 
-              key="index"  
-              :props="slot"
-              auto-width
-            >
-              {{ slot.rowIndex + 1 }}
-            </q-td>
-            <q-td 
-              v-if="selectPayer"
-              key="payer"
-              :props="slot"
-            >
-              <select-account
-                v-model="slot.row.payer"
-                :name="`payer[${slot.rowIndex}]`"
-                :code="code"
-                :payer="true"
-                :change-group="myCurrency.settings.attributes.enableExternalPaymentRequests"
-                borderless
-                :lazy="slot.rowIndex > 0"
-                :rules="[() => emptyRow(slot.row) || checkPayer(slot.row) || $t('payerRequired')]"
-                hide-bottom-space
-              />
-            </q-td>
-            <q-td 
-              v-if="selectPayee"
-              key="payee"
-              :props="slot"
-            >
-              <select-account
-                v-model="slot.row.payee"
-                :name="`payee[${slot.rowIndex}]`"
-                :code="code"
-                :payer="false"
-                :change-group="myCurrency.settings.attributes.enableExternalPayments"
-                borderless
-                :lazy="slot.rowIndex > 0"
-                :rules="[() => emptyRow(slot.row) || checkPayee(slot.row) || $t('payeeRequired')]"
-                hide-bottom-space
-              />
-            </q-td>
-            <q-td 
-              key="description"
-              :props="slot" 
-            >
-              <q-input
-                v-model="slot.row.description"
-                :name="`description[${slot.rowIndex}]`"
-                borderless
-                :rules="[() => emptyRow(slot.row) || checkDescription(slot.row) || $t('ErrorDescriptionRequired')]"
-                hide-bottom-space
-              />
-            </q-td>
-            <q-td 
-              key="amount"
-              :props="slot"
-              auto-width
-            >
-              <q-input
-                v-model="slot.row.amount"
-                :name="`amount[${slot.rowIndex}]`"
-                input-class="text-right"
-                borderless
-                :rules="[() => emptyRow(slot.row) || checkAmount(slot.row) || $t('ErrorInvalidAmount')]"
-                hide-bottom-space
-              />
-            </q-td>
-          </q-tr>
-        </template>
-      </q-table>
-      <div class="row justify-center q-mt-lg q-mb-xl">
-        <div class="col-12 col-sm-8 col-md-6">
-          <div 
-            v-if="invalidRows.length > 0" 
-            class="text-caption text-center text-negative q-my-md"
+    </div>
+    <q-separator />
+    <q-table
+      class="text-onsurface full-width bg-transparent"
+      table-header-class="text-overline text-uppercase text-onsurface-d"
+      :rows="rows"
+      :columns="columns"
+      :visible-columns="copyDescription ? [] : ['description']"
+      flat
+    >
+      <template #body="slot">
+        <q-tr :props="slot">
+          <q-td 
+            key="index"  
+            :props="slot"
+            auto-width
           >
-            {{ $t('errorInRows', {rows: invalidRows.join(", ")}) }}
-          </div>
-          <q-btn
-            class="full-width"
-            :label="submitLabel"
-            type="submit"
-            color="primary"
-            :disable="!isValid"
-            unelevated     
-          />
+            {{ slot.rowIndex + 1 }}
+          </q-td>
+          <q-td 
+            v-if="selectPayer"
+            key="payer"
+            :props="slot"
+          >
+            <select-account
+              dropdown-icon="expand_more"
+              v-model="slot.row.payer"
+              :name="`payer[${slot.rowIndex}]`"
+              :code="code"
+              :payer="true"
+              :change-group="myCurrency.settings.attributes.enableExternalPaymentRequests"
+              borderless
+              :lazy="slot.rowIndex > 0"
+              :rules="[() => emptyRow(slot.row) || checkPayer(slot.row) || $t('payerRequired')]"
+              hide-bottom-space
+            />
+          </q-td>
+          <q-td 
+            v-if="selectPayee"
+            key="payee"
+            :props="slot"
+          >
+            <select-account
+              dropdown-icon="expand_more"
+              v-model="slot.row.payee"
+              :name="`payee[${slot.rowIndex}]`"
+              :code="code"
+              :payer="false"
+              :change-group="myCurrency.settings.attributes.enableExternalPayments"
+              borderless
+              :lazy="slot.rowIndex > 0"
+              :rules="[() => emptyRow(slot.row) || checkPayee(slot.row) || $t('payeeRequired')]"
+              hide-bottom-space
+            />
+          </q-td>
+          <q-td 
+            key="description"
+            :props="slot" 
+          >
+            <q-input
+              v-model="slot.row.description"
+              :name="`description[${slot.rowIndex}]`"
+              borderless
+              :rules="[() => emptyRow(slot.row) || checkDescription(slot.row) || $t('ErrorDescriptionRequired')]"
+              hide-bottom-space
+            />
+          </q-td>
+          <q-td 
+            key="amount"
+            :props="slot"
+            auto-width
+          >
+            <q-input
+              v-model="slot.row.amount"
+              :name="`amount[${slot.rowIndex}]`"
+              input-class="text-right"
+              borderless
+              :rules="[() => emptyRow(slot.row) || checkAmount(slot.row) || $t('ErrorInvalidAmount')]"
+              hide-bottom-space
+            />
+          </q-td>
+        </q-tr>
+      </template>
+    </q-table>
+    <q-separator />
+    <div class="row justify-center q-pa-md">
+      <div class="col-12 col-sm-8 col-md-6">
+        <div 
+          v-if="invalidRows.length > 0" 
+          class="text-caption text-center text-negative q-mb-md"
+        >
+          {{ $t('errorInRows', {rows: invalidRows.join(", ")}) }}
         </div>
+        <q-btn
+          class="full-width"
+          :label="submitLabel"
+          type="submit"
+          color="primary"
+          :disable="!isValid"
+          unelevated     
+        />
       </div>
     </div>
   </q-form>

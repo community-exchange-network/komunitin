@@ -1,38 +1,49 @@
 <template>
-  <div class="q-gutter-lg">
-    <div>
-      <div class="text-subtitle1">
-        {{ $t('confirmTransactions') }}
-      </div>
+  <div>
+    <div class="text-subtitle1 text-serif text-bold text-onsurface q-pb-md">
+      {{ $t('confirmTransactions') }}
     </div>
-    <q-list>
-      <transaction-item
+    <q-list
+      padding
+      class="bg-surface shadow-2 rounded-borders"
+    >
+      <div class="row text-overline text-uppercase text-onsurface-d q-px-md q-pb-xs">
+        <div class="col col-sm-4">{{ $t("account") }}</div>
+        <div class="gt-xs q-pl-md">{{ $t("description") }}</div>
+        <div class="q-ml-auto">{{ $t("amount") }}</div>
+      </div>
+      <template
         v-for="trans in transfers"
         :key="trans"
-        :code="code"
-        :account="myAccount"
-        :transfer="trans"
-      />
+      >
+        <q-separator />
+        <transaction-item
+          :code="code"
+          :account="myAccount"
+          :transfer="trans"
+        />
+      </template>
+      <q-separator />
+      <div class="row justify-end q-px-md q-pt-md q-pb-sm">
+        <q-btn
+          color="primary"
+          :label="$t('back')"
+          flat
+          padding="xs lg"
+          @click="emit('back')"
+        />
+        <q-btn
+          class="q-ml-md"
+          color="primary"
+          type="submit"
+          :label="$t('confirm')"
+          name="confirm"
+          unelevated
+          padding="xs lg"
+          @click="onSubmit"
+        />
+      </div>
     </q-list>
-    <div class="row justify-end">
-      <q-btn
-        color="primary"
-        :label="$t('back')"
-        flat
-        padding="xs lg"
-        @click="emit('back')"
-      />
-      <q-btn
-        class="q-ml-md"
-        color="primary"
-        type="submit"
-        :label="$t('confirm')"
-        name="confirm"
-        unelevated
-        padding="xs lg"
-        @click="onSubmit"
-      />
-    </div>
   </div>
 </template>
 <script setup lang="ts">

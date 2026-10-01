@@ -14,6 +14,7 @@
     <q-separator />
     <div class="q-pa-md q-gutter-y-md column">
       <select-account
+        dropdown-icon="expand_more"
         v-if="selectPayer"
         v-model="payerAccountValue"
         name="payer"
@@ -29,6 +30,7 @@
         @blur="v$.payerAccount?.$touch()"
       />
       <select-account
+        dropdown-icon="expand_more"
         v-if="selectPayee"
         v-model="payeeAccountValue"
         name="payee"

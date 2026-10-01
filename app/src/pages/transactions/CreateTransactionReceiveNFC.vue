@@ -1,6 +1,6 @@
 <template>
-  <div class="row justify-center">
-    <div class="q-py-lg q-px-md col-12 col-sm-8 col-md-6">
+  <div class="row justify-center q-pa-md">
+    <div class="col-12 col-sm-8 col-lg-6">
       <div v-if="state === 'define'">
         <create-transaction-single-form
           :code="code"
@@ -14,46 +14,50 @@
           @update:model-value="onFilled"
         />  
       </div>
-      <div 
+      <div
         v-if="state === 'scan' && editTransfer"
+        class="q-mb-xl"
       >
-        <div class="text-subtitle1 q-mb-lg">
-          {{ $t('bringNfcTag') }}
-        </div>
-        <q-card 
-          flat 
-          bordered
-        >
+        <q-card>
+          <q-card-section class="row no-wrap items-center bg-light text-body2 text-onsurface-m">
+            <q-icon
+              name="contactless"
+              size="sm"
+              color="primary"
+            />
+            <span class="q-ml-sm">{{ $t('bringNfcTag') }}</span>
+          </q-card-section>
           <account-header
             class="q-pt-md"
             :account="editTransfer.payee"
           />
-          <q-separator />
+          <q-separator inset />
           <q-card-section class="text-center">
             <nfc-tag-scanner
               @detected="onDetected"
               @cancel="state = 'define'"
             />
           </q-card-section>
-          <q-separator />
-          <q-card-section class="text-center">
-            <div class="text-h4 positive-amount">
+          <q-separator inset />
+          <q-card-section class="text-center q-pb-lg">
+            <div class="text-h4 text-weight-bold positive-amount">
               {{ FormatCurrency(editTransfer.attributes.amount, myCurrency) }}
             </div>
-            <div class="text-body1">
+            <div class="text-body1 text-weight-medium text-onsurface q-mt-xs">
               {{ editTransfer.attributes.meta.description }}
             </div>
           </q-card-section>
+          <q-separator inset />
+          <q-card-actions class="justify-end q-pa-md">
+            <q-btn
+              color="primary"
+              flat
+              padding="xs lg"
+              :label="$t('back')"
+              @click="state = 'define'"
+            />
+          </q-card-actions>
         </q-card>
-        <div class="row justify-end q-mb-xl">
-          <q-btn
-            class="q-mt-md"
-            color="primary"
-            flat
-            :label="$t('back')"
-            @click="state = 'define'"
-          />
-        </div>
       </div>
       <div v-if="state === 'submit'">
         <create-transaction-single-confirm
