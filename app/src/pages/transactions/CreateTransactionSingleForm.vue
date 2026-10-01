@@ -1,14 +1,18 @@
 <template>
-  <q-form @submit="onSubmit">
-    <div class="q-gutter-y-lg column">  
-      <div>
-        <div class="text-subtitle1">
-          {{ $t('enterTransactionData') }}
-        </div>
-        <div class="text-onsurface-m">
-          {{ text }}
-        </div>
+  <q-form
+    class="bg-surface rounded-borders shadow-2"
+    @submit="onSubmit"
+  >
+    <div class="q-pa-md">
+      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+        {{ $t('enterTransactionData') }}
       </div>
+      <div class="text-body2 text-onsurface-m">
+        {{ text }}
+      </div>
+    </div>
+    <q-separator />
+    <div class="q-pa-md q-gutter-y-md column">
       <select-account
         v-if="selectPayer"
         v-model="payerAccountValue"
@@ -20,6 +24,8 @@
         :hint="$t('transactionPayerHint')"
         :rules="[() => !v$.payerAccount?.$error || $t('payerRequired')]"
         outlined
+        bg-color="surface-container-h"
+        class="commons-input"
         @blur="v$.payerAccount?.$touch()"
       />
       <select-account
@@ -33,6 +39,8 @@
         :hint="$t('transactionPayeeHint')"
         :rules="[() => !v$.payeeAccount?.$error || $t('payeeRequired')]"
         outlined
+        bg-color="surface-container-h"
+        class="commons-input"
         @blur="v$.payeeAccount?.$touch()"
       />
       <q-input 
@@ -40,13 +48,18 @@
         name="description"  
         :label="$t('description')" 
         :hint="$t('transactionDescriptionHint')" 
-        outlined 
+        outlined
+        bg-color="surface-container-h"
+        class="commons-input"
         autogrow 
         required
         :rules="[() => !v$.concept.$invalid || $t('ErrorDescriptionRequired')]"
       >
         <template #append>
-          <q-icon name="notes" />
+          <q-icon
+            name="notes"
+            color="muted"
+          />
         </template>
       </q-input>
       <q-input 
@@ -55,13 +68,16 @@
         :label="$t('amountIn', {currency: myCurrency.attributes.namePlural})"
         :hint="$t('transactionAmountHint')"
         outlined
+        bg-color="surface-container-h"
+        class="commons-input"
+        input-class="text-h6 text-weight-regular text-onsurface"
         required
         :rules="[
           () => !v$.amount.$invalid || $t('ErrorInvalidAmount'),
         ]"
       >
         <template #append>
-          <span class="text-h6 text-onsurface-m">{{ myCurrency.attributes.symbol }}</span>
+          <span class="text-h6 text-muted">{{ myCurrency.attributes.symbol }}</span>
         </template>
       </q-input>
       <q-input
@@ -70,10 +86,13 @@
         readonly
         disabled
         outlined
+        bg-color="surface-container-h"
+        class="commons-input"
+        input-class="text-h6 text-weight-regular text-onsurface-m"
         :label="$t('amountIn', {currency: otherCurrency.attributes.namePlural})"
       >
         <template #append>
-          <span class="text-h6 text-onsurface-m">{{ otherCurrency.attributes.symbol }}</span>
+          <span class="text-h6 text-muted">{{ otherCurrency.attributes.symbol }}</span>
         </template>
       </q-input>
       <q-btn
