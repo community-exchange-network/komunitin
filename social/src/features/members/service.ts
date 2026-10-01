@@ -9,10 +9,10 @@ import { hasInclude, type CollectionParams, type ResourceParams } from '../../se
 import { badRequest, forbidden, notFound, unauthorized } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
-import type { CreateMemberInput, Member, MinimalMember, PatchMemberInput, SerializableMember } from './types'
+import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
 import { createNotificationsClient } from '../../clients/notifications'
 import { findPostRelationshipCounts } from '../posts/sql'
 import type { PostRelationshipMeta } from '../posts/types'
@@ -31,18 +31,30 @@ export const toMember = (member: DbMemberRecord, group?: Group): Member => {
   } as Member
 }
 
-/** Add post counts and enrich member groups. */
+/** Project readable member profiles, add post counts and enrich member groups. */
 export const enrichMembers = async (
   ctx: OptionalAuthContext,
-  members: (Member | MinimalMember)[],
+  members: Member[],
   groups: Group[],
 ): Promise<SerializableMember[]> => {
   if (members.length === 0) {
     return []
   }
 
+  const checkers = new Map(await Promise.all(
+    groups.map(async (group) =>
+      [group.id, await getCanReadMember(ctx, group)] as const),
+  ))
+  // Discard restricted fields for every caller, including nested post members.
+  const profiles = members.map((member) => {
+    const { id, tenantId, code, name, image, groupId, group, accountId, accountHref } = member
+    return checkers.get(groupId)!(member)
+      ? member
+      : { id, tenantId, code, name, image, groupId, group, accountId, accountHref }
+  })
+
   const includedGroups = groups.filter((group) =>
-      members.some((member) => member.group?.id === group.id))
+      profiles.some((member) => member.group?.id === group.id))
 
   const [countMaps, serializableGroups] = await Promise.all([
     Promise.all(groups.map(async (group) => {
@@ -52,7 +64,7 @@ export const enrichMembers = async (
         db,
         group,
         'memberId',
-        members
+        profiles
           .filter(({ groupId }) => groupId === group.id)
           .map(({ id }) => id),
       )
@@ -67,7 +79,7 @@ export const enrichMembers = async (
     countMaps.flatMap((counts) => [...counts.entries()]),
   )
 
-  return members.map((member) => ({
+  return profiles.map((member) => ({
     ...member,
     profile: 'status' in member ? 'full' : 'minimal',
     group: member.group ? groupsById.get(member.groupId)! : undefined,
@@ -145,12 +157,6 @@ const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): P
     
 }
 
-/** Allow protected member queries only with access to profiles in this group. */
-const canQueryProtectedMemberFields = async (ctx: OptionalAuthContext, group: Group) => {
-  return ctx.isSuperadmin || ctx.canReadAllSocial || isGroupAdmin(ctx, group)
-    || (group.status === 'active' && await isGroupMember(ctx, group))
-}
-
 const buildMemberCode = (groupCode: string, index: number): string => {
   return `${groupCode}${(index + "") . padStart(4, '0')}`
 }
@@ -201,15 +207,6 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
   }
   const db = tenantDb(prisma, code)
 
-  if (!await canQueryProtectedMemberFields(ctx, group)) {
-    if (Object.keys(params.comparisons).length > 0) {
-      throw badRequest('You do not have permission to filter by protected member fields')
-    }
-    if (params.sort.some(({ field }) => !['created', 'name', 'code'].includes(field))) {
-      throw badRequest('You do not have permission to sort by protected member fields')
-    }
-  }
-
   const isIdentityLookup = params.filters.code !== undefined || params.filters.account !== undefined
   const defaultFilters = params.filters.status === undefined && !isIdentityLookup
     ? { status: ['active'] }
@@ -231,15 +228,7 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
 
   const load = getMemberLoad(params)
   const includedGroup = load.group ? group : undefined
-  const canReadMember = await getCanReadMember(ctx, group)
-  // Discard restricted fields before passing profiles to enrichment or serialization.
-  const items = members.map((record) => {
-    const member = toMember(record, includedGroup)
-    const { id, tenantId, code, name, image, groupId, accountId, accountHref } = member
-    return canReadMember(member)
-      ? member
-      : { id, tenantId, code, name, image, groupId, group: includedGroup, accountId, accountHref }
-  })
+  const items = members.map((record) => toMember(record, includedGroup))
   return {
     items: await enrichMembers(ctx, reorderByIds(items, result.ids), [group]),
     total: result.total,

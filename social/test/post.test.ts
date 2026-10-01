@@ -795,6 +795,36 @@ describe('Posts endpoints', () => {
     )
   })
 
+  test('post includes redact private profiles for anonymous readers and preserve owner access', async () => {
+    const tenantId = 'posts-member-privacy'
+    const group = await seedGroup({ tenantId, status: 'active', access: 'public' })
+    const owner = await auth('posts-profile-owner')
+    const member = await seedMember({
+      tenantId, access: 'private', status: 'active', userId: owner.id,
+      contacts: [{ type: 'email', value: 'private@example.org' }],
+    })
+    const post = await seedPost({
+      tenantId, memberId: member.id, type: 'offers', status: 'published', access: 'public',
+    })
+
+    const anonymous = await request(app)
+      .get(`/${tenantId}/posts?include=member`)
+      .expect(200)
+    assert.deepStrictEqual(includedResource(anonymous.body, 'members', member.id).attributes, {
+      code: member.code, name: member.name, image: member.image,
+    })
+
+    const authenticated = await request(app)
+      .get(`/${tenantId}/posts/${post.id}?include=member.group`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+    assert.deepStrictEqual(
+      includedResource(authenticated.body, 'members', member.id).attributes.contacts,
+      member.contacts,
+    )
+    assert.ok(includedResource(authenticated.body, 'groups', group.id))
+  })
+
   test('GET /:code/posts supports offer code lookup app query', async () => {
     const { admin, category, currencyId, member } = await postQueryFixture('posts-app-offer-code')
     await seedPost({
