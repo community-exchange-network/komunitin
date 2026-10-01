@@ -211,18 +211,17 @@ describe('Members endpoints', () => {
     assert.strictEqual(adminRes.body.data.attributes.code, 'custom-member')
   })
 
-  test('GET /:code/members lists active members and preserves full public profiles', async () => {
+  test('GET /:code/members lists active members in creation order', async () => {
     const group = await seedGroup({ tenantId: 'members-list-anon', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-list-anon', code: 'public-active', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-list-anon', code: 'group-active', status: 'active', access: 'group' })
+    await seedMember({ tenantId: 'members-list-anon', code: 'public-active', name: 'Zeta', status: 'active', access: 'public', created: new Date('2026-01-01T00:00:00Z') })
+    await seedMember({ tenantId: 'members-list-anon', code: 'group-active', name: 'Alpha', status: 'active', access: 'group', created: new Date('2026-01-02T00:00:00Z') })
     await seedMember({ tenantId: 'members-list-anon', code: 'public-pending', status: 'pending', access: 'public' })
 
     const res = await request(app)
       .get('/members-list-anon/members')
       .expect(200)
 
-    assert.strictEqual(res.body.data.length, 2)
-    assert.strictEqual(res.body.data.filter((member: any) => member.attributes.code === 'public-active').length, 1)
+    assert.deepStrictEqual(res.body.data.map((member: any) => member.attributes.code), ['public-active', 'group-active'])
     assert.strictEqual(res.body.data[0].relationships.group.data.id, group.id)
   })
 
@@ -240,7 +239,7 @@ describe('Members endpoints', () => {
     const outsider = await auth('minimal-outsider')
 
     for (const token of [null, outsider.token]) {
-      const query = request(app).get(`/${tenantId}/members?filter[account]=${accountId},${disabledAccountId}&include=group`)
+      const query = request(app).get(`/${tenantId}/members?filter[account]=${accountId},${disabledAccountId}&filter[type]=personal&filter[access]=group&filter[status]=active,disabled&include=group&near=0,0`)
       if (token) query.set('Authorization', `Bearer ${token}`)
       const res = await query.expect(200)
       assert.strictEqual(res.body.meta.count, 1)
@@ -250,6 +249,26 @@ describe('Members endpoints', () => {
       assert.deepStrictEqual(Object.keys(res.body.data[0].relationships).sort(), ['account', 'group'])
       assert.strictEqual(res.body.data[0].relationships.account.data.id, accountId)
       assert.strictEqual(res.body.included[0].id, group.id)
+    }
+  })
+
+  test('member queries reject date filters and protected sorting without active membership in the requested group', async () => {
+    await seedGroup({ tenantId: 'members-anon-query' })
+    await seedMember({ tenantId: 'members-anon-query', access: 'group' })
+    const outsider = await auth('members-query-outsider')
+    await seedGroup({ tenantId: 'members-query-other' })
+    await seedMember({ tenantId: 'members-query-other', userId: outsider.id })
+    await seedGroupAdmin({ tenantId: 'members-query-other', userId: outsider.id })
+
+    for (const token of [null, outsider.token]) {
+      for (const query of [
+        'filter[created][gt]=2026-01-01T00:00:00Z',
+        'sort=distance&near=0,0',
+      ]) {
+        const req = request(app).get(`/members-anon-query/members?${query}`)
+        if (token) req.set('Authorization', `Bearer ${token}`)
+        await req.expect(400)
+      }
     }
   })
 
@@ -1698,20 +1717,15 @@ describe('Members endpoints', () => {
     )
   })
 
-  test('GET /:code/members supports search across text and JSON scalar values', async () => {
+  test('anonymous member search matches name and code but not hidden email', async () => {
     await seedGroup({ tenantId: 'members-search', status: 'active', access: 'public' })
     await seedMember({
       tenantId: 'members-search',
-      code: 'alpha-code',
+      code: 'ABCD0001',
       name: 'Alpha Person',
       status: 'active',
-      access: 'public',
-      address: {
-        addressLocality: 'Riverdale',
-      },
-      contacts: [
-        { type: 'email', value: 'alpha@example.org' },
-      ],
+      access: 'group',
+      contacts: [{ type: 'email', value: 'confidential@hidden.invalid' }],
     })
     await seedMember({
       tenantId: 'members-search',
@@ -1721,25 +1735,21 @@ describe('Members endpoints', () => {
       access: 'public',
     })
 
-    const byName = await request(app)
-      .get('/members-search/members?filter[search]=alpha')
+    for (const search of ['alpha', 'ABCD0001']) {
+      const res = await request(app)
+        .get(`/members-search/members?filter[search]=${search}`)
+        .expect(200)
+
+      assert.strictEqual(res.body.data.length, 1)
+      assert.strictEqual(res.body.data[0].attributes.code, 'ABCD0001')
+      assert.strictEqual(res.body.data[0].attributes.contacts, undefined)
+    }
+
+    const byEmail = await request(app)
+      .get('/members-search/members?filter[search]=confidential%40hidden.invalid')
       .expect(200)
-
-    assert.strictEqual(byName.body.data.length, 1)
-    assert.strictEqual(byName.body.data[0].attributes.code, 'alpha-code')
-
-    const byAddressValue = await request(app)
-      .get('/members-search/members?filter[search]=riverdale')
-      .expect(200)
-
-    assert.strictEqual(byAddressValue.body.data.length, 1)
-    assert.strictEqual(byAddressValue.body.data[0].attributes.code, 'alpha-code')
-
-    const byAddressKey = await request(app)
-      .get('/members-search/members?filter[search]=addressLocality')
-      .expect(200)
-
-    assert.strictEqual(byAddressKey.body.data.length, 0)
+    assert.deepStrictEqual(byEmail.body.data, [])
+    assert.strictEqual(byEmail.body.meta.count, 0)
   })
 
   test('GET /:code/members paginates after visibility filtering', async () => {
@@ -1757,9 +1767,11 @@ describe('Members endpoints', () => {
 
   test('GET /:code/members sorts by distance with null locations last', async () => {
     await seedGroup({ tenantId: 'members-distance', status: 'active', access: 'public' })
+    const user = await auth('members-distance-user')
     await seedMember({
       tenantId: 'members-distance',
       code: 'near',
+      userId: user.id,
       status: 'active',
       access: 'public',
       longitude: 120,
@@ -1782,6 +1794,7 @@ describe('Members endpoints', () => {
 
     const res = await request(app)
       .get('/members-distance/members?near=121,45&sort=distance')
+      .set('Authorization', `Bearer ${user.token}`)
       .expect(200)
 
     assert.deepStrictEqual(

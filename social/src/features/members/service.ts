@@ -9,7 +9,7 @@ import { hasInclude, type CollectionParams, type ResourceParams } from '../../se
 import { badRequest, forbidden, notFound, unauthorized } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, toGroup, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, MinimalMember, PatchMemberInput, SerializableMember } from './types'
@@ -145,6 +145,12 @@ const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): P
     
 }
 
+/** Allow protected member queries only with access to profiles in this group. */
+const canQueryProtectedMemberFields = async (ctx: OptionalAuthContext, group: Group) => {
+  return ctx.isSuperadmin || ctx.canReadAllSocial || isGroupAdmin(ctx, group)
+    || (group.status === 'active' && await isGroupMember(ctx, group))
+}
+
 const buildMemberCode = (groupCode: string, index: number): string => {
   return `${groupCode}${(index + "") . padStart(4, '0')}`
 }
@@ -194,6 +200,15 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     throw forbidden('You do not have permission to list members in this group')
   }
   const db = tenantDb(prisma, code)
+
+  if (!await canQueryProtectedMemberFields(ctx, group)) {
+    if (Object.keys(params.comparisons).length > 0) {
+      throw badRequest('You do not have permission to filter by protected member fields')
+    }
+    if (params.sort.some(({ field }) => !['created', 'name', 'code'].includes(field))) {
+      throw badRequest('You do not have permission to sort by protected member fields')
+    }
+  }
 
   const isIdentityLookup = params.filters.code !== undefined || params.filters.account !== undefined
   const defaultFilters = params.filters.status === undefined && !isIdentityLookup
