@@ -177,7 +177,10 @@ describe("Signup", () => {
     expect(wrapper.text()).toContain("Set your credentials");
     await wrapper.get("[name='name']").setValue("Empty User");
     await wrapper.get("[name='email']").setValue("empty@example.com");
+    await wrapper.get("[name='password']").setValue("short");
+    expect(wrapper.get("button[type='submit']").attributes("disabled")).toBeDefined();
     await wrapper.get("[name='password']").setValue("password");
+    expect(wrapper.get("button[type='submit']").attributes("disabled")).toBeUndefined();
     await wrapper.get("button[type='submit']").trigger("click");
     await flushPromises();
     await waitFor(() => wrapper.text().includes("Verify your email"), true, "Verification waiting page should show");
@@ -377,7 +380,10 @@ describe("Signup", () => {
     await waitFor(() => wrapper.find("[name='name']").exists(), true, "Group administrator signup should load");
     await wrapper.get("[name='name']").setValue("Test Administrator");
     await wrapper.get("[name='email']").setValue("group-admin@example.com");
+    await wrapper.get("[name='password']").setValue("short");
+    expect(wrapper.get("button[type='submit']").attributes("disabled")).toBeDefined();
     await wrapper.get("[name='password']").setValue("password");
+    expect(wrapper.get("button[type='submit']").attributes("disabled")).toBeUndefined();
     await wrapper.get("button[type='submit']").trigger("click");
     await waitFor(() => wrapper.text().includes("Verify your email"), true, "Verification waiting page should show");
     expect(wrapper.vm.$store.getters.isLoggedIn).toBe(false);
