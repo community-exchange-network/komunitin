@@ -57,20 +57,25 @@ export const enrichGroups = async (
   })
   const counts = new Map(memberCounts.map(({ groupId, _count }) => [groupId, _count]))
 
-  // get groups where the user is a member, to determine if they can list members
-  let userMemberGroups: Set<string> | undefined = undefined
+  // The flow is a bit complex indeed. The idea is to only load the 
+  // user's member groups if needed, and cached for subsequent calls.
+  let userMemberGroupsPromise: Promise<Set<string>> | undefined = undefined
+  const loadUserMemberGroups = async () => {
+    const groups = ctx.userId ? await findUserMembers(ctx.userId, {
+      where: {
+        groupId: { in: groupIds },
+        status: 'active',
+      },
+      select: { groupId: true },
+    }) : []
+    return new Set(groups.map(({ groupId }) => groupId))
+  }
+
   const getUserMemberGroups = async () => {
-    if (userMemberGroups === undefined) {
-      const groups = ctx.userId ? await findUserMembers(ctx.userId, {
-        where: {
-          groupId: { in: groupIds },
-          status: 'active',
-        },
-        select: { groupId: true },
-      }) : []
-      userMemberGroups = new Set(groups.map(({ groupId }) => groupId))
+    if (!userMemberGroupsPromise) {
+      userMemberGroupsPromise = loadUserMemberGroups()
     }
-    return userMemberGroups
+    return userMemberGroupsPromise
   }
 
   const isMember = (group: Group) => async () => {
