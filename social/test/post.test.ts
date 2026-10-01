@@ -939,7 +939,7 @@ describe('Posts endpoints', () => {
     assert.ok(includedResource(res.body, 'accounts', memberAccountId))
   })
 
-  test('GET /:code/posts supports search across post data and member search fields', async () => {
+  test('GET /:code/posts searches post data and member name/code but excludes other member fields', async () => {
     await seedGroup({ tenantId: 'posts-search', status: 'active', access: 'public' })
     const owner = await auth('posts-search-owner')
     const member = await seedMember({
@@ -948,6 +948,8 @@ describe('Posts endpoints', () => {
       userId: owner.id,
       code: 'member-alpha',
       name: 'Olivia Rivera',
+      description: 'Pottery enthusiast',
+      contacts: [{ type: 'email', value: 'confidential@hidden.invalid' }],
       address: {
         addressLocality: 'Riverdale',
       },
@@ -1000,11 +1002,14 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(byMemberCode.body.data.length, 2)
 
-    const byMemberAddress = await request(app)
-      .get('/posts-search/posts?filter[search]=riverdale')
-      .expect(200)
+    for (const search of ['riverdale', 'confidential@hidden.invalid', 'pottery']) {
+      const byExcludedMemberField = await request(app)
+        .get(`/posts-search/posts?filter[search]=${encodeURIComponent(search)}`)
+        .expect(200)
 
-    assert.strictEqual(byMemberAddress.body.data.length, 2)
+      assert.deepStrictEqual(byExcludedMemberField.body.data, [], search)
+      assert.strictEqual(byExcludedMemberField.body.meta.count, 0, search)
+    }
 
     const byDescription = await request(app)
       .get('/posts-search/posts?filter[search]=tune')
