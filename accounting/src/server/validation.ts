@@ -92,10 +92,15 @@ export namespace Validators {
     body(`${path}.relationships.${name}.data.*.type`).equals(type),
   ]
 
-  const isSingleRelationship = (path: string, name: string, type: string) => [
+  const isOptionalSingleRelationship = (path: string, name: string, type: string) => [
     body(`${path}.relationships.${name}`).optional(),
-    body(`${path}.relationships.${name}.data.id`).isString().notEmpty(),
-    body(`${path}.relationships.${name}.data.type`).equals(type),
+    body(`${path}.relationships.${name}.data.id`)
+      .if(body(`${path}.relationships.${name}`).exists())
+      .isString()
+      .notEmpty(),
+    body(`${path}.relationships.${name}.data.type`)
+      .if(body(`${path}.relationships.${name}`).exists())
+      .equals(type),
   ]
 
   const isIncludedTypes = (types: string[]) => [
@@ -109,7 +114,7 @@ export namespace Validators {
     ...isCreateCurrencyAttributesExist("data.attributes"),
     ...isUpdateCurrencyAttributes("data.attributes"),
     ...isCollectionRelationship("data", "admins", "users"),
-    ...isSingleRelationship("data", "settings", "currency-settings"),
+    ...isOptionalSingleRelationship("data", "settings", "currency-settings"),
     ...isIncludedTypes(["users", "currency-settings"]),
 
     // TODO: Add validation for included currency-settings attributes.

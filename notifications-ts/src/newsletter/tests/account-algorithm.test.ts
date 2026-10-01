@@ -6,8 +6,9 @@ import { Currency, Member, Need, Offer } from '../../clients/komunitin/types';
 // Helpers
 const createMember = (attrs: any = {}): Member => ({
   id: 'm1',
+  type: 'members',
   attributes: { 
-    image: 'img',
+    image: { url: 'img' },
     description: 'bio',
     location: { type: 'Point', coordinates: [0, 0] }, 
     ...attrs 

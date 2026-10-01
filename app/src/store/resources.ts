@@ -6,7 +6,8 @@ import type {
   CollectionResponseInclude,
   ExternalResourceObject,
   ResourceIdentifierObject,
-  ResourceObject
+  ResourceObject,
+  SuccessfulResponse
 } from "@/store/model";
 import { apiRequest } from "./request";
 
@@ -23,9 +24,9 @@ export interface ResourcesState<T extends ResourceObject> {
    */
   pages: Record<string, string[][]>
   /**
-   * Id of current resource.
+   * Id of the current resource, or undefined when unresolved.
    */
-  currentId: string | null;
+  currentId: string | undefined;
   /**
    * The url of the next page. null means no next page, undefined means unknown.
    */
@@ -113,10 +114,23 @@ export interface DeletePayload {
   group: string;
 }
 
+interface BaseLoadPayload {
+  /**
+   * Cache time in milliseconds. If the resource is already in cache and the cache time
+   * has not expired, the resource is returned from cache. If the cache time has expired,
+   * the resource is revalidated from the server.
+   * 
+   * By default, always revalidate from server.
+   */
+  cache?: number
+  /** Allow partial results when included external resources cannot be fetched. */
+  ignoreExternalErrors?: boolean
+}
+
 /**
  * Object argument for the `loadList` action.
  */
-export interface LoadListPayload {
+export interface LoadListPayload extends BaseLoadPayload {
   /**
    * The group where the records belong to.
    */
@@ -147,14 +161,6 @@ export interface LoadListPayload {
    * Set to false in calls to load auxiliar resources (not the current main list).
    */
   onlyResources?: boolean
-  /**
-   * Cache time in milliseconds. If the resource is already in cache and the cache time
-   * has not expired, the resource is returned from cache. If the cache time has expired,
-   * the resource is revalidated from the server.
-   * 
-   * By default, always revalidate from server.
-   */
-  cache?: number,
   /*
    * Size of the page to be fetched. If not set, the default page size is used.
    */
@@ -165,7 +171,7 @@ export interface LoadListPayload {
  * Use this payload to load a resource using a URL of the form
  * <BASE_URL>/:group/<resource_type>?filter[code]=:code
  */
-export interface LoadByCodePayload {
+export interface LoadByCodePayload extends BaseLoadPayload {
   /**
    * The resource code.
    */
@@ -178,21 +184,13 @@ export interface LoadByCodePayload {
    * Optional comma-separated list of included relationship resources.
    */
   include?: string;
-  /**
-   * Cache time in milliseconds. If the resource is already in cache and the cache time
-   * has not expired, the resource is returned from cache. If the cache time has expired,
-   * the resource is revalidated from the server.
-   * 
-   * By default, always revalidate from server.
-   */
-  cache?: number,
 }
 
 /**
  * Use this payload to load a resource using a URL of the form
  * <BASE_URL>/:group/<resource_type>/:id
  */
-export interface LoadByIdPayload {
+export interface LoadByIdPayload extends BaseLoadPayload {
   /**
    * The resource id.
    */
@@ -205,20 +203,12 @@ export interface LoadByIdPayload {
    * Optional comma-separated list of included relationship resources.
    */
   include?: string;
-  /**
-   * Cache time in milliseconds. If the resource is already in cache and the cache time
-   * has not expired, the resource is returned from cache. If the cache time has expired,
-   * the resource is revalidated from the server.
-   * 
-   * By default, always revalidate from server.
-   */
-  cache?: number,
 }
 
 /**
  * Use this payload to load an external resource given its URL.
   */
-export interface LoadByUrlPayload {
+export interface LoadByUrlPayload extends BaseLoadPayload {
   /**
    * The resource URL.
    */
@@ -227,14 +217,6 @@ export interface LoadByUrlPayload {
    * Optional comma-separated list of included relationship resources.
    */
   include?: string
-  /**
-   * Cache time in milliseconds. If the resource is already in cache and the cache time
-   * has not expired, the resource is returned from cache. If the cache time has expired,
-   * the resource is revalidated from the server.
-   * 
-   * By default, always revalidate from server.
-   */
-  cache?: number,
 }
 
 /**
@@ -245,12 +227,7 @@ export type LoadPayload = LoadByIdPayload | LoadByCodePayload | LoadByUrlPayload
 /**
  * Payload for the `loadNext` action.
  */
-export interface LoadNextPayload {
-  /**
-   * Cache time in milliseconds. See `LoadListPayload.cache`.
-   */
-  cache?: number
-}
+export type LoadNextPayload = BaseLoadPayload
 
 type Getter = 
   & ((id: string) => ResourceObject)
@@ -349,7 +326,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     // the next page of a list, where we're given the absolute url directly from the API.
     url = this.absoluteUrl(url)
 
-    return apiRequest(context, url, method, data)
+    return apiRequest<T>(context, url, method, data)
 
   }
 
@@ -364,7 +341,8 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
    */
   protected async handleIncluded(
     included: ResourceObject[],
-    context: ActionContext<ResourcesState<T>, S>
+    context: ActionContext<ResourcesState<T>, S>,
+    ignoreExternalErrors = false
   ) {
     // Here we commit all included resources and accumulate all external resources for later fetch.
     const external: ExternalResourceObject[] = []
@@ -378,7 +356,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       }
     })
 
-    await this.fetchExternalResources(external, context)
+    await this.fetchExternalResources(external, context, ignoreExternalErrors)
     
   }
 
@@ -390,7 +368,8 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
    */
   protected async fetchExternalResources(
     external: ExternalResourceObject[],
-    context: ActionContext<ResourcesState<T>, S>): Promise<void> {
+    context: ActionContext<ResourcesState<T>, S>,
+    ignoreExternalErrors = false): Promise<void> {
     // We group all external resources by their type so we can fetch them all at once. This not only makes the
     // code more efficient, but also prevents concurrency errors in the server.
     const grouped: Record<string, ExternalResourceObject[]> = {}
@@ -409,25 +388,38 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       }
     }
 
+    // Move grouped resources with only one item to the single list
+    for (const [prefix, resources] of Object.entries(grouped)) {
+      if (resources.length === 1) {
+        single[resources[0].meta.href] = resources[0]
+        delete grouped[prefix]
+      }
+    }
+
     // Fetch single resources
     for (const [url, resource] of Object.entries(single)) {
-      await context.dispatch(`${resource.type}/load`, { url }, { root: true })
+      try {
+        await context.dispatch(`${resource.type}/load`, { url, ignoreExternalErrors }, { root: true })
+      } catch (error) {
+        if (!ignoreExternalErrors) throw error
+        console.warn(`Failed to load external resource: ${url}`, error)
+      }
     }
 
     // Fetch grouped resources
     for (const [prefix, resources] of Object.entries(grouped)) {
       const type = resources[0].type
-      if (resources.length == 1) {
-        await context.dispatch(`${type}/load`, { url: resources[0].meta.href }, { root: true })
-      } else {
-        // Actually more than just 1 recource.
-        // We fetch them all at once by getting /type?filter[id]=id1,id2,...
-        const ids = resources.map(resource => resource.id).join(",")
-        const query = new URLSearchParams()
-        query.set("filter[id]", ids)
-        const url = prefix + "?" + query.toString()
+      // Fetch the group at once with /type?filter[id]=id1,id2,...
+      const ids = resources.map(resource => resource.id).join(",")
+      const query = new URLSearchParams()
+      query.set("filter[id]", ids)
+      const url = prefix + "?" + query.toString()
+      try {
         const data = await this.request(context, url)
         context.commit(`${type}/addResources`, data.data, { root: true })
+      } catch (error) {
+        if (!ignoreExternalErrors) throw error
+        console.warn(`Failed to load external resource: ${url}`, error)
       }
     }
   }
@@ -442,13 +434,14 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     context: ActionContext<ResourcesState<T>, S>,
     key: string,
     page: number,
-    onlyResources?: boolean
+    onlyResources?: boolean,
+    ignoreExternalErrors = false
   ) {
     const { commit } = context;
     
     // Commit included resources.
     if (data.included) {
-      await this.handleIncluded(data.included, context);
+      await this.handleIncluded(data.included, context, ignoreExternalErrors);
     }
 
     // Commit mutation(s) after commiting included and eventualy fetched external resources.
@@ -486,18 +479,21 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
             Object.defineProperty(main, name, {
               get: function() {
                 const items = (value.data as ResourceIdentifierObject[]).map(
-                  resourceId =>
-                    rootGetters[resourceId.type + "/one"](resourceId.id)
+                  resourceId => {
+                    const related = rootGetters[resourceId.type + "/one"]
+                    return related ? related(resourceId.id) : undefined
+                  }
                 );
                 // Return either all or no objects.
-                return items.includes(null) ? null : items;
+                return items.some(item => item == null) ? null : items;
               }
             });
           } else {
             Object.defineProperty(main, name, {
               get: function() {
                 const resourceId = value.data as ResourceIdentifierObject;
-                return resourceId === null ? null : rootGetters[resourceId.type + "/one"](resourceId.id);
+                const related = resourceId && rootGetters[resourceId.type + "/one"]
+                return resourceId === null ? null : related?.(resourceId.id);
               }
             });
           }
@@ -523,7 +519,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
   state = {
     resources: {},
     pages: {},
-    currentId: null,
+    currentId: undefined,
     next: undefined,
     prev: undefined,
     currentPage: null,
@@ -579,7 +575,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     },
 
     /**
-     * Gets the current resource.
+     * Gets the current resource, or undefined when unresolved.
      */
     current: (
       state: ResourcesState<T>,
@@ -587,7 +583,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       _rootState: unknown,
       rootGetters: Record<string, Getter>
     ) =>
-      state.currentId != null
+      state.currentId !== undefined
         ? this.relatedGetters(rootGetters, state.resources[state.currentId])
         : undefined,
 
@@ -671,7 +667,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     /**
      * Update the current resource pointer.
      */
-    currentId: (state: ResourcesState<T>, id: string|null) => {
+    currentId: (state: ResourcesState<T>, id: string | undefined) => {
       state.currentId = id;
     },
     /**
@@ -780,13 +776,8 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       });
     }
     if (payload.location) {
-      params.set(
-        "geo-position",
-        payload.location[0] + "," + payload.location[1]
-      )
-      if (!payload.sort) {
-        payload.sort = "location";
-      }
+      const [longitude, latitude] = payload.location
+      params.set("near", `${longitude},${latitude}`)
     }
     if (payload.sort) {
       params.set("sort", payload.sort);
@@ -821,10 +812,50 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     if (payload.sort) {
       params.set("sort", payload.sort);
     }
+    if (payload.location) {
+      const [longitude, latitude] = payload.location
+      params.set("near", `${longitude},${latitude}`)
+    }
     if (payload.pageSize) {
       params.set("pageSize", payload.pageSize.toString())
     }
     return params.toString()
+  }
+
+  /** Checks freshness of the resource and every requested include path, including to-many links. */
+  protected isResourceCached(
+    context: ActionContext<ResourcesState<T>, S>,
+    resource: ResourceIdentifierObject,
+    cache: number,
+    include = ""
+  ): boolean {
+    const state = (context.rootState as Record<string, ResourcesState<ResourceObject>>)[resource.type]
+    const cached = state?.resources[resource.id]
+    const timestamp = state?.timestamps["resources/" + resource.id]
+    return !!cached && !!timestamp && timestamp + cache > Date.now() &&
+      include.split(",").filter(Boolean).every(path => {
+        const [name, ...rest] = path.split(".")
+        const related = cached.relationships?.[name]?.data
+        // Null and empty linkage are complete; absent linkage is not.
+        return related === null || related !== undefined &&
+          (Array.isArray(related) ? related : [related]).every(item =>
+            this.isResourceCached(context, item, cache, rest.join("."))
+          )
+      })
+  }
+
+  /** A page timestamp alone does not guarantee that its requested includes are cached. */
+  protected isPageCached(
+    context: ActionContext<ResourcesState<T>, S>,
+    key: string,
+    page: number,
+    cache: number,
+    include?: string
+  ) {
+    const timestamp = context.state.timestamps["pages/" + key + "/" + page]
+    const ids = context.state.pages[key]?.[page]
+    return !!timestamp && timestamp + cache > Date.now() && ids !== undefined &&
+      ids.every(id => this.isResourceCached(context, { type: this.type, id }, cache, include))
   }
 
   /**
@@ -852,11 +883,8 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     if (query.length > 0) url += "?" + query;
 
     if (payload.cache) {
-      const timestamp = context.state.timestamps["pages/" + queryKey + "/0"]
-      if (timestamp && timestamp + payload.cache > Date.now()) {
-        // We have the value in cache and it's not expired, so we're done. Note that having the timestamps
-        // entry already means that we have the value entry. 
-        // We don't have, however, the next page link, but it can be computed form the current query.
+      if (this.isPageCached(context, queryKey, 0, payload.cache, payload.include)) {
+        // The page and requested includes are fresh. Rebuild the next page link.
         const next = this.buildAdjacentUrl(url, +1)
         context.commit("next", next)
         context.commit("prev", null)
@@ -873,7 +901,8 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
         context,
         queryKey,
         0,
-        payload.onlyResources
+        payload.onlyResources,
+        payload.ignoreExternalErrors
       );
     } catch (error) {
       throw KError.getKError(error);
@@ -918,8 +947,8 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
 
       // At this point the data may be already cached and available for the UI.
       if (payload.cache) {
-        const timestamp = context.state.timestamps["pages/" + queryKey + "/" + page]
-        if (timestamp && timestamp + payload.cache > Date.now()) {
+        const include = new URL(this.absoluteUrl(url)).searchParams.get("include") ?? undefined
+        if (this.isPageCached(context, queryKey, page, payload.cache, include)) {
           // We have the value in cache and it's not expired, so we're done. Note that having the timestamps
           // entry already means that we have the value entry. We need to compute the next page link.
           context.commit("next", this.buildAdjacentUrl(url, +1))
@@ -935,6 +964,8 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
         context,
         queryKey,
         page,
+        false,
+        payload.ignoreExternalErrors
       );
     } catch (error) {
       throw KError.getKError(error);
@@ -945,7 +976,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     context: ActionContext<ResourcesState<T>, S>,
     payload: LoadPayload
   ) {
-    let id = null
+    let id: string | undefined
     if ("url" in payload) {
       // Try to get the ID from the URL. That may work for accounts and other resources 
       // if the /accounts/:id, but there are other valid URLs that don't have the id.
@@ -977,6 +1008,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       }
     }
     context.commit("currentId", id)
+    return id
   }
 
   protected resourceUrl(payload: LoadPayload) {
@@ -1014,71 +1046,53 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
   protected async load(
     context: ActionContext<ResourcesState<T>, S>,
     payload: LoadPayload
-  ) {
+  ): Promise<string> {
     // First, try to find the required resource in cache so we can render
     // some content before hitting the API.
-    this.loadCached(context, payload)
+    const cachedId = this.loadCached(context, payload)
 
-    if (payload.cache && context.state.currentId !== null) {
-      // Check if the resource (and all required included relationships) is already in cache and valid.
-      const checkCachedResourceWithRelationships = (id: string, cache: number, context: ActionContext<ResourcesState<T>, S>, include?: string) => {
-        const checkCachedResource = <U extends ResourceObject>(id: string, cache: number, state: ResourcesState<U>) => {
-          const timestamp = state.timestamps["resources/" + id]
-          return timestamp && timestamp + cache > Date.now()
-        }
-
-        if (!checkCachedResource(id, cache, context.state)) {
-          return false
-        }        
-        if (include) {
-          const resource = context.getters.one(id)
-          const included = include.split(",")
-          for (const key of included) {
-            const chain = key.split(".")
-            let related = resource
-            for (const relationship of chain) {
-              if (relationship in related && typeof related[relationship] === "object") {
-                related = related[relationship]
-              } else {
-                return false
-              }
-            }
-            // Check if related resource is sufficiently updated
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const relatedState = (context.rootState as any)[related.type]
-            if (!checkCachedResource(related.id, cache, relatedState)) {
-              return false
-            }
-          }
-        }
-        return true
-      }
-      
-      if (checkCachedResourceWithRelationships(context.state.currentId, payload.cache, context, payload.include)) {
-        return
-      }
-      
+    const url = this.resourceUrl(payload)
+    const include = new URL(this.absoluteUrl(url)).searchParams.get("include") ?? undefined
+    if (payload.cache && cachedId !== undefined &&
+      this.isResourceCached(context, { type: this.type, id: cachedId }, payload.cache, include)) {
+      return cachedId
     }
-    
+
     // Fetch (or revalidate) the content.
-    const url = this.resourceUrl(payload);
-    // Call API
+    // Only a NotFound from this resource's own request invalidates it.
+    let response: SuccessfulResponse<T, ResourceObject> | null
     try {
-      const data = await this.request(context, url);
-      const resource = ((Array.isArray(data.data) && data.data.length == 1) 
-        ? data.data[0] 
-        : data.data) as T
-      // Commit mutation(s).
-      this.setCurrent(context, resource)
-      if ('included' in data) {
-        await this.handleIncluded(
-          data.included,
-          context
-        );
+      response = await this.request(context, url);
+
+      if (
+        response === null
+        || response.data === null
+        || Array.isArray(response.data) && response.data.length === 0
+      ) {
+        throw new KError(KErrorCode.NotFound)
       }
     } catch (error) {
-      throw KError.getKError(error);
+      const kerror = KError.getKError(error)
+      // If the resource was cached, but now is not found, we remove it from cache.
+      if (kerror.code === KErrorCode.NotFound && cachedId !== undefined) {
+        this.removeCachedResource(context, cachedId)
+      }
+      throw kerror
     }
+
+    // The response can be a single resource or a list of one resource for code-based queries.
+    const resource = Array.isArray(response.data) ? response.data[0] : response.data
+
+    this.setCurrent(context, resource)
+
+    if ('included' in response) {
+      try {
+        await this.handleIncluded(response.included, context, payload.ignoreExternalErrors)
+      } catch (error) {
+        throw KError.getKError(error)
+      }
+    }
+    return resource.id
   }
   /**
    * Creates a resource by posting the given resource to the API.
@@ -1159,34 +1173,48 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     const url = this.resourceEndpoint(payload.group, payload.id)
     try {
       await this.request(context, url, "delete")
-      // Remove from current pointer.
-      if (context.state.currentId == id) {
-        context.commit("currentId", null)
+    } catch (error) {
+      const kerror = KError.getKError(error)
+      if (kerror.code === KErrorCode.NotFound) {
+        this.removeCachedResource(context, id)
       }
-      // Remove from pages.
-      for (const key in context.state.pages) {
-        const pages = context.state.pages[key]
-        let afterDelete = false
-        for (let i = 0; i < pages.length; i++) {
-          // Remove the id from the page
-          if (pages[i].includes(id)) {
-            pages[i] = pages[i].filter(rid => rid != id)
-            afterDelete = true
+      throw kerror
+    }
+    this.removeCachedResource(context, id)
+  }
+
+  /**
+   * Removes a resource and all references to it from the local cache.
+   */
+  protected removeCachedResource(
+    context: ActionContext<ResourcesState<T>, S>,
+    id: string
+  ) {
+    // Remove from current pointer.
+    if (context.state.currentId == id) {
+      context.commit("currentId", undefined)
+    }
+    // Remove from pages.
+    for (const key in context.state.pages) {
+      const pages = context.state.pages[key]
+      let afterDelete = false
+      for (let i = 0; i < pages.length; i++) {
+        // Remove the id from the page
+        if (pages[i].includes(id)) {
+          pages[i] = pages[i].filter(resourceId => resourceId != id)
+          afterDelete = true
+        }
+        // From the altered page onwards, shift one id to the left.
+        if (afterDelete) {
+          if (i < pages.length - 1 && pages[i+1].length > 0) {
+            pages[i].push(pages[i+1].shift())
           }
-          // From the altered page onwards, shift one id to the left.
-          if (afterDelete) {
-            if (i < pages.length - 1 && pages[i+1].length > 0) {
-              pages[i].push(pages[i+1].shift())
-            }
-            context.commit("setPageIds", {key, page: i, ids: pages[i]})
-          }
+          context.commit("setPageIds", {key, page: i, ids: pages[i]})
         }
       }
-      // Remove from store.
-      context.commit("removeResource", id)
-    } catch (error) {
-      throw KError.getKError(error);
-    }  
+    }
+    // Remove from store.
+    context.commit("removeResource", id)
   }
 
   /**

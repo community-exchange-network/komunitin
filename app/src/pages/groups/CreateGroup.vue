@@ -8,7 +8,10 @@
       padding 
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
     >
-      <template v-if="!done">
+      <q-form
+        v-if="!done"
+        @submit="submit"
+      >
         <div class="q-pb-lg">
           <div class="text-subtitle1">
             {{ $t('newGroup') }}
@@ -18,11 +21,12 @@
           </div>
         </div>
         <edit-group-form 
+          ref="editGroupForm"
           v-if="group"
           v-model:group="group"
           v-model:contacts="contacts"
           v-model:currency="currency"
-          op="create"
+          :op="createdGroup ? 'edit' : 'create'"
         />
         <q-btn
           class="q-mt-lg q-mx-auto"
@@ -30,9 +34,9 @@
           color="primary"
           unelevated
           :loading="loading"
-          @click="submit"
+          type="submit"
         />
-      </template>
+      </q-form>
       <template v-else>
         <div class="q-pb-lg">
           <div class="text-subtitle1">
@@ -59,62 +63,77 @@
 import { useStore } from "vuex";
 import EditGroupForm from "@/pages/admin/EditGroupForm.vue"
 import PageHeader from "@/layouts/PageHeader.vue";
-import { ref } from "vue";
-import type { Currency, Group } from "@/store/model";
-import { v4 as uuid } from "uuid";
-import type { PartialContact } from "@/components/MemberContactsField.vue";
+import { ref, shallowRef, useTemplateRef } from "vue";
+import type { Contact, Currency, Group } from "@/store/model";
 
 const store = useStore()
-
-const myUser = store.getters.myUser
 
 const group = ref<Group>({
   attributes: {},
 } as Group)
+const groupForm = useTemplateRef<InstanceType<typeof EditGroupForm>>("editGroupForm")
+const createdGroup = shallowRef<Group>()
 
 const done = ref(false)
 
-const contacts = ref<PartialContact[]>([])
-const currency = ref<Currency>({
-  type: "currencies",
-  id: uuid(), // Ephemeral id for augmented posting.
-  attributes: {
-    decimals: 2,
-    rate: {
-      n: 1,
-      d:10
-    },
-    scale: 6
+const contacts = ref<Contact[]>([])
+const currency = ref<Partial<Currency["attributes"]>>({
+  decimals: 2,
+  rate: {
+    n: 1,
+    d: 10
   },
-} as Currency)
+  scale: 6
+})
 const loading = ref(false)
 const submit = async () => {
   try {
     loading.value = true
-    await store.dispatch("groups/create", {
-      resource: {
-        type: "groups",
-        attributes: {
-          ...group.value.attributes,
-        },
-        relationships: {
-          admins: {
-            data: [ { type: "users", id: myUser.id } ]
-          },
-          contacts: {
-            data: contacts.value.map((c) => ({ type: "contacts", id: c.id }))
-          },
-          currency: {
-            data: { type: "currencies", id: currency.value.id }
-          }
+    const retrying = createdGroup.value !== undefined
+    // We can't upload the image until the group is created, because we need the group code
+    // to upload the image to the right resource path. So we first create the group, then upload
+    // the image, then update the group with the image object.
+    const attributes = {
+      ...group.value.attributes,
+      contacts: contacts.value,
+      meta: {
+        request: {
+          currency: currency.value
         }
-      },
-      included: [
-        ...contacts.value,
-        currency.value
-      ]
-    })
-    done.value = true
+      }
+    }
+
+    if (!createdGroup.value) {
+      await store.dispatch("groups/create", {
+        resource: {
+          type: "groups",
+          attributes
+        }
+      })
+      createdGroup.value = store.getters["groups/current"]
+    }
+
+    
+    const image = await groupForm.value.uploadImage()
+    // undefined => error, null => no image
+    if (image !== undefined) {
+      if (image !== null || retrying) {
+        const { code, ...editAttributes } = attributes
+        await store.dispatch("groups/update", {
+          group: code,
+          id: createdGroup.value.id,
+          resource: {
+            type: "groups",
+            id: createdGroup.value.id,
+            attributes: {
+              ...editAttributes,
+              image
+            }
+          }
+        })
+      }
+      done.value = true
+    }
   } finally {
     loading.value = false
   }

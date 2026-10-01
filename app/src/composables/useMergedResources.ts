@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { type LoadListPayload } from "../store/resources";
 import { useResources, type UseResourcesConfig } from "./useResources";
 import { type ResourceObject } from "../store/model";
+import type KError from "../KError";
 
 export const useMergedResources = <T extends ResourceObject = ResourceObject>(
   types: string[],
@@ -14,15 +15,17 @@ export const useMergedResources = <T extends ResourceObject = ResourceObject>(
   const typeLoadNexts: (() => Promise<void>)[] = [];
   const typeHasNexts: Ref<boolean | undefined>[] = [];
   const typeLoadings: Ref<boolean>[] = [];
+  const typeErrors: Ref<KError | undefined>[] = [];
   const typeLoads: ((overrides?: Partial<LoadListPayload>) => Promise<void>)[] = [];
   
   for (const type of types) {
-    const { resources, loadNext, hasNext, load, loading } = useResources<T>(type, options, config);
+    const { resources, loadNext, hasNext, load, loading, error } = useResources<T>(type, options, config);
     typeResources.push(resources);
     typeLoadNexts.push(loadNext);
     typeHasNexts.push(hasNext);
     typeLoads.push(load);
     typeLoadings.push(loading);
+    typeErrors.push(error);
   }
 
   const lastOptions = ref<LoadListPayload>({ ...options });
@@ -128,8 +131,12 @@ export const useMergedResources = <T extends ResourceObject = ResourceObject>(
     return typeLoadings.some((loading) => loading.value);
   })
 
+  const error = computed(() =>
+    typeErrors.find((error) => error.value)?.value
+  )
+
   // We don't need to call load() initially because useResources already does it 
   // (if config.immediate != false).
 
-  return { resources, hasNext, loadNext, load, loading };
+  return { resources, hasNext, loadNext, load, loading, error };
 };

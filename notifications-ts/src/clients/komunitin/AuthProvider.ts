@@ -1,4 +1,4 @@
-import { config } from '../../config';
+import { CLIENT_ID, config } from '../../config';
 import logger from '../../utils/logger';
 
 interface TokenResponse {
@@ -49,9 +49,9 @@ export class AuthProvider {
     // Prepare request body for client_credentials flow
     const params = new URLSearchParams();
     params.append('grant_type', 'client_credentials');
-    params.append('client_id', config.NOTIFICATIONS_CLIENT_ID);
+    params.append('client_id', CLIENT_ID);
     params.append('client_secret', config.NOTIFICATIONS_CLIENT_SECRET);
-    params.append('scope', 'komunitin_social_read_all komunitin_accounting_read_all komunitin_auth_impersonate_all');
+    params.append('scope', 'email social:read accounting:read');
 
     try {
       const response = await fetch(`${config.KOMUNITIN_AUTH_URL}/token`, {
@@ -82,8 +82,11 @@ export class AuthProvider {
     }
   }
 
-  public forceRefresh(): void {
-    this.accessToken = null;
-    this.expiresAt = 0;
+  public invalidate(token?: string): void {
+    // A delayed 401 must not invalidate a newer token refreshed by another request.
+    if (!token || token === this.accessToken) {
+      this.accessToken = null;
+      this.expiresAt = 0;
+    }
   }
 }

@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+cli_image=$(docker build --quiet --file "$project_dir/shared/cli/Dockerfile" "$project_dir")
+
+exec docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  --add-host host.docker.internal:host-gateway \
+  --mount "type=bind,src=$project_dir/.env,dst=/app/.env,readonly" \
+  -v "$PWD:$PWD" \
+  -w "$PWD" \
+  "$cli_image" "$@"

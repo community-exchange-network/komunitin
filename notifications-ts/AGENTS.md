@@ -37,7 +37,7 @@ pnpm run dev
 - Environment variables are validated in `src/config.ts` with Zod. Add new runtime configuration there and in `.env.test`/`.env.local` as needed.
 - Prisma code uses `src/utils/prisma.ts`; generated migrations live in `prisma/`.
 - Queue creation and Redis behavior are centralized in utility modules and heavily mocked in tests. Prefer existing test helpers under `src/notifications/test/utils.ts`.
-- OAuth/JWKS auth lives in `src/server/auth.ts`; event ingestion uses the configured notifications events credentials.
+- OAuth/JWKS auth lives in `src/server/auth.ts`; event ingestion accepts `notifications:write` client-credentials tokens.
 - i18next loads `src/i18n/<lang>.json` and applies `src/i18n/flavors/<flavor>/<lang>.json` overrides. 
 - Keep notification copy aligned with the app terminology guidance in `../app/src/i18n/README.md` and `../app/src/i18n/flavors/<flavor>/README.md`.
 

@@ -1,0 +1,6 @@
+*
+!shared
+!social
+**/node_modules
+**/.env*
+**/dist

@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { createTransfers, db } from "../../mocks/db";
+import { createTransfers, db, getUserIdForMember } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
 const { put, email } = setupNotificationsTest({ useWorker: true });
@@ -12,9 +12,7 @@ const setupTestTransfer = () => {
 
   const accountUserId = (accountId: string) => {
     const memberId = db.members.find(m => m.relationships.account.data.id === accountId)!.id;
-    return db.users.find(u => {
-      return u.relationships.members.data.some((r: any) => r.id === memberId);
-    })!.id;
+    return getUserIdForMember(memberId);
   };
 
   const payerUserId = accountUserId(transfer.relationships.payer.data.id);
@@ -82,6 +80,25 @@ describe('Transfer emails', () => {
     assert.ok(payeeEmail.html.includes('Transfer received'), 'Payee HTML should contain transfer received label');
     assert.ok(payeeEmail.html.includes(payerMember.attributes.name), 'Payee HTML should contain payer name');
     assert.ok(payeeEmail.html.includes(transferUrl), 'Payee HTML should contain transfer URL');
+  });
+
+  it('respects account email preferences on the originating member relation', async () => {
+    const { groupId, transfer, payerUserId, payerUser, payeeUserId, payeeUser } = setupTestTransfer();
+    const payeeRelation = db.memberUsers.find(
+      relation => relation.relationships.user.data.id === payeeUserId,
+    )!;
+    payeeRelation.attributes.emails.myAccount = false;
+
+    const eventData = createEvent('TransferCommitted', {
+      code: groupId,
+      user: payerUserId,
+      data: { transfer: transfer.id },
+    });
+    await put(eventData);
+
+    assert.strictEqual(email.sentEmails.length, 1);
+    assert.strictEqual(email.sentEmails[0].to, payerUser.attributes.email);
+    assert.equal(email.sentEmails.some(message => message.to === payeeUser.attributes.email), false);
   });
 
   it('should send transfer pending email to payer', async () => {

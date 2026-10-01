@@ -46,17 +46,17 @@ export const context = (req: Request): Context => {
     }
   } else if (scopes.includes(Scope.Superadmin)) {
     return {
-      type: "superadmin",
+      type: "superadmin"
+    }
+  // Client-credentials tokens identify the service with matching sub and client_id claims.
+  } else if (typeof payload.client_id === "string" && payload.sub === payload.client_id) {
+    return {
+      type: "system"
     }
   } else if (typeof payload.sub === "string") {
     return {
       type: "user",
       userId: payload.sub
-    }
-  // This case happens when the notifications service uses the service.
-  } else if (payload.sub === null) {
-    return {
-      type: "system"
     }
   } else {
     throw new Error("Invalid sub claim in JWT")

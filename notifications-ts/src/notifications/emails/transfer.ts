@@ -5,6 +5,7 @@ import { type MessageContext } from "../messages";
 import { getTransferPartyGroupName, getTransferPartyName, isExternalTransfer, isExternalTransferSide } from "../messages/transfer-members";
 import { TransferEmailTemplateContext, TransferTemplateContext, TransferTemplateMember } from "./types";
 import { ctxCommon } from "./utils";
+import { imageUrl } from "../../clients/komunitin/image";
 
 // -- Colors matching the web app --
 
@@ -60,7 +61,7 @@ const buildTransferMemberGroup = (
 
   return {
     name,
-    image: side.group?.attributes.image ?? undefined,
+    image: imageUrl(side.group?.attributes.image),
     initial: name.charAt(0).toUpperCase(),
   };
 };
@@ -74,7 +75,7 @@ const buildTransferMember = (event: EnrichedTransferEvent, who: "payer" | "payee
   return {
     name,
     code,
-    image: member?.attributes.image ?? undefined,
+    image: imageUrl(member?.attributes.image),
     initial: name.charAt(0).toUpperCase(),
     group: buildTransferMemberGroup(event, who),
   }

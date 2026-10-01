@@ -9,11 +9,21 @@ declare module "miragejs/serializer" {
     getResourceObjectForModel(model: any): any;
     serialize(object: any, request: Request): any;
     getHashForIncludedResource(model: any): any;
+    typeKeyForModel(model: any): string;
   }
 }
 
 export default class ApiSerializer extends JSONAPISerializer {
   public static readonly DEFAULT_PAGE_SIZE = 20;
+
+  typeKeyForModel(model: any) {
+    // `type` is a domain attribute on members. Mirage otherwise mistakes it
+    // for the JSON:API resource type when the application serializer handles
+    // a member subcollection.
+    return model.modelName === "member"
+      ? "members"
+      : JSONAPISerializer.prototype.typeKeyForModel.call(this, model)
+  }
 
   /**
    * Include linkage data for ro-one relationships
@@ -32,12 +42,18 @@ export default class ApiSerializer extends JSONAPISerializer {
       const relationship = model[key];
       const relationshipKey = (this as any).keyForRelationship(key);
       
-      const jsonRelationship = json.relationships[relationshipKey];
+      const jsonRelationship = json.relationships?.[relationshipKey];
       // External relationships have associations but their relationships are deleted
       // from the hash in getHashForIncludedResource(), so this variable may be undefined.
       if (jsonRelationship) {
-        // Add meta.count field.
-        if ((this as any).isCollection(relationship)) {
+        if ((relationship?.meta?.external || this.isExternal(relationshipKey)) && jsonRelationship.data) {
+          jsonRelationship.data.meta = {
+            external: true,
+            href: relationship?.meta?.external ? relationship.meta.href : jsonRelationship.links.related
+          }
+          delete jsonRelationship.links
+        } else if ((this as any).isCollection(relationship)) {
+          // Add meta.count field.
           jsonRelationship.meta = {
             count: relationship.models.length
           }
@@ -45,10 +61,10 @@ export default class ApiSerializer extends JSONAPISerializer {
       }
     });
     const serializer = (this as any).serializerFor(model.modelName);
-    const url = serializer.selfLink(model);
+    const url = model.meta?.external ? model.meta.href : serializer.selfLink(model);
     if (url !== undefined) {
       json.links = {
-        self: serializer.selfLink(model)
+        self: url
       }
     }
     return json;
@@ -63,13 +79,15 @@ export default class ApiSerializer extends JSONAPISerializer {
     const computed = super.getHashForIncludedResource(model);
     const hash = computed[0];
 
-    if (this.isExternal(model.modelName)) {
+    if (model.meta?.external || this.isExternal(model.modelName)) {
       hash.included.forEach((resource: any) => {
+        const href = resource.links.self
         delete resource.attributes;
         delete resource.relationships;
+        delete resource.links;
         resource.meta = {
           external: true,
-          href: resource.links.self
+          href
         };
       });
       // Also dont follow the inclusion chain, since this is external resource and 
@@ -119,22 +137,20 @@ export default class ApiSerializer extends JSONAPISerializer {
       json.data.splice(size);
     }
 
-    // Build pagination links
-    json.links = {};
-    if (hasNext) {
-      const next = new URL(request.url);
-      next.searchParams.set("page[after]", (after + size).toString());
-      json.links.next = next.toString();
-    } else {
-      json.links.next = null;
+    const withCursor = (cursor: number) => {
+      const url = new URL(request.url)
+      url.searchParams.set("page[size]", size.toString())
+      url.searchParams.set("page[after]", cursor.toString())
+      return url.toString()
     }
-
-    if (hasPrevious) {
-      const prev = new URL(request.url);
-      prev.searchParams.set("page[after]", (after - size).toString());
-      json.links.prev = prev.toString();
-    } else {
-      json.links.prev = null;
+    const total = json.meta.count
+    const last = total === 0 ? 0 : Math.floor((total - 1) / size) * size
+    json.links = {
+      first: withCursor(0),
+      prev: after >= size ? withCursor(after - size) : null,
+      self: withCursor(after),
+      next: hasNext ? withCursor(after + size) : null,
+      last: withCursor(last),
     }
 
     this.filterIncluded(json);

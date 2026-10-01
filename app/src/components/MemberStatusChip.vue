@@ -3,12 +3,12 @@
 </template>
 <script setup lang="ts">
 import { useAccountStatus } from '../composables/accountStatus';
-import type { MemberState } from '../store/model';
+import type { MemberStatus } from '../store/model';
 import PillBadge from './PillBadge.vue';
 
 
 const props = defineProps<{
-  status: MemberState
+  status: MemberStatus
 }>()
 
 const { color, icon, label } = useAccountStatus(() => props.status)

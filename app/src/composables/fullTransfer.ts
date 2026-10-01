@@ -8,48 +8,19 @@ import { useStore } from 'vuex'
 
 /**
  * Loads all associated resources to this transfer resource: member,
- * currency and group for both payer and payee. Not that the transfer
- * must have at least the payer and payee accounts already loaded.
+ * currency and group for both payer and payee when their accounts are available.
  */
 export const useFullTransferByResource = (transfer: Ref<ExtendedTransfer|undefined>) => {
   const store = useStore()
   const ready = ref(false)
   
-  watch(transfer, async (transfer) => {
+  // External accounts can arrive after the transfer itself is stored.
+  watch([transfer, () => transfer.value?.payer, () => transfer.value?.payee], async ([transfer]) => {
     if (!transfer) { return }
-    const isExternalPayer = transfer.relationships.payer?.data.meta?.external
-    const isExternalPayee = transfer.relationships.payee?.data.meta?.external
-    // Load local members (except for the logged in account which is already loaded).
     const myAccount = store.getters.myAccount
-    const myCurrency = myAccount.currency
-
-    const localAccountIds = []
-    if (!isExternalPayer && transfer.payer && transfer.payer.id !== myAccount.id) {
-      localAccountIds.push(transfer.payer.id)
-    }
-    if (!isExternalPayee && transfer.payee && transfer.payee.id !== myAccount.id) {
-      localAccountIds.push(transfer.payee.id)
-    }
-    if (localAccountIds.length > 0) {
-      await store.dispatch("members/loadList", {
-        group: myCurrency.attributes.code,
-        filter: {
-          account: localAccountIds.join(",")
-        },
-        onlyResources: true
-      })
-    }
-    // If there are no external accounts we're done, since we have accounts, members 
-    // and also currency and group since they are the same as the ones for the logged 
-    // in account.
-    if (isExternalPayee) {
-      await loadExternalAccountRelationships(transfer.payee, store)
-    }
-    if (isExternalPayer) {
-      await loadExternalAccountRelationships(transfer.payer, store)
-    }
+    await loadTransfersRelationships([transfer], store, myAccount.id)
     ready.value = true
-  })
+  }, { immediate: true })
   
   return {
     ready
@@ -72,7 +43,8 @@ export const useFullTransferById = (id: Ref<{group: string, id: string}>) => {
     await store.dispatch('transfers/load', { 
       id: id.value.id,
       group: id.value.group,
-      include: "payer,payee"
+      include: "payer,payee",
+      ignoreExternalErrors: true
     } as LoadPayload)
   }
   
@@ -90,15 +62,42 @@ export const useFullTransferById = (id: Ref<{group: string, id: string}>) => {
   
 }
 
-export const loadExternalAccountRelationships = async (account: Account & {member?: Member, currency?: Currency}, store: Store<unknown>) => {
-  const accountUrl = account.links.self
+/** Load transfer relationships in batches, allowing unavailable external groups. */
+export const loadTransfersRelationships = async (transfers: ExtendedTransfer[], store: Store<unknown>, accountId?: string) => {
+  const groups: Record<string, { accounts: Map<string, Account>, external: boolean }> = {}
+  for (const transfer of transfers) {
+    for (const role of ["payer", "payee"] as const) {
+      const account = transfer[role]
+      if (account && account.id !== accountId) {
+        const url = account.links.self.split("/accounts/")[0]
+        groups[url] ??= {
+          accounts: new Map<string, Account>(),
+          external: !!transfer.relationships[role].data.meta?.external
+        }
+        groups[url].accounts.set(account.id, account)
+      }
+    }
+  }
+  for (const [url, { accounts, external }] of Object.entries(groups)) {
+    try {
+      await loadAccountsRelationships(Array.from(accounts.values()), store)
+    } catch (error) {
+      if (!external) throw error
+      console.warn(`Failed to load external account relationships: ${url}`, error)
+    }
+  }
+}
+
+/** Load currency and missing members for accounts belonging to one group. */
+export const loadAccountsRelationships = async (accounts: (Account & {member?: Member, currency?: Currency})[], store: Store<unknown>) => {
+  const accountUrl = accounts[0].links.self
   const urlPrefix = accountUrl.substring(0, accountUrl.indexOf("/accounts/"))
 
   const group = urlPrefix.substring(urlPrefix.lastIndexOf("/") + 1)
   const baseUrl = urlPrefix.substring(0, urlPrefix.lastIndexOf("/"))
 
   // load currency if required. This works even with remote servers.
-  if (!account.currency) {
+  if (accounts.some(account => !account.currency)) {
     await store.dispatch("currencies/load", {
       url: `${baseUrl}/${group}/currency`,
       group
@@ -108,15 +107,15 @@ export const loadExternalAccountRelationships = async (account: Account & {membe
   // they are using the same social server as the logged in user. That
   // could be expanded to remote servers if we add a way to get the social
   // api url related to a specific currency.
-  if (!account.member) {
+  const accountIds = accounts.filter(account => !account.member).map(account => account.id)
+  if (accountIds.length > 0) {
     await store.dispatch("members/loadList", {
       group,
       filter: {
-        account: account.id
+        account: accountIds.join(",")
       },
       include: "group",
       onlyResources: true
     })
   }
 }
-

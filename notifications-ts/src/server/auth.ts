@@ -1,52 +1,86 @@
-import { InvalidTokenError, auth as authJwt } from "express-oauth2-jwt-bearer"
-import { config } from "../config"
-import { NextFunction, Request, Response } from "express"
-import logger from "../utils/logger"
+import { auth as authJwt } from "express-oauth2-jwt-bearer"
+import { APP_CLIENT_ID, config } from "../config"
+import type { Request, RequestHandler } from "express"
+import { forbidden, unauthorized } from "../utils/error"
 
-const buildJwt = () => {
-  return authJwt({
-    issuer: config.AUTH_JWT_ISSUER,
-    audience: config.AUTH_JWT_AUDIENCE,
-    jwksUri: config.AUTH_JWKS_URL,
-    validators: {
-      // IntegralCES creates JWTs with a null sub claim for the tokens
-      // requested by the notifications service. The default validator
-      // in express-oauth2-jwt-bearer does not allow null values for 
-      // the sub claim. But this service is never reached from notifications
-      // service (itself), so we are fine with default sub validation.
-      // sub: (sub) => typeof sub === "string" || sub === null,
-      
-      // IntegralCES may append the language code to the issuer claim (!),
-      // so we need to allow for that instead of strict equality.
-      iss: (iss) => typeof iss === "string" && iss.startsWith(config.AUTH_JWT_ISSUER), 
-    },
+const jwt = authJwt({
+  issuer: config.AUTH_JWT_ISSUER,
+  audience: config.AUTH_JWT_AUDIENCE,
+  jwksUri: config.AUTH_JWKS_URL,
+})
+
+export const Scope = {
+  NotificationsRead: "notifications:read",
+  NotificationsWrite: "notifications:write",
+} as const
+
+type NotificationsScope = typeof Scope[keyof typeof Scope]
+
+type AuthPayload = {
+  client_id?: unknown
+  scope?: unknown
+  sub?: unknown
+}
+
+const getPayload = (req: Request): AuthPayload => {
+  return (req as Request & { auth?: { payload?: AuthPayload } }).auth?.payload ?? {}
+}
+
+const hasScope = (payload: AuthPayload, requiredScope: NotificationsScope) => {
+  return typeof payload.scope === "string"
+    && payload.scope.split(/\s+/).includes(requiredScope)
+}
+
+const authenticate = (
+  authorize: (req: Request) => void,
+): RequestHandler[] => [
+  jwt,
+  (req, _res, next) => {
+    authorize(req)
+    next()
+  },
+]
+
+export const userAuth = (scope: NotificationsScope) => {
+  return authenticate((req) => {
+    const payload = getPayload(req)
+    if (!hasScope(payload, scope)) {
+      throw forbidden("Missing required scope")
+    }
+    if (
+      payload.client_id !== APP_CLIENT_ID
+      || typeof payload.sub !== "string"
+    ) {
+      throw forbidden("App user token required")
+    }
   })
 }
 
-let jwt = buildJwt()
-let lastInvalidTokenRetry = 0
+export const eventsAuth = () => {
+  return authenticate((req) => {
+    const payload = getPayload(req)
+    if (!hasScope(payload, Scope.NotificationsWrite)) {
+      throw forbidden("Missing required scope")
+    }
+    if (
+      typeof payload.client_id !== "string"
+      || payload.sub !== payload.client_id
+    ) {
+      throw forbidden("Service token required")
+    }
+  })
+}
 
-/**
- * Require a valid JWT token in the request.
- */
-export const userAuth = () => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    jwt(req, res, (err) => {
-      if (err) {
-        if (err instanceof InvalidTokenError && lastInvalidTokenRetry < Date.now() - 1000 * 60 * 5) {
-          // In this case it could be possible that the error is "signature verification failed" because the token
-          // is signed with a newly rotated key that is still not used because the jwks cache is not updated.
-          // Note that in order to prevent abuse, we only retry once every 5 minutes.
-          lastInvalidTokenRetry = Date.now()
-          jwt = buildJwt()
-          logger.warn("Invalid token error. Refreshing JWKS.")
-          jwt(req, res, next)
-        } else {
-          next(err)
-        }
-      } else {
-        next()
-      }
-    })
+export const getAuthenticatedUserId = (req: Request) => {
+  const subject = getPayload(req).sub
+  if (typeof subject !== "string") {
+    throw unauthorized()
+  }
+  return subject
+}
+
+export const validateUserId = (req: Request, userId: string) => {
+  if (getAuthenticatedUserId(req) !== userId) {
+    throw forbidden()
   }
 }

@@ -14,7 +14,7 @@ export function getRoutes(controller: BaseService) {
   const router = Router()
 
   router.post('/:code/topups',
-    userAuth([Scope.Accounting, Scope.Superadmin]), 
+    userAuth([Scope.AccountingWrite, Scope.Superadmin]),
     checkExact(TopupValidators.isCreateTopup()),
     currencyInputHandler(controller, async (currencyController, context, data: InputTopup) => {
       const topups = createTopupService(currencyController)
@@ -26,7 +26,7 @@ export function getRoutes(controller: BaseService) {
   )
 
   router.get('/:code/topups/:id',
-    userAuth([Scope.Accounting, Scope.Superadmin]),
+    userAuth([Scope.AccountingRead, Scope.Superadmin]),
     currencyResourceHandler(controller, (currencyController, context, id: string) => {
       const topups = createTopupService(currencyController)
       return topups.getTopup(context, id)
@@ -36,7 +36,7 @@ export function getRoutes(controller: BaseService) {
   )
 
   router.patch('/:code/topups/:id',
-    userAuth([Scope.Accounting, Scope.Superadmin]),
+    userAuth([Scope.AccountingWrite, Scope.Superadmin]),
     checkExact(TopupValidators.isUpdateTopup()),
     currencyInputHandler(controller, async (currencyController, context, data: UpdateTopup) => { 
       const topups = createTopupService(currencyController)
@@ -57,7 +57,7 @@ export function getRoutes(controller: BaseService) {
   )
 
   router.patch('/:code/currency/topup-settings', 
-    userAuth([Scope.Accounting, Scope.Superadmin]),
+    userAuth([Scope.AccountingWrite, Scope.Superadmin]),
     checkExact(TopupValidators.isUpdateTopupSettings()),
     currencyInputHandler(controller, async (currencyController, context, data: InputTopupSettings) => {
       const topups = createTopupService(currencyController)
@@ -67,7 +67,7 @@ export function getRoutes(controller: BaseService) {
   )
 
   router.get('/:code/currency/topup-settings', 
-    userAuth([Scope.Accounting, Scope.Superadmin]),
+    userAuth([Scope.AccountingRead, Scope.Superadmin]),
     currencyResourceHandler(controller, async (currencyController, context) => {
       const topups = createTopupService(currencyController)
       const settings = await topups.getCurrencyTopupSettings(context)
@@ -76,7 +76,7 @@ export function getRoutes(controller: BaseService) {
   )
 
   router.get('/:code/accounts/:id/topup-settings', 
-    userAuth([Scope.Accounting, Scope.Superadmin]),
+    userAuth([Scope.AccountingRead, Scope.Superadmin]),
     currencyResourceHandler(controller, async (currencyController, context, id: string) => {
       const topups = createTopupService(currencyController)
       const settings = await topups.getAccountTopupSettings(context, id)
@@ -85,7 +85,7 @@ export function getRoutes(controller: BaseService) {
   )
 
   router.patch('/:code/accounts/:id/topup-settings', 
-    userAuth([Scope.Accounting, Scope.Superadmin]),
+    userAuth([Scope.AccountingWrite, Scope.Superadmin]),
     checkExact(TopupValidators.isUpdateAccountTopupSettings()),
     currencyInputHandler(controller, async (currencyController, context, data: AccountTopupSettings) => {
       const topups = createTopupService(currencyController)

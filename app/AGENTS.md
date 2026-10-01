@@ -18,7 +18,7 @@ pnpm test
 - Docker builds and local development use Node.js 24 and pnpm.
 - Standalone dev uses `.env.test` and mocked backend APIs. Use this environment for frontend-only development.
 - To run against the root Docker stack, stop the `app` container, configure `.env` to point at the local services, and run `pnpm dev`.
-- Local HTTPS dev requires `tmp/certs/localhost.pem`, `tmp/certs/localhost-key.pem`, and `LOCAL_CA_ROOT` as described in `DEVELOP.md`.
+- Local HTTPS dev requires `tmp/certs/localhost.pem` and `tmp/certs/localhost-key.pem` as described in `DEVELOP.md`.
 
 ## Architecture
 
@@ -55,4 +55,5 @@ pnpm test
 - Use narrower unit tests for complex logic, only if necessary.
 - Test files live in `test/vitest/__tests__/**/*.{spec,test}.ts` (e2e-ish) or `src/**/__tests__/*.{spec,test}.ts` (unit).
 - Use `waitFor(fn, expected, message?, timeout?)` from `test/vitest/utils/index.ts`. Do not add arbitrary sleeps.
+- Use `getComponent` to workaround teleports.
 - If Vitest fails because `.quasar/tsconfig.json` is missing, run `pnpm run build` first.
