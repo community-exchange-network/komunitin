@@ -15,6 +15,7 @@
           <social-network-list
             type="contact"
             :contacts="contacts"
+            flat
           />
         </q-card-section>
       </q-card>

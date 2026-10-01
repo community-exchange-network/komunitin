@@ -2,7 +2,8 @@
   <q-list
     padding
     separator
-    class="bg-surface shadow-2 rounded-borders"
+    class="bg-surface"
+    :class="!flat && 'rounded-borders shadow-2'"
   >
     <q-item
       v-for="key of networks"
@@ -40,7 +41,11 @@ const props = withDefaults(defineProps<{
   contacts?: Contact[],
   url?: string,
   title?: string,
-  text?: string
+  text?: string,
+  /**
+   * Render without the card shadow and rounded borders, e.g. when already inside a card.
+   */
+  flat?: boolean
 }>(), {
   type: "share",
   contacts: () => [],
