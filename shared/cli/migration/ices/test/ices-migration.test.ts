@@ -97,11 +97,81 @@ test('fails on incomplete or malformed source responses', async (t) => {
     } }))
     await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, pageSize: 1 }), /repeated/)
   })
-  await t.test('source reference missing', async (t) => {
-    const fixture = await serveIces(t)
-    fixture.posts[0].relationships.member.data.id = icesId(999)
-    await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' } }), /outside the exported community/)
+})
+
+test('warns and exports valid posts when source members or categories are missing', async (t) => {
+  const fixture = await serveIces(t)
+  fixture.posts[0].relationships.member.data.id = icesId(999)
+  fixture.posts[1].relationships.category.data.id = icesId(998)
+  const messages: string[] = []
+  const result = await createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' },
+    onProgress: (message) => messages.push(message),
   })
+  const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
+  assert.ok(parsed.success, JSON.stringify(parsed))
+  assert.deepEqual(result.summary, parsed.summary)
+  assert.equal(result.summary.offers, 2)
+  assert.equal(result.summary.needs, 1)
+  assert.ok(!parsed.plan.posts.some(({ id }) => id === fixture.posts[0].id))
+  assert.equal(parsed.plan.posts.find(({ id }) => id === fixture.posts[1].id)!.category, null)
+  const warnings = [
+    `ICES offers/${fixture.posts[0].id} references member ${icesId(999)} missing from exported community ICES; skipping post`,
+    `ICES offers/${fixture.posts[1].id} references category ${icesId(998)} missing from exported community ICES; exporting without a category`,
+  ]
+  for (const warning of warnings) {
+    assert.ok(result.warnings.includes(warning))
+    assert.ok(messages.includes(`Warning: ${warning}`))
+  }
+})
+
+test('recovers from a timed-out user response without restarting the export', async (t) => {
+  const fixture = await serveIces(t)
+  const messages: string[] = []
+  const memberId = fixture.members[2].id
+  let attempts = 0
+  fixture.overrides.set('/drupal/ces/api/social/users', (url) => {
+    if (url.searchParams.get('filter[members]') === memberId && ++attempts === 1) {
+      return { body: { data: [] }, delayMs: 1000 }
+    }
+  })
+  const result = await createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' },
+    timeoutMs: 200, onProgress: (message) => messages.push(message),
+  })
+  const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
+  assert.ok(parsed.success, JSON.stringify(parsed))
+  assert.deepEqual(result.summary, parsed.summary)
+  assert.equal(result.summary.members, 6)
+  assert.equal(attempts, 2)
+  const lookups = fixture.requests.filter(({ url }) => url.pathname.endsWith('/users'))
+  assert.equal(lookups.length, 7)
+  assert.equal(lookups.filter(({ url }) => url.searchParams.get('filter[members]') === fixture.members[0].id).length, 1)
+  assert.ok(messages.some((message) => message.includes(memberId) && message.includes('attempt 1/3') && message.includes('retrying')))
+})
+
+test('stops after three timed-out reads and reports the failed lookup', async (t) => {
+  const fixture = await serveIces(t)
+  fixture.overrides.set('/drupal/ces/api/social/users', () => ({ body: { data: [] }, delayMs: 1000 }))
+  await assert.rejects(createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, timeoutMs: 200,
+  }), (error: Error) => {
+    assert.ok(error.message.includes('/drupal/ces/api/social/users?'))
+    assert.ok(error.message.includes(fixture.members[0].id))
+    assert.ok(error.message.includes('timed out after 0.2s (attempt 3/3)'))
+    assert.ok(!error.message.includes('secret'))
+    return true
+  })
+  assert.equal(fixture.requests.filter(({ url }) => url.pathname.endsWith('/users')).length, 3)
+})
+
+test('does not retry a timed-out authentication request', async (t) => {
+  const fixture = await serveIces(t)
+  fixture.overrides.set('/drupal/oauth2/token', () => ({ body: {}, delayMs: 1000 }))
+  await assert.rejects(createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, timeoutMs: 200,
+  }), /oauth2\/token timed out after 0.2s \(attempt 1\/1\)/)
+  assert.equal(fixture.requests.length, 1)
 })
 
 test('exports source values for separate import validation', async (t) => {

@@ -11,6 +11,10 @@ export interface IcesExportOptions {
   code: string
   auth: IcesAuth
   pageSize?: number
+  /** Per-request timeout, including the response body. Defaults to 120 seconds. */
+  timeoutMs?: number
+  /** Receive progress messages without changing the exported bundle. */
+  onProgress?: (message: string) => void
 }
 
 export interface IcesExportResult {
@@ -71,10 +75,11 @@ const contacts = (document: IcesDocument, resource: IcesResource): Row => {
     requireType(contact, 'contacts')
     const type = cell(contact.attributes.type)
     const column = `contact.${type}`
-    if (!CSV_HEADERS['members.csv'].includes(column) || column in row) {
-      throw new Error(`ICES ${resource.type}/${resource.id} has an unsupported or duplicate contact type: ${type}`)
+    if (!CSV_HEADERS['members.csv'].includes(column)) {
+      throw new Error(`ICES ${resource.type}/${resource.id} has an unsupported contact type: ${type}`)
     }
-    row[column] = cell(contact.attributes.name)
+    // The bundle has one column per contact type; keep the first source value.
+    if (!(column in row)) row[column] = cell(contact.attributes.name)
   }
   return row
 }
@@ -86,28 +91,35 @@ const preferences = (resource: IcesResource) => fields(resource, {
 
 /** Export one community through the legacy API to the common CSV bundle format. */
 export const createIcesMigrationBundle = async (options: IcesExportOptions): Promise<IcesExportResult> => {
-  const client = new IcesClient(options.url, options.auth, options.pageSize)
+  const client = new IcesClient(options.url, options.auth, options.pageSize, options.onProgress, options.timeoutMs)
   return exportBundle(client, options.code)
 }
 
 /** List every community state and reuse one authenticated client across bundles. */
 export async function* createAllIcesMigrationBundles(options: Omit<IcesExportOptions, 'code'>) {
-  const client = new IcesClient(options.url, options.auth, options.pageSize)
+  const client = new IcesClient(options.url, options.auth, options.pageSize, options.onProgress, options.timeoutMs)
+  let completed = 0
   for await (const document of client.pages('groups', { 'filter[status]': 'pending,active,disabled' })) {
     for (const community of collection(document)) {
       requireType(community, 'groups')
       const code = cell(community.attributes.code)
       yield { code, ...await exportBundle(client, code) }
+      client.onProgress(`Completed ${++completed} communities`)
     }
   }
 }
 
 const exportBundle = async (client: IcesClient, code: string): Promise<IcesExportResult> => {
   if (!/^[A-Z0-9]{4}$/.test(code)) throw new Error('ICES community code must be four uppercase letters or digits')
+  client.onProgress(`Exporting community ${code}`)
   const rows = Object.fromEntries(MIGRATION_BUNDLE_FILENAMES.map((file) => [file, [] as Row[]])) as Record<MigrationBundleFilename, Row[]>
   const warnings = new Set([
     'ICES exposes only the first owner of each member through filter[members]. Additional shared-account owners and identities without a member or community administrator relationship cannot be discovered through this API.',
   ])
+  const warn = (message: string) => {
+    warnings.add(message)
+    client.onProgress(`Warning: ${message}`)
+  }
   let rowCount = 0
   const add = (file: MigrationBundleFilename, row: Row) => {
     if (++rowCount > MAX_MIGRATION_DATA_ROWS) throw new Error('ICES export exceeds the migration bundle row limit')
@@ -167,6 +179,7 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
       if (owners.length !== 1) throw new Error(`ICES did not expose the owner of member ${member.id}; use a social_read_all service token`)
       const owner = addUser(userDocument, owners[0])
       add('member-users.csv', { member: row.code, user: owner.row.email, ...owner.preferences })
+      client.onProgress(`${code}: ${members.size} members, ${users.size} unique users exported`)
     }
   }
 
@@ -191,8 +204,12 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
       requireType(post, type)
       const memberId = related(post, 'member', 'members')
       const categoryId = related(post, 'category', 'categories', false)
-      if (!members.has(memberId) || (categoryId && !categories.has(categoryId))) {
-        throw new Error(`ICES ${type}/${post.id} references a member or category outside the exported community`)
+      if (!members.has(memberId)) {
+        warn(`ICES ${type}/${post.id} references member ${memberId} missing from exported community ${code}; skipping post`)
+        continue
+      }
+      if (categoryId && !categories.has(categoryId)) {
+        warn(`ICES ${type}/${post.id} references category ${categoryId} missing from exported community ${code}; exporting without a category`)
       }
       const images = post.attributes.images
       if (!Array.isArray(images) || images.some((image) => typeof image !== 'string' || image.includes(';'))) {
@@ -221,8 +238,10 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
     ['instagram', 'facebook', 'twitter'].some((type) => row[`contact.${type}`]))) {
     warnings.add('Legacy Instagram/Facebook/Twitter contacts are preserved. The destination must support or map these before import.')
   }
+  client.onProgress(`${code}: creating ZIP`)
   const zip = new ZipFile()
   for (const file of MIGRATION_BUNDLE_FILENAMES.filter((file) => file !== 'transfers.csv')) {
+    client.onProgress(`${code}: ${file}: ${rows[file].length} rows`)
     const headers = rows[file].length === 0 ? CSV_HEADERS[file]
       : CSV_HEADERS[file].filter((header) => rows[file].some((row) => row[header]))
     zip.addBuffer(encodeCsv([headers, ...rows[file].map((row) => headers.map((header) => row[header] ?? ''))]), file)
@@ -230,6 +249,7 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
   const contents = buffer(zip.outputStream)
   zip.end()
   const bytes = await contents
+  client.onProgress(`${code}: ZIP ready (${bytes.length} bytes)`)
   const summary: MigrationSummary = {
     users: rows['users.csv'].length,
     memberUsers: rows['member-users.csv'].length,

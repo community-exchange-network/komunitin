@@ -9,7 +9,7 @@ import { encodeCsv } from '../../../../social/src/features/migrations/bundle/csv
 type DrupalUser = RowDataPacket & { mail: string, pass: string, status: 0 | 1 }
 
 /** Add password hashes and identity statuses from Drupal, matching normalized emails. */
-export const addIcesPasswordHashes = async (bytes: Buffer, db: Connection) => {
+export const addIcesPasswordHashes = async (bytes: Buffer, db: Connection, onProgress: (message: string) => void = () => {}) => {
   const { files, errors } = await loadMigrationBundle({ type: 'zip', bytes }, MIGRATION_PARSER_LIMITS)
   if (errors.length) throw new Error('Invalid migration ZIP')
   const [headers, ...users] = parse(files.get('users.csv')!, { bom: true }) as string[][]
@@ -20,11 +20,13 @@ export const addIcesPasswordHashes = async (bytes: Buffer, db: Connection) => {
   }
   const hashColumn = headers.indexOf('passwordHash')
   const statusColumn = headers.indexOf('status')
+  onProgress(`Enriching ${users.length} users from the ICES database`)
 
   // Query only exported identities, in bounded batches. Duplicate source emails
   // must fail instead of assigning an arbitrary identity's credential.
   for (let offset = 0; offset < users.length; offset += 500) {
     const batch = users.slice(offset, offset + 500)
+    onProgress(`Fetching database users ${offset + 1}-${offset + batch.length} of ${users.length}`)
     const emails = batch.map((row) => row[emailColumn].trim().toLowerCase())
     const [records] = await db.execute<DrupalUser[]>(
       `SELECT mail, pass, status FROM \`users\` WHERE uid <> 0 AND LOWER(TRIM(mail)) IN (${emails.map(() => '?').join(',')})`,
@@ -42,7 +44,9 @@ export const addIcesPasswordHashes = async (bytes: Buffer, db: Connection) => {
       row[hashColumn] = source.pass
       row[statusColumn] = source.status === 1 ? 'active' : 'disabled'
     }
+    onProgress(`Enriched ${offset + batch.length}/${users.length} users`)
   }
+  onProgress('Creating enriched ZIP')
   files.set('users.csv', encodeCsv([headers, ...users]))
   const zip = new ZipFile()
   for (const [name, contents] of files) zip.addBuffer(contents, name)

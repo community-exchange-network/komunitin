@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util'
 import { createAllIcesMigrationBundles, createIcesMigrationBundle } from './export'
 import { apiUrl } from '../../utils'
 
-const usage = (enrich: boolean) => `Usage: ${enrich ? 'komunitin admin bundle ices' : 'pnpm export:ices'} --url <ICES site URL> (--code <CODE> | --all) --output <path> [--page-size <100>]
+const usage = (enrich: boolean) => `Usage: ${enrich ? 'komunitin admin bundle ices' : 'pnpm export:ices'} --url <ICES site URL> (--code <CODE> | --all) --output <path>
 Credentials: ICES_ADMIN_EMAIL and ICES_ADMIN_PASSWORD for a Drupal site administrator.
 --code writes one ZIP; --all writes <CODE>.zip for every community into the output directory.`
 
@@ -12,7 +12,7 @@ Credentials: ICES_ADMIN_EMAIL and ICES_ADMIN_PASSWORD for a Drupal site administ
 export const runIcesExport = async (enrich?: (path: string) => void) => {
   const { values } = parseArgs({ options: {
     url: { type: 'string' }, code: { type: 'string' }, all: { type: 'boolean' }, output: { type: 'string' },
-    'page-size': { type: 'string' }, help: { type: 'boolean' },
+    help: { type: 'boolean' },
   } })
   if (values.help) {
     console.log(usage(Boolean(enrich)))
@@ -25,7 +25,7 @@ export const runIcesExport = async (enrich?: (path: string) => void) => {
     if (enrich && !process.env.ICES_DATABASE_URL) throw new Error('Set ICES_DATABASE_URL for password enrichment')
     const options = {
       url: apiUrl(values.url), auth: { email, password },
-      pageSize: values['page-size'] === undefined ? undefined : Number(values['page-size']),
+      onProgress: (message: string) => console.error(message),
     }
     const bundles = values.all
       ? createAllIcesMigrationBundles(options)
@@ -33,8 +33,10 @@ export const runIcesExport = async (enrich?: (path: string) => void) => {
     if (values.all) await mkdir(values.output, { recursive: true, mode: 0o700 })
     for await (const result of bundles) {
       const output = 'code' in result ? join(values.output, `${result.code}.zip`) : values.output
+      console.error(`Writing ${output} (${result.bytes.length} bytes)`)
       await writeFile(output, result.bytes, { flag: 'wx', mode: 0o600 })
       enrich?.(output)
+      console.error(`Completed ${output}`)
       console.log(JSON.stringify({ output, summary: result.summary, warnings: result.warnings }, null, 2))
     }
   }

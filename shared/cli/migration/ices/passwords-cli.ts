@@ -16,16 +16,19 @@ try {
   } else {
     if (!values.bundle || !process.env.ICES_DATABASE_URL) throw new Error(usage)
     const path = resolve(values.bundle)
+    console.error(`Enriching ${path}`)
     const bytes = await readFile(path)
+    console.error('Connecting to the ICES database')
     const db = await createConnection(apiUrl(process.env.ICES_DATABASE_URL))
     try {
-      const result = await addIcesPasswordHashes(bytes, db)
+      const result = await addIcesPasswordHashes(bytes, db, (message) => console.error(message))
       // A temporary sibling ensures rename stays on the same filesystem.
       const temporary = await mkdtemp(join(dirname(path), '.ices-passwords-'))
       try {
         const output = join(temporary, 'bundle.zip')
         await writeFile(output, result.bytes, { flag: 'wx', mode: 0o600 })
         await rename(output, path)
+        console.error(`Saved enriched ZIP: ${result.users} users`)
       } finally {
         await rm(temporary, { recursive: true, force: true })
       }
