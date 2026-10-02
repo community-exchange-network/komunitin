@@ -1039,6 +1039,7 @@ describe('Posts endpoints', () => {
 
     await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'a-hidden', type: 'offers', status: 'draft', access: 'public', created: new Date('2026-05-13') })
     await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'b-visible', type: 'offers', status: 'published', access: 'public', created: new Date('2026-05-14') })
+    await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'c-visible', type: 'offers', status: 'published', access: 'public', created: new Date('2026-05-15') })
 
     const res = await request(app)
       .get('/posts-page/posts?sort=created&page[size]=1')
@@ -1046,8 +1047,12 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'b-visible')
-    assert.strictEqual(res.body.meta.count, 1)
-    assert.strictEqual(res.body.links.next, null)
+    assert.strictEqual(res.body.meta.count, 2)
+    const next = new URL(res.body.links.next)
+    const secondPage = await request(app).get(next.pathname + next.search).expect(200)
+    assert.strictEqual(secondPage.body.data[0].attributes.code, 'c-visible')
+    assert.strictEqual(secondPage.body.meta.count, 2)
+    assert.strictEqual(secondPage.body.links.next, null)
   })
 
   test('GET /:code/posts sorts by distance with null locations last', async () => {

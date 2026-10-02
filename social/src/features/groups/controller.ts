@@ -36,7 +36,7 @@ export const getGroups: RequestHandler = async (req, res) => {
 
   const result = await listGroups(ctx, params)
   
-  const payload = await serializeGroups(result.items, getCollectionSerializerOptions(req.url, params, result.total))
+  const payload = await serializeGroups(result.items, getCollectionSerializerOptions(req.originalUrl, params, result.total))
 
   res.status(200).json(payload)
 }
@@ -71,7 +71,7 @@ export const getGroupAdminsRoute: RequestHandler = async (req, res) => {
   const result = await listGroupAdmins(ctx, code, params)
   const payload = await serializeUsers(
     result.items,
-    getCollectionSerializerOptions(req.url, params, result.total),
+    getCollectionSerializerOptions(req.originalUrl, params, result.total),
   )
 
   res.status(200).json(payload)
