@@ -5,16 +5,18 @@ import type { Connection, RowDataPacket } from 'mysql2/promise'
 import { loadMigrationBundle } from '../../../../social/src/features/migrations/bundle/container'
 import { MIGRATION_PARSER_LIMITS } from '../../../../social/src/features/migrations/bundle/constants'
 import { encodeCsv } from '../../../../social/src/features/migrations/bundle/csv'
+import { icesUserUid } from './bundle'
 
-type DrupalUser = RowDataPacket & { mail: string, pass: string, status: 0 | 1 }
+type DrupalUser = RowDataPacket & { uid: number, mail: string, pass: string, status: 0 | 1 }
 
-/** Add password hashes and identity statuses from Drupal, matching normalized emails. */
+/** Match source credentials by the UID encoded in each ICES social UUID. */
 export const addIcesPasswordHashes = async (bytes: Buffer, db: Connection, onProgress: (message: string) => void = () => {}) => {
   const { files, errors } = await loadMigrationBundle({ type: 'zip', bytes }, MIGRATION_PARSER_LIMITS)
   if (errors.length) throw new Error('Invalid migration ZIP')
   const [headers, ...users] = parse(files.get('users.csv')!, { bom: true }) as string[][]
   const emailColumn = headers.indexOf('email')
-  if (emailColumn < 0) throw new Error('users.csv is missing email')
+  const idColumn = headers.indexOf('id')
+  if (emailColumn < 0 || idColumn < 0) throw new Error('users.csv is missing email or id')
   for (const column of ['passwordHash', 'status']) {
     if (!headers.includes(column)) headers.push(column)
   }
@@ -22,25 +24,22 @@ export const addIcesPasswordHashes = async (bytes: Buffer, db: Connection, onPro
   const statusColumn = headers.indexOf('status')
   onProgress(`Enriching ${users.length} users from the ICES database`)
 
-  // Query only exported identities, in bounded batches. Duplicate source emails
-  // must fail instead of assigning an arbitrary identity's credential.
+  // Email is not an identity key in Drupal: shared and redacted addresses recur.
   for (let offset = 0; offset < users.length; offset += 500) {
     const batch = users.slice(offset, offset + 500)
     onProgress(`Fetching database users ${offset + 1}-${offset + batch.length} of ${users.length}`)
-    const emails = batch.map((row) => row[emailColumn].trim().toLowerCase())
+    const uids = batch.map((row) => icesUserUid(row[idColumn]))
     const [records] = await db.execute<DrupalUser[]>(
-      `SELECT mail, pass, status FROM \`users\` WHERE uid <> 0 AND LOWER(TRIM(mail)) IN (${emails.map(() => '?').join(',')})`,
-      emails,
+      `SELECT uid, mail, pass, status FROM \`users\` WHERE uid IN (${uids.map(() => '?').join(',')})`,
+      uids,
     )
-    const sourceUsers = new Map<string, DrupalUser>()
-    for (const record of records) {
-      const email = record.mail.trim().toLowerCase()
-      if (sourceUsers.has(email)) throw new Error('Multiple Drupal users match an exported email')
-      sourceUsers.set(email, record)
-    }
+    const sourceUsers = new Map(records.map(record => [record.uid, record]))
     for (const [index, row] of batch.entries()) {
-      const source = sourceUsers.get(emails[index])
-      if (source === undefined) throw new Error(`No Drupal user matches users.csv row ${offset + index + 2}`)
+      const source = sourceUsers.get(uids[index])
+      const email = row[emailColumn].trim().toLowerCase()
+      if (!source || (email !== source.mail.trim().toLowerCase() && email !== `deleted-${source.uid}@deleted.invalid`)) {
+        throw new Error(`Drupal identity mismatch at users.csv row ${offset + index + 2}`)
+      }
       row[hashColumn] = source.pass
       row[statusColumn] = source.status === 1 ? 'active' : 'disabled'
     }

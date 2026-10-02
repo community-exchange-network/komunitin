@@ -1,17 +1,23 @@
-import { spawnSync } from 'node:child_process'
-import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
+import { createConnection, type RowDataPacket } from 'mysql2/promise'
 import { runIcesExport } from './export-cli'
+import { createIcesSanitizer, type IcesSourceUser } from './sanitize'
+import { apiUrl, requiredEnv } from '../../utils'
 
-const require = createRequire(import.meta.url)
-
-// Enrich each completed API ZIP using the independent database script.
+// Read identities once so duplicate resolution is independent of community order.
 try {
-  await runIcesExport((path) => {
-    const script = fileURLToPath(new URL('./passwords-cli.ts', import.meta.url))
-    const result = spawnSync(process.execPath, ['--import', require.resolve('tsx'), script, '--bundle', path], { stdio: 'inherit' })
-    if (result.error || result.status !== 0) throw new Error(`ICES password enrichment failed for ${path}`)
-  })
+  if (process.argv.includes('--help')) {
+    await runIcesExport(() => {})
+  } else {
+    const db = await createConnection(apiUrl(requiredEnv('ICES_DATABASE_URL')))
+    try {
+      const [users] = await db.query<(RowDataPacket & IcesSourceUser)[]>(
+        'SELECT uid, mail, pass, status, language FROM users WHERE uid <> 0 ORDER BY uid',
+      )
+      await runIcesExport(createIcesSanitizer(users, message => console.error(message)))
+    } finally {
+      await db.end()
+    }
+  }
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'ICES migration export failed')
   process.exitCode = 1

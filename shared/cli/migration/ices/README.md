@@ -1,6 +1,6 @@
 # ICES auth/social export
 
-Exports one or all communities from the Drupal-based Komunitin API into the CSV migration bundle format. Currencies and accounts are reconciled by code; IDs are retained when the source exposes them. The result is a CSV ZIP. The exporter does not run the bundle parser; import validation is a separate step, and tests check exported bundles against the parser. Import execution is provided by the [Social migration endpoint and CLI](../../../../social/src/features/migrations/README.md), for communities already migrated to Accounting.
+Exports one or all communities from the Drupal-based Komunitin API into the CSV migration bundle format. Currencies and accounts are reconciled by code; IDs are retained except for explicitly merged duplicate identities. The full generator sanitizes the source records before writing CSVs and validates the resulting ZIP with the bundle parser. Import execution is provided by the [Social migration endpoint and CLI](../../../../social/src/features/migrations/README.md), for communities already migrated to Accounting.
 
 Set the source credentials in the repository root `.env`:
 
@@ -16,7 +16,13 @@ Run from the repository root (Docker only; dependencies are included in the CLI 
 ./shared/cli/komunitin admin bundle ices --url https://ices.example.org --code ABCD --output ABCD.zip
 ```
 
-The CLI generates the API bundle, then enriches it from the source database. The output path must be inside the invoking directory, which the wrapper mounts writable. Both steps can also be run independently with local Node.js 24 and pnpm after installing dependencies in `social/` and `shared/cli/` and exporting the source credentials:
+The CLI reads source identities from the database, fetches the community through the API, sanitizes its records, and then builds and validates the CSV ZIP. The output path must be inside the invoking directory, which the wrapper mounts writable. With local Node.js 24 and pnpm, install dependencies in `social/` and `shared/cli/`, export the source credentials, and run from `shared/cli/`:
+
+```sh
+pnpm migrate:ices --url https://ices.example.org --code ABCD --output ABCD.zip
+```
+
+For source inspection without sanitization, the original API-only export and credential enrichment remain available separately. These commands do not resolve duplicate identities or validate the resulting bundle:
 
 ```sh
 pnpm export:ices --url https://ices.example.org --code ABCD --output ABCD.zip
@@ -31,15 +37,27 @@ To generate all communities, replace `--code` with `--all` and use a directory f
 
 The API-only `pnpm export:ices` script supports `--all` as well.
 
-`--all` pages through `/groups` including pending, active and disabled communities and creates `<CODE>.zip` for each, sharing the authenticated session. The CLI enriches each bundle before proceeding to the next community. Existing ZIPs are never overwritten. If generation fails, earlier completed bundles remain; an enrichment failure retains the API-only ZIP for that community. The command stops at the first failure.
+`--all` pages through `/groups` including pending, active and disabled communities and creates `<CODE>.zip` for each, sharing the authenticated session and source identity snapshot. Each bundle is sanitized and validated before writing. Existing ZIPs are never overwritten. If generation fails, earlier completed bundles remain; no ZIP is written for the failing community. The command stops at the first failure.
 
 HTTP requests have a fixed 120-second timeout, including reading the response body. Timed-out reads are retried twice after 1 and 2 seconds, retaining previously fetched data in memory. Authentication requests are not retried. Retry and final timeout messages identify the endpoint, query, timeout, and attempt. A final failure still stops the export; the current community has no checkpoint and must be restarted. Earlier completed ZIPs remain on disk.
 
-Progress is written to stderr as requests and export steps run: community codes, resource paths, page offsets and limits, fetched counts, member/user totals, CSV row counts, ZIP creation, and database enrichment batches. JSON results remain on stdout. Progress does not include credentials, emails, or password hashes.
+Progress is written to stderr as requests and export steps run: community codes, resource paths, page offsets and limits, fetched counts, member/user totals, sanitization counts, CSV row counts, and ZIP creation. JSON results remain on stdout and count the final sanitized records. Progress does not include credentials, emails, or password hashes.
 
-The second step needs a MySQL/MariaDB connection in `ICES_DATABASE_URL` with read access to the Drupal `users` table. It matches exported emails after trimming and lowercasing against `users.mail` and copies `users.pass` unchanged into `passwordHash`, and maps `users.status` to the identity `status` (`1` → `active`, `0` → `disabled`). User status is independent of member state; disabled identities include users awaiting email validation. Missing or ambiguous matches abort. Empty source passwords remain blank. No identities are added, and no fields other than `passwordHash` and `status` or other files are changed. Source writes must stay paused across both steps; the database must belong to the same ICES installation as the API.
+The full generator needs a MySQL/MariaDB connection in `ICES_DATABASE_URL` with read access to the Drupal `users` table. It reads all non-anonymous identities once, including users outside the selected community. The UID encoded in the ICES social UUID identifies each source record; normalized email is checked for consistency, never used to select a password. It copies `users.pass` unchanged and maps `users.status` (`1` → `active`, `0` → `disabled`). Identity status is independent of member state. Empty passwords remain blank. Source writes must stay paused throughout generation; the database and API must belong to the same installation.
 
-Enrichment atomically replaces the ZIP with owner-only permissions after all queries succeed. On failure, the API-only ZIP is retained; retry `passwords:ices` on that file. Database credentials and hashes are not printed. Keep the completed ZIP private: it contains password hashes. The enrichment step does not validate hash formats; run bundle validation separately. Drupal 7 `$S$` hashes are accepted by the parser and upgraded by Auth after a successful login.
+The standalone `passwords:ices` command also matches by UID and checks the email, allowing the generated `deleted-<uid>@deleted.invalid` address. It changes only password hashes and identity statuses, atomically replacing the ZIP with owner-only permissions after all queries succeed. On failure, the input ZIP is retained. Keep completed bundles private: they contain password hashes. Drupal 7 `$S$` hashes are accepted by the parser and upgraded by Auth after a successful login.
+
+## Sanitization rules
+
+Sanitization is a dedicated in-memory stage before CSV serialization. Member ownership and community administrators use UUID references internally, so duplicate or blank source emails cannot confuse ownership. The final CSVs contain the resolved email references.
+
+- Replace `deleted@deleted.org` (case-insensitive), blank emails, and conflicting non-active identities' emails with `deleted-<uid>@deleted.invalid`. Preserve identity status; unique, non-redacted emails of disabled users remain unchanged.
+- For active identities sharing a normalized email, keep the source user with the lowest UID. Redirect the other users' member relationships and administrator references to that identity. Use its UUID, password and profile, never the discarded user's password. The survivor may come from another community; its identity is included even if this community's API did not return it. The rule uses the entire database so independent community exports choose the same survivor. It does not use plus-address aliases.
+- Convert whitespace-only values to blank, leaving password hashes untouched. Trim website/image URLs and add `https://` to plausible hostnames without a scheme (including protocol-relative URLs). Clear website fields that cannot be repaired unambiguously, reporting the count. Unrepairable image URLs remain for validation to reject.
+- If a post expires before creation, set expiry to creation plus one calendar month in UTC, clamping to the last day of the next month when needed.
+- Omit posts whose description is empty or whitespace-only, including their image references.
+
+Sanitization counts are reported without personal data. Source records are never modified. The full generator refuses to write a bundle that still fails field or semantic validation.
 
 Set `ICES_ADMIN_EMAIL` and `ICES_ADMIN_PASSWORD` to Drupal site administrator credentials. The exporter obtains a password-grant token from Drupal using the built-in `komunitin-app` client and the `komunitin_social komunitin_social_read_all` scopes. It reuses the token throughout generation and renews it before expiry. Credentials and tokens are not written to the bundle. The site URL may include a Drupal installation subdirectory; do not pass `/oauth2` or `/ces/api/social` as part of it. The CLI uses a page size of 100.
 
@@ -72,7 +90,7 @@ The exporter follows `ices/ces_komunitin/ces_komunitin.api.social.inc`, its `inc
 
 Members use ICES offset cursors and are sorted by their unique code. Posts are sorted by modification time with no tie-breaker in ICES, and that endpoint ignores requested sorting. Offset pages can lose or repeat tied posts even on an idle database, so the exporter doubles the requested prefix size from offset zero until every post fits in one response (bounded by the bundle row limit). Users and categories ignore pagination in ICES and are deliberately fetched without a page loop. Public pagination URLs may differ from the configured internal URL: only their offset is used, and credentials always stay on the configured source. Redirects are rejected. Password-grant tokens are renewed before expiry.
 
-The exporter keeps original social UUIDs and the `currency.id`/`account.id` UUID references exposed by Social. ICES derives social UUIDs from internal numeric IDs and installation-specific salt bytes, which cannot be reconstructed from the CSV codes or emails. Preserving them also retains resource URLs and existing Accounting user references. `transfers.csv` is omitted. It does not fetch currency, account or transfer records from either accounting implementation, and makes no accounting changes. The exporter does not require currency or account UUIDs. Execution must find these records by code or obtain the information needed to create missing records.
+The exporter keeps original social UUIDs and the `currency.id`/`account.id` UUID references exposed by Social, except that sanitized duplicate active identities use the survivor's user UUID. ICES derives social UUIDs from internal numeric IDs and installation-specific salt bytes, which cannot be reconstructed from the CSV codes or emails. Preserving them also retains resource URLs and existing Accounting user references. `transfers.csv` is omitted. It does not fetch currency, account or transfer records from either accounting implementation, and makes no accounting changes. The exporter does not require currency or account UUIDs. Execution must find these records by code or obtain the information needed to create missing records.
 
 Legacy fields map as follows: `created/updated` → `createdAt/updatedAt`, member/post `state` → `status`, offer `name/price` → `title/value`, post `content` → `description`, `expires` → `expiresAt`, and contact `name` → its scalar CSV column. The Unix epoch expiry sentinel becomes blank. Address keys and GeoJSON coordinates are flattened into the documented CSV columns. Images remain source URLs with original order and duplicates; binaries are not downloaded.
 

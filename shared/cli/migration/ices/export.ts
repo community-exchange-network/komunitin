@@ -4,6 +4,8 @@ import { MIGRATION_BUNDLE_FILENAMES, MAX_MIGRATION_DATA_ROWS, type MigrationBund
 import { encodeCsv, CSV_HEADERS } from '../../../../social/src/features/migrations/bundle/csv'
 import type { MigrationSummary } from '../../../../social/src/features/migrations/bundle/types'
 import { collection, identifiers, includedResources, IcesClient, single, type IcesAuth, type IcesDocument, type IcesResource } from './client'
+import type { IcesRows } from './bundle'
+import { parseMigrationBundle } from '../../../../social/src/features/migrations/bundle'
 
 export interface IcesExportOptions {
   /** ICES site root, for example https://ices.example.org (not the Social API URL). */
@@ -15,6 +17,8 @@ export interface IcesExportOptions {
   timeoutMs?: number
   /** Receive progress messages without changing the exported bundle. */
   onProgress?: (message: string) => void
+  /** Sanitize source rows before resolving UUID references to CSV emails. */
+  sanitize?: (rows: IcesRows) => void
 }
 
 export interface IcesExportResult {
@@ -92,7 +96,7 @@ const preferences = (resource: IcesResource) => fields(resource, {
 /** Export one community through the legacy API to the common CSV bundle format. */
 export const createIcesMigrationBundle = async (options: IcesExportOptions): Promise<IcesExportResult> => {
   const client = new IcesClient(options.url, options.auth, options.pageSize, options.onProgress, options.timeoutMs)
-  return exportBundle(client, options.code)
+  return exportBundle(client, options.code, options.sanitize)
 }
 
 /** List every community state and reuse one authenticated client across bundles. */
@@ -103,13 +107,13 @@ export async function* createAllIcesMigrationBundles(options: Omit<IcesExportOpt
     for (const community of collection(document)) {
       requireType(community, 'groups')
       const code = cell(community.attributes.code)
-      yield { code, ...await exportBundle(client, code) }
+      yield { code, ...await exportBundle(client, code, options.sanitize) }
       client.onProgress(`Completed ${++completed} communities`)
     }
   }
 }
 
-const exportBundle = async (client: IcesClient, code: string): Promise<IcesExportResult> => {
+const exportBundle = async (client: IcesClient, code: string, sanitize?: IcesExportOptions['sanitize']): Promise<IcesExportResult> => {
   if (!/^[A-Z0-9]{4}$/.test(code)) throw new Error('ICES community code must be four uppercase letters or digits')
   client.onProgress(`Exporting community ${code}`)
   const rows = Object.fromEntries(MIGRATION_BUNDLE_FILENAMES.map((file) => [file, [] as Row[]])) as Record<MigrationBundleFilename, Row[]>
@@ -144,7 +148,7 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
   requireType(community, 'groups')
   if (community.attributes.code !== code) throw new Error('ICES returned a different community')
   const communitySettings = settings(communityDocument, community, 'group-settings')
-  const admins = includedResources(communityDocument, community, 'admins').map((user) => addUser(communityDocument, user).row.email)
+  const admins = includedResources(communityDocument, community, 'admins').map((user) => addUser(communityDocument, user).row.id)
   if (admins.length === 0) throw new Error('ICES did not expose any community administrators')
   const communityRow: Row = {
     ...fields(community, profileColumns), ...contacts(communityDocument, community),
@@ -178,7 +182,7 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
       const owners = collection(userDocument)
       if (owners.length !== 1) throw new Error(`ICES did not expose the owner of member ${member.id}; use a social_read_all service token`)
       const owner = addUser(userDocument, owners[0])
-      add('member-users.csv', { member: row.code, user: owner.row.email, ...owner.preferences })
+      add('member-users.csv', { member: row.code, user: owner.row.id, ...owner.preferences })
       client.onProgress(`${code}: ${members.size} members, ${users.size} unique users exported`)
     }
   }
@@ -238,6 +242,11 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
     ['instagram', 'facebook', 'twitter'].some((type) => row[`contact.${type}`]))) {
     warnings.add('Legacy Instagram/Facebook/Twitter contacts are preserved. The destination must support or map these before import.')
   }
+  // Retain the exact owner until sanitization has resolved duplicate identities.
+  sanitize?.(rows)
+  const emails = new Map(rows['users.csv'].map(row => [row.id, row.email]))
+  communityRow.adminUsers = [...new Set(communityRow.adminUsers.split(';').map(id => emails.get(id)!))].join(';')
+  for (const row of rows['member-users.csv']) row.user = emails.get(row.user)!
   client.onProgress(`${code}: creating ZIP`)
   const zip = new ZipFile()
   for (const file of MIGRATION_BUNDLE_FILENAMES.filter((file) => file !== 'transfers.csv')) {
@@ -249,6 +258,13 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
   const contents = buffer(zip.outputStream)
   zip.end()
   const bytes = await contents
+  if (sanitize) {
+    const validation = await parseMigrationBundle({ type: 'zip', bytes })
+    if (!validation.success) {
+      throw new Error(`Sanitized ICES bundle is invalid: ${validation.errors.map(error =>
+        `${error.file}:${error.row}:${error.column} ${error.code}`).join('; ')}`)
+    }
+  }
   client.onProgress(`${code}: ZIP ready (${bytes.length} bytes)`)
   const summary: MigrationSummary = {
     users: rows['users.csv'].length,
