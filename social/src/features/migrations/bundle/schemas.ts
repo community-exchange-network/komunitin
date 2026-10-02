@@ -21,10 +21,12 @@ export interface Located<T> {
 }
 
 export interface ParsedMigrationRows {
-  community: Located<MigrationCommunity> | null
+  community: Located<Omit<MigrationCommunity, 'currencyId' | 'currency'>> | null
+  currency: Located<z.output<ReturnType<typeof currencyRowSchema>>> | null
   users: Located<MigrationUser>[]
   memberUsers: Located<MigrationMemberUser>[]
-  members: Located<MigrationMember>[]
+  members: Located<Omit<MigrationMember, 'accountId' | 'account'>>[]
+  accounts: Located<z.output<ReturnType<typeof accountRowSchema>>>[]
   transfers: Located<MigrationTransfer>[]
   categories: Located<MigrationCategory>[]
   posts: Located<MigrationPost>[]
@@ -217,7 +219,7 @@ interface AmountOptions {
 
 const parseAmount = (value: string, scale: number | null, options: AmountOptions = {}): FieldResult<string> => {
   if (value === '') return invalid('REQUIRED_FIELD', 'Amount is required')
-  if (scale === null) return invalid('MISSING_CURRENCY_SCALE', 'Monetary values require currency.scale')
+  if (scale === null) return invalid('MISSING_CURRENCY_SCALE', 'Monetary values require scale in currency.csv')
   const result = parseExactAmount(value, scale)
   if (!result.success) return invalid(result.code, result.message)
   if (options.positive && result.value <= 0n) {
@@ -403,8 +405,9 @@ const communityBaseSchema = z.object({
   }),
 })
 
-const currencyRowSchema = (scale: number | null) => z.object({
+const currencyRowSchema = (scale: number | null, hasData: boolean) => z.object({
   id: optionalUuid,
+  code: required(),
   adminUser: optionalEmail,
   name: optional(255),
   namePlural: optional(255),
@@ -417,6 +420,9 @@ const currencyRowSchema = (scale: number | null) => z.object({
   updatedAt: optionalTimestamp,
   settings: currencySettingsSchema(scale),
 }).superRefine((currency, ctx) => {
+  if (!/^[A-Z0-9]{4}$/.test(currency.code)) {
+    addIssue(ctx, 'INVALID_CODE', 'Currency code must contain exactly four uppercase ASCII letters or digits', ['code'])
+  }
   const symbolLength = currency.symbol === null ? null : Array.from(currency.symbol).length
   if (symbolLength !== null && (symbolLength < 1 || symbolLength > 3)) {
     addIssue(ctx, 'INVALID_VALUE', 'Currency symbol must contain between one and three characters', ['symbol'])
@@ -425,27 +431,19 @@ const currencyRowSchema = (scale: number | null) => z.object({
     addIssue(ctx, 'INVALID_CURRENCY_SCALE', 'Currency decimals cannot exceed currency scale', ['decimals'])
   }
   timestampOrder(ctx, currency.createdAt, currency.updatedAt, 'updatedAt')
-}).transform(({ id, ...data }) => ({ id, data }))
+}).transform(({ id, code, ...data }) => ({ id, code, data: hasData ? data : null }))
 
-const communityRowSchema = (scale: number | null, hasCurrencyData: boolean) => communityBaseSchema.extend({
-  currency: currencyRowSchema(scale),
-}).superRefine((row, ctx) => {
+const communityRowSchema = communityBaseSchema.superRefine((row, ctx) => {
   if (!/^[A-Z0-9]{4}$/.test(row.code)) {
     addIssue(ctx, 'INVALID_CODE', 'Community code must contain exactly four uppercase ASCII letters or digits', ['code'])
   }
-  if (row.currency.data.adminUser !== null && !row.adminUsers.includes(row.currency.data.adminUser)) {
-    addIssue(ctx, 'INVALID_CURRENCY_ADMIN',
-      'Currency administrator must also be a community administrator', ['currency', 'adminUser'])
-  }
   timestampOrder(ctx, row.createdAt, row.updatedAt, 'updatedAt')
   validateLocation(row.location, ctx)
-}).transform(({ address, location, contact, currency, ...community }): MigrationCommunity => ({
+}).transform(({ address, location, contact, ...community }) => ({
   ...community,
-  currencyId: currency.id,
   address: toAddress(address),
   location: toLocation(location),
   contacts: toContacts(contact),
-  currency: hasCurrencyData ? { code: community.code, ...currency.data } : null,
 }))
 
 // Drupal 7 SHA-512 hashes encode an iteration count from 7 to 30.
@@ -499,83 +497,37 @@ const memberBaseSchema = z.object({
   contact: contactSchema,
 })
 
-const memberRowSchema = (scale: number | null, hasAccountData: boolean) => memberBaseSchema.extend({
-  account: z.object({
-    id: optionalUuid,
-    balance: optionalAmount(scale),
-    creditLimit: optionalAmount(scale, { nonNegative: true }),
-    createdAt: optionalTimestamp,
-    updatedAt: optionalTimestamp,
-    maximumBalance: optionalAmount(scale, { nonNegative: true }),
-    settings: accountSettingsSchema(scale),
-  }),
-}).superRefine((row, ctx) => {
+const memberRowSchema = memberBaseSchema.superRefine((row, ctx) => {
   timestampOrder(ctx, row.createdAt, row.updatedAt, 'updatedAt')
   validateLocation(row.location, ctx)
+}).transform(({ address, location, contact, ...row }) => ({
+  ...row,
+  deleted: row.status === 'deleted' ? row.updatedAt : null,
+  address: toAddress(address),
+  location: toLocation(location),
+  contacts: toContacts(contact),
+}))
 
-  if (row.status === 'draft' || row.status === 'pending') {
-    const accountValues: Array<[string, unknown]> = [
-      ...Object.entries(row.account).filter(([property]) => property !== 'settings'),
-      ...Object.entries(row.account.settings)
-        .map(([property, value]): [string, unknown] => [`settings.${property}`, value]),
-    ]
-    for (const [property, value] of accountValues) {
-      if (value !== null && (!Array.isArray(value) || value.length > 0)) {
-        addIssue(ctx, 'ACCOUNT_FIELD_NOT_ALLOWED',
-          'Account-only field must be blank for draft and pending members', ['account', ...property.split('.')])
-      }
-    }
-    return
+const accountRowSchema = (scale: number | null, hasData: boolean) => z.object({
+  id: optionalUuid,
+  code: required(255),
+  balance: optionalAmount(scale),
+  creditLimit: optionalAmount(scale, { nonNegative: true }),
+  createdAt: optionalTimestamp,
+  updatedAt: optionalTimestamp,
+  maximumBalance: optionalAmount(scale, { nonNegative: true }),
+  settings: accountSettingsSchema(scale),
+}).superRefine((row, ctx) => {
+  timestampOrder(ctx, row.createdAt, row.updatedAt, 'updatedAt')
+  if (row.balance !== null && row.creditLimit !== null
+    && BigInt(row.balance) < -BigInt(row.creditLimit)) {
+    addIssue(ctx, 'ACCOUNT_LIMIT', 'Balance cannot be below the negative credit limit', ['balance'])
   }
-
-  timestampOrder(ctx, row.account.createdAt, row.account.updatedAt, 'account.updatedAt')
-
-  if (row.account.balance !== null && row.account.creditLimit !== null
-    && BigInt(row.account.balance) < -BigInt(row.account.creditLimit)) {
-    addIssue(ctx, 'ACCOUNT_LIMIT', 'Balance cannot be below the negative credit limit', ['account', 'balance'])
+  if (row.balance !== null && row.maximumBalance !== null
+    && BigInt(row.balance) > BigInt(row.maximumBalance)) {
+    addIssue(ctx, 'ACCOUNT_LIMIT', 'Balance cannot exceed the maximum balance', ['balance'])
   }
-  if (row.account.balance !== null && row.account.maximumBalance !== null
-    && BigInt(row.account.balance) > BigInt(row.account.maximumBalance)) {
-    addIssue(ctx, 'ACCOUNT_LIMIT', 'Balance cannot exceed the maximum balance', ['account', 'balance'])
-  }
-  if (row.status === 'deleted' && row.account.balance !== null && BigInt(row.account.balance) !== 0n) {
-    addIssue(ctx, 'DELETED_ACCOUNT_BALANCE', 'Deleted member accounts must have a zero balance',
-      ['account', 'balance'])
-  }
-}).transform(({ address, location, contact, ...row }): MigrationMember => {
-  let account: MigrationMember['account'] = null
-  if (row.status !== 'draft' && row.status !== 'pending' && hasAccountData) {
-    account = {
-      code: row.code,
-      status: row.status,
-      users: [],
-      balance: row.account.balance,
-      creditLimit: row.account.creditLimit,
-      maximumBalance: row.account.maximumBalance,
-      createdAt: row.account.createdAt,
-      updatedAt: row.account.updatedAt,
-      settings: row.account.settings,
-    }
-  }
-  return {
-    id: row.id,
-    accountId: row.account.id,
-    code: row.code,
-    name: row.name,
-    type: row.type,
-    status: row.status,
-    access: row.access,
-    description: row.description,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    deleted: row.status === 'deleted' ? row.updatedAt : null,
-    imageUrl: row.imageUrl,
-    address: toAddress(address),
-    location: toLocation(location),
-    contacts: toContacts(contact),
-    account,
-  }
-})
+}).transform(({ id, code, ...data }) => ({ id, code, data: hasData ? data : null }))
 
 const transferRowSchema = (scale: number | null) => z.object({
   id: optionalUuid,
@@ -683,8 +635,8 @@ const hasValue = (value: CsvValue): boolean => typeof value === 'string'
   ? value !== '' : Object.values(value).some(hasValue)
 
 /** Preserve supplied accounting fields; execution resolves existing records by code. */
-const hasAccountingData = (value: CsvValue | undefined) => value !== undefined && typeof value !== 'string'
-  && Object.entries(value).some(([key, cell]) => key !== 'id' && hasValue(cell))
+const hasAccountingData = (cells: Record<string, CsvValue>) =>
+  Object.entries(cells).some(([key, cell]) => key !== 'id' && key !== 'code' && hasValue(cell))
 
 export const parseMigrationRows = (
   csv: DecodedCsvBundle,
@@ -700,29 +652,43 @@ export const parseMigrationRows = (
     })
   }
 
-  const communityRecord = csv['community.csv'][0]
-  const currency = communityRecord?.cells.currency
-  const parsedScale = currency && typeof currency === 'object'
-    ? integer({ maximum: 12 }).safeParse(currency.scale)
+  if (csv['currency.csv'].length !== 1) {
+    errors.add({
+      code: 'INVALID_CURRENCY_COUNT',
+      message: 'currency.csv must contain exactly one data record',
+      file: 'currency.csv',
+      row: null,
+      column: null,
+    })
+  }
+  const currencyRecord = csv['currency.csv'][0]
+  const parsedScale = integer({ maximum: 12 }).safeParse(currencyRecord?.cells.scale)
+  const currencyValue = currencyRecord
+    ? parseRecord(currencyRowSchema(parsedScale.success ? parsedScale.data : null, hasAccountingData(currencyRecord.cells)),
+        'currency.csv', currencyRecord, errors)
     : null
+  const currency = currencyValue === null || csv['currency.csv'].length !== 1
+    ? null
+    : { value: currencyValue, row: currencyRecord.row }
+  const scale = currencyValue?.data?.scale ?? null
+
+  const communityRecord = csv['community.csv'][0]
   const communityValue = communityRecord
-    ? parseRecord(communityRowSchema(parsedScale?.success ? parsedScale.data : null, hasAccountingData(currency)),
-        'community.csv', communityRecord, errors)
+    ? parseRecord(communityRowSchema, 'community.csv', communityRecord, errors)
     : null
   const community = communityValue === null || csv['community.csv'].length !== 1
     ? null
     : { value: communityValue, row: communityRecord.row }
-  const scale = communityValue?.currency?.scale ?? null
-
-  const members = csv['members.csv'].flatMap((record) => parseRecords(
-    [record], memberRowSchema(scale, hasAccountingData(record.cells.account)), 'members.csv', errors,
-  ))
 
   return {
     community,
+    currency,
     users: parseRecords(csv['users.csv'], userRowSchema, 'users.csv', errors),
     memberUsers: parseRecords(csv['member-users.csv'], memberUserRowSchema, 'member-users.csv', errors),
-    members,
+    members: parseRecords(csv['members.csv'], memberRowSchema, 'members.csv', errors),
+    accounts: csv['accounts.csv'].flatMap((record) => parseRecords(
+      [record], accountRowSchema(scale, hasAccountingData(record.cells)), 'accounts.csv', errors,
+    )),
     transfers: parseRecords(csv['transfers.csv'], transferRowSchema(scale), 'transfers.csv', errors),
     categories: parseRecords(csv['categories.csv'], categoryRowSchema, 'categories.csv', errors),
     posts: parseRecords(csv['posts.csv'], postRowSchema, 'posts.csv', errors),

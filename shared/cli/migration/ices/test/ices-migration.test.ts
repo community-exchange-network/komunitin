@@ -119,12 +119,12 @@ test('IntegralCES social bundles validate supplied accounting data, UUIDs and re
   const { files } = await loadMigrationBundle({ type: 'zip', bytes: exported.bytes }, MIGRATION_PARSER_LIMITS)
   const cases = [
     ['community.csv', 'status', 'unknown', 'INVALID_ENUM'],
-    ['community.csv', 'currency.id', 'wrong', 'INVALID_UUID'],
-    ['members.csv', 'account.id', 'wrong', 'INVALID_UUID'],
+    ['currency.csv', 'id', 'wrong', 'INVALID_UUID'],
+    ['accounts.csv', 'id', 'wrong', 'INVALID_UUID'],
     ['community.csv', 'adminUsers', '', 'REQUIRED_FIELD'],
     ['users.csv', 'id', 'wrong', 'INVALID_UUID'],
     ['users.csv', 'id', icesId(201), 'DUPLICATE_VALUE'],
-    ['members.csv', 'account.id', icesId(900), 'ACCOUNT_FIELD_NOT_ALLOWED'],
+    ['accounts.csv', 'code', 'ICES0000', 'ACCOUNT_NOT_ALLOWED'],
     ['member-users.csv', 'user', 'missing@example.org', 'MISSING_REFERENCE'],
   ] as const
   for (const [file, column, value, expected] of cases) {
@@ -136,10 +136,10 @@ test('IntegralCES social bundles validate supplied accounting data, UUIDs and re
   transfers.push(['', 'ICES0002', 'ICES0003', 'user2@example.org', '1', '', '2025-01-01T00:00:00Z', '2025-01-01T00:00:00Z'])
   const withTransfers = new Map(files).set('transfers.csv', encodeCsv(transfers))
   assert.ok(resultCodes(await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(withTransfers) })).includes('MISSING_CURRENCY_SCALE'))
-  const members = parse(files.get('members.csv')!.toString()) as string[][]
-  members[0].push('account.balance')
-  members.slice(1).forEach((row) => row.push('0'))
-  const withBalances = new Map(files).set('members.csv', encodeCsv(members))
+  const accounts = parse(files.get('accounts.csv')!.toString()) as string[][]
+  accounts[0].push('balance')
+  accounts.slice(1).forEach((row) => row.push('0'))
+  const withBalances = new Map(files).set('accounts.csv', encodeCsv(accounts))
   assert.ok(resultCodes(await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(withBalances) })).includes('MISSING_CURRENCY_SCALE'))
 })
 

@@ -7,7 +7,9 @@ import {
   exampleDirectory,
   encodeCsv,
   loadExampleFiles,
+  appendCsvRow,
   mutateCsv,
+  removeCsvRow,
   resultCodes,
   zipFromFiles,
 } from './migration-bundle-helpers'
@@ -88,6 +90,25 @@ test('parses generated ZIP entries identically regardless of entry order', async
   assert.deepStrictEqual(reverse, forward)
 })
 
+test('joins accounting rows to social rows by code regardless of row order', async () => {
+  let files = await loadExampleFiles()
+  files = mutateCsv(files, 'accounts.csv', 1, 'id', '123e4567-e89b-42d3-a456-426614174000')
+  const forward = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) })
+  const [header, ...rows] = parse(files.get('accounts.csv')!.toString()) as string[][]
+  files.set('accounts.csv', encodeCsv([header, ...rows.reverse()]))
+  assert.ok(forward.success, JSON.stringify(forward))
+  assert.equal(forward.plan.members[0].accountId, '123e4567-e89b-42d3-a456-426614174000')
+  assert.deepEqual(await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) }), forward)
+})
+
+test('requires exactly one currency row', async () => {
+  const files = await loadExampleFiles()
+  for (const invalid of [removeCsvRow(files, 'currency.csv', 1), appendCsvRow(files, 'currency.csv', 1, {})]) {
+    const result = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(invalid) })
+    assert.ok(resultCodes(result).includes('INVALID_CURRENCY_COUNT'))
+  }
+})
+
 test('normalizes email, timestamps, quoted commas, and quoted newlines', async () => {
   let files = await loadExampleFiles()
   files = mutateCsv(files, 'users.csv', 1, 'email', ' Alice@Example.ORG ')
@@ -136,10 +157,10 @@ test('reports representative structural field errors with record and column', as
     ['users.csv', 'status', 'pending', 'INVALID_ENUM'],
     ['members.csv', 'status', 'ACTIVE', 'INVALID_ENUM'],
     ['members.csv', 'code', 'EXMP' + 'x'.repeat(252), 'MAX_LENGTH'],
-    ['members.csv', 'account.settings.acceptPaymentsAfter', 'false', 'INVALID_INTEGER'],
-    ['members.csv', 'account.settings.acceptPaymentsAfter', '-1', 'INVALID_INTEGER'],
-    ['members.csv', 'account.settings.onPaymentCreditLimit', 'false', 'INVALID_AMOUNT'],
-    ['members.csv', 'account.settings.onPaymentCreditLimit', '-1', 'INVALID_AMOUNT'],
+    ['accounts.csv', 'settings.acceptPaymentsAfter', 'false', 'INVALID_INTEGER'],
+    ['accounts.csv', 'settings.acceptPaymentsAfter', '-1', 'INVALID_INTEGER'],
+    ['accounts.csv', 'settings.onPaymentCreditLimit', 'false', 'INVALID_AMOUNT'],
+    ['accounts.csv', 'settings.onPaymentCreditLimit', '-1', 'INVALID_AMOUNT'],
     ['transfers.csv', 'amount', '5e2', 'INVALID_AMOUNT'],
     ['categories.csv', 'icon.value', '', 'INVALID_FIELD_GROUP'],
     ['posts.csv', 'title', '', 'REQUIRED_FIELD'],
@@ -192,11 +213,13 @@ test('parses scaled amounts exactly at signed 64-bit boundaries', () => {
 
 test('enforces missing-file, byte, row, and error-reporting limits', async () => {
   const example = await loadExampleFiles()
-  const missing = new Map(example)
-  missing.delete('users.csv')
-  assert.ok(resultCodes(await parseMigrationBundle({
-    type: 'zip', bytes: await zipFromFiles(missing),
-  })).includes('MISSING_FILE'))
+  for (const filename of ['users.csv', 'currency.csv', 'accounts.csv'] as const) {
+    const missing = new Map(example)
+    missing.delete(filename)
+    assert.ok(resultCodes(await parseMigrationBundle({
+      type: 'zip', bytes: await zipFromFiles(missing),
+    })).includes('MISSING_FILE'))
+  }
 
   const zip = await zipFromFiles(example)
   assert.ok(resultCodes(await parseMigrationBundle(

@@ -31,10 +31,12 @@ const uniqueMap = <T>(
 }
 
 export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: ErrorCollector): void => {
-  if (rows.community === null) return
+  if (rows.community === null || rows.currency === null) return
   const community = rows.community.value
+  const currency = rows.currency.value
   const users = uniqueMap(rows.users, (user) => user.email, 'users.csv', 'email', errors)
   const members = uniqueMap(rows.members, (member) => member.code, 'members.csv', 'code', errors)
+  const accounts = uniqueMap(rows.accounts, (account) => account.code, 'accounts.csv', 'code', errors)
   uniqueMap(
     rows.transfers, (transfer) => transfer.id, 'transfers.csv', 'id', errors,
   )
@@ -44,7 +46,7 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
   uniqueMap(rows.users, (user) => user.id, 'users.csv', 'id', errors)
   uniqueMap(rows.memberUsers, (relation) => relation.id, 'member-users.csv', 'id', errors)
   uniqueMap(rows.members, (member) => member.id, 'members.csv', 'id', errors)
-  uniqueMap(rows.members, (member) => member.accountId, 'members.csv', 'account.id', errors)
+  uniqueMap(rows.accounts, (account) => account.id, 'accounts.csv', 'id', errors)
   uniqueMap(rows.categories, (category) => category.id, 'categories.csv', 'id', errors)
   uniqueMap(rows.posts, (post) => post.id, 'posts.csv', 'id', errors)
 
@@ -57,8 +59,16 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
   for (const email of community.adminUsers) {
     requireUser(email, 'community.csv', rows.community.row, 'adminUsers')
   }
-  if (community.currency?.adminUser != null) {
-    requireUser(community.currency.adminUser, 'community.csv', rows.community.row, 'currency.adminUser')
+  if (currency.code !== community.code) {
+    addFieldError(errors, 'CURRENCY_CODE_MISMATCH',
+      'Currency code must match the community code', 'currency.csv', rows.currency.row, 'code')
+  }
+  if (currency.data?.adminUser != null) {
+    requireUser(currency.data.adminUser, 'currency.csv', rows.currency.row, 'adminUser')
+    if (!community.adminUsers.includes(currency.data.adminUser)) {
+      addFieldError(errors, 'INVALID_CURRENCY_ADMIN',
+        'Currency administrator must also be a community administrator', 'currency.csv', rows.currency.row, 'adminUser')
+    }
   }
 
   for (const memberRow of rows.members) {
@@ -98,12 +108,24 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
       addFieldError(errors, 'MISSING_MEMBER_USER',
         'Every non-deleted member must have a member-users.csv relationship', 'members.csv', row, 'code')
     }
+    if (member.status !== 'draft' && member.status !== 'pending' && !accounts.has(member.code)) {
+      addFieldError(errors, 'MISSING_ACCOUNT_REFERENCE',
+        `Member ${member.code} requires a matching account in accounts.csv`, 'members.csv', row, 'code')
+    }
   }
-  const accounts = new Map(
-    rows.members
-      .filter(({ value }) => value.status !== 'draft' && value.status !== 'pending')
-      .map((row) => [row.value.code, row] as const),
-  )
+  for (const { value: account, row } of rows.accounts) {
+    const member = members.get(account.code)?.value
+    if (!member) {
+      addFieldError(errors, 'MISSING_REFERENCE',
+        `Account ${account.code} requires a matching member in members.csv`, 'accounts.csv', row, 'code')
+    } else if (member.status === 'draft' || member.status === 'pending') {
+      addFieldError(errors, 'ACCOUNT_NOT_ALLOWED',
+        'Draft and pending members must not have an account row', 'accounts.csv', row, 'code')
+    } else if (member.status === 'deleted' && account.data?.balance != null && BigInt(account.data.balance) !== 0n) {
+      addFieldError(errors, 'DELETED_ACCOUNT_BALANCE',
+        'Deleted member accounts must have a zero balance', 'accounts.csv', row, 'balance')
+    }
+  }
   const requireAccount = (code: string, file: string, row: number, column: string): boolean => {
     if (accounts.has(code)) return true
     addFieldError(
@@ -117,12 +139,12 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
     return false
   }
 
-  for (const code of community.currency?.settings.defaultAcceptPaymentsWhitelist ?? []) {
-    requireAccount(code, 'community.csv', rows.community.row, 'currency.settings.defaultAcceptPaymentsWhitelist')
+  for (const code of currency.data?.settings.defaultAcceptPaymentsWhitelist ?? []) {
+    requireAccount(code, 'currency.csv', rows.currency.row, 'settings.defaultAcceptPaymentsWhitelist')
   }
-  for (const memberRow of rows.members) {
-    for (const code of memberRow.value.account?.settings.acceptPaymentsWhitelist ?? []) {
-      requireAccount(code, 'members.csv', memberRow.row, 'account.settings.acceptPaymentsWhitelist')
+  for (const accountRow of rows.accounts) {
+    for (const code of accountRow.value.data?.settings.acceptPaymentsWhitelist ?? []) {
+      requireAccount(code, 'accounts.csv', accountRow.row, 'settings.acceptPaymentsWhitelist')
     }
   }
 
@@ -186,11 +208,11 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
   }
 
   // Partial bundles need remote balances before history can be reconciled.
-  if ([...accounts.values()].every(({ value }) => value.account?.balance != null)) {
+  if ([...accounts.values()].every(({ value }) => value.data?.balance != null)) {
     let declaredTotal = 0n
-    for (const memberRow of accounts.values()) {
-      const account = memberRow.value.account!
-      const declared = BigInt(account.balance!)
+    for (const accountRow of accounts.values()) {
+      const account = accountRow.value
+      const declared = BigInt(account.data!.balance!)
       declaredTotal += declared
       const calculated = calculatedBalances.get(account.code)!
       if (declared !== calculated) {
@@ -198,9 +220,9 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
           errors,
           'BALANCE_MISMATCH',
           `Declared scaled balance ${declared} does not match transfer history balance ${calculated}`,
-          'members.csv',
-          memberRow.row,
-          'account.balance',
+          'accounts.csv',
+          accountRow.row,
+          'balance',
         )
       }
     }
@@ -208,9 +230,9 @@ export const validateMigrationSemantics = (rows: ParsedMigrationRows, errors: Er
       errors.add({
         code: 'NON_ZERO_TOTAL_BALANCE',
         message: `Total declared scaled account balance must be zero; got ${declaredTotal}`,
-        file: 'members.csv',
+        file: 'accounts.csv',
         row: null,
-        column: 'account.balance',
+        column: 'balance',
       })
     }
   }

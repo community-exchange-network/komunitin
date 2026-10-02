@@ -13,7 +13,7 @@ import { getAccountingRequests, getNotificationsEvents, seedAccountingAccount, s
 import { resetDb, seedCategory, seedGroup } from '../mocks/seed'
 import { server, setupTestServer, teardownTestServer } from '../mocks/server'
 import { getS3UploadCount, getS3UploadRequests } from '../mocks/s3'
-import { mutateCsv, zipFromFiles } from './migration-bundle-helpers'
+import { mutateCsv, removeCsvRow, zipFromFiles } from './migration-bundle-helpers'
 import { eventsFrom, ids, migrationFiles, migrationMocks, passwordHash, timestamp } from './migration-api-helpers'
 
 let app: Express
@@ -206,6 +206,21 @@ test('invalid bundles have durable diagnostics without credentials and no domain
   assert.equal(mocks.authImports.length, 0)
 })
 
+test('rejects mismatched accounting codes before importing identities or social records', async () => {
+  for (const [file, value, error] of [
+    ['currency.csv', 'OTHR', 'CURRENCY_CODE_MISMATCH'],
+    ['accounts.csv', 'EXMP9999', 'MISSING_REFERENCE'],
+  ] as const) {
+    const response = await upload(mutateCsv(migrationFiles(), file, 1, 'code', value))
+    assert.equal((await migration(response)).status, 'failed')
+    assert.ok(response.text.includes(error), response.text)
+    assert.ok(response.text.includes(file), response.text)
+    assert.equal(await db.group.count(), 0)
+    assert.equal(await db.member.count(), 0)
+    assert.equal(mocks.authImports.length, 0)
+  }
+})
+
 test('continues after HTTP disconnect, rejects a simultaneous migration, and supports event replay cursors', async () => {
   const gate = Promise.withResolvers<void>()
   mocks.pauseAuth(gate.promise)
@@ -301,7 +316,7 @@ test('infers missing user UUIDs from sole accounting ownership and reuses genera
 
 test('pending members need no accounting account and deleted members keep the deletion timestamp', async () => {
   let files = mutateCsv(migrationFiles(), 'members.csv', 1, 'status', 'pending')
-  files = mutateCsv(files, 'members.csv', 1, 'account.id', '')
+  files = removeCsvRow(files, 'accounts.csv', 1)
   files = mutateCsv(files, 'members.csv', 2, 'status', 'deleted')
   seedAccountingAccount('EXMP', 'EXMP0002', [ids.bob], ids['bob-account'], 'deleted')
   const response = await upload(files)

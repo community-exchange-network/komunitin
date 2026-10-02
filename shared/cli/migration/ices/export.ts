@@ -136,7 +136,7 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
   if (admins.length === 0) throw new Error('ICES did not expose any community administrators')
   const communityRow: Row = {
     ...fields(community, profileColumns), ...contacts(communityDocument, community),
-    id: community.id, 'currency.id': related(community, 'currency', 'currencies', false),
+    id: community.id,
     status: cell(community.attributes.status), adminUsers: [...new Set(admins)].join(';'),
   }
   // Older groups keep their website in an attribute rather than a contact.
@@ -145,6 +145,7 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
     communityRow[column] = cell(attribute(communitySettings, column.slice('settings.'.length)))
   }
   add('community.csv', communityRow)
+  add('currency.csv', { code, id: related(community, 'currency', 'currencies', false) })
 
   const members = new Map<string, string>()
   for await (const document of client.pages(`${code}/members`, {
@@ -156,10 +157,14 @@ const exportBundle = async (client: IcesClient, code: string): Promise<IcesExpor
       const row: Row = {
         ...fields(member, profileColumns), ...contacts(document, member), id: member.id,
         type: cell(member.attributes.type), status: cell(member.attributes.state),
-        'account.id': related(member, 'account', 'accounts', false),
       }
       members.set(member.id, row.code)
       add('members.csv', row)
+      const accountId = related(member, 'account', 'accounts', false)
+      // Preserve unexpected source references so import validation can report them.
+      if ((row.status !== 'draft' && row.status !== 'pending') || accountId) {
+        add('accounts.csv', { code: row.code, id: accountId })
+      }
       // This endpoint ignores pagination. Query one member at a time to retain an
       // unambiguous owner mapping, even when a user belongs to several communities.
       const userDocument = await client.document('users', { 'filter[members]': member.id, include: 'settings' })

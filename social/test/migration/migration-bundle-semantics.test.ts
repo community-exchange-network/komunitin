@@ -5,6 +5,7 @@ import {
   loadExampleFiles,
   appendCsvRow,
   mutateCsv,
+  removeCsvRow,
   resultCodes,
   zipFromFiles,
 } from './migration-bundle-helpers'
@@ -18,6 +19,20 @@ test('reports representative semantic relationship and uniqueness failures', asy
       appendCsvRow(files, 'transfers.csv', 1, {}), 'DUPLICATE_VALUE'],
     ['duplicate member code', (files: typeof example) =>
       appendCsvRow(files, 'members.csv', 1, {}), 'DUPLICATE_VALUE'],
+    ['duplicate account code', (files: typeof example) =>
+      appendCsvRow(files, 'accounts.csv', 1, {}), 'DUPLICATE_VALUE'],
+    ['currency code mismatch', (files: typeof example) =>
+      mutateCsv(files, 'currency.csv', 1, 'code', 'OTHR'), 'CURRENCY_CODE_MISMATCH'],
+    ['account code mismatch', (files: typeof example) =>
+      mutateCsv(files, 'accounts.csv', 1, 'code', 'EXMP9999'), 'MISSING_REFERENCE'],
+    ['account code case mismatch', (files: typeof example) =>
+      mutateCsv(files, 'accounts.csv', 1, 'code', 'exmp0001'), 'MISSING_REFERENCE'],
+    ['missing account row', (files: typeof example) =>
+      removeCsvRow(files, 'accounts.csv', 1), 'MISSING_ACCOUNT_REFERENCE'],
+    ['draft member with account', (files: typeof example) =>
+      mutateCsv(files, 'members.csv', 1, 'status', 'draft'), 'ACCOUNT_NOT_ALLOWED'],
+    ['pending member with account', (files: typeof example) =>
+      mutateCsv(files, 'members.csv', 1, 'status', 'pending'), 'ACCOUNT_NOT_ALLOWED'],
     ['wrong community prefix', (files: typeof example) =>
       mutateCsv(files, 'members.csv', 1, 'code', 'OTHR10000'), 'INVALID_MEMBER_CODE'],
     ['duplicate member-user pair', (files: typeof example) =>
@@ -39,9 +54,9 @@ test('reports representative semantic relationship and uniqueness failures', asy
     ['invalid payment whitelist', (files: typeof example) =>
       mutateCsv(
         files,
-        'community.csv',
+        'currency.csv',
         1,
-        'currency.settings.defaultAcceptPaymentsWhitelist',
+        'settings.defaultAcceptPaymentsWhitelist',
         'EXMP9999',
       ), 'MISSING_ACCOUNT_REFERENCE'],
   ] as const
@@ -76,13 +91,13 @@ test('enforces limits, deleted balances, complete history, and aggregate zero', 
   const example = await loadExampleFiles()
   const cases = [
     ['credit limit', (files: typeof example) =>
-      mutateCsv(files, 'members.csv', 1, 'account.creditLimit', '4.99'), 'ACCOUNT_LIMIT'],
+      mutateCsv(files, 'accounts.csv', 1, 'creditLimit', '4.99'), 'ACCOUNT_LIMIT'],
     ['deleted balance', (files: typeof example) =>
       mutateCsv(files, 'members.csv', 1, 'status', 'deleted'), 'DELETED_ACCOUNT_BALANCE'],
     ['incomplete transfer history', (files: typeof example) =>
       mutateCsv(files, 'transfers.csv', 1, 'amount', '4.00'), 'BALANCE_MISMATCH'],
     ['non-zero aggregate', (files: typeof example) =>
-      mutateCsv(files, 'members.csv', 2, 'account.balance', '6.00'), 'NON_ZERO_TOTAL_BALANCE'],
+      mutateCsv(files, 'accounts.csv', 2, 'balance', '6.00'), 'NON_ZERO_TOTAL_BALANCE'],
   ] as const
 
   for (const [name, mutate, expectedCode] of cases) {
@@ -95,7 +110,7 @@ test('enforces limits, deleted balances, complete history, and aggregate zero', 
 
 test('uses the documented currency scale for every exact amount', async () => {
   const example = await loadExampleFiles()
-  const files = mutateCsv(example, 'community.csv', 1, 'currency.scale', '3')
+  const files = mutateCsv(example, 'currency.csv', 1, 'scale', '3')
   const result = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) })
   assert.equal(result.success, true)
   if (!result.success) return
@@ -230,12 +245,12 @@ test('accepts long numeric and custom account codes throughout bundle relationsh
 
 test('derives deleted member timestamps from their last update', async () => {
   const example = await loadExampleFiles()
-  const files = appendCsvRow(example, 'members.csv', 1, {
+  let files = appendCsvRow(example, 'members.csv', 1, {
     code: 'EXMPOld',
     status: 'deleted',
     updatedAt: '2025-03-01T12:00:00+01:00',
-    'account.balance': '0',
   })
+  files = appendCsvRow(files, 'accounts.csv', 1, { code: 'EXMPOld', balance: '0' })
   const result = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) })
   assert.equal(result.success, true, JSON.stringify(result))
   if (!result.success) return
@@ -259,11 +274,11 @@ test('preserves disabled identities without changing their member status or hist
 
 test('preserves API-compatible account settings and explicit empty whitelists', async () => {
   let files = await loadExampleFiles()
-  files = mutateCsv(files, 'members.csv', 1, 'account.settings.acceptPaymentsAfter', '0')
-  files = mutateCsv(files, 'members.csv', 1, 'account.settings.onPaymentCreditLimit', '0.25')
-  files = mutateCsv(files, 'community.csv', 1, 'currency.settings.defaultAcceptPaymentsAfter', 'false')
-  files = mutateCsv(files, 'community.csv', 1, 'currency.settings.defaultOnPaymentCreditLimit', 'false')
-  files = mutateCsv(files, 'community.csv', 1, 'currency.settings.defaultAcceptPaymentsWhitelist', 'EXMP0002')
+  files = mutateCsv(files, 'accounts.csv', 1, 'settings.acceptPaymentsAfter', '0')
+  files = mutateCsv(files, 'accounts.csv', 1, 'settings.onPaymentCreditLimit', '0.25')
+  files = mutateCsv(files, 'currency.csv', 1, 'settings.defaultAcceptPaymentsAfter', 'false')
+  files = mutateCsv(files, 'currency.csv', 1, 'settings.defaultOnPaymentCreditLimit', 'false')
+  files = mutateCsv(files, 'currency.csv', 1, 'settings.defaultAcceptPaymentsWhitelist', 'EXMP0002')
   const result = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) })
   assert.equal(result.success, true, JSON.stringify(result))
   if (!result.success) return

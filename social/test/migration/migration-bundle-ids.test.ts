@@ -7,11 +7,11 @@ import { appendCsvRow, encodeCsv, loadExampleFiles, mutateCsv, omitBlankColumns,
 const uuid = 'abcdef01-2345-4678-9abc-0123456789ab'
 const idColumns = [
   ['community.csv', 'id'],
-  ['community.csv', 'currency.id'],
+  ['currency.csv', 'id'],
   ['users.csv', 'id'],
   ['member-users.csv', 'id'],
   ['members.csv', 'id'],
-  ['members.csv', 'account.id'],
+  ['accounts.csv', 'id'],
   ['transfers.csv', 'id'],
   ['categories.csv', 'id'],
   ['posts.csv', 'id'],
@@ -49,7 +49,7 @@ test('rejects malformed UUIDs with the exact column', async (t) => {
 
 test('rejects duplicate supplied UUIDs case-insensitively within each resource table', async (t) => {
   const example = await loadExampleFiles()
-  for (const [file, column] of idColumns.filter(([file]) => file !== 'community.csv')) {
+  for (const [file, column] of idColumns.filter(([file]) => file !== 'community.csv' && file !== 'currency.csv')) {
     await t.test(`${file} ${column}`, async () => {
       let files = mutateCsv(example, file, 1, column, uuid)
       files = appendCsvRow(files, file, 1, { [column]: uuid.toUpperCase() })

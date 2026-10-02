@@ -10,23 +10,27 @@ All bundles use the same columns and validation rules. [IntegralCES social migra
 
 | File | Required | Contents |
 | --- | --- | --- |
-| `community.csv` | yes | Exactly one community and its currency. |
+| `community.csv` | yes | Exactly one Social community. |
+| `currency.csv` | yes | Exactly one Accounting currency, linked to the community by `code`. |
 | `users.csv` | yes | Auth users and Social user projections. |
 | `member-users.csv` | yes | Member–user relationships and per-membership preferences. |
-| `members.csv` | yes | Members and their accounts. |
+| `members.csv` | yes | Social members. |
+| `accounts.csv` | yes | Accounting accounts, linked to members by `code`. |
 | `transfers.csv` | no | The complete committed local transfer history. |
 | `categories.csv` | no | Marketplace categories. |
 | `posts.csv` | no | Offers and needs. |
 
-Required files must be present even when they have only a header. Optional files may be omitted when no row references them. Omitting `transfers.csv` is equivalent to an empty transfer history; the complete-history invariants still apply.
+Required files must be present even when they have only a header, except `community.csv` and `currency.csv`, which must each contain exactly one data row. Optional files may be omitted when no row references them. Omitting `transfers.csv` is equivalent to an empty transfer history; the complete-history invariants still apply.
+
+Social profiles and settings belong in `community.csv` and `members.csv`; Accounting data belongs in `currency.csv`, `accounts.csv` and `transfers.csv`. To convert the previous combined layout, move every `currency.*` column from `community.csv` to `currency.csv` and every `account.*` column from `members.csv` to `accounts.csv`, removing those prefixes. Copy the corresponding `code` into each new row. Keep the community/member `id`, `createdAt` and `updatedAt` in the Social files; the former prefixed values become `id`, `createdAt` and `updatedAt` in the Accounting files. Do not create account rows for draft or pending members.
 
 ## Common rules
 
 - CSV is UTF-8, comma-delimited and RFC 4180 quoted. A UTF-8 byte-order mark is accepted. Headers may contain any subset of the documented columns, in any order, without duplicates. Omitted columns are treated as blank in every row; required-value and conditional validation still apply. Unless a column is explicitly optional or allowed to be empty below, every cell is required. Blank optional cells mean “not provided”; the literal strings `null` and `undefined` have no special meaning.
-- `code` is the stable key for groups, currencies, members, accounts, categories and posts. The single Social group and currency share the `community.csv` code, while each Social member and its account share the `members.csv` code. Relationships contain resource codes or user emails. Keys are opaque: a UUID-shaped value is not assumed to be a destination identifier.
+- `code` is the stable key for groups, currencies, members, accounts, categories and posts. The `code` in `currency.csv` must exactly match the `code` in `community.csv`. Each `accounts.csv` code must exactly match one `members.csv` code; row order is irrelevant. Matching is case-sensitive. Relationships contain resource codes or user emails. Keys are opaque: a UUID-shaped value is not assumed to be a destination identifier.
 - Email is the stable user key. Every user relationship must match a `users.csv` email after `trim().toLowerCase()` normalization, and emails must be unique after normalization. Plaintext passwords are never included; `users.csv.passwordHash` may contain a bcrypt or Drupal 7 password hash.
 - Multi-value relationship cells contain keys separated by semicolons, with no whitespace around the separator. Email keys are normalized as above; resource codes retain their documented form. A blank cell means no relationships, while empty or duplicate list items are invalid.
-- Every record has an optional `id` UUID. `community.csv` also has `currency.id`, and `members.csv` has `account.id`. Nonblank IDs must be valid UUIDs and unique within the corresponding resource table (case-insensitive); multiple blank IDs are allowed. Supplied UUIDs are preserved as destination identifiers, normalized to lowercase. Blank IDs are resolved from existing records or generated for new records during execution. Codes and emails remain the relationship keys.
+- Every record has an optional `id` UUID in its own CSV file. Community and currency IDs are independent, as are member and account IDs; only their codes must match. Nonblank IDs must be valid UUIDs and unique within the corresponding resource table (case-insensitive); multiple blank IDs are allowed. Supplied UUIDs are preserved as destination identifiers, normalized to lowercase. Blank IDs are resolved from existing records or generated for new records during execution. Codes and emails remain the relationship keys.
 - Timestamps are ISO 8601 date-time values with a UTC offset. They are normalized to UTC with millisecond precision. No update timestamp may precede its corresponding creation timestamp.
 - Contacts use one predefined column per supported contact type. A resource may therefore have at most one contact of each type.
 - `imageUrls` is an ordered semicolon-delimited list of image URLs. Semicolons are invalid inside URLs in that column. Order and repeated URLs are preserved.
@@ -39,31 +43,42 @@ Required files must be present even when they have only a header. Optional files
 
 The current executor requires Accounting to be migrated already. It looks up the currency by community code and accounts by member code within that currency, validates UUIDs and account owners, and links Social records to those existing resources. Missing required Accounting records fail the attempt. Accounting fields, balances, settings and transfers are not written or reconciled; supplied Accounting data is reported as ignored. The format also retains those fields for a future Accounting executor.
 
-`currency.id` and `account.id` are optional. When supplied, they must agree with the record found by code, or the executor fails the attempt. The current executor never creates Accounting records. Blank or omitted fields do not request that existing values be cleared. Supplying a field does not force creation of a new record.
+The `id` columns in `currency.csv` and `accounts.csv` are optional. When supplied, they must agree with the record found by code, or the executor fails the attempt. A row containing only `code`, and optionally `id`, references an existing Accounting record without supplying its data. The current executor never creates Accounting records. Blank or omitted fields do not request that existing values be cleared. Supplying a field does not force creation of a new record.
 
-Active, disabled, suspended and deleted members require an account. Draft and pending members have no account and must leave all `account.*` fields blank.
+Active, disabled, suspended and deleted members require exactly one matching row in `accounts.csv`, even when all optional account fields are blank. Draft and pending members have no account and must not have a row in `accounts.csv`. Accounts without a matching member are invalid.
 
 The offline parser validates supplied values and relationships without querying the destination. The current executor checks existence and identity relationships, but does not compare balances or history. Existing transfers are never replayed and balances are never reset.
 
 ### Exact amounts
 
-All monetary cells and monetary settings are decimal strings in currency units, such as `25`, `25.00` or `0.125`, except settings explicitly documented to also accept `false`. Decimal values must match `-?(0|[1-9][0-9]*)(\.[0-9]+)?`, have no exponent, grouping separator or leading `+`, and have at most `currency.scale` fractional digits. Monetary values require `currency.scale` for offline validation and are converted exactly to scaled integers; floating-point arithmetic is not used.
+All monetary cells and monetary settings are decimal strings in currency units, such as `25`, `25.00` or `0.125`, except settings explicitly documented to also accept `false`. Decimal values must match `-?(0|[1-9][0-9]*)(\.[0-9]+)?`, have no exponent, grouping separator or leading `+`, and have at most `scale` fractional digits, as declared in `currency.csv`. Monetary values require that scale for offline validation and are converted exactly to scaled integers; floating-point arithmetic is not used.
 
-`account.balance` may be negative. Transfer `amount` must be greater than zero. Credit and maximum limits must be non-negative. A blank `account.maximumBalance` leaves the existing limit unchanged, or defaults to unlimited for a new account. Every scaled amount must fit a signed 64-bit integer. `currency.decimals` and `currency.scale` are integers with `0 <= currency.decimals <= currency.scale`, `currency.decimals <= 8` and `currency.scale <= 12`. `currency.rateNumerator` and `currency.rateDenominator` are positive base-10 integers no greater than 2,147,483,647.
+In `accounts.csv`, `balance` may be negative. Transfer `amount` must be greater than zero. Credit and maximum limits must be non-negative. A blank account `maximumBalance` leaves the existing limit unchanged, or defaults to unlimited for a new account. Every scaled amount must fit a signed 64-bit integer. In `currency.csv`, `decimals` and `scale` are integers with `0 <= decimals <= scale`, `decimals <= 8` and `scale <= 12`; `rateNumerator` and `rateDenominator` are positive base-10 integers no greater than 2,147,483,647.
 
 ## CSV headers and values
 
 ### `community.csv`
 
 ```text
-id,code,name,status,description,access,adminUsers,currency.id,currency.adminUser,currency.name,currency.namePlural,currency.symbol,currency.decimals,currency.scale,currency.rateNumerator,currency.rateDenominator,createdAt,updatedAt,currency.createdAt,currency.updatedAt,imageUrl,address.streetAddress,address.locality,address.postalCode,address.region,address.country,location.type,location.longitude,location.latitude,contact.phone,contact.email,contact.telegram,contact.whatsapp,contact.website,contact.instagram,contact.facebook,contact.twitter,settings.requireAcceptTerms,settings.terms,settings.minOffers,settings.minNeeds,settings.allowAnonymousMemberList,settings.enableGroupEmail,settings.defaultGroupEmailFrequency,currency.settings.defaultInitialCreditLimit,currency.settings.externalTraderCreditLimit,currency.settings.defaultInitialMaximumBalance,currency.settings.defaultOnPaymentCreditLimit,currency.settings.externalTraderMaximumBalance,currency.settings.defaultAcceptPaymentsAfter,currency.settings.defaultAcceptPaymentsWhitelist,currency.settings.defaultAllowPayments,currency.settings.defaultAllowPaymentRequests,currency.settings.defaultAcceptPaymentsAutomatically,currency.settings.defaultAllowSimplePayments,currency.settings.defaultAllowSimplePaymentRequests,currency.settings.defaultAllowQrPayments,currency.settings.defaultAllowQrPaymentRequests,currency.settings.defaultAllowMultiplePayments,currency.settings.defaultAllowMultiplePaymentRequests,currency.settings.defaultAllowTagPayments,currency.settings.defaultAllowTagPaymentRequests,currency.settings.defaultAllowExternalPayments,currency.settings.defaultAllowExternalPaymentRequests,currency.settings.defaultAcceptExternalPaymentsAutomatically,currency.settings.enableExternalPayments,currency.settings.enableExternalPaymentRequests,currency.settings.enableCreditCommonsPayments,currency.settings.defaultHideBalance
+id,code,name,status,description,access,adminUsers,createdAt,updatedAt,imageUrl,address.streetAddress,address.locality,address.postalCode,address.region,address.country,location.type,location.longitude,location.latitude,contact.phone,contact.email,contact.telegram,contact.whatsapp,contact.website,contact.instagram,contact.facebook,contact.twitter,settings.requireAcceptTerms,settings.terms,settings.minOffers,settings.minNeeds,settings.allowAnonymousMemberList,settings.enableGroupEmail,settings.defaultGroupEmailFrequency
 ```
 
-- `code` is the stable key and destination code for both the Social group and currency: exactly four uppercase ASCII letters or digits. `name` is required and at most 255 characters. Currency names are at most 255 characters; `currency.symbol` is 1–3 characters when supplied.
-- `description` may be empty. `access` is `public`, `group` or `private`. `createdAt` and `updatedAt` belong to the Social community; the corresponding `currency.*` timestamps belong to its currency. All `currency.*` fields and columns after `currency.updatedAt` are optional and use the denormalized shapes below.
-- `adminUsers` is required and non-empty. Each listed email must exist in `users.csv` and grants that user the Social community administrator role; a member relationship is not required. When supplied, `currency.adminUser` must be one email from that list and owns the currency.
-- `currency.settings.defaultAcceptPaymentsWhitelist` is a semicolon-delimited list of member/account codes. It maps to the currency default payment-acceptance whitelist; blank leaves an existing whitelist unchanged, or defaults to an empty list for a new record.
+- `code` is the stable key and destination code for the Social group: exactly four uppercase ASCII letters or digits. It must match the currency code in `currency.csv`. `name` is required and at most 255 characters.
+- `description` may be empty. `access` is `public`, `group` or `private`. `createdAt` and `updatedAt` belong to the Social community. All columns after `updatedAt` are optional and use the denormalized shapes below.
+- `adminUsers` is required and non-empty. Each listed email must exist in `users.csv` and grants that user the Social community administrator role; a member relationship is not required.
 - `status` is required and must be `pending`, `active` or `disabled`. New communities retain the supplied status immediately. Partially imported data may be visible; downtime is acceptable and the migration is not atomic.
+
+### `currency.csv`
+
+```text
+id,code,adminUser,name,namePlural,symbol,decimals,scale,rateNumerator,rateDenominator,createdAt,updatedAt,settings.defaultInitialCreditLimit,settings.externalTraderCreditLimit,settings.defaultInitialMaximumBalance,settings.defaultOnPaymentCreditLimit,settings.externalTraderMaximumBalance,settings.defaultAcceptPaymentsAfter,settings.defaultAcceptPaymentsWhitelist,settings.defaultAllowPayments,settings.defaultAllowPaymentRequests,settings.defaultAcceptPaymentsAutomatically,settings.defaultAllowSimplePayments,settings.defaultAllowSimplePaymentRequests,settings.defaultAllowQrPayments,settings.defaultAllowQrPaymentRequests,settings.defaultAllowMultiplePayments,settings.defaultAllowMultiplePaymentRequests,settings.defaultAllowTagPayments,settings.defaultAllowTagPaymentRequests,settings.defaultAllowExternalPayments,settings.defaultAllowExternalPaymentRequests,settings.defaultAcceptExternalPaymentsAutomatically,settings.enableExternalPayments,settings.enableExternalPaymentRequests,settings.enableCreditCommonsPayments,settings.defaultHideBalance
+```
+
+- `code` is required, must contain exactly four uppercase ASCII letters or digits, and must exactly match `community.csv.code`. All other fields are optional and retained for reconciliation.
+- `id` identifies the Accounting currency, independently of the Social community ID. `createdAt` and `updatedAt` belong to the currency.
+- `name` and `namePlural` are at most 255 characters; `symbol` is 1–3 characters when supplied.
+- When supplied, `adminUser` is one email from `community.csv.adminUsers` and owns the currency.
+- `settings.defaultAcceptPaymentsWhitelist` is a semicolon-delimited list of `accounts.csv` codes. Blank leaves an existing whitelist unchanged, or defaults to an empty list for a new record.
 
 ### `users.csv`
 
@@ -90,16 +105,26 @@ id,member,user,notifications.myAccount,notifications.group,emails.myAccount,emai
 ### `members.csv`
 
 ```text
-id,code,name,type,status,access,description,account.id,account.balance,account.creditLimit,createdAt,updatedAt,account.createdAt,account.updatedAt,account.maximumBalance,imageUrl,address.streetAddress,address.locality,address.postalCode,address.region,address.country,location.type,location.longitude,location.latitude,contact.phone,contact.email,contact.telegram,contact.whatsapp,contact.website,contact.instagram,contact.facebook,contact.twitter,account.settings.onPaymentCreditLimit,account.settings.acceptPaymentsAfter,account.settings.acceptPaymentsWhitelist,account.settings.allowPayments,account.settings.allowPaymentRequests,account.settings.allowSimplePayments,account.settings.allowSimplePaymentRequests,account.settings.allowQrPayments,account.settings.allowQrPaymentRequests,account.settings.allowMultiplePayments,account.settings.allowMultiplePaymentRequests,account.settings.allowTagPayments,account.settings.allowTagPaymentRequests,account.settings.acceptPaymentsAutomatically,account.settings.allowExternalPayments,account.settings.allowExternalPaymentRequests,account.settings.acceptExternalPaymentsAutomatically,account.settings.hideBalance
+id,code,name,type,status,access,description,createdAt,updatedAt,imageUrl,address.streetAddress,address.locality,address.postalCode,address.region,address.country,location.type,location.longitude,location.latitude,contact.phone,contact.email,contact.telegram,contact.whatsapp,contact.website,contact.instagram,contact.facebook,contact.twitter
 ```
 
-- `code` is the stable key shared by the Social member and its account. It must be unique, at most 255 characters and start with the community code, for example `EXMP0001`, `EXMP10000` or `EXMPSpecial`.
+- `code` is the stable Social member key. It must be unique, at most 255 characters and start with the community code, for example `EXMP0001`, `EXMP10000` or `EXMPSpecial`. It links the member to the row with the same code in `accounts.csv` when an account is required.
 - `type` is `personal`, `business`, `organization` or `public`; `status` is `draft`, `pending`, `active`, `disabled`, `suspended` or `deleted`; `access` is `public`, `group` or `private`.
 - Linked users and account owners come from `member-users.csv`; there is no duplicate owner list in this file.
-- Every `active`, `disabled`, `suspended` or `deleted` member has an account with the same `code` and status. Account fields are optional and retained for reconciliation. All account-only fields must be blank for `draft` and `pending` members, which do not have an account.
-- `account.settings.acceptPaymentsWhitelist` is a semicolon-delimited list of member/account codes. It maps to the account payment-acceptance whitelist; blank leaves an existing whitelist unchanged, or defaults to an empty list for a new record.
-- A declared balance cannot be below `-account.creditLimit` or above a non-blank `account.maximumBalance`. A supplied `account.balance` for a deleted member must be zero; their Social `deleted` timestamp is taken from the member's `updatedAt` value.
-- `name` is required and at most 255 characters. `description` may be empty. All `account.*` fields and columns after `account.updatedAt` are optional. `createdAt` and `updatedAt` belong to the Social member; the corresponding `account.*` timestamps belong to its account.
+- Every `active`, `disabled`, `suspended` or `deleted` member requires a matching account row. `draft` and `pending` members must not have one. A deleted member's Social `deleted` timestamp is taken from the member's `updatedAt` value.
+- `name` is required and at most 255 characters. `description` may be empty. All columns after `updatedAt` are optional. `createdAt` and `updatedAt` belong to the Social member; account timestamps belong in `accounts.csv`.
+
+### `accounts.csv`
+
+```text
+id,code,balance,creditLimit,createdAt,updatedAt,maximumBalance,settings.onPaymentCreditLimit,settings.acceptPaymentsAfter,settings.acceptPaymentsWhitelist,settings.allowPayments,settings.allowPaymentRequests,settings.allowSimplePayments,settings.allowSimplePaymentRequests,settings.allowQrPayments,settings.allowQrPaymentRequests,settings.allowMultiplePayments,settings.allowMultiplePaymentRequests,settings.allowTagPayments,settings.allowTagPaymentRequests,settings.acceptPaymentsAutomatically,settings.allowExternalPayments,settings.allowExternalPaymentRequests,settings.acceptExternalPaymentsAutomatically,settings.hideBalance
+```
+
+- `code` is required, unique and must exactly match an active, disabled, suspended or deleted member in `members.csv`. Every such member requires one account row. Draft and pending members must not have an account row. All other fields are optional and retained for reconciliation.
+- `id` identifies the Accounting account, independently of the Social member ID. `createdAt` and `updatedAt` belong to the account.
+- The source account status is taken from the matching member; account owners come from that member’s `member-users.csv` relationships. Neither is duplicated in this file.
+- `settings.acceptPaymentsWhitelist` is a semicolon-delimited list of `accounts.csv` codes. Blank leaves an existing whitelist unchanged, or defaults to an empty list for a new record.
+- A declared `balance` cannot be below `-creditLimit` or above a non-blank `maximumBalance`. A supplied balance for a deleted member must be zero.
 
 ### `transfers.csv`
 
@@ -107,7 +132,7 @@ id,code,name,type,status,access,description,account.id,account.balance,account.c
 id,payer,payee,user,amount,description,createdAt,updatedAt
 ```
 
-This format represents committed historical transfers with no Stellar hash. The current Social executor does not import transfers; it preserves existing Accounting history. Payer and payee must be distinct accounts in this bundle, and `user` identifies the initiator by email and must be present in `users.csv`. Current account or community administration is not used to re-authorize historical transfers. `description` may be empty. External accounts, opening-balance adjustments and partial histories are not supported.
+This format represents committed historical transfers with no Stellar hash. The current Social executor does not import transfers; it preserves existing Accounting history. `payer` and `payee` must be distinct codes from `accounts.csv`, and `user` identifies the initiator by email and must be present in `users.csv`. Current account or community administration is not used to re-authorize historical transfers. `description` may be empty. External accounts, opening-balance adjustments and partial histories are not supported.
 
 ### `categories.csv`
 
@@ -137,15 +162,15 @@ Structured properties use predefined scalar columns with readable dotted names. 
 - Contact fields are `contact.phone`, `contact.email`, `contact.telegram`, `contact.whatsapp`, `contact.website`, `contact.instagram`, `contact.facebook` and `contact.twitter`. Communities and members use the same union of contact columns. Instagram, Facebook and Twitter accept handles or URLs as optional strings. Each non-empty value represents one contact of the column type.
 - Member-user preferences use boolean `notifications.myAccount` and `notifications.group`, boolean `emails.myAccount`, and `emails.group` set to `never`, `daily`, `weekly`, `monthly` or `quarterly`.
 - Community settings use boolean `settings.requireAcceptTerms`, string `settings.terms`, non-negative integers `settings.minOffers` and `settings.minNeeds`, booleans `settings.allowAnonymousMemberList` and `settings.enableGroupEmail`, and `settings.defaultGroupEmailFrequency` set to `never`, `daily`, `weekly`, `monthly` or `quarterly`.
-- Currency amount settings are `currency.settings.defaultInitialCreditLimit` and `currency.settings.externalTraderCreditLimit`. `currency.settings.defaultInitialMaximumBalance`, `currency.settings.defaultOnPaymentCreditLimit` and `currency.settings.externalTraderMaximumBalance` accept an amount or `false`. `currency.settings.defaultAcceptPaymentsAfter` accepts non-negative integer seconds or `false`. `currency.settings.defaultAcceptPaymentsWhitelist` is the semicolon-delimited account-code relationship.
-- Currency boolean settings are all remaining `currency.settings.*` columns: `defaultAllowPayments`, `defaultAllowPaymentRequests`, `defaultAcceptPaymentsAutomatically`, `defaultAllowSimplePayments`, `defaultAllowSimplePaymentRequests`, `defaultAllowQrPayments`, `defaultAllowQrPaymentRequests`, `defaultAllowMultiplePayments`, `defaultAllowMultiplePaymentRequests`, `defaultAllowTagPayments`, `defaultAllowTagPaymentRequests`, `defaultAllowExternalPayments`, `defaultAllowExternalPaymentRequests`, `defaultAcceptExternalPaymentsAutomatically`, `enableExternalPayments`, `enableExternalPaymentRequests`, `enableCreditCommonsPayments` and `defaultHideBalance`.
-- Member account settings use `account.settings.onPaymentCreditLimit`, which accepts a non-negative amount; `account.settings.acceptPaymentsAfter`, which accepts non-negative integer seconds; and the semicolon-delimited `account.settings.acceptPaymentsWhitelist` relationship. All remaining `account.settings.*` columns are booleans matching their names. NFC tag secrets are not imported.
+- In `currency.csv`, amount settings are `settings.defaultInitialCreditLimit` and `settings.externalTraderCreditLimit`. `settings.defaultInitialMaximumBalance`, `settings.defaultOnPaymentCreditLimit` and `settings.externalTraderMaximumBalance` accept an amount or `false`. `settings.defaultAcceptPaymentsAfter` accepts non-negative integer seconds or `false`. `settings.defaultAcceptPaymentsWhitelist` is the semicolon-delimited account-code relationship.
+- Currency boolean settings are all remaining `settings.*` columns in `currency.csv`: `defaultAllowPayments`, `defaultAllowPaymentRequests`, `defaultAcceptPaymentsAutomatically`, `defaultAllowSimplePayments`, `defaultAllowSimplePaymentRequests`, `defaultAllowQrPayments`, `defaultAllowQrPaymentRequests`, `defaultAllowMultiplePayments`, `defaultAllowMultiplePaymentRequests`, `defaultAllowTagPayments`, `defaultAllowTagPaymentRequests`, `defaultAllowExternalPayments`, `defaultAllowExternalPaymentRequests`, `defaultAcceptExternalPaymentsAutomatically`, `enableExternalPayments`, `enableExternalPaymentRequests`, `enableCreditCommonsPayments` and `defaultHideBalance`.
+- In `accounts.csv`, `settings.onPaymentCreditLimit` accepts a non-negative amount; `settings.acceptPaymentsAfter` accepts non-negative integer seconds; and `settings.acceptPaymentsWhitelist` is a semicolon-delimited account-code relationship. All remaining `settings.*` columns are booleans matching their names. NFC tag secrets are not imported.
 - Category icon fields are `icon.type` and `icon.value`; both strings must be non-empty when an icon is present.
 - Post `imageUrls` is the semicolon-delimited ordered URL list described in the common rules. Single community/member images use `imageUrl`.
 
 ## Complete-history invariants
 
-When balances are supplied for every account, the parser starts at zero, adds each incoming transfer and subtracts each outgoing transfer. The result must equal each declared `account.balance`, and their total must be zero. A complete bundle that omits history or needs opening-balance adjustments is invalid.
+When balances are supplied for every row in `accounts.csv`, the parser starts at zero, adds each incoming transfer and subtracts each outgoing transfer. The result must equal each declared `balance`, and their total must be zero. A complete bundle that omits history or needs opening-balance adjustments is invalid.
 
 When balances are omitted, the current Social executor leaves balances and history unchanged. A future Accounting executor must reconcile them before writing Accounting data. The offline parser cannot establish those remote facts.
 
@@ -155,8 +180,8 @@ In the example, Alice pays Bob `5.00`, producing balances of `-5.00` and `5.00`.
 
 The [ICES exporter](../cli/migration/ices/) exports Auth/Social data for a community whose currency and accounts already exist in Accounting. It produces an ordinary bundle using the reconciliation rules above:
 
-- `community.csv` contains the social data, original `id` and `status`, and `currency.id` when available. The currency can also be found by code. Other `currency.*` fields are omitted.
-- `members.csv` contains the social data and original member IDs. Active, disabled, suspended and deleted members retain `account.id` when available and can otherwise be matched by code. Draft and pending members leave it blank. Other `account.*` fields are omitted.
+- `community.csv` contains the social data, original `id` and `status`. `currency.csv` contains the matching community `code` and the currency `id` when available. Other currency fields are omitted.
+- `members.csv` contains the social data and original member IDs. `accounts.csv` contains one row for each active, disabled, suspended or deleted member, using the matching member `code` and the account `id` when available. Draft and pending members have no account row. Other account fields are omitted.
 - `users.csv`, `categories.csv` and `posts.csv` retain original UUIDs. Member-user relationships use the usual member codes and user emails; their IDs are blank because the source exposes no relationship UUIDs.
 - `transfers.csv` is omitted. The bundle supplies no changes to existing balances or history.
 - User name, status, timestamps and password hashes are unknown through this API and are omitted. Database enrichment supplies identity status and password hashes; API-only imports default new identities to `active` and require a password reset.

@@ -18,17 +18,21 @@ const csv = (rows: Record<string, string>[]) => {
 export const migrationFiles = () => new Map<MigrationBundleFilename, Buffer>([
   ['community.csv', csv([{
     id: ids.group, code: 'EXMP', name: 'Example', status: 'active', description: 'Imported community', access: 'public',
-    adminUsers: 'admin@example.org', 'currency.id': ids.currency, ...dateFields,
+    adminUsers: 'admin@example.org', ...dateFields,
     'settings.defaultGroupEmailFrequency': 'quarterly', imageUrl: 'https://images.test/community.png',
     'address.locality': 'Barcelona', 'address.country': 'ES',
   }])],
+  ['currency.csv', csv([{ id: ids.currency, code: 'EXMP' }])],
   ['users.csv', csv(['admin', 'alice', 'bob'].map(name => ({
     id: ids[name], email: `${name}@example.org`, name, language: 'ca', status: 'active', passwordHash, ...dateFields,
   })))],
   ['members.csv', csv(['alice', 'bob'].map(name => ({
     id: ids[`${name}-member`], code: name === 'alice' ? 'EXMP0001' : 'EXMP0002', name, type: 'personal',
     status: name === 'alice' ? 'active' : 'disabled', access: 'public', description: name, ...dateFields,
-    'account.id': ids[`${name}-account`], imageUrl: name === 'alice' ? 'https://images.test/missing.png' : '',
+    imageUrl: name === 'alice' ? 'https://images.test/missing.png' : '',
+  })))],
+  ['accounts.csv', csv(['alice', 'bob'].map(name => ({
+    id: ids[`${name}-account`], code: name === 'alice' ? 'EXMP0001' : 'EXMP0002',
   })))],
   ['member-users.csv', csv([
     { id: ids.membership, member: 'EXMP0001', user: 'alice@example.org', 'emails.group': 'daily', 'notifications.myAccount': 'false' },

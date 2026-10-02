@@ -9,13 +9,12 @@ const currencyId = '123e4567-e89b-42d3-a456-426614174000'
 const accountId = (row: number) => `abcdef01-2345-4678-9abc-${String(row).padStart(12, '0')}`
 const parseFiles = async (files: Files) => parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) })
 
-const referenceRecords = (files: Files, file: 'community.csv' | 'members.csv') => {
-  const prefix = file === 'community.csv' ? 'currency.' : 'account.'
+const referenceRecords = (files: Files, file: 'currency.csv' | 'accounts.csv') => {
   const records = parse(files.get(file)!.toString()) as string[][]
   const rows = records.map((row, index) => index === 0 ? row : row.map((value, column) => {
     const header = records[0][column]
-    return header === `${prefix}id` ? (file === 'community.csv' ? currencyId : accountId(index))
-      : header.startsWith(prefix) ? '' : value
+    return header === 'id' ? (file === 'currency.csv' ? currencyId : accountId(index))
+      : header === 'code' ? value : ''
   }))
   return new Map(files).set(file, encodeCsv(rows))
 }
@@ -36,7 +35,7 @@ test('preserves every community status with the same bundle format', async (t) =
 })
 
 test('preserves optional accounting IDs with omitted or blank fields', async () => {
-  const files = referenceRecords(referenceRecords(await loadExampleFiles(), 'community.csv'), 'members.csv')
+  const files = referenceRecords(referenceRecords(await loadExampleFiles(), 'currency.csv'), 'accounts.csv')
   files.delete('transfers.csv')
   const result = await parseFiles(files)
   assert.ok(result.success, JSON.stringify(result))
@@ -51,10 +50,10 @@ test('preserves optional accounting IDs with omitted or blank fields', async () 
 })
 
 test('resolves currencies and accounts by code without IDs or other accounting fields', async () => {
-  let files = referenceRecords(referenceRecords(await loadExampleFiles(), 'community.csv'), 'members.csv')
+  let files = referenceRecords(referenceRecords(await loadExampleFiles(), 'currency.csv'), 'accounts.csv')
   files.delete('transfers.csv')
-  files = mutateCsv(files, 'community.csv', 1, 'currency.id', '')
-  for (const row of [1, 2]) files = mutateCsv(files, 'members.csv', row, 'account.id', '')
+  files = mutateCsv(files, 'currency.csv', 1, 'id', '')
+  for (const row of [1, 2]) files = mutateCsv(files, 'accounts.csv', row, 'id', '')
   const result = await parseFiles(omitBlankColumns(files))
   assert.ok(result.success, JSON.stringify(result))
   assert.equal(result.plan.community.code, 'EXMP')
@@ -67,15 +66,15 @@ test('resolves currencies and accounts by code without IDs or other accounting f
 })
 
 test('retains partial accounting fields for reconciliation without requiring complete creation data', async () => {
-  let files = referenceRecords(referenceRecords(await loadExampleFiles(), 'community.csv'), 'members.csv')
+  let files = referenceRecords(referenceRecords(await loadExampleFiles(), 'currency.csv'), 'accounts.csv')
   files.delete('transfers.csv')
-  files = mutateCsv(files, 'community.csv', 1, 'currency.id', '')
-  files = mutateCsv(files, 'community.csv', 1, 'currency.name', 'Existing currency')
-  files = mutateCsv(files, 'community.csv', 1, 'currency.scale', '2')
-  files = mutateCsv(files, 'community.csv', 1, 'currency.settings.defaultAllowPayments', 'false')
-  files = mutateCsv(files, 'members.csv', 1, 'account.id', '')
-  files = mutateCsv(files, 'members.csv', 1, 'account.creditLimit', '10.50')
-  files = mutateCsv(files, 'members.csv', 1, 'account.settings.allowPayments', 'false')
+  files = mutateCsv(files, 'currency.csv', 1, 'id', '')
+  files = mutateCsv(files, 'currency.csv', 1, 'name', 'Existing currency')
+  files = mutateCsv(files, 'currency.csv', 1, 'scale', '2')
+  files = mutateCsv(files, 'currency.csv', 1, 'settings.defaultAllowPayments', 'false')
+  files = mutateCsv(files, 'accounts.csv', 1, 'id', '')
+  files = mutateCsv(files, 'accounts.csv', 1, 'creditLimit', '10.50')
+  files = mutateCsv(files, 'accounts.csv', 1, 'settings.allowPayments', 'false')
   const result = await parseFiles(files)
   assert.ok(result.success, JSON.stringify(result))
   assert.equal(result.plan.community.currency?.name, 'Existing currency')
@@ -88,20 +87,20 @@ test('retains partial accounting fields for reconciliation without requiring com
 })
 
 test('validates supplied monetary values without inventing a missing currency scale', async () => {
-  const files = referenceRecords(await loadExampleFiles(), 'community.csv')
+  const files = referenceRecords(await loadExampleFiles(), 'currency.csv')
   const invalid = await parseFiles(files)
   assert.ok(!invalid.success)
   assert.ok(invalid.errors.some(({ code }) => code === 'MISSING_CURRENCY_SCALE'))
-  const result = await parseFiles(mutateCsv(files, 'community.csv', 1, 'currency.scale', '2'))
+  const result = await parseFiles(mutateCsv(files, 'currency.csv', 1, 'scale', '2'))
   assert.ok(result.success, JSON.stringify(result))
   assert.equal(result.plan.community.currency?.name, null)
   assert.equal(result.plan.transfers[0].amount, '500')
 })
 
 test('code-only accounts resolve whitelist and transfer references', async () => {
-  let files = referenceRecords(await loadExampleFiles(), 'members.csv')
-  for (const row of [1, 2]) files = mutateCsv(files, 'members.csv', row, 'account.id', '')
-  files = mutateCsv(files, 'community.csv', 1, 'currency.settings.defaultAcceptPaymentsWhitelist', 'EXMP0001')
+  let files = referenceRecords(await loadExampleFiles(), 'accounts.csv')
+  for (const row of [1, 2]) files = mutateCsv(files, 'accounts.csv', row, 'id', '')
+  files = mutateCsv(files, 'currency.csv', 1, 'settings.defaultAcceptPaymentsWhitelist', 'EXMP0001')
   const result = await parseFiles(files)
   assert.ok(result.success, JSON.stringify(result))
   assert.equal(result.plan.community.currency?.settings.defaultAcceptPaymentsWhitelist[0], 'EXMP0001')

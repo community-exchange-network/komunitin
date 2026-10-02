@@ -2,6 +2,8 @@
 
 This executor imports a [CSV ZIP bundle](../../../../shared/migration/FORMAT.md) into Social and Auth **after Accounting has been migrated**. All import logic lives in the two services' `features/migrations` folders.
 
+The bundle separates Social data (`community.csv`, `members.csv`) from Accounting data (`currency.csv`, `accounts.csv`, `transfers.csv`). The single currency and community rows must have the same `code`; each account row must have the same `code` as its member. Accounting UUIDs belong in the `id` columns of the Accounting files. Required account rows may contain only `code` and an optional `id` when Accounting is already migrated.
+
 **WARNING**: This code has been created by AI and has NOT been thoroughly verified by human developers, as it is solely intended for one-shot migrations. Code here do not set design patterns for future developments.
 
 ## Run
@@ -57,7 +59,7 @@ There is no transaction covering the entire migration. Individual inserts and th
 - Preserve supplied UUIDs. For missing UUIDs, reuse the matching destination record or generate one. Auth establishes the canonical user UUID used in both services.
 - Reject UUID collisions, conflicting identity mappings, account/currency references, post types or relationships. Report the offending resource for manual resolution. Existing scalar values, settings, statuses, deleted state, passwords and timestamps are preserved.
 - Create missing relationships and records. Existing communities can receive missing records. Existing soft-deleted communities are rejected.
-- Resolve existing currency and accounts by code, checking supplied accounting UUIDs. Active, disabled, suspended and deleted members require existing accounts even when all accounting data columns are blank. Draft and pending members have no account.
+- Resolve existing currency and accounts by code, checking UUIDs supplied in `currency.csv` and `accounts.csv`. Active, disabled, suspended and deleted members require matching account rows and existing Accounting accounts even when all optional account columns are blank. Draft and pending members have no account row.
 - Validate account owners against canonical user UUIDs. A single source owner and a single Accounting owner allow an unambiguous UUID inference; ambiguous missing UUIDs require fixing the bundle. Additional Accounting owners are preserved and reported. A supplied currency administrator must match Accounting.
 - Supplied accounting settings, amounts and transfer history are ignored with a warning in this execution mode. The static bundle validation rules still apply. Balances/history are not compared or reset. Member/account status differences are reported and both existing Accounting and source Social states are preserved.
 - New Social records retain source timestamps and legacy statuses, including published posts owned by inactive members and deleted members. Category descriptions go into `meta.description`; addresses use Social's address field names. Daily email frequencies become weekly; quarterly become monthly. Blank preferences use destination defaults.
