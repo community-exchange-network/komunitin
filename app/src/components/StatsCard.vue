@@ -1,33 +1,23 @@
 <template>
-  <q-card
-    flat
-    bordered
-  >
+  <q-card>
     <q-card-section>
-      <div class="text-overline text-onsurface-m">
+      <div class="row no-wrap items-center text-body2 text-weight-medium text-onsurface-m">
         <q-icon
           :name="icon"
-          size="xs"
-          color="icon-dark"
+          size="20px"
+          class="bg-background rounded-borders q-pa-xs q-mr-sm"
         />
         {{ title }}
       </div>
-    </q-card-section>
-    <q-card-section class="q-pt-none">
-      <h3 class="q-mt-none q-mb-xs">
+      <div class="text-h4 text-weight-semi-bold text-onsurface q-mt-md">
         {{ amount }}
-      </h3>
-      <div 
-        v-if="change"
-        class="text-h6"
-        :class="sign > 0 ? 'positive-amount' : 'negative-amount'"
-      >
-        <q-icon
-          :name="sign > 0 ? 'trending_up' : 'trending_down'"
-        />
-        {{ change }}
       </div>
-      <div class="text-caption text-onsurface-m">
+      <stats-change
+        v-if="change"
+        :change="change"
+        :sign="sign"
+      />
+      <div class="text-caption text-onsurface-m q-mt-sm">
         {{ text }}
       </div>
     </q-card-section>
@@ -38,16 +28,17 @@ import type { StatsValue} from '@/composables/currencyStats';
 import { useCurrencyStatsFormattedValue  } from '@/composables/currencyStats';
 import type { Currency } from '@/store/model';
 import { computed } from 'vue';
+import StatsChange from './StatsChange.vue';
 
- 
+
 const props = defineProps<{
   value: StatsValue
   title: string
   icon: string
   currency?: Currency
-  /** 
+  /**
    * The period for which the stats are computed, until now (in seconds).
-   * */  
+   * */
   period?: number
   text: string
   // Extra parameters to pass to the stats composable
