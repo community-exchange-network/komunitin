@@ -1,4 +1,4 @@
-import type { IcesRow, IcesRows } from './bundle'
+import type { IcesRows } from './bundle'
 import { icesUserUid } from './bundle'
 
 export interface IcesSourceUser {
@@ -40,7 +40,7 @@ const nextMonth = (date: Date) => {
   return result.toISOString()
 }
 
-/** Plan identities across the entire source so every community uses the same survivor. */
+/** Resolve email collisions globally without changing identity or accounting ownership. */
 export const createIcesSanitizer = (source: IcesSourceUser[], onProgress: (message: string) => void = () => {}) => {
   const byUid = new Map(source.map(user => [user.uid, user]))
   const byEmail = new Map<string, IcesSourceUser[]>()
@@ -52,10 +52,7 @@ export const createIcesSanitizer = (source: IcesSourceUser[], onProgress: (messa
   }
 
   return (rows: IcesRows) => {
-    const stats = { redactedEmails: 0, mergedUsers: 0, fixedUrls: 0, clearedWebsites: 0, blankFields: 0, fixedExpiryDates: 0, removedPosts: 0 }
-    const users = new Map<number, IcesRow>()
-    const exported = new Map(rows['users.csv'].map(row => [icesUserUid(row.id), row]))
-    const references = new Map<string, string>()
+    const stats = { redactedEmails: 0, duplicateEmails: 0, fixedUrls: 0, clearedWebsites: 0, blankFields: 0, fixedExpiryDates: 0, removedPosts: 0 }
     for (const row of rows['users.csv']) {
       const uid = icesUserUid(row.id)
       const original = byUid.get(uid)
@@ -65,25 +62,14 @@ export const createIcesSanitizer = (source: IcesSourceUser[], onProgress: (messa
       const email = normalizedEmail(original.mail)
       const matches = byEmail.get(email)!
       const redact = !email || email === 'deleted@deleted.org' || (original.status !== 1 && matches.length > 1)
-      const canonical = !redact && original.status === 1 ? matches.find(user => user.status === 1)! : original
-      const id = row.id.slice(0, -12) + canonical.uid.toString(16).padStart(12, '0')
-      references.set(row.id, id)
+      const duplicate = !redact && original.status === 1 && matches.find(user => user.status === 1)!.uid !== uid
       if (redact) stats.redactedEmails++
-      if (canonical.uid !== uid) stats.mergedUsers++
-      if (!users.has(canonical.uid)) {
-        users.set(canonical.uid, {
-          ...(exported.get(canonical.uid) ?? { language: canonical.language }),
-          id, email: redact ? `deleted-${uid}@deleted.invalid` : email,
-          // Use the survivor's credentials and language even when it belongs
-          // to another community and was not returned by this API export.
-          passwordHash: canonical.pass, status: canonical.status === 1 ? 'active' : 'disabled',
-        })
-      }
-    }
-    rows['users.csv'] = [...users.values()]
-    for (const row of rows['member-users.csv']) row.user = references.get(row.user)!
-    for (const row of rows['community.csv']) {
-      row.adminUsers = [...new Set(row.adminUsers.split(';').map(id => references.get(id)!))].join(';')
+      if (duplicate) stats.duplicateEmails++
+      // Shared mailboxes are not proof of a shared identity. Preserve the UUID,
+      // password and owners; administrators must resolve duplicate login emails.
+      row.email = redact ? `deleted-${uid}@deleted.invalid` : duplicate ? `duplicate-${uid}@migration.invalid` : email
+      row.passwordHash = original.pass
+      row.status = original.status === 1 ? 'active' : 'disabled'
     }
 
     for (const row of Object.values(rows).flat()) {

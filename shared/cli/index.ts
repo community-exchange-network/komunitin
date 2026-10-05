@@ -1,5 +1,6 @@
 import { migrateSocial } from './admin/migrate.ts'
 import { generateIcesBundle } from './migration/generate-ices.ts'
+import { repairIcesSource } from './migration/ices/repair-source.ts'
 import { bootstrapAdmin } from './admin/bootstrap.ts'
 import { createCreditCommonsNode } from './accounting/create-credit-commons-node.ts'
 import { trustCurrency } from './accounting/trust.ts'
@@ -9,6 +10,7 @@ const commands = new Map<string, (args: string[]) => Promise<void>>([
   ['admin bootstrap', bootstrapAdmin],
   ['admin migrate', migrateSocial],
   ['admin bundle ices', generateIcesBundle],
+  ['admin repair ices', repairIcesSource],
   ['accounting trust', trustCurrency],
   ['accounting migrate-ices', migrateIcesAccounting],
   ['accounting create-credit-commons-node', createCreditCommonsNode],
@@ -17,6 +19,7 @@ const commands = new Map<string, (args: string[]) => Promise<void>>([
 export const usage = `Usage:
   komunitin admin migrate <bundle.zip> [--email <email>] [--password <password>]
   komunitin admin bundle ices --url <ICES site URL> (--code <CODE> | --all) --output <path>
+  komunitin admin repair ices [--apply]
   komunitin admin bootstrap [--password <password>]
   komunitin accounting migrate-ices <currency-code> <ices-url> [--email <email>] [--password <password>]
   komunitin accounting trust <currency-code> <trusted-code> <amount> [--email <email>] [--password <password>]

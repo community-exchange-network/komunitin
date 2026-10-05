@@ -166,24 +166,31 @@ const exportBundle = async (client: IcesClient, code: string, sanitize?: IcesExp
   for await (const document of client.pages(`${code}/members`, {
     include: 'contacts', sort: 'code', 'filter[state]': 'draft,pending,active,disabled,suspended,deleted',
   })) {
-    for (const member of collection(document)) {
-      requireType(member, 'members')
-      if (related(member, 'group', 'groups') !== community.id) throw new Error('ICES returned a member from another community')
-      const row: Row = {
-        ...fields(member, profileColumns), ...contacts(document, member), id: member.id,
-        type: cell(member.attributes.type), status: cell(member.attributes.state),
-        'account.id': related(member, 'account', 'accounts', false),
+    const page = collection(document)
+    // Keep each owner query unambiguous, but bound concurrent reads to avoid
+    // thousands of serial round trips on large legacy communities.
+    for (let offset = 0; offset < page.length; offset += 8) {
+      const batch = page.slice(offset, offset + 8)
+      const ownerDocuments = await Promise.all(batch.map(member => client.document('users', {
+        'filter[members]': member.id, include: 'settings',
+      })))
+      for (const [index, member] of batch.entries()) {
+        const userDocument = ownerDocuments[index]
+        const owners = collection(userDocument)
+        if (owners.length !== 1) throw new Error(`ICES did not expose the owner of member ${member.id}; use a social_read_all service token`)
+        requireType(member, 'members')
+        if (related(member, 'group', 'groups') !== community.id) throw new Error('ICES returned a member from another community')
+        const row: Row = {
+          ...fields(member, profileColumns), ...contacts(document, member), id: member.id,
+          type: cell(member.attributes.type), status: cell(member.attributes.state),
+          'account.id': related(member, 'account', 'accounts', false),
+        }
+        members.set(member.id, row.code)
+        add('members.csv', row)
+        const owner = addUser(userDocument, owners[0])
+        add('member-users.csv', { member: row.code, user: owner.row.id, ...owner.preferences })
+        client.onProgress(`${code}: ${members.size} members, ${users.size} unique users exported`)
       }
-      members.set(member.id, row.code)
-      add('members.csv', row)
-      // This endpoint ignores pagination. Query one member at a time to retain an
-      // unambiguous owner mapping, even when a user belongs to several communities.
-      const userDocument = await client.document('users', { 'filter[members]': member.id, include: 'settings' })
-      const owners = collection(userDocument)
-      if (owners.length !== 1) throw new Error(`ICES did not expose the owner of member ${member.id}; use a social_read_all service token`)
-      const owner = addUser(userDocument, owners[0])
-      add('member-users.csv', { member: row.code, user: owner.row.id, ...owner.preferences })
-      client.onProgress(`${code}: ${members.size} members, ${users.size} unique users exported`)
     }
   }
 
@@ -234,14 +241,6 @@ const exportBundle = async (client: IcesClient, code: string, sanitize?: IcesExp
     }
   }
 
-  if (rows['member-users.csv'].some((row) => ['daily', 'quarterly'].includes(row['emails.group']))
-    || ['daily', 'quarterly'].includes(communityRow['settings.defaultGroupEmailFrequency'])) {
-    warnings.add('Legacy daily/quarterly email frequencies are preserved. The destination must explicitly support or map these before import.')
-  }
-  if ([communityRow, ...rows['members.csv']].some((row) =>
-    ['instagram', 'facebook', 'twitter'].some((type) => row[`contact.${type}`]))) {
-    warnings.add('Legacy Instagram/Facebook/Twitter contacts are preserved. The destination must support or map these before import.')
-  }
   // Retain the exact owner until sanitization has resolved duplicate identities.
   sanitize?.(rows)
   const emails = new Map(rows['users.csv'].map(row => [row.id, row.email]))

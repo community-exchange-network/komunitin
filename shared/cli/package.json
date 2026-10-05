@@ -5,9 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test migration/ices/test/*.test.ts",
-    "migrate:ices": "tsx migration/ices/migrate.ts",
-    "export:ices": "tsx migration/ices/cli.ts",
-    "passwords:ices": "tsx migration/ices/passwords-cli.ts"
+    "migrate:ices": "tsx migration/ices/migrate.ts"
   },
   "devDependencies": {
     "@types/node": "^24.10.9",

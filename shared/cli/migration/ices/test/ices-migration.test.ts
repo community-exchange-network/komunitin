@@ -37,27 +37,25 @@ test('sanitizes real legacy identity conflicts before writing email references a
   })
   const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
   assert.ok(parsed.success, JSON.stringify(parsed))
-  assert.equal(parsed.summary.users, 5)
+  assert.equal(parsed.summary.users, 6)
   assert.equal(parsed.summary.members, 6)
   assert.equal(parsed.summary.memberUsers, 6)
   assert.equal(parsed.summary.offers, 2)
   assert.equal(parsed.summary.images, result.summary.images)
   assert.deepEqual(parsed.plan.community.adminUsers, ['dup@example.org'])
   assert.equal(parsed.plan.users.find(user => user.email === 'dup@example.org')!.passwordHash, source[0].pass)
-  assert.ok(!parsed.plan.users.some(user => user.id === fixture.users[1].id || user.id === fixture.users[5].id))
+  assert.deepEqual(parsed.plan.users.map(user => user.id), fixture.users.map(user => user.id))
   assert.deepEqual(parsed.plan.memberUsers.map(row => row.user), [
-    'dup@example.org', 'dup@example.org', ...source.slice(2, 5).map(user => `deleted-${user.uid}@deleted.invalid`), 'outside@example.org',
+    ...Array(2).fill(`duplicate-${source[1].uid}@migration.invalid`), ...source.slice(2, 5).map(user => `deleted-${user.uid}@deleted.invalid`), `duplicate-${source[5].uid}@migration.invalid`,
   ])
   assert.deepEqual(parsed.plan.users.filter(user => user.status === 'disabled').map(user => user.passwordHash),
     source.slice(2, 5).map(user => user.pass))
-  const survivor = parsed.plan.users.find(user => user.id === icesId(199))!
-  assert.equal(survivor.passwordHash, external.pass)
-  assert.equal(survivor.language, 'en')
+  assert.deepEqual(parsed.plan.users.map(user => user.passwordHash), source.map(user => user.pass))
   assert.equal(parsed.plan.members[0].address, null)
   assert.ok(parsed.plan.community.contacts.some(contact => contact.value === 'https://example.org/path'))
   assert.ok(parsed.plan.members[2].contacts.some(contact => contact.value === 'https://www.example.org/member'))
   assert.equal(parsed.plan.posts.find(post => post.id === fixture.posts[1].id)!.expiresAt, '2025-02-28T12:30:00.000Z')
-  assert.ok(progress.some(message => message.includes('"mergedUsers":2') && message.includes('"removedPosts":1')))
+  assert.ok(progress.some(message => message.includes('"duplicateEmails":2') && message.includes('"removedPosts":1')))
   assert.ok(progress.every(message => !message.includes('@') && !message.includes('$2b$')))
   // Reusing the stage for another export must make exactly the same identity choices.
   const repeated = await createIcesMigrationBundle({
@@ -152,7 +150,6 @@ test('exports legacy auth/social HTTP resources to a valid CSV ZIP without query
   assert.deepEqual(plan.posts[0].imageUrls, ['https://example.org/a.jpg', 'https://example.org/a.jpg'])
   assert.equal(plan.posts[3].category, null)
   assert.equal(plan.posts[3].title, null)
-  assert.ok(result.warnings.some((warning) => warning.includes('daily/quarterly')))
 
   const tokenRequests = fixture.requests.filter(({ url }) => url.pathname.endsWith('/token'))
   assert.equal(tokenRequests.length, 1)
@@ -261,7 +258,8 @@ test('stops after three timed-out reads and reports the failed lookup', async (t
     assert.ok(!error.message.includes('secret'))
     return true
   })
-  assert.equal(fixture.requests.filter(({ url }) => url.pathname.endsWith('/users')).length, 3)
+  assert.equal(fixture.requests.filter(({ url }) => url.pathname.endsWith('/users')
+    && url.searchParams.get('filter[members]') === fixture.members[0].id).length, 3)
 })
 
 test('does not retry a timed-out authentication request', async (t) => {
