@@ -206,7 +206,7 @@ describe("PageHeader", () => {
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).toContain("balance");
     expect(wrapper.text()).toContain("$1.00");
-    const header = wrapper.get<HTMLDivElement>('#header');
+    const header = wrapper.get<HTMLDivElement>('.header');
     expect(header.element.style.height).toBe("170px");
     const pageHeader = wrapper.getComponent(PageHeader);
     // I could not emulate the scroll event and as a weaker substitute I

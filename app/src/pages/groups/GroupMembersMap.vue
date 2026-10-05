@@ -1,7 +1,5 @@
 <template>
   <q-card
-    square
-    flat
   >
     <simple-map
       class="simple-map"
@@ -9,7 +7,7 @@
       :marker="center"
       :bounds="bounds"
     >
-      <l-marker
+      <styled-marker
         v-for="(memberMarker, i) of memberMarkerLatLngs"
         :key="`member-${i}`"
         :lat-lng="memberMarker"
@@ -26,7 +24,7 @@
 import { computed, watch } from "vue"
 import { useStore } from "vuex"
 import type { LatLngExpression } from "leaflet"
-import { LMarker } from "@vue-leaflet/vue-leaflet"
+import StyledMarker from "../../components/StyledMarker.vue";
 
 import SimpleMap from "../../components/SimpleMap.vue"
 

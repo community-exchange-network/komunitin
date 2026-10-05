@@ -1,8 +1,5 @@
 <template>
-  <q-card 
-    flat 
-    bordered
-  >
+  <q-card>
     <q-card-section 
       class="q-pb-lg"
       :class="[$q.screen.gt.xs ? 'q-px-lg' : '']"
@@ -15,7 +12,7 @@
         {{ transfer.attributes.meta.description }}
       </div>
       <div
-        class="text-h5 flex justify-between q-mt-xs"
+        class="text-h5 flex justify-between q-mt-xs text-weight-bold"
         :class="positive ? 'positive-amount' : 'negative-amount'"
       >
         <span>{{ FormatCurrency(transfer.attributes.amount, myCurrency) }}</span>
@@ -54,7 +51,14 @@
     </q-card-section>
     <q-card-section class="row items-center justify-between q-pt-sm q-pb-lg" :class="[$q.screen.gt.xs ? 'q-px-lg' : 'q-px-md']">
       <span class="text-caption text-onsurface-m" style="font-size: 14px;">{{ capitalize($formatDate(transfer.attributes.updated)) }}</span>
-      <pill-badge :color="statusColor" >{{ statusLabel }}</pill-badge>
+
+      <q-badge
+        :color="statusColor"
+        :text-color="statusTextColor"
+        class="badge-square text-uppercase text-weight-bold"
+      >
+        {{ statusLabel }}
+      </q-badge>
     </q-card-section>
     <slot />
   </q-card>
@@ -63,7 +67,6 @@
 import { computed } from "vue";
 import { useStore } from "vuex";
 import TransactionCardAccount from "./TransactionCardAccount.vue";
-import PillBadge from "./PillBadge.vue";
 import FormatCurrency, { convertCurrency } from "../plugins/FormatCurrency"
 import type { Currency, ExtendedTransfer, Group } from "@/store/model";
 import { useTransferStatus } from "@/composables/transferStatus";
@@ -110,7 +113,7 @@ const capitalize = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-const { color: statusColor, label: statusLabel } = useTransferStatus(props.transfer.attributes.state)
+const { color: statusColor, textColor: statusTextColor, label: statusLabel } =useTransferStatus(props.transfer.attributes.state)
 
 
 </script>

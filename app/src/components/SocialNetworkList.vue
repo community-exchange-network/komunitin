@@ -1,5 +1,10 @@
 <template>
-  <q-list>
+  <q-list
+    padding
+    separator
+    class="bg-surface"
+    :class="!flat && 'rounded-borders shadow-2'"
+  >
     <q-item
       v-for="key of networks"
       :key="key"
@@ -8,18 +13,18 @@
       @click="contact(key)"
     >
       <q-item-section avatar>
-        <q-avatar size="lg">
+        <q-avatar size="xl">
           <img :src="getNetworkIcon(key)">
         </q-avatar>
       </q-item-section>
       <q-item-section v-if="type === 'contact'">
-        <q-item-label>{{ contactName(key) }}</q-item-label>
+        <q-item-label class="text-weight-medium text-onsurface">{{ contactName(key) }}</q-item-label>
         <q-item-label caption>
           {{ networkLabel(key) }}
         </q-item-label>
       </q-item-section>
       <q-item-section v-else>
-        <q-item-label>{{ networkLabel(key) }}</q-item-label>
+        <q-item-label class="text-weight-medium text-onsurface">{{ networkLabel(key) }}</q-item-label>
       </q-item-section>
     </q-item>
   </q-list>
@@ -36,7 +41,11 @@ const props = withDefaults(defineProps<{
   contacts?: Contact[],
   url?: string,
   title?: string,
-  text?: string
+  text?: string,
+  /**
+   * Render without the card shadow and rounded borders, e.g. when already inside a card.
+   */
+  flat?: boolean
 }>(), {
   type: "share",
   contacts: () => [],

@@ -1,6 +1,6 @@
 <template>
-  <div class="row justify-center">
-    <div class="q-py-lg q-px-md col-12 col-sm-8 col-md-6">
+  <div class="row justify-center q-pa-md">
+    <div class="col-12 col-sm-8 col-lg-6">
       <div v-if="state === 'define'">
         <create-transaction-single-form
           :code="code"
@@ -12,42 +12,46 @@
           :submit-label="$t('showQRCode')"
           :model-value="transfer"
           @update:model-value="onFilled"
-        />  
+        />
       </div>
-      <div 
+      <div
         v-if="state === 'show' && transfer"
+        class="q-mb-xl"
       >
-        <div class="text-subtitle1 q-mb-lg">
-          {{ $t('scanThisQR') }}
-        </div>
-        <q-card 
-          flat 
-          bordered
-        >
+        <q-card>
+          <q-card-section class="row no-wrap items-center bg-light text-body2 text-onsurface-m">
+            <q-icon
+              name="qr_code_scanner"
+              size="sm"
+              color="primary"
+            />
+            <span class="q-ml-sm">{{ $t('scanThisQR') }}</span>
+          </q-card-section>
           <account-header
             class="q-pt-md"
             :account="transfer.payee"
           />
           <qr-code :data="qrData" />
-          
-          <q-card-section class="text-center q-pt-none">
-            <div class="text-h4 positive-amount">
+
+          <q-card-section class="text-center q-pt-none q-pb-lg">
+            <div class="text-h4 text-weight-bold positive-amount">
               {{ FormatCurrency(transfer.attributes.amount, currency) }}
             </div>
-            <div class="text-body1">
+            <div class="text-body1 text-weight-medium text-onsurface q-mt-xs">
               {{ transfer.attributes.meta.description }}
             </div>
           </q-card-section>
+          <q-separator inset />
+          <q-card-actions class="justify-end q-pa-md">
+            <q-btn
+              color="primary"
+              flat
+              padding="xs lg"
+              :label="$t('back')"
+              @click="state = 'define'"
+            />
+          </q-card-actions>
         </q-card>
-        <div class="row justify-end q-mb-xl">
-          <q-btn
-            class="q-mt-md"
-            color="primary"
-            flat
-            :label="$t('back')"
-            @click="state = 'define'"
-          />
-        </div>
       </div>
     </div>
   </div>

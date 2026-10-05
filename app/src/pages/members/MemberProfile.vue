@@ -1,67 +1,73 @@
 <template>
-  <div class="row text-onsurface-m">
-    <!-- BIO -->
-    <div class="column col-12 col-md-8">
-      <div v-if="member.attributes.description">
-        <div class="text-overline text-uppercase text-onsurface-d">
-          {{ $t('bio') }}
-        </div>
+  <div class="row text-onsurface q-col-gutter-md">
+    <div class="col-md-8 col-12 column q-gutter-y-md">
+      <!-- BIO -->
+      <div
+        v-if="member.attributes.description"
+        class="bg-surface rounded-borders shadow-2 q-pa-md"
+      >
         <!-- eslint-disable vue/no-v-html -->
-        <div 
-          v-html="md2html(member.attributes.description)"
-        />
+        <div v-html="md2html(member.attributes.description)" />
         <!-- eslint-enable vue/no-v-html -->
       </div>
       <!-- LOCATION -->
-      <div>
-        <div class="text-overline text-uppercase text-onsurface-d">
-          {{ $t('location') }}
-        </div>
+      <q-card v-if="$q.screen.gt.sm">
         <simple-map
           class="simple-map"
           :center="member.attributes.location.coordinates"
           :marker="member.attributes.location.coordinates"
         />
-        <div><q-icon name="place" />{{ member.attributes.location.name }}</div>
-      </div>
+        <q-card-section class="text-onsurface-m">
+          <q-icon name="place" />
+          {{ member.attributes.location.name }}
+        </q-card-section>
+      </q-card>
     </div>
-    <!-- CONTACT -->
-    <div class="col-12 col-md-4">
-      <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
-        {{ $t('contact') }}
-      </div>
+    <div class="col-12 col-md-4 column q-gutter-y-md">
+      <!-- CONTACT -->
       <social-network-list
         type="contact"
         :contacts="member.contacts"
       />
+      <!-- LOCATION -->
+      <q-card v-if="!$q.screen.gt.sm">
+        <simple-map
+          class="simple-map"
+          :center="member.attributes.location.coordinates"
+          :marker="member.attributes.location.coordinates"
+        />
+        <q-card-section class="text-onsurface-m">
+          <q-icon name="place" />
+          {{ member.attributes.location.name }}
+        </q-card-section>
+      </q-card>
     </div>
   </div>
 </template>
 <script lang="ts">
-import { defineComponent } from "vue"
+import { defineComponent } from 'vue';
 
-import md2html from "../../plugins/Md2html";
+import md2html from '../../plugins/Md2html';
 
-import SimpleMap from "../../components/SimpleMap.vue";
-import SocialNetworkList from "../../components/SocialNetworkList.vue"
-
+import SimpleMap from '../../components/SimpleMap.vue';
+import SocialNetworkList from '../../components/SocialNetworkList.vue';
 
 export default defineComponent({
-  name: "MemberProfile",
+  name: 'MemberProfile',
   components: {
     SimpleMap,
-    SocialNetworkList
+    SocialNetworkList,
   },
   props: {
     member: {
       type: Object,
-      required: true
-    }
+      required: true,
+    },
   },
   setup() {
     return {
-      md2html
-    }
-  }
-})
+      md2html,
+    };
+  },
+});
 </script>

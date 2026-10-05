@@ -1,51 +1,62 @@
 <template>
-  <q-card 
-    flat
-    bordered
-  >
-    <q-card-section class="row items-top justify-between">
-      <div class="col-12 col-sm-4">
-        <div class="text-overline text-onsurface-m">
+  <q-card>
+    <q-card-section class="row no-wrap items-start justify-between q-gutter-x-md">
+      <div>
+        <div class="row no-wrap items-center text-subtitle1 text-serif text-bold text-onsurface">
           <q-icon
             :name="icon"
-            size="xs"
-            color="icon-dark"
+            size="20px"
+            class="bg-background rounded-borders q-pa-xs q-mr-sm text-onsurface-m"
           />
-            {{ title }}
+          {{ title }}
         </div>
-        <div class="q-pt-md">
-          <div>
-            <h3 class="q-mt-none q-mb-xs">
-              {{ amount }}
-            </h3>    
-            <div 
-              v-if="change"
-              class="text-h6"
-              :class="sign > 0 ? 'positive-amount' : 'negative-amount'"
-            >
-              <q-icon
-                :name="sign > 0 ? 'trending_up' : 'trending_down'"
-              />
-              {{ change }}
-            </div>
-          </div>
-          <div class="text-caption text-onsurface-m">
-            {{ text }}
-          </div>
+        <div class="text-caption text-onsurface-m q-mt-xs">
+          {{ text }}
         </div>
       </div>
-      <div class="col-12 col-sm-4">
-        <div class="column q-gutter-y-md">
-          <div>
-            <q-select :model-value="period" outlined name="period" :options="periodOptions" :label="t('period')" @update:model-value="updatePeriod" />
-          </div>
-          <div>
-            <q-select v-model="interval" outlined name="interval" :options="intervalOptions" :label="t('interval')" />
-          </div>
+      <div class="column items-end">
+        <div class="text-h5 text-weight-semi-bold text-onsurface">
+          {{ amount }}
         </div>
+        <stats-change
+          v-if="change"
+          :change="change"
+          :sign="sign"
+        />
       </div>
     </q-card-section>
-    <q-card-section>
+    <q-card-section class="row q-col-gutter-sm q-pt-none">
+      <div class="col-6">
+        <q-select
+          :model-value="period"
+          name="period"
+          :options="periodOptions"
+          :label="t('period')"
+          outlined
+          dense
+          options-dense
+          bg-color="surface-container-h"
+          class="commons-input"
+          dropdown-icon="expand_more"
+          @update:model-value="updatePeriod"
+        />
+      </div>
+      <div class="col-6">
+        <q-select
+          v-model="interval"
+          name="interval"
+          :options="intervalOptions"
+          :label="t('interval')"
+          outlined
+          dense
+          options-dense
+          bg-color="surface-container-h"
+          class="commons-input"
+          dropdown-icon="expand_more"
+        />
+      </div>
+    </q-card-section>
+    <q-card-section class="q-pt-none">
       <time-series-chart 
         :currency="currency"
         :is-currency="value == 'amount'"
@@ -64,6 +75,7 @@ import type { Currency } from '@/store/model'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TimeSeriesChart from './TimeSeriesChart.vue'
+import StatsChange from './StatsChange.vue'
 
 const props = defineProps<{
   value: StatsValue

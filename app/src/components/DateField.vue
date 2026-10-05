@@ -3,30 +3,41 @@
     v-model="draftDate"
     :error="hasInputError"
     name="date"
-    :label="label"
+    label-slot
     :hint="hint"
     :placeholder="localFormat"
     outlined
+    bg-color="surface-container-h"
+    input-class="text-muted text-weight-medium"
+    class="commons-input"
+    clear-icon="close"    
     required
     @blur="commitDraftDate"
     @keyup.enter="commitDraftDate"
     @clear="commitDraftDate"
   >
+    <template v-slot:label>
+      <span class="text-uppercase text-caption-sm text-muted">{{ label }}</span>
+    </template>
     <template #append>
       <q-icon 
         name="event" 
         class="cursor-pointer"
+        color="muted"
       >
         <q-popup-proxy
           cover
-          transition-show="scale"
-          transition-hide="scale"
+          transition-show="slide-up"
+          transition-hide="slide-down"
         >
           <q-date
+            flat
+            color="primary-container"
             v-model="pickerDate" 
             :mask="pickerMask"
             :options="optionsFn"
-          >
+            class="date-picker"
+            >
             <div class="row items-center justify-end">
               <q-btn 
                 v-close-popup 
@@ -131,3 +142,10 @@ const optionsFn = (date: string | null) => {
 }
 
 </script>
+
+<style lang="scss" scoped>
+  .date-picker :deep(.q-date__header-title) {
+    font-family: $display-serif-family;
+    font-weight: bold;
+  }
+</style>
