@@ -3,6 +3,8 @@
     :code="code"
     :title="$t('offers')"
     type="offers"
+    :filter="{ status: 'published', expired: 'false' }"
+    sort="-updated"
     include="category,member,member.group,member.group.currency,member.account"
   >
     <template #after>

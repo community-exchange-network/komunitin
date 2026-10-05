@@ -12,6 +12,7 @@
         :type="['offers', 'needs']"
         include="category,member,member.group,member.group.currency,member.account"
         sort="-updated"
+        :filter="{ status: 'published', expired: 'false' }"
         :query="query"
       />
       <floating-btn-menu 

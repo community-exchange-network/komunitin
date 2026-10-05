@@ -12,6 +12,8 @@
           :code="props.code"
           :type="props.type"
           :include="props.include"
+          :filter="props.filter"
+          :sort="props.sort"
           :query="query"
         />
         <slot name="after" />
@@ -29,6 +31,8 @@ const props = defineProps<{
   code: string
   type: string | string[]
   include?: string
+  filter?: Record<string, string | string[]>
+  sort?: string
 }>()
 
 const query = ref("");

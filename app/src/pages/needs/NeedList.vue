@@ -4,6 +4,8 @@
     :code="code"
     :title="$t('needs')"
     type="needs"
+    :filter="{ status: 'published', expired: 'false' }"
+    sort="-updated"
     include="category,member"
   >
     <template #after>

@@ -40,6 +40,13 @@ export function search(records: any, request: any) {
  */
 export function filter(records: any, request: any) {
   records = search(records, request);
+  const expired = request.queryParams["filter[expired]"]?.split(",");
+  if (expired) {
+    records = records.filter((record: any) => {
+      const isExpired = record.expires != null && new Date(record.expires).getTime() < Date.now();
+      return expired.includes(String(isExpired));
+    });
+  }
   // Filter by field values
   const regex = /filter\[(.+)\]/;
   Object.entries(request.queryParams)

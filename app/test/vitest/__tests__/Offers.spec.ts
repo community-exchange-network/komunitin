@@ -11,6 +11,7 @@ import SelectCategory from "@/components/SelectCategory.vue";
 import type { Category, Member, Offer } from "@/store/model";
 import DeleteOfferBtn from "@/components/DeleteOfferBtn.vue";
 import ConfirmBtn from "@/components/ConfirmBtn.vue";
+import { createPost } from "../utils/posts";
 
 type FullOffer = Offer & { member: Member, category: Category };
 type SelectOption = { label: string, value: string };
@@ -22,12 +23,15 @@ describe("Offers", () => {
 
   beforeAll(async () => {
     seeds();
+    createPost('offers', 'Newest-offer')
+    createPost('offers', 'Expired-offer', { expires: '2000-01-01T00:00:00Z' })
+    createPost('offers', 'Hidden-offer', { status: 'hidden' })
     const nonAdmin = server.schema.users.all().models[1]
     wrapper = await mountComponent(App, { login: nonAdmin });
   });
   afterAll(() => wrapper.unmount());
 
-  it("Loads offers", async () => {
+  it("Loads current published offers, newest first, for a regular user", async () => {
     await wrapper.vm.$router.push("/groups/GRP0/offers");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/offers");
     await wrapper.vm.$nextTick();
@@ -40,11 +44,16 @@ describe("Offers", () => {
     );
     // Instead of trying to simulate the scroll event, which is very coupled
     // with the tech layer, just call the trigger() function in QInfiniteScroll.
+    await waitFor(() => wrapper.findComponent(QInnerLoading).props('showing'), false);
     (wrapper.findComponent(QInfiniteScroll).vm as QInfiniteScroll).trigger();
-    await waitFor(() => wrapper.findAllComponents(OfferCard).length, 30, "Should load 30 offers after scroll");
+    await waitFor(() => wrapper.findAllComponents(OfferCard).length, 31, "Should load 31 offers after scroll");
     offer = wrapper.findAllComponents(OfferCard)[0].props("offer") as FullOffer;
+    expect(offer.attributes.code).toBe('Newest-offer')
+    const codes = wrapper.findAllComponents(OfferCard).map(card => card.props('offer').attributes.code)
+    expect(codes).not.toContain('Expired-offer')
+    expect(codes).not.toContain('Hidden-offer')
     // Category icon
-    expect(wrapper.findAllComponents(OfferCard)[0].text()).toContain("accessibility_new");
+    expect(wrapper.findAllComponents(OfferCard).some(card => card.text().includes("accessibility_new"))).toBe(true);
   });
 
   it ("searches offers", async () => {
