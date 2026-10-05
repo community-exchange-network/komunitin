@@ -9,7 +9,104 @@ import { parseMigrationBundle, MIGRATION_PARSER_LIMITS } from '../../../../../so
 import { loadMigrationBundle } from '../../../../../social/src/features/migrations/bundle/container'
 import { CSV_HEADERS } from '../../../../../social/src/features/migrations/bundle/csv'
 import { icesId, serveIces } from './mocks/ices'
+import { createIcesSanitizer } from '../sanitize'
+import { icesUserUid } from '../bundle'
 import { encodeCsv, mutateCsv, omitBlankColumns, resultCodes, zipFromFiles } from '../../../../../social/test/migration/migration-bundle-helpers'
+
+test('sanitizes real legacy identity conflicts before writing email references and valid CSVs', async (t) => {
+  const fixture = await serveIces(t)
+  const emails = [' DUP@example.org ', 'dup@example.org', 'dup@example.org', 'deleted@deleted.org', '', 'outside@example.org']
+  fixture.users.forEach((user, index) => { user.attributes.email = emails[index] })
+  fixture.group.attributes.website = ' example.org/path '
+  fixture.members[0].attributes.address = { streetAddress: '   ' }
+  fixture.contacts[2].attributes.type = 'website'
+  fixture.contacts[2].attributes.name = 'www.example.org/member'
+  fixture.posts[0].attributes.content = ' \n '
+  fixture.posts[1].attributes.created = '2025-01-31T12:30:00Z'
+  fixture.posts[1].attributes.expires = '2024-01-01T00:00:00Z'
+  const source = fixture.users.map((user, index) => ({
+    uid: icesUserUid(user.id), mail: emails[index], pass: `$2b$10$${String(index).repeat(53)}`,
+    status: [1, 1, 0, 0, 0, 1][index], language: 'ca',
+  }))
+  const external = { ...source[5], uid: icesUserUid(icesId(199)), language: 'en', pass: `$2b$10$${'9'.repeat(53)}` }
+  const progress: string[] = []
+  // Reverse database order to verify "first" means lowest UID, not export order.
+  const sanitize = createIcesSanitizer([...source, external].reverse(), message => progress.push(message))
+  const result = await createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, sanitize,
+  })
+  const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
+  assert.ok(parsed.success, JSON.stringify(parsed))
+  assert.equal(parsed.summary.users, 6)
+  assert.equal(parsed.summary.members, 6)
+  assert.equal(parsed.summary.memberUsers, 6)
+  assert.equal(parsed.summary.offers, 2)
+  assert.equal(parsed.summary.images, result.summary.images)
+  assert.deepEqual(parsed.plan.community.adminUsers, ['dup@example.org'])
+  assert.equal(parsed.plan.users.find(user => user.email === 'dup@example.org')!.passwordHash, source[0].pass)
+  assert.deepEqual(parsed.plan.users.map(user => user.id), fixture.users.map(user => user.id))
+  assert.deepEqual(parsed.plan.memberUsers.map(row => row.user), [
+    ...Array(2).fill(`duplicate-${source[1].uid}@migration.invalid`), ...source.slice(2, 5).map(user => `deleted-${user.uid}@deleted.invalid`), `duplicate-${source[5].uid}@migration.invalid`,
+  ])
+  assert.deepEqual(parsed.plan.users.filter(user => user.status === 'disabled').map(user => user.passwordHash),
+    source.slice(2, 5).map(user => user.pass))
+  assert.deepEqual(parsed.plan.users.map(user => user.passwordHash), source.map(user => user.pass))
+  assert.equal(parsed.plan.members[0].address, null)
+  assert.ok(parsed.plan.community.contacts.some(contact => contact.value === 'https://example.org/path'))
+  assert.ok(parsed.plan.members[2].contacts.some(contact => contact.value === 'https://www.example.org/member'))
+  assert.equal(parsed.plan.posts.find(post => post.id === fixture.posts[1].id)!.expiresAt, '2025-02-28T12:30:00.000Z')
+  assert.ok(progress.some(message => message.includes('"duplicateEmails":2') && message.includes('"removedPosts":1')))
+  assert.ok(progress.every(message => !message.includes('@') && !message.includes('$2b$')))
+  // Reusing the stage for another export must make exactly the same identity choices.
+  const repeated = await createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, sanitize,
+  })
+  assert.deepEqual(await parseMigrationBundle({ type: 'zip', bytes: repeated.bytes }), parsed)
+})
+
+test('keeps unique disabled identities, clears unrepairable websites and reports source changes', async (t) => {
+  const fixture = await serveIces(t)
+  const source = fixture.users.map(user => ({
+    uid: icesUserUid(user.id), mail: String(user.attributes.email), pass: '', status: 0, language: 'ca',
+  }))
+  const options = { url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' },
+    sanitize: createIcesSanitizer(source) }
+  const result = await createIcesMigrationBundle(options)
+  const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
+  assert.ok(parsed.success, JSON.stringify(parsed))
+  assert.deepEqual(parsed.plan.users.map(user => user.email), source.map(user => user.mail))
+  assert.ok(parsed.plan.users.every(user => user.status === 'disabled' && user.passwordHash === null))
+  fixture.group.attributes.website = 'not a website'
+  const cleaned = await createIcesMigrationBundle(options)
+  const valid = await parseMigrationBundle({ type: 'zip', bytes: cleaned.bytes })
+  assert.ok(valid.success, JSON.stringify(valid))
+  assert.ok(!valid.plan.community.contacts.some(contact => contact.type === 'website'))
+  fixture.members[0].attributes.image = 'not an image URL'
+  await assert.rejects(createIcesMigrationBundle(options), /members.csv:2:imageUrl INVALID_URL/)
+  fixture.users[0].attributes.email = 'changed@example.org'
+  await assert.rejects(createIcesMigrationBundle(options), /source identity mismatch/)
+})
+
+test('gives blank, redacted and mutually conflicting disabled identities distinct emails', async (t) => {
+  const fixture = await serveIces(t)
+  const emails = ['', ' Deleted@Deleted.org ', 'shared@example.org', 'shared@example.org', 'unique@example.org', 'active@example.org']
+  fixture.users.forEach((user, index) => { user.attributes.email = emails[index] })
+  const source = fixture.users.map((user, index) => ({
+    uid: icesUserUid(user.id), mail: emails[index], pass: '', status: index < 2 || index === 5 ? 1 : 0, language: 'ca',
+  }))
+  const result = await createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' },
+    sanitize: createIcesSanitizer(source),
+  })
+  const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
+  assert.ok(parsed.success, JSON.stringify(parsed))
+  assert.equal(parsed.summary.users, 6)
+  assert.deepEqual(parsed.plan.users.map(user => user.email), [
+    ...source.slice(0, 4).map(user => `deleted-${user.uid}@deleted.invalid`), ...emails.slice(4),
+  ])
+  assert.deepEqual(parsed.plan.community.adminUsers, [`deleted-${source[0].uid}@deleted.invalid`])
+  assert.deepEqual(parsed.plan.users.map(user => user.status), ['active', 'active', 'disabled', 'disabled', 'disabled', 'active'])
+})
 
 test('exports legacy auth/social HTTP resources to a valid CSV ZIP without querying accounting', async (t) => {
   const fixture = await serveIces(t)
@@ -53,7 +150,6 @@ test('exports legacy auth/social HTTP resources to a valid CSV ZIP without query
   assert.deepEqual(plan.posts[0].imageUrls, ['https://example.org/a.jpg', 'https://example.org/a.jpg'])
   assert.equal(plan.posts[3].category, null)
   assert.equal(plan.posts[3].title, null)
-  assert.ok(result.warnings.some((warning) => warning.includes('daily/quarterly')))
 
   const tokenRequests = fixture.requests.filter(({ url }) => url.pathname.endsWith('/token'))
   assert.equal(tokenRequests.length, 1)
@@ -97,11 +193,82 @@ test('fails on incomplete or malformed source responses', async (t) => {
     } }))
     await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, pageSize: 1 }), /repeated/)
   })
-  await t.test('source reference missing', async (t) => {
-    const fixture = await serveIces(t)
-    fixture.posts[0].relationships.member.data.id = icesId(999)
-    await assert.rejects(createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' } }), /outside the exported community/)
+})
+
+test('warns and exports valid posts when source members or categories are missing', async (t) => {
+  const fixture = await serveIces(t)
+  fixture.posts[0].relationships.member.data.id = icesId(999)
+  fixture.posts[1].relationships.category.data.id = icesId(998)
+  const messages: string[] = []
+  const result = await createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' },
+    onProgress: (message) => messages.push(message),
   })
+  const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
+  assert.ok(parsed.success, JSON.stringify(parsed))
+  assert.deepEqual(result.summary, parsed.summary)
+  assert.equal(result.summary.offers, 2)
+  assert.equal(result.summary.needs, 1)
+  assert.ok(!parsed.plan.posts.some(({ id }) => id === fixture.posts[0].id))
+  assert.equal(parsed.plan.posts.find(({ id }) => id === fixture.posts[1].id)!.category, null)
+  const warnings = [
+    `ICES offers/${fixture.posts[0].id} references member ${icesId(999)} missing from exported community ICES; skipping post`,
+    `ICES offers/${fixture.posts[1].id} references category ${icesId(998)} missing from exported community ICES; exporting without a category`,
+  ]
+  for (const warning of warnings) {
+    assert.ok(result.warnings.includes(warning))
+    assert.ok(messages.includes(`Warning: ${warning}`))
+  }
+})
+
+test('recovers from a timed-out user response without restarting the export', async (t) => {
+  const fixture = await serveIces(t)
+  const messages: string[] = []
+  const memberId = fixture.members[2].id
+  let attempts = 0
+  fixture.overrides.set('/drupal/ces/api/social/users', (url) => {
+    if (url.searchParams.get('filter[members]') === memberId && ++attempts === 1) {
+      return { body: { data: [] }, delayMs: 1000 }
+    }
+  })
+  const result = await createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' },
+    timeoutMs: 200, onProgress: (message) => messages.push(message),
+  })
+  const parsed = await parseMigrationBundle({ type: 'zip', bytes: result.bytes })
+  assert.ok(parsed.success, JSON.stringify(parsed))
+  assert.deepEqual(result.summary, parsed.summary)
+  assert.equal(result.summary.members, 6)
+  assert.equal(attempts, 2)
+  const lookups = fixture.requests.filter(({ url }) => url.pathname.endsWith('/users'))
+  assert.equal(lookups.length, 7)
+  assert.equal(lookups.filter(({ url }) => url.searchParams.get('filter[members]') === fixture.members[0].id).length, 1)
+  assert.ok(messages.some((message) => message.includes(memberId) && message.includes('attempt 1/3') && message.includes('retrying')))
+})
+
+test('stops after three timed-out reads and reports the failed lookup', async (t) => {
+  const fixture = await serveIces(t)
+  fixture.overrides.set('/drupal/ces/api/social/users', () => ({ body: { data: [] }, delayMs: 1000 }))
+  await assert.rejects(createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, timeoutMs: 200,
+  }), (error: Error) => {
+    assert.ok(error.message.includes('/drupal/ces/api/social/users?'))
+    assert.ok(error.message.includes(fixture.members[0].id))
+    assert.ok(error.message.includes('timed out after 0.2s (attempt 3/3)'))
+    assert.ok(!error.message.includes('secret'))
+    return true
+  })
+  assert.equal(fixture.requests.filter(({ url }) => url.pathname.endsWith('/users')
+    && url.searchParams.get('filter[members]') === fixture.members[0].id).length, 3)
+})
+
+test('does not retry a timed-out authentication request', async (t) => {
+  const fixture = await serveIces(t)
+  fixture.overrides.set('/drupal/oauth2/token', () => ({ body: {}, delayMs: 1000 }))
+  await assert.rejects(createIcesMigrationBundle({
+    url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' }, timeoutMs: 200,
+  }), /oauth2\/token timed out after 0.2s \(attempt 1\/1\)/)
+  assert.equal(fixture.requests.length, 1)
 })
 
 test('exports source values for separate import validation', async (t) => {

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { requestJsonWithTimeout } from '../../utils'
 import { MAX_MIGRATION_DATA_ROWS } from '../../../../social/src/features/migrations/bundle/constants'
 
 const identifierSchema = z.object({ type: z.string(), id: z.string() })
@@ -37,7 +38,8 @@ export class IcesClient {
   private token = ''
   private expiresAt = 0
 
-  constructor(url: string, private readonly auth: IcesAuth, readonly pageSize = 100) {
+  constructor(url: string, private readonly auth: IcesAuth, readonly pageSize = 100,
+    readonly onProgress: (message: string) => void = () => {}, private readonly timeoutMs = 120_000) {
     this.baseUrl = new URL(url.endsWith('/') ? url : `${url}/`)
     if (!['http:', 'https:'].includes(this.baseUrl.protocol) || this.baseUrl.username
       || this.baseUrl.password || this.baseUrl.search || this.baseUrl.hash) {
@@ -49,13 +51,13 @@ export class IcesClient {
   }
 
   private async request(url: URL, init: RequestInit) {
-    const response = await fetch(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(30_000) })
-    if (!response.ok) throw new Error(`ICES ${url.pathname} returned HTTP ${response.status}`)
-    return response.json() as Promise<unknown>
+    return requestJsonWithTimeout(`ICES ${url.pathname}${url.search}`, url,
+      { ...init, redirect: 'error' }, this.timeoutMs, this.onProgress)
   }
 
   private async accessToken() {
     if (Date.now() >= this.expiresAt) {
+      this.onProgress('Authenticating with ICES')
       const json = await this.request(new URL('oauth2/token', this.baseUrl), {
         method: 'POST',
         body: new URLSearchParams({
@@ -83,6 +85,8 @@ export class IcesClient {
   }
 
   async document(path: string, query: Record<string, string> = {}) {
+    const page = query['page[size]'] ? ` (offset ${query['page[after]']}, limit ${query['page[size]']})` : ''
+    this.onProgress(`Fetching ${path}${page}`)
     const url = new URL(`ces/api/social/${path}`, this.baseUrl)
     url.search = new URLSearchParams(query).toString()
     const json = await this.request(url, {
@@ -90,6 +94,8 @@ export class IcesClient {
     })
     const result = documentSchema.safeParse(json)
     if (!result.success) throw new Error(`ICES ${url.pathname} returned an invalid JSON:API document`)
+    const count = Array.isArray(result.data.data) ? result.data.data.length : 1
+    this.onProgress(`Fetched ${path}: ${count} resources`)
     return result.data
   }
 

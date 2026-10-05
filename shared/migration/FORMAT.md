@@ -159,9 +159,9 @@ The [ICES exporter](../cli/migration/ices/) exports Auth/Social data for a commu
 - `members.csv` contains the social data and original member IDs. Active, disabled, suspended and deleted members retain `account.id` when available and can otherwise be matched by code. Draft and pending members leave it blank. Other `account.*` fields are omitted.
 - `users.csv`, `categories.csv` and `posts.csv` retain original UUIDs. Member-user relationships use the usual member codes and user emails; their IDs are blank because the source exposes no relationship UUIDs.
 - `transfers.csv` is omitted. The bundle supplies no changes to existing balances or history.
-- User name, status, timestamps and password hashes are unknown through this API and are omitted. Database enrichment supplies identity status and password hashes; API-only imports default new identities to `active` and require a password reset.
-- Contact values and notification frequencies are retained, including Instagram/Facebook/Twitter and daily/quarterly frequencies. Execution must support or explicitly map values that the destination API does not yet accept. Administrators without memberships and published posts owned by inactive members retain their original relationships and states.
+- User display names and identity timestamps are not exposed by this API. The generator reads identity status and original password hashes from the source database.
+- Contact values and notification frequencies are retained, including Instagram/Facebook/Twitter. The importer maps daily to weekly and quarterly to monthly. Administrators without memberships and published posts owned by inactive members retain their original relationships and states.
 
 ICES UUIDs encode the resource type, internal numeric database ID and installation-specific salt bytes; CSV codes and emails cannot reconstruct them. Preserving UUIDs keeps existing resource URLs and Accounting user references. Supplied user IDs must agree with any existing Auth identity; execution must reject conflicts rather than silently assigning different IDs.
 
-All ordinary bundle validation applies. The exporter’s API limitations are documented in its README.
+All ordinary bundle validation applies.
