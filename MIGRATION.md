@@ -44,28 +44,48 @@ docker compose exec -T accounting pnpm exec tsx scripts/repair-ices-account-link
 docker compose exec -T accounting pnpm exec tsx scripts/repair-ices-account-links.ts --source https://integralces.net/ces/api/accounting --apply
 ```
 
-## 4. Generate fresh bundles
+## 4. Optional source database query caching
+
+Cache tuning is not required for migration. On a small VPS, leave `innodb_buffer_pool_size` unchanged. A 1 GiB buffer pool plus a 128 MiB query cache needs 1,152 MiB before other MariaDB allocations, PHP, the OS and other services. Size against available memory and any container limit; see [MariaDB memory allocation](https://mariadb.com/docs/server/ha-and-performance/mariadb-memory-allocation).
+
+Check `free -h` and, for containers, `docker stats --no-stream` on the source host. Connect to the source MariaDB server identified by `ICES_DATABASE_URL` and record its current settings before changing them:
+
+```sql
+SELECT VERSION(), @@GLOBAL.innodb_buffer_pool_size,
+       @@GLOBAL.query_cache_size, @@GLOBAL.query_cache_type;
+```
+
+If caching is currently disabled and memory headroom allows it, a small 16 MiB trial may help repeated identical API queries. As a database administrator:
+
+```sql
+SET GLOBAL query_cache_size = 16777216;
+SET GLOBAL query_cache_type = 1;
+```
+
+Reconnect the ICES web/PHP database sessions after enabling caching. If MariaDB reports that caching cannot be enabled at runtime, skip this optional step. Monitor memory and export time; skip tuning if memory is tight. Restore the recorded settings after export and reconnect PHP sessions again. Runtime settings also revert to the startup configuration when MariaDB restarts. See [query cache behavior](https://mariadb.com/docs/server/ha-and-performance/optimization-and-tuning/buffers-caches-and-threads/query-cache).
+
+## 5. Generate fresh bundles
 
 Use an unused private output directory. These are the 19 active groups in the reviewed snapshot, ordered HORA first. `--all` also includes inactive groups.
 
 ```sh
 umask 077
 MIGRATION_GROUP_CODES='HORA CBA3 COOP CUFC ECOS FGTM FLOC GOTA GREE GRTX HERA NGI1 SNGS SUDO TEST TIME UCAS XLCC ZOQT'
-mkdir -m 700 bundles-prod
+mkdir -m 700 bundles-test
 for code in $MIGRATION_GROUP_CODES; do
-  ./shared/cli/komunitin admin bundle ices --url https://integralces.net --code "$code" --output "bundles-prod/$code.zip" || exit 1
+  ./shared/cli/komunitin admin bundle ices --url https://integralces.net --code "$code" --output "bundles-test/$code.zip" || exit 1
 done
 ```
 
 Generic data sanitization is automatic. Bundles contain password hashes; keep them private.
 
-## 5. Import and verify
+## 6. Import and verify
 
 After all 19 exports succeed, run in the same shell against one destination:
 
 ```sh
 for code in $MIGRATION_GROUP_CODES; do
-  ./shared/cli/komunitin admin migrate "bundles-prod/$code.zip" || exit 1
+  ./shared/cli/komunitin admin migrate "bundles-test/$code.zip" || exit 1
 done
 ```
 
