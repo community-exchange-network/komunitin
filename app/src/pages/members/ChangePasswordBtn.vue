@@ -2,16 +2,14 @@
   <div>
     <q-btn
       flat
+      no-wrap
       color="primary"
       class="full-width"
-      icon="mail"
+      icon="key"
       :label="$t('changePassword')"
       :loading="loading"
       @click="sendResetLink"
     />
-    <div class="text-body2 text-onsurface-m q-mt-sm">
-      {{ $t('changePasswordText') }}
-    </div>
   </div>
 </template>
 
