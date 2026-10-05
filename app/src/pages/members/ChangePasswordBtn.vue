@@ -1,41 +1,30 @@
 <template>
-  <div>
-    <q-btn
-      flat
-      no-wrap
-      color="primary"
-      class="full-width"
-      icon="key"
-      :label="$t('changePassword')"
-      :loading="loading"
-      @click="sendResetLink"
-    />
-  </div>
+  <dialog-form-btn
+    no-wrap
+    icon="key"
+    :label="$t('changePassword')"
+    :text="$t('changePasswordText')"
+    :submit="sendResetLink"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue"
 import { useStore } from "vuex"
 import { useI18n } from "vue-i18n"
 import { Notify } from "quasar"
 import { Auth } from "@/plugins/Auth"
+import DialogFormBtn from "@/components/DialogFormBtn.vue"
 
 const store = useStore()
 const { t } = useI18n()
 const auth = new Auth()
-const loading = ref(false)
 
 const sendResetLink = async () => {
-  loading.value = true
-  try {
-    await auth.resetPassword(store.getters.myUser.attributes.email)
-    Notify.create({
-      message: t('resetLinkSentText'),
-      color: 'positive',
-      icon: 'mail'
-    })
-  } finally {
-    loading.value = false
-  }
+  await auth.resetPassword(store.getters.myUser.attributes.email)
+  Notify.create({
+    message: t('resetLinkSentText'),
+    color: 'positive',
+    icon: 'mail'
+  })
 }
 </script>
