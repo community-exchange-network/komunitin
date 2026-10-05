@@ -42,6 +42,8 @@ const postColumns: SqlColumnMap = {
   expires: postColumn('expires'),
 }
 
+const unexpiredPostWhere = Prisma.sql`(${postColumn('expires')} IS NULL OR ${postColumn('expires')} >= NOW())`
+
 const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): Promise<Prisma.Sql | null> => {
   const live = [
     Prisma.sql`${postColumn('deleted')} IS NULL`,
@@ -60,6 +62,7 @@ const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): P
     readable.push(sqlAnd([
       Prisma.sql`${memberColumn('status')} = 'active'`,
       Prisma.sql`${postColumn('status')} = 'published'`,
+      unexpiredPostWhere,
       isMember
         ? Prisma.sql`${postColumn('access')} IN ('public', 'group')`
         : Prisma.sql`${postColumn('access')} = 'public'`,
@@ -97,7 +100,7 @@ const buildExpiredWhere = (rawValue: CollectionParams['filters'][string] | undef
 
   return includeExpired
     ? Prisma.sql`${postColumn('expires')} < NOW()`
-    : Prisma.sql`(${postColumn('expires')} IS NULL OR ${postColumn('expires')} >= NOW())`
+    : unexpiredPostWhere
 }
 
 type PostRelationshipCountRow = {
@@ -106,7 +109,7 @@ type PostRelationshipCountRow = {
   count: number
 }
 
-/** Compute visible published offer and need counts for members or categories. */
+/** Count published, unexpired posts accessible to the caller for members or categories. */
 export const findPostRelationshipCounts = async (
   ctx: OptionalAuthContext,
   db: DbClient,
@@ -132,6 +135,7 @@ export const findPostRelationshipCounts = async (
     FROM ${postWithMemberFrom}
     WHERE ${readableWhere}
       AND ${postColumn('status')} = 'published'
+      AND ${unexpiredPostWhere}
       AND ${relatedId} IN (${Prisma.join(uniqueIds)})
     GROUP BY ${relatedId}, ${postColumn('type')}
   `)

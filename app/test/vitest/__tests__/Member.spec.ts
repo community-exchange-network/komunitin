@@ -66,7 +66,7 @@ describe("Member", () => {
     // Tabs
     expect(text).toContain("Profile");
     expect(text).toContain("No Wants");
-    expect(text).toContain("2 Offers");
+    expect(text).toContain("1 Offer");
     expect(wrapper.findAllComponents(QTab).length).toBe(3);
     // Bio
     const description = requireTextExcerpt(myMember.attributes.description, "Member description");

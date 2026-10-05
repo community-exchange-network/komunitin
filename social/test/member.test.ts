@@ -667,36 +667,44 @@ describe('Members endpoints', () => {
       .expect(403)
   })
 
-  test('member offer and need relationships expose visible published counts', async () => {
-    await seedGroup({ tenantId: 'members-post-counts', status: 'active', access: 'public' })
+  test('member post counts exclude expired, unpublished and inaccessible posts', async () => {
+    const tenantId = 'members-post-counts'
+    await seedGroup({ tenantId, status: 'active', access: 'public' })
+    const owner = await auth('post-counts-owner')
     const member = await seedMember({
-      tenantId: 'members-post-counts',
+      tenantId,
       status: 'active',
       access: 'public',
+      userId: owner.id,
     })
-    await seedPost({
-      tenantId: 'members-post-counts',
-      memberId: member.id,
-      type: 'offers',
-      status: 'published',
-      access: 'public',
-    })
-    await seedPost({
-      tenantId: 'members-post-counts',
-      memberId: member.id,
-      type: 'offers',
-      status: 'draft',
-      access: 'public',
-    })
+    const base = { tenantId, memberId: member.id, type: 'offers', status: 'published', access: 'public' } as const
+    await seedPost(base)
+    await seedPost({ ...base, access: 'private' })
+    await seedPost({ ...base, expires: new Date('2000-01-01') })
+    await seedPost({ ...base, type: 'needs', status: 'draft' })
 
-    const res = await request(app)
-      .get(`/members-post-counts/members/${member.id}`)
+    const publicRes = await request(app)
+      .get(`/${tenantId}/members/${member.id}`)
       .expect(200)
+    assert.strictEqual(publicRes.body.data.relationships.offers.meta.count, 1)
 
-    assert.strictEqual(res.body.data.relationships.offers.meta.count, 1)
-    assert.strictEqual(res.body.data.relationships.needs.meta.count, 0)
-    const related = new URL(res.body.data.relationships.offers.links.related)
+    const ownerRes = await request(app)
+      .get(`/${tenantId}/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+    const relationships = ownerRes.body.data.relationships
+    assert.strictEqual(relationships.offers.meta.count, 2)
+    assert.strictEqual(relationships.needs.meta.count, 0)
+
+    const related = new URL(relationships.offers.links.related)
     assert.strictEqual(related.searchParams.get('filter[status]'), 'published')
+    assert.strictEqual(related.searchParams.get('filter[expired]'), 'false')
+    const posts = await request(app)
+      .get(related.pathname + related.search)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+    assert.strictEqual(posts.body.meta.count, 2)
+    assert.strictEqual(posts.body.data.length, 2)
   })
 
   test('GET /:code/members/:member allows service read access for non-public member', async () => {
