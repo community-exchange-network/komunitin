@@ -30,18 +30,9 @@ docker pull alpine:3
 mkdir -m 700 /opt/komunitin-backup
 ```
 
-## 1. Switch the shared proxy and enable maintenance
+## 1. Update the shared proxy and enable maintenance
 
-Use `/opt/komunitin-deploy/proxy/compose.yml` and `/opt/komunitin-deploy/maintenance/compose.yml`, each with its own `.env`. Compose uses the folder names as project names.
-
-```sh
-cd /opt/komunitin-deploy/proxy
-docker inspect traefik --format '{{json .Mounts}}'
-cp .env.template .env
-nano .env
-```
-
-Set `TRAEFIK_ACME_VOLUME` to the volume mounted at `/letsencrypt` (normally `proxy_letsencrypt`). Then configure maintenance:
+Use `/opt/komunitin-deploy/proxy/compose.yml` and `/opt/komunitin-deploy/maintenance/compose.yml`, each with its own `.env`. Compose uses the folder names as project names. The proxy uses the existing Compose file, updated in place, and the same `letsencrypt` volume. Keep its existing `.env` and project name; no volume migration is needed. Configure maintenance:
 
 ```sh
 cd /opt/komunitin-deploy/maintenance
@@ -58,9 +49,7 @@ MAINTENANCE_BYPASS='ClientIP(`203.0.113.10`) || ClientIP(`203.0.113.20`) || Clie
 
 ```sh
 docker compose up -d
-docker stop traefik
 docker cp traefik:/letsencrypt/acme.json /opt/komunitin-backup/acme.json
-docker rm traefik
 
 cd /opt/komunitin-deploy/proxy
 docker compose up -d
