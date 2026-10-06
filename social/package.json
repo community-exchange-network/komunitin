@@ -24,7 +24,7 @@
     "dotenv": "17.4.2",
     "express": "^5.2.1",
     "express-oauth2-jwt-bearer": "^1.8.0",
-    "file-type": "^20.5.0",
+    "file-type": "^21.3.2",
     "formidable": "^3.5.4",
     "helmet": "^8.1.0",
     "node-cron": "^3.0.3",
