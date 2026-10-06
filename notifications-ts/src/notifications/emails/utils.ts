@@ -3,6 +3,7 @@ import type { MessageContext } from "../messages";
 import type { EmailTemplateContext } from "./types";
 import { config } from "../../config";
 import type { NewsletterTemplateGroup } from "../../newsletter/types";
+import { imageUrl } from "../../clients/komunitin/image";
 
 type CommonEmailTemplateContext = Pick<EmailTemplateContext, 'appUrl' | 'appName' | 'group' | 'language' | 'reason' | 'settingsLabel'>;
 
@@ -20,7 +21,7 @@ export const ctxCommon = (event: AnyEnrichedEvent, ctx: MessageContext): CommonE
     name,
     code,
     initial,
-    image: event.group?.attributes.image,
+    image: imageUrl(event.group?.attributes.image),
   };
 
   const data = {

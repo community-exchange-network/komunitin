@@ -8,7 +8,7 @@
     <q-item-section avatar>
       <avatar
         :text="notification.attributes.title"
-        :img-src="notification.attributes.image"
+        :img-src="notification.attributes.image ? { url: notification.attributes.image } : null"
       />
     </q-item-section>
 

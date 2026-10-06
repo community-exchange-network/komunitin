@@ -44,19 +44,23 @@ describe('shouldProcessGroup', () => {
 
   const createGroup = (coordinates?: [number, number]): Group => ({
     id: '1',
+    type: 'groups',
     attributes: {
       code: 'TEST',
       name: 'Test Group',
       status: 'active',
+      image: null,
+      address: null,
       location: {
         type: 'Point',
         coordinates: coordinates || [0, 0]
       }
     },
     relationships: {
-      admins: { data: [
-        { id: 'admin-1', type: 'users' }
-      ] }
+      admins: {
+        links: { related: 'http://social.test/TEST/admins' },
+        meta: { count: 1 }
+      }
     }
   });
 
@@ -120,7 +124,7 @@ describe('shouldProcessGroup', () => {
     mockDate('2026-01-04T15:30:00Z');
     
     const group = createGroup();
-    group.attributes.location.coordinates = [] as any; // Invalid
+    group.attributes.location!.coordinates = [] as any; // Invalid
     
     assert.strictEqual(shouldProcessGroup(group, false), true);
   });

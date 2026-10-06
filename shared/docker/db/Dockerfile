@@ -19,10 +19,20 @@ RUN set -ex && \
 
 FROM postgres:16 AS komunitin-db
 
+ARG INSTALL_POSTGIS=false
+ARG INSTALL_PGVECTOR=false
+
 # Install cron
 RUN set -ex && \
     apt update -q && \
-    apt install -yq --no-install-recommends ca-certificates cron && \
+        packages="ca-certificates cron" && \
+        if [ "$INSTALL_POSTGIS" = "true" ]; then \
+            packages="$packages postgresql-16-postgis-3 postgresql-16-postgis-3-scripts"; \
+        fi && \
+        if [ "$INSTALL_PGVECTOR" = "true" ]; then \
+            packages="$packages postgresql-16-pgvector"; \
+        fi && \
+        apt install -yq --no-install-recommends $packages && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the wal-g binary from the builder stage

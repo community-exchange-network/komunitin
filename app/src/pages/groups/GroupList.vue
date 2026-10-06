@@ -4,7 +4,6 @@
     code=""
     :title="$t('groupsNearYou')"
     type="groups"
-    include="contacts"
   />
 </template>
 <script lang="ts">

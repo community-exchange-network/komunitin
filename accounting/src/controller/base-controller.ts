@@ -89,8 +89,8 @@ export class BaseControllerImpl implements BasePublicService {
       throw badRequest(`Currency with code ${currency.code} already exists`)
     }
 
-    if (ctx.type !== "user" && ctx.type !== "system") {
-      throw unauthorized("Required user or system credentials")
+    if (ctx.type !== "user" && ctx.type !== "system" && ctx.type !== "superadmin") {
+      throw unauthorized("Required user, system or superadmin credentials")
     }
 
     // Create and save a currency key that will be used to encrypt all other keys
@@ -105,7 +105,7 @@ export class BaseControllerImpl implements BasePublicService {
     const settings = {} as Record<string, any>
     for (const key in defaultSettings) {
       const tkey = key as keyof CurrencySettings
-      settings[key] = currency.settings[tkey] ?? defaultSettings[tkey]
+      settings[key] = currency.settings?.[tkey] ?? defaultSettings[tkey]
     }
     currency.settings = settings as CurrencySettings
 
@@ -207,6 +207,7 @@ export class BaseControllerImpl implements BasePublicService {
     return recordToCurrency(record)
 
   }
+
   /**
    * Implements {@link BaseController.getCurrencies}
    */
@@ -233,7 +234,10 @@ export class BaseControllerImpl implements BasePublicService {
 
   private async loadCurrency(code: string): Promise<Currency> {
     const record = await this.tenantDb(code).currency.findUnique({
-      where: { code },
+      where: {
+        code,
+        status: { not: "deleted" },
+      },
       include: {
         externalAccount: true
       }
@@ -304,4 +308,3 @@ export class BaseControllerImpl implements BasePublicService {
   }
 
 }
-

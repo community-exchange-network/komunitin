@@ -12,17 +12,10 @@ ARG FLAVOR=komunitin
 
 WORKDIR /app
 
-# Install mkcert
-RUN apt-get update && apt-get -y install libnss3-tools wget \
-  && wget -O /usr/local/bin/mkcert https://github.com/FiloSottile/mkcert/releases/download/v1.4.3/mkcert-v1.4.3-linux-amd64 \
-  && chmod a+x /usr/local/bin/mkcert \
-  && mkcert -install
-
-# Set local CA ROOT env variable (used from quasar.conf.js) 
-ENV LOCAL_CA_ROOT=/root/.local/share/mkcert/rootCA.pem
-
-# Create self-signed certificates.
-RUN mkdir -p tmp/certs && mkcert -cert-file tmp/certs/localhost.pem -key-file tmp/certs/localhost-key.pem localhost
+# Keep fallback self-signed certificate outside the development source mount.
+RUN mkdir -p /certs && openssl req -x509 -newkey rsa:2048 -noenc -days 365 \
+  -keyout /certs/localhost-key.pem -out /certs/localhost.pem -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost"
 
 # Enable pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@10.26.1 --activate

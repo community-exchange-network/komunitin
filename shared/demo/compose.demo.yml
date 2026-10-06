@@ -1,0 +1,38 @@
+# Temporary IntegralCES source, run as a separate project by shared/demo/demo.sh.
+services:
+  db-integralces:
+    image: mariadb:11.8
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: integralces
+      MYSQL_USER: integralces
+      MYSQL_PASSWORD: ${ICES_MYSQL_PASSWORD:-integralces}
+    ports:
+      - "${ICES_MYSQL_PORT:-3307}:3306"
+    volumes:
+      - db-integralces:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  integralces:
+    # Drupal sends an installation email before the demo enables maillog.
+    command: [sh, -ec, "echo 'sendmail_path = /bin/true' > /usr/local/etc/php/conf.d/demo.ini; exec apache2-foreground"]
+    build:
+      context: ${ICES_PATH:-../../../ices}
+    ports:
+      - "${ICES_PORT:-2029}:2029"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db-integralces:
+        condition: service_healthy
+    volumes:
+      - integralces-sites:/var/www/html/sites
+      - ${ICES_PATH:-../../../ices}:/var/www/html/sites/all/modules/ices
+
+volumes:
+  db-integralces:
+  integralces-sites:

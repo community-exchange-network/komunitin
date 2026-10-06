@@ -14,17 +14,17 @@ type CombinedTopupSettings = Omit<TopupSettings["attributes"], "defaultAllowTopu
 
 export const useTopupSettings = (account?: MaybeRef<Account & {currency: Currency}>) => {
   const store = useStore()
-  const accountVal = toValue(account) ?? store.getters.myAccount
-  const currencyCode = accountVal.currency.attributes.code
+  const currentAccount = computed(() => toValue(account) ?? store.getters.myAccount)
+  const currency = computed(() => currentAccount.value?.currency)
   
-  const {resource: topupSettings} = useResource<TopupSettings>('topup-settings', {
-    group: currencyCode,
-    id: accountVal.currency.id
-  })
-  const {resource: accountTopupSettings} = useResource<AccountTopupSettings>('account-topup-settings', {
-    group: currencyCode,
-    id: accountVal.id
-  })
+  const {resource: topupSettings} = useResource<TopupSettings>('topup-settings', () => ({
+    group: currency.value?.attributes.code,
+    id: currency.value?.id ?? null
+  }))
+  const {resource: accountTopupSettings} = useResource<AccountTopupSettings>('account-topup-settings', () => ({
+    group: currency.value?.attributes.code,
+    id: currency.value ? currentAccount.value.id : null
+  }))
 
   return computed<CombinedTopupSettings|null>(() => {
     const topupSettingsVal = toValue(topupSettings)

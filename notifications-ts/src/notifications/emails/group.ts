@@ -29,7 +29,7 @@ export const ctxGroupActivatedEmail = (event: EnrichedGroupEvent, ctx: MessageCo
     cta: {
       main: {
         text: t('emails.group_activated_cta'),
-        url: `${common.appUrl}/groups/${common.group.code}/admin`
+        url: `${common.appUrl}/groups/${common.group.code}/admin/settings`
       }
     },
     // Rendered through {{{reason}}} in templates/partials/footer.hbs.

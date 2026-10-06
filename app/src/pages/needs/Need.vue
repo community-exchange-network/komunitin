@@ -1,12 +1,16 @@
 <template>
-  <div>
+  <Error404
+    v-if="error?.code === KErrorCode.NotFound"
+    :to="`/groups/${code}/needs`"
+  />
+  <div v-else>
     <page-header 
       :title="title ?? $t('need')" 
       :back="`/groups/${code}/needs`"
     >
       <template #buttons>
         <q-btn
-          v-if="canEdit"
+          v-if="need && canEdit"
           round
           flat
           icon="edit"
@@ -14,7 +18,7 @@
           :title="$t('editNeed')"
         />
         <delete-need-btn 
-          v-if="canEdit"
+          v-if="need && canEdit"
           :code="code"
           :need="need"          
           :to="`/groups/${code}/needs`"
@@ -24,7 +28,7 @@
     </page-header>
     <q-page-container>
       <q-page
-        v-if="!isLoading"
+        v-if="need && isReady"
         class="q-pa-lg"
       >
         <offer-layout :num-images="need.attributes.images.length">
@@ -58,7 +62,7 @@
             <!-- eslint-disable vue/no-v-html -->
             <div 
               class="col text-body1 text-onsurface"
-              v-html="md2html(need.attributes.content)"
+              v-html="md2html(need.attributes.description)"
             />
             <!-- eslint-enable vue/no-v-html -->
             <div class="text-body2 text-onsurface-m q-pb-md">
@@ -72,23 +76,23 @@
                 color="primary"
                 :label="$t('share')"
                 :title="$t('checkThisNeed', {member: need.member.attributes.name})"
-                :text="need.attributes.content"
+                :text="need.attributes.description"
               />
               <contact-button
                 unelevated
                 color="primary"
                 :label="$t('contact')"
-                :contacts="need.member.contacts"
+                :contacts="need.member.attributes.contacts"
               /> 
             </div>
           </template>
           <template #map>
             <simple-map
               class="simple-map"
-              :center="need.member.attributes.location.coordinates"
-              :marker="need.member.attributes.location.coordinates"
+              :center="need.member.attributes.location?.coordinates"
+              :marker="need.member.attributes.location?.coordinates"
             />
-            <div class="text-onsurface-m">
+            <div class="text-onsurface-m" v-if="need.member.attributes.location?.name">
               <q-icon name="place" />
               {{ need.member.attributes.location.name }}
             </div>
@@ -102,8 +106,9 @@
     </q-page-container>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent, ref } from "vue";
+<script setup lang="ts">
+import { computed } from "vue";
+import { useStore } from "vuex";
 
 import md2html from "../../plugins/Md2html";
 
@@ -117,71 +122,29 @@ import MemberHeader from "../../components/MemberHeader.vue";
 import ShareButton from "../../components/ShareButton.vue";
 import SimpleMap from "../../components/SimpleMap.vue";
 import DeleteNeedBtn from "../../components/DeleteNeedBtn.vue";
+import Error404 from "../Error404.vue";
 
-import type { Need, Member, Category, Contact } from "../../store/model";
+import { useResource } from "@/composables/useResources";
+import type { Need, Member, Category } from "../../store/model";
+import { KErrorCode } from "@/KError";
 
+type FullNeed = Need & { member: Member, category: Category }
 
-export default defineComponent({
-  components: {
-    MemberHeader,
-    SimpleMap,
-    PageHeader,
-    CategoryAvatar,
-    ShareButton,
-    ContactButton,
-    Carousel,
-    OfferLayout,
-    DeleteNeedBtn
-  },
-  props: {
-    code: {
-      type: String,
-      required: true,
-    },
-    needCode: {
-      type: String,
-      required: true
-    },
-    title: {
-      type: String,
-      required: false,
-      default: null
-    }
-  },
-  setup() {
-    const ready = ref(false)
-    return {
-      md2html,
-      ready
-    }
-  },
-  computed: {
-    need(): Need & {member: Member & {contacts: Contact[] }, category: Category } {
-      return this.$store.getters["needs/current"]
-    },
-    isLoading(): boolean {
-      // We need the explicit fetched boolean to force trigger update that may not
-      // trigger due to the structure of relatinship links of resource objects.
-      return !(this.need && this.need.member && this.need.member.contacts && this.need.category) && (this.ready || !this.ready)
-    },
-    canEdit(): boolean {
-      return this.need?.member?.id === this.$store.getters.myMember.id || this.$store.getters.isAdmin
-    }
-    
-  },
-  created() {
-    // See comment in analogous function at Group.vue.
-    this.$watch("needCode", this.fetchData, { immediate: true });
-  },
-  methods: {
-    async fetchData(needCode: string) {
-      await this.$store.dispatch("needs/load", {
-        code: needCode,
-        group: this.code,
-        include: "category,member,member.contacts,member.account"
-      });
-      this.ready = true
-    }
-  }
-})
+const props = defineProps<{
+  code: string
+  needCode: string
+  title?: string
+}>()
+
+const store = useStore()
+const needOptions = computed(() => ({
+  code: props.needCode,
+  group: props.code,
+  include: "category,member,member.account"
+}))
+const { resource: need, error } = useResource<FullNeed>('needs', needOptions)
+const canEdit = computed(() =>
+  need.value?.member?.id === store.getters.myMember?.id || store.getters.isAdmin
+)
+const isReady = computed(() => Boolean(need.value && need.value.member && need.value.category))
 </script>

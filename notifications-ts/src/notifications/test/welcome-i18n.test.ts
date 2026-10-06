@@ -47,9 +47,9 @@ describe('Welcome notification i18n', () => {
       const member = createMember({ groupCode, name: memberName })
       const userId = getUserIdForMember(member.id)
 
-      const settings = db.userSettings.find(s => s.id === `${userId}-settings`)
-      if (settings) {
-        settings.attributes.language = language
+      const user = db.users.find(item => item.id === userId)
+      if (user) {
+        user.attributes.language = language
       }
 
       const eventData = createEvent('MemberJoined', { code: groupCode, user: userId, data: { member: member.id } })

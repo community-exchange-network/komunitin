@@ -181,7 +181,7 @@ describe('Transfer endpoints', async () => {
     await t.api.get(`/TEST/transfers/${transfer.id}`, t.user2)
     // forbidden get by unrelated user
     await t.createAccount("4")
-    await t.api.get(`/TEST/transfers/${transfer.id}`, { user: "4", scopes: [Scope.Accounting] }, 403)
+    await t.api.get(`/TEST/transfers/${transfer.id}`, { user: "4", scopes: [Scope.AccountingRead] }, 403)
   })
 
   await it('list transfers', async () => {
@@ -287,6 +287,40 @@ describe('Transfer endpoints', async () => {
     assert.equal(first2[1], t.account2.attributes.code)
     assert.equal(first2[2], '0.004')
     
+  })
+
+  await it('filters transfers by state and keeps the unfiltered deleted-state default', async () => {
+    const deleted = await t.payment(
+      t.account1.id,
+      t.account2.id,
+      10,
+      "Deleted transfer",
+      "new",
+      t.user1
+    )
+    await t.api.delete(`/TEST/transfers/${deleted.id}`, t.user1)
+
+    const unfiltered = await t.api.get('/TEST/transfers', t.admin)
+    assert(!unfiltered.body.data.some((transfer: any) => transfer.id === deleted.id))
+    assert(unfiltered.body.data.some((transfer: any) => transfer.attributes.state === 'new'))
+    assert(unfiltered.body.data.some((transfer: any) => transfer.attributes.state === 'committed'))
+
+    const committed = await t.api.get('/TEST/transfers?filter[state]=committed', t.admin)
+    assert(committed.body.data.length > 0)
+    assert(committed.body.data.every((transfer: any) => transfer.attributes.state === 'committed'))
+
+    const committedCsv = await t.api.get(
+      '/TEST/transfers.csv?filter[state]=committed&csvfields=state',
+      t.admin,
+      200,
+      'text/csv'
+    )
+    const states = committedCsv.text
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .slice(1)
+    assert(states.length > 0)
+    assert(states.every(state => state === 'committed'))
   })
     
 })

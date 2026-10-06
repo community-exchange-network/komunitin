@@ -6,12 +6,13 @@
       @search="query = $event"
     />
   <q-page-container>
-    <q-page>
+    <q-page v-if="code">
       <resource-cards
         :code="code"
         :type="['offers', 'needs']"
-        include="category,member,member.group,member.group.currency,member.account,member.contacts"
+        include="category,member,member.group,member.group.currency,member.account"
         sort="-updated"
+        :filter="{ status: 'published', expired: 'false' }"
         :query="query"
       />
       <floating-btn-menu 
@@ -35,8 +36,7 @@ import FloatingBtnMenu, { type FABAction } from '../../components/FloatingBtnMen
 const store = useStore();
 const query = ref("");
 
-const myMember = computed(() => store.getters.myMember)
-const code = computed(() => myMember?.value.group.attributes.code)
+const code = computed(() => store.getters.myGroup?.attributes.code)
 
 const { t } = useI18n()
 const actions = computed<FABAction[]>(() => [{

@@ -1,7 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { Notify } from "quasar"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { Notify, type QUploader } from "quasar"
+import { defineComponent, shallowRef } from "vue"
+import Avatar from "../Avatar.vue"
 import AvatarField from "../AvatarField.vue"
 import ImageField from "../ImageField.vue"
+import { useImageUploader } from "@/composables/uploader"
+import { seeds } from "@/server"
 import {
   getMockFileUploadAttempts,
   resetMockFileUploads,
@@ -13,9 +17,9 @@ import { createMockImageFile, mockImageUploadProcessing } from "../../../test/vi
 type MountedComponent = Awaited<ReturnType<typeof mountComponent>>
 
 const lastUploadedImageUrl = (wrapper: MountedComponent) => {
-  const modelUpdateEvents: [string[]][] = wrapper.emitted("update:modelValue") ?? []
-  const lastImageUrls = modelUpdateEvents.at(-1)?.[0]
-  return lastImageUrls?.at(-1)
+  const modelUpdateEvents: [{url: string}[]][] = wrapper.emitted("update:modelValue") ?? []
+  const lastImages = modelUpdateEvents.at(-1)?.[0]
+  return lastImages?.at(-1)?.url
 }
 
 const uploadFile = async (wrapper: MountedComponent, file: File) => {
@@ -28,6 +32,10 @@ const uploadFile = async (wrapper: MountedComponent, file: File) => {
 }
 
 describe("image upload fields", () => {
+  beforeAll(() => {
+    seeds()
+  })
+
   beforeEach(() => {
     resetMockFileUploads()
     mockImageUploadProcessing()
@@ -39,6 +47,17 @@ describe("image upload fields", () => {
   })
 
   it("uploads a resized image from ImageField before the mock files endpoint would reject the original", async () => {
+    let imageDecoded = false
+    const decodeImage = vi.mocked(createImageBitmap).getMockImplementation()
+    vi.mocked(createImageBitmap).mockImplementation(async file => {
+      const image = await decodeImage(file)
+      imageDecoded = true
+      return image
+    })
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:image-preview")
+    const revokePreview = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {
+      expect(imageDecoded).toBe(true)
+    })
     const uploadLimit = 250_000
     const originalImage = createMockImageFile({
       encodedSize: 180_000,
@@ -54,7 +73,9 @@ describe("image upload fields", () => {
       props: {
         modelValue: [],
         label: "Add images",
-        hint: "hint"
+        hint: "hint",
+        code: "GRP0",
+        resourceType: "offers"
       },
       login: true
     })
@@ -76,6 +97,7 @@ describe("image upload fields", () => {
       url: "https://files.example/offer-photo.webp"
     })
     expect(upload.size).toBeLessThanOrEqual(uploadLimit)
+    expect(revokePreview).toHaveBeenCalled()
     wrapper.unmount()
   })
 
@@ -84,7 +106,9 @@ describe("image upload fields", () => {
     const wrapper = await mountComponent(AvatarField, {
       props: {
         modelValue: null,
-        text: "Avatar"
+        text: "Avatar",
+        code: "GRP0",
+        resourceType: "members"
       },
       login: true
     })
@@ -113,13 +137,124 @@ describe("image upload fields", () => {
     wrapper.unmount()
   })
 
+  it("defers an AvatarField upload, replaces its selection and uses the latest group code", async () => {
+    const wrapper = await mountComponent(AvatarField, {
+      props: {
+        modelValue: null,
+        text: "New group",
+        code: "",
+        resourceType: "groups",
+        deferred: true
+      },
+      login: true
+    })
+
+    await uploadFile(wrapper, createMockImageFile({
+      height: 800,
+      name: "new-group.png",
+      size: 200_000,
+      type: "image/png",
+      width: 800
+    }))
+
+    await waitFor(
+      () => wrapper.getComponent(Avatar).props("imgSrc")?.url?.startsWith("blob:"),
+      true,
+      "Deferred avatar should show a local preview"
+    )
+    expect(getMockFileUploadAttempts()).toHaveLength(0)
+
+    await uploadFile(wrapper, createMockImageFile({
+      height: 800,
+      name: "replacement.png",
+      size: 200_000,
+      type: "image/png",
+      width: 800
+    }))
+
+    await wrapper.setProps({ code: "GRP0" })
+    const avatarField = wrapper.vm as unknown as {
+      upload: () => Promise<{ url: string } | null>
+    }
+    const image = await avatarField.upload()
+
+    expect(image).toEqual({ url: "https://files.example/replacement.webp" })
+    expect(getMockFileUploadAttempts()).toEqual([
+      expect.objectContaining({
+        accepted: true,
+        name: "replacement.webp",
+        tenantCode: "GRP0"
+      })
+    ])
+
+    const repeatedImage = await avatarField.upload()
+    expect(repeatedImage).toEqual(image)
+    expect(getMockFileUploadAttempts()).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it("resolves a deferred upload after every request finishes", async () => {
+    const firstFile = new File(["first"], "first.webp", { type: "image/webp" })
+    const secondFile = new File(["second"], "second.webp", { type: "image/webp" })
+    const activeUploader = {
+      queuedFiles: [firstFile, secondFile],
+      upload: vi.fn(),
+      removeUploadedFiles: vi.fn(),
+      removeFile: vi.fn()
+    } as unknown as QUploader
+    const onUploaded = vi.fn()
+    let imageUploader!: ReturnType<typeof useImageUploader>
+
+    const Harness = defineComponent({
+      setup() {
+        imageUploader = useImageUploader({
+          uploader: shallowRef(activeUploader),
+          code: "GRP0",
+          resourceType: "offers",
+          deferred: true,
+          onUploaded
+        })
+        return () => null
+      }
+    })
+    const wrapper = await mountComponent(Harness, { login: true })
+    let result: boolean | undefined
+    const upload = imageUploader.upload().then(value => {
+      result = value
+      return value
+    })
+
+    await waitFor(() => activeUploader.upload.mock.calls.length, 1)
+    imageUploader.uploaderEvents.uploaded({
+      xhr: {
+        responseText: JSON.stringify({
+          data: { attributes: { url: "https://files.example/first.webp" } }
+        })
+      } as XMLHttpRequest
+    })
+    imageUploader.uploaderEvents.failed({ files: [secondFile] })
+    await Promise.resolve()
+
+    expect(result).toBeUndefined()
+    expect(activeUploader.removeFile).toHaveBeenCalledWith(secondFile)
+
+    imageUploader.uploaderEvents.finish()
+    expect(await upload).toBe(false)
+    expect(onUploaded).toHaveBeenCalledWith({
+      url: "https://files.example/first.webp"
+    })
+    wrapper.unmount()
+  })
+
   it("removes ImageField item and notifies when the server rejects the upload", async () => {
     setMockFileUploadLimit(100_000)
     const wrapper = await mountComponent(ImageField, {
       props: {
         modelValue: [],
         label: "Add images",
-        hint: "hint"
+        hint: "hint",
+        code: "GRP0",
+        resourceType: "needs"
       },
       login: true
     })

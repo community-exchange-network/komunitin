@@ -31,7 +31,7 @@ const dismissed = computed(() => store.state.ui.inactiveBannerDismissed)
 const dismissInactive = () => store.commit("inactiveBannerDismissed", true)
 const isSignupMemberPage = computed(() => route.name === "SignupMember")
 
-const state = computed(() => store.getters.myMember?.attributes.state)
+const state = computed(() => store.getters.myMember?.attributes.status)
 const groupStatus = computed(() => store.getters.myMember?.group.attributes.status)
 
 const isMemberDisabled = computed(() => ["pending", "disabled", "suspended"].includes(state.value))

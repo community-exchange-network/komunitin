@@ -11,7 +11,7 @@ describe("SimpleMap", () => {
   it("Renders image", async () => {
     const wrapper = mount(Avatar, {
       props: {
-        imgSrc: "https://path_to_image.com",
+        imgSrc: { url: "https://path_to_image.com" },
         text: "anything"
       },
       global: {

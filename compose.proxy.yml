@@ -23,9 +23,10 @@ services:
       komunitin:
         aliases:
           - ${KOMUNITIN_DOMAIN}
+          - auth.${KOMUNITIN_DOMAIN}
+          - social.${KOMUNITIN_DOMAIN}
           - accounting.${KOMUNITIN_DOMAIN}
           - notifications.${KOMUNITIN_DOMAIN}
-          - integralces.${KOMUNITIN_DOMAIN}
 
 volumes:
   letsencrypt:
@@ -33,4 +34,3 @@ volumes:
 networks:
   komunitin:
     name: ${KOMUNITIN_DOMAIN}
-    

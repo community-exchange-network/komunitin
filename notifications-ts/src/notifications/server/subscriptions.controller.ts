@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client"
 import { NextFunction, Request, Response } from "express"
 import { z } from "zod"
-import { validateUserId } from "../../server/auth-compat"
+import { validateUserId } from "../../server/auth"
 import { badRequest, notFound } from "../../utils/error"
 import prisma from "../../utils/prisma";
 import { serializeSubscription } from "./subscriptions.serialize"

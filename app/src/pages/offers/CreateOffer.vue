@@ -11,6 +11,7 @@
     >
       <offer-form 
         :code="code"
+        default-status="draft"
         :show-state="false"
         :model-value="offer"
         :loading="loading"

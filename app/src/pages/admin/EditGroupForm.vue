@@ -1,8 +1,12 @@
 <template>
   <div class="q-gutter-y-lg">
     <avatar-field
+      ref="avatarField"
       v-model="image"
       :text="name"
+      :code="group.attributes.code ?? ''"
+      resource-type="groups"
+      :deferred="deferredImageUpload"
     />
     <q-input
       v-model="name"
@@ -34,13 +38,13 @@
       input-style="min-height: 100px;"
       :rules = "[v => !!v || $t('fieldRequired')]"
     />
-    <div>
-      <location-picker 
-        v-model="location"
-        :default-location="[0, 0]"
-        :zoom="1"
-      />
-    </div>
+    <location-picker
+      v-model="location"
+      required
+      :rules="[v => !!v || $t('fieldRequired')]"
+      :default-location="[0, 0]"
+      :zoom="1"
+    />
     <q-input
       v-model="city"
       type="text"
@@ -109,30 +113,30 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, watch } from "vue"
+import { ref, useTemplateRef, watch } from "vue"
 import AvatarField from "@/components/AvatarField.vue"
 import LocationPicker from "@/components/LocationPicker.vue"
 import CountryChooser from "@/components/CountryChooser.vue"
-import type { PartialContact } from "@/components/MemberContactsField.vue";
 import MemberContactsField from "@/components/MemberContactsField.vue"
-import type { Currency, Group } from "@/store/model"
+import type { Contact, Currency, Group } from "@/store/model"
 import { watchDebounced } from "@vueuse/shared"
 import { useStore } from "vuex"
 
 const props = defineProps<{
   op: "edit" | "create"
   group: Group
-  contacts: PartialContact[]
-  currency: Currency
+  contacts: Contact[]
+  currency: Partial<Currency["attributes"]>
 }>()
+const deferredImageUpload = props.op === "create"
 
 const emit = defineEmits<{
   (e: "update:group", group: Group): void,
-  (e: "update:contacts", contacts: PartialContact[]): void,
-  (e: "update:currency", currency: Currency): void
+  (e: "update:contacts", contacts: Contact[]): void,
+  (e: "update:currency", currency: Partial<Currency["attributes"]>): void
 }>()
 
-const image = ref(props.group.attributes.image ?? "")
+const image = ref(props.group.attributes.image ?? null)
 const name = ref(props.group.attributes.name ?? "")
 const code = ref(props.group.attributes.code ?? "")
 const description = ref(props.group.attributes.description ?? "")
@@ -144,10 +148,10 @@ const country = ref(props.group.attributes.address?.addressCountry ?? "")
 
 const contacts = ref(props.contacts)
 
-const currencyName = ref(props.currency.attributes.name ?? "")
-const currencyNamePlural = ref(props.currency.attributes.namePlural ?? "")
-const currencySymbol = ref(props.currency.attributes.symbol ?? "")
-const decimals = ref(props.currency.attributes.decimals ?? 2)
+const currencyName = ref(props.currency.name ?? "")
+const currencyNamePlural = ref(props.currency.namePlural ?? "")
+const currencySymbol = ref(props.currency.symbol ?? "")
+const decimals = ref(props.currency.decimals ?? 2)
 
 // Consider image and others differently since the image value is changed in the update endpoint.
 watch(image, () => {
@@ -185,17 +189,13 @@ watch([contacts], () => {
 })
 
 watchDebounced([currencyName, currencyNamePlural, currencySymbol, decimals], () => {
-  const { rate, scale, code } = props.currency.attributes
   emit('update:currency', {
     ...props.currency,
-    attributes: {
-      ...{rate, scale, code },
-      name: currencyName.value,
-      namePlural: currencyNamePlural.value,
-      symbol: currencySymbol.value,
-      decimals: decimals.value
-    }
-  } as Currency)
+    name: currencyName.value,
+    namePlural: currencyNamePlural.value,
+    symbol: currencySymbol.value,
+    decimals: decimals.value
+  })
 })
 
 const store = useStore()
@@ -208,4 +208,11 @@ const checkFreeCode = async (code: string)  => {
   const existing = store.getters["groups/find"]({code})
   return !existing
 }
+
+// Export the uploadImage function to be called from the parent component (CreateGroup.vue)
+// after the group has been created, since the upload endpoint is scoped to the group code.
+const avatarUploader = useTemplateRef<InstanceType<typeof AvatarField>>("avatarField")
+defineExpose({
+  uploadImage: () => avatarUploader.value?.upload()
+})
 </script>

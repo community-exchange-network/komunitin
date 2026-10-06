@@ -26,16 +26,14 @@
 </template>
 <script setup lang="ts">
 import type { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "@/store/model"
-import type { Ref} from "vue";
 import { computed, ref, watch } from "vue"
 import { useStore } from "vuex"
-import type { ExtendedAccountWithSettings} from "@/composables/fullAccount";
 import { transferAccountRelationships, useCreateTransferPayerAccount } from "@/composables/fullAccount"
 import { QrcodeStream } from "vue-qrcode-reader"
 import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue"
 import KError, { KErrorCode } from "@/KError"
 import type { LoadByUrlPayload } from "@/store/resources"
-import { loadExternalAccountRelationships, useFullTransferByResource } from "@/composables/fullTransfer"
+import { loadAccountsRelationships, useFullTransferByResource } from "@/composables/fullTransfer"
 import { convertCurrency } from "@/plugins/FormatCurrency"
 import { useAccountSettings } from "../../composables/accountSettings"
 
@@ -55,7 +53,7 @@ const myCurrency = computed(() => store.getters.myAccount.currency)
 
 const state = ref<"scan" | "confirm">("scan")
 
-const payerAccount = useCreateTransferPayerAccount(props.code, props.memberCode, "send") as Ref<ExtendedAccountWithSettings>
+const payerAccount = useCreateTransferPayerAccount(props.code, props.memberCode, "send")
 const payeeAccount = ref<Account|undefined>()
 
 const transfer = ref<ExtendedTransfer>()
@@ -115,7 +113,7 @@ const onPaymentUrl = async (paymentUrl: string) => {
       const {enableExternalPayments, enableCreditCommonsPayments} = payerAccount.value.currency.settings.attributes
       if (payeeAccount.value && enableExternalPayments) {
         // Use komunitin external payment.
-        await loadExternalAccountRelationships(payeeAccount.value, store)
+        await loadAccountsRelationships([payeeAccount.value], store)
         localAmount = convertCurrency(localAmount, (payeeAccount.value as ExtendedAccount).currency, myCurrency.value)
       } else if (enableCreditCommonsPayments) {
         payeeAccount.value = undefined

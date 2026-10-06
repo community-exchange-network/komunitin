@@ -4,7 +4,9 @@
     :code="code"
     :title="$t('needs')"
     type="needs"
-    include="category,member,member.contacts"
+    :filter="{ status: 'published', expired: 'false' }"
+    sort="-updated"
+    include="category,member"
   >
     <template #after>
       <floating-btn
