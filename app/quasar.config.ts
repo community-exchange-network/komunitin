@@ -1,6 +1,7 @@
 // Configuration for your app
 import { defineConfig } from "#q-app"
 import { existsSync, readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import vitePluginChecker from 'vite-plugin-checker'
 import { vitePluginFlavorPublic } from './build-tools/vite-plugin-flavor-public'
 import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets'
@@ -75,6 +76,17 @@ export default defineConfig((ctx) => {
       vueOptionsAPI: true,
       sourcemap: true,      
       defineEnv: environment,
+      extendViteConf() {
+        // Vue Leaflet imports both "leaflet" and "leaflet/dist/leaflet-src.esm.js". Deduplicate them.
+        return {
+          resolve: {
+            alias: [{
+              find: /^leaflet$/,
+              replacement: fileURLToPath(import.meta.resolve('leaflet/dist/leaflet-src.esm.js'))
+            }]
+          }
+        }
+      },
       vitePlugins: [
         ctx.prod ? ['rollup-plugin-visualizer', { filename: 'dist/stats.html', gzipSize: true }, { server: false }] : null,
         [vitePluginChecker, {
