@@ -75,6 +75,8 @@ test('static generation does not add JavaScript preloads for the default languag
 test('the service worker precaches the fallback shell and only deployed assets', () => {
   const urls = precacheUrls(read('sw.js'))
   assert.ok(urls.includes('csr.html'), 'Offline navigation needs the fallback shell')
+  assert.ok(!urls.includes('index.html'), 'Controlled root navigation must use the fallback shell')
+  assert.equal(existsSync(resolve(dist, '__ssg__')), false, 'Temporary renderer files should not be deployed')
   for (const url of urls) {
     assert.ok(!url.startsWith('__ssg__/'), `Renderer files should not be precached: ${url}`)
     assertBuiltAsset(url)
