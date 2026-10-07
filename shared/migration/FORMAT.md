@@ -1,6 +1,6 @@
 # Community migration bundle format
 
-This document defines the input format for importing one community into Komunitin. The directory contains a tiny, self-balancing [example](example/) whose CSVs are also the header references. The offline parser lives in [social/src/features/migrations/bundle](../../social/src/features/migrations/bundle/); the [executor](../../social/src/features/migrations/README.md) currently supports only communities whose Accounting data is already migrated.
+This document defines the input format for importing one community into Komunitin, including demo data and production migrations. The directory contains a tiny, self-balancing [example](example/) whose CSVs are also the header references. The offline parser lives in [social/src/features/migrations/bundle](../../social/src/features/migrations/bundle/); the [executor](../../social/src/features/migrations/README.md) imports Auth, Accounting and Social data.
 
 The offline parser accepts either a directory or a ZIP; the HTTP executor accepts only a ZIP whose root contains these case-sensitive filenames directly. Nested paths and unlisted files are invalid. A bundle has no manifest: all imported community and resource data belongs in the CSV files below.
 
@@ -41,13 +41,23 @@ Social profiles and settings belong in `community.csv` and `members.csv`; Accoun
 
 ## Reconciliation
 
-The current executor requires Accounting to be migrated already. It looks up the currency by community code and accounts by member code within that currency, validates UUIDs and account owners, and links Social records to those existing resources. Missing required Accounting records fail the attempt. Accounting fields, balances, settings and transfers are not written or reconciled; supplied Accounting data is reported as ignored. The format also retains those fields for a future Accounting executor.
+Accounting creates a new currency and its accounts when they do not exist in the database, imports the committed transfer history, and establishes the balances computed from that history on Stellar. Optional Stellar secrets let it reuse existing ledger resources or create missing ones with the same keys. Existing Stellar balances are automatically reconciled to the CSV history; historical transfers are not replayed on Stellar. Pause payments on both instances during a production migration.
 
-The `id` columns in `currency.csv` and `accounts.csv` are optional. When supplied, they must agree with the record found by code, or the executor fails the attempt. A row containing only `code`, and optionally `id`, references an existing Accounting record without supplying its data. The current executor never creates Accounting records. Blank or omitted fields do not request that existing values be cleared. Supplying a field does not force creation of a new record.
+The `id` columns in `currency.csv` and `accounts.csv` are optional. When supplied, they must agree with the record found by code, or the executor fails the attempt. A row containing only `code`, and optionally `id`, references an existing Accounting record without supplying its data. Existing database records must agree with supplied accounting facts and history; they are not replaced by an unrelated snapshot. Blank or omitted fields do not request that existing values be cleared.
 
 Active, disabled, suspended and deleted members require exactly one matching row in `accounts.csv`, even when all optional account fields are blank. Draft and pending members have no account and must not have a row in `accounts.csv`. Accounts without a matching member are invalid.
 
-The offline parser validates supplied values and relationships without querying the destination. The current executor checks existence and identity relationships, but does not compare balances or history. Existing transfers are never replayed and balances are never reset.
+The offline parser validates supplied values and relationships without querying the destination. Accounting also validates every supplied balance against the CSV history before importing. Re-uploading an identical completed Accounting migration is a no-op; an interrupted migration resumes with its persisted IDs and keys.
+
+### Optional Stellar keys
+
+`accounts.csv` accepts `stellarSecret`. `currency.csv` accepts `stellarIssuerSecret`, `stellarCreditSecret`, `stellarAdminSecret`, `stellarExternalIssuerSecret`, `stellarExternalTraderSecret` and `stellarDisabledAccountsPoolSecret`. Each is an optional Stellar secret seed (`S…`, 56 characters, with a valid StrKey checksum). Blank uses the existing database key, or generates a key for a new resource. Supplied keys must be distinct and agree with any existing database mappings. No separate public-key column is needed.
+
+To move an existing Stellar currency, supply its currency keys and member keys, including the disabled-account pool key when present. The issuer determines the currency's ledger identity; the admin key is required for administrative operations on member accounts. All keys are interpreted on the destination's configured Stellar network. Existing accounts must have compatible signers and authorized trustlines for that currency; missing resources are created with the supplied keys. The sponsor is configured by the destination and is not imported.
+
+For active accounts, Stellar holds `balance + creditLimit`; its trustline limit is `maximumBalance + creditLimit`, or unlimited when no maximum is supplied for a new database record. Reconciliation adjusts only the difference from the live ledger balance and applies the final trustline limit. Disabled and suspended accounts hold their funds in the currency's shared pool; their individual Stellar accounts remain absent. Deleted accounts have zero community balance and no individual Stellar account.
+
+The example includes blank secret columns so it remains safe to share. The [Bramblewick demo](../demo/README.md) deliberately includes public test keys for repeatable demo imports; never use those keys for real balances. For other bundles, populate keys from deployment secrets and retain them across database resets. Private keys are stored encrypted in Accounting; durable migration data contains public-key references only. Treat a production source ZIP as a credential export and upload it directly over HTTPS.
 
 ### Exact amounts
 
@@ -71,9 +81,10 @@ id,code,name,status,description,access,adminUsers,createdAt,updatedAt,imageUrl,a
 ### `currency.csv`
 
 ```text
-id,code,adminUser,name,namePlural,symbol,decimals,scale,rateNumerator,rateDenominator,createdAt,updatedAt,settings.defaultInitialCreditLimit,settings.externalTraderCreditLimit,settings.defaultInitialMaximumBalance,settings.defaultOnPaymentCreditLimit,settings.externalTraderMaximumBalance,settings.defaultAcceptPaymentsAfter,settings.defaultAcceptPaymentsWhitelist,settings.defaultAllowPayments,settings.defaultAllowPaymentRequests,settings.defaultAcceptPaymentsAutomatically,settings.defaultAllowSimplePayments,settings.defaultAllowSimplePaymentRequests,settings.defaultAllowQrPayments,settings.defaultAllowQrPaymentRequests,settings.defaultAllowMultiplePayments,settings.defaultAllowMultiplePaymentRequests,settings.defaultAllowTagPayments,settings.defaultAllowTagPaymentRequests,settings.defaultAllowExternalPayments,settings.defaultAllowExternalPaymentRequests,settings.defaultAcceptExternalPaymentsAutomatically,settings.enableExternalPayments,settings.enableExternalPaymentRequests,settings.enableCreditCommonsPayments,settings.defaultHideBalance
+id,code,adminUser,name,namePlural,symbol,decimals,scale,rateNumerator,rateDenominator,createdAt,updatedAt,settings.defaultInitialCreditLimit,settings.externalTraderCreditLimit,settings.defaultInitialMaximumBalance,settings.defaultOnPaymentCreditLimit,settings.externalTraderMaximumBalance,settings.defaultAcceptPaymentsAfter,settings.defaultAcceptPaymentsWhitelist,settings.defaultAllowPayments,settings.defaultAllowPaymentRequests,settings.defaultAcceptPaymentsAutomatically,settings.defaultAllowSimplePayments,settings.defaultAllowSimplePaymentRequests,settings.defaultAllowQrPayments,settings.defaultAllowQrPaymentRequests,settings.defaultAllowMultiplePayments,settings.defaultAllowMultiplePaymentRequests,settings.defaultAllowTagPayments,settings.defaultAllowTagPaymentRequests,settings.defaultAllowExternalPayments,settings.defaultAllowExternalPaymentRequests,settings.defaultAcceptExternalPaymentsAutomatically,settings.enableExternalPayments,settings.enableExternalPaymentRequests,settings.enableCreditCommonsPayments,settings.defaultHideBalance,stellarIssuerSecret,stellarCreditSecret,stellarAdminSecret,stellarExternalIssuerSecret,stellarExternalTraderSecret,stellarDisabledAccountsPoolSecret
 ```
 
+- Creating a currency requires `adminUser`, `name`, `namePlural`, `symbol`, `decimals`, `scale`, `rateNumerator` and `rateDenominator`. The optional Stellar secret columns are described above.
 - `code` is required, must contain exactly four uppercase ASCII letters or digits, and must exactly match `community.csv.code`. All other fields are optional and retained for reconciliation.
 - `id` identifies the Accounting currency, independently of the Social community ID. `createdAt` and `updatedAt` belong to the currency.
 - `name` and `namePlural` are at most 255 characters; `symbol` is 1–3 characters when supplied.
@@ -117,7 +128,7 @@ id,code,name,type,status,access,description,createdAt,updatedAt,imageUrl,address
 ### `accounts.csv`
 
 ```text
-id,code,balance,creditLimit,createdAt,updatedAt,maximumBalance,settings.onPaymentCreditLimit,settings.acceptPaymentsAfter,settings.acceptPaymentsWhitelist,settings.allowPayments,settings.allowPaymentRequests,settings.allowSimplePayments,settings.allowSimplePaymentRequests,settings.allowQrPayments,settings.allowQrPaymentRequests,settings.allowMultiplePayments,settings.allowMultiplePaymentRequests,settings.allowTagPayments,settings.allowTagPaymentRequests,settings.acceptPaymentsAutomatically,settings.allowExternalPayments,settings.allowExternalPaymentRequests,settings.acceptExternalPaymentsAutomatically,settings.hideBalance
+id,code,balance,creditLimit,createdAt,updatedAt,maximumBalance,settings.onPaymentCreditLimit,settings.acceptPaymentsAfter,settings.acceptPaymentsWhitelist,settings.allowPayments,settings.allowPaymentRequests,settings.allowSimplePayments,settings.allowSimplePaymentRequests,settings.allowQrPayments,settings.allowQrPaymentRequests,settings.allowMultiplePayments,settings.allowMultiplePaymentRequests,settings.allowTagPayments,settings.allowTagPaymentRequests,settings.acceptPaymentsAutomatically,settings.allowExternalPayments,settings.allowExternalPaymentRequests,settings.acceptExternalPaymentsAutomatically,settings.hideBalance,stellarSecret
 ```
 
 - `code` is required, unique and must exactly match an active, disabled, suspended or deleted member in `members.csv`. Every such member requires one account row. Draft and pending members must not have an account row. All other fields are optional and retained for reconciliation.
@@ -132,7 +143,7 @@ id,code,balance,creditLimit,createdAt,updatedAt,maximumBalance,settings.onPaymen
 id,payer,payee,user,amount,description,createdAt,updatedAt
 ```
 
-This format represents committed historical transfers with no Stellar hash. The current Social executor does not import transfers; it preserves existing Accounting history. `payer` and `payee` must be distinct codes from `accounts.csv`, and `user` identifies the initiator by email and must be present in `users.csv`. Current account or community administration is not used to re-authorize historical transfers. `description` may be empty. External accounts, opening-balance adjustments and partial histories are not supported.
+This format represents committed historical transfers with no Stellar hash. Accounting imports these records without replaying their payments on Stellar. `payer` and `payee` must be distinct codes from `accounts.csv`, and `user` identifies the initiator by email and must be present in `users.csv`. Current account or community administration is not used to re-authorize historical transfers. `description` may be empty. External accounts, opening-balance adjustments and partial histories are not supported.
 
 ### `categories.csv`
 
@@ -170,9 +181,9 @@ Structured properties use predefined scalar columns with readable dotted names. 
 
 ## Complete-history invariants
 
-When balances are supplied for every row in `accounts.csv`, the parser starts at zero, adds each incoming transfer and subtracts each outgoing transfer. The result must equal each declared `balance`, and their total must be zero. A complete bundle that omits history or needs opening-balance adjustments is invalid.
+Balances start at zero, adding each incoming transfer and subtracting each outgoing transfer. Accounting requires the result to equal every supplied `balance`, even when only some accounts declare one. When all balances are supplied, the offline parser also checks that their total is zero. Reusing Stellar keys does not relax these rules. A bundle that declares nonzero balances but omits the required history is invalid.
 
-When balances are omitted, the current Social executor leaves balances and history unchanged. A future Accounting executor must reconcile them before writing Accounting data. The offline parser cannot establish those remote facts.
+For a new currency, omitted balances are computed from the supplied history. For references to existing Accounting records with neither balances nor history supplied, the existing values are preserved. Supplying Stellar keys to reconcile existing database records requires complete balances and history.
 
 In the example, Alice pays Bob `5.00`, producing balances of `-5.00` and `5.00`. The account totals are zero.
 
