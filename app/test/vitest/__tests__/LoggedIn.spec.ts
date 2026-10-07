@@ -2,7 +2,7 @@ import type { VueWrapper } from "@vue/test-utils";
 import server, { seeds } from "@/server";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
-import { Notify, QBtn } from "quasar";
+import { Notify, QBtn, QCard, QDialog } from "quasar";
 import { getMockPasswordResetToken } from "@/server/AuthServer";
 import PasswordField from "@/components/PasswordField.vue";
 import ChangeEmailBtn from "@/pages/members/ChangeEmailBtn.vue";
@@ -50,7 +50,17 @@ describe("logged in", () => {
     try {
       expect(control.findComponent(PasswordField).exists()).toBe(false)
       await control.getComponent(QBtn).trigger("click")
+      const dialog = control.getComponent(QDialog)
+      await waitFor(() => dialog.findComponent(QCard).exists(), true)
+      const card = dialog.getComponent(QCard)
+      expect(card.text()).toContain("We will email you a link to choose a new password.")
+      expect(fetchSpy.mock.calls.some(([url]) => String(url).endsWith("/reset-password"))).toBe(false)
+      expect(Notify.create).not.toHaveBeenCalled()
+      const confirm = card.get("button[type='submit']")
+      expect(confirm.attributes("disabled")).toBeUndefined()
+      await confirm.trigger("click")
       await waitFor(() => vi.mocked(Notify.create).mock.calls.length, 1)
+      await waitFor(() => dialog.props("modelValue"), false)
       expect(Notify.create).toHaveBeenCalledWith({
         message: "We have sent you an email with a link to reset your password. Check your inbox and follow the instructions.",
         color: 'positive',

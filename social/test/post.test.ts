@@ -2,7 +2,6 @@ import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
 import { tenantDb } from '../src/server/multitenant'
-import { Scope } from '../src/server/context'
 import prisma from '../src/utils/prisma'
 import { auth, serviceAuth } from './mocks/auth'
 import {
@@ -527,6 +526,45 @@ describe('Posts endpoints', () => {
     assert.strictEqual(res.body.data[0].attributes.code, 'my-draft')
   })
 
+  test('expired offers are hidden from other members but accessible to owners and admins', async () => {
+    const tenantId = 'posts-expired-access'
+    await seedGroup({ tenantId, status: 'active', access: 'public' })
+    const owner = await auth('expired-owner')
+    const other = await auth('expired-other')
+    const admin = await auth('expired-admin')
+    const member = await seedMember({ tenantId, status: 'active', userId: owner.id })
+    await seedMember({ tenantId, status: 'active', userId: other.id })
+    await seedGroupAdmin({ tenantId, userId: admin.id })
+
+    const post = await seedPost({
+      tenantId, memberId: member.id, type: 'offers', status: 'published',
+      access: 'public', expires: new Date('2000-01-01'),
+    })
+
+    const list = await request(app)
+      .get(`/${tenantId}/posts`)
+      .set('Authorization', `Bearer ${other.token}`)
+      .expect(200)
+    assert.deepStrictEqual(list.body.data, [])
+    assert.strictEqual(list.body.meta.count, 0)
+    await request(app)
+      .get(`/${tenantId}/posts/${post.id}`)
+      .set('Authorization', `Bearer ${other.token}`)
+      .expect(403)
+
+    for (const caller of [owner, admin]) {
+      const res = await request(app)
+        .get(`/${tenantId}/posts`)
+        .set('Authorization', `Bearer ${caller.token}`)
+        .expect(200)
+      assert.deepStrictEqual(res.body.data.map((post: any) => post.id), [post.id])
+      await request(app)
+        .get(`/${tenantId}/posts/${post.id}`)
+        .set('Authorization', `Bearer ${caller.token}`)
+        .expect(200)
+    }
+  })
+
   test('GET /:code/posts allows service read access for unpublished posts in pending private group', async () => {
     await seedGroup({ tenantId: 'posts-read-all-list', status: 'pending', access: 'private' })
     const owner = await auth('posts-read-all-owner')
@@ -634,14 +672,14 @@ describe('Posts endpoints', () => {
       access: 'public',
     }
 
-    await seedPost({ ...base, code: 'before', created: new Date('2026-01-01T00:00:00Z'), expires: new Date('2026-01-02T00:00:00Z') })
-    await seedPost({ ...base, code: 'boundary', created: new Date('2026-01-02T00:00:00Z'), expires: new Date('2026-01-02T00:00:00Z') })
-    await seedPost({ ...base, code: 'after', created: new Date('2026-01-03T00:00:00Z'), expires: new Date('2026-01-03T00:00:00Z') })
+    await seedPost({ ...base, code: 'before', created: new Date('2026-01-01T00:00:00Z'), expires: new Date('2999-01-02T00:00:00Z') })
+    await seedPost({ ...base, code: 'boundary', created: new Date('2026-01-02T00:00:00Z'), expires: new Date('2999-01-02T00:00:00Z') })
+    await seedPost({ ...base, code: 'after', created: new Date('2026-01-03T00:00:00Z'), expires: new Date('2999-01-03T00:00:00Z') })
     await seedPost({ ...base, code: 'no-expiration', created: new Date('2026-01-03T00:00:00Z') })
-    await seedPost({ ...base, code: 'hidden', status: 'draft', created: new Date('2026-01-03T00:00:00Z'), expires: new Date('2026-01-03T00:00:00Z') })
+    await seedPost({ ...base, code: 'hidden', status: 'draft', created: new Date('2026-01-03T00:00:00Z'), expires: new Date('2999-01-03T00:00:00Z') })
 
     const inclusive = await request(app)
-      .get('/posts-date-comparison/posts?filter[type]=offers&filter[created][gte]=2026-01-02T00:00:00Z&filter[created][lte]=2026-01-03T00:00:00Z&filter[expires][gt]=2026-01-02T00:00:00Z&filter[expires][lte]=2026-01-03T00:00:00Z')
+      .get('/posts-date-comparison/posts?filter[type]=offers&filter[created][gte]=2026-01-02T00:00:00Z&filter[created][lte]=2026-01-03T00:00:00Z&filter[expires][gt]=2999-01-02T00:00:00Z&filter[expires][lte]=2999-01-03T00:00:00Z')
       .expect(200)
 
     assert.deepStrictEqual(
@@ -651,7 +689,7 @@ describe('Posts endpoints', () => {
     assert.strictEqual(inclusive.body.meta.count, 1)
 
     const strict = await request(app)
-      .get('/posts-date-comparison/posts?filter[type]=offers&filter[created][gt]=2026-01-01T00:00:00Z&filter[created][lt]=2026-01-03T00:00:00Z&filter[expires][gte]=2026-01-02T00:00:00Z')
+      .get('/posts-date-comparison/posts?filter[type]=offers&filter[created][gt]=2026-01-01T00:00:00Z&filter[created][lt]=2026-01-03T00:00:00Z&filter[expires][gte]=2999-01-02T00:00:00Z')
       .expect(200)
 
     assert.deepStrictEqual(
@@ -1039,6 +1077,7 @@ describe('Posts endpoints', () => {
 
     await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'a-hidden', type: 'offers', status: 'draft', access: 'public', created: new Date('2026-05-13') })
     await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'b-visible', type: 'offers', status: 'published', access: 'public', created: new Date('2026-05-14') })
+    await seedPost({ tenantId: 'posts-page', memberId: member.id, code: 'c-visible', type: 'offers', status: 'published', access: 'public', created: new Date('2026-05-15') })
 
     const res = await request(app)
       .get('/posts-page/posts?sort=created&page[size]=1')
@@ -1046,8 +1085,12 @@ describe('Posts endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'b-visible')
-    assert.strictEqual(res.body.meta.count, 1)
-    assert.strictEqual(res.body.links.next, null)
+    assert.strictEqual(res.body.meta.count, 2)
+    const next = new URL(res.body.links.next)
+    const secondPage = await request(app).get(next.pathname + next.search).expect(200)
+    assert.strictEqual(secondPage.body.data[0].attributes.code, 'c-visible')
+    assert.strictEqual(secondPage.body.meta.count, 2)
+    assert.strictEqual(secondPage.body.links.next, null)
   })
 
   test('GET /:code/posts sorts by distance with null locations last', async () => {

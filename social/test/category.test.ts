@@ -104,8 +104,9 @@ describe('Categories endpoints', () => {
     assert.strictEqual(typeof firstPage.body.links.self, 'string')
     assert.strictEqual(typeof firstPage.body.links.next, 'string')
 
+    const next = new URL(firstPage.body.links.next)
     const secondPage = await request(app)
-      .get('/cats-query/categories?sort=name&page[size]=1&page[after]=1')
+      .get(next.pathname + next.search)
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(200)
 
@@ -121,10 +122,19 @@ describe('Categories endpoints', () => {
     assert.strictEqual(filtered.body.data[0].attributes.code, 'c')
   })
 
-  test('category offer and need relationships expose visible published counts and canonical links', async () => {
+  test('category post relationships expose accessible published, unexpired counts and canonical links', async () => {
     await seedGroup({ tenantId: 'cats-post-counts', status: 'active', access: 'public' })
     const member = await seedMember({ tenantId: 'cats-post-counts', status: 'active' })
     const category = await seedCategory({ tenantId: 'cats-post-counts', access: 'public' })
+    await seedPost({
+      tenantId: 'cats-post-counts',
+      memberId: member.id,
+      categoryId: category.id,
+      type: 'offers',
+      status: 'published',
+      access: 'public',
+      expires: new Date('2000-01-01'),
+    })
     await seedPost({
       tenantId: 'cats-post-counts',
       memberId: member.id,
@@ -160,6 +170,7 @@ describe('Categories endpoints', () => {
     const related = new URL(relationships.offers.links.related)
     assert.strictEqual(related.searchParams.get('filter[category]'), category.id)
     assert.strictEqual(related.searchParams.get('filter[status]'), 'published')
+    assert.strictEqual(related.searchParams.get('filter[expired]'), 'false')
   })
 
   test('GET /:code/categories supports search across code, name and meta.description', async () => {

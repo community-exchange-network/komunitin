@@ -1,5 +1,6 @@
 import { createServer } from 'node:http'
 import { once } from 'node:events'
+import { setTimeout as delay } from 'node:timers/promises'
 import { text } from 'node:stream/consumers'
 import type { TestContext } from 'node:test'
 
@@ -68,7 +69,7 @@ export const serveIces = async (t: TestContext) => {
     expires: '2025-03-01T00:00:00Z', images: [],
   }, { member: relation('members', 302), category: { data: null } })]
   const requests: Array<{ url: URL, authorization: string | undefined, body: string }> = []
-  const overrides = new Map<string, (url: URL) => { status?: number, body: unknown }>()
+  const overrides = new Map<string, (url: URL) => { status?: number, body: unknown, delayMs?: number } | undefined>()
   const server = createServer(async (request, response) => {
     const url = new URL(request.url!, 'http://fixture')
     requests.push({ url, authorization: request.headers.authorization, body: await text(request) })
@@ -104,6 +105,11 @@ export const serveIces = async (t: TestContext) => {
         response.statusCode = 404
         body = { errors: [{ title: 'Unexpected endpoint' }] }
       }
+    }
+    if (override?.delayMs) {
+      // Send headers first to exercise timeouts while consuming the response body.
+      response.flushHeaders()
+      await delay(override.delayMs)
     }
     response.end(JSON.stringify(body))
   })

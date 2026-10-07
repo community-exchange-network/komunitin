@@ -30,10 +30,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: auth
-      POSTGRES_APP_PASSWORD: auth
+      POSTGRES_APP_PASSWORD: ${AUTH_POSTGRES_APP_PASSWORD}
       WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
       WALG_S3_PREFIX: ${S3_PREFIX}/db-auth
       WALG_COMPRESSION_METHOD: zstd
@@ -55,7 +55,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: 2026
-      DATABASE_URL: postgresql://auth:auth@db-auth:5432/auth?schema=public
+      DATABASE_URL: postgresql://auth:${AUTH_POSTGRES_APP_PASSWORD}@db-auth:5432/auth?schema=public
       JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
       JWT_AUDIENCE: urn:komunitin:api
       NOTIFICATIONS_URL: http://notifications-ts:2023
@@ -79,10 +79,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${ACCOUNTING_POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: accounting
-      POSTGRES_APP_PASSWORD: accounting
+      POSTGRES_APP_PASSWORD: ${ACCOUNTING_POSTGRES_APP_PASSWORD}
       WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
       WALG_S3_PREFIX: ${S3_PREFIX}/db-accounting
       WALG_COMPRESSION_METHOD: zstd
@@ -104,7 +104,7 @@ services:
       - db-accounting
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://accounting:accounting@db-accounting:5432/accounting?schema=public
+      DATABASE_URL: postgresql://accounting:${ACCOUNTING_POSTGRES_APP_PASSWORD}@db-accounting:5432/accounting?schema=public
       MASTER_PASSWORD: ${KOMUNITIN_ACCOUNTING_MASTER_PASSWORD}
       STELLAR_NETWORK: ${STELLAR_NETWORK}
       STELLAR_HORIZON_URL: ${STELLAR_HORIZON_URL}
@@ -140,7 +140,7 @@ services:
       KOMUNITIN_SOCIAL_PUBLIC_URL: ${KOMUNITIN_SOCIAL_URL:-http://localhost:2028}
       KOMUNITIN_ACCOUNTING_URL: http://accounting:2025
       KOMUNITIN_APP_URL: ${KOMUNITIN_APP_URL}
-      DATABASE_URL: postgresql://notifications:notifications@db-notifications-ts:5432/notifications?schema=public
+      DATABASE_URL: postgresql://notifications:${NOTIFICATIONS_POSTGRES_APP_PASSWORD}@db-notifications-ts:5432/notifications?schema=public
       REDIS_URL: redis://db-notifications:6379
       AUTH_JWKS_URL: http://auth:2026/.well-known/jwks.json
       AUTH_JWT_ISSUER: ${KOMUNITIN_AUTH_URL:-http://localhost:2026}
@@ -172,10 +172,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${NOTIFICATIONS_POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: notifications
-      POSTGRES_APP_PASSWORD: notifications
+      POSTGRES_APP_PASSWORD: ${NOTIFICATIONS_POSTGRES_APP_PASSWORD}
       WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
       WALG_S3_PREFIX: ${S3_PREFIX}/db-notifications
       WALG_COMPRESSION_METHOD: zstd
@@ -197,7 +197,7 @@ services:
       - db-social
     environment:
       PORT: 2028
-      DATABASE_URL: postgresql://social:social@db-social:5432/social?schema=public
+      DATABASE_URL: postgresql://social:${SOCIAL_POSTGRES_APP_PASSWORD}@db-social:5432/social?schema=public
       API_BASE_URL: ${KOMUNITIN_SOCIAL_URL:-http://localhost:2028}
       ACCOUNTING_URL: http://accounting:2025
       AUTH_URL: http://auth:2026
@@ -212,7 +212,7 @@ services:
       UPLOAD_S3_ACCESS_KEY: ${S3_ACCESS_KEY:-test-access-key}
       UPLOAD_S3_SECRET_KEY: ${S3_SECRET_KEY:-test-secret-key}
       UPLOAD_S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
-      UPLOAD_PUBLIC_URL: ${UPLOAD_PUBLIC_URL}
+      UPLOAD_PUBLIC_URL: ${UPLOAD_PUBLIC_URL:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -225,10 +225,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${SOCIAL_POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
       POSTGRES_APP_USER: social
-      POSTGRES_APP_PASSWORD: social
+      POSTGRES_APP_PASSWORD: ${SOCIAL_POSTGRES_APP_PASSWORD}
       POSTGRES_APP_EXTENSIONS: postgis,vector,pg_trgm,btree_gin,unaccent
       WALG_ENABLE: ${DB_BACKUP_ENABLE:-true}
       WALG_S3_PREFIX: ${S3_PREFIX}/db-social

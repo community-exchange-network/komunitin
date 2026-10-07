@@ -86,7 +86,7 @@ export const getResourceLink = (type: "groups" | "members" | "member-users" | "o
 }
 
 /**
- * @param url Use Request.url here to generate correct pagination links.
+ * @param url Use Request.originalUrl to retain the community prefix from mounted routers.
  */
 export const getCollectionSerializerOptions = <T extends Dictionary<any>>(url:string, collectionOptions: CollectionParams, totalCount: number): SerializerOptions<T> => {
   const paginationLinks = getPaginationLinks(url, collectionOptions.pagination, totalCount)

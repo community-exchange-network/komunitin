@@ -1,5 +1,7 @@
 <template>
   <dialog-form-btn 
+    no-wrap
+    icon="mail"
     :label="$t('changeEmail')"
     :text="$t('changeEmailText')"
     :valid="!v$.$invalid"

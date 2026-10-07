@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util'
+import { setTimeout as delay } from 'node:timers/promises'
 
 export type TokenResponse = {
   access_token: string
@@ -77,6 +78,27 @@ export const request = async (description: string, url: URL, init: RequestInit =
 
 export const requestJson = async <T>(description: string, url: URL, init: RequestInit = {}) =>
   await (await request(description, url, init)).json() as T
+
+/** Bound the entire JSON response and retry timed-out reads without replaying writes. */
+export const requestJsonWithTimeout = async (
+  description: string, url: URL, init: RequestInit, timeoutMs: number, onProgress: (message: string) => void,
+) => {
+  const attempts = (init.method ?? 'GET') === 'GET' ? 3 : 1
+  for (let attempt = 1; ; attempt++) {
+    const signal = AbortSignal.timeout(timeoutMs)
+    try {
+      const response = await fetch(url, { ...init, signal })
+      if (!response.ok) throw new Error(`${description} returned HTTP ${response.status}`)
+      return await response.json() as unknown
+    } catch (error) {
+      if (!signal.aborted) throw error
+      const message = `${description} timed out after ${timeoutMs / 1000}s (attempt ${attempt}/${attempts})`
+      if (attempt === attempts) throw new Error(message)
+      onProgress(`${message}; retrying in ${attempt}s`)
+      await delay(attempt * 1000)
+    }
+  }
+}
 
 export const tokenRequest = (authUrl: string, body: Record<string, string>) => requestJson<TokenResponse>(
   'Could not obtain access token',

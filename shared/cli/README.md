@@ -17,6 +17,8 @@ The shared TypeScript CLI contains administrative commands that coordinate Komun
 
 `admin bundle ices --url <site> (--code <CODE> | --all) --output <path>` generates ICES bundles and enriches identities from the source database. Set `ICES_ADMIN_EMAIL`, `ICES_ADMIN_PASSWORD`, and `ICES_DATABASE_URL` in the root `.env`. The wrapper mounts the invoking directory writable for output. Use an output path within that directory. No host Node.js or pnpm installation is needed. See the [ICES export guide](migration/ices/README.md).
 
+`admin repair ices [--apply]` previews or applies the two reviewed ICES source fixes using `ICES_DATABASE_URL`. See the [migration TODO](../../MIGRATION.md).
+
 `admin bootstrap [--password <password>]` creates and verifies the configured superadmin in Auth, then provisions the corresponding Social user. It reads `ADMIN_EMAIL`, optionally reads `ADMIN_PASSWORD`, and uses `KOMUNITIN_NOTIFICATIONS_SECRET` to verify a newly registered user.
 
 `accounting migrate-ices <currency-code> <ices-url> [--email <email>] [--password <password>]` runs the legacy accounting migration and waits up to five minutes for completion. Destination credentials default to `ADMIN_EMAIL`/`ADMIN_PASSWORD` and require the new Auth superadmin scope. Source credentials come from `ICES_ADMIN_EMAIL`/`ICES_ADMIN_PASSWORD`; the source URL must be reachable by both the CLI and Accounting. Failed or timed-out migrations exit unsuccessfully. Run this before generating and applying the Social bundle.

@@ -218,14 +218,15 @@ export default {
         if (!model.account) {
           delete json.relationships.account
         }
-        const posts = model.posts.models
+        const posts = model.posts.models.filter((post: any) => post.status === "published"
+          && (post.expires === null || new Date(post.expires).getTime() >= Date.now()))
         json.relationships.offers = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=offers&filter[status]=published` },
-          meta: { count: posts.filter((post: any) => post.type === "offers" && post.status === "published").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=offers&filter[status]=published&filter[expired]=false` },
+          meta: { count: posts.filter((post: any) => post.type === "offers").length }
         }
         json.relationships.needs = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=needs&filter[status]=published` },
-          meta: { count: posts.filter((post: any) => post.type === "needs" && post.status === "published").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[member]=${model.id}&filter[type]=needs&filter[status]=published&filter[expired]=false` },
+          meta: { count: posts.filter((post: any) => post.type === "needs").length }
         }
         delete json.relationships.posts
         if (!model.accountId) {
@@ -250,14 +251,15 @@ export default {
     category: ApiSerializer.extend({
       getResourceObjectForModel(model: any) {
         const json = ApiSerializer.prototype.getResourceObjectForModel.apply(this, [model])
-        const posts = model.posts.models
+        const posts = model.posts.models.filter((post: any) => post.status === "published"
+          && (post.expires === null || new Date(post.expires).getTime() >= Date.now()))
         json.relationships.offers = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=offers&filter[status]=published` },
-          meta: { count: posts.filter((post: any) => post.type === "offers" && post.status === "published").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=offers&filter[status]=published&filter[expired]=false` },
+          meta: { count: posts.filter((post: any) => post.type === "offers").length }
         }
         json.relationships.needs = {
-          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=needs&filter[status]=published` },
-          meta: { count: posts.filter((post: any) => post.type === "needs" && post.status === "published").length }
+          links: { related: `${urlSocial}/${model.group.code}/posts?filter[category]=${model.id}&filter[type]=needs&filter[status]=published&filter[expired]=false` },
+          meta: { count: posts.filter((post: any) => post.type === "needs").length }
         }
         delete json.relationships.group
         delete json.relationships.posts

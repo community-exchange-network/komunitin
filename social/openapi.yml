@@ -1,0 +1,2518 @@
+# Request schemas derived from src/features/*/schema.ts; paths follow routes and controllers.
+openapi: 3.1.0
+info:
+  title: Komunitin Social API
+  version: 1.0.0
+  description: Community and marketplace API implemented by the Komunitin social service. JSON:API resource
+    types include groups, members, offers, needs, categories, users and member-users. Community visibility
+    uses access=group, alongside public and private. Resource permissions and lifecycle rules apply in
+    addition to OAuth scopes. Request schemas are derived from the service Zod schemas; responses use
+    the shared JSON:API envelope. Migration endpoints use plain JSON or server-sent events.
+servers:
+- url: http://localhost:2028
+  description: Local development; replace with your Social service URL.
+paths:
+  /health:
+    get:
+      operationId: get_health
+      summary: Check service health
+      description: ''
+      tags:
+      - Health
+      security: []
+      parameters: []
+      responses:
+        '200':
+          description: Service is running.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    const: ok
+        default:
+          $ref: '#/components/responses/Error'
+  /groups:
+    get:
+      operationId: get_groups
+      summary: List accessible communities
+      description: When a bearer token is supplied, social:read is required.
+      tags:
+      - Communities
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/PageSizeQuery'
+      - $ref: '#/components/parameters/PageAfterQuery'
+      - $ref: '#/components/parameters/FilterCodeQuery'
+      - $ref: '#/components/parameters/FilterNameQuery'
+      - $ref: '#/components/parameters/FilterStatusQuery'
+      - $ref: '#/components/parameters/FilterAccessQuery'
+      - $ref: '#/components/parameters/FilterSearchQuery'
+      - $ref: '#/components/parameters/SortQuery'
+      - $ref: '#/components/parameters/IncludeQuery'
+      - $ref: '#/components/parameters/NearQuery'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: post_groups
+      summary: Create a community application
+      description: Optional included group-settings configure the new community. Currency request attributes
+        in meta.request.currency are validated by Accounting on activation and must serialize to fewer
+        than 10000 characters. Requires social:write scope and resource permissions.
+      tags:
+      - Communities
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/IncludeQuery'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/createGroupBodySchema'
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}:
+    get:
+      operationId: get_code
+      summary: Get a community
+      description: When a bearer token is supplied, social:read is required.
+      tags:
+      - Communities
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/IncludeQuery'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patch_code
+      summary: Update a community
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Communities
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/patchGroupBodySchema'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: delete_code
+      summary: Delete a community
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Communities
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      responses:
+        '204':
+          description: Completed; no response body.
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/settings:
+    get:
+      operationId: get_code_settings
+      summary: Get community settings
+      description: When a bearer token is supplied, social:read is required.
+      tags:
+      - Communities
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patch_code_settings
+      summary: Update community settings
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Communities
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/patchGroupSettingsBodySchema'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/admins:
+    get:
+      operationId: get_code_admins
+      summary: List community administrators
+      description: Requires social:read scope and resource permissions.
+      tags:
+      - Communities
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/PageSizeQuery'
+      - $ref: '#/components/parameters/PageAfterQuery'
+      - $ref: '#/components/parameters/SortQuery2'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/members:
+    get:
+      operationId: get_code_members
+      summary: List community members
+      description: Member-list permissions apply. Profiles may be limited to code, name and image when
+        full profile access is unavailable. When a bearer token is supplied, social:read is required.
+      tags:
+      - Members
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/PageSizeQuery'
+      - $ref: '#/components/parameters/PageAfterQuery'
+      - $ref: '#/components/parameters/FilterCodeQuery'
+      - $ref: '#/components/parameters/FilterNameQuery'
+      - $ref: '#/components/parameters/FilterTypeQuery'
+      - $ref: '#/components/parameters/FilterStatusQuery'
+      - $ref: '#/components/parameters/FilterAccessQuery'
+      - $ref: '#/components/parameters/FilterAccountQuery'
+      - $ref: '#/components/parameters/FilterSearchQuery'
+      - $ref: '#/components/parameters/FilterCreatedGtQuery'
+      - $ref: '#/components/parameters/FilterCreatedGteQuery'
+      - $ref: '#/components/parameters/FilterCreatedLtQuery'
+      - $ref: '#/components/parameters/FilterCreatedLteQuery'
+      - $ref: '#/components/parameters/SortQuery3'
+      - $ref: '#/components/parameters/IncludeQuery2'
+      - $ref: '#/components/parameters/NearQuery'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: post_code_members
+      summary: Create a member profile
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Members
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/createMemberBodySchema'
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/members/{member}:
+    get:
+      operationId: get_code_members_member
+      summary: Get a member profile
+      description: When a bearer token is supplied, social:read is required.
+      tags:
+      - Members
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/MemberPath'
+      - $ref: '#/components/parameters/IncludeQuery2'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patch_code_members_member
+      summary: Update a member profile
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Members
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/MemberPath'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/patchMemberBodySchema'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: delete_code_members_member
+      summary: Delete a member profile
+      description: Administrators can delete directly. Owners confirm through an emailed action token
+        in meta.token. Bearer authentication, when supplied, requires social:write. Account deletion constraints
+        also apply.
+      tags:
+      - Members
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/MemberPath'
+      responses:
+        '204':
+          description: Completed; no response body.
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: false
+        content:
+          application/vnd.api+json:
+            schema:
+              type: object
+              properties:
+                meta:
+                  type: object
+                  properties:
+                    token:
+                      type: string
+                  required:
+                  - token
+  /{code}/members/{member}/request-deletion:
+    post:
+      operationId: post_code_members_member_request_deletion
+      summary: Request a member deletion confirmation email
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Members
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/MemberPath'
+      responses:
+        '204':
+          description: Completed; no response body.
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/posts:
+    get:
+      operationId: get_code_posts
+      summary: List offers and needs
+      description: Use filter[type]=offers or needs. Visibility, member status, publication status and
+        expiry are checked before pagination. When a bearer token is supplied, social:read is required.
+      tags:
+      - Offers and needs
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/PageSizeQuery'
+      - $ref: '#/components/parameters/PageAfterQuery'
+      - $ref: '#/components/parameters/FilterCodeQuery'
+      - $ref: '#/components/parameters/FilterTypeQuery'
+      - $ref: '#/components/parameters/FilterStatusQuery'
+      - $ref: '#/components/parameters/FilterAccessQuery'
+      - $ref: '#/components/parameters/FilterMemberQuery'
+      - $ref: '#/components/parameters/FilterMemberStatusQuery'
+      - $ref: '#/components/parameters/FilterCategoryQuery'
+      - $ref: '#/components/parameters/FilterExpiredQuery'
+      - $ref: '#/components/parameters/FilterSearchQuery'
+      - $ref: '#/components/parameters/FilterCreatedGtQuery'
+      - $ref: '#/components/parameters/FilterCreatedGteQuery'
+      - $ref: '#/components/parameters/FilterCreatedLtQuery'
+      - $ref: '#/components/parameters/FilterCreatedLteQuery'
+      - $ref: '#/components/parameters/FilterExpiresGtQuery'
+      - $ref: '#/components/parameters/FilterExpiresGteQuery'
+      - $ref: '#/components/parameters/FilterExpiresLtQuery'
+      - $ref: '#/components/parameters/FilterExpiresLteQuery'
+      - $ref: '#/components/parameters/SortQuery4'
+      - $ref: '#/components/parameters/IncludeQuery3'
+      - $ref: '#/components/parameters/NearQuery'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: post_code_posts
+      summary: Create an offer or need
+      description: The JSON:API resource type is offers or needs. A member relationship is required. Requires
+        social:write scope and resource permissions.
+      tags:
+      - Offers and needs
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/createPostBodySchema'
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/posts/{post}:
+    get:
+      operationId: get_code_posts_post
+      summary: Get an offer or need
+      description: When a bearer token is supplied, social:read is required.
+      tags:
+      - Offers and needs
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/PostPath'
+      - $ref: '#/components/parameters/IncludeQuery3'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patch_code_posts_post
+      summary: Update an offer or need
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Offers and needs
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/PostPath'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/patchPostBodySchema'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: delete_code_posts_post
+      summary: Delete an offer or need
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Offers and needs
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/PostPath'
+      responses:
+        '204':
+          description: Completed; no response body.
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/categories:
+    get:
+      operationId: get_code_categories
+      summary: List categories
+      description: When a bearer token is supplied, social:read is required.
+      tags:
+      - Categories
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/PageSizeQuery'
+      - $ref: '#/components/parameters/PageAfterQuery'
+      - $ref: '#/components/parameters/FilterCodeQuery'
+      - $ref: '#/components/parameters/FilterNameQuery'
+      - $ref: '#/components/parameters/FilterAccessQuery'
+      - $ref: '#/components/parameters/FilterSearchQuery'
+      - $ref: '#/components/parameters/SortQuery5'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: post_code_categories
+      summary: Create a category
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/createCategoryBodySchema'
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/categories/{category}:
+    patch:
+      operationId: patch_code_categories_category
+      summary: Update a category
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/CategoryPath'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/patchCategoryBodySchema'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: delete_code_categories_category
+      summary: Delete a category
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/CategoryPath'
+      responses:
+        '204':
+          description: Completed; no response body.
+        default:
+          $ref: '#/components/responses/Error'
+  /users:
+    post:
+      operationId: post_users
+      summary: Create or retrieve the current user projection
+      description: The user UUID comes from the token subject. Credentials are managed by Auth. Requires
+        social:write scope and resource permissions.
+      tags:
+      - Users
+      security:
+      - bearerAuth: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/createUserBodySchema'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+  /users/me:
+    get:
+      operationId: get_users_me
+      summary: Get the current user
+      description: Requires social:read scope and resource permissions.
+      tags:
+      - Users
+      security:
+      - bearerAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+  /users/{id}:
+    get:
+      operationId: get_users_id
+      summary: Get a user
+      description: Requires social:read scope and resource permissions.
+      tags:
+      - Users
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patch_users_id
+      summary: Update a user language preference
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Users
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/patchUserBodySchema'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+  /users/{id}/members:
+    get:
+      operationId: get_users_id_members
+      summary: List a user’s member profiles across communities
+      description: Requires social:read scope and resource permissions.
+      tags:
+      - Users
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/IdPath'
+      - $ref: '#/components/parameters/PageSizeQuery'
+      - $ref: '#/components/parameters/PageAfterQuery'
+      - $ref: '#/components/parameters/SortQuery5'
+      - $ref: '#/components/parameters/IncludeQuery4'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        default:
+          $ref: '#/components/responses/Error'
+  /users/unsubscribe:
+    post:
+      operationId: post_users_unsubscribe
+      summary: Disable community newsletters for a user
+      description: ''
+      tags:
+      - Users
+      security: []
+      parameters:
+      - $ref: '#/components/parameters/TokenQuery'
+      responses:
+        '204':
+          description: Completed; no response body.
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/member-users:
+    get:
+      operationId: get_code_member_users
+      summary: List user-to-member links and preferences
+      description: Requires social:read scope and resource permissions.
+      tags:
+      - Member preferences
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/PageSizeQuery'
+      - $ref: '#/components/parameters/PageAfterQuery'
+      - $ref: '#/components/parameters/FilterUserQuery'
+      - $ref: '#/components/parameters/FilterMemberQuery'
+      - $ref: '#/components/parameters/FilterMemberStatusQuery'
+      - $ref: '#/components/parameters/SortQuery6'
+      - $ref: '#/components/parameters/IncludeQuery5'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/member-users/{id}:
+    get:
+      operationId: get_code_member_users_id
+      summary: Get a user-to-member link
+      description: Requires social:read scope and resource permissions.
+      tags:
+      - Member preferences
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/IdPath'
+      - $ref: '#/components/parameters/IncludeQuery5'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patch_code_member_users_id
+      summary: Update notification and email preferences
+      description: Requires social:write scope and resource permissions.
+      tags:
+      - Member preferences
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      - $ref: '#/components/parameters/IdPath'
+      - $ref: '#/components/parameters/IncludeQuery5'
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              $ref: '#/components/schemas/patchMemberUserBodySchema'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+  /{code}/files/upload:
+    post:
+      operationId: post_code_files_upload
+      summary: Upload an image to S3-compatible storage
+      description: Send one file and its resourceType as multipart form data. File size and allowed image
+        types are configured by the server. The returned URL is public, independently of resource visibility.
+        Requires social:write scope and resource permissions.
+      tags:
+      - Files
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/CodePath'
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              - resourceType
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: One image file. The server accepts any multipart file field name.
+                resourceType:
+                  type: string
+                  enum:
+                  - groups
+                  - members
+                  - offers
+                  - needs
+  /migrations:
+    post:
+      operationId: post_migrations
+      summary: Import a community CSV ZIP bundle
+      description: Requires a superadmin user token. Streams import progress. Requires superadmin scope
+        and resource permissions.
+      tags:
+      - Migrations
+      security:
+      - bearerAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: 'Server-sent events: migration (id), progress (persisted event), end (id and status).'
+          headers:
+            X-Migration-Id:
+              schema:
+                type: string
+                format: uuid
+            Location:
+              schema:
+                type: string
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/zip:
+            schema:
+              type: string
+              format: binary
+    get:
+      operationId: get_migrations
+      summary: List the latest 100 imports
+      description: Requires superadmin scope and resource permissions.
+      tags:
+      - Migrations
+      security:
+      - bearerAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Migration'
+        default:
+          $ref: '#/components/responses/Error'
+  /migrations/{id}:
+    get:
+      operationId: get_migrations_id
+      summary: Get an import
+      description: Requires superadmin scope and resource permissions.
+      tags:
+      - Migrations
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Import state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Migration'
+        default:
+          $ref: '#/components/responses/Error'
+  /migrations/{id}/events:
+    get:
+      operationId: get_migrations_id_events
+      summary: Follow or replay import progress
+      description: Requires superadmin scope and resource permissions.
+      tags:
+      - Migrations
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/IdPath'
+      - $ref: '#/components/parameters/AfterQuery'
+      - $ref: '#/components/parameters/LastEventIdHeader'
+      responses:
+        '200':
+          description: 'Server-sent events: migration (id), progress (persisted event), end (id and status).'
+          headers:
+            X-Migration-Id:
+              schema:
+                type: string
+                format: uuid
+            Location:
+              schema:
+                type: string
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token issued by the Komunitin Auth service. Required scopes are described per
+        operation.
+  schemas:
+    createGroupBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: groups
+              type: string
+              const: groups
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                description:
+                  type: string
+                access:
+                  $ref: '#/components/schemas/Access'
+                image:
+                  $ref: '#/components/schemas/Image'
+                address:
+                  $ref: '#/components/schemas/Address'
+                contacts:
+                  $ref: '#/components/schemas/Contacts'
+                location:
+                  $ref: '#/components/schemas/Location'
+                meta:
+                  type: object
+                  properties:
+                    request:
+                      type: object
+                      properties:
+                        currency:
+                          type: object
+                          properties: {}
+                          additionalProperties: {}
+                      required:
+                      - currency
+                      additionalProperties: false
+                  required:
+                  - request
+                  additionalProperties: false
+                code:
+                  type: string
+                  minLength: 1
+                  maxLength: 31
+              required:
+              - name
+              - code
+              additionalProperties: false
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+        included:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                default: group-settings
+                type: string
+                const: group-settings
+              id:
+                type: string
+                format: uuid
+                pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+              attributes:
+                $ref: '#/components/schemas/GroupSettingsAttributes'
+              relationships:
+                type: object
+                properties: {}
+                additionalProperties: false
+            required:
+            - attributes
+            additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    patchGroupBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: groups
+              type: string
+              const: groups
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                description:
+                  type: string
+                access:
+                  $ref: '#/components/schemas/Access'
+                image:
+                  $ref: '#/components/schemas/Image'
+                address:
+                  $ref: '#/components/schemas/Address'
+                contacts:
+                  $ref: '#/components/schemas/Contacts'
+                location:
+                  $ref: '#/components/schemas/Location'
+                meta:
+                  type: object
+                  properties:
+                    request:
+                      type: object
+                      properties:
+                        currency:
+                          type: object
+                          properties: {}
+                          additionalProperties: {}
+                      required:
+                      - currency
+                      additionalProperties: false
+                  required:
+                  - request
+                  additionalProperties: false
+                status:
+                  type: string
+                  enum:
+                  - pending
+                  - active
+                  - disabled
+              additionalProperties: false
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    patchGroupSettingsBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: group-settings
+              type: string
+              const: group-settings
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              $ref: '#/components/schemas/GroupSettingsAttributes'
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    createMemberBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: members
+              type: string
+              const: members
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                type:
+                  type: string
+                  enum:
+                  - personal
+                  - business
+                  - organization
+                  - public
+                description:
+                  type: string
+                access:
+                  $ref: '#/components/schemas/Access'
+                image:
+                  $ref: '#/components/schemas/Image'
+                address:
+                  $ref: '#/components/schemas/Address'
+                contacts:
+                  $ref: '#/components/schemas/Contacts'
+                location:
+                  $ref: '#/components/schemas/Location'
+                meta:
+                  type: object
+                  propertyNames:
+                    type: string
+                  additionalProperties: {}
+                code:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+              required:
+              - name
+              additionalProperties: false
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    patchMemberBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: members
+              type: string
+              const: members
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                type:
+                  type: string
+                  enum:
+                  - personal
+                  - business
+                  - organization
+                  - public
+                description:
+                  type: string
+                access:
+                  $ref: '#/components/schemas/Access'
+                image:
+                  $ref: '#/components/schemas/Image'
+                address:
+                  $ref: '#/components/schemas/Address'
+                contacts:
+                  $ref: '#/components/schemas/Contacts'
+                location:
+                  $ref: '#/components/schemas/Location'
+                meta:
+                  type: object
+                  propertyNames:
+                    type: string
+                  additionalProperties: {}
+                status:
+                  type: string
+                  enum:
+                  - draft
+                  - pending
+                  - active
+                  - disabled
+                  - suspended
+                  - deleted
+              additionalProperties: false
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    createPostBodySchema:
+      type: object
+      properties:
+        data:
+          oneOf:
+          - type: object
+            properties:
+              type:
+                default: offers
+                type: string
+                const: offers
+              id:
+                type: string
+                format: uuid
+                pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+              attributes:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  title:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  description:
+                    type: string
+                    minLength: 1
+                    maxLength: 16384
+                  images:
+                    anyOf:
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            format: uri
+                          alt:
+                            type: string
+                        required:
+                        - url
+                        additionalProperties: false
+                    - type: 'null'
+                  status:
+                    type: string
+                    enum:
+                    - draft
+                    - published
+                    - hidden
+                  access:
+                    $ref: '#/components/schemas/Access'
+                  location:
+                    $ref: '#/components/schemas/Location'
+                  expires:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  value:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                required:
+                - title
+                - description
+                additionalProperties: false
+              relationships:
+                type: object
+                properties:
+                  category:
+                    type: object
+                    properties:
+                      data:
+                        anyOf:
+                        - type: object
+                          properties:
+                            type:
+                              default: categories
+                              type: string
+                              const: categories
+                            id:
+                              type: string
+                              format: uuid
+                              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                          required:
+                          - id
+                        - type: 'null'
+                    required:
+                    - data
+                  member:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          type:
+                            default: members
+                            type: string
+                            const: members
+                          id:
+                            type: string
+                            format: uuid
+                            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        required:
+                        - id
+                    required:
+                    - data
+                required:
+                - member
+            required:
+            - attributes
+            - relationships
+            additionalProperties: false
+          - type: object
+            properties:
+              type:
+                default: needs
+                type: string
+                const: needs
+              id:
+                type: string
+                format: uuid
+                pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+              attributes:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  title:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  description:
+                    type: string
+                    minLength: 1
+                    maxLength: 16384
+                  images:
+                    anyOf:
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            format: uri
+                          alt:
+                            type: string
+                        required:
+                        - url
+                        additionalProperties: false
+                    - type: 'null'
+                  status:
+                    type: string
+                    enum:
+                    - draft
+                    - published
+                    - hidden
+                  access:
+                    $ref: '#/components/schemas/Access'
+                  location:
+                    $ref: '#/components/schemas/Location'
+                  expires:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  fulfilled:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                required:
+                - description
+                additionalProperties: false
+              relationships:
+                type: object
+                properties:
+                  category:
+                    type: object
+                    properties:
+                      data:
+                        anyOf:
+                        - type: object
+                          properties:
+                            type:
+                              default: categories
+                              type: string
+                              const: categories
+                            id:
+                              type: string
+                              format: uuid
+                              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                          required:
+                          - id
+                        - type: 'null'
+                    required:
+                    - data
+                  member:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          type:
+                            default: members
+                            type: string
+                            const: members
+                          id:
+                            type: string
+                            format: uuid
+                            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        required:
+                        - id
+                    required:
+                    - data
+                required:
+                - member
+            required:
+            - attributes
+            - relationships
+            additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    patchPostBodySchema:
+      type: object
+      properties:
+        data:
+          oneOf:
+          - type: object
+            properties:
+              type:
+                default: offers
+                type: string
+                const: offers
+              id:
+                type: string
+                format: uuid
+                pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+              attributes:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  title:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  description:
+                    type: string
+                    minLength: 1
+                    maxLength: 16384
+                  images:
+                    anyOf:
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            format: uri
+                          alt:
+                            type: string
+                        required:
+                        - url
+                        additionalProperties: false
+                    - type: 'null'
+                  status:
+                    type: string
+                    enum:
+                    - draft
+                    - published
+                    - hidden
+                  access:
+                    $ref: '#/components/schemas/Access'
+                  location:
+                    $ref: '#/components/schemas/Location'
+                  expires:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  value:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                additionalProperties: false
+              relationships:
+                type: object
+                properties:
+                  category:
+                    type: object
+                    properties:
+                      data:
+                        anyOf:
+                        - type: object
+                          properties:
+                            type:
+                              default: categories
+                              type: string
+                              const: categories
+                            id:
+                              type: string
+                              format: uuid
+                              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                          required:
+                          - id
+                        - type: 'null'
+                    required:
+                    - data
+                  member:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          type:
+                            default: members
+                            type: string
+                            const: members
+                          id:
+                            type: string
+                            format: uuid
+                            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        required:
+                        - id
+                    required:
+                    - data
+                additionalProperties: false
+            required:
+            - attributes
+            additionalProperties: false
+          - type: object
+            properties:
+              type:
+                default: needs
+                type: string
+                const: needs
+              id:
+                type: string
+                format: uuid
+                pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+              attributes:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  title:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                  description:
+                    type: string
+                    minLength: 1
+                    maxLength: 16384
+                  images:
+                    anyOf:
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            format: uri
+                          alt:
+                            type: string
+                        required:
+                        - url
+                        additionalProperties: false
+                    - type: 'null'
+                  status:
+                    type: string
+                    enum:
+                    - draft
+                    - published
+                    - hidden
+                  access:
+                    $ref: '#/components/schemas/Access'
+                  location:
+                    $ref: '#/components/schemas/Location'
+                  expires:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  fulfilled:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                additionalProperties: false
+              relationships:
+                type: object
+                properties:
+                  category:
+                    type: object
+                    properties:
+                      data:
+                        anyOf:
+                        - type: object
+                          properties:
+                            type:
+                              default: categories
+                              type: string
+                              const: categories
+                            id:
+                              type: string
+                              format: uuid
+                              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                          required:
+                          - id
+                        - type: 'null'
+                    required:
+                    - data
+                  member:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          type:
+                            default: members
+                            type: string
+                            const: members
+                          id:
+                            type: string
+                            format: uuid
+                            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        required:
+                        - id
+                    required:
+                    - data
+                additionalProperties: false
+            required:
+            - attributes
+            additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    createCategoryBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: categories
+              type: string
+              const: categories
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                access:
+                  $ref: '#/components/schemas/Access'
+                icon:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    value:
+                      type: string
+                  required:
+                  - type
+                  - value
+                  additionalProperties: false
+                meta:
+                  type: object
+                  properties:
+                    description:
+                      type: string
+                      maxLength: 1000
+                  additionalProperties: false
+                code:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+              required:
+              - name
+              additionalProperties: false
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    patchCategoryBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: categories
+              type: string
+              const: categories
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                access:
+                  $ref: '#/components/schemas/Access'
+                icon:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    value:
+                      type: string
+                  required:
+                  - type
+                  - value
+                  additionalProperties: false
+                meta:
+                  type: object
+                  properties:
+                    description:
+                      type: string
+                      maxLength: 1000
+                  additionalProperties: false
+              additionalProperties: false
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    createUserBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: users
+              type: string
+              const: users
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  pattern: ^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                language:
+                  anyOf:
+                  - type: string
+                    minLength: 1
+                    maxLength: 31
+                  - type: 'null'
+              additionalProperties: false
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    patchUserBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: users
+              type: string
+              const: users
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              type: object
+              properties:
+                language:
+                  anyOf:
+                  - type: string
+                    minLength: 1
+                    maxLength: 31
+                  - type: 'null'
+              required:
+              - language
+              additionalProperties: false
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    patchMemberUserBodySchema:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type:
+              default: member-users
+              type: string
+              const: member-users
+            id:
+              type: string
+              format: uuid
+              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            attributes:
+              type: object
+              properties:
+                notifications:
+                  type: object
+                  properties:
+                    myAccount:
+                      type: boolean
+                    group:
+                      type: boolean
+                  additionalProperties: false
+                emails:
+                  type: object
+                  properties:
+                    myAccount:
+                      type: boolean
+                    group:
+                      type: string
+                      enum:
+                      - never
+                      - weekly
+                      - monthly
+                  additionalProperties: false
+              additionalProperties: false
+            relationships:
+              type: object
+              properties: {}
+              additionalProperties: false
+          required:
+          - attributes
+          additionalProperties: false
+      required:
+      - data
+      additionalProperties: false
+    Resource:
+      type: object
+      required:
+      - type
+      - id
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+          format: uuid
+        attributes:
+          type: object
+        relationships:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              data:
+                oneOf:
+                - $ref: '#/components/schemas/ResourceIdentifier'
+                - type: 'null'
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/ResourceIdentifier'
+              links:
+                type: object
+              meta:
+                type: object
+        links:
+          type: object
+        meta:
+          type: object
+    ResourceIdentifier:
+      type: object
+      required:
+      - type
+      - id
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+          format: uuid
+    Document:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Resource'
+        included:
+          type: array
+          items:
+            $ref: '#/components/schemas/Resource'
+        links:
+          type: object
+        meta:
+          type: object
+    Collection:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Resource'
+        included:
+          type: array
+          items:
+            $ref: '#/components/schemas/Resource'
+        links:
+          type: object
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+    Errors:
+      type: object
+      required:
+      - errors
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              code:
+                type: string
+              title:
+                type: string
+              detail:
+                type: string
+              source:
+                type: object
+              meta:
+                type: object
+    Migration:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+        requestedBy:
+          type: string
+          format: uuid
+        data:
+          type: object
+        created:
+          type: string
+          format: date-time
+        updated:
+          type: string
+          format: date-time
+        finished:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    Access:
+      type: string
+      enum:
+      - public
+      - group
+      - private
+    Image:
+      anyOf:
+      - type: object
+        properties:
+          url:
+            type: string
+            format: uri
+          alt:
+            type: string
+        required:
+        - url
+        additionalProperties: false
+      - type: 'null'
+    Address:
+      type: object
+      properties:
+        streetAddress:
+          type: string
+        addressLocality:
+          type: string
+        postalCode:
+          type: string
+        addressRegion:
+          type: string
+        addressCountry:
+          type: string
+      additionalProperties: false
+    Contacts:
+      type: array
+      items:
+        type: object
+        properties:
+          type:
+            type: string
+            enum:
+            - phone
+            - email
+            - telegram
+            - whatsapp
+            - website
+            - instagram
+            - facebook
+            - twitter
+          value:
+            type: string
+        required:
+        - type
+        - value
+        additionalProperties: false
+    Location:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          const: Point
+        coordinates:
+          type: array
+          prefixItems:
+          - type: number
+            minimum: -180
+            maximum: 180
+          - type: number
+            minimum: -90
+            maximum: 90
+      required:
+      - type
+      - coordinates
+      additionalProperties: false
+    GroupSettingsAttributes:
+      type: object
+      properties:
+        requireAcceptTerms:
+          type: boolean
+        terms:
+          type: string
+        minOffers:
+          type: number
+        minNeeds:
+          type: number
+        allowAnonymousMemberList:
+          type: boolean
+        enableGroupEmail:
+          type: boolean
+        defaultGroupEmailFrequency:
+          type: string
+          enum:
+          - never
+          - weekly
+          - monthly
+      additionalProperties: false
+  responses:
+    Error:
+      description: Request validation, authentication, permission or service error.
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+  parameters:
+    PageSizeQuery:
+      name: page[size]
+      in: query
+      required: false
+      description: Maximum number of results.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 20
+    PageAfterQuery:
+      name: page[after]
+      in: query
+      required: false
+      description: Numeric offset. Follow the pagination links returned by the API.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    FilterCodeQuery:
+      name: filter[code]
+      in: query
+      required: false
+      description: Filter by code. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterNameQuery:
+      name: filter[name]
+      in: query
+      required: false
+      description: Filter by name. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterStatusQuery:
+      name: filter[status]
+      in: query
+      required: false
+      description: Filter by status. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterAccessQuery:
+      name: filter[access]
+      in: query
+      required: false
+      description: Filter by access. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterSearchQuery:
+      name: filter[search]
+      in: query
+      required: false
+      description: Text search using trigram word similarity.
+      schema:
+        type: string
+    SortQuery:
+      name: sort
+      in: query
+      required: false
+      description: 'Comma-separated fields: created, updated, name, code, distance. Prefix with - for
+        descending order. Default: created ascending; search without explicit sorting uses relevance.'
+      schema:
+        type: string
+    IncludeQuery:
+      name: include
+      in: query
+      required: false
+      description: 'Comma-separated to-one relationships: settings, currency.'
+      schema:
+        type: string
+    NearQuery:
+      name: near
+      in: query
+      required: false
+      description: Longitude,latitude. Required for sort=distance.
+      schema:
+        type: string
+    CodePath:
+      name: code
+      in: path
+      required: true
+      description: Community code.
+      schema:
+        type: string
+        pattern: ^[A-Za-z0-9._-]{1,31}$
+    SortQuery2:
+      name: sort
+      in: query
+      required: false
+      description: 'Comma-separated fields: created. Prefix with - for descending order. Default: created
+        ascending; search without explicit sorting uses relevance.'
+      schema:
+        type: string
+    FilterTypeQuery:
+      name: filter[type]
+      in: query
+      required: false
+      description: Filter by type. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterAccountQuery:
+      name: filter[account]
+      in: query
+      required: false
+      description: Filter by account. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterCreatedGtQuery:
+      name: filter[created][gt]
+      in: query
+      required: false
+      description: Date comparison; comparisons are combined with AND.
+      schema:
+        type: string
+        format: date-time
+    FilterCreatedGteQuery:
+      name: filter[created][gte]
+      in: query
+      required: false
+      description: Date comparison; comparisons are combined with AND.
+      schema:
+        type: string
+        format: date-time
+    FilterCreatedLtQuery:
+      name: filter[created][lt]
+      in: query
+      required: false
+      description: Date comparison; comparisons are combined with AND.
+      schema:
+        type: string
+        format: date-time
+    FilterCreatedLteQuery:
+      name: filter[created][lte]
+      in: query
+      required: false
+      description: Date comparison; comparisons are combined with AND.
+      schema:
+        type: string
+        format: date-time
+    SortQuery3:
+      name: sort
+      in: query
+      required: false
+      description: 'Comma-separated fields: code, name, created, updated, distance. Prefix with - for
+        descending order. Default: code ascending; search without explicit sorting uses relevance.'
+      schema:
+        type: string
+    IncludeQuery2:
+      name: include
+      in: query
+      required: false
+      description: 'Comma-separated to-one relationships: group, account.'
+      schema:
+        type: string
+    MemberPath:
+      name: member
+      in: path
+      required: true
+      description: Resource UUID.
+      schema:
+        type: string
+        format: uuid
+    FilterMemberQuery:
+      name: filter[member]
+      in: query
+      required: false
+      description: Filter by member. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterMemberStatusQuery:
+      name: filter[member.status]
+      in: query
+      required: false
+      description: Filter by member.status. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterCategoryQuery:
+      name: filter[category]
+      in: query
+      required: false
+      description: Filter by category. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterExpiredQuery:
+      name: filter[expired]
+      in: query
+      required: false
+      description: Filter by expired. Multiple values are comma-separated.
+      schema:
+        type: string
+    FilterExpiresGtQuery:
+      name: filter[expires][gt]
+      in: query
+      required: false
+      description: Date comparison; comparisons are combined with AND.
+      schema:
+        type: string
+        format: date-time
+    FilterExpiresGteQuery:
+      name: filter[expires][gte]
+      in: query
+      required: false
+      description: Date comparison; comparisons are combined with AND.
+      schema:
+        type: string
+        format: date-time
+    FilterExpiresLtQuery:
+      name: filter[expires][lt]
+      in: query
+      required: false
+      description: Date comparison; comparisons are combined with AND.
+      schema:
+        type: string
+        format: date-time
+    FilterExpiresLteQuery:
+      name: filter[expires][lte]
+      in: query
+      required: false
+      description: Date comparison; comparisons are combined with AND.
+      schema:
+        type: string
+        format: date-time
+    SortQuery4:
+      name: sort
+      in: query
+      required: false
+      description: 'Comma-separated fields: created, updated, expires, distance. Prefix with - for descending
+        order. Default: created ascending; search without explicit sorting uses relevance.'
+      schema:
+        type: string
+    IncludeQuery3:
+      name: include
+      in: query
+      required: false
+      description: 'Comma-separated to-one relationships: member, member.group, member.group.currency,
+        member.account, category.'
+      schema:
+        type: string
+    PostPath:
+      name: post
+      in: path
+      required: true
+      description: Resource UUID.
+      schema:
+        type: string
+        format: uuid
+    SortQuery5:
+      name: sort
+      in: query
+      required: false
+      description: 'Comma-separated fields: created, updated, name, code. Prefix with - for descending
+        order. Default: created ascending; search without explicit sorting uses relevance.'
+      schema:
+        type: string
+    CategoryPath:
+      name: category
+      in: path
+      required: true
+      description: Resource UUID.
+      schema:
+        type: string
+        format: uuid
+    IdPath:
+      name: id
+      in: path
+      required: true
+      description: Resource UUID.
+      schema:
+        type: string
+        format: uuid
+    IncludeQuery4:
+      name: include
+      in: query
+      required: false
+      description: 'Comma-separated to-one relationships: group, group.currency, account.'
+      schema:
+        type: string
+    TokenQuery:
+      name: token
+      in: query
+      required: true
+      description: Auth-issued unsubscribe action token.
+      schema:
+        type: string
+    FilterUserQuery:
+      name: filter[user]
+      in: query
+      required: false
+      description: Filter by user. Multiple values are comma-separated.
+      schema:
+        type: string
+    SortQuery6:
+      name: sort
+      in: query
+      required: false
+      description: 'Comma-separated fields: id. Prefix with - for descending order. Default: id ascending;
+        search without explicit sorting uses relevance.'
+      schema:
+        type: string
+    IncludeQuery5:
+      name: include
+      in: query
+      required: false
+      description: 'Comma-separated to-one relationships: user, member.'
+      schema:
+        type: string
+    AfterQuery:
+      name: after
+      in: query
+      required: false
+      description: Replay events after this id; takes precedence over Last-Event-ID.
+      schema:
+        type: integer
+        minimum: 0
+    LastEventIdHeader:
+      name: Last-Event-ID
+      in: header
+      required: false
+      description: Last received event id.
+      schema:
+        type: string

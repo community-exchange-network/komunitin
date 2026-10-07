@@ -11,3 +11,5 @@ social/dist
 social/node_modules/
 social/src/generated
 artifacts
+tmp
+

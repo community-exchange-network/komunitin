@@ -134,6 +134,7 @@ const canReadPost = async (
   const published = group.status === 'active'
     && member.status === 'active'
     && post.status === 'published'
+    && (post.expires === null || post.expires.getTime() >= Date.now())
 
   return (ctx.isSuperadmin) 
     || ctx.canReadAllSocial

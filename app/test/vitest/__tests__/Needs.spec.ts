@@ -13,6 +13,7 @@ import type { Category, Member, Need } from "@/store/model";
 import ContactButton from "@/components/ContactButton.vue";
 import ShareButton from "@/components/ShareButton.vue";
 import MemberHeader from "@/components/MemberHeader.vue";
+import { createPost } from "../utils/posts";
 
 type FullNeed = Need & { member: Member, category: Category };
 type SelectOption = { label: string, value: string };
@@ -25,6 +26,7 @@ describe("Needs", () => {
 
   beforeAll(async () => {
     seeds();
+    createPost('needs', 'Newest-need')
     wrapper = await mountComponent(App, { login: true });
   });
   afterAll(() => wrapper.unmount());
@@ -35,14 +37,15 @@ describe("Needs", () => {
     await wrapper.vm.$nextTick();
     expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
     // Load.
-    await waitFor(() => wrapper.findAllComponents(NeedCard).length, 4, "Should load 4 needs");
+    await waitFor(() => wrapper.findAllComponents(NeedCard).length, 5, "Should load 5 needs");
     const needs = wrapper.findAllComponents(NeedCard).map(card => card.props("need") as FullNeed);
     need = needs[0];
+    expect(need.attributes.code).toBe('Newest-need')
     editableNeed = needs.find(item => item.member.id === wrapper.vm.$store.getters.myMember.id);
     // Infinite loading stops working immediately since we
     // already fetched all data.
     // Category
-    expect(wrapper.findAllComponents(NeedCard)[1].text()).toContain("build");
+    expect(wrapper.findAllComponents(NeedCard).some(card => card.text().includes("build"))).toBe(true);
 
     const search = requireText(
       need.attributes.description.split(/\W+/).find(word => word.length > 4),

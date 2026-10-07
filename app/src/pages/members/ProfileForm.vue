@@ -61,13 +61,13 @@
         v-if="changeCredentials"
         class="row q-col-gutter-md"
       >
-        <div class="col-12 col-sm-6">
+        <div class="col-12 col-sm-grow">
           <change-email-btn
             :model-value="email"
             class="full-width"
           />
         </div>
-        <div class="col-12 col-sm-6">
+        <div class="col-12 col-sm-grow">
           <change-password-btn class="full-width" />
         </div>
       </div>

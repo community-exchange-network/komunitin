@@ -122,6 +122,15 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
+    - name: Wait for Stellar
+      run: |
+        timeout 300 bash -c '
+          until curl -fsS --max-time 5 http://localhost:8000 |
+            jq -e ".ingest_latest_ledger > 0 and .ingest_latest_ledger >= .core_latest_ledger" > /dev/null; do
+            sleep 1
+          done
+        '
+
     - name: Run tests
       run: |
         pnpm typecheck
