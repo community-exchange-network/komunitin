@@ -22,6 +22,7 @@ node_modules
 /src-bex/js/core
 
 # Log files
+debug.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -40,9 +41,7 @@ pnpm-debug.log*
 
 
 # Test reports
-/test/jest/coverage
 /coverage
-src/debug.log
 tmp
 
 # Bundle reports
