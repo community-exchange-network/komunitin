@@ -18,7 +18,7 @@ it requires a production build for the current flavor:
 
 ```bash
 pnpm build
-pnpm test
+pnpm build-test
 ```
 
 The renderer removes Quasar's `data-server-rendered` body attribute to select normal
