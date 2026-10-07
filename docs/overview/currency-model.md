@@ -1,4 +1,4 @@
-# Monetary model
+# Currency model
 
 Our goal is to provide a tool that facilitates the economic organization of a society in transition to a more sustainable production and consumption model and also a tool that promotes inclusion and fair trade. The model is based on real experience from exchange communities across Spain, Italy and Greece for more than 10 years.
 
@@ -12,7 +12,7 @@ The app offers a wide range of different configuration options including differe
 
 ### External transfers
 
-Exchange between different community currencies is a feature that has been already rudimentarily implemented both by IntegralCES (Komunitin's predecessor) and CES (the most popular community currency platform). However existing applications don't model the risk of trusting currencies out of the control of the local community and that has been a source of problems. Thanks to the idea of path transfers provided by Stellar (also referred to as credit mesh or ripple in other ledgers), we define a model where communities can control the risk of trading with external currencies. In this model, the required liquidity for currency exchange is provided by communities as a community and without profit margin.
+Exchanges between communities require trust in currencies managed outside the local community. Thanks to the idea of path transfers provided by Stellar (also referred to as credit mesh or ripple in other ledgers), we define a model where communities can control the risk of trading with external currencies. In this model, the required liquidity for currency exchange is provided by communities as a community and without profit margin.
 
 The community administration may establish a trustline with one or a few other neighboring communities. That means that this community is willing to accept a limited amount of currency from the other one. This trust can be granted unilaterally by one community to another, but will typically follow a trading agreement between two neighboring communities. Global transfers are then possible via multiple hops of local currency exchanges via these local trust channels, even if the endpoint communities don't directly trust each other.
 
