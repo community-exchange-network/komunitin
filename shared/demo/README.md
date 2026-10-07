@@ -11,6 +11,17 @@ stories do not identify the people photographed.
 See the [main README](../../README.md#demo-1) for instructions to start the demo
 with `./start.sh --up --dev --demo`.
 
+## Demo keys
+
+The checked-in CSVs contain no Stellar keys. `admin bundle demo` generates them from `DEMO_RANDOM_SEED` in `.env`, falling back to `KOMUNITIN_DOMAIN`
+when the seed is unset or empty. The same seed reproduces the same currency and
+account keys, including after reordering CSV rows or columns.
+
+Use a distinct `DEMO_RANDOM_SEED` for installations sharing a domain, such as
+multiple local environments using `localhost`. Keep it unchanged to reuse the
+same Stellar accounts across demo resets. These predictable keys are only for
+demo balances on testnet.
+
 ## Users
 
 All demo users have password `komunitin`:

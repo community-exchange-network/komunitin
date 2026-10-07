@@ -14,3 +14,5 @@ Development checks, from `shared/cli/`:
 pnpm typecheck
 pnpm test
 ```
+
+The HTTP fixture tests legacy filtering, pagination, auth, field mapping, ZIP validation and failures without a database. For a live smoke test, export a community from an isolated, externally managed ICES instance with existing Accounting data, using a small page size. The Komunitin startup script seeds its own CSV demo and no longer provisions an ICES source.
