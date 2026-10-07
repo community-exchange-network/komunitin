@@ -57,7 +57,7 @@ To move an existing Stellar currency, supply its currency keys and member keys, 
 
 For active accounts, Stellar holds `balance + creditLimit`; its trustline limit is `maximumBalance + creditLimit`, or unlimited when no maximum is supplied for a new database record. Reconciliation adjusts only the difference from the live ledger balance and applies the final trustline limit. Disabled and suspended accounts hold their funds in the currency's shared pool; their individual Stellar accounts remain absent. Deleted accounts have zero community balance and no individual Stellar account.
 
-The example includes blank secret columns so it remains safe to share. The [Bramblewick demo](../demo/README.md) deliberately includes public test keys for repeatable demo imports; never use those keys for real balances. For other bundles, populate keys from deployment secrets and retain them across database resets. Private keys are stored encrypted in Accounting; durable migration data contains public-key references only. Treat a production source ZIP as a credential export and upload it directly over HTTPS.
+The example includes blank secret columns so it remains safe to share. The [Bramblewick demo](../demo/README.md) deliberately includes public test keys for repeatable demo imports; never use those keys for real balances. Treat a production source ZIP as a credential export and upload it directly over HTTPS.
 
 ### Exact amounts
 
