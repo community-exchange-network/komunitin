@@ -144,6 +144,11 @@ export default defineConfig((ctx) => {
     pwa: {
       workboxMode: 'InjectManifest', // 'GenerateSW' or 'InjectManifest'
 
+      extendPWAInjectManifestOptions(options) {
+        // Source maps are only needed for debugging, not offline use.
+        options.globIgnores!.push('**/*.map')
+      },
+
       extendPWACustomSWConf() {
         // Rolldown leaves unset env accesses as {}.env.KEY, which throws on startup.
         return { transform: { define: { 'import.meta.env': '{}' } } }
