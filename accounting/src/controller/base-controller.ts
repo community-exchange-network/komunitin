@@ -8,15 +8,15 @@ import { CollectionOptions, relatedCollectionParams } from "../server/request"
 import { Context, isSuperadmin, systemContext } from "../utils/context"
 import { badRequest, forbidden, notFound, notImplemented, unauthorized } from "../utils/error"
 import TypedEmitter from "typed-emitter"
-import { Ledger } from "../ledger"
+import { Ledger, LedgerCurrencyKeys } from "../ledger"
 import { CreateCurrency, Currency, CurrencySettings, currencyToRecord, recordToCurrency } from "../model/currency"
-import { decrypt, encrypt, exportKey, importKey, randomKey } from "../utils/crypto"
+import { randomKey } from "../utils/crypto"
 import { logger } from "../utils/logger"
 import { BasePublicService, ServiceEvents } from "./api"
 import { currencyConfig, currencyData, CurrencyControllerImpl, defaultCurrencySettings } from "./currency-controller"
 import { initUpdateCreditOnPayment } from "./features/credit-on-payment"
 import { initNotifications } from "./features/notificatons"
-import { storeCurrencyKey } from "./key-controller"
+import { retrieveEncryptionKey, storeCurrencyKey, storeEncryptionKey } from "./key-controller"
 import { initLedgerListener } from "./ledger-listener"
 import { PrivilegedPrismaClient, TenantPrismaClient, privilegedDb, tenantDb } from "./multitenant"
 import { whereFilter } from "./query"
@@ -83,7 +83,7 @@ export class BaseControllerImpl implements BasePublicService {
     return tenantDb(this._db, tenantId)
   }
 
-  async createCurrency(ctx: Context, currency: CreateCurrency): Promise<Currency> {
+  async createCurrency(ctx: Context, currency: CreateCurrency, suppliedKeys?: LedgerCurrencyKeys): Promise<Currency> {
     // Validate input beyond syntactic validation.
     if (await this.currencyExists(currency.code)) {
       throw badRequest(`Currency with code ${currency.code} already exists`)
@@ -92,11 +92,6 @@ export class BaseControllerImpl implements BasePublicService {
     if (ctx.type !== "user" && ctx.type !== "system" && ctx.type !== "superadmin") {
       throw unauthorized("Required user, system or superadmin credentials")
     }
-
-    // Create and save a currency key that will be used to encrypt all other keys
-    // related to this currency. This key itself is encrypted using the master key.
-    const currencyKey = await randomKey()
-    const encryptedCurrencyKey = await this.storeKey(currency.code, currencyKey)
 
     // Default settings:
     const defaultSettings: CurrencySettings = defaultCurrencySettings(currency)
@@ -135,75 +130,60 @@ export class BaseControllerImpl implements BasePublicService {
     // Create the currency on the ledger.
     const keys = await this.ledger.createCurrency(
       currencyConfig(currency),
-      await this.sponsorKey()
+      await this.sponsorKey(),
+      suppliedKeys
     )
 
-    // Create the currency record in the DB
-    let record = await db.currency.create({
-      data: {
-        ...inputRecord,
-        status: "new",
-        encryptionKey: {
-          connect: {
-            id: encryptedCurrencyKey.id
-          }
-        },
-        admin: {
-          connectOrCreate: {
-            where: {
-              tenantId_id: {
-                id: admin,
-                tenantId: db.tenantId
-              }
-            },
-            create: { id: admin }
-          }
+    // Commit the complete currency at once. If persistence fails after provisioning,
+    // the caller can retry with the same ledger keys without a partial currency record.
+    const currencyKey = await randomKey()
+    const record = await db.transaction(async tx => {
+      const encryptionKeyId = await storeEncryptionKey(currencyKey, tx, this.masterKey)
+      const storeKey = (key: Keypair) => storeCurrencyKey(key, tx, async () => currencyKey)
+      const currencyKeyIds = {
+        issuerKeyId: await storeKey(keys.issuer),
+        creditKeyId: await storeKey(keys.credit),
+        adminKeyId: await storeKey(keys.admin),
+        externalIssuerKeyId: await storeKey(keys.externalIssuer),
+        externalTraderKeyId: await storeKey(keys.externalTrader),
+        disabledAccountsPoolKeyId: keys.disabledAccountsPool ? await storeKey(keys.disabledAccountsPool) : undefined
+      }
+      const currencyRecord = await tx.currency.create({
+        data: {
+          ...inputRecord,
+          status: "active",
+          encryptionKey: { connect: { id: encryptionKeyId } },
+          issuerKey: { connect: { id: currencyKeyIds.issuerKeyId } },
+          creditKey: { connect: { id: currencyKeyIds.creditKeyId } },
+          adminKey: { connect: { id: currencyKeyIds.adminKeyId } },
+          externalIssuerKey: { connect: { id: currencyKeyIds.externalIssuerKeyId } },
+          externalTraderKey: { connect: { id: currencyKeyIds.externalTraderKeyId } },
+          disabledAccountsPoolKey: currencyKeyIds.disabledAccountsPoolKeyId ? { connect: { id: currencyKeyIds.disabledAccountsPoolKeyId } } : undefined,
+          admin: { create: { id: admin } }
         }
-      },
+      })
+      const externalAccount = await tx.account.create({
+        data: {
+          code: `${currency.code}EXTR`,
+          kind: AccountKind.virtual,
+          status: "active",
+          balance: 0,
+          maximumBalance: settings.externalTraderMaximumBalance === false ? null : settings.externalTraderMaximumBalance,
+          creditLimit: settings.externalTraderCreditLimit,
+          settings: {
+            allowPayments: false,
+            allowPaymentRequests: false 
+          },
+          key: { connect: { id: currencyKeyIds.externalTraderKeyId } },
+          currency: { connect: { id: currencyRecord.id } }
+        }
+      })
+      return tx.currency.update({
+        where: { id: currencyRecord.id },
+        data: { externalAccountId: externalAccount.id },
+        include: { externalAccount: true }
+      })
     })
-
-    // Store the keys into the DB, encrypted using the currency key.
-    const storeKey = (key: Keypair) => storeCurrencyKey(key, db, async () => currencyKey)
-    const currencyKeyIds = {
-      issuerKeyId: await storeKey(keys.issuer),
-      creditKeyId: await storeKey(keys.credit),
-      adminKeyId: await storeKey(keys.admin),
-      externalIssuerKeyId: await storeKey(keys.externalIssuer),
-      externalTraderKeyId: await storeKey(keys.externalTrader)
-    }
-
-    // Create the virtual local account for external transactions
-    const externalAccountRecord = await db.account.create({
-      data: {
-        code: `${inputRecord.code}EXTR`,
-        kind: AccountKind.virtual,
-        status: "active",
-        balance: 0,
-        maximumBalance: currency.settings.externalTraderMaximumBalance ? currency.settings.externalTraderMaximumBalance : null,
-        creditLimit: currency.settings.externalTraderCreditLimit ?? 0,
-        key: { connect: { id: currencyKeyIds.externalTraderKeyId } },
-        settings: {
-          allowPayments: false,
-          allowPaymentRequests: false
-        },
-        currency: { connect: { id: record.id } },
-        // no users for virtual account.
-      }
-    })
-
-    // Update the currency record in DB
-    record = await db.currency.update({
-      where: { id: record.id },
-      data: {
-        status: "active",
-        ...currencyKeyIds,
-        externalAccountId: externalAccountRecord.id
-      },
-      include: {
-        externalAccount: true
-      }
-    })
-
     return recordToCurrency(record)
 
   }
@@ -257,24 +237,15 @@ export class BaseControllerImpl implements BasePublicService {
   }
 
   /**
-   * Stores a key into the DB, encrypted with the master key. Used to store currency master
-   * encryption key.
+   * Store a migration encryption key using the service master key.
    */
-  async storeKey(code: string, key: KeyObject) {
-    const encryptedSecret = await encrypt(exportKey(key), await this.masterKey())
-    return await this.tenantDb(code).encryptedSecret.create({
-      data: {
-        encryptedSecret
-      }
-    })
+  async storeEncryptionKey(code: string, key: KeyObject) {
+    const id = await storeEncryptionKey(key, this.tenantDb(code), this.masterKey)
+    return { id }
   }
 
-  async retrieveKey(code: string, id: string) {
-    const result = await this.tenantDb(code).encryptedSecret.findUniqueOrThrow({
-      where: { id }
-    })
-    const secret = await decrypt(result.encryptedSecret, await this.masterKey())
-    return importKey(secret)
+  async retrieveEncryptionKey(code: string, id: string) {
+    return retrieveEncryptionKey(id, this.tenantDb(code), this.masterKey)
   }
 
   async stop() {
@@ -288,7 +259,7 @@ export class BaseControllerImpl implements BasePublicService {
     const currency = await this.loadCurrency(code)
     const ledgerCurrency = this.ledger.getCurrency(currencyConfig(currency), currencyData(currency), currency.state)
     const db = this.tenantDb(code)
-    const encryptionKey = () => this.retrieveKey(code, currency.encryptionKey)
+    const encryptionKey = () => this.retrieveEncryptionKey(code, currency.encryptionKey)
     return new CurrencyControllerImpl(currency, ledgerCurrency, db, encryptionKey, this.sponsorKey, this.emitter)
   }
 

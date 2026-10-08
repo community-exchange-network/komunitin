@@ -11,7 +11,8 @@ import { KeyController } from "./key-controller"
 import { ExternalResourceController } from "./external-resource-controller"
 import { AtLeast } from "../utils/types"
 import { CreditCommonsController } from "../creditcommons/credit-commons-controller"
-import { LedgerCurrency } from "../ledger"
+import { Ledger, LedgerCurrency, LedgerCurrencyKeys } from "../ledger"
+import type { KeyObject } from 'node:crypto'
 
 /**
  * Controller for operations not related to a particular currency.
@@ -31,6 +32,14 @@ export type ServiceEvents = {
 }
 
 export interface BaseService extends BasePublicService {
+  readonly ledger: Ledger
+  // Provide keys for ledger account reuse.
+  createCurrency(ctx: Context, currency: CreateCurrency, keys?: LedgerCurrencyKeys): Promise<Currency>
+
+  // Use to store and retrieve the master key for a currency
+  storeEncryptionKey(code: string, key: KeyObject): Promise<{ id: string }>
+  retrieveEncryptionKey(code: string, id: string): Promise<KeyObject>
+
   stop(): Promise<void>
   
   addListener: TypedEmitter<ServiceEvents>['addListener']
