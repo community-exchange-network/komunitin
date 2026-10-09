@@ -6,7 +6,7 @@ import { pipeline } from 'node:stream/promises'
 import { Keypair } from '@stellar/stellar-sdk'
 import { parse } from 'csv-parse/sync'
 import { ZipFile } from 'yazl'
-import { encodeCsv } from '../../../social/src/features/migrations/bundle/encode.ts'
+import { encodeCsv } from '../../../social/src/features/migrations/bundle/csv.ts'
 import { requiredEnv } from '../utils.ts'
 
 const generateKeys = async (directory: URL, seed: string) => {
