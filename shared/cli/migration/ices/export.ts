@@ -1,11 +1,14 @@
 import { buffer } from 'node:stream/consumers'
 import { ZipFile } from 'yazl'
 import { MIGRATION_BUNDLE_FILENAMES, MAX_MIGRATION_DATA_ROWS, type MigrationBundleFilename } from '../../../../social/src/features/migrations/bundle/constants'
-import { encodeCsv, CSV_HEADERS } from '../../../../social/src/features/migrations/bundle/csv'
+import { CSV_HEADERS as SOCIAL_HEADERS, encodeCsv } from '../../../../social/src/features/migrations/bundle/csv'
+import { CSV_HEADERS as ACCOUNTING_HEADERS } from '../../../../accounting/src/migration/format'
 import type { MigrationSummary } from '../../../../social/src/features/migrations/bundle/types'
 import { collection, identifiers, includedResources, IcesClient, single, type IcesAuth, type IcesDocument, type IcesResource } from './client'
 import type { IcesRows } from './bundle'
 import { parseMigrationBundle } from '../../../../social/src/features/migrations/bundle'
+
+export const CSV_HEADERS: Record<MigrationBundleFilename, readonly string[]> = { ...SOCIAL_HEADERS, ...ACCOUNTING_HEADERS }
 
 export interface IcesExportOptions {
   /** ICES site root, for example https://ices.example.org (not the Social API URL). */
@@ -152,7 +155,7 @@ const exportBundle = async (client: IcesClient, code: string, sanitize?: IcesExp
   if (admins.length === 0) throw new Error('ICES did not expose any community administrators')
   const communityRow: Row = {
     ...fields(community, profileColumns), ...contacts(communityDocument, community),
-    id: community.id, 'currency.id': related(community, 'currency', 'currencies', false),
+    id: community.id,
     status: cell(community.attributes.status), adminUsers: [...new Set(admins)].join(';'),
   }
   // Older groups keep their website in an attribute rather than a contact.
@@ -161,6 +164,7 @@ const exportBundle = async (client: IcesClient, code: string, sanitize?: IcesExp
     communityRow[column] = cell(attribute(communitySettings, column.slice('settings.'.length)))
   }
   add('community.csv', communityRow)
+  add('currency.csv', { code, id: related(community, 'currency', 'currencies', false) })
 
   const members = new Map<string, string>()
   for await (const document of client.pages(`${code}/members`, {
@@ -183,10 +187,14 @@ const exportBundle = async (client: IcesClient, code: string, sanitize?: IcesExp
         const row: Row = {
           ...fields(member, profileColumns), ...contacts(document, member), id: member.id,
           type: cell(member.attributes.type), status: cell(member.attributes.state),
-          'account.id': related(member, 'account', 'accounts', false),
         }
         members.set(member.id, row.code)
         add('members.csv', row)
+        const accountId = related(member, 'account', 'accounts', false)
+        // Preserve unexpected source references so import validation can report them.
+        if ((row.status !== 'draft' && row.status !== 'pending') || accountId) {
+          add('accounts.csv', { code: row.code, id: accountId })
+        }
         const owner = addUser(userDocument, owners[0])
         add('member-users.csv', { member: row.code, user: owner.row.id, ...owner.preferences })
         client.onProgress(`${code}: ${members.size} members, ${users.size} unique users exported`)
@@ -269,7 +277,7 @@ const exportBundle = async (client: IcesClient, code: string, sanitize?: IcesExp
     users: rows['users.csv'].length,
     memberUsers: rows['member-users.csv'].length,
     members: rows['members.csv'].length,
-    accounts: 0,
+    accounts: rows['accounts.csv'].length,
     transfers: 0,
     categories: rows['categories.csv'].length,
     offers: rows['posts.csv'].filter((row) => row.type === 'offer').length,

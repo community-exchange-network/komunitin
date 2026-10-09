@@ -1,8 +1,10 @@
 export const MIGRATION_BUNDLE_FILENAMES = [
   'community.csv',
+  'currency.csv',
   'users.csv',
   'member-users.csv',
   'members.csv',
+  'accounts.csv',
   'transfers.csv',
   'categories.csv',
   'posts.csv',
@@ -12,9 +14,11 @@ export type MigrationBundleFilename = typeof MIGRATION_BUNDLE_FILENAMES[number]
 
 export const REQUIRED_MIGRATION_BUNDLE_FILENAMES: readonly MigrationBundleFilename[] = [
   'community.csv',
+  'currency.csv',
   'users.csv',
   'member-users.csv',
   'members.csv',
+  'accounts.csv',
 ]
 
 export interface MigrationParserLimits {

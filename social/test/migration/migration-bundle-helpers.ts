@@ -64,6 +64,15 @@ export const appendCsvRow = (
   return new Map(files).set(filename, encodeCsv(records))
 }
 
+export const removeCsvRow = (
+  files: Map<MigrationBundleFilename, Buffer>,
+  filename: MigrationBundleFilename,
+  dataRow: number,
+) => {
+  const records = parse(files.get(filename)!.toString('utf8')) as string[][]
+  return new Map(files).set(filename, encodeCsv(records.filter((_, index) => index !== dataRow)))
+}
+
 /** Omit columns whose values are blank in every data row. */
 export const omitBlankColumns = (files: Map<MigrationBundleFilename, Buffer>) => new Map(
   [...files].map(([filename, bytes]) => {

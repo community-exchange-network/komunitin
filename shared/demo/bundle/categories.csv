@@ -1,0 +1,10 @@
+id,code,name,description,access,createdAt,updatedAt,icon.type,icon.value
+02eed005-2ea6-5c6d-b96c-7f92cba4a0af,food,Food & produce,"Seasonal harvests, home cooking and baking.",public,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,material,local_dining
+a5f7ed23-e1d7-5c79-9262-b9446a99a6c6,garden,Gardens & growing,"Plants, pruning and help outdoors.",public,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,material,yard
+725d7271-da0e-5743-a6d8-fecff71fe2c7,repair,Repairs & making,Keep useful things useful.,public,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,material,build
+accec610-95f5-5507-a41d-2140359a9f44,craft,Arts & crafts,Handmade goods and creative skills.,public,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,material,palette
+ddef8a0f-2067-5ac8-b31b-7c0489b8cd8b,learn,Learning & music,Share what you know.,public,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,material,school
+02edd470-b55e-5e83-9052-7315090b89d5,animals,Animals & smallholding,"Fleeces, feed and practical farm help.",public,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,material,pets
+3dd846d4-b48d-5969-8f94-b822435b22c0,care,Care & wellbeing,Neighbourly help for everyday life.,public,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,material,favorite
+fbd09dad-78b4-5d5c-b20f-759241dd0562,transport,Transport & errands,"Local lifts, collections and deliveries.",public,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,material,directions_bike
+dc78ed71-2c1f-57af-aa63-3dd1c0def02c,community,Community spaces,Shared rooms and village projects.,public,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,material,groups

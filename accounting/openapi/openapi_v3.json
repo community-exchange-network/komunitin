@@ -13,10 +13,72 @@
       "get": {
         "summary": "/",
         "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Welcome to the Credit Commons federation protocol."
+                    }
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Welcome to the Credit Commons federation protocol."
+                    }
+                  }
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized",
             "content": {
               "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "401",
+                          "code": "Unauthorized",
+                          "title": "Unauthorized",
+                          "detail": "This currency has not (yet) been grafted onto any CreditCommons tree."
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1562,7 +1624,146 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "currency-settings"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "1d0d821c-ebd3-49a8-b8ec-9cd0bba616ba"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "defaultAllowPayments": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultAllowQrPayments": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "enableExternalPayments": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultAllowTagPayments": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultInitialCreditLimit": {
+                              "type": "number",
+                              "example": 1000
+                            },
+                            "externalTraderCreditLimit": {
+                              "type": "number",
+                              "example": 1000
+                            },
+                            "defaultAcceptPaymentsAfter": {
+                              "type": "number",
+                              "example": 1209600
+                            },
+                            "defaultAllowSimplePayments": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultAllowPaymentRequests": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultOnPaymentCreditLimit": {
+                              "type": "boolean",
+                              "example": false
+                            },
+                            "enableCreditCommonsPayments": {
+                              "type": "boolean",
+                              "example": false
+                            },
+                            "defaultAllowExternalPayments": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultAllowMultiplePayments": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultInitialMaximumBalance": {
+                              "type": "boolean",
+                              "example": false
+                            },
+                            "externalTraderMaximumBalance": {
+                              "type": "number",
+                              "example": 10000
+                            },
+                            "defaultAllowQrPaymentRequests": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "enableExternalPaymentRequests": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultAcceptPaymentsWhitelist": {
+                              "type": "array",
+                              "items": {},
+                              "example": [
+                                null
+                              ]
+                            },
+                            "defaultAllowTagPaymentRequests": {
+                              "type": "boolean",
+                              "example": false
+                            },
+                            "defaultAllowSimplePaymentRequests": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultAcceptPaymentsAutomatically": {
+                              "type": "boolean",
+                              "example": false
+                            },
+                            "defaultAllowExternalPaymentRequests": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultAllowMultiplePaymentRequests": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultAcceptExternalPaymentsAutomatically": {
+                              "type": "boolean",
+                              "example": true
+                            }
+                          }
+                        },
+                        "links": {
+                          "type": "object",
+                          "properties": {
+                            "self": {
+                              "type": "string",
+                              "example": "http://localhost:2025/TEST/currency/settings"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "currency"
         ]
@@ -2091,6 +2292,46 @@
                           "code": "Forbidden",
                           "title": "Forbidden",
                           "detail": "User not found in currency TEST"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "404",
+                          "code": "NotFound",
+                          "title": "Not Found",
+                          "detail": "Currency with code TEST not found"
                         }
                       ]
                     }
@@ -2634,6 +2875,46 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "404",
+                          "code": "NotFound",
+                          "title": "Not Found",
+                          "detail": "Account id 8fc7c2d4-74e2-46da-aef5-69417377988c not found in currency TEST"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -4612,7 +4893,19 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "example": "id,created,updated,state,amount,description,hash,authorization,payer.id,payer.code,payee.id,payee.code,user.id\nd2eba20a-ec08-46ef-8843-b5d500d033bb,2026-10-03T21:52:52.281Z,2026-10-03T21:52:53.225Z,committed,0.01,User transfer,4360ec12f0a7697d34a16a5afb0c5baa81a9d85496ee3f78dc34b6e80435f1d8,,cddc7f04-ea89-4b37-bc9c-41b2b7cf89d8,TEST0001,c9e7440f-3343-4cd7-bbc4-780564ce1245,TEST0002,b80c8fef-a677-5340-85fb-2c162d75df03\nf527d75f-c34e-4852-a35c-142973b55566,2026-10-03T21:52:53.332Z,2026-10-03T21:52:54.228Z,committed,0.004,t.admin transfer,3bcfb2e9a8aa3bfa4238db744ec00fa5dcaadbdffc321af253ed4cd39ad902c6,,cddc7f04-ea89-4b37-bc9c-41b2b7cf89d8,TEST0001,c9e7440f-3343-4cd7-bbc4-780564ce1245,TEST0002,035c4ea0-d73b-5bde-bd6f-c806b04f2ec3\n440727e6-44ca-4f81-96c9-8f7da56d5047,2026-10-03T21:52:54.327Z,2026-10-03T21:52:55.229Z,committed,0.003,Two-step transfer,83e2ac1e3a828ec37b323db2727c5658475fd6e9dfc90b592f6c5a68818e22fd,,cddc7f04-ea89-4b37-bc9c-41b2b7cf89d8,TEST0001,c9e7440f-3343-4cd7-bbc4-780564ce1245,TEST0002,b80c8fef-a677-5340-85fb-2c162d75df03\nc15221b5-649b-4807-a7f5-c97c80b946eb,2026-10-03T21:52:55.562Z,2026-10-03T21:52:55.575Z,failed,0.09,Insufficient funds,,,cddc7f04-ea89-4b37-bc9c-41b2b7cf89d8,TEST0001,c9e7440f-3343-4cd7-bbc4-780564ce1245,TEST0002,b80c8fef-a677-5340-85fb-2c162d75df03\nc7f285bf-45e8-4236-b3c2-27c32f48132b,2026-10-03T21:52:56.265Z,2026-10-03T21:52:57.232Z,committed,0.09,Sufficient funds,cc25fe4d1a3af9f3874e143ebdcf63348e8e799a49b7593fdfc50ae864b8273a,,cddc7f04-ea89-4b37-bc9c-41b2b7cf89d8,TEST0001,c9e7440f-3343-4cd7-bbc4-780564ce1245,TEST0002,b80c8fef-a677-5340-85fb-2c162d75df03\nf2776b49-355f-4a06-88fd-9afe0054a537,2026-10-03T21:52:57.324Z,2026-10-03T21:52:57.363Z,new,0.02,Updated transfer,,,cddc7f04-ea89-4b37-bc9c-41b2b7cf89d8,TEST0001,76c6cbf8-4169-4e5c-9081-a71351b497d3,TEST0000,b80c8fef-a677-5340-85fb-2c162d75df03\nce7750d9-2118-42ba-8f9e-a3c23084e3e9,2026-10-03T21:52:57.399Z,2026-10-03T21:52:57.399Z,new,0.01,Initial transfer,,,cddc7f04-ea89-4b37-bc9c-41b2b7cf89d8,TEST0001,c9e7440f-3343-4cd7-bbc4-780564ce1245,TEST0002,b80c8fef-a677-5340-85fb-2c162d75df03\ne29e75d4-ac6a-4d41-9bc7-f3b073e14216,2026-10-03T21:52:57.597Z,2026-10-03T21:52:57.597Z,new,0.01,Get transfer,,,cddc7f04-ea89-4b37-bc9c-41b2b7cf89d8,TEST0001,c9e7440f-3343-4cd7-bbc4-780564ce1245,TEST0002,b80c8fef-a677-5340-85fb-2c162d75df03"
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "transfers"
         ]
@@ -5379,7 +5672,126 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "creditCommonsNodes"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "peerNodePath": {
+                              "type": "string",
+                              "example": "trunk"
+                            },
+                            "lastHash": {
+                              "type": "string",
+                              "example": "asdf"
+                            },
+                            "vostroId": {
+                              "type": "string",
+                              "example": "5105eede-239c-4263-8f44-7e8c12415563"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "401",
+                          "code": "Unauthorized",
+                          "title": "Unauthorized",
+                          "detail": "Unauthorized"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "403",
+                          "code": "Forbidden",
+                          "title": "Forbidden",
+                          "detail": "Only the currency owner can perform this operation"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       }
     },
@@ -5413,7 +5825,110 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "payee": {
+                            "type": "string"
+                          },
+                          "payer": {
+                            "type": "string"
+                          },
+                          "quant": {
+                            "type": "number"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "properties": {
+                              "foo": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "payee": "trunk/branch2/TEST0002",
+                          "payer": "trunk/branch/twig/alice",
+                          "quant": 0.01,
+                          "description": "test long distance for 3 from leaf",
+                          "metadata": {
+                            "foo": "bar"
+                          }
+                        }
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "secs_valid_left": {
+                          "type": "number",
+                          "example": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "Payer's balance 0.1000000 is not sufficient for a payment of 8.0000000"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "value of last-hash header \"qwer\" does not match our records."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       }
     },
@@ -5446,7 +5961,71 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "value of last-hash header \"qwer\" does not match our records."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "Transfer non-existing not found"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "not implemented yet"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       }
     },
@@ -5463,7 +6042,48 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "trades": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "entries": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "gross_in": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "gross_out": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "partners": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "pending": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "balance": {
+                      "type": "number",
+                      "example": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       }
     },
@@ -5480,7 +6100,49 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "min": {
+                          "example": null,
+                          "nullable": true
+                        },
+                        "max": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "points": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "start": {
+                          "type": "string",
+                          "example": "9999-01-01 00:00:00"
+                        },
+                        "end": {
+                          "type": "string",
+                          "example": "0000-01-01 00:00:00"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       }
     },
@@ -5510,16 +6172,322 @@
       }
     },
     "/migrations": {
-      "get": {
+      "post": {
         "summary": "/migrations",
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "example": "event: migration\ndata: {\"id\":\"648042ef-ec69-4f33-95fc-40267cfd4a08\"}\n\nevent: progress\ndata: {\"time\":\"2026-10-08T14:18:06.961Z\",\"level\":\"info\",\"step\":\"start\",\"message\":\"Importing accounting CSV bundle\"}\n\nevent: progress\ndata: {\"time\":\"2026-10-08T14:18:08.560Z\",\"level\":\"info\",\"step\":\"currency\",\"message\":\"Currency ready\"}\n\nevent: progress\ndata: {\"time\":\"2026-10-08T14:18:08.606Z\",\"level\":\"info\",\"step\":\"accounts\",\"message\":\"2 accounts ready\"}\n\nevent: progress\ndata: {\"time\":\"2026-10-08T14:18:08.623Z\",\"level\":\"info\",\"step\":\"transfers\",\"message\":\"1 historical transfers ready\"}\n\nevent: progress\ndata: {\"time\":\"2026-10-08T14:18:13.413Z\",\"level\":\"info\",\"step\":\"balances\",\"message\":\"Adjusted Stellar account GAVFXD7XEWWYVI6TV74ZLV6T272PS65M3OWNEDEOBK4RP4NXYQB6LTTE from 10000 to 9500 scaled units; transaction 300fc3bab2c59f65af6815415dbc6b1bb1a0135573f573816b5c93199692ebf0\"}\n\nevent: progress\ndata: {\"time\":\"2026-10-08T14:18:15.413Z\",\"level\":\"info\",\"step\":\"balances\",\"message\":\"Adjusted Stellar account GBRWFQ7CPJR5JTUOQED6YQYDJTVWRIHWNFRRUMHXXTUSBTOQ6KX6VIU4 from 0 to 10500 scaled units; transaction 0ff3271622d35b854dfdc3156922773db4203a90ca18da0eca1ac3d57825d906\"}\n\nevent: progress\ndata: {\"time\":\"2026-10-08T14:18:15.437Z\",\"level\":\"info\",\"step\":\"balances\",\"message\":\"Ledger balances and account statuses established\"}\n\nevent: progress\ndata: {\"time\":\"2026-10-08T14:18:15.441Z\",\"level\":\"info\",\"step\":\"complete\",\"message\":\"Accounting CSV migration completed\"}\n\nevent: end\ndata: {\"id\":\"648042ef-ec69-4f33-95fc-40267cfd4a08\",\"status\":\"completed\"}\n\n"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "400",
+                          "code": "BadRequest",
+                          "title": "Bad Request",
+                          "detail": "Monetary fields require currency.csv scale"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "400",
+                          "code": "BadRequest",
+                          "title": "Bad Request",
+                          "detail": "Monetary fields require currency.csv scale"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "401",
+                          "code": "Unauthorized",
+                          "title": "Unauthorized",
+                          "detail": "Unauthorized"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "401",
+                          "code": "Unauthorized",
+                          "title": "Unauthorized",
+                          "detail": "Unauthorized"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "403",
+                          "code": "Forbidden",
+                          "title": "Forbidden",
+                          "detail": "Only the Social service may import accounting CSVs"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "403",
+                          "code": "Forbidden",
+                          "title": "Forbidden",
+                          "detail": "Only the Social service may import accounting CSVs"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "migrations"
         ]
       },
-      "post": {
+      "get": {
         "summary": "/migrations",
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "attributes": {
+                            "type": "object",
+                            "properties": {
+                              "code": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "created": {
+                                "type": "string"
+                              },
+                              "updated": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "attributes"
+                        ]
+                      },
+                      "example": [
+                        {
+                          "type": "migrations",
+                          "id": "aa027bcb-349d-4e33-8c70-344df510abb7",
+                          "attributes": {
+                            "code": "EXMP",
+                            "name": "CSV EXMP migration",
+                            "kind": "csv-accounting",
+                            "status": "completed",
+                            "created": "2026-10-07T22:05:28.192Z",
+                            "updated": "2026-10-07T22:05:33.809Z"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "migrations"
         ]
@@ -5538,79 +6506,144 @@
             }
           }
         ],
-        "responses": {},
-        "tags": [
-          "migrations"
-        ]
-      },
-      "patch": {
-        "summary": "/migrations/{id}",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "migrations"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "aa027bcb-349d-4e33-8c70-344df510abb7"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string",
+                              "example": "EXMP"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "CSV EXMP migration"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "example": "csv-accounting"
+                            },
+                            "status": {
+                              "type": "string",
+                              "example": "started"
+                            },
+                            "created": {
+                              "type": "string",
+                              "example": "2026-10-07T22:05:28.192Z"
+                            },
+                            "updated": {
+                              "type": "string",
+                              "example": "2026-10-07T22:05:28.292Z"
+                            },
+                            "data": {
+                              "type": "object",
+                              "properties": {
+                                "step": {
+                                  "type": "string",
+                                  "example": "start"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "logs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "step": {
+                                "type": "string"
+                              },
+                              "time": {
+                                "type": "string"
+                              },
+                              "level": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "example": [
+                            {
+                              "step": "start",
+                              "time": "2026-10-07T22:05:28.290Z",
+                              "level": "info",
+                              "message": "Importing accounting CSV bundle"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "403",
+                          "code": "Forbidden",
+                          "title": "Forbidden",
+                          "detail": "Only the Social service may import accounting CSVs"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
             }
           }
-        ],
-        "responses": {},
-        "tags": [
-          "migrations"
-        ]
-      },
-      "delete": {
-        "summary": "/migrations/{id}",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {},
-        "tags": [
-          "migrations"
-        ]
-      }
-    },
-    "/migrations/{id}/logs/stream": {
-      "get": {
-        "summary": "/migrations/{id}/logs/stream",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {},
-        "tags": [
-          "migrations"
-        ]
-      }
-    },
-    "/migrations/{id}/play": {
-      "post": {
-        "summary": "/migrations/{id}/play",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {},
+        },
         "tags": [
           "migrations"
         ]
@@ -5629,7 +6662,177 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "topups"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "e1de5ad4-f978-47f8-bb03-65dd356990c7"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "example": "new"
+                            },
+                            "depositAmount": {
+                              "type": "number",
+                              "example": 1000
+                            },
+                            "depositCurrency": {
+                              "type": "string",
+                              "example": "EUR"
+                            },
+                            "receiveAmount": {
+                              "type": "number",
+                              "example": 100000
+                            },
+                            "paymentProvider": {
+                              "type": "string",
+                              "example": "mollie"
+                            },
+                            "paymentData": {
+                              "example": null,
+                              "nullable": true
+                            },
+                            "meta": {
+                              "example": null,
+                              "nullable": true
+                            },
+                            "created": {
+                              "type": "string",
+                              "example": "2026-10-03T21:56:19.282Z"
+                            },
+                            "updated": {
+                              "type": "string",
+                              "example": "2026-10-03T21:56:19.282Z"
+                            }
+                          }
+                        },
+                        "relationships": {
+                          "type": "object",
+                          "properties": {
+                            "account": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "example": "accounts"
+                                    },
+                                    "id": {
+                                      "type": "string",
+                                      "example": "0605cb17-4cb5-4b3f-84e8-be8ce3de4f0d"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "user": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "example": "users"
+                                    },
+                                    "id": {
+                                      "type": "string",
+                                      "example": "b80c8fef-a677-5340-85fb-2c162d75df03"
+                                    },
+                                    "meta": {
+                                      "type": "object",
+                                      "properties": {
+                                        "external": {
+                                          "type": "boolean",
+                                          "example": true
+                                        },
+                                        "href": {
+                                          "example": null,
+                                          "nullable": true
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "transfer": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "example": null,
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "403",
+                          "code": "Forbidden",
+                          "title": "Forbidden",
+                          "detail": "Topups are not enabled for this currency"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       }
     },
@@ -5654,7 +6857,193 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "topups"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "c10a3576-57d2-43ce-a199-79234613d020"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "example": "new"
+                            },
+                            "depositAmount": {
+                              "type": "number",
+                              "example": 5000
+                            },
+                            "depositCurrency": {
+                              "type": "string",
+                              "example": "EUR"
+                            },
+                            "receiveAmount": {
+                              "type": "number",
+                              "example": 681818
+                            },
+                            "paymentProvider": {
+                              "type": "string",
+                              "example": "mollie"
+                            },
+                            "paymentData": {
+                              "example": null,
+                              "nullable": true
+                            },
+                            "meta": {
+                              "example": null,
+                              "nullable": true
+                            },
+                            "created": {
+                              "type": "string",
+                              "example": "2026-10-03T21:56:19.632Z"
+                            },
+                            "updated": {
+                              "type": "string",
+                              "example": "2026-10-03T21:56:19.632Z"
+                            }
+                          }
+                        },
+                        "links": {
+                          "type": "object",
+                          "properties": {
+                            "self": {
+                              "type": "string",
+                              "example": "http://localhost:2025/TEST/topups/c10a3576-57d2-43ce-a199-79234613d020"
+                            }
+                          }
+                        },
+                        "relationships": {
+                          "type": "object",
+                          "properties": {
+                            "account": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "example": "accounts"
+                                    },
+                                    "id": {
+                                      "type": "string",
+                                      "example": "0605cb17-4cb5-4b3f-84e8-be8ce3de4f0d"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "user": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "example": "users"
+                                    },
+                                    "id": {
+                                      "type": "string",
+                                      "example": "b80c8fef-a677-5340-85fb-2c162d75df03"
+                                    },
+                                    "meta": {
+                                      "type": "object",
+                                      "properties": {
+                                        "external": {
+                                          "type": "boolean",
+                                          "example": true
+                                        },
+                                        "href": {
+                                          "example": null,
+                                          "nullable": true
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "transfer": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "example": null,
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "included": {
+                      "type": "array",
+                      "items": {},
+                      "example": [
+                        null
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "403",
+                          "code": "Forbidden",
+                          "title": "Forbidden",
+                          "detail": "Access denied"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       },
       "patch": {
@@ -5677,7 +7066,150 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "topups"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "59c3ba86-71b3-47a3-b2da-ef99fa5d162b"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "example": "pending"
+                            },
+                            "depositAmount": {
+                              "type": "number",
+                              "example": 5000
+                            },
+                            "depositCurrency": {
+                              "type": "string",
+                              "example": "EUR"
+                            },
+                            "receiveAmount": {
+                              "type": "number",
+                              "example": 681818
+                            },
+                            "paymentProvider": {
+                              "type": "string",
+                              "example": "mollie"
+                            },
+                            "paymentData": {
+                              "type": "object",
+                              "properties": {
+                                "status": {
+                                  "type": "string",
+                                  "example": "open"
+                                },
+                                "paymentId": {
+                                  "type": "string",
+                                  "example": "tr_mock_id"
+                                },
+                                "checkoutUrl": {
+                                  "type": "string",
+                                  "example": "https://www.mollie.com/payscreen/select-method/mock-payment"
+                                }
+                              }
+                            },
+                            "meta": {
+                              "example": null,
+                              "nullable": true
+                            },
+                            "created": {
+                              "type": "string",
+                              "example": "2026-10-03T21:56:20.267Z"
+                            },
+                            "updated": {
+                              "type": "string",
+                              "example": "2026-10-03T21:56:20.338Z"
+                            }
+                          }
+                        },
+                        "relationships": {
+                          "type": "object",
+                          "properties": {
+                            "account": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "example": "accounts"
+                                    },
+                                    "id": {
+                                      "type": "string",
+                                      "example": "0605cb17-4cb5-4b3f-84e8-be8ce3de4f0d"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "user": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "example": "users"
+                                    },
+                                    "id": {
+                                      "type": "string",
+                                      "example": "b80c8fef-a677-5340-85fb-2c162d75df03"
+                                    },
+                                    "meta": {
+                                      "type": "object",
+                                      "properties": {
+                                        "external": {
+                                          "type": "boolean",
+                                          "example": true
+                                        },
+                                        "href": {
+                                          "example": null,
+                                          "nullable": true
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "transfer": {
+                              "type": "object",
+                              "properties": {
+                                "data": {
+                                  "example": null,
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       }
     },
@@ -5702,7 +7234,24 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": []
       }
     },
@@ -5719,7 +7268,123 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "topup-settings"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "a96e6a6a-3ccb-4534-865c-097c2f09f6de"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "defaultAllowTopup": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "depositCurrency": {
+                              "type": "string",
+                              "example": "EUR"
+                            },
+                            "rate": {
+                              "type": "object",
+                              "properties": {
+                                "d": {
+                                  "type": "number",
+                                  "example": 1
+                                },
+                                "n": {
+                                  "type": "number",
+                                  "example": 100
+                                }
+                              }
+                            },
+                            "minAmount": {
+                              "type": "number",
+                              "example": 1000
+                            },
+                            "maxAmount": {
+                              "type": "number",
+                              "example": 30000
+                            },
+                            "paymentProvider": {
+                              "type": "string",
+                              "example": "mollie"
+                            },
+                            "sourceAccountId": {
+                              "type": "string",
+                              "example": "81b33493-f851-43c6-b1df-1d78d8ef2e25"
+                            }
+                          }
+                        },
+                        "relationships": {
+                          "type": "object",
+                          "properties": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "example": [
+                        {
+                          "status": "403",
+                          "code": "Forbidden",
+                          "title": "Forbidden",
+                          "detail": "Only superadmin users can enable topups"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "currency"
         ]
@@ -5788,7 +7453,46 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "account-topup-settings"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "0605cb17-4cb5-4b3f-84e8-be8ce3de4f0d"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "properties": {
+                            "allowTopup": {
+                              "type": "boolean",
+                              "example": false
+                            }
+                          }
+                        },
+                        "relationships": {
+                          "type": "object",
+                          "properties": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "accounts"
         ]
@@ -6347,10 +8051,9 @@
   "components": {
     "securitySchemes": {
       "authorization": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "JWT from the configured Auth issuer for audience urn:komunitin:api. Use accounting:read for reads, accounting:write for writes, or superadmin on admin operations."
+        "name": "authorization",
+        "in": "header",
+        "type": "apiKey"
       }
     }
   }

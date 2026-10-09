@@ -1839,6 +1839,7 @@ describe('Members endpoints', () => {
     await seedGroup({ tenantId: 'members-page', status: 'active', access: 'public' })
     await seedMember({ tenantId: 'members-page', code: 'hidden', name: 'Alpha', status: 'draft', access: 'public' })
     await seedMember({ tenantId: 'members-page', code: 'visible', name: 'Bravo', status: 'active', access: 'public' })
+    await seedMember({ tenantId: 'members-page', code: 'also-visible', name: 'Charlie', status: 'active', access: 'public' })
 
     const res = await request(app)
       .get('/members-page/members?sort=name&page[size]=1')
@@ -1846,6 +1847,12 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'visible')
+    const next = new URL(res.body.links.next)
+    assert.strictEqual(next.pathname, '/members-page/members')
+    assert.strictEqual(next.searchParams.get('sort'), 'name')
+    const secondPage = await request(app).get(next.pathname + next.search).expect(200)
+    assert.strictEqual(secondPage.body.data[0].attributes.code, 'also-visible')
+    assert.strictEqual(secondPage.body.links.next, null)
   })
 
   test('GET /:code/members sorts by distance with null locations last', async () => {

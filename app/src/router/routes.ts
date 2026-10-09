@@ -427,12 +427,6 @@ const routes: RouteRecordRaw[] = [
               props: true,
               name: 'CreateMigration',
               component: () => import('../pages/superadmin/CreateMigration.vue'),
-            },
-            {
-              path: ':id/edit',
-              props: true,
-              name: 'EditMigration',
-              component: () => import('../pages/superadmin/EditMigration.vue'),
             }
           ]
         }]

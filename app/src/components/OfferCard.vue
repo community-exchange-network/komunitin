@@ -89,7 +89,7 @@ import DeleteOfferBtn from "./DeleteOfferBtn.vue"
 import PostStatusBadges from "./PostStatusBadges.vue"
 
 type CardOffer = Offer & {
-  category: Category
+  category: Category | null
   member: Member & {
     group: Group & {
       currency?: Currency
@@ -116,7 +116,7 @@ const canEdit = computed(() =>
   || store.getters.isAdmin
 )
 const isMemberActive = computed(() => props.offer.member.attributes.status === "active")
-const isExpired = computed(() => new Date(props.offer.attributes.expires) < new Date())
+const isExpired = computed(() => props.offer.attributes.expires !== null && new Date(props.offer.attributes.expires) < new Date())
 const isMuted = computed(() =>
   props.offer.attributes.status !== "published"
   || !isMemberActive.value

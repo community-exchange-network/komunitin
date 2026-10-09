@@ -226,8 +226,6 @@ export class CurrencyControllerImpl implements CurrencyService {
     if (this.model.status === "active") {
       await this.disableCurrency(ctx)
     } else if (this.model.status !== "disabled") {
-      // Currencies should only be in "new" status while the ledger operations are
-      // being performed, so we should not allow deleting a currency in "new" status.
       throw badRequest(`Can't delete currency with status ${this.model.status}`)
     }
 

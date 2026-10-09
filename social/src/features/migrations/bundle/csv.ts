@@ -1,44 +1,21 @@
 import { TextDecoder } from 'node:util'
 import { parse } from 'csv-parse/sync'
-import { MIGRATION_BUNDLE_FILENAMES, type MigrationBundleFilename, type MigrationParserLimits } from './constants'
-import { ErrorCollector } from './errors'
+import type { MigrationBundleFilename, MigrationParserLimits } from './constants'
+import type { ErrorCollector } from './errors'
 
 const CONTACT_COLUMNS = [
   'contact.phone', 'contact.email', 'contact.telegram', 'contact.whatsapp', 'contact.website',
   'contact.instagram', 'contact.facebook', 'contact.twitter',
 ]
 
-export const CSV_HEADERS: Record<MigrationBundleFilename, readonly string[]> = {
+export const CSV_HEADERS = {
   'community.csv': [
-    'id', 'code', 'name', 'status', 'description', 'access', 'adminUsers', 'currency.id', 'currency.adminUser', 'currency.name',
-    'currency.namePlural', 'currency.symbol', 'currency.decimals', 'currency.scale',
-    'currency.rateNumerator', 'currency.rateDenominator', 'createdAt', 'updatedAt', 'currency.createdAt',
-    'currency.updatedAt', 'imageUrl', 'address.streetAddress', 'address.locality',
-    'address.postalCode', 'address.region', 'address.country',
-    'location.type', 'location.longitude', 'location.latitude', ...CONTACT_COLUMNS,
-    'settings.requireAcceptTerms', 'settings.terms', 'settings.minOffers', 'settings.minNeeds',
-    'settings.allowAnonymousMemberList', 'settings.enableGroupEmail',
-    'settings.defaultGroupEmailFrequency', 'currency.settings.defaultInitialCreditLimit',
-    'currency.settings.externalTraderCreditLimit',
-    'currency.settings.defaultInitialMaximumBalance',
-    'currency.settings.defaultOnPaymentCreditLimit',
-    'currency.settings.externalTraderMaximumBalance',
-    'currency.settings.defaultAcceptPaymentsAfter',
-    'currency.settings.defaultAcceptPaymentsWhitelist', 'currency.settings.defaultAllowPayments',
-    'currency.settings.defaultAllowPaymentRequests',
-    'currency.settings.defaultAcceptPaymentsAutomatically',
-    'currency.settings.defaultAllowSimplePayments',
-    'currency.settings.defaultAllowSimplePaymentRequests',
-    'currency.settings.defaultAllowQrPayments', 'currency.settings.defaultAllowQrPaymentRequests',
-    'currency.settings.defaultAllowMultiplePayments',
-    'currency.settings.defaultAllowMultiplePaymentRequests',
-    'currency.settings.defaultAllowTagPayments',
-    'currency.settings.defaultAllowTagPaymentRequests',
-    'currency.settings.defaultAllowExternalPayments',
-    'currency.settings.defaultAllowExternalPaymentRequests',
-    'currency.settings.defaultAcceptExternalPaymentsAutomatically',
-    'currency.settings.enableExternalPayments', 'currency.settings.enableExternalPaymentRequests',
-    'currency.settings.enableCreditCommonsPayments', 'currency.settings.defaultHideBalance',
+    'id', 'code', 'name', 'status', 'description', 'access', 'adminUsers', 'createdAt', 'updatedAt',
+    'imageUrl', 'address.streetAddress', 'address.locality', 'address.postalCode', 'address.region',
+    'address.country', 'location.type', 'location.longitude', 'location.latitude',
+    ...CONTACT_COLUMNS, 'settings.requireAcceptTerms', 'settings.terms', 'settings.minOffers',
+    'settings.minNeeds', 'settings.allowAnonymousMemberList', 'settings.enableGroupEmail',
+    'settings.defaultGroupEmailFrequency',
   ],
   'users.csv': [
     'id', 'email', 'name', 'status', 'passwordHash', 'language', 'createdAt', 'updatedAt',
@@ -48,23 +25,10 @@ export const CSV_HEADERS: Record<MigrationBundleFilename, readonly string[]> = {
     'emails.group',
   ],
   'members.csv': [
-    'id', 'code', 'name', 'type', 'status', 'access', 'description', 'account.id', 'account.balance',
-    'account.creditLimit', 'createdAt', 'updatedAt', 'account.createdAt', 'account.updatedAt',
-    'account.maximumBalance', 'imageUrl', 'address.streetAddress', 'address.locality',
-    'address.postalCode', 'address.region', 'address.country',
-    'location.type', 'location.longitude', 'location.latitude', ...CONTACT_COLUMNS,
-    'account.settings.onPaymentCreditLimit', 'account.settings.acceptPaymentsAfter',
-    'account.settings.acceptPaymentsWhitelist', 'account.settings.allowPayments',
-    'account.settings.allowPaymentRequests', 'account.settings.allowSimplePayments',
-    'account.settings.allowSimplePaymentRequests', 'account.settings.allowQrPayments',
-    'account.settings.allowQrPaymentRequests', 'account.settings.allowMultiplePayments',
-    'account.settings.allowMultiplePaymentRequests', 'account.settings.allowTagPayments',
-    'account.settings.allowTagPaymentRequests', 'account.settings.acceptPaymentsAutomatically',
-    'account.settings.allowExternalPayments', 'account.settings.allowExternalPaymentRequests',
-    'account.settings.acceptExternalPaymentsAutomatically', 'account.settings.hideBalance',
-  ],
-  'transfers.csv': [
-    'id', 'payer', 'payee', 'user', 'amount', 'description', 'createdAt', 'updatedAt',
+    'id', 'code', 'name', 'type', 'status', 'access', 'description', 'createdAt', 'updatedAt',
+    'imageUrl', 'address.streetAddress', 'address.locality', 'address.postalCode', 'address.region',
+    'address.country', 'location.type', 'location.longitude', 'location.latitude',
+    ...CONTACT_COLUMNS,
   ],
   'categories.csv': [
     'id', 'code', 'name', 'description', 'access', 'createdAt', 'updatedAt', 'icon.type', 'icon.value',
@@ -75,6 +39,15 @@ export const CSV_HEADERS: Record<MigrationBundleFilename, readonly string[]> = {
     'location.longitude', 'location.latitude', 'imageUrls',
   ],
 }
+
+// Only reference columns are interpreted here; Accounting owns all other fields.
+const ACCOUNTING_REFERENCES = {
+  'currency.csv': ['id', 'code', 'adminUser'],
+  'accounts.csv': ['id', 'code'],
+  'transfers.csv': [],
+}
+
+const RETAINED_HEADERS: Record<MigrationBundleFilename, readonly string[]> = { ...CSV_HEADERS, ...ACCOUNTING_REFERENCES }
 
 export type CsvValue = string | { [key: string]: CsvValue }
 
@@ -87,9 +60,11 @@ export type DecodedCsvBundle = Record<MigrationBundleFilename, CsvRecord[]>
 
 const emptyCsvBundle = (): DecodedCsvBundle => ({
   'community.csv': [],
+  'currency.csv': [],
   'users.csv': [],
   'member-users.csv': [],
   'members.csv': [],
+  'accounts.csv': [],
   'transfers.csv': [],
   'categories.csv': [],
   'posts.csv': [],
@@ -110,9 +85,9 @@ const decodeUtf8 = (filename: string, buffer: Buffer, errors: ErrorCollector): s
   }
 }
 
-const headersMatch = (actual: string[], expected: readonly string[]): boolean =>
+const headersMatch = (actual: string[], expected: readonly string[] | undefined): boolean =>
   new Set(actual).size === actual.length
-  && actual.every((header) => expected.includes(header))
+  && (!expected || actual.every((header) => expected.includes(header)))
 
 const structuredCells = (headers: readonly string[], row: string[]): Record<string, CsvValue> => {
   const cells: Record<string, CsvValue> = {}
@@ -136,7 +111,7 @@ export const decodeCsvBundle = (
   const decoded = emptyCsvBundle()
   let totalRows = 0
 
-  for (const filename of MIGRATION_BUNDLE_FILENAMES) {
+  for (const filename of Object.keys(decoded) as MigrationBundleFilename[]) {
     const buffer = files.get(filename)
     if (!buffer) continue
     const text = decodeUtf8(filename, buffer, errors)
@@ -166,9 +141,10 @@ export const decodeCsvBundle = (
     }
 
     const actualHeaders = records[0]
-    const expectedHeaders = CSV_HEADERS[filename]
+    const retainedHeaders = RETAINED_HEADERS[filename]
+    const expectedHeaders = filename in CSV_HEADERS ? retainedHeaders : undefined
     if (!actualHeaders || !headersMatch(actualHeaders, expectedHeaders)) {
-      const mismatch = actualHeaders?.find((header) => !expectedHeaders.includes(header))
+      const mismatch = actualHeaders?.find((header) => expectedHeaders && !expectedHeaders.includes(header))
         ?? actualHeaders?.find((header, index) => actualHeaders.indexOf(header) !== index)
         ?? null
       errors.add({
@@ -181,8 +157,8 @@ export const decodeCsvBundle = (
       continue
     }
 
-    const missingHeaders = expectedHeaders.filter((header) => !actualHeaders.includes(header))
     const dataRows = records.slice(1)
+    const columnIndexes = retainedHeaders.map(header => actualHeaders.indexOf(header))
     totalRows += dataRows.length
     if (totalRows > limits.maxRows) {
       errors.add({
@@ -212,7 +188,7 @@ export const decodeCsvBundle = (
       decoded[filename].push({
         row: recordNumber,
         // Omitted columns have the same validation and defaults as blank cells.
-        cells: structuredCells([...actualHeaders, ...missingHeaders], [...row, ...missingHeaders.map(() => '')]),
+        cells: structuredCells(retainedHeaders, columnIndexes.map(column => row[column] ?? '')),
       })
     }
   }

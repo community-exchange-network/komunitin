@@ -56,10 +56,14 @@ services:
 
   s3mock:
     image: adobe/s3mock:5
+    restart: unless-stopped
     environment:
       COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: komunitin
+      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /s3mockroot
+      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: "true"
       SPRING_CONFIG_IMPORT: optional:file:/certs/s3mock.properties
     volumes:
+      - s3mock-data:/s3mockroot
       - ./app/tmp/certs:/certs:ro
     ports:
       - "9191:9191"
@@ -95,4 +99,6 @@ services:
      - REDIS_HOSTS=local:db-notifications:6379
     ports:
      - "2027:8081" 
-  
+
+volumes:
+  s3mock-data:

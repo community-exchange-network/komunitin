@@ -18,7 +18,7 @@ const postEditableAttributesSchema = z.object({
   status: postStatusSchema.optional(),
   access: accessSchema.optional(),
   location: locationSchema.optional(),
-  expires: z.iso.datetime().optional(),
+  expires: z.iso.datetime().nullable().optional(),
 }).strict()
 
 

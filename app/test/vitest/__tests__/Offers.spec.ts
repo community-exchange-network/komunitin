@@ -177,4 +177,20 @@ describe("Offers", () => {
     expect(wrapper.find("[name='title']").exists()).toBe(false)
   })
 
+  it('shows an offer without category or expiration', async () => {
+    createPost('offers', 'Ongoing-offer', { expires: null }).update({ category: null })
+    await wrapper.vm.$router.push('/groups/GRP0/offers')
+    await waitFor(() => wrapper.text().includes('Ongoing-offer'), true)
+    const card = wrapper.findAllComponents(OfferCard).find(card => card.text().includes('Ongoing-offer'))
+    expect(card.text()).toContain('local_offer')
+    expect(card.text()).not.toContain('Expired')
+    expect(card.classes()).not.toContain('muted')
+
+    await card.trigger('click')
+    await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/offers/Ongoing-offer')
+    await waitFor(() => wrapper.text().includes('Ongoing-offer'), true)
+    expect(wrapper.text()).toContain('local_offer')
+    expect(wrapper.text()).not.toContain('Expires')
+  })
+
 });

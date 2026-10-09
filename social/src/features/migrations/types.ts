@@ -1,4 +1,21 @@
 import type { Prisma } from '../../generated/prisma/client'
+import type { MigrationImportPlan, MigrationUser } from './bundle/types'
+
+/** Auth has supplied a canonical UUID for every user. */
+export type IdentifiedMigrationPlan = Omit<MigrationImportPlan, 'users'> & {
+  users: (MigrationUser & { id: string })[]
+}
+
+export interface AccountingReference {
+  id: string
+  href: string
+}
+
+/** Only the links needed to persist Social records cross this boundary. */
+export interface AccountingReferences {
+  currency: AccountingReference
+  accounts: ReadonlyMap<string, AccountingReference>
+}
 
 export type MigrationLog = (
   level: 'info' | 'warn' | 'error',

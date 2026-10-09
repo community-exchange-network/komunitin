@@ -10,6 +10,7 @@ type MockCurrency = {
   href: string
   code: string
   status: 'active' | 'disabled' | 'deleted'
+  adminIds: string[]
 }
 
 type MockAccount = {
@@ -82,8 +83,9 @@ export const seedAccountingCurrency = (
   code: string,
   id = toUuid(`accounting-currency-${code}`),
   status: MockCurrency['status'] = 'active',
+  adminIds: string[] = [],
 ): MockCurrency => {
-  const currency = { id, href: accountingCurrencyHref(code), code, status }
+  const currency = { id, href: accountingCurrencyHref(code), code, status, adminIds }
   accountingCurrencies.set(code, currency)
   return currency
 }
@@ -199,7 +201,7 @@ const requireAccountingAuthorization = (request: Request): Response | null => {
 }
 
 const serializeCurrency = (currency: MockCurrency) => ({
-  relationships: { admins: { data: [] } },
+  relationships: { admins: { data: currency.adminIds.map(id => ({ type: 'users', id })) } },
   type: 'currencies',
   id: currency.id,
   links: {

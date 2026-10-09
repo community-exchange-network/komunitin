@@ -1,6 +1,5 @@
 import { z, type RefinementCtx } from 'zod'
-import { parseExactAmount } from './amounts'
-import type { DecodedCsvBundle, CsvRecord, CsvValue } from './csv'
+import type { DecodedCsvBundle, CsvRecord } from './csv'
 import { ErrorCollector } from './errors'
 import type {
   MigrationAddress,
@@ -11,7 +10,6 @@ import type {
   MigrationMember,
   MigrationMemberUser,
   MigrationPost,
-  MigrationTransfer,
   MigrationUser,
 } from './types'
 
@@ -21,11 +19,13 @@ export interface Located<T> {
 }
 
 export interface ParsedMigrationRows {
-  community: Located<MigrationCommunity> | null
+  community: Located<Omit<MigrationCommunity, 'currencyId' | 'currencyAdmin'>> | null
+  currency: Located<z.output<typeof currencyReferenceSchema>> | null
   users: Located<MigrationUser>[]
   memberUsers: Located<MigrationMemberUser>[]
-  members: Located<MigrationMember>[]
-  transfers: Located<MigrationTransfer>[]
+  members: Located<Omit<MigrationMember, 'accountId'>>[]
+  accounts: Located<z.output<typeof accountReferenceSchema>>[]
+  transfers: number
   categories: Located<MigrationCategory>[]
   posts: Located<MigrationPost>[]
 }
@@ -126,7 +126,6 @@ const parseInteger = (
     : invalid('INVALID_INTEGER', `Value must be between ${minimum} and ${maximum}`)
 }
 
-const integer = (options: IntegerOptions = {}) => field<number>((value) => parseInteger(value, options))
 const optionalInteger = (options: IntegerOptions = {}) => field<number | null>((value) =>
   value === '' ? valid(null) : parseInteger(value, options))
 
@@ -210,42 +209,6 @@ const urlList = list({ unique: false }).superRefine((values, ctx) => {
   }
 })
 
-interface AmountOptions {
-  nonNegative?: boolean
-  positive?: boolean
-}
-
-const parseAmount = (value: string, scale: number | null, options: AmountOptions = {}): FieldResult<string> => {
-  if (value === '') return invalid('REQUIRED_FIELD', 'Amount is required')
-  if (scale === null) return invalid('MISSING_CURRENCY_SCALE', 'Monetary values require currency.scale')
-  const result = parseExactAmount(value, scale)
-  if (!result.success) return invalid(result.code, result.message)
-  if (options.positive && result.value <= 0n) {
-    return invalid('INVALID_AMOUNT', 'Amount must be greater than zero')
-  }
-  if (options.nonNegative && result.value < 0n) {
-    return invalid('INVALID_AMOUNT', 'Amount must not be negative')
-  }
-  return valid(result.value.toString())
-}
-
-const amount = (scale: number | null, options?: AmountOptions) =>
-  field<string>((value) => parseAmount(value, scale, options))
-const optionalAmount = (scale: number | null, options?: AmountOptions) =>
-  field<string | null>((value) => value === '' ? valid(null) : parseAmount(value, scale, options))
-const optionalAmountOrFalse = (scale: number | null, options?: AmountOptions) =>
-  field<string | false | null>((value) => value === ''
-    ? valid(null)
-    : value === 'false'
-      ? valid(false)
-      : parseAmount(value, scale, options))
-
-const secondsOrFalse = field<number | false | null>((value) => value === ''
-  ? valid(null)
-  : value === 'false'
-    ? valid(false)
-    : parseInteger(value))
-
 const coordinate = (minimum: number, maximum: number) => field<number | null>((value) => {
   if (value === '') return valid(null)
   if (!COORDINATE_PATTERN.test(value)) {
@@ -323,59 +286,6 @@ const timestampOrder = (
   }
 }
 
-const paymentSettingsFields = {
-  allowPayments: booleanValue,
-  allowPaymentRequests: booleanValue,
-  allowSimplePayments: booleanValue,
-  allowSimplePaymentRequests: booleanValue,
-  allowQrPayments: booleanValue,
-  allowQrPaymentRequests: booleanValue,
-  allowMultiplePayments: booleanValue,
-  allowMultiplePaymentRequests: booleanValue,
-  allowTagPayments: booleanValue,
-  allowTagPaymentRequests: booleanValue,
-  acceptPaymentsAutomatically: booleanValue,
-  allowExternalPayments: booleanValue,
-  allowExternalPaymentRequests: booleanValue,
-  acceptExternalPaymentsAutomatically: booleanValue,
-}
-
-const currencySettingsSchema = (scale: number | null) => z.object({
-  defaultInitialCreditLimit: optionalAmount(scale, { nonNegative: true }),
-  externalTraderCreditLimit: optionalAmount(scale, { nonNegative: true }),
-  defaultInitialMaximumBalance: optionalAmountOrFalse(scale, { nonNegative: true }),
-  defaultOnPaymentCreditLimit: optionalAmountOrFalse(scale, { nonNegative: true }),
-  externalTraderMaximumBalance: optionalAmountOrFalse(scale, { nonNegative: true }),
-  defaultAcceptPaymentsAfter: secondsOrFalse,
-  defaultAcceptPaymentsWhitelist: list(),
-  defaultAllowPayments: booleanValue,
-  defaultAllowPaymentRequests: booleanValue,
-  defaultAcceptPaymentsAutomatically: booleanValue,
-  defaultAllowSimplePayments: booleanValue,
-  defaultAllowSimplePaymentRequests: booleanValue,
-  defaultAllowQrPayments: booleanValue,
-  defaultAllowQrPaymentRequests: booleanValue,
-  defaultAllowMultiplePayments: booleanValue,
-  defaultAllowMultiplePaymentRequests: booleanValue,
-  defaultAllowTagPayments: booleanValue,
-  defaultAllowTagPaymentRequests: booleanValue,
-  defaultAllowExternalPayments: booleanValue,
-  defaultAllowExternalPaymentRequests: booleanValue,
-  defaultAcceptExternalPaymentsAutomatically: booleanValue,
-  enableExternalPayments: booleanValue,
-  enableExternalPaymentRequests: booleanValue,
-  enableCreditCommonsPayments: booleanValue,
-  defaultHideBalance: booleanValue,
-})
-
-const accountSettingsSchema = (scale: number | null) => z.object({
-  ...paymentSettingsFields,
-  onPaymentCreditLimit: optionalAmount(scale, { nonNegative: true }),
-  acceptPaymentsAfter: optionalInteger(),
-  acceptPaymentsWhitelist: list(),
-  hideBalance: booleanValue,
-})
-
 const communityBaseSchema = z.object({
   id: optionalUuid,
   status: enumValue(['pending', 'active', 'disabled']),
@@ -403,49 +313,24 @@ const communityBaseSchema = z.object({
   }),
 })
 
-const currencyRowSchema = (scale: number | null) => z.object({
+// Social only needs these references to link its records to Accounting.
+const currencyReferenceSchema = z.object({
   id: optionalUuid,
+  code: required(),
   adminUser: optionalEmail,
-  name: optional(255),
-  namePlural: optional(255),
-  symbol: optional(),
-  decimals: optionalInteger({ maximum: 8 }),
-  scale: optionalInteger({ maximum: 12 }),
-  rateNumerator: optionalInteger({ minimum: 1, maximum: 2_147_483_647 }),
-  rateDenominator: optionalInteger({ minimum: 1, maximum: 2_147_483_647 }),
-  createdAt: optionalTimestamp,
-  updatedAt: optionalTimestamp,
-  settings: currencySettingsSchema(scale),
-}).superRefine((currency, ctx) => {
-  const symbolLength = currency.symbol === null ? null : Array.from(currency.symbol).length
-  if (symbolLength !== null && (symbolLength < 1 || symbolLength > 3)) {
-    addIssue(ctx, 'INVALID_VALUE', 'Currency symbol must contain between one and three characters', ['symbol'])
-  }
-  if (currency.decimals !== null && currency.scale !== null && currency.decimals > currency.scale) {
-    addIssue(ctx, 'INVALID_CURRENCY_SCALE', 'Currency decimals cannot exceed currency scale', ['decimals'])
-  }
-  timestampOrder(ctx, currency.createdAt, currency.updatedAt, 'updatedAt')
-}).transform(({ id, ...data }) => ({ id, data }))
+})
 
-const communityRowSchema = (scale: number | null, hasCurrencyData: boolean) => communityBaseSchema.extend({
-  currency: currencyRowSchema(scale),
-}).superRefine((row, ctx) => {
+const communityRowSchema = communityBaseSchema.superRefine((row, ctx) => {
   if (!/^[A-Z0-9]{4}$/.test(row.code)) {
     addIssue(ctx, 'INVALID_CODE', 'Community code must contain exactly four uppercase ASCII letters or digits', ['code'])
   }
-  if (row.currency.data.adminUser !== null && !row.adminUsers.includes(row.currency.data.adminUser)) {
-    addIssue(ctx, 'INVALID_CURRENCY_ADMIN',
-      'Currency administrator must also be a community administrator', ['currency', 'adminUser'])
-  }
   timestampOrder(ctx, row.createdAt, row.updatedAt, 'updatedAt')
   validateLocation(row.location, ctx)
-}).transform(({ address, location, contact, currency, ...community }): MigrationCommunity => ({
+}).transform(({ address, location, contact, ...community }) => ({
   ...community,
-  currencyId: currency.id,
   address: toAddress(address),
   location: toLocation(location),
   contacts: toContacts(contact),
-  currency: hasCurrencyData ? { code: community.code, ...currency.data } : null,
 }))
 
 // Drupal 7 SHA-512 hashes encode an iteration count from 7 to 30.
@@ -499,95 +384,21 @@ const memberBaseSchema = z.object({
   contact: contactSchema,
 })
 
-const memberRowSchema = (scale: number | null, hasAccountData: boolean) => memberBaseSchema.extend({
-  account: z.object({
-    id: optionalUuid,
-    balance: optionalAmount(scale),
-    creditLimit: optionalAmount(scale, { nonNegative: true }),
-    createdAt: optionalTimestamp,
-    updatedAt: optionalTimestamp,
-    maximumBalance: optionalAmount(scale, { nonNegative: true }),
-    settings: accountSettingsSchema(scale),
-  }),
-}).superRefine((row, ctx) => {
+const memberRowSchema = memberBaseSchema.superRefine((row, ctx) => {
   timestampOrder(ctx, row.createdAt, row.updatedAt, 'updatedAt')
   validateLocation(row.location, ctx)
+}).transform(({ address, location, contact, ...row }) => ({
+  ...row,
+  deleted: row.status === 'deleted' ? row.updatedAt : null,
+  address: toAddress(address),
+  location: toLocation(location),
+  contacts: toContacts(contact),
+}))
 
-  if (row.status === 'draft' || row.status === 'pending') {
-    const accountValues: Array<[string, unknown]> = [
-      ...Object.entries(row.account).filter(([property]) => property !== 'settings'),
-      ...Object.entries(row.account.settings)
-        .map(([property, value]): [string, unknown] => [`settings.${property}`, value]),
-    ]
-    for (const [property, value] of accountValues) {
-      if (value !== null && (!Array.isArray(value) || value.length > 0)) {
-        addIssue(ctx, 'ACCOUNT_FIELD_NOT_ALLOWED',
-          'Account-only field must be blank for draft and pending members', ['account', ...property.split('.')])
-      }
-    }
-    return
-  }
-
-  timestampOrder(ctx, row.account.createdAt, row.account.updatedAt, 'account.updatedAt')
-
-  if (row.account.balance !== null && row.account.creditLimit !== null
-    && BigInt(row.account.balance) < -BigInt(row.account.creditLimit)) {
-    addIssue(ctx, 'ACCOUNT_LIMIT', 'Balance cannot be below the negative credit limit', ['account', 'balance'])
-  }
-  if (row.account.balance !== null && row.account.maximumBalance !== null
-    && BigInt(row.account.balance) > BigInt(row.account.maximumBalance)) {
-    addIssue(ctx, 'ACCOUNT_LIMIT', 'Balance cannot exceed the maximum balance', ['account', 'balance'])
-  }
-  if (row.status === 'deleted' && row.account.balance !== null && BigInt(row.account.balance) !== 0n) {
-    addIssue(ctx, 'DELETED_ACCOUNT_BALANCE', 'Deleted member accounts must have a zero balance',
-      ['account', 'balance'])
-  }
-}).transform(({ address, location, contact, ...row }): MigrationMember => {
-  let account: MigrationMember['account'] = null
-  if (row.status !== 'draft' && row.status !== 'pending' && hasAccountData) {
-    account = {
-      code: row.code,
-      status: row.status,
-      users: [],
-      balance: row.account.balance,
-      creditLimit: row.account.creditLimit,
-      maximumBalance: row.account.maximumBalance,
-      createdAt: row.account.createdAt,
-      updatedAt: row.account.updatedAt,
-      settings: row.account.settings,
-    }
-  }
-  return {
-    id: row.id,
-    accountId: row.account.id,
-    code: row.code,
-    name: row.name,
-    type: row.type,
-    status: row.status,
-    access: row.access,
-    description: row.description,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    deleted: row.status === 'deleted' ? row.updatedAt : null,
-    imageUrl: row.imageUrl,
-    address: toAddress(address),
-    location: toLocation(location),
-    contacts: toContacts(contact),
-    account,
-  }
-})
-
-const transferRowSchema = (scale: number | null) => z.object({
+const accountReferenceSchema = z.object({
   id: optionalUuid,
-  payer: required(255),
-  payee: required(255),
-  user: email,
-  amount: amount(scale, { positive: true }),
-  description: z.string(),
-  createdAt: timestamp,
-  updatedAt: timestamp,
-}).superRefine((row, ctx) => timestampOrder(ctx, row.createdAt, row.updatedAt, 'updatedAt'))
-  .transform((row): MigrationTransfer => row)
+  code: required(255),
+})
 
 const categoryRowSchema = z.object({
   id: optionalUuid,
@@ -679,13 +490,6 @@ const parseRecords = <T>(
   return value === null ? [] : [{ value, row: record.row }]
 })
 
-const hasValue = (value: CsvValue): boolean => typeof value === 'string'
-  ? value !== '' : Object.values(value).some(hasValue)
-
-/** Preserve supplied accounting fields; execution resolves existing records by code. */
-const hasAccountingData = (value: CsvValue | undefined) => value !== undefined && typeof value !== 'string'
-  && Object.entries(value).some(([key, cell]) => key !== 'id' && hasValue(cell))
-
 export const parseMigrationRows = (
   csv: DecodedCsvBundle,
   errors: ErrorCollector,
@@ -700,30 +504,39 @@ export const parseMigrationRows = (
     })
   }
 
-  const communityRecord = csv['community.csv'][0]
-  const currency = communityRecord?.cells.currency
-  const parsedScale = currency && typeof currency === 'object'
-    ? integer({ maximum: 12 }).safeParse(currency.scale)
+  if (csv['currency.csv'].length !== 1) {
+    errors.add({
+      code: 'INVALID_CURRENCY_COUNT',
+      message: 'currency.csv must contain exactly one data record',
+      file: 'currency.csv',
+      row: null,
+      column: null,
+    })
+  }
+  const currencyRecord = csv['currency.csv'][0]
+  const currencyValue = currencyRecord
+    ? parseRecord(currencyReferenceSchema, 'currency.csv', currencyRecord, errors)
     : null
+  const currency = currencyValue === null || csv['currency.csv'].length !== 1
+    ? null
+    : { value: currencyValue, row: currencyRecord.row }
+
+  const communityRecord = csv['community.csv'][0]
   const communityValue = communityRecord
-    ? parseRecord(communityRowSchema(parsedScale?.success ? parsedScale.data : null, hasAccountingData(currency)),
-        'community.csv', communityRecord, errors)
+    ? parseRecord(communityRowSchema, 'community.csv', communityRecord, errors)
     : null
   const community = communityValue === null || csv['community.csv'].length !== 1
     ? null
     : { value: communityValue, row: communityRecord.row }
-  const scale = communityValue?.currency?.scale ?? null
-
-  const members = csv['members.csv'].flatMap((record) => parseRecords(
-    [record], memberRowSchema(scale, hasAccountingData(record.cells.account)), 'members.csv', errors,
-  ))
 
   return {
     community,
+    currency,
     users: parseRecords(csv['users.csv'], userRowSchema, 'users.csv', errors),
     memberUsers: parseRecords(csv['member-users.csv'], memberUserRowSchema, 'member-users.csv', errors),
-    members,
-    transfers: parseRecords(csv['transfers.csv'], transferRowSchema(scale), 'transfers.csv', errors),
+    members: parseRecords(csv['members.csv'], memberRowSchema, 'members.csv', errors),
+    accounts: parseRecords(csv['accounts.csv'], accountReferenceSchema, 'accounts.csv', errors),
+    transfers: csv['transfers.csv'].length,
     categories: parseRecords(csv['categories.csv'], categoryRowSchema, 'categories.csv', errors),
     posts: parseRecords(csv['posts.csv'], postRowSchema, 'posts.csv', errors),
   }

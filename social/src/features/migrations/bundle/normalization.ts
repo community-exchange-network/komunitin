@@ -32,19 +32,24 @@ export const normalizedImages = (rows: ParsedMigrationRows): MigrationImage[] =>
 }
 
 export const normalizeImportPlan = (rows: ParsedMigrationRows): MigrationImportPlan => {
-  const usersByMember = Map.groupBy(rows.memberUsers, ({ value }) => value.member)
+  const accountsByCode = new Map(rows.accounts.map(({ value }) => [value.code, value]))
+  const currency = rows.currency!.value
   return {
-    community: rows.community!.value,
+    community: {
+      ...rows.community!.value,
+      currencyId: currency.id,
+      currencyAdmin: currency.adminUser,
+    },
     users: rows.users.map(({ value }) => value),
     memberUsers: rows.memberUsers.map(({ value }) => value),
-    members: rows.members.map(({ value }) => ({
-      ...value,
-      account: value.account === null ? null : {
-        ...value.account,
-        users: (usersByMember.get(value.code) ?? []).map(({ value: relation }) => relation.user),
-      },
-    })),
-    transfers: rows.transfers.map(({ value }) => value),
+    members: rows.members.map(({ value }) => {
+      const account = accountsByCode.get(value.code)
+      return {
+        ...value,
+        accountId: account?.id ?? null,
+      }
+    }),
+    accounting: { accounts: rows.accounts.length, transfers: rows.transfers },
     categories: rows.categories.map(({ value }) => value),
     posts: rows.posts.map(({ value }) => value),
     images: normalizedImages(rows),
@@ -55,8 +60,7 @@ export const summarizeImportPlan = (plan: MigrationImportPlan): MigrationSummary
   users: plan.users.length,
   memberUsers: plan.memberUsers.length,
   members: plan.members.length,
-  accounts: plan.members.filter((member) => member.account !== null).length,
-  transfers: plan.transfers.length,
+  ...plan.accounting,
   categories: plan.categories.length,
   offers: plan.posts.filter((post) => post.type === 'offer').length,
   needs: plan.posts.filter((post) => post.type === 'need').length,

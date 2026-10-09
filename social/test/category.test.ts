@@ -105,6 +105,8 @@ describe('Categories endpoints', () => {
     assert.strictEqual(typeof firstPage.body.links.next, 'string')
 
     const next = new URL(firstPage.body.links.next)
+    assert.strictEqual(next.pathname, '/cats-query/categories')
+    assert.strictEqual(next.searchParams.get('sort'), 'name')
     const secondPage = await request(app)
       .get(next.pathname + next.search)
       .set('Authorization', `Bearer ${admin.token}`)

@@ -38,13 +38,13 @@ after(async () => {
   await teardownTestServer()
 })
 
-const postInput = (type: 'offers' | 'needs', attributes: any, memberId: string, categoryId?: string) => ({
+const postInput = (type: 'offers' | 'needs', attributes: any, memberId: string, categoryId?: string | null) => ({
   data: {
     type,
     attributes,
     relationships: {
       member: { data: { type: 'members', id: memberId } },
-      ...(categoryId ? { category: { data: { type: 'categories', id: categoryId } } } : {})
+      ...(categoryId !== undefined ? { category: { data: categoryId === null ? null : { type: 'categories', id: categoryId } } } : {})
     }
   }
 })
@@ -330,6 +330,53 @@ describe('Posts endpoints', () => {
       .expect(201)
 
     assert.strictEqual(res.body.data.relationships.category.data.id, category.id)
+  })
+
+  test('POST /:code/posts accepts null category and expiration', async () => {
+    const tenantId = 'posts-null-create'
+    await seedGroup({ tenantId, status: 'active', access: 'public' })
+    const owner = await auth('posts-null-owner')
+    const member = await seedMember({ tenantId, status: 'active', userId: owner.id })
+
+    const created = await request(app)
+      .post(`/${tenantId}/posts`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send(postInput('offers', {
+        title: 'Ongoing post', description: 'A post without category or expiration.', expires: null,
+      }, member.id, null))
+      .expect(201)
+
+    assert.strictEqual(created.body.data.attributes.expires, null)
+    assert.strictEqual(created.body.data.relationships.category.data, null)
+  })
+
+  test('PATCH /:code/posts/:post preserves omitted category and expiration, and clears explicit nulls', async () => {
+    const tenantId = 'posts-null-patch'
+    await seedGroup({ tenantId, status: 'active', access: 'public' })
+    const owner = await auth('posts-null-owner')
+    const member = await seedMember({ tenantId, status: 'active', userId: owner.id })
+    const category = await seedCategory({ tenantId })
+    const expires = '2999-01-01T00:00:00.000Z'
+    const post = await seedPost({
+      tenantId, memberId: member.id, categoryId: category.id, type: 'offers', expires: new Date(expires),
+    })
+    const path = `/${tenantId}/posts/${post.id}`
+
+    const preserved = await request(app)
+      .patch(path)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ data: { type: 'offers', attributes: { description: 'Updated description.' } } })
+      .expect(200)
+    assert.strictEqual(preserved.body.data.attributes.expires, expires)
+    assert.strictEqual(preserved.body.data.relationships.category.data.id, category.id)
+
+    const cleared = await request(app)
+      .patch(path)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ data: { type: 'offers', attributes: { expires: null }, relationships: { category: { data: null } } } })
+      .expect(200)
+    assert.strictEqual(cleared.body.data.attributes.expires, null)
+    assert.strictEqual(cleared.body.data.relationships.category.data, null)
   })
 
   test('GET /:code/posts/:id returns [] for null images', async () => {

@@ -7,12 +7,11 @@ import { appendCsvRow, encodeCsv, loadExampleFiles, mutateCsv, omitBlankColumns,
 const uuid = 'abcdef01-2345-4678-9abc-0123456789ab'
 const idColumns = [
   ['community.csv', 'id'],
-  ['community.csv', 'currency.id'],
+  ['currency.csv', 'id'],
   ['users.csv', 'id'],
   ['member-users.csv', 'id'],
   ['members.csv', 'id'],
-  ['members.csv', 'account.id'],
-  ['transfers.csv', 'id'],
+  ['accounts.csv', 'id'],
   ['categories.csv', 'id'],
   ['posts.csv', 'id'],
 ] as const
@@ -28,11 +27,10 @@ test('preserves optional UUIDs for every resource, independently of relationship
   const { plan } = result
   assert.deepEqual([
     plan.community.id, plan.community.currencyId, plan.users[0].id, plan.memberUsers[0].id,
-    plan.members[0].id, plan.members[0].accountId, plan.transfers[0].id, plan.categories[0].id, plan.posts[0].id,
+    plan.members[0].id, plan.members[0].accountId, plan.categories[0].id, plan.posts[0].id,
   ], idColumns.map(() => uuid))
   assert.equal(plan.memberUsers[0].member, 'EXMP0001')
   assert.equal(plan.memberUsers[0].user, 'alice@example.org')
-  assert.equal(plan.members[0].account?.code, 'EXMP0001')
 })
 
 test('rejects malformed UUIDs with the exact column', async (t) => {
@@ -49,7 +47,7 @@ test('rejects malformed UUIDs with the exact column', async (t) => {
 
 test('rejects duplicate supplied UUIDs case-insensitively within each resource table', async (t) => {
   const example = await loadExampleFiles()
-  for (const [file, column] of idColumns.filter(([file]) => file !== 'community.csv')) {
+  for (const [file, column] of idColumns.filter(([file]) => file !== 'community.csv' && file !== 'currency.csv')) {
     await t.test(`${file} ${column}`, async () => {
       let files = mutateCsv(example, file, 1, column, uuid)
       files = appendCsvRow(files, file, 1, { [column]: uuid.toUpperCase() })
@@ -62,13 +60,9 @@ test('rejects duplicate supplied UUIDs case-insensitively within each resource t
 })
 
 test('accepts repeated blank UUIDs and treats omitted blank columns identically', async () => {
-  let files = await loadExampleFiles()
-  files = mutateCsv(files, 'transfers.csv', 1, 'id', '')
-  files = mutateCsv(files, 'transfers.csv', 1, 'amount', '2.50')
-  files = appendCsvRow(files, 'transfers.csv', 1, {})
+  const files = await loadExampleFiles()
   const result = await parseFiles(files)
   assert.ok(result.success, JSON.stringify(result))
-  assert.deepEqual(result.plan.transfers.map(({ id }) => id), [null, null])
   assert.equal(result.plan.community.id, null)
   assert.equal(result.plan.community.currencyId, null)
   for (const records of [result.plan.users, result.plan.memberUsers, result.plan.members,

@@ -65,7 +65,7 @@
               v-html="md2html(need.attributes.description)"
             />
             <!-- eslint-enable vue/no-v-html -->
-            <div class="text-body2 text-onsurface-m q-pb-md">
+            <div v-if="need.attributes.expires" class="text-body2 text-onsurface-m q-pb-md">
               <span>{{ $t('expiresAt', {
                 date: $formatDate(need.attributes.expires)
               }) }}</span>
@@ -128,7 +128,7 @@ import { useResource } from "@/composables/useResources";
 import type { Need, Member, Category } from "../../store/model";
 import { KErrorCode } from "@/KError";
 
-type FullNeed = Need & { member: Member, category: Category }
+type FullNeed = Need & { member: Member, category: Category | null }
 
 const props = defineProps<{
   code: string
@@ -146,5 +146,5 @@ const { resource: need, error } = useResource<FullNeed>('needs', needOptions)
 const canEdit = computed(() =>
   need.value?.member?.id === store.getters.myMember?.id || store.getters.isAdmin
 )
-const isReady = computed(() => Boolean(need.value && need.value.member && need.value.category))
+const isReady = computed(() => Boolean(need.value && need.value.member))
 </script>

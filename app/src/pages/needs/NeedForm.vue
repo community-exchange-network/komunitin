@@ -77,7 +77,7 @@ import { useStore } from "vuex"
 
 const props = defineProps<{
   code: string
-  modelValue?: DeepPartial<Need> & {category: Category}
+  modelValue?: DeepPartial<Need> & {category: Category | null}
   showState?: boolean
   submitLabel?: string
 }>()
@@ -97,7 +97,7 @@ if (props.modelValue?.attributes?.expires) {
   date = new Date()
   date.setDate(date.getDate() + 7)
 }
-const expiration = ref(date)
+const expiration = ref<Date | null>(date)
 
 const state = ref<NeedStatus>(props.modelValue?.attributes?.status || "draft")
 

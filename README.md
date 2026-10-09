@@ -57,12 +57,10 @@ bootstrapped after migration.
 > The first build downloads and compiles everything from scratch — expect it to take some minutes.
 
 #### Demo
-The demo flag currently spins up a temporary IntegralCES instance and migrates its data into Komunitin.
+The demo flag resets the service databases and imports the fictional Bramblewick
+community. See [demo overview](shared/demo/README.md).
 
 ```bash
-cd ..
-git clone https://git.drupalcode.org/project/ices.git
-cd komunitin
 ./start.sh --up --dev --demo
 ```
 Docker resources are preserved by default. Pass `--prune` explicitly if you

@@ -12,7 +12,7 @@ build and start the services first.
 Options:
   --up          Build and start the services
   --reset       Reset the service databases before applying migrations
-  --demo        Reset and populate demo data via a temporary IntegralCES service
+  --demo        Reset service databases and import the Bramblewick CSV demo bundle
   --dev         Set up local HTTPS and start with development config (requires --up)
   --public      Start with production config (requires --up)
   --prune       Remove unused Docker resources after startup
@@ -145,5 +145,8 @@ fi
 # Bootstrap the configured superadmin in Auth and Social.
 ./shared/cli/komunitin admin bootstrap
 if [ "$demo" = true ]; then
-  bash shared/demo/demo.sh "$dev"
+  # Package and import the checked-in demo content.
+  mkdir -p shared/demo/tmp
+  ./shared/cli/komunitin admin bundle demo shared/demo/tmp/bramblewick.zip
+  ./shared/cli/komunitin admin migrate shared/demo/tmp/bramblewick.zip
 fi
