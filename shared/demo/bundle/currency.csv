@@ -1,2 +1,2 @@
 id,code,adminUser,name,namePlural,symbol,decimals,scale,rateNumerator,rateDenominator,createdAt,updatedAt,settings.defaultInitialCreditLimit,settings.defaultAllowPayments,settings.defaultAllowPaymentRequests,settings.defaultAllowSimplePayments,settings.defaultAcceptPaymentsAutomatically,settings.defaultHideBalance
-d8726fc8-518d-5333-b504-b4d292a50a51,BRAM,mabel@bramblewick.example,Bramble,Brambles,Br,2,2,20,1,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,200.00,true,true,true,true,false
+d8726fc8-518d-5333-b504-b4d292a50a51,BRAM,mabel@bramblewick.example,Bramble,Brambles,Br,2,2,1,20,2026-01-10T10:00:00Z,2026-09-28T17:00:00Z,200.00,true,true,true,true,false
