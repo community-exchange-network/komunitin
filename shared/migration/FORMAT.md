@@ -47,7 +47,7 @@ The `id` columns in `currency.csv` and `accounts.csv` are optional. When supplie
 
 Active, disabled, suspended and deleted members require exactly one matching row in `accounts.csv`, even when all optional account fields are blank. Draft and pending members have no account and must not have a row in `accounts.csv`. Accounts without a matching member are invalid.
 
-The offline parser validates supplied values and relationships without querying the destination. Accounting also validates every supplied balance against the CSV history before importing. Re-uploading an identical completed Accounting migration is a no-op; an interrupted migration resumes with its persisted IDs and keys.
+The offline Social parser validates bundle structure, Social values and relationships, and the currency/account references needed to link Social records. It forwards Accounting CSVs unchanged. Accounting validates its own columns, values, settings, Stellar keys and complete history, including every supplied balance, before importing. A successful Social parse does not imply valid Accounting data. Summary counts include all account rows, including references to existing accounts. Re-uploading an identical completed Accounting migration is a no-op; an interrupted migration resumes with its persisted IDs and keys.
 
 ### Optional Stellar keys
 
@@ -61,7 +61,7 @@ The [Bramblewick demo](../demo/README.md) generates repeatable keys when packagi
 
 ### Exact amounts
 
-All monetary cells and monetary settings are decimal strings in currency units, such as `25`, `25.00` or `0.125`, except settings explicitly documented to also accept `false`. Decimal values must match `-?(0|[1-9][0-9]*)(\.[0-9]+)?`, have no exponent, grouping separator or leading `+`, and have at most `scale` fractional digits, as declared in `currency.csv`. Monetary values require that scale for offline validation and are converted exactly to scaled integers; floating-point arithmetic is not used.
+All monetary cells and monetary settings are decimal strings in currency units, such as `25`, `25.00` or `0.125`, except settings explicitly documented to also accept `false`. Decimal values must match `-?(0|[1-9][0-9]*)(\.[0-9]+)?`, have no exponent, grouping separator or leading `+`, and have at most `scale` fractional digits, as declared in `currency.csv`. Monetary values require that scale for Accounting validation and are converted exactly to scaled integers; floating-point arithmetic is not used.
 
 In `accounts.csv`, `balance` may be negative. Transfer `amount` must be greater than zero. Credit and maximum limits must be non-negative. A blank account `maximumBalance` leaves the existing limit unchanged, or defaults to unlimited for a new account. Every scaled amount must fit a signed 64-bit integer. In `currency.csv`, `decimals` and `scale` are integers with `0 <= decimals <= scale`, `decimals <= 8` and `scale <= 12`; `rateNumerator` and `rateDenominator` are positive base-10 integers no greater than 2,147,483,647.
 

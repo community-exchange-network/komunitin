@@ -1,11 +1,15 @@
 import { buffer } from 'node:stream/consumers'
 import { ZipFile } from 'yazl'
 import { MIGRATION_BUNDLE_FILENAMES, MAX_MIGRATION_DATA_ROWS, type MigrationBundleFilename } from '../../../../social/src/features/migrations/bundle/constants'
-import { encodeCsv, CSV_HEADERS } from '../../../../social/src/features/migrations/bundle/csv'
+import { CSV_HEADERS as SOCIAL_HEADERS } from '../../../../social/src/features/migrations/bundle/csv'
+import { encodeCsv } from '../../../../social/src/features/migrations/bundle/encode'
+import { CSV_HEADERS as ACCOUNTING_HEADERS } from '../../../../accounting/src/migration/format'
 import type { MigrationSummary } from '../../../../social/src/features/migrations/bundle/types'
 import { collection, identifiers, includedResources, IcesClient, single, type IcesAuth, type IcesDocument, type IcesResource } from './client'
 import type { IcesRows } from './bundle'
 import { parseMigrationBundle } from '../../../../social/src/features/migrations/bundle'
+
+export const CSV_HEADERS: Record<MigrationBundleFilename, readonly string[]> = { ...SOCIAL_HEADERS, ...ACCOUNTING_HEADERS }
 
 export interface IcesExportOptions {
   /** ICES site root, for example https://ices.example.org (not the Social API URL). */
@@ -274,7 +278,7 @@ const exportBundle = async (client: IcesClient, code: string, sanitize?: IcesExp
     users: rows['users.csv'].length,
     memberUsers: rows['member-users.csv'].length,
     members: rows['members.csv'].length,
-    accounts: 0,
+    accounts: rows['accounts.csv'].length,
     transfers: 0,
     categories: rows['categories.csv'].length,
     offers: rows['posts.csv'].filter((row) => row.type === 'offer').length,

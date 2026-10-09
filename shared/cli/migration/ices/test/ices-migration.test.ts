@@ -7,7 +7,7 @@ import { parse } from 'csv-parse/sync'
 import { createAllIcesMigrationBundles, createIcesMigrationBundle } from '../index'
 import { parseMigrationBundle, MIGRATION_PARSER_LIMITS } from '../../../../../social/src/features/migrations/bundle'
 import { loadMigrationBundle } from '../../../../../social/src/features/migrations/bundle/container'
-import { CSV_HEADERS } from '../../../../../social/src/features/migrations/bundle/csv'
+import { CSV_HEADERS } from '../export'
 import { icesId, serveIces } from './mocks/ices'
 import { createIcesSanitizer } from '../sanitize'
 import { icesUserUid } from '../bundle'
@@ -117,9 +117,9 @@ test('exports legacy auth/social HTTP resources to a valid CSV ZIP without query
   assert.ok(parsed.success, JSON.stringify(parsed))
   assert.deepEqual(result.summary, parsed.summary)
   const { plan } = parsed
-  assert.deepEqual(result.summary, { users: 6, memberUsers: 6, members: 6, accounts: 0, transfers: 0,
+  assert.deepEqual(result.summary, { users: 6, memberUsers: 6, members: 6, accounts: 4, transfers: 0,
     categories: 2, offers: 3, needs: 1, images: 12 })
-  assert.equal(plan.community.currency, null)
+  assert.equal(plan.community.currencyAdmin, null)
   assert.equal(plan.community.id, icesId(1))
   assert.equal(plan.community.currencyId, icesId(2))
   assert.equal(plan.community.status, 'disabled')
@@ -136,7 +136,7 @@ test('exports legacy auth/social HTTP resources to a valid CSV ZIP without query
   assert.equal(plan.memberUsers[1].emails.group, 'daily')
   assert.equal(plan.memberUsers[2].emails.group, 'quarterly')
   assert.deepEqual(plan.members.map(({ status }) => status), ['draft', 'pending', 'active', 'disabled', 'suspended', 'deleted'])
-  assert.ok(plan.members.every(({ account }) => account === null))
+  assert.equal(plan.accounting.accounts, plan.members.filter(member => member.status !== 'draft' && member.status !== 'pending').length)
   assert.equal(plan.members[0].accountId, null)
   assert.ok(plan.members[0].contacts.some(({ type, value }) => type === 'twitter' && value === '@legacy'))
   assert.equal(plan.members[2].accountId, icesId(502))
@@ -280,7 +280,7 @@ test('exports source values for separate import validation', async (t) => {
   assert.ok(parsed.errors.some((issue) => issue.file === 'members.csv' && issue.column === 'name'))
 })
 
-test('IntegralCES social bundles validate supplied accounting data, UUIDs and references', async (t) => {
+test('IntegralCES social bundles validate Social data and accounting references', async (t) => {
   const fixture = await serveIces(t)
   const exported = await createIcesMigrationBundle({ url: fixture.url, code: 'ICES', auth: { email: 'admin@example.org', password: 'secret' } })
   const { files } = await loadMigrationBundle({ type: 'zip', bytes: exported.bytes }, MIGRATION_PARSER_LIMITS)
@@ -302,12 +302,12 @@ test('IntegralCES social bundles validate supplied accounting data, UUIDs and re
   const transfers = [[...CSV_HEADERS['transfers.csv']]]
   transfers.push(['', 'ICES0002', 'ICES0003', 'user2@example.org', '1', '', '2025-01-01T00:00:00Z', '2025-01-01T00:00:00Z'])
   const withTransfers = new Map(files).set('transfers.csv', encodeCsv(transfers))
-  assert.ok(resultCodes(await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(withTransfers) })).includes('MISSING_CURRENCY_SCALE'))
+  assert.ok((await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(withTransfers) })).success)
   const accounts = parse(files.get('accounts.csv')!.toString()) as string[][]
   accounts[0].push('balance')
   accounts.slice(1).forEach((row) => row.push('0'))
   const withBalances = new Map(files).set('accounts.csv', encodeCsv(accounts))
-  assert.ok(resultCodes(await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(withBalances) })).includes('MISSING_CURRENCY_SCALE'))
+  assert.ok((await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(withBalances) })).success)
 })
 
 

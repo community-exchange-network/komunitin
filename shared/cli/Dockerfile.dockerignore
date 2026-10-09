@@ -1,6 +1,7 @@
 *
 !shared
 !social
+!accounting
 **/node_modules
 **/.env*
 **/dist
