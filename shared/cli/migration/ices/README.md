@@ -1,6 +1,6 @@
 # ICES migration tools
 
-Follow the ordered commands in [MIGRATION.md](../../../../MIGRATION.md).
+This is legacy code maintained here just for the record. It was used in october 2026 to migrate from IntegralCES to Komuntin social and auth services. 
 
 - `prepare-images.sh [--apply] DIRECTORY`: prepare source uploads.
 - `komunitin admin repair ices [--apply]`: repair the two reviewed ICES records.
