@@ -23,7 +23,8 @@ const list = optional(z.string()
   .pipe(z.array(z.string().min(1).refine(value => value === value.trim()))
     .refine(values => new Set(values).size === values.length)))
 const text = z.string().max(255).refine(value => value.trim().length > 0)
-const email = z.string().trim().toLowerCase().pipe(z.email())
+// Match Social and Auth's migration email contract, including Unicode addresses.
+const email = z.string().trim().toLowerCase().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
 const stellarSecret = optional(z.string().refine(value => StrKey.isValidEd25519SecretSeed(value)))
 
 const paymentSettings = [
