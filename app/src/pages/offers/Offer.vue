@@ -73,7 +73,7 @@
               v-html="md2html(offer.attributes.description)"
             />
             <!-- eslint-enable vue/no-v-html -->
-            <div class="text-body2 text-onsurface-m q-pb-md">
+            <div v-if="offer.attributes.expires" class="text-body2 text-onsurface-m q-pb-md">
               <span>{{ $t('expiresAt', {
                 date: $formatDate(offer.attributes.expires)
               }) }}</span>
@@ -138,7 +138,7 @@ import type { Category, Currency, Group, Member, Offer } from "@/store/model";
 import { KErrorCode } from "@/KError";
 
 type FullOffer = Offer & {
-  category: Category
+  category: Category | null
   member: Member & { group: Group & { currency: Currency } }
 }
 
@@ -157,7 +157,7 @@ const offerOptions = computed(() => ({
 const { resource: offer, error } = useResource<FullOffer>('offers', offerOptions)
 
 const isReady = computed(() => {
-  return Boolean(offer.value && offer.value.category && offer.value.member
+  return Boolean(offer.value && offer.value.member
     && offer.value.member.group && offer.value.member.group.currency)
 })
 const price = computed(() => {

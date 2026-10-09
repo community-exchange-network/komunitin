@@ -101,7 +101,7 @@ import DeleteNeedBtn from "./DeleteNeedBtn.vue"
 import PostStatusBadges from "./PostStatusBadges.vue"
 
 type CardNeed = Need & {
-  category: Category
+  category: Category | null
   member: Member
 }
 
@@ -124,7 +124,7 @@ const canEdit = computed(() =>
   || store.getters.isAdmin
 )
 const memberActive = computed(() => props.need.member.attributes.status === "active")
-const expired = computed(() => new Date(props.need.attributes.expires) < new Date())
+const expired = computed(() => props.need.attributes.expires !== null && new Date(props.need.attributes.expires) < new Date())
 const isAvailable = computed(() =>
   props.need.attributes.status === "published"
   && memberActive.value

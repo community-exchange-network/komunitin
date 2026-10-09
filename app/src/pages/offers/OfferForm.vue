@@ -68,6 +68,7 @@
         v-model="expiration"
         :label="$t('expirationDate')"
         :hint="$t('offerExpirationDateHint')"
+        :rules="[(v) => !!v || $t('fieldRequired')]"
       />
       <toggle-item 
         v-if="showState"
@@ -101,7 +102,7 @@ import { useStore } from "vuex"
 const props = withDefaults(defineProps<{
   code: string
   currency?: Currency
-  modelValue?: DeepPartial<Offer> & {category: Category}
+  modelValue?: DeepPartial<Offer> & {category: Category | null}
   defaultStatus?: OfferStatus
   showState?: boolean
   submitLabel?: string
@@ -121,7 +122,7 @@ const title = ref("")
 const description = ref("")
 const category = ref<Category|null>(null)
 const price = ref("")
-const expiration = ref<Date>(new Date())
+const expiration = ref<Date | null>(new Date())
 const state = ref<OfferStatus>(props.modelValue?.attributes?.status ?? props.defaultStatus)
 
 watch([() => props.modelValue], async () => {

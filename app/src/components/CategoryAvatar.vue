@@ -1,7 +1,7 @@
 <template>
   <div class="q-py-xs">
     <span
-      v-if="caption && right"
+      v-if="category && caption && right"
       class="q-pr-md text-overline text-uppercase text-onsurface-m"
     >{{ category.attributes.name }}</span>
     <q-avatar
@@ -10,12 +10,12 @@
       :color="color"
       size="40px"
     >
-      <q-tooltip v-if="!caption">
+      <q-tooltip v-if="category && !caption">
         {{ category.attributes.name }}
       </q-tooltip>
     </q-avatar>
     <span
-      v-if="caption && !right"
+      v-if="category && caption && !right"
       class="q-pl-md text-overline text-uppercase text-onsurface-m"
     >{{ category.attributes.name }}</span>
   </div>
@@ -25,7 +25,7 @@ import { computed } from "vue"
 import type { Category } from "@/store/model"
 
 const props = withDefaults(defineProps<{
-  category: Category,
+  category: Category | null,
   type?: "need" | "offer",
   caption?: boolean,
   right?: boolean
@@ -37,5 +37,5 @@ const props = withDefaults(defineProps<{
 
 const color = computed(() => props.type === "need" ? "kred" : "kblue")
 const defaultIcon = computed(() => props.type === "need" ? "loyalty" : "local_offer")
-const icon = computed(() => props.category.attributes.icon?.value ?? defaultIcon.value)
+const icon = computed(() => props.category?.attributes.icon?.value ?? defaultIcon.value)
 </script>

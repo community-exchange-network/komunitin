@@ -17,7 +17,7 @@ export const useEditablePost = <T extends Need>(
     || post.relationships.member.data.id === store.getters.myMember?.id
     || (store.getters.isAdmin && store.getters.myGroup?.attributes.code === code)
   )
-  const { resource, loaded, error, update } = useResource<T & { category: Category }>(type, () => ({
+  const { resource, loaded, error, update } = useResource<T & { category: Category | null }>(type, () => ({
     ...toValue(options),
     include: 'category'
   }))
