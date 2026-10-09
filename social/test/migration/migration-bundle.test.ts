@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { parse } from 'csv-parse/sync'
-import { parseExactAmount } from '../../src/features/migrations/bundle/amounts'
 import { parseMigrationBundle } from '../../src/features/migrations/bundle/index'
 import {
   exampleDirectory,
@@ -32,17 +31,6 @@ test('parses the canonical example directory into a normalized JSON-safe plan', 
     needs: 1,
     images: 2,
   })
-  assert.deepStrictEqual(result.plan.members.map((member) => member.account?.balance), ['-500', '500'])
-  assert.deepStrictEqual(result.plan.transfers[0], {
-    id: '123e4567-e89b-42d3-a456-426614174000',
-    payer: 'EXMP0001',
-    payee: 'EXMP0002',
-    user: 'alice@example.org',
-    amount: '500',
-    description: 'Example payment',
-    createdAt: '2025-02-01T12:00:00.000Z',
-    updatedAt: '2025-02-01T12:00:00.000Z',
-  })
   assert.equal(result.plan.users[0].language, 'en')
   assert.equal(result.plan.users[0].status, 'active')
   assert.ok(result.plan.members.every((member) => member.deleted === null))
@@ -53,11 +41,7 @@ test('parses the canonical example directory into a normalized JSON-safe plan', 
     notifications: { myAccount: true, group: true },
     emails: { myAccount: true, group: 'weekly' },
   })
-  assert.deepStrictEqual(result.plan.members.map((member) => member.account?.users), [
-    ['alice@example.org'], ['bob@example.org'],
-  ])
-  assert.equal(result.plan.community.currency!.rateNumerator, 1)
-  assert.equal(result.plan.community.currency!.rateDenominator, 1)
+  assert.equal(result.plan.community.currencyAdmin, 'alice@example.org')
   assert.equal(result.plan.community.settings.minNeeds, 0)
   assert.equal(result.plan.community.address?.locality, 'Barcelona')
   assert.deepStrictEqual(result.plan.community.location, { type: 'Point', longitude: 2.1734, latitude: 41.3851 })
@@ -134,9 +118,9 @@ test('accepts documented columns in any order', async () => {
   assert.equal(result.success, true, JSON.stringify(result))
 })
 
-test('validates each CSV header exactly', async (t) => {
+test('validates Social CSV headers exactly', async (t) => {
   const example = await loadExampleFiles()
-  for (const filename of example.keys()) {
+  for (const filename of [...example.keys()].filter(file => !['currency.csv', 'accounts.csv', 'transfers.csv'].includes(file))) {
     await t.test(filename, async () => {
       const files = new Map(example)
       const data = Buffer.from(files.get(filename)!)
@@ -157,16 +141,10 @@ test('reports representative structural field errors with record and column', as
     ['users.csv', 'status', 'pending', 'INVALID_ENUM'],
     ['members.csv', 'status', 'ACTIVE', 'INVALID_ENUM'],
     ['members.csv', 'code', 'EXMP' + 'x'.repeat(252), 'MAX_LENGTH'],
-    ['accounts.csv', 'settings.acceptPaymentsAfter', 'false', 'INVALID_INTEGER'],
-    ['accounts.csv', 'settings.acceptPaymentsAfter', '-1', 'INVALID_INTEGER'],
-    ['accounts.csv', 'settings.onPaymentCreditLimit', 'false', 'INVALID_AMOUNT'],
-    ['accounts.csv', 'settings.onPaymentCreditLimit', '-1', 'INVALID_AMOUNT'],
-    ['transfers.csv', 'amount', '5e2', 'INVALID_AMOUNT'],
     ['categories.csv', 'icon.value', '', 'INVALID_FIELD_GROUP'],
     ['posts.csv', 'title', '', 'REQUIRED_FIELD'],
     ['community.csv', 'location.longitude', '181', 'INVALID_COORDINATE'],
     ['posts.csv', 'imageUrls', 'file:///tmp/image.jpg', 'INVALID_URL'],
-    ['transfers.csv', 'id', 'not-a-uuid', 'INVALID_UUID'],
   ] as const
   const example = await loadExampleFiles()
 
@@ -194,21 +172,6 @@ test('rejects invalid UTF-8 and accepts a UTF-8 BOM', async () => {
   bom.set('users.csv', Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), bom.get('users.csv')!]))
   const bomResult = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(bom) })
   assert.equal(bomResult.success, true, JSON.stringify(bomResult))
-})
-
-test('parses scaled amounts exactly at signed 64-bit boundaries', () => {
-  assert.deepStrictEqual(parseExactAmount('0.001', 3), { success: true, value: 1n })
-  assert.deepStrictEqual(parseExactAmount('9223372036854775807', 0), {
-    success: true,
-    value: 9223372036854775807n,
-  })
-  assert.deepStrictEqual(parseExactAmount('-9223372036854775808', 0), {
-    success: true,
-    value: -9223372036854775808n,
-  })
-  assert.equal(parseExactAmount('9223372036854775808', 0).success, false)
-  assert.equal(parseExactAmount('1.001', 2).success, false)
-  assert.equal(parseExactAmount('+1', 2).success, false)
 })
 
 test('enforces missing-file, byte, row, and error-reporting limits', async () => {
@@ -278,15 +241,6 @@ test('preserves compatible password hashes and rejects unsupported credentials w
       }
     })
   }
-})
-
-
-test('omitting transfers still enforces complete history for created accounts', async () => {
-  const files = await loadExampleFiles()
-  files.delete('transfers.csv')
-  const result = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) })
-  assert.ok(!result.success)
-  assert.ok(result.errors.some(({ code }) => code === 'BALANCE_MISMATCH'))
 })
 
 test('bundles retain the same contact types for communities and members', async () => {

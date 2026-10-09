@@ -5,16 +5,17 @@ import { after, before, beforeEach, test } from 'node:test'
 import request from 'supertest'
 import { http, HttpResponse } from 'msw'
 import type { Express } from 'express'
+import { config } from '../../src/config'
 import { privilegedDb } from '../../src/server/multitenant'
 import prisma from '../../src/utils/prisma'
 import { Prisma } from '../../src/generated/prisma/client'
 import { auth, signJwt, signServiceJwt } from '../mocks/auth'
-import { getAccountingRequests, getNotificationsEvents, seedAccountingAccount, seedAccountingCurrency } from '../mocks/handlers'
+import { getNotificationsEvents, seedAccountingAccount, seedAccountingCurrency } from '../mocks/handlers'
 import { resetDb, seedCategory, seedGroup } from '../mocks/seed'
 import { server, setupTestServer, teardownTestServer } from '../mocks/server'
 import { getS3UploadCount, getS3UploadRequests } from '../mocks/s3'
 import { mutateCsv, removeCsvRow, zipFromFiles } from './migration-bundle-helpers'
-import { eventsFrom, ids, migrationFiles, migrationMocks, passwordHash, timestamp } from './migration-api-helpers'
+import { accountingProgress, eventsFrom, ids, migrationFiles, migrationMocks, passwordHash, timestamp } from './migration-api-helpers'
 
 let app: Express
 let resetMocks: () => void
@@ -49,7 +50,7 @@ test('migration endpoints require a superadmin user and reject ordinary users an
   assert.equal(await prisma.migration.count(), 0)
 })
 
-test('imports every Social resource, preserves timestamps and credentials, maps frequencies, and only reads Accounting', async () => {
+test('imports every Social resource and delegates only accounting CSVs and resolved identities to Accounting', async () => {
   const response = await upload()
   assert.equal((await migration(response)).status, 'completed', response.text)
   const group = await db.group.findUniqueOrThrow({ where: { id: ids.group } })
@@ -86,11 +87,112 @@ test('imports every Social resource, preserves timestamps and credentials, maps 
   assert.equal(await db.member.count(), 2)
   assert.equal(await db.user.count(), 4)
   assert.ok(mocks.authImports[0].every(user => user.passwordHash === passwordHash))
-  assert.ok(getAccountingRequests().every(entry => entry.method === 'GET' && entry.authorization === 'Bearer social-service-token'))
+  assert.deepEqual(Object.keys(mocks.accountingImports[0].files).sort(), ['accounts.csv', 'currency.csv'])
+  assert.deepEqual(mocks.accountingImports[0].users, mocks.authImports[0].map(({ id, email }) => ({ id, email })))
+  assert.ok(!JSON.stringify(mocks.accountingImports).includes(passwordHash))
   assert.equal(getNotificationsEvents().length, 0)
   assert.equal(eventsFrom(response.text).filter(event => event.level === 'warn' && event.step === 'images').length, 2)
   assert.ok(!response.text.includes(passwordHash))
   assert.ok(!JSON.stringify(await prisma.migration.findMany({ include: { events: true } })).includes(passwordHash))
+})
+
+test('creates missing Accounting resources using Auth identities and links them to Social', async () => {
+  resetMocks()
+  let files = migrationFiles()
+  for (const row of [1, 2, 3]) files = mutateCsv(files, 'users.csv', row, 'id', '')
+  files.set('currency.csv', Buffer.from(
+    'code,adminUser,name,namePlural,symbol,decimals,scale,rateNumerator,rateDenominator\n'
+    + 'EXMP,admin@example.org,Credit,Credits,C,2,2,1,1\n',
+  ))
+  files.set('accounts.csv', Buffer.from('code,balance\nEXMP0001,0\nEXMP0002,0\n'))
+
+  server.use(http.post(`${config.ACCOUNTING_URL}/migrations`, async ({ request }) => {
+    const input = await request.json() as typeof mocks.accountingImports[number]
+    mocks.accountingImports.push(input)
+    const users = new Map(input.users.map(user => [user.email, user.id]))
+    seedAccountingCurrency('EXMP', ids.currency, 'active', [users.get('admin@example.org')!])
+    seedAccountingAccount('EXMP', 'EXMP0001', [users.get('alice@example.org')!], ids['alice-account'])
+    seedAccountingAccount('EXMP', 'EXMP0002', [users.get('bob@example.org')!], ids['bob-account'], 'disabled')
+    return new HttpResponse(accountingProgress([]), {
+      headers: { 'Content-Type': 'text/event-stream', 'X-Migration-Id': ids.group },
+    })
+  }))
+
+  const response = await upload(files)
+  assert.equal((await migration(response)).status, 'completed', response.text)
+  const group = await db.group.findUniqueOrThrow({ where: { id: ids.group } })
+  const member = await db.member.findUniqueOrThrow({ where: { id: ids['alice-member'] } })
+  const membership = await db.memberUser.findFirstOrThrow({
+    where: { memberId: member.id },
+    include: { user: true },
+  })
+  const alice = mocks.accountingImports[0].users.find(user => user.email === 'alice@example.org')!
+  assert.equal(group.currencyId, ids.currency)
+  assert.equal(member.accountId, ids['alice-account'])
+  assert.equal(membership.user.id, alice.id)
+  assert.equal(membership.user.email, alice.email)
+})
+
+test('forwards and replays Accounting progress across split UTF-8 chunks and heartbeats', async () => {
+  const logs = [
+    { level: 'info', step: 'start', message: 'Importació iniciada' },
+    { level: 'warn', step: 'accounts', message: 'Account warning' },
+    { level: 'info', step: 'complete', message: 'Accounting completed' },
+  ]
+  server.use(http.post(`${config.ACCOUNTING_URL}/migrations`, ({ request }) => {
+    assert.equal(request.headers.get('authorization'), 'Bearer social-service-token')
+    assert.equal(request.headers.get('accept'), 'text/event-stream')
+    const bytes = new TextEncoder().encode(`: heartbeat\n\n${accountingProgress(logs)}`)
+    return new HttpResponse(new ReadableStream({
+      start(controller) {
+        for (const byte of bytes) controller.enqueue(new Uint8Array([byte]))
+        controller.close()
+      },
+    }), { headers: { 'Content-Type': 'text/event-stream', 'X-Migration-Id': ids.group } })
+  }))
+  const response = await upload()
+  const attempt = await migration(response)
+  assert.equal(attempt.status, 'completed', response.text)
+  const expected = logs.map(log => ({ ...log, step: `accounting:${log.step}` }))
+  const forwarded = (events: { level: string, step: string, message: string }[]) => events
+    .filter(event => event.step.startsWith('accounting:')).map(({ level, step, message }) => ({ level, step, message }))
+  assert.deepEqual(forwarded(eventsFrom(response.text)), expected)
+  const replay = await request(app).get(`/migrations/${attempt.id}/events`).set('Authorization', `Bearer ${token}`).expect(200)
+  assert.deepEqual(forwarded(eventsFrom(replay.text)), expected)
+})
+
+test('preserves Accounting error logs and fails on a failed or incomplete stream', async () => {
+  for (const status of ['failed', null]) {
+    server.use(http.post(`${config.ACCOUNTING_URL}/migrations`, () => new HttpResponse(
+      accountingProgress([{ level: 'error', step: 'failed', message: 'Accounting problem' }], status),
+      { headers: { 'Content-Type': 'text/event-stream', 'X-Migration-Id': ids.group } },
+    )))
+    const response = await upload()
+    assert.equal((await migration(response)).status, 'failed')
+    assert.match(response.text, /Accounting problem/)
+    assert.equal(await db.group.count(), 0)
+  }
+})
+
+test('forwards accounting fields unchanged and reports validation failures from Accounting', async () => {
+  const files = migrationFiles()
+  files.set('currency.csv', Buffer.from(`id,code,scale,settings.future,stellarIssuerSecret\n${ids.currency},EXMP,invalid,opaque,private-secret\n`))
+  files.set('accounts.csv', Buffer.from(`id,code,balance\n${ids['alice-account']},EXMP0001,invalid\n${ids['bob-account']},EXMP0002,invalid\n`))
+  files.set('transfers.csv', Buffer.from('payer,payee,amount\nmissing,missing,invalid\n'))
+  let received: unknown
+  server.use(http.post(`${config.ACCOUNTING_URL}/migrations`, async ({ request }) => {
+    received = await request.json()
+    return HttpResponse.json({ errors: [{ detail: 'Invalid currency scale' }] }, { status: 400 })
+  }))
+  const response = await upload(files)
+  assert.equal((await migration(response)).status, 'failed')
+  assert.deepEqual((received as { files: Record<string, string> }).files, Object.fromEntries(
+    (['currency.csv', 'accounts.csv', 'transfers.csv'] as const).map(name => [name, files.get(name)!.toString()]),
+  ))
+  assert.match(response.text, /Accounting import: Invalid currency scale/)
+  assert.ok(!response.text.includes('private-secret'))
+  assert.equal(await db.group.count(), 0)
+  assert.equal(await db.member.count(), 0)
 })
 
 test('retry preserves existing values, fills omitted images in source order, and reuses S3 objects and File rows', async () => {
@@ -119,6 +221,20 @@ test('retry preserves existing values, fills omitted images in source order, and
   await upload()
   assert.equal(getS3UploadCount(), uploads + 2)
   assert.equal(await db.file.count(), 4)
+})
+
+test('adds pictures on re-upload to offers and needs originally imported without images', async () => {
+  let files = mutateCsv(migrationFiles(), 'posts.csv', 1, 'imageUrls', '')
+  await upload(files)
+  for (const row of [1, 2]) files = mutateCsv(files, 'posts.csv', row, 'imageUrls', 'https://images.test/new.png')
+  const response = await upload(files)
+  assert.equal((await migration(response)).status, 'completed', response.text)
+  const reader = await signJwt(ids.admin, 'admin@example.org', 'superadmin')
+  for (const id of [ids.offer, ids.need]) {
+    const { body } = await request(app).get(`/EXMP/posts/${id}`).set('Authorization', `Bearer ${reader}`).expect(200)
+    assert.equal(body.data.attributes.images.length, 1)
+    assert.equal(body.data.attributes.updated, timestamp)
+  }
 })
 
 test('uses detected image extensions and recovers an uploaded object without its File row or source', async () => {
@@ -294,8 +410,10 @@ test('preserves manually removed images while retrying other failed downloads', 
   assert.ok((await db.member.findUniqueOrThrow({ where: { id: ids['alice-member'] } })).image)
 })
 
-test('infers missing user UUIDs from sole accounting ownership and reuses generated Social resource UUIDs', async () => {
+test('resolves code-only Accounting references, infers user UUIDs, and reuses generated Social resource UUIDs', async () => {
   let files = migrationFiles()
+  files.set('currency.csv', Buffer.from('code\nEXMP\n'))
+  files.set('accounts.csv', Buffer.from('code\nEXMP0001\nEXMP0002\n'))
   for (const [file, rows] of [
     ['community.csv', [1]], ['users.csv', [1, 2, 3]], ['members.csv', [1, 2]],
     ['member-users.csv', [1]], ['categories.csv', [1]], ['posts.csv', [1, 2]],
@@ -306,6 +424,8 @@ test('infers missing user UUIDs from sole accounting ownership and reuses genera
   assert.equal((await migration(response)).status, 'completed', response.text)
   assert.equal(mocks.authImports[0].find(user => user.email === 'alice@example.org')!.id, ids.alice)
   const group = await db.group.findUniqueOrThrow({ where: { tenantId: 'EXMP' } })
+  assert.equal(group.currencyId, ids.currency)
+  assert.equal((await db.member.findUniqueOrThrow({ where: { tenantId_code: { tenantId: 'EXMP', code: 'EXMP0001' } } })).accountId, ids['alice-account'])
   assert.notEqual(group.id, ids.group)
   const retry = await upload(files)
   assert.equal((await migration(retry)).status, 'completed', retry.text)

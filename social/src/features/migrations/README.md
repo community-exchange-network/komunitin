@@ -1,81 +1,46 @@
 # Social community migration
 
-This executor imports a [CSV ZIP bundle](../../../../shared/migration/FORMAT.md) into Social and Auth **after Accounting has been migrated**. All import logic lives in the two services' `features/migrations` folders.
+Social imports one community from a [CSV ZIP bundle](../../../../shared/migration/FORMAT.md), coordinating Auth identities, Accounting accounts and transfer history, Social marketplace data, and images. It can create a community or fill missing records in an existing one. Plan downtime: imports are not atomic and partially imported data can be visible.
 
-The bundle separates Social data (`community.csv`, `members.csv`) from Accounting data (`currency.csv`, `accounts.csv`, `transfers.csv`). The single currency and community rows must have the same `code`; each account row must have the same `code` as its member. Accounting UUIDs belong in the `id` columns of the Accounting files. Required account rows may contain only `code` and an optional `id` when Accounting is already migrated.
-
-**WARNING**: This code has been created by AI and has NOT been thoroughly verified by human developers, as it is solely intended for one-shot migrations. Code here do not set design patterns for future developments.
-
-## Run
-
-Use the administration CLI:
+Use the app's superadmin **Migrations** page or the [administration CLI](../../../../shared/cli/README.md):
 
 ```sh
 ./shared/cli/komunitin admin migrate ./community.zip --email info@komunitin.org --password '<password>'
 ```
 
-Credentials default to `ADMIN_EMAIL` and `ADMIN_PASSWORD`; the bundle path can instead come from `MIGRATION_BUNDLE`. The wrapper reads the root `.env` and uses `KOMUNITIN_AUTH_URL` and `KOMUNITIN_SOCIAL_URL`. It mounts the invoking working directory read-only, so bundle paths must be inside that directory. For native Node execution:
+## Endpoints
 
-The CLI prints the attempt UUID, progress and warnings, and exits unsuccessfully on a failed attempt or disconnected stream. Disconnecting the CLI does not stop an accepted migration. There are no automatic job retries. Correct any conflicts and re-upload the same or corrected bundle to resume through idempotent inserts.
+All Social migration endpoints require an app-user bearer token with `superadmin`; service tokens are rejected.
 
-## Social HTTP API
-
-Every endpoint requires an app-user bearer token with `superadmin`. Service tokens and ordinary users are rejected before the upload is read.
-
-| Endpoint | Behavior |
+| Endpoint | Purpose |
 | --- | --- |
-| `POST /migrations` | Raw `application/zip` request body. Creates an attempt and streams SSE progress. |
-| `GET /migrations` | Most recent 100 attempts as JSON. |
-| `GET /migrations/:id` | Attempt status, community code, input summary and timestamps as JSON. |
-| `GET /migrations/:id/events` | Replays durable events, then streams until completion. Optional `Last-Event-ID` or `?after=<event-id>`. |
+| `POST /migrations` | Upload a raw `application/zip` body, create an attempt and stream progress. |
+| `GET /migrations` | List the latest 100 attempts as JSON. |
+| `GET /migrations/:id` | Read status, community code, input summary and timestamps as JSON. |
+| `GET /migrations/:id/events` | Replay saved progress, then stream until completion. Resume with `Last-Event-ID` or `?after=<event-id>`. |
 
-The upload limit is 20 MiB compressed; the static parser additionally limits expanded CSV to 100 MiB and 100,000 total rows. The bundle is saved with mode `0600` in a private temporary directory, parsed in a detached worker, and removed when the attempt finishes. A process crash can leave a temporary directory; it is never used for automatic resumption. Remove abandoned `komunitin-migration-*` directories during maintenance.
+Streams use server-sent events (SSE): `migration` identifies the attempt, `progress` carries logs, and `end` reports `completed` or `failed`. Responses include `X-Migration-Id` and `Location`. Authentication and upload errors use HTTP errors; validation or execution failures after streaming starts have HTTP 200 and a failed terminal event.
 
-POST responds with `X-Migration-Id` and `Location`, and `text/event-stream`:
+## Import flow
 
-```text
-event: migration
-data: {"id":"<attempt-uuid>"}
+[service.ts](service.ts) runs these stages independently of the upload connection:
 
-id: 123
-event: progress
-data: {"id":123,"migrationId":"<attempt-uuid>","created":"...","level":"info","step":"members","message":"Members ready","data":{"total":50}}
+1. **Validate the bundle.** Check CSV structure, Social records and references, with limits of 20 MiB compressed, 100 MiB expanded CSV and 100,000 rows. Social prepares its import plan and keeps Accounting CSVs unchanged for Accounting to validate. Validation failures report file, row and error code.
 
-event: end
-data: {"id":"<attempt-uuid>","status":"completed"}
-```
+2. **Import Auth identities.** Reuse known user UUIDs from Social and unambiguous Accounting ownership, then send normalized `users.csv` to Auth's `POST /migrations/users` using Social's service credentials. Auth resolves users by email and returns canonical UUIDs for both services. Existing identities are preserved. New identities are email verified and retain supported bcrypt or Drupal 7 password hashes; a blank hash requires a password reset. No migration emails are sent. See [identities.ts](identities.ts).
 
-A streamed failure has `status: "failed"` in its terminal event; the initial HTTP status is already 200. Authentication and upload errors use normal HTTP errors. Invalid bundles also produce failed attempts with persistent validation codes and row locations. Credential values and raw CSV are never put into migration records or progress events.
+3. **Import Accounting.** Send `currency.csv`, `accounts.csv` and optional `transfers.csv`, plus resolved users and member ownership, to Accounting's `POST /migrations`. Accounting validates financial data, creates a new currency and its complete history, or checks supplied facts against existing records. Reference-only currency/account rows can reuse an earlier Accounting migration. Supplied balances must agree with transfer history. Optional Stellar secrets let Accounting reuse ledger accounts, store keys encrypted and reconcile ledger balances and limits. Social saves streamed Accounting progress, waits for completion, then resolves the currency/account links. See [accounting.ts](accounting.ts).
 
-## Persistence and retries
+4. **Persist Social records.** Create missing user projections, community, administrators, members, memberships, categories, offers and wants, linked to Accounting. Direct inserts retain source timestamps and legacy statuses without normal lifecycle notifications. Unsupported email frequencies map to the nearest supported cadence. See [persistence.ts](persistence.ts).
 
-Each upload has a `Migration` row with `running`, `completed` or `failed` status and append-only `MigrationEvent` rows. A PostgreSQL session advisory lock allows one worker per community across service instances. Loss of the process releases that lock. The next valid upload marks any previous running attempt for that community failed and starts a new attempt. Old attempts without a resolved community code may remain `running` after a process crash; they have not imported domain data.
+5. **Copy images.** Download community, member and post images to the configured public upload storage using ordinary size and MIME restrictions. Download failures or invalid images produce warnings and omit that image; storage or database failures fail the attempt. Deterministic object keys reuse successful uploads on retry. Existing resources' images and later manual edits are preserved; migration-created resources can receive missing images on re-upload. See [images.ts](images.ts).
 
-The stream polls persisted events and is independent of the worker. A disconnected observer neither cancels the worker nor owns its lock. A service shutdown does interrupt work; restart does not automatically resume it.
+## Retries & persistence
 
-There is no transaction covering the entire migration. Individual inserts and their provenance events are transactional. Downtime is expected: partially imported data can be visible during a run.
+Re-upload to retry after fixing a failure; there are no automatic retries or automatic resumption after restart. Every upload creates a new Social attempt. Earlier successful stages are not rolled back.
 
-- Match communities by code, members/categories/posts by community plus code, identities by normalized email, and member-user links by `(member, user)`.
-- Preserve supplied UUIDs. For missing UUIDs, reuse the matching destination record or generate one. Auth establishes the canonical user UUID used in both services.
-- Reject UUID collisions, conflicting identity mappings, account/currency references, post types or relationships. Report the offending resource for manual resolution. Existing scalar values, settings, statuses, deleted state, passwords and timestamps are preserved.
-- Create missing relationships and records. Existing communities can receive missing records. Existing soft-deleted communities are rejected.
-- Resolve existing currency and accounts by code, checking UUIDs supplied in `currency.csv` and `accounts.csv`. Active, disabled, suspended and deleted members require matching account rows and existing Accounting accounts even when all optional account columns are blank. Draft and pending members have no account row.
-- Validate account owners against canonical user UUIDs. A single source owner and a single Accounting owner allow an unambiguous UUID inference; ambiguous missing UUIDs require fixing the bundle. Additional Accounting owners are preserved and reported. A supplied currency administrator must match Accounting.
-- Supplied accounting settings, amounts and transfer history are ignored with a warning in this execution mode. The static bundle validation rules still apply. Balances/history are not compared or reset. Member/account status differences are reported and both existing Accounting and source Social states are preserved.
-- New Social records retain source timestamps and legacy statuses, including published posts owned by inactive members and deleted members. Category descriptions go into `meta.description`; addresses use Social's address field names. Daily email frequencies become weekly; quarterly become monthly. Blank preferences use destination defaults.
-
-## Auth identity import
-
-Social sends a normalized `users.csv`, with resolved UUIDs where known, to `POST /migrations/users` as `text/csv`. Auth accepts only the `komunitin-social` client-credentials identity, using the existing service credential. Its response contains `{ users: [{ id, email, created }], warnings: [...] }`, never password hashes.
-
-Auth validates the entire CSV before inserting. Conflicts encountered during inserts may leave earlier identities imported; retries reuse them. Existing identities retain all their fields. New identities copy bcrypt or native Drupal 7 `$S$` hashes unchanged and are **email verified**, as the migration policy. Auth upgrades Drupal hashes after successful password login.
-
-For a new identity, a blank hash means no usable password and a password reset is required. Omitted or blank status defaults to `active`. A missing creation timestamp uses the update timestamp or import time; a missing update timestamp uses the resolved creation timestamp. No verification or notification emails are sent by migration.
-
-## Images
-
-Images are copied to the configured upload bucket with a public-read object ACL, as with ordinary Social image uploads. This does not change bucket permissions or backup objects, which must remain private. Keys use `<community>/<resource-type>/<uuid>.<extension>`: a deterministic UUID derived from the owning resource UUID and source URL, and an extension derived from the detected MIME type. HEAD requests check the supported extensions before download/upload; an object left by an interrupted run is reused even if its `File` row was not yet written. File rows are reused by key within the community. Source order and repeated post URLs are retained.
-
-Downloads have a 30-second timeout and use the ordinary upload size and MIME allowlist. Download, size and MIME failures omit the image and append a warning. Re-uploading retries those failures, even after a completed attempt. Destination storage or database failures fail the attempt. The uploader is the first linked member user, falling back to the first community administrator; group images use that administrator.
-
-Existing resources' images are preserved. Images on migration-created resources can be completed on retry: provenance and the last imported image value are recorded atomically with the corresponding database mutations, so subsequent manual image edits (including removal) are preserved. Image completion does not change the owning resource's historical update timestamp.
+- **Record matching:** communities, members, categories and posts match by their community/code keys; users by normalized email; memberships by member and user. Supplied UUIDs must agree. Missing records and relationships are added while existing values are preserved. Conflicting UUIDs, ownership or relationships fail for manual resolution.
+- **Accounting checkpoints:** Accounting persists its input, encrypted keys and execution state. The same input resumes unfinished work; an identical completed import is a no-op. Changing Accounting input while its migration is unfinished requires restoring the original input or manual resolution.
+- **Connections:** disconnecting the browser or CLI does not stop Social; reconnect through the events endpoint. Losing the Social-to-Accounting stream fails the Social attempt while Accounting continues. Wait for Accounting to finish before re-uploading. That stream has no automatic reconnection or replay, so progress emitted while disconnected is lost.
+- **Attempts and progress:** Social stores `Migration` status (`running`, `completed`, `failed`) and append-only `MigrationEvent` logs, including received Accounting progress. Creation and image events also track provenance for retries and are saved transactionally with their Social changes. Social does not store raw CSVs or credentials in these records. Temporary bundles are removed when execution finishes; a crash can leave `komunitin-migration-*` directories for cleanup.
+- **Concurrency and interruption:** a PostgreSQL advisory lock permits one worker per community. After a crash, the next valid upload that acquires the lock marks previous running attempts for that community failed and starts again using existing records and checkpoints.

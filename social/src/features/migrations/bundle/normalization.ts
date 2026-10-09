@@ -32,14 +32,13 @@ export const normalizedImages = (rows: ParsedMigrationRows): MigrationImage[] =>
 }
 
 export const normalizeImportPlan = (rows: ParsedMigrationRows): MigrationImportPlan => {
-  const usersByMember = Map.groupBy(rows.memberUsers, ({ value }) => value.member)
   const accountsByCode = new Map(rows.accounts.map(({ value }) => [value.code, value]))
   const currency = rows.currency!.value
   return {
     community: {
       ...rows.community!.value,
       currencyId: currency.id,
-      currency: currency.data === null ? null : { code: currency.code, ...currency.data },
+      currencyAdmin: currency.adminUser,
     },
     users: rows.users.map(({ value }) => value),
     memberUsers: rows.memberUsers.map(({ value }) => value),
@@ -48,15 +47,9 @@ export const normalizeImportPlan = (rows: ParsedMigrationRows): MigrationImportP
       return {
         ...value,
         accountId: account?.id ?? null,
-        account: account?.data == null || value.status === 'draft' || value.status === 'pending' ? null : {
-          ...account.data,
-          code: account.code,
-          status: value.status,
-          users: (usersByMember.get(value.code) ?? []).map(({ value: relation }) => relation.user),
-        },
       }
     }),
-    transfers: rows.transfers.map(({ value }) => value),
+    accounting: { accounts: rows.accounts.length, transfers: rows.transfers },
     categories: rows.categories.map(({ value }) => value),
     posts: rows.posts.map(({ value }) => value),
     images: normalizedImages(rows),
@@ -67,8 +60,7 @@ export const summarizeImportPlan = (plan: MigrationImportPlan): MigrationSummary
   users: plan.users.length,
   memberUsers: plan.memberUsers.length,
   members: plan.members.length,
-  accounts: plan.members.filter((member) => member.account !== null).length,
-  transfers: plan.transfers.length,
+  ...plan.accounting,
   categories: plan.categories.length,
   offers: plan.posts.filter((post) => post.type === 'offer').length,
   needs: plan.posts.filter((post) => post.type === 'need').length,

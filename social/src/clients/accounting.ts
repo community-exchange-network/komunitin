@@ -30,7 +30,7 @@ type RequestOptions = {
   allowNotFound?: boolean
 }
 
-export type CurrencyStatus = "new" | "active" | "disabled" | "deleted"
+export type CurrencyStatus = "active" | "disabled" | "deleted"
 export type Currency = {
   id: string
   href: string

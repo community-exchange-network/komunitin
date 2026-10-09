@@ -54,61 +54,10 @@ export interface MigrationCommunitySettings {
   defaultGroupEmailFrequency: MigrationEmailFrequency | null
 }
 
-export interface MigrationPaymentSettings {
-  allowPayments: boolean | null
-  allowPaymentRequests: boolean | null
-  allowSimplePayments: boolean | null
-  allowSimplePaymentRequests: boolean | null
-  allowQrPayments: boolean | null
-  allowQrPaymentRequests: boolean | null
-  allowMultiplePayments: boolean | null
-  allowMultiplePaymentRequests: boolean | null
-  allowTagPayments: boolean | null
-  allowTagPaymentRequests: boolean | null
-  acceptPaymentsAutomatically: boolean | null
-  allowExternalPayments: boolean | null
-  allowExternalPaymentRequests: boolean | null
-  acceptExternalPaymentsAutomatically: boolean | null
-}
-
-export interface MigrationCurrencySettings {
-  defaultInitialCreditLimit: string | null
-  externalTraderCreditLimit: string | null
-  defaultInitialMaximumBalance: string | false | null
-  defaultOnPaymentCreditLimit: string | false | null
-  externalTraderMaximumBalance: string | false | null
-  defaultAcceptPaymentsAfter: number | false | null
-  defaultAcceptPaymentsWhitelist: string[]
-  defaultAllowPayments: boolean | null
-  defaultAllowPaymentRequests: boolean | null
-  defaultAllowSimplePayments: boolean | null
-  defaultAllowSimplePaymentRequests: boolean | null
-  defaultAllowQrPayments: boolean | null
-  defaultAllowQrPaymentRequests: boolean | null
-  defaultAllowMultiplePayments: boolean | null
-  defaultAllowMultiplePaymentRequests: boolean | null
-  defaultAllowTagPayments: boolean | null
-  defaultAllowTagPaymentRequests: boolean | null
-  defaultAcceptPaymentsAutomatically: boolean | null
-  defaultAllowExternalPayments: boolean | null
-  defaultAllowExternalPaymentRequests: boolean | null
-  defaultAcceptExternalPaymentsAutomatically: boolean | null
-  enableExternalPayments: boolean | null
-  enableExternalPaymentRequests: boolean | null
-  enableCreditCommonsPayments: boolean | null
-  defaultHideBalance: boolean | null
-}
-
-export interface MigrationAccountSettings extends MigrationPaymentSettings {
-  onPaymentCreditLimit: string | null
-  acceptPaymentsAfter: number | null
-  acceptPaymentsWhitelist: string[]
-  hideBalance: boolean | null
-}
-
 export interface MigrationCommunity {
   id: string | null
   currencyId: string | null
+  currencyAdmin: string | null
   status: 'pending' | 'active' | 'disabled'
   code: string
   name: string
@@ -122,20 +71,6 @@ export interface MigrationCommunity {
   location: MigrationLocation | null
   contacts: MigrationContact[]
   settings: MigrationCommunitySettings
-  currency: {
-    code: string
-    adminUser: string | null
-    name: string | null
-    namePlural: string | null
-    symbol: string | null
-    decimals: number | null
-    scale: number | null
-    rateNumerator: number | null
-    rateDenominator: number | null
-    createdAt: string | null
-    updatedAt: string | null
-    settings: MigrationCurrencySettings
-  } | null
 }
 
 export interface MigrationUser {
@@ -155,18 +90,6 @@ export interface MigrationMemberUser extends MigrationMemberUserSettings {
   user: string
 }
 
-export interface MigrationAccount {
-  code: string
-  status: 'active' | 'disabled' | 'suspended' | 'deleted'
-  users: string[]
-  balance: string | null
-  creditLimit: string | null
-  maximumBalance: string | null
-  createdAt: string | null
-  updatedAt: string | null
-  settings: MigrationAccountSettings
-}
-
 export interface MigrationMember {
   id: string | null
   code: string
@@ -183,18 +106,6 @@ export interface MigrationMember {
   location: MigrationLocation | null
   contacts: MigrationContact[]
   accountId: string | null
-  account: MigrationAccount | null
-}
-
-export interface MigrationTransfer {
-  id: string | null
-  payer: string
-  payee: string
-  user: string
-  amount: string
-  description: string
-  createdAt: string
-  updatedAt: string
 }
 
 export interface MigrationCategory {
@@ -241,10 +152,17 @@ export interface MigrationImportPlan {
   users: MigrationUser[]
   memberUsers: MigrationMemberUser[]
   members: MigrationMember[]
-  transfers: MigrationTransfer[]
+  accounting: { accounts: number, transfers: number }
   categories: MigrationCategory[]
   posts: MigrationPost[]
   images: MigrationImage[]
+}
+
+/** Opaque Accounting input, kept separate from Social's normalized plan. */
+export interface AccountingFiles {
+  'currency.csv': string
+  'accounts.csv': string
+  'transfers.csv'?: string
 }
 
 export interface MigrationSummary {

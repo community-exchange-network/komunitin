@@ -49,9 +49,15 @@ export const migrationFiles = () => new Map<MigrationBundleFilename, Buffer>([
 ])
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=', 'base64')
 
+export const accountingProgress = (logs: { level: string, step: string, message: string }[], status: string | null = 'completed') =>
+  `event: migration\ndata: ${JSON.stringify({ id: ids.group })}\n\n`
+  + logs.map(log => `event: progress\ndata: ${JSON.stringify(log)}\n\n`).join('')
+  + (status ? `event: end\ndata: ${JSON.stringify({ id: ids.group, status })}\n\n` : '')
+
 export const migrationMocks = () => {
   const identities = new Map<string, { id: string, email: string }>()
   const authImports: Record<string, string>[][] = []
+  const accountingImports: { files: Record<string, string>, users: { id: string, email: string }[], members: { code: string, status: string, users: string[] }[] }[] = []
   const downloads: string[] = []
   let missing = true
   let authGate: Promise<void> | undefined
@@ -59,6 +65,14 @@ export const migrationMocks = () => {
   seedAccountingAccount('EXMP', 'EXMP0001', [ids.alice], ids['alice-account'])
   seedAccountingAccount('EXMP', 'EXMP0002', [ids.bob], ids['bob-account'], 'disabled')
   server.use(
+    http.post(`${config.ACCOUNTING_URL}/migrations`, async ({ request }) => {
+      const input = await request.json() as typeof accountingImports[number]
+      accountingImports.push(input)
+      return new HttpResponse(
+        accountingProgress([{ level: 'info', step: 'complete', message: 'Accounting CSV migration completed' }]),
+        { headers: { 'Content-Type': 'text/event-stream', 'X-Migration-Id': ids.group } },
+      )
+    }),
     http.post(`${config.AUTH_URL}/migrations/users`, async ({ request }) => {
       if (request.headers.get('authorization') !== 'Bearer social-service-token') return new HttpResponse(null, { status: 401 })
       const rows = parse(await request.text(), { columns: true }) as Record<string, string>[]
@@ -78,7 +92,7 @@ export const migrationMocks = () => {
         : new HttpResponse(tinyPng, { headers: { 'Content-Type': 'image/png' } })
     }),
   )
-  return { authImports, downloads, fixImages: () => { missing = false }, pauseAuth: (gate: Promise<void>) => { authGate = gate } }
+  return { authImports, accountingImports, downloads, fixImages: () => { missing = false }, pauseAuth: (gate: Promise<void>) => { authGate = gate } }
 }
 
 export const eventsFrom = (text: string) => text.split('\n\n').filter(block => block.includes('event: progress'))
