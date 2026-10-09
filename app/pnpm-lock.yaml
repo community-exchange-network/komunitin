@@ -132,6 +132,9 @@ importers:
       '@types/inflected':
         specifier: ^2.1.3
         version: 2.1.3
+      '@types/jsdom':
+        specifier: ^30.0.0
+        version: 30.0.0
       '@types/leaflet':
         specifier: ^1.8.0
         version: 1.9.21
@@ -1628,6 +1631,9 @@ packages:
   '@types/inflected@2.1.3':
     resolution: {integrity: sha512-qEllJ4fo4Cn8sPu/6+2Iw6ouxcFuQIfj3PDRO8cvzvUaJ5udD2IGwFm6xrzOQSJm4MzXRcvZkR3rqwWxvxP8eQ==}
 
+  '@types/jsdom@30.0.0':
+    resolution: {integrity: sha512-uAHGxujGE0cDaKGdK28zgDotFtNA7MKq5DXl8LrfdxdCI8VHcg15oJz+amHTChPNI5JpgEPQWc2xFdrw3em/nQ==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -1663,6 +1669,9 @@ packages:
 
   '@types/semver@7.7.1':
     resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
+
+  '@types/tough-cookie@4.0.5':
+    resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
@@ -4198,6 +4207,9 @@ packages:
   undici-types@7.18.2:
     resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
 
+  undici-types@8.11.2:
+    resolution: {integrity: sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg==}
+
   undici@7.27.0:
     resolution: {integrity: sha512-+t2Z/GwkZQDtu00813aP66ygViGtPHKhhoFZpQKpKrE+9jIgES+Zw+mFNaDWOVRKiuJjuqKHzD3B1sfGg8+ZOQ==}
     engines: {node: '>=20.18.1'}
@@ -6212,6 +6224,13 @@ snapshots:
 
   '@types/inflected@2.1.3': {}
 
+  '@types/jsdom@30.0.0':
+    dependencies:
+      '@types/node': 24.13.6
+      '@types/tough-cookie': 4.0.5
+      parse5: 8.0.0
+      undici-types: 8.11.2
+
   '@types/json-schema@7.0.15': {}
 
   '@types/leaflet@1.9.21':
@@ -6246,6 +6265,8 @@ snapshots:
     optional: true
 
   '@types/semver@7.7.1': {}
+
+  '@types/tough-cookie@4.0.5': {}
 
   '@types/trusted-types@2.0.7':
     optional: true
@@ -9114,6 +9135,8 @@ snapshots:
   undici-types@6.21.0: {}
 
   undici-types@7.18.2: {}
+
+  undici-types@8.11.2: {}
 
   undici@7.27.0: {}
 
