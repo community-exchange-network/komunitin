@@ -825,6 +825,7 @@ export default {
       const body = JSON.parse(request.requestBody);
       const type = body.data.type == "needs" ? "needs" : "offers";
       const post = {
+        expires: null,
         ...body.data.attributes,
         type,
         code: faker.helpers.slugify((body.data.attributes.title ?? body.data.attributes.description).substr(0, 10)),
@@ -832,7 +833,7 @@ export default {
         updated: new Date().toJSON(),
         groupId: schema.groups.findBy({ code: request.params.code }).id,
         memberId: body.data.relationships.member.data.id,
-        categoryId: body.data.relationships.category.data.id,
+        categoryId: body.data.relationships.category?.data?.id ?? null,
       }
       return schema.posts.create(post);
     })
@@ -843,6 +844,9 @@ export default {
       const post = schema.posts.find(request.params.post);
       post.update({
         ...body.data.attributes,
+        ...(body.data.relationships?.category !== undefined
+          ? { categoryId: body.data.relationships.category.data?.id ?? null }
+          : {}),
         updated: new Date().toJSON(),
       })
       return post;

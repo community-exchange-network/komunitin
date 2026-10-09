@@ -11,19 +11,14 @@ export interface AuthService {
   refresh: () => Promise<void>
 }
 
-/**
- * Use useApiFetch instead of this function if outside of the store.
- */
-export const request = async <T extends ResourceObject> (url: string, options: FetchOptions = {}, auth: AuthService): Promise<SuccessfulResponse<T, ResourceObject> | null> => {
+/** Share authentication retries without consuming request or response bodies. */
+const requestRaw = async (url: string, options: RequestInit, auth: AuthService) => {
   const doRequest = (accessToken: string | undefined) => fetch(url, {
     ...options,
     headers: {
       ...options.headers,
-      ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-      'Accept': 'application/vnd.api+json',
-      ...(options.body ? { 'Content-Type': 'application/vnd.api+json' } : {})
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined
+      ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+    }
   })
   try {
     const originalToken = auth.accessToken()
@@ -41,6 +36,26 @@ export const request = async <T extends ResourceObject> (url: string, options: F
     }
     // Throw error if response not ok
     await checkFetchResponse(response)
+    return response
+  } catch (error) {
+    throw KError.getKError(error)
+  }
+}
+
+/**
+ * Use useApiFetch instead of this function if outside of the store.
+ */
+export const request = async <T extends ResourceObject> (url: string, options: FetchOptions = {}, auth: AuthService): Promise<SuccessfulResponse<T, ResourceObject> | null> => {
+  try {
+    const response = await requestRaw(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Accept': 'application/vnd.api+json',
+        ...(options.body ? { 'Content-Type': 'application/vnd.api+json' } : {})
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined
+    }, auth)
     if (response.status == 204) {
       return null
     } else {
@@ -51,19 +66,28 @@ export const request = async <T extends ResourceObject> (url: string, options: F
   }
 }
 
+const useAuthService = (): AuthService => {
+  const store = useStore()
+  return {
+    accessToken: () => store.getters.accessToken,
+    refresh: () => store.dispatch("authorize", { force: true })
+  }
+}
+
+/** Make authenticated requests with raw bodies and unconsumed responses, including SSE. */
+export const useRawApiFetch = () => {
+  const auth = useAuthService()
+  return (url: string, options: RequestInit = {}) => requestRaw(url, options, auth)
+}
+
 /**
  * Composable for making authenticated API calls. Use it only if
  * your request is not covered by store actions.
  * 
  * This is a compromise solution while we dont properly create a
- * "services" layer for API calls, to be used also by the store and
- * therefore it duplicates similar code within the store.
+ * "services" layer for API calls.
  */
 export const useApiFetch = <T extends ResourceObject>() => { 
-  const store = useStore()
-  const authService: AuthService = {
-    accessToken: () => store.getters.accessToken,
-    refresh: () => store.dispatch("authorize", { force: true })
-  }
+  const authService = useAuthService()
   return (url: string, options: FetchOptions = {}) => request<T>(url, options, authService)
 }

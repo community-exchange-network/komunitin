@@ -16,7 +16,7 @@ export interface ExternalResourceIdentifierObject extends ResourceIdentifierObje
   }
 }
 
-export type Relationship = RelatedResource | RelatedLinkedCollection | RelatedCollection ;
+export type Relationship = NullableRelatedResource | RelatedLinkedCollection | RelatedCollection ;
 export interface ResourceObject extends ResourceIdentifierObject {
   links: {
     self: string;
@@ -135,6 +135,11 @@ export type RelatedResource =
       }
       data: ExternalResourceIdentifierObject
     }
+
+export type NullableRelatedResource = RelatedResource | {
+  data: null
+  links?: { related: string }
+}
 
 /**
  * Extension Resource Object for the inclusion of external relationships.
@@ -459,13 +464,13 @@ export interface Offer extends ResourceObject {
     images: ImageObject[];
     value?: string;
     access: Access;
-    expires: string;
+    expires: string | null;
     created: string;
     updated: string;
     status: OfferStatus;
   };
   relationships: {
-    category: RelatedResource;
+    category: NullableRelatedResource;
     member: RelatedResource;
   };
 }
@@ -483,14 +488,14 @@ export interface Need extends ResourceObject {
     description: string;
     images: ImageObject[];
     access: Access;
-    expires: string;
+    expires: string | null;
     created: string;
     updated: string;
     status: NeedStatus;
     fulfilled?: string;
   };
   relationships: {
-    category: RelatedResource;
+    category: NullableRelatedResource;
     member: RelatedResource;
   };
 }
