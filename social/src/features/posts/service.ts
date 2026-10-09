@@ -1,5 +1,5 @@
 import type { Post as DbPost } from '../../generated/prisma/client'
-import { PostUpdateInput } from '../../generated/prisma/models'
+import type { PostUncheckedUpdateInput } from '../../generated/prisma/models'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
 import { tenantDb } from '../../server/multitenant'
 import { type CollectionResult, indexById, reorderByIds, uniqueById } from '../../server/query'
@@ -368,7 +368,7 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
   // Extract type-specific data.
   const typeData = extractPostTypeData(rest, post)
 
-  const updateData: PostUpdateInput = {
+  const updateData: PostUncheckedUpdateInput = {
     ...rest,
     images: toNullableJsonInput(input.images),
     data: typeData
@@ -385,7 +385,8 @@ export const patchPost = async (ctx: AuthContext, code: string, id: string, inpu
   }
   
   if (categoryId !== undefined) {
-    updateData.category = categoryId ? { connect: { id: categoryId } } : { disconnect: true }
+    // A relation disconnect would also clear the shared tenantId in the composite foreign key.
+    updateData.categoryId = categoryId
   }
 
   const db = tenantDb(prisma, code)
