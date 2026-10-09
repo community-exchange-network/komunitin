@@ -64,7 +64,7 @@ The development template bootstraps the superadmin
 
 ## CI and Deployment Shape
 
-- `.github/workflows/build.yml` runs three parallel PR/master jobs: app Docker build plus lint/test, notifications typecheck/test plus Docker image, and accounting typecheck/reset-db/test plus Docker images.
+- `.github/workflows/build.yml` runs five parallel PR/master build jobs: app Docker build plus lint/test, and Auth, Social, Accounting and Notifications typecheck/test plus Docker images. Backend jobs start their service dependencies and prepare their databases before testing.
 - The same workflow deploys demo, staging, preview, and CES demo servers after successful builds. Host-specific configuration belongs in environment files and deployment secrets, not hardcoded into compose files.
 - `.github/workflows/backup-test.yml` validates WAL-G restore behavior for the shared database image.
 

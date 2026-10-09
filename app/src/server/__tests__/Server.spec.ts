@@ -21,11 +21,12 @@ describe("MirageJS Server", () => {
   })
 
   it("mocks auth token and JSON action-token flows", async () => {
+    const email = server.schema.users.first().email;
     const token = await fetch(`${urlAuth}/token`, {
       method: "POST",
       body: new URLSearchParams({
         grant_type: "password",
-        username: "noether@komunitin.org",
+        username: email,
         password: "komunitin",
         scope: "social:read"
       })
@@ -45,14 +46,14 @@ describe("MirageJS Server", () => {
 
     const formManagement = await fetch(`${urlAuth}/reset-password`, {
       method: "POST",
-      body: new URLSearchParams({ email: "noether@komunitin.org" })
+      body: new URLSearchParams({ email })
     });
     expect(formManagement.status).toBe(400);
 
     const actionToken = await fetch(`${urlAuth}/action-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ purpose: "passwordReset", userId: "user-1", email: "noether@komunitin.org" })
+      body: JSON.stringify({ purpose: "passwordReset", userId: "user-1", email })
     });
     const { token: resetToken } = await json(actionToken);
 

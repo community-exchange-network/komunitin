@@ -7,9 +7,11 @@ The shared TypeScript CLI contains administrative commands that coordinate Komun
 ./shared/cli/komunitin admin bundle ices --url https://ices.example.org --code ABCD --output ABCD.zip
 ./shared/cli/komunitin admin bundle demo bramblewick.zip
 ./shared/cli/komunitin admin bootstrap
-./shared/cli/komunitin accounting trust NET1 NET2 100
-./shared/cli/komunitin accounting create-credit-commons-node NET1 https://credit-commons.example.org
+./shared/cli/komunitin accounting trust BRAM OTHR 100 --email mabel@bramblewick.example --password komunitin
+./shared/cli/komunitin accounting create-credit-commons-node BRAM http://cc --email mabel@bramblewick.example --password komunitin
 ```
+
+The accounting examples use the Bramblewick demo administrator. `OTHR` is a placeholder for another currency that must already exist; the demo seeds only `BRAM`. The Credit Commons URL `http://cc` is reachable by Accounting inside the development Compose network. Its test node has a `BRAM` peer, but connecting additional communities requires separate setup.
 
 ## Commands
 
@@ -17,7 +19,7 @@ The shared TypeScript CLI contains administrative commands that coordinate Komun
 
 `admin bundle ices --url <site> (--code <CODE> | --all) --output <path>` generates ICES bundles and enriches identities from the source database. Set `ICES_ADMIN_EMAIL`, `ICES_ADMIN_PASSWORD`, and `ICES_DATABASE_URL` in the root `.env`. The wrapper mounts the invoking directory writable for output. Use an output path within that directory. No host Node.js or pnpm installation is needed. See the [ICES export guide](migration/ices/README.md).
 
-`admin repair ices [--apply]` previews or applies the two reviewed ICES source fixes using `ICES_DATABASE_URL`. See the [migration TODO](../../MIGRATION.md).
+`admin repair ices [--apply]` previews or applies the two reviewed ICES source fixes using `ICES_DATABASE_URL`. See the [ICES migration tools](migration/ices/README.md).
 
 `admin bootstrap [--password <password>]` creates and verifies the configured superadmin in Auth, then provisions the corresponding Social user. It reads `ADMIN_EMAIL`, optionally reads `ADMIN_PASSWORD`, and uses `KOMUNITIN_NOTIFICATIONS_SECRET` to verify a newly registered user.
 

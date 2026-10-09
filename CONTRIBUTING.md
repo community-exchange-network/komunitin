@@ -49,7 +49,6 @@ To add a new language, in addition to adding the files and folders:
 2. Add the new language to the `LANGUAGES` array in `notifications-ts/src/utils/i18n.ts`.
 3. Add the new language to the terminology guidelines at `app/src/i18n/README.md`.
 4. Add the new language to the `.github/CODEOWNERS` file.
-5. Add the new language to the IntegralCES install [script](https://git.drupalcode.org/project/ices/-/blob/7.x-1.x/install.sh#L34).
 
 Once you have made your changes, please follow the steps for contributing code above.
 

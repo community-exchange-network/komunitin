@@ -2,7 +2,6 @@
 
 The `auth` service is the Komunitin identity provider. It owns identity records, password hashes, email verification state, password reset tokens, email-change tokens, OAuth token issuance, and signing keys.
 
-This service is part of the migration away from the legacy Drupal/IntegralCES auth API. It is intentionally not a drop-in replacement for IntegralCES `/oauth2`.
 
 ## Service Boundary
 
@@ -52,9 +51,11 @@ Current clients:
 
 | Client | Type | Grants | Allowed scopes |
 | --- | --- | --- | --- |
-| `komunitin-app` | Public PWA client | `password`, `refresh_token` | `email`, `offline_access`, `social:read`, `social:write`, `accounting:read`, `accounting:write`, `superadmin` |
-| `komunitin-social` | Confidential service client | `client_credentials`, token exchange | `accounting:read`, `accounting:write` |
+| `komunitin-app` | Public PWA client | `password`, `refresh_token` | `email`, `offline_access`, `social:read`, `social:write`, `accounting:read`, `accounting:write`, `notifications:read`, `notifications:write`, `superadmin` |
+| `komunitin-social` | Confidential service client | `client_credentials`, token exchange | `accounting:read`, `accounting:write`, `notifications:write` (client credentials); `accounting:read`, `accounting:write`, `superadmin` (token exchange) |
 | `komunitin-notifications` | Confidential service client | `client_credentials`, token exchange | `email`, `social:read`, `accounting:read` |
+| `komunitin-auth` | Confidential service client | `client_credentials` | `notifications:write` |
+| `komunitin-accounting` | Confidential service client | `client_credentials` | `notifications:write` |
 
 Current scopes:
 
@@ -64,6 +65,8 @@ Current scopes:
 - `social:write`
 - `accounting:read`
 - `accounting:write`
+- `notifications:read`
+- `notifications:write`
 - `superadmin` (granted only when the authenticated user matches `ADMIN_EMAIL`)
 
 Access tokens are signed JWTs with audience `urn:komunitin:api` by default, configurable through `JWT_AUDIENCE`. They identify the OAuth client through `client_id`. User and exchanged tokens use the canonical user UUID as `sub`; client-credentials tokens use the client id. Refresh tokens are opaque server-side records stored by `oidc-provider`.
@@ -144,19 +147,3 @@ Retired keys stay published for `JWKS_RETENTION_HOURS`, so already-issued access
 
 Refresh tokens are opaque database-backed records. They do not require old signing keys to stay published.
 
-
-## Known Gaps
-
-These are the main auth-side gaps to resolve before the new service fully replaces IntegralCES auth:
-
-- Add authenticated self-service password change with current-password verification.
-- Revoke or rotate refresh-token grants after password changes, account disablement, and other high-risk account events.
-- Define per-client allowed scopes so service clients cannot request scopes outside their role.
-- Decide whether unverified users may log in. If not, enforce the `pending`/`emailVerified` state consistently.
-- Canonicalize and validate emails at write boundaries, ideally with case-insensitive uniqueness.
-- Reject invalid requested scopes instead of silently dropping unknown scopes once the migration is ready.
-- Add production-grade rate limiting and account-level throttling for password and action-token endpoints.
-- Add token/session management endpoints if users need logout-all-devices or administrators need forced revocation.
-- Add operational cleanup for expired `OidcPayload` and `UserActionToken` rows.
-
-See `MIGRATE.md` for the broader frontend, notifications, accounting, social, and IntegralCES migration plan.

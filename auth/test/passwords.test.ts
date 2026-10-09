@@ -8,8 +8,8 @@ import prisma from '../src/utils/prisma'
 import { resetDb, setupTestServer, teardownTestServer } from './helper'
 
 const drupalPasswords = [
-  // Riemann's demo account from /tmp/ices-bundle-smoke/bundles/NET1/users.csv.
-  { name: 'NET1 demo password', password: 'komunitin', hash: '$S$D.0Je8nMSWL5H2iFL4a28/RH1EZiHy3igDMZT5av0zDqWWF9YXaZ' },
+  // Historical IntegralCES password retained to verify imported credentials.
+  { name: 'imported Drupal password', password: 'komunitin', hash: '$S$D.0Je8nMSWL5H2iFL4a28/RH1EZiHy3igDMZT5av0zDqWWF9YXaZ' },
   // Additional vectors generated with Drupal 7's _password_crypt(), not this verifier.
   { name: 'SHA-512', password: 'password123', hash: '$S$D12345678MbirSOr.JelhFRnjPk/6gSdcnYB3pXLh80Vb7/a1u/b' },
   { name: 'UTF-8', password: 'pässwörd🔑', hash: '$S$C87654321RCzP8PldPoyb1CJXE0zDwzDbKaViLhwj3O5Y4ugb1md' },

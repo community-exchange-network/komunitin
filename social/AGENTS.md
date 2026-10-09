@@ -4,7 +4,7 @@
 
 `social/` is the standalone TypeScript social service: Node.js 24, Express 5, Prisma 7/PostgreSQL, row-level security, PostGIS, pg_trgm search, JSON:API serialization with ts-japi, OAuth2 JWT bearer auth, Zod validation, S3-compatible uploads, groups, categories, members, offers/needs, files, and a local user projection.
 
-This service is replacing the legacy IntegralCES social API. It owns social and marketplace domain data, not identity credentials.
+This service provides the social and marketplace API. It owns social and marketplace domain data, not identity credentials.
 
 ## Commands
 

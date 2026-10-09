@@ -219,7 +219,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
 
     // 3. Create the local transfer object.
 
-    // if recipientId is a code like NET20002
+    // if recipientId is a code like BRAM0002
     // then payeeId is an account ID like
     // 2791faf5-4566-4da0-99f6-24c41041c50a
     let payeeId
