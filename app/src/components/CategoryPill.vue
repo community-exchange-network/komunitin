@@ -8,7 +8,7 @@
       :color="iconColor"
       size="md"
     />
-    <span class="text-uppercase text-secondary q-mx-sm label">{{ category.attributes.name }}</span>
+    <span v-if="category" class="text-uppercase text-secondary q-mx-sm label">{{ category.attributes.name }}</span>
 </div>
 </template>
 
@@ -18,7 +18,7 @@ import type { Category } from "src/store/model"
 
 const props = withDefaults(
   defineProps<{
-    category: Category
+    category: Category | null
     type?: string
   }>(),
   {
@@ -32,7 +32,7 @@ const defaultIcon = computed<string>(() =>
   props.type === "need" ? "loyalty" : "local_offer",
 )
 
-const icon = computed<string>(() => props.category.attributes.icon ?? defaultIcon.value)
+const icon = computed<string>(() => props.category?.attributes.icon?.value ?? defaultIcon.value)
 </script>
 
 <style lang="scss" scoped>

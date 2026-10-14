@@ -1,7 +1,7 @@
 <template>
   <q-card
     v-if="group"
-    v-card-click-to="`/groups/${group.attributes.code}`"
+    v-bind="cardClickAttrs"
   >
     <!-- Header with group avatar, name and short code -->
     <group-header :group="group">
@@ -21,8 +21,8 @@
     <q-card-section class="simple-map">
       <simple-map
         :interactive="false"
-        :center="group.attributes.location.coordinates"
-        :marker="group.attributes.location.coordinates"
+        :center="group.attributes.location?.coordinates"
+        :marker="group.attributes.location?.coordinates"
       />
     </q-card-section>
     <!-- Group description -->
@@ -58,7 +58,7 @@
 import { defineComponent, computed } from "vue"
 import { useStore } from "vuex"
 
-import cardClickTo from "../plugins/CardClickTo";
+import { useCardClickTo } from "@/composables/useCardClickTo"
 import clamp from "../plugins/Clamp";
 import md2txt from "../plugins/Md2txt";
 
@@ -74,8 +74,7 @@ export default defineComponent({
     GroupHeader
   },
   directives: {
-    clamp,
-    cardClickTo
+    clamp
   },
   props: {
     group: {
@@ -83,13 +82,15 @@ export default defineComponent({
       required: true,
     }
   },
-  setup() {
+  setup(props) {
     const store = useStore()
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
+    const cardClickAttrs = useCardClickTo(() => `/groups/${props.group.attributes.code}`)
 
     return {
       md2txt,
-      isLoggedIn
+      isLoggedIn,
+      cardClickAttrs
     }
   },
   computed: {

@@ -32,17 +32,15 @@ vi.mock("localforage", () => {
 window.scrollTo = vi.fn();
 Element.prototype.scrollTo = vi.fn();
 
-// Quasar uses native observers, which jsdom does not implement.
-vi.stubGlobal('ResizeObserver', class {
+// Environment shims must survive tests calling vi.unstubAllGlobals().
+class MockObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
-})
-vi.stubGlobal('IntersectionObserver', class {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-})
+}
+for (const name of ['ResizeObserver', 'IntersectionObserver']) {
+  Object.defineProperty(globalThis, name, { value: MockObserver, configurable: true, writable: true })
+}
 
 // Mock navigator.geolocation
 const mockGeolocation = {
@@ -108,5 +106,4 @@ Object.defineProperty(globalThis, "NDEFReader", { value: MockNDEFReader, configu
 Object.defineProperty(HTMLDivElement.prototype, "scrollHeight", { configurable: true, value: 1500 });
 Object.defineProperty(SVGSVGElement.prototype, "pauseAnimations", { value: vi.fn(), configurable: true });
 Object.defineProperty(SVGSVGElement.prototype, "unpauseAnimations", { value: vi.fn(), configurable: true });
-
 

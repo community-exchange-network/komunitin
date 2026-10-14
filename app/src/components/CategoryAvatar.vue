@@ -1,7 +1,7 @@
 <template>
   <div class="q-py-xs">
     <span
-      v-if="caption && right"
+      v-if="category && caption && right"
       class="q-pr-md text-overline text-uppercase text-onsurface-m"
     >{{ category.attributes.name }}</span>
     <q-avatar
@@ -10,51 +10,32 @@
       :color="color"
       size="40px"
     >
-      <q-tooltip v-if="!caption">
+      <q-tooltip v-if="category && !caption">
         {{ category.attributes.name }}
       </q-tooltip>
     </q-avatar>
     <span
-      v-if="caption && !right"
+      v-if="category && caption && !right"
       class="q-pl-md text-overline text-uppercase text-onsurface-m"
     >{{ category.attributes.name }}</span>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent } from "vue"
-export default defineComponent({
-  name: "CategoryAvatar",
-  props: {
-    category: {
-      type: Object,
-      required: true,
-    },
-    type: {
-      type: String,
-      required: false,
-      default: "need"
-    },
-    caption: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
-    right: {
-      type: Boolean,
-      required: false,
-      default: false,
-    }
-  },
-  computed: {
-    color(): string {
-      return this.type == 'need' ? 'kred' : 'kblue';
-    },
-    icon(): string {
-      return this.category.attributes.icon ?? this.defaultIcon;
-    },
-    defaultIcon(): string {
-      return this.type == 'need' ? "loyalty" : "local_offer";
-    }
-  }
+<script setup lang="ts">
+import { computed } from "vue"
+import type { Category } from "@/store/model"
+
+const props = withDefaults(defineProps<{
+  category: Category | null,
+  type?: "need" | "offer",
+  caption?: boolean,
+  right?: boolean
+}>(), {
+  type: "need",
+  caption: false,
+  right: false
 })
+
+const color = computed(() => props.type === "need" ? "kred" : "kblue")
+const defaultIcon = computed(() => props.type === "need" ? "loyalty" : "local_offer")
+const icon = computed(() => props.category?.attributes.icon?.value ?? defaultIcon.value)
 </script>

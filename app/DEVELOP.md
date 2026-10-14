@@ -22,15 +22,16 @@ pnpm install
 ```
 ### Install local certificates
  - Install [mkcert](https://github.com/FiloSottile/mkcert#installation)
- - Create local CA root and set the `LOCAL_CA_ROOT` env variable:
+ - Create local CA root:
 ```bash
 mkcert -install
-export LOCAL_CA_ROOT="$(mkcert -CAROOT)/rootCA.pem"
 ```
  - Create certificates for localhost
 ```bash
-mkdir -p tmp/certs && cd tmp/certs
+mkdir -p tmp/certs
+cd tmp/certs
 mkcert localhost
+cd ../..
 ```
 
 ### Run standalone
@@ -114,11 +115,11 @@ Keep the following folder structure:
 - `src/plugins`: Custom [Vue plugins](https://vuejs.org/v2/guide/plugins.html).
 
 ### CSS
-We try to write as less CSS as possible in custom components, and most of them don't have CSS at all. Instead, we rely on the standard classes provided by Quasar framework. See [Introduction to Flexbox](https://quasar.dev/layout/grid/introduction-to-flexbox) and [Spacing classes](https://quasar.dev/style/spacing#Syntax) for documentation. Exceptionally, additional app-wide classes may be defined at `src/css/app.sass` file for a feature not provided by Quasar. 
+We try to write as less CSS as possible in custom components, and most of them don't have CSS at all. Instead, we rely on the standard classes provided by Quasar framework. See [Introduction to Flexbox](https://quasar.dev/layout/grid/introduction-to-flexbox) and [Spacing classes](https://quasar.dev/style/spacing#Syntax) for documentation. Exceptionally, additional app-wide classes may be defined at `src/css/app.scss` file for a feature not provided by Quasar.
 
 If the component has a non-standard style feature, it will be defined using scoped [SCSS](https://sass-lang.com/documentation/syntax) language.
 
-Colors are defined as variables and standard classes at `src/css/quasar.variables.sass`. We have, for example, the colors `$primary`, `$secondary`, `$surface` and `$outside` for backgrounds and the corresponding `$onprimary`, `$onsecondary` etc for text on them. We also have `$onsurface-m` for medium emphasis text.
+Colors are defined as variables and standard classes at `src/css/quasar.variables.scss`. We have, for example, the colors `$primary`, `$secondary`, `$surface` and `$outside` for backgrounds and the corresponding `$onprimary`, `$onsecondary` etc for text on them. We also have `$onsurface-m` for medium emphasis text.
 
 ### Code
 - All code is written in TypeScript.
@@ -134,11 +135,11 @@ Each resource type si stored in a Vuex module that provide actions to load the r
 automatically bind to the provided resources using JavaScript getter functions.
 
 ### Functional testing
-Functional tests check that app features are working, contrasted to unit tests that check that a particular chunk of code is working. Tests are executed by [NodeJS](https://nodejs.org/) with the [Jest](https://jestjs.io/) framework with a mocked Browser environment. This way tests are much more estable than end to end tests using a full browser and also more meaningful than unit tests.
+Functional tests check that app features are working, contrasted to unit tests that check that a particular chunk of code is working. Tests are executed by [NodeJS](https://nodejs.org/) with the [Vitest](https://vitest.dev/) framework with a mocked Browser environment. This way tests are much more stable than end to end tests using a full browser and also more meaningful than unit tests.
 
-We've defined a utility module under `/test/jest/utils` with a function `mountComponent` that helps mounting a fully-featured Vue component for our app with all the required environment. It contains the needed plugins, Quasar components, executes boot files and has some handful mocks. You may add additional options by adding the options parameter as in `@vue/test-utils` `mount` function.
+We've defined a utility module under `/test/vitest/utils` with a function `mountComponent` that helps mounting a fully-featured Vue component for our app with all the required environment. It contains the needed plugins, Quasar components, executes boot files and has some handful mocks. You may add additional options by adding the options parameter as in `@vue/test-utils` `mount` function.
 
-Developers are encouraged to create functional tests for their features and place them under `/test/jest/__tests__` folder.
+Developers are encouraged to create functional tests for their features and place them under `/test/vitest/__tests__` folder.
 
 ### Unit testing
 For those Vue components or modules that are more complex, developers are encouraged to create unit tests too. Unit tests are placed under `__tests__` folder next to the file being tested. Remember that unit tests should not test code outside the file being tested. For tests involving more than one component or module, use functional tests instead.

@@ -1,0 +1,12 @@
+{
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "./",
+    "outDir": "./dist",
+    "skipLibCheck": true,
+    "noImplicitAny": false
+  },
+  "include": ["src/**/*", "test/**/*"]
+}

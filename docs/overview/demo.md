@@ -1,28 +1,22 @@
 # Demo
 
-### Log in to the demo
+### Explore the demo
 
 Use the demo to experiment the app and discover all the features by yourself before starting a new community. Don't hesitate to make transfers and create offers and needs. Find the demo at:
 
 {% embed url="https://demo.komunitin.org" %}
 
-In this server there are two communities "NET1" (Time bank) and "NET2" (Mutual credit) with some users in each. You can use any of the following credentials to log in:
+The demo seed is Bramblewick (`BRAM`), a fictional rural village with 30 members
+exchanging produce, practical help and creative skills in Brambles. Browse
+offers and wants, from sourdough bread to a wheelbarrow that squeaks in B flat.
+The community includes some historical transfers.
 
-**NET1 - regular user**\
-email: euclides@komunitin.org\
-password: komunitin
+After the server is seeded with this bundle, use any of these logins. The password for all users is `komunitin`:
 
-**NET1 - admin user**\
-email: riemann@komunitin.org\
-password: komunitin
+| Role | Email |
+| --- | --- |
+| Community administrator | `mabel@bramblewick.example` |
+| Baker | `tom@bramblewick.example` |
+| Bicycle mechanic | `aisha@bramblewick.example` |
 
-**NET2 - regular user**\
-email: noether@komunitin.org\
-password: komunitin
-
-**NET2 - admin user**\
-email: fermat@komunitin.org\
-password: komunitin
-
-The demo instance is automatically deployed with the lastest code in the main branch. It may occasionally be down or corrupted due to maintenance, testing or users changing passwords and/or config settings from the admin user. It is regularly reset with fresh data.
-
+The demo instance is automatically deployed with the lastest code in the main branch. It may occasionally be unavailable or corrupted due to maintenance, testing or users changing passwords and/or config settings from the admin user. It is regularly reset with fresh data.

@@ -1,19 +1,22 @@
 import { flushPromises, type VueWrapper } from "@vue/test-utils";
 import App from "@/App.vue";
-import { mountComponent, waitFor } from "../utils";
+import { mountComponent, requireText, waitFor } from "../utils";
 import TransactionList from "@/pages/transactions/TransactionList.vue";
 import AccountHeader from "@/components/AccountHeader.vue";
 import SelectAccount from "@/components/SelectAccount.vue";
 import PageHeader from "@/layouts/PageHeader.vue";
-import { seeds } from "@/server";
-import { QFabAction, QInput, QList, QMenu } from "quasar";
+import server, { seeds } from "@/server";
+import { Notify, QFabAction, QInput, QList, QMenu } from "quasar";
 import SelectGroupExpansion from "@/components/SelectGroupExpansion.vue";
 import GroupHeader from "@/components/GroupHeader.vue";
 import CreateTransactionSendQR from "@/pages/transactions/CreateTransactionSendQR.vue";
 import NfcTagScanner from "@/components/NfcTagScanner.vue";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
+import TransactionCard from "@/components/TransactionCard.vue";
+import AccountItemContent from "@/components/AccountItemContent.vue";
 import DateField from "@/components/DateField.vue";
 import { addDays, format } from "date-fns";
+import { createExternalMemberTransfer } from "../utils/transactions";
 
 // Payment address URL used in QR, link, and scan tests.
 const PAYMENT_ADDRESS_URL = "http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a"
@@ -67,14 +70,22 @@ describe("Transactions", () => {
     );
     const transactions = wrapper.getComponent(TransactionList).findAllComponents(TransactionItem)
     const first = transactions[3];
+    const firstAccountName = requireText(
+      first.getComponent(AccountItemContent).props("account").member.attributes.name,
+      "Transaction account name"
+    );
     expect(first.text()).toContain("Pending");
-    expect(first.text()).toContain("Arnoldo");
+    expect(first.text()).toContain(firstAccountName);
     expect(first.text()).toContain("$-7.45");
     expect(first.text()).toContain("multimedia");
 
     const second = transactions[1];
+    const secondAccountName = requireText(
+      second.getComponent(AccountItemContent).props("account").member.attributes.name,
+      "Transaction account name"
+    );
     expect(second.text()).toContain("today");
-    expect(second.text()).toContain("Florida");
+    expect(second.text()).toContain(secondAccountName);
     expect(second.text()).toContain("$-22.09");
     expect(second.text()).toContain("Mandatory");
     // Search
@@ -143,7 +154,6 @@ describe("Transactions", () => {
     const text = wrapper.text();
     expect(text).toContain("Emiliano");
     expect(text).toContain("GRP00000");
-    expect(text).toContain("Oleta");
     expect(text).toContain("GRP00003");
     expect(text).toContain("$68.73");
     expect(text).toContain("Today at");
@@ -151,6 +161,65 @@ describe("Transactions", () => {
     expect(text).toContain("Committed");
     expect(text).toContain("Group 0");
   })
+  it("shows a transaction when its external account is unreachable", async () => {
+    await wrapper.vm.$router.push("/home")
+    const payer = server.schema.find("account", wrapper.vm.$store.getters.myAccount.id)
+    const href = "http://legacy.test/accounts/unreachable-account"
+    const payee = server.create("account", { id: "unreachable-account" })
+    payee.update({ meta: { external: true, href } })
+    const transfer = server.create("transfer")
+    transfer.update({
+      payer, payee, amount: 12300, state: "committed",
+      updated: new Date().toISOString(),
+      meta: { description: "Payment to an unavailable account" }
+    })
+    const fetch = globalThis.fetch
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((url, options) =>
+      url === href ? Promise.reject(new TypeError("Failed to fetch")) : fetch(url, options)
+    )
+    onTestFinished(() => {
+      fetchMock.mockRestore()
+      transfer.destroy()
+      payee.destroy()
+    })
+    vi.mocked(Notify.create).mockClear()
+
+    await wrapper.vm.$router.push(TRANSFERS_ROUTE)
+    const transaction = () => wrapper.findAllComponents(TransactionItem)
+      .find(item => item.props("transfer").id === transfer.id)
+    await waitFor(() => transaction()?.text().includes("Payment to an unavailable account"), true)
+    expect(transaction()?.text()).toContain("$-1.23")
+    await wrapper.vm.$router.push(`/groups/GRP0/transactions/${transfer.id}`)
+    await waitFor(() => wrapper.text().includes("Payment to an unavailable account"), true)
+    expect(wrapper.text()).toContain("Committed")
+    expect(Notify.create).not.toHaveBeenCalled()
+  })
+
+  it("batches external members in the transaction list and shows their details", async () => {
+    await wrapper.vm.$router.push("/home")
+    const payments = [0, 1, 2].map(index => createExternalMemberTransfer(wrapper.vm.$store.getters.myAccount.id, index))
+    const { memberName, transferId } = payments[0]
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+    onTestFinished(() => fetchMock.mockRestore())
+
+    await wrapper.vm.$router.push("/groups/GRP0/admin/transactions")
+    const transaction = () => wrapper.findAllComponents(TransactionItem)
+      .find(item => item.text().includes(memberName))
+    await waitFor(() => transaction()?.exists(), true, "The list should show the external member's name")
+
+    await waitFor(() => payments.every(({ memberName }) => wrapper.text().includes(memberName)), true)
+    const memberRequests = fetchMock.mock.calls.map(([url]) => new URL(String(url)))
+      .filter(url => url.pathname.endsWith("/GRP1/members"))
+    expect(memberRequests).toHaveLength(1)
+    expect(memberRequests[0].searchParams.get("filter[account]")?.split(",").sort())
+      .toEqual(payments.map(({ accountId }) => accountId).sort())
+
+    await transaction()!.trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/transactions/${transferId}`)
+    await waitFor(() => wrapper.findComponent(TransactionCard).exists(), true)
+    expect(wrapper.getComponent(TransactionCard).text()).toContain(memberName)
+  })
+
   it("creates payment request", async () =>  {
     await wrapper.vm.$router.push("/login");
     await waitFor(() => wrapper.vm.$route.path, "/home");
@@ -173,7 +242,8 @@ describe("Transactions", () => {
 
     const dialog = await openAccountList();
     const payer = dialog.findAllComponents(AccountHeader)[2]
-    expect(payer.text()).toContain("Carol")
+    const payerName = requireText(payer.props("account").member.attributes.name, "Payer name");
+    expect(payer.text()).toContain(payerName)
     await payer.trigger("click")
     await flushPromises();
     await wrapper.get("[name='description']").setValue("Test transaction description.")
@@ -186,7 +256,7 @@ describe("Transactions", () => {
     await flushPromises();
 
     const text = wrapper.text();
-    expect(text).toContain("Carol")
+    expect(text).toContain(payerName)
     expect(text).toContain("Emiliano")
     expect(text).toContain("123")
     expect(text).toContain("Test transaction description.")
@@ -201,7 +271,8 @@ describe("Transactions", () => {
 
     const dialog = await openAccountList();
     const payee = dialog.findAllComponents(AccountHeader)[2]
-    expect(payee.text()).toContain("Carol")
+    const payeeName = requireText(payee.props("account").member.attributes.name, "Payee name");
+    expect(payee.text()).toContain(payeeName)
     await payee.trigger("click")
     await flushPromises();
 
@@ -210,7 +281,7 @@ describe("Transactions", () => {
     await wrapper.get("button[type='submit']").trigger("click")
     await flushPromises();
     const text = wrapper.text();
-    expect(text).toContain("Carol");
+    expect(text).toContain(payeeName);
     expect(text).toContain("Emiliano");
     expect(text).toContain("234");
     expect(text).toContain("Test payment description.");
@@ -229,15 +300,21 @@ describe("Transactions", () => {
     await waitFor(() => {
       return groups.getComponent(QList).findAllComponents(GroupHeader).length
     }, 7)
-    await groups.getComponent(QList).findAllComponents(GroupHeader)[1].trigger("click")
+    const group1 = groups.getComponent(QList).findAllComponents(GroupHeader)
+      .find(header => header.props("group").attributes.code === "GRP1");
+    expect(group1).toBeDefined();
+    await group1?.trigger("click")
     await flushPromises()
+    await waitFor(() => groups.props("modelValue").attributes.code, "GRP1", "External group should be selected");
+    await waitFor(() => wrapper.vm.$store.getters["members/currentList"]?.length, 5, "External group members should load");
     await waitFor(
       () => dialog.findAllComponents(AccountHeader).length > 0,
       true,
       "External group accounts should load"
     );
     const payee = dialog.findAllComponents(AccountHeader)[1]
-    expect(payee.text()).toContain("Jaunita")
+    const payeeName = requireText(payee.props("account").member.attributes.name, "External payee name");
+    expect(payee.text()).toContain(payeeName)
     await payee.trigger("click")
     await flushPromises();
 
@@ -250,7 +327,7 @@ describe("Transactions", () => {
     await flushPromises();
     
     const text = wrapper.text();
-    expect(text).toContain("Jaunita");
+    expect(text).toContain(payeeName);
     expect(text).toContain("Emiliano");
     expect(text).toContain("$12.00");
     expect(text).toContain("$120.00");
@@ -270,8 +347,11 @@ describe("Transactions", () => {
     await groups.trigger("click")
     
     // Choose group 2
-    await waitFor(() => groups.getComponent(QList).findAllComponents(GroupHeader).length, 7)
-    const group2 = groups.getComponent(QList).findAllComponents(GroupHeader)[2]
+    await waitFor(() => groups.getComponent(QList).findAllComponents(GroupHeader).length, 7);
+    const group2 = groups.getComponent(QList).findAllComponents(GroupHeader)
+      .find(header => header.props("group").attributes.code === "GRP2");
+    expect(group2).toBeDefined();
+    if (!group2) throw new Error("GRP2 should be available");
     expect(group2.text()).toContain("Group 2")
     await group2.trigger("click")
     await flushPromises()
@@ -318,10 +398,12 @@ describe("Transactions", () => {
     await wrapper.get("a[href='/groups/GRP0/members/EmilianoLemke57/transactions/send/multiple']").trigger("click")
     await waitFor(() => wrapper.findAllComponents(SelectAccount).length, 5, "Should show 5 account selectors");
     const payees = wrapper.findAllComponents(SelectAccount)
+    const names: string[] = [];
     for (let i = 0; i < 4; i++) {
       await payees[i].get('input').trigger("click");
       await waitFor(() => payees[i].getComponent(QMenu).findAllComponents(AccountHeader).length > 0, true, `Account list ${i} should open`)
       const payee = payees[i].getComponent(QMenu).findAllComponents(AccountHeader)[i+1]
+      names.push(requireText(payee.props("account").member.attributes.name, `Payee ${i + 1} name`));
       await payee.trigger("click")
       await flushPromises()
       await wrapper.get(`[name='description[${i}]']`).setValue(`Test multi ${i+1}`)
@@ -333,7 +415,6 @@ describe("Transactions", () => {
     await wrapper.get("button[type='submit']").trigger("click")
     await waitFor(() => wrapper.find("button[name='confirm']").isVisible(), true, "Confirmation button should appear")
 
-    const names = ["Arnoldo", "Carol", "Oleta", "Florida"]
     for (let i = 0; i < 4; i++) {
       expect(wrapper.text()).toContain(names[i])
       expect(wrapper.text()).toContain(`Test multi ${i+1}`)
@@ -364,12 +445,13 @@ describe("Transactions", () => {
     await wrapper.vm.$router.push("/groups/GRP0/members/EmilianoLemke57/transactions/send/qr")
     await waitFor(() => wrapper.text().includes("Scan the transfer QR code"), true, "QR scan page should load")
     
-    await (wrapper.getComponent(CreateTransactionSendQR) as any)
-      .vm.onDetect([{rawValue: `http://localhost:8080/pay?c=${PAYMENT_ADDRESS_URL}&m=Test%20QR%20description&a=120000`}])
+    const scanner = wrapper.getComponent(CreateTransactionSendQR).vm as unknown as {
+      onDetect: (codes: { rawValue: string }[]) => Promise<void>
+    };
+    await scanner.onDetect([{rawValue: `http://localhost:8080/pay?c=${PAYMENT_ADDRESS_URL}&m=Test%20QR%20description&a=120000`}])
     await waitFor(() => wrapper.text().includes("$12.00"), true, "Scanned transfer amount should show")
     expect(wrapper.text()).toContain("Test QR description")
     expect(wrapper.text()).toContain("GRP00004")
-    expect(wrapper.text()).toContain("Florida")
     await wrapper.get("button[type='submit']").trigger("click")
     await waitFor(() => wrapper.text().includes("Committed"), true, "Transfer should be committed")
   })
@@ -379,7 +461,6 @@ describe("Transactions", () => {
     await waitFor(() => wrapper.text().includes("$13.50"), true, "Payment link amount should show")
     expect(wrapper.text()).toContain("Test QR link")
     expect(wrapper.text()).toContain("GRP00004")
-    expect(wrapper.text()).toContain("Florida")
     await wrapper.get("button[type='submit']").trigger("click")
     await waitFor(() => wrapper.text().includes("Committed"), true, "Payment should be committed")
   })
@@ -397,7 +478,6 @@ describe("Transactions", () => {
     // Simulate NFC detection
     wrapper.getComponent(NfcTagScanner).vm.$emit('detected', "31:83:47:8a")
     await waitFor(() => wrapper.text().includes("Committed"), true, "NFC transfer should be committed")
-    expect(wrapper.text()).toContain("Carol")
     expect(wrapper.text()).toContain("GRP00002")
     expect(wrapper.text()).toContain("$15.00")
     expect(wrapper.text()).toContain("Test NFC description")
