@@ -104,11 +104,25 @@ describe('Creates stellar elements', async () => {
       initialCredit: "1000"
     }, { sponsor, issuer: currencyKeys.issuer, credit: currencyKeys.credit })).key
     const account = await currency.getAccount(accountKey.publicKey())
-    await account.pay({ payeePublicKey: account2Key.publicKey(), amount: "100" }, { account: accountKey, sponsor })
+    await currency.transfer([{
+      payer: accountKey.publicKey(), payee: account2Key.publicKey(), amount: "100"
+    }], { signers: [accountKey], sponsor })
     await account.update()
     assert.equal(account.balance(), "900.0000000")
     const account2 = await currency.getAccount(account2Key.publicKey())
     assert.equal(account2.balance(), "1100.0000000")
+  })
+
+  await it('should execute multiple payments in a single transaction', async () => {
+    const payments = [
+      { payer: accountKey.publicKey(), payee: account2Key.publicKey(), amount: "100.0000000" },
+      { payer: account2Key.publicKey(), payee: accountKey.publicKey(), amount: "25.0000000" }
+    ] as const
+    const hash = await currency.transfer(payments, { signers: [accountKey, account2Key], sponsor })
+
+    assert.deepEqual(await currency.getTransfers(hash), payments.map(payment => ({
+      ...payment, asset: currency.asset(), hash
+    })))
   })
 
   await it('should be able to delete an account', async () => {
@@ -232,12 +246,12 @@ describe('Creates stellar elements', async () => {
     assert.equal(path.path[1].code, "HOUR")
     assert.equal(path.path[1].issuer, currency2Keys.externalIssuer.publicKey())
     const account1 = await currency.getAccount(key1.publicKey())
-    await assert.doesNotReject(account1.externalPay({
-      payeePublicKey: key2.publicKey(),
-      amount: "5", // in TES2 currency. This is 2.5 hours.
+    await assert.doesNotReject(currency.transfer([{
+      payer: key1.publicKey(),
+      payee: key2.publicKey(),
       path
-    }, {
-      account: key1,
+    }], {
+      signers: [key1],
       sponsor
     }))
     await account1.update()
@@ -261,12 +275,12 @@ describe('Creates stellar elements', async () => {
             retry: true
           })
           assert.notEqual(path2, false)
-          await assert.doesNotReject(account2.externalPay({
-            payeePublicKey: key1.publicKey(),
-            amount: "5", // in external currency
+          await assert.doesNotReject(currency2.transfer([{
+            payer: key2.publicKey(),
+            payee: key1.publicKey(),
             path: path2 as PathQuote
-          }, {
-            account: key2,
+          }], {
+            signers: [key2],
             sponsor
           }))
           await account1.update()

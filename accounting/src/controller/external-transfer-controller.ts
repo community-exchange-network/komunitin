@@ -212,7 +212,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     }
       
     // Retrieve the transfer data from the ledger.
-    const ledgerTransfer = await this.currencyController.ledger.getTransfer(data.hash)
+    const [ledgerTransfer] = await this.currencyController.ledger.getTransfers(data.hash)
     if (ledgerTransfer.payer !== ctx.accountKey) {
       throw forbidden(`The logged in external payer is not the payer of the transfer`)
     }
@@ -347,7 +347,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
       if (!data.hash) {
         throw badRequest("The hash must be provided for a committed external transfer update.")
       }
-      const ledgerTransfer = await this.currencyController.ledger.getTransfer(data.hash)
+      const [ledgerTransfer] = await this.currencyController.ledger.getTransfers(data.hash)
       // Check that the payer and payee match the ledger transfer data.
       if (ledgerTransfer.payer !== transfer.externalPayer.resource.key || ledgerTransfer.payee !== transfer.payee.key) {
         throw badRequest("The payer or payee do not match the ledger transfer data.")
@@ -416,8 +416,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
       ) {
         await this.transfers().saveTransferState(transfer, "submitted")
         try {
-          const transaction = await this.submitTransferExternalPayee(ctx, transfer, user)
-          transfer.hash = transaction.hash
+          transfer.hash = await this.submitTransferExternalPayee(ctx, transfer, user)
           await this.transfers().saveTransferState(transfer, "committed")
         } catch (e) {
           await this.transfers().saveTransferState(transfer, "failed")
@@ -463,20 +462,19 @@ export class ExternalTransferController extends AbstractCurrencyController {
     }
     // There is a trust path! Submit the transaction.
 
-    const ledgerPayer = await this.currencyController.ledger.getAccount(transfer.payer.key)
-    const transaction = await ledgerPayer.externalPay({
-        payeePublicKey: transfer.externalPayee.resource.key,
-        amount: payeeAmountLedger,
-        path
-      }, {
-        account: await (this.users().isAdmin(user) ? this.keys().adminKey() : this.keys().retrieveKey(transfer.payer.key)),
-        sponsor: await this.keys().sponsorKey()
-      })
+    const hash = await this.currencyController.ledger.transfer([{
+      payer: transfer.payer.key,
+      payee: transfer.externalPayee.resource.key,
+      path
+    }], {
+      signers: [await (this.users().isAdmin(user) ? this.keys().adminKey() : this.keys().retrieveKey(transfer.payer.key))],
+      sponsor: await this.keys().sponsorKey()
+    })
     
     // Update payer and external account balances in DB.
     this.transfers().updateAccountBalances(transfer)
 
-    return transaction
+    return hash
   }
 
 

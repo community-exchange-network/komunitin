@@ -48,15 +48,15 @@ const reconcileBalance = async (
     }
     const increase = difference > 0n
     const issuer = controller.model.keys.issuer
-    const payer = increase ? await controller.ledger.getAccount(issuer) : account
-    const transfer = await payer.pay({
-      payeePublicKey: increase ? publicKey : issuer,
+    const hash = await controller.ledger.transfer([{
+      payer: increase ? issuer : publicKey,
+      payee: increase ? publicKey : issuer,
       amount: controller.toStringAmount(ledgerNumber(increase ? difference : -difference)),
-    }, {
-      account: increase ? await controller.keys.issuerKey() : accountKey,
+    }], {
+      signers: [increase ? await controller.keys.issuerKey() : accountKey],
       sponsor,
     })
-    await log('balances', `Adjusted Stellar account ${publicKey} from ${current} to ${target} scaled units; transaction ${transfer.hash}`)
+    await log('balances', `Adjusted Stellar account ${publicKey} from ${current} to ${target} scaled units; transaction ${hash}`)
   }
 }
 

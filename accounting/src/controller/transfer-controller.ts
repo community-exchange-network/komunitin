@@ -253,8 +253,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
         transfer.user = user
         await this.saveTransferState(transfer, "submitted")
         try {
-          const transaction = await this.submitTransfer(transfer, this.users().isAdmin(user))
-          transfer.hash = transaction.hash
+          transfer.hash = await this.submitTransfer(transfer, this.users().isAdmin(user))
           await this.saveTransferState(transfer, "committed")
         } catch (e) {
           await this.saveTransferState(transfer, "failed")
@@ -325,18 +324,18 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
    * Submit a transfer to the ledger. Both payer and payee must be local.
    */
   private async submitTransfer(transfer: FullTransfer, admin = false) {
-    const ledgerPayer = await this.currencyController.ledger.getAccount(transfer.payer.key)
-    const transaction = await ledgerPayer.pay({
-      payeePublicKey: transfer.payee.key,
+    const hash = await this.currencyController.ledger.transfer([{
+      payer: transfer.payer.key,
+      payee: transfer.payee.key,
       amount: this.currencyController.toStringAmount(transfer.amount),
-    }, {
+    }], {
       sponsor: await this.keys().sponsorKey(),
-      account: await (admin ? this.keys().adminKey() : this.keys().retrieveKey(transfer.payer.key))
+      signers: [await (admin ? this.keys().adminKey() : this.keys().retrieveKey(transfer.payer.key))]
     })
 
     await this.updateAccountBalances(transfer)
     
-    return transaction
+    return hash
   }
 
   private async loadTransferWhere(where: {id?: string, hash?: string}) {

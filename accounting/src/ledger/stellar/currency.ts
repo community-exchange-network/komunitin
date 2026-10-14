@@ -6,7 +6,7 @@ import { badRequest, internalError, notFound } from "../../utils/error"
 import { logger } from "../../utils/logger"
 import { retry, sleep } from "../../utils/sleep"
 import { Rate } from "../../utils/types"
-import { ExternalBalance, ExternalTrustline, KeyPair, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyKeys, LedgerCurrencyState, LedgerExternalTransfer, LedgerTransfer, PathQuote } from "../ledger"
+import { ExternalBalance, ExternalTrustline, KeyPair, LedgerCurrency, LedgerCurrencyConfig, LedgerCurrencyData, LedgerCurrencyKeys, LedgerCurrencyState, LedgerExternalTransfer, LedgerPayment, LedgerTransfer, PathQuote } from "../ledger"
 import { StellarAccount } from "./account"
 import { StellarLedger } from "./ledger"
 import { HorizonApi } from "@stellar/stellar-sdk/lib/horizon"
@@ -38,6 +38,50 @@ const paymentToTransfer = (payment: Omit<Horizon.HorizonApi.PaymentOperationResp
 const UNDEFINED_TRUSTLINE_LIMIT = Big('9223372036854775807').div(10**7)
 
 export class StellarCurrency implements LedgerCurrency {
+  /** Build all payment operations before submitting the batch through the shared ledger pipeline. */
+  async transfer(payments: readonly [LedgerPayment, ...LedgerPayment[]], keys: {
+    signers: readonly KeyPair[]
+    sponsor: KeyPair
+  }) {
+    const source = await this.getAccount(payments[0].payer)
+    const builder = this.ledger.transactionBuilder(source)
+    const currencyAsset = this.asset()
+    const localTransfers: Omit<LedgerTransfer, "hash">[] = []
+    for (const payment of payments) {
+      const asset = payment.path ? payment.path.destAsset : payment.asset ?? currencyAsset
+      const destinationAsset = new Asset(asset.code, asset.issuer)
+      const amount = payment.path ? payment.path.destAmount : payment.amount
+      const destination = {
+        source: payment.payer,
+        destination: payment.payee,
+      }
+      builder.addOperation(payment.path
+        ? Operation.pathPaymentStrictReceive({
+          ...destination,
+          sendAsset: new Asset(payment.path.sourceAsset.code, payment.path.sourceAsset.issuer),
+          sendMax: payment.path.sourceAmount,
+          destAsset: destinationAsset,
+          destAmount: amount,
+          path: payment.path.path.map(asset => new Asset(asset.code, asset.issuer))
+        })
+        : Operation.payment({ ...destination, asset: destinationAsset, amount }))
+      if (!payment.path && currencyAsset.equals(destinationAsset)) {
+        localTransfers.push({
+          payer: payment.payer,
+          payee: payment.payee,
+          amount,
+          asset: destinationAsset
+        })
+      }
+    }
+    const signers = [...new Map(keys.signers.map(key => [key.publicKey(), key])).values()]
+    const { hash } = await this.ledger.submitTransaction(builder, signers, keys.sponsor)
+    for (const transfer of localTransfers) {
+      this.ledger.emitter.emit("transfer", this, { ...transfer, hash })
+    }
+    return hash
+  }
+
   static GLOBAL_ASSET_CODE = "HOUR"
 
   ledger: StellarLedger
@@ -806,29 +850,27 @@ export class StellarCurrency implements LedgerCurrency {
   }
 
   /**
-   * Fetch a transfer from the ledger.
+   * Fetch all payments in a transaction from the ledger.
    */
-  async getTransfer(hash: string): Promise<LedgerTransfer | LedgerExternalTransfer> {
+  async getTransfers(hash: string): Promise<(LedgerTransfer | LedgerExternalTransfer)[]> {
     const transaction = await this.ledger.callServer((server) => server.transactions().transaction(hash).call())
 
     if (!transaction) {
       throw notFound(`Transaction ${hash} not found`)
     }
     const operations = await transaction.operations({ limit: 100 })
-    const payment = operations.records.find((op) => [
+    const payments = operations.records.filter((op) => [
       Horizon.HorizonApi.OperationResponseType.payment,
       Horizon.HorizonApi.OperationResponseType.pathPayment
     ].includes(op.type))
 
-    if (!payment) {
+    if (payments.length === 0) {
       throw badRequest(`No payment operation found in transaction ${hash}`)
     }
 
-    const transfer = payment.type === Horizon.HorizonApi.OperationResponseType.payment
+    return payments.map(payment => payment.type === Horizon.HorizonApi.OperationResponseType.payment
       ? paymentToTransfer(payment)
-      : pathPaymentToTransfer(payment as Horizon.HorizonApi.PathPaymentOperationResponse)
-
-    return transfer
+      : pathPaymentToTransfer(payment as Horizon.HorizonApi.PathPaymentOperationResponse))
   }
 
   async enableAccount(options: { balance: string; credit: string; maximumBalance?: string }, keys: { account: KeyPair; issuer: KeyPair; disabledAccountsPool: KeyPair; sponsor: KeyPair; }): Promise<void> {

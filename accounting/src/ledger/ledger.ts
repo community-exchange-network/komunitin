@@ -218,6 +218,18 @@ export interface ExternalTrustline {
  */
 export interface LedgerCurrency {
   /**
+   * Execute an ordered, non-empty batch of payments atomically.
+   * Ordinary payments use this currency unless an asset is specified. Path payments
+   * receive the quoted destination amount. Earlier payments can fund later ones.
+   * Supply the keys authorizing every source account, or their administrative keys.
+   * Returns the transaction hash after the entire batch has been confirmed.
+   */
+  transfer(payments: readonly [LedgerPayment, ...LedgerPayment[]], keys: {
+    signers: readonly KeyPair[]
+    sponsor: KeyPair
+  }): Promise<string>
+
+  /**
    * Update the currency data.
    */
   setData(data: LedgerCurrencyData): void
@@ -339,11 +351,11 @@ export interface LedgerCurrency {
    */
   getExternalBalances(): Promise<ExternalBalance[]>
   /**
-   * Fetches a transaction from the ledger and returns the transfer information associated to it.
+   * Fetches all payments in a transaction, in execution order.
    * 
    * @param hash The transaction hash.
    */
-  getTransfer(hash: string): Promise<LedgerTransfer | LedgerExternalTransfer>
+  getTransfers(hash: string): Promise<(LedgerTransfer | LedgerExternalTransfer)[]>
 
   /** 
    * Disable the currency. This operation removes the currency from the ledger saving resources.
@@ -390,26 +402,19 @@ export interface PathQuote {
   path: LedgerAsset[]
 }
 
+/** An ordinary payment or a payment using a previously quoted currency conversion. */
+export type LedgerPayment = {
+  payer: string
+  payee: string
+} & (
+  { amount: string, asset?: LedgerAsset, path?: never }
+  | { path: PathQuote, amount?: never, asset?: never }
+)
+
 /**
  * An account in a ledger.
  */
 export interface LedgerAccount {
-  /**
-   * Perform a community currency transfer.
-   * @param payment The payment details: destination and amount
-   * @param keys The account entry can be either the master key or the admin key for administered accounts.
-   */
-  pay(payment: { payeePublicKey: string, amount: string }, keys: { account: KeyPair, sponsor: KeyPair }): Promise<LedgerTransfer>
-
-  /**
-   * Perform a payment to an account on a different currency.
-   * @param payment
-   *   amount: The amount to pay in the payee currency. The payee will receive exactly this amount.
-   *   payeePublicKey: The public key of the payee account.
-   *   externalIssuerPublicKey: The public key of the issuer of the payee currency.
-   */
-  externalPay(payment: { payeePublicKey: string, amount: string, path: PathQuote }, keys: { account: KeyPair, sponsor: KeyPair }): Promise<LedgerExternalTransfer>
-
   /**
    * Permanently delete the account from the ledger.
    * 

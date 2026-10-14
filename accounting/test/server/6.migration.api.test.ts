@@ -313,11 +313,11 @@ describe('Accounting CSV migration API', () => {
 
     // The active account needs a decrease, while the disabled pool needs an increase.
     const sponsor = await controller.keys.sponsorKey()
-    await (await ledger.getAccount(controller.model.keys.issuer)).pay({ payeePublicKey: accountKey, amount: '10' }, {
-      account: Keypair.fromSecret(currencySecrets.stellarIssuerSecret), sponsor,
+    await ledger.transfer([{ payer: controller.model.keys.issuer, payee: accountKey, amount: '10' }], {
+      signers: [Keypair.fromSecret(currencySecrets.stellarIssuerSecret)], sponsor,
     })
-    await (await ledger.getAccount(poolKey)).pay({ payeePublicKey: controller.model.keys.issuer, amount: '3' }, {
-      account: Keypair.fromSecret(currencySecrets.stellarDisabledAccountsPoolSecret), sponsor,
+    await ledger.transfer([{ payer: poolKey, payee: controller.model.keys.issuer, amount: '3' }], {
+      signers: [Keypair.fromSecret(currencySecrets.stellarDisabledAccountsPoolSecret)], sponsor,
     })
     await clearDb()
     const completed = await importBundle()
@@ -329,12 +329,12 @@ describe('Accounting CSV migration API', () => {
 
     // Reconcile in the opposite direction and raise a trustline that is below the target.
     const active = await ledger.getAccount(accountKey)
-    await active.pay({ payeePublicKey: controller.model.keys.issuer, amount: '5' }, {
-      account: Keypair.fromSecret(accountSecrets[0]), sponsor,
+    await ledger.transfer([{ payer: accountKey, payee: controller.model.keys.issuer, amount: '5' }], {
+      signers: [Keypair.fromSecret(accountSecrets[0])], sponsor,
     })
     await active.updateMaximumBalance('90', { account: Keypair.fromSecret(accountSecrets[0]), sponsor })
-    await (await ledger.getAccount(controller.model.keys.issuer)).pay({ payeePublicKey: poolKey, amount: '2' }, {
-      account: Keypair.fromSecret(currencySecrets.stellarIssuerSecret), sponsor,
+    await ledger.transfer([{ payer: controller.model.keys.issuer, payee: poolKey, amount: '2' }], {
+      signers: [Keypair.fromSecret(currencySecrets.stellarIssuerSecret)], sponsor,
     })
     // A missing infrastructure account is recreated with the same key.
     await (await ledger.getAccount(controller.model.keys.admin)).delete({

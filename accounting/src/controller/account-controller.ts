@@ -478,12 +478,12 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
     } else if (account.status === AccountStatus.Suspended || account.status === AccountStatus.Disabled) {
       // in this case there is no account in the ledger, but the pool has the balance for the 
       // credit limit of the disabled account (since we've already check it has balance = 0).
-      const pool = await this.currencyController.ledger.getAccount(this.currency().keys.disabledAccountsPool!)
-      await pool.pay({
-        payeePublicKey: this.currency().keys.credit,
+      await this.currencyController.ledger.transfer([{
+        payer: this.currency().keys.disabledAccountsPool!,
+        payee: this.currency().keys.credit,
         amount: this.currencyController.toStringAmount(account.creditLimit),
-      }, {
-        account: await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!),
+      }], {
+        signers: [await this.keys().retrieveKey(this.currency().keys.disabledAccountsPool!)],
         sponsor: await this.keys().sponsorKey(),
       })
     }

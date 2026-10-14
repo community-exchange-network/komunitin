@@ -549,13 +549,13 @@ export class CurrencyControllerImpl implements CurrencyService {
     }
     if (totalDisabledBalance.gt(0)) {
       // Fund the disabled accounts pool
-      const issuerAccount = await this.ledger.getAccount(this.model.keys.issuer)
-      await issuerAccount.pay({
-        payeePublicKey: this.model.keys.disabledAccountsPool as string,
+      await this.ledger.transfer([{
+        payer: this.model.keys.issuer,
+        payee: this.model.keys.disabledAccountsPool as string,
         amount: this.toStringAmount(totalDisabledBalance.toNumber())
-      }, {
+      }], {
         sponsor: await this.keys.sponsorKey(),
-        account: await this.keys.issuerKey()
+        signers: [await this.keys.issuerKey()]
       })
     }
   }

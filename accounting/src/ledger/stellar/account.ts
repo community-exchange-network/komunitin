@@ -1,9 +1,9 @@
 import { Asset, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk"
-import { LedgerAccount, LedgerExternalTransfer, LedgerTransfer, PathQuote } from "../ledger"
+import { LedgerAccount } from "../ledger"
 import { StellarCurrency } from "./currency"
 import { Big } from "big.js"
 import { logger } from "../../utils/logger"
-import { badRequest, internalError, insufficientBalance } from "../../utils/error"
+import { badRequest, internalError } from "../../utils/error"
 
 export class StellarAccount implements LedgerAccount {
   public currency: StellarCurrency
@@ -92,11 +92,12 @@ export class StellarAccount implements LedgerAccount {
         if (!keys.account) {
           throw internalError("Required account key when reducing the credit")
         }
-        await this.pay({
-          payeePublicKey: this.currency.data.creditPublicKey,
+        await this.currency.transfer([{
+          payer: this.accountId,
+          payee: this.currency.data.creditPublicKey,
           amount: diff.abs().toString()
-        }, {
-          account: keys.account,
+        }], {
+          signers: [keys.account],
           sponsor: keys.sponsor
         })
       } else {
@@ -242,43 +243,6 @@ export class StellarAccount implements LedgerAccount {
   }
 
   /**
-   * Implements LedgerAccount.pay().
-   * 
-   * Uses channel accounts if more than one payment is concurrently made with the same account.
-   */
-  async pay(payment: { payeePublicKey: string; amount: string }, keys: { account: Keypair; sponsor: Keypair }) {
-    if (Big(this.balance()).lt(payment.amount)) {
-      throw insufficientBalance(`Payer's balance ${this.balance()} is not sufficient for a payment of ${payment.amount}`)
-    }
-    const builder = this.currency.ledger.transactionBuilder(this)
-    builder.addOperation(Operation.payment({
-      source: this.account?.accountId() as string,
-      destination: payment.payeePublicKey,
-      asset: this.currency.asset(),
-      amount: payment.amount
-    }))
-    logger.debug(`Submitting payment of ${payment.amount} with sequence ${this.account?.sequenceNumber()}`)
-    const transaction = await this.currency.ledger.submitTransaction(builder, [keys.account], keys.sponsor)
-
-    const transfer = {
-      amount: payment.amount,
-      asset: this.currency.asset(),
-      payer: this.account?.accountId() as string,
-      payee: payment.payeePublicKey,
-      hash: transaction.hash
-    }
-
-    // This should be done as a reaction to a stream listener on horizon server, but we don't have
-    // any means to efficiently listen all payments in a currency right now. Maybe having our own
-    // filtered Horizon server could do the job, or using stellar.expert or another API.
-    this.currency.ledger.emitter.emit("transfer", this.currency, transfer)
-
-    logger.info({ hash: transaction.hash }, `Account ${this.account?.accountId()} paid ${payment.amount} to ${payment.payeePublicKey}`)
-
-    return transfer
-  }
-
-  /**
    * Get the Stellar account object.
    * @returns The Stellar account object.
    */
@@ -287,47 +251,6 @@ export class StellarAccount implements LedgerAccount {
       throw internalError("Account not found")
     }
     return this.account
-  }
-
-  /**
-   * Implements {@link LedgerAccount#externalPay}
-   */
-  async externalPay(payment: { payeePublicKey: string, amount: string, path: PathQuote }, keys: { account: Keypair; sponsor: Keypair }): Promise<LedgerExternalTransfer> {
-
-    if (Big(this.balance()).lt(payment.path.sourceAmount)) {
-      throw insufficientBalance("Insufficient balance")
-    }
-
-    const builder = this.currency.ledger.transactionBuilder(this)
-    const source = this.account?.accountId() as string
-
-    builder.addOperation(Operation.pathPaymentStrictReceive({
-      source,
-      sendAsset: payment.path.sourceAsset as Asset,
-      sendMax: payment.path.sourceAmount,
-      destination: payment.payeePublicKey,
-      destAsset: payment.path.destAsset as Asset,
-      destAmount: payment.amount,
-      path: payment.path.path as Asset[]
-    }))
-
-    const transaction = await this.currency.ledger.submitTransaction(builder, [keys.account], keys.sponsor)
-
-    const transfer = {
-      amount: payment.amount,
-      asset: payment.path.destAsset as Asset,
-      payer: this.account?.accountId() as string,
-      payee: payment.payeePublicKey,
-      hash: transaction.hash,
-      sourceAsset: payment.path.sourceAsset as Asset,
-      // We may need to get the source amount from the result instead of directly
-      // take this amount, but in our case of 1:1 exchange rate, it must be the same.
-      sourceAmount: payment.path.sourceAmount
-    }
-
-    logger.info({ hash: transaction.hash }, `Account ${this.account?.accountId()} paid ${payment.amount} ${payment.path.destAsset.code} to ${payment.payeePublicKey} through path`)
-
-    return transfer
   }
 
   /**
