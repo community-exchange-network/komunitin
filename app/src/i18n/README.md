@@ -35,7 +35,7 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 | **Currency** | Moneda | Moneda | Valuta | Monnaie |
 | **Member** | Membre | Miembro | Membro | Membre |
 | **Account** | Compte | Cuenta | Conto | Compte |
-| **Balance** | Saldo | Saldo | Saldo | Solde |
+| **Balance** | Balanç | Balance | Bilancio | Bilan |
 | **Transfer** | Moviment | Movimiento | Movimento | Transfert |
 | **Send** | Enviar | Enviar | Inviare | Envoyer |
 | **Receive** | Rebre | Recibir | Ricevere | Recevoir |
