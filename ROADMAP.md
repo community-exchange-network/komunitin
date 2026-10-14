@@ -117,3 +117,49 @@ The current platform depends on the legacy IntegralCES Drupal-based platform. Sp
 
 - [X] Develop a script that migrates e2e the data from the existing IntegralCES Drupal-based platform to the new services.
 - [X] Deploy the new services to the production environments.
+
+
+## v4: Federation
+
+Currently Komunitin already implements an advanced protocol for making transfers between different communities within the network (See https://docs.komunitin.org/technology/accounting/external-transfers). However this feature has not been fully tested and developed and is only hardly used in practice. CES uses the Clearing Central protocol to facilitate transfers between different servers. It also features cross-currency exchanges berween different communities on the same server.
+
+###  1. Komunitin Federation Protocol UX
+
+**Goal**: Improve the user experience for managing cross-community transfers exchanges within the Komunitin network.
+- [ ] Refactor transfer form for better UX
+- [ ] Refactor admin interface and options for better UX
+- [ ] Show reciprocal trustlines in admin interface.
+- [ ] List reachable communities and/or community trust graph
+- [ ] Load remote communities in the community picker.
+- [ ] List only reachable communities in the community picker.
+- [ ] Test remote trading
+
+### 2. Support exchange with CES1 via the Credit Commons protocol
+
+**Goal**: Enable exchange with CES1 via the Credit Commons protocol. Additionally, allow also to exchange with non-CES1 networks using Credit Commons.
+
+- [ ] Review credit commons integration code
+- [ ] Extend UX beyond QR
+- [ ] Complete interaction (all required states, conversion rate...)
+- [ ] Specific UI to trade with CES1
+- [ ] Test trading with CES1
+
+### 3. Marketplace federation backend
+
+**Goal**: HTTP API for sharing public offers and wants between communities on the same server, on different servers and on compatible platforms.
+
+- [ ] Define the federation protocol using ActivityPub: objects, actors, activities.
+- [ ] Add ActivityPub server-to-server support to the social service using `fedify`.
+- [ ] Synchronize existing and new public listings, including edits, expiry and withdrawals
+- [ ] Global search for federated listings.
+- [ ] Test the HTTP API.
+
+### 4. Marketplace Federation UI
+
+**Goal**: Integrate the marketplace federation features into the app
+
+- [ ] Show federated listings.
+- [ ] Search and filter federated listings
+- [ ] List federated listings alongside local content in feed.
+- [ ] Add community controls for enabling and configuring marketplace federation.
+
