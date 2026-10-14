@@ -47,5 +47,3 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 | **Offer** | Oferta | Oferta | Offerta | Offre |
 | **Want** | Necessitat | Necesidad | Necessità | Besoin |
 | **Value** | Valor | Valor | Valore | Valeur |
-
-Use **balanç** (Catalan), **balance** (Spanish), **bilan** (French) and **bilancio** (Italian) consistently in app, admin, contribution and notification strings. This softer, less financial language emphasizes the balance between what a member has contributed to and received from the community. The underlying value remains the current account amount, which can be positive, zero or negative. Use the short labels in the table, adding community context only where needed for clarity. Keep the CES flavor's distinct **Community Standing** terminology.
