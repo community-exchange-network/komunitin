@@ -6,7 +6,7 @@
   "topupAmountToDepositHint": "Introdueix la quantitat en { currency }.",
   "topupReceiveAmount": "Quantitat a rebre",
   "topupAmountToReceive": "Quantitat a rebre",
-  "topupAmountToReceiveHint": "Aquesta és la quantitat que s'afegirà al teu saldo en { currency }.",
+  "topupAmountToReceiveHint": "Aquesta és la quantitat que s'afegirà al teu balanç en { currency }.",
   "topupErrorMinAmount": "La quantitat mínima a aportar és { amount }.",
   "topupErrorMaxAmount": "La quantitat màxima a aportar és { amount }.",
   "topupFormHeader": "Defineix la teva aportació",
