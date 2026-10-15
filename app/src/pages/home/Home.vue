@@ -53,6 +53,7 @@
 import { useStore } from 'vuex';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { addDays, startOfDay } from 'date-fns';
 import PageHeader from '../../layouts/PageHeader.vue';
 import ResourceCards from '../ResourceCards.vue';
 import FloatingBtnMenu, { type FABAction } from '../../components/FloatingBtnMenu.vue';
@@ -75,27 +76,20 @@ const resourceTypes = computed(() => {
   return ["offers", "needs"];
 })
 
-const resourceSort = computed(() => sortOption.value === "distance" ? "location" : "-updated")
+// Distance sorting needs the user location, which is sent along as the `near` param.
+const resourceSort = computed(() =>
+  sortOption.value === "distance" && store.state.me.location ? "distance" : "-updated"
+)
 
-const toISODate = (date: Date) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-// The "to" date is made exclusive of the following day so the whole selected day is included.
-const addOneDay = (date: Date) => {
-  const next = new Date(date);
-  next.setDate(next.getDate() + 1);
-  return toISODate(next);
-}
 const filter = computed(() => {
   const f: Record<string, string | { gt?: string, lt?: string }> = { status: "published", expired: "false" };
   if (feedCategory.value) f.category = feedCategory.value;
   if (dateFrom.value || dateTo.value) {
+    // Local day bounds as ISO timestamps. "to" is exclusive of the following
+    // day so the whole selected day is included.
     f.created = {
-      gt: dateFrom.value ? toISODate(dateFrom.value) : undefined,
-      lt: dateTo.value ? addOneDay(dateTo.value) : undefined,
+      gt: dateFrom.value ? startOfDay(dateFrom.value).toISOString() : undefined,
+      lt: dateTo.value ? startOfDay(addDays(dateTo.value, 1)).toISOString() : undefined,
     };
   }
   return f;
