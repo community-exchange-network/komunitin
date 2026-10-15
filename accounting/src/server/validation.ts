@@ -92,10 +92,15 @@ export namespace Validators {
     body(`${path}.relationships.${name}.data.*.type`).equals(type),
   ]
 
-  const isSingleRelationship = (path: string, name: string, type: string) => [
+  const isOptionalSingleRelationship = (path: string, name: string, type: string) => [
     body(`${path}.relationships.${name}`).optional(),
-    body(`${path}.relationships.${name}.data.id`).isString().notEmpty(),
-    body(`${path}.relationships.${name}.data.type`).equals(type),
+    body(`${path}.relationships.${name}.data.id`)
+      .if(body(`${path}.relationships.${name}`).exists())
+      .isString()
+      .notEmpty(),
+    body(`${path}.relationships.${name}.data.type`)
+      .if(body(`${path}.relationships.${name}`).exists())
+      .equals(type),
   ]
 
   const isIncludedTypes = (types: string[]) => [
@@ -109,7 +114,7 @@ export namespace Validators {
     ...isCreateCurrencyAttributesExist("data.attributes"),
     ...isUpdateCurrencyAttributes("data.attributes"),
     ...isCollectionRelationship("data", "admins", "users"),
-    ...isSingleRelationship("data", "settings", "currency-settings"),
+    ...isOptionalSingleRelationship("data", "settings", "currency-settings"),
     ...isIncludedTypes(["users", "currency-settings"]),
 
     // TODO: Add validation for included currency-settings attributes.
@@ -300,17 +305,6 @@ export namespace Validators {
     ...jsonApiDoc("account-settings"),
     body("data.id").optional().isUUID(), // id optional as currency is identified by route.
     ...isUpdateAccountSettingsAttributes("data.attributes"),
-  ]
-
-  const isCreateMigrationAttributes = (path: string) => [
-    body(`${path}.code`).isString().notEmpty(),
-    body(`${path}.source.url`).isString().notEmpty(),
-    body(`${path}.source.platform`).isString().notEmpty(),
-    body(`${path}.source.access_token`).isString().notEmpty(),
-  ]
-  export const isCreateMigration = () => [
-    ...jsonApiDoc("migrations"),
-    ...isCreateMigrationAttributes("data.attributes"),
   ]
 
   export const isUpdateTrustline = () => [

@@ -1,12 +1,16 @@
 <template>
-  <div>
+  <Error404
+    v-if="error?.code === KErrorCode.NotFound"
+    :to="`/groups/${code}/needs`"
+  />
+  <div v-else>
     <page-header
       :title="title ?? $t('need')"
       :back="`/groups/${code}/needs`"
     >
       <template #buttons>
         <q-btn
-          v-if="canEdit"
+          v-if="need && canEdit"
           round
           flat
           icon="edit"
@@ -14,7 +18,7 @@
           :title="$t('editNeed')"
         />
         <delete-need-btn
-          v-if="canEdit"
+          v-if="need && canEdit"
           :code="code"
           :need="need"
           :to="`/groups/${code}/needs`"
@@ -24,7 +28,7 @@
     </page-header>
     <q-page-container>
       <q-page
-        v-if="!isLoading"
+        v-if="need && isReady"
         class="q-pa-md"
         style="padding-bottom:100px;"
       >
@@ -66,17 +70,17 @@
                   date: $formatDate(need.attributes.updated)
                 }) }}</span>
               </div>
-              <q-separator class="q-mb-sm"/>
-              <div class="text-caption text-muted row items-center">
+              <q-separator v-if="need.attributes.expires" class="q-mb-sm"/>
+              <div v-if="need.attributes.expires" class="text-caption text-muted row items-center">
                 <q-icon name="schedule" class="q-mr-xs"/>
-                <span>{{ $t('expiresAt') }}</span>
+                <span>{{ $t('expiresAt', { date: '' }) }}</span>
                 <q-chip color="accent-muted" text-color="muted">{{ $formatDate(need.attributes.expires) }}</q-chip>
               </div>
             </div>
             <!-- eslint-disable vue/no-v-html -->
             <div
               class="col text-body1 text-onsurface bg-surface rounded-borders shadow-2 q-pa-md"
-              v-html="md2html(need.attributes.content)"
+              v-html="md2html(need.attributes.description)"
             />
             <!-- eslint-enable vue/no-v-html -->
           </template>
@@ -84,10 +88,10 @@
             <q-card>
               <simple-map
                 class="simple-map"
-                :center="need.member.attributes.location.coordinates"
-                :marker="need.member.attributes.location.coordinates"
+                :center="need.member.attributes.location?.coordinates"
+                :marker="need.member.attributes.location?.coordinates"
               />
-              <q-card-section class="text-onsurface-m">
+              <q-card-section v-if="need.member.attributes.location?.name" class="text-onsurface-m">
                 <q-icon name="place" />
                 {{ need.member.attributes.location.name }}
               </q-card-section>
@@ -101,13 +105,13 @@
               color="primary"
               :label="$t('share')"
               :title="$t('checkThisNeed', {member: need.member.attributes.name})"
-              :text="need.attributes.content"
+              :text="need.attributes.description"
             />
             <contact-button
               unelevated
               color="primary"
               :label="$t('contact')"
-              :contacts="need.member.contacts"
+              :contacts="need.member.attributes.contacts"
             />
           </q-toolbar>
         </q-page-sticky>
@@ -120,7 +124,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
+import { useStore } from "vuex";
 
 import md2html from "../../plugins/Md2html";
 
@@ -134,37 +139,29 @@ import DeleteNeedBtn from "../../components/DeleteNeedBtn.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
 import ShareButton from "../../components/ShareButton.vue";
 import SimpleMap from "../../components/SimpleMap.vue";
+import Error404 from "../Error404.vue";
 
-import { useStore } from "vuex";
+import { useResource } from "@/composables/useResources";
+import type { Need, Member, Category } from "../../store/model";
+import { KErrorCode } from "@/KError";
+
+type FullNeed = Need & { member: Member, category: Category | null }
 
 const props = defineProps<{
-  code: string,
-  needCode: string,
-  title?: string | null,
+  code: string
+  needCode: string
+  title?: string
 }>()
 
 const store = useStore()
-
-const ready = ref(false)
-const need = computed(() => store.getters["needs/current"])
-
-const isLoading = computed(() => {
-  return !(ready.value || need.value && need.value.category && need.value.member
-    && need.value.member.contacts)
-})
-
-const canEdit = computed(() => {
-  return need.value?.member?.id == store.getters.myMember.id || store.getters.isAdmin
-})
-
-const fetchData = async (needCode: string) => {
-  await store.dispatch("needs/load", {
-    code: needCode,
-    group: props.code,
-    include: "category,member,member.contacts,member.account"
-  });
-  ready.value = true
-}
-
-watch(() => props.needCode, fetchData, { immediate: true })
+const needOptions = computed(() => ({
+  code: props.needCode,
+  group: props.code,
+  include: "category,member,member.account"
+}))
+const { resource: need, error } = useResource<FullNeed>('needs', needOptions)
+const canEdit = computed(() =>
+  need.value?.member?.id === store.getters.myMember?.id || store.getters.isAdmin
+)
+const isReady = computed(() => Boolean(need.value && need.value.member))
 </script>

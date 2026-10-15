@@ -1,53 +1,26 @@
-import { type Migration as MigrationRecord } from "@prisma/client"
-import { AccountSettings, Currency, CurrencySettings, FullAccount, Transfer } from "../model"
+import { type Migration as MigrationRecord, type Prisma } from "@prisma/client"
 
 export interface MigrationLogEntry {
   time: string, // ISO 8601 format
   level: "info" | "warn" | "error",
   message: string,
   step: string,
-  data?: any // Optional additional data
+  data?: Prisma.InputJsonValue
 }
 
-export const migrationKinds = ["integralces-accounting"] as const
-export type MigrationKind = typeof migrationKinds[number]
+export type MigrationLogger = (step: string, message: string) => Promise<void>
 
 export const migrationStatuses = ["new", "started", "completed", "failed"] as const
 export type MigrationStatus = typeof migrationStatuses[number]
 
-type AccountMember = {
-  id: string,
-  state: "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted"
-  type: "personal" | "business" | "public" | "virtual"
-}
-export type MigrationCurrency = Pick<Currency, "id" | "code" | "name" | "namePlural" | "symbol" | "decimals" | "scale" | "rate" | "created" | "updated"> 
-    & { settings: Partial<CurrencySettings>, admins: {id: string}[] }
-export type MigrationAccount = (Pick<FullAccount, "id" | "code" | "status" | "balance" | "creditLimit" | "maximumBalance" | "created" | "updated"> 
-    & { settings: AccountSettings, users: {id: string}[], member: AccountMember })
-export type MigrationTransfer = (Pick<Transfer, "id" | "amount" | "state" | "meta" | "created" | "updated"> 
-    & { payer: {id: string, code: string}, payee: {id: string, code: string}, user: { id: string }})
-
+/** Public progress fields shared by current CSV imports and historical migrations. */
 export interface MigrationData {
-  currency?: MigrationCurrency,
-  accounts?: MigrationAccount[],
-  transfers?: MigrationTransfer[],
-  migrationAccount?: {
-    id: string,
-    code: string,
-    key: string,
-  },
-  source?: any,
+  source?: unknown,
   test?: boolean,
-  step: string
+  step?: string
 }
 
-export type CreateMigration = Pick<Migration, "code" | "name" | "kind" | "data">
-export type UpdateMigration = CreateMigration & { id: string }
+export type ApiMigration = Omit<MigrationRecord, "data" | "log" | "tenantId"> & { data?: MigrationData | null }
 
-export type Migration = Omit<MigrationRecord, "data" | "log"> & {
-  data: MigrationData,
-  log: MigrationLogEntry[],
-}
-
-export type ApiMigration = Omit<Migration, "data" | "log"> & { data?: Pick<MigrationData, "step" | "test" | "source"> | null}
-
+/** Strip optional fields before saving a checkpoint in a Prisma JSON column. */
+export const migrationJson = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonObject

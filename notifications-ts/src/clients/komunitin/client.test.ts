@@ -1,7 +1,10 @@
-import { describe, it, before, after } from 'node:test';
+import { describe, it, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert';
+import { http, HttpResponse } from 'msw';
 import { KomunitinClient } from './client';
 import { server } from '../../mocks/server';
+import { createMember, createMemberUser, createUser, resetDb } from '../../mocks/db';
+import { SOCIAL_URL } from '../../mocks/handlers';
 
 describe('KomunitinClient', () => {
   before(() => {
@@ -10,6 +13,11 @@ describe('KomunitinClient', () => {
 
   after(() => {
     server.close();
+  });
+
+  beforeEach(() => {
+    resetDb();
+    server.resetHandlers();
   });
 
   it('should fetch currency data', async () => {
@@ -34,5 +42,121 @@ describe('KomunitinClient', () => {
     assert.ok(stats.attributes.values, 'Stats should have values');
     assert.ok(Array.isArray(stats.attributes.values), 'Values should be an array');
     assert.strictEqual(stats.attributes.values[0], 54, 'Should return mocked transfer count');
+  });
+
+  it('uses the canonical Social post and admin routes', async () => {
+    const client = new KomunitinClient();
+    const offers = await client.getOffers('GRP0', {
+      'filter[status]': 'published',
+      'filter[created][gt]': '1970-01-01T00:00:00.000Z',
+    });
+    const needs = await client.getNeeds('GRP0', {
+      'filter[status]': 'published',
+      'filter[expires][lt]': '9999-01-01T00:00:00.000Z',
+    });
+    const post = await client.getPost('GRP0', offers[0].id, ['member']);
+    const admins = await client.getGroupAdmins('GRP0');
+
+    assert.strictEqual(offers.length, 15);
+    assert.ok(offers.every(offer => offer.type === 'offers'));
+    assert.strictEqual(needs.length, 10);
+    assert.ok(needs.every(need => need.type === 'needs'));
+    assert.strictEqual(post.data.id, offers[0].id);
+    assert.strictEqual(post.included?.[0].id, offers[0].relationships.member.data.id);
+    assert.deepStrictEqual(admins.map(admin => admin.id), ['admin-GRP0']);
+  });
+
+  it('sends the committed state filter to Accounting', async () => {
+    const client = new KomunitinClient();
+    const transfers = await client.getTransfers('GRP0', { 'filter[state]': 'committed' });
+
+    assert.strictEqual(transfers.length, 10);
+    assert.ok(transfers.every(transfer => transfer.attributes.state === 'committed'));
+  });
+
+  it('fetches filtered member-user relations with their included resources', async () => {
+    const sharedUser = createUser({ id: 'shared-user', email: 'shared@example.com' });
+    const otherUser = createUser({ id: 'other-user', email: 'other@example.com' });
+    const firstMember = createMember({ groupCode: 'TEST', id: 'member-1', userId: sharedUser.id });
+    const secondMember = createMember({ groupCode: 'TEST', id: 'member-2', userId: sharedUser.id });
+    createMemberUser({ memberId: firstMember.id, userId: otherUser.id });
+
+    const relations = await new KomunitinClient().getMemberUsers('TEST', {
+      member: [firstMember.id, secondMember.id],
+    });
+
+    assert.strictEqual(relations.length, 3);
+    assert.deepStrictEqual(
+      relations.map(({ memberUser, user, member }) => [
+        memberUser.relationships.member.data.id,
+        user.id,
+        member.id,
+      ]).sort(),
+      [
+        ['member-1', 'other-user', 'member-1'],
+        ['member-1', 'shared-user', 'member-1'],
+        ['member-2', 'shared-user', 'member-2'],
+      ],
+    );
+  });
+
+  it('lists a group collection and follows member-user pagination', async () => {
+    const requests: URL[] = [];
+    server.use(
+      http.get(`${SOCIAL_URL}/:groupCode/member-users`, ({ request }) => {
+        const url = new URL(request.url);
+        requests.push(url);
+        const after = url.searchParams.get('page[after]');
+        const memberId = after ? 'member-1' : 'member-0';
+        const userId = `user-${memberId}`;
+        const next = !after
+          ? `${url.origin}${url.pathname}?${new URLSearchParams({
+              ...Object.fromEntries(url.searchParams),
+              'page[after]': '1',
+            })}`
+          : null;
+
+        return HttpResponse.json({
+          data: [{
+            type: 'member-users',
+            id: `member-user-${memberId}`,
+            attributes: {
+              emails: { group: 'weekly', myAccount: true },
+              notifications: { myAccount: true, group: true },
+            },
+            relationships: {
+              member: { data: { type: 'members', id: memberId } },
+              user: { data: { type: 'users', id: userId } },
+            },
+          }],
+          included: [
+            {
+              type: 'users',
+              id: userId,
+              attributes: { email: `${userId}@example.com`, language: 'en' },
+            },
+            {
+              type: 'members',
+              id: memberId,
+              attributes: { name: memberId, status: 'active' },
+            },
+          ],
+          links: { next },
+        });
+      }),
+    );
+
+    const relations = await new KomunitinClient().getMemberUsers('TEST', {
+      memberStatus: 'active',
+    });
+
+    assert.strictEqual(relations.length, 2);
+    assert.deepStrictEqual(relations.map(({ member }) => member.id), ['member-0', 'member-1']);
+    assert.ok(requests.every(url => url.searchParams.get('include') === 'user,member'));
+    assert.ok(requests.every(url => url.searchParams.get('filter[member.status]') === 'active'));
+    assert.deepStrictEqual(
+      requests.map(url => url.searchParams.get('page[after]')),
+      [null, '1'],
+    );
   });
 });

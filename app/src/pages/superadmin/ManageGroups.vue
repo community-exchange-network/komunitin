@@ -81,7 +81,7 @@
               </confirm-btn>
               <delete-btn
                 color="icon-dark"
-                @confirm="deleteGroup(props.row.code)"
+                @confirm="deleteGroup(props.row.code, props.row.id)"
               >
                 Are you sure you want to delete group {{props.row.name}}?
               </delete-btn>
@@ -93,7 +93,7 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, shallowRef } from 'vue';
 import { useStore } from 'vuex';
 import type { Group } from '../../store/model';
 import { useRouter } from 'vue-router';
@@ -135,7 +135,7 @@ const statusColor = (status: string) => {
 }
 
 const store = useStore()
-const groups = computed(() => store.getters['groups/currentList'])
+const groups = computed<Group[]>(() => store.getters['groups/currentList'] ?? [])
 
 interface Row {
   id: string;
@@ -155,7 +155,7 @@ const rows = computed<Row[]>(() => groups.value.map((g: Group) => ({
   members: g.relationships.members.meta?.count ?? "",
 })))
 
-const loading = ref(false)
+const loading = shallowRef(false)
 const loadGroups = async () => {
   try {
     loading.value = true
@@ -209,9 +209,10 @@ const activateGroup = async (code: string) => {
     quasar.loading.hide()
   }
 }
-const deleteGroup = async (code: string) => {
+const deleteGroup = async (code: string, id: string) => {
   await store.dispatch('groups/delete', {
-    group: code
+    group: code,
+    id
   })
   await loadGroups()
 }

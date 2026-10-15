@@ -35,7 +35,7 @@ const props = defineProps<{
 const store = useStore()
 const router = useRouter()
 
-const need = ref<Need & {category: Category} | undefined>(undefined)
+const need = ref<Need & {category: Category | null} | undefined>(undefined)
 
 // Load initial values from current resource only if we are comming 
 // from the preview page.

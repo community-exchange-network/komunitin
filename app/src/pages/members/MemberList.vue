@@ -11,7 +11,7 @@
           v-slot="slotProps"
           :code="code"
           type="members"
-          include="contacts,account"
+          include="account"
           :query="query"
         >
           <q-list
@@ -38,10 +38,10 @@
               <q-separator />
               <member-header
                 :member="member"
-                :to="`/groups/${code}/members/${member.attributes.code}`"
+                :to="isFullMember(member) ? `/groups/${code}/members/${member.attributes.code}` : ''"
               >
                 <template
-                  v-if="showBalances && member.account?.attributes?.balance"
+                  v-if="showBalances && member.account?.attributes.balance !== undefined"
                   #side
                 >
                   <div class="column items-end">
@@ -72,13 +72,15 @@ import ResourceCards from '../ResourceCards.vue';
 import MemberHeader from '../../components/MemberHeader.vue';
 import { useStore } from 'vuex';
 import { useResource } from '@/composables/useResources';
-import type { Currency, CurrencySettings } from '../../store/model';
+import type { Currency, CurrencySettings, ResourceObject } from "../../store/model";
 
 const props = defineProps<{
   code: string;
 }>();
 
 const store = useStore();
+// External groups allowing anonymous listing provide a minimal view of members.
+const isFullMember = (member: ResourceObject) => member.attributes && 'status' in member.attributes;
 const options = computed(() => ({ group: props.code, include: 'settings' }));
 const { resource: currency } = useResource<Currency & { settings: CurrencySettings }>('currencies', options);
 

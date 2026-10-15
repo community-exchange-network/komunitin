@@ -1,6 +1,7 @@
 // Configuration for your app
 import { defineConfig } from "#q-app"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import vitePluginChecker from 'vite-plugin-checker'
 import { vitePluginFlavorPublic } from './build-tools/vite-plugin-flavor-public'
 import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets'
@@ -14,6 +15,9 @@ export default defineConfig((ctx) => {
   const { FLAVOR } = environment
   const isPwa = "pwa" in ctx.mode && ctx.mode.pwa
   const isSpa = "spa" in ctx.mode && ctx.mode.spa
+  // ./tmp/certs are provided by the host machine, /certs are the container self-signed fallback.
+  const certDir = existsSync("./tmp/certs/localhost.pem") && existsSync("./tmp/certs/localhost-key.pem")
+    ? "./tmp/certs" : "/certs"
 
   return {
     // app boot file (/src/boot)
@@ -74,6 +78,17 @@ export default defineConfig((ctx) => {
       vueOptionsAPI: true,
       sourcemap: true,      
       defineEnv: environment,
+      extendViteConf() {
+        // Vue Leaflet imports both "leaflet" and "leaflet/dist/leaflet-src.esm.js". Deduplicate them.
+        return {
+          resolve: {
+            alias: [{
+              find: /^leaflet$/,
+              replacement: fileURLToPath(import.meta.resolve('leaflet/dist/leaflet-src.esm.js'))
+            }]
+          }
+        }
+      },
       vitePlugins: [
         ctx.prod ? ['rollup-plugin-visualizer', { filename: 'dist/stats.html', gzipSize: true }, { server: false }] : null,
         [vitePluginChecker, {
@@ -113,9 +128,8 @@ export default defineConfig((ctx) => {
       port: isPwa ? 2030 : (isSpa ? 2031 : 2032),
       open: true,
       https: {
-        key: readFileSync("./tmp/certs/localhost-key.pem"),
-        cert: readFileSync("./tmp/certs/localhost.pem"),
-        ca: readFileSync(process.env.LOCAL_CA_ROOT ?? environment.LOCAL_CA_ROOT ?? "~/.local/share/mkcert/rootCA.pem")
+        key: readFileSync(`${certDir}/localhost-key.pem`),
+        cert: readFileSync(`${certDir}/localhost.pem`)
       },
       // Disable auto updating when checking PWA update process.
       // hot: false,
@@ -143,6 +157,11 @@ export default defineConfig((ctx) => {
     // https://quasar.dev/quasar-cli/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'InjectManifest', // 'GenerateSW' or 'InjectManifest'
+
+      extendPWAInjectManifestOptions(options) {
+        // Source maps are only needed for debugging, not offline use.
+        options.globIgnores!.push('**/*.map')
+      },
 
       extendPWACustomSWConf() {
         // Rolldown leaves unset env accesses as {}.env.KEY, which throws on startup.

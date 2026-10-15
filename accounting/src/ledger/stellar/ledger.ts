@@ -390,9 +390,9 @@ export class StellarLedger implements Ledger {
   /**
    * Implements {@link Ledger#createCurrency}
    */
-  async createCurrency(config: LedgerCurrencyConfig, sponsor: Keypair): Promise<LedgerCurrencyKeys> {
+  async createCurrency(config: LedgerCurrencyConfig, sponsor: Keypair, suppliedKeys?: LedgerCurrencyKeys): Promise<LedgerCurrencyKeys> {
     // Generate the keys.
-    const keys = {
+    const keys = suppliedKeys ?? {
       issuer: Keypair.random(),
       credit: Keypair.random(),
       admin: Keypair.random(),
@@ -419,10 +419,11 @@ export class StellarLedger implements Ledger {
       externalTrader: keys.externalTrader,
     })
 
-    logger.info({publicKeys: data}, `Created new currency ${config.code}`)
+    logger.info({publicKeys: data}, `Currency ${config.code} ready`)
 
     return keys
   }
+
   /**
    * Implements {@link Ledger#getCurrency}
    */

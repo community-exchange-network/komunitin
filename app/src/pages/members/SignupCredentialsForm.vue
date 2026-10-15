@@ -32,6 +32,7 @@
     <password-field
       v-model="password"
       name="password"
+      :min-length="8"
       :label="$t('newPassword')"
       :hint="$t('newPasswordHint')"
     />
@@ -59,7 +60,7 @@
 <script setup lang="ts">
 import PasswordField from '@/components/PasswordField.vue'
 import useVuelidate from "@vuelidate/core"
-import { required, email as vemail } from "@vuelidate/validators"
+import { required, minLength, email as vemail } from "@vuelidate/validators"
 import { ref, watchEffect } from 'vue'
 
 const props = defineProps<{
@@ -84,7 +85,7 @@ const password = ref(props.modelValue.password)
 
 const v$ = useVuelidate({
   email: {required, vemail},
-  password: {required},
+  password: {required, minLength: minLength(8)},
   name: {required}
 }, {name, email, password})
 

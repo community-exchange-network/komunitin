@@ -75,19 +75,19 @@
           name="needs"
           :label="$t('needs')"
         >
-          <q-badge 
-            v-if="nNeeds > 0"
-            color="primary" 
-            floating>{{nNeeds}}</q-badge>
+          <q-badge
+            v-if="needsCount > 0"
+            color="primary"
+            floating>{{needsCount}}</q-badge>
         </q-tab>
         <q-tab
           name="offers"
           :label="$t('offers')"
         >
           <q-badge
-            v-if="nOffers > 0" 
-            color="primary" 
-            floating>{{nOffers}}
+            v-if="offersCount > 0"
+            color="primary"
+            floating>{{offersCount}}
           </q-badge>
         </q-tab>
         <q-tab
@@ -96,7 +96,7 @@
           :label="$t('transactions')"
         />
       </q-tabs>
-     
+
     </template>
   </collapsible-header>
 </template>
@@ -137,6 +137,14 @@ export default defineComponent({
       type: Boolean,
       required: false,
       default: true
+    },
+    needsCount: {
+      type: Number,
+      required: true
+    },
+    offersCount: {
+      type: Number,
+      required: true
     }
   },
   emits: ['tab-change'],
@@ -147,18 +155,13 @@ export default defineComponent({
   },
   computed: {
     memberTypeLabel(): string {
-      const labels: { [key: string]: string } = {
+      const labels: Record<Member["attributes"]["type"], string> = {
         personal: this.$t("personalAccount") as string,
         business: this.$t("businessAccount") as string,
+        organization: this.$t("organizationAccount") as string,
         public: this.$t("publicAccount") as string
       };
       return labels[(this.member as Member).attributes.type];
-    },
-    nNeeds() : number | undefined {
-      return this.member.relationships.needs?.meta.count
-    },
-    nOffers(): number | undefined {
-      return this.member.relationships.offers?.meta.count
     }
   },
   methods: {

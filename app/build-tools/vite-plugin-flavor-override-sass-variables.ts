@@ -7,15 +7,15 @@ interface FlavorOverrideOptions {
 }
 
 export const vitePluginFlavorOverrideSassVariables = (options: FlavorOverrideOptions): Plugin => {
-  const sourcePath = resolve(process.cwd(), `src/css/flavors/${options.flavor}/override.variables.sass`)
-  const destPath = resolve(process.cwd(), "src/css/override.variables.sass")
-  
+  const sourcePath = resolve(process.cwd(), `src/css/flavors/${options.flavor}/override.variables.scss`)
+  const destPath = resolve(process.cwd(), "src/css/override.variables.scss")
+
   const copyOverrideFile = () => {
     if (existsSync(sourcePath)) {
       cpSync(sourcePath, destPath, {force: true})
       console.log(`✓ Copied flavor override: ${sourcePath} → ${destPath}`)
     } else {
-      // Create an empty override.variables.sass as a safe fallback  
+      // Create an empty override.variables.scss as a safe fallback
       writeFileSync(destPath, '')
       console.warn(`⚠ Flavor override file not found: ${sourcePath}`)
     }
@@ -24,7 +24,7 @@ export const vitePluginFlavorOverrideSassVariables = (options: FlavorOverrideOpt
   return {
     name: 'vite-plugin-flavor-override',
     enforce: 'pre',
-    
+
     buildStart() {
       copyOverrideFile()
     },
@@ -36,7 +36,7 @@ export const vitePluginFlavorOverrideSassVariables = (options: FlavorOverrideOpt
             copyOverrideFile()
           }
         })
-        
+
         server.httpServer?.on('close', () => {
           watcher.close()
         })

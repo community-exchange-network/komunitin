@@ -6,11 +6,9 @@
     flat
     bordered
     hide-upload-btn
-    :url="url"
-    :headers="headers"
-    :field-name="fieldName"
-    @added="handleAdded"
-    @uploaded="uploaded"
+    :filter="replaceQueuedFile"
+    v-bind="uploaderProps"
+    v-on="uploaderEvents"
   >
     <template #header>
       <q-uploader-add-trigger />
@@ -18,7 +16,7 @@
     <template #list>
       <div @click="pickFiles">
         <avatar 
-          :img-src="src" 
+          :img-src="src ? { url: src } : null"
           :text="text"
           size="250px"
           class="q-mx-auto avatar"
@@ -47,37 +45,65 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from "vue"
 import type { QUploader } from "quasar"
-import { imageFile, useImageUploaderProcessing, useUploaderSettings } from "../composables/uploader"
+import type { ImageObject } from "@/store/model"
+import { imageFile, useImageUploader } from "../composables/uploader"
 import Avatar from "./Avatar.vue"
 
-const props = defineProps<{
-  modelValue: string | null,
-  text: string
-}>()
+const props = withDefaults(defineProps<{
+  modelValue: ImageObject | null,
+  text: string,
+  code: string,
+  resourceType: "members" | "groups",
+  deferred?: boolean
+}>(), {
+  deferred: false
+})
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
+  (e: 'update:modelValue', value: ImageObject): void
 }>()
 
 const uploader = useTemplateRef<QUploader>("uploader")
-const src = computed(() => uploader.value?.files[0]?.__img?.src || props.modelValue)
-const file = computed(() => uploader.value?.files[0] || imageFile(props.modelValue ?? ""))
+const src = computed(() => uploader.value?.files[0]?.__img?.src || props.modelValue?.url)
+const file = computed(() => uploader.value?.files[0] || imageFile(props.modelValue?.url ?? ""))
+let uploadedImage: ImageObject | null = null
 
-const { url, headers, fieldName } = useUploaderSettings()
-const { isProcessing, handleAdded } = useImageUploaderProcessing({ uploader })
+const {
+  uploaderProps,
+  uploaderEvents,
+  isProcessing,
+  upload: uploadFiles
+} = useImageUploader({
+  uploader,
+  code: () => props.code,
+  resourceType: props.resourceType,
+  deferred: props.deferred,
+  onUploaded: image => {
+    uploadedImage = image
+    emit("update:modelValue", image)
+  }
+})
 
 const pickFiles = (event: Event) => {
   if (!isProcessing.value) {
     uploader.value?.pickFiles(event)
   }
 }
-
-const uploaded = ({xhr}: {xhr: XMLHttpRequest}) => {
-  const response = JSON.parse(xhr.responseText)
-  const url = response.data.attributes.url
-  emit("update:modelValue", url)
-  uploader.value?.removeUploadedFiles()
+// In deferred mode, only upload the last selected file.
+const replaceQueuedFile = (files: File[]) => {
+  uploader.value?.removeQueuedFiles()
+  return files
 }
+
+/**
+ * Upload the selected file. To be used in deferred mode by parent component.
+ * (actually used by CreateGroup.vue).
+ * 
+ * Returns the uploaded image object if successful, null if no file was selected,
+ * undefined if the upload failed.
+ */
+const upload = async () => (await uploadFiles()) ? uploadedImage : undefined
+defineExpose({ upload })
 
 </script>
 <style lang="scss" scoped>

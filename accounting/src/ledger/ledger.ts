@@ -62,6 +62,7 @@ export type LedgerCurrencyKeys = {
   admin: KeyPair,
   externalIssuer: KeyPair,
   externalTrader: KeyPair,
+  disabledAccountsPool?: KeyPair,
 }
 
 /**
@@ -161,9 +162,11 @@ export type LedgerEvents = {
  */
 export interface Ledger {
   /**
-   * Create a new currency.
+   * Create a currency.
+   * 
+   * Reusing keys makes ledger provisioning idempotent.
    */
-  createCurrency(config: LedgerCurrencyConfig, sponsor: KeyPair): Promise<LedgerCurrencyKeys>
+  createCurrency(config: LedgerCurrencyConfig, sponsor: KeyPair, keys?: LedgerCurrencyKeys): Promise<LedgerCurrencyKeys>
   /**
    * Get a currency object from the configuration and data.
    */
@@ -421,6 +424,10 @@ export interface LedgerAccount {
    * @returns The balance of the account in the community currency.
    */
   balance(): string
+  /** 
+   * Get the maximum balance for this account in the community currency.
+   * */
+  maximumBalance(): string
 
   /**
   * Update the account data from the ledger.

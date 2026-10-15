@@ -1,18 +1,21 @@
 import { defineBoot } from "#q-app";
 import store from "@/store";
+import { handleError } from "@/boot/errors"
 
+/** Completion of the current boot's background session refresh. */
+export let authReady = Promise.resolve()
 
 export default defineBoot(async ({ router, urlPath }) => {
+  // Revalidate in background the user's session and account settings on app boot.
+  if (store.getters.isLoggedIn) {
+    authReady = store.dispatch("reloadUser").catch(handleError)
+  }
+
   // Prevent access to paths that need authorization.
   router.beforeEach(async (to) => {
     try {
-      if (to.query.token && to.path !== '/unsubscribe') {
-        // Login with url token.
-        await store.dispatch("authorizeWithCode", {code: to.query.token});
-      } else {
-        // Login with stored credentials
-        await store.dispatch("authorize");
-      }
+      await store.dispatch("authorize");
+
       // User is logged in.
       if (to.path == "/" || to.path.startsWith("/login")) {
         
@@ -20,30 +23,36 @@ export default defineBoot(async ({ router, urlPath }) => {
           return to.query.redirect as string;
         }
         const myMember = store.getters.myMember;
-        const state = myMember?.attributes.state;
+        const memberStatus = myMember?.attributes.status;
         const groupCode = myMember?.group.attributes.code;
         
-        if (state === "active") {
+        if (memberStatus === "active") {
           // Redirect active members to member's feed on the homepage.
           return '/home'
-        } else if (state === "draft") {
+        } else if (memberStatus === "draft") {
           // Redirect "draft" members to signup page.
           return `/groups/${groupCode}/signup-member`;
-        } else if (["pending", "disabled", "suspended"].includes(state)) {
+        } else if (["pending", "disabled", "suspended"].includes(memberStatus)) {
           // Redirect not enabled users to their own profile page.
           return `/groups/${groupCode}/members/${myMember.attributes.code}`
-        } else if (state === undefined) {
+        } else if (memberStatus === undefined) {
           // This is the case for users who have requested a new group and are pending acceptance.
           return "/groups";
         }
       }
-      // Prevent non-superadmin users from accessing superadmin pages.
-      if (to.path.startsWith("/superadmin") && !store.getters.isSuperadmin) {
-        // Help users trying to access superadmin pages by redirecting them to the correct login page.
-        return {
-          path: "/logout",
-          query: {
-            redirect: to.path
+      const requiredAdmin = to.meta.requiresAdmin
+      if (requiredAdmin) {
+        const requestedGroupCode = to.params.code
+        const isRequestedGroupAdmin = requiredAdmin === "group"
+          && store.getters.isAdmin
+          && store.getters.myGroup?.attributes.code === requestedGroupCode
+
+        if (!store.getters.isSuperadmin && !isRequestedGroupAdmin) {
+          return {
+            path: "/logout",
+            query: {
+              redirect: to.path
+            }
           }
         }
       }
@@ -65,7 +74,7 @@ export default defineBoot(async ({ router, urlPath }) => {
     }
   });
 
-  // This wait forces the router to resolve the initial route before Quasar mounts and clears the 
+  // This wait forces the router to resolve the initial route before Quasar mounts and clears the
   // static HTML, preventing a blank flash.
   await router.push(urlPath);
 });
