@@ -123,7 +123,7 @@ The current platform depends on the legacy IntegralCES Drupal-based platform. Sp
 
 Currently Komunitin already implements an advanced protocol for making transfers between different communities within the network (See https://docs.komunitin.org/technology/accounting/external-transfers). However this feature has not been fully tested and developed and is only hardly used in practice. CES uses the Clearing Central protocol to facilitate transfers between different servers. It also features cross-currency exchanges berween different communities on the same server.
 
-###  1. Komunitin Federation Protocol UX
+###  1. Komunitin Protocol
 
 **Goal**: Improve the user experience for managing cross-community transfers exchanges within the Komunitin network.
 - [ ] Refactor transfer form for better UX
@@ -134,15 +134,17 @@ Currently Komunitin already implements an advanced protocol for making transfers
 - [ ] List only reachable communities in the community picker.
 - [ ] Test remote trading
 
-### 2. Support exchange with CES1 via the Credit Commons protocol
+### 2. Credit Commons protocol
 
 **Goal**: Enable exchange with CES1 via the Credit Commons protocol. Additionally, allow also to exchange with non-CES1 networks using Credit Commons.
 
 - [ ] Review credit commons integration code
 - [ ] Extend UX beyond QR
 - [ ] Complete interaction (all required states, conversion rate...)
+- [ ] UI to trade with arbitrary credit commons accounts
 - [ ] Specific UI to trade with CES1
 - [ ] Test trading with CES1
+- [ ] Test trading with Community Forge
 
 ### 3. Marketplace federation backend
 
