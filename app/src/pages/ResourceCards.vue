@@ -71,9 +71,10 @@ const props = defineProps<{
   sort?: string,
   /**
    * Filter object. Each pair `key => value` will be added as a
-   * query parameter `filter[key]=value`.
+   * query parameter `filter[key]=value`. A range filter (e.g. `{gt, lt}`)
+   * is added as `filter[key][op]=value`.
    */
-  filter?: Record<string, string | string[]>,
+  filter?: Record<string, string | string[] | { gt?: string, lt?: string }>,
   /**
    * Search query
    */
