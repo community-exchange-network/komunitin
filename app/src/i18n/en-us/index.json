@@ -452,5 +452,12 @@
   "ErrorAccountNotFound": "Account not found",
   "ErrorAccountIsNotYours": "The specified account is not your current active account.",
   "ErrorInvalidAmount": "Invalid amount. Enter a positive number.",
-  "ErrorDescriptionRequired": "Transfer description is required."
+  "ErrorDescriptionRequired": "Transfer description is required.",
+  "allTypes": "All",
+  "allCategories": "All categories",
+  "date": "Date",
+  "resetFilters": "Reset",
+  "applyFilters": "Apply filters",
+  "distance": "Distance",
+  "dateRange": "Date range"
 }

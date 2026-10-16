@@ -90,15 +90,25 @@
               class="cursor-pointer"
               @click="clearSearchText"
             />
+            <!-- trailing search bar actions, e.g. a filters button -->
+            <slot
+              name="search-actions"
+              :dense="true"
+            />
           </template>
         </q-input>
-        <q-btn
-          v-if="search && !searchActive"
-          flat
-          round
-          icon="search"
-          @click="searchActive = true"
-        />
+        <template v-if="search && !searchActive">
+          <q-btn
+            flat
+            round
+            icon="search"
+            @click="searchActive = true"
+          />
+          <slot
+            name="search-actions"
+            :dense="false"
+          />
+        </template>
         <!-- slot for right buttons -->
         <slot name="buttons" >
           <q-btn
@@ -116,6 +126,8 @@
       </q-toolbar>
     </div>
     <banner />
+    <!-- slot for content attached below the toolbar, e.g. a filter bar -->
+    <slot name="below" />
   </q-header>
 </template>
 <script setup lang="ts">
@@ -126,6 +138,8 @@
  *  - If balance prop is set to true, shows a section with the logged in account 
  * balance. This section shrinks on scroll.
  *  - If search prop is set to true, provides a search box that emits the `search` event.
+ *    The #search-actions slot adds icon buttons to the search: next to the search
+ *    icon when collapsed and inside the field when expanded (slot prop `dense`).
  *  - Provides a slot #buttons to be able to customize the right toolbar buttons 
  * depending on the page content.
  */
