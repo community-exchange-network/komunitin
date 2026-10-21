@@ -10,7 +10,6 @@ export const CategorySerializer = new Serializer<SerializableCategory>('categori
   projection: {
     code: 1,
     name: 1,
-    access: 1,
     icon: 1,
     meta: 1,
     created: 1,

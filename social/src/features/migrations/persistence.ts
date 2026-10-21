@@ -234,7 +234,6 @@ export const persistSocial = async (
         groupId: group.id,
         code: row.code,
         name: row.name,
-        access: row.access,
         icon: row.icon ? { ...row.icon } : undefined,
         meta: row.description ? { description: row.description } : undefined,
         ...dates(row),

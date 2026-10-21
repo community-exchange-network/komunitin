@@ -74,7 +74,6 @@ const defaultCategoryData = () => {
   return {
     code: `category-${categoryCounter}`,
     name: `Test Category ${categoryCounter}`,
-    access: 'public',
   }
 }
 

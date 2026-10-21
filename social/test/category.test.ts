@@ -25,71 +25,11 @@ describe('Categories endpoints', () => {
     await resetDb()
   })
 
-  test('GET /:code/categories allows anonymous for active public group and only returns public categories', async () => {
-    await seedGroup({ tenantId: 'cats-public', status: 'active', access: 'public' })
-    await seedCategory({ tenantId: 'cats-public', code: 'pub', access: 'public' })
-    await seedCategory({ tenantId: 'cats-public', code: 'grp', access: 'group' })
-    await seedCategory({ tenantId: 'cats-public', code: 'prv', access: 'private' })
-    await seedCategory({ tenantId: 'cats-public', code: 'deleted', access: 'public', deleted: new Date() })
-
-    const res = await request(app)
-      .get('/cats-public/categories')
-      .expect(200)
-
-    assert.strictEqual(res.body.data.length, 1)
-    assert.strictEqual(res.body.data[0].attributes.code, 'pub')
-  })
-
-  test('GET /:code/categories returns public and group categories for group members', async () => {
-    await seedGroup({ tenantId: 'cats-member', status: 'active', access: 'public' })
-    await seedCategory({ tenantId: 'cats-member', code: 'pub', access: 'public' })
-    await seedCategory({ tenantId: 'cats-member', code: 'grp', access: 'group' })
-    await seedCategory({ tenantId: 'cats-member', code: 'prv', access: 'private' })
-
-    const member = await auth('member-1')
-    await seedMember({ tenantId: 'cats-member', userId: member.id })
-
-    const res = await request(app)
-      .get('/cats-member/categories')
-      .set('Authorization', `Bearer ${member.token}`)
-      .expect(200)
-
-    const codes = res.body.data.map((resource: any) => resource.attributes.code)
-    assert.strictEqual(codes.length, 2)
-    assert.strictEqual(codes.includes('pub'), true)
-    assert.strictEqual(codes.includes('grp'), true)
-  })
-
-  test('GET /:code/categories returns all categories for group admins and superadmins', async () => {
-    await seedGroup({ tenantId: 'cats-admin', status: 'active', access: 'public' })
-    await seedCategory({ tenantId: 'cats-admin', code: 'pub', access: 'public' })
-    await seedCategory({ tenantId: 'cats-admin', code: 'grp', access: 'group' })
-    await seedCategory({ tenantId: 'cats-admin', code: 'prv', access: 'private' })
-
-    const admin = await auth('admin-1')
-    await seedGroupAdmin({ tenantId: 'cats-admin', userId: admin.id })
-
-    const adminRes = await request(app)
-      .get('/cats-admin/categories')
-      .set('Authorization', `Bearer ${admin.token}`)
-      .expect(200)
-
-    assert.strictEqual(adminRes.body.data.length, 3)
-
-    const superadmin = await auth('superadmin-1', undefined, Scope.Superadmin)
-    const superadminRes = await request(app)
-      .get('/cats-admin/categories')
-      .set('Authorization', `Bearer ${superadmin.token}`)
-      .expect(200)
-
-    assert.strictEqual(superadminRes.body.data.length, 3)
-  })
-
   test('GET /:code/categories applies pagination, sorting and filtering generically', async () => {
     await seedGroup({ tenantId: 'cats-query', status: 'active', access: 'public' })
-    await seedCategory({ tenantId: 'cats-query', code: 'a', name: 'Alpha', access: 'public' })
-    await seedCategory({ tenantId: 'cats-query', code: 'b', name: 'Bravo', access: 'group' })
-    await seedCategory({ tenantId: 'cats-query', code: 'c', name: 'Charlie', access: 'private' })
+    await seedCategory({ tenantId: 'cats-query', code: 'a', name: 'Alpha' })
+    await seedCategory({ tenantId: 'cats-query', code: 'b', name: 'Bravo' })
+    await seedCategory({ tenantId: 'cats-query', code: 'c', name: 'Charlie' })
 
     const admin = await auth('admin-query')
     await seedGroupAdmin({ tenantId: 'cats-query', userId: admin.id })
@@ -116,7 +56,7 @@ describe('Categories endpoints', () => {
     assert.strictEqual(secondPage.body.data[0].attributes.name, 'Bravo')
 
     const filtered = await request(app)
-      .get('/cats-query/categories?filter[access]=private')
+      .get('/cats-query/categories?filter[code]=c')
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(200)
 
@@ -127,7 +67,7 @@ describe('Categories endpoints', () => {
   test('category post relationships expose accessible published, unexpired counts and canonical links', async () => {
     await seedGroup({ tenantId: 'cats-post-counts', status: 'active', access: 'public' })
     const member = await seedMember({ tenantId: 'cats-post-counts', status: 'active' })
-    const category = await seedCategory({ tenantId: 'cats-post-counts', access: 'public' })
+    const category = await seedCategory({ tenantId: 'cats-post-counts' })
     await seedPost({
       tenantId: 'cats-post-counts',
       memberId: member.id,
@@ -181,7 +121,6 @@ describe('Categories endpoints', () => {
       tenantId: 'cats-search',
       code: 'food',
       name: 'Food Services',
-      access: 'public',
       meta: {
         description: 'Fresh organic produce and meals',
       },
@@ -190,7 +129,6 @@ describe('Categories endpoints', () => {
       tenantId: 'cats-search',
       code: 'transport',
       name: 'Transport',
-      access: 'public',
       meta: {
         description: 'Ride sharing',
       },
@@ -211,22 +149,9 @@ describe('Categories endpoints', () => {
     assert.strictEqual(byMetaDescription.body.data[0].attributes.code, 'food')
   })
 
-  test('GET /:code/categories paginates after visibility filtering', async () => {
-    await seedGroup({ tenantId: 'cats-page', status: 'active', access: 'public' })
-    await seedCategory({ tenantId: 'cats-page', code: 'hidden', name: 'Alpha', access: 'private' })
-    await seedCategory({ tenantId: 'cats-page', code: 'visible', name: 'Bravo', access: 'public' })
-
-    const res = await request(app)
-      .get('/cats-page/categories?sort=name&page[size]=1')
-      .expect(200)
-
-    assert.strictEqual(res.body.data.length, 1)
-    assert.strictEqual(res.body.data[0].attributes.code, 'visible')
-  })
-
   test('GET /:code/categories enforces group-level access for non-public groups', async () => {
     await seedGroup({ tenantId: 'cats-group-access', status: 'active', access: 'group' })
-    await seedCategory({ tenantId: 'cats-group-access', code: 'pub', access: 'public' })
+    await seedCategory({ tenantId: 'cats-group-access', code: 'pub' })
 
     await request(app)
       .get('/cats-group-access/categories')
@@ -243,7 +168,7 @@ describe('Categories endpoints', () => {
 
   test('GET /:code/categories denies non-admin for pending groups and allows admin and superadmin', async () => {
     await seedGroup({ tenantId: 'cats-pending', status: 'pending', access: 'public' })
-    await seedCategory({ tenantId: 'cats-pending', code: 'pending-pub', access: 'public' })
+    await seedCategory({ tenantId: 'cats-pending', code: 'pending-pub' })
 
     await request(app)
       .get('/cats-pending/categories')
@@ -272,7 +197,7 @@ describe('Categories endpoints', () => {
 
   test('GET /:code/categories allows service read access for pending private group', async () => {
     await seedGroup({ tenantId: 'cats-read-all', status: 'pending', access: 'private' })
-    await seedCategory({ tenantId: 'cats-read-all', code: 'hidden', access: 'private' })
+    await seedCategory({ tenantId: 'cats-read-all', code: 'hidden' })
 
     const serviceUser = await serviceAuth()
     const res = await request(app)
@@ -321,7 +246,6 @@ describe('Categories endpoints', () => {
           attributes: {
             code: 'food',
             name: 'Food',
-            access: 'group',
             icon: {
               type: 'material',
               value: 'restaurant',
@@ -334,7 +258,6 @@ describe('Categories endpoints', () => {
     assert.strictEqual(res.body.data.type, 'categories')
     assert.strictEqual(res.body.data.attributes.code, 'food')
     assert.strictEqual(res.body.data.attributes.name, 'Food')
-    assert.strictEqual(res.body.data.attributes.access, 'group')
     assert.strictEqual(res.body.data.attributes.icon.type, 'material')
     assert.strictEqual(res.body.data.attributes.icon.value, 'restaurant')
   })
@@ -375,25 +298,10 @@ describe('Categories endpoints', () => {
       .expect(201)
   })
 
-  test('POST /:code/categories validates body and rejects duplicate code', async () => {
+  test('POST /:code/categories rejects duplicate code', async () => {
     await seedGroup({ tenantId: 'cats-post-schema', status: 'active', access: 'public' })
     const admin = await auth('admin-schema')
     await seedGroupAdmin({ tenantId: 'cats-post-schema', userId: admin.id })
-
-    await request(app)
-      .post('/cats-post-schema/categories')
-      .set('Authorization', `Bearer ${admin.token}`)
-      .send({
-        data: {
-          type: 'categories',
-          attributes: {
-            code: 'dup',
-            name: 'Duplicate',
-            access: 'unknown',
-          },
-        },
-      })
-      .expect(400)
 
     await request(app)
       .post('/cats-post-schema/categories')
@@ -468,7 +376,6 @@ describe('Categories endpoints', () => {
       tenantId: 'cats-patch-admin',
       code: 'cat-by-id',
       name: 'Before Id',
-      access: 'public',
     })
 
     const response = await request(app)
@@ -479,15 +386,12 @@ describe('Categories endpoints', () => {
           type: 'categories',
           attributes: {
             name: 'After Id',
-            access: 'private',
           },
         },
       })
       .expect(200)
 
     assert.strictEqual(response.body.data.attributes.name, 'After Id')
-    assert.strictEqual(response.body.data.attributes.access, 'private')
-
   })
 
   test('PATCH /:code/categories/:category denies non-admin and allows superadmin', async () => {
@@ -524,24 +428,11 @@ describe('Categories endpoints', () => {
       .expect(200)
   })
 
-  test('PATCH /:code/categories/:category validates body and returns 404 for missing category', async () => {
+  test('PATCH /:code/categories/:category returns 404 for missing category', async () => {
     await seedGroup({ tenantId: 'cats-patch-errors', status: 'active', access: 'public' })
     const admin = await auth('admin-patch-errors')
     await seedGroupAdmin({ tenantId: 'cats-patch-errors', userId: admin.id })
     const missingCategoryId = toUuid('cats-patch-errors-missing')
-
-    await request(app)
-      .patch(`/cats-patch-errors/categories/${missingCategoryId}`)
-      .set('Authorization', `Bearer ${admin.token}`)
-      .send({
-        data: {
-          type: 'categories',
-          attributes: {
-            access: 'invalid',
-          },
-        },
-      })
-      .expect(400)
 
     await request(app)
       .patch(`/cats-patch-errors/categories/${missingCategoryId}`)
@@ -615,8 +506,8 @@ describe('Categories endpoints', () => {
     const admin = await auth('admin-deleted-hidden')
     await seedGroupAdmin({ tenantId: 'cats-deleted-hidden', userId: admin.id })
 
-    await seedCategory({ tenantId: 'cats-deleted-hidden', code: 'live', access: 'private' })
-    await seedCategory({ tenantId: 'cats-deleted-hidden', code: 'deleted', access: 'private', deleted: new Date() })
+    await seedCategory({ tenantId: 'cats-deleted-hidden', code: 'live' })
+    await seedCategory({ tenantId: 'cats-deleted-hidden', code: 'deleted', deleted: new Date() })
 
     const adminRes = await request(app)
       .get('/cats-deleted-hidden/categories')

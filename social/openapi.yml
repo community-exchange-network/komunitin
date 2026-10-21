@@ -534,7 +534,6 @@ paths:
       - $ref: '#/components/parameters/PageAfterQuery'
       - $ref: '#/components/parameters/FilterCodeQuery'
       - $ref: '#/components/parameters/FilterNameQuery'
-      - $ref: '#/components/parameters/FilterAccessQuery'
       - $ref: '#/components/parameters/FilterSearchQuery'
       - $ref: '#/components/parameters/SortQuery5'
       responses:
@@ -1746,8 +1745,6 @@ components:
                   type: string
                   minLength: 1
                   maxLength: 255
-                access:
-                  $ref: '#/components/schemas/Access'
                 icon:
                   type: object
                   properties:
@@ -1804,8 +1801,6 @@ components:
                   type: string
                   minLength: 1
                   maxLength: 255
-                access:
-                  $ref: '#/components/schemas/Access'
                 icon:
                   type: object
                   properties:
