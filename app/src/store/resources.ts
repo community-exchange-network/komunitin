@@ -144,9 +144,10 @@ export interface LoadListPayload extends BaseLoadPayload {
    */
   location?: [number, number];
   /**
-   * Filter by fields. For example `{"member": "some-uuid"}`
+   * Filter by fields. For example `{"member": "some-uuid"}`. A field can also be
+   * filtered by a range, for example `{"created": {"gt": "2026-01-01", "lt": "2026-02-01"}}`.
    */
-  filter?: { [field: string]: string | string[] };
+  filter?: { [field: string]: string | string[] | { gt?: string, lt?: string } };
   /**
    * Sort the results using this field.
    */
@@ -759,6 +760,25 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
   }
   
   /**
+   * Sets the `filter[field]=value` (or `filter[field][op]=value` for range filters
+   * such as `{gt, lt}`) query params for this list filters.
+   */
+  private setFilterParams(params: URLSearchParams, filter: LoadListPayload["filter"]) {
+    if (!filter) return;
+    Object.entries(filter).forEach(([field, value]) => {
+      if (Array.isArray(value)) {
+        params.set(`filter[${field}]`, value.join(","));
+      } else if (typeof value === "object") {
+        Object.entries(value).forEach(([op, opValue]) => {
+          if (opValue) params.set(`filter[${field}][${op}]`, opValue);
+        });
+      } else {
+        params.set(`filter[${field}]`, value);
+      }
+    });
+  }
+
+  /**
    * Creates the API query string for this list filters.
    */
   protected buildQuery(payload: LoadListPayload): string {
@@ -767,14 +787,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     if (payload.search) {
       params.set("filter[search]", payload.search);
     }
-    if (payload.filter) {
-      Object.entries(payload.filter).forEach(([field, value]) => {
-        if (Array.isArray(value)) {
-          value = value.join(",");
-        }
-        params.set(`filter[${field}]`, value);
-      });
-    }
+    this.setFilterParams(params, payload.filter);
     if (payload.location) {
       const [longitude, latitude] = payload.location
       params.set("near", `${longitude},${latitude}`)
@@ -801,14 +814,7 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
     if (payload.search) {
       params.set("search", payload.search)
     }
-    if (payload.filter) {
-      Object.entries(payload.filter).map(([field, value]) => {
-        if (Array.isArray(value)) {
-          value = value.join(",");
-        }
-        params.set(`filter[${field}]`, value);
-      });
-    }
+    this.setFilterParams(params, payload.filter);
     if (payload.sort) {
       params.set("sort", payload.sort);
     }
