@@ -38,7 +38,7 @@ export const migrationFiles = () => new Map<MigrationBundleFilename, Buffer>([
     { id: ids.membership, member: 'EXMP0001', user: 'alice@example.org', 'emails.group': 'daily', 'notifications.myAccount': 'false' },
     { member: 'EXMP0002', user: 'bob@example.org', 'emails.group': 'quarterly' },
   ])],
-  ['categories.csv', csv([{ id: ids.category, code: 'food', name: 'Food', description: 'Local food', access: 'public', ...dateFields, 'icon.type': 'material', 'icon.value': 'restaurant' }])],
+  ['categories.csv', csv([{ id: ids.category, code: 'food', name: 'Food', description: 'Local food', ...dateFields, 'icon.type': 'material', 'icon.value': 'restaurant' }])],
   ['posts.csv', csv([
     { id: ids.offer, code: 'bread', type: 'offer', member: 'EXMP0002', category: 'food', title: 'Bread', description: 'Fresh bread',
       status: 'published', access: 'public', value: '5 credits', ...dateFields,

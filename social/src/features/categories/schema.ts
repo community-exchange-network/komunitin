@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { jsonApiDocumentSchema, jsonApiResourceSchema } from '../../server/jsonapi-schema'
-import { accessSchema } from '../groups/schema'
 
 const iconSchema = z.object({
   type: z.string(),
@@ -17,7 +16,6 @@ export type CategoryMeta = z.infer<typeof categoryMetaSchema>
 
 const categoryEditableAttributesSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
-  access: accessSchema.optional(),
   icon: iconSchema.optional(),
   meta: categoryMetaSchema.optional(),
 }).strict()

@@ -31,7 +31,7 @@ export const CSV_HEADERS = {
     ...CONTACT_COLUMNS,
   ],
   'categories.csv': [
-    'id', 'code', 'name', 'description', 'access', 'createdAt', 'updatedAt', 'icon.type', 'icon.value',
+    'id', 'code', 'name', 'description', 'createdAt', 'updatedAt', 'icon.type', 'icon.value',
   ],
   'posts.csv': [
     'id', 'code', 'type', 'member', 'category', 'title', 'description', 'status', 'access', 'value',

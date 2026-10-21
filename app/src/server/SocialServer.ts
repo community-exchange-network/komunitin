@@ -406,7 +406,6 @@ export default {
         type: "material",
         value: fakeCategoryIconName(i)
       },
-      access: "public",
       meta: () => ({
         description: faker.lorem.sentence()
       }),
