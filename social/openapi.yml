@@ -1196,7 +1196,9 @@ components:
                 contacts:
                   $ref: '#/components/schemas/Contacts'
                 location:
-                  $ref: '#/components/schemas/Location'
+                  anyOf:
+                  - $ref: '#/components/schemas/Location'
+                  - type: 'null'
                 meta:
                   type: object
                   propertyNames:
@@ -1258,7 +1260,10 @@ components:
                 contacts:
                   $ref: '#/components/schemas/Contacts'
                 location:
-                  $ref: '#/components/schemas/Location'
+                  description: Omit to keep the current location; send null to clear it.
+                  anyOf:
+                  - $ref: '#/components/schemas/Location'
+                  - type: 'null'
                 meta:
                   type: object
                   propertyNames:

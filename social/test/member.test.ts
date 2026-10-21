@@ -82,6 +82,7 @@ describe('Members endpoints', () => {
           attributes: {
             name: 'Alice Member',
             description: 'Member description',
+            location: null,
           },
         },
       })
@@ -93,6 +94,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data.attributes.code, 'members-create0000')
     assert.deepStrictEqual(res.body.data.attributes.address, {})
     assert.deepStrictEqual(res.body.data.attributes.contacts, [])
+    assert.strictEqual(res.body.data.attributes.location, null)
     assert.strictEqual(res.body.data.relationships.group.data.id, group.id)
 
     const list = await request(app)
@@ -743,7 +745,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(codes.includes('member-b'), true)
   })
 
-  test('PATCH /:code/members/:member allows member user to update attributes', async () => {
+  test('PATCH /:code/members/:member preserves omitted location and allows clearing it', async () => {
     await seedGroup({ tenantId: 'members-patch-owner', status: 'active', access: 'public' })
     const owner = await auth('member-patch-owner')
     const member = await seedMember({
@@ -752,6 +754,8 @@ describe('Members endpoints', () => {
       status: 'draft',
       access: 'private',
       userId: owner.id,
+      longitude: 2,
+      latitude: 41,
     })
 
     const res = await request(app)
@@ -770,6 +774,18 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.attributes.name, 'Updated Member')
     assert.strictEqual(res.body.data.attributes.description, 'Updated description')
+    assert.deepStrictEqual(res.body.data.attributes.location.coordinates, [2, 41])
+
+    const cleared = await request(app)
+      .patch(`/members-patch-owner/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ data: { type: 'members', attributes: { location: null } } })
+      .expect(200)
+
+    assert.strictEqual(cleared.body.data.attributes.location, null)
+    const stored = await tenantDb(prisma, 'members-patch-owner').member.findUniqueOrThrow({ where: { id: member.id } })
+    assert.strictEqual(stored.latitude, null)
+    assert.strictEqual(stored.longitude, null)
   })
 
   test('PATCH /:code/members/:member allows draft to pending by owner', async () => {

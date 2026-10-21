@@ -30,7 +30,7 @@ const memberEditableAttributesSchema = z.object({
   image: imageSchema.nullable().optional(),
   address: addressSchema.optional(),
   contacts: z.array(contactSchema).optional(),
-  location: locationSchema.optional(),
+  location: locationSchema.nullable().optional(),
   meta: memberMetaSchema.optional(),
 }).strict()
 

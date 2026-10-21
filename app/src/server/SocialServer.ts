@@ -713,11 +713,7 @@ export default {
           addressCountry: ""
         },
         contacts: [],
-        location: {
-          name: "",
-          type: "Point",
-          coordinates: group.location.coordinates
-        },
+        location: null,
         ...attributes,
         code: code?.trim() || nextMemberCode(schema, group),
         status: "draft",

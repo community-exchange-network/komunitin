@@ -89,7 +89,7 @@
           <template #map>
             <simple-map
               class="simple-map"
-              :center="need.member.attributes.location?.coordinates"
+              :center="need.member.attributes.location?.coordinates ?? need.member.group.attributes.location?.coordinates"
               :marker="need.member.attributes.location?.coordinates"
             />
             <div class="text-onsurface-m" v-if="need.member.attributes.location?.name">

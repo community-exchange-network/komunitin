@@ -79,7 +79,7 @@
     </div>
     <location-picker 
       v-model="location"
-      :default-location="member.group.attributes.location?.coordinates"
+      :default-location="member.group.attributes.location!.coordinates"
     />
     <q-input
       v-model="address"
@@ -177,11 +177,11 @@ watchDebounced([image, name, description, location, address, postalCode, city, r
       image: image.value,
       name: name.value,
       description: description.value,
-      location: {
+      location: location.value ? {
         name: city.value,
         type: "Point",
         coordinates: location.value
-      },
+      } : null,
       address: {
         streetAddress: address.value,
         postalCode: postalCode.value,

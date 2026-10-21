@@ -4,7 +4,7 @@ import SimpleMap from '@/components/SimpleMap.vue'
 import server, { seeds } from '@/server'
 import { mountComponent, waitFor } from '../utils'
 
-describe('Member profile without a location', () => {
+describe('Member without a location', () => {
   let wrapper: VueWrapper
 
   beforeAll(async () => {
@@ -15,10 +15,11 @@ describe('Member profile without a location', () => {
 
   afterAll(() => wrapper.unmount())
 
-  it('renders the profile with a markerless map centered on the group', async () => {
+  it.each(['members', 'offers', 'needs'])('renders %s with a markerless map centered on the group', async (type) => {
     const member = server.schema.members.first()
-    await wrapper.vm.$router.push(`/groups/GRP0/members/${member.code}`)
-    await waitFor(() => wrapper.text().includes(member.name), true, 'Member profile should load')
+    const resource = type === 'members' ? member : member.posts.models.find(post => post.type === type)
+    await wrapper.vm.$router.push(`/groups/GRP0/${type}/${resource.code}`)
+    await waitFor(() => wrapper.findComponent(SimpleMap).exists(), true, 'Resource map should load')
 
     const map = wrapper.findComponent(SimpleMap)
     expect(map.props('center')).toEqual(member.group.location.coordinates)

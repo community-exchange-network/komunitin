@@ -1,6 +1,6 @@
 import type { VueWrapper } from '@vue/test-utils'
 import App from '@/App.vue'
-import { seeds } from '@/server'
+import server, { seeds } from '@/server'
 import { config } from '@/utils/config'
 import { mountComponent, waitFor } from '../utils'
 
@@ -9,12 +9,14 @@ describe('Existing profile updates', () => {
 
   beforeAll(async () => {
     seeds()
+    const member = (server.schema as any).members.first()
+    member.update({ location: null })
     wrapper = await mountComponent(App, { login: true })
   })
 
   afterAll(() => wrapper.unmount())
 
-  it('sends writable member attributes only', async () => {
+  it('sends writable member attributes without a location', async () => {
     await wrapper.vm.$router.push('/profile')
     await waitFor(() => wrapper.find("input[name='name']").exists(), true, 'Profile form should load')
 
@@ -42,6 +44,7 @@ describe('Existing profile updates', () => {
         'address'
       ])
       expect(body.data.attributes.name).toBe('Updated profile name')
+      expect(body.data.attributes.location).toBeNull()
     } finally {
       fetchSpy.mockRestore()
     }
