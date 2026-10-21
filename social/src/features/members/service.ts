@@ -166,12 +166,14 @@ const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   const members = await db.member.findMany({
     select: { code: true },
     where: { code: { startsWith: groupCode } },
+    orderBy: [{ created: 'desc' }, { id: 'desc' }],
   })
-  const used = new Set(members
+  const numbers = members
     .map(({ code }) => code.substring(groupCode.length))
     .filter((suffix) => /^\d+$/.test(suffix))
-    .map(Number))
-  let candidate = 0
+    .map(Number)
+  const used = new Set(numbers)
+  let candidate = (numbers[0] ?? -1) + 1
   while (used.has(candidate)) {
     candidate++
   }

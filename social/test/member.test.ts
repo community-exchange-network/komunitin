@@ -165,20 +165,42 @@ describe('Members endpoints', () => {
     })
   })
 
-  test('POST /:code/members allocates the first unused numeric code', async () => {
-    await seedGroup({ tenantId: 'members-code-gap', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0000' })
-    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0002' })
-    const user = await auth('member-code-gap-user')
+  for (const { name, suffixes, expected, deleted } of [
+    { name: 'increments the latest numeric code instead of the maximum', suffixes: ['0137', '0000', '0002', '9', '0010', 'Special'], expected: '0011' },
+    { name: 'skips occupied codes after the latest numeric code', suffixes: ['0137', '0012', '0011', '0010'], expected: '0013' },
+    { name: 'starts at 0000 when no numeric suffix exists', suffixes: ['', 'Special', '9999suffix'], expected: '0000' },
+    { name: 'allows more than four digits', suffixes: ['9999'], expected: '10000' },
+    { name: 'skips occupied codes beyond four digits', suffixes: ['10000', '9999'], expected: '10001' },
+    { name: 'treats differently padded numeric suffixes as occupied', suffixes: ['11', '0010'], expected: '0012' },
+    { name: 'keeps deleted member codes reserved', suffixes: ['0137', '0022', '0021', '0020'], expected: '0023', deleted: new Date() },
+  ]) {
+    test(`POST /:code/members ${name}`, async () => {
+      const tenantId = 'members.code'
+      await seedGroup({ tenantId, status: 'active', access: 'public' })
+      for (const [index, suffix] of suffixes.entries()) {
+        await seedMember({
+          tenantId,
+          code: `${tenantId}${suffix}`,
+          deleted,
+          created: new Date(Date.UTC(2026, 0, 1, 0, 0, index)),
+          // Editing an older member must not move it to the end of the sequence.
+          updated: new Date(Date.UTC(2026, 0, 2, 0, 0, suffixes.length - index)),
+        })
+      }
+      await seedMember({ tenantId, code: 'membersXcode99999' })
+      await seedGroup({ tenantId: 'other-group' })
+      await seedMember({ tenantId: 'other-group', code: `${tenantId}99999` })
+      const user = await auth('member-code-user')
 
-    const res = await request(app)
-      .post('/members-code-gap/members')
-      .set('Authorization', `Bearer ${user.token}`)
-      .send({ data: { type: 'members', attributes: { name: 'Gap Member' } } })
-      .expect(201)
+      const res = await request(app)
+        .post(`/${tenantId}/members`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ data: { type: 'members', attributes: { name: 'New Member' } } })
+        .expect(201)
 
-    assert.strictEqual(res.body.data.attributes.code, 'members-code-gap0001')
-  })
+      assert.strictEqual(res.body.data.attributes.code, `${tenantId}${expected}`)
+    })
+  }
 
   test('POST /:code/members accepts explicit code only if admin', async () => {
     await seedGroup({ tenantId: 'members-create-code', status: 'active', access: 'public' })
