@@ -79,7 +79,7 @@
     </div>
     <location-picker 
       v-model="location"
-      :default-location="member.group.attributes.location!.coordinates"
+      :default-location="member.group.attributes.location?.coordinates"
     />
     <q-input
       v-model="address"

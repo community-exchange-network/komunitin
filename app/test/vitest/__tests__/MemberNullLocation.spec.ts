@@ -9,13 +9,24 @@ describe('Member without a location', () => {
 
   beforeAll(async () => {
     seeds()
-    server.schema.members.first().update({ location: null })
-    wrapper = await mountComponent(App, { login: true })
+    const member = (server.schema as any).members.first()
+    member.update({ location: null })
+    const need = member.posts.models.find(post => post.type === 'needs')
+    const urlPath = `/groups/GRP0/needs/${need.code}`
+    // Sign in from another community so the want's group is not already cached.
+    const visitor = (server.schema as any).users.all().models.find(user =>
+      user.members.models.some(member => member.group.code === 'GRP1')
+    )
+    window.history.replaceState({}, '', urlPath)
+    wrapper = await mountComponent(App, { login: visitor, urlPath })
   })
 
-  afterAll(() => wrapper.unmount())
+  afterAll(() => {
+    wrapper.unmount()
+    window.history.replaceState({}, '', '/')
+  })
 
-  it.each(['members', 'offers', 'needs'])('renders %s with a markerless map centered on the group', async (type) => {
+  it.each(['needs', 'members', 'offers'])('renders %s with a markerless map centered on the group', async (type) => {
     const member = server.schema.members.first()
     const resource = type === 'members' ? member : member.posts.models.find(post => post.type === type)
     await wrapper.vm.$router.push(`/groups/GRP0/${type}/${resource.code}`)
