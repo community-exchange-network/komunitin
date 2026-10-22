@@ -5,9 +5,9 @@
     :round="props.round"
     :label="hasButtonLabel ? props.label : undefined"
     :title="props.label"
-    @click="confirm = true"
+    @click="model = true"
   >
-    <q-dialog v-model="confirm">
+    <q-dialog v-model="model">
       <q-card class="q-pa-md">
         <q-card-section class="row items-center">
           <q-avatar
@@ -46,7 +46,7 @@
 <script setup lang="ts">
 
 
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
@@ -59,7 +59,7 @@ const props = defineProps<{
 
 const { t } = useI18n() 
 
-const confirm = ref(false)
+const model = defineModel<boolean>({ default: false })
 const hasButtonLabel = computed(() => !props.round)
 
 const emit = defineEmits<{

@@ -1,4 +1,4 @@
-// Check error codes in ices komunitin server.
+// Error codes exposed by the Accounting JSON:API responses.
 export enum KErrorCode {
   BadRequest = "BadRequest",
   BadConfig = "BadConfig",

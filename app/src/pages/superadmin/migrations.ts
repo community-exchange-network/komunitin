@@ -1,244 +1,164 @@
-import { useQuasar } from 'quasar'
-import type { MaybeRefOrGetter} from 'vue';
-import { ref, toValue, watchEffect } from 'vue'
-import type { CollectionResponse, ResourceObject, ResourceResponse } from '../../store/model'
-import { useApiFetch } from '../../composables/useApiFetch';
+import { computed, onScopeDispose, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
+import KError from '../../KError'
+import { useRawApiFetch } from '../../composables/useApiFetch'
+import { config } from '../../utils/config'
 
 export interface Migration {
   id: string
-  code: string
-  name: string
-  kind: "integralces-accounting"
-  status: "new" | "started" | "completed" | "failed"
-  data: {
-    source: {
-      url: string
-      tokens: {
-        refreshToken?: string
-        accessToken: string
-        expiresAt: string
-      }
-    },
-    test?: boolean
-    step?: string
-  }
+  code: string | null
+  status: 'running' | 'completed' | 'failed'
   created: string
   updated: string
-}
-
-type MigrationResource = ResourceObject & {
-  attributes: Omit<Migration, "id">
+  finished: string | null
 }
 
 export interface MigrationLogEntry {
-  time: string, // ISO 8601 format
-  level: "info" | "warn" | "error",
-  message: string,
-  step: string,
-  //data?: any // Optional additional data
+  id: number
+  created: string
+  level: 'info' | 'warn' | 'error'
+  message: string
+  step: string
 }
 
-const getDefaultAccountingUrl = () => {
-  const currentLocation = window.location
-  if (currentLocation.hostname === 'localhost') {
-    return 'http://localhost:2025'
-  } else {
-    return `${currentLocation.protocol}//accounting.${currentLocation.host}`
+type MigrationEvent =
+  | { event: 'migration', data: { id: string } }
+  | { event: 'progress', data: MigrationLogEntry }
+  | { event: 'end', data: { id: string, status: Migration['status'] } }
+
+/** Social owns the attempt status and combines progress from all migration phases. */
+const useMigrationRequest = () => {
+  const apiFetch = useRawApiFetch()
+  return (path = '', options: RequestInit = {}) => apiFetch(`${config.SOCIAL_URL}/migrations${path}`, options)
+}
+
+/** Read Social's named SSE events across arbitrary network chunks. */
+async function* migrationEvents(response: Response) {
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let pending = ''
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      pending += decoder.decode(value, { stream: true })
+      let boundary: number
+      while ((boundary = pending.indexOf('\n\n')) !== -1) {
+        const lines = pending.slice(0, boundary).split('\n')
+        pending = pending.slice(boundary + 2)
+        const event = lines.find(line => line.startsWith('event: '))?.slice(7)
+        const data = lines.find(line => line.startsWith('data: '))?.slice(6)
+        if (data) yield { event, data: JSON.parse(data) } as MigrationEvent
+      }
+    }
+  } finally {
+    await reader.cancel()
+    reader.releaseLock()
   }
 }
 
-const baseUrl = ref(getDefaultAccountingUrl())
-
-
-
-
-export const useMigrations = (options: { immediate?: boolean} = { immediate: true }) => {
-  const q = useQuasar()
-  const apiFetch = useApiFetch<MigrationResource>()
-
+export const useMigrations = () => {
+  const request = useMigrationRequest()
   const migrations = ref<Migration[]>([])
   const loading = ref(false)
-
+  const error = ref('')
   const refresh = async () => {
     loading.value = true
+    error.value = ''
     try {
-      const data = await apiFetch(`${baseUrl.value}/migrations`) as CollectionResponse<MigrationResource>
-      
-      migrations.value = data.data.map((m: MigrationResource) => {
-        return {
-          id: m.id,
-          ...m.attributes,
-        } as Migration
-      })
-
+      migrations.value = await (await request()).json() as Migration[]
+    } catch (cause) {
+      error.value = KError.getKError(cause).message
     } finally {
       loading.value = false
     }
   }
-
-  const create = async (migration: Partial<Migration>) => {
-    const data = {
-      data: {
-        type: "migrations",
-        attributes: {
-          ...migration
-        }
-      }
-    }
-    const result = await apiFetch(`${baseUrl.value}/migrations`, {
-      method: 'POST',
-      body: data
-    }) as ResourceResponse<MigrationResource>
-
-    // Redirect to the migration page.
-    const migrationId = result.data.id
-
-    q.notify({ type: 'positive', message: `Migration ${migration.code} created`, position: 'top' })
-    return migrationId
-
-  }
-
-  const deleteMigration = async (migration: Migration) => {
-    await apiFetch(`${baseUrl.value}/migrations/${migration.id}`, {
-      method: 'DELETE'
-    });
-    q.notify({ type: 'positive', message: `Migration ${migration.code} deleted`, position: 'top' })
-  }
-
-  if (options.immediate === undefined || options.immediate) {
-    refresh()
-  }
-
-  return {
-    baseUrl,
-    migrations,
-    loading,
-    refresh,
-    create,
-    deleteMigration
-  }
+  void refresh()
+  return { migrations, loading, error, refresh }
 }
 
 export const useMigration = (id: MaybeRefOrGetter<string>) => {
-  const q = useQuasar()
-
+  const request = useMigrationRequest()
   const migration = ref<Migration | null>(null)
   const log = ref<MigrationLogEntry[]>([])
   const loading = ref(false)
+  const error = ref('')
+  const revision = ref(0)
+  const step = computed(() => log.value.at(-1)?.step ?? 'Not started')
+  const refresh = () => { revision.value++ }
 
-
-  let eventSource: EventSource | null = null
-  const apiFetch = useApiFetch<MigrationResource>()
-
-  const fetchMigration = async (id: string) => {
+  watch([() => toValue(id), revision], async ([migrationId], _previous, onCleanup) => {
+    const abort = new AbortController()
+    onCleanup(() => abort.abort())
+    migration.value = null
+    log.value = []
+    error.value = ''
     loading.value = true
+    const readStatus = async () => {
+      const result = await (await request(`/${migrationId}`, { signal: abort.signal })).json() as Migration
+      if (!abort.signal.aborted) migration.value = result
+    }
     try {
-      const data = await apiFetch(`${baseUrl.value}/migrations/${id}`) as ResourceResponse<MigrationResource>
-      
-      migration.value = {
-        id: data.data.id,
-        ...data.data.attributes,
-      } as Migration
-
-    } finally {
+      await readStatus()
+      if (abort.signal.aborted) return
       loading.value = false
-    }
-  }
-
-  const startLogStream = (id: string) => {
-    // Close existing connection
-    if (eventSource) {
-      eventSource.close()
-    }
-
-    eventSource = new EventSource(`${baseUrl.value}/migrations/${id}/logs/stream`)
-
-    eventSource.onmessage = (event) => {
-      const logEntry: MigrationLogEntry = JSON.parse(event.data)
-      // Avoid duplicates by checking if log entry already exists
-      if (!log.value.find(l => l.time === logEntry.time && l.message === logEntry.message)) {
-        log.value.push(logEntry)
-      }
-    }
-
-    eventSource.onerror = () => {
-      q.notify({ type: 'negative', message: 'Error connecting to migration log stream', position: 'top' })
-    }
-  }
-
-  watchEffect(() => {
-    const migrationId = toValue(id)
-    if (migrationId) {
-      fetchMigration(migrationId).then(() => {
-        startLogStream(migrationId)
-      })
-    }
-  })
-
-  // Cleanup on component unmount
-  const cleanup = () => {
-    if (eventSource) {
-      eventSource.close()
-    }
-  }
-
-  const play = async () => {
-    const migrationId = toValue(id)
-    await apiFetch(`${baseUrl.value}/migrations/${migrationId}/play`, {
-      method: 'POST'
-    })
-    q.notify({ type: 'positive', message: `Migration ${migration.value?.code} started`, position: 'top' })
-    await fetchMigration(migrationId)
-  }
-
-  const update = async (updated: Partial<Migration>) => {
-    if (!migration.value) {
-      throw new Error('No migration loaded')
-    }
-    if (updated.id && updated.id !== migration.value.id) {
-      throw new Error('Cannot change migration id')
-    }
-    if (updated.code && updated.code !== migration.value.code) {
-      throw new Error('Cannot change migration code')
-    }
-    if (updated.kind && updated.kind !== migration.value.kind) {
-      throw new Error('Cannot change migration kind')
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const {id, data, name, code } = updated
-    const body = {
-      data: {
-        type: "migrations",
-        id: migration.value.id,
-        attributes: {
-          name,
-          code,
-          data,
+      const response = await request(`/${migrationId}/events`, { signal: abort.signal })
+      let ended = false
+      for await (const event of migrationEvents(response)) {
+        if (abort.signal.aborted) break
+        if (event.event === 'progress') {
+          const previousStep = step.value
+          log.value.push(event.data)
+          if (previousStep !== event.data.step) await readStatus()
+        } else if (event.event === 'end') {
+          ended = true
+          await readStatus()
+          break
         }
       }
+      if (!ended && !abort.signal.aborted) throw new Error('Progress connection interrupted. Refresh to reconnect; the migration may still be running.')
+    } catch (cause) {
+      if (!abort.signal.aborted) error.value = KError.getKError(cause).message
+    } finally {
+      if (!abort.signal.aborted) loading.value = false
     }
-    await apiFetch(`${baseUrl.value}/migrations/${migration.value.id}`, {
-      method: 'PATCH',
-      body
-    });
+  }, { immediate: true })
 
-    q.notify({ type: 'positive', message: `Migration ${migration.value.code} updated`, position: 'top' })
-    return migration.value.id
-
-  }
-
-  return {
-    migration,
-    log,
-    loading,
-    update,
-    play,
-    cleanup
-  }
+  return { migration, log, loading, error, step, refresh }
 }
 
-export const getStatusColor = (state: string) => 
-  ({ new: 'blue', 'started': 'orange', completed: 'green', failed: 'red' }[state] ?? 'grey')
-export const getStatusLabel = (state: string) => 
-  ({ new: 'New', 'started': 'In Progress', completed: 'Completed', failed: 'Failed' }[state] ?? state)
+/** Upload once, then observe the accepted attempt on its details page. */
+export const useMigrationUpload = () => {
+  const request = useMigrationRequest()
+  const running = ref(false)
+  const error = ref('')
+  const abort = new AbortController()
+  onScopeDispose(() => abort.abort())
+  const upload = async (bundle: File) => {
+    running.value = true
+    error.value = ''
+    let id: string | undefined
+    try {
+      const response = await request('', {
+        method: 'POST', headers: { 'Content-Type': 'application/zip' }, body: bundle, signal: abort.signal,
+      })
+      for await (const event of migrationEvents(response)) {
+        if (event.event === 'migration') {
+          id = event.data.id
+          break
+        }
+      }
+      if (!id) throw new Error('Upload connection interrupted. Check migration history before uploading again.')
+    } catch (cause) {
+      if (!abort.signal.aborted) error.value = KError.getKError(cause).message
+    } finally {
+      running.value = false
+    }
+    return id
+  }
+  return { upload, running, error }
+}
+
+export const getStatusColor = (state: Migration['status']) =>
+  ({ running: 'orange', completed: 'green', failed: 'red' }[state])
+export const getStatusLabel = (state: Migration['status']) =>
+  ({ running: 'In Progress', completed: 'Completed', failed: 'Failed' }[state])

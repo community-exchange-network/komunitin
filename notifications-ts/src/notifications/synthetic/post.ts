@@ -6,6 +6,7 @@ import { Offer, Need } from '../../clients/komunitin/types';
 import { dispatchSyntheticEvent } from './shared';
 import { queueJob } from '../../utils/queue-job';
 import { getCachedActiveGroups } from '../../utils/cached-resources';
+import { hasExpiration, isExpired } from '../../clients/komunitin/post';
 
 /**
  * Post synthetic events - Expiration handling
@@ -121,7 +122,7 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
       const processItems = async (items: (Offer | Need)[], type: 'offer' | 'need') => {
         for (const item of items) {
           // Check expiration
-          if (!item.attributes.expires) continue;
+          if (!hasExpiration(item)) continue;
 
           const created = new Date(item.attributes.created).getTime();
           const expires = new Date(item.attributes.expires).getTime();
@@ -134,7 +135,7 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
           const memberId = item.relationships.member.data.id;
 
           // Handle already expired items
-          if (timeLeft <= 0) {
+          if (isExpired(item)) {
             const expiryDate = new Date(item.attributes.expires);
 
             let current = memberExpiries.get(memberId);
@@ -186,10 +187,16 @@ export const handleCheckExpiringJob = async (queue: Queue) => {
       const expireBeforeDate = new Date();
       expireBeforeDate.setDate(expireBeforeDate.getDate() + 7);
 
-      const offers = await client.getOffers(groupCode, { "filter[expire][lt]": expireBeforeDate.toISOString() });
+      const postParams = {
+        "filter[status]": "published",
+        "filter[expires][lt]": expireBeforeDate.toISOString(),
+        sort: "expires"
+      } as const;
+
+      const offers = await client.getOffers(groupCode, postParams);
       await processItems(offers, 'offer');
 
-      const needs = await client.getNeeds(groupCode, { "filter[expire][lt]": expireBeforeDate.toISOString() });
+      const needs = await client.getNeeds(groupCode, postParams);
       await processItems(needs, 'need');
 
       // Schedule notifications for members with expired posts

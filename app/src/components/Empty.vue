@@ -6,26 +6,17 @@
           <q-avatar color="light" text-color="muted" icon="upcoming" size="4rem"/>
         </q-card-section>
         <section class="flex justify-center q-mb-md">
-          <span class="text-h6 text-weight-semi-bold text-onsurface-m">{{  header }}</span>
+          <span class="text-h6 text-weight-semi-bold text-onsurface-m">{{ text || $t('nothingHere') }}</span>
         </section>
+        <div class="text-center">
+          <slot />
+        </div>
       </q-card>
     </div>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent } from "vue"
-export default defineComponent({
-  props: {
-    text: {
-      type: String,
-      default: "",
-      required: false,
-    }
-  },
-  computed: {
-    header(): string {
-      return this.text == "" ? this.$t('nothingHere') : this.text;
-    }
-  }
-})
+<script setup lang="ts">
+defineProps<{
+  text?: string
+}>()
 </script>

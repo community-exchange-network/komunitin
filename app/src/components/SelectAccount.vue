@@ -64,6 +64,7 @@ import { QSelect } from 'quasar';
 import { watchDebounced } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { normalizeAccountCode } from '@/plugins/FormatCurrency';
+import { resolveRelationshipUrl } from '@/store/relationships';
 
 type ExtendedAccount = Account & {member?: ExtendedMember & {group: Group}, currency?: Currency}
 type ExtendedMember = Member & {account?: ExtendedAccount }
@@ -98,9 +99,8 @@ const group = ref<ExtendedGroup>(props.modelValue?.member?.group as ExtendedGrou
 
 const searchText = ref("")
 
-// Not all groups allow us to list their members.
-// We know that (quite indirectly) by checking the existence of the
-// related link in the "members" relationship of the group.
+// The members related link advertises whether the current user may list this
+// group's members; group visibility alone does not grant that permission.
 const canListMembers = computed(() => {
   return group.value && (group.value.id === myGroup.value.id || group.value.relationships?.members?.links?.related)
 })
@@ -163,7 +163,7 @@ const fetchExternalAccountByCode = async (search?: string) => {
     }
   } else {
     const code = normalizeAccountCode(search, group.value.currency)
-    const currencyUrl = group.value.relationships.currency.links.related
+    const currencyUrl = resolveRelationshipUrl(group.value.relationships.currency)
     const baseUrl = currencyUrl.replace('/currency', '')
     const accountUrl = `${baseUrl}/accounts?filter[code]=${code}`
 

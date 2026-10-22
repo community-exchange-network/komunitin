@@ -1,5 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { Response } from "miragejs";
+import { KErrorCode } from "../KError";
+
+export function jsonApiError(status: number, detail: string, code?: KErrorCode) {
+  return new Response(status, {}, { errors: [{ status: status.toString(), code, title: detail, detail }] });
+}
+
+export function badRequest(message = "Bad request") {
+  return jsonApiError(400, message, KErrorCode.BadRequest);
+}
+
+export function notFound(message = "Not found") {
+  return jsonApiError(404, message, KErrorCode.NotFound);
+}
+
 export function search(records: any, request: any) {
   // Poor man search.
   if (request.queryParams["filter[search]"]) {
@@ -25,6 +40,13 @@ export function search(records: any, request: any) {
  */
 export function filter(records: any, request: any) {
   records = search(records, request);
+  const expired = request.queryParams["filter[expired]"]?.split(",");
+  if (expired) {
+    records = records.filter((record: any) => {
+      const isExpired = record.expires != null && new Date(record.expires).getTime() < Date.now();
+      return expired.includes(String(isExpired));
+    });
+  }
   // Filter by field values
   const regex = /filter\[(.+)\]/;
   Object.entries(request.queryParams)

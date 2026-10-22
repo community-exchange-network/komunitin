@@ -27,15 +27,34 @@ export const getJwks = () => {
   return jwks
 }
 
-export const signJwt = async (userId: string, scopes: string[] = []) => {
-  return await new SignJWT({
+export const signJwt = async (
+  userId: string,
+  scopes: string[] = [],
+  options: {
+    audience?: string
+    clientId?: string
+    issuer?: string
+    omitSubject?: boolean
+  } = {},
+) => {
+  let token = new SignJWT({
+    client_id: options.clientId ?? 'komunitin-app',
     scope: scopes.join(' '),
   })
     .setProtectedHeader({ alg: 'RS256', kid: 'test-key-id' })
     .setIssuedAt()
-    .setIssuer(config.AUTH_JWT_ISSUER)
-    .setAudience(config.AUTH_JWT_AUDIENCE)
-    .setSubject(userId)
+    .setIssuer(options.issuer ?? config.AUTH_JWT_ISSUER)
+    .setAudience(options.audience ?? config.AUTH_JWT_AUDIENCE)
     .setExpirationTime('2h')
-    .sign(privateKey)
+
+  if (!options.omitSubject) {
+    token = token.setSubject(userId)
+  }
+  return token.sign(privateKey)
 }
+
+export const signServiceJwt = (
+  clientId: string,
+  scopes = ['notifications:write'],
+  subject = clientId,
+) => signJwt(subject, scopes, { clientId })

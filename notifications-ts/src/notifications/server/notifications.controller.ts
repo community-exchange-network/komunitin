@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express"
 import prisma from "../../utils/prisma"
 import { pagination } from "../../server/request"
 import { serializeNotification } from "./notifications.serialize"
-import { getUserId } from "../../server/auth-compat"
+import { getAuthenticatedUserId } from "../../server/auth"
 
 /**
  * Mark all notifications as read for the authenticated user.
@@ -11,14 +11,7 @@ import { getUserId } from "../../server/auth-compat"
 export const markNotificationsRead = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { code } = req.params
-    const userId = await getUserId(req)
-
-    if (!userId) {
-      res.json({
-        meta: { updated: 0 },
-      })
-      return
-    }
+    const userId = getAuthenticatedUserId(req)
 
     const result = await prisma.appNotification.updateMany({
       where: {
@@ -42,20 +35,9 @@ export const markNotificationsRead = async (req: Request, res: Response, next: N
 export const listNotifications = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { code } = req.params
-    const userId = await getUserId(req)
+    const userId = getAuthenticatedUserId(req)
 
     const baseUrl = `${req.protocol}://${req.get('host')}${req.baseUrl}${req.path}`.replace(/\/$/, '')
-
-    if (!userId) {
-      // This is a case where the authentication header is ok but we can't get a user id. That
-      // happens only if the user is not (yet) in this database. In particular, that means that
-      // there are no notifications for them.
-      res.json({
-        links: { self: baseUrl, next: null },
-        data: [],
-      })
-      return
-    }
 
     const { cursor, size } = pagination(req)
     
@@ -98,4 +80,3 @@ export const listNotifications = async (req: Request, res: Response, next: NextF
     next(err)
   }
 }
-

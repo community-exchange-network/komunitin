@@ -186,6 +186,11 @@
     "expired_posts_cta_secondary": "Ves a les teves {{type}}",
     "expired_posts_postscript": "Mantenir les teves publicacions al dia és vital pel bon funcionament de la comunitat. Gràcies per la teva col·laboració!",
     "expired_posts_more_title": "Altres publicacions caducades",
-    "expired_posts_expired_ago": "Caducada {{time, relativetime}}"
+    "expired_posts_expired_ago": "Caducada {{time, relativetime}}",
+    "delete_member_subject": "Confirma l’eliminació – {{name}}",
+    "delete_member_label": "Confirma l’eliminació",
+    "delete_member_text": "Has sol·licitat eliminar {{member}} de {{name}}. Fes servir l’enllaç per confirmar-ho.",
+    "delete_member_cta": "Confirma l’eliminació",
+    "delete_member_reason": "Has rebut aquest correu perquè s’ha sol·licitat una eliminació a {{appName}}."
   }
 }

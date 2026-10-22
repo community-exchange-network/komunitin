@@ -1,5 +1,8 @@
 import { Scope } from "../../src/server/auth"
 import { CreditCommonsNode } from "../../src/model/creditCommons"
+import { validate as isUuid, v5 as uuidv5 } from "uuid"
+
+export const testUserId = (label: string) => isUuid(label) ? label : uuidv5(label, uuidv5.URL)
 
 export const testCurrency = (props?: any) => {
   props = {
@@ -38,14 +41,17 @@ export const testCurrency = (props?: any) => {
   }
 }
 
-export const testAccount = (userId: string) => ({
-  data: {
-    relationships: {
-      users: { data: [{ type: "users", id: userId }] }
-    }
-  },
-  included: [{ type: "users", id: userId }]
-})
+export const testAccount = (user: string) => {
+  const userId = testUserId(user)
+  return {
+    data: {
+      relationships: {
+        users: { data: [{ type: "users", id: userId }] }
+      }
+    },
+    included: [{ type: "users", id: userId }]
+  }
+}
 
 export const testTransfer = (payerId: string, payeeId: string, amount: number, description: string, state: string) => ({
   data: {
@@ -73,8 +79,6 @@ export const testCreditCommonsNeighbour = (neighbour: CreditCommonsNode) => ({
 })
 
 export const userAuth = (userId: string, scopes?: Scope[]) => ({
-  user: userId,
-  scopes: scopes ?? [Scope.Accounting]
+  user: testUserId(userId),
+  scopes: scopes ?? [Scope.AccountingRead, Scope.AccountingWrite]
 })
-
-

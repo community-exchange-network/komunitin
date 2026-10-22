@@ -60,6 +60,7 @@
     "transfer_state_committed": "Recorded",
     "member_requested_subject": "New user request in {{groupName}}",
     "member_requested_label": "User request",
-    "group_activated_subtext": "You can now sign in to <strong>{{appName}}</strong> and configure the community and currency settings, including allowed trade methods, credit limits, and categories for offers and wants. After that, invite users and start trading. Good luck making your community grow!"
+    "group_activated_subtext": "You can now sign in to <strong>{{appName}}</strong> and configure the community and currency settings, including allowed trade methods, credit limits, and categories for offers and wants. After that, invite users and start trading. Good luck making your community grow!",
+    "delete_member_text": "You requested deletion of {{member}} in {{name}}. Use the link to confirm."
   }
 }

@@ -146,7 +146,8 @@ const saveDisabled = computed(() => !name.value || !icon.value)
 const edit = (category: Category) => {
   action.value = 'edit'
   name.value = category.attributes.name
-  icon.value = category.attributes.icon
+  // Social allows categories without an icon.
+  icon.value = category.attributes.icon?.value ?? ''
   editingCategory.value = category
   showDialog.value = true
 }
@@ -169,15 +170,16 @@ const saveCategory = () => {
       type: 'categories',
       attributes: {
         name: name.value,
-        icon: icon.value
+        icon: { type: 'material', value: icon.value }
       }
     })
   } else {
     emit('update:category', {
-      ...editingCategory.value,
+      id: editingCategory.value.id,
+      type: editingCategory.value.type,
       attributes: {
         name: name.value,
-        icon: icon.value
+        icon: { type: 'material', value: icon.value }
       }
     } as DeepPartial<Category>)
   }

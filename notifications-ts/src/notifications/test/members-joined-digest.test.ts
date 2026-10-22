@@ -1,7 +1,7 @@
 
 import assert from 'node:assert'
 import { before, beforeEach, describe, it } from 'node:test'
-import { createMember, createMembers, createNeed, createOffer, db, getUserIdForMember } from '../../mocks/db'
+import { createMember, createMembers, createPost, db, getUserIdForMember } from '../../mocks/db'
 import { EVENT_NAME } from '../events'
 import { setupNotificationsTest } from './utils'
 
@@ -60,26 +60,26 @@ describe('MembersJoinedDigest notifications', () => {
     const id = member.id;
 
     for (let i = 0; i < offers; i++) {
-      createOffer({
+      createPost('offers', {
         id: `offer-${id}-${i}`,
         code: `OFF${i}${id.substring(0, 3)}`,
         groupCode,
         memberId: id,
         attributes: {
-          name: `Offer ${i + 1}`,
+          title: `Offer ${i + 1}`,
           created: created.toISOString()
         }
       });
     }
 
     for (let i = 0; i < needs; i++) {
-      createNeed({
+      createPost('needs', {
         id: `need-${id}-${i}`,
         code: `NEED${i}${id.substring(0, 3)}`,
         groupCode,
         memberId: id,
         attributes: {
-          name: `Need ${i + 1}`,
+          description: `Need ${i + 1}`,
           created: created.toISOString()
         }
       });
@@ -171,7 +171,7 @@ describe('MembersJoinedDigest notifications', () => {
     createTestMember({ daysAgo: 1 });
     // Create offer from ANOTHER member so recipient receives it
     const otherMember = members[1];
-    createOffer({
+    createPost('offers', {
       id: 'offer-other', code: 'OFFO', groupCode,
       memberId: otherMember.id,
       attributes: { created: oneDayAgoIso() }
@@ -322,13 +322,13 @@ describe('MembersJoinedDigest notifications', () => {
     recipientMember.attributes.updated = recipientMember.attributes.created;
 
     createTestMember({ name: 'Peer Member', daysAgo: 1, offers: 1 });
-    createOffer({
+    createPost('offers', {
       id: 'offer-self-member',
       code: 'SELF1',
       groupCode,
       memberId: recipientMember.id,
       attributes: {
-        name: 'Self Offer',
+        title: 'Self Offer',
         created: oneDayAgoIso()
       }
     });

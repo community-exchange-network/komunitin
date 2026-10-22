@@ -23,7 +23,7 @@ export type AccountWithStats = Account & {
 }
 export interface FullAccount {
   id: string, // e.g. f51d66ac-ec5f-493a-8ce8-1f815f7ff637
-  code: string, // e.g. NET20002
+  code: string, // e.g. BRAM0002
   key: string // e.g. GDFBLI4HMOJGYJEZRKKI2LZ3MMD4KP5QAZJ2VALERKBWHO5OXBOUDD42
   status: AccountStatus
   kind: AccountKind
