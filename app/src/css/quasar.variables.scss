@@ -165,8 +165,8 @@ $chip-dense-height  : 1.4em;
 
 // ── Inputs & Fields ──────────────────────────────────────────
 
-$input-font-size    : 13px;
-$input-text-color   : rgba(30, 26, 20, 0.87);   // Soil at 87%
+$input-font-size    : 16px;   // 16px prevents iOS Safari from zooming in on focus
+$input-text-color   : $soil-secondary;   // Warm brown, softer than near-black
 $input-label-color  : rgba(30, 26, 20, 0.6);    // Soil at 60% — text-muted
 
 $field-label-font-size    : 13px;

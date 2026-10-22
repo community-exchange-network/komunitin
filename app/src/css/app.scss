@@ -143,6 +143,15 @@
     }
   }
 }
+// Warm palette borders for outlined fields, as Quasar hardcodes neutral black ones.
+.q-field--outlined .q-field__control {
+  &:before {
+    border-color: $soil-muted;
+  }
+  &:hover:before {
+    border-color: $soil-secondary;
+  }
+}
 // 'Commons' input style: no resting border, but custom border on hover and focus. 
 // Quasar doesn't allow us to achieve this style using component api and scss variables only.
 .commons-input {
