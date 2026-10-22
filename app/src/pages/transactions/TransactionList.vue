@@ -52,11 +52,13 @@
             v-model="startDate"
             :label="$t('startDate')"
             clearable
+            filter
           />
           <date-field
             v-model="endDate"
             :label="$t('endDate')"
             clearable
+            filter
             :options="{
               min: startDate
             }"

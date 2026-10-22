@@ -7,17 +7,15 @@
     :hint="hint"
     :placeholder="localFormat"
     outlined
-    bg-color="surface-container-h"
-    input-class="text-muted text-weight-medium"
-    class="commons-input"
-    clear-icon="close"    
+    v-bind="filterProps"
+    clear-icon="close"
     required
     @blur="commitDraftDate"
     @keyup.enter="commitDraftDate"
     @clear="commitDraftDate"
   >
     <template v-slot:label>
-      <span class="text-uppercase text-caption-sm text-muted">{{ label }}</span>
+      <span :class="{ 'text-uppercase text-caption-sm text-muted': filter }">{{ label }}</span>
     </template>
     <template #append>
       <q-icon 
@@ -65,11 +63,22 @@ const props = defineProps<{
     min?: Date
     max?: Date
   }
+  /**
+   * Use the tinted style shared by filter fields, instead of the regular form field style.
+   */
+  filter?: boolean
 }>()
 const emit = defineEmits<{
   (e: "update:modelValue", value: Date | null): void
 }>()
 const { t } = useI18n()
+
+const filterProps = computed(() => props.filter ? {
+  bgColor: "surface-container-h",
+  inputClass: "text-muted text-weight-medium",
+  class: "commons-input"
+} : {})
+
 const pickerMask = "YYYY/MM/DD" // this is the format for QDate component
 const pickerFormat = "yyyy/MM/dd" // this is the same format for date-fns
 
