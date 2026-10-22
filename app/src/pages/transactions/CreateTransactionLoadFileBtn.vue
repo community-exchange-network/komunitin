@@ -11,8 +11,6 @@
         v-model="file"
         @update:model-value="fileErrorMessage = ''"
         outlined
-        bg-color="surface-container-h"
-        class="commons-input"
         :label="$t('selectFile')"
         :hint="$t('selectFileHint')"
         accept=".csv, .txt"

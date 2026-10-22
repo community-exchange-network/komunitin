@@ -6,9 +6,8 @@
     type="text"
     :label="getNetworkLabel(contact.type)"
     outlined
-    bg-color="surface-container-h"
     :disable="contact.type === 'email'"
-    class="commons-input q-mb-md"
+    class="q-mb-md"
     @update:model-value="(name) => updateContact(index, name as string)"
   >
     <template #prepend>
@@ -40,8 +39,6 @@
           :options="newContactOptions"
           required
           outlined
-          bg-color="surface-container-h"
-          class="commons-input"
           dropdown-icon="expand_more"
           :rules="[v => !!v || $t('fieldRequired')]"
         >
@@ -62,9 +59,8 @@
           name="newContactName"
           :label="getNetworkIdLabel(newContactType?.value ?? '')"
           outlined
-          bg-color="surface-container-h"
           required
-          class="commons-input q-mt-md"
+          class="q-mt-md"
           :rules="[v => !!v || $t('fieldRequired')]"
         />
       </template>

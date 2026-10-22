@@ -21,8 +21,7 @@
       <q-input
         v-if="copyDescription"
         v-model="description"
-        class="q-mt-md commons-input"
-        bg-color="surface-container-h"
+        class="q-mt-md"
         :label="$t('description')"
         :hint="$t('transactionDescriptionHint')"
         outlined

@@ -25,8 +25,6 @@
           :label="$t('name')"
           :hint="$t('nameHint')"
           outlined
-          bg-color="surface-container-h"
-          class="commons-input"
           required
           :rules="[(v) => !!v || $t('nameRequired')]"
         >
@@ -44,8 +42,6 @@
           :label="$t('bio')"
           :hint="$t('bioHint')"
           outlined
-          bg-color="surface-container-h"
-          class="commons-input"
           autogrow
           input-style="min-height: 100px;"
         >
@@ -64,8 +60,6 @@
             :label="$t('email')"
             :hint="$t('emailHint')"
             outlined
-            bg-color="surface-container-h"
-            class="commons-input"
             required
             disable
           >
@@ -111,8 +105,6 @@
           name="address"
           :label="$t('address')"
           outlined
-          bg-color="surface-container-h"
-          class="commons-input"
           bottom-slots
         />
         <q-input
@@ -121,8 +113,6 @@
           name="postalCode"
           :label="$t('postalCode')"
           outlined
-          bg-color="surface-container-h"
-          class="commons-input"
           required
           :rules="[(v) => !!v || $t('fieldRequired')]"
         />
@@ -132,8 +122,6 @@
           name="city"
           :label="$t('city')"
           outlined
-          bg-color="surface-container-h"
-          class="commons-input"
           required
           :rules="[(v) => !!v || $t('fieldRequired')]"
         />
@@ -143,8 +131,6 @@
           name="region"
           :label="$t('region')"
           outlined
-          bg-color="surface-container-h"
-          class="commons-input"
           required
           :rules="[(v) => !!v || $t('fieldRequired')]"
         />
@@ -152,8 +138,6 @@
           v-model="country"
           :label="$t('country')"
           outlined
-          bg-color="surface-container-h"
-          class="commons-input"
           dropdown-icon="expand_more"
           required
         />
