@@ -238,6 +238,7 @@ describe("Signup", () => {
     // Check that the inactive banner does not show yet.
     expect(wrapper.text()).not.toContain("Your account is inactive.");
     expect(wrapper.get<HTMLInputElement>("[name='name']").element.value).toBe("Empty User");
+    expect(wrapper.vm.$store.getters.myMember.attributes.location).toBeNull()
     await wrapper.get("[name='description']").setValue("I am a test user.");
     expect(wrapper.get<HTMLInputElement>("[name='email']").element.value).toBe("empty@example.com");
     await wrapper.get<HTMLInputElement>("[name='address']").setValue("1234 Test St.");
@@ -292,6 +293,7 @@ describe("Signup", () => {
       expect(profilePatchBody.data.id).toBe(draftMemberId)
       expect(profilePatchBody.data.type).toBe("members")
       expect(profilePatchBody.data.attributes.description).toBe("Profile updated just before saving.")
+      expect(profilePatchBody.data.attributes.location).toBeNull()
       expect(Object.keys(profilePatchBody.data.attributes)).toEqual([
         "name",
         "description",

@@ -9,7 +9,7 @@ import { hasInclude, type CollectionParams, type ResourceParams } from '../../se
 import { badRequest, forbidden, notFound, unauthorized } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, toGroup, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, fromLocation, getCurrencyCode, getGroupByCode, isGroupAdmin, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
@@ -379,9 +379,10 @@ export const patchMember = async (
     data.status = to
   }
 
-  if (location) {
-    data.latitude = location.coordinates[1]
-    data.longitude = location.coordinates[0]
+  if (location !== undefined) {
+    const coords = fromLocation(location)
+    data.latitude = coords.latitude
+    data.longitude = coords.longitude
   }
 
   const db = tenantDb(prisma, code)
