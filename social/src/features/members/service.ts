@@ -157,7 +157,7 @@ const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): P
     
 }
 
-const buildMemberCode = (groupCode: string, index: number): string => {
+const buildMemberCode = (groupCode: string, index: bigint): string => {
   return `${groupCode}${(index + "") . padStart(4, '0')}`
 }
 
@@ -171,9 +171,10 @@ const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   const numbers = members
     .map(({ code }) => code.substring(groupCode.length))
     .filter((suffix) => /^\d+$/.test(suffix))
-    .map(Number)
+    .map(BigInt)
   const used = new Set(numbers)
-  let candidate = (numbers[0] ?? -1) + 1
+  // BigInt prevents a potential infinite loop.
+  let candidate = (numbers[0] ?? -1n) + 1n
   while (used.has(candidate)) {
     candidate++
   }
