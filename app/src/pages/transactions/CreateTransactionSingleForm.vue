@@ -64,7 +64,7 @@
         :label="$t('amountIn', {currency: myCurrency.attributes.namePlural})"
         :hint="$t('transactionAmountHint')"
         outlined
-        input-class="text-h6 text-weight-regular text-onsurface"
+        input-class="text-weight-regular text-onsurface"
         required
         :rules="[
           () => !v$.amount.$invalid || $t('ErrorInvalidAmount'),
@@ -80,7 +80,7 @@
         readonly
         disabled
         outlined
-        input-class="text-h6 text-weight-regular text-onsurface-m"
+        input-class="text-weight-regular text-onsurface-m"
         :label="$t('amountIn', {currency: otherCurrency.attributes.namePlural})"
       >
         <template #append>
