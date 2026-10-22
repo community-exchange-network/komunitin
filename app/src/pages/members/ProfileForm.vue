@@ -1,157 +1,151 @@
 <template>
-  <div class="column q-gutter-y-md">
-    <!-- Profile -->
-    <div class="bg-surface rounded-borders shadow-2">
-      <div class="q-pa-md">
-        <div class="text-subtitle1 text-serif text-bold text-onsurface">
-          {{ $t('enterProfileData') }}
-        </div>
-        <div class="text-body2 text-onsurface-m">
-          {{ $t('editProfileHelpText') }}
-        </div>
+  <div class="bg-surface rounded-borders shadow-2">
+    <div class="q-pa-md">
+      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+        {{ $t('enterProfileData') }}
       </div>
-      <q-separator />
-      <div class="q-pa-md q-gutter-y-md column">
-        <avatar-field
-          v-model="image"
-          :text="name"
-          :code="member.group.attributes.code"
-          resource-type="members"
-        />
-        <q-input
-          v-model="name"
-          type="text"
-          name="name"
-          :label="$t('name')"
-          :hint="$t('nameHint')"
-          outlined
-          required
-          :rules="[(v) => !!v || $t('nameRequired')]"
-        >
-          <template #append>
-            <q-icon
-              name="person"
-              color="muted"
-            />
-          </template>
-        </q-input>
-        <q-input
-          v-model="description"
-          type="textarea"
-          name="description"
-          :label="$t('bio')"
-          :hint="$t('bioHint')"
-          outlined
-          autogrow
-          input-style="min-height: 100px;"
-        >
-          <template #append>
-            <q-icon
-              name="notes"
-              color="muted"
-            />
-          </template>
-        </q-input>
-        <template v-if="email !== undefined">
-          <q-input
-            :model-value="email"
-            type="text"
-            name="email"
-            :label="$t('email')"
-            :hint="$t('emailHint')"
-            outlined
-            required
-            disable
-          >
-            <template #append>
-              <q-icon
-                name="email"
-                color="muted"
-              />
-            </template>
-          </q-input>
-          <div
-            v-if="changeCredentials"
-            class="row q-col-gutter-md q-pt-md"
-          >
-            <div class="col-12 col-sm-grow">
-              <change-email-btn
-                :model-value="email"
-                class="full-width"
-              />
-            </div>
-            <div class="col-12 col-sm-grow">
-              <change-password-btn class="full-width" />
-            </div>
-          </div>
-        </template>
+      <div class="text-body2 text-onsurface-m">
+        {{ $t('editProfileHelpText') }}
       </div>
     </div>
+    <q-separator />
+    <!-- Profile -->
+    <div class="q-pa-md q-gutter-y-md column">
+      <avatar-field
+        v-model="image"
+        :text="name"
+        :code="member.group.attributes.code"
+        resource-type="members"
+      />
+      <q-input
+        v-model="name"
+        type="text"
+        name="name"
+        :label="$t('name')"
+        :hint="$t('nameHint')"
+        outlined
+        required
+        :rules="[(v) => !!v || $t('nameRequired')]"
+      >
+        <template #append>
+          <q-icon
+            name="person"
+            color="muted"
+          />
+        </template>
+      </q-input>
+      <q-input
+        v-model="description"
+        type="textarea"
+        name="description"
+        :label="$t('bio')"
+        :hint="$t('bioHint')"
+        outlined
+        autogrow
+        input-style="min-height: 100px;"
+      >
+        <template #append>
+          <q-icon
+            name="notes"
+            color="muted"
+          />
+        </template>
+      </q-input>
+      <template v-if="email !== undefined">
+        <q-input
+          :model-value="email"
+          type="text"
+          name="email"
+          :label="$t('email')"
+          :hint="$t('emailHint')"
+          outlined
+          required
+          disable
+        >
+          <template #append>
+            <q-icon
+              name="email"
+              color="muted"
+            />
+          </template>
+        </q-input>
+        <div
+          v-if="changeCredentials"
+          class="row q-col-gutter-md q-pt-md"
+        >
+          <div class="col-12 col-sm-grow">
+            <change-email-btn
+              :model-value="email"
+              class="full-width"
+            />
+          </div>
+          <div class="col-12 col-sm-grow">
+            <change-password-btn class="full-width" />
+          </div>
+        </div>
+      </template>
+    </div>
+    <q-separator />
     <!-- Location -->
-    <div class="bg-surface rounded-borders shadow-2">
-      <div class="q-pa-md text-subtitle1 text-serif text-bold text-onsurface">
+    <div class="q-pa-md q-gutter-y-md column">
+      <div class="text-subtitle1 text-serif text-bold text-onsurface">
         {{ $t('location') }}
       </div>
-      <q-separator />
-      <div class="q-pa-md q-gutter-y-md column">
-        <location-picker
-          v-model="location"
-          :default-location="member.group.attributes.location?.coordinates"
-          bottom-slots
-        />
-        <q-input
-          v-model="address"
-          type="text"
-          name="address"
-          :label="$t('address')"
-          outlined
-          bottom-slots
-        />
-        <q-input
-          v-model="postalCode"
-          type="text"
-          name="postalCode"
-          :label="$t('postalCode')"
-          outlined
-          required
-          :rules="[(v) => !!v || $t('fieldRequired')]"
-        />
-        <q-input
-          v-model="city"
-          type="text"
-          name="city"
-          :label="$t('city')"
-          outlined
-          required
-          :rules="[(v) => !!v || $t('fieldRequired')]"
-        />
-        <q-input
-          v-model="region"
-          type="text"
-          name="region"
-          :label="$t('region')"
-          outlined
-          required
-          :rules="[(v) => !!v || $t('fieldRequired')]"
-        />
-        <country-chooser
-          v-model="country"
-          :label="$t('country')"
-          outlined
-          dropdown-icon="expand_more"
-          required
-        />
-      </div>
+      <location-picker
+        v-model="location"
+        :default-location="member.group.attributes.location?.coordinates"
+        bottom-slots
+      />
+      <q-input
+        v-model="address"
+        type="text"
+        name="address"
+        :label="$t('address')"
+        outlined
+        bottom-slots
+      />
+      <q-input
+        v-model="postalCode"
+        type="text"
+        name="postalCode"
+        :label="$t('postalCode')"
+        outlined
+        required
+        :rules="[(v) => !!v || $t('fieldRequired')]"
+      />
+      <q-input
+        v-model="city"
+        type="text"
+        name="city"
+        :label="$t('city')"
+        outlined
+        required
+        :rules="[(v) => !!v || $t('fieldRequired')]"
+      />
+      <q-input
+        v-model="region"
+        type="text"
+        name="region"
+        :label="$t('region')"
+        outlined
+        required
+        :rules="[(v) => !!v || $t('fieldRequired')]"
+      />
+      <country-chooser
+        v-model="country"
+        :label="$t('country')"
+        outlined
+        dropdown-icon="expand_more"
+        required
+      />
     </div>
+    <q-separator />
     <!-- Contact -->
-    <div class="bg-surface rounded-borders shadow-2">
-      <div class="q-pa-md text-subtitle1 text-serif text-bold text-onsurface">
+    <div class="q-pa-md">
+      <div class="text-subtitle1 text-serif text-bold text-onsurface q-mb-md">
         {{ $t('contact') }}
       </div>
-      <q-separator />
-      <div class="q-pa-md">
-        <member-contacts-field v-model="contacts" />
-      </div>
+      <member-contacts-field v-model="contacts" />
     </div>
   </div>
 </template>

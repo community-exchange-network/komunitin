@@ -35,7 +35,8 @@
             </div>
           </div>
         </l-map>
-        <div class="text-onsurface-m text-body-2">
+        <div class="text-onsurface-m text-body2 q-pt-sm">
+          <q-icon name="place" />
           {{ $t('lnglat', {lng: model?.[0]?.toFixed(4), lat: model?.[1]?.toFixed(4)}) }}
         </div>
       </div>
