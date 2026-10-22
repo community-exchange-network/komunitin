@@ -72,13 +72,14 @@ type Props = Omit<QFieldProps, "modelValue" | "onUpdate:modelValue"> & {
   /**
    * Array of [longitude, latitude]
    */
-  defaultLocation: Coordinates,
+  defaultLocation?: Coordinates,
   /**
    * The zoom level of the map
    */
   zoom?: number,
 }
 const props = withDefaults(defineProps<Props>(), {
+  defaultLocation: () => [0, 0],
   borderless: true,
   stackLabel: true
 })

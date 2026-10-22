@@ -11,12 +11,13 @@ describe('Existing profile updates', () => {
     seeds()
     const member = (server.schema as any).members.first()
     member.update({ location: null })
+    member.group.update({ location: null })
     wrapper = await mountComponent(App, { login: true })
   })
 
   afterAll(() => wrapper.unmount())
 
-  it('sends writable member attributes without a location', async () => {
+  it('saves a profile when neither the member nor the community has a location', async () => {
     await wrapper.vm.$router.push('/profile')
     await waitFor(() => wrapper.find("input[name='name']").exists(), true, 'Profile form should load')
 
