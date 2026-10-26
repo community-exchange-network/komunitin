@@ -40,7 +40,7 @@
     "qs": "^6.16.0",
     "redis": "^4.6.14",
     "web-push": "^3.6.7",
-    "zod": "^3.22.4"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.5.0",
