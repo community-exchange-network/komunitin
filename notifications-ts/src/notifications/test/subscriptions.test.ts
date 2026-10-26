@@ -1,5 +1,6 @@
 import { setupServer } from 'msw/node'
 import assert from 'node:assert'
+import { randomUUID } from 'node:crypto'
 import { after, before, beforeEach, describe, it } from 'node:test'
 import { generateKeys, signJwt } from '../../mocks/auth'
 import handlers from '../../mocks/handlers'
@@ -38,8 +39,6 @@ describe('Subscriptions API', () => {
     return await prisma.pushSubscription.create({ data: { tenantId, userId, endpoint, p256dh, auth } })
   }
 
-  const uid = (c: string) => [8,4,4,4,12].map(len => c.repeat(len)).join('-')
-
   before(async () => {
     await generateKeys()
     server.listen({ onUnhandledRequest: 'bypass' })
@@ -58,11 +57,12 @@ describe('Subscriptions API', () => {
 
   it('User can create own subscription', async () => {
     const groupCode = 'GRP1'
-    const userId = uid('1')
+    const userId = randomUUID()
     const token = await signJwt(userId, ['notifications:write'])
 
     const endpoint = 'https://example.com/endpoint/1'
-    const body = makeSubscriptionBody(userId, endpoint, { foo: 'bar' })
+    const meta = { foo: 'bar', device: { mobile: true }, tags: ['test'], count: 1, empty: null }
+    const body = makeSubscriptionBody(userId, endpoint, meta)
 
     const res = await app
       .post(`/${groupCode}/subscriptions`)
@@ -71,6 +71,7 @@ describe('Subscriptions API', () => {
       .expect(200)
 
     assert.equal(res.body.data.attributes.endpoint, endpoint)
+    assert.deepStrictEqual(res.body.data.attributes.meta, meta)
 
     // ensure stored in mocked prisma
     assert.equal(subscriptions.length, 1)
@@ -79,10 +80,25 @@ describe('Subscriptions API', () => {
     assert.equal(subscriptions[0].tenantId, groupCode)
   })
 
+  it('Invalid subscription data returns a validation error', async () => {
+    const userId = randomUUID()
+    const token = await signJwt(userId, ['notifications:write'])
+
+    const res = await app
+      .post('/GRP1/subscriptions')
+      .set('Authorization', `Bearer ${token}`)
+      .send(makeSubscriptionBody(userId, 'invalid-url'))
+      .expect(400)
+
+    assert.equal(res.body.errors[0].code, 'BadRequest')
+    assert.deepStrictEqual(JSON.parse(res.body.errors[0].detail)[0].path, ['data', 'attributes', 'endpoint'])
+    assert.equal(subscriptions.length, 0)
+  })
+
   it('Unauthorized access to create subscription is rejected', async () => {
     const groupCode = 'GRP1'
     const endpoint = 'https://example.com/endpoint/unauth'
-    const body = makeSubscriptionBody('22222222-2222-2222-2222-222222222222', endpoint)
+    const body = makeSubscriptionBody(randomUUID(), endpoint)
 
     await app
       .post(`/${groupCode}/subscriptions`)
@@ -92,8 +108,8 @@ describe('Subscriptions API', () => {
 
   it("User can't create subscription for other user", async () => {
     const groupCode = 'GRP1'
-    const userA = uid('3')
-    const userB = uid('4')
+    const userA = randomUUID()
+    const userB = randomUUID()
     const token = await signJwt(userA, ['notifications:write'])
 
     const body = makeSubscriptionBody(userB, 'https://example.com/endpoint/forbidden')
@@ -109,7 +125,7 @@ describe('Subscriptions API', () => {
 
   it('User can delete own subscription', async () => {
     const groupCode = 'GRP1'
-    const userId = uid('5')
+    const userId = randomUUID()
     const token = await signJwt(userId, ['notifications:write'])
 
     // create subscription directly in the mocked store
@@ -126,8 +142,8 @@ describe('Subscriptions API', () => {
 
   it("User can't delete another user's subscription", async () => {
     const groupCode = 'GRP1'
-    const owner = uid('6')
-    const attacker = uid('7')
+    const owner = randomUUID()
+    const attacker = randomUUID()
     const token = await signJwt(attacker, ['notifications:write'])
 
     const created = await createSubscription({ tenantId: groupCode, userId: owner, endpoint: 'https://example.com/delete-other' })
