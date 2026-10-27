@@ -235,6 +235,21 @@ describe("External transfers", async () => {
     assert.equal(response.included[0].id, transfer2.relationships.payee.data.id)
   })
 
+  await it('account settings block external payments and requests', async () => {
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, { data: { attributes: {
+      allowExternalPayments: false,
+      allowExternalPaymentRequests: false
+    } } }, t.admin)
+
+    await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 100, "Payment denied", "committed", t.user1, 403)
+    await externalTransfer(t.currency, eCurrency, eAccount1, t.account1, 100, "Request denied", "committed", t.user1, 403)
+
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, { data: { attributes: {
+      allowExternalPayments: null,
+      allowExternalPaymentRequests: null
+    } } }, t.admin)
+  })
+
   await it('succesful external payment request (approval)', async () => {
     await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, { data: { attributes: { 
       acceptExternalPaymentsAutomatically: false

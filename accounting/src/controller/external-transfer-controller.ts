@@ -68,6 +68,19 @@ export class ExternalTransferController extends AbstractCurrencyController {
     return transfer.externalPayee || transfer.externalPayer
   }
 
+
+  private checkExternalPaymentsAllowed(payer: FullAccount) {
+    if (!(payer.settings.allowExternalPayments ?? this.currency().settings.defaultAllowExternalPayments)) {
+      throw forbidden("Account is not allowed to make external payments")
+    }
+  }
+
+  private checkExternalPaymentRequestsAllowed(account: FullAccount) {
+    if (!(account.settings.allowExternalPaymentRequests ?? this.currency().settings.defaultAllowExternalPaymentRequests)) {
+      throw forbidden("Account is not allowed to use external payment requests")
+    }
+  }
+
   /**
    * This is the main function to create an external transfer. 
    */
@@ -113,9 +126,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     }
     // Check that the local payer account exists and has the sufficient rights.
     const payer = await this.accounts().getFullAccount(data.payer.id)
-    if (!(payer.settings.allowExternalPaymentRequests || this.currency().settings.defaultAllowExternalPaymentRequests)) {
-      throw forbidden("Account is not allowed to receive external payment requests")
-    }
+    this.checkExternalPaymentRequestsAllowed(payer)
     // Check that the logged in external user matches the external payee account in the provided transfer.
     const externalPayee = await this.getExternalAccount(ctx, data.payee as ExternalResourceIdentifier)
     if (externalPayee.resource.key !== ctx.accountKey) {
@@ -156,9 +167,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
       throw forbidden("User is not allowed to transfer from this account")
     }
 
-    if (!(payer.settings.allowExternalPayments || this.currency().settings.defaultAllowExternalPayments)) {
-      throw forbidden("Account is not allowed to make external payments")
-    }
+    this.checkExternalPaymentsAllowed(payer)
 
     // Create local transfer record with "new" state.
     const transfer = await this.transfers().createTransferRecord(data, payer, this.currency().externalAccount, user)
@@ -272,9 +281,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     }
 
     // Check that the account is allowed to make external payment requests
-    if (!(payee.settings.allowExternalPaymentRequests || this.currency().settings.defaultAllowExternalPaymentRequests)) {
-      throw forbidden("Account is not allowed to make external payment requests")
-    }
+    this.checkExternalPaymentRequestsAllowed(payee)
 
     // Create local transfer record with "new" state.
     const transfer = await this.transfers().createTransferRecord(data, this.currency().externalAccount, payee, user)
@@ -391,6 +398,9 @@ export class ExternalTransferController extends AbstractCurrencyController {
       throw forbidden("User is not allowed to update this external transfer")
     }
     if (data.state !== undefined) {
+      if (data.state === "committed" && transfer.state !== data.state) {
+        this.checkExternalPaymentsAllowed(transfer.payer)
+      }
       await this.updateTransferStateExternalPayee(ctx, transfer as ExternalPayeeTransfer, data.state, user, true)
     }
     return transfer
