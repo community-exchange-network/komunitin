@@ -306,7 +306,8 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
     }
 
     // Option 3: tag authorization
-    if (transfer.authorization?.type === "tag" && transfer.authorization.hash) {
+    if (transfer.authorization?.type === "tag" && transfer.authorization.hash
+      && (transfer.payer.settings.allowTagPayments ?? this.currency().settings.defaultAllowTagPayments)) {
       const authorizer = await this.accounts().getAccountByTag(systemContext(), transfer.authorization.hash, true)
       if (authorizer && authorizer.id === transfer.payer.id) {
         return true
