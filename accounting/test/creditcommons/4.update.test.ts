@@ -11,7 +11,7 @@ describe('receive', async () => {
   it('Checks the last-hash header', async () => {
     const ccTransaction = generateCcTransaction('non-existing')
     const response = await t.api.patch(`/TEST/cc/transaction/${ccTransaction.uuid}/C`, ccTransaction, { user: null, scopes: [], ccNode: 'trunk', lastHash: 'qwer' }, 401, "application/json")
-    assert.equal(response.text, '{"errors":["value of last-hash header \\"qwer\\" does not match our records."]}')
+    assert.equal(response.text, '{"errors":["last-hash header does not match our records."]}')
   })
 
   it('Fails if the transaction does not exist', async () => {
