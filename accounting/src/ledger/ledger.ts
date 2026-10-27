@@ -406,7 +406,7 @@ export interface LedgerAccount {
    * @param payment
    *   amount: The amount to pay in the payee currency. The payee will receive exactly this amount.
    *   payeePublicKey: The public key of the payee account.
-   *   externalIssuerPublicKey: The public key of the issuer of the payee currency.
+   *   path: The conversion quote, with a source amount approved by the caller.
    */
   externalPay(payment: { payeePublicKey: string, amount: string, path: PathQuote }, keys: { account: KeyPair, sponsor: KeyPair }): Promise<LedgerExternalTransfer>
 
