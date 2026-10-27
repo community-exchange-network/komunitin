@@ -392,7 +392,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
   }
 
   public async getTransfer(ctx: Context, id: string): Promise<Transfer> {
-    const transfer = await this.loadTransferWhere({id})
+    const transfer = await this.getFullTransfer(ctx, id)
     await this.checkTransferAccess(ctx, transfer)
     const user = await this.users().getUser(ctx)
     return this.filterTransfer(user, transfer)
