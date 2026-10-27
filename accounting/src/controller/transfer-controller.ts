@@ -519,6 +519,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
    */
   public async updateTransfer(ctx: Context, data: UpdateTransfer): Promise<FullTransfer> {
     let transfer = await this.getFullTransfer(ctx, data.id)
+    await this.checkTransferAccess(ctx, transfer)
 
     // If this is an external transfer, let the specialized controller handle it.
     if (this.externalTransfers.isExternalTransfer(transfer)) {
