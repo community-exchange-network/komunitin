@@ -37,7 +37,35 @@ const externalResourceSerializer = <T>(type: string) => new Serializer<ExternalR
 export const UserSerializer = externalResourceSerializer("users")
 
 export const CurrencySettingsSerializer = new Serializer<CurrencySettings>("currency-settings", {
-  version: null
+  version: null,
+  // Module settings may contain credentials; expose only the public currency settings.
+  projection: projection<CurrencySettings>([
+    'defaultInitialCreditLimit',
+    'defaultInitialMaximumBalance',
+    'defaultAllowPayments',
+    'defaultAllowPaymentRequests',
+    'defaultAcceptPaymentsAutomatically',
+    'defaultAcceptPaymentsWhitelist',
+    'defaultAllowSimplePayments',
+    'defaultAllowSimplePaymentRequests',
+    'defaultAllowQrPayments',
+    'defaultAllowQrPaymentRequests',
+    'defaultAllowMultiplePayments',
+    'defaultAllowMultiplePaymentRequests',
+    'defaultAllowTagPayments',
+    'defaultAllowTagPaymentRequests',
+    'defaultAcceptPaymentsAfter',
+    'defaultOnPaymentCreditLimit',
+    'defaultAllowExternalPayments',
+    'defaultAllowExternalPaymentRequests',
+    'defaultAcceptExternalPaymentsAutomatically',
+    'enableExternalPayments',
+    'enableExternalPaymentRequests',
+    'enableCreditCommonsPayments',
+    'externalTraderCreditLimit',
+    'externalTraderMaximumBalance',
+    'defaultHideBalance',
+  ])
 })
 
 // JSON:API resource serializers

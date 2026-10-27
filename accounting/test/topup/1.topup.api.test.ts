@@ -58,6 +58,23 @@ describe('Topup API', async () => {
     assert.equal(response.body.data.attributes.mollieApiKey, undefined)
   })
 
+  it('currency settings never expose payment provider credentials', async () => {
+    const response = await t.api.get('/TEST/currency?include=settings')
+    const settings = response.body.included.find((resource: any) => resource.type === 'currency-settings').attributes
+    assert.equal(settings.defaultAllowPayments, true)
+    assert.equal(settings.topup, undefined)
+    assert.ok(!JSON.stringify(response.body).includes(topupSettings.mollieApiKey))
+  })
+
+  it('dedicated topup settings retain public fields without credentials', async () => {
+    const response = await t.api.get('/TEST/currency/topup-settings', t.user1)
+    const attributes = response.body.data.attributes
+    const { mollieApiKey, ...publicSettings } = topupSettings
+    assert.ok(attributes.sourceAccountId)
+    assert.deepEqual(attributes, { ...publicSettings, sourceAccountId: attributes.sourceAccountId })
+    assert.ok(!JSON.stringify(response.body).includes(mollieApiKey))
+  })
+
   it('user can create a topup for their own account', async () => {
     const response = await t.api.post('/TEST/topups', {
       data: {
