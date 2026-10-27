@@ -76,6 +76,18 @@ describe('Preauthorized transfers with NFC tags', async () => {
     await t.api.get(`/TEST/accounts/${t.account1.id}/settings`, t.user2, 403)
   })
 
+  await it('Reject tag IDs belonging to another account', async () => {
+    const before = await t.api.get(`/TEST/accounts/${t.account1.id}/settings`, t.user1)
+    const tags = before.body.data.attributes.tags
+
+    await t.api.patch(`/TEST/accounts/${t.account2.id}/settings`, {
+      data: { attributes: { tags: [{ id: tags[0].id, name: 'Unauthorized rename' }] } }
+    }, t.user2, 403)
+
+    const after = await t.api.get(`/TEST/accounts/${t.account1.id}/settings`, t.user1)
+    assert.deepEqual(after.body.data.attributes.tags, tags)
+  })
+
   await it('Get account by tag', async () => {
     const response = await t.api.get(`/TEST/accounts?filter[tag]=tag-1-1234567890`, t.user2)
     assert.equal(response.body.data.length, 1)
