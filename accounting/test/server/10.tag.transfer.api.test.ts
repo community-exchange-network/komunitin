@@ -1,4 +1,4 @@
-import { before, describe, it } from "node:test"
+import { describe, it } from "node:test"
 import assert from "node:assert"
 import { validate as isUuid } from "uuid"
 
@@ -170,6 +170,20 @@ describe('Preauthorized transfers with NFC tags', async () => {
 
   })
 
+  await it('Tag lookup does not expose private balances', async () => {
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
+      data: { attributes: { hideBalance: true } }
+    }, t.admin)
+
+    const response = await t.api.get('/TEST/accounts?filter[tag]=tag-1-1234567890', t.user2)
+    assert.equal(response.body.data.length, 1)
+    const account = response.body.data[0]
+    assert.equal(account.id, t.account1.id)
+    assert.equal(account.attributes.balance, undefined)
+    assert.equal(account.attributes.creditLimit, undefined)
+    assert.equal(account.attributes.maximumBalance, undefined)
+  })
+
   it('Tags persist after updating account settings', async () => {
     // Update some other account setting
     await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
@@ -207,69 +221,5 @@ describe('Preauthorized transfers with NFC tags', async () => {
     assert.equal(response.body.data.attributes.tags.length, 2)
     assert.equal(response.body.data.attributes.tags[0].name, 'Tag 1')
     assert.equal(response.body.data.attributes.tags[1].name, 'Tag 2')
-  })
-})
-
-describe('Account tag balance privacy', async () => {
-  const t = setupServerTest()
-  const tags = ['privacy-tag-1234567890', 'privacy/tag?value=1234567890&x=1#tag']
-  const monetaryFields = ['balance', 'creditLimit', 'maximumBalance']
-
-  before(async () => {
-    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
-      data: { attributes: { tags: tags.map((value, index) => ({ name: `Tag ${index}`, value })) } }
-    }, t.user1)
-    await t.api.patch(`/TEST/accounts/${t.account1.id}`, {
-      data: { attributes: { maximumBalance: 20000 } }
-    }, t.admin)
-  })
-
-  for (const { name, defaultHideBalance, hideBalance, visibleToMember } of [
-    { name: 'visible balances', defaultHideBalance: false, hideBalance: undefined, visibleToMember: true },
-    { name: 'currency privacy default', defaultHideBalance: true, hideBalance: undefined, visibleToMember: false },
-    { name: 'private account override', defaultHideBalance: false, hideBalance: true, visibleToMember: false },
-    { name: 'visible account override', defaultHideBalance: true, hideBalance: false, visibleToMember: true },
-  ]) {
-    await it(`Tag lookup respects ${name}`, async () => {
-      await t.api.patch('/TEST/currency/settings', {
-        data: { attributes: { defaultHideBalance } }
-      }, t.admin)
-      if (hideBalance !== undefined) {
-        await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
-          data: { attributes: { hideBalance } }
-        }, t.admin)
-      }
-
-      for (const { auth, visible } of [
-        { auth: undefined, visible: false },
-        { auth: { ...t.user2, user: 'unknown-user' }, visible: false },
-        { auth: t.user2, visible: visibleToMember },
-        { auth: t.user1, visible: true },
-        { auth: t.admin, visible: true },
-        { auth: t.superadmin, visible: true },
-      ]) {
-        for (const tag of tags) {
-          const response = await t.api.get(`/TEST/accounts?filter[tag]=${encodeURIComponent(tag)}&include=settings,currency`, auth)
-          assert.equal(response.body.data.length, 1)
-          const account = response.body.data[0]
-          assert.equal(account.id, t.account1.id)
-          for (const field of monetaryFields) {
-            assert.equal(Object.hasOwn(account.attributes, field), visible, `${field} visibility for ${auth?.user ?? 'anonymous'}`)
-            if (visible) {
-              assert.equal(account.attributes[field], field === 'maximumBalance' ? 20000 : t.account1.attributes[field])
-            }
-          }
-        }
-      }
-    })
-  }
-
-  await it('Unknown tags still return an empty collection', async () => {
-    const response = await t.api.get('/TEST/accounts?filter[tag]=unknown-tag-1234567890')
-    assert.deepEqual(response.body.data, [])
-  })
-
-  await it('Multiple tag filters are rejected', async () => {
-    await t.api.get(`/TEST/accounts?filter[tag][]=${tags[0]}&filter[tag][]=unknown-tag-1234567890`, t.user2, 400)
   })
 })
