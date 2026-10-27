@@ -392,7 +392,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
   }
 
   public async getTransfer(ctx: Context, id: string): Promise<Transfer> {
-    const transfer = await this.loadTransferWhere({id})
+    const transfer = await this.getFullTransfer(ctx, id)
     await this.checkTransferAccess(ctx, transfer)
     const user = await this.users().getUser(ctx)
     return this.filterTransfer(user, transfer)
@@ -519,6 +519,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
    */
   public async updateTransfer(ctx: Context, data: UpdateTransfer): Promise<FullTransfer> {
     let transfer = await this.getFullTransfer(ctx, data.id)
+    await this.checkTransferAccess(ctx, transfer)
 
     // If this is an external transfer, let the specialized controller handle it.
     if (this.externalTransfers.isExternalTransfer(transfer)) {
