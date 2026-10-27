@@ -2,6 +2,7 @@ import { describe, it } from "node:test"
 import assert from "node:assert"
 import { validate as isUuid } from "uuid"
 
+import { testTransfer } from './api.data'
 import { setupServerTest } from './setup'
 
 describe('Preauthorized transfers with NFC tags', async () => {
@@ -168,6 +169,18 @@ describe('Preauthorized transfers with NFC tags', async () => {
       }
     }, t.user1, 403)
 
+  })
+
+  await it('Cannot commit a tag payment request after disabling tag payments', async () => {
+    const data = testTransfer(t.account1.id, t.account2.id, 10, 'Tag request', 'new')
+    Object.assign(data.data.attributes, { authorization: { type: 'tag', value: 'tag-1-1234567890' } })
+    const response = await t.api.post('/TEST/transfers', data, t.user2)
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
+      data: { attributes: { allowTagPayments: false } }
+    }, t.admin)
+    await t.api.patch(`/TEST/transfers/${response.body.data.id}`, {
+      data: { attributes: { state: 'committed' } }
+    }, t.user2, 403)
   })
 
   it('Tags persist after updating account settings', async () => {
