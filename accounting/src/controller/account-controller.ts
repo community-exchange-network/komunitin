@@ -358,7 +358,9 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
     const hash = hashed ? tag : await this.accountTagHash(tag)
     const record = await this.db().accountTag.findFirst({
       where: { hash },
-      include: { account: true }
+      include: {
+        account: { include: { users: { include: { user: true } } } }
+      }
     })
     if (!record || record.account.status !== "active") {
       return undefined
@@ -419,7 +421,8 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
 
     if (isSingleTag) {
       const account = await this.getAccountByTag(ctx, params.filters.tag as string) 
-      return account ? [account] : []
+      const user = await this.users().getUser(ctx)
+      return account ? [this.filterAccount(user, account)] : []
     }
     
     const filter = whereFilter(params.filters)

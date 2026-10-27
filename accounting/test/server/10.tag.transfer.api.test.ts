@@ -170,6 +170,20 @@ describe('Preauthorized transfers with NFC tags', async () => {
 
   })
 
+  await it('Tag lookup does not expose private balances', async () => {
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
+      data: { attributes: { hideBalance: true } }
+    }, t.admin)
+
+    const response = await t.api.get('/TEST/accounts?filter[tag]=tag-1-1234567890', t.user2)
+    assert.equal(response.body.data.length, 1)
+    const account = response.body.data[0]
+    assert.equal(account.id, t.account1.id)
+    assert.equal(account.attributes.balance, undefined)
+    assert.equal(account.attributes.creditLimit, undefined)
+    assert.equal(account.attributes.maximumBalance, undefined)
+  })
+
   it('Tags persist after updating account settings', async () => {
     // Update some other account setting
     await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, {
