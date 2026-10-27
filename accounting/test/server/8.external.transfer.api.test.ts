@@ -1,4 +1,6 @@
 import assert from "node:assert"
+import { randomUUID } from "node:crypto"
+import { http, HttpResponse } from "msw"
 import { after, before, describe, it } from "node:test"
 import { config } from "../../src/config"
 import { CurrencyControllerImpl } from "../../src/controller/currency-controller"
@@ -7,7 +9,7 @@ import { logger } from "../../src/utils/logger"
 import { CurrencySettings } from "../../src/model"
 import { testCurrency, testTransfer, userAuth } from "./api.data"
 import { AuthInfo } from "./net.client"
-import { clearEvents, getEvents } from "./net.mock"
+import { addHandlers, clearEvents, getEvents } from "./net.mock"
 import { setupServerTest } from './setup'
 import { waitFor } from "./utils"
 
@@ -319,6 +321,35 @@ describe("External transfers", async () => {
     const rejected2 = (await t.api.get('/TEST/transfers/' + transfer.id, t.user1)).body.data
     assert.equal(rejected2.attributes.state, "rejected")
 
+  })
+
+  await it('rejects external transfers above the approved source amount', async () => {
+    const controller = await t.app.komunitin.service.getCurrencyController("TEST")
+    const payer = await controller.ledger.getAccount(t.account1.attributes.key)
+    const balanceBefore = payer.balance()
+
+    // Advertise a false rate so approving 100 TEST would debit 200 TEST.
+    const currency = { ...eCurrency, id: randomUUID(), attributes: { ...eCurrency.attributes, rate: { n: 1, d: 4 } } }
+    const account = {
+      ...eAccount1,
+      id: randomUUID(),
+      relationships: { ...eAccount1.relationships, currency: { data: { type: 'currencies', id: currency.id } } }
+    }
+    const url = `https://remote.example/${currency.id}`
+    addHandlers(
+      http.get(`${url}/currency`, () => HttpResponse.json({ data: currency })),
+      http.get(`${url}/accounts/${account.id}`, () => HttpResponse.json({ data: account })),
+      http.post(`${url}/transfers`, async ({ request }) => HttpResponse.json(await request.json(), { status: 201 }))
+    )
+    const data = testTransfer(t.account1.id, account.id, 100, 'Approved source amount', 'committed')
+    Object.assign(data.data.relationships.payee.data, {
+      meta: { external: true, href: `${url}/accounts/${account.id}` }
+    })
+
+    const response = await t.api.post('/TEST/transfers', data, t.user1, 400)
+    assert.equal(response.body.errors[0].detail, 'Quoted source amount exceeds the approved amount')
+    await payer.update()
+    assert.equal(payer.balance(), balanceBefore)
   })
 
   it("can trade without trust if in surplus", async () => {

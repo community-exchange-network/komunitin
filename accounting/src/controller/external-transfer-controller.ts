@@ -10,6 +10,7 @@ import { createExternalToken } from "./external-jwt";
 import { config } from "../config";
 import { mount } from "../server/parse";
 import { toStringAmount } from "./currency-controller";
+import Big from "big.js"
 
 type ExternalPayeeTransfer = WithRequired<FullTransfer, "externalPayee">
 type ExternalPayerTransfer = WithRequired<FullTransfer, "externalPayer">
@@ -461,7 +462,10 @@ export class ExternalTransferController extends AbstractCurrencyController {
     if (!path) {
       throw noTrustPath(`No trust path from currency ${this.currency().code} to ${externalCurrency.resource.code}`)
     }
-    // There is a trust path! Submit the transaction.
+    // The quoted debit must stay within the locally approved amount.
+    if (Big(path.sourceAmount).gt(this.currencyController.toStringAmount(transfer.amount))) {
+      throw badRequest("Quoted source amount exceeds the approved amount")
+    }
 
     const ledgerPayer = await this.currencyController.ledger.getAccount(transfer.payer.key)
     const transaction = await ledgerPayer.externalPay({
