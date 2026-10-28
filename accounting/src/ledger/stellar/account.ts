@@ -265,7 +265,8 @@ export class StellarAccount implements LedgerAccount {
       asset: this.currency.asset(),
       payer: this.account?.accountId() as string,
       payee: payment.payeePublicKey,
-      hash: transaction.hash
+      hash: transaction.hash,
+      created: new Date(transaction.created_at)
     }
 
     // This should be done as a reaction to a stream listener on horizon server, but we don't have
@@ -319,6 +320,7 @@ export class StellarAccount implements LedgerAccount {
       payer: this.account?.accountId() as string,
       payee: payment.payeePublicKey,
       hash: transaction.hash,
+      created: new Date(transaction.created_at),
       sourceAsset: payment.path.sourceAsset as Asset,
       // We may need to get the source amount from the result instead of directly
       // take this amount, but in our case of 1:1 exchange rate, it must be the same.

@@ -488,6 +488,7 @@ export interface LedgerTransfer {
   asset: LedgerAsset,
   // ledger transaction id.
   hash: string,
+  created: Date,
 }
 
 /**

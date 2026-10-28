@@ -9,7 +9,7 @@ import { CurrencyControllerImpl } from "./currency-controller";
 import { ExternalTransferController } from "./external-transfer-controller";
 import { includeRelations, whereFilter } from "./query";
 import { TransfersPublicService } from "./";
-import { type Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 export class TransferControllerImpl  extends AbstractCurrencyController implements TransfersPublicService {
   private externalTransfers: ExternalTransferController
@@ -186,34 +186,44 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
   }
 
   /**
-   * Low level operation to update the state and hash DB fields of the transfer.
+   * Update the state of a transfer, hash and user atomically in the db.
+   * Then trigger balance update and transfer state change events on success.
    */
-  public async saveTransferState(transfer: FullTransfer, state: TransferState) {
+  public async applyTransferState(transfer: FullTransfer, state: TransferState) {
     if (transfer.state !== state) {
-      transfer.state = state
-      const data: Prisma.TransferUpdateInput = { state }
+      const data: Prisma.TransferUncheckedUpdateManyInput = { state, amount: transfer.amount }
 
       // Update hash and user if provided, as well.
       if (transfer.hash) {
         data.hash = transfer.hash
       }
       if (transfer.user) {
-        data.user = { connect: { tenantId_id: {
-          id: transfer.user.id,
-          tenantId: this.db().tenantId
-        }}}
+        data.userId = transfer.user.id
       }
 
-      await this.db().transfer.update({
-        data,
-        where: {
-          tenantId_id: {
+      try {
+        const { count } = await this.db().transfer.updateMany({
+          data,
+          where: {
             id: transfer.id,
-            tenantId: this.db().tenantId
+            state: transfer.state
           }
+        })
+        if (count === 0) {
+          throw badRequest("The transfer state has changed; reload it before updating")
         }
-      })
-
+      } catch (error) {
+        // (tenant, hash) unique constraint violation.
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw badRequest("The payment has already been recorded")
+        }
+        throw error
+      }
+      transfer.state = state
+      if (state === "committed") {
+        // Only the winning transition may refresh balances, before credit changes.
+        await this.updateAccountBalances(transfer)
+      }
       this.currencyController.emitter.emit("transferStateChanged", transfer, this.currencyController)
     }
   }
@@ -251,22 +261,22 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
         || (userHasAccount(user, transfer.payee) && (await this.submitPaymentRequestImmediately(transfer)))) {
         // We change the transfer user to the one finally commiting the transfer.
         transfer.user = user
-        await this.saveTransferState(transfer, "submitted")
+        await this.applyTransferState(transfer, "submitted")
         try {
           const transaction = await this.submitTransfer(transfer, this.users().isAdmin(user))
           transfer.hash = transaction.hash
-          await this.saveTransferState(transfer, "committed")
+          await this.applyTransferState(transfer, "committed")
         } catch (e) {
-          await this.saveTransferState(transfer, "failed")
+          await this.applyTransferState(transfer, "failed")
           throw e
         }
       } else if (userHasAccount(user, transfer.payee)) {
         // Payment request pending authorization
         if (transfer.authorization) {
-          await this.saveTransferState(transfer, "failed")
+          await this.applyTransferState(transfer, "failed")
           throw forbidden("Invalid authorization")
         } else {
-          await this.saveTransferState(transfer, "pending")
+          await this.applyTransferState(transfer, "pending")
         }
       } else {
         throw forbidden("User is not allowed to commit this transfer")
@@ -277,7 +287,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
       if (userHasAccount(user, transfer.payer)) {
         // Update transfer user to the one rejecting the transfer.
         transfer.user = user
-        await this.saveTransferState(transfer, "rejected")
+        await this.applyTransferState(transfer, "rejected")
       } else {
         throw forbidden("User is not allowed to reject this transfer")
       }
@@ -286,7 +296,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
     if (state == "deleted") {
       // Only transfer creator can delete it.
       if (this.users().isAdmin(user) || transfer.user.id == user.id) {
-        await this.saveTransferState(transfer, "deleted")
+        await this.applyTransferState(transfer, "deleted")
       } else {
         throw forbidden("User is not allowed to delete this transfer")
       }
@@ -315,11 +325,21 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
     }
   }
 
-  public async updateAccountBalances(transfer: FullTransfer) {
-    await Promise.all([
-      this.accounts().updateAccountBalance(transfer.payer),
-      this.accounts().updateAccountBalance(transfer.payee)
-    ])
+  /**
+   * Update the balances of the payer and payee accounts from the ledger.
+   */
+  private async updateAccountBalances(transfer: FullTransfer) {
+    const accounts = [transfer.payer, transfer.payee]
+    await Promise.all(accounts.map(async (account) => {
+      try {
+        return await this.accounts().updateAccountBalance(account)
+      } catch (error) {
+        logger.error(
+          { error, accountId: account.id, transferId: transfer.id },
+          `Failed to update account balance.`
+        )
+      }
+    }))
   }
 
   /**
@@ -335,8 +355,6 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
       account: await (admin ? this.keys().adminKey() : this.keys().retrieveKey(transfer.payer.key))
     })
 
-    await this.updateAccountBalances(transfer)
-    
     return transaction
   }
 
