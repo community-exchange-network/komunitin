@@ -343,7 +343,7 @@ export interface LedgerCurrency {
    * 
    * @param hash The transaction hash.
    */
-  getTransfer(hash: string): Promise<LedgerTransfer | LedgerExternalTransfer>
+  getTransfer(hash: string): Promise<(LedgerTransfer | LedgerExternalTransfer) & { created: Date }>
 
   /** 
    * Disable the currency. This operation removes the currency from the ledger saving resources.

@@ -9,7 +9,7 @@ import { CurrencyControllerImpl } from "./currency-controller";
 import { ExternalTransferController } from "./external-transfer-controller";
 import { includeRelations, whereFilter } from "./query";
 import { TransfersPublicService } from "./";
-import { type Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 export class TransferControllerImpl  extends AbstractCurrencyController implements TransfersPublicService {
   private externalTransfers: ExternalTransferController
@@ -186,34 +186,41 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
   }
 
   /**
-   * Low level operation to update the state and hash DB fields of the transfer.
+   * Save settlement facts atomically and emit only the successful state transition.
    */
   public async saveTransferState(transfer: FullTransfer, state: TransferState) {
     if (transfer.state !== state) {
-      transfer.state = state
-      const data: Prisma.TransferUpdateInput = { state }
+      const data: Prisma.TransferUncheckedUpdateManyInput = { state, amount: transfer.amount }
 
       // Update hash and user if provided, as well.
       if (transfer.hash) {
         data.hash = transfer.hash
       }
       if (transfer.user) {
-        data.user = { connect: { tenantId_id: {
-          id: transfer.user.id,
-          tenantId: this.db().tenantId
-        }}}
+        data.userId = transfer.user.id
       }
 
-      await this.db().transfer.update({
+      const { count } = await this.db().transfer.updateMany({
         data,
         where: {
-          tenantId_id: {
-            id: transfer.id,
-            tenantId: this.db().tenantId
-          }
+          id: transfer.id,
+          tenantId: this.db().tenantId,
+          state: transfer.state
         }
+      }).catch(error => {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw badRequest("The payment has already been recorded")
+        }
+        throw error
       })
-
+      if (count === 0) {
+        throw badRequest("The transfer state has changed; reload it before updating")
+      }
+      transfer.state = state
+      if (state === "committed") {
+        // Only the winning transition may refresh balances, before credit changes.
+        await this.updateAccountBalances(transfer)
+      }
       this.currencyController.emitter.emit("transferStateChanged", transfer, this.currencyController)
     }
   }
@@ -335,8 +342,6 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
       account: await (admin ? this.keys().adminKey() : this.keys().retrieveKey(transfer.payer.key))
     })
 
-    await this.updateAccountBalances(transfer)
-    
     return transaction
   }
 
