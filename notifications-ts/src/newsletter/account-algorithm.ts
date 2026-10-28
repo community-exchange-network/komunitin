@@ -1,5 +1,5 @@
 import {AccountSection, AccountAlert, HistoryLog } from './types';
-import { Member, Offer, Need, Currency } from '../clients/komunitin/types';
+import { Member, Offer, Currency } from '../clients/komunitin/types';
 
 // Constants
 const HOUR_THRESHOLD = 10;
@@ -7,8 +7,6 @@ const HOUR_THRESHOLD = 10;
 interface AccountData {
   member: Member;
   account: any;
-  activeOffers: Offer[];
-  activeNeeds: Need[];
   expiredOffers: Offer[];
   transfers: any[];
   history: HistoryLog[];
@@ -17,7 +15,7 @@ interface AccountData {
 
 export const getAccountSectionData = (data: AccountData): AccountSection => {
   const {
-    account, member, activeOffers, activeNeeds,
+    account, member,
     expiredOffers, transfers, history, currency
     } = data;
 
@@ -60,8 +58,9 @@ export const getAccountSectionData = (data: AccountData): AccountSection => {
 
   const alerts: AccountAlert[] = [];
 
-  const noOffers = activeOffers.length === 0;
-  const noNeeds = activeNeeds.length === 0;
+  // API counts include the member's private active posts for account reminders.
+  const noOffers = member.relationships.offers.meta.count === 0;
+  const noNeeds = member.relationships.needs.meta.count === 0;
 
   // Check priorities (1 = Highest)
 

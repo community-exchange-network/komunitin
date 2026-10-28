@@ -91,6 +91,7 @@ const processCommunityDigest = async (
     client.getOffers(code, {
       'filter[member.status]': 'active',
       'filter[status]': 'published',
+      'filter[access]': 'public,group',
       'filter[expired]': 'false',
       'filter[created][gt]': lookbackIso,
       sort: '-created'
@@ -98,6 +99,7 @@ const processCommunityDigest = async (
     client.getNeeds(code, {
       'filter[member.status]': 'active',
       'filter[status]': 'published',
+      'filter[access]': 'public,group',
       'filter[expired]': 'false',
       'filter[created][gt]': lookbackIso,
       sort: '-created'
@@ -111,10 +113,8 @@ const processCommunityDigest = async (
     sort: '-created'
   });
 
-  const allPosts = [...offers, ...needs];
-
-  // Filter out urgent posts (they get immediate notification)
-  const nonUrgentPosts = allPosts.filter(p => !isPostUrgent(p));
+  // Filter out urgent posts (they get immediate notification).
+  const nonUrgentPosts = [...offers, ...needs].filter(p => !isPostUrgent(p));
   if (nonUrgentPosts.length === 0 && newMembers.length === 0) {
     logger.debug({ code }, 'No new non-urgent posts or new members, skipping digest');
     return;

@@ -1,5 +1,5 @@
 import { KomunitinClient } from '../../clients/komunitin/client';
-import { hasExpiration } from '../../clients/komunitin/post';
+import { hasExpiration, isCommunityPost } from '../../clients/komunitin/post';
 import { Member, Post } from '../../clients/komunitin/types';
 import { groupRecipients, memberRecipients } from '../../clients/komunitin/recipients';
 import { internalError } from '../../utils/error';
@@ -83,8 +83,8 @@ export const handlePostEvent = async (event: PostEvent): Promise<void> => {
   let recipientData: EnrichedPostRecipients;
 
   if (eventName === EVENT_NAME.OfferPublished || eventName === EVENT_NAME.NeedPublished) {
-    // Urgent posts notify the whole group; regular posts only confirm publication to the author.
-    const relations = isPostUrgent(post)
+    // Only community-visible urgent posts notify the group; others confirm publication to the author.
+    const relations = isPostUrgent(post) && isCommunityPost(post)
       ? await client.getMemberUsers(event.code, { memberStatus: 'active' })
       : await client.getMemberUsers(event.code, { member: memberId });
     recipientData = {

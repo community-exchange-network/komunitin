@@ -76,14 +76,15 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
   const i18n = await initI18n();
 
   // 3. Fetch data to be used for all members of the group
-  // Fetch ALL offers/needs using the pagination-enabled client methods
-  const allOffers = await client.getOffers(group.attributes.code, {
+  const communityOffers = await client.getOffers(group.attributes.code, {
     'filter[status]': 'published',
+    'filter[access]': 'public,group',
     'filter[expired]': 'false',
     sort: '-updated'
   });
-  const allNeeds = await client.getNeeds(group.attributes.code, {
+  const communityNeeds = await client.getNeeds(group.attributes.code, {
     'filter[status]': 'published',
+    'filter[access]': 'public,group',
     'filter[expired]': 'false',
     sort: '-updated'
   });
@@ -192,7 +193,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     // Best offers for me (Using Algorithm)
     const bestOffers = selectBestItems({
       targetMember: member,
-      items: allOffers,
+      items: communityOffers,
       members: memberMap,
       history,
       globalFeaturedIndex,
@@ -202,7 +203,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     // Best needs for me (Using Algorithm)
     const bestNeeds = selectBestItems({
       targetMember: member,
-      items: allNeeds,
+      items: communityNeeds,
       members: memberMap,
       history,
       globalFeaturedIndex,
@@ -225,10 +226,6 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     } catch (e) {
       logger.warn({ err: e }, 'Failed to fetch transfers');
     }
-    // Active/Expired Offers/Needs
-    const activeOffers = allOffers.filter((o: any) => o.relationships.member.data.id === member.id);
-    const activeNeeds = allNeeds.filter((n: any) => n.relationships.member.data.id === member.id);
-
     let expiredOffers: any[] = [];
     try {
       expiredOffers = await client.getOffers(group.attributes.code, {
@@ -242,8 +239,6 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     const accountSection = getAccountSectionData({
       member,
       account,
-      activeOffers,
-      activeNeeds,
       expiredOffers,
       transfers,
       history,
