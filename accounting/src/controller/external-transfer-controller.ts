@@ -285,7 +285,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
       const payment = await this.verifyIncomingPayment(ctx, result.hash, transfer.externalPayer.resource.key, payee)
       await this.commitIncomingPayment(transfer, payment)
     } else if (["pending", "rejected", "failed"].includes(result.state)) {
-      await this.transfers().saveTransferState(transfer, result.state)
+      await this.transfers().applyTransferState(transfer, result.state)
     } else {
       throw badRequest("Invalid external payment response state")
     }
@@ -333,7 +333,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
       await this.commitIncomingPayment(transfer, payment)
     } else if (["rejected", "failed"].includes(data.state)) {
       // The external payer has rejected the payment request
-      await this.transfers().saveTransferState(transfer, data.state)
+      await this.transfers().applyTransferState(transfer, data.state)
     } else {
       throw badRequest("Invalid state for an external transfer update.")
     }
@@ -366,15 +366,15 @@ export class ExternalTransferController extends AbstractCurrencyController {
     if (used) {
       throw badRequest("The payment has already been recorded")
     }
-    // Old incoming POSTs did not store their hash. Older proofs need reconciliation
-    // rather than being accepted again; imported local history has no external link.
+    // Old incoming POSTs did not store their hash due to a bug. We check the ledger transaction
+    // is newer than the last legacy transfer without a recorded hash for this account.
     const legacy = await this.db().transfer.findFirst({
       where: { payeeId: payee.id, state: "committed", hash: null,
         externalTransfer: { is: { externalPayerId: { not: null } } } },
       orderBy: { updated: "desc" }, select: { updated: true }
     })
     if (legacy && payment.created <= legacy.updated) {
-      throw badRequest("Historical external payments without recorded hashes require reconciliation")
+      throw badRequest("The payment could be a duplicate of an older incoming payment without a recorded hash")
     }
     return payment
   }
@@ -383,7 +383,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
   private async commitIncomingPayment(transfer: FullTransfer, payment: LedgerTransfer) {
     transfer.amount = this.currencyController.toIntegerAmount(payment.amount)
     transfer.hash = payment.hash
-    await this.transfers().saveTransferState(transfer, "committed")
+    await this.transfers().applyTransferState(transfer, "committed")
   }
 
   private async updateTransferExternalPayeeLocalUser(ctx: Context, data: UpdateTransfer, transfer: ExternalPayeeTransfer) {
@@ -424,24 +424,24 @@ export class ExternalTransferController extends AbstractCurrencyController {
         (ctx.type === "user" && (userHasAccount(user, transfer.payer) || this.users().isAdmin(user)))
         || (ctx.type === "external" && this.submitExternalPaymentRequestsImmediately(transfer))
       ) {
-        await this.transfers().saveTransferState(transfer, "submitted")
+        await this.transfers().applyTransferState(transfer, "submitted")
         try {
           const transaction = await this.submitTransferExternalPayee(ctx, transfer, user)
           transfer.hash = transaction.hash
-          await this.transfers().saveTransferState(transfer, "committed")
+          await this.transfers().applyTransferState(transfer, "committed")
         } catch (e) {
-          await this.transfers().saveTransferState(transfer, "failed")
+          await this.transfers().applyTransferState(transfer, "failed")
           throw e
         }
       } else if (ctx.type === "external") {
         // In case the transfer was externally initiated but not immediately submitted, save it as 
         // "pending" waiting for the payer to approve it.
-        await this.transfers().saveTransferState(transfer, "pending")
+        await this.transfers().applyTransferState(transfer, "pending")
       } else {
         throw forbidden("User is not allowed to commit this external transfer")
       }
     } else if (state ===  "rejected") {
-      await this.transfers().saveTransferState(transfer, "rejected")
+      await this.transfers().applyTransferState(transfer, "rejected")
     }
     
     // Notify the external server about the transfer if the action was initiated locally. 

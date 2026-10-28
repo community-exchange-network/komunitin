@@ -186,9 +186,10 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
   }
 
   /**
-   * Save settlement facts atomically and emit only the successful state transition.
+   * Update the state of a transfer, hash and user atomically in the db.
+   * Then trigger balance update and transfer state change events on success.
    */
-  public async saveTransferState(transfer: FullTransfer, state: TransferState) {
+  public async applyTransferState(transfer: FullTransfer, state: TransferState) {
     if (transfer.state !== state) {
       const data: Prisma.TransferUncheckedUpdateManyInput = { state, amount: transfer.amount }
 
@@ -200,21 +201,23 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
         data.userId = transfer.user.id
       }
 
-      const { count } = await this.db().transfer.updateMany({
-        data,
-        where: {
-          id: transfer.id,
-          tenantId: this.db().tenantId,
-          state: transfer.state
+      try {
+        const { count } = await this.db().transfer.updateMany({
+          data,
+          where: {
+            id: transfer.id,
+            state: transfer.state
+          }
+        })
+        if (count === 0) {
+          throw badRequest("The transfer state has changed; reload it before updating")
         }
-      }).catch(error => {
+      } catch (error) {
+        // (tenant, hash) unique constraint violation.
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
           throw badRequest("The payment has already been recorded")
         }
         throw error
-      })
-      if (count === 0) {
-        throw badRequest("The transfer state has changed; reload it before updating")
       }
       transfer.state = state
       if (state === "committed") {
@@ -258,22 +261,22 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
         || (userHasAccount(user, transfer.payee) && (await this.submitPaymentRequestImmediately(transfer)))) {
         // We change the transfer user to the one finally commiting the transfer.
         transfer.user = user
-        await this.saveTransferState(transfer, "submitted")
+        await this.applyTransferState(transfer, "submitted")
         try {
           const transaction = await this.submitTransfer(transfer, this.users().isAdmin(user))
           transfer.hash = transaction.hash
-          await this.saveTransferState(transfer, "committed")
+          await this.applyTransferState(transfer, "committed")
         } catch (e) {
-          await this.saveTransferState(transfer, "failed")
+          await this.applyTransferState(transfer, "failed")
           throw e
         }
       } else if (userHasAccount(user, transfer.payee)) {
         // Payment request pending authorization
         if (transfer.authorization) {
-          await this.saveTransferState(transfer, "failed")
+          await this.applyTransferState(transfer, "failed")
           throw forbidden("Invalid authorization")
         } else {
-          await this.saveTransferState(transfer, "pending")
+          await this.applyTransferState(transfer, "pending")
         }
       } else {
         throw forbidden("User is not allowed to commit this transfer")
@@ -284,7 +287,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
       if (userHasAccount(user, transfer.payer)) {
         // Update transfer user to the one rejecting the transfer.
         transfer.user = user
-        await this.saveTransferState(transfer, "rejected")
+        await this.applyTransferState(transfer, "rejected")
       } else {
         throw forbidden("User is not allowed to reject this transfer")
       }
@@ -293,7 +296,7 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
     if (state == "deleted") {
       // Only transfer creator can delete it.
       if (this.users().isAdmin(user) || transfer.user.id == user.id) {
-        await this.saveTransferState(transfer, "deleted")
+        await this.applyTransferState(transfer, "deleted")
       } else {
         throw forbidden("User is not allowed to delete this transfer")
       }
