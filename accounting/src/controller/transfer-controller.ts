@@ -325,11 +325,21 @@ export class TransferControllerImpl  extends AbstractCurrencyController implemen
     }
   }
 
-  public async updateAccountBalances(transfer: FullTransfer) {
-    await Promise.all([
-      this.accounts().updateAccountBalance(transfer.payer),
-      this.accounts().updateAccountBalance(transfer.payee)
-    ])
+  /**
+   * Update the balances of the payer and payee accounts from the ledger.
+   */
+  private async updateAccountBalances(transfer: FullTransfer) {
+    const accounts = [transfer.payer, transfer.payee]
+    await Promise.all(accounts.map(async (account) => {
+      try {
+        return await this.accounts().updateAccountBalance(account)
+      } catch (error) {
+        logger.error(
+          { error, accountId: account.id, transferId: transfer.id },
+          `Failed to update account balance.`
+        )
+      }
+    }))
   }
 
   /**

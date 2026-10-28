@@ -152,7 +152,6 @@ export interface TransfersPublicService {
 
 export interface TransfersService extends TransfersPublicService {
   createTransferRecord(data: InputTransfer, payer: FullAccount, payee: FullAccount, user: User): Promise<FullTransfer>
-  updateAccountBalances(transfer: FullTransfer): Promise<void>
   updateTransferState(transfer: FullTransfer, state: TransferState, user: User): Promise<void>
   applyTransferState(transfer: FullTransfer, state: TransferState): Promise<void>
   checkTransferTransition(transfer: FullTransfer, state: TransferState): void
