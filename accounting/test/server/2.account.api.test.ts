@@ -103,6 +103,25 @@ describe('Accounts endpoints', async () => {
     assert.equal(response.body.data[0].links.self, `${config.API_BASE_URL}/TEST/accounts/${account0.id}`)
   })
 
+  it('requires a single effective lookup filter for anonymous accounts access', async () => {
+    for (const filter of [
+      'filter[id]=',
+      'filter[code]=',
+      'filter[id]=&filter[status]=deleted',
+      'filter[code]=&filter[status]=suspended',
+      `filter[id]=${account0.id},${account1.id}`,
+      'filter[code]=TEST0000,TEST0001',
+      'filter[id][]=',
+      'filter[code][]='
+    ]) {
+      await t.api.get(`/TEST/accounts?${filter}`, undefined, 401)
+    }
+    await t.api.get('/TEST/accounts?filter[id]=', user3, 403)
+    const account = (await t.api.get('/TEST/accounts?filter[code]=TEST0000')).body.data
+    assert.equal(account.length, 1)
+    assert.equal(account[0].id, account0.id)
+  })
+
   await it('user get account', async () => {
     const response1 = await t.api.get('/TEST/accounts?filter[code]=TEST0000', user2)
     assert.equal(response1.body.data.length, 1)
