@@ -128,7 +128,7 @@ const newContactOptions = computed(() => getContactNetworkKeys().map((key) => ({
 const testNewContact = () => {
   if (newContactType.value && newContactName.value) {
     const url = getContactUrl(newContactType.value.value, newContactName.value)
-    window.open(url, '_blank')
+    window.open(url, '_blank', 'noopener')
   }
 }
 
