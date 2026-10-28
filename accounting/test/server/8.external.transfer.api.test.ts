@@ -2,8 +2,10 @@ import assert from "node:assert"
 import { randomUUID } from "node:crypto"
 import { http, HttpResponse } from "msw"
 import { after, before, describe, it } from "node:test"
+import request from "supertest"
 import { config } from "../../src/config"
 import { CurrencyControllerImpl } from "../../src/controller/currency-controller"
+import { createExternalToken } from "../../src/controller/external-jwt"
 import { EventName } from "../../src/controller/features/notificatons"
 import { logger } from "../../src/utils/logger"
 import { CurrencySettings } from "../../src/model"
@@ -102,7 +104,7 @@ describe("External transfers", async () => {
   }
 
   /**
-   * amount in source currency
+   * amount in destination currency
    */
   const waitForPath = async (fromCurrency: any, toCurrency: any, amount: number) => {
     const controller = await t.app.komunitin.service.getCurrencyController(fromCurrency.attributes.code) as CurrencyControllerImpl
@@ -116,6 +118,7 @@ describe("External transfers", async () => {
     })
 
     assert.ok(path, `Path not found from ${fromCurrency.attributes.code} to ${toCurrency.attributes.code}`)
+    return path
   }
 
   await it('set trust to currency', async () => {
@@ -507,6 +510,12 @@ describe("External transfers", async () => {
     assert.equal(updatedCurrency.attributes.rate.n, 2)
     assert.equal(updatedCurrency.attributes.rate.d, 13)
 
+    // Wait for Horizon to reflect the new rate in its payment quotes.
+    await waitFor(async () => {
+      const path = await waitForPath(t.currency, eCurrency, 1000 * (2 / 13) / (1 / 2))
+      return Number(path.sourceAmount) <= 1000 / 10 ** t.currency.attributes.scale
+    }, 'Expected a quote within the approved 1000 TEST')
+
     // Now 1000 TEST = 307 EXTR
     const transfer = await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 1000, "1000 TEST => 307 EXTR after rate update", "committed", t.user1)
     assert.equal(transfer.attributes.amount, 1000)
@@ -524,5 +533,67 @@ describe("External transfers", async () => {
     assert.equal(tTransfer2.attributes.amount, 325) // Exact
     */
 
+  })
+
+  describe('verified incoming settlements', () => {
+    const remoteId = randomUUID()
+    const href = `https://remote.example/accounts/${remoteId}`
+    let controller: CurrencyControllerImpl
+    let hash: string | undefined
+
+    const data = () => {
+      const doc = testTransfer(remoteId, t.account1.id, 100, 'External settlement', 'committed')
+      Object.assign(doc.data.relationships.payer.data, { meta: { external: true, href } })
+      return doc
+    }
+    const credit = async () => (await t.api.get(`/TEST/accounts/${t.account1.id}`, t.user1)).body.data.attributes.creditLimit
+    const pay = async () => {
+      const payer = await controller.ledger.getAccount(t.account2.attributes.key)
+      return await payer.pay({ payeePublicKey: t.account1.attributes.key, amount: controller.toStringAmount(10) }, {
+        account: await controller.keys.retrieveKey(t.account2.attributes.key), sponsor: await controller.keys.sponsorKey()
+      })
+    }
+
+    before(async () => {
+      controller = await t.app.komunitin.service.getCurrencyController('TEST') as CurrencyControllerImpl
+      await t.api.patch('/TEST/currency/settings', { data: { attributes: {
+        defaultOnPaymentCreditLimit: await credit() + 10000
+      } } }, t.admin)
+      addHandlers(
+        http.get(href, () => HttpResponse.json({ data: { ...t.account2, id: remoteId } })),
+        http.get('https://remote.example/currency', () => HttpResponse.json({ data: t.currency })),
+        http.post('https://remote.example/transfers', () => HttpResponse.json({ data: {
+          type: 'transfers', id: randomUUID(), attributes: { state: 'committed', hash }
+        } }, { status: 201 }))
+      )
+    })
+
+    it('requires ledger proof and credits only the settled amount', async () => {
+      const initialCredit = await credit()
+      await t.api.post('/TEST/transfers', data(), t.user1, 400)
+      assert.equal(await credit(), initialCredit)
+
+      hash = (await pay()).hash
+      const settled = (await t.api.post('/TEST/transfers', data(), t.user1)).body.data
+      assert.equal(settled.attributes.state, 'committed')
+      assert.equal(settled.attributes.amount, 10)
+      await waitFor(async () => (await credit()) === initialCredit + 10)
+    })
+
+    it('stores incoming payment hashes and rejects their reuse', async () => {
+      const initialCredit = await credit()
+      const payment = await pay()
+      const token = await createExternalToken(await controller.keys.retrieveKey(t.account2.attributes.key))
+      const doc = data()
+      Object.assign(doc.data.attributes, { hash: payment.hash })
+      const notify = () => request(t.app).post('/TEST/transfers')
+        .set('Authorization', `Bearer ${token}`).set('Content-Type', 'application/vnd.api+json').send(doc)
+
+      const settled = await notify().expect(201)
+      assert.equal(settled.body.data.attributes.hash, payment.hash)
+      await waitFor(async () => (await credit()) === initialCredit + 10)
+      await notify().expect(400)
+      assert.equal(await credit(), initialCredit + 10)
+    })
   })
 })
