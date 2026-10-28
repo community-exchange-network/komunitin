@@ -18,7 +18,7 @@ describe('last-hash auth', async () => {
 
   it('Checks the last-hash header', async () => {
     const response = await t.api.get("/TEST/cc/", { user: null, scopes: [], ccNode: 'trunk', lastHash: 'qwer' }, 401, "application/json")
-    assert.equal(response.text, '{"errors":["value of last-hash header \\"qwer\\" does not match our records."]}')
+    assert.equal(response.text, '{"errors":["last-hash header does not match our records."]}')
   })
 
   it('Checks the cc-node header', async () => {

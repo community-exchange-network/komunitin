@@ -358,7 +358,9 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
     const hash = hashed ? tag : await this.accountTagHash(tag)
     const record = await this.db().accountTag.findFirst({
       where: { hash },
-      include: { account: true }
+      include: {
+        account: { include: { users: { include: { user: true } } } }
+      }
     })
     if (!record || record.account.status !== "active") {
       return undefined
@@ -419,7 +421,8 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
 
     if (isSingleTag) {
       const account = await this.getAccountByTag(ctx, params.filters.tag as string) 
-      return account ? [account] : []
+      const user = await this.users().getUser(ctx)
+      return account ? [this.filterAccount(user, account)] : []
     }
     
     const filter = whereFilter(params.filters)
@@ -601,6 +604,9 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
   }
 
   async updateAccountTags(account: FullAccount, tags: Tag[]) {
+    if (tags.some(tag => tag.id && !account.settings.tags?.some(existing => existing.id === tag.id))) {
+      throw forbidden("Tag does not belong to this account")
+    }
     // Check all tags have name and either value or id (it is ok to update the name of a tag without changing the vaue)
     if (tags.some(t => !t.name || (!t.value && !t.id))) {
       throw badRequest("Tag name and value are required")
@@ -635,7 +641,7 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
       })
       for (const tag of updateTags) {
         await t.accountTag.update({
-          where: { id: tag.id },
+          where: { id: tag.id, accountId: account.id },
           data: { name: tag.name }
         })
       }

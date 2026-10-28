@@ -289,7 +289,7 @@ export class TopupController extends AbstractCurrencyController implements Topup
     
     if (topup.status === "new" && data.status === "canceled") {
       // Allow canceling a new topup
-      await this.updateStatus(topup.id, "canceled")
+      await this.updateStatus(topup.id, "new", "canceled")
     }
     else if (topup.status === "new" && data.status === "pending") {
       try {
@@ -300,15 +300,18 @@ export class TopupController extends AbstractCurrencyController implements Topup
       } catch (e) {
         // Either if validation or payment creation fails, we can
         // safely cancel the topup
-        await this.updateStatus(topup.id, "canceled")
+        await this.updateStatus(topup.id, "new", "canceled")
         throw e
       }
       // Update status to pending
-      await this.updateStatus(topup.id, "pending")
+      await this.updateStatus(topup.id, "new", "pending")
     }
     else if (topup.status === "transfer_failed" && data.status === "transfer_completed") {
       // Allow retrying the transfer
-      await this.makeTransferForTopup(topup)
+      const claimed = await this.updateStatus(topup.id, "transfer_failed", "payment_completed")
+      if (claimed) {
+        await this.makeTransferForTopup(topup.id)
+      }
     }
     return this.getTopup(ctx, topup.id)
   }
@@ -357,9 +360,8 @@ export class TopupController extends AbstractCurrencyController implements Topup
     await this.updatePaymentData(topup, payment)
   }
 
-  
-
-  async updatePaymentData(topup: Topup, payment: Payment): Promise<Topup> {
+  /** Save provider details and return whether this call claimed transfer processing. */
+  async updatePaymentData(topup: Topup, payment: Payment) {
     const updateData: Partial<Topup> = {}
     
     if (topup.depositCurrency !== payment.amount.currency) {
@@ -399,12 +401,16 @@ export class TopupController extends AbstractCurrencyController implements Topup
       }
     }
 
-    const record = await this.db().topup.update({
-      where: { id: topup.id },
+    // Persist paid details and claim processing together; delayed responses cannot reset progress.
+    const result = await this.db().topup.updateMany({
+      where: {
+        id: topup.id,
+        tenantId: this.db().tenantId,
+        status: topup.status
+      },
       data: nullToPrismaDBNull(updateData)
     })
-
-    return recordToTopup(record, topup.account, topup.transfer, topup.user)
+    return result.count === 1 && updateData.status === "payment_completed"
   }
 
   async handleMollieWebhook(topupId: string, data: {id: string}): Promise<{ status: string }> {
@@ -428,11 +434,10 @@ export class TopupController extends AbstractCurrencyController implements Topup
     // If that throws for any reason, we let it propagate to return a 500 to Mollie so it retries.
     const payment = await mollieClient.payments.get(data.id)
 
-    const updatedTopup = await this.updatePaymentData(topup, payment)
+    const claimed = await this.updatePaymentData(topup, payment)
 
-    if (topup.status === "pending" && payment.status === "paid") {
-      // Make the transfer      
-      this.unhandledMakeTransferForTopup(updatedTopup)
+    if (claimed) {
+      this.unhandledMakeTransferForTopup(topupId)
     }
 
     return { status: "ok" }
@@ -440,10 +445,9 @@ export class TopupController extends AbstractCurrencyController implements Topup
 
   /**
    * Makes the transfer for the topup, without awaiting it nor throwing errors.
-   * @param topupId 
    */
-  private unhandledMakeTransferForTopup(topup: Topup) {
-    this.makeTransferForTopup(topup).catch((error) => {
+  private unhandledMakeTransferForTopup(id: string) {
+    this.makeTransferForTopup(id).catch((error) => {
       logger.error(error)
     })
   }
@@ -468,8 +472,10 @@ export class TopupController extends AbstractCurrencyController implements Topup
     return sourceAccount
   }
 
-  private async makeTransferForTopup(topup: Topup) {
+  /** Process a topup after the caller has claimed its payment_completed state. */
+  private async makeTransferForTopup(id: string) {
     try {
+      const topup = await this.getTopup(systemContext(), id)
       const admin = this.currency().admin
       const sourceAccount = await this.ensureTopupCredit(topup)
 
@@ -504,10 +510,7 @@ export class TopupController extends AbstractCurrencyController implements Topup
         data: { transferId: topup.transfer.id }
       })
 
-      if (topup.transfer.state === "committed") {
-        // Transfer already committed
-        return
-      } else if (topup.transfer.state === "new") {
+      if (topup.transfer.state === "new") {
         // Process the transfer
         topup.transfer = await this.transfers().updateTransfer(systemContext(), {
           id: topup.transfer.id,
@@ -517,23 +520,24 @@ export class TopupController extends AbstractCurrencyController implements Topup
 
       // Update topup status
       if (topup.transfer.state === "committed") {
-        await this.updateStatus(topup.id, "transfer_completed")
+        await this.updateStatus(id, "payment_completed", "transfer_completed")
       } else if (topup.transfer.state === "failed") {
-        await this.updateStatus(topup.id, "transfer_failed")
+        await this.updateStatus(id, "payment_completed", "transfer_failed")
       } else {
         throw internalError(`Unexpected transfer state ${topup.transfer.state} after committing transfer for topup ${topup.id}`)
       }
     } catch (e) {
       // If anything fails, we set the topup to transfer_failed so it can be retried
-      await this.updateStatus(topup.id, "transfer_failed")
+      await this.updateStatus(id, "payment_completed", "transfer_failed")
       throw e
     }
   }
 
-  private async updateStatus(id: string, status: TopupStatus): Promise<void> {
-    await this.db().topup.update({
-      where: { id },
-      data: { status }
+  private async updateStatus(id: string, expectedStatus: TopupStatus, nextStatus: TopupStatus) {
+    const result = await this.db().topup.updateMany({
+      where: { id, tenantId: this.db().tenantId, status: expectedStatus },
+      data: { status: nextStatus }
     })
+    return result.count === 1
   }
 }
