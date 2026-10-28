@@ -203,6 +203,14 @@ test('enforces missing-file, byte, row, and error-reporting limits', async () =>
   assert.deepStrictEqual(resultCodes(truncated), ['INVALID_EMAIL', 'ERROR_LIMIT_EXCEEDED'])
 })
 
+test('stops parsing at the shared row budget before an oversized CSV tail', async () => {
+  const files = await loadExampleFiles()
+  // The first two files exhaust the budget. The excess file must stop before its invalid tail.
+  files.set('users.csv', Buffer.from('email\r\n' + '\r\n'.repeat(1_000_000) + '"unterminated'))
+  const result = await parseMigrationBundle({ type: 'zip', bytes: await zipFromFiles(files) }, { maxRows: 2 })
+  assert.deepStrictEqual(resultCodes(result), ['ROW_LIMIT_EXCEEDED'])
+})
+
 test('preserves compatible password hashes and rejects unsupported credentials without echoing them', async (t) => {
   const example = await loadExampleFiles()
   const records = parse(example.get('users.csv')!.toString('utf8')) as string[][]
