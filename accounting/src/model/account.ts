@@ -102,8 +102,8 @@ export type AccountSettings = {
   acceptPaymentsAfter?: number
 
   /** 
-  * If acceptPaymentsAutomatically is false, this is a list of account id's
-  * for which payments are automatically accepted. Work for external accounts too.
+  * If acceptPaymentsAutomatically is false, this is a list of local account IDs
+  * whose transfer requests are automatically accepted.
   * */
   acceptPaymentsWhitelist?: string[]
 

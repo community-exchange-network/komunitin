@@ -516,10 +516,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
    * Whether an external payment request can be automatically submitted without manual approval.
    */
   private submitExternalPaymentRequestsImmediately(transfer: ExternalPayeeTransfer) {
-    const whitelist = transfer.payer.settings.acceptPaymentsWhitelist ?? this.currency().settings.defaultAcceptPaymentsWhitelist
-
-    return (transfer.payer.settings.acceptExternalPaymentsAutomatically ?? this.currency().settings.defaultAcceptExternalPaymentsAutomatically)
-      || (whitelist && whitelist.includes(transfer.externalPayee.id))
+    return transfer.payer.settings.acceptExternalPaymentsAutomatically ?? this.currency().settings.defaultAcceptExternalPaymentsAutomatically
   }
 
   private buildTransfersEndpoint(account: ExternalResource<Account>) {

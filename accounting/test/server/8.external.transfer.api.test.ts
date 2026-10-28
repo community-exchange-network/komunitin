@@ -596,4 +596,86 @@ describe("External transfers", async () => {
       assert.equal(await credit(), initialCredit + 10)
     })
   })
+
+  it('creates concurrent transfers to the same uncached external account', { timeout: 10000 }, async () => {
+    const id = randomUUID()
+    const href = `https://peer.example/accounts/${id}`
+    const waiting: (() => void)[] = []
+    addHandlers(http.get(href, async () => {
+      // Both lookups must miss the cache before either fetch completes.
+      await new Promise<void>(resolve => {
+        waiting.push(resolve)
+        if (waiting.length === 2) waiting.forEach(resolve => resolve())
+      })
+      return HttpResponse.json({ data: { ...t.account2, id } })
+    }))
+    const doc = testTransfer(t.account1.id, id, 1, 'Concurrent external transfers', 'new')
+    Object.assign(doc.data.relationships.payee.data, { meta: { external: true, href } })
+
+    const responses = await Promise.all([
+      t.api.post('/TEST/transfers', doc, t.user1),
+      t.api.post('/TEST/transfers', doc, t.user1)
+    ])
+    assert.notEqual(responses[0].body.data.id, responses[1].body.data.id)
+    for (const response of responses) {
+      assert.equal(response.body.data.relationships.payee.data.id, id)
+      assert.equal(response.body.data.relationships.payee.data.meta.href, href)
+    }
+  })
+
+  it('pins external identities and ignores whitelists for immediate external approval', async () => {
+    const href = `https://peer.example/accounts/${t.account2.id}`
+    const otherHref = `https://other.example/accounts/${t.account2.id}`
+    addHandlers(
+      http.get('https://peer.example/accounts/:id', ({ params }) =>
+        HttpResponse.json({ data: { ...t.account2, id: params.id } })),
+      http.get(otherHref, () => HttpResponse.json({ data: t.account2 }))
+    )
+
+    // A claimed account UUID must not overwrite an already trusted currency.
+    const collision = testTransfer(eAccount1.id, t.currency.id, 1, 'Identity collision', 'new')
+    Object.assign(collision.data.relationships.payee.data, {
+      meta: { external: true, href: `https://peer.example/accounts/${t.currency.id}` }
+    })
+    await t.api.post('/EXTR/transfers', collision, eUser1, 400)
+
+    const doc = testTransfer(t.account1.id, t.account2.id, 1, 'Pinned external identity', 'new')
+    const payee = Object.assign(doc.data.relationships.payee.data, { meta: { external: true, href } })
+    await t.api.post('/TEST/transfers', doc, t.user1)
+    const controller = await t.app.komunitin.service.getCurrencyController('TEST') as CurrencyControllerImpl
+    await controller.db.externalResource.update({
+      where: { tenantId_id: { tenantId: 'TEST', id: t.account2.id } }, data: { updated: new Date(0) }
+    })
+    payee.meta.href = otherHref
+    await t.api.post('/TEST/transfers', doc, t.user1, 400)
+    payee.meta.href = href
+
+    await t.api.patch('/TEST/currency/settings', { data: { attributes: {
+      enableExternalPaymentRequests: true
+    } } }, t.admin)
+    const settings = { acceptPaymentsWhitelist: [t.account2.id], acceptExternalPaymentsAutomatically: false,
+      allowExternalPaymentRequests: true }
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, { data: { attributes: settings } }, t.admin)
+    const token = await createExternalToken(await controller.keys.retrieveKey(t.account2.attributes.key))
+    doc.data.attributes.state = 'committed'
+    const notify = () => request(t.app).post('/TEST/transfers')
+      .set('Authorization', `Bearer ${token}`).set('Content-Type', 'application/vnd.api+json').send(doc)
+    const balance = (await t.api.get(`/TEST/accounts/${t.account1.id}`, t.user1)).body.data.attributes.balance
+    const pending = await notify()
+    assert.equal(pending.status, 201, pending.text)
+    assert.equal(pending.body.data.attributes.state, 'pending')
+
+    // Exercise currency defaults without an account-level whitelist.
+    await controller.db.account.update({
+      where: { id: t.account1.id },
+      data: { settings: { acceptExternalPaymentsAutomatically: false, allowExternalPaymentRequests: true } }
+    })
+    await t.api.patch('/TEST/currency/settings', { data: { attributes: {
+      defaultAcceptPaymentsWhitelist: [t.account2.id]
+    } } }, t.admin)
+    const defaultWhitelisted = await notify()
+    assert.equal(defaultWhitelisted.status, 201, defaultWhitelisted.text)
+    assert.equal(defaultWhitelisted.body.data.attributes.state, 'pending')
+    assert.equal((await t.api.get(`/TEST/accounts/${t.account1.id}`, t.user1)).body.data.attributes.balance, balance)
+  })
 })
