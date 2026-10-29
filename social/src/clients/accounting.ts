@@ -20,7 +20,7 @@ type JsonApiResourceIdentifier = {
 type JsonApiResource = JsonApiResourceIdentifier & {
   attributes?: Record<string, unknown>
   relationships?: Record<string, {
-    data: JsonApiResourceIdentifier | JsonApiResourceIdentifier[] | null
+    data?: JsonApiResourceIdentifier | JsonApiResourceIdentifier[] | null
   }>
   links: {
     self: string
@@ -53,7 +53,7 @@ export type Account = {
   type: "accounts"
   code: string
   status: AccountStatus
-  users: { data: JsonApiResourceIdentifier[] }
+  users: JsonApiResourceIdentifier[]
   balance?: number
   [key: string]: unknown
 }
@@ -80,14 +80,17 @@ const parseJsonBody = async <T>(response: Response): Promise<T | undefined> => {
     : undefined
 }
 
-// Merge attributes and relationships into top-level of resource for convenience.
+// Merge attributes and relationship data into top-level of resource for convenience.
 const toResource = (data: JsonApiResource | JsonApiResource[] | undefined) => {
   if (Array.isArray(data)) {
     throw internalError('Expected single resource but got an array')
   }
   if (typeof data === 'object' && data !== null && 'id' in data && 'type' in data) {
     const { attributes, relationships, links, ...resource } = data as JsonApiResource
-    return { ...resource, ...attributes, ...relationships, href: links.self }
+    const relationshipData = Object.fromEntries(
+      Object.entries(relationships ?? {}).map(([name, relationship]) => [name, relationship.data]),
+    )
+    return { ...resource, ...attributes, ...relationshipData, href: links.self }
   }
   return undefined
 }
