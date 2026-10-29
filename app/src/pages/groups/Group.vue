@@ -37,7 +37,7 @@
 
         <div
           v-if="group"
-          class="row"
+          class="row q-pb-md"
         >
           <!-- image -->
           <div class="col-4 q-px-md">
@@ -81,7 +81,7 @@
         <!-- sub-page navigation -->
         <nav
           v-if="group && own"
-          class="row q-col-gutter-md q-py-md"
+          class="row q-col-gutter-md q-pb-md"
         >
           <router-link
             :to="`/groups/${code}/members`"
