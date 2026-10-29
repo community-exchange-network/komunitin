@@ -8,54 +8,56 @@
       padding 
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
     >
-      <q-form
-        v-if="!done"
-        @submit="submit"
-      >
-        <div class="q-pb-lg">
-          <div class="text-subtitle1">
-            {{ $t('newGroup') }}
+      <div class="q-pa-md bg-surface rounded-borders shadow-2">
+        <q-form
+          v-if="!done"
+          @submit="submit"
+        >
+          <div class="q-pb-lg">
+            <div class="text-subtitle1">
+              {{ $t('newGroup') }}
+            </div>
+            <div class="text-onsurface-m">
+              {{ $t('newGroupText') }}
+            </div>
           </div>
-          <div class="text-onsurface-m">
-            {{ $t('newGroupText') }}
+          <edit-group-form 
+            ref="editGroupForm"
+            v-if="group"
+            v-model:group="group"
+            v-model:contacts="contacts"
+            v-model:currency="currency"
+            :op="createdGroup ? 'edit' : 'create'"
+          />
+          <q-btn
+            class="q-mt-lg q-mx-auto"
+            :label="$t('requestNewGroup')"
+            color="primary"
+            unelevated
+            :loading="loading"
+            type="submit"
+          />
+        </q-form>
+        <template v-else>
+          <div class="q-pb-lg">
+            <div class="text-subtitle1">
+              {{ $t('newGroup') }}
+            </div>
+            <div class="text-onsurface-m">
+              {{ $t('newGroupRequestedText', {name: group.attributes.name}) }}
+            </div>
+            <div class="q-mt-lg">
+              <q-btn
+                class="q-mx-auto"
+                :label="$t('back')"
+                color="primary"
+                flat
+                @click="$router.push('/')"
+              />
+            </div>
           </div>
-        </div>
-        <edit-group-form 
-          ref="editGroupForm"
-          v-if="group"
-          v-model:group="group"
-          v-model:contacts="contacts"
-          v-model:currency="currency"
-          :op="createdGroup ? 'edit' : 'create'"
-        />
-        <q-btn
-          class="q-mt-lg q-mx-auto"
-          :label="$t('requestNewGroup')"
-          color="primary"
-          unelevated
-          :loading="loading"
-          type="submit"
-        />
-      </q-form>
-      <template v-else>
-        <div class="q-pb-lg">
-          <div class="text-subtitle1">
-            {{ $t('newGroup') }}
-          </div>
-          <div class="text-onsurface-m">
-            {{ $t('newGroupRequestedText', {name: group.attributes.name}) }}
-          </div>
-          <div class="q-mt-lg">
-            <q-btn
-              class="q-mx-auto"
-              :label="$t('back')"
-              color="primary"
-              flat
-              @click="$router.push('/')"
-            />
-          </div>
-        </div>
-      </template>
+        </template>
+      </div>
     </q-page>
   </q-page-container>
 </template>
