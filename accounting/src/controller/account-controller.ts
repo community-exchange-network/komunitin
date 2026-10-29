@@ -402,9 +402,9 @@ export class AccountControllerImpl extends AbstractCurrencyController implements
   async getAccounts(ctx: Context, params: CollectionOptions): Promise<Account[]> {
     const filter = whereFilter(params.filters)
     // Anonymous users can access this endpoint if they provide an single id, code or tag filter. 
-    const isSingleCode = typeof params.filters?.code === 'string' && typeof filter.code === 'string'
+    const isSingleCode = typeof filter.code === 'string'
     const isSingleTag = (typeof params.filters?.tag === 'string')
-    const isSingleId = typeof params.filters?.id === 'string' && typeof filter.id === 'string'
+    const isSingleId = typeof filter.id === 'string'
     
     const allowAnonymous = isSingleCode || isSingleTag || isSingleId
 
