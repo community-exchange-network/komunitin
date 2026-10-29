@@ -267,7 +267,7 @@ export class StellarLedger implements Ledger {
         transaction = inner
       }
       
-      return await this.submitTransactionWithRetry(transaction)
+      return await this.submitTransactionWithAccountLock(transaction)
       
     } catch (error) {
       if (this.isFeeError(error)) {
@@ -304,8 +304,8 @@ export class StellarLedger implements Ledger {
    * Returns whether there is a pending transaction currently being submitted  
    * with the given account as the transaction source.  
    *  
-   * "pending transaction" here means a locally tracked submission attempt that 
-   * has not completed yet.
+   * "pending transaction" here means a locally tracked submission, including
+   * retries, that has not completed yet.
    */  
   public hasPendingTransaction(accountId: string): boolean {
     return this.concurrentTransactions[accountId] !== undefined
@@ -320,7 +320,7 @@ export class StellarLedger implements Ledger {
    */
   private async submitTransactionWithRetry(transaction: Transaction<Memo<MemoType>, Operation[]> | FeeBumpTransaction, timeout: number = 200): Promise<Horizon.HorizonApi.TransactionResponse> {
     try {
-      return await this.submitTransactionWithAccountLock(transaction)
+      return await this.submitTransactionWithRateLimiting(transaction)
     } catch (error) {
       if (this.isNonRetryError(error)) {
         throw this.getTransactionError(transaction, error)
@@ -362,8 +362,8 @@ export class StellarLedger implements Ledger {
       return await this.submitTransactionWithAccountLock(transaction)
     } else {
       try {
-        // lock
-        this.concurrentTransactions[key] = this.submitTransactionWithRateLimiting(transaction)
+        // Keep the lock through retries so later sequence numbers cannot overtake this transaction.
+        this.concurrentTransactions[key] = this.submitTransactionWithRetry(transaction)
         logger.debug(`Submitting transaction from ${key}`)
         // operation
         const result = await this.concurrentTransactions[key]
