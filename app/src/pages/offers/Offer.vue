@@ -26,11 +26,31 @@
         />
       </template>
     </page-header>
+    <!-- A layout footer, so that floating buttons from the slot sit above it. -->
+    <q-footer
+      v-if="offer && isReady"
+      class="bg-light shadow-2"
+    >
+      <q-toolbar class="justify-center q-gutter-x-md">
+        <share-button
+          outline
+          color="primary"
+          :label="$t('share')"
+          :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
+          :text="`${offer.attributes.title}\n${offer.attributes.description}`"
+        />
+        <contact-button
+          unelevated
+          color="primary"
+          :label="$t('contact')"
+          :contacts="offer.member.attributes.contacts"
+        />
+      </q-toolbar>
+    </q-footer>
     <q-page-container>
       <q-page
         v-if="offer && isReady"
         class="q-pa-md"
-        style="padding-bottom:100px;"
       >
         <offer-layout :num-images="offer.attributes.images.length">
           <template #member>
@@ -105,24 +125,7 @@
             </q-card>
           </template>
         </offer-layout>
-        <q-page-sticky expand position="bottom" class="shadow-2">
-          <q-toolbar class="bg-light full-width justify-center q-gutter-x-md">
-            <share-button 
-              outline
-              color="primary"
-              :label="$t('share')"
-              :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
-              :text="`${offer.attributes.title}\n${offer.attributes.description}`"
-              />
-              <contact-button
-              unelevated
-              color="primary"
-              :label="$t('contact')"
-              :contacts="offer.member.attributes.contacts"
-            /> 
-          </q-toolbar>
-        </q-page-sticky>
-        <slot 
+        <slot
           name="after" 
           :offer="offer" 
         />
