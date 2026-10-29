@@ -340,6 +340,7 @@ export const createPost = (type: PostType, opts: {
       images: [{ url: faker.image.url() }],
       code: opts.code,
       status: 'published',
+      access: 'public',
       created: created.toISOString(),
       updated: created.toISOString(),
       expires: postDefaults[type].expires.toISOString(),
