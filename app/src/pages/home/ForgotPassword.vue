@@ -12,8 +12,9 @@
     </div>
     <q-input
       v-model="email"
-      outlined
-      dark
+      standout
+      class="input-standout-light"
+      bg-color="white"
       type="email"
       placeholder="example@example.com"
       :label="$t('email')"

@@ -23,6 +23,7 @@
       <form v-else @submit.prevent="onSubmit">
         <password-field
           v-model="newPassword"
+          class="input-standout-light"
           :label="$t('newPassword')"
           :hint="$t('newPasswordHint')"
           :min-length="8"

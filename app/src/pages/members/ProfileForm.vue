@@ -23,7 +23,8 @@
         name="name"
         :label="$t('name')"
         :hint="$t('nameHint')"
-        outlined
+        standout
+        class="input-standout-light"
         required
         :rules="[(v) => !!v || $t('nameRequired')]"
       >
@@ -40,7 +41,8 @@
         name="description"
         :label="$t('bio')"
         :hint="$t('bioHint')"
-        outlined
+        standout
+        class="input-standout-light"
         autogrow
         input-style="min-height: 100px;"
       >
@@ -58,7 +60,8 @@
           name="email"
           :label="$t('email')"
           :hint="$t('emailHint')"
-          outlined
+          standout
+          class="input-standout-light"
           required
           disable
         >
@@ -101,7 +104,8 @@
         type="text"
         name="address"
         :label="$t('address')"
-        outlined
+        standout
+        class="input-standout-light"
         bottom-slots
       />
       <q-input
@@ -109,7 +113,8 @@
         type="text"
         name="postalCode"
         :label="$t('postalCode')"
-        outlined
+        standout
+        class="input-standout-light"
         required
         :rules="[(v) => !!v || $t('fieldRequired')]"
       />
@@ -118,7 +123,8 @@
         type="text"
         name="city"
         :label="$t('city')"
-        outlined
+        standout
+        class="input-standout-light"
         required
         :rules="[(v) => !!v || $t('fieldRequired')]"
       />
@@ -127,14 +133,16 @@
         type="text"
         name="region"
         :label="$t('region')"
-        outlined
+        standout
+        class="input-standout-light"
         required
         :rules="[(v) => !!v || $t('fieldRequired')]"
       />
       <country-chooser
         v-model="country"
         :label="$t('country')"
-        outlined
+        standout
+        class="input-standout-light"
         dropdown-icon="expand_more"
         required
       />

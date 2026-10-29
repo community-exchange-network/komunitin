@@ -93,7 +93,8 @@
               v-model="filter"
               debounce="300"
               :placeholder="$t('search')"
-              outlined
+              standout
+              class="input-standout-light"
               dense
               style="min-width: 200px"
             >
@@ -110,7 +111,8 @@
                 map-options
                 option-value="name"
                 :display-value="$t('columns')"
-                outlined
+                standout
+                class="input-standout-light"
                 dense
                 options-cover
                 style="min-width: 200px"

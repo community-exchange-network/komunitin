@@ -3,7 +3,8 @@
     <q-input
       v-model="iconFilter"
       :label="$t('searchIcon')"
-      outlined
+      standout
+      class="input-standout-light"
       debounce="300"
     >
       <template #append>

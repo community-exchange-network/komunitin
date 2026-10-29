@@ -17,7 +17,8 @@
       name="name"
       :label="$t('name')"
       :hint="$t('nameHint')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules="[(v) => !!v || $t('nameRequired')]"
     />
@@ -26,11 +27,13 @@
       name="email"
       :label="$t('email')"
       :hint="$t('emailChangeHint')"
-      outlined
+      standout
+      class="input-standout-light"
       :rules="[() => !v$.email.$invalid || $t('invalidEmail')]"
     />
     <password-field
       v-model="password"
+      class="input-standout-light"
       name="password"
       :min-length="8"
       :label="$t('newPassword')"

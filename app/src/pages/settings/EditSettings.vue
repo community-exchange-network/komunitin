@@ -23,7 +23,8 @@
         </div>
         <q-select
           v-model="language"
-          outlined
+          standout
+          class="input-standout-light"
           :options="langOptions"
           :label="$t('language')"
         />

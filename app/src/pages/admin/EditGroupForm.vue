@@ -12,7 +12,8 @@
       v-model="name"
       type="text"
       :label="$t('groupName')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules = "[v => !!v || $t('fieldRequired')]"
     />
@@ -22,7 +23,8 @@
       :label="$t('groupCode')"
       :hint="$t('groupCodeHint')"
       mask="XXXX"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :disable="props.op === 'edit'"
       :debounce="500"
@@ -33,7 +35,8 @@
       type="textarea"
       :label="$t('description')"
       :hint="$t('descriptionHint')"
-      outlined 
+      standout
+      class="input-standout-light"
       autogrow 
       input-style="min-height: 100px;"
       :rules = "[v => !!v || $t('fieldRequired')]"
@@ -49,7 +52,8 @@
       v-model="city"
       type="text"
       :label="$t('city')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules = "[v => !!v || $t('fieldRequired')]"
     />
@@ -58,14 +62,16 @@
       type="text"
       name="region"
       :label="$t('region')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules = "[v => !!v || $t('fieldRequired')]"
     />
     <country-chooser
       v-model="country"
       :label="$t('country')"
-      outlined
+      standout
+      class="input-standout-light"
       required
     />
     <member-contacts-field v-model="contacts" />
@@ -81,7 +87,8 @@
       v-model="currencyName"
       type="text"
       :label="$t('currencyName')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules = "[v => !!v || $t('fieldRequired')]"
     />
@@ -89,7 +96,8 @@
       v-model="currencyNamePlural"
       type="text"
       :label="$t('currencyNamePlural')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules = "[v => !!v || $t('fieldRequired')]"
     />
@@ -97,7 +105,8 @@
       v-model="currencySymbol"
       type="text"
       :label="$t('currencySymbol')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       hide-bottom-space
       :rules="[(val: string) => val.length > 0 && val.length <= 3 || $t('invalidValue')]"
@@ -106,7 +115,8 @@
       v-model.number="decimals"
       type="number"
       :label="$t('decimals')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules="[(val: number) => val >= 0 && val <= 6 || $t('invalidValue')]"
     />

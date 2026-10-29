@@ -21,10 +21,10 @@
       <q-input
         v-if="copyDescription"
         v-model="description"
-        class="q-mt-md"
+        class="input-standout-light q-mt-md"
         :label="$t('description')"
         :hint="$t('transactionDescriptionHint')"
-        outlined
+        standout
         required
         :rules="[() => (description !== '') || $t('ErrorDescriptionRequired')]"
       />

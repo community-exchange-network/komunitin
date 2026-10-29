@@ -24,7 +24,8 @@
         :label="$t('selectPayer')"
         :hint="$t('transactionPayerHint')"
         :rules="[() => !v$.payerAccount?.$error || $t('payerRequired')]"
-        outlined
+        standout
+        class="input-standout-light"
         @blur="v$.payerAccount?.$touch()"
       />
       <select-account
@@ -38,7 +39,8 @@
         :label="$t('selectPayee')"
         :hint="$t('transactionPayeeHint')"
         :rules="[() => !v$.payeeAccount?.$error || $t('payeeRequired')]"
-        outlined
+        standout
+        class="input-standout-light"
         @blur="v$.payeeAccount?.$touch()"
       />
       <q-input 
@@ -46,7 +48,8 @@
         name="description"  
         :label="$t('description')" 
         :hint="$t('transactionDescriptionHint')" 
-        outlined
+        standout
+        class="input-standout-light"
         autogrow 
         required
         :rules="[() => !v$.concept.$invalid || $t('ErrorDescriptionRequired')]"
@@ -63,7 +66,8 @@
         name="amount"
         :label="$t('amountIn', {currency: myCurrency.attributes.namePlural})"
         :hint="$t('transactionAmountHint')"
-        outlined
+        standout
+        class="input-standout-light"
         input-class="text-weight-regular text-onsurface"
         required
         :rules="[
@@ -79,7 +83,8 @@
         :model-value="otherAmount"
         readonly
         disabled
-        outlined
+        standout
+        class="input-standout-light"
         input-class="text-weight-regular text-onsurface-m"
         :label="$t('amountIn', {currency: otherCurrency.attributes.namePlural})"
       >

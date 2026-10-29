@@ -71,13 +71,15 @@
         <q-input
           v-model="tagName"
           :label="$t('name')"
-          outlined
+          standout
+          class="input-standout-light"
         />
         <nfc-tag-input 
           v-model="tagValue"
           :label="$t('nfcTag')"
           :hint="$t('nfcTagHint')"
-          outlined
+          standout
+          class="input-standout-light"
         />
       </q-card-section>
       <q-card-section align="right">

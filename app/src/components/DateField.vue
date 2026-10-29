@@ -6,8 +6,7 @@
     label-slot
     :hint="hint"
     :placeholder="localFormat"
-    outlined
-    v-bind="filterProps"
+    v-bind="styleProps"
     clear-icon="close"
     required
     @blur="commitDraftDate"
@@ -73,11 +72,15 @@ const emit = defineEmits<{
 }>()
 const { t } = useI18n()
 
-const filterProps = computed(() => props.filter ? {
+const styleProps = computed(() => props.filter ? {
+  outlined: true,
   bgColor: "surface-container-h",
   inputClass: "text-muted text-weight-medium",
-  class: "commons-input"
-} : {})
+  class: "input-outlined-pale"
+} : {
+  standout: true,
+  class: "input-standout-light"
+})
 
 const pickerMask = "YYYY/MM/DD" // this is the format for QDate component
 const pickerFormat = "yyyy/MM/dd" // this is the same format for date-fns

@@ -6,7 +6,7 @@
         Start a migration
       </div>
       <p>Upload a community CSV ZIP bundle to import users, accounts, history and marketplace data.</p>
-      <q-file v-model="bundle" label="Community bundle (.zip)" accept=".zip" outlined :disable="running" />
+      <q-file v-model="bundle" label="Community bundle (.zip)" accept=".zip" standout class="input-standout-light" :disable="running" />
       <q-btn class="q-my-md" color="primary" label="Import community" :loading="running" :disable="!bundle" @click="submitMigration" />
       <q-banner v-if="error" class="bg-negative text-white">{{ error }}</q-banner>
     </q-page>

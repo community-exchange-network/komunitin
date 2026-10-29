@@ -12,7 +12,8 @@
         v-model="email"
         :label="$t('email')"
         :hint="$t('emailChangeHint')"
-        outlined
+        standout
+        class="input-standout-light"
         :rules="[() => !v$.email.$invalid || $t('invalidEmail')]"
       />
     </template>

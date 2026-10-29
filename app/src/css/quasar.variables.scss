@@ -36,6 +36,8 @@ $moss-light     : #97BC4E;
 $wheat          : #E8C87A;
 $wheat-soft     : #F2DFA8;   // accent muted — chip active bg etc.
 
+$pale-sandstone : #C8B89A; 
+
 $parchment      : #FDFAF4;   // app background
 $linen          : #F5EFE4;   // filter bar background
 $linen-dark     : #F0E8DA;   // summary bar, card hover
@@ -245,7 +247,7 @@ $rating-grade-color : #E8C87A;  // Wheat — natural amber star colour
 // ============================================================
 
 $divider        : rgba(30, 26, 20, 0.08);
-$chip-border    : #C8B89A;
+$chip-border    : $pale-sandstone;
 
 // Typography scale (display sizes, complementing Quasar's $headings)
 $display-serif-family : 'Lora', Georgia, 'Times New Roman', serif;

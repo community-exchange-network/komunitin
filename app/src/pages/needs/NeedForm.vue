@@ -22,7 +22,8 @@
         name="description"  
         :label="$t('description')" 
         :hint="$t('needDescriptionHint')" 
-        outlined 
+        standout
+        class="input-standout-light"
         autogrow 
         required
         input-style="min-height: 100px;"

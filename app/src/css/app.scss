@@ -133,7 +133,7 @@
   background: $light-background;
 }
 // Remove borders from rounded outlined inputs.
-.input-borderless {
+.input-outlined-borderless {
   &.q-field--outlined {
     .q-field__control:before {
       border: none !important;
@@ -144,17 +144,47 @@
   }
 }
 // Warm palette borders for outlined fields, as Quasar hardcodes neutral black ones.
-.q-field--outlined .q-field__control {
-  &:before {
-    border-color: $soil-muted;
+.input-outlined-soil {
+  .q-field--outlined .q-field__control {
+    &:before {
+      border-color: $soil-muted;
+    }
+
+    &:hover:before {
+      border-color: $soil-secondary;
+    }
   }
-  &:hover:before {
-    border-color: $soil-secondary;
+}
+// Soft standout fields: palette backgrounds, one step darker on focus, without
+// Quasar's inverted (white on dark) focus colors.
+.input-standout-light {
+  &.q-field--standout {
+    .q-field__control {
+      background: $light-background;
+    }
+
+    &.q-field--highlighted {
+      .q-field__control {
+        background: $background;
+      }
+
+      .q-field__native,
+      .q-field__prefix,
+      .q-field__suffix,
+      .q-field__input {
+        color: $input-text-color;
+      }
+
+      .q-field__prepend,
+      .q-field__append {
+        color: $icon-dark;
+      }
+    }
   }
 }
 // 'Commons' input style: no resting border, but custom border on hover and focus. 
 // Quasar doesn't allow us to achieve this style using component api and scss variables only.
-.commons-input {
+.input-outlined-pale {
   &.q-field--outlined .q-field__control:before {
     border: 1.5px solid transparent !important;
   }

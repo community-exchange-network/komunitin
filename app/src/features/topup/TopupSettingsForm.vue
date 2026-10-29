@@ -49,7 +49,8 @@
     <q-input
       v-model="depositCurrency"
       :label="t('topupDepositCurrency')"
-      outlined
+      standout
+      class="input-standout-light"
       readonly
       required
     />
@@ -57,7 +58,8 @@
     <q-input
       v-model="paymentProvider"
       :label="t('topupPaymentProvider')"
-      outlined
+      standout
+      class="input-standout-light"
       readonly
       required
     />
@@ -70,7 +72,8 @@
         depositCurrency: depositCurrency,
         receiveCurrency: currency.attributes.symbol
       })"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules="[(val: string) => /^\d+(\/\d+)?$/.test(val) || t('topupRateInvalid')]"
       hide-bottom-space
@@ -84,7 +87,8 @@
       v-model="minAmountInput"
       :label="t('topupMinAmount')"
       :hint="t('topupMinAmountHint')"
-      outlined
+      standout
+      class="input-standout-light"
       required
     >
       <template #append>
@@ -96,7 +100,8 @@
       v-model="maxAmountInput"
       :label="t('topupMaxAmount')"
       :hint="t('topupMaxAmountHint')"
-      outlined
+      standout
+      class="input-standout-light"
       required
     >
       <template #append>
@@ -108,7 +113,8 @@
       v-model="mollieApiKey"
       :label="t('topupMollieApiKey')"
       :hint="t('topupMollieApiKeyHint')"
-      outlined
+      standout
+      class="input-standout-light"
       type="password"
     />
       

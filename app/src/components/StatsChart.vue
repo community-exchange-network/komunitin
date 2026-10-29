@@ -36,7 +36,7 @@
           dense
           options-dense
           bg-color="surface-container-h"
-          class="commons-input"
+          class="input-outlined-pale"
           dropdown-icon="expand_more"
           @update:model-value="updatePeriod"
         />
@@ -47,11 +47,11 @@
           name="interval"
           :options="intervalOptions"
           :label="t('interval')"
-          outlined
+          standout
           dense
           options-dense
           bg-color="surface-container-h"
-          class="commons-input"
+          class="input-outlined-pale"
           dropdown-icon="expand_more"
         />
       </div>

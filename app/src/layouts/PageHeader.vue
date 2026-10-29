@@ -75,7 +75,7 @@
           outlined
           rounded
           bg-color="surface-container-h"
-          class="q-mr-xs search-box input-borderless"
+          class="q-mr-xs search-box input-outlined-borderless"
           type="search" 
           debounce="250"
           autofocus

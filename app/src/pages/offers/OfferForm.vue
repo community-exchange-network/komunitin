@@ -29,7 +29,8 @@
         name="title"
         :label="$t('title')"
         :hint="$t('offerTitleHint')"
-        outlined
+        standout
+        class="input-standout-light"
         :rules="[(v) => !!v || $t('offerTitleRequired')]"
       >
         <template #append>
@@ -42,7 +43,8 @@
         name="description"  
         :label="$t('description')" 
         :hint="$t('offerDescriptionHint')" 
-        outlined 
+        standout
+        class="input-standout-light"
         autogrow 
         input-style="min-height: 100px;"
         :rules="[(v) => (!!v && v.length >= 10) || $t('offerDescriptionRequired')]"
@@ -57,7 +59,8 @@
         name="price"
         :label="$t('price')"
         :hint="$t('offerPriceHint', { symbol: currency.attributes.symbol })"
-        outlined
+        standout
+        class="input-standout-light"
         :rules="[(v) => !!v || $t('offerPriceRequired')]"
       >
         <template #append>

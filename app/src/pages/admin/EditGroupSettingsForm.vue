@@ -20,7 +20,8 @@
       v-model="terms"
       type="textarea"
       :label="$t('termsOfUse')"
-      outlined
+      standout
+      class="input-standout-light"
       autogrow
       :debounce="1000"
       input-style="min-height: 100px;"
@@ -35,7 +36,8 @@
       :hint="$t('minOffersHint')"
       min="0"
       max="5"
-      outlined
+      standout
+      class="input-standout-light"
     />
     <q-input
       v-model.number="minNeeds"
@@ -44,7 +46,8 @@
       :hint="$t('minNeedsHint')"
       min="0"
       max="5"
-      outlined
+      standout
+      class="input-standout-light"
     />
     <div class="text-overline text-uppercase text-onsurface-m">
       {{ $t('accountStart') }}
@@ -54,14 +57,16 @@
       :label="$t('initialCredit')"
       :hint="$t('initialCreditHint')"
       :currency="currency"
-      outlined
+      standout
+      class="input-standout-light"
     />
     <amount-input
       v-model="defaultInitialMaximumBalance"
       :label="$t('maximumBalance')"
       :hint="$t('initialMaximumBalanceHint')"
       :currency="currency"
-      outlined
+      standout
+      class="input-standout-light"
     />
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
@@ -157,7 +162,8 @@
       type="text"
       :label="$t('currencyValue')"
       :hint="$t('currencyValueHint')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules="[(val: string) => val.match(/^\d+(\/\d+)?$/) || $t('invalidCurrencyValue')]"
       hide-bottom-space
@@ -173,7 +179,8 @@
           :currency="currency"
           :label="$t('externalTraderCreditLimit')"
           :hint="$t('externalTraderCreditLimitHint')"
-          outlined
+          standout
+          class="input-standout-light"
           @update:model-value="updateModelValue"
         />
       </template>
@@ -188,7 +195,8 @@
           :currency="currency"
           :label="$t('externalTraderMaximumBalance')"
           :hint="$t('externalTraderMaximumBalanceHint')"
-          outlined          
+          standout
+          class="input-standout-light"
           @update:model-value="updateModelValue"
         />
       </template>

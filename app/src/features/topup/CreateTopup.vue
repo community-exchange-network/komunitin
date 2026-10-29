@@ -16,7 +16,8 @@
               v-model="amountToDepositInput"
               :label="t('topupAmountToDeposit')"
               :hint="t('topupAmountToDepositHint', {currency: settings.depositCurrency})"
-              outlined
+              standout
+              class="input-standout-light"
               required
               :rules="[
                 () => amountToDeposit !== undefined || t('ErrorInvalidAmount'),
@@ -32,7 +33,8 @@
               :model-value="formatCurrency(amountToReceive, myCurrency, {symbol: false})"
               :label="t('topupAmountToReceive')"
               :hint="t('topupAmountToReceiveHint', {currency: myCurrency.attributes.namePlural})"
-              outlined
+              standout
+              class="input-standout-light"
               readonly
             >
               <template #append>
