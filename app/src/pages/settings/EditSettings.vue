@@ -9,139 +9,142 @@
       padding 
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6"
     >
-      <account-header
-        v-if="isAdmin && account"
-        class="q-mb-md"
-        style="margin-left: -16px"
-        :account="account"
-        to=""
-      />
+      <div class="q-pa-md bg-surface shadow-2 rounded-borders">
 
-      <div v-if="isSelf">
-        <div class="text-overline text-uppercase text-onsurface-m q-mb-sm">
-          {{ $t('app') }}
-        </div>
-        <q-select
-          v-model="language"
-          standout
-          class="input-standout-light"
-          :options="langOptions"
-          :label="$t('language')"
+        <account-header
+          v-if="isAdmin && account"
+          class="q-mb-md"
+          style="margin-left: -16px"
+          :account="account"
+          to=""
         />
-      </div>  
-      <account-settings-fields
-        v-if="accountLoaded && accountSettings && currency && defaultSettings"
-        v-model:settings="accountSettings"
-        v-model:credit-limit="creditLimit"
-        v-model:maximum-balance="maximumBalance"
-        :credit-limit-loading="creditLimitLoading"
-        :maximum-balance-loading="maximumBalanceLoading"
-
-        class="q-pt-md"
-        :currency="currency"
-        :defaults="defaultSettings"
-        :indeterminate-states="isAdmin"
-        limits
-      />
-      <div 
-        v-if="effectiveSettings && effectiveSettings.allowTagPayments"
-        class="q-mt-lg"
-      >
-        <div class="text-overline text-uppercase text-onsurface-m q-mb-sm">
-          {{ $t('nfcTags') }}
-        </div>
-        <div class="text-body2 text-onsurface-m q-mb-sm">
-          {{ $t('nfcTagsText') }}
-        </div>
-        <nfc-tags-list
-          v-model="tags"
+    
+        <div v-if="isSelf">
+          <div class="text-overline text-uppercase text-onsurface-m q-mb-sm">
+            {{ $t('app') }}
+          </div>
+          <q-select
+            v-model="language"
+            standout
+            class="input-standout-light"
+            :options="langOptions"
+            :label="$t('language')"
+          />
+        </div>  
+        <account-settings-fields
+          v-if="accountLoaded && accountSettings && currency && defaultSettings"
+          v-model:settings="accountSettings"
+          v-model:credit-limit="creditLimit"
+          v-model:maximum-balance="maximumBalance"
+          :credit-limit-loading="creditLimitLoading"
+          :maximum-balance-loading="maximumBalanceLoading"
+    
+          class="q-pt-md"
+          :currency="currency"
+          :defaults="defaultSettings"
+          :indeterminate-states="isAdmin"
+          limits
         />
-      </div>
-      <div class="q-mt-lg">
-        <div class="text-overline text-uppercase text-onsurface-m text-bold">
-          {{ $t('notifications') }}
-        </div>
-        <div class="text-body2 text-onsurface-m q-mb-sm">
-          {{ $t('notificationsSettingsText') }}
-        </div>
-
-        <notifications-banner
-          v-if="isSelf"
-          ref="notifications-banner"
-          :dismissable="false"
-          class="q-my-md inline-banner"
-          rounded
-        />
-        
-        <q-list>
-          <toggle-item 
-            v-model="notiMyAccount"
-            :label="$t('myAccountNotifications')"
-            :hint="$t('myAccountNotificationsHint')"
-            :disable="disableNotificationControls"
+        <div 
+          v-if="effectiveSettings && effectiveSettings.allowTagPayments"
+          class="q-mt-lg"
+        >
+          <div class="text-overline text-uppercase text-onsurface-m q-mb-sm">
+            {{ $t('nfcTags') }}
+          </div>
+          <div class="text-body2 text-onsurface-m q-mb-sm">
+            {{ $t('nfcTagsText') }}
+          </div>
+          <nfc-tags-list
+            v-model="tags"
           />
-          <toggle-item 
-            v-model="notiGroup"
-            :label="$t('groupNotifications')"
-            :hint="$t('groupNotificationsHint')"
-            :disable="disableNotificationControls"
+        </div>
+        <div class="q-mt-lg">
+          <div class="text-overline text-uppercase text-onsurface-m text-bold">
+            {{ $t('notifications') }}
+          </div>
+          <div class="text-body2 text-onsurface-m q-mb-sm">
+            {{ $t('notificationsSettingsText') }}
+          </div>
+    
+          <notifications-banner
+            v-if="isSelf"
+            ref="notifications-banner"
+            :dismissable="false"
+            class="q-my-md inline-banner"
+            rounded
           />
-        </q-list>
-      </div>
-      <div class="q-mt-lg">
-        <div class="text-overline text-uppercase text-onsurface-m text-bold">
-          {{ $t('emails') }}
+          
+          <q-list>
+            <toggle-item 
+              v-model="notiMyAccount"
+              :label="$t('myAccountNotifications')"
+              :hint="$t('myAccountNotificationsHint')"
+              :disable="disableNotificationControls"
+            />
+            <toggle-item 
+              v-model="notiGroup"
+              :label="$t('groupNotifications')"
+              :hint="$t('groupNotificationsHint')"
+              :disable="disableNotificationControls"
+            />
+          </q-list>
         </div>
-        <div class="text-body2 text-onsurface-m q-mb-sm">
-          {{ $t('emailsSettingsText') }}
+        <div class="q-mt-lg">
+          <div class="text-overline text-uppercase text-onsurface-m text-bold">
+            {{ $t('emails') }}
+          </div>
+          <div class="text-body2 text-onsurface-m q-mb-sm">
+            {{ $t('emailsSettingsText') }}
+          </div>
+          <q-list>
+            <toggle-item 
+              v-model="emailMyAccount"
+              :label="$t('myAccountEmails')"
+              :hint="$t('myAccountEmailsHint')"
+            />
+            <toggle-btn-item
+              v-model="emailGroup"
+              :label="$t('groupEmails')"
+              :caption="$t('groupEmailsHint')"
+              :options="[
+                { label: $t('weekly'), value: 'weekly'},
+                { label: $t('monthly'), value: 'monthly'},
+                { label: $t('never'), value: 'never', off: true},
+              ]"
+            />
+          </q-list>  
         </div>
-        <q-list>
-          <toggle-item 
-            v-model="emailMyAccount"
-            :label="$t('myAccountEmails')"
-            :hint="$t('myAccountEmailsHint')"
-          />
-          <toggle-btn-item
-            v-model="emailGroup"
-            :label="$t('groupEmails')"
-            :caption="$t('groupEmailsHint')"
-            :options="[
-              { label: $t('weekly'), value: 'weekly'},
-              { label: $t('monthly'), value: 'monthly'},
-              { label: $t('never'), value: 'never', off: true},
-            ]"
-          />
-        </q-list>  
-      </div>
-      <div class="q-mt-lg">
-        <div class="text-overline text-uppercase text-onsurface-m text-bold">
-          {{ $t('accountStatus') }}
-        </div>
-        <member-status-field 
-          v-if="member"
-          :member="member"
-        />
-      </div>
-      <div class="q-mt-lg">
-        <div class="text-overline text-uppercase text-onsurface-m text-bold">
-          {{ $t('deleteAccount') }}
-        </div>
-        <div class="text-body2 text-onsurface-m q-mb-sm">
-          {{ $t('deleteAccountText') }}
-        </div>
-        <div class="row justify-right q-mt-md">
-          <delete-member-btn
+        <div class="q-mt-lg">
+          <div class="text-overline text-uppercase text-onsurface-m text-bold">
+            {{ $t('accountStatus') }}
+          </div>
+          <member-status-field 
             v-if="member"
-            class="q-ml-auto"
             :member="member"
-            @delete="() => router.back()"
-          />  
+          />
         </div>
+        <div class="q-mt-lg">
+          <div class="text-overline text-uppercase text-onsurface-m text-bold">
+            {{ $t('deleteAccount') }}
+          </div>
+          <div class="text-body2 text-onsurface-m q-mb-sm">
+            {{ $t('deleteAccountText') }}
+          </div>
+          <div class="row justify-right q-mt-md">
+            <delete-member-btn
+              v-if="member"
+              class="q-ml-auto"
+              :member="member"
+              @delete="() => router.back()"
+            />  
+          </div>
+        </div>
+        <save-changes
+          ref="changes"
+          class="q-my-xl"
+        />
       </div>
-      <save-changes
-        ref="changes"
-        class="q-my-xl"
-      />
     </q-page>
   </q-page-container>
 </template>
