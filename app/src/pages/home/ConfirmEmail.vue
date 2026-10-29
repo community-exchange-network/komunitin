@@ -2,9 +2,9 @@
   <q-btn
     id="confirm-email"
     class="full-width"
-    outline
-    color="transparent"
-    text-color="onoutside"
+    unelevated
+    color="primary"
+    text-color="onprimary"
     icon="mark_email_read"
     :label="$t('confirmEmail')"
     :loading="loading"

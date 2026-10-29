@@ -27,9 +27,10 @@
       </template>
     </q-input>
     <q-btn
-      outline
-      color="transparent"
-      text-color="onoutside"
+      unelevated
+      color="primary"
+      text-color="onprimary"
+      class="btn-disabled-solid"
       :label="$t('sendResetLink')"
       icon="send"
       type="submit"

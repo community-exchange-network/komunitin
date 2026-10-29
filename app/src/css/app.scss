@@ -201,6 +201,13 @@
     border: 1.5px solid $chip-border !important;
   }
 }
+// Solid greyed-out disabled state for filled buttons, instead of Quasar's semi-transparent one.
+.btn-disabled-solid.disabled,
+.btn-disabled-solid[disabled] {
+  opacity: 1 !important;
+  background: $soil-muted !important;
+  color: $linen !important;
+}
 // Because we set the generic border radius to 8px, we need to override badges to be more square-shaped.
 .badge-square {
   border-radius: 4px;

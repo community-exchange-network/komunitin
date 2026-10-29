@@ -48,9 +48,10 @@
       </router-link>
     </div>
     <q-btn
-      outline
-      color="transparent"
-      text-color="onoutside"
+      unelevated
+      color="primary"
+      text-color="onprimary"
+      class="btn-disabled-solid"
       :label="$t('logIn')"
       icon="account_circle"
       :disabled="loginDisabled"
