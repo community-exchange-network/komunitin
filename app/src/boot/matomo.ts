@@ -21,8 +21,15 @@ const createMatomoScript = (baseUrl: string) => {
   document.head.appendChild(script)
 }
 
-const trackPageView = (path: string) => {
-  window._paq?.push(["setCustomUrl", path])
+const analyticsUrl = (url: string) => {
+  const { origin, pathname } = new URL(url, window.location.href)
+  return origin + pathname
+}
+
+const trackPageView = (path: string, referrer: string) => {
+  // Sanitize the path and referrer before sending to Matomo.
+  window._paq?.push(["setCustomUrl", analyticsUrl(path)])
+  window._paq?.push(["setReferrerUrl", referrer ? analyticsUrl(referrer) : ""])
   window._paq?.push(["setDocumentTitle", document.title])
   window._paq?.push(["trackPageView"])
 }
@@ -45,8 +52,8 @@ export default defineBoot(({ router }) => {
   window._paq.push(["setSiteId", matomoSiteId])
   window._paq.push(["enableLinkTracking"])
 
-  trackPageView(router.currentRoute.value.fullPath)
-  router.afterEach((to) => trackPageView(to.fullPath))
+  trackPageView(router.currentRoute.value.path, document.referrer)
+  router.afterEach((to, from) => trackPageView(to.path, from.path))
 
   createMatomoScript(baseUrl)
 })
