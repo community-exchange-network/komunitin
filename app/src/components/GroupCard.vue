@@ -4,7 +4,7 @@
     v-bind="cardClickAttrs"
   >
     <!-- Header with group avatar, name and short code -->
-    <group-header :group="group">
+    <group-header :group="group" class="q-pt-md">
       <template #side>
         <share-button
           icon="share"
