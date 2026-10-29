@@ -8,36 +8,38 @@
       padding 
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
     >
-      <div class="q-pb-lg">
-        <div class="text-subtitle1">
-          {{ $t('setPassword') }}
+      <div class="q-pa-md bg-surface rounded-borders shadow-2">
+        <div class="q-pb-lg">
+          <div class="text-subtitle1">
+            {{ $t('setPassword') }}
+          </div>
+          <div class="text-onsurface-m">
+            {{ $t('setPasswordText') }}
+          </div>
         </div>
-        <div class="text-onsurface-m">
-          {{ $t('setPasswordText') }}
+        <div v-if="invalidToken" role="alert">
+          <p>{{ $t('passwordResetError') }}</p>
+          <router-link to="/forgot-password">{{ $t('sendResetLink') }}</router-link>
         </div>
+        <form v-else @submit.prevent="onSubmit">
+          <password-field
+            v-model="newPassword"
+            class="input-standout-light"
+            :label="$t('newPassword')"
+            :hint="$t('newPasswordHint')"
+            :min-length="8"
+          />
+          <q-btn
+            class="q-mt-lg"
+            color="primary"
+            type="submit"
+            unelevated
+            :label="$t('setPassword')"
+            :disable="!valid"
+            :loading="loading"
+          />
+        </form>
       </div>
-      <div v-if="invalidToken" role="alert">
-        <p>{{ $t('passwordResetError') }}</p>
-        <router-link to="/forgot-password">{{ $t('sendResetLink') }}</router-link>
-      </div>
-      <form v-else @submit.prevent="onSubmit">
-        <password-field
-          v-model="newPassword"
-          class="input-standout-light"
-          :label="$t('newPassword')"
-          :hint="$t('newPasswordHint')"
-          :min-length="8"
-        />
-        <q-btn
-          class="q-mt-lg"
-          color="primary"
-          type="submit"
-          unelevated
-          :label="$t('setPassword')"
-          :disable="!valid"
-          :loading="loading"
-        />
-      </form>
     </q-page>
   </q-page-container>
 </template>
