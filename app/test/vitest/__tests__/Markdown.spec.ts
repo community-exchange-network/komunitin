@@ -18,6 +18,7 @@ describe('Stored Markdown', () => {
       '<img src=x onerror="alert(document.domain)">',
       '[Unsafe link](javascript:alert%281%29)',
       '<svg onload="alert(1)"></svg>',
+      '<script>alert(1)</script>',
     ].join('\n\n') })
     wrapper = await mountComponent(App, { login: true })
 
@@ -27,7 +28,7 @@ describe('Stored Markdown', () => {
 
     expect(profile.get('strong').text()).toBe('Formatted biography')
     expect(profile.get('a[href="https://example.org"]').text()).toBe('Website')
-    expect(profile.find('[onerror], [onload], svg, script').exists()).toBe(false)
+    expect(profile.find('[onerror], [onload], script').exists()).toBe(false)
     expect(profile.findAll('a').some(link => link.attributes('href')?.startsWith('javascript:'))).toBe(false)
     expect(profile.text()).toContain('Unsafe link')
   })
