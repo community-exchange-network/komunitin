@@ -1507,6 +1507,9 @@ describe('Auth Service Integration Tests', () => {
       email: 'reset-pwd@example.org',
     })
     const { token } = await requestActionToken({ userId, purpose: 'passwordReset' })
+    const { token: emailToken } = await requestActionToken({
+      userId, purpose: 'emailChange', email: 'staged@example.org',
+    })
 
     const loginRes = await request(app)
       .post('/token')
@@ -1525,6 +1528,8 @@ describe('Auth Service Integration Tests', () => {
       .post('/change-password')
       .send({ token, password: 'new-secure-password' })
       .expect(200)
+
+    await request(app).post('/email/confirm').send({ token: emailToken }).expect(400)
 
     const refreshRes = await request(app)
       .post('/token')
@@ -1996,7 +2001,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(confirmRes.body.errors[0].detail, 'Invalid or expired token')
   })
 
-  test('Password reset and email action tokens do not invalidate each other', async () => {
+  test('Email change invalidates pending password reset and email verification tokens', async () => {
     const userId = '67676767-6767-4676-8676-676767676767'
     const passwordHash = await hashPassword('password123')
     await prisma.user.create({
@@ -2050,6 +2055,7 @@ describe('Auth Service Integration Tests', () => {
     })
     const { token: passwordToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
     assert.ok(passwordToken)
+    const { token: verificationToken } = await requestActionToken({ userId, purpose: 'emailVerification' })
 
     await request(app)
       .post('/email/confirm')
@@ -2059,7 +2065,9 @@ describe('Auth Service Integration Tests', () => {
     await request(app)
       .post('/change-password')
       .send({ token: passwordToken, password: 'new-password123' })
-      .expect(200)
+      .expect(400)
+
+    await request(app).post('/email/confirm').send({ token: verificationToken }).expect(400)
 
     await request(app)
       .post('/token')
@@ -2068,9 +2076,14 @@ describe('Auth Service Integration Tests', () => {
         grant_type: 'password',
         client_id: 'komunitin-app',
         username: 'mixed-actions-new@example.org',
-        password: 'new-password123',
+        password: 'password123',
       })
       .expect(200)
+
+    const freshReset = await requestActionToken({ userId, purpose: 'passwordReset' })
+    assert.strictEqual(freshReset.email, 'mixed-actions-new@example.org')
+    await request(app).post('/change-password')
+      .send({ token: freshReset.token, password: 'new-password123' }).expect(200)
   })
 
   test('POST /token with ROPC fails on invalid credentials', async () => {
