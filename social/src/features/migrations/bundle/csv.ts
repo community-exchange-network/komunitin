@@ -128,6 +128,8 @@ export const decodeCsvBundle = (
         relax_column_count: true,
         relax_quotes: false,
         skip_empty_lines: false,
+        // Materialize only the header, remaining budget, and first excess record.
+        to: limits.maxRows - totalRows + 2,
       }) as string[][]
     } catch (error) {
       errors.add({

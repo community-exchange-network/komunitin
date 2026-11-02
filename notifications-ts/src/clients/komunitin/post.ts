@@ -11,3 +11,7 @@ export const hasExpiration = <T extends Offer | Need>(post: T): post is Expiring
 
 export const isExpired = (post: Offer | Need) =>
   hasExpiration(post) && new Date(post.attributes.expires).getTime() <= Date.now()
+
+/** Posts that may be shared with other members of their community. */
+export const isCommunityPost = (post: Offer | Need) =>
+  post.attributes.access === 'public' || post.attributes.access === 'group'

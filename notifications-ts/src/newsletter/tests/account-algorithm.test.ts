@@ -1,10 +1,10 @@
 import assert from 'node:assert';
 import { describe, test } from 'node:test';
 import { getAccountSectionData } from '../account-algorithm';
-import { Currency, Member, Need, Offer } from '../../clients/komunitin/types';
+import { Currency, Member, Offer } from '../../clients/komunitin/types';
 
 // Helpers
-const createMember = (attrs: any = {}): Member => ({
+const createMember = ({ offers = 0, needs = 0, ...attrs }: any = {}): Member => ({
   id: 'm1',
   type: 'members',
   attributes: { 
@@ -15,8 +15,8 @@ const createMember = (attrs: any = {}): Member => ({
   },
   relationships: {
     account: { data: { type: 'accounts', id: 'm1-account' } },
-    needs: { meta: { count: 0 } },
-    offers: { meta: { count: 0 } }
+    needs: { meta: { count: needs } },
+    offers: { meta: { count: offers } }
   }
 });
 
@@ -50,7 +50,7 @@ describe('Account Algorithm', () => {
     const d1 = getAccountSectionData({
       member: createMember(),
       account: createAccount(15),
-      activeOffers: [], activeNeeds: [], expiredOffers: [], transfers: [], history: [],
+      expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d1.balanceAdviceId, "newsletter.balance_advice_positive");
@@ -59,7 +59,7 @@ describe('Account Algorithm', () => {
     const d2 = getAccountSectionData({
       member: createMember(),
       account: createAccount(-15),
-      activeOffers: [], activeNeeds: [], expiredOffers: [], transfers: [], history: [],
+      expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d2.balanceAdviceId, "newsletter.balance_advice_negative");
@@ -68,7 +68,7 @@ describe('Account Algorithm', () => {
     const d3 = getAccountSectionData({
       member: createMember(),
       account: createAccount(1),
-      activeOffers: [], activeNeeds: [], expiredOffers: [], transfers: [], history: [],
+      expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d3.balanceAdviceId, "newsletter.balance_advice_balanced");
@@ -79,29 +79,24 @@ describe('Account Algorithm', () => {
     const d1 = getAccountSectionData({
       member: createMember(),
       account: createAccount(-5),
-      activeOffers: [], activeNeeds: [], // No offers/needs
       expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d1.alert?.type, 'NO_OFFERS_NEGATIVE', 'Should define priority 1 alert');
 
     // 2. No needs + Positive (offers exist to skip priority 1/3)
-    const offer = { id: 'o1' } as Offer;
     const d2 = getAccountSectionData({
-      member: createMember(),
+      member: createMember({ offers: 1 }),
       account: createAccount(5),
-      activeOffers: [offer], activeNeeds: [],
       expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
     assert.strictEqual(d2.alert?.type, 'NO_NEEDS_POSITIVE', 'Should define priority 2 alert');
 
     // 3. No offers (Balance positive)
-    const need = { id: 'n1' } as Need;
     const d3 = getAccountSectionData({
-      member: createMember(),
+      member: createMember({ needs: 1 }),
       account: createAccount(5),
-      activeOffers: [], activeNeeds: [need],
       expiredOffers: [], transfers: [], history: [],
       currency: createCurrency()
     });
@@ -113,7 +108,7 @@ describe('Account Algorithm', () => {
     const dataBase = {
       member: createMember(),
       account: createAccount(-5),
-      activeOffers: [], activeNeeds: [], expiredOffers: [], transfers: [],
+      expiredOffers: [], transfers: [],
       currency: createCurrency()
     };
 
@@ -145,9 +140,8 @@ describe('Account Algorithm', () => {
     const t3 = createTransfer(40); // old
 
     const d = getAccountSectionData({
-      member: createMember(),
+      member: createMember({ offers: 1, needs: 1 }),
       account: createAccount(0),
-      activeOffers: [{ id: 'o' }] as any, activeNeeds: [{ id: 'n' }] as any,
       expiredOffers: [],
       transfers: [t1, t2, t3],
       history: [],
@@ -161,10 +155,8 @@ describe('Account Algorithm', () => {
     // User has NO IMAGE (Priority 5) and EXPIRED OFFERS (Priority 8)
     // Should pick NO IMAGE
     const d = getAccountSectionData({
-      member: createMember({ image: null }), // No image
+      member: createMember({ image: null, offers: 1, needs: 1 }), // No image
       account: createAccount(0),
-      activeOffers: [{ id: 'o1' } as Offer], // Has offers (skips 1, 3)
-      activeNeeds: [{ id: 'n1' } as Need],   // Has needs (skips 2, 4)
       expiredOffers: [{ id: 'eo1' } as Offer], // Has expired offers
       transfers: [], history: [],
       currency: createCurrency()
@@ -179,11 +171,11 @@ describe('Account Algorithm', () => {
       member: createMember({ 
         image: 'img.jpg', 
         description: 'Bio', 
-        location: { type: 'Point', coordinates: [1, 1] } 
+        location: { type: 'Point', coordinates: [1, 1] },
+        offers: 1,
+        needs: 1
       }),
       account: createAccount(0),
-      activeOffers: [{ id: 'o1' } as Offer],
-      activeNeeds: [{ id: 'n1' } as Need],
       expiredOffers: [],
       transfers: [], history: [],
       currency: createCurrency()
@@ -195,10 +187,8 @@ describe('Account Algorithm', () => {
   test('Alert Priority 4: No Needs', () => {
     // Has offers, has needs=false, balance neutral
     const d = getAccountSectionData({
-      member: createMember(),
+      member: createMember({ offers: 1 }),
       account: createAccount(0),
-      activeOffers: [{ id: 'o1' } as Offer],
-      activeNeeds: [], // No needs
       expiredOffers: [],
       transfers: [], history: [],
       currency: createCurrency()
@@ -210,10 +200,8 @@ describe('Account Algorithm', () => {
 
   test('Alert Priority 6: No Bio', () => {
     const d = getAccountSectionData({
-      member: createMember({ description: '' }), // No bio
+      member: createMember({ description: '', offers: 1, needs: 1 }), // No bio
       account: createAccount(0),
-      activeOffers: [{ id: 'o1' } as Offer],
-      activeNeeds: [{ id: 'n1' } as Need],
       expiredOffers: [],
       transfers: [], history: [],
       currency: createCurrency()
@@ -225,10 +213,8 @@ describe('Account Algorithm', () => {
 
   test('Alert Priority 7: No Location', () => {
     const d = getAccountSectionData({
-      member: createMember({ location: { type: 'Point', coordinates: [0, 0] } }), // [0,0] means no location
+      member: createMember({ location: { type: 'Point', coordinates: [0, 0] }, offers: 1, needs: 1 }), // [0,0] means no location
       account: createAccount(0),
-      activeOffers: [{ id: 'o1' } as Offer],
-      activeNeeds: [{ id: 'n1' } as Need],
       expiredOffers: [],
       transfers: [], history: [],
       currency: createCurrency()
@@ -243,11 +229,11 @@ describe('Account Algorithm', () => {
       member: createMember({ 
         image: 'img.jpg',
         description: 'Has bio',
-        location: { type: 'Point', coordinates: [1, 1] } // Has location
+        location: { type: 'Point', coordinates: [1, 1] }, // Has location
+        offers: 1,
+        needs: 1
       }),
       account: createAccount(0),
-      activeOffers: [{ id: 'o1' } as Offer],
-      activeNeeds: [{ id: 'n1' } as Need],
       expiredOffers: [
         { id: 'eo1' } as Offer,
         { id: 'eo2' } as Offer,
@@ -280,7 +266,6 @@ describe('Account Algorithm', () => {
     const d = getAccountSectionData({
       member: createMember(),
       account: createAccount(1500),
-      activeOffers: [], activeNeeds: [],
       expiredOffers: [],
       transfers: [], history: [],
       currency: currencyWithScale as Currency

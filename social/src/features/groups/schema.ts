@@ -28,7 +28,10 @@ export const contactTypeSchema = z.enum([
 export const contactSchema = z.object({
   type: contactTypeSchema,
   value: z.string(),
-}).strict()
+}).strict().refine(
+  contact => contact.type !== 'website' || z.url({ protocol: /^https?$/ }).safeParse(contact.value).success,
+  { path: ['value'], message: 'Website contacts must use an HTTP or HTTPS URL' },
+)
 
 export type Contact = z.infer<typeof contactSchema>
 

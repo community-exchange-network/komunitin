@@ -458,6 +458,11 @@ export const deleteMember = async (ctx: OptionalAuthContext, code: string, id: s
       : await accounting.findAccountByCode(currencyCode, member.code)
 
     if (account && account.status !== 'deleted') {
+      // If the deletion is confirmed via token (and hence we're using service credentials),
+      // ensure the confirming user is an owner of the account.
+      if (confirmation && !account.users.some(({ id }) => id === confirmation.userId)) {
+        throw forbidden('You do not have permission to delete this account')
+      }
       await accounting.deleteAccount(currencyCode, account.id)
     }
 

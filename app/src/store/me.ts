@@ -1,7 +1,6 @@
 import KError, { KErrorCode } from "@/KError";
 import locate from "@/plugins/Location";
 import type { ActionContext, Module } from "vuex";
-import { setAccountingApiUrl } from ".";
 import type { AuthData } from "../plugins/Auth";
 import { Auth } from "../plugins/Auth";
 import type { SignupContext } from "../plugins/Auth";
@@ -93,22 +92,8 @@ async function loadUser(context: ActionContext<UserState, never>) {
     if (state.tokens !== tokens) return
     memberUserId = rootGetters["member-users/currentList"][0]?.id
 
-    // This is the currency URL from the Accounting API.
+    // Extract the currency code for store requests to the configured Accounting API.
     const currencyUrl = resolveRelationshipUrl(member.group.relationships.currency);
-    // https://.../accounting/<GROUP>/currency
-    
-    // Get the accounting API URL from the currency URL and update it in the store. This is
-    // a way we have to be able to have multiple different accounting APIs for different
-    // currencies. That may not be necessary in the future when we finish the migration to
-    // the new API.
-    const accountingApiUrl = currencyUrl.split('/').slice(0, -2).join('/');
-    // https://.../accounting
-    setAccountingApiUrl(accountingApiUrl)
-    
-    // We here compute the currency code and account code from their URLS so we can fetch 
-    // them using the store methods. This is kind of a perversion of HATEOAS since we could 
-    // more coherently fetch them directly from the provided link. But we have all the store 
-    // infrastructure like this, so this is a little hack that I hope won't make problems.
     const currencyCode = currencyUrl.split('/').slice(-2)[0];
 
     // pending or deleted members don't have related account. Superadmins neither do.

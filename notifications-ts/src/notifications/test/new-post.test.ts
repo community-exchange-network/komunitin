@@ -15,6 +15,36 @@ beforeEach(() => {
 })
 
 describe('New post notifications (URGENT)', () => {
+  it('keeps urgent private offer publication private to its author', async () => {
+    const groupCode = 'GRP1'
+    const members = createMembers(groupCode)
+    const authorUserId = getUserIdForMember(members[0].id)
+    const otherUserId = getUserIdForMember(members[1].id)
+    await subscribeToPushNotifications(groupCode, authorUserId)
+    await subscribeToPushNotifications(groupCode, otherUserId)
+    const created = new Date()
+    const post = createPost('offers', {
+      id: 'private-offer',
+      code: 'PRIVATE',
+      groupCode,
+      memberId: members[0].id,
+      attributes: {
+        access: 'private',
+        created: created.toISOString(),
+        expires: new Date(created.getTime() + 86400000).toISOString(),
+      },
+    })
+
+    await put(createEvent('OfferPublished', {
+      code: groupCode,
+      user: authorUserId,
+      data: { offer: post.id },
+    }))
+
+    assert.deepStrictEqual(appNotifications.map(notification => notification.userId), [authorUserId])
+    assert.deepStrictEqual(pushQueue.add.mock.calls.map(call => call.arguments[1].userId), [authorUserId])
+  })
+
   it('should process urgent OfferPublished event and notify all group users', async () => {
     const groupCode = 'GRP1'
     createMembers(groupCode) // creates 5 members/users
