@@ -30,6 +30,7 @@
     "clamp-js": "^0.7.0",
     "core-js": "^3.8.3",
     "date-fns": "^4.1.0",
+    "dompurify": "^3.4.17",
     "eslint-plugin-vue": "^10.5.0",
     "globals": "^16.4.0",
     "i18n-iso-countries": "^7.7.0",
