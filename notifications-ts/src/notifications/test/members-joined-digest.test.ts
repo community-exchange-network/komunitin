@@ -90,6 +90,23 @@ describe('MembersJoinedDigest notifications', () => {
 
   // --- Fast and Slow Path Tests ---
 
+  it('introduces new members without exposing their private posts', async () => {
+    const member = createTestMember({ name: 'New member', description: 'Public introduction', offers: 1, needs: 1 })
+    const posts = [...db.offers, ...db.needs].filter(post => post.relationships.member.data.id === member.id)
+    for (const post of posts) {
+      post.attributes.access = 'private'
+      post.attributes.title = 'Private offer'
+      post.attributes.description = 'Private need'
+    }
+
+    await runDigest()
+
+    const notification = appNotifications.find(item => item.userId === getUserIdForMember(recipientMember.id))
+    assert.ok(notification)
+    assert.ok(notification.body.includes('Public introduction'))
+    assert.ok(!notification.body.includes('Private'))
+  })
+
   it('should send digest if 3+ new members and 2+ days without prior digest (Fast Path)', async () => {
     // 3 new members created 1 day ago
     createTestMember({ daysAgo: 1, name: 'M1' });

@@ -23,6 +23,7 @@ type PostCollectionParams = {
   'filter[member]'?: string;
   'filter[member.status]'?: 'active';
   'filter[status]'?: 'published';
+  'filter[access]'?: Post['attributes']['access'] | 'public,group';
   'filter[expired]'?: 'true' | 'false';
   'filter[created][gt]'?: string;
   'filter[expires][lt]'?: string;
