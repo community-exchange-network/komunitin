@@ -95,14 +95,22 @@ export async function findValidActionToken(
 
 /**
  * Consumes an action token inside a transaction: marks it used and deletes any
- * other pending token for the same user and purpose. Pass the transaction
- * client from `prisma.$transaction(async (tx) => ...)` so consumption is atomic
- * with the mutation the token authorizes.
+ * other pending token for the same user and purpose. Password resets and email
+ * changes also invalidate each other's tokens; email changes invalidate pending
+ * email verification too. Pass the transaction client so consumption is atomic
+ * with the credential change.
  */
 export async function consumeActionToken(
   tx: Prisma.TransactionClient,
   actionToken: ActionTokenRecord,
 ) {
+  const purposes = [actionToken.purpose]
+  if (actionToken.purpose === userActionTokenPurpose.passwordReset) {
+    purposes.push(userActionTokenPurpose.emailChange)
+  } else if (actionToken.purpose === userActionTokenPurpose.emailChange) {
+    purposes.push(userActionTokenPurpose.passwordReset, userActionTokenPurpose.emailVerification)
+  }
+
   await tx.userActionToken.update({
     where: { id: actionToken.id, usedAt: null },
     data: { usedAt: new Date() },
@@ -111,7 +119,7 @@ export async function consumeActionToken(
   await tx.userActionToken.deleteMany({
     where: {
       userId: actionToken.userId,
-      purpose: actionToken.purpose,
+      purpose: { in: purposes },
       usedAt: null,
       id: { not: actionToken.id },
     },
