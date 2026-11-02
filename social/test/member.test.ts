@@ -1365,6 +1365,23 @@ describe('Members endpoints', () => {
     await request(app).delete(path).send({ meta: { token } }).expect(204)
   })
 
+  test('confirmed draft deletion rejects an unrelated account with the same code', async () => {
+    const currency = seedAccountingCurrency('draft-deletion')
+    await seedGroup({ tenantId: currency.code, status: 'active', currencyId: currency.id })
+    const owner = await auth('draft-deletion-owner')
+    const other = await auth('draft-deletion-other')
+    const account = seedAccountingAccount(currency.code, 'shared-code', [other.id], undefined, 'active', 0)
+    const member = await seedMember({
+      tenantId: currency.code, code: account.code, status: 'draft', userId: owner.id,
+    })
+
+    await request(app).delete(`/${currency.code}/members/${member.id}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } }).expect(403)
+
+    assert.strictEqual(account.status, 'active')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [`GET /${currency.code}/accounts`])
+  })
+
   test('DELETE /:code/members/:member allows group admin to delete another member', async () => {
     const currency = seedAccountingCurrency('members-delete-admin')
     await seedGroup({
@@ -1462,7 +1479,7 @@ describe('Members endpoints', () => {
       currencyId: currency.id,
     })
     const owner = await auth('members-delete-account-by-code-owner')
-    const account = seedAccountingAccount(currency.code, 'delete-by-code', [owner.id])
+    const account = seedAccountingAccount(currency.code, 'delete-by-code', [toUuid('additional-account-owner'), owner.id])
     const member = await seedMember({
       tenantId: 'members-delete-account-by-code',
       code: 'delete-by-code',
