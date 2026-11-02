@@ -33,7 +33,7 @@ describe("SocialNetworkList", () => {
     wrapper.findComponent({ ref: ref }).trigger("click");
     // Wait for event to be handled.
     await wrapper.vm.$nextTick();
-    expect(window.open).toHaveBeenCalledWith(url, "_blank");
+    expect(window.open).toHaveBeenCalledWith(url, "_blank", "noopener");
   }
   
   afterAll(() => {

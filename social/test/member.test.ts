@@ -122,6 +122,24 @@ describe('Members endpoints', () => {
     })
   })
 
+  test('POST /:code/members rejects javascript website URLs', async () => {
+    await seedGroup({ tenantId: 'website-contacts' })
+    const user = await auth('contact-owner')
+    await request(app)
+      .post('/website-contacts/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            name: 'Contact owner',
+            contacts: [{ type: 'website', value: 'javascript:alert(1)' }],
+          },
+        },
+      })
+      .expect(400)
+  })
+
   test('POST /:code/members allows repeated member creation by the same user', async () => {
     await seedGroup({ tenantId: 'members-repeated', status: 'active', access: 'public' })
     const user = await auth('member-repeated-user')
