@@ -1,6 +1,7 @@
 import { useStore } from "vuex"
 import {type ResourceObject, type SuccessfulResponse } from "../store/model"
 import KError, { checkFetchResponse } from "../KError"
+import { config } from "../utils/config"
 
 type FetchOptions = Omit<RequestInit, "body"> & {
   body?: Record<string, unknown> | unknown[]
@@ -11,8 +12,14 @@ export interface AuthService {
   refresh: () => Promise<void>
 }
 
+/** Only configured service origins receive the session access token. */
+const authenticatedOrigins = new Set([
+  config.AUTH_URL, config.ACCOUNTING_URL, config.SOCIAL_URL, config.NOTIFICATIONS_URL
+].filter(Boolean).map(url => new URL(url).origin))
+
 /** Share authentication retries without consuming request or response bodies. */
 const requestRaw = async (url: string, options: RequestInit, auth: AuthService) => {
+  const authenticated = authenticatedOrigins.has(new URL(url, window.location.href).origin)
   const doRequest = (accessToken: string | undefined) => fetch(url, {
     ...options,
     headers: {
@@ -21,9 +28,9 @@ const requestRaw = async (url: string, options: RequestInit, auth: AuthService) 
     }
   })
   try {
-    const originalToken = auth.accessToken()
+    const originalToken = authenticated ? auth.accessToken() : undefined
     let response = await doRequest(originalToken)
-    if (!response.ok && response.status == 401) {
+    if (authenticated && !response.ok && response.status == 401) {
       const currentToken = auth.accessToken()
       if (originalToken && currentToken === originalToken) {
         // Refresh and retry
