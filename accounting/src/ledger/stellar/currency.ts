@@ -31,7 +31,8 @@ const paymentToTransfer = (payment: Omit<Horizon.HorizonApi.PaymentOperationResp
   payee: payment.to,
   amount: payment.amount,
   asset: new Asset(payment.asset_code as string, payment.asset_issuer),
-  hash: payment.transaction_hash
+  hash: payment.transaction_hash,
+  created: new Date(payment.created_at)
 })
 
 // This is the actual value that the Stellar SDK sets for a trustline with undefined limit.
@@ -808,11 +809,14 @@ export class StellarCurrency implements LedgerCurrency {
   /**
    * Fetch a transfer from the ledger.
    */
-  async getTransfer(hash: string): Promise<LedgerTransfer | LedgerExternalTransfer> {
+  async getTransfer(hash: string) {
     const transaction = await this.ledger.callServer((server) => server.transactions().transaction(hash).call())
 
     if (!transaction) {
       throw notFound(`Transaction ${hash} not found`)
+    }
+    if (!transaction.successful) {
+      throw badRequest(`Transaction ${hash} did not succeed`)
     }
     const operations = await transaction.operations({ limit: 100 })
     const payment = operations.records.find((op) => [

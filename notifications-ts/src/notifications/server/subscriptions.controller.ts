@@ -16,7 +16,7 @@ const subscriptionSchema = z.object({
         p256dh: z.string(),
         auth: z.string(),
       }),
-      meta: z.record(z.unknown()).optional(),
+      meta: z.record(z.string(), z.unknown()).optional(),
     }),
     relationships: z.object({
       user: z.object({
@@ -77,7 +77,7 @@ export const upsertSubscription = async (req: Request, res: Response, next: Next
       err = badRequest(err.message, {
         cause: err,
         details: {
-          errors: err.errors.map(e => ({
+          errors: err.issues.map(e => ({
             source: e.path,
             message: e.message,
           })),

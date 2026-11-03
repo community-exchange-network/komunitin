@@ -90,6 +90,20 @@ describe('PostsPublishedDigest notifications', () => {
     assert.equal(authorNotifications.length, 0, 'Author should not receive digest');
   })
 
+  it('does not include private offers or count them toward the digest threshold', async () => {
+    const post = createTestPost({ type: 'offer' })
+    post.attributes.access = 'private'
+
+    await runDigest()
+
+    assert.equal(appNotifications.length, 0)
+
+    post.attributes.access = 'group'
+    await runDigest()
+
+    assert.ok(appNotifications.some(notification => notification.userId === getUserIdForMember(otherMember.id)))
+  })
+
   it('should NOT send digest if 3+ items but silence < 2 days (Fast Path constraint)', async () => {
      // Simulate last digest sent 1 day ago
      const otherUserId = getUserIdForMember(otherMember.id);

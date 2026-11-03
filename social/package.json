@@ -35,7 +35,7 @@
     "ts-japi": "^1.12.3",
     "uuid": "^14.0.2",
     "yauzl": "^3.4.0",
-    "zod": "^4.3.6"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",

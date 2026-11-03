@@ -31,7 +31,7 @@ export const CSV_HEADERS = {
     ...CONTACT_COLUMNS,
   ],
   'categories.csv': [
-    'id', 'code', 'name', 'description', 'access', 'createdAt', 'updatedAt', 'icon.type', 'icon.value',
+    'id', 'code', 'name', 'description', 'createdAt', 'updatedAt', 'icon.type', 'icon.value',
   ],
   'posts.csv': [
     'id', 'code', 'type', 'member', 'category', 'title', 'description', 'status', 'access', 'value',
@@ -128,6 +128,8 @@ export const decodeCsvBundle = (
         relax_column_count: true,
         relax_quotes: false,
         skip_empty_lines: false,
+        // Materialize only the header, remaining budget, and first excess record.
+        to: limits.maxRows - totalRows + 2,
       }) as string[][]
     } catch (error) {
       errors.add({

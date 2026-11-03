@@ -4,22 +4,36 @@ import SimpleMap from '@/components/SimpleMap.vue'
 import server, { seeds } from '@/server'
 import { mountComponent, waitFor } from '../utils'
 
-describe('Member profile without a location', () => {
+describe('Member without a location', () => {
   let wrapper: VueWrapper
 
   beforeAll(async () => {
     seeds()
-    server.schema.members.first().update({ location: null })
-    wrapper = await mountComponent(App, { login: true })
+    const member = (server.schema as any).members.first()
+    member.update({ location: null })
+    const need = member.posts.models.find(post => post.type === 'needs')
+    const urlPath = `/groups/GRP0/needs/${need.code}`
+    // Sign in from another community so the want's group is not already cached.
+    const visitor = (server.schema as any).users.all().models.find(user =>
+      user.members.models.some(member => member.group.code === 'GRP1')
+    )
+    window.history.replaceState({}, '', urlPath)
+    wrapper = await mountComponent(App, { login: visitor, urlPath })
   })
 
-  afterAll(() => wrapper.unmount())
+  afterAll(() => {
+    wrapper.unmount()
+    window.history.replaceState({}, '', '/')
+  })
 
-  it.each([false, true])('renders a markerless profile map with desktop layout %s', async (desktop) => {
+  it.each([false, true].flatMap(desktop =>
+    ['needs', 'members', 'offers'].map(type => ({ desktop, type }))
+  ))('renders $type with a markerless map centered on the group, desktop: $desktop', async ({ desktop, type }) => {
     wrapper.vm.$q.screen.gt.sm = desktop
     const member = server.schema.members.first()
-    await wrapper.vm.$router.push(`/groups/GRP0/members/${member.code}`)
-    await waitFor(() => wrapper.text().includes(member.name), true, 'Member profile should load')
+    const resource = type === 'members' ? member : member.posts.models.find(post => post.type === type)
+    await wrapper.vm.$router.push(`/groups/GRP0/${type}/${resource.code}`)
+    await waitFor(() => wrapper.findComponent(SimpleMap).exists(), true, 'Resource map should load')
 
     const map = wrapper.findComponent(SimpleMap)
     expect(map.props('center')).toEqual(member.group.location.coordinates)

@@ -82,6 +82,7 @@ describe('Members endpoints', () => {
           attributes: {
             name: 'Alice Member',
             description: 'Member description',
+            location: null,
           },
         },
       })
@@ -93,6 +94,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data.attributes.code, 'members-create0000')
     assert.deepStrictEqual(res.body.data.attributes.address, {})
     assert.deepStrictEqual(res.body.data.attributes.contacts, [])
+    assert.strictEqual(res.body.data.attributes.location, null)
     assert.strictEqual(res.body.data.relationships.group.data.id, group.id)
 
     const list = await request(app)
@@ -118,6 +120,24 @@ describe('Members endpoints', () => {
       notifications: { myAccount: true, group: true },
       emails: { myAccount: true, group: 'weekly' },
     })
+  })
+
+  test('POST /:code/members rejects javascript website URLs', async () => {
+    await seedGroup({ tenantId: 'website-contacts' })
+    const user = await auth('contact-owner')
+    await request(app)
+      .post('/website-contacts/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            name: 'Contact owner',
+            contacts: [{ type: 'website', value: 'javascript:alert(1)' }],
+          },
+        },
+      })
+      .expect(400)
   })
 
   test('POST /:code/members allows repeated member creation by the same user', async () => {
@@ -165,20 +185,42 @@ describe('Members endpoints', () => {
     })
   })
 
-  test('POST /:code/members allocates the first unused numeric code', async () => {
-    await seedGroup({ tenantId: 'members-code-gap', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0000' })
-    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0002' })
-    const user = await auth('member-code-gap-user')
+  for (const { name, suffixes, expected, deleted } of [
+    { name: 'increments the latest numeric code instead of the maximum', suffixes: ['0137', '0000', '0002', '9', '0010', 'Special'], expected: '0011' },
+    { name: 'skips occupied codes after the latest numeric code', suffixes: ['0137', '0012', '0011', '0010'], expected: '0013' },
+    { name: 'starts at 0000 when no numeric suffix exists', suffixes: ['', 'Special', '9999suffix'], expected: '0000' },
+    { name: 'allows more than four digits', suffixes: ['9999'], expected: '10000' },
+    { name: 'skips occupied codes beyond four digits', suffixes: ['10000', '9999'], expected: '10001' },
+    { name: 'treats differently padded numeric suffixes as occupied', suffixes: ['11', '0010'], expected: '0012' },
+    { name: 'keeps deleted member codes reserved', suffixes: ['0137', '0022', '0021', '0020'], expected: '0023', deleted: new Date() },
+  ]) {
+    test(`POST /:code/members ${name}`, async () => {
+      const tenantId = 'members.code'
+      await seedGroup({ tenantId, status: 'active', access: 'public' })
+      for (const [index, suffix] of suffixes.entries()) {
+        await seedMember({
+          tenantId,
+          code: `${tenantId}${suffix}`,
+          deleted,
+          created: new Date(Date.UTC(2026, 0, 1, 0, 0, index)),
+          // Editing an older member must not move it to the end of the sequence.
+          updated: new Date(Date.UTC(2026, 0, 2, 0, 0, suffixes.length - index)),
+        })
+      }
+      await seedMember({ tenantId, code: 'membersXcode99999' })
+      await seedGroup({ tenantId: 'other-group' })
+      await seedMember({ tenantId: 'other-group', code: `${tenantId}99999` })
+      const user = await auth('member-code-user')
 
-    const res = await request(app)
-      .post('/members-code-gap/members')
-      .set('Authorization', `Bearer ${user.token}`)
-      .send({ data: { type: 'members', attributes: { name: 'Gap Member' } } })
-      .expect(201)
+      const res = await request(app)
+        .post(`/${tenantId}/members`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ data: { type: 'members', attributes: { name: 'New Member' } } })
+        .expect(201)
 
-    assert.strictEqual(res.body.data.attributes.code, 'members-code-gap0001')
-  })
+      assert.strictEqual(res.body.data.attributes.code, `${tenantId}${expected}`)
+    })
+  }
 
   test('POST /:code/members accepts explicit code only if admin', async () => {
     await seedGroup({ tenantId: 'members-create-code', status: 'active', access: 'public' })
@@ -743,7 +785,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(codes.includes('member-b'), true)
   })
 
-  test('PATCH /:code/members/:member allows member user to update attributes', async () => {
+  test('PATCH /:code/members/:member preserves omitted location and allows clearing it', async () => {
     await seedGroup({ tenantId: 'members-patch-owner', status: 'active', access: 'public' })
     const owner = await auth('member-patch-owner')
     const member = await seedMember({
@@ -752,6 +794,8 @@ describe('Members endpoints', () => {
       status: 'draft',
       access: 'private',
       userId: owner.id,
+      longitude: 2,
+      latitude: 41,
     })
 
     const res = await request(app)
@@ -770,6 +814,18 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.attributes.name, 'Updated Member')
     assert.strictEqual(res.body.data.attributes.description, 'Updated description')
+    assert.deepStrictEqual(res.body.data.attributes.location.coordinates, [2, 41])
+
+    const cleared = await request(app)
+      .patch(`/members-patch-owner/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ data: { type: 'members', attributes: { location: null } } })
+      .expect(200)
+
+    assert.strictEqual(cleared.body.data.attributes.location, null)
+    const stored = await tenantDb(prisma, 'members-patch-owner').member.findUniqueOrThrow({ where: { id: member.id } })
+    assert.strictEqual(stored.latitude, null)
+    assert.strictEqual(stored.longitude, null)
   })
 
   test('PATCH /:code/members/:member allows draft to pending by owner', async () => {
@@ -1327,6 +1383,23 @@ describe('Members endpoints', () => {
     await request(app).delete(path).send({ meta: { token } }).expect(204)
   })
 
+  test('confirmed draft deletion rejects an unrelated account with the same code', async () => {
+    const currency = seedAccountingCurrency('draft-deletion')
+    await seedGroup({ tenantId: currency.code, status: 'active', currencyId: currency.id })
+    const owner = await auth('draft-deletion-owner')
+    const other = await auth('draft-deletion-other')
+    const account = seedAccountingAccount(currency.code, 'shared-code', [other.id], undefined, 'active', 0)
+    const member = await seedMember({
+      tenantId: currency.code, code: account.code, status: 'draft', userId: owner.id,
+    })
+
+    await request(app).delete(`/${currency.code}/members/${member.id}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } }).expect(403)
+
+    assert.strictEqual(account.status, 'active')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [`GET /${currency.code}/accounts`])
+  })
+
   test('DELETE /:code/members/:member allows group admin to delete another member', async () => {
     const currency = seedAccountingCurrency('members-delete-admin')
     await seedGroup({
@@ -1424,7 +1497,7 @@ describe('Members endpoints', () => {
       currencyId: currency.id,
     })
     const owner = await auth('members-delete-account-by-code-owner')
-    const account = seedAccountingAccount(currency.code, 'delete-by-code', [owner.id])
+    const account = seedAccountingAccount(currency.code, 'delete-by-code', [toUuid('additional-account-owner'), owner.id])
     const member = await seedMember({
       tenantId: 'members-delete-account-by-code',
       code: 'delete-by-code',

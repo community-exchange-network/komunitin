@@ -108,7 +108,7 @@
             <q-card>
               <simple-map
                 class="simple-map"
-                :center="need.member.attributes.location?.coordinates"
+                :center="need.member.attributes.location?.coordinates ?? need.member.group.attributes.location?.coordinates"
                 :marker="need.member.attributes.location?.coordinates"
               />
               <q-card-section v-if="need.member.attributes.location?.name" class="text-onsurface-m">
@@ -145,10 +145,13 @@ import SimpleMap from "../../components/SimpleMap.vue";
 import Error404 from "../Error404.vue";
 
 import { useResource } from "@/composables/useResources";
-import type { Need, Member, Category } from "../../store/model";
+import type { Need, Member, Category, Group } from "../../store/model";
 import { KErrorCode } from "@/KError";
 
-type FullNeed = Need & { member: Member, category: Category | null }
+type FullNeed = Need & {
+  member: Member & { group: Group }
+  category: Category | null
+}
 
 const props = defineProps<{
   code: string
@@ -160,11 +163,11 @@ const store = useStore()
 const needOptions = computed(() => ({
   code: props.needCode,
   group: props.code,
-  include: "category,member,member.account"
+  include: "category,member,member.account,member.group"
 }))
 const { resource: need, error } = useResource<FullNeed>('needs', needOptions)
 const canEdit = computed(() =>
   need.value?.member?.id === store.getters.myMember?.id || store.getters.isAdmin
 )
-const isReady = computed(() => Boolean(need.value && need.value.member))
+const isReady = computed(() => Boolean(need.value && need.value.member && need.value.member.group))
 </script>

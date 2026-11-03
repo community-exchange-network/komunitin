@@ -11,7 +11,7 @@ export const getCategoriesRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const params = getCollectionParams(req, {
-    filter: ['code', 'name', 'access', 'search'],
+    filter: ['code', 'name', 'search'],
     sort: ['created', 'updated', 'name', 'code'],
   })
 

@@ -50,7 +50,7 @@ export class StellarLedger implements Ledger {
 
   // A map of the transactions that are currently being processed. Keys
   // are the source account public key.
-  private concurrentTransactions: {[key: string]: Promise<Horizon.HorizonApi.SubmitTransactionResponse>|undefined} = {}
+  private concurrentTransactions: {[key: string]: Promise<Horizon.HorizonApi.TransactionResponse>|undefined} = {}
 
   private sponsorAccount: Horizon.AccountResponse | undefined
   private channelAccounts: Horizon.AccountResponse[] | undefined
@@ -267,7 +267,7 @@ export class StellarLedger implements Ledger {
         transaction = inner
       }
       
-      return await this.submitTransactionWithRetry(transaction)
+      return await this.submitTransactionWithAccountLock(transaction)
       
     } catch (error) {
       if (this.isFeeError(error)) {
@@ -304,8 +304,8 @@ export class StellarLedger implements Ledger {
    * Returns whether there is a pending transaction currently being submitted  
    * with the given account as the transaction source.  
    *  
-   * "pending transaction" here means a locally tracked submission attempt that 
-   * has not completed yet.
+   * "pending transaction" here means a locally tracked submission, including
+   * retries, that has not completed yet.
    */  
   public hasPendingTransaction(accountId: string): boolean {
     return this.concurrentTransactions[accountId] !== undefined
@@ -318,9 +318,9 @@ export class StellarLedger implements Ledger {
    * @param timeout 
    * @returns 
    */
-  private async submitTransactionWithRetry(transaction: Transaction<Memo<MemoType>, Operation[]> | FeeBumpTransaction, timeout: number = 200): Promise<Horizon.HorizonApi.SubmitTransactionResponse> {
+  private async submitTransactionWithRetry(transaction: Transaction<Memo<MemoType>, Operation[]> | FeeBumpTransaction, timeout: number = 200): Promise<Horizon.HorizonApi.TransactionResponse> {
     try {
-      return await this.submitTransactionWithAccountLock(transaction)
+      return await this.submitTransactionWithRateLimiting(transaction)
     } catch (error) {
       if (this.isNonRetryError(error)) {
         throw this.getTransactionError(transaction, error)
@@ -346,7 +346,7 @@ export class StellarLedger implements Ledger {
    * @param transaction 
    * @returns 
    */
-  private async submitTransactionWithAccountLock(transaction: Transaction<Memo<MemoType>, Operation[]> | FeeBumpTransaction): Promise<Horizon.HorizonApi.SubmitTransactionResponse> {
+  private async submitTransactionWithAccountLock(transaction: Transaction<Memo<MemoType>, Operation[]> | FeeBumpTransaction): Promise<Horizon.HorizonApi.TransactionResponse> {
     const key = (transaction instanceof FeeBumpTransaction) ? transaction.innerTransaction.source : transaction.source
     if (this.concurrentTransactions[key] !== undefined) {
       // There is already a transaction being processed for this account. Wait for it to finish and retry.
@@ -362,12 +362,12 @@ export class StellarLedger implements Ledger {
       return await this.submitTransactionWithAccountLock(transaction)
     } else {
       try {
-        // lock
-        this.concurrentTransactions[key] = this.submitTransactionWithRateLimiting(transaction)
+        // Keep the lock through retries so later sequence numbers cannot overtake this transaction.
+        this.concurrentTransactions[key] = this.submitTransactionWithRetry(transaction)
         logger.debug(`Submitting transaction from ${key}`)
         // operation
         const result = await this.concurrentTransactions[key]
-        return result as Horizon.HorizonApi.SubmitTransactionResponse
+        return result as Horizon.HorizonApi.TransactionResponse
       } finally {
         // release lock
         delete this.concurrentTransactions[key]  
@@ -375,8 +375,9 @@ export class StellarLedger implements Ledger {
     }
   }
   // Limit the number of concurrent transactions to avoid overloading the network.
-  async submitTransactionWithRateLimiting(transaction: Transaction<Memo<MemoType>, Operation[]> | FeeBumpTransaction): Promise<Horizon.HorizonApi.SubmitTransactionResponse> {
-    return await this.callServer(async (server) => await server.submitTransaction(transaction))
+  async submitTransactionWithRateLimiting(transaction: Transaction<Memo<MemoType>, Operation[]> | FeeBumpTransaction): Promise<Horizon.HorizonApi.TransactionResponse> {
+    // Horizon returns the full transaction; the SDK's submission type omits created_at.
+    return await this.callServer(async (server) => await server.submitTransaction(transaction) as Horizon.HorizonApi.TransactionResponse)
   }
   async loadAccount(publicKey: string): Promise<Horizon.AccountResponse> {
     return await this.callServer(async (server) => await server.loadAccount(publicKey))

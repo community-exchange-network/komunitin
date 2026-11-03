@@ -115,7 +115,7 @@
             <q-card>
               <simple-map
                 class="simple-map"
-                :center="offer.member.attributes.location?.coordinates"
+                :center="offer.member.attributes.location?.coordinates ?? offer.member.group.attributes.location?.coordinates"
                 :marker="offer.member.attributes.location?.coordinates"
               />
               <q-card-section v-if="offer.member.attributes.location?.name" class="text-onsurface-m">

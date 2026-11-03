@@ -24,7 +24,7 @@ Members can edit their publications and set an expiry date to keep the marketpla
 
 ### Categories
 
-Categories help organize offers and needs, for example "Food", "Healthcare" or "Professional services". Each community can customize its categories.
+Categories help organize offers and needs, for example "Food", "Healthcare" or "Professional services". Each community can customize its categories. Anyone who can access the community can see its categories.
 
 ## Finding people and publications
 

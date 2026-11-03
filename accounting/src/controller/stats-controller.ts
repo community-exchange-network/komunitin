@@ -4,7 +4,9 @@ import { AccountsStats, Stats, StatsInterval } from "../model/stats";
 import { Prisma } from "@prisma/client";
 import { PrivilegedPrismaClient, TenantPrismaClient } from "./multitenant";
 import { StatsPublicService } from "./api";
+import { badRequest } from "../utils/error"
 
+const MAX_STATS_BUCKETS = 1000
 
 /**
  * Provides statistics about the transactions and accounts in the system.
@@ -50,6 +52,22 @@ export class StatsControllerImpl implements StatsPublicService {
     return Number(value._sum.amount) ?? 0
   }
 
+  private checkMaxBuckets(from: Date, to: Date, interval: StatsInterval) {
+    // Use upper bounds for calendar intervals so requests at the bucket limit fit.
+    const intervalHours = {
+      PT1H: 1,
+      P1D: 24,
+      P1W: 7 * 24,
+      P1M: 31 * 24,
+      P1Y: 366 * 24
+    }
+    // Match generate_series' rounded start and one-second endpoint adjustment.
+    const span = to.getTime() - 1000 - this.truncateDate(from, interval).getTime()
+    if (span >= MAX_STATS_BUCKETS * intervalHours[interval] * 60 * 60 * 1000) {
+      throw badRequest("Statistics range is too large. Use a coarser interval.")
+    }
+  }
+
   /**
    * Provides a template for SQL query that generates a series of intervals
    * between the "from" and "to" dates, with the specified "interval".
@@ -69,6 +87,8 @@ export class StatsControllerImpl implements StatsPublicService {
    * @returns 
    */
   private intervalsSqlTemplate(from: Date, to: Date, interval: StatsInterval) {
+    this.checkMaxBuckets(from, to, interval)
+
     const sqlInterval = this.sqlInterval(interval)
     const sqlDatePart = this.sqlDatePart(interval)
 

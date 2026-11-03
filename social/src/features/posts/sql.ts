@@ -20,12 +20,22 @@ const postTable = sqlTable('Post', 'p')
 const postColumn = (column: string) => sqlColumn('p', column)
 const memberTable = sqlTable('Member', 'm')
 const memberColumn = (column: string) => sqlColumn('m', column)
+const categoryTable = sqlTable('Category', 'c')
+const categoryColumn = (column: string) => sqlColumn('c', column)
 
 const postWithMemberFrom = Prisma.sql`
   ${postTable}
   INNER JOIN ${memberTable}
     ON ${memberColumn('id')} = ${postColumn('memberId')}
    AND ${memberColumn('tenantId')} = ${postColumn('tenantId')}
+`
+
+const postWithMemberAndCategoryFrom = Prisma.sql`
+  ${postWithMemberFrom}
+  LEFT JOIN ${categoryTable}
+    ON ${categoryColumn('id')} = ${postColumn('categoryId')}
+   AND ${categoryColumn('tenantId')} = ${postColumn('tenantId')}
+   AND ${categoryColumn('deleted')} IS NULL
 `
 
 const postColumns: SqlColumnMap = {
@@ -158,10 +168,10 @@ export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group
   const expiredWhere = buildExpiredWhere(expired)
 
   return await findCollectionIds(db, {
-    from: postWithMemberFrom,
+    from: hasSearch ? postWithMemberAndCategoryFrom : postWithMemberFrom,
     columns: postColumns,
     location: postColumn('location'),
-    search: hasSearch ? [postColumn('search'), memberColumn('search')] : postColumn('search'),
+    search: hasSearch ? [postColumn('search'), memberColumn('search'), categoryColumn('search')] : postColumn('search'),
     params: {
       ...params,
       filters,

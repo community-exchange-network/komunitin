@@ -1,5 +1,4 @@
 import { Prisma } from '../../generated/prisma/client'
-import { OptionalAuthContext } from '../../server/context'
 import { DbClient } from '../../server/multitenant'
 import {
   type CollectionIds,
@@ -9,8 +8,6 @@ import {
   type SqlColumnMap
 } from '../../server/query'
 import type { CollectionParams } from '../../server/request'
-import { isGroupAdmin, isGroupMember } from '../groups/service'
-import { Group } from '../groups/types'
 
 const categoryTable = sqlTable('Category', 'c')
 const categoryColumn = (column: string) => sqlColumn('c', column)
@@ -19,39 +16,11 @@ const categoryColumns: SqlColumnMap = {
   id: categoryColumn('id'),
   code: categoryColumn('code'),
   name: categoryColumn('name'),
-  access: categoryColumn('access'),
   created: categoryColumn('created'),
   updated: categoryColumn('updated'),
 }
 
-const buildReadableCategoryWhere = async (ctx: OptionalAuthContext, group: Group) => {
-  if (ctx.isSuperadmin || ctx.canReadAllSocial) {
-    return Prisma.sql`TRUE`
-  }
-
-  const groupAdmin = isGroupAdmin(ctx, group)
-  if (groupAdmin) {
-    return Prisma.sql`TRUE`
-  }
-
-  const groupMember = await isGroupMember(ctx, group)
-
-  if (groupMember) {
-    return Prisma.sql`${categoryColumn('access')} IN ('public', 'group')`
-  }
-
-  if (group.status === 'active') {
-    return Prisma.sql`${categoryColumn('access')} = 'public'`
-  }
-
-  return null
-}
-
-export const findCategoriesIds = async (ctx: OptionalAuthContext, db: DbClient, group: Group, params: CollectionParams): Promise<CollectionIds> => {
-  const readableWhere = await buildReadableCategoryWhere(ctx, group)
-  if (readableWhere === null) {
-    return { ids: [], total: 0 }
-  }
+export const findCategoriesIds = async (db: DbClient, params: CollectionParams): Promise<CollectionIds> => {
   return await findCollectionIds(db, {
     from: categoryTable,
     columns: categoryColumns,
@@ -59,7 +28,6 @@ export const findCategoriesIds = async (ctx: OptionalAuthContext, db: DbClient, 
     params,
     where: [
       Prisma.sql`${categoryColumn('deleted')} IS NULL`,
-      readableWhere,
     ],
   })
 }

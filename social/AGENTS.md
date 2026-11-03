@@ -53,8 +53,9 @@ pnpm start
 
 ## Domain Notes
 
-- Groups, members, categories, and posts enforce visibility in service code and raw SQL list queries. Preserve anonymous, owner, group-member, group-admin, service-reader, and superadmin access paths.
+- Groups, members, and posts enforce visibility in service code and raw SQL list queries. Preserve anonymous, owner, group-member, group-admin, service-reader, and superadmin access paths.
 - Group activation/disabling may sync accounting currencies and emit social notification events.
+- Categories are readable by anyone who can access their group.
 - Member status transitions may create or update accounting accounts and emit member notification events.
 - Offers and needs share the `Post` table with a `type` discriminator; type-specific fields live in the JSON `data` column.
 - Resources are soft-deleted with `deleted`; keep list/detail queries excluding deleted rows.

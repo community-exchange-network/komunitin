@@ -65,7 +65,7 @@ export const createEvent = async (req: Request, res: Response, next: NextFunctio
       err = badRequest(err.message, {
         cause: err,
         details: {
-          errors: err.errors.map(e => ({
+          errors: err.issues.map(e => ({
             source: e.path,
             message: e.message,
           })),

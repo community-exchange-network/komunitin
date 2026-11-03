@@ -405,7 +405,6 @@ const categoryRowSchema = z.object({
   code: required(255),
   name: required(255),
   description: optional(1000),
-  access: enumValue(ACCESS_VALUES),
   createdAt: timestamp,
   updatedAt: timestamp,
   icon: z.object({

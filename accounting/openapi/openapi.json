@@ -5277,6 +5277,42 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "detail": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "status": "400",
+                      "code": "BadRequest",
+                      "title": "Bad Request",
+                      "detail": "Statistics range is too large. Use a coarser interval."
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -5364,6 +5400,42 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "detail": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "status": "400",
+                      "code": "BadRequest",
+                      "title": "Bad Request",
+                      "detail": "Statistics range is too large. Use a coarser interval."
+                    }
+                  ]
                 }
               }
             }

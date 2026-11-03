@@ -9,7 +9,7 @@ import { hasInclude, type CollectionParams, type ResourceParams } from '../../se
 import { badRequest, forbidden, notFound, unauthorized } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, toGroup, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, fromLocation, getCurrencyCode, getGroupByCode, isGroupAdmin, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
@@ -157,7 +157,7 @@ const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): P
     
 }
 
-const buildMemberCode = (groupCode: string, index: number): string => {
+const buildMemberCode = (groupCode: string, index: bigint): string => {
   return `${groupCode}${(index + "") . padStart(4, '0')}`
 }
 
@@ -166,12 +166,15 @@ const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   const members = await db.member.findMany({
     select: { code: true },
     where: { code: { startsWith: groupCode } },
+    orderBy: [{ created: 'desc' }, { id: 'desc' }],
   })
-  const used = new Set(members
+  const numbers = members
     .map(({ code }) => code.substring(groupCode.length))
     .filter((suffix) => /^\d+$/.test(suffix))
-    .map(Number))
-  let candidate = 0
+    .map(BigInt)
+  const used = new Set(numbers)
+  // BigInt prevents a potential infinite loop.
+  let candidate = (numbers[0] ?? -1n) + 1n
   while (used.has(candidate)) {
     candidate++
   }
@@ -376,9 +379,10 @@ export const patchMember = async (
     data.status = to
   }
 
-  if (location) {
-    data.latitude = location.coordinates[1]
-    data.longitude = location.coordinates[0]
+  if (location !== undefined) {
+    const coords = fromLocation(location)
+    data.latitude = coords.latitude
+    data.longitude = coords.longitude
   }
 
   const db = tenantDb(prisma, code)
@@ -454,6 +458,11 @@ export const deleteMember = async (ctx: OptionalAuthContext, code: string, id: s
       : await accounting.findAccountByCode(currencyCode, member.code)
 
     if (account && account.status !== 'deleted') {
+      // If the deletion is confirmed via token (and hence we're using service credentials),
+      // ensure the confirming user is an owner of the account.
+      if (confirmation && !account.users.some(({ id }) => id === confirmation.userId)) {
+        throw forbidden('You do not have permission to delete this account')
+      }
       await accounting.deleteAccount(currencyCode, account.id)
     }
 

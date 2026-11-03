@@ -1117,6 +1117,65 @@ describe('Posts endpoints', () => {
     assert.strictEqual(byJsonKey.body.data.length, 0)
   })
 
+  test('GET /:code/posts searches normalized category names and follows category changes', async () => {
+    const tenantId = 'posts-search-category'
+    const { admin, category, member } = await postQueryFixture(tenantId)
+    const renameCategory = (name: string) => request(app)
+      .patch(`/${tenantId}/categories/${category.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ data: { type: 'categories', attributes: { name } } })
+      .expect(200)
+    const searchPosts = async (search: string, expectedIds: string[]) => {
+      const res = await request(app)
+        .get(`/${tenantId}/posts`)
+        .query({ 'filter[search]': search })
+        .expect(200)
+
+      assert.deepStrictEqual(res.body.data.map((post: any) => post.id).sort(), [...expectedIds].sort())
+      assert.strictEqual(res.body.meta.count, expectedIds.length)
+    }
+
+    await renameCategory('CÉRAMIQUE')
+    const postIds: string[] = []
+    for (const type of ['offers', 'needs']) {
+      const post = await seedPost({
+        tenantId,
+        memberId: member.id,
+        categoryId: category.id,
+        type,
+        status: 'published',
+      })
+      postIds.push(post.id)
+    }
+    const uncategorized = await seedPost({
+      tenantId,
+      memberId: member.id,
+      title: 'Uncategorized',
+      status: 'published',
+    })
+    await seedPost({
+      tenantId,
+      memberId: member.id,
+      categoryId: category.id,
+      status: 'draft',
+    })
+
+    await searchPosts('ceramique', postIds)
+    await searchPosts('uncategorized', [uncategorized.id])
+
+    await renameCategory('Textiles')
+    await searchPosts('ceramique', [])
+    await searchPosts('textiles', postIds)
+
+    await request(app)
+      .patch(`/${tenantId}/posts/${postIds[0]}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ data: { type: 'offers', attributes: {}, relationships: { category: { data: null } } } })
+      .expect(200)
+
+    await searchPosts('textiles', [postIds[1]])
+  })
+
   test('GET /:code/posts paginates after visibility filtering', async () => {
     await seedGroup({ tenantId: 'posts-page', status: 'active', access: 'public' })
     const owner = await auth('posts-page-owner')

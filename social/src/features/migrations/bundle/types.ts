@@ -113,7 +113,6 @@ export interface MigrationCategory {
   code: string
   name: string
   description: string | null
-  access: 'public' | 'group' | 'private'
   createdAt: string
   updatedAt: string
   icon: { type: string, value: string } | null

@@ -204,4 +204,10 @@ describe('Statistics endpoints', async () => {
     assert.equal(new Date(response.body.data.attributes.to).toISOString(), new Date("2025-01-01Z").toISOString())
     assert.equal(response.body.data.attributes.interval, "P1M")
   })
+
+  await it('rejects statistics exceeding 1000 buckets', async () => {
+    const response = await t.api.get('/currencies/stats/amount?from=2000-01-01Z&to=2000-02-11T17:00:00Z&interval=PT1H', undefined, 400)
+    assert.equal(response.body.errors[0].code, 'BadRequest')
+    assert.match(response.body.errors[0].detail, /coarser interval/)
+  })
 })

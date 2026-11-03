@@ -35,7 +35,7 @@ export type CurrencySettings = {
    */
   defaultAcceptPaymentsAutomatically?: boolean
   /**
-   * List of payee account id's that can get payments without manual acceptance
+   * Local destination account IDs whose transfer requests are accepted without manual approval.
    */
   defaultAcceptPaymentsWhitelist?: string[]
   

@@ -208,7 +208,7 @@ const exportBundle = async (client: IcesClient, code: string, sanitize?: IcesExp
   for (const category of collection(categoryDocument)) {
     requireType(category, 'categories')
     const row: Row = { id: category.id, ...fields(category, {
-      code: 'code', name: 'name', description: 'description', access: 'access',
+      code: 'code', name: 'name', description: 'description',
       createdAt: 'created', updatedAt: 'updated', 'icon.type': 'icon.type', 'icon.value': 'icon.value',
     }) }
     categories.set(category.id, row.code)

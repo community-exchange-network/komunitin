@@ -254,7 +254,6 @@ export interface Category extends ResourceObject {
     meta?: {
       description?: string;
     };
-    access: Access;
     created: string;
     updated: string;
   };

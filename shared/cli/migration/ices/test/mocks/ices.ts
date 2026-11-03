@@ -56,7 +56,7 @@ export const serveIces = async (t: TestContext) => {
   members[0].relationships.contacts.data.push(ref('contacts', 499))
   const categories = [0, 1].map((index) => resource('categories', 600 + index, {
     ...dates, code: `category-${index}`, name: `Category ${index}`, description: null,
-    access: 'group', icon: index === 0 ? { type: 'material', value: 'home' } : null, cpa: null,
+    icon: index === 0 ? { type: 'material', value: 'home' } : null, cpa: null,
   }, { group: relation('groups', 1) }))
   const posts = [0, 1, 2].map((index) => resource('offers', 700 + index, {
     ...dates, code: `offer-${index}`, name: `Title ${index}`, content: 'Description, "quoted"\nnext line',

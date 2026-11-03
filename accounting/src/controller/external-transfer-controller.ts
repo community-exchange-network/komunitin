@@ -10,6 +10,8 @@ import { createExternalToken } from "./external-jwt";
 import { config } from "../config";
 import { mount } from "../server/parse";
 import { toStringAmount } from "./currency-controller";
+import Big from "big.js"
+import { LedgerTransfer } from "../ledger"
 
 type ExternalPayeeTransfer = WithRequired<FullTransfer, "externalPayee">
 type ExternalPayerTransfer = WithRequired<FullTransfer, "externalPayer">
@@ -68,6 +70,19 @@ export class ExternalTransferController extends AbstractCurrencyController {
     return transfer.externalPayee || transfer.externalPayer
   }
 
+
+  private checkExternalPaymentsAllowed(payer: FullAccount) {
+    if (!(payer.settings.allowExternalPayments ?? this.currency().settings.defaultAllowExternalPayments)) {
+      throw forbidden("Account is not allowed to make external payments")
+    }
+  }
+
+  private checkExternalPaymentRequestsAllowed(account: FullAccount) {
+    if (!(account.settings.allowExternalPaymentRequests ?? this.currency().settings.defaultAllowExternalPaymentRequests)) {
+      throw forbidden("Account is not allowed to use external payment requests")
+    }
+  }
+
   /**
    * This is the main function to create an external transfer. 
    */
@@ -113,9 +128,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     }
     // Check that the local payer account exists and has the sufficient rights.
     const payer = await this.accounts().getFullAccount(data.payer.id)
-    if (!(payer.settings.allowExternalPaymentRequests || this.currency().settings.defaultAllowExternalPaymentRequests)) {
-      throw forbidden("Account is not allowed to receive external payment requests")
-    }
+    this.checkExternalPaymentRequestsAllowed(payer)
     // Check that the logged in external user matches the external payee account in the provided transfer.
     const externalPayee = await this.getExternalAccount(ctx, data.payee as ExternalResourceIdentifier)
     if (externalPayee.resource.key !== ctx.accountKey) {
@@ -156,9 +169,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
       throw forbidden("User is not allowed to transfer from this account")
     }
 
-    if (!(payer.settings.allowExternalPayments || this.currency().settings.defaultAllowExternalPayments)) {
-      throw forbidden("Account is not allowed to make external payments")
-    }
+    this.checkExternalPaymentsAllowed(payer)
 
     // Create local transfer record with "new" state.
     const transfer = await this.transfers().createTransferRecord(data, payer, this.currency().externalAccount, user)
@@ -207,27 +218,9 @@ export class ExternalTransferController extends AbstractCurrencyController {
       throw badRequest(`Only "committed" transfers can be created externally by the external payer.`)
     }
 
-    if (!data.hash) {
-      throw badRequest(`The hash of the transfer must be provided.`)
-    }
-      
-    // Retrieve the transfer data from the ledger.
-    const ledgerTransfer = await this.currencyController.ledger.getTransfer(data.hash)
-    if (ledgerTransfer.payer !== ctx.accountKey) {
-      throw forbidden(`The logged in external payer is not the payer of the transfer`)
-    }
-
-    // Check that the given local payee exists and matches the transfer key.
     const payee = await this.accounts().getFullAccount(data.payee.id)
-    if (ledgerTransfer.payee !== payee.key) {
-      throw badRequest(`The given payee ${data.payee.id} does not match the transfer key ${ledgerTransfer.payee}`)
-    }
-
-    // Check the external payer
     const externalPayer = await this.externalResources().getExternalResource<FullAccount>(ctx, data.payer as ExternalResourceIdentifier)
-    if (ledgerTransfer.payer !== externalPayer.resource.key) {
-      throw badRequest(`The given payer ${data.payer.id} does not match the transfer key ${ledgerTransfer.payer}`)
-    }
+    const ledgerTransfer = await this.verifyIncomingPayment(ctx, data.hash, externalPayer.resource.key, payee)
 
     // Compute the amount from the ledger data.
     data.amount = this.currencyController.toIntegerAmount(ledgerTransfer.amount)
@@ -242,11 +235,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
         externalPayerId: externalPayer.id,
       }
     })
-    // Update account balances
-    await this.transfers().updateAccountBalances(transfer)
-    
-    // Set the transfer to committed state.
-    await this.transfers().saveTransferState(transfer, "committed")
+    await this.commitIncomingPayment(transfer, ledgerTransfer)
     return transfer  
   }  
 
@@ -272,9 +261,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
     }
 
     // Check that the account is allowed to make external payment requests
-    if (!(payee.settings.allowExternalPaymentRequests || this.currency().settings.defaultAllowExternalPaymentRequests)) {
-      throw forbidden("Account is not allowed to make external payment requests")
-    }
+    this.checkExternalPaymentRequestsAllowed(payee)
 
     // Create local transfer record with "new" state.
     const transfer = await this.transfers().createTransferRecord(data, this.currency().externalAccount, payee, user)
@@ -293,16 +280,15 @@ export class ExternalTransferController extends AbstractCurrencyController {
     // payer account. All we can do is to ask the payer service.
     const result = await this.notifyTransferExternalPayer(ctx, transfer as ExternalPayerTransfer)
     
-    // Update hash just in case the transfer has been actually submitted to the ledger.
-    transfer.hash = result.hash
-
-    // Update account balances if the transfer was already committed.
-    if (result.state == "committed") {
-      await this.transfers().updateAccountBalances(transfer)
+    // The remote response is a notification; only the ledger proves settlement.
+    if (result.state === "committed") {
+      const payment = await this.verifyIncomingPayment(ctx, result.hash, transfer.externalPayer.resource.key, payee)
+      await this.commitIncomingPayment(transfer, payment)
+    } else if (["pending", "rejected", "failed"].includes(result.state)) {
+      await this.transfers().applyTransferState(transfer, result.state)
+    } else {
+      throw badRequest("Invalid external payment response state")
     }
-
-    // And update the transaction (state and hash).
-    await this.transfers().saveTransferState(transfer, result.state)
 
     return transfer
   }
@@ -343,40 +329,61 @@ export class ExternalTransferController extends AbstractCurrencyController {
     this.transfers().checkTransferTransition(transfer, data.state)
 
     if (data.state === "committed") {
-      // The external payer has accepted the payment request
-      if (!data.hash) {
-        throw badRequest("The hash must be provided for a committed external transfer update.")
-      }
-      const ledgerTransfer = await this.currencyController.ledger.getTransfer(data.hash)
-      // Check that the payer and payee match the ledger transfer data.
-      if (ledgerTransfer.payer !== transfer.externalPayer.resource.key || ledgerTransfer.payee !== transfer.payee.key) {
-        throw badRequest("The payer or payee do not match the ledger transfer data.")
-      }
-      // Update transfer amount from ledger
-      const amount = this.currencyController.toIntegerAmount(ledgerTransfer.amount)
-      if (data.amount !== transfer.amount) {
-        transfer.amount = amount
-        this.db().transfer.update({
-          data: { amount },
-          where: { tenantId_id: {
-            id: transfer.id,
-            tenantId: this.db().tenantId
-          }}
-        })
-      }
-      // Update account balances
-      await this.transfers().updateAccountBalances(transfer)
-
-      // Update state and hash
-      transfer.hash = data.hash
-      await this.transfers().saveTransferState(transfer, "committed")
+      const payment = await this.verifyIncomingPayment(ctx, data.hash, transfer.externalPayer.resource.key, transfer.payee)
+      await this.commitIncomingPayment(transfer, payment)
     } else if (["rejected", "failed"].includes(data.state)) {
       // The external payer has rejected the payment request
-      await this.transfers().saveTransferState(transfer, data.state)
+      await this.transfers().applyTransferState(transfer, data.state)
     } else {
       throw badRequest("Invalid state for an external transfer update.")
     }
     return transfer
+  }
+
+  /** Bind an incoming payment notification to successful, unused local-asset settlement. */
+  private async verifyIncomingPayment(ctx: Context, hash: string | undefined, payer: string, payee: FullAccount) {
+    if (!hash) {
+      throw badRequest("The hash must be provided for a committed external transfer")
+    }
+    const payment = await this.currencyController.ledger.getTransfer(hash)
+    if (ctx.type === "external" && payment.payer !== ctx.accountKey) {
+      throw forbidden("The logged in external payer is not the payer of the transfer")
+    }
+    if (payment.payer !== payer || payment.payee !== payee.key) {
+      throw badRequest("The payer or payee do not match the ledger transfer data")
+    }
+    const keys = this.currency().keys
+    if ([keys.issuer, keys.credit, keys.externalTrader, keys.externalIssuer, keys.disabledAccountsPool].includes(payment.payer)) {
+      throw badRequest("Internal currency funding is not an incoming payment")
+    }
+    const asset = this.currencyController.ledger.asset()
+    if (payment.asset.code !== asset.code || payment.asset.issuer !== asset.issuer) {
+      throw badRequest("The payment asset does not match the local currency")
+    }
+    const used = await this.db().transfer.findFirst({
+      where: { hash: { equals: payment.hash, mode: "insensitive" } }, select: { id: true }
+    })
+    if (used) {
+      throw badRequest("The payment has already been recorded")
+    }
+    // Old incoming POSTs did not store their hash due to a bug. We check the ledger transaction
+    // is newer than the last legacy transfer without a recorded hash for this account.
+    const legacy = await this.db().transfer.findFirst({
+      where: { payeeId: payee.id, state: "committed", hash: null,
+        externalTransfer: { is: { externalPayerId: { not: null } } } },
+      orderBy: { updated: "desc" }, select: { updated: true }
+    })
+    if (legacy && payment.created <= legacy.updated) {
+      throw badRequest("The payment could be a duplicate of an older incoming payment without a recorded hash")
+    }
+    return payment
+  }
+
+  /** Save authoritative settlement facts together before notifying credit/event consumers. */
+  private async commitIncomingPayment(transfer: FullTransfer, payment: LedgerTransfer) {
+    transfer.amount = this.currencyController.toIntegerAmount(payment.amount)
+    transfer.hash = payment.hash
+    await this.transfers().applyTransferState(transfer, "committed")
   }
 
   private async updateTransferExternalPayeeLocalUser(ctx: Context, data: UpdateTransfer, transfer: ExternalPayeeTransfer) {
@@ -391,6 +398,9 @@ export class ExternalTransferController extends AbstractCurrencyController {
       throw forbidden("User is not allowed to update this external transfer")
     }
     if (data.state !== undefined) {
+      if (data.state === "committed" && transfer.state !== data.state) {
+        this.checkExternalPaymentsAllowed(transfer.payer)
+      }
       await this.updateTransferStateExternalPayee(ctx, transfer as ExternalPayeeTransfer, data.state, user, true)
     }
     return transfer
@@ -414,24 +424,24 @@ export class ExternalTransferController extends AbstractCurrencyController {
         (ctx.type === "user" && (userHasAccount(user, transfer.payer) || this.users().isAdmin(user)))
         || (ctx.type === "external" && this.submitExternalPaymentRequestsImmediately(transfer))
       ) {
-        await this.transfers().saveTransferState(transfer, "submitted")
+        await this.transfers().applyTransferState(transfer, "submitted")
         try {
           const transaction = await this.submitTransferExternalPayee(ctx, transfer, user)
           transfer.hash = transaction.hash
-          await this.transfers().saveTransferState(transfer, "committed")
+          await this.transfers().applyTransferState(transfer, "committed")
         } catch (e) {
-          await this.transfers().saveTransferState(transfer, "failed")
+          await this.transfers().applyTransferState(transfer, "failed")
           throw e
         }
       } else if (ctx.type === "external") {
         // In case the transfer was externally initiated but not immediately submitted, save it as 
         // "pending" waiting for the payer to approve it.
-        await this.transfers().saveTransferState(transfer, "pending")
+        await this.transfers().applyTransferState(transfer, "pending")
       } else {
         throw forbidden("User is not allowed to commit this external transfer")
       }
     } else if (state ===  "rejected") {
-      await this.transfers().saveTransferState(transfer, "rejected")
+      await this.transfers().applyTransferState(transfer, "rejected")
     }
     
     // Notify the external server about the transfer if the action was initiated locally. 
@@ -461,7 +471,10 @@ export class ExternalTransferController extends AbstractCurrencyController {
     if (!path) {
       throw noTrustPath(`No trust path from currency ${this.currency().code} to ${externalCurrency.resource.code}`)
     }
-    // There is a trust path! Submit the transaction.
+    // The quoted debit must stay within the locally approved amount.
+    if (Big(path.sourceAmount).gt(this.currencyController.toStringAmount(transfer.amount))) {
+      throw badRequest("Quoted source amount exceeds the approved amount")
+    }
 
     const ledgerPayer = await this.currencyController.ledger.getAccount(transfer.payer.key)
     const transaction = await ledgerPayer.externalPay({
@@ -473,9 +486,6 @@ export class ExternalTransferController extends AbstractCurrencyController {
         sponsor: await this.keys().sponsorKey()
       })
     
-    // Update payer and external account balances in DB.
-    this.transfers().updateAccountBalances(transfer)
-
     return transaction
   }
 
@@ -506,10 +516,7 @@ export class ExternalTransferController extends AbstractCurrencyController {
    * Whether an external payment request can be automatically submitted without manual approval.
    */
   private submitExternalPaymentRequestsImmediately(transfer: ExternalPayeeTransfer) {
-    const whitelist = transfer.payer.settings.acceptPaymentsWhitelist ?? this.currency().settings.defaultAcceptPaymentsWhitelist
-
-    return (transfer.payer.settings.acceptExternalPaymentsAutomatically ?? this.currency().settings.defaultAcceptExternalPaymentsAutomatically)
-      || (whitelist && whitelist.includes(transfer.externalPayee.id))
+    return transfer.payer.settings.acceptExternalPaymentsAutomatically ?? this.currency().settings.defaultAcceptExternalPaymentsAutomatically
   }
 
   private buildTransfersEndpoint(account: ExternalResource<Account>) {

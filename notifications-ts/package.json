@@ -33,14 +33,14 @@
     "i18next": "^25.7.3",
     "i18next-fs-backend": "^2.6.6",
     "node-cron": "^3.0.3",
-    "nodemailer": "^10.0.9",
+    "nodemailer": "^10.1.4",
     "pg": "^8.16.3",
     "pino": "^8.16.2",
     "pino-http": "^11.0.0",
-    "qs": "^6.16.0",
+    "qs": "^6.16.1",
     "redis": "^4.6.14",
     "web-push": "^3.6.7",
-    "zod": "^3.22.4"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.5.0",

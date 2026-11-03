@@ -1,15 +1,35 @@
-import { before } from "node:test"
+import { PaymentStatus } from "@mollie/api-client"
 import { addHandlers } from "../server/net.mock"
 import { http, HttpResponse } from "msw"
 import { config } from "../../src/config"
 import {type Express } from "express"
-import request, { Response, Request } from "supertest"
+import request from "supertest"
 import assert from "node:assert"
 
 const MOLLIE_API_URL = 'https://api.mollie.com/v2'
 const MOLLIE_CHECKOUT_URL = 'https://www.mollie.com/payscreen/select-method/mock-payment'
 
 const payments = [] as any[]
+let paymentCreationGate: { entered: () => void, wait: Promise<void> } | undefined
+
+export const createGate = () => {
+  let release!: () => void
+  const wait = new Promise<void>(resolve => { release = resolve })
+  return { wait, release }
+}
+
+export const holdNextMolliePayment = () => {
+  const response = createGate()
+  const request = createGate()
+  paymentCreationGate = { entered: request.release, wait: response.wait }
+  return { received: request.wait, release: response.release }
+}
+
+export const setMolliePaymentStatus = (id: string, status: `${PaymentStatus}`) => {
+  const payment = payments.find(p => p.id === id)
+  payment.status = status
+  return payment
+}
 
 export const mockMollie = (app: Express) => {
   addHandlers(
@@ -17,7 +37,7 @@ export const mockMollie = (app: Express) => {
       const body = await request.json() as any
       const payment = {
         resource: 'payment',
-        id: 'tr_mock_id',
+        id: `tr_mock_${payments.length}`,
         mode: 'test',
         status: 'open',
         amount: body.amount,
@@ -32,6 +52,12 @@ export const mockMollie = (app: Express) => {
         }
       }
       payments.push(payment)
+      const gate = paymentCreationGate
+      paymentCreationGate = undefined
+      if (gate) {
+        gate.entered()
+        await gate.wait
+      }
       return HttpResponse.json(payment, { status: 201 })
     }),
     http.get(`${MOLLIE_API_URL}/payments/:id`, ({ params }) => {

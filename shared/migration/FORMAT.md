@@ -148,10 +148,10 @@ This format represents committed historical transfers with no Stellar hash. Acco
 ### `categories.csv`
 
 ```text
-id,code,name,description,access,createdAt,updatedAt,icon.type,icon.value
+id,code,name,description,createdAt,updatedAt,icon.type,icon.value
 ```
 
-`code` is the stable category key. It and `name` are required and at most 255 characters; category codes are unique. `description` is optional and at most 1,000 characters. `access` uses the common access enum. `icon.type` and `icon.value` are optional, but must either both be blank or both be non-empty.
+`code` is the stable category key. It and `name` are required and at most 255 characters; category codes are unique. `description` is optional and at most 1,000 characters. `icon.type` and `icon.value` are optional, but must either both be blank or both be non-empty.
 
 ### `posts.csv`
 

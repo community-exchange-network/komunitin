@@ -52,6 +52,7 @@ interface BasePost {
     images: Image[] | null;
     description: string;
     status: "draft" | "published" | "hidden";
+    access: "public" | "group" | "private";
     created: string;
     updated: string;
     expires: string | null;
