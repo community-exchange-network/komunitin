@@ -14,7 +14,7 @@
           :props="slot"
         >
           <category-avatar
-            type="offer"
+            type="offers"
             :category="slot.row"
             caption
           />
