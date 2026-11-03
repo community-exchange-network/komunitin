@@ -1,26 +1,16 @@
 <template>
-  <q-card
+  <location-map
+    :center="center"
+    :marker="center"
+    :bounds="bounds"
+    :name="group.attributes.location?.name"
   >
-    <simple-map
-      class="simple-map"
-      :center="center"
-      :marker="center"
-      :bounds="bounds"
-    >
-      <styled-marker
-        v-for="(memberMarker, i) of memberMarkerLatLngs"
-        :key="`member-${i}`"
-        :lat-lng="memberMarker"
-      />
-    </simple-map>
-    <q-card-section
-      v-if="group.attributes.location?.name"
-      class="group-footer-card text-onsurface-m"
-    >
-      <q-icon name="place" />
-      {{ group.attributes.location.name }}
-    </q-card-section>
-  </q-card>
+    <styled-marker
+      v-for="(memberMarker, i) of memberMarkerLatLngs"
+      :key="`member-${i}`"
+      :lat-lng="memberMarker"
+    />
+  </location-map>
 </template>
 
 <script setup lang="ts">
@@ -29,7 +19,7 @@ import { useStore } from "vuex"
 import type { LatLngExpression } from "leaflet"
 import StyledMarker from "../../components/StyledMarker.vue";
 
-import SimpleMap from "../../components/SimpleMap.vue"
+import LocationMap from "../../components/LocationMap.vue"
 
 import { useAllResources } from "@/composables/useResources"
 import { getBoundsAroundCenter, getBoundsAroundPoints, isUsableLngLat, toLeafletLatLng, type LngLat } from "@/composables/leaflet"

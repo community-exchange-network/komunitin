@@ -19,18 +19,13 @@
               height="300px"
             />
           </div>
-          <div class="full-width order-last">
-            <simple-map
-              class="rounded-borders overflow-hidden"
-              :style="{ height: mapHeight }"
-              :center="post.member.attributes.location?.coordinates ?? post.member.group.attributes.location?.coordinates"
-              :marker="post.member.attributes.location?.coordinates"
-            />
-            <div v-if="post.member.attributes.location?.name" class="text-caption text-muted row items-center q-pt-sm">
-              <q-icon name="place" size="16px" class="q-mr-xs" />
-              {{ post.member.attributes.location.name }}
-            </div>
-          </div>
+          <location-map
+            class="full-width order-last"
+            :height="numImages > 0 ? '250px' : undefined"
+            :center="post.member.attributes.location?.coordinates ?? post.member.group.attributes.location?.coordinates"
+            :marker="post.member.attributes.location?.coordinates"
+            :name="post.member.attributes.location?.name"
+          />
         </div>
         <div class="col-12 col-md-6">
           <category-avatar
@@ -80,13 +75,12 @@
 </template>
 <script setup lang="ts">
 import { computed } from "vue"
-import { useQuasar } from "quasar"
 import type { Category, Group, Member, Need, Offer } from "../store/model"
 import PostExpiry from "../components/PostExpiry.vue"
 import MemberHeader from "../components/MemberHeader.vue"
 import Carousel from "../components/Carousel.vue"
 import CategoryAvatar from "../components/CategoryAvatar.vue"
-import SimpleMap from "../components/SimpleMap.vue"
+import LocationMap from "../components/LocationMap.vue"
 import md2html from "../plugins/Md2html"
 
 const props = defineProps<{
@@ -97,7 +91,5 @@ const props = defineProps<{
   code: string
 }>()
 
-const q = useQuasar()
 const numImages = computed(() => props.post.attributes.images.length)
-const mapHeight = computed(() => (numImages.value > 0 || q.screen.gt.sm ? '250px' : '400px'))
 </script>
