@@ -437,5 +437,12 @@
   "ErrorAccountNotFound": "No se ha encontrado la cuenta",
   "ErrorAccountIsNotYours": "La cuenta especificada no es tu cuenta activa actual.",
   "ErrorDescriptionRequired" : "Entra una descripción del intercambio.",
-  "ErrorInvalidAmount" : "Cantidad inválida. Entra un número positivo."
+  "ErrorInvalidAmount" : "Cantidad inválida. Entra un número positivo.",
+  "allTypes": "Todas",
+  "allCategories": "Todas las categorías",
+  "date": "Fecha",
+  "resetFilters": "Restablecer",
+  "applyFilters": "Aplicar filtros",
+  "distance": "Distancia",
+  "dateRange": "Intervalo de fechas"
 }

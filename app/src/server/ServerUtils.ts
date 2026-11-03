@@ -47,22 +47,26 @@ export function filter(records: any, request: any) {
       return expired.includes(String(isExpired));
     });
   }
-  // Filter by field values
-  const regex = /filter\[(.+)\]/;
+  // Filter by field values. A field may also carry a `gt`/`lt` operator for
+  // range filters, e.g. `filter[created][gt]=2026-01-01`.
+  const regex = /^filter\[([^\]]+)\](?:\[([^\]]+)\])?$/;
   Object.entries(request.queryParams)
     .filter(([name, ]) => name != "filter[search]")
     .filter(([name, ]) => name != "filter[expired]")
     .filter(([name, ]) => regex.test(name))
-    .map(([name, value]) => ([(name.match(regex) as string[])[1], value]) as [string,string])
-    .forEach(([name, value] ) => {
-      const values = value.split(",");
+    .map(([name, value]) => {
+      const [, field, op] = name.match(regex) as string[];
+      return [field, op, value] as [string, string | undefined, string];
+    })
+    .forEach(([field, op, value]) => {
       records = records.filter((record: any) => {
-        if (record.associations[name]) {
-          name = record.associations[name].identifier;
-        }
+        const name = record.associations[field] ? record.associations[field].identifier : field;
         const recordValue = record[name];
-        return Array.isArray(recordValue) 
-          ? recordValue.some((v: any) => values.includes(v)) 
+        if (op === "gt") return new Date(recordValue) > new Date(value);
+        if (op === "lt") return new Date(recordValue) < new Date(value);
+        const values = value.split(",");
+        return Array.isArray(recordValue)
+          ? recordValue.some((v: any) => values.includes(v))
           : values.includes(recordValue);
       })
     });
