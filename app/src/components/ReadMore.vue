@@ -1,8 +1,11 @@
 <template>
   <div>
     <div
-      class="read-more-content overflow-hidden"
-      :style="{ maxHeight: `${isOpen ? contentHeight : collapsedHeight}px` }"
+      class="overflow-hidden"
+      :style="{
+        maxHeight: `${isOpen ? contentHeight : collapsedHeight}px`,
+        transition: 'max-height 0.3s ease'
+      }"
     >
       <div ref="contentRef" class="overflow-hidden">
         <slot />
@@ -12,7 +15,7 @@
       <button
         type="button"
         class="read-more-toggle row items-center text-body2 text-weight-regular text-primary bg-transparent no-border q-px-none q-py-xs cursor-pointer"
-        style="font-family: inherit; text-underline-offset: 3px;"
+        style="text-underline-offset: 3px;"
         :aria-expanded="isOpen"
         @click="isOpen = !isOpen"
       >
@@ -42,11 +45,7 @@ const { height: contentHeight } = useElementSize(contentRef)
 const canToggle = computed(() => contentHeight.value > props.collapsedHeight)
 </script>
 
-<style scoped>
-.read-more-content {
-  transition: max-height .3s ease;
-}
-
+<style lang="scss" scoped>
 .read-more-toggle:hover > span,
 .read-more-toggle:focus-visible > span {
   text-decoration: underline;
