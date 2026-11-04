@@ -4,7 +4,7 @@
       class="header flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-onsurface-m"
       :class="[
         showBalance ? 'wrap' : 'q-pt-xs no-wrap',
-        isScrolling ? 'bg-background' : 'bg-light'
+        scrollOffset > 0 ? 'bg-background' : 'bg-light'
       ]"
       :style="`height: ${computedHeight}px;`"
     >
@@ -164,8 +164,6 @@ const searchActive = ref(false)
 const searchText = ref("")
 const scrollOffset = ref(0)
 const offset = ref(0)
-const isScrolling = ref(false)
-let scrollTimeout: ReturnType<typeof setTimeout> | null = null
 
 const myAccount = computed(() => store.getters.myAccount)
 
@@ -198,24 +196,15 @@ let requireBalance: MaybeRef<boolean> = false
 let showBalance: MaybeRef<boolean> = false
 let balanceScaleFactor: MaybeRef<number> = 0
 
-// Universal scroll handler for detecting scrolling and handling balance scaling
+// Keep the header darkened while content is scrolled underneath it.
 const scrollHandler = (details: { position: { top: number } }) => {
+  scrollOffset.value = details.position.top
+
   // If balance feature is enabled, handle balance scaling
   if (import.meta.env.FEAT_HEADER_BALANCE === 'true') {
     const originalHeight = toValue(requireBalance) ? 2 * 50 + 70 : headerHeight
     offset.value = Math.min(details.position.top, originalHeight - headerHeight)
-    scrollOffset.value = details.position.top
   }
-
-  // Handle scrolling state for background darkening
-  isScrolling.value = true
-  if (scrollTimeout) {
-    clearTimeout(scrollTimeout)
-  }
-  scrollTimeout = setTimeout(() => {
-    isScrolling.value = false
-    scrollTimeout = null
-  }, 150)
 }
 
 // This code is stripped out if the feature is disabled
