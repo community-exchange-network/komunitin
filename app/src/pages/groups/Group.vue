@@ -70,37 +70,11 @@
             </div>
           </q-card-section>
           <q-card-section>
-            <div
-              id="community-description"
-              class="text-body1 text-onsurface-m overflow-hidden"
-              style="transition: max-height .3s ease;"
-              :style="{ maxHeight: `${isDescriptionOpen ? descriptionHeight : collapsedDescriptionHeight}px` }"
-            >
+            <read-more class="text-body1 text-onsurface-m" :collapsed-height="120">
               <!-- eslint-disable vue/no-v-html -->
-              <div
-                ref="descriptionRef"
-                class="overflow-hidden"
-                v-html="md2html(group.attributes.description)"
-              />
+              <div v-html="md2html(group.attributes.description)" />
               <!-- eslint-enable vue/no-v-html -->
-            </div>
-            <div v-if="canToggleDescription" class="row q-mt-sm">
-              <button
-                type="button"
-                class="description-toggle row items-center text-body2 text-weight-regular text-primary bg-transparent no-border q-px-none q-py-xs cursor-pointer"
-                style="font-family: inherit; text-underline-offset: 3px;"
-                aria-controls="community-description"
-                :aria-expanded="isDescriptionOpen"
-                @click="isDescriptionOpen = !isDescriptionOpen"
-              >
-                <span>{{ isDescriptionOpen ? $t('readLess') : $t('readMore') }}</span>
-                <q-icon
-                  :name="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
-                  size="20px"
-                  class="q-ml-xs"
-                />
-              </button>
-            </div>
+            </read-more>
           </q-card-section>
           <q-card-section class="q-pt-none">
             <div class="row q-col-gutter-md">
@@ -135,8 +109,7 @@
 /**
  * Page for Group details.
  */
-import { computed, shallowRef, useTemplateRef } from 'vue'
-import { useElementSize } from '@vueuse/core'
+import { computed } from 'vue'
 import { useStore } from 'vuex'
 
 import md2html from '../../plugins/Md2html'
@@ -148,6 +121,7 @@ import ShareButton from '../../components/ShareButton.vue'
 import SocialNetworkList from '../../components/SocialNetworkList.vue'
 import FloatingBtn from '../../components/FloatingBtn.vue'
 import NavButton from '../../components/NavButton.vue'
+import ReadMore from '../../components/ReadMore.vue'
 import Error404 from '../Error404.vue'
 import GroupMembersMap from './GroupMembersMap.vue'
 
@@ -159,23 +133,9 @@ const props = defineProps<{ code: string }>()
 
 const store = useStore()
 
-const isDescriptionOpen = shallowRef(false)
-const descriptionRef = useTemplateRef<HTMLElement>('descriptionRef')
-const { height: descriptionHeight } = useElementSize(descriptionRef)
-// Five lines with text-body1 typography.
-const collapsedDescriptionHeight = 24 * 5
-const canToggleDescription = computed(() => descriptionHeight.value > collapsedDescriptionHeight)
-
 const isLoggedIn = computed(() => store.getters.isLoggedIn)
 const myMember = computed(() => store.getters.myMember)
 const groupOptions = computed(() => ({ group: props.code }))
 const { resource: group, loading, error } = useResource<Group>('groups', groupOptions)
 const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id)
 </script>
-
-<style scoped>
-.description-toggle:hover > span,
-.description-toggle:focus-visible > span {
-  text-decoration: underline;
-}
-</style>
