@@ -5,7 +5,7 @@
       <q-banner v-if="error" class="bg-negative text-white q-mb-md">{{ error }}</q-banner>
         
       <div class="row items-center justify-between q-mb-md">
-        <div class="text-overline text-uppercase">
+        <div class="text-overline text-uppercase text-onsurface-m q-pt-lg q-pb-sm">
           List of migrations
         </div>
         <q-btn icon="refresh" label="Refresh" flat :loading="loading" @click="refresh" />
@@ -20,8 +20,9 @@
 
       <q-table
         :rows="migrations" :columns="columns" :loading="loading"
-        row-key="id" flat
-        class="full-width text-onsurface"
+        row-key="id" 
+        flat
+        class="full-width text-onsurface shadow-2"
         @row-click="onRowClick"
       >
         <!-- Status column template -->

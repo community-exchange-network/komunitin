@@ -77,7 +77,7 @@
         ref="tableRef"
         v-model:pagination="pagination"
         :filter="filter"
-        class="full-width text-onsurface"
+        class="full-width text-onsurface shadow-2"
         :columns="columns"
         :rows="members"
         :visible-columns="visibleColumns"

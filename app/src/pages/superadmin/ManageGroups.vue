@@ -2,14 +2,16 @@
   <page-header title="Groups" />
   <q-page-container>
     <q-page class="q-pa-md">
-      <div class="text-overline text-uppercase">
+
+      <div class="text-overline text-uppercase text-onsurface-m q-pt-lg q-pb-sm">
         List of groups
       </div>
 
       <q-table
         :rows="rows" :columns="columns" :loading="loading"
-        row-key="id" flat
-        class="full-width text-onsurface"
+        row-key="id" 
+        flat
+        class="full-width text-onsurface shadow-2"
         :binary-state-sort="true"
         :pagination="{
           sortBy: 'status',
@@ -152,7 +154,7 @@ const rows = computed<Row[]>(() => groups.value.map((g: Group) => ({
   name: g.attributes.name,
   status: g.attributes.status ?? "active",
   created: new Date(g.attributes.created).toLocaleDateString(),
-  members: g.relationships.members.meta?.count ?? "",
+  members: g.relationships.members?.meta.count ?? "",
 })))
 
 const loading = shallowRef(false)
