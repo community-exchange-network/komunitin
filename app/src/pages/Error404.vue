@@ -1,6 +1,6 @@
 <template>
   <q-page-container>
-    <q-page class="bg-surface flex flex-center">
+    <q-page class="flex flex-center">
       <empty :text="$t('sorryNothingHere')">
         <q-btn
           class="q-mt-xl"
