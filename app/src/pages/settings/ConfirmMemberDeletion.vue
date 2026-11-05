@@ -6,17 +6,21 @@
         <member-header v-if="member" :member="member" :clickable="false" class="q-px-none q-mb-md">
           <template #caption>{{ member.attributes.code }}</template>
         </member-header>
-        <p>{{ $t('deleteAccountConfirmation') }}</p>
-        <p v-if="failed" role="alert" class="text-negative">{{ $t('deleteAccountEmailError') }}</p>
-        <q-btn
-          color="negative"
-          unelevated
-          :label="$t('deleteAccount')"
-          :loading="loading"
-          :disable="!route.query.token"
-          @click="confirm"
-        />
-        <q-btn v-if="failed" flat :label="$t('settings')" to="/settings" />
+        <q-card>
+          <q-card-section>
+            <p>{{ $t('deleteAccountConfirmation') }}</p>
+            <p v-if="failed" role="alert" class="text-negative">{{ $t('deleteAccountEmailError') }}</p>
+            <q-btn
+              color="negative"
+              unelevated
+              :label="$t('deleteAccount')"
+              :loading="loading"
+              :disable="!route.query.token"
+              @click="confirm"
+            />
+            <q-btn v-if="failed" flat :label="$t('settings')" to="/settings" />
+          </q-card-section>
+        </q-card>
       </template>
       <template v-else>
         <p>{{ $t('deleted') }}</p>
