@@ -1,5 +1,5 @@
 <template>
-  <q-card flat bordered>
+  <q-card>
     <q-card-section>
       <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
         {{ t("deposit") }}
