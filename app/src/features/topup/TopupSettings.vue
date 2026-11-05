@@ -8,17 +8,21 @@
       padding 
       class="q-py-lg q-px-md col-12 col-sm-8 q-mb-xl"
     >
-      <topup-settings-form 
-        v-if="ready"
-        :topup-settings="topupSettings"
-        :currency="currency"
-        :updating-topup-settings="updatingTopupSettings"
-        @update:topup-settings="updateTopupSettings"
-      />
-      <save-changes
-        ref="changes"
-        class="q-mt-lg"
-      />
+      <q-card>
+        <q-card-section>
+          <topup-settings-form 
+            v-if="ready"
+            :topup-settings="topupSettings"
+            :currency="currency"
+            :updating-topup-settings="updatingTopupSettings"
+            @update:topup-settings="updateTopupSettings"
+          />
+          <save-changes
+            ref="changes"
+            class="q-mt-lg"
+          />
+        </q-card-section>
+      </q-card>
     </q-page>
   </q-page-container>
 </template>

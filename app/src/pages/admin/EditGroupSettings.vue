@@ -7,36 +7,40 @@
       padding 
       class="q-py-lg q-px-md col-12 col-sm-8 q-mb-xl"
     >
-      <edit-group-settings-form 
-        v-if="ready"
-
-        :group="group"
-        :group-settings="groupSettings"
-        :categories="categories"
-        :currency="currency"
-        :currency-settings="currencySettings"
-        :trustlines="trustlines"
-
-        :updating-group-settings="updatingGroupSettings"
-        :updating-currency="updatingCurrency"
-        :updating-currency-settings="updatingCurrencySettings"
-        :updating-trustline="updatingTrustline"
-        :updating-category="updatingCategory"
-
-        @update:group-settings="updateGroupSettings"
-        @update:currency="updateCurrency"
-        @update:currency-settings="updateCurrencySettings"
-        @update:trustline="updateTrustline"
-        @create:trustline="createTrustline"
-        @sync:trustlines="loadTrustlines"
-        @update:category="updateCategory"
-        @create:category="createCategory"
-        @delete:category="deleteCategory"
-      />
-      <save-changes
-        ref="changes"
-        class="q-mt-lg"
-      />
+    <q-card>
+      <q-card-section>
+        <edit-group-settings-form 
+          v-if="ready"
+  
+          :group="group"
+          :group-settings="groupSettings"
+          :categories="categories"
+          :currency="currency"
+          :currency-settings="currencySettings"
+          :trustlines="trustlines"
+  
+          :updating-group-settings="updatingGroupSettings"
+          :updating-currency="updatingCurrency"
+          :updating-currency-settings="updatingCurrencySettings"
+          :updating-trustline="updatingTrustline"
+          :updating-category="updatingCategory"
+  
+          @update:group-settings="updateGroupSettings"
+          @update:currency="updateCurrency"
+          @update:currency-settings="updateCurrencySettings"
+          @update:trustline="updateTrustline"
+          @create:trustline="createTrustline"
+          @sync:trustlines="loadTrustlines"
+          @update:category="updateCategory"
+          @create:category="createCategory"
+          @delete:category="deleteCategory"
+        />
+        <save-changes
+          ref="changes"
+          class="q-mt-lg"
+        />
+      </q-card-section>
+    </q-card>
     </q-page>
   </q-page-container>
 </template>
