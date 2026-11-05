@@ -9,7 +9,7 @@
       <q-spinner v-if="loading" class="full-width flex-center" />
       <div v-else-if="migration" class="q-gutter-md">
         <!-- Migration Details Card -->
-        <q-card flat bordered>
+        <q-card>
           <q-card-section>
             <div class="text-overline text-uppercase q-mb-md">Migration details</div>
             <div class="q-mb-md">
@@ -52,7 +52,7 @@
         </q-card>
 
         <!-- Migration Log Card -->
-        <q-card flat bordered>
+        <q-card>
           <q-card-section>
             <div class="text-overline text-uppercase q-mb-md">Migration Log</div>
             <div v-if="!loading && log.length === 0" class="text-grey text-center q-pa-md">
