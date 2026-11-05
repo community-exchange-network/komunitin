@@ -26,109 +26,41 @@
         />
       </template>
     </page-header>
-    <!-- A layout footer, so that floating buttons from the slot sit above it. -->
-    <q-footer
-      v-if="offer && isReady"
-      class="bg-light shadow-2"
-    >
-      <q-toolbar class="justify-center q-gutter-x-md">
-        <share-button
-          outline
-          color="primary"
-          :label="$t('share')"
-          :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
-          :text="`${offer.attributes.title}\n${offer.attributes.description}`"
-        />
-        <contact-button
-          unelevated
-          color="primary"
-          :label="$t('contact')"
-          :contacts="offer.member.attributes.contacts"
-        />
-      </q-toolbar>
-    </q-footer>
     <q-page-container>
       <q-page
         v-if="offer && isReady"
         class="q-pa-md"
       >
-        <offer-layout :num-images="offer.attributes.images.length">
-          <template #member>
-            <member-header
-              :to="`/groups/${code}/members/${offer.member.attributes.code}`"
-              :member="offer.member"
-              class="bg-surface rounded-borders shadow-2 q-pa-md"
-            >
-            <template #side>
-              <q-icon
-                name="chevron_right"
-              />
-            </template>
-          </member-header>
-          </template>
-          <template #category>
-              <!-- Ensure the category pill isn't positioned on top of thumbnails, if they exist -->
-              <category-pill
-                :style="offer.attributes.images.length > 1 && $q.screen.gt.sm ? `transform: translateY(-${72 * Math.ceil(offer.attributes.images.length / 4)}px);` : ''"
-                type="offer"
-                :category="offer.category"
-              />
-          </template>
-          <template #images>
-            <carousel
-                :images="offer.attributes.images"
-                thumbnails
-                height="300px"
-              />
-          </template>
-          <template #content>
-            <div class="bg-surface rounded-borders shadow-2 q-pa-md q-mb-md">
-              <div class="text-h4 text-bold text-serif q-mb-xs">
-                {{ offer.attributes.title }}
-              </div>
-              <div class="row justify-between items-end text-caption text-muted q-pb-sm"
-                style="line-height: 1.7rem;"
-              >
-                <div>
-                  <span>{{ $t('price') }}</span>
-                  <span>&nbsp;</span>
-                  <span class="text-h5 text-bold positive-amount">{{ price }}</span>
-                </div>
-                <span>{{ $t('updatedAt', {
-                  date: $formatDate(offer.attributes.updated)
-                }) }}</span>
-              </div>
-              <q-separator v-if="offer.attributes.expires" class="q-mb-sm"/>
-              <div v-if="offer.attributes.expires" class="text-caption text-muted row items-center">
-                <q-icon name="schedule" class="q-mr-xs"/>
-                 <span>{{ $t('expiresAt', { date: '' }) }}</span>
-                 <q-chip color="accent-muted" text-color="muted">{{ $formatDate(offer.attributes.expires) }}</q-chip>
-              </div>
+        <post-layout :post="offer" :code="code">
+          <template #header>
+            <div class="text-h4 text-bold text-serif q-mb-md">
+              {{ offer.attributes.title }}
             </div>
-            <!-- eslint-disable vue/no-v-html -->
-            <div
-              class="col text-body1 text-onsurface bg-surface rounded-borders shadow-2 q-pa-md"
-              v-html="md2html(offer.attributes.description)"
+            <div class="q-mb-md">
+              <span class="text-caption text-muted q-mr-xs">{{ $t('price') }}</span>
+              <span class="text-h5 text-bold positive-amount">{{ price }}</span>
+            </div>
+          </template>
+          <template #actions>
+            <contact-button
+              unelevated
+              color="primary"
+              :label="$t('contact')"
+              :contacts="offer.member.attributes.contacts"
+            />
+            <share-button
+              outline
+              color="primary"
+              :label="$t('share')"
+              :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
+              :text="`${offer.attributes.title}\n${offer.attributes.description}`"
             />
           </template>
-          <template #map>
-            <q-card>
-              <simple-map
-                class="simple-map"
-                :center="offer.member.attributes.location?.coordinates ?? offer.member.group.attributes.location?.coordinates"
-                :marker="offer.member.attributes.location?.coordinates"
-              />
-              <q-card-section v-if="offer.member.attributes.location?.name" class="text-onsurface-m">
-                <q-icon name="place" />
-                {{ offer.member.attributes.location.name }}
-              </q-card-section>
-            </q-card>
-          </template>
-        </offer-layout>
-        <slot
-          name="after" 
-          :offer="offer" 
-        />
+        </post-layout>
+        <!-- Reserve room for the preview's floating publish action. -->
+        <div v-if="$slots.after" class="q-pa-xl">
+          <slot name="after" :offer="offer" />
+        </div>
       </q-page>
     </q-page-container>
   </div>
@@ -136,18 +68,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import md2html from "../../plugins/Md2html";
-
-import OfferLayout from "../../layouts/OfferLayout.vue";
+import PostLayout from "../../layouts/PostLayout.vue";
 import PageHeader from "../../layouts/PageHeader.vue";
 
-import Carousel from "../../components/Carousel.vue";
-import CategoryPill from "../../components/CategoryPill.vue";
 import ContactButton from "../../components/ContactButton.vue";
 import DeleteOfferBtn from "../../components/DeleteOfferBtn.vue";
-import MemberHeader from "../../components/MemberHeader.vue";
 import ShareButton from "../../components/ShareButton.vue";
-import SimpleMap from "../../components/SimpleMap.vue";
 import Error404 from "../Error404.vue";
 
 import { formatPrice } from "@/plugins/FormatCurrency";

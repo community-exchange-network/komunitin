@@ -12,8 +12,8 @@
       clickable
       @click="contact(key)"
     >
-      <q-item-section avatar>
-        <q-avatar size="xl">
+      <q-item-section side>
+        <q-avatar size="md">
           <img :src="getNetworkIcon(key)">
         </q-avatar>
       </q-item-section>

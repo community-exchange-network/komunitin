@@ -104,6 +104,8 @@
   "create": "Crea",
   "backToTransfers": "Torna a moviments",
   "description": "Descripció",
+  "readMore": "Llegeix més",
+  "readLess": "Llegeix menys",
   "transactionDescriptionHint": "Breu descripció d'allò que s'ha intercanviat, per exemple '2kg de patates'.",
   "amount": "Quantitat",
   "amountIn": "Quantitat en {currency}",

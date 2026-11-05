@@ -456,6 +456,7 @@ export interface ExtendedAccount extends Account {
  * Offer model.
  */
 export interface Offer extends ResourceObject {
+  type: "offers";
   attributes: {
     code: string;
     title: string;
@@ -482,6 +483,7 @@ export type OfferStatus = PostStatus;
  * Need model
  */
 export interface Need extends ResourceObject {
+  type: "needs";
   attributes: {
     code: string;
     description: string;

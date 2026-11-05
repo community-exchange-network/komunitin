@@ -12,7 +12,7 @@
       <template #side>
         <category-avatar
           :category="offer.category"
-          type="offer"
+          :type="offer.type"
         />
       </template>
     </member-header>
