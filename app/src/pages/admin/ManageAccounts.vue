@@ -29,6 +29,8 @@
       </div>
       <q-list
         v-if="!loadingPending && pending.length > 0"
+        separator
+        class="bg-surface rounded-borders shadow-2"
       >
         <member-header
           v-for="member in pending"
