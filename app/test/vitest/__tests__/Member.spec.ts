@@ -53,7 +53,7 @@ describe("Member", () => {
     const memberButton = wrapper
       .getComponent(QMenu)
       .findAllComponents(MenuItem)
-      .find((item) => item.text().includes("My profile"));
+      .find((item) => item.text().includes("Your profile"));
     await memberButton.trigger("click");
     await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members/EmilianoLemke57");
     // Wait for content.

@@ -46,18 +46,18 @@
 
         <menu-item
           icon="account_circle"
-          :title="$t('myProfile')"
+          :title="$t('yourProfile')"
           :to="`/groups/${groupCode}/members/${myMember?.attributes.code}`"
         />
         <notifications-menu-item />
         <menu-item
           icon="loyalty"
-          :title="$t('myNeeds')"
+          :title="$t('yourNeeds')"
           :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#needs`"
         />
         <menu-item
           icon="local_offer"
-          :title="$t('myOffers')"
+          :title="$t('yourOffers')"
           :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#offers`"
         />
         <menu-item
