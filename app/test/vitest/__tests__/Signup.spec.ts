@@ -14,7 +14,6 @@ import CountryChooser from "@/components/CountryChooser.vue";
 import LocationPicker from "@/components/LocationPicker.vue";
 import EditGroupForm from "@/pages/admin/EditGroupForm.vue";
 import Error404 from "@/pages/Error404.vue";
-import MemberProfile from "@/pages/members/MemberProfile.vue";
 import { config } from "@/utils/config";
 import { Auth, type SignupContext } from "@/plugins/Auth";
 import type { Group } from "@/store/model";
@@ -333,7 +332,7 @@ describe("Signup", () => {
       `/groups/GRP0/members/${memberCode}`,
       "Back should open the pending member profile"
     )
-    await waitFor(() => wrapper.findComponent(MemberProfile).exists(), true, "Pending member profile should load")
+    await waitFor(() => wrapper.find('h1').text(), wrapper.vm.$store.getters.myMember.attributes.name, "Pending member profile should load")
     expect(wrapper.findComponent(Error404).exists()).toBe(false)
     await waitFor(
       () => wrapper.text().includes("Your account is pending approval."),

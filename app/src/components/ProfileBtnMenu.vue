@@ -53,12 +53,12 @@
         <menu-item
           icon="loyalty"
           :title="$t('yourNeeds')"
-          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#needs`"
+          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}/needs`"
         />
         <menu-item
           icon="local_offer"
           :title="$t('yourOffers')"
-          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#offers`"
+          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}/offers`"
         />
         <menu-item
           icon="edit"

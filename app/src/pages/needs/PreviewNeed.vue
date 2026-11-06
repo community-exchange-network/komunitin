@@ -55,8 +55,7 @@ const publish = async (need: FullNeed) => {
   })
 
   router.push({
-    path:`/groups/${props.code}/members/${need.member.attributes.code}`,
-    hash: '#needs'
+    path: `/groups/${props.code}/members/${need.member.attributes.code}/needs`
   })
 }
 
