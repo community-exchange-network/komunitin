@@ -13,12 +13,10 @@
 // ============================================================
 
 
-// ── Brand colours ────────────────────────────────────────────
-//
-//  Quasar's $primary, $secondary, $accent map directly to our
-//  three-colour palette. The remaining semantic roles are
-//  assigned to the closest Commons tone.
-//
+// ── Palette ────────────────────────────────────────────
+// This section defines the color palette with actual color values.
+// Outside this section no direct color values should be used; 
+// refer to the palette variables instead.
 
 $ember          : #C17A3A;
 $ember-light    : #D9975A;
@@ -27,32 +25,34 @@ $ember-dark     : #8F5520;
 $grove          : #3D6E5A;
 $grove-light    : #5A9478;
 
-$tide           : #376976;   // muted river blue — same weight as Grove
+$tide           : #376976;
 $tide-light     : #568C99;
 
-$moss           : #72932E;   // olive leaf green — warmer, brighter sibling of Grove
+$moss           : #72932E;
 $moss-light     : #97BC4E;
 
 $wheat          : #E8C87A;
-$wheat-soft     : #F2DFA8;   // accent muted — chip active bg etc.
+$wheat-light    : #F2DFA8;
 
-$pale-sandstone : #C8B89A; 
+$sandstone      : #C8B89A; 
 
-$parchment      : #FDFAF4;   // app background
-$linen          : #F5EFE4;   // filter bar background
-$linen-dark     : #F0E8DA;   // summary bar, card hover
+$parchment      : #FDFAF4;
+$linen          : #F5EFE4;
+$linen-dark     : #F0E8DA;
 
 $soil           : #1E1A14;
-$soil-dark      : #2A2118;  
-$soil-secondary : #5C5043;
-$soil-muted     : #9A8878;
+$soil-medium    : #5C5043;
+$soil-light     : #9A8878;
 
-$primary   : $ember;   // Ember
-$secondary : $grove;   // Grove
-$accent    : $wheat;   // Wheat
-$accent-muted: $wheat-soft; // Wheat soft
+// ── Theme mapping ─────────────────────────────────────────────
+// This section maps the defined palette colors to Quasar's theme variables.
 
-$dark      : $soil-dark;    // Soil dark — used for dark surfaces (hero card bg)
+$primary   : $ember;
+$secondary : $grove;
+$accent    : $wheat;
+$accent-muted: $wheat-light;
+
+$dark      : $soil;         // Soil — dark surfaces
 $dark-page : $soil;         // Soil — darkest text/page bg in dark mode
 
 // ── Semantic / feedback colours ──────────────────────────────
@@ -168,7 +168,7 @@ $chip-dense-height  : 1.4em;
 // ── Inputs & Fields ──────────────────────────────────────────
 
 $input-font-size    : 16px;   // 16px prevents iOS Safari from zooming in on focus
-$input-text-color   : $soil-secondary;   // Warm brown, softer than near-black
+$input-text-color   : $soil-medium;   // Warm brown, softer than near-black
 $input-label-color  : rgba(30, 26, 20, 0.6);    // Soil at 60% — text-muted
 
 $field-label-font-size    : 13px;
@@ -195,7 +195,7 @@ $menu-box-shadow  : 0 4px 20px rgba(30, 26, 20, 0.14);
 
 // ── Tooltip ──────────────────────────────────────────────────
 
-$tooltip-background   : #2A2118;   // Soil dark
+$tooltip-background   : $soil;
 $tooltip-color        : #FDFAF4;   // Parchment — warm white text
 $tooltip-border-radius: 8px;
 $tooltip-padding      : 6px 12px;
@@ -247,7 +247,7 @@ $rating-grade-color : #E8C87A;  // Wheat — natural amber star colour
 // ============================================================
 
 $divider        : rgba(30, 26, 20, 0.08);
-$chip-border    : $pale-sandstone;
+$chip-border    : $sandstone;
 
 // Typography scale (display sizes, complementing Quasar's $headings)
 $display-serif-family : 'Lora', Georgia, 'Times New Roman', serif;
@@ -299,7 +299,7 @@ $onsurface-m: rgba(30, 26, 20, 0.60); // Soil at 60% — medium emphasis text on
 // Color for text on surface / disabled
 $onsurface-d: rgba(30, 26, 20, 0.38); // Soil at 38% — disabled text on light bg
 
-$muted: $soil-muted;
+$muted: $soil-light;
 
 // Currency  colors
 $positive-amount: $moss;
