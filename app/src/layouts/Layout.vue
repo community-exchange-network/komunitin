@@ -2,7 +2,7 @@
   <div class="column full-height">
     <div
       id="container"
-      class="q-mx-auto"
+      class="q-mx-auto bg-light"
       :class="drawerExists ? 'with-drawer' : 'without-drawer'"
     >
       <q-layout
