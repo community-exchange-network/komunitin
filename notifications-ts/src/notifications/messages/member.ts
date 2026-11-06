@@ -294,7 +294,7 @@ export const buildMemberHasNoPostsMessage = (
       title: t('notifications.member_no_offers_title'),
       body: t('notifications.member_no_offers_body', { balance }),
       image: imageUrl(event.group.attributes.image),
-      route: `/groups/${event.code}/members/${event.member.attributes.code}#offers`,
+      route: `/groups/${event.code}/members/${event.member.attributes.code}/offers`,
       data: {
         route2: `/groups/${event.code}/offers/new`,
       },
@@ -309,7 +309,7 @@ export const buildMemberHasNoPostsMessage = (
       title: t('notifications.member_no_needs_title', { balance }),
       body: t('notifications.member_no_needs_body'),
       image: imageUrl(event.group.attributes.image),
-      route: `/groups/${event.code}/members/${event.member.attributes.code}#needs`,
+      route: `/groups/${event.code}/members/${event.member.attributes.code}/needs`,
       data: {
         route2: `/groups/${event.code}/needs/new`,
       },

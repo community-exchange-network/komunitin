@@ -41,4 +41,5 @@ describe('Member without a location', () => {
     expect(map.findComponent({ name: 'LMarker' }).exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Unknown user interface error')
   })
+
 })

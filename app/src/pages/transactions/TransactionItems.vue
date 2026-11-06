@@ -1,6 +1,6 @@
 <template>
   <ResourceCards
-    v-if="bothAccounts || member?.account"
+    v-if="currency && (bothAccounts || member?.account)"
     v-slot="slotProps"
     :code="code"
     type="transfers"
@@ -34,6 +34,7 @@
         <transaction-item 
           :transfer="transfer"
           :code="code"
+          :currency="currency"
           :both-accounts="bothAccounts"
           :account="account"
           :clickable="false"
@@ -42,6 +43,7 @@
       <q-separator />
     </q-list>
   </ResourceCards>
+  <q-inner-loading :showing="currencyLoading" color="icon-dark" />
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue"
@@ -50,6 +52,7 @@ import TransactionItem from "@/components/TransactionItem.vue";
 import { useStore } from "vuex";
 import type { ExtendedTransfer, Account, Currency, ResourceObject } from "../../store/model";
 import { loadTransfersRelationships } from "@/composables/fullTransfer";
+import { useResource } from '@/composables/useResources'
 
 const props = defineProps<{
   code: string,
@@ -60,7 +63,7 @@ const props = defineProps<{
   /**
    * The member whose transactions are being displayed (if bothAccounts is not true).
    */
-  member?: { account: Account & { currency: Currency } }
+  member?: { account: Account }
   /**
    * The search query to filter transactions.
    */
@@ -76,6 +79,7 @@ const props = defineProps<{
 }>()
 
 const store = useStore()
+const { resource: currency, loading: currencyLoading } = useResource<Currency>('currencies', () => ({ group: props.code }))
 
 const account = computed(() => props.member?.account);
 const filter = computed(() => {
