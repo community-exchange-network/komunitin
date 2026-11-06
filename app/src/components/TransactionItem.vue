@@ -2,7 +2,7 @@
   <q-item
     :to="transfer.id ? `/groups/${code}/transactions/${transfer.id}` : undefined"
     :clickable="!!transfer.id"
-    class="transaction-item q-py-md"
+    class="q-py-md"
     :class="transfer.attributes.state"
   >
     <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col col-sm-4'" class="flex">
@@ -27,7 +27,7 @@
       <div class="column items-end text-right">
         <q-item-label
           caption
-          class="col top-right-label"
+          class="col"
         >
           <q-badge
             color="pending" 
@@ -166,7 +166,7 @@ const overrideCaption = computed(() => {
   }
   .rejected, .failed {
     background: $light-background;
-    .positive-amount, .negative-amount, .section-extra {
+    .positive-amount, .negative-amount {
       color: $onsurface-d;
     }
   }
