@@ -83,7 +83,13 @@ export class StellarCurrency implements LedgerCurrency {
     this.config = config
   }
 
-  private listenStream<T extends Horizon.HorizonApi.BaseResponse & { paging_token: string }>(name: StreamName, cursor: keyof LedgerCurrencyState, endpoint: CallBuilder<Horizon.ServerApi.CollectionPage<T>>, onMessage: (record: T) => Promise<void>) {
+  private listenStream<T extends Horizon.HorizonApi.BaseResponse & { paging_token: string }>(
+    name: StreamName,
+    cursor: keyof LedgerCurrencyState,
+    endpoint: CallBuilder<Horizon.ServerApi.CollectionPage<T>>,
+    ref: string,
+    onMessage: (record: T) => Promise<void>
+  ) {
     const separationAttempt = 5000
 
     const stream = this.streams[name]
@@ -93,7 +99,8 @@ export class StellarCurrency implements LedgerCurrency {
       if (!stream.started) { return }
 
       const lastAttempt = Date.now()
-      stream.close = endpoint.cursor(this.state[cursor]).stream({
+      const requestCursor = this.state[cursor]
+      stream.close = endpoint.cursor(requestCursor).stream({
         onmessage: (page: Horizon.ServerApi.CollectionPage<T>) => {
           // Looks like there is a bug in typings, as the records received when steraming are not
           // of type collection but single resources.
@@ -110,8 +117,12 @@ export class StellarCurrency implements LedgerCurrency {
             })
         },
         onerror: (error: any) => {
-          // "throw" error
-          this.ledger.emitter.emit("error", error)
+          this.ledger.emitter.emit("error", Object.assign(error, {
+            currency: this.config.code,
+            stream: name,
+            ref,
+            cursor: requestCursor
+          }))
           // Close stream
           if (stream.close) {
             stream.close()
@@ -129,8 +140,10 @@ export class StellarCurrency implements LedgerCurrency {
     stream.listen()
   }
   start() {
+    const account = this.data.externalTraderPublicKey
     this.listenStream("externalTrades", "externalTradesStreamCursor",
-      this.ledger.getServerWithoutRateProtection().trades().forAccount(this.data.externalTraderPublicKey),
+      this.ledger.getServerWithoutRateProtection().trades().forAccount(account),
+      account,
       (trade) => this.handleExternalTradeEvent(trade)
     )
     // TODO: Listen for local payments too.
