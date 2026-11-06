@@ -19,17 +19,13 @@
 // refer to the palette variables instead.
 
 $ember          : #C17A3A;
-$ember-light    : #D9975A;
 $ember-dark     : #8F5520;
 
 $grove          : #3D6E5A;
-$grove-light    : #5A9478;
 
 $tide           : #376976;
-$tide-light     : #568C99;
 
 $moss           : #72932E;
-$moss-light     : #97BC4E;
 
 $wheat          : #E8C87A;
 $wheat-light    : #F2DFA8;
@@ -44,31 +40,32 @@ $soil           : #1E1A14;
 $soil-medium    : #5C5043;
 $soil-light     : #9A8878;
 
+$crimson        : #B00020;
+
+$white          : #FFFFFF;
+$black          : #000000;
+
 // ── Theme mapping ─────────────────────────────────────────────
 // This section maps the defined palette colors to Quasar's theme variables.
 
 $primary   : $ember;
 $secondary : $grove;
 $accent    : $wheat;
-$accent-muted: $wheat-light;
 
 $dark      : $soil;         // Soil — dark surfaces
 $dark-page : $soil;         // Soil — darkest text/page bg in dark mode
 
 // ── Semantic / feedback colours ──────────────────────────────
-//
-//  These are kept close to Quasar defaults but warm-shifted
-//  to harmonise with the earthy palette.
 
-$positive  : $grove;        // Grove — success maps to our secondary green
-$negative  : #C0392B;     // Standard red, no palette equivalent
-$info      : $ember;        // Ember — info reuses primary (warm, not cold blue)
-$warning   : $wheat;        // Wheat — natural amber for warnings
+$positive  : $secondary;        // Grove — success maps to our secondary green
+$negative  : $crimson;     // Crimson — negative feedback
+$info      : $primary;        // Ember — info reuses primary (warm, not cold blue)
+$warning   : $accent;        // Wheat — natural amber for warnings
 
 // ── Separator colours ──────────────────────────────
 
-$separator-color      : rgba(30, 26, 20, 0.08);   // Soil at 8% — warm divider
-$separator-dark-color : rgba(255, 255, 255, 0.12); // standard dark mode
+$separator-color      : rgba($soil, 0.08);   // Soil at 8% — warm divider
+$separator-dark-color : rgba($white, 0.12); // standard dark mode
 
 // ── Typography ───────────────────────────────────────────────
 //
@@ -78,17 +75,6 @@ $separator-dark-color : rgba(255, 255, 255, 0.12); // standard dark mode
 //  as the base and apply Lora via component-level overrides.
 
 $typography-font-family: 'Inter', '-apple-system', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-$body-font-size         : 14px;
-$body-line-height       : 1.5;
-
-// ── Spacing ──────────────────────────────────────────────────
-//
-//  Base unit stays at 16px (Quasar default) — our component
-//  spacing uses multiples of 8px which aligns naturally.
-
-$space-base   : 16px;
-$space-x-base : $space-base;
-$space-y-base : $space-base;
 
 // ── Border radius ────────────────────────────────────────────
 //
@@ -106,35 +92,35 @@ $button-push-border-radius    : 14px;
 //  Quasar `shadow-n` token so all elevations spread equally on
 //  every side (`x: 0`, `y: 0`) and only depth changes by level.
 //  `shadow-2` is intentionally aligned with the previous default:
-//  `0 0 14px rgba(30,26,20,0.08)`.
+//  `0 0 14px rgba($soil,0.08)`.
 
 $shadow-color : $soil;  // Soil — warm dark shadow base
 
 // Quasar elevation overrides (shadow-1 ... shadow-24)
-$shadow-1  : 0 0 10px rgba(30, 26, 20, 0.08) !default;
-$shadow-2  : 0 0 14px rgba(30, 26, 20, 0.08) !default;
-$shadow-3  : 0 0 18px rgba(30, 26, 20, 0.08) !default;
-$shadow-4  : 0 0 22px rgba(30, 26, 20, 0.08) !default;
-$shadow-5  : 0 0 26px rgba(30, 26, 20, 0.08) !default;
-$shadow-6  : 0 0 30px rgba(30, 26, 20, 0.08) !default;
-$shadow-7  : 0 0 34px rgba(30, 26, 20, 0.08) !default;
-$shadow-8  : 0 0 38px rgba(30, 26, 20, 0.08) !default;
-$shadow-9  : 0 0 42px rgba(30, 26, 20, 0.08) !default;
-$shadow-10 : 0 0 46px rgba(30, 26, 20, 0.08) !default;
-$shadow-11 : 0 0 50px rgba(30, 26, 20, 0.08) !default;
-$shadow-12 : 0 0 54px rgba(30, 26, 20, 0.08) !default;
-$shadow-13 : 0 0 58px rgba(30, 26, 20, 0.08) !default;
-$shadow-14 : 0 0 62px rgba(30, 26, 20, 0.08) !default;
-$shadow-15 : 0 0 66px rgba(30, 26, 20, 0.08) !default;
-$shadow-16 : 0 0 70px rgba(30, 26, 20, 0.08) !default;
-$shadow-17 : 0 0 74px rgba(30, 26, 20, 0.08) !default;
-$shadow-18 : 0 0 78px rgba(30, 26, 20, 0.08) !default;
-$shadow-19 : 0 0 82px rgba(30, 26, 20, 0.08) !default;
-$shadow-20 : 0 0 86px rgba(30, 26, 20, 0.08) !default;
-$shadow-21 : 0 0 90px rgba(30, 26, 20, 0.08) !default;
-$shadow-22 : 0 0 94px rgba(30, 26, 20, 0.08) !default;
-$shadow-23 : 0 0 98px rgba(30, 26, 20, 0.08) !default;
-$shadow-24 : 0 0 102px rgba(30, 26, 20, 0.08) !default;
+$shadow-1  : 0 0 10px rgba($shadow-color, 0.08) !default;
+$shadow-2  : 0 0 14px rgba($shadow-color, 0.08) !default;
+$shadow-3  : 0 0 18px rgba($shadow-color, 0.08) !default;
+$shadow-4  : 0 0 22px rgba($shadow-color, 0.08) !default;
+$shadow-5  : 0 0 26px rgba($shadow-color, 0.08) !default;
+$shadow-6  : 0 0 30px rgba($shadow-color, 0.08) !default;
+$shadow-7  : 0 0 34px rgba($shadow-color, 0.08) !default;
+$shadow-8  : 0 0 38px rgba($shadow-color, 0.08) !default;
+$shadow-9  : 0 0 42px rgba($shadow-color, 0.08) !default;
+$shadow-10 : 0 0 46px rgba($shadow-color, 0.08) !default;
+$shadow-11 : 0 0 50px rgba($shadow-color, 0.08) !default;
+$shadow-12 : 0 0 54px rgba($shadow-color, 0.08) !default;
+$shadow-13 : 0 0 58px rgba($shadow-color, 0.08) !default;
+$shadow-14 : 0 0 62px rgba($shadow-color, 0.08) !default;
+$shadow-15 : 0 0 66px rgba($shadow-color, 0.08) !default;
+$shadow-16 : 0 0 70px rgba($shadow-color, 0.08) !default;
+$shadow-17 : 0 0 74px rgba($shadow-color, 0.08) !default;
+$shadow-18 : 0 0 78px rgba($shadow-color, 0.08) !default;
+$shadow-19 : 0 0 82px rgba($shadow-color, 0.08) !default;
+$shadow-20 : 0 0 86px rgba($shadow-color, 0.08) !default;
+$shadow-21 : 0 0 90px rgba($shadow-color, 0.08) !default;
+$shadow-22 : 0 0 94px rgba($shadow-color, 0.08) !default;
+$shadow-23 : 0 0 98px rgba($shadow-color, 0.08) !default;
+$shadow-24 : 0 0 102px rgba($shadow-color, 0.08) !default;
 
 // ── Toolbar / Header ─────────────────────────────────────────
 //
@@ -151,9 +137,7 @@ $toolbar-title-padding      : 0 14px;
 
 // ── Buttons ──────────────────────────────────────────────────
 
-$button-font-size    : 14px;
 $button-font-weight  : 600;
-$button-line-height  : 1.715em;
 $button-padding      : 12px 18px;
 
 // ── Chips ────────────────────────────────────────────────────
@@ -169,7 +153,7 @@ $chip-dense-height  : 1.4em;
 
 $input-font-size    : 16px;   // 16px prevents iOS Safari from zooming in on focus
 $input-text-color   : $soil-medium;   // Warm brown, softer than near-black
-$input-label-color  : rgba(30, 26, 20, 0.6);    // Soil at 60% — text-muted
+$input-label-color  : rgba($soil, 0.6);    // Soil at 60% — text-muted
 
 $field-label-font-size    : 13px;
 $field-bottom-font-size   : 11px;
@@ -185,45 +169,31 @@ $avatar-content-font-size : 0.41em;  // ~14px at 34px base
 //
 //  Reuses our Linen Dark hover colour.
 
-$table-hover-background    : rgba(30, 26, 20, 0.04);  // barely-there warm wash
-$table-selected-background : rgba(193, 122, 58, 0.08); // faint Ember tint
+$table-hover-background    : rgba($soil, 0.04);  // barely-there warm wash
+$table-selected-background : rgba($primary, 0.08); // faint Ember tint
 
 // ── Menu / Dropdown ──────────────────────────────────────────
 
-$menu-background  : #FFFFFF;   // bgCard — pure white dropdowns
-$menu-box-shadow  : 0 4px 20px rgba(30, 26, 20, 0.14);
+$menu-box-shadow  : 0 4px 20px rgba($shadow-color, 0.14);
 
 // ── Tooltip ──────────────────────────────────────────────────
 
-$tooltip-background   : $soil;
-$tooltip-color        : #FDFAF4;   // Parchment — warm white text
+$tooltip-background   : $dark;
+$tooltip-color        : $parchment;   // Parchment — warm white text
 $tooltip-border-radius: 8px;
 $tooltip-padding      : 6px 12px;
 $tooltip-fontsize     : 12px;
 
 // ── Layout ───────────────────────────────────────────────────
 
-$layout-border  : 1px solid rgba(30, 26, 20, 0.08);  // warm divider
-$layout-shadow  : 0 0 10px 2px rgba(30, 26, 20, 0.08), 0 0 10px rgba(30, 26, 20, 0.12);
-
-// ── Z-index ──────────────────────────────────────────────────
-//
-//  Kept at Quasar defaults. Our sticky layers use:
-//    nav:            z 100  → maps within $z-marginals range
-//    filter bar:     z 90
-//    filter summary: z 80
-//  These sit below Quasar's drawer/menu layers as expected.
-
-$z-fab       : 990;
-$z-side      : 1000;
-$z-marginals : 2000;
+$layout-border  : 1px solid $separator-color;  // warm divider
+$layout-shadow  : 0 0 10px 2px rgba($shadow-color, 0.08), 0 0 10px rgba($shadow-color, 0.12);
 
 // ── Animation ────────────────────────────────────────────────
 //
 //  Commons uses a 0.3s ease fadeUp for card entrances and
 //  0.15s for micro-interactions (chips, hover states).
 
-$animate-duration : .3s;
 $animate-delay    : .15s;
 
 $generic-hover-transition : .15s cubic-bezier(.25, .8, .5, 1);
@@ -233,11 +203,11 @@ $generic-hover-transition : .15s cubic-bezier(.25, .8, .5, 1);
 //  Already defined above under Surface colours, repeated here
 //  for component-level overrides that reference it directly.
 //
-//  $separator-color : rgba(30, 26, 20, 0.08)  — see above
+//  $separator-color : rgba($soil, 0.08)  — see above
 
 // ── Rating ───────────────────────────────────────────────────
 
-$rating-grade-color : #E8C87A;  // Wheat — natural amber star colour
+$rating-grade-color : $accent;  // Wheat — natural amber star colour
 
 
 // ============================================================
@@ -246,14 +216,15 @@ $rating-grade-color : #E8C87A;  // Wheat — natural amber star colour
 //   throughout your component files once this file is loaded)
 // ============================================================
 
-$divider        : rgba(30, 26, 20, 0.08);
+$accent-muted: $wheat-light;
+
 $chip-border    : $sandstone;
 
 // Typography scale (display sizes, complementing Quasar's $headings)
 $display-serif-family : 'Lora', Georgia, 'Times New Roman', serif;
 
 // Color for surface elements, such as cards and navbar
-$surface: #ffffff;
+$surface: $white;
 $surface-container-h: $linen-dark;
 
 $primary-container: $ember-dark;
@@ -261,43 +232,37 @@ $primary-container: $ember-dark;
 // Secondary colors
 $kblue: $secondary; //offers
 $kred: $primary; //wants
-$kyellow: #c29c14;
 
 // App background color.
 $background: $linen;
 $light-background: $parchment;
 // Outside background.
-$outside: #312D21;
+$outside: $soil-medium;
 // Error color.
-$error: #B00020;
-$light-error: rgba($error, 0.12);
+$error: $negative;
 
-$active: rgba(193, 122, 58, 0.10);  // Ember at 10% — selected/active row tint
-$pending: rgba(193, 122, 58, 0.12); // Ember at 12% — pending badge
-$rejected: rgba(192, 57, 43, 0.12); // Negative red at 12% — rejected badge
-$failed: rgba(192, 57, 43, 0.20);   // Negative red at 20% — failed badge
+$active: rgba($primary, 0.10);  // Ember at 10% — selected/active row tint
+$pending: rgba($primary, 0.12); // Ember at 12% — pending badge
+$rejected: rgba($negative, 0.12); // Negative red at 12% — rejected badge
+$failed: rgba($negative, 0.20);   // Negative red at 20% — failed badge
 $committed: rgba($moss, 0.12);        // Moss at 12% — committed badge
 
 // Text colors
 
 // Color for text on primary background / high emphasis
-$onprimary: #FFFFFF;
-$onprimary-m: rgba(255,255,255,0.74);
-
-// Color for text on secondary background / high emphasis
-$onsecondary: #FFFFFF;
+$onprimary: $white;
 
 // Color for text on outside background / high emphasis
-$onoutside: #ffffff;
+$onoutside: $white;
 // Color for text on outside background / medium emphasis
-$onoutside-m: rgba(255,255,255,0.74);
+$onoutside-m: rgba($onoutside, 0.74);
 
 // Color for text on surface / high emphasis
-$onsurface: rgba(30, 26, 20, 0.87); // Soil at 87% — high emphasis text on light bg
+$onsurface: rgba($soil, 0.87); // Soil at 87% — high emphasis text on light bg
 // Color for text on surface / medium emphasis
-$onsurface-m: rgba(30, 26, 20, 0.60); // Soil at 60% — medium emphasis text on light bg
+$onsurface-m: rgba($soil, 0.60); // Soil at 60% — medium emphasis text on light bg
 // Color for text on surface / disabled
-$onsurface-d: rgba(30, 26, 20, 0.38); // Soil at 38% — disabled text on light bg
+$onsurface-d: rgba($soil, 0.38); // Soil at 38% — disabled text on light bg
 
 $muted: $soil-light;
 
@@ -306,10 +271,7 @@ $positive-amount: $moss;
 $negative-amount: $tide;
 
 // Icon colors
-$icon-dark: rgba(0,0,0,.54);
-$icon-dark-inactive: rgba(0,0,0,.26);
-$icon-light: #FFFFFF;
-$icon-light-inactive: rgba(0,0,0,.3);
+$icon-dark: rgba($black, .54);
 
 // Sizes
 $header-height: 64px;
