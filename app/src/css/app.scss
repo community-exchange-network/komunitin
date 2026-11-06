@@ -146,11 +146,11 @@
 .input-outlined-soil {
   .q-field--outlined .q-field__control {
     &:before {
-      border-color: $soil-muted;
+      border-color: $soil-light;
     }
 
     &:hover:before {
-      border-color: $soil-secondary;
+      border-color: $soil-medium;
     }
   }
 }
@@ -204,7 +204,7 @@
 .btn-disabled-solid.disabled,
 .btn-disabled-solid[disabled] {
   opacity: 1 !important;
-  background: $soil-muted !important;
+  background: $soil-light !important;
   color: $linen !important;
 }
 // Because we set the generic border radius to 8px, we need to override badges to be more square-shaped.
