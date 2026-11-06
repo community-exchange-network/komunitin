@@ -20,6 +20,7 @@
         <transaction-item
           :code="code"
           :account="myAccount"
+          :currency="myCurrency"
           :transfer="trans"
         />
       </template>

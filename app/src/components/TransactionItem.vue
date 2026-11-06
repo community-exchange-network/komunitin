@@ -77,7 +77,6 @@ import type { Account, Currency, ExtendedTransfer } from '@/store/model';
 import FormatCurrency from "../plugins/FormatCurrency";
 import AccountItemContent from "./AccountItemContent.vue";
 import { useQuasar } from 'quasar';
-import { useStore } from 'vuex';
 
 const props = defineProps<{
   /**
@@ -88,6 +87,8 @@ const props = defineProps<{
    * The group code
    */
   code: string,
+  /** Currency in which the transfer amount is expressed. */
+  currency: Currency,
   /**
    * Whether to include both accounts in the transaction item.
    */
@@ -95,15 +96,11 @@ const props = defineProps<{
   /**
    * The subject account, if `bothAccounts` is not true.
    */
-  account?: Account & {currency: Currency}
+  account?: Account
   
 }>()
 
 const q = useQuasar()
-const store = useStore()
-
-const currency = computed(() => store.getters.myCurrency)
-
 const isPayerSubject = computed(() => {
   return props.transfer.relationships.payer.data.id === props.account?.id;
 })
