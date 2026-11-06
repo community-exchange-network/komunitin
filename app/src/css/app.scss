@@ -26,9 +26,6 @@
 .bg-kblue {
   background: $kblue;
 }
-.bg-kyellow {
-  background: $kyellow;
-}
 .bg-kred {
   background: $kred;
 }
@@ -58,12 +55,6 @@
 .text-onprimary {
   color: $onprimary;
 }
-.text-onprimary-m {
-  color: $onprimary-m;
-}
-.text-onsecondary {
-  color: $onsecondary;
-}
 .text-onsurface {
   color: $onsurface;
 }
@@ -84,15 +75,6 @@
 }
 .text-icon-dark {
   color: $icon-dark;
-}
-.text-icon-dark-inactive {
-  color: $icon-dark-inactive;
-}
-.text-icon-light {
-  color: $icon-light;
-}
-.text-icon-light-inactive {
-  color: $icon-light-inactive;
 }
 .text-primary-container {
   color: $primary-container;
@@ -227,7 +209,6 @@ aside.q-drawer:has(.rounded-drawer-right) {
 // 7. Palette tokens exposed as CSS variables, so scripts (e.g. charts) can read them with Quasar's getCssVar().
 :root {
   --q-onsurface-m: #{$onsurface-m};
-  --q-divider: #{$divider};
   --q-tooltip-background: #{$tooltip-background};
   --q-tooltip-color: #{$tooltip-color};
 }
