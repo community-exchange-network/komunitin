@@ -15,8 +15,9 @@
   >
     <q-input
       v-model="email"
-      outlined
-      dark
+      standout
+      class="input-standout-light"
+      bg-color="white"
       type="email"
       :disable="!!confirmation"
       placeholder="example@example.com"
@@ -32,7 +33,8 @@
     </q-input>
     <password-field
       v-model="pass"
-      dark
+      class="input-standout-light"
+      bg-color="white"
     />
     <div class="row q-mt-xs"
     :class="isSuperadmin ? 'justify-between' : 'justify-end'">
@@ -46,9 +48,10 @@
       </router-link>
     </div>
     <q-btn
-      outline
-      color="transparent"
-      text-color="onoutside"
+      unelevated
+      color="primary"
+      text-color="onprimary"
+      class="btn-disabled-solid"
       :label="$t('logIn')"
       icon="account_circle"
       :disabled="loginDisabled"

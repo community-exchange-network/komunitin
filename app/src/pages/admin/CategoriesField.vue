@@ -14,7 +14,7 @@
           :props="slot"
         >
           <category-avatar
-            type="offer"
+            type="offers"
             :category="slot.row"
             caption
           />
@@ -84,7 +84,8 @@
         <q-input
           v-model="name"
           :label="$t('categoryName')"
-          outlined
+          standout
+          class="input-standout-light"
         />
         <div class="text-onsurface-m">
           {{ $t('categoryIcon') }}

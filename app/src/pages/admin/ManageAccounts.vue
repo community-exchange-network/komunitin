@@ -29,6 +29,8 @@
       </div>
       <q-list
         v-if="!loadingPending && pending.length > 0"
+        separator
+        class="bg-surface rounded-borders shadow-2"
       >
         <member-header
           v-for="member in pending"
@@ -75,7 +77,7 @@
         ref="tableRef"
         v-model:pagination="pagination"
         :filter="filter"
-        class="full-width text-onsurface"
+        class="full-width text-onsurface shadow-2"
         :columns="columns"
         :rows="members"
         :visible-columns="visibleColumns"
@@ -93,7 +95,8 @@
               v-model="filter"
               debounce="300"
               :placeholder="$t('search')"
-              outlined
+              standout
+              class="input-standout-light"
               dense
               style="min-width: 200px"
             >
@@ -110,7 +113,8 @@
                 map-options
                 option-value="name"
                 :display-value="$t('columns')"
-                outlined
+                standout
+                class="input-standout-light"
                 dense
                 options-cover
                 style="min-width: 200px"

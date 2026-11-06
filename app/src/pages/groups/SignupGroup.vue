@@ -11,24 +11,25 @@
       {{ $t('createGroupBanner') }}
       <template #action>
         <q-btn
-          flat
-          color="primary"
-          :label="$t('dismiss')"
-          @click="showDocsBanner = false"
+        flat
+        color="primary"
+        :label="$t('dismiss')"
+        @click="showDocsBanner = false"
         />
         <q-btn
-          flat
-          color="primary"
-          :label="$t('learnMore')"
-          :href="`${docsUrl}/project/new-community`"
-          target="_blank"
+        flat
+        color="primary"
+        :label="$t('learnMore')"
+        :href="`${docsUrl}/project/new-community`"
+        target="_blank"
         />
       </template> 
     </q-banner>
     <q-page       
-      padding
-      class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
+    padding
+    class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
     >
+    <div class="q-pa-md bg-surface rounded-borders shadow-2">
       <signup-credentials-form
         v-if="page == 'credentials'"
         v-model="credentials"
@@ -41,6 +42,7 @@
         :loading="loading"
         @resend="resendEmail"
       />
+    </div>
     </q-page>
   </q-page-container>
 </template>

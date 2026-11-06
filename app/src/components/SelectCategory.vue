@@ -1,7 +1,8 @@
 <template>
   <q-select
     v-model="category"
-    outlined
+    standout
+    class="input-standout-light"
     :options="options"
     :label="label ?? $t('category')"
     :hint="hint"

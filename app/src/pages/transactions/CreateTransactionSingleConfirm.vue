@@ -1,9 +1,7 @@
 <template>  
   <q-form @submit="onSubmit">
-    <div>
-      <div class="text-subtitle1 q-pb-lg">
-        {{ $t('confirmTransaction') }}
-      </div>
+    <div class="text-subtitle1 text-serif text-bold text-onsurface q-pb-md">
+      {{ $t('confirmTransaction') }}
     </div>
     <transaction-card 
       :transfer="transfer"

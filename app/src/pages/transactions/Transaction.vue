@@ -11,7 +11,7 @@
       <q-page
         v-if="!isLoading"
         padding
-        class="q-py-lg q-px-md col-12 col-sm-8 col-md-6"
+        class="q-py-md q-px-md col-12 col-sm-8 col-md-6"
       >
         <div v-if="isPendingMe" class="text-subtitle1 q-pb-lg">
           {{ $t('pleaseReviewTransfer') }}

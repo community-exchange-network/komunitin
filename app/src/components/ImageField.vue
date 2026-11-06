@@ -4,11 +4,10 @@
       ref="uploader"  
       multiple
       accept="image/*"
-      color="white"
+      color="light"
       text-color="onsurface-m"
       flat
-      bordered
-      class="full-width max-h"
+      class="full-width max-h bg-light"
       hide-upload-btn
       v-bind="uploaderProps"
       v-on="uploaderEvents"

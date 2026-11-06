@@ -2,8 +2,9 @@
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, requireText, waitFor } from "../utils";
-import { QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
+import { QBtn, QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
+import FloatingBtn from '@/components/FloatingBtn.vue';
 import PageHeader from "../../../src/layouts/PageHeader.vue";
 import ApiSerializer from "@/server/ApiSerializer";
 import server, { seeds } from "@/server";
@@ -123,27 +124,27 @@ describe("Offers", () => {
     expect(text).toContain("This offer is a mirage.");
     expect(text).toContain("Updated today");
     expect(text).toContain(selectedCategoryName);
-    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("draft");
 
     const memberPath = `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`
-    await wrapper.vm.$router.push({ path: memberPath, hash: "#offers" })
+    await wrapper.vm.$router.push(`${memberPath}/offers`)
     await waitFor(
-      () => wrapper.findAllComponents(OfferCard).some(card => card.props("offer").attributes.code === "The-Offer"),
+      () => wrapper.findAllComponents(OfferCard).some(card => card.text().includes("The Offer")),
       true,
-      "Draft offer should appear in the member offers tab"
+      "Draft offer should appear on the member offers page"
     )
     const draftCard = wrapper.findAllComponents(OfferCard)
-      .find(card => card.props("offer").attributes.code === "The-Offer")
+      .find(card => card.text().includes("The Offer"))
     expect(draftCard?.text()).toContain("Draft")
-    expect(draftCard?.classes()).toContain("muted")
     await draftCard?.trigger("click")
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/offers/The-Offer/preview")
 
-    await wrapper.get(".q-btn--fab").trigger("click");
-    await waitFor(() => wrapper.vm.$route.path, memberPath);
-    expect(wrapper.vm.$route.hash).toBe("#offers");
-    expect(wrapper.vm.$store.getters["offers/current"].attributes.status).toBe("published");
-    await wrapper.vm.$router.push("/groups/GRP0/offers/The-Offer")
+    await wrapper.getComponent(FloatingBtn).getComponent(QBtn).trigger('click');
+    await waitFor(() => wrapper.vm.$route.path, `${memberPath}/offers`);
+    await waitFor(() => wrapper.findAllComponents(OfferCard).some(card => card.text().includes('The Offer')), true)
+    const publishedCard = wrapper.findAllComponents(OfferCard).find(card => card.text().includes('The Offer'))
+    expect(publishedCard.text()).not.toContain('Draft')
+    await publishedCard.trigger('click')
+    await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/offers/The-Offer')
     await waitFor(() => wrapper.text().includes("The Offer"), true, "Offer page should show");
     expect(wrapper.text()).toContain("$10.00");
   })

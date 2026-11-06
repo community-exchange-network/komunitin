@@ -3,30 +3,38 @@
     v-model="draftDate"
     :error="hasInputError"
     name="date"
-    :label="label"
+    label-slot
     :hint="hint"
     :placeholder="localFormat"
-    outlined
+    v-bind="styleProps"
+    clear-icon="close"
     required
     @blur="commitDraftDate"
     @keyup.enter="commitDraftDate"
     @clear="commitDraftDate"
   >
+    <template v-slot:label>
+      <span :class="{ 'text-uppercase text-caption-sm text-muted': filter }">{{ label }}</span>
+    </template>
     <template #append>
       <q-icon 
         name="event" 
         class="cursor-pointer"
+        color="muted"
       >
         <q-popup-proxy
           cover
-          transition-show="scale"
-          transition-hide="scale"
+          transition-show="slide-up"
+          transition-hide="slide-down"
         >
           <q-date
+            flat
+            color="primary-container"
             v-model="pickerDate" 
             :mask="pickerMask"
             :options="optionsFn"
-          >
+            class="date-picker"
+            >
             <div class="row items-center justify-end">
               <q-btn 
                 v-close-popup 
@@ -54,11 +62,26 @@ const props = defineProps<{
     min?: Date
     max?: Date
   }
+  /**
+   * Use the tinted style shared by filter fields, instead of the regular form field style.
+   */
+  filter?: boolean
 }>()
 const emit = defineEmits<{
   (e: "update:modelValue", value: Date | null): void
 }>()
 const { t } = useI18n()
+
+const styleProps = computed(() => props.filter ? {
+  outlined: true,
+  bgColor: "surface-container-h",
+  inputClass: "text-muted text-weight-medium",
+  class: "input-outlined-pale"
+} : {
+  standout: true,
+  class: "input-standout-light"
+})
+
 const pickerMask = "YYYY/MM/DD" // this is the format for QDate component
 const pickerFormat = "yyyy/MM/dd" // this is the same format for date-fns
 
@@ -131,3 +154,10 @@ const optionsFn = (date: string | null) => {
 }
 
 </script>
+
+<style lang="scss" scoped>
+  .date-picker :deep(.q-date__header-title) {
+    font-family: $display-serif-family;
+    font-weight: bold;
+  }
+</style>

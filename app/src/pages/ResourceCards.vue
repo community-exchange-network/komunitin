@@ -137,6 +137,7 @@ const isEmpty = computed(() => resources.value.length === 0 && !loading.value &&
 
 const loadResources = async () => {
   await load({
+    group: props.code,
     search: props.query,
     filter: props.filter,
     sort: props.sort,

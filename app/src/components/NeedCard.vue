@@ -2,8 +2,6 @@
   <q-card
     v-if="need"
     v-bind="cardClickAttrs"
-    flat
-    bordered
     :class="{ muted: isMuted }"
   >
     <!-- Header -->
@@ -14,7 +12,7 @@
       <template #side>
         <category-avatar
           :category="need.category"
-          type="need"
+          :type="need.type"
         />
       </template>
     </member-header>
@@ -23,6 +21,7 @@
       v-if="hasImages"
       :images="need.attributes.images"
       height="200px"
+      flat
     />
 
     <!-- Need text -->

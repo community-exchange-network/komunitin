@@ -8,9 +8,11 @@
     <q-page>
       <q-tabs
         v-if="showTabs.length > 1"
-        class="bg-active text-onsurface-m"
-        active-class="text-primary"
+        class="bg-light text-onsurface-m"
+        active-color="primary"
         align="justify"
+        inline-label
+        no-caps
       >
         <q-route-tab
           v-if="showTabs.includes('simple')"

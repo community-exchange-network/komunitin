@@ -97,14 +97,16 @@
             :label="$t('currency')"
             :disable="action === 'edit'"
             :option-disable="groupDisabled"
-            outlined
+            standout
+            class="input-standout-light"
           />
           <amount-input
             v-model="limit"
             :currency="myCurrency"
             :label="$t('limit')"
             :hint="$t('trustlineLimitHint')"
-            outlined
+            standout
+            class="input-standout-light"
           />
         </q-card-section>
         <q-card-section align="right">

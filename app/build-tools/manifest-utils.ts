@@ -10,7 +10,7 @@ const readSassVariables = (filePath: string): Record<string, string> => {
   const fileContent = readFileSync(filePath, "utf8")
 
   for (const line of fileContent.split(/\r?\n/)) {
-    const cleanLine = line.split("//", 1)[0]?.trim() ?? ""
+    const cleanLine = (line.split("//", 1)[0]?.trim() ?? "").replace(/;$/, "")
     const match = cleanLine.match(/^\$([A-Za-z0-9_-]+)\s*:\s*(.+?)\s*$/)
 
     if (!match) {
@@ -25,11 +25,14 @@ const readSassVariables = (filePath: string): Record<string, string> => {
 }
 
 export const getThemeColors = (flavor: string): { primary: string | undefined, background: string | undefined } => {
-  const defaultSassVariables = readSassVariables("src/css/quasar.variables.sass")
-  const flavorSassVariables = readSassVariables(`src/css/flavors/${flavor}/override.variables.sass`)
+  const defaultSassVariables = readSassVariables("src/css/quasar.variables.scss")
+  const flavorSassVariables = readSassVariables(`src/css/flavors/${flavor}/override.variables.scss`)
 
+  const variables = { ...defaultSassVariables, ...flavorSassVariables }
+  // Theme colors can refer to palette tokens in the SCSS theme.
   const getVariable = (name: string): string | undefined => {
-    return flavorSassVariables[name] || defaultSassVariables[name]
+    const value = variables[name]
+    return value?.startsWith("$") ? getVariable(value.slice(1)) : value
   }
   
   return {

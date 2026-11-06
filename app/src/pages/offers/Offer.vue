@@ -22,94 +22,45 @@
           :code="code"
           :offer="offer"          
           :to="`/groups/${code}/offers`"
-          color="white"
+          color="onsurface-m"
         />
       </template>
     </page-header>
     <q-page-container>
       <q-page
         v-if="offer && isReady"
-        class="q-pa-lg"
+        class="q-pa-md"
       >
-        <offer-layout :num-images="offer.attributes.images.length">
-          <template #member>
-            <member-header
-              :to="`/groups/${code}/members/${offer.member.attributes.code}`"
-              :member="offer.member"
-              class="q-pa-none"
-            />
-          </template>
-          <template #category>
-            <category-avatar
-              type="offer"
-              :category="offer.category"
-              caption
-            />
-          </template>
-          <template #images>
-            <carousel
-              :images="offer.attributes.images"
-              thumbnails
-              height="400px"
-            />
-          </template>
-          <template #content>
-            <div class="text-h4 q-pb-sm">
+        <post-layout :post="offer" :code="code">
+          <template #header>
+            <div class="text-h4 text-bold text-serif q-mb-md">
               {{ offer.attributes.title }}
             </div>
-            <div class="text-h6 q-pb-sm">
-              <span class="text-onsurface-m">{{ $t('price') }}</span>
-              <span>&nbsp;</span>
-              <span class="negative-amount">{{ price }}</span>
-            </div>
-            <div class="text-body2 text-onsurface-m q-pb-md">
-              <span>{{ $t('updatedAt', {
-                date: $formatDate(offer.attributes.updated)
-              }) }}</span>
-            </div>
-            <!-- eslint-disable vue/no-v-html -->
-            <div
-              class="col text-body1 text-onsurface"
-              v-html="md2html(offer.attributes.description)"
-            />
-            <!-- eslint-enable vue/no-v-html -->
-            <div v-if="offer.attributes.expires" class="text-body2 text-onsurface-m q-pb-md">
-              <span>{{ $t('expiresAt', {
-                date: $formatDate(offer.attributes.expires)
-              }) }}</span>
-            </div>
-            <div class="q-pb-lg row q-gutter-x-md justify-end">
-              <share-button 
-                flat
-                color="primary"
-                :label="$t('share')"
-                :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
-                :text="`${offer.attributes.title}\n${offer.attributes.description}`"
-              />
-              <contact-button
-                unelevated
-                color="primary"
-                :label="$t('contact')"
-                :contacts="offer.member.attributes.contacts"
-              /> 
+            <div class="q-mb-md">
+              <span class="text-caption text-muted q-mr-xs">{{ $t('price') }}</span>
+              <span class="text-h5 text-bold positive-amount">{{ price }}</span>
             </div>
           </template>
-          <template #map>
-            <simple-map
-              class="simple-map"
-              :center="offer.member.attributes.location?.coordinates ?? offer.member.group.attributes.location?.coordinates"
-              :marker="offer.member.attributes.location?.coordinates"
+          <template #actions>
+            <contact-button
+              unelevated
+              color="primary"
+              :label="$t('contact')"
+              :contacts="offer.member.attributes.contacts"
             />
-            <div class="text-onsurface-m" v-if="offer.member.attributes.location?.name">
-              <q-icon name="place" />
-              {{ offer.member.attributes.location.name }}
-            </div>
+            <share-button
+              outline
+              color="primary"
+              :label="$t('share')"
+              :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
+              :text="`${offer.attributes.title}\n${offer.attributes.description}`"
+            />
           </template>
-        </offer-layout>
-        <slot 
-          name="after" 
-          :offer="offer" 
-        />
+        </post-layout>
+        <!-- Reserve room for the preview's floating publish action. -->
+        <div v-if="$slots.after" class="q-pa-xl">
+          <slot name="after" :offer="offer" />
+        </div>
       </q-page>
     </q-page-container>
   </div>
@@ -117,18 +68,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import md2html from "../../plugins/Md2html";
-
-import OfferLayout from "../../layouts/OfferLayout.vue";
+import PostLayout from "../../layouts/PostLayout.vue";
 import PageHeader from "../../layouts/PageHeader.vue";
 
-import Carousel from "../../components/Carousel.vue";
-import CategoryAvatar from "../../components/CategoryAvatar.vue";
 import ContactButton from "../../components/ContactButton.vue";
 import DeleteOfferBtn from "../../components/DeleteOfferBtn.vue";
-import MemberHeader from "../../components/MemberHeader.vue";
 import ShareButton from "../../components/ShareButton.vue";
-import SimpleMap from "../../components/SimpleMap.vue";
 import Error404 from "../Error404.vue";
 
 import { formatPrice } from "@/plugins/FormatCurrency";

@@ -3,6 +3,7 @@
 .vscode/settings.json
 .vscode/chrome
 app/src/css/override.variables.sass
+app/src/css/override.variables.scss
 accounting/komunitin-project-backup-credentials.json
 auth/node_modules/
 auth/src/generated

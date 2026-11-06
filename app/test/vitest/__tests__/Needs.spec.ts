@@ -1,5 +1,6 @@
  
 import type { VueWrapper } from "@vue/test-utils";
+import FloatingBtn from '@/components/FloatingBtn.vue';
 import App from "../../../src/App.vue";
 import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../utils";
 import { QItem, QSelect, QDialog, QBtn, QInnerLoading } from "quasar";
@@ -98,31 +99,31 @@ describe("Needs", () => {
     expect(wrapper.vm.$route.path).toBe("/groups/GRP0/needs/I-really-n/preview");
     expect(wrapper.text()).toContain("Updated today");
     expect(wrapper.text()).toContain(selectedCategoryName);
-    expect(wrapper.vm.$store.getters["needs/current"].attributes.status).toBe("draft");
 
     const memberPath = `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`
-    await wrapper.vm.$router.push({ path: memberPath, hash: "#needs" })
+    await wrapper.vm.$router.push(`${memberPath}/needs`)
     await waitFor(
       () => wrapper.findAllComponents(NeedCard)
-        .some(card => card.props("need").attributes.code === "I-really-n"),
+        .some(card => card.text().includes("I really need this test to pass.")),
       true,
-      "Draft want should appear in the member wants tab"
+      "Draft want should appear on the member wants page"
     )
     const draftCard = wrapper.findAllComponents(NeedCard)
-      .find(card => card.props("need").attributes.code === "I-really-n")
+      .find(card => card.text().includes("I really need this test to pass."))
     expect(draftCard?.text()).toContain("Draft")
-    expect(draftCard?.classes()).toContain("muted")
     expect(draftCard?.findComponent(ContactButton).exists()).toBe(false)
     expect(draftCard?.findComponent(ShareButton).exists()).toBe(false)
     await draftCard?.trigger("click")
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/needs/I-really-n/preview")
 
-    await wrapper.get(".q-btn--fab").trigger("click");
+    await wrapper.getComponent(FloatingBtn).getComponent(QBtn).trigger('click');
     
-    await waitFor(() => wrapper.vm.$route.path, memberPath);
-    expect(wrapper.vm.$route.hash).toBe("#needs");
-    expect(wrapper.vm.$store.getters["needs/current"].attributes.status).toBe("published");
+    await waitFor(() => wrapper.vm.$route.path, `${memberPath}/needs`);
     await waitFor(() => wrapper.text().includes("I really need this test to pass."), true, "Need should appear in member page");
+    const publishedCard = wrapper.findAllComponents(NeedCard).find(card => card.text().includes('I really need this test to pass.'))
+    expect(publishedCard.text()).not.toContain('Draft')
+    await publishedCard.trigger('click')
+    await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/needs/I-really-n')
   });
 
   it ("Updates a need", async () => {

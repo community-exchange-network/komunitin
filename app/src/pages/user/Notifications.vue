@@ -10,7 +10,7 @@
         v-slot="slotProps"
         :code="myGroup.attributes.code"
         type="notifications"
-
+        class="q-px-md"
       >
         <q-list 
           v-if="slotProps.resources"
@@ -23,11 +23,17 @@
             <q-item-label header class="text-uppercase text-overline">
               {{ group.title }}
             </q-item-label>
-            <notification-item
-              v-for="notification of group.items"
-              :key="notification.id"
-              :notification="notification"
-            />
+              <q-list 
+                v-if="group.items"
+                separator
+                class="bg-surface shadow-2 rounded-borders"
+              >
+                <notification-item
+                  v-for="notification of group.items"
+                  :key="notification.id"
+                  :notification="notification"
+                />
+            </q-list>
           </template>
         </q-list>
         <q-separator />

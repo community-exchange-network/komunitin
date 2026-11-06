@@ -12,8 +12,9 @@
     </div>
     <q-input
       v-model="email"
-      outlined
-      dark
+      standout
+      class="input-standout-light"
+      bg-color="white"
       type="email"
       placeholder="example@example.com"
       :label="$t('email')"
@@ -26,9 +27,10 @@
       </template>
     </q-input>
     <q-btn
-      outline
-      color="transparent"
-      text-color="onoutside"
+      unelevated
+      color="primary"
+      text-color="onprimary"
+      class="btn-disabled-solid"
       :label="$t('sendResetLink')"
       icon="send"
       type="submit"

@@ -1,7 +1,7 @@
 <template>
   <q-input
     v-model="pass"
-    outlined
+    standout
     :type="isPwd ? 'password' : 'text'"
     :label="$t('password')"
     autocomplete="current-password"

@@ -1,133 +1,160 @@
 <template>
-  <div class="q-gutter-y-lg">
-    <div>
-      <div class="text-subtitle1">
+  <div class="bg-surface rounded-borders shadow-2">
+    <div class="q-pa-md">
+      <div class="text-subtitle1 text-serif text-bold text-onsurface">
         {{ $t('enterProfileData') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-body2 text-onsurface-m">
         {{ $t('editProfileHelpText') }}
       </div>
     </div>
-    <avatar-field
-      v-model="image"
-      :text="name"
-      :code="member.group.attributes.code"
-      resource-type="members"
-    />
-    <q-input
-      v-model="name"
-      type="text"
-      name="name"
-      :label="$t('name')"
-      :hint="$t('nameHint')"
-      outlined
-      required
-      :rules="[(v) => !!v || $t('nameRequired')]"
-    >
-      <template #append>
-        <q-icon name="person" />
-      </template>
-    </q-input>
-    <q-input 
-      v-model="description"
-      type="textarea"
-      name="description"  
-      :label="$t('bio')" 
-      :hint="$t('bioHint')" 
-      outlined 
-      autogrow 
-      input-style="min-height: 100px;"
-    >
-      <template #append>
-        <q-icon name="notes" />
-      </template>
-    </q-input>
-    <template v-if="email !== undefined">
+    <q-separator />
+    <!-- Profile -->
+    <div class="q-pa-md q-gutter-y-md column">
+      <avatar-field
+        v-model="image"
+        :text="name"
+        :code="member.group.attributes.code"
+        resource-type="members"
+      />
       <q-input
-        :model-value="email"
+        v-model="name"
         type="text"
-        name="email"
-        :label="$t('email')"
-        :hint="$t('emailHint')"
-        outlined
+        name="name"
+        :label="$t('name')"
+        :hint="$t('nameHint')"
+        standout
+        class="input-standout-light"
         required
-        disable
+        :rules="[(v) => !!v || $t('nameRequired')]"
       >
         <template #append>
-          <q-icon name="email" />
+          <q-icon
+            name="person"
+            color="muted"
+          />
         </template>
       </q-input>
-      <div
-        v-if="changeCredentials"
-        class="row q-col-gutter-md"
+      <q-input
+        v-model="description"
+        type="textarea"
+        name="description"
+        :label="$t('bio')"
+        :hint="$t('bioHint')"
+        standout
+        class="input-standout-light"
+        autogrow
+        input-style="min-height: 100px;"
       >
-        <div class="col-12 col-sm-grow">
-          <change-email-btn
-            :model-value="email"
-            class="full-width"
+        <template #append>
+          <q-icon
+            name="notes"
+            color="muted"
           />
+        </template>
+      </q-input>
+      <template v-if="email !== undefined">
+        <q-input
+          :model-value="email"
+          type="text"
+          name="email"
+          :label="$t('email')"
+          :hint="$t('emailHint')"
+          standout
+          class="input-standout-light"
+          required
+          disable
+        >
+          <template #append>
+            <q-icon
+              name="email"
+              color="muted"
+            />
+          </template>
+        </q-input>
+        <div
+          v-if="changeCredentials"
+          class="row q-col-gutter-md q-pt-md"
+        >
+          <div class="col-12 col-sm-grow">
+            <change-email-btn
+              :model-value="email"
+              class="full-width"
+            />
+          </div>
+          <div class="col-12 col-sm-grow">
+            <change-password-btn class="full-width" />
+          </div>
         </div>
-        <div class="col-12 col-sm-grow">
-          <change-password-btn class="full-width" />
-        </div>
+      </template>
+    </div>
+    <q-separator />
+    <!-- Location -->
+    <div class="q-pa-md q-gutter-y-md column">
+      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+        {{ $t('location') }}
       </div>
-    </template>
-  </div>
-  <div class="q-pt-lg">
-    <div class="text-overline text-uppercase text-onsurface-m text-bold q-my-sm">
-      {{ $t('location') }}
+      <location-picker
+        v-model="location"
+        :default-location="member.group.attributes.location?.coordinates"
+        bottom-slots
+      />
+      <q-input
+        v-model="address"
+        type="text"
+        name="address"
+        :label="$t('address')"
+        standout
+        class="input-standout-light"
+        bottom-slots
+      />
+      <q-input
+        v-model="postalCode"
+        type="text"
+        name="postalCode"
+        :label="$t('postalCode')"
+        standout
+        class="input-standout-light"
+        required
+        :rules="[(v) => !!v || $t('fieldRequired')]"
+      />
+      <q-input
+        v-model="city"
+        type="text"
+        name="city"
+        :label="$t('city')"
+        standout
+        class="input-standout-light"
+        required
+        :rules="[(v) => !!v || $t('fieldRequired')]"
+      />
+      <q-input
+        v-model="region"
+        type="text"
+        name="region"
+        :label="$t('region')"
+        standout
+        class="input-standout-light"
+        required
+        :rules="[(v) => !!v || $t('fieldRequired')]"
+      />
+      <country-chooser
+        v-model="country"
+        :label="$t('country')"
+        standout
+        class="input-standout-light"
+        dropdown-icon="expand_more"
+        required
+      />
     </div>
-    <location-picker 
-      v-model="location"
-      :default-location="member.group.attributes.location?.coordinates"
-    />
-    <q-input
-      v-model="address"
-      type="text"
-      name="address"
-      :label="$t('address')"
-      outlined
-      class="q-my-md"
-    />
-    <q-input
-      v-model="postalCode"
-      type="text"
-      name="postalCode"
-      :label="$t('postalCode')"
-      outlined
-      required
-      :rules="[(v) => !!v || $t('fieldRequired')]"
-    />
-    <q-input
-      v-model="city"
-      type="text"
-      name="city"
-      :label="$t('city')"
-      outlined
-      required
-      :rules="[(v) => !!v || $t('fieldRequired')]"
-    />
-    <q-input
-      v-model="region"
-      type="text"
-      name="region"
-      :label="$t('region')"
-      outlined
-      required
-      :rules="[(v) => !!v || $t('fieldRequired')]"
-    />
-    <country-chooser
-      v-model="country"
-      :label="$t('country')"
-      outlined
-      required
-    />
-  </div>
-  <div>
-    <div class="text-overline text-uppercase text-onsurface-m text-bold q-mt-lg q-mb-sm">
-      {{ $t('contact') }}
+    <q-separator />
+    <!-- Contact -->
+    <div class="q-pa-md">
+      <div class="text-subtitle1 text-serif text-bold text-onsurface q-mb-md">
+        {{ $t('contact') }}
+      </div>
+      <member-contacts-field v-model="contacts" />
     </div>
-    <member-contacts-field v-model="contacts" />
   </div>
 </template>
 <script setup lang="ts">

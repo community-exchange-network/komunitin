@@ -7,7 +7,8 @@
       <q-field
         :model-value="currentStatus"
         :label="t('accountStatus')"
-        outlined
+        standout
+        class="input-standout-light"
         readonly        
       >
         <member-status-chip :status="currentStatus" />

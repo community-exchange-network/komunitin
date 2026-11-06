@@ -15,9 +15,9 @@
     </p>
     <q-btn
       id="login"
-      outline
-      color="transparent"
-      text-color="onoutside"
+      unelevated
+      color="surface"
+      text-color="onsurface"
       :label="$t('logIn')"
       :to="{ name: 'LoginMail' }"
       icon="account_circle"

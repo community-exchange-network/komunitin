@@ -10,7 +10,8 @@
       <q-file 
         v-model="file"
         @update:model-value="fileErrorMessage = ''"
-        outlined
+        standout
+        class="input-standout-light"
         :label="$t('selectFile')"
         :hint="$t('selectFileHint')"
         accept=".csv, .txt"
@@ -20,7 +21,10 @@
         :error="!!fileErrorMessage"
       >
         <template #append>
-          <q-icon name="attach_file" />
+          <q-icon
+            name="attach_file"
+            color="muted"
+          />
         </template>
       </q-file>
     </template>

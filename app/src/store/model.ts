@@ -343,16 +343,17 @@ export type AccountStatus = "active" | "disabled" | "suspended" | "deleted"
 
 /**
  * Account model
+ * Balance and limits may be omitted for privacy; maximumBalance may also be absent when unlimited.
  * 
  * https://github.com/komunitin/komunitin-api/blob/master/accounting/README.md#account
  */
 export interface Account extends ResourceObject {
   attributes: {
     code: string;
-    balance: number;
+    balance?: number;
     status: AccountStatus
-    creditLimit: number;
-    maximumBalance: number | false;
+    creditLimit?: number;
+    maximumBalance?: number | false;
     //capabilities: ["pay", "charge"],
   };
   relationships: {
@@ -456,6 +457,7 @@ export interface ExtendedAccount extends Account {
  * Offer model.
  */
 export interface Offer extends ResourceObject {
+  type: "offers";
   attributes: {
     code: string;
     title: string;
@@ -482,6 +484,7 @@ export type OfferStatus = PostStatus;
  * Need model
  */
 export interface Need extends ResourceObject {
+  type: "needs";
   attributes: {
     code: string;
     description: string;

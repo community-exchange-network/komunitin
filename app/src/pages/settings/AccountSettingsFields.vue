@@ -171,7 +171,8 @@
           :label="$t('creditLimit')"
           :hint="$t('creditLimitHint')"
           hide-bottom-space
-          outlined
+          standout
+          class="input-standout-light"
           @update:model-value="updateModelValue"
         />
       </template>
@@ -188,7 +189,8 @@
           :label="$t('maximumBalance')"
           :hint="$t('maximumBalanceHint')"
           hide-bottom-space
-          outlined
+          standout
+          class="input-standout-light"
           @update:model-value="updateModelValue"
         />
       </template>
@@ -206,7 +208,8 @@
       v-model="onPaymentCreditLimitValue"
       :currency="currency"
       :label="$t('onPaymentCreditLimit')"
-      outlined
+      standout
+      class="input-standout-light"
       :disable="!enableOnPaymentCreditLimit"
     />
     <div 

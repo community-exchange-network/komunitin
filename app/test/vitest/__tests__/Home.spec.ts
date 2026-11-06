@@ -97,9 +97,9 @@ describe("Home", () => {
     const profileDetails = profileMenu.element.ownerDocument.querySelector('[data-testid="profile-details"]');
     expect(profileDetails.textContent).toContain('Emiliano Lemke');
     
-    const myProfileBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My profile'));
-    const myOffersBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My offers'));
-    const myNeedsBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My wants'));
+    const myProfileBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Your profile'));
+    const myOffersBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Your offers'));
+    const myNeedsBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Your wants'));
     const logOutBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Log out'));
 
     expect(myProfileBtn).toBeDefined();

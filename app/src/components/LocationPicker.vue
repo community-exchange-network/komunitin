@@ -9,17 +9,16 @@
         <l-map
           ref="map"
           :options="{zoomControl: true, dragging: true, attributionControl: false}"
-          style="height: 200px; width: 100% ; margin: 0; z-index:0; cursor: crosshair; border-radius: 4px;"
+          style="height: 200px; width: 100% ; margin: 0; z-index:0; cursor: crosshair; border-radius: 8px;"
           :zoom="props.zoom ?? defaultZoom"
           :center="centerLatLng"
           :use-global-leaflet="false"
           @ready="onReady"
         >
           <l-tile-layer :url="url" />
-          <l-marker
+          <styled-marker
             v-if="markerLatLng"
             draggable
-            :icon="markerIcon"
             :lat-lng="markerLatLng"
             @update:lat-lng="updateLocation"
           />
@@ -36,7 +35,8 @@
             </div>
           </div>
         </l-map>
-        <div v-if="model" class="text-onsurface-m text-body-2">
+        <div v-if="model" class="text-onsurface-m text-body2 q-pt-sm">
+          <q-icon name="place" />
           {{ $t('lnglat', {lng: model[0].toFixed(4), lat: model[1].toFixed(4)}) }}
         </div>
       </div>
@@ -50,8 +50,9 @@ import type { QFieldProps } from 'quasar'
 
 import type { LeafletMouseEvent, LocationEvent } from 'leaflet'
 import "leaflet/dist/leaflet.css";
-import { LMap, LMarker, LTileLayer } from '@vue-leaflet/vue-leaflet'
+import { LMap, LTileLayer } from '@vue-leaflet/vue-leaflet'
 import { fromLeafletLatLng, toLeafletLatLng, useLeafletSettings } from '../composables/leaflet'
+import StyledMarker from './StyledMarker.vue';
 
 /**
  * Location Selector compoenent based on Leaflet maps.
@@ -92,7 +93,7 @@ const updateLocation = (value: {lat: number, lng: number} | undefined) => {
   model.value = value ? fromLeafletLatLng([value.lat, value.lng]) : null
 }
 
-const {markerIcon, url, zoom: defaultZoom } = useLeafletSettings()
+const { url, zoom: defaultZoom } = useLeafletSettings()
 
 const map = useTemplateRef<InstanceType<typeof LMap>>("map")
 const onMapClick = (e: LeafletMouseEvent|LocationEvent) => updateLocation(e.latlng)

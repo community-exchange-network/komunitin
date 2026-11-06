@@ -2,7 +2,7 @@
   <q-item
     :to="transfer.id ? `/groups/${code}/transactions/${transfer.id}` : undefined"
     :clickable="!!transfer.id"
-    class="transaction-item"
+    class="q-py-md"
     :class="transfer.attributes.state"
   >
     <div :class="props.bothAccounts ? 'col-4 col-sm-3' : 'col col-sm-4'" class="flex">
@@ -18,7 +18,7 @@
         :address="secondCreditCommonsAddress"
       />
     </div>
-    <q-item-section class="gt-xs col q-pl-md">
+    <q-item-section class="gt-xs col q-pl-md text-onsurface">
       <q-item-label lines="2">
         {{ description }}
       </q-item-label>
@@ -27,23 +27,38 @@
       <div class="column items-end text-right">
         <q-item-label
           caption
-          class="col top-right-label"
+          class="col"
         >
-          <span v-if="transfer.attributes.state == 'pending'">
+          <q-badge
+            color="pending" 
+            text-color="primary"
+            v-if="transfer.attributes.state == 'pending'"
+            class="badge-square text-uppercase text-weight-bold"
+            >
             {{ $t("pending") }}
-          </span>
-          <span v-else-if="transfer.attributes.state == 'rejected'">
+          </q-badge>
+          <q-badge
+            color="rejected" 
+            text-color="onsurface-m"
+            v-else-if="transfer.attributes.state == 'rejected'"
+            class="badge-square text-uppercase text-weight-bold"
+            >
             {{ $t("rejected") }}
-          </span>
-          <span v-else-if="transfer.attributes.state == 'failed'">
+          </q-badge>
+          <q-badge
+            color="failed" 
+            text-color="onsurface-d"
+            v-else-if="transfer.attributes.state == 'failed'"
+            class="badge-square text-uppercase text-weight-bold"
+            >
             {{ $t("failed") }}
-          </span>
+          </q-badge>
           <span v-else>
             {{ $formatDate(transfer.attributes.updated) }}
           </span>
         </q-item-label>
         <div
-          class="col transaction-amount text-h6"
+          class="col transaction-amount text-subtitle1 text-weight-bold"
           :class="
             signedAmount >= 0
               ? 'positive-amount'
@@ -62,7 +77,6 @@ import type { Account, Currency, ExtendedTransfer } from '@/store/model';
 import FormatCurrency from "../plugins/FormatCurrency";
 import AccountItemContent from "./AccountItemContent.vue";
 import { useQuasar } from 'quasar';
-import { useStore } from 'vuex';
 
 const props = defineProps<{
   /**
@@ -73,6 +87,8 @@ const props = defineProps<{
    * The group code
    */
   code: string,
+  /** Currency in which the transfer amount is expressed. */
+  currency: Currency,
   /**
    * Whether to include both accounts in the transaction item.
    */
@@ -80,15 +96,11 @@ const props = defineProps<{
   /**
    * The subject account, if `bothAccounts` is not true.
    */
-  account?: Account & {currency: Currency}
+  account?: Account
   
 }>()
 
 const q = useQuasar()
-const store = useStore()
-
-const currency = computed(() => store.getters.myCurrency)
-
 const isPayerSubject = computed(() => {
   return props.transfer.relationships.payer.data.id === props.account?.id;
 })
@@ -147,17 +159,14 @@ const overrideCaption = computed(() => {
    * inline with the transaction description and not too low.
    */
   .transaction-amount {
-    margin-top: -12px;
+    margin-top: -6px;
   }
   .pending {
-    background-color: $orange-1;
-    .top-right-label{
-      color: $orange-10;
-    }
+    background-color: $light-background;
   }
   .rejected, .failed {
     background: $light-background;
-    .positive-amount, .negative-amount, .section-extra {
+    .positive-amount, .negative-amount {
       color: $onsurface-d;
     }
   }

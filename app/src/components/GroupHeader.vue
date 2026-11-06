@@ -10,7 +10,7 @@
     </q-item-section>
     <q-item-section>
       <q-item-label 
-        class="text-subtitle2" 
+        class="text-weight-semi-bold text-onsurface" 
         lines="1"
       >
         {{ group.attributes.name }}

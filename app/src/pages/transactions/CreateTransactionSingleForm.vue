@@ -1,15 +1,20 @@
 <template>
-  <q-form @submit="onSubmit">
-    <div class="q-gutter-y-lg column">  
-      <div>
-        <div class="text-subtitle1">
-          {{ $t('enterTransactionData') }}
-        </div>
-        <div class="text-onsurface-m">
-          {{ text }}
-        </div>
+  <q-form
+    class="bg-surface rounded-borders shadow-2"
+    @submit="onSubmit"
+  >
+    <div class="q-pa-md">
+      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+        {{ $t('enterTransactionData') }}
       </div>
+      <div class="text-body2 text-onsurface-m">
+        {{ text }}
+      </div>
+    </div>
+    <q-separator />
+    <div class="q-pa-md q-gutter-y-md column">
       <select-account
+        dropdown-icon="expand_more"
         v-if="selectPayer"
         v-model="payerAccountValue"
         name="payer"
@@ -19,10 +24,12 @@
         :label="$t('selectPayer')"
         :hint="$t('transactionPayerHint')"
         :rules="[() => !v$.payerAccount?.$error || $t('payerRequired')]"
-        outlined
+        standout
+        class="input-standout-light"
         @blur="v$.payerAccount?.$touch()"
       />
       <select-account
+        dropdown-icon="expand_more"
         v-if="selectPayee"
         v-model="payeeAccountValue"
         name="payee"
@@ -32,7 +39,8 @@
         :label="$t('selectPayee')"
         :hint="$t('transactionPayeeHint')"
         :rules="[() => !v$.payeeAccount?.$error || $t('payeeRequired')]"
-        outlined
+        standout
+        class="input-standout-light"
         @blur="v$.payeeAccount?.$touch()"
       />
       <q-input 
@@ -40,13 +48,17 @@
         name="description"  
         :label="$t('description')" 
         :hint="$t('transactionDescriptionHint')" 
-        outlined 
+        standout
+        class="input-standout-light"
         autogrow 
         required
         :rules="[() => !v$.concept.$invalid || $t('ErrorDescriptionRequired')]"
       >
         <template #append>
-          <q-icon name="notes" />
+          <q-icon
+            name="notes"
+            color="muted"
+          />
         </template>
       </q-input>
       <q-input 
@@ -54,14 +66,16 @@
         name="amount"
         :label="$t('amountIn', {currency: myCurrency.attributes.namePlural})"
         :hint="$t('transactionAmountHint')"
-        outlined
+        standout
+        class="input-standout-light"
+        input-class="text-weight-regular text-onsurface"
         required
         :rules="[
           () => !v$.amount.$invalid || $t('ErrorInvalidAmount'),
         ]"
       >
         <template #append>
-          <span class="text-h6 text-onsurface-m">{{ myCurrency.attributes.symbol }}</span>
+          <span class="text-h6 text-muted">{{ myCurrency.attributes.symbol }}</span>
         </template>
       </q-input>
       <q-input
@@ -69,11 +83,13 @@
         :model-value="otherAmount"
         readonly
         disabled
-        outlined
+        standout
+        class="input-standout-light"
+        input-class="text-weight-regular text-onsurface-m"
         :label="$t('amountIn', {currency: otherCurrency.attributes.namePlural})"
       >
         <template #append>
-          <span class="text-h6 text-onsurface-m">{{ otherCurrency.attributes.symbol }}</span>
+          <span class="text-h6 text-muted">{{ otherCurrency.attributes.symbol }}</span>
         </template>
       </q-input>
       <q-btn

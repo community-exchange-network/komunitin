@@ -30,7 +30,8 @@
           :hint="$t('moveBalanceToHint')"
           :account-disabled="(candidate: Account) => candidate.id === account?.id"
           :rules="[() => !!recipientAccount || $t('fieldRequired')]"
-          outlined
+          standout
+          class="input-standout-light"
         />
         <div v-if="!isAdmin">
           {{ $t('deleteAccountEmailText') }}

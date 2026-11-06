@@ -1,6 +1,6 @@
 import type { VueWrapper } from '@vue/test-utils'
 import App from '@/App.vue'
-import MemberProfile from '@/pages/members/MemberProfile.vue'
+import ReadMore from '@/components/ReadMore.vue'
 import server, { seeds } from '@/server'
 import { mountComponent, waitFor } from '../utils'
 
@@ -23,8 +23,8 @@ describe('Stored Markdown', () => {
     wrapper = await mountComponent(App, { login: true })
 
     await wrapper.vm.$router.push(`/groups/GRP0/members/${member.code}`)
-    await waitFor(() => wrapper.findComponent(MemberProfile).exists(), true)
-    const profile = wrapper.getComponent(MemberProfile)
+    await waitFor(() => wrapper.findComponent(ReadMore).exists(), true)
+    const profile = wrapper.getComponent(ReadMore)
 
     expect(profile.get('strong').text()).toBe('Formatted biography')
     expect(profile.get('a[href="https://example.org"]').text()).toBe('Website')

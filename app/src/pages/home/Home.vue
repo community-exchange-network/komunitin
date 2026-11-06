@@ -17,8 +17,6 @@
       />
       <floating-btn-menu 
         :actions="actions" 
-        color="white"
-        text-color="primary"
       />
     </q-page>
   </q-page-container>

@@ -26,16 +26,16 @@ import type { Category } from "@/store/model"
 
 const props = withDefaults(defineProps<{
   category: Category | null,
-  type?: "need" | "offer",
+  type?: "offers" | "needs",
   caption?: boolean,
   right?: boolean
 }>(), {
-  type: "need",
+  type: "needs",
   caption: false,
   right: false
 })
 
-const color = computed(() => props.type === "need" ? "kred" : "kblue")
-const defaultIcon = computed(() => props.type === "need" ? "loyalty" : "local_offer")
+const color = computed(() => props.type === "needs" ? "kred" : "kblue")
+const defaultIcon = computed(() => props.type === "needs" ? "loyalty" : "local_offer")
 const icon = computed(() => props.category?.attributes.icon?.value ?? defaultIcon.value)
 </script>

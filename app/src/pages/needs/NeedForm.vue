@@ -1,5 +1,5 @@
 <template>
-  <q-form @submit="onSubmit">
+  <q-form @submit="onSubmit" class="q-pa-md bg-surface rounded-borders shadow-2">
     <div class="q-gutter-y-lg">
       <div>
         <div class="text-subtitle1">
@@ -22,7 +22,8 @@
         name="description"  
         :label="$t('description')" 
         :hint="$t('needDescriptionHint')" 
-        outlined 
+        standout
+        class="input-standout-light"
         autogrow 
         required
         input-style="min-height: 100px;"
