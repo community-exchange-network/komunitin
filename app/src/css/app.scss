@@ -213,13 +213,8 @@
   font-size: 0.625rem;
   line-height: 0.8rem;
 }
-// Make menu drawers have rounded borders on the correct side
-// We need to do it this way because we need to target the rendered parent of the q-drawer component
-aside.q-drawer:has(.rounded-drawer-left) {
-  border-top-left-radius: $generic-border-radius !important;
-  border-bottom-left-radius: $generic-border-radius !important;
-}
-aside.q-drawer:has(.rounded-drawer-right) {
+// Round the outer edge of modal navigation drawers.
+aside.q-drawer--mobile.q-drawer--left {
   border-top-right-radius: $generic-border-radius !important;
   border-bottom-right-radius: $generic-border-radius !important;
 }
