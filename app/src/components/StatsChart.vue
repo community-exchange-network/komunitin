@@ -47,7 +47,7 @@
           name="interval"
           :options="intervalOptions"
           :label="t('interval')"
-          standout
+          outlined
           dense
           options-dense
           bg-color="surface-container-high"
