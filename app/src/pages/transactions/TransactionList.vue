@@ -37,35 +37,30 @@
         <create-transaction-btn />
       </q-page>
     </q-page-container>
-    <q-drawer 
+    <side-sheet
       v-model="filterDrawer"
-      side="right"
-      class="rounded-drawer-left" 
+      :title="$t('filters')"
       show-if-above
     >
-      <div class="column">
-        <div class="q-px-md q-pt-md q-pb-sm text-serif text-bold text-subtitle1 text-onsurface-h">{{ $t("filters") }}</div>
-        <q-separator />
-        <div class="q-pa-md q-gutter-sm">
-          <p class="text-caption-sm text-uppercase text-weight-bold text-onsurface-m">{{ $t("dateRange") }}</p>
-          <date-field
-            v-model="startDate"
-            :label="$t('startDate')"
-            clearable
-            filter
-          />
-          <date-field
-            v-model="endDate"
-            :label="$t('endDate')"
-            clearable
-            filter
-            :options="{
-              min: startDate
-            }"
-          />
-        </div>
-      </div>      
-    </q-drawer>
+      <div class="q-pa-md q-gutter-sm">
+        <p class="text-caption-sm text-uppercase text-weight-bold text-onsurface-m">{{ $t("dateRange") }}</p>
+        <date-field
+          v-model="startDate"
+          :label="$t('startDate')"
+          clearable
+          filter
+        />
+        <date-field
+          v-model="endDate"
+          :label="$t('endDate')"
+          clearable
+          filter
+          :options="{
+            min: startDate
+          }"
+        />
+      </div>
+    </side-sheet>
   </div>
 </template>
 <script setup lang="ts">
@@ -76,6 +71,7 @@ import PageHeader from "../../layouts/PageHeader.vue";
 import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue";
 import TransactionItems from "./TransactionItems.vue";
 import DateField from "../../components/DateField.vue";
+import SideSheet from "../../components/SideSheet.vue"
 import { useTransfersCsv } from "../../composables/downloadCsv";
 
 const props = defineProps<{
