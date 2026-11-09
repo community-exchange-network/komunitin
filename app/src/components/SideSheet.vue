@@ -6,9 +6,20 @@
       v-model="model"
       side="right"
     >
-      <div class="side-sheet fit scroll bg-surface">
-        <div class="q-px-md q-py-sm text-serif text-bold text-subtitle1 text-onsurface">
-          {{ title }}
+      <div class="side-sheet full-height bg-surface">
+        <div class="row items-center no-wrap q-px-md q-py-sm text-onsurface">
+          <div class="col text-serif text-bold text-subtitle1">
+            {{ title }}
+          </div>
+          <q-btn
+            flat
+            round
+            dense
+            icon="close"
+            color="icon-dark"
+            :title="$t('close')"
+            @click="model = false"
+          />
         </div>
         <slot />
       </div>
