@@ -37,6 +37,6 @@ export const getThemeColors = (flavor: string): { primary: string | undefined, b
   
   return {
     primary: getVariable("primary"),
-    background: getVariable("background"),
+    background: getVariable("page-background"),
   } 
 }

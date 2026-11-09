@@ -10,7 +10,7 @@
     @blur="format"
   >
     <template #append>
-      <span class="text-h6 text-onsurface-m">{{ currency.attributes.symbol }}</span>
+      <span class="text-h6 text-on-surface-medium">{{ currency.attributes.symbol }}</span>
     </template>
   </q-input>
 </template>

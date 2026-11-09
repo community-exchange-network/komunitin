@@ -41,7 +41,7 @@
       <div v-if="isSuperadmin" class="text-warning text-weight-medium">Superadmin</div>
       <router-link
         to="/forgot-password" 
-        class="text-onoutside-m link"
+        class="text-on-outside-medium link"
         @click.prevent="forgotPassword = true"
       >
         {{ $t('forgotPassword') }}
@@ -50,7 +50,7 @@
     <q-btn
       unelevated
       color="primary"
-      text-color="onprimary"
+      text-color="on-primary"
       class="btn-disabled-solid"
       :label="$t('logIn')"
       icon="account_circle"

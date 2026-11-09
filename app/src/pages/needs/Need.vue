@@ -22,7 +22,7 @@
           :code="code"
           :need="need"
           :to="`/groups/${code}/needs`"
-          color="onsurface-m"
+          color="on-surface-medium"
         />
       </template>
     </page-header>

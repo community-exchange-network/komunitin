@@ -115,6 +115,6 @@ const feedbackURL = config.FEEDBACK_URL;
 </script>
 <style lang="scss" scoped>
 .profile-btn {
-  outline: 1px solid rgba($onprimary, 0.2); 
+  outline: 1px solid rgba($on-primary, 0.2);
 }
 </style>

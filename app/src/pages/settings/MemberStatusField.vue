@@ -1,6 +1,6 @@
 <template>
   <div class="q-gutter-y-md">
-    <div class="text-body2 text-onsurface-m">
+    <div class="text-body2 text-on-surface-medium">
       {{ current.text.value }}
     </div>
     <div>

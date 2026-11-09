@@ -4,20 +4,20 @@
       id="explore"
       unelevated
       color="primary"
-      text-color="onprimary"
+      text-color="on-primary"
       :label="$t('findYourLocalGroup')"
       icon="explore"
       :to="{ name: 'GroupList' }"
       class="full-width"
     />
-    <p class="text-onoutside-m q-mt-md q-mb-xs">
+    <p class="text-on-outside-medium q-mt-md q-mb-xs">
       {{ $t('alreadyRegisteredToALocalGroup') }}
     </p>
     <q-btn
       id="login"
       unelevated
       color="surface"
-      text-color="onsurface"
+      text-color="on-surface"
       :label="$t('logIn')"
       :to="{ name: 'LoginMail' }"
       icon="account_circle"

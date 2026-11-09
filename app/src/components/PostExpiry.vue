@@ -17,6 +17,6 @@ const expiryClass = computed(() => {
   const remaining = new Date(props.expires).getTime() - Date.now()
   return remaining <= 0 ? 'text-negative'
     : remaining <= 7 * 24 * 60 * 60 * 1000 ? 'text-deep-orange-10 text-weight-medium'
-    : 'text-muted'
+    : 'text-on-surface-variant'
 })
 </script>

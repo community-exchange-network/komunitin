@@ -4,7 +4,7 @@
       <div class="text-subtitle1">
         {{ t('topupSettings') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ t('topupSettingsText') }}
       </div>
     </div>
@@ -18,8 +18,8 @@
           <div
             class="col currency text-h6"
             :class="account.attributes.balance >= 0
-                ? 'positive-amount'
-                : 'negative-amount'
+                ? 'text-amount-positive'
+                : 'text-amount-negative'
             "
           >
             {{

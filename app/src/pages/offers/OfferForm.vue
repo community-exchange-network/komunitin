@@ -5,7 +5,7 @@
         <div class="text-subtitle1">
           {{ props.header ?? $t('enterOfferData') }}
         </div>
-        <div class="text-onsurface-m">
+        <div class="text-on-surface-medium">
           {{ $t('offerFormHelpText') }}
         </div>
       </div>
@@ -64,7 +64,7 @@
         :rules="[(v) => !!v || $t('offerPriceRequired')]"
       >
         <template #append>
-          <span class="text-h6 text-onsurface-m">{{ currency.attributes.symbol }}</span>
+          <span class="text-h6 text-on-surface-medium">{{ currency.attributes.symbol }}</span>
         </template>
       </q-input>
       <date-field

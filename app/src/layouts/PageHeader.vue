@@ -1,10 +1,10 @@
 <template>
   <q-header>
     <div
-      class="header flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-onsurface-m"
+      class="header flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-on-surface-medium"
       :class="[
         showBalance ? 'wrap' : 'q-pt-xs no-wrap',
-        scrollOffset > 0 ? 'bg-background' : 'bg-light'
+        scrollOffset > 0 ? 'bg-page-background' : 'bg-surface-bright'
       ]"
       :style="`height: ${computedHeight}px;`"
     >
@@ -74,7 +74,7 @@
           dense
           outlined
           rounded
-          bg-color="surface-container-h"
+          bg-color="surface-container-high"
           class="q-mr-xs search-box input-outlined-borderless"
           type="search" 
           debounce="250"
@@ -189,6 +189,7 @@ const showLogOut = computed(() => store.getters.isLoggedIn && (!store.getters.is
 
 /**
   * Constant value for the thin header height.
+  * Keep in sync with $toolbar-min-height in css/quasar.variables.scss.
   */
 const headerHeight = 64
 let computedHeight: MaybeRef<number> = headerHeight

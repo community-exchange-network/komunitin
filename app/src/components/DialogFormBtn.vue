@@ -25,7 +25,7 @@
           </div>
           <div 
             v-if="text"
-            class="q-mt-md text-body2 text-onsurface-m"
+            class="q-mt-md text-body2 text-on-surface-medium"
           >
             {{ text }}
           </div>

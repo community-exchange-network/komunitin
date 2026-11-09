@@ -2,7 +2,7 @@
   <div class="q-gutter-y-md">
     <div 
       v-if="['allowPayments', 'allowPaymentRequests', 'allowExternalPayments', 'allowExternalPaymentRequests'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-overline text-uppercase text-on-surface-medium"
     >
       {{ $t('transferDirections') }}
     </div>
@@ -44,7 +44,7 @@
     />
     <div 
       v-if="['allowSimplePayments', 'allowSimplePaymentRequests', 'allowQrPayments', 'allowQrPaymentRequests', 'allowTagPayments', 'allowTagPaymentRequests', 'allowMultiplePayments', 'allowMultiplePaymentRequests'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-overline text-uppercase text-on-surface-medium"
     >
       {{ $t('transferMethods') }}
     </div>
@@ -122,7 +122,7 @@
     />
     <div 
       v-if="['acceptPaymentsAutomatically', 'acceptPaymentsAfter', 'acceptExternalPaymentsAutomatically'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-overline text-uppercase text-on-surface-medium"
     >
       {{ $t('paymentRequests') }}
     </div>
@@ -155,7 +155,7 @@
     />
     <div 
       v-if="['creditLimit', 'maximumBalance', 'onPaymentCreditLimit'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-overline text-uppercase text-on-surface-medium"
     >
       {{ $t('limits') }}
     </div>
@@ -214,7 +214,7 @@
     />
     <div 
       v-if="['hideBalance'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-overline text-uppercase text-on-surface-medium"
     >
       {{ $t('privacy') }}
     </div>

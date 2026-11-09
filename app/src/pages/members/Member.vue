@@ -28,7 +28,7 @@
     </page-header>
     <q-page-container>
       <q-page class="q-pa-md">
-        <q-inner-loading :showing="loading || currencyLoading" color="icon-dark" />
+        <q-inner-loading :showing="loading || currencyLoading" color="icon" />
         <q-card v-if="member" class="bg-surface q-mb-md">
           <q-card-section :style="{ padding: $q.screen.gt.xs ? '32px 32px 16px' : '24px 16px 16px' }">
             <div class="row items-center justify-center q-col-gutter-x-lg q-col-gutter-y-md">
@@ -41,10 +41,10 @@
                 />
               </div>
               <div class="col-12 col-sm" :class="{ 'text-center': $q.screen.xs }">
-                <h1 class="text-h4 text-serif text-bold text-onsurface q-my-none" style="overflow-wrap: anywhere;">
+                <h1 class="text-h4 text-serif text-bold text-on-surface q-my-none" style="overflow-wrap: anywhere;">
                   {{ member.attributes.name }}
                 </h1>
-                <div v-if="account" class="negative-amount text-subtitle2 q-mt-xs">
+                <div v-if="account" class="text-amount-negative text-subtitle2 q-mt-xs">
                   {{ account.attributes.code }}
                 </div>
                 <member-navigation :code="code" :member="member" />
@@ -55,18 +55,18 @@
             <div
               v-if="currency && account?.attributes.balance !== undefined"
               class="rounded-borders q-pa-md q-mb-md"
-              :class="account.attributes.balance >= 0 ? 'positive-amount' : 'negative-amount'"
+              :class="account.attributes.balance >= 0 ? 'text-amount-positive' : 'text-amount-negative'"
               style="background-color: color-mix(in srgb, currentColor 10%, transparent);"
             >
               <div class="row items-center q-col-gutter-x-lg q-col-gutter-y-md">
                 <div class="member-balance col-12 col-sm-auto">
-                  <div class="text-body2 text-onsurface-m q-mb-xs">{{ $t('balance') }}</div>
+                  <div class="text-body2 text-on-surface-medium q-mb-xs">{{ $t('balance') }}</div>
                   <div class="text-h4 text-serif text-weight-bold">
                     {{ FormatCurrency(account.attributes.balance, currency) }}
                   </div>
                 </div>
                 <div class="col-12 col-sm-auto">
-                  <dl class="q-ma-none text-caption text-onsurface-m">
+                  <dl class="q-ma-none text-caption text-on-surface-medium">
                     <div class="row justify-between">
                       <dt>{{ $t('creditLimit') }}</dt>
                       <dd class="q-ma-none q-ml-md">{{ FormatCurrency(account.attributes.creditLimit, currency, { decimals: false }) }}</dd>
@@ -81,7 +81,7 @@
             </div>
             <read-more
               v-if="member.attributes.description"
-              class="text-body1 text-onsurface-m q-mb-md"
+              class="text-body1 text-on-surface-medium q-mb-md"
               :collapsed-height="120"
             >
               <!-- eslint-disable vue/no-v-html -->

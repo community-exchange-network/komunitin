@@ -14,13 +14,13 @@
     @clear="commitDraftDate"
   >
     <template v-slot:label>
-      <span :class="{ 'text-uppercase text-caption-sm text-muted': filter }">{{ label }}</span>
+      <span :class="{ 'text-uppercase text-caption-sm text-on-surface-variant': filter }">{{ label }}</span>
     </template>
     <template #append>
       <q-icon 
         name="event" 
         class="cursor-pointer"
-        color="muted"
+        color="on-surface-variant"
       >
         <q-popup-proxy
           cover
@@ -29,7 +29,7 @@
         >
           <q-date
             flat
-            color="primary-container"
+            color="primary-variant"
             v-model="pickerDate" 
             :mask="pickerMask"
             :options="optionsFn"
@@ -74,8 +74,8 @@ const { t } = useI18n()
 
 const styleProps = computed(() => props.filter ? {
   outlined: true,
-  bgColor: "surface-container-h",
-  inputClass: "text-muted text-weight-medium",
+  bgColor: "surface-container-high",
+  inputClass: "text-on-surface-variant text-weight-medium",
   class: "input-outlined-pale"
 } : {
   standout: true,
@@ -157,7 +157,7 @@ const optionsFn = (date: string | null) => {
 
 <style lang="scss" scoped>
   .date-picker :deep(.q-date__header-title) {
-    font-family: $display-serif-family;
+    font-family: $heading-font-family;
     font-weight: bold;
   }
 </style>

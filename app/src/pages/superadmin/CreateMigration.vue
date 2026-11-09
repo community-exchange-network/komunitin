@@ -4,7 +4,7 @@
     <q-page class="q-pa-md">
       <q-card>
         <q-card-section>
-          <div class="text-overline text-uppercase text-onsurface-m q-pb-sm">
+          <div class="text-overline text-uppercase text-on-surface-medium q-pb-sm">
             Start a migration
           </div>
           <p>Upload a community CSV ZIP bundle to import users, accounts, history and marketplace data.</p>

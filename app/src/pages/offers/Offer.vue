@@ -22,7 +22,7 @@
           :code="code"
           :offer="offer"          
           :to="`/groups/${code}/offers`"
-          color="onsurface-m"
+          color="on-surface-medium"
         />
       </template>
     </page-header>
@@ -37,8 +37,8 @@
               {{ offer.attributes.title }}
             </div>
             <div class="q-mb-md">
-              <span class="text-caption text-muted q-mr-xs">{{ $t('price') }}</span>
-              <span class="text-h5 text-bold positive-amount">{{ price }}</span>
+              <span class="text-caption text-on-surface-variant q-mr-xs">{{ $t('price') }}</span>
+              <span class="text-h5 text-bold text-amount-positive">{{ price }}</span>
             </div>
           </template>
           <template #actions>

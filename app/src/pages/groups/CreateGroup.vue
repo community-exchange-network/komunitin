@@ -17,7 +17,7 @@
             <div class="text-subtitle1">
               {{ $t('newGroup') }}
             </div>
-            <div class="text-onsurface-m">
+            <div class="text-on-surface-medium">
               {{ $t('newGroupText') }}
             </div>
           </div>
@@ -43,7 +43,7 @@
             <div class="text-subtitle1">
               {{ $t('newGroup') }}
             </div>
-            <div class="text-onsurface-m">
+            <div class="text-on-surface-medium">
               {{ $t('newGroupRequestedText', {name: group.attributes.name}) }}
             </div>
             <div class="q-mt-lg">

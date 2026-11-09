@@ -6,7 +6,7 @@
       balance
     />
     <q-page-container
-      class="row justify-center bg-light"
+      class="row justify-center bg-surface-bright"
     >
       <q-page
         v-if="!isLoading"

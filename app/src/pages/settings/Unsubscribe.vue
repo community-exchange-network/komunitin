@@ -21,7 +21,7 @@
         <h5 class="q-mt-md q-mb-sm">
           {{ t('unsubscribed') }}
         </h5>
-        <p class="text-body1 text-onsurface-m q-mb-lg">
+        <p class="text-body1 text-on-surface-medium q-mb-lg">
           {{ t('unsubscribedText') }}
         </p>
       </template>
@@ -35,7 +35,7 @@
         <h5 class="q-mt-md q-mb-sm">
           {{ t('unsubscribeError') }}
         </h5>
-        <p class="text-body1 text-onsurface-m">
+        <p class="text-body1 text-on-surface-medium">
           {{ error }}
         </p>
       </template>
