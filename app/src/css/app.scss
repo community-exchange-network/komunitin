@@ -5,85 +5,85 @@
 .bg-surface {
   background: $surface;
 }
-.bg-surface-container-h {
-  background: $surface-container-h;
+.bg-surface-container-high {
+  background: $surface-container-high;
 }
-.bg-background {
-  background: $background;
+.bg-page-background {
+  background: $page-background;
 }
-.bg-light {
-  background: $light-background;
+.bg-surface-bright {
+  background: $surface-bright;
 }
 .bg-outside {
   background: $outside;
 }
-.bg-error {
-  background: $error;
-}
 .bg-active {
   background: $active;
 }
-.bg-kblue {
-  background: $kblue;
+.bg-offer {
+  background: $offer;
 }
-.bg-kred {
-  background: $kred;
+.bg-want {
+  background: $want;
 }
-.bg-icon-dark {
-  background: $icon-dark;
+.bg-icon {
+  background: $icon;
 }
-.bg-pending {
-  background: $pending;
+.bg-transfer-new {
+  background: $transfer-new;
 }
-.bg-rejected {
-  background: $rejected;
+.bg-transfer-pending {
+  background: $transfer-pending;
 }
-.bg-failed {
-  background: $failed;
+.bg-transfer-accepted {
+  background: $transfer-accepted;
 }
-.bg-committed {
-  background: $committed;
+.bg-transfer-committed {
+  background: $transfer-committed;
 }
-.bg-primary-container {
-  background: $primary-container;
+.bg-transfer-rejected {
+  background: $transfer-rejected;
 }
-.bg-accent-muted {
-  background: $accent-muted;
+.bg-transfer-failed {
+  background: $transfer-failed;
+}
+.bg-transfer-deleted {
+  background: $transfer-deleted;
 }
 
 // 2. custom foreground colors
-.text-onprimary {
-  color: $onprimary;
+.text-on-primary {
+  color: $on-primary;
 }
-.text-onsurface {
-  color: $onsurface;
+.text-on-surface {
+  color: $on-surface;
 }
-.text-onsurface-m {
-  color: $onsurface-m;
+.text-on-surface-medium {
+  color: $on-surface-medium;
 }
-.text-onsurface-d {
-  color: $onsurface-d;
+.text-on-surface-low {
+  color: $on-surface-low;
 }
-.text-onoutside {
-  color: $onoutside;
+.text-on-outside {
+  color: $on-outside;
 }
-.text-onoutside-m {
-  color: $onoutside-m;
+.text-on-outside-medium {
+  color: $on-outside-medium;
 }
-.text-muted {
-  color: $muted;
+.text-on-surface-variant {
+  color: $on-surface-variant;
 }
-.text-icon-dark {
-  color: $icon-dark;
+.text-icon {
+  color: $icon;
 }
-.text-primary-container {
-  color: $primary-container;
+.text-primary-variant {
+  color: $primary-variant;
 }
-.positive-amount {
-  color: $positive-amount;
+.text-amount-positive {
+  color: $amount-positive;
 }
-.negative-amount {
-  color: $negative-amount;
+.text-amount-negative {
+  color: $amount-negative;
 }
 
 // 3. Custom fill colors
@@ -93,7 +93,7 @@
 
 // 4. Custom typography classes
 .text-serif {
-  font-family: $display-serif-family;
+  font-family: $heading-font-family;
 }
 .text-overline {
   letter-spacing: 1.5px;
@@ -141,12 +141,12 @@
 .input-standout-light {
   &.q-field--standout {
     .q-field__control {
-      background: $light-background;
+      background: $surface-bright;
     }
 
     &.q-field--highlighted {
       .q-field__control {
-        background: $background;
+        background: $page-background;
       }
 
       .q-field__native,
@@ -158,7 +158,7 @@
 
       .q-field__prepend,
       .q-field__append {
-        color: $icon-dark;
+        color: $icon;
       }
     }
   }
@@ -173,13 +173,13 @@
   /* 2. HOVER STATE: Add your custom color and thickness on hover */
   &.q-field--outlined .q-field__control:hover:before {
     /* Set your custom thickness and color here */
-    border: 1.5px solid $chip-border !important;
+    border: 1.5px solid $outline-variant !important;
   }
 
   /* 3. FOCUS STATE: Ensure Quasar's default active indicator matches your design */
   &.q-field--focused.q-field--outlined .q-field__control:after {
     /* Match your hover thickness and color, or style it completely differently */
-    border: 1.5px solid $chip-border !important;
+    border: 1.5px solid $outline-variant !important;
   }
 }
 // Solid greyed-out disabled state for filled buttons, instead of Quasar's semi-transparent one.
@@ -203,7 +203,7 @@ aside.q-drawer--mobile.q-drawer--left {
 
 // 7. Palette tokens exposed as CSS variables, so scripts (e.g. charts) can read them with Quasar's getCssVar().
 :root {
-  --q-onsurface-m: #{$onsurface-m};
+  --q-on-surface-medium: #{$on-surface-medium};
   --q-tooltip-background: #{$tooltip-background};
   --q-tooltip-color: #{$tooltip-color};
 }
@@ -220,7 +220,7 @@ aside.q-drawer--mobile.q-drawer--left {
 .link {
   text-decoration: none;
   font-weight: 500;
-  &.text-onoutside-m:hover {
-    color: $onoutside;
+  &.text-on-outside-medium:hover {
+    color: $on-outside;
   }
 }

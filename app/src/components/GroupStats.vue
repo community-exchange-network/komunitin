@@ -5,11 +5,11 @@
     bordered
   >
     <q-card-section class="q-pb-none q-pt-sm">
-      <div class="text-overline text-onsurface-m">
+      <div class="text-overline text-on-surface-medium">
         <q-icon
           :name="icon"
           size="xs"
-          color="icon-dark"
+          color="icon"
         />
         {{ title }}
       </div>
@@ -28,7 +28,7 @@
           />
         </div>
       </q-card-section>
-      <q-card-section class="col-8 text-onsurface-m">
+      <q-card-section class="col-8 text-on-surface-medium">
         <ul class="q-pa-none q-ma-none">
           <li
             v-for="(item, i) in items"

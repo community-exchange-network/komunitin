@@ -111,7 +111,7 @@ const handlePushMessage = (
     payload.actions.forEach((action) => {
       actions.push({
         label: action.title,
-        color: "onsurface",
+        color: "on-surface",
         handler: () => {
           const route = getActionRoute(action.action, data);
           if (route) {
@@ -125,7 +125,7 @@ const handlePushMessage = (
     // Default action to open the notification route
     actions.push({
       label: i18n.global.t("open"),
-      color: "onsurface",
+      color: "on-surface",
       handler: () => {
         router.push(data.route);
         onNotificationInteraction(payload.code, payload.id, "open_route");
@@ -136,7 +136,7 @@ const handlePushMessage = (
   // Always add a dismiss action
   actions.push({
     label: i18n.global.t("dismiss"),
-    color: "onsurface",
+    color: "on-surface",
     handler: () => {
       onNotificationInteraction(payload.code, payload.id, "dismiss");
     },
@@ -156,7 +156,7 @@ const handlePushMessage = (
     position: "top",
     actions,
     color: "surface",
-    textColor: "onsurface",
+    textColor: "on-surface",
     multiLine: true,
   });
 };

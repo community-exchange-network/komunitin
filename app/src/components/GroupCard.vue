@@ -10,7 +10,7 @@
           icon="share"
           flat
           round
-          color="icon-dark"
+          color="icon"
           :title="$t('checkTheExchangeCommunityGroup', { group: group.attributes.name })"
           :text="group.attributes.description"
           :url="url"

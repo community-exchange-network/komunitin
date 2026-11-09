@@ -13,7 +13,7 @@
     </q-input>
     <q-icon-picker
       v-model="icon"
-      class="q-mt-md text-onsurface-m"
+      class="q-mt-md text-on-surface-medium"
       size="lg"
       :icons="icons"
       tooltips

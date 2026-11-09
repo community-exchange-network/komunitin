@@ -124,11 +124,10 @@ $shadow-24 : 0 0 102px rgba($shadow-color, 0.08) !default;
 
 // ── Toolbar / Header ─────────────────────────────────────────
 //
-//  The top nav is 62px tall (14px top padding + 34px content
-//  + 14px bottom padding). Quasar's toolbar variables drive
-//  QHeader / QToolbar height.
+//  The toolbar, collapsed page header and drawer header share
+//  the same 64px height.
 
-$toolbar-min-height         : 62px;
+$toolbar-min-height         : 64px;
 $toolbar-padding            : 0 20px;
 $toolbar-title-font-size    : 20px;
 $toolbar-title-font-weight  : 600;
@@ -153,7 +152,7 @@ $chip-dense-height  : 1.4em;
 
 $input-font-size    : 16px;   // 16px prevents iOS Safari from zooming in on focus
 $input-text-color   : $soil-medium;   // Warm brown, softer than near-black
-$input-label-color  : rgba($soil, 0.6);    // Soil at 60% — text-muted
+$input-label-color  : rgba($soil, 0.6);    // Soil at 60% — on-surface-medium
 
 $field-label-font-size    : 13px;
 $field-bottom-font-size   : 11px;
@@ -216,64 +215,64 @@ $rating-grade-color : $accent;  // Wheat — natural amber star colour
 //   throughout your component files once this file is loaded)
 // ============================================================
 
-$accent-muted: $wheat-light;
+// Heading typography, complementing Quasar's $typography-font-family
+$heading-font-family : 'Lora', Georgia, 'Times New Roman', serif;
 
-$chip-border    : $sandstone;
+// Theme colors
+$primary-variant: $ember-dark;
 
-// Typography scale (display sizes, complementing Quasar's $headings)
-$display-serif-family : 'Lora', Georgia, 'Times New Roman', serif;
+// Marketplace colors
+$offer: $secondary;
+$want: $primary;
 
 // Color for surface elements, such as cards and navbar
 $surface: $white;
-$surface-container-h: $linen-dark;
-
-$primary-container: $ember-dark;
-
-// Secondary colors
-$kblue: $secondary; //offers
-$kred: $primary; //wants
+$surface-container-high: $linen-dark;
 
 // App background color.
-$background: $linen;
-$light-background: $parchment;
+$page-background: $linen;
+$surface-bright: $parchment;
 // Outside background.
 $outside: $soil-medium;
-// Error color.
-$error: $negative;
-
-$active: rgba($primary, 0.10);  // Ember at 10% — selected/active row tint
-$pending: rgba($primary, 0.12); // Ember at 12% — pending badge
-$rejected: rgba($negative, 0.12); // Negative red at 12% — rejected badge
-$failed: rgba($negative, 0.20);   // Negative red at 20% — failed badge
-$committed: rgba($moss, 0.12);        // Moss at 12% — committed badge
 
 // Text colors
 
 // Color for text on primary background / high emphasis
-$onprimary: $white;
-
+$on-primary: $white;
 // Color for text on outside background / high emphasis
-$onoutside: $white;
+$on-outside: $white;
 // Color for text on outside background / medium emphasis
-$onoutside-m: rgba($onoutside, 0.74);
+$on-outside-medium: rgba($on-outside, 0.74);
 
 // Color for text on surface / high emphasis
-$onsurface: rgba($soil, 0.87); // Soil at 87% — high emphasis text on light bg
+$on-surface: rgba($soil, 0.87); // Soil at 87% — high emphasis text on light bg
 // Color for text on surface / medium emphasis
-$onsurface-m: rgba($soil, 0.60); // Soil at 60% — medium emphasis text on light bg
-// Color for text on surface / disabled
-$onsurface-d: rgba($soil, 0.38); // Soil at 38% — disabled text on light bg
+$on-surface-medium: rgba($soil, 0.60); // Soil at 60% — medium emphasis text on light bg
+// Color for text on surface / low emphasis
+$on-surface-low: rgba($soil, 0.38); // Soil at 38% — low emphasis text on light bg
 
-$muted: $soil-light;
+$on-surface-variant: $soil-light;
 
 // Currency  colors
-$positive-amount: $moss;
-$negative-amount: $tide;
+$amount-positive: $moss;
+$amount-negative: $tide;
 
 // Icon colors
-$icon-dark: rgba($black, .54);
+$icon: rgba($black, .54);
 
-// Sizes
-$header-height: 64px;
+// State colors
+$active: rgba($primary, 0.10);  // Ember at 10% — selected/active row tint
+
+// Transfer status badge backgrounds
+$transfer-new: $surface-container-high;
+$transfer-pending: rgba($primary, 0.12); // Ember at 12% — pending badge
+$transfer-accepted: $wheat-light;
+$transfer-committed: rgba($moss, 0.12); // Moss at 12% — committed badge
+$transfer-rejected: rgba($negative, 0.12); // Negative red at 12% — rejected badge
+$transfer-failed: rgba($negative, 0.20);   // Negative red at 20% — failed badge
+$transfer-deleted: $surface-container-high;
+
+// Borders
+$outline-variant: $sandstone;
 
 @import "override.variables.scss";

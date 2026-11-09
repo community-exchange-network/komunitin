@@ -28,7 +28,7 @@
             v-close-popup
             flat
             :label="t('cancel')"
-            color="onsurface-m"
+            color="on-surface-medium"
           />
           <q-btn 
             v-close-popup

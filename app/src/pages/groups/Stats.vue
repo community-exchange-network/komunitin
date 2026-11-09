@@ -16,16 +16,16 @@
             :img-src="group.attributes.image"
           />
           <div class="q-ml-md">
-            <div class="text-h6 text-serif text-bold text-onsurface">
+            <div class="text-h6 text-serif text-bold text-on-surface">
               {{ group.attributes.name }}
             </div>
-            <div class="text-body2 text-weight-medium text-onsurface-m">
+            <div class="text-body2 text-weight-medium text-on-surface-medium">
               {{ group.attributes.code }}
             </div>
           </div>
         </div>
         <!-- Volume key figures -->
-        <div class="text-overline text-uppercase text-onsurface-d">
+        <div class="text-overline text-uppercase text-on-surface-low">
           {{ t('volume') }}
         </div>
         <div class="row q-col-gutter-md items-stretch">

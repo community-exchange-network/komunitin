@@ -2,11 +2,11 @@
   <div class="q-py-xs">
     <span
       v-if="category && caption && right"
-      class="q-pr-md text-overline text-uppercase text-onsurface-m"
+      class="q-pr-md text-overline text-uppercase text-on-surface-medium"
     >{{ category.attributes.name }}</span>
     <q-avatar
       :icon="icon"
-      text-color="onprimary"
+      text-color="on-primary"
       :color="color"
       size="40px"
     >
@@ -16,7 +16,7 @@
     </q-avatar>
     <span
       v-if="category && caption && !right"
-      class="q-pl-md text-overline text-uppercase text-onsurface-m"
+      class="q-pl-md text-overline text-uppercase text-on-surface-medium"
     >{{ category.attributes.name }}</span>
   </div>
 </template>
@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<{
   right: false
 })
 
-const color = computed(() => props.type === "needs" ? "kred" : "kblue")
+const color = computed(() => props.type === "needs" ? "want" : "offer")
 const defaultIcon = computed(() => props.type === "needs" ? "loyalty" : "local_offer")
 const icon = computed(() => props.category?.attributes.icon?.value ?? defaultIcon.value)
 </script>

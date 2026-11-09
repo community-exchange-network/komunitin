@@ -7,7 +7,7 @@
     <template #after="{need}">
       <floating-btn 
         :label="$t('publishNeed')"
-        color="kred"
+        color="want"
         icon="publish"
         @click="publish(need)"
       />

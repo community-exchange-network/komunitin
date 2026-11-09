@@ -13,7 +13,7 @@
           <div class="text-subtitle1">
             {{ $t('setPassword') }}
           </div>
-          <div class="text-onsurface-m">
+          <div class="text-on-surface-medium">
             {{ $t('setPasswordText') }}
           </div>
         </div>

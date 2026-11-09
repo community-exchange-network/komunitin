@@ -9,7 +9,7 @@
     >
       <slot />
     </simple-map>
-    <div v-if="name" class="text-caption text-muted row items-center q-pt-sm">
+    <div v-if="name" class="text-caption text-on-surface-variant row items-center q-pt-sm">
       <q-icon name="place" size="16px" class="q-mr-xs" />
       {{ name }}
     </div>

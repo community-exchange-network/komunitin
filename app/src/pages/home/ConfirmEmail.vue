@@ -4,7 +4,7 @@
     class="full-width"
     unelevated
     color="primary"
-    text-color="onprimary"
+    text-color="on-primary"
     icon="mark_email_read"
     :label="$t('confirmEmail')"
     :loading="loading"

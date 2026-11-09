@@ -12,7 +12,7 @@
           <div class="text-subtitle1">
             {{ $t('group') }}
           </div>
-          <div class="text-onsurface-m">
+          <div class="text-on-surface-medium">
             {{ $t('editGroupText') }}
           </div>
         </div>

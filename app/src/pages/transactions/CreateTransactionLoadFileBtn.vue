@@ -23,7 +23,7 @@
         <template #append>
           <q-icon
             name="attach_file"
-            color="muted"
+            color="on-surface-variant"
           />
         </template>
       </q-file>

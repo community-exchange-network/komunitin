@@ -4,11 +4,11 @@
       <div class="text-subtitle1">
         {{ $t('signupSettings') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('signupSettingsText') }}
       </div>
     </div>
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-overline text-uppercase text-on-surface-medium">
       {{ $t('termsOfUse') }}
     </div>
     <toggle-item
@@ -26,7 +26,7 @@
       :debounce="1000"
       input-style="min-height: 100px;"
     />
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-overline text-uppercase text-on-surface-medium">
       {{ $t('offersAndNeeds') }}
     </div>
     <q-input
@@ -49,7 +49,7 @@
       standout
       class="input-standout-light"
     />
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-overline text-uppercase text-on-surface-medium">
       {{ $t('accountStart') }}
     </div>
     <amount-input
@@ -73,14 +73,14 @@
       <div class="text-subtitle1">
         {{ $t('marketplace') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('marketplaceText') }}
       </div>
     </div>
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-overline text-uppercase text-on-surface-medium">
       {{ $t('categories') }}
     </div>
-    <div class="text-onsurface-m">
+    <div class="text-on-surface-medium">
       {{ $t('categoriesText') }}
     </div>
     <categories-field
@@ -116,7 +116,7 @@
       <div class="text-subtitle1">
         {{ $t('accountDefaults') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('accountDefaultsText') }}
       </div>
     </div>
@@ -130,11 +130,11 @@
       <div class="text-subtitle1">
         {{ $t('externalPayments') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('externalPaymentsText') }}
       </div>
     </div>
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-overline text-uppercase text-on-surface-medium">
       {{ $t('settings') }}
     </div>
     <toggle-item
@@ -201,10 +201,10 @@
         />
       </template>
     </input-update>
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-overline text-uppercase text-on-surface-medium">
       {{ $t('trustlines') }}
     </div>
-    <div class="text-onsurface-m">
+    <div class="text-on-surface-medium">
       {{ $t('trustlinesText') }}
     </div>
     <trustlines-field
@@ -239,7 +239,7 @@
       <div class="text-subtitle1">
         {{ $t('groupStatus') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('groupStatusText') }}
       </div>
     </div>

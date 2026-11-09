@@ -6,7 +6,7 @@
   >
     <template #extra v-if="group">
       <q-item-section>
-        <q-item-label lines="2" class="text-right text-caption text-onsurface-d">
+        <q-item-label lines="2" class="text-right text-caption text-on-surface-low">
           {{ group.attributes.name }}
         </q-item-label>
       </q-item-section>

@@ -4,7 +4,7 @@
     back="/groups"
   />
   <q-page-container class="row justify-center">
-    <q-banner class="text-onsurface-m banner" v-show="showDocsBanner">
+    <q-banner class="text-on-surface-medium banner" v-show="showDocsBanner">
       <template #avatar>
         <q-icon name="info" />
       </template>

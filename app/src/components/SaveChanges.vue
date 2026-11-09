@@ -1,17 +1,17 @@
 <template>
-  <div class="flex items-center text-onsurface-m">
+  <div class="flex items-center text-on-surface-medium">
     <q-spinner
       v-if="isSaving"
       size="24px"
       class="q-mr-sm"
-      color="icon-dark"
+      color="icon"
     />
     <q-icon
       v-else
       :name="isError ? 'error' : 'done'"
       size="24px"
       class="q-mr-sm"
-      color="icon-dark"
+      color="icon"
     />
     <div>
       {{ message }}

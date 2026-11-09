@@ -18,7 +18,7 @@
         :address="secondCreditCommonsAddress"
       />
     </div>
-    <q-item-section class="gt-xs col q-pl-md text-onsurface">
+    <q-item-section class="gt-xs col q-pl-md text-on-surface">
       <q-item-label lines="2">
         {{ description }}
       </q-item-label>
@@ -30,7 +30,7 @@
           class="col"
         >
           <q-badge
-            color="pending" 
+            color="transfer-pending"
             text-color="primary"
             v-if="transfer.attributes.state == 'pending'"
             class="badge-square text-uppercase text-weight-bold"
@@ -38,16 +38,16 @@
             {{ $t("pending") }}
           </q-badge>
           <q-badge
-            color="rejected" 
-            text-color="onsurface-m"
+            color="transfer-rejected"
+            text-color="on-surface-medium"
             v-else-if="transfer.attributes.state == 'rejected'"
             class="badge-square text-uppercase text-weight-bold"
             >
             {{ $t("rejected") }}
           </q-badge>
           <q-badge
-            color="failed" 
-            text-color="onsurface-d"
+            color="transfer-failed"
+            text-color="on-surface-low"
             v-else-if="transfer.attributes.state == 'failed'"
             class="badge-square text-uppercase text-weight-bold"
             >
@@ -61,8 +61,8 @@
           class="col transaction-amount text-subtitle1 text-weight-bold"
           :class="
             signedAmount >= 0
-              ? 'positive-amount'
-              : 'negative-amount'
+              ? 'text-amount-positive'
+              : 'text-amount-negative'
           "
         >
           {{ FormatCurrency(signedAmount, currency) }}
@@ -162,12 +162,12 @@ const overrideCaption = computed(() => {
     margin-top: -6px;
   }
   .pending {
-    background-color: $light-background;
+    background-color: $surface-bright;
   }
   .rejected, .failed {
-    background: $light-background;
-    .positive-amount, .negative-amount {
-      color: $onsurface-d;
+    background: $surface-bright;
+    .text-amount-positive, .text-amount-negative {
+      color: $on-surface-low;
     }
   }
 </style>

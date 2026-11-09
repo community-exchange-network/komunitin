@@ -14,7 +14,7 @@
       <l-popup :interactive="true" :permanent="false">
         <div>
           <div class="text-subtitle-2">{{ marker.group.attributes.name }}</div>
-          <div class="text-onsurface-m">{{  marker.group.relationships.members?.meta.count ?? 0 }} {{ $t('members') }}</div>
+          <div class="text-on-surface-medium">{{  marker.group.relationships.members?.meta.count ?? 0 }} {{ $t('members') }}</div>
           <div><a :href="`/groups/${marker.group.attributes.code}`">Explore</a></div>
         </div>
       </l-popup>

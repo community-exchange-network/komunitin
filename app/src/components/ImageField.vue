@@ -4,10 +4,10 @@
       ref="uploader"  
       multiple
       accept="image/*"
-      color="light"
-      text-color="onsurface-m"
+      color="surface-bright"
+      text-color="on-surface-medium"
       flat
-      class="full-width max-h bg-light"
+      class="full-width max-h bg-surface-bright"
       hide-upload-btn
       v-bind="uploaderProps"
       v-on="uploaderEvents"
@@ -66,7 +66,7 @@
     </q-uploader>
     <div
       v-if="hint" 
-      class="text-onsurface-m q-pt-sm text-caption"
+      class="text-on-surface-medium q-pt-sm text-caption"
       style="padding-left: 12px; line-height: 1;"
     >
       {{ hint }}

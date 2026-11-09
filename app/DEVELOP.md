@@ -119,7 +119,7 @@ We try to write as less CSS as possible in custom components, and most of them d
 
 If the component has a non-standard style feature, it will be defined using scoped [SCSS](https://sass-lang.com/documentation/syntax) language.
 
-Colors are defined as variables and standard classes at `src/css/quasar.variables.scss`. We have, for example, the colors `$primary`, `$secondary`, `$surface` and `$outside` for backgrounds, and `$onprimary`, `$onsurface` and `$onoutside` for text on those backgrounds. We also have `$onsurface-m` for medium emphasis text.
+Colors are defined as variables and standard classes at `src/css/quasar.variables.scss`. We have, for example, the colors `$primary`, `$secondary`, `$surface` and `$outside` for backgrounds, and `$on-primary`, `$on-surface` and `$on-outside` for text on those backgrounds. We also have `$on-surface-medium` for medium emphasis text.
 
 ### Code
 - All code is written in TypeScript.

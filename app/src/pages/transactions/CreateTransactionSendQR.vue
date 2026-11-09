@@ -5,7 +5,7 @@
         v-if="state === 'scan'"
       >
         <div class="bg-surface rounded-borders shadow-2 q-mb-xl">
-          <div class="q-pa-md text-subtitle1 text-serif text-bold text-onsurface">
+          <div class="q-pa-md text-subtitle1 text-serif text-bold text-on-surface">
             {{ $t('scanQRCode') }}
           </div>
           <q-separator />

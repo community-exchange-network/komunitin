@@ -7,7 +7,7 @@
       <div class="text-subtitle1">
         {{ $t('signupCredentialsHeader') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('signupCredentialsText') }}
       </div>
     </div>

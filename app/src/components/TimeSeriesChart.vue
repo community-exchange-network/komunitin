@@ -26,7 +26,7 @@ Chart.register(Tooltip, LinearScale, TimeScale, PointElement, LineElement)
 // as the app tooltips. Colors are palette tokens, defined as CSS variables in app.scss.
 const token = (name: string) => getCssVar(name);
 Chart.defaults.font.family = getComputedStyle(document.body).fontFamily || 'sans-serif';
-Chart.defaults.color = token('onsurface-m') ?? '#000000';
+Chart.defaults.color = token('on-surface-medium') ?? '#000000';
 const gridColor = token('divider')
 const lineColor = token('primary')
 const tooltipBackground = token('tooltip-background')

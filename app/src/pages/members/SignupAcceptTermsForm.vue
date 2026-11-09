@@ -7,7 +7,7 @@
       <div class="text-subtitle1">
         {{ $t('membershipTerms') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('membershipTermsText') }}
       </div>
     </div>
@@ -17,7 +17,7 @@
     />
     <!-- eslint-disable vue/no-v-html -->
     <div
-      class="col text-body1 text-onsurface"
+      class="col text-body1 text-on-surface"
       v-html="md2html(terms)"
     />
     <!-- eslint-enable vue/no-v-html -->

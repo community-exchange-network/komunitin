@@ -1,7 +1,7 @@
 <template>
   <q-banner
     v-if="show"
-    class="text-onsurface-m banner"
+    class="text-on-surface-medium banner"
   >
     <template #avatar>
       <q-icon name="verified_user" />

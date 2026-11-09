@@ -40,12 +40,12 @@ const { t } = useI18n()
 const actions = computed<FABAction[]>(() => [{
   label: t('createNeed'),
   icon: 'loyalty',
-  color: 'kred',
+  color: 'want',
   to: `/groups/${code.value}/needs/new`
 }, {
   label: t('createOffer'),
   icon: 'local_offer',
-  color: 'kblue',
+  color: 'offer',
   to: `/groups/${code.value}/offers/new`
 }])
 

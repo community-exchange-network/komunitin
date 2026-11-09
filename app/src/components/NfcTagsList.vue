@@ -2,7 +2,7 @@
   <q-list>
     <div 
       v-if="!(modelValue?.length)" 
-      class="q-py-md text-onsurface"
+      class="q-py-md text-on-surface"
     >
       {{ $t('noTags') }}
     </div>
@@ -13,7 +13,7 @@
       <q-item-section avatar>
         <q-icon 
           name="nfc" 
-          color="icon-dark"
+          color="icon"
         />
       </q-item-section>
       <q-item-section>

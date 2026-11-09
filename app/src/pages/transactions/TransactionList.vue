@@ -43,7 +43,7 @@
       show-if-above
     >
       <div class="q-pa-md q-gutter-sm">
-        <p class="text-caption-sm text-uppercase text-weight-bold text-onsurface-m">{{ $t("dateRange") }}</p>
+        <p class="text-caption-sm text-uppercase text-weight-bold text-on-surface-medium">{{ $t("dateRange") }}</p>
         <date-field
           v-model="startDate"
           :label="$t('startDate')"

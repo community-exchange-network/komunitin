@@ -7,13 +7,13 @@ type T = ReturnType<typeof useI18n>['t']
 
 // Badge background and text colors, from the app palette.
 const STATUS_MAP = {
-  new: { color: 'surface-container-h', textColor: 'onsurface-m', label: (t: T) => t('new') },
-  pending: { color: 'pending', textColor: 'primary', label: (t: T) => t('pending') },
-  accepted: { color: 'accent-muted', textColor: 'onsurface-m', label: (t: T) => t('accepted') },
-  committed: { color: 'committed', textColor: 'secondary', label: (t: T) => t('committed') },
-  rejected: { color: 'rejected', textColor: 'onsurface-m', label: (t: T) => t('rejected') },
-  failed: { color: 'failed', textColor: 'onsurface-d', label: (t: T) => t('failed') },
-  deleted: { color: 'surface-container-h', textColor: 'onsurface-d', label: (t: T) => t('deleted') },
+  new: { color: 'transfer-new', textColor: 'on-surface-medium', label: (t: T) => t('new') },
+  pending: { color: 'transfer-pending', textColor: 'primary', label: (t: T) => t('pending') },
+  accepted: { color: 'transfer-accepted', textColor: 'on-surface-medium', label: (t: T) => t('accepted') },
+  committed: { color: 'transfer-committed', textColor: 'secondary', label: (t: T) => t('committed') },
+  rejected: { color: 'transfer-rejected', textColor: 'on-surface-medium', label: (t: T) => t('rejected') },
+  failed: { color: 'transfer-failed', textColor: 'on-surface-low', label: (t: T) => t('failed') },
+  deleted: { color: 'transfer-deleted', textColor: 'on-surface-low', label: (t: T) => t('deleted') },
 }
 
 export const useTransferStatus = (status: MaybeRefOrGetter<TransferState>) => {

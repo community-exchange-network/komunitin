@@ -4,10 +4,10 @@
     @submit="onSubmit"
   >
     <div class="q-pa-md">
-      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+      <div class="text-subtitle1 text-serif text-bold text-on-surface">
         {{ $t('enterMultipleTransactions') }}
       </div>
-      <div class="text-body2 text-onsurface-m">
+      <div class="text-body2 text-on-surface-medium">
         {{ $t('enterMultipleTransactionsText') }}
       </div>
     </div>
@@ -15,7 +15,7 @@
     <div class="q-pa-md">
       <q-toggle
         v-model="copyDescription"
-        class="text-onsurface"
+        class="text-on-surface"
         :label="$t('copyDescription')"
       />
       <q-input
@@ -40,8 +40,8 @@
     </div>
     <q-separator />
     <q-table
-      class="text-onsurface full-width bg-transparent"
-      table-header-class="text-overline text-uppercase text-onsurface-d"
+      class="text-on-surface full-width bg-transparent"
+      table-header-class="text-overline text-uppercase text-on-surface-low"
       :rows="rows"
       :columns="columns"
       :visible-columns="copyDescription ? [] : ['description']"

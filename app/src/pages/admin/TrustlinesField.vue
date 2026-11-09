@@ -4,7 +4,7 @@
       style="margin-left: -16px; margin-right: -16px;"
     >
       <div 
-        class="row text-overline text-onsurface-m q-px-md q-mr-lg"
+        class="row text-overline text-on-surface-medium q-px-md q-mr-lg"
       >
         <div class="col-5">
           {{ $t('currency') }}
@@ -19,7 +19,7 @@
       <q-list>
         <div 
           v-if="!(trustlines?.length)" 
-          class="q-py-md text-onsurface"
+          class="q-py-md text-on-surface"
         >
           {{ $t('noTrustlines') }}
         </div>
@@ -32,14 +32,14 @@
           <template #extra>
             <q-item-section
               class="text-h6 col-3 text-right"
-              :class="trustline.attributes.balance >= 0 ? 'positive-amount' : 'negative-amount'"
+              :class="trustline.attributes.balance >= 0 ? 'text-amount-positive' : 'text-amount-negative'"
             >
               {{ FormatCurrency(trustline.attributes.balance, trustline.currency) }}
             </q-item-section>
             <q-item-section
               class="col-3 row justify-end items-center q-gutter-x-md"
             >
-              <div class="text-h6 positive-amount">
+              <div class="text-h6 text-amount-positive">
                 {{ FormatCurrency(trustline.attributes.limit, trustline.currency) }}
               </div>
             </q-item-section>

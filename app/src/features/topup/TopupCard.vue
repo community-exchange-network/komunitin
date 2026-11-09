@@ -1,12 +1,12 @@
 <template>
   <q-card>
     <q-card-section>
-      <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
+      <div class="text-overline text-uppercase text-on-surface-low q-pl-md">
         {{ t("deposit") }}
       </div>
       <div class="row items-center justify-between q-pl-md">
-        <span class="text-body2 text-onsurface-m">{{ t('topupDepositAmount') }}</span>
-        <span class="text-h6 text-weight-medium text-onsurface">
+        <span class="text-body2 text-on-surface-medium">{{ t('topupDepositAmount') }}</span>
+        <span class="text-h6 text-weight-medium text-on-surface">
           {{ (topup.attributes.depositAmount / 100).toLocaleString(locale, {
             style: 'currency',
             currency: topup.attributes.depositCurrency,
@@ -17,7 +17,7 @@
     </q-card-section>
     
     <q-card-section>
-      <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
+      <div class="text-overline text-uppercase text-on-surface-low q-pl-md">
         {{ t("receive") }}
       </div>
       <div class="row items-center justify-between">
@@ -31,7 +31,7 @@
     <q-card-section>
       <div class="q-pl-md">
         <div class="row items-center justify-between">
-          <span class="text-body2 text-onsurface-m text-weight-regular">{{ $formatDate(topup.attributes.created) }}</span>
+          <span class="text-body2 text-on-surface-medium text-weight-regular">{{ $formatDate(topup.attributes.created) }}</span>
           <div>
             <pill-badge :color="statusColor" >
               <q-spinner v-if="polling" size="16px" class="q-mr-sm"/>
@@ -41,19 +41,19 @@
         </div>
         
         <div v-if="topup.attributes.paymentData" class="q-mt-lg">
-          <a v-if="!showDetails" class="text-body2 text-onsurface-d" @click="showDetails = true" href="#">
+          <a v-if="!showDetails" class="text-body2 text-on-surface-low" @click="showDetails = true" href="#">
             {{ t('topupShowPaymentDetails') }}
           </a>
           <div v-else-if="showDetails" class="q-gutter-y-sm">
             <div class="row items-center justify-between">
-              <span class="text-body2 text-onsurface-d text-weight-light">{{ t('topupPaymentId') }}</span>
-              <span class="text-body2 text-onsurface-m text-weight-regular">
+              <span class="text-body2 text-on-surface-low text-weight-light">{{ t('topupPaymentId') }}</span>
+              <span class="text-body2 text-on-surface-medium text-weight-regular">
                 {{ topup.attributes.paymentData.paymentId }}
               </span>
             </div>
             <div class="row items-center justify-between">
-              <span class="text-body2 text-onsurface-d text-weight-light">{{ t('topupPaymentStatus') }}</span>
-              <span class="text-body2 text-onsurface-m text-weight-regular">
+              <span class="text-body2 text-on-surface-low text-weight-light">{{ t('topupPaymentStatus') }}</span>
+              <span class="text-body2 text-on-surface-medium text-weight-regular">
                 {{ topup.attributes.paymentData.status }}
               </span>
             </div>

@@ -11,7 +11,7 @@
       <floating-btn
         :label="$t('createOffer')"
         icon="add"
-        color="kblue"
+        color="offer"
         :to="`/groups/${code}/offers/new`"
       />
     </template>

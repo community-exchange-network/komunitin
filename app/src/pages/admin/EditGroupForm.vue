@@ -79,7 +79,7 @@
       <div class="text-subtitle1">
         {{ $t('currency') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('editCurrencyText') }}
       </div>
     </div>
