@@ -74,7 +74,7 @@ const { t } = useI18n()
 
 const styleProps = computed(() => props.filter ? {
   outlined: true,
-  bgColor: "surface-container-high",
+  bgColor: "surface-container-highest",
   inputClass: "text-on-surface-variant text-weight-medium",
   class: "input-outlined-pale"
 } : {

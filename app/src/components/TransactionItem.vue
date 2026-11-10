@@ -162,10 +162,10 @@ const overrideCaption = computed(() => {
     margin-top: -6px;
   }
   .pending {
-    background-color: $surface-bright;
+    background-color: $surface-container;
   }
   .rejected, .failed {
-    background: $surface-bright;
+    background: $surface-container;
     .text-amount-positive, .text-amount-negative {
       color: $on-surface-low;
     }

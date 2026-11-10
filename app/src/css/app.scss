@@ -5,14 +5,14 @@
 .bg-surface {
   background: $surface;
 }
+.bg-surface-container {
+  background: $surface-container;
+}
 .bg-surface-container-high {
   background: $surface-container-high;
 }
-.bg-page-background {
-  background: $page-background;
-}
-.bg-surface-bright {
-  background: $surface-bright;
+.bg-surface-container-highest {
+  background: $surface-container-highest;
 }
 .bg-outside {
   background: $outside;
@@ -141,12 +141,12 @@
 .input-standout-light {
   &.q-field--standout {
     .q-field__control {
-      background: $surface-bright;
+      background: $surface-container;
     }
 
     &.q-field--highlighted {
       .q-field__control {
-        background: $page-background;
+        background: $surface-container-high;
       }
 
       .q-field__native,

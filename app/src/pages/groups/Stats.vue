@@ -25,9 +25,6 @@
           </div>
         </div>
         <!-- Volume key figures -->
-        <div class="text-overline text-uppercase text-on-surface-low">
-          {{ t('volume') }}
-        </div>
         <div class="row q-col-gutter-md items-stretch">
           <div class="col-6 col-md-3">
             <stats-card

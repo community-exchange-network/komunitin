@@ -6,7 +6,7 @@
           <q-icon
             :name="icon"
             size="20px"
-            class="bg-page-background rounded-borders q-pa-xs q-mr-sm text-on-surface-medium"
+            class="q-pa-xs q-mr-sm text-on-surface-medium"
           />
           {{ title }}
         </div>
@@ -35,7 +35,7 @@
           outlined
           dense
           options-dense
-          bg-color="surface-container-high"
+          bg-color="surface-container-highest"
           class="input-outlined-pale"
           dropdown-icon="expand_more"
           @update:model-value="updatePeriod"
@@ -50,7 +50,7 @@
           outlined
           dense
           options-dense
-          bg-color="surface-container-high"
+          bg-color="surface-container-highest"
           class="input-outlined-pale"
           dropdown-icon="expand_more"
         />

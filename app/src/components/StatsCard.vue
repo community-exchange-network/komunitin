@@ -5,7 +5,7 @@
         <q-icon
           :name="icon"
           size="20px"
-          class="bg-page-background rounded-borders q-pa-xs q-mr-sm"
+          class="q-pa-xs q-mr-sm"
         />
         {{ title }}
       </div>

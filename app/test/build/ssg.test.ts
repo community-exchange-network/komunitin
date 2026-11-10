@@ -49,7 +49,7 @@ test('the PWA manifest uses the same colors as the built app', () => {
     const css = [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')]
       .map(style => read(new URL(style.href).pathname.slice(1))).join('\n')
     const primary = css.match(/--q-primary:\s*([^;}]+)/)?.[1]
-    const background = css.match(/\.bg-page-background\s*\{\s*background:\s*([^;}]+)/)?.[1]
+    const background = css.match(/\.bg-surface-container-high\s*\{\s*background:\s*([^;}]+)/)?.[1]
 
     assert.ok(primary, 'The built app needs a primary color')
     assert.ok(background, 'The built app needs a background color')

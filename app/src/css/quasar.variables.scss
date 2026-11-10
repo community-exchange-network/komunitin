@@ -33,7 +33,7 @@ $wheat-light    : #F2DFA8;
 $sandstone      : #C8B89A; 
 
 $parchment      : #FDFAF4;
-$linen          : #F5EFE4;
+$linen          : #F7F1E7;
 $linen-dark     : #F0E8DA;
 
 $soil           : #1E1A14;
@@ -227,11 +227,11 @@ $want: $primary;
 
 // Color for surface elements, such as cards and navbar
 $surface: $white;
-$surface-container-high: $linen-dark;
 
-// App background color.
-$page-background: $linen;
-$surface-bright: $parchment;
+// App background and progressively stronger container colors.
+$surface-container: $parchment;
+$surface-container-high: $linen;
+$surface-container-highest: $linen-dark;
 // Outside background.
 $outside: $soil-medium;
 
@@ -261,16 +261,16 @@ $amount-negative: $tide;
 $icon: rgba($black, .54);
 
 // State colors
-$active: rgba($primary, 0.10);  // Ember at 10% — selected/active row tint
+$active: $surface-container-high;
 
 // Transfer status badge backgrounds
-$transfer-new: $surface-container-high;
+$transfer-new: $surface-container-highest;
 $transfer-pending: rgba($primary, 0.12); // Ember at 12% — pending badge
 $transfer-accepted: $wheat-light;
 $transfer-committed: rgba($moss, 0.12); // Moss at 12% — committed badge
 $transfer-rejected: rgba($negative, 0.12); // Negative red at 12% — rejected badge
 $transfer-failed: rgba($negative, 0.20);   // Negative red at 20% — failed badge
-$transfer-deleted: $surface-container-high;
+$transfer-deleted: $surface-container-highest;
 
 // Borders
 $outline-variant: $sandstone;

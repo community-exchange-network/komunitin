@@ -1,8 +1,5 @@
 <template>
-  <q-banner
-    v-if="show"
-    class="text-on-surface-medium banner"
-  >
+  <q-banner v-if="show">
     <template #avatar>
       <q-icon name="notifications" />
     </template>
@@ -107,8 +104,3 @@ const dismiss = () => store.commit("notificationsBannerDismissed", true)
 defineExpose({show})
 
 </script>
-<style lang="scss" scoped>
-.banner {
-  border-bottom: solid 1px $separator-color;
-}
-</style>

@@ -1,6 +1,6 @@
 <template>
   <q-item
-    class="text-on-surface-medium"
+    class="text-on-surface"
   >
     <q-item-section avatar>
       <avatar
@@ -10,7 +10,7 @@
     </q-item-section>
     <q-item-section>
       <q-item-label 
-        class="text-weight-semi-bold text-on-surface"
+        class="text-weight-semi-bold"
         lines="1"
       >
         {{ group.attributes.name }}

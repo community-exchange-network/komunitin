@@ -1,6 +1,6 @@
 <template>
   <q-btn
-    :class="active ? 'bg-primary text-on-primary' : 'bg-page-background text-primary'"
+    :class="active ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-primary'"
     class="overflow-hidden"
     :icon="icon"
     :padding="stack ? '12px 4px' : '12px 18px'"

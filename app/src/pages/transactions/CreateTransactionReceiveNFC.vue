@@ -19,7 +19,7 @@
         class="q-mb-xl"
       >
         <q-card>
-          <q-card-section class="row no-wrap items-center bg-surface-bright text-body2 text-on-surface-medium">
+          <q-card-section class="row no-wrap items-center bg-surface-container text-body2 text-on-surface-medium">
             <q-icon
               name="contactless"
               size="sm"

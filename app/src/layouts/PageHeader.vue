@@ -4,7 +4,7 @@
       class="header flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-on-surface-medium"
       :class="[
         showBalance ? 'wrap' : 'q-pt-xs no-wrap',
-        scrollOffset > 0 ? 'bg-page-background' : 'bg-surface-bright'
+        scrollOffset > 0 ? 'bg-surface-container-high' : 'bg-surface-container'
       ]"
       :style="`height: ${computedHeight}px;`"
     >
@@ -74,7 +74,7 @@
           dense
           outlined
           rounded
-          bg-color="surface-container-high"
+          bg-color="surface-container-highest"
           class="q-mr-xs search-box input-outlined-borderless"
           type="search" 
           debounce="250"

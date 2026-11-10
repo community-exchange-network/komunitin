@@ -1,7 +1,7 @@
 <template>
   <group-header
     id="select-group-header"
-    class="bg-surface-bright"
+    class="bg-surface-container"
     :group="modelValue"
     clickable
     @click="onClick"
