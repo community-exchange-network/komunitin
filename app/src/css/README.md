@@ -1,73 +1,92 @@
-# Typography
+# CSS and design tokens
 
-`typography.scss` defines the scale. Use one `text-<token>` class for each text
-role instead of combining Quasar sizes, font families, weights and case classes.
-For SCSS selectors, use `@include type-style('<token>')`.
+The app combines Quasar's components and layout utilities with shared color and
+typography tokens. Tokens describe the purpose of a style, so the same roles
+look consistent across pages and can be adjusted centrally.
 
-| Token | Font | Weight | Size / line height (px) | Role |
-| --- | --- | --- | --- | --- |
-| `display-medium` | Lora | 400 | 45 / 52 | Expanded balance |
-| `display-small` | Lora | 600 | 34 / 40 | Statistics totals, profile balance, QR/NFC amounts |
-| `display-extra-small` | Lora | 600 | 24 / 32 | Compact values: offer prices, transfer details, chart totals |
-| `headline-large` | Lora | 700 | 32 / 40 | Subject name on a detail page |
-| `headline-small` | Lora | 700 | 24 / 32 | Subject name in a compact detail view |
-| `title-large` | Lora | 700 | 22 / 28 | Toolbar, dialog and marketplace card titles |
-| `title-medium` | Lora | 700 | 16 / 28 | Section and pane headings |
-| `title-small` | Inter | 600 | 14 / 20 | Primary identifiers in dense rows |
-| `body-large` | Inter | 400 | 16 / 24 | Reading text and editable values |
-| `body-large-emphasized` | Inter | 700 | 16 / 24 | Emphasized values within a row |
-| `body-medium` | Inter | 400 | 14 / 20 | Descriptions and default body text |
-| `body-small` | Inter | 400 | 12 / 16 | Captions, timestamps and chart axes |
-| `label-large` | Inter | 500 | 14 / 20 | Navigation, sentence-case actions and statistics card/chart titles |
-| `label-medium` | Inter | 500 | 12 / 16 | Pill badges |
-| `label-small` | Inter | 500 | 11 / 16 | Uppercase compact statuses |
+## Where styles live
 
-Display values use Lora across balances, statistics and standalone amounts.
-Body and UI text use Inter, including emphasized amounts in dense list rows.
+- [quasar.variables.scss](quasar.variables.scss) defines the color palette,
+  semantic color tokens and Quasar theme overrides, including spacing within
+  controls, borders and shadows. It also imports the typography definitions.
+- [typography.scss](typography.scss) defines the text roles and their font
+  families, weights, sizes, line heights and case. It provides the
+  `type-style()` mixin and `type-value()` function for use in SCSS.
+- [app.scss](app.scss) loads the fonts, exposes custom color classes, generates
+  typography classes and defines shared styles that Quasar's configuration
+  cannot express.
 
-Sizes are expressed in rem, relative to the standard 16 px root size. All tokens
-use zero letter spacing. Case is also part of the token: `label-small` uses
-uppercase, while the other base tokens use `text-transform: none`, preserving
-the translated string. Large and medium labels also have an `-uppercase`
-variant with otherwise identical properties:
+Quasar makes the theme variables and typography helpers available in component
+SCSS. The definitions above are the reference for available tokens and their
+exact values.
 
-- `label-large-uppercase`: explicit uppercase action labels.
-- `label-medium-uppercase`: former overlines, column headings and control groups.
+## Colors
 
-Compact transfer badges and table status chips use `label-small`; they do not
-need a separate case variant.
+Colors have two layers: a palette of named hues and semantic tokens that assign
+those hues to UI roles. The warm palette gives the app a common visual identity;
+semantic names let components express why they use a color. Use tokens such as
+`surface` or `offer` in components, keeping literal color values in the palette.
+Roles can share a color today and still evolve independently later.
 
-Column headers use `on-surface-medium`, including the member/transfer lists
-and Quasar tables. Color stays separate from the typography token.
+Background and foreground roles work together. `surface` is used for cards,
+while `surface-container` and its stronger variants provide background layers.
+The `on-*` colors identify text intended for a particular background, with
+emphasis variants for primary and supporting content. Choose the foreground
+for the background it sits on.
 
-Quasar controls keep their native line heights, letter spacing and label
-scaling, including fields, tables, buttons, tabs, tooltips and item labels.
-Their component metrics do not need to match a generic text token. Use explicit
-tokens for ordinary text and distinct text roles within components.
+Other tokens convey meaning: marketplace roles, transfer states and signed
+amounts. For example, `amount-negative` describes an amount's sign; Quasar's
+`negative` denotes an error.
 
-Toolbar titles keep [MD3's 22/28 size](https://developer.android.com/develop/ui/compose/designsystems/material3#typography),
-with our Lora bold face. Section headings use a roomier 16/28 line height to
-suit Lora and preserve the forms' spacing. Card titles get surrounding layout
-spacing rather than a different type token.
+Quasar supplies classes for its standard theme colors, such as `bg-primary`.
+Custom background and foreground classes are defined explicitly in
+[app.scss](app.scss) as `bg-<token>` and `text-<token>`. These also support Quasar
+props such as `color="surface"` and `text-color="on-surface"`. Defining a Sass
+variable alone does not create a CSS class; expose the background or foreground
+utility needed by its consumers.
 
-`quasar.variables.scss` maps the scale to Quasar's component variables and
-styles HTML headings through `$h-tags`, including member-authored Markdown.
-Quasar's `$headings` map keeps its defaults so native typography utilities
-remain available to its components.
+## Typography
 
-`app.scss` generates our `text-<token>` classes using the `type-style()` mixin
-and adds the font family for HTML headings.
-Components with explicit tokens, such as toolbar titles, chips and badges,
-need no global typography overrides.
-`TimeSeriesChart.vue` passes its canvas font and palette values from Sass to JavaScript
-through a local CSS module. The balance header uses `type-value()` directly
-for its scrolling animation. The landing-page slogan keeps its existing
-fit-to-width behavior.
+Typography roles establish a hierarchy: displays emphasize standalone values,
+headlines identify page subjects, titles introduce sections, body styles serve
+reading text, and labels serve compact UI text. Choose a role based on the
+content's purpose, then the size appropriate to its context.
 
-Keep layout, color and text role separate. For example:
+Lora gives displays and larger headings a distinctive serif face. Inter keeps
+body text, labels and small titles readable in dense interfaces. Each token
+bundles the complete text style, including case, so components do not need to
+assemble font, weight and size independently. Sizes and line heights use `rem`
+to follow the reader's root font size. See [typography.scss](typography.scss)
+for the scale and its variants.
+
+Use one `text-<role>` class for a text element. Keep its color and layout
+separate, so the same role can be reused on different surfaces:
 
 ```html
 <h1 class="text-headline-large text-on-surface q-my-none">Community name</h1>
-<q-item-label class="text-title-small">Member name</q-item-label>
-<span class="text-label-small">Pending</span>
+<p class="text-body-medium text-on-surface-medium q-mt-sm">Description</p>
 ```
+
+For custom SCSS, `@include type-style('body-medium')` applies a complete role;
+`type-value('body-medium', size)` reads an individual property. HTML headings
+also receive theme defaults, so content rendered from Markdown follows the
+same visual hierarchy. Choose HTML heading levels for document structure and
+text classes for appearance.
+
+## Working with Quasar and flavors
+
+Prefer Quasar components and utilities for layout, spacing and interaction.
+The theme maps shared tokens to Quasar variables where appropriate, while
+controls retain their own sizing and label behavior. Apply explicit typography
+roles to content within controls when needed; avoid blanket overrides of their
+internal styles.
+
+Use scoped SCSS for component behavior that utilities cannot express. Put
+reusable visual decisions in the shared tokens and reusable style rules in
+[app.scss](app.scss).
+
+Flavor overrides live in [flavors/komunitin](flavors/komunitin/override.variables.scss)
+and [flavors/ces](flavors/ces/override.variables.scss). Both currently use the
+shared theme. The build copies the selected flavor's overrides to
+`override.variables.scss`, which is imported at the end of the theme; edit the
+flavor source, not the generated copy.
