@@ -1,6 +1,6 @@
 import type { MaybeRefOrGetter} from "@vueuse/shared";
 import { toValue } from "@vueuse/shared"
-import { config } from "src/utils/config"
+import { config } from "@/utils/config"
 import { useStore } from "vuex"
 import { checkFetchResponse } from "../KError"
 

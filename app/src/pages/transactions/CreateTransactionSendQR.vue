@@ -25,16 +25,16 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "src/store/model"
+import type { Account, ExtendedAccount, ExtendedTransfer, TransferMeta } from "@/store/model"
 import { computed, ref, watch } from "vue"
 import { useStore } from "vuex"
-import { transferAccountRelationships, useCreateTransferPayerAccount } from "src/composables/fullAccount"
+import { transferAccountRelationships, useCreateTransferPayerAccount } from "@/composables/fullAccount"
 import { QrcodeStream } from "vue-qrcode-reader"
 import CreateTransactionSingleConfirm from "./CreateTransactionSingleConfirm.vue"
-import KError, { KErrorCode } from "src/KError"
-import type { LoadByUrlPayload } from "src/store/resources"
-import { loadExternalAccountRelationships, useFullTransferByResource } from "src/composables/fullTransfer"
-import { convertCurrency } from "src/plugins/FormatCurrency"
+import KError, { KErrorCode } from "@/KError"
+import type { LoadByUrlPayload } from "@/store/resources"
+import { loadAccountsRelationships, useFullTransferByResource } from "@/composables/fullTransfer"
+import { convertCurrency } from "@/plugins/FormatCurrency"
 import { useAccountSettings } from "../../composables/accountSettings"
 
 type DetectedCode = {
@@ -113,7 +113,7 @@ const onPaymentUrl = async (paymentUrl: string) => {
       const {enableExternalPayments, enableCreditCommonsPayments} = payerAccount.value.currency.settings.attributes
       if (payeeAccount.value && enableExternalPayments) {
         // Use komunitin external payment.
-        await loadExternalAccountRelationships(payeeAccount.value, store)
+        await loadAccountsRelationships([payeeAccount.value], store)
         localAmount = convertCurrency(localAmount, (payeeAccount.value as ExtendedAccount).currency, myCurrency.value)
       } else if (enableCreditCommonsPayments) {
         payeeAccount.value = undefined

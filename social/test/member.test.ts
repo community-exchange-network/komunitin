@@ -1,21 +1,26 @@
 import { after, before, beforeEach, describe, test } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
-import { tenantDb } from '../src/server/multitenant'
+import { privilegedDb, tenantDb } from '../src/server/multitenant'
 import prisma from '../src/utils/prisma'
 import { Scope } from '../src/server/context'
-import { auth, serviceAuth } from './mocks/auth'
+import { auth, serviceAuth, signJwt } from './mocks/auth'
 import { accountingAccountHref } from './mocks/accounting'
 import {
+  memberDeletionToken,
   getAccountingRequestPaths,
   getAuthTokenRequests,
+  getIdentityDeleteRequests,
+  setIdentityDeleteStatus,
   getNotificationsEvents,
+  setNotificationsEventStatus,
   resetMockState,
   seedAccountingAccount,
   seedAccountingCurrency,
   setAccountingAccountDeleteStatus,
+  setAccountingAccountPatchStatus,
 } from './mocks/handlers'
-import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser, seedPost } from './mocks/seed'
+import { resetDb, seedGroup, seedGroupAdmin, seedMember, seedMemberUser, seedPost, seedUser } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 import { toUuid } from './mocks/utils'
 
@@ -57,7 +62,15 @@ describe('Members endpoints', () => {
   })
 
   test('POST /:code/members creates draft member linked to authenticated user', async () => {
-    const group = await seedGroup({ tenantId: 'members-create', status: 'active', access: 'public' })
+    const group = await seedGroup({
+      tenantId: 'members-create',
+      status: 'active',
+      access: 'public',
+      settings: {
+        allowAnonymousMemberList: true,
+        defaultGroupEmailFrequency: 'weekly',
+      },
+    })
     const user = await auth('member-create-user')
 
     const res = await request(app)
@@ -69,6 +82,7 @@ describe('Members endpoints', () => {
           attributes: {
             name: 'Alice Member',
             description: 'Member description',
+            location: null,
           },
         },
       })
@@ -78,7 +92,9 @@ describe('Members endpoints', () => {
     assert.strictEqual(res.body.data.attributes.name, 'Alice Member')
     assert.strictEqual(res.body.data.attributes.status, 'draft')
     assert.strictEqual(res.body.data.attributes.code, 'members-create0000')
+    assert.deepStrictEqual(res.body.data.attributes.address, {})
     assert.deepStrictEqual(res.body.data.attributes.contacts, [])
+    assert.strictEqual(res.body.data.attributes.location, null)
     assert.strictEqual(res.body.data.relationships.group.data.id, group.id)
 
     const list = await request(app)
@@ -96,6 +112,32 @@ describe('Members endpoints', () => {
     assert.strictEqual(draftList.body.data.length, 1)
     assert.strictEqual(draftList.body.data[0].attributes.name, 'Alice Member')
     assert.deepStrictEqual(draftList.body.data[0].attributes.contacts, [])
+
+    const db = tenantDb(prisma, 'members-create')
+    const relation = await db.memberUser.findFirstOrThrow({ where: { memberId: res.body.data.id } })
+    assert.match(relation.id, /^[0-9a-f-]{36}$/)
+    assert.deepStrictEqual(relation.settings, {
+      notifications: { myAccount: true, group: true },
+      emails: { myAccount: true, group: 'weekly' },
+    })
+  })
+
+  test('POST /:code/members rejects javascript website URLs', async () => {
+    await seedGroup({ tenantId: 'website-contacts' })
+    const user = await auth('contact-owner')
+    await request(app)
+      .post('/website-contacts/members')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            name: 'Contact owner',
+            contacts: [{ type: 'website', value: 'javascript:alert(1)' }],
+          },
+        },
+      })
+      .expect(400)
   })
 
   test('POST /:code/members allows repeated member creation by the same user', async () => {
@@ -118,20 +160,67 @@ describe('Members endpoints', () => {
     assert.strictEqual(await db.memberUser.count({ where: { userId: user.id } }), 2)
   })
 
-  test('POST /:code/members allocates the first unused numeric code', async () => {
-    await seedGroup({ tenantId: 'members-code-gap', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0000' })
-    await seedMember({ tenantId: 'members-code-gap', code: 'members-code-gap0002' })
-    const user = await auth('member-code-gap-user')
+  test('POST /:code/members accepts a partial address', async () => {
+    await seedGroup({ tenantId: 'members-partial-address', status: 'active', access: 'public' })
+    const user = await auth('member-partial-address-user')
 
     const res = await request(app)
-      .post('/members-code-gap/members')
+      .post('/members-partial-address/members')
       .set('Authorization', `Bearer ${user.token}`)
-      .send({ data: { type: 'members', attributes: { name: 'Gap Member' } } })
+      .send({
+        data: {
+          type: 'members',
+          attributes: {
+            name: 'Partial Address Member',
+            address: {
+              addressLocality: 'Riverdale',
+            },
+          },
+        },
+      })
       .expect(201)
 
-    assert.strictEqual(res.body.data.attributes.code, 'members-code-gap0001')
+    assert.deepStrictEqual(res.body.data.attributes.address, {
+      addressLocality: 'Riverdale',
+    })
   })
+
+  for (const { name, suffixes, expected, deleted } of [
+    { name: 'increments the latest numeric code instead of the maximum', suffixes: ['0137', '0000', '0002', '9', '0010', 'Special'], expected: '0011' },
+    { name: 'skips occupied codes after the latest numeric code', suffixes: ['0137', '0012', '0011', '0010'], expected: '0013' },
+    { name: 'starts at 0000 when no numeric suffix exists', suffixes: ['', 'Special', '9999suffix'], expected: '0000' },
+    { name: 'allows more than four digits', suffixes: ['9999'], expected: '10000' },
+    { name: 'skips occupied codes beyond four digits', suffixes: ['10000', '9999'], expected: '10001' },
+    { name: 'treats differently padded numeric suffixes as occupied', suffixes: ['11', '0010'], expected: '0012' },
+    { name: 'keeps deleted member codes reserved', suffixes: ['0137', '0022', '0021', '0020'], expected: '0023', deleted: new Date() },
+  ]) {
+    test(`POST /:code/members ${name}`, async () => {
+      const tenantId = 'members.code'
+      await seedGroup({ tenantId, status: 'active', access: 'public' })
+      for (const [index, suffix] of suffixes.entries()) {
+        await seedMember({
+          tenantId,
+          code: `${tenantId}${suffix}`,
+          deleted,
+          created: new Date(Date.UTC(2026, 0, 1, 0, 0, index)),
+          // Editing an older member must not move it to the end of the sequence.
+          updated: new Date(Date.UTC(2026, 0, 2, 0, 0, suffixes.length - index)),
+        })
+      }
+      await seedMember({ tenantId, code: 'membersXcode99999' })
+      await seedGroup({ tenantId: 'other-group' })
+      await seedMember({ tenantId: 'other-group', code: `${tenantId}99999` })
+      const user = await auth('member-code-user')
+
+      const res = await request(app)
+        .post(`/${tenantId}/members`)
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ data: { type: 'members', attributes: { name: 'New Member' } } })
+        .expect(201)
+
+      assert.strictEqual(res.body.data.attributes.code, `${tenantId}${expected}`)
+    })
+  }
 
   test('POST /:code/members accepts explicit code only if admin', async () => {
     await seedGroup({ tenantId: 'members-create-code', status: 'active', access: 'public' })
@@ -164,22 +253,269 @@ describe('Members endpoints', () => {
     assert.strictEqual(adminRes.body.data.attributes.code, 'custom-member')
   })
 
-  test('GET /:code/members returns only active public members to anonymous users', async () => {
+  test('GET /:code/members lists active members in code order', async () => {
     const group = await seedGroup({ tenantId: 'members-list-anon', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-list-anon', code: 'public-active', status: 'active', access: 'public' })
-    await seedMember({ tenantId: 'members-list-anon', code: 'group-active', status: 'active', access: 'group' })
+    await seedMember({ tenantId: 'members-list-anon', code: 'public-active', name: 'Alpha', status: 'active', access: 'public', created: new Date('2026-01-01T00:00:00Z') })
+    await seedMember({ tenantId: 'members-list-anon', code: 'group-active', name: 'Zeta', status: 'active', access: 'group', created: new Date('2026-01-02T00:00:00Z') })
     await seedMember({ tenantId: 'members-list-anon', code: 'public-pending', status: 'pending', access: 'public' })
 
     const res = await request(app)
       .get('/members-list-anon/members')
       .expect(200)
 
-    assert.strictEqual(res.body.data.length, 1)
-    assert.strictEqual(res.body.data[0].attributes.code, 'public-active')
+    assert.deepStrictEqual(res.body.data.map((member: any) => member.attributes.code), ['group-active', 'public-active'])
     assert.strictEqual(res.body.data[0].relationships.group.data.id, group.id)
   })
 
-  test('inactive memberships do not grant restricted member-list access', async () => {
+  test('anonymous member listing returns minimal restricted profiles, including account lookups', async () => {
+    const tenantId = 'members-minimal'
+    const group = await seedGroup({ tenantId, settings: { allowAnonymousMemberList: true } })
+    const accountId = toUuid('minimal-account')
+    const member = await seedMember({
+      tenantId, access: 'group', accountId,
+      image: { url: 'https://example.org/avatar.png' },
+      contacts: [{ type: 'email', value: 'private@example.org' }],
+    })
+    const disabledAccountId = toUuid('disabled-account')
+    await seedMember({ tenantId, status: 'disabled', access: 'group', accountId: disabledAccountId })
+    const outsider = await auth('minimal-outsider')
+
+    for (const token of [null, outsider.token]) {
+      const query = request(app).get(`/${tenantId}/members?filter[account]=${accountId},${disabledAccountId}&filter[status]=active,disabled&include=group&near=0,0`)
+      if (token) query.set('Authorization', `Bearer ${token}`)
+      const res = await query.expect(200)
+      assert.strictEqual(res.body.meta.count, 1)
+      assert.strictEqual(res.body.data.length, 1)
+      assert.strictEqual(res.body.data[0].id, member.id)
+      assert.deepStrictEqual(res.body.data[0].attributes, { code: member.code, name: member.name, image: member.image })
+      assert.deepStrictEqual(Object.keys(res.body.data[0].relationships).sort(), ['account', 'group'])
+      assert.strictEqual(res.body.data[0].relationships.account.data.id, accountId)
+      assert.strictEqual(res.body.included[0].id, group.id)
+    }
+  })
+
+  test('member listing preserves sort order across full and minimal profiles', async () => {
+    const tenantId = 'members-mixed-sort'
+    const group = await seedGroup({ tenantId, settings: { allowAnonymousMemberList: true } })
+    const members = await Promise.all(['public', 'group', 'public', 'private'].map((access, index) =>
+      seedMember({ tenantId, code: `member-${index}`, name: `Member ${index}`, access }),
+    ))
+
+    for (const sort of ['code', '-code', 'name', '-name']) {
+      const res = await request(app)
+        .get(`/${tenantId}/members?sort=${sort}&include=group`)
+        .expect(200)
+
+      const expected = sort.startsWith('-') ? members.toReversed() : members
+      assert.deepStrictEqual(res.body.data.map((member: any) => member.id), expected.map(member => member.id))
+      assert.deepStrictEqual(res.body.data.map((member: any) => member.attributes.status), expected.map(member => member.access === 'public' ? 'active' : undefined))
+      assert.deepStrictEqual(res.body.included.map((resource: any) => resource.id), [group.id])
+    }
+  })
+
+  test('protected member queries return an empty collection when no full profiles are readable', async () => {
+    await seedGroup({ tenantId: 'members-anon-query' })
+    await seedMember({ tenantId: 'members-anon-query', access: 'group' })
+    const outsider = await auth('members-query-outsider')
+    await seedGroup({ tenantId: 'members-query-other' })
+    await seedMember({ tenantId: 'members-query-other', userId: outsider.id })
+    await seedGroupAdmin({ tenantId: 'members-query-other', userId: outsider.id })
+
+    for (const token of [null, outsider.token]) {
+      for (const query of [
+        'filter[created][gt]=2026-01-01T00:00:00Z',
+        'filter[type]=personal',
+        'filter[access]=group',
+        'sort=created',
+        'sort=-updated',
+        'sort=distance&near=0,0',
+      ]) {
+        const req = request(app).get(`/members-anon-query/members?${query}`)
+        if (token) req.set('Authorization', `Bearer ${token}`)
+        const res = await req.expect(200)
+        assert.deepStrictEqual(res.body.data, [])
+        assert.strictEqual(res.body.meta.count, 0)
+      }
+    }
+  })
+
+  test('protected member queries select full profiles before filtering and pagination', async () => {
+    const tenantId = 'members-protected-query'
+    await seedGroup({ tenantId })
+    const owner = await auth('members-query-owner')
+    const admin = await auth('members-query-admin')
+    await seedGroupAdmin({ tenantId, userId: admin.id })
+    const profiles = [
+      { code: 'a-private', access: 'private' },
+      { code: 'b-public', access: 'public' },
+      { code: 'c-group', access: 'group' },
+      { code: 'd-owned', access: 'private', userId: owner.id },
+    ]
+    for (const [index, profile] of profiles.entries()) {
+      await seedMember({
+        tenantId, ...profile,
+        created: new Date(`2026-01-0${index + 2}T00:00:00Z`),
+        updated: new Date(`2026-01-0${index + 2}T00:00:00Z`),
+        longitude: index,
+        latitude: 0,
+      })
+    }
+    await seedMember({ tenantId, code: 'e-old-public', created: new Date('2025-01-01T00:00:00Z') })
+
+    for (const { token, codes } of [
+      { token: null, codes: ['b-public'] },
+      { token: owner.token, codes: ['b-public', 'c-group', 'd-owned'] },
+      { token: admin.token, codes: profiles.map(({ code }) => code) },
+    ]) {
+      for (const query of [
+        'filter[created][gt]=2026-01-01T00:00:00Z',
+        'filter[type]=personal',
+        'filter[access]=public,group,private',
+        'sort=created',
+        'sort=updated',
+        'sort=distance&near=0,0',
+      ]) {
+        // Exclude the older public profile except when testing the date filter itself.
+        const filter = query.startsWith('filter[created]') ? '' : `&filter[code]=${profiles.map(({ code }) => code).join(',')}`
+        for (let page = 0; page < codes.length; page++) {
+          const req = request(app).get(`/${tenantId}/members?${query}${filter}&page[size]=1&page[after]=${page}`)
+          if (token) req.set('Authorization', `Bearer ${token}`)
+          const res = await req.expect(200)
+          assert.strictEqual(res.body.meta.count, codes.length)
+          assert.deepStrictEqual(res.body.data.map((member: any) => member.attributes.code), [codes[page]])
+          assert.strictEqual(res.body.data[0].attributes.status, 'active')
+        }
+      }
+    }
+  })
+
+  test('member listing preserves ownership and requires active membership for full group profiles', async () => {
+    const tenantId = 'members-list-permissions'
+    const group = await seedGroup({ tenantId, settings: { allowAnonymousMemberList: true } })
+    const owner = await auth('members-list-permissions-owner')
+    const owned = await seedMember({ tenantId, access: 'private', status: 'pending', userId: owner.id })
+    const groupProfile = await seedMember({ tenantId, access: 'group' })
+    const privateProfile = await seedMember({ tenantId, access: 'private' })
+
+    for (const status of ['pending', 'active'] as const) {
+      await tenantDb(prisma, tenantId).member.update({ where: { id: owned.id }, data: { status } })
+      const res = await request(app)
+        .get(`/${tenantId}/members?filter[status]=active,pending&include=group`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .expect(200)
+
+      assert.strictEqual(res.body.data.length, 3)
+      assert.deepStrictEqual(res.body.included.map(({ id }: { id: string }) => id), [group.id])
+      const profiles = new Map<string, any>(res.body.data.map((member: any) => [member.id, member.attributes]))
+      assert.strictEqual(profiles.get(owned.id).code, owned.code)
+      assert.strictEqual(profiles.get(owned.id).status, status)
+      assert.strictEqual(profiles.get(groupProfile.id).code, groupProfile.code)
+      assert.strictEqual(profiles.get(groupProfile.id).status, status === 'active' ? groupProfile.status : undefined)
+      assert.strictEqual(profiles.get(privateProfile.id).code, privateProfile.code)
+      assert.strictEqual(profiles.get(privateProfile.id).status, undefined)
+    }
+  })
+
+  test('GET /:code/members resolves a pending member by code', async () => {
+    await seedGroup({
+      tenantId: 'members-code-identity',
+      status: 'active',
+      access: 'public',
+      settings: { allowAnonymousMemberList: false },
+    })
+    const owner = await auth('members-code-identity-owner')
+    await seedMember({
+      tenantId: 'members-code-identity',
+      code: 'pending-member',
+      status: 'pending',
+      access: 'private',
+      userId: owner.id,
+    })
+
+    const ownerRes = await request(app)
+      .get('/members-code-identity/members?filter[code]=pending-member')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+
+    assert.strictEqual(ownerRes.body.data.length, 1)
+    assert.strictEqual(ownerRes.body.data[0].attributes.status, 'pending')
+  })
+
+  test('GET /:code/members resolves disabled and suspended members by account', async () => {
+    const disabledAccount = toUuid('members-account-identity-disabled')
+    const suspendedAccount = toUuid('members-account-identity-suspended')
+    const deletedAccount = toUuid('members-account-identity-deleted')
+    await seedGroup({ tenantId: 'members-account-identity', status: 'active', access: 'public' })
+    const admin = await auth('members-account-identity-admin')
+    await seedGroupAdmin({ tenantId: 'members-account-identity', userId: admin.id })
+    await seedMember({
+      tenantId: 'members-account-identity',
+      code: 'disabled-member',
+      status: 'disabled',
+      access: 'private',
+      accountId: disabledAccount,
+    })
+    await seedMember({
+      tenantId: 'members-account-identity',
+      code: 'suspended-member',
+      status: 'suspended',
+      access: 'private',
+      accountId: suspendedAccount,
+    })
+    await seedMember({
+      tenantId: 'members-account-identity',
+      code: 'deleted-member',
+      status: 'deleted',
+      access: 'private',
+      accountId: deletedAccount,
+      deleted: new Date(),
+    })
+
+    const adminRes = await request(app)
+      .get(`/members-account-identity/members?filter[account]=${disabledAccount},${suspendedAccount},${deletedAccount}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      adminRes.body.data.map((member: any) => member.attributes.code).sort(),
+      ['disabled-member', 'suspended-member'],
+    )
+  })
+
+  test('GET /:code/members preserves explicit status filters for identity lookups', async () => {
+    const accountId = toUuid('members-identity-status-account')
+    await seedGroup({ tenantId: 'members-identity-status', status: 'active', access: 'public' })
+    const admin = await auth('members-identity-status-admin')
+    await seedGroupAdmin({ tenantId: 'members-identity-status', userId: admin.id })
+    await seedMember({
+      tenantId: 'members-identity-status',
+      code: 'pending-by-code',
+      status: 'pending',
+      access: 'private',
+    })
+    await seedMember({
+      tenantId: 'members-identity-status',
+      code: 'disabled-by-account',
+      status: 'disabled',
+      access: 'private',
+      accountId,
+    })
+
+    const codeRes = await request(app)
+      .get('/members-identity-status/members?filter[code]=pending-by-code&filter[status]=active')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    const accountRes = await request(app)
+      .get(`/members-identity-status/members?filter[account]=${accountId}&filter[status]=active`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200)
+
+    assert.strictEqual(codeRes.body.data.length, 0)
+    assert.strictEqual(accountRes.body.data.length, 0)
+  })
+
+  test('inactive memberships grant restricted member-list access to linked members', async () => {
     await seedGroup({
       tenantId: 'members-draft-access',
       status: 'active',
@@ -200,11 +536,15 @@ describe('Members endpoints', () => {
         draftId = member.id
       }
     }
-
-    await request(app)
+    const listRes = await request(app)
       .get('/members-draft-access/members?filter[status]=draft,pending,disabled,suspended')
       .set('Authorization', `Bearer ${user.token}`)
-      .expect(403)
+      .expect(200)
+
+    assert.deepStrictEqual(
+      listRes.body.data.map((member: any) => member.attributes.code).sort(),
+      ['member-disabled', 'member-draft', 'member-pending', 'member-suspended'],
+    )
 
     await request(app)
       .get(`/members-draft-access/members/${draftId}`)
@@ -369,36 +709,44 @@ describe('Members endpoints', () => {
       .expect(403)
   })
 
-  test('member offer and need relationships expose visible published counts', async () => {
-    await seedGroup({ tenantId: 'members-post-counts', status: 'active', access: 'public' })
+  test('member post counts exclude expired, unpublished and inaccessible posts', async () => {
+    const tenantId = 'members-post-counts'
+    await seedGroup({ tenantId, status: 'active', access: 'public' })
+    const owner = await auth('post-counts-owner')
     const member = await seedMember({
-      tenantId: 'members-post-counts',
+      tenantId,
       status: 'active',
       access: 'public',
+      userId: owner.id,
     })
-    await seedPost({
-      tenantId: 'members-post-counts',
-      memberId: member.id,
-      type: 'offers',
-      status: 'published',
-      access: 'public',
-    })
-    await seedPost({
-      tenantId: 'members-post-counts',
-      memberId: member.id,
-      type: 'offers',
-      status: 'draft',
-      access: 'public',
-    })
+    const base = { tenantId, memberId: member.id, type: 'offers', status: 'published', access: 'public' } as const
+    await seedPost(base)
+    await seedPost({ ...base, access: 'private' })
+    await seedPost({ ...base, expires: new Date('2000-01-01') })
+    await seedPost({ ...base, type: 'needs', status: 'draft' })
 
-    const res = await request(app)
-      .get(`/members-post-counts/members/${member.id}`)
+    const publicRes = await request(app)
+      .get(`/${tenantId}/members/${member.id}`)
       .expect(200)
+    assert.strictEqual(publicRes.body.data.relationships.offers.meta.count, 1)
 
-    assert.strictEqual(res.body.data.relationships.offers.meta.count, 1)
-    assert.strictEqual(res.body.data.relationships.needs.meta.count, 0)
-    const related = new URL(res.body.data.relationships.offers.links.related)
+    const ownerRes = await request(app)
+      .get(`/${tenantId}/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+    const relationships = ownerRes.body.data.relationships
+    assert.strictEqual(relationships.offers.meta.count, 2)
+    assert.strictEqual(relationships.needs.meta.count, 0)
+
+    const related = new URL(relationships.offers.links.related)
     assert.strictEqual(related.searchParams.get('filter[status]'), 'published')
+    assert.strictEqual(related.searchParams.get('filter[expired]'), 'false')
+    const posts = await request(app)
+      .get(related.pathname + related.search)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200)
+    assert.strictEqual(posts.body.meta.count, 2)
+    assert.strictEqual(posts.body.data.length, 2)
   })
 
   test('GET /:code/members/:member allows service read access for non-public member', async () => {
@@ -437,7 +785,7 @@ describe('Members endpoints', () => {
     assert.strictEqual(codes.includes('member-b'), true)
   })
 
-  test('PATCH /:code/members/:member allows member user to update attributes', async () => {
+  test('PATCH /:code/members/:member preserves omitted location and allows clearing it', async () => {
     await seedGroup({ tenantId: 'members-patch-owner', status: 'active', access: 'public' })
     const owner = await auth('member-patch-owner')
     const member = await seedMember({
@@ -446,6 +794,8 @@ describe('Members endpoints', () => {
       status: 'draft',
       access: 'private',
       userId: owner.id,
+      longitude: 2,
+      latitude: 41,
     })
 
     const res = await request(app)
@@ -464,6 +814,18 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.attributes.name, 'Updated Member')
     assert.strictEqual(res.body.data.attributes.description, 'Updated description')
+    assert.deepStrictEqual(res.body.data.attributes.location.coordinates, [2, 41])
+
+    const cleared = await request(app)
+      .patch(`/members-patch-owner/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ data: { type: 'members', attributes: { location: null } } })
+      .expect(200)
+
+    assert.strictEqual(cleared.body.data.attributes.location, null)
+    const stored = await tenantDb(prisma, 'members-patch-owner').member.findUniqueOrThrow({ where: { id: member.id } })
+    assert.strictEqual(stored.latitude, null)
+    assert.strictEqual(stored.longitude, null)
   })
 
   test('PATCH /:code/members/:member allows draft to pending by owner', async () => {
@@ -725,6 +1087,107 @@ describe('Members endpoints', () => {
     assert.strictEqual(getNotificationsEvents().length, 0)
   })
 
+  test('PATCH /:code/members/:member keeps Social unchanged when Accounting fails and succeeds on retry', async () => {
+    const currency = seedAccountingCurrency('members-toggle-retry')
+    await seedGroup({
+      tenantId: 'members-toggle-retry',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-toggle-retry-owner')
+    const account = seedAccountingAccount(currency.code, 'toggle-retry', [owner.id])
+    const member = await seedMember({
+      tenantId: 'members-toggle-retry',
+      code: 'toggle-retry',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    setAccountingAccountPatchStatus(503)
+    const failed = await request(app)
+      .patch(`/members-toggle-retry/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: { status: 'disabled' },
+        },
+      })
+      .expect(500)
+
+    assert.strictEqual(failed.body.errors[0].detail, 'Mock accounting account update failure')
+    const db = tenantDb(prisma, 'members-toggle-retry')
+    const unchanged = await db.member.findUnique({ where: { id: member.id } })
+    assert.strictEqual(unchanged?.status, 'active')
+    assert.strictEqual(account.status, 'active')
+
+    setAccountingAccountPatchStatus(200)
+    const retried = await request(app)
+      .patch(`/members-toggle-retry/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: { status: 'disabled' },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(retried.body.data.attributes.status, 'disabled')
+    assert.strictEqual(account.status, 'disabled')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+      `PATCH /${currency.code}/accounts/${account.id}`,
+      `GET /${currency.code}/accounts/${account.id}`,
+      `PATCH /${currency.code}/accounts/${account.id}`,
+    ])
+  })
+
+  test('PATCH /:code/members/:member recovers an interrupted status transition without a duplicate Accounting update', async () => {
+    const currency = seedAccountingCurrency('members-toggle-interrupted')
+    await seedGroup({
+      tenantId: 'members-toggle-interrupted',
+      status: 'active',
+      access: 'public',
+      currencyId: currency.id,
+    })
+
+    const owner = await auth('member-toggle-interrupted-owner')
+    const account = seedAccountingAccount(
+      currency.code,
+      'toggle-interrupted',
+      [owner.id],
+      undefined,
+      'disabled',
+    )
+    const member = await seedMember({
+      tenantId: 'members-toggle-interrupted',
+      code: 'toggle-interrupted',
+      status: 'active',
+      userId: owner.id,
+      accountId: account.id,
+    })
+
+    const recovered = await request(app)
+      .patch(`/members-toggle-interrupted/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        data: {
+          type: 'members',
+          attributes: { status: 'disabled' },
+        },
+      })
+      .expect(200)
+
+    assert.strictEqual(recovered.body.data.attributes.status, 'disabled')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [
+      `GET /${currency.code}/accounts/${account.id}`,
+    ])
+  })
+
   test('PATCH /:code/members/:member allows suspend and resume only by group admin', async () => {
     const currency = seedAccountingCurrency('members-suspend')
     await seedGroup({
@@ -798,7 +1261,45 @@ describe('Members endpoints', () => {
     )
   })
 
-  test('DELETE /:code/members/:member soft-deletes as member admin after accounting delete', async () => {
+  test('requesting deletion requires ownership and emits only user and member IDs without changing the member or balance', async () => {
+    const owner = await auth('request-deletion-owner')
+    const admin = await auth('request-deletion-admin')
+    const outsider = await auth('request-deletion-outsider')
+    const currency = seedAccountingCurrency('request-deletion')
+    await seedGroup({ tenantId: currency.code, currencyId: currency.id, status: 'active' })
+    await seedGroupAdmin({ tenantId: currency.code, userId: admin.id })
+    const account = seedAccountingAccount(currency.code, 'owner', [owner.id])
+    account.balance = 50
+    const member = await seedMember({
+      tenantId: currency.code, userId: owner.id, accountId: account.id, name: 'My member',
+    })
+    await seedUser({ id: owner.id, email: owner.email })
+    const url = `/${currency.code}/members/${member.id}/request-deletion`
+    const send = (token = owner.token) => request(app).post(url)
+      .set('Authorization', `Bearer ${token}`)
+
+    await request(app).post(url).expect(401)
+    await send(outsider.token).expect(403)
+    await send(admin.token).expect(403)
+    await send().expect(204)
+    const event = getNotificationsEvents()[0] as any
+    assert.strictEqual(event.data.attributes.source, 'social')
+    assert.strictEqual(event.data.attributes.name, 'MemberDeletionRequested')
+    assert.strictEqual(event.data.attributes.code, currency.code)
+    assert.deepStrictEqual(event.data.attributes.data, {
+      user: owner.id, memberId: member.id,
+    })
+    assert.strictEqual(event.data.relationships.user.data.id, owner.id)
+    assert.strictEqual(account.balance, 50)
+    assert.strictEqual((await tenantDb(prisma, currency.code).member.findUniqueOrThrow({ where: { id: member.id } })).deleted, null)
+    assert.deepStrictEqual(getIdentityDeleteRequests(), [])
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+
+    setNotificationsEventStatus(500)
+    await send().expect(500)
+  })
+
+  test('DELETE /:code/members/:member confirms deletion without login after accounting delete', async () => {
     const currency = seedAccountingCurrency('members-delete')
     await seedGroup({
       tenantId: 'members-delete',
@@ -818,7 +1319,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -844,6 +1345,61 @@ describe('Members endpoints', () => {
     assert.strictEqual(deleted?.status, 'active')
   })
 
+  test('email confirmation binds the member and owner before deleting', async () => {
+    const currency = seedAccountingCurrency('confirm-deletion')
+    await seedGroup({ tenantId: currency.code, status: 'active', access: 'private', currencyId: currency.id })
+    const owner = await auth('confirm-deletion-owner')
+    await seedGroup({ tenantId: 'remaining-membership', status: 'active' })
+    await seedMember({ tenantId: 'remaining-membership', userId: owner.id })
+    const other = await auth('confirm-deletion-other')
+    const account = seedAccountingAccount(currency.code, 'owner', [owner.id], undefined, 'active', 0)
+    const member = await seedMember({ tenantId: currency.code, userId: owner.id, accountId: account.id })
+    const path = `/${currency.code}/members/${member.id}`
+    const token = memberDeletionToken(owner.id, member.id)
+
+    await request(app).delete(path).expect(401)
+    await request(app).delete(path).send({ meta: { token: '' } }).expect(401)
+    await request(app).delete(path).send({ meta: { token: 123 } }).expect(401)
+    await request(app).delete(path).set('Authorization', 'Bearer invalid-token')
+      .send({ meta: { token } }).expect(401)
+    await request(app).delete(path).set('Authorization', `Bearer ${owner.token}`).expect(403)
+    for (const invalid of [
+      'invalid-token',
+      memberDeletionToken(owner.id, toUuid('another-member')),
+    ]) {
+      await request(app).delete(path).send({ meta: { token: invalid } }).expect(400)
+    }
+    await request(app).delete(`/remaining-membership/members/${member.id}`)
+      .send({ meta: { token } }).expect(404)
+    await request(app).delete(path).send({ meta: {
+      token: memberDeletionToken(other.id, member.id),
+    } }).expect(403)
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
+    assert.strictEqual(account.balance, 0)
+
+    await request(app).delete(path).send({ meta: { token } }).expect(204)
+    assert.strictEqual(account.balance, 0)
+    assert.strictEqual(account.status, 'deleted')
+    await request(app).delete(path).send({ meta: { token } }).expect(204)
+  })
+
+  test('confirmed draft deletion rejects an unrelated account with the same code', async () => {
+    const currency = seedAccountingCurrency('draft-deletion')
+    await seedGroup({ tenantId: currency.code, status: 'active', currencyId: currency.id })
+    const owner = await auth('draft-deletion-owner')
+    const other = await auth('draft-deletion-other')
+    const account = seedAccountingAccount(currency.code, 'shared-code', [other.id], undefined, 'active', 0)
+    const member = await seedMember({
+      tenantId: currency.code, code: account.code, status: 'draft', userId: owner.id,
+    })
+
+    await request(app).delete(`/${currency.code}/members/${member.id}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } }).expect(403)
+
+    assert.strictEqual(account.status, 'active')
+    assert.deepStrictEqual(getAccountingRequestPaths(), [`GET /${currency.code}/accounts`])
+  })
+
   test('DELETE /:code/members/:member allows group admin to delete another member', async () => {
     const currency = seedAccountingCurrency('members-delete-admin')
     await seedGroup({
@@ -863,6 +1419,13 @@ describe('Members endpoints', () => {
       userId: owner.id,
       accountId: account.id,
     })
+
+    const readOnlyToken = await signJwt(admin.id, admin.email, Scope.SocialRead, { includeDefaultScopes: false })
+    await request(app)
+      .delete(`/members-delete-admin/members/${member.id}`)
+      .set('Authorization', `Bearer ${readOnlyToken}`)
+      .expect(403)
+    assert.deepStrictEqual(getAccountingRequestPaths(), [])
 
     await request(app)
       .delete(`/members-delete-admin/members/${member.id}`)
@@ -913,7 +1476,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-no-account/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -934,7 +1497,7 @@ describe('Members endpoints', () => {
       currencyId: currency.id,
     })
     const owner = await auth('members-delete-account-by-code-owner')
-    const account = seedAccountingAccount(currency.code, 'delete-by-code', [owner.id])
+    const account = seedAccountingAccount(currency.code, 'delete-by-code', [toUuid('additional-account-owner'), owner.id])
     const member = await seedMember({
       tenantId: 'members-delete-account-by-code',
       code: 'delete-by-code',
@@ -944,7 +1507,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-account-by-code/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -957,7 +1520,7 @@ describe('Members endpoints', () => {
     assert.ok(deleted?.deleted)
   })
 
-  test('DELETE /:code/members/:member returns bad request and keeps social member when accounting account has nonzero balance', async () => {
+  test('DELETE /:code/members/:member keeps the member when Accounting rejects a nonzero balance', async () => {
     const currency = seedAccountingCurrency('members-delete-accounting-400')
     await seedGroup({
       tenantId: 'members-delete-accounting-400',
@@ -978,13 +1541,14 @@ describe('Members endpoints', () => {
 
     const res = await request(app)
       .delete(`/members-delete-accounting-400/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
-      .expect(400)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
+      .expect(500)
 
-    assert.strictEqual(res.body.errors[0].code, 'BadRequest')
+    assert.strictEqual(res.body.errors[0].code, 'InternalError')
     assert.strictEqual(res.body.errors[0].detail, 'Account balance must be zero to delete account')
     assert.deepStrictEqual(getAccountingRequestPaths(), [
       `GET /${currency.code}/accounts/${account.id}`,
+      `DELETE /${currency.code}/accounts/${account.id}`,
     ])
 
     const db = tenantDb(prisma, 'members-delete-accounting-400')
@@ -997,7 +1561,7 @@ describe('Members endpoints', () => {
       .expect(200)
   })
 
-  test('DELETE /:code/members/:member returns internal error when accounting delete fails after preflight', async () => {
+  test('DELETE /:code/members/:member can retry the same confirmation after accounting delete fails', async () => {
     const currency = seedAccountingCurrency('members-delete-accounting-500')
     await seedGroup({
       tenantId: 'members-delete-accounting-500',
@@ -1015,10 +1579,11 @@ describe('Members endpoints', () => {
       accountId: account.id,
     })
     setAccountingAccountDeleteStatus(400, 'Mock accounting delete failure')
+    const token = memberDeletionToken(owner.id, member.id)
 
     const res = await request(app)
       .delete(`/members-delete-accounting-500/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token } })
       .expect(500)
 
     assert.strictEqual(res.body.errors[0].code, 'InternalError')
@@ -1031,6 +1596,13 @@ describe('Members endpoints', () => {
     const db = tenantDb(prisma, 'members-delete-accounting-500')
     const notDeleted = await db.member.findUnique({ where: { id: member.id } })
     assert.strictEqual(notDeleted?.deleted, null)
+
+    setAccountingAccountDeleteStatus(204)
+    await request(app).delete(`/members-delete-accounting-500/members/${member.id}`)
+      .send({ meta: { token } }).expect(204)
+    assert.strictEqual(account.status, 'deleted')
+    const deleted = await db.member.findUniqueOrThrow({ where: { id: member.id } })
+    assert.ok(deleted.deleted)
   })
 
   test('DELETE /:code/members/:member treats missing accounting account as deleted', async () => {
@@ -1052,7 +1624,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-accounting-404/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -1085,7 +1657,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-account-deleted/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     assert.deepStrictEqual(getAccountingRequestPaths(), [
@@ -1120,7 +1692,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-delete-posts/members/${member.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ meta: { token: memberDeletionToken(owner.id, member.id) } })
       .expect(204)
 
     await request(app)
@@ -1136,6 +1708,60 @@ describe('Members endpoints', () => {
     const db = tenantDb(prisma, 'members-delete-posts')
     const unchangedPost = await db.post.findUnique({ where: { id: post.id } })
     assert.strictEqual(unchangedPost?.deleted, null)
+  })
+
+  test('deletes only identities whose last membership is removed, across tenants and shared memberships', async () => {
+    const owner = await auth('delete-last-owner')
+    const shared = await auth('delete-shared-owner')
+    const admin = await auth('delete-last-admin')
+    await seedGroup({ tenantId: 'delete-last', status: 'active', access: 'private' })
+    await seedGroup({ tenantId: 'delete-other', status: 'active', access: 'private' })
+    await seedGroupAdmin({ tenantId: 'delete-last', userId: admin.id })
+    const member = await seedMember({ tenantId: 'delete-last', userId: owner.id })
+    const identity = await request(app).get(`/users/${owner.id}`)
+      .set('Authorization', `Bearer ${owner.token}`).expect(200)
+    await seedMemberUser({ tenantId: 'delete-last', memberId: member.id, userId: shared.id })
+    // Even a draft membership in another community keeps the identity alive.
+    const other = await seedMember({ tenantId: 'delete-other', userId: shared.id, status: 'draft' })
+    await request(app).delete(`/delete-last/members/${member.id}`)
+      .set('Authorization', `Bearer ${admin.token}`).expect(204)
+    assert.deepStrictEqual(getIdentityDeleteRequests(), [owner.id])
+    await request(app).get(`/delete-other/members/${other.id}`)
+      .set('Authorization', `Bearer ${shared.token}`).expect(200)
+    await request(app).delete(`/delete-other/members/${other.id}`)
+      .send({ meta: { token: memberDeletionToken(shared.id, other.id) } }).expect(204)
+    assert.deepStrictEqual(getIdentityDeleteRequests(), [owner.id, shared.id])
+    const replacement = await auth('replacement-identity')
+    await request(app).post('/users')
+      .set('Authorization', `Bearer ${replacement.token}`)
+      .send({ data: { type: 'users', attributes: { email: identity.body.data.attributes.email } } })
+      .expect(200)
+  })
+
+  test('an owner can retry identity cleanup after deleting their last private-community membership', async () => {
+    const owner = await auth('retry-delete-owner')
+    const outsider = await auth('retry-delete-outsider')
+    await seedGroup({ tenantId: 'retry-delete', status: 'active', access: 'private' })
+    const member = await seedMember({ tenantId: 'retry-delete', userId: owner.id })
+    const remove = (token: string) => request(app).delete(`/retry-delete/members/${member.id}`)
+      .set('Authorization', `Bearer ${token}`)
+    setIdentityDeleteStatus(503)
+    const token = memberDeletionToken(owner.id, member.id)
+    await request(app).delete(`/retry-delete/members/${member.id}`)
+      .send({ meta: { token } }).expect(500)
+    const projection = await privilegedDb(prisma).user.findUniqueOrThrow({ where: { id: owner.id } })
+    assert.strictEqual(projection.email, `${owner.id}@deleted.invalid`)
+    assert.strictEqual(projection.name, null)
+    assert.strictEqual(projection.language, null)
+    await request(app).get(`/retry-delete/members/${member.id}`)
+      .set('Authorization', `Bearer ${owner.token}`).expect(403)
+    const accountingRequests = getAccountingRequestPaths().length
+    await remove(outsider.token).expect(403)
+    setIdentityDeleteStatus(204)
+    await request(app).delete(`/retry-delete/members/${member.id}`)
+      .send({ meta: { token } }).expect(204)
+    assert.deepStrictEqual(getIdentityDeleteRequests(), [owner.id, owner.id])
+    assert.strictEqual(getAccountingRequestPaths().length, accountingRequests)
   })
 
   test('PATCH /:code/members/:member denies non-member and non-admin', async () => {
@@ -1247,20 +1873,15 @@ describe('Members endpoints', () => {
     )
   })
 
-  test('GET /:code/members supports search across text and JSON scalar values', async () => {
+  test('anonymous member search matches name and code but not hidden email', async () => {
     await seedGroup({ tenantId: 'members-search', status: 'active', access: 'public' })
     await seedMember({
       tenantId: 'members-search',
-      code: 'alpha-code',
+      code: 'ABCD0001',
       name: 'Alpha Person',
       status: 'active',
-      access: 'public',
-      address: {
-        addressLocality: 'Riverdale',
-      },
-      contacts: [
-        { type: 'email', value: 'alpha@example.org' },
-      ],
+      access: 'group',
+      contacts: [{ type: 'email', value: 'confidential@hidden.invalid' }],
     })
     await seedMember({
       tenantId: 'members-search',
@@ -1270,31 +1891,28 @@ describe('Members endpoints', () => {
       access: 'public',
     })
 
-    const byName = await request(app)
-      .get('/members-search/members?filter[search]=alpha')
+    for (const search of ['alpha', 'ABCD0001']) {
+      const res = await request(app)
+        .get(`/members-search/members?filter[search]=${search}`)
+        .expect(200)
+
+      assert.strictEqual(res.body.data.length, 1)
+      assert.strictEqual(res.body.data[0].attributes.code, 'ABCD0001')
+      assert.strictEqual(res.body.data[0].attributes.contacts, undefined)
+    }
+
+    const byEmail = await request(app)
+      .get('/members-search/members?filter[search]=confidential%40hidden.invalid')
       .expect(200)
-
-    assert.strictEqual(byName.body.data.length, 1)
-    assert.strictEqual(byName.body.data[0].attributes.code, 'alpha-code')
-
-    const byAddressValue = await request(app)
-      .get('/members-search/members?filter[search]=riverdale')
-      .expect(200)
-
-    assert.strictEqual(byAddressValue.body.data.length, 1)
-    assert.strictEqual(byAddressValue.body.data[0].attributes.code, 'alpha-code')
-
-    const byAddressKey = await request(app)
-      .get('/members-search/members?filter[search]=addressLocality')
-      .expect(200)
-
-    assert.strictEqual(byAddressKey.body.data.length, 0)
+    assert.deepStrictEqual(byEmail.body.data, [])
+    assert.strictEqual(byEmail.body.meta.count, 0)
   })
 
   test('GET /:code/members paginates after visibility filtering', async () => {
     await seedGroup({ tenantId: 'members-page', status: 'active', access: 'public' })
     await seedMember({ tenantId: 'members-page', code: 'hidden', name: 'Alpha', status: 'draft', access: 'public' })
     await seedMember({ tenantId: 'members-page', code: 'visible', name: 'Bravo', status: 'active', access: 'public' })
+    await seedMember({ tenantId: 'members-page', code: 'also-visible', name: 'Charlie', status: 'active', access: 'public' })
 
     const res = await request(app)
       .get('/members-page/members?sort=name&page[size]=1')
@@ -1302,13 +1920,21 @@ describe('Members endpoints', () => {
 
     assert.strictEqual(res.body.data.length, 1)
     assert.strictEqual(res.body.data[0].attributes.code, 'visible')
+    const next = new URL(res.body.links.next)
+    assert.strictEqual(next.pathname, '/members-page/members')
+    assert.strictEqual(next.searchParams.get('sort'), 'name')
+    const secondPage = await request(app).get(next.pathname + next.search).expect(200)
+    assert.strictEqual(secondPage.body.data[0].attributes.code, 'also-visible')
+    assert.strictEqual(secondPage.body.links.next, null)
   })
 
   test('GET /:code/members sorts by distance with null locations last', async () => {
     await seedGroup({ tenantId: 'members-distance', status: 'active', access: 'public' })
+    const user = await auth('members-distance-user')
     await seedMember({
       tenantId: 'members-distance',
       code: 'near',
+      userId: user.id,
       status: 'active',
       access: 'public',
       longitude: 120,
@@ -1331,6 +1957,7 @@ describe('Members endpoints', () => {
 
     const res = await request(app)
       .get('/members-distance/members?near=121,45&sort=distance')
+      .set('Authorization', `Bearer ${user.token}`)
       .expect(200)
 
     assert.deepStrictEqual(
@@ -1377,7 +2004,6 @@ describe('Members endpoints', () => {
       tenantId: 'members-linked-user',
       memberId: member.id,
       userId: second.id,
-      role: 'admin',
     })
 
     await request(app)
@@ -1536,7 +2162,7 @@ describe('Members endpoints', () => {
 
     await request(app)
       .delete(`/members-files/members/${memberId}`)
-      .set('Authorization', `Bearer ${user.token}`)
+      .send({ meta: { token: memberDeletionToken(user.id, memberId) } })
       .expect(204)
 
     files = await db.file.findMany({

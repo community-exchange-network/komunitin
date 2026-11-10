@@ -1,5 +1,6 @@
 import { request, type AuthService } from "../useApiFetch"
 import type { ResourceObject } from "../../store/model"
+import { config } from "../../utils/config"
 
 const response = () => new Response(JSON.stringify({
   data: {
@@ -21,7 +22,7 @@ describe("API request authentication", () => {
       refresh: vi.fn()
     }
 
-    await request<ResourceObject>("http://social.test/groups", {}, auth)
+    await request<ResourceObject>(`${config.SOCIAL_URL}/groups`, {}, auth)
 
     const headers = new Headers(fetchMock.mock.calls[0][1].headers)
     expect(headers.has("Authorization")).toBe(false)
@@ -35,7 +36,7 @@ describe("API request authentication", () => {
       refresh: vi.fn()
     }
 
-    await expect(request<ResourceObject>("http://social.test/groups", {}, auth)).rejects.toBeDefined()
+    await expect(request<ResourceObject>(`${config.SOCIAL_URL}/groups`, {}, auth)).rejects.toBeDefined()
 
     expect(auth.refresh).not.toHaveBeenCalled()
     expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -49,7 +50,7 @@ describe("API request authentication", () => {
       refresh: vi.fn()
     }
 
-    await request<ResourceObject>("http://social.test/users/me", {}, auth)
+    await request<ResourceObject>(`${config.SOCIAL_URL}/users/me`, {}, auth)
 
     const headers = new Headers(fetchMock.mock.calls[0][1].headers)
     expect(headers.get("Authorization")).toBe("Bearer access-token")
@@ -68,7 +69,7 @@ describe("API request authentication", () => {
       })
     }
 
-    await request<ResourceObject>("http://social.test/users/me", {}, auth)
+    await request<ResourceObject>(`${config.SOCIAL_URL}/users/me`, {}, auth)
 
     expect(auth.refresh).toHaveBeenCalledOnce()
     expect(fetchMock).toHaveBeenCalledTimes(2)
@@ -88,9 +89,23 @@ describe("API request authentication", () => {
       refresh: vi.fn()
     }
 
-    await expect(request<ResourceObject>("http://social.test/users/me", {}, auth)).rejects.toBeDefined()
+    await expect(request<ResourceObject>(`${config.SOCIAL_URL}/users/me`, {}, auth)).rejects.toBeDefined()
 
     expect(auth.refresh).not.toHaveBeenCalled()
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not send the access token to an arbitrary URL", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response())
+    vi.stubGlobal("fetch", fetchMock)
+    const auth: AuthService = {
+      accessToken: () => "access-token",
+      refresh: vi.fn()
+    }
+
+    await request<ResourceObject>("https://example.org/accounts/payee", {}, auth)
+
+    const headers = new Headers(fetchMock.mock.calls[0][1].headers)
+    expect(headers.has("Authorization")).toBe(false)
   })
 })

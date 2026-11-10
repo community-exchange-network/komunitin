@@ -1,14 +1,21 @@
-import { boot } from "quasar/wrappers";
-import store from "src/store";
+import { defineBoot } from "#q-app";
+import store from "@/store";
+import { handleError } from "@/boot/errors"
 
+/** Completion of the current boot's background session refresh. */
+export let authReady = Promise.resolve()
 
-export default boot(({ router }) => {
+export default defineBoot(async ({ router, urlPath }) => {
+  // Revalidate in background the user's session and account settings on app boot.
+  if (store.getters.isLoggedIn) {
+    authReady = store.dispatch("reloadUser").catch(handleError)
+  }
+
   // Prevent access to paths that need authorization.
   router.beforeEach(async (to) => {
     try {
-      if (!store.getters.isLoggedIn) {
-        await store.dispatch("authorize");
-      }
+      await store.dispatch("authorize");
+
       // User is logged in.
       if (to.path == "/" || to.path.startsWith("/login")) {
         
@@ -33,13 +40,19 @@ export default boot(({ router }) => {
           return "/groups";
         }
       }
-      // Prevent non-superadmin users from accessing superadmin pages.
-      if (to.path.startsWith("/superadmin") && !store.getters.isSuperadmin) {
-        // Help users trying to access superadmin pages by redirecting them to the correct login page.
-        return {
-          path: "/logout",
-          query: {
-            redirect: to.path
+      const requiredAdmin = to.meta.requiresAdmin
+      if (requiredAdmin) {
+        const requestedGroupCode = to.params.code
+        const isRequestedGroupAdmin = requiredAdmin === "group"
+          && store.getters.isAdmin
+          && store.getters.myGroup?.attributes.code === requestedGroupCode
+
+        if (!store.getters.isSuperadmin && !isRequestedGroupAdmin) {
+          return {
+            path: "/logout",
+            query: {
+              redirect: to.path
+            }
           }
         }
       }
@@ -60,4 +73,8 @@ export default boot(({ router }) => {
       return true
     }
   });
+
+  // This wait forces the router to resolve the initial route before Quasar mounts and clears the
+  // static HTML, preventing a blank flash.
+  await router.push(urlPath);
 });

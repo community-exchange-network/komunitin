@@ -5,10 +5,6 @@ import { config } from '../config'
 const adapter = new PrismaPg({ connectionString: config.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
 
-export const checkPrismaHealth = async () => {
-  await prisma.$queryRaw`SELECT 1`
-}
-
 export const toNullableJsonInput = (
   value: Prisma.InputJsonValue | null | undefined,
 ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined => {

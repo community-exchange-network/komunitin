@@ -55,6 +55,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/settings/EditSettings.vue')
       },
       {
+        path: '/groups/:code/members/:memberId/delete',
+        name: 'ConfirmMemberDeletion',
+        component: () => import('../pages/settings/ConfirmMemberDeletion.vue'),
+        meta: { public: true, back: false }
+      },
+      {
         path: '/notifications',
         name: 'Notifications',
         component: () => import('../pages/user/Notifications.vue'),
@@ -342,7 +348,12 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/groups/:code/admin',
         name: 'GroupAdmin',
-        children: [{
+        redirect: { name: 'EditGroup' },
+        meta: {
+          requiresAdmin: 'group'
+        },
+        children: [
+        {
           path: 'edit',
           props: true,
           name: 'EditGroup',
@@ -382,6 +393,9 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/superadmin',
+        meta: {
+          requiresAdmin: 'superadmin'
+        },
         children: [
         {
           path: '',
@@ -413,15 +427,14 @@ const routes: RouteRecordRaw[] = [
               props: true,
               name: 'CreateMigration',
               component: () => import('../pages/superadmin/CreateMigration.vue'),
-            },
-            {
-              path: ':id/edit',
-              props: true,
-              name: 'EditMigration',
-              component: () => import('../pages/superadmin/EditMigration.vue'),
             }
           ]
         }]
+      },
+      {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import('../pages/Error404.vue')
       },
     ]
   },
@@ -443,7 +456,7 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
-if (process.env.FEAT_TOPUP === 'true') {
+if (import.meta.env.FEAT_TOPUP === 'true') {
   const mainLayout = routes.find(route => route.name === 'MainLayout');
   mainLayout?.children?.push({
     path: '/groups/:code/members/:memberCode/topup',
@@ -466,14 +479,6 @@ if (process.env.FEAT_TOPUP === 'true') {
   });
 }
 
-// Always leave this as last one
-if (process.env.MODE !== 'ssr') {
-  routes.push({
-    path: '/:catchAll(.*)*',
-    component: () => import('../pages/Error404.vue')
-  });
-}
-
 export default routes;
 
 declare module 'vue-router' {
@@ -486,5 +491,9 @@ declare module 'vue-router' {
      * If true, the next route does not allow going back to this route using the up app button.
      */
     back?: boolean;
+    /**
+     * Restrict the route to administrators of the requested group or to superadmins.
+     */
+    requiresAdmin?: 'group' | 'superadmin';
   }
 }

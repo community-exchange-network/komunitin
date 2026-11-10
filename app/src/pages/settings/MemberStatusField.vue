@@ -68,7 +68,7 @@ const props = defineProps<{
 }>();
 
 const store = useStore()
-const currentStatus = ref(props.member.attributes.status)
+const currentStatus = computed(() => props.member.attributes.status)
 
 const active = useAccountStatus('active')
 const disabled = useAccountStatus('disabled')
@@ -81,8 +81,8 @@ const show = computed(() => {
   const isAdmin = store.getters.isAdmin
   return {
     enable: (status === 'disabled' || (status === 'suspended' && isAdmin)),
-    disable: (status === 'active' || (status === 'suspended' && isAdmin)),
-    suspend: (isAdmin && (status === 'active' || status === 'disabled'))
+    disable: status === 'active',
+    suspend: isAdmin && status === 'active'
   }
 })
 
@@ -92,27 +92,20 @@ const q = useQuasar()
 const setMemberStatus = async (status: "active" | "disabled" | "suspended", loadingRef: Ref<boolean>) => {
   try {
     loadingRef.value = true
-    await store.dispatch('accounts/update', {
-      id: props.member.account.id,
-      group: props.member.group.currency.attributes.code,
-      resource: {
-        type: "accounts",
-        attributes: {
-          status: status
-        }
-      }
-    })
     await store.dispatch('members/update', {
       id: props.member.id,
       group: props.member.group.attributes.code,
       resource: {
         type: "members",
         attributes: {
-          state: status
+          status
         }
       }
     })
-    currentStatus.value = status
+    await store.dispatch('accounts/load', {
+      id: props.member.account.id,
+      group: props.member.group.currency.attributes.code
+    })
     q.notify({
       message: t('accountStatusUpdated'),
       color: "positive"

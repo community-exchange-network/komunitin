@@ -4,7 +4,7 @@
 
 `social/` is the standalone TypeScript social service: Node.js 24, Express 5, Prisma 7/PostgreSQL, row-level security, PostGIS, pg_trgm search, JSON:API serialization with ts-japi, OAuth2 JWT bearer auth, Zod validation, S3-compatible uploads, groups, categories, members, offers/needs, files, and a local user projection.
 
-This service is replacing the legacy IntegralCES social API. It owns social and marketplace domain data, not identity credentials.
+This service provides the social and marketplace API. It owns social and marketplace domain data, not identity credentials.
 
 ## Commands
 
@@ -53,8 +53,9 @@ pnpm start
 
 ## Domain Notes
 
-- Groups, members, categories, and posts enforce visibility in service code and raw SQL list queries. Preserve anonymous, owner, group-member, group-admin, service-reader, and superadmin access paths.
+- Groups, members, and posts enforce visibility in service code and raw SQL list queries. Preserve anonymous, owner, group-member, group-admin, service-reader, and superadmin access paths.
 - Group activation/disabling may sync accounting currencies and emit social notification events.
+- Categories are readable by anyone who can access their group.
 - Member status transitions may create or update accounting accounts and emit member notification events.
 - Offers and needs share the `Post` table with a `type` discriminator; type-specific fields live in the JSON `data` column.
 - Resources are soft-deleted with `deleted`; keep list/detail queries excluding deleted rows.
@@ -74,7 +75,7 @@ pnpm start
 ## Tests
 
 - API tests live in `test/*.test.ts` and use supertest against the real Express app.
-- Unit tests live in `test/unit/`.
+- Unit tests live in `test/unit/`. Migration parser tests and their helpers live in `test/migration/`.
 - Shared test setup, JWT fixtures, MSW handlers, seed helpers, and deterministic UUID helpers live in `test/mocks/`.
 - `pnpm prisma migrate reset` does not work well due to how DB image is created. If you need to reset the test DB, remove the database volume (`docker compose down -v db-social`) and run `pnpm prisma migrate deploy`. Do not try to rebuild the DB manually and do not amend the shared db image unless explicitly requested. Tests use `resetDb` helper to truncate all tables.
 - When changing routes, schemas, access control, status transitions, accounting sync, notification events, search/filter/sort/pagination, RLS behavior, or uploads, add focused tests in the matching suite.

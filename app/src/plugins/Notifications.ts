@@ -1,5 +1,5 @@
-import { config } from "src/utils/config"
-import { urlBase64ToUint8Array } from "src/utils/encoding";
+import { config } from "@/utils/config"
+import { urlBase64ToUint8Array } from "@/utils/encoding";
 import KError, { KErrorCode } from "../KError";
 
 const isNotificationsSupported = (): boolean =>

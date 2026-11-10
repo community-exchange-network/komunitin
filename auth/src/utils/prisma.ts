@@ -11,7 +11,7 @@ const prisma = new PrismaClient({ adapter })
 const DB_RETRY_INTERVAL_MS = 1000
 
 export async function checkPrismaHealth() {
-  await prisma.$queryRaw`SELECT 1`
+  await prisma.signingKey.findFirst({ select: { id: true } })
 }
 
 export async function waitForPrisma() {

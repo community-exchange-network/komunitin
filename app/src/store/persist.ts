@@ -12,7 +12,12 @@ const EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30 // 30 days.
 
 const DATABASE_NAME = "komunitin"
 
-const CURRENT_VERSION = process.env.APP_VERSION
+const CURRENT_VERSION = import.meta.env.APP_VERSION
+
+let markStoreReady: () => void = () => undefined
+
+/** Resolves after persisted Vuex state has been restored. */
+export const storeReady = new Promise<void>(resolve => { markStoreReady = resolve })
 
 /**
  * Iterate over all values in the storage and call the async callback function for each one. This
@@ -130,7 +135,7 @@ export default function createPersistPlugin<T>() {
   const checkBreakingUpgrade = async () => {
     const existingVersion = (await getInternalItem("version") ?? "0.0.0") as string
     if (isBreakingUpgrade(existingVersion)) {
-      if (process.env.DEV) {
+      if (import.meta.env.QUASAR_DEV) {
          
         console.log(`Breaking upgrade detected from ${existingVersion} to ${CURRENT_VERSION}. Clearing persisted data.`);
       }
@@ -186,9 +191,9 @@ export default function createPersistPlugin<T>() {
       store.replaceState(merge(store.state, state))
     }
 
-    initialize().catch((error) => {
-      console.error("Error initializing persisted state:", error);
-    });
+    initialize()
+      .catch(error => console.error("Error initializing persisted state:", error))
+      .finally(markStoreReady)
 
     // Subscribe to mutations
     store.subscribe(({type, payload}) => {
@@ -220,6 +225,8 @@ export default function createPersistPlugin<T>() {
         save([...index, 'pages', key, page + ""], ids)
       } else if (op == 'removeResource') {
         remove([...index, 'resources', value as string])
+      } else if (value === undefined) {
+        remove([...index, op])
       } else {
         save([...index, op], value)
       }

@@ -76,20 +76,24 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
   const i18n = await initI18n();
 
   // 3. Fetch data to be used for all members of the group
-  // Fetch ALL offers/needs using the pagination-enabled client methods
-  const allOffers = await client.getOffers(group.attributes.code, {
+  const communityOffers = await client.getOffers(group.attributes.code, {
     'filter[status]': 'published',
+    'filter[access]': 'public,group',
     'filter[expired]': 'false',
     sort: '-updated'
   });
-  const allNeeds = await client.getNeeds(group.attributes.code, {
+  const communityNeeds = await client.getNeeds(group.attributes.code, {
     'filter[status]': 'published',
+    'filter[access]': 'public,group',
     'filter[expired]': 'false',
     sort: '-updated'
   });
   const allMembers = await client.getMembers(group.attributes.code, {
     'filter[status]': 'active',
     sort: '-created'
+  });
+  const allMemberUsers = await client.getMemberUsers(group.attributes.code, {
+    memberStatus: 'active',
   });
 
   const currency = await client.getCurrency(group.attributes.code);
@@ -121,6 +125,12 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
   // 4. Iterate Members
   const memberMap = new Map<string, Member>(allMembers.map((m: any) => [m.id, m]));
+  const memberUsersByMemberId = new Map<string, typeof allMemberUsers>();
+  for (const relation of allMemberUsers) {
+    const relations = memberUsersByMemberId.get(relation.member.id) ?? [];
+    relations.push(relation);
+    memberUsersByMemberId.set(relation.member.id, relations);
+  }
   const globalFeaturedIndex = new Map<string, number>();
 
   for (const member of allMembers) {
@@ -129,8 +139,8 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     }
 
     // Check Recipients (Users)
-    const usersAndSettings = await client.getMemberUsers(member.id);
-    const recipientsToProcess: { user: any, settings: any }[] = [];
+    const memberUsers = memberUsersByMemberId.get(member.id) ?? [];
+    const recipientsToProcess = [] as typeof memberUsers;
 
     // Fetch history for frequency check (last 50 logs should cover > 1 month even if daily)
     const history = await prisma.newsletterLog.findMany({
@@ -139,8 +149,9 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       take: 50
     }) as HistoryLog[];
 
-    for (const { user, settings } of usersAndSettings) {
-      const frequency = settings.attributes.emails.group; // 'weekly', 'monthly', etc.
+    for (const relation of memberUsers) {
+      const { memberUser, user } = relation;
+      const frequency = memberUser.attributes.emails.group;
       if (!frequency || frequency === 'never') continue;
 
       // Check last sent
@@ -152,7 +163,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       const shouldSend = forceSend || shouldSendNewsletter(frequency, lastSentDate, new Date());
 
       if (shouldSend) {
-        recipientsToProcess.push({ user, settings });
+        recipientsToProcess.push(relation);
       }
     }
 
@@ -182,7 +193,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     // Best offers for me (Using Algorithm)
     const bestOffers = selectBestItems({
       targetMember: member,
-      items: allOffers,
+      items: communityOffers,
       members: memberMap,
       history,
       globalFeaturedIndex,
@@ -192,7 +203,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     // Best needs for me (Using Algorithm)
     const bestNeeds = selectBestItems({
       targetMember: member,
-      items: allNeeds,
+      items: communityNeeds,
       members: memberMap,
       history,
       globalFeaturedIndex,
@@ -215,10 +226,6 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     } catch (e) {
       logger.warn({ err: e }, 'Failed to fetch transfers');
     }
-    // Active/Expired Offers/Needs
-    const activeOffers = allOffers.filter((o: any) => o.relationships.member.data.id === member.id);
-    const activeNeeds = allNeeds.filter((n: any) => n.relationships.member.data.id === member.id);
-
     let expiredOffers: any[] = [];
     try {
       expiredOffers = await client.getOffers(group.attributes.code, {
@@ -232,8 +239,6 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
     const accountSection = getAccountSectionData({
       member,
       account,
-      activeOffers,
-      activeNeeds,
       expiredOffers,
       transfers,
       history,
@@ -256,7 +261,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
       appUrl: config.KOMUNITIN_APP_URL
     };
 
-    for (const { user, settings: userSettings } of recipientsToProcess) {
+    for (const { user } of recipientsToProcess) {
       let unsubscribeToken: string | undefined;
       try {
         unsubscribeToken = await getUnsubscribeToken(user.id);
@@ -271,7 +276,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
         recipient: {
           userId: user.id,
           email: user.attributes.email,
-          language: userSettings.attributes.language,
+          language: user.attributes.language || 'en',
           unsubscribeToken
         }
       };
@@ -279,7 +284,7 @@ const processGroupNewsletter = async (group: any, client: KomunitinClient, maile
 
       try {
         // Send Email
-        const lng = userSettings.attributes.language || 'en';
+        const lng = user.attributes.language || 'en';
         const subject = i18n.t('newsletter.subject', { lng, group: group.attributes.name });
         await mailer.sendEmail({
           to: user.attributes.email,

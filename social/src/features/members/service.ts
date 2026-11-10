@@ -1,13 +1,15 @@
 import { createAccountingClient } from '../../clients/accounting'
+import { deleteIdentity, redeemMemberDeletionToken } from '../../clients/auth'
+import { countUserMembers, findUserMembers } from '../users/member-query'
 import { Prisma, type Member as DbMemberRecord } from '../../generated/prisma/client'
 import type { AuthContext, OptionalAuthContext } from '../../server/context'
-import { tenantDb } from '../../server/multitenant'
+import { privilegedDb, tenantDb } from '../../server/multitenant'
 import { type CollectionResult, indexById, reorderByIds } from '../../server/query'
 import { hasInclude, type CollectionParams, type ResourceParams } from '../../server/request'
-import { badRequest, forbidden, notFound } from '../../utils/error'
+import { badRequest, forbidden, notFound, unauthorized } from '../../utils/error'
 import prisma, { toNullableJsonInput } from '../../utils/prisma'
 import { syncResourceFiles } from '../files/service'
-import { canListGroupMembers, enrichGroups, getCurrencyCode, getGroupByCode, isGroupAdmin, isGroupMember, toLocation } from '../groups/service'
+import { canListGroupMembers, enrichGroups, fromLocation, getCurrencyCode, getGroupByCode, isGroupAdmin, toGroup, toLocation } from '../groups/service'
 import type { Group } from '../groups/types'
 import { findMemberIds } from './sql'
 import type { CreateMemberInput, Member, PatchMemberInput, SerializableMember } from './types'
@@ -15,6 +17,7 @@ import { createNotificationsClient } from '../../clients/notifications'
 import { findPostRelationshipCounts } from '../posts/sql'
 import type { PostRelationshipMeta } from '../posts/types'
 import { syncAccountStatus } from './accounting'
+import { defaultMemberUserSettings } from '../member-users/settings'
 
 const getMemberLoad = (params: ResourceParams) => ({
   group: hasInclude(params, 'group'),
@@ -28,7 +31,7 @@ export const toMember = (member: DbMemberRecord, group?: Group): Member => {
   } as Member
 }
 
-/** Add post counts and enrich member groups. */
+/** Project readable member profiles, add post counts and enrich member groups. */
 export const enrichMembers = async (
   ctx: OptionalAuthContext,
   members: Member[],
@@ -38,8 +41,20 @@ export const enrichMembers = async (
     return []
   }
 
+  const checkers = new Map(await Promise.all(
+    groups.map(async (group) =>
+      [group.id, await getCanReadMember(ctx, group)] as const),
+  ))
+  // Discard restricted fields for every caller, including nested post members.
+  const profiles = members.map((member) => {
+    const { id, tenantId, code, name, image, groupId, group, accountId, accountHref } = member
+    return checkers.get(groupId)!(member)
+      ? member
+      : { id, tenantId, code, name, image, groupId, group, accountId, accountHref }
+  })
+
   const includedGroups = groups.filter((group) =>
-      members.some((member) => member.group?.id === group.id))
+      profiles.some((member) => member.group?.id === group.id))
 
   const [countMaps, serializableGroups] = await Promise.all([
     Promise.all(groups.map(async (group) => {
@@ -49,7 +64,7 @@ export const enrichMembers = async (
         db,
         group,
         'memberId',
-        members
+        profiles
           .filter(({ groupId }) => groupId === group.id)
           .map(({ id }) => id),
       )
@@ -64,8 +79,9 @@ export const enrichMembers = async (
     countMaps.flatMap((counts) => [...counts.entries()]),
   )
 
-  return members.map((member) => ({
+  return profiles.map((member) => ({
     ...member,
+    profile: 'status' in member ? 'full' : 'minimal',
     group: member.group ? groupsById.get(member.groupId)! : undefined,
     relationshipMeta: postCounts.get(member.id)!,
   }))
@@ -95,7 +111,7 @@ export const getMemberById = async (code: string, id: string, group?: Group): Pr
   return toMember(member, group)
 }
 
-export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member, 'id' | 'tenantId'>, role?: 'admin' ): Promise<boolean> => {
+export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member, 'id' | 'tenantId'>): Promise<boolean> => {
   if (!ctx.userId) {
     return false
   }
@@ -105,30 +121,43 @@ export const isMemberUser = async (ctx: OptionalAuthContext, member: Pick<Member
     where: {
       memberId: member.id,
       userId: ctx.userId,
-      ...(role ? { role } : {}),
     },
   })
 
   return Boolean(relation)
 }
 
+// Load ownership and active membership once, then check profiles without database queries.
+const getCanReadMember = async (ctx: OptionalAuthContext, group: Group) => {
+  const readAll = ctx.isSuperadmin || ctx.canReadAllSocial || isGroupAdmin(ctx, group)
+  const userMembers = ctx.userId && !readAll
+    ? await findUserMembers(ctx.userId, {
+      where: { groupId: group.id },
+      select: { id: true, status: true },
+    })
+    : []
+  const groupMember = userMembers.some(({ status }) => status === 'active')
+  const ownedMemberIds = new Set(userMembers.map(({ id }) => id))
+
+  return (member: Member) => readAll
+    || (group.status === 'active' && member.status === 'active'
+      && (member.access === 'public' || (member.access === 'group' && groupMember)))
+    || ownedMemberIds.has(member.id)
+}
+
 const canReadMember = async (ctx: OptionalAuthContext, group: Group, member: Member): Promise<boolean> => {
-  return ctx.isSuperadmin
-    || ctx.canReadAllSocial
-    || (group.status === 'active' && member.status === 'active' && member.access === 'public')  
-    || (group.status === 'active' && member.status === 'active' && member.access === 'group' && await isGroupMember(ctx, group))
-    || await isMemberUser(ctx, member)
-    || isGroupAdmin(ctx, group)
+  const checker = await getCanReadMember(ctx, group)
+  return checker(member)
 }
 
 const canWriteMember = async (ctx: AuthContext, group: Group, member: Member): Promise<boolean> => {
   return ctx.isSuperadmin
-    || await isMemberUser(ctx, member, "admin")  
+    || await isMemberUser(ctx, member)
     || isGroupAdmin(ctx, group)
     
 }
 
-const buildMemberCode = (groupCode: string, index: number): string => {
+const buildMemberCode = (groupCode: string, index: bigint): string => {
   return `${groupCode}${(index + "") . padStart(4, '0')}`
 }
 
@@ -137,12 +166,15 @@ const findFreeMemberCode = async (groupCode: string): Promise<string> => {
   const members = await db.member.findMany({
     select: { code: true },
     where: { code: { startsWith: groupCode } },
+    orderBy: [{ created: 'desc' }, { id: 'desc' }],
   })
-  const used = new Set(members
+  const numbers = members
     .map(({ code }) => code.substring(groupCode.length))
     .filter((suffix) => /^\d+$/.test(suffix))
-    .map(Number))
-  let candidate = 0
+    .map(BigInt)
+  const used = new Set(numbers)
+  // BigInt prevents a potential infinite loop.
+  let candidate = (numbers[0] ?? -1n) + 1n
   while (used.has(candidate)) {
     candidate++
   }
@@ -167,7 +199,8 @@ const getMemberUserIds = async (member: Pick<Member, 'id' | 'tenantId'>): Promis
 /**
  * Return all members of a group accessible to the given user.
  * 
- * If no status filter is provided, defaults to 'active' members only.
+ * If no status filter is provided, defaults to 'active' members only, except
+ * for identity lookups by code or account, which include every readable status.
  */
 export const listMembers = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<SerializableMember>> => {
   const group = await getGroupByCode(ctx, code)
@@ -176,10 +209,11 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
     throw forbidden('You do not have permission to list members in this group')
   }
   const db = tenantDb(prisma, code)
-  
-  const defaultFilters = {
-    status: ['active'],
-  }
+
+  const isIdentityLookup = params.filters.code !== undefined || params.filters.account !== undefined
+  const defaultFilters = params.filters.status === undefined && !isIdentityLookup
+    ? { status: ['active'] }
+    : {}
 
   const result = await findMemberIds(ctx, db, group, {
     ...params,
@@ -197,10 +231,9 @@ export const listMembers = async (ctx: OptionalAuthContext, code: string, params
 
   const load = getMemberLoad(params)
   const includedGroup = load.group ? group : undefined
-  const items = reorderByIds(members, result.ids)
-    .map((member) => toMember(member, includedGroup))
+  const items = members.map((record) => toMember(record, includedGroup))
   return {
-    items: await enrichMembers(ctx, items, [group]),
+    items: await enrichMembers(ctx, reorderByIds(items, result.ids), [group]),
     total: result.total,
   }
 }
@@ -270,7 +303,7 @@ export const createMember = async (
         tenantId: code,
         memberId: member.id,
         userId: ctx.userId,
-        role: 'admin',
+        settings: defaultMemberUserSettings(group.settings.defaultGroupEmailFrequency),
       },
     })
 
@@ -346,9 +379,10 @@ export const patchMember = async (
     data.status = to
   }
 
-  if (location) {
-    data.latitude = location.coordinates[1]
-    data.longitude = location.coordinates[0]
+  if (location !== undefined) {
+    const coords = fromLocation(location)
+    data.latitude = coords.latitude
+    data.longitude = coords.longitude
   }
 
   const db = tenantDb(prisma, code)
@@ -376,33 +410,85 @@ export const patchMember = async (
   return enrichMember(ctx, toMember(updated), group)
 }
 
-export const deleteMember = async (ctx: AuthContext, code: string, id: string): Promise<void> => {
+/** Authorize ownership before requesting a deletion confirmation email. */
+export const requestMemberDeletion = async (ctx: AuthContext, code: string, id: string) => {
   const group = await getGroupByCode(ctx, code)
-  const member = await getMemberById(code, id)
-
-  const allowed = await canWriteMember(ctx, group, member)
-  if (!allowed) {
+  const member = await getMemberById(code, id, group)
+  if (!await isMemberUser(ctx, member)) {
     throw forbidden('You do not have permission to delete this member')
   }
 
-  const currencyCode = getCurrencyCode(group)
-  const accounting = createAccountingClient(ctx)
-  const account = member.accountId
-    ? await accounting.findAccountById(currencyCode, member.accountId)
-    : await accounting.findAccountByCode(currencyCode, member.code)
+  await createNotificationsClient(ctx).notifyMemberDeletionRequested(code, member)
+}
 
-  if (account && account.status !== 'deleted') {
-    if (account.balance !== undefined && account.balance !== 0) {
-      throw badRequest('Account balance must be zero to delete account')
-    }
-    await accounting.deleteAccount(currencyCode, account.id)
+/** Delete membership and then remove any identities left without memberships. */
+export const deleteMember = async (ctx: OptionalAuthContext, code: string, id: string, token?: string): Promise<void> => {
+  if (!token && !ctx.userId) {
+    throw unauthorized('Authentication or email confirmation is required')
   }
 
+  const confirmation = token ? await redeemMemberDeletionToken(token, id) : undefined
   const db = tenantDb(prisma, code)
-  await db.member.update({
-    where: { id: member.id },
-    data: { deleted: new Date() },
+  // Keep deleted rows addressable only here so failed Auth cleanup can be retried,
+  // including by the owner of a last membership in a private community.
+  const row = await db.member.findFirst({
+    where: { id, group: { deleted: null } },
+    include: { users: true, group: { include: { admins: true } } },
   })
+  if (!row) {
+    throw notFound('Member not found')
+  }
+  const member = toMember(row)
+  const group = toGroup(row.group)
+  const ownerId = confirmation?.userId ?? ctx.userId
+  const isOwner = row.users.some(({ userId }) => userId === ownerId)
+  const isAdmin = !confirmation && (ctx.isSuperadmin || isGroupAdmin(ctx, group))
+  if (!isOwner && !isAdmin) {
+    throw forbidden('You do not have permission to delete this member')
+  }
+  if (!confirmation && !isAdmin && !member.deleted) {
+    throw forbidden('Email confirmation is required to delete your membership')
+  }
 
+  if (!member.deleted) {
+    const currencyCode = getCurrencyCode(group)
+    const accounting = createAccountingClient(ctx.userId && !confirmation ? ctx : undefined)
+    const account = member.accountId
+      ? await accounting.findAccountById(currencyCode, member.accountId)
+      : await accounting.findAccountByCode(currencyCode, member.code)
+
+    if (account && account.status !== 'deleted') {
+      // If the deletion is confirmed via token (and hence we're using service credentials),
+      // ensure the confirming user is an owner of the account.
+      if (confirmation && !account.users.some(({ id }) => id === confirmation.userId)) {
+        throw forbidden('You do not have permission to delete this account')
+      }
+      await accounting.deleteAccount(currencyCode, account.id)
+    }
+
+    await db.member.update({
+      where: { id: member.id },
+      data: { deleted: new Date() },
+    })
+  }
   await syncResourceFiles(code, 'members', member.id, [])
+
+  // Keep the confirming identity (and its retry token) until other cleanup succeeds.
+  row.users.sort((a, b) => Number(a.userId === ownerId) - Number(b.userId === ownerId))
+  const identitiesToDelete: string[] = []
+  // This query spans all tenants and counts every non-deleted membership status.
+  for (const { userId } of row.users) {
+    if (await countUserMembers(userId) === 0) {
+      // Retain historical relations without reserving the deleted identity's email.
+      await privilegedDb(prisma).user.update({
+        where: { id: userId },
+        data: { email: `${userId}@deleted.invalid`, name: null, language: null },
+      })
+      identitiesToDelete.push(userId)
+    }
+  }
+  // Finish all local cleanup before Auth invalidates any confirmation tokens.
+  for (const userId of identitiesToDelete) {
+    await deleteIdentity(userId)
+  }
 }

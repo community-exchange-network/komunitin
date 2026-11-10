@@ -1,34 +1,16 @@
 import TsJapi from 'ts-japi'
 import { config } from '../../config'
 import type { SerializerOptions } from '../../server/jsonapi-serialize'
-import type { User, UserSettings } from './types'
+import type { User } from './types'
 
-const { Linker, Relator, Serializer } = TsJapi
-type UserSettingsWithUserId = UserSettings & { userId: string }
+const { Linker, Serializer } = TsJapi
 
-const UserSettingsSerializer = new Serializer<UserSettingsWithUserId>('user-settings', {
-  version: null,
-  projection: {
-    language: 1,
-    notifications: 1,
-    emails: 1,
-  },
-  linkers: {
-    resource: new Linker((settings) => `${config.API_BASE_URL}/users/${settings.userId}/settings`)
-  },
-  idKey: 'userId',
-})
-
-const UserSettingsRelator = new Relator<User, UserSettingsWithUserId>(async (user) => ({
-  userId: user.id,
-  ...user.settings,
-}), UserSettingsSerializer, { relatedName: 'settings' })
-
-const UserSerializer = new Serializer<User>('users', {
+export const UserSerializer = new Serializer<User>('users', {
   version: null,
   projection: {
     email: 1,
     name: 1,
+    language: 1,
     created: 1,
     updated: 1,
   },
@@ -37,24 +19,10 @@ const UserSerializer = new Serializer<User>('users', {
   }
 })
 
-const withIncludedRelationships = (params?: SerializerOptions<User>): SerializerOptions<User> => ({
-  ...params,
-  relators: Array.isArray(params?.include) && params.include.some((path) => path === 'settings')
-    ? { settings: UserSettingsRelator }
-    : {},
-})
-
-export const serializeUser = async (user: User, params: {include: string[]}) => {
-  return UserSerializer.serialize(user, withIncludedRelationships(params))
+export const serializeUser = async (user: User, params?: SerializerOptions<User>) => {
+  return UserSerializer.serialize(user, params)
 }
 
 export const serializeUsers = async (users: User[], params?: SerializerOptions<User>) => {
-  return UserSerializer.serialize(users, withIncludedRelationships(params))
-}
-
-export const serializeUserSettings = async (user: User) => {
-  return UserSettingsSerializer.serialize({
-    userId: user.id,
-    ...user.settings,
-  })
+  return UserSerializer.serialize(users, params)
 }

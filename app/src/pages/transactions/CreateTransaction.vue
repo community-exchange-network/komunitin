@@ -46,9 +46,9 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { useMyAccountSettings } from 'src/composables/accountSettings';
-import PageHeader from 'src/layouts/PageHeader.vue';
-import type { Member } from 'src/store/model';
+import { useMyAccountSettings } from '@/composables/accountSettings';
+import PageHeader from '@/layouts/PageHeader.vue';
+import type { Member } from '@/store/model';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

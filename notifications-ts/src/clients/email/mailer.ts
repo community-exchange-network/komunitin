@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import type { SendMailOptions, Transporter } from 'nodemailer';
 import { config } from '../../config';
 import logger from '../../utils/logger';
 import { convert as htmlToText } from 'html-to-text';
@@ -29,7 +30,7 @@ export type EmailOptions = {
 
 
 export class Mailer {
-  private transporter: nodemailer.Transporter | null = null;
+  private transporter: Transporter | null = null;
 
   constructor() {
     if (config.SMTP_HOST && config.SMTP_PORT) {
@@ -73,7 +74,7 @@ export class Mailer {
       }]
     });
     
-    const mailOptions: nodemailer.SendMailOptions = {
+    const mailOptions: SendMailOptions = {
       from: config.APP_EMAIL,
       to: message.to,
       subject: message.subject,

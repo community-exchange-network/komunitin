@@ -322,5 +322,12 @@ describe('Transfer endpoints', async () => {
     assert(states.length > 0)
     assert(states.every(state => state === 'committed'))
   })
+
+  await it('forbidden transfer access through update', async () => {
+    const transfer = await t.payment(t.account0.id, t.account1.id, 10, "Private transfer", "committed", t.admin)
+    await t.api.patch(`/TEST/transfers/${transfer.id}`, {
+      data: { attributes: {} }
+    }, t.user2, 403)
+  })
     
 })

@@ -106,9 +106,9 @@
   </q-dialog>
 </template>
 <script setup lang="ts">
-import CategoryAvatar from 'src/components/CategoryAvatar.vue';
-import DeleteBtn from 'src/components/DeleteBtn.vue';
-import type { Category } from 'src/store/model';
+import CategoryAvatar from '@/components/CategoryAvatar.vue';
+import DeleteBtn from '@/components/DeleteBtn.vue';
+import type { Category } from '@/store/model';
 import { computed, defineAsyncComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { QSpinner, type DeepPartial } from 'quasar';
@@ -175,7 +175,8 @@ const saveCategory = () => {
     })
   } else {
     emit('update:category', {
-      ...editingCategory.value,
+      id: editingCategory.value.id,
+      type: editingCategory.value.type,
       attributes: {
         name: name.value,
         icon: { type: 'material', value: icon.value }
@@ -185,6 +186,7 @@ const saveCategory = () => {
   showDialog.value = false
 }
 
+// Keep the picker and its large icon catalog out of the initial bundle.
 const AsyncIconPicker = defineAsyncComponent({
   loader: () => import('./IconPicker.vue'),
   loadingComponent: QSpinner,

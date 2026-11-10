@@ -30,7 +30,7 @@
             {{ text }}
           </div>
         </q-card-section>
-        <q-card-section>
+        <q-card-section v-if="$slots.default">
           <slot />
         </q-card-section>
         <q-card-section class="flex justify-between">
@@ -40,7 +40,7 @@
             type="submit"
             unelevated
             :label="label"
-            :disable="valid !== undefined && !valid"
+            :disable="!valid"
             :loading="loading"
           />
         </q-card-section>
@@ -51,13 +51,15 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   label: string
   text?: string
   icon?: string
   valid?: boolean
   submit: () => void | Promise<void>
-}>();
+}>(), {
+  valid: true
+})
 
 const showDialog = ref(false)
 const loading = ref(false)

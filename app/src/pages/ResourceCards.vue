@@ -62,6 +62,10 @@ const props = defineProps<{
    */
   include?: string,
   /**
+   * Whether to allow undefined values for external resources.
+   */
+  ignoreExternalErrors?: boolean,
+  /**
    * The sort parameter string when fetching resources.
    */
   sort?: string,
@@ -111,6 +115,7 @@ const { resources, hasNext, loadNext, load, loading } =  useMergedResources(type
   search: props.query,
   location: location.value,
   include: props.include,
+  ignoreExternalErrors: props.ignoreExternalErrors,
   group: props.code,
   filter: props.filter,
   sort: props.sort,

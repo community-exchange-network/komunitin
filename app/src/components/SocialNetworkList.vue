@@ -49,7 +49,7 @@ const contact = (network: string) => {
   const url = props.type == "contact"
     ? getContactUrl(network, contactName(network) ?? "")
     : getShareUrl(network, props.url, props.title, props.text);
-  window.open(url, "_blank");
+  window.open(url, "_blank", "noopener");
 }
 
 const contactName = (network: string): string => {

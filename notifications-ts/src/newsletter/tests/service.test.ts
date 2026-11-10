@@ -7,6 +7,7 @@ import { mockDate, restoreDate } from '../../mocks/date';
 import { mockDb } from '../../mocks/prisma';
 import { mockRedis } from '../../mocks/redis';
 import { mockEmail } from '../../mocks/email';
+import { createMembers, createPost, db, getUserIdForMember, resetDb } from '../../mocks/db';
 
 const email = mockEmail();
 
@@ -16,7 +17,11 @@ const { newsletterLog } = mockDb();
 const { reset: resetRedis } = mockRedis();
 
 describe('Newsletter Cron Job', () => {
-  let runNewsletter: (options?: { forceSend?: boolean }) => Promise<void>;
+  let runNewsletter: (options?: {
+    groupCode?: string;
+    memberCode?: string;
+    forceSend?: boolean;
+  }) => Promise<void>;
   before(async () => {
     // We need to delay import until mocks (redis) are set up.
     const newsletterModule = await import('../service');
@@ -27,6 +32,7 @@ describe('Newsletter Cron Job', () => {
   
   beforeEach(() => {
     server.resetHandlers();
+    resetDb();
     email.reset();
     newsletterLog.length = 0;
     // @ts-ignore
@@ -44,8 +50,12 @@ describe('Newsletter Cron Job', () => {
     const actionTokenRequests: { userId: string; purpose: string }[] = [];
     server.use(
       http.post('http://auth.test/action-token', async ({ request }) => {
-        actionTokenRequests.push(await request.json() as { userId: string; purpose: string });
-        return HttpResponse.json({ token: 'newsletter-unsubscribe-token' });
+        const actionTokenRequest = await request.json() as { userId: string; purpose: string };
+        actionTokenRequests.push(actionTokenRequest);
+        return HttpResponse.json({
+          token: 'newsletter-unsubscribe-token',
+          email: db.users.find(user => user.id === actionTokenRequest.userId)!.attributes.email,
+        });
       })
     );
 
@@ -134,6 +144,59 @@ describe('Newsletter Cron Job', () => {
       prisma.newsletterLog.create.mock.calls.length,
       0,
       'Should not create any log entries when enableGroupEmail is false'
+    );
+  });
+
+  test('keeps private posts out of newsletters', async () => {
+    const members = createMembers('GRP1')
+    db.offers.length = 0
+    db.needs.length = 0
+    for (const type of ['offers', 'needs'] as const) {
+      createPost(type, {
+        id: `private-${type}`, code: 'PRIVATE', groupCode: 'GRP1', memberId: members[0].id,
+        attributes: {
+          access: 'private', title: 'Private newsletter secret',
+          description: 'Private newsletter secret', expires: null,
+        },
+      })
+      for (const access of ['public', 'group']) {
+        createPost(type, {
+          id: `${access}-${type}`, code: `${access}-${type}`, groupCode: 'GRP1', memberId: members[1].id,
+          attributes: { access, title: `${access} ${type}`, description: `${access} ${type}`, expires: null },
+        })
+      }
+    }
+    await runNewsletter({ groupCode: 'GRP1', forceSend: true })
+
+    assert.ok(email.sentEmails.length > 0)
+    assert.ok(email.sentEmails.every(message => !message.html.includes('Private newsletter secret')))
+    const memberLog = newsletterLog.find(log => log.memberId === members[0].id)
+    assert.ok(memberLog)
+    assert.deepStrictEqual(memberLog.content.bestOffers.sort(), ['group-offers', 'public-offers'])
+    assert.deepStrictEqual(memberLog.content.bestNeeds.sort(), ['group-needs', 'public-needs'])
+  })
+
+  test('sends a separate newsletter for each member linked to the same user', async () => {
+    const members = createMembers('GRP1');
+    const sharedUserId = getUserIdForMember(members[0].id);
+    const secondRelation = db.memberUsers.find(
+      relation => relation.relationships.member.data.id === members[1].id,
+    )!;
+    secondRelation.relationships.user.data.id = sharedUserId;
+    const sharedUser = db.users.find(user => user.id === sharedUserId)!;
+
+    await runNewsletter({ groupCode: 'GRP1', forceSend: true });
+
+    assert.strictEqual(
+      email.sentEmails.filter(message => message.to === sharedUser.attributes.email).length,
+      2,
+    );
+    const sharedMemberLogs = newsletterLog.filter(
+      data => [members[0].id, members[1].id].includes(data.memberId),
+    );
+    assert.deepStrictEqual(
+      sharedMemberLogs.map(data => data.recipients[0].userId),
+      [sharedUserId, sharedUserId],
     );
   });
 

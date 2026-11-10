@@ -3,7 +3,7 @@ import { privilegedDb } from '../../server/multitenant'
 import logger from '../../utils/logger'
 import prisma from '../../utils/prisma'
 import { config } from '../../config'
-import { deleteFromS3 } from './service'
+import { deleteFromS3 } from '../../clients/s3'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 

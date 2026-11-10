@@ -11,6 +11,7 @@
     >
       <offer-form 
         :code="code"
+        default-status="draft"
         :show-state="false"
         :model-value="offer"
         :loading="loading"
@@ -22,7 +23,7 @@
 <script setup lang="ts">
 import PageHeader from "../../layouts/PageHeader.vue"
 import OfferForm from "./OfferForm.vue"
-import type { Category, Offer } from "src/store/model"
+import type { Category, Offer } from "@/store/model"
 import { useStore } from "vuex"
 import { useRouter } from "vue-router"
 import type { DeepPartial } from "quasar"
@@ -37,7 +38,7 @@ const store = useStore()
 const router = useRouter()
 
 
-const offer = ref<Offer & {category: Category} | undefined>(undefined)
+const offer = ref<Offer & {category: Category | null} | undefined>(undefined)
 
 // Load initial values from current resource only if we are comming 
 // from the preview page.

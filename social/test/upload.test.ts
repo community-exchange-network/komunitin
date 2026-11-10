@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import request from 'supertest'
 import { config } from '../src/config'
 import { auth } from './mocks/auth'
-import { setS3UploadError } from './mocks/s3'
+import { getS3UploadRequests, setS3UploadError } from './mocks/s3'
 import { resetDb, seedGroup, seedMember } from './mocks/seed'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
@@ -76,6 +76,10 @@ describe('Files upload endpoint', () => {
     assert.ok(typeof res.body.data.attributes.url === 'string')
     assert.ok(res.body.data.attributes.url.includes('/uploads-success/members/'))
     assert.ok(res.body.data.attributes.size > 0)
+    assert.match(res.body.data.attributes.url, /\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.png$/)
+    const [upload] = getS3UploadRequests()
+    assert.equal(upload.ACL, 'public-read')
+    assert.equal(upload.ContentType, 'image/png')
   })
 
   test('POST /:code/files/upload accepts linked draft members during onboarding', async () => {

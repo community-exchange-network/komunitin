@@ -67,6 +67,7 @@ describe('Currencies endpoints', async () => {
     const response = await t.api.post('/currencies', currency, admin1)
     assert(isUuid(response.body.data.id), "The currency id is not a valid UUID")
     assert.equal(response.body.data.type, 'currencies')
+    assert.equal(response.body.data.attributes.status, 'active')
     assert.equal(response.body.data.attributes.code, 'TES1')
     assert.equal(response.body.data.attributes.name, 'Testy')
     assert.equal(response.body.data.attributes.rate.n, 1)

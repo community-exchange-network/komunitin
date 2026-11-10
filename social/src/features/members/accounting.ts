@@ -24,6 +24,11 @@ const findAccount = async (
 
 /**
  * Create or update the Accounting account corresponding to a Social member.
+ *
+ * This operation is idempotent so callers can retry a cross-service transition.
+ * It adopts an account created by an interrupted attempt and skips an update when
+ * Accounting already has the requested status. The Social member must only be
+ * updated after this function succeeds.
  */
 export const syncAccountStatus = async (
   ctx: AuthContext,

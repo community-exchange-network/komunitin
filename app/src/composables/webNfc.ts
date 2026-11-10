@@ -1,4 +1,4 @@
-import KError, { KErrorCode } from "src/KError"
+import KError, { KErrorCode } from "@/KError"
 
 const checkNfcAvailable = () => {
   try {

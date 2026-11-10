@@ -2,7 +2,7 @@ import type { ComponentPublicInstance } from 'vue';
 
 import KError, { KErrorCode } from '../KError';
 import { Notify } from 'quasar'
-import { boot } from 'quasar/wrappers';
+import { defineBoot } from '#q-app';
 import {i18n} from './i18n'
 
 
@@ -72,6 +72,14 @@ function logErrorHandling(error: Error) {
   console.error(`[${KErrorCode.ErrorHandling}] Error while handling another error: ${error.message}`);
 }
 
+function handleUnknownError(error: unknown) {
+  try {
+    handleError(KError.getKError(error));
+  } catch (caught) {
+    logErrorHandling(KError.getKError(caught));
+  }
+}
+
 export function handleError(error: KError): void {
   logError(error);
   showError(error);
@@ -106,29 +114,22 @@ if (window !== undefined) {
     // furthermore, safari may hide the error details from the script, just giving "Script error"
     if (event.message.includes("ResizeObserver loop") || event.message == "Script error.") {
       // TODO: Maybe remove this warning in production.
-      if (process.env.DEV) {
+      if (import.meta.env.QUASAR_DEV) {
          
         console.warn(event.message);
       }
       return;
     }
-    let kerror: KError;
-    if (event.error instanceof KError) {
-      kerror = event.error;
-    }
-    else {
-      kerror = new KError(KErrorCode.UnknownScript, event.message, event.error, {url: event.filename , line: event.lineno, column: event.colno})
-    }
-    try {
-      handleError(kerror);
-    }
-    catch {
-      logErrorHandling(kerror);
-    }
+    handleUnknownError(event.error ?? new Error(event.message));
+  });
+
+  window.addEventListener('unhandledrejection', function(event: PromiseRejectionEvent) {
+    event.preventDefault();
+    handleUnknownError(event.reason);
   });
 }
 
-export default boot(({app}) => {
+export default defineBoot(({app}) => {
   // Add handleError() function to Vue prototype.
   app.config.globalProperties.$handleError = handleError;
   // Set Vue warning handler.

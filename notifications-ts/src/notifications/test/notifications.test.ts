@@ -11,52 +11,32 @@ describe('Notifications API', () => {
 
   describe('GET /health', () => {
     it('returns 200 when PostgreSQL and Redis are available', async () => {
-      const res = await app
+      await app
         .get('/health')
-        .expect(200)
-
-      assert.deepEqual(res.body, { status: 'ok' })
-      assert.match(res.headers['content-type'], /^application\/json/)
+        .expect('Content-Type', /^application\/json/)
+        .expect(200, { status: 'ok' })
     })
 
     it('returns 503 when PostgreSQL is unavailable', async (t) => {
       const queryRaw = prisma.$queryRaw
-      
-      t.after(() => {
-        prisma.$queryRaw = queryRaw
-      })
+      t.after(() => { prisma.$queryRaw = queryRaw })
+      prisma.$queryRaw = () => { throw new Error('Database unavailable') }
 
-      prisma.$queryRaw = (async () => {
-        throw new Error('Database unavailable')
-      }) as typeof prisma.$queryRaw
-
-      const res = await app
+      await app
         .get('/health')
-        .expect(503)
-
-      assert.deepEqual(res.body, { status: 'error' })
-      assert.match(res.headers['content-type'], /^application\/json/)
+        .expect('Content-Type', /^application\/json/)
+        .expect(503, { status: 'error' })
     })
 
     it('returns 503 when Redis is unavailable', async (t) => {
       // Import redis after module mocks have been set up.
       const { redis } = await import('../../utils/redis')
-      const ping = redis.ping
+      t.mock.method(redis, 'ping', async () => { throw new Error('Redis unavailable') })
 
-      t.after(() => {
-        redis.ping = ping
-      })
-      
-      redis.ping = async () => {
-        throw new Error('Redis unavailable')
-      }
-
-      const res = await app
+      await app
         .get('/health')
-        .expect(503)
-
-      assert.deepEqual(res.body, { status: 'error' })
-      assert.match(res.headers['content-type'], /^application\/json/)
+        .expect('Content-Type', /^application\/json/)
+        .expect(503, { status: 'error' })
     })
   })
 

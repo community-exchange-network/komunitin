@@ -1,5 +1,5 @@
-import { CLIENT_ID, config } from "src/utils/config";
-import KError, { KErrorCode } from "src/KError";
+import { CLIENT_ID, config } from "@/utils/config";
+import KError, { KErrorCode } from "@/KError";
 //https://quasar.dev/quasar-plugins/web-storage
 
 import LocalStorage from "./LocalStorage";
@@ -157,14 +157,6 @@ export class Auth {
 
   public async changePassword(token: string, password: string): Promise<void> {
     await this.jsonRequest(config.AUTH_URL + "/change-password", { token, password })
-  }
-
-  public async changeAuthenticatedPassword(currentPassword: string, password: string, accessToken: string): Promise<void> {
-    await this.jsonRequest(
-      config.AUTH_URL + "/change-password/authenticated",
-      { currentPassword, password },
-      accessToken
-    )
   }
 
   public async changeEmail(email: string, accessToken: string): Promise<void> {

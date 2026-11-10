@@ -8,7 +8,7 @@ If you want to create an account in an existing community, go to [komunitn.org](
 
 If you are evaluating the system please use the [Demo Site](../overview/demo.md). Please do not create a new community just to test it, as this creates management work for us and uses up resources.
 
-Please read the [Terms of Use](terms-of-use.md) and be sure you're comfortable with them.
+Please read the [Terms of use and legal notice](terms-of-use.md), including the [shared maintenance](terms-of-use.md#shared-maintenance) and [data protection responsibilities](terms-of-use.md#data-protection-responsibilities) sections, and be sure you're comfortable with them.
 
 Creating a community currency exchange network that is truly useful is a task that requires a lot of dedication and effort. There are many cases of networks that start without a sufficiently motivated community to drive them and end up failing. So before taking the step and opening the community, it is important to carefully consider the objectives and characteristics of the currency, how you will spread the idea, how you will manage incidents, and to research how similar experiences to yours work... Once everything is ready, go ahead!
 
@@ -25,12 +25,3 @@ After the community is approved you'll access the administrative interface and y
 Go to the following link to apply for a new currency:
 
 {% embed url="https://komunitin.org/signup-group" %}
-
-
-
-
-
-
-
-
-

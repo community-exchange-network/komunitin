@@ -12,7 +12,7 @@ These emails are tied to events that affect a user directly and that are importa
 - Offers/needs: expired.
 - Security-related messages: email validation, password reset.
 
-Users can enable/disable *My account* emails from their notification settings. We highly recommend keeping them enabled, since they act as an audit trail for key account actions and security events.
+Users can enable/disable *My account* emails from their notification settings. We highly recommend keeping them enabled, since they act as an audit trail for key account actions. Authentication, security and mandatory administrative messages are always delivered.
 
 ### Community news
 These emails are a periodic newsletter designed to help users keep up with the community without receiving a message for every single event. They include:
@@ -22,7 +22,7 @@ These emails are a periodic newsletter designed to help users keep up with the c
 - An alert box for your account (eg no active offers)
 - Community-level statistics and news.
 
-Users can configure the frequency of *Community news* emails (weekly or monthly) or disable them entirely.
+Users can configure the frequency of *Community news* emails (weekly or monthly) or disable them for that member profile. The unsubscribe link disables newsletters for every profile and community linked to the identity, without changing other preferences.
 
 ## Push Notifications
 Push notifications are short messages sent to users' devices to inform them about important events or updates. Users need to provide explicit consent to receive push notifications and they can manage their preferences in the app settings. We also divide push notifications into the same two categories *My account* and *Community news*. Users can choose to enable or disable each category independently.
@@ -54,7 +54,7 @@ To avoid overwhelming users, new offers/needs are treated differently depending 
 
 New members are also batched and sent as a digest.
 
-Users can enable/disable *Community news* push notifications independently from *My account* notifications.
+Users can enable/disable *Community news* push notifications independently from *My account* notifications. For a user linked to several member profiles in one community, one enabled profile is enough to receive a community notification, and duplicate notifications are collapsed.
 
 ### Devices
 

@@ -69,7 +69,7 @@ import DateField from "../../components/DateField.vue"
 import ImageField from "../../components/ImageField.vue"
 import SelectCategory from "../../components/SelectCategory.vue"
 import ToggleItem from "../../components/ToggleItem.vue"
-import type { Category, ImageObject, Need, NeedStatus } from "src/store/model"
+import type { Category, ImageObject, Need, NeedStatus } from "@/store/model"
 import useVuelidate from "@vuelidate/core"
 import { minLength, required } from "@vuelidate/validators"
 import type { DeepPartial } from "quasar"
@@ -77,7 +77,7 @@ import { useStore } from "vuex"
 
 const props = defineProps<{
   code: string
-  modelValue?: DeepPartial<Need> & {category: Category}
+  modelValue?: DeepPartial<Need> & {category: Category | null}
   showState?: boolean
   submitLabel?: string
 }>()
@@ -97,9 +97,9 @@ if (props.modelValue?.attributes?.expires) {
   date = new Date()
   date.setDate(date.getDate() + 7)
 }
-const expiration = ref(date)
+const expiration = ref<Date | null>(date)
 
-const state = ref<NeedStatus>(props.modelValue?.attributes?.status || "published")
+const state = ref<NeedStatus>(props.modelValue?.attributes?.status || "draft")
 
 // Validation
 const rules = {

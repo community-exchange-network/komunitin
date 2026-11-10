@@ -15,22 +15,23 @@ cd komunitin/app
 
 ### Install
 
-Install the [Quasar framework](https://quasar.dev/), a develompent framework built over [Vue.js](https://vuejs.org/).
+Use Node.js 24 and `pnpm` package manager.
 
 ```bash
 pnpm install
 ```
 ### Install local certificates
  - Install [mkcert](https://github.com/FiloSottile/mkcert#installation)
- - Create local CA root and set the `LOCAL_CA_ROOT` env variable:
+ - Create local CA root:
 ```bash
 mkcert -install
-export LOCAL_CA_ROOT="$(mkcert -CAROOT)/rootCA.pem"
 ```
  - Create certificates for localhost
 ```bash
-mkdir -p tmp/certs && cd tmp/certs
+mkdir -p tmp/certs
+cd tmp/certs
 mkcert localhost
+cd ../..
 ```
 
 ### Run standalone
@@ -55,6 +56,26 @@ pnpm dev
 
 We use the de development IDE Visual Studio Code. [Follow this page](https://quasar.dev/start/vs-code-configuration) to set it up.
 
+### Lint
+
+We use the [ESLint](https://eslint.org/) linter for static code analysis. Launch it with:
+```bash
+pnpm lint
+```
+
+### Typecheck
+
+Run the `tsc` compiler to check both the application and the service worker code.
+
+```bash
+pnpm run typecheck
+```
+
+### Build
+```bash
+pnpm build
+```
+
 ### Test
 
 Run the app tests. Tests are executed using [vitest](https://vitest.dev/) framework and with mocked backend services.
@@ -67,16 +88,7 @@ pnpm test
 
 We use [Mirage](https://miragejs.com/) library for backend API mocking. It is enabled by default in `pnpm dev` script.
 
-### Lint
-We use the [ESLint](https://eslint.org/) linter for static code analysis. Launch it with:
-```bash
-pnpm lint
-```
 
-### Build
-```bash
-pnpm build
-```
 
 ### Docker
 
@@ -123,11 +135,11 @@ Each resource type si stored in a Vuex module that provide actions to load the r
 automatically bind to the provided resources using JavaScript getter functions.
 
 ### Functional testing
-Functional tests check that app features are working, contrasted to unit tests that check that a particular chunk of code is working. Tests are executed by [NodeJS](https://nodejs.org/) with the [Jest](https://jestjs.io/) framework with a mocked Browser environment. This way tests are much more estable than end to end tests using a full browser and also more meaningful than unit tests.
+Functional tests check that app features are working, contrasted to unit tests that check that a particular chunk of code is working. Tests are executed by [NodeJS](https://nodejs.org/) with the [Vitest](https://vitest.dev/) framework with a mocked Browser environment. This way tests are much more stable than end to end tests using a full browser and also more meaningful than unit tests.
 
-We've defined a utility module under `/test/jest/utils` with a function `mountComponent` that helps mounting a fully-featured Vue component for our app with all the required environment. It contains the needed plugins, Quasar components, executes boot files and has some handful mocks. You may add additional options by adding the options parameter as in `@vue/test-utils` `mount` function.
+We've defined a utility module under `/test/vitest/utils` with a function `mountComponent` that helps mounting a fully-featured Vue component for our app with all the required environment. It contains the needed plugins, Quasar components, executes boot files and has some handful mocks. You may add additional options by adding the options parameter as in `@vue/test-utils` `mount` function.
 
-Developers are encouraged to create functional tests for their features and place them under `/test/jest/__tests__` folder.
+Developers are encouraged to create functional tests for their features and place them under `/test/vitest/__tests__` folder.
 
 ### Unit testing
 For those Vue components or modules that are more complex, developers are encouraged to create unit tests too. Unit tests are placed under `__tests__` folder next to the file being tested. Remember that unit tests should not test code outside the file being tested. For tests involving more than one component or module, use functional tests instead.

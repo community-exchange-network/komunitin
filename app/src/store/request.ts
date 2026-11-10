@@ -1,5 +1,5 @@
 import { type ActionContext } from "vuex";
-import { type AuthService, request } from "src/composables/useApiFetch"
+import { type AuthService, request } from "@/composables/useApiFetch"
 import { type ResourceObject } from "./model";
 
 /**

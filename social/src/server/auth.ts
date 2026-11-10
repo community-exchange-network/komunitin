@@ -25,7 +25,7 @@ const jwt = authJwt({
   jwksUri: config.AUTH_JWKS_URL,
 })
 
-const handleAuthRequest = (scope: SocialScope, req: Request, res: Response, next: NextFunction) => {
+const handleAuthRequest = (scope: SocialScope | typeof Scope.Superadmin, req: Request, res: Response, next: NextFunction) => {
   jwt(req, res, (err) => {
     if (err) {
       next(err)
@@ -35,13 +35,13 @@ const handleAuthRequest = (scope: SocialScope, req: Request, res: Response, next
   })
 }
 
-export const userAuth = (scope: SocialScope) => {
+export const userAuth = (scope: SocialScope | typeof Scope.Superadmin) => {
   return (req: Request, res: Response, next: NextFunction) => {
     handleAuthRequest(scope, req, res, next)
   }
 }
 
-export const optionalUserAuth = () => {
+export const optionalUserAuth = (scope: SocialScope = Scope.SocialRead) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authorization = req.headers.authorization
     if (typeof authorization !== 'string' || !authorization.toLowerCase().startsWith('bearer ')) {
@@ -49,7 +49,7 @@ export const optionalUserAuth = () => {
       return
     }
 
-    handleAuthRequest(Scope.SocialRead, req, res, next)
+    handleAuthRequest(scope, req, res, next)
   }
 }
 

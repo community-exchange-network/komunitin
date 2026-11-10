@@ -6,13 +6,15 @@ import { errorHandler } from './server/errors'
 import { httpLogger } from './server/http-logger'
 import { config } from './config'
 import logger from './utils/logger'
+import prisma from './utils/prisma'
 import userRoutes from './features/users/routes'
+import migrationRoutes from './features/migrations/routes'
 import { groupsRoutes, tenantGroupRoutes } from './features/groups/routes'
 import { tenantCategoryRoutes } from './features/categories/routes'
 import { tenantMemberRoutes } from './features/members/routes'
 import { tenantPostRoutes } from './features/posts/routes'
 import { tenantFileRoutes } from './features/files/routes'
-import { healthRoute } from './server/health'
+import { tenantMemberUserRoutes } from './features/member-users/routes'
 
 const app = express()
 
@@ -29,11 +31,6 @@ app.use(cors({
   origin: true,
   credentials: true,
 }))
-
-app.use(httpLogger)
-
-app.get('/health', healthRoute)
-
 app.use(express.json({
   type: ['application/vnd.api+json', 'application/json']
 }))
@@ -42,11 +39,25 @@ app.use((req, res, next) => {
   next()
 })
 
+app.use(httpLogger)
+
+app.get('/health', async (_req, res) => {
+  res.type('application/json')
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.json({ status: 'ok' })
+  } catch {
+    res.status(503).json({ status: 'error' })
+  }
+})
+
+app.use('/', migrationRoutes)
 app.use('/', userRoutes)
 app.use('/', groupsRoutes)
 app.use('/:code', tenantGroupRoutes)
 app.use('/:code', tenantCategoryRoutes)
 app.use('/:code', tenantMemberRoutes)
+app.use('/:code', tenantMemberUserRoutes)
 app.use('/:code', tenantPostRoutes)
 app.use('/:code', tenantFileRoutes)
 

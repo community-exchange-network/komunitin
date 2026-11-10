@@ -136,11 +136,11 @@
 </template>
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import SelectAccount from 'src/components/SelectAccount.vue'
+import SelectAccount from '@/components/SelectAccount.vue'
 import CreateTransactionLoadFileBtn from "./CreateTransactionLoadFileBtn.vue"
 import type { TransferRow } from './CreateTransactionMultiple.vue'
 import { useI18n } from 'vue-i18n'
-import type { Currency, CurrencySettings, ExtendedAccount } from 'src/store/model'
+import type { Currency, CurrencySettings, ExtendedAccount } from '@/store/model'
 import { useStore } from 'vuex'
 
 const props = defineProps<{

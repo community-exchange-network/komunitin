@@ -1,5 +1,5 @@
 import { vi } from "vitest"
-import { IMAGE_UPLOAD_WEBP_TYPE } from "src/utils/imageUpload"
+import { IMAGE_UPLOAD_WEBP_TYPE } from "@/utils/imageUpload"
 
 interface MockImageFile extends File {
   __mockEncodedSize?: number

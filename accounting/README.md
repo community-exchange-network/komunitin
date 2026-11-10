@@ -1,132 +1,163 @@
 # Komunitin accounting service
 
-This service uses the [Stellar](https://stellar.org) blockchain to define the currencies, accounts, and transactions of the community.
+This service uses the [Stellar](https://stellar.org) blockchain to define the currencies, accounts, and transfers of the community.
 
 ## Build
+
+Run commands from `accounting/` unless stated otherwise.
+
 ```bash
-$ pnpm install
+pnpm install
 ```
 
 ## Run dev server standalone (with DB and local Stellar)
-This is the right environment to develop the service and execute tests. Start the dependecy services (database and local Stellar Network) and the Komunitin Accounting service at http://localhost:2025.
+
+This is the right environment to develop the service and execute tests. Start the dependency services (database and local Stellar network) and the Komunitin Accounting service at http://localhost:2025.
+
 ```bash
-$ cp .env.test .env
-$ docker compose up -d
-$ pnpm restart-db
-$ pnpm dev
+cp .env.test .env
+docker compose up -d
+pnpm reset-db
+pnpm dev
 ```
+
+Stellar Horizon and Friendbot can take a few seconds to start. `pnpm reset-db` deletes the configured database contents.
 
 ## Run dev server with local services (with testnet Stellar)
-This is the right environment to develop the integration of this service with the app and other services. 
-- Start the Komunitin services following the instructions in the [main README](../README.md).
-- Stop the `accounting` container
-- Run the accounting service with the local services:
+
+This is the right environment to develop the integration of this service with the app and other services.
+
+- Start the Komunitin services following the instructions in the [main README](../README.md). The development stack already runs Accounting with hot reload.
+- To run Accounting on the host instead, stop the `accounting` container, expose its database port, and point Social and Notifications to `http://host.docker.internal:2025`.
+- Copy `.env.local` to `.env`, align its configuration with the running stack, and start the service:
+
 ```bash
-$ cp .env.local .env
-$ pnpm dev
-```
-- Change the internal accounting url in integralces service:
-```bash
-$ cd ..
-$ docker compose exec integralces drush vset ces_komunitin_accounting_url_internal http://host.docker.internal:2025 
+cp .env.local .env
+pnpm dev
 ```
 
-Note for devs on WSL (Windows): when runnning the accounting service from WSL2 and wanting to access it from a docker container (eg from integralces or notifications), the host.docker.internal must point to the WSL2 IP instead of the Windows host IP, so the `host.docker.internal: host-gateway` entry in the `docker-compose.yml` file must be replaced by the WSL2 IP.
+Note for developers on WSL2: `host.docker.internal` must resolve to the WSL2 host running Accounting. You may need to replace the `host.docker.internal:host-gateway` mapping in `compose.yml` with the WSL2 IP.
 
 ## Test
-Execute all the tests:
+
+Execute all the tests using the standalone setup above. Server tests reset the database, so keep `.env` and `.env.test` pointed at the test database.
+
 ```bash
-$ pnpm test
+pnpm test
 ```
+
 ### Unit tests
+
 ```bash
-$ pnpm test-unit
+pnpm test-unit
 ```
 
 ### Ledger tests
+
 Tests involving only the Stellar integration but not the server.
+
 ```bash
-$ pnpm test-ledger
+pnpm test-ledger
 ```
+
 ### Server tests
-Tests involving the whole service
+
+Tests involving the whole service, including Credit Commons and contributions.
+
 ```bash
-$ pnpm test-server
+pnpm test-server
 ```
 
 ### Run just one test
+
 ```bash
-$ pnpm test-one <test-file>
+pnpm test-one <test-file>
 ```
 
 ## Stellar
 
-
 ### Local model
- - Each community currency has its own asset. Assets have the following properties:
-   - The asset code is a 4-character string.
-   - The asset requires authorisation: no random user in the internet can hold the asset, but only users authorised by the community.
-   - The asset is revocable and clawbackable: the issuer can revoke the asset from any user and clawback the asset from any user.
 
- - Each currency has 3 distinguished Stellar accounts:
-   - The issuer account. Is the account that mints the community currency. It only transfers the currency to the credit account.
-   - The credit account. Payments from this account are accounted as credit to the user. So for example, if an account has a Stellar balance of 80 units, but the sum of payments from the credit account is 100 units, then the user has a Komunitin balance of -20 units.
-   - The admin account. This is an account for administrative purposes and its key is a signer of all other user accounts.
+- Each community currency has its own asset. Assets have the following properties:
+  - The asset code is a 4-character string.
+  - The asset requires authorisation: only accounts authorised by the community can hold it.
+  - The asset is revocable and clawbackable: the issuer can revoke authorisation and claw back the asset from any account.
+
+- Each currency has three main Stellar accounts:
+  - The issuer account. This is the account that mints the community currency. It only transfers the currency to the credit account.
+  - The credit account. Transfers from this account are accounted as credit to the member. For example, if an account has a Stellar balance of 80 units, but its allocated credit is 100 units, then it has a Komunitin balance of -20 units.
+  - The admin account. This is an account for administrative purposes and its key is a signer of all other member accounts.
 
 - All XLM base reserves and transaction fees are sponsored by a single global sponsor account.
 
 ### External model
-In order to feature trade between communities, the following model is proposed:
-  - Each currency has two additional distinguished Stellar accounts:
-    - The external issuer account. Mints an asset with code HOUR (for all currencies). This asset is permissionless.
-    - The external trader account. This account defines sell offers between the local asset and the HOUR asset, and also between the HOUR asset from this currency and the HOUR asset from other currencies.
-  - Initially, the trader account is funded with sufficient HOUR balance and sets an offer to convert the local asset to HOUR.
-  - If the trader is configured to hold and initial balance of local asset, then it also sets an offer to convert HOUR to the local asset.
-  - The currency andministration may choose to trust another currency up to a limit. This means that the currency will accept the HOUR asset from the other currency as payment. This is reflected by creating a trustline to the external HOUR asset and a sell offer to convert the currency HOUR asset to the external HOUR asset.
-  - Whenever an incoming external payment is received, the trader account creates or updates the sell offer to convert the current balance of external HOUR assets to local HOUR assets.
+
+Trade between communities uses the following model:
+
+- Each currency has two additional distinguished Stellar accounts:
+  - The external issuer account. Mints a permissionless asset with code HOUR. Each currency has its own issuer.
+  - The external trader account. Defines sell offers between the local asset and the HOUR asset, and between the HOUR asset from this currency and the HOUR assets from other currencies.
+- Initially, the trader account is funded with sufficient HOUR balance and sets an offer to convert the local asset to HOUR.
+- If the trader is configured to hold an initial balance of the local asset, it also sets an offer to convert HOUR to the local asset.
+- The currency administration may choose to trust another currency up to a limit. This means that the currency will accept the HOUR asset from the other currency for incoming transfers. This is reflected by creating a trustline to the external HOUR asset and a sell offer to convert the currency's HOUR asset to the external HOUR asset.
+- Whenever an incoming external transfer is received, the trader account creates or updates the sell offer to convert the current balance of external HOUR assets to local HOUR assets.
 
 ## Credit Commons protocol integration
-The [Credit Commons](https://creditcommons.net/) is a protocol for enabling transactions between different servers and sytems.
 
-Accounting administration commands, including trustline and Credit Commons node setup, live in the [shared TypeScript CLI](../shared/cli/README.md). They authenticate through the new Auth service and use Social for current-user membership discovery.
+[Credit Commons](https://creditcommons.net/) is a protocol for enabling transfers between different servers and systems.
+
+Accounting administration commands, including trustline and Credit Commons node setup, live in the [shared TypeScript CLI](../shared/cli/README.md). They authenticate through Auth and use Social for current-user membership discovery.
 
 ### Known issues
-Komunitin's Credit Commons API is a recent addition, it's not complete, and there are a few known issues:
-* The only [CC workflow](https://gitlab.com/credit-commons/cc-node/-/blob/0.9.x/doc/developers.md?ref_type=heads#workflow) that is currently supported is `_C-`, meaning the payer sends money and it completes immediately (just a POST, no PATCH).
-* In the future we also want to implement `_P+PC-` meaning the payee sends a payment request over Credit Commons with a POST, and the payer approves it with a PATCH.
-* Transactions from the UI are only supported using the QR code workflow.
-* There is quite some manual setup required from currency admins to be done through direct API calls.
-* This functionality has so far only been tested in testing and development environments, enabling it in production is not yet recommended.
-* The current implementation waits for Stellar to commit the transaction, which [may not be the best design](https://github.com/komunitin/komunitin/pull/367#discussion_r2032891494).
-* When interpreting the amount from a payment request QR code, the GUI incorrectly assumes a 1:1 conversion rate from the receiver's currency to the sender's local currency.
+
+Komunitin's Credit Commons API is incomplete:
+
+- Incoming transfers complete immediately with a POST. Updating their state with PATCH is not implemented, so request-and-approve workflows are not supported yet.
+- Transfers from the UI are only supported using the QR code workflow.
+- Community administrators still need to configure connections and settings manually.
+- This functionality has only been tested in development and test environments; enabling it in production is not yet recommended.
+- The implementation waits for Stellar to commit the transfer, which [may not be the best design](https://github.com/komunitin/komunitin/pull/367#discussion_r2032891494). A subsequent remote failure does not roll back the local transfer.
+- When interpreting an amount from a receive QR code, the app assumes a 1:1 conversion rate from the destination currency to the sender's local currency.
 
 ### Main setup
-To test the CC integration, you can go to the repo root, make sure you have https://github.com/michielbdejong/ices checked out next to it, and do:
+
+From the repository root, start the development stack with demo data:
+
 ```sh
-cp .env.template .env
-./start.sh --up --ices --dev --demo
+cp .env.dev.template .env
+./start.sh --up --dev --demo
 ```
 
-### Sending a transaction from Komunitin
-1. Log in to https://localhost:2030 (notice it's https, not http, and tell your browser to accept the self-signed cert) as `fermat@komunitin.org` / `komunitin` (NET2 admin)
-2. Go to Group Settings -> External Payments, enable the "Enable Credit Commons payments" option and disable the "Enable External Payments" option.
-3. Log out (top left dropdown)
-4. Log in with `euclides@komunitin.org` / `komunitin` (NET1 user), go to transactions -> receive -> QR, and generate a QR code for a value of more than 1 (to cover the transaction fee) but less than 19 (so that Noether's balance is enough).
-5. With your phone, make a photo of your laptop screen (no need to scan the QR code with your phone, just take a photo of it).
-6. Log out (top left dropdown)
-7. Log in as `noether@komunitin.org` / `komunitin` (NET2 user), go to transactions -> send -> QR, and show your phone with the photo to the camera of your laptop.
-8. Click 'Confirm', and the payment should go through, via Credit Commons.
+The demo now contains the single Bramblewick community (`BRAM`). Log in at https://localhost:2030 as `mabel@bramblewick.example` (administrator) or `tom@bramblewick.example` (member), with password `komunitin`. See the [demo guide](../shared/demo/README.md) for the full data and login details.
+
+The Credit Commons test node at http://localhost:2024 has a `BRAM` peer. Connect Accounting to it using:
+
+```bash
+./shared/cli/komunitin accounting create-credit-commons-node BRAM http://cc/ \
+  --email mabel@bramblewick.example --password komunitin
+```
+
+This uses Mabel's account as the `vostro` account. If Accounting runs on the host, use `http://localhost:2024/` instead of `http://cc/`. Cross-community tests require another community or remote account and matching configuration on the Credit Commons node; the demo does not create these automatically.
+
+### Sending a transfer from Komunitin
+
+After connecting the participating communities:
+
+1. Log in as the sending community's administrator (Mabel for `BRAM`). Enable Credit Commons transfers and disable Stellar external transfers in the community settings. The sending account must also allow external transfers.
+2. Log in as the recipient in the other community and generate a receive QR code for an amount within the sender's available balance and credit, allowing for any fees.
+3. To test on one computer, take a photo of the QR code with your phone; there is no need to scan it with the phone.
+4. Log out and log in as the sender (Tom for `BRAM`). Open Send → QR and show the photo to the computer's camera.
+5. Confirm the transfer to send it through Credit Commons.
 
 ### Connecting with docker exec
-You can interact with the various containers and databases through docker, here is a little cheat sheet with some oneliners that might be useful for that:
+
+Useful commands from the repository root:
+
 ```sh
 docker ps
-docker exec -it komunitin-cc-1 mysql credcom_twig
-docker exec -it komunitin-cc-1 /bin/bash -c "curl -i http://accounting:2025/"
-docker exec -it komunitin-integralces-1 mysql -u integralces -pintegralces -h komunitin-db-integralces-1 integralces
-docker exec -it komunitin-db-accounting-1 psql postgresql://accounting:accounting@localhost:5432/accounting
+docker compose -f compose.yml -f compose.dev.yml exec cc mysql credcom_twig
+docker compose -f compose.yml -f compose.dev.yml exec cc curl -i http://accounting:2025/
+docker compose -f compose.yml -f compose.dev.yml exec db-accounting psql -U accounting -d accounting
 ```
-In psql, execute `SELECT set_config('app.bypass_rls', 'on', false);` to bypass Row Level Security, then `\d+` to see a list of tables, and e.g. `select * from "Transfer";` to see the contents of the Transfers table.
 
-### Reset
-To  restart from scratch, do `docker compose down -v`. Make sure with `docker ps -a` and `docker volume ls` that all relevant containers are stopped and removed, and repeat if necessary. There might also be an unnamed volume that you need to remove. If see `DUPLICATE ENTRY` errors on the next run then you know it wasn't removed completely.
+In psql, execute `SELECT set_config('app.bypass_rls', 'on', false);` to bypass Row Level Security, then `\d+` to list tables or `SELECT * FROM "Transfer";` to inspect transfers.

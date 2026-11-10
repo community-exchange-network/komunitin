@@ -1,13 +1,17 @@
 import assert from "node:assert"
+import { randomUUID } from "node:crypto"
+import { http, HttpResponse } from "msw"
 import { after, before, describe, it } from "node:test"
+import request from "supertest"
 import { config } from "../../src/config"
 import { CurrencyControllerImpl } from "../../src/controller/currency-controller"
+import { createExternalToken } from "../../src/controller/external-jwt"
 import { EventName } from "../../src/controller/features/notificatons"
 import { logger } from "../../src/utils/logger"
 import { CurrencySettings } from "../../src/model"
 import { testCurrency, testTransfer, userAuth } from "./api.data"
 import { AuthInfo } from "./net.client"
-import { clearEvents, getEvents } from "./net.mock"
+import { addHandlers, clearEvents, getEvents } from "./net.mock"
 import { setupServerTest } from './setup'
 import { waitFor } from "./utils"
 
@@ -100,7 +104,7 @@ describe("External transfers", async () => {
   }
 
   /**
-   * amount in source currency
+   * amount in destination currency
    */
   const waitForPath = async (fromCurrency: any, toCurrency: any, amount: number) => {
     const controller = await t.app.komunitin.service.getCurrencyController(fromCurrency.attributes.code) as CurrencyControllerImpl
@@ -114,6 +118,7 @@ describe("External transfers", async () => {
     })
 
     assert.ok(path, `Path not found from ${fromCurrency.attributes.code} to ${toCurrency.attributes.code}`)
+    return path
   }
 
   await it('set trust to currency', async () => {
@@ -235,6 +240,21 @@ describe("External transfers", async () => {
     assert.equal(response.included[0].id, transfer2.relationships.payee.data.id)
   })
 
+  await it('account settings block external payments and requests', async () => {
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, { data: { attributes: {
+      allowExternalPayments: false,
+      allowExternalPaymentRequests: false
+    } } }, t.admin)
+
+    await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 100, "Payment denied", "committed", t.user1, 403)
+    await externalTransfer(t.currency, eCurrency, eAccount1, t.account1, 100, "Request denied", "committed", t.user1, 403)
+
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, { data: { attributes: {
+      allowExternalPayments: null,
+      allowExternalPaymentRequests: null
+    } } }, t.admin)
+  })
+
   await it('succesful external payment request (approval)', async () => {
     await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, { data: { attributes: { 
       acceptExternalPaymentsAutomatically: false
@@ -319,6 +339,35 @@ describe("External transfers", async () => {
     const rejected2 = (await t.api.get('/TEST/transfers/' + transfer.id, t.user1)).body.data
     assert.equal(rejected2.attributes.state, "rejected")
 
+  })
+
+  await it('rejects external transfers above the approved source amount', async () => {
+    const controller = await t.app.komunitin.service.getCurrencyController("TEST")
+    const payer = await controller.ledger.getAccount(t.account1.attributes.key)
+    const balanceBefore = payer.balance()
+
+    // Advertise a false rate so approving 100 TEST would debit 200 TEST.
+    const currency = { ...eCurrency, id: randomUUID(), attributes: { ...eCurrency.attributes, rate: { n: 1, d: 4 } } }
+    const account = {
+      ...eAccount1,
+      id: randomUUID(),
+      relationships: { ...eAccount1.relationships, currency: { data: { type: 'currencies', id: currency.id } } }
+    }
+    const url = `https://remote.example/${currency.id}`
+    addHandlers(
+      http.get(`${url}/currency`, () => HttpResponse.json({ data: currency })),
+      http.get(`${url}/accounts/${account.id}`, () => HttpResponse.json({ data: account })),
+      http.post(`${url}/transfers`, async ({ request }) => HttpResponse.json(await request.json(), { status: 201 }))
+    )
+    const data = testTransfer(t.account1.id, account.id, 100, 'Approved source amount', 'committed')
+    Object.assign(data.data.relationships.payee.data, {
+      meta: { external: true, href: `${url}/accounts/${account.id}` }
+    })
+
+    const response = await t.api.post('/TEST/transfers', data, t.user1, 400)
+    assert.equal(response.body.errors[0].detail, 'Quoted source amount exceeds the approved amount')
+    await payer.update()
+    assert.equal(payer.balance(), balanceBefore)
   })
 
   it("can trade without trust if in surplus", async () => {
@@ -461,6 +510,12 @@ describe("External transfers", async () => {
     assert.equal(updatedCurrency.attributes.rate.n, 2)
     assert.equal(updatedCurrency.attributes.rate.d, 13)
 
+    // Wait for Horizon to reflect the new rate in its payment quotes.
+    await waitFor(async () => {
+      const path = await waitForPath(t.currency, eCurrency, 1000 * (2 / 13) / (1 / 2))
+      return Number(path.sourceAmount) <= 1000 / 10 ** t.currency.attributes.scale
+    }, 'Expected a quote within the approved 1000 TEST')
+
     // Now 1000 TEST = 307 EXTR
     const transfer = await externalTransfer(t.currency, eCurrency, t.account1, eAccount1, 1000, "1000 TEST => 307 EXTR after rate update", "committed", t.user1)
     assert.equal(transfer.attributes.amount, 1000)
@@ -478,5 +533,149 @@ describe("External transfers", async () => {
     assert.equal(tTransfer2.attributes.amount, 325) // Exact
     */
 
+  })
+
+  describe('verified incoming settlements', () => {
+    const remoteId = randomUUID()
+    const href = `https://remote.example/accounts/${remoteId}`
+    let controller: CurrencyControllerImpl
+    let hash: string | undefined
+
+    const data = () => {
+      const doc = testTransfer(remoteId, t.account1.id, 100, 'External settlement', 'committed')
+      Object.assign(doc.data.relationships.payer.data, { meta: { external: true, href } })
+      return doc
+    }
+    const credit = async () => (await t.api.get(`/TEST/accounts/${t.account1.id}`, t.user1)).body.data.attributes.creditLimit
+    const pay = async () => {
+      const payer = await controller.ledger.getAccount(t.account2.attributes.key)
+      return await payer.pay({ payeePublicKey: t.account1.attributes.key, amount: controller.toStringAmount(10) }, {
+        account: await controller.keys.retrieveKey(t.account2.attributes.key), sponsor: await controller.keys.sponsorKey()
+      })
+    }
+
+    before(async () => {
+      controller = await t.app.komunitin.service.getCurrencyController('TEST') as CurrencyControllerImpl
+      await t.api.patch('/TEST/currency/settings', { data: { attributes: {
+        defaultOnPaymentCreditLimit: await credit() + 10000
+      } } }, t.admin)
+      addHandlers(
+        http.get(href, () => HttpResponse.json({ data: { ...t.account2, id: remoteId } })),
+        http.get('https://remote.example/currency', () => HttpResponse.json({ data: t.currency })),
+        http.post('https://remote.example/transfers', () => HttpResponse.json({ data: {
+          type: 'transfers', id: randomUUID(), attributes: { state: 'committed', hash }
+        } }, { status: 201 }))
+      )
+    })
+
+    it('requires ledger proof and credits only the settled amount', async () => {
+      const initialCredit = await credit()
+      await t.api.post('/TEST/transfers', data(), t.user1, 400)
+      assert.equal(await credit(), initialCredit)
+
+      hash = (await pay()).hash
+      const settled = (await t.api.post('/TEST/transfers', data(), t.user1)).body.data
+      assert.equal(settled.attributes.state, 'committed')
+      assert.equal(settled.attributes.amount, 10)
+      await waitFor(async () => (await credit()) === initialCredit + 10)
+    })
+
+    it('stores incoming payment hashes and rejects their reuse', async () => {
+      const initialCredit = await credit()
+      const payment = await pay()
+      const token = await createExternalToken(await controller.keys.retrieveKey(t.account2.attributes.key))
+      const doc = data()
+      Object.assign(doc.data.attributes, { hash: payment.hash })
+      const notify = () => request(t.app).post('/TEST/transfers')
+        .set('Authorization', `Bearer ${token}`).set('Content-Type', 'application/vnd.api+json').send(doc)
+
+      const settled = await notify().expect(201)
+      assert.equal(settled.body.data.attributes.hash, payment.hash)
+      await waitFor(async () => (await credit()) === initialCredit + 10)
+      await notify().expect(400)
+      assert.equal(await credit(), initialCredit + 10)
+    })
+  })
+
+  it('creates concurrent transfers to the same uncached external account', { timeout: 10000 }, async () => {
+    const id = randomUUID()
+    const href = `https://peer.example/accounts/${id}`
+    const waiting: (() => void)[] = []
+    addHandlers(http.get(href, async () => {
+      // Both lookups must miss the cache before either fetch completes.
+      await new Promise<void>(resolve => {
+        waiting.push(resolve)
+        if (waiting.length === 2) waiting.forEach(resolve => resolve())
+      })
+      return HttpResponse.json({ data: { ...t.account2, id } })
+    }))
+    const doc = testTransfer(t.account1.id, id, 1, 'Concurrent external transfers', 'new')
+    Object.assign(doc.data.relationships.payee.data, { meta: { external: true, href } })
+
+    const responses = await Promise.all([
+      t.api.post('/TEST/transfers', doc, t.user1),
+      t.api.post('/TEST/transfers', doc, t.user1)
+    ])
+    assert.notEqual(responses[0].body.data.id, responses[1].body.data.id)
+    for (const response of responses) {
+      assert.equal(response.body.data.relationships.payee.data.id, id)
+      assert.equal(response.body.data.relationships.payee.data.meta.href, href)
+    }
+  })
+
+  it('pins external identities and ignores whitelists for immediate external approval', async () => {
+    const href = `https://peer.example/accounts/${t.account2.id}`
+    const otherHref = `https://other.example/accounts/${t.account2.id}`
+    addHandlers(
+      http.get('https://peer.example/accounts/:id', ({ params }) =>
+        HttpResponse.json({ data: { ...t.account2, id: params.id } })),
+      http.get(otherHref, () => HttpResponse.json({ data: t.account2 }))
+    )
+
+    // A claimed account UUID must not overwrite an already trusted currency.
+    const collision = testTransfer(eAccount1.id, t.currency.id, 1, 'Identity collision', 'new')
+    Object.assign(collision.data.relationships.payee.data, {
+      meta: { external: true, href: `https://peer.example/accounts/${t.currency.id}` }
+    })
+    await t.api.post('/EXTR/transfers', collision, eUser1, 400)
+
+    const doc = testTransfer(t.account1.id, t.account2.id, 1, 'Pinned external identity', 'new')
+    const payee = Object.assign(doc.data.relationships.payee.data, { meta: { external: true, href } })
+    await t.api.post('/TEST/transfers', doc, t.user1)
+    const controller = await t.app.komunitin.service.getCurrencyController('TEST') as CurrencyControllerImpl
+    await controller.db.externalResource.update({
+      where: { tenantId_id: { tenantId: 'TEST', id: t.account2.id } }, data: { updated: new Date(0) }
+    })
+    payee.meta.href = otherHref
+    await t.api.post('/TEST/transfers', doc, t.user1, 400)
+    payee.meta.href = href
+
+    await t.api.patch('/TEST/currency/settings', { data: { attributes: {
+      enableExternalPaymentRequests: true
+    } } }, t.admin)
+    const settings = { acceptPaymentsWhitelist: [t.account2.id], acceptExternalPaymentsAutomatically: false,
+      allowExternalPaymentRequests: true }
+    await t.api.patch(`/TEST/accounts/${t.account1.id}/settings`, { data: { attributes: settings } }, t.admin)
+    const token = await createExternalToken(await controller.keys.retrieveKey(t.account2.attributes.key))
+    doc.data.attributes.state = 'committed'
+    const notify = () => request(t.app).post('/TEST/transfers')
+      .set('Authorization', `Bearer ${token}`).set('Content-Type', 'application/vnd.api+json').send(doc)
+    const balance = (await t.api.get(`/TEST/accounts/${t.account1.id}`, t.user1)).body.data.attributes.balance
+    const pending = await notify()
+    assert.equal(pending.status, 201, pending.text)
+    assert.equal(pending.body.data.attributes.state, 'pending')
+
+    // Exercise currency defaults without an account-level whitelist.
+    await controller.db.account.update({
+      where: { id: t.account1.id },
+      data: { settings: { acceptExternalPaymentsAutomatically: false, allowExternalPaymentRequests: true } }
+    })
+    await t.api.patch('/TEST/currency/settings', { data: { attributes: {
+      defaultAcceptPaymentsWhitelist: [t.account2.id]
+    } } }, t.admin)
+    const defaultWhitelisted = await notify()
+    assert.equal(defaultWhitelisted.status, 201, defaultWhitelisted.text)
+    assert.equal(defaultWhitelisted.body.data.attributes.state, 'pending')
+    assert.equal((await t.api.get(`/TEST/accounts/${t.account1.id}`, t.user1)).body.data.attributes.balance, balance)
   })
 })

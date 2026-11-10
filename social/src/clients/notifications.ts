@@ -1,9 +1,10 @@
 import { config } from '../config'
 import type { AuthContext } from '../server/context'
 import logger from '../utils/logger'
+import { internalError } from '../utils/error'
 import type { Group } from '../features/groups/types'
 import type { Member } from '../features/members/types'
-import type { Post } from '../features/posts/types'
+import type { Post } from '../generated/prisma/client'
 import { fetchWithAuth } from './utils'
 import { getNotificationsToken } from './auth'
 
@@ -11,11 +12,12 @@ type SocialEventName =
   | 'NeedPublished'
   | 'OfferPublished'
   | 'MemberRequested'
+  | 'MemberDeletionRequested'
   | 'MemberJoined'
   | 'GroupRequested'
   | 'GroupActivated'
 
-type EventData = Record<string, string>
+type EventData = Record<string, string | number | undefined>
 
 type EventPayload = {
   data: {
@@ -45,7 +47,7 @@ const notificationsUrl = (path: string): string => {
 class NotificationsClient {
   constructor(readonly ctx: AuthContext) {}
 
-  private async sendEvent(name: SocialEventName, code: string, data: EventData): Promise<void> {
+  private async sendEvent(name: SocialEventName, code: string, data: EventData, required = false): Promise<void> {
     const payload: EventPayload = {
       data: {
         type: 'events',
@@ -82,23 +84,28 @@ class NotificationsClient {
       )
       if (!response.ok) {
         const body = await response.text()
-        logger.error({ name, code, status: response.status, body }, 'Failed to send notification event')
+        throw internalError(`Failed to send ${name}: ${response.status}`, { details: body })
       }
     } catch (error) {
       logger.error({ err: error, name, code }, 'Failed to send notification event')
+      if (required) throw error
     }
   }
 
-  public async notifyOfferPublished(code: string, post: Pick<Post, 'id'>): Promise<void> {
-    await this.sendEvent('OfferPublished', code, { offer: post.id })
-  }
-
-  public async notifyNeedPublished(code: string, post: Pick<Post, 'id'>): Promise<void> {
-    await this.sendEvent('NeedPublished', code, { need: post.id })
+  public async notifyPostPublished(code: string, post: Pick<Post, 'id' | 'type'>): Promise<void> {
+    const offer = post.type === 'offers'
+    await this.sendEvent(offer ? 'OfferPublished' : 'NeedPublished', code, {
+      [offer ? 'offer' : 'need']: post.id,
+    })
   }
 
   public async notifyMemberRequested(code: string, member: Pick<Member, 'id'>): Promise<void> {
     await this.sendEvent('MemberRequested', code, { member: member.id })
+  }
+
+  public async notifyMemberDeletionRequested(code: string, member: Pick<Member, 'id'>): Promise<void> {
+    // The request must fail if the confirmation email cannot be queued.
+    await this.sendEvent('MemberDeletionRequested', code, { user: this.ctx.userId, memberId: member.id }, true)
   }
 
   public async notifyMemberJoined(code: string, member: Pick<Member, 'id'>): Promise<void> {

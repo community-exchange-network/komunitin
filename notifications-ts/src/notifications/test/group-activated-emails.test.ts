@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { db, createGroup } from "../../mocks/db";
+import { db, createGroup, createMember } from "../../mocks/db";
 import { createEvent, setupNotificationsTest } from "./utils";
 
 const { put, email } = setupNotificationsTest({ useWorker: true });
@@ -16,6 +16,11 @@ describe('GroupActivated emails', () => {
 
     const adminUser = db.users.find(u => u.id === `admin-${groupCode}`);
     assert.ok(adminUser, 'Admin user should exist');
+    const adminMember = createMember({ groupCode, userId: adminUser.id });
+    const adminRelation = db.memberUsers.find(
+      relation => relation.relationships.member.data.id === adminMember.id,
+    )!;
+    adminRelation.attributes.emails.myAccount = false;
 
     const eventData = createEvent('GroupActivated', { code: groupCode, user: adminUser.id, data: { group: groupCode } });
 

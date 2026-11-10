@@ -4,25 +4,18 @@
 
 Run a comprehensive smoke test against a reset local Docker stack with mocks disabled. Exercise the Vue app through the browser while verifying the Auth → Social → Accounting → Notifications integration chain.
 
-No application or API changes are required. The output is a test report, evidence bundle, and actionable defect list.
+The output is a test report, evidence bundle, actionable defect list, follow-up plan for each defect, and a set of PRs for the trivial defects that can be trivially fixed without UX or product decisions.
 
 ## Preparation
 
 - Start from a clean stack with `./start.sh --up --dev --reset` and confirm `KOMUNITIN_APP_MOCK=false`.
+- Use the installed **Playwright MCP** as the browser surface for the entire run,
+  with a dedicated isolated Chrome profile. Do not switch to the in-app Browser or
+  an extension-backed Chrome session: their shared browser state works against the
+  persona isolation and reproducible evidence required by this runbook.
 - Record commit SHA, environment configuration, browser/version, viewport, start time, and run ID.
-- The development TLS certificate is issued by an `mkcert` CA created inside the
-  app image, so host browser automation does not trust it by default. Use a
-  disposable localhost-only browser context with certificate validation disabled.
-  For Playwright, `ignoreHTTPSErrors` alone is insufficient because the service
-  worker still rejects the certificate; apply the bypass at browser/CDP level too:
-
-  ```ts
-  const browserSession = await browser.newBrowserCDPSession()
-  await browserSession.send("Security.setIgnoreCertificateErrors", { ignore: true })
-  const context = await browser.newContext({ ignoreHTTPSErrors: true })
-  ```
-
-  Do not reuse this certificate bypass for non-local targets.
+- Trust the host's mkcert CA in the automation browser; keep TLS validation enabled.
+  After loading the app, reload once and verify `navigator.serviceWorker.controller` is set.
 - Verify:
   - App loads at `https://localhost:2030`.
   - Auth, Social, and Notifications `/health` endpoints return success.
@@ -83,9 +76,10 @@ No application or API changes are required. The output is a test report, evidenc
   - Verify the member sees a pending/inactive state and the group administrator receives the request notification.
 
 - **SMK-008 — Member acceptance**
+  - Before acceptance, verify a member loads without an Accounting account, invalid account requests, or UI errors. Verify Delete is available and works on a separate disposable pending member without first accepting it.
   - As group admin, find the request under account management and accept it.
   - Verify the member becomes active, an Accounting account with configured defaults appears, and welcome notifications are generated.
-  - Verify search, sorting, pagination, and CSV download produce the member.
+  - Verify search, sorting, and CSV download produce the member.
 
 ### Member and marketplace operations
 
@@ -119,13 +113,15 @@ No application or API changes are required. The output is a test report, evidenc
 - **SMK-014 — Notifications**
   - Check notifications resulting from group request/activation, member request/acceptance, post publication, and payment.
   - Verify intended non-actor recipients, unread badge, notification links, mark-as-read behavior, and relevant saved emails.
+  - Publish both a regular post and an urgent post (expiry within seven days of creation). Regular posts immediately notify only the author; other members receive them through eligible digests. Urgent posts immediately notify active community members, subject to channel preferences, and are excluded from digests.
+  - Authors see their own publication notifications in the notifications page, but their live in-app notification is suppressed and their own posts do not appear in their emails or digests. An author may receive a publication push confirmation if they close the browser between publication and delivery.
   - Poll asynchronous delivery for up to 60 seconds rather than using fixed sleeps.
 
 ### Administration, permissions, and recovery
 
 - **SMK-015 — Member administration**
   - Edit the ordinary member’s profile and account limits.
-  - Suspend the account and verify the member sees an inactive banner and cannot transact or publish.
+  - Suspend the account and verify the member sees an inactive banner and cannot transact or create new posts.
   - Resume it and verify normal operation returns.
   - Disable and re-enable the account, checking Social and Accounting status remain synchronized.
 
@@ -140,9 +136,9 @@ No application or API changes are required. The output is a test report, evidenc
   - As anonymous user, hidden posts, pending members, pending groups, and private administration data must remain inaccessible.
   - Treat any client-side exposure backed by a successful unauthorized API response as a release-blocking security defect.
 
-- **SMK-018 — Authenticated password change**
-  - Enter an incorrect current password and verify a controlled validation error.
-  - Change it with the correct password, log out, verify the old password fails, and verify the new password succeeds.
+- **SMK-018 — Authenticated password-change email**
+  - While logged in, choose Change password in profile settings. Verify it requests a reset link for the identity's current email and produces the saved email; no current-password form is required.
+  - Verify requesting the link alone does not change the password. Open the emailed link and apply the shared redemption checks in SMK-020, recording evidence for this entry point.
 
 - **SMK-019 — Email change**
   - Request a new email, verify the saved confirmation message, and open its link.
@@ -150,13 +146,15 @@ No application or API changes are required. The output is a test report, evidenc
   - Verify the old email no longer authenticates, the new email does, and the Social profile reflects the confirmed Auth email.
 
 - **SMK-020 — Password reset**
-  - Request reset for both a known and unknown email; the visible response must not reveal account existence.
-  - Open the known account’s reset link, set a new password, and verify no session is created automatically.
-  - Verify the previous password fails, the new password succeeds, and the reset token cannot change the password again.
+  - From the logged-out Forgot password entry point, request reset for both a known and unknown email; the visible response must not reveal account existence.
+  - Shared redemption checks for both SMK-018 and this case: open the saved reset link, set a new password, and verify the browser returns to login with no authenticated session (including when redemption began logged in).
+  - Verify the previous password fails, the new password succeeds, and the reset token cannot change the password again. Exercise each entry point with its own link; cross-reference the shared assertions in the report.
 
 - **SMK-021 — Member deletion**
-  - Return the member’s balance to zero, then delete the membership using the current password.
-  - Verify the Social member and posts disappear, the Accounting account is removed, but the Auth identity can still log in and start a new membership.
+  - Return the ordinary member's balance to zero, request deletion from settings, and verify a confirmation email is produced. The membership must remain until the emailed link is opened and deletion confirmed; no current password is required. Administrator deletion uses the administrator's permissions without the member's email confirmation.
+  - After confirmation, verify the Social member and its posts are inaccessible and absent from listings, and the Accounting account has status `deleted`. Historical records may remain; physical row removal is not required.
+  - If this was the identity's last non-deleted membership, verify the Auth identity is deleted and a fresh login with its former credentials fails. The email must be available for a new registration.
+  - Repeat with the separate identity that has another membership: verify its Auth identity remains usable and it can still access the other membership. Memberships in any community and any non-deleted status (including draft or pending) retain the identity; for shared memberships, evaluate each linked identity separately.
 
 - **SMK-022 — Pending-community rejection**
   - Create a second minimal pending community with another identity.
@@ -175,6 +173,7 @@ No application or API changes are required. The output is a test report, evidenc
   - A test-data manifest containing identifiers but no passwords or action tokens.
 - Capture screenshots at major lifecycle checkpoints and every failure. Name them `SMK-###-<step>-<short-description>.png`.
 - A toast alone is not proof: reload and verify through another page or persona after every cross-service mutation.
+- Wait for observable completion before continuing: autosave responses before reload, date-field blur before submission, and debounced icon-filter results before selection. Record automation timing mistakes separately from reproducible product failures.
 - On failure:
   1. Capture the current UI, URL, console, and failed network request before retrying.
   2. Redact authorization headers, cookies, passwords, and action-token query strings.
@@ -187,11 +186,17 @@ No application or API changes are required. The output is a test report, evidenc
   - **P2:** important user/admin operation degraded with a workaround.
   - **P3:** visual, wording, or minor usability issue.
 - Record non-bug findings separately: unclear UX, flaky timing, missing observability, configuration gaps, and documentation problems.
+- Distinguish expected negative-test responses (denied access, old credentials, used tokens, and deleted resources) from unexpected failures. Retain background `401` responses around logout/identity transitions and investigate their cause before classifying them as expected; do not silently suppress them.
 - Preserve failed state until evidence is collected. Reset test data only after the report and defects are complete.
 - Update the report.md and other files on-the-go at least after each test, so we can stop and resume the session without losing progress. Don't wait to finish the entire run before reporting.
 
 ## Acceptance and Assumptions
 
 - The run is green only if all non-optional cases pass, there are no P0/P1 defects, no unauthorized access, no unexplained browser errors, and no unexpected API `4xx/5xx` responses.
+- Blocked or skipped required checks remain coverage gaps, not passes. Correcting obsolete runbook expectations does not retroactively prove unexecuted assertions. Any release recommendation must identify the exact tested commit and local changes, outstanding defects, and accepted coverage gaps; validate fixes on the release candidate with targeted reruns.
 - Default target is a reset local stack with saved HTML emails and comprehensive coverage because no environment preference was supplied.
 - Optional external SMTP delivery, push permission/device delivery, NFC hardware, top-ups, Credit Commons transfers, and IntegralCES migration are outside this core run unless their dependencies are explicitly configured.
+
+
+## Defects Follow Up
+After the smoke test run, create a plan for each of the defects found to address them. Then choose the ones that are just one line or a few lines of code to fix with no UX or product decisions, and create a branch for each of them and fix them (if any), and create a PR with short descriptions. The complex defects (if any) will be plan only, so no branch and no code work.

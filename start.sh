@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
+set -e
+
 usage() {
   cat <<EOF
 Usage: $0 [OPTIONS]
 
 Migrate the databases and provision the configured superadmin. Use --up to
-build and start the services first.
+build the images and start the services.
 
 Options:
   --up          Build and start the services
   --reset       Reset the service databases before applying migrations
-  --demo        Deprecated alias for --reset
-  --dev         Start with development config (requires --up)
+  --demo        Reset service databases and import the Bramblewick CSV demo bundle
+  --dev         Set up local HTTPS and start with development config (requires --up)
   --public      Start with production config (requires --up)
   --prune       Remove unused Docker resources after startup
   -h, --help    Show this help message
@@ -19,6 +21,7 @@ EOF
 }
 
 reset=false
+demo=false
 public=false
 up=false
 prune=false
@@ -33,7 +36,7 @@ while (( $# > 0 )); do
       reset=true
       ;;
     --demo)
-      echo "Warning: --demo is deprecated; use --reset." >&2
+      demo=true
       reset=true
       ;;
     --public)
@@ -65,7 +68,7 @@ if [ "$dev" = true ] && [ "$public" = true ]; then
 fi
 
 if [ "$up" = false ] && { [ "$reset" = true ] || [ "$dev" = true ] || [ "$public" = true ] || [ "$prune" = true ]; }; then
-  echo "Options --reset, --dev, --public and --prune require --up." >&2
+  echo "Options --reset, --demo, --dev, --public and --prune require --up." >&2
   exit 1
 fi
 
@@ -74,55 +77,70 @@ set -a
 . .env
 set +a
 
-# for social db, prisma reset does not work well so we remove the volume and let docker 
-# compose recreate it.
-if [ "$reset" = true  ]; then
-  docker compose down -v db-social
-fi
-
-
-# Start the services
-if [ "$up" = true ]; then
-if [ "$public" = true ]; then
-  docker compose -f compose.yml -f compose.public.yml up -d --build --remove-orphans
-elif [ "$dev" = true ]; then
-  # Create .env files required by compose.dev.yml volume mounts if they don't exist.
-  # Docker creates empty directories in their place if the host files are missing,
-  # which causes the services to fail to start.
-  touch -a app/.env accounting/.env notifications-ts/.env auth/.env social/.env
+up_args=()
+# Prepare trusted HTTPS when mkcert is available; containers provide the fallback.
+if [ "$dev" = true ]; then
+  export COMPOSE_FILE=compose.yml:compose.dev.yml
+  up_args+=(--renew-anon-volumes)
   mkdir -p notifications-ts/tmp
-  docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans
-  docker compose exec auth pnpm prisma generate
-  docker compose exec social pnpm prisma generate
-  docker compose exec accounting pnpm prisma generate
-else
-  docker compose up -d --build --remove-orphans
+  cert_dir="$PWD/app/tmp/certs"
+  mkdir -p "$cert_dir"
+  if { [ ! -f "$cert_dir/localhost.pem" ] || [ ! -f "$cert_dir/localhost-key.pem" ]; } && command -v mkcert >/dev/null; then
+    (cd "$cert_dir" && mkcert localhost)
+  fi
+  if [ -f "$cert_dir/localhost.pem" ] && [ -f "$cert_dir/localhost-key.pem" ]; then
+    # Let S3Mock read the PEM files directly instead of its default keystore.
+    cat > "$cert_dir/s3mock.properties" <<'EOF'
+server.ssl.key-store=
+server.ssl.key-password=
+server.ssl.certificate=file:/certs/localhost.pem
+server.ssl.certificate-private-key=file:/certs/localhost-key.pem
+EOF
+  else
+    rm -f "$cert_dir/s3mock.properties"
+    echo "Warning: using untrusted self-signed HTTPS certificates. Install mkcert for trusted HTTPS and PWA features." >&2
+  fi
+elif [ "$public" = true ]; then
+  export COMPOSE_FILE=compose.yml:compose.public.yml
 fi
 
-# cleanup old images and volumes
+services=(auth social accounting notifications-ts)
+migrate=(exec)
+if [ "$up" = true ]; then
+  docker compose build
+  if [ "$reset" = true ]; then
+    docker compose stop "${services[@]}"
+    # Social needs a fresh volume to reinstall its PostgreSQL extensions.
+    docker compose down -v db-social
+  fi
+  # Compose waits for each service's database before running Prisma.
+  migrate=(run --rm)
+fi
+
+for service in "${services[@]}"; do
+  action=(deploy)
+  if [ "$reset" = true ] && [ "$service" != social ]; then
+    action=(reset --force)
+  fi
+  docker compose "${migrate[@]}" "$service" pnpm prisma migrate "${action[@]}"
+done
+
+# Auth and Accounting need the migrated schema before they can serve requests.
+if [ "$up" = true ]; then
+  docker compose up --wait --wait-timeout 300 --remove-orphans "${up_args[@]}"
+else
+  docker compose start --wait --wait-timeout 300 "${services[@]}"
+fi
+
 if [ "$prune" = true ]; then
   docker system prune -f
 fi
 
-echo "Waiting for the services to start..."
-sleep 10
-
-fi
-
-# Migrate service databases
-if [ "$reset" = true  ]; then
-  docker compose exec auth pnpm prisma migrate reset --force
-  docker compose exec social pnpm prisma migrate deploy
-  docker compose exec accounting pnpm prisma migrate reset --force
-  docker compose exec notifications-ts pnpm prisma migrate reset --force
-  sleep 2
-else
-  docker compose exec auth pnpm prisma migrate deploy
-  docker compose exec social pnpm prisma migrate deploy
-  docker compose exec accounting pnpm prisma migrate deploy
-  docker compose exec notifications-ts pnpm prisma migrate deploy
-  sleep 2
-fi
-
 # Bootstrap the configured superadmin in Auth and Social.
 ./shared/cli/komunitin admin bootstrap
+if [ "$demo" = true ]; then
+  # Package and import the checked-in demo content.
+  mkdir -p shared/demo/tmp
+  ./shared/cli/komunitin admin bundle demo shared/demo/tmp/bramblewick.zip
+  ./shared/cli/komunitin admin migrate shared/demo/tmp/bramblewick.zip
+fi

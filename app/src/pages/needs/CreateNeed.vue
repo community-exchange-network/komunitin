@@ -21,7 +21,7 @@
 <script setup lang="ts">
 import PageHeader from "../../layouts/PageHeader.vue"
 import NeedForm from "./NeedForm.vue"
-import type { Category, Need } from "src/store/model"
+import type { Category, Need } from "@/store/model"
 import { useStore } from "vuex"
 import { useRouter } from "vue-router"
 import type { DeepPartial } from "quasar"
@@ -35,7 +35,7 @@ const props = defineProps<{
 const store = useStore()
 const router = useRouter()
 
-const need = ref<Need & {category: Category} | undefined>(undefined)
+const need = ref<Need & {category: Category | null} | undefined>(undefined)
 
 // Load initial values from current resource only if we are comming 
 // from the preview page.

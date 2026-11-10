@@ -1,20 +1,22 @@
 import { flushPromises, type VueWrapper } from "@vue/test-utils";
-import App from "src/App.vue";
+import App from "@/App.vue";
 import { mountComponent, requireText, waitFor } from "../utils";
-import TransactionList from "src/pages/transactions/TransactionList.vue";
-import AccountHeader from "src/components/AccountHeader.vue";
-import SelectAccount from "src/components/SelectAccount.vue";
-import PageHeader from "src/layouts/PageHeader.vue";
-import { seeds } from "src/server";
-import { QFabAction, QInput, QList, QMenu } from "quasar";
-import SelectGroupExpansion from "src/components/SelectGroupExpansion.vue";
-import GroupHeader from "src/components/GroupHeader.vue";
-import CreateTransactionSendQR from "src/pages/transactions/CreateTransactionSendQR.vue";
-import NfcTagScanner from "src/components/NfcTagScanner.vue";
+import TransactionList from "@/pages/transactions/TransactionList.vue";
+import AccountHeader from "@/components/AccountHeader.vue";
+import SelectAccount from "@/components/SelectAccount.vue";
+import PageHeader from "@/layouts/PageHeader.vue";
+import server, { seeds } from "@/server";
+import { Notify, QFabAction, QInput, QList, QMenu } from "quasar";
+import SelectGroupExpansion from "@/components/SelectGroupExpansion.vue";
+import GroupHeader from "@/components/GroupHeader.vue";
+import CreateTransactionSendQR from "@/pages/transactions/CreateTransactionSendQR.vue";
+import NfcTagScanner from "@/components/NfcTagScanner.vue";
 import TransactionItem from "../../../src/components/TransactionItem.vue";
-import AccountItemContent from "src/components/AccountItemContent.vue";
-import DateField from "src/components/DateField.vue";
+import TransactionCard from "@/components/TransactionCard.vue";
+import AccountItemContent from "@/components/AccountItemContent.vue";
+import DateField from "@/components/DateField.vue";
 import { addDays, format } from "date-fns";
+import { createExternalMemberTransfer } from "../utils/transactions";
 
 // Payment address URL used in QR, link, and scan tests.
 const PAYMENT_ADDRESS_URL = "http://localhost:8080/accounting/GRP0/cc/addresses/231baf7c-6231-46c1-9046-23da58abb09a"
@@ -159,6 +161,65 @@ describe("Transactions", () => {
     expect(text).toContain("Committed");
     expect(text).toContain("Group 0");
   })
+  it("shows a transaction when its external account is unreachable", async () => {
+    await wrapper.vm.$router.push("/home")
+    const payer = server.schema.find("account", wrapper.vm.$store.getters.myAccount.id)
+    const href = "http://legacy.test/accounts/unreachable-account"
+    const payee = server.create("account", { id: "unreachable-account" })
+    payee.update({ meta: { external: true, href } })
+    const transfer = server.create("transfer")
+    transfer.update({
+      payer, payee, amount: 12300, state: "committed",
+      updated: new Date().toISOString(),
+      meta: { description: "Payment to an unavailable account" }
+    })
+    const fetch = globalThis.fetch
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((url, options) =>
+      url === href ? Promise.reject(new TypeError("Failed to fetch")) : fetch(url, options)
+    )
+    onTestFinished(() => {
+      fetchMock.mockRestore()
+      transfer.destroy()
+      payee.destroy()
+    })
+    vi.mocked(Notify.create).mockClear()
+
+    await wrapper.vm.$router.push(TRANSFERS_ROUTE)
+    const transaction = () => wrapper.findAllComponents(TransactionItem)
+      .find(item => item.props("transfer").id === transfer.id)
+    await waitFor(() => transaction()?.text().includes("Payment to an unavailable account"), true)
+    expect(transaction()?.text()).toContain("$-1.23")
+    await wrapper.vm.$router.push(`/groups/GRP0/transactions/${transfer.id}`)
+    await waitFor(() => wrapper.text().includes("Payment to an unavailable account"), true)
+    expect(wrapper.text()).toContain("Committed")
+    expect(Notify.create).not.toHaveBeenCalled()
+  })
+
+  it("batches external members in the transaction list and shows their details", async () => {
+    await wrapper.vm.$router.push("/home")
+    const payments = [0, 1, 2].map(index => createExternalMemberTransfer(wrapper.vm.$store.getters.myAccount.id, index))
+    const { memberName, transferId } = payments[0]
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+    onTestFinished(() => fetchMock.mockRestore())
+
+    await wrapper.vm.$router.push("/groups/GRP0/admin/transactions")
+    const transaction = () => wrapper.findAllComponents(TransactionItem)
+      .find(item => item.text().includes(memberName))
+    await waitFor(() => transaction()?.exists(), true, "The list should show the external member's name")
+
+    await waitFor(() => payments.every(({ memberName }) => wrapper.text().includes(memberName)), true)
+    const memberRequests = fetchMock.mock.calls.map(([url]) => new URL(String(url)))
+      .filter(url => url.pathname.endsWith("/GRP1/members"))
+    expect(memberRequests).toHaveLength(1)
+    expect(memberRequests[0].searchParams.get("filter[account]")?.split(",").sort())
+      .toEqual(payments.map(({ accountId }) => accountId).sort())
+
+    await transaction()!.trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/transactions/${transferId}`)
+    await waitFor(() => wrapper.findComponent(TransactionCard).exists(), true)
+    expect(wrapper.getComponent(TransactionCard).text()).toContain(memberName)
+  })
+
   it("creates payment request", async () =>  {
     await wrapper.vm.$router.push("/login");
     await waitFor(() => wrapper.vm.$route.path, "/home");
@@ -297,7 +358,12 @@ describe("Transactions", () => {
     await waitFor(() => dialog.findAllComponents(AccountHeader).length, 0, "External group should have no accounts");
     
     await input.setValue("002")
-    await waitFor(() => dialog.findAllComponents(AccountHeader).length, 1)
+    // Other requests can briefly put an unrelated account in the shared store.
+    await waitFor(
+      () => dialog.findAllComponents(AccountHeader)[0]?.text().includes("GRP20002"),
+      true,
+      "External account search should find GRP20002"
+    )
     // Found account
     await dialog.getComponent(AccountHeader).trigger("click")
     await flushPromises()
@@ -307,7 +373,7 @@ describe("Transactions", () => {
     await wrapper.get("[name='amount']").setValue("13")
     await flushPromises()
     await waitFor(
-      () => (wrapper.get("input[aria-label='Amount in feeds']").element as HTMLInputElement).value,
+      () => wrapper.find<HTMLInputElement>("input[aria-label='Amount in feeds']").element?.value,
       "1,300.00",
       "External currency amount should be calculated"
     );

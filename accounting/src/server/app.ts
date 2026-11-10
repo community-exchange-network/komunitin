@@ -10,7 +10,6 @@ import helmet from "helmet"
 import cors from "cors"
 import { createBaseService } from "../controller/base-service-builder"
 import { BaseService } from "../controller"
-import { healthRoute } from "./health"
 
 
 export type ExpressExtended = express.Express & { komunitin: { service: BaseService } }
@@ -42,15 +41,6 @@ export const setupApp = async (expressApp: express.Express) => {
     exposedHeaders: ['Content-Disposition']
   }))
 
-  // Logger
-  app.use(httpLogger)
-  
-  // Controller
-  const service = await createBaseService()
-  app.komunitin = { service }
-
-  app.get('/health', healthRoute(service))
-
   // Express middlewares
   app.use(express.json({
     type: ['application/vnd.api+json', 'application/json']
@@ -63,7 +53,23 @@ export const setupApp = async (expressApp: express.Express) => {
     next()
   })
 
+  // Logger
+  app.use(httpLogger)
+
+  // Controller
+  const service = await createBaseService()
+  app.komunitin = { service }
+  
   // Routes
+  app.get('/health', async (_req, res) => {
+    res.type('application/json')
+    try {
+      await service.privilegedDb().$queryRaw`SELECT 1`
+      res.json({ status: 'ok' })
+    } catch {
+      res.status(503).json({ status: 'error' })
+    }
+  })
   app.use("/", getRoutes(service))
   app.use("/", getCCRoutes(service))
   app.use("/", getMigrationRoutes(service))
@@ -79,3 +85,5 @@ export const setupApp = async (expressApp: express.Express) => {
 export const closeApp = async (app: ExpressExtended) => {
   await app.komunitin.service.stop()
 }
+
+

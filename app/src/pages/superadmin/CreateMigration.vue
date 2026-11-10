@@ -5,35 +5,27 @@
       <div class="text-overline text-uppercase q-mb-lg">
         Start a migration
       </div>
-      <migration-form
-        v-model="migration"
-        @submit="submitMigration"
-      />
+      <p>Upload a community CSV ZIP bundle to import users, accounts, history and marketplace data.</p>
+      <q-file v-model="bundle" label="Community bundle (.zip)" accept=".zip" outlined :disable="running" />
+      <q-btn class="q-my-md" color="primary" label="Import community" :loading="running" :disable="!bundle" @click="submitMigration" />
+      <q-banner v-if="error" class="bg-negative text-white">{{ error }}</q-banner>
     </q-page>
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
-import MigrationForm from './MigrationForm.vue'
-import PageHeader from '../../layouts/PageHeader.vue'; 
-import { useMigrations, type Migration } from './migrations'
-import { useRouter } from 'vue-router';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import PageHeader from '../../layouts/PageHeader.vue'
+import { useMigrationUpload } from './migrations'
 
-const migration = ref<Partial<Migration>>()
 const router = useRouter()
-
-const { create } = useMigrations({immediate: false})
+const bundle = ref<File | null>(null)
+const { upload, running, error } = useMigrationUpload()
 
 const submitMigration = async () => {
-  if (!migration.value) {
-    return
+  if (bundle.value) {
+    const id = await upload(bundle.value)
+    if (id) await router.push({ name: 'MigrationDetails', params: { id } })
   }
-
-  const migrationId = await create(migration.value)
-
-  // Navigate to the details page of the newly created migration
-  router.push({ name: 'MigrationDetails', params: { id: migrationId } })
 }
-
 </script>
-

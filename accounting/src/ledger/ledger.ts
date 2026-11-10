@@ -62,6 +62,7 @@ export type LedgerCurrencyKeys = {
   admin: KeyPair,
   externalIssuer: KeyPair,
   externalTrader: KeyPair,
+  disabledAccountsPool?: KeyPair,
 }
 
 /**
@@ -161,9 +162,11 @@ export type LedgerEvents = {
  */
 export interface Ledger {
   /**
-   * Create a new currency.
+   * Create a currency.
+   * 
+   * Reusing keys makes ledger provisioning idempotent.
    */
-  createCurrency(config: LedgerCurrencyConfig, sponsor: KeyPair): Promise<LedgerCurrencyKeys>
+  createCurrency(config: LedgerCurrencyConfig, sponsor: KeyPair, keys?: LedgerCurrencyKeys): Promise<LedgerCurrencyKeys>
   /**
    * Get a currency object from the configuration and data.
    */
@@ -403,7 +406,7 @@ export interface LedgerAccount {
    * @param payment
    *   amount: The amount to pay in the payee currency. The payee will receive exactly this amount.
    *   payeePublicKey: The public key of the payee account.
-   *   externalIssuerPublicKey: The public key of the issuer of the payee currency.
+   *   path: The conversion quote, with a source amount approved by the caller.
    */
   externalPay(payment: { payeePublicKey: string, amount: string, path: PathQuote }, keys: { account: KeyPair, sponsor: KeyPair }): Promise<LedgerExternalTransfer>
 
@@ -421,6 +424,10 @@ export interface LedgerAccount {
    * @returns The balance of the account in the community currency.
    */
   balance(): string
+  /** 
+   * Get the maximum balance for this account in the community currency.
+   * */
+  maximumBalance(): string
 
   /**
   * Update the account data from the ledger.
@@ -481,6 +488,7 @@ export interface LedgerTransfer {
   asset: LedgerAsset,
   // ledger transaction id.
   hash: string,
+  created: Date,
 }
 
 /**

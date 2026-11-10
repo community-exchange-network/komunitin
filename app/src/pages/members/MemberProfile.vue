@@ -19,10 +19,12 @@
         </div>
         <simple-map
           class="simple-map"
-          :center="member.attributes.location.coordinates"
-          :marker="member.attributes.location.coordinates"
+          :center="mapCenter"
+          :marker="member.attributes.location?.coordinates"
         />
-        <div><q-icon name="place" />{{ member.attributes.location.name }}</div>
+        <div v-if="member.attributes.location?.name">
+          <q-icon name="place" />{{ member.attributes.location.name }}
+        </div>
       </div>
     </div>
     <!-- CONTACT -->
@@ -30,38 +32,26 @@
       <div class="text-overline text-uppercase text-onsurface-d q-pl-md">
         {{ $t('contact') }}
       </div>
-      <social-network-list
+      <SocialNetworkList
         type="contact"
         :contacts="member.attributes.contacts"
       />
     </div>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent } from "vue"
+<script setup lang="ts">
+import { computed } from 'vue'
 
-import md2html from "../../plugins/Md2html";
+import SimpleMap from '../../components/SimpleMap.vue'
+import SocialNetworkList from '../../components/SocialNetworkList.vue'
+import md2html from '../../plugins/Md2html'
+import type { Group, Member } from '../../store/model'
 
-import SimpleMap from "../../components/SimpleMap.vue";
-import SocialNetworkList from "../../components/SocialNetworkList.vue"
+const props = defineProps<{
+  member: Member & { group: Group }
+}>()
 
-
-export default defineComponent({
-  name: "MemberProfile",
-  components: {
-    SimpleMap,
-    SocialNetworkList
-  },
-  props: {
-    member: {
-      type: Object,
-      required: true
-    }
-  },
-  setup() {
-    return {
-      md2html
-    }
-  }
-})
+const mapCenter = computed(() =>
+  props.member.attributes.location?.coordinates ?? props.member.group.attributes.location?.coordinates
+)
 </script>

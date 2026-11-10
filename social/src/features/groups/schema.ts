@@ -21,12 +21,17 @@ export const addressSchema = z.object({
 }).strict()
 export type Address = z.infer<typeof addressSchema>
 
-export const contactTypeSchema = z.enum(['phone', 'email', 'telegram', 'whatsapp', 'website'])
+export const contactTypeSchema = z.enum([
+  'phone', 'email', 'telegram', 'whatsapp', 'website', 'instagram', 'facebook', 'twitter',
+])
 
 export const contactSchema = z.object({
   type: contactTypeSchema,
   value: z.string(),
-}).strict()
+}).strict().refine(
+  contact => contact.type !== 'website' || z.url({ protocol: /^https?$/ }).safeParse(contact.value).success,
+  { path: ['value'], message: 'Website contacts must use an HTTP or HTTPS URL' },
+)
 
 export type Contact = z.infer<typeof contactSchema>
 

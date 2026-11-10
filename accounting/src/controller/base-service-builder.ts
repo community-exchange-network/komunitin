@@ -27,7 +27,7 @@ const getSponsorAccount = async (store: Store) => {
     } else {
       // Create a new random sponsor account with friendbot.
       sponsor = Keypair.random()
-      await friendbot(config.STELLAR_FRIENDBOT_URL, sponsor.publicKey())
+      await friendbot(config.STELLAR_FRIENDBOT_URL, config.STELLAR_HORIZON_URL, sponsor.publicKey())
       await store.set(SPONSOR_STORE_KEY, sponsor.secret())
       logger.info(`Random sponsor account created with friendbot and saved.`)
     }

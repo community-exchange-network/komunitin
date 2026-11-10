@@ -1,21 +1,12 @@
-import { Context } from "../utils/context"
-import { ApiMigration, CreateMigration, MigrationLogEntry, Migration, MigrationStatus, UpdateMigration } from "./migration"
+import type { Context } from "../utils/context"
+import type { ApiMigration, MigrationData, MigrationLogEntry, MigrationStatus } from "./migration"
+import type { Prisma } from '@prisma/client'
 import { notFound } from "../utils/error"
-import { EventEmitter } from "events"
-import TypedEmitter from "typed-emitter"
-import { ICESMigrationController } from "./integralces-migration"
-import { BaseService } from "../controller"
+import type { BaseService } from "../controller"
 
-type MigrationControllerEvents = {
-  logUpdate: (migrationId: string, log: MigrationLogEntry) => void
-}
-
+/** Execution checkpoints and read API, including logs from historical migrations. */
 export class MigrationController {
-  private logEmitter: TypedEmitter<MigrationControllerEvents>
-  
-  constructor(readonly controller: BaseService) {
-    this.logEmitter = new EventEmitter() as TypedEmitter<MigrationControllerEvents>
-  }
+  constructor(readonly controller: BaseService) {}
 
   async getMigrations(ctx: Context): Promise<ApiMigration[]> {
     const db = this.controller.privilegedDb()
@@ -29,12 +20,12 @@ export class MigrationController {
         created: true,
         updated: true
       }
-    }) as ApiMigration[]
+    })
 
-    return migrations 
+    return migrations
   }
 
-  private async getFullMigration(id: string): Promise<Migration> {
+  async getMigration(ctx: Context, id: string): Promise<ApiMigration> {
     const db = this.controller.privilegedDb()
     const migration = await db.migration.findUnique({
       where: { id },
@@ -47,15 +38,11 @@ export class MigrationController {
       throw notFound(`Migration with id ${id} not found`)
     }
 
-    return migration as unknown as Migration
-  }
-
-  async getMigration(ctx: Context, id: string): Promise<ApiMigration> {
-    // Return only the main fields and a few fields from data.
-    const { data, ...migration } = await this.getFullMigration(id)
-    const { step, test, source } = data || {}
+    // Checkpoints contain the imported bundle and encrypted keys. Expose only public progress fields.
+    const { data, ...record } = migration
+    const { step, test, source } = (data as MigrationData | null) ?? {}
     return {
-      ...migration,
+      ...record,
       data: {
         step,
         test,
@@ -64,61 +51,6 @@ export class MigrationController {
     }
   }
   
-  async createMigration(ctx: Context, migration: CreateMigration): Promise<ApiMigration> {
-
-    // Create the migration record
-    const db = this.controller.tenantDb(migration.code)
-    const migrationRecord = await db.migration.create({
-      data: {
-        code: migration.code,
-        name: migration.name,
-        kind: migration.kind,
-        status: "new",
-        tenantId: migration.code,
-        data: migration.data || {},
-        log: []
-      }
-    })
-
-    const response = await this.getMigration(ctx, migrationRecord.id)
-
-    // Add initial log entry
-    await this.addLogEntry(response, "info", "create", "Migration record created")
-
-    return response
-  }
-
-  async updateMigration(ctx: Context, migration: UpdateMigration): Promise<ApiMigration> {
-    if (!migration.id) {
-      throw new Error("Migration id is required for update")
-    }
-    const db = this.controller.tenantDb(migration.code)
-    const existingMigration = await db.migration.findUnique({
-      where: { id: migration.id }
-    })
-
-    if (!existingMigration) {
-      throw notFound(`Migration with id ${migration.id} not found`)
-    }
-
-    await db.migration.update({
-      where: { id: migration.id },
-      data: {
-        name: migration.name,
-      }
-    })
-
-    if (migration.data) {
-      await this.updateMigrationData(migration.id, migration.data)
-    }
-
-    const response = await this.getMigration(ctx, migration.id)
-
-    await this.addLogEntry(response, "info", "update", "Migration record updated")
-
-    return response    
-  }
-
   async getMigrationLogs(ctx: Context, id: string): Promise<MigrationLogEntry[]> {
     const db = this.controller.privilegedDb()
     const migration = await db.migration.findUnique({
@@ -133,51 +65,13 @@ export class MigrationController {
     return (migration.log as unknown as MigrationLogEntry[]) || []
   }
 
-  onLogUpdate(migrationId: string, callback: (log: MigrationLogEntry) => void): () => void {
-    const wrappedCallback = (id: string, log: MigrationLogEntry) => {
-      if (id === migrationId) {
-        callback(log)
-      }
-    }
-    
-    this.logEmitter.on('logUpdate', wrappedCallback)
-    
-    return () => {
-      this.logEmitter.off('logUpdate', wrappedCallback)
-    }
-  }
-
-  async deleteMigration(ctx: Context, id: string): Promise<void> {
-    const db = this.controller.privilegedDb()
-    
-    // Check if migration exists first
-    const migration = await db.migration.findUnique({
-      where: { id },
-      select: { id: true }
-    })
-
-    if (!migration) {
-      throw notFound(`Migration with id ${id} not found`)
-    }
-
-    // Delete the migration
-    await db.migration.delete({
-      where: { id }
-    })
-  }
-
-  /**
-   * 
-   * @param migrationId Migration id
-   * @param data Data to update in the migration. It will be merged with the existing data
-   * using PostgreSQL's JSONB || operator.
-   */
-  async updateMigrationData(migrationId: string, data: any): Promise<void> {
+  /** Merge progress fields atomically without replacing the durable bundle and key checkpoint. */
+  async updateMigrationData(migrationId: string, data: Prisma.InputJsonObject): Promise<void> {
     const db = this.controller.privilegedDb()
     
     await db.$executeRaw`
       UPDATE "Migration" 
-      SET data = data || ${JSON.stringify(data)}::jsonb
+      SET data = data || ${JSON.stringify(data)}::jsonb, updated = NOW()
       WHERE id = ${migrationId}
     `
   }
@@ -189,44 +83,5 @@ export class MigrationController {
       where: { id: migrationId },
       data: { status }
     })
-    
   }
-
-  public async addLogEntry(migration: ApiMigration, level: "info" | "warn" | "error", step: string, message: string, data?: any) {
-    const db = this.controller.tenantDb(migration.code)
-    
-    const logEntry: MigrationLogEntry = {
-      time: new Date().toISOString(),
-      level,
-      message,
-      step,
-      ...(data ? { data } : undefined)
-    }
-
-    // Append the log entry to the migration's log JSONB field
-    await db.$executeRaw`
-      UPDATE "Migration" 
-      SET log = log || ${JSON.stringify([logEntry])}::jsonb
-      WHERE id = ${migration.id}
-    `
-
-    // Emit the log entry for SSE streams
-    this.logEmitter.emit('logUpdate', migration.id, logEntry)
-  }
-
-  /**
-   * Execute migration
-   * @param ctx 
-   * @param id 
-   */
-  async playMigration(ctx: Context, id: string): Promise<void> {
-    const migration = await this.getFullMigration(id)
-    
-    if (ICESMigrationController.isICESMigration(migration)) {
-      const icesController = new ICESMigrationController(this, migration)
-      await icesController.play()
-    }
-    
-  }
-
 }

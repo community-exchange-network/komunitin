@@ -10,6 +10,7 @@ type MockCurrency = {
   href: string
   code: string
   status: 'active' | 'disabled' | 'deleted'
+  adminIds: string[]
 }
 
 type MockAccount = {
@@ -41,8 +42,19 @@ type MockUnsubscribeToken = {
 }
 
 const authBaseUrl = process.env.AUTH_URL ?? 'http://auth.test'
+const deletionTokens = new Map<string, {
+  userId: string; memberId: string;
+}>()
+
+export const memberDeletionToken = (userId: string, memberId: string) => {
+  const token = `deletion-${deletionTokens.size}`
+  deletionTokens.set(token, { userId, memberId })
+  return token
+}
 const accountingBaseUrl = process.env.ACCOUNTING_URL ?? 'http://localhost:2025'
 let authTokenRequests: AuthTokenRequest[] = []
+let identityDeleteRequests: string[] = []
+let identityDeleteStatus = 204
 let authUnsubscribeTokens = new Map<string, MockUnsubscribeToken>()
 const notificationsBaseUrl = process.env.NOTIFICATIONS_API_URL ?? 'http://notifications.test'
 let accountingCurrencies = new Map<string, MockCurrency>()
@@ -54,6 +66,8 @@ let accountingAccountDeleteStatus = 204
 let accountingAccountDeleteDetail = 'Mock accounting delete failure'
 let accountingAccountCreateStatus = 201
 let accountingAccountCreateDetail = 'Mock accounting account creation failure'
+let accountingAccountPatchStatus = 200
+let accountingAccountPatchDetail = 'Mock accounting account update failure'
 let notificationsEventStatus = 201
 let notificationsEvents: unknown[] = []
 
@@ -69,8 +83,9 @@ export const seedAccountingCurrency = (
   code: string,
   id = toUuid(`accounting-currency-${code}`),
   status: MockCurrency['status'] = 'active',
+  adminIds: string[] = [],
 ): MockCurrency => {
-  const currency = { id, href: accountingCurrencyHref(code), code, status }
+  const currency = { id, href: accountingCurrencyHref(code), code, status, adminIds }
   accountingCurrencies.set(code, currency)
   return currency
 }
@@ -117,6 +132,9 @@ export const getAccountingRequests = (): AccountingRequest[] => {
   return [...accountingRequests]
 }
 
+export const getIdentityDeleteRequests = () => [...identityDeleteRequests]
+export const setIdentityDeleteStatus = (status: number) => { identityDeleteStatus = status }
+
 export const getAuthTokenRequests = (): AuthTokenRequest[] => {
   return [...authTokenRequests]
 }
@@ -137,6 +155,11 @@ export const setAccountingAccountDeleteStatus = (status: number, detail = 'Mock 
 export const setAccountingAccountCreateStatus = (status: number, detail = 'Mock accounting account creation failure') => {
   accountingAccountCreateStatus = status
   accountingAccountCreateDetail = detail
+}
+
+export const setAccountingAccountPatchStatus = (status: number, detail = 'Mock accounting account update failure') => {
+  accountingAccountPatchStatus = status
+  accountingAccountPatchDetail = detail
 }
 
 export const setAccountingCurrencyDeleteStatus = (status: number, detail = 'Mock accounting currency delete failure') => {
@@ -178,6 +201,7 @@ const requireAccountingAuthorization = (request: Request): Response | null => {
 }
 
 const serializeCurrency = (currency: MockCurrency) => ({
+  relationships: { admins: { data: currency.adminIds.map(id => ({ type: 'users', id })) } },
   type: 'currencies',
   id: currency.id,
   links: {
@@ -190,6 +214,7 @@ const serializeCurrency = (currency: MockCurrency) => ({
 })
 
 const serializeAccount = (account: MockAccount) => ({
+  relationships: { users: { data: account.userIds.map(id => ({ type: 'users', id })) } },
   type: 'accounts',
   id: account.id,
   links: {
@@ -203,7 +228,10 @@ const serializeAccount = (account: MockAccount) => ({
 })
 
 export const resetMockState = () => {
+  deletionTokens.clear()
   authTokenRequests = []
+  identityDeleteRequests = []
+  identityDeleteStatus = 204
   authUnsubscribeTokens = new Map()
   accountingCurrencies = new Map<string, MockCurrency>()
   accountingAccounts = new Map<string, Map<string, MockAccount>>()
@@ -214,6 +242,8 @@ export const resetMockState = () => {
   accountingAccountDeleteDetail = 'Mock accounting delete failure'
   accountingAccountCreateStatus = 201
   accountingAccountCreateDetail = 'Mock accounting account creation failure'
+  accountingAccountPatchStatus = 200
+  accountingAccountPatchDetail = 'Mock accounting account update failure'
   notificationsEventStatus = 201
   notificationsEvents = []
   notificationsRequests = []
@@ -222,6 +252,13 @@ export const resetMockState = () => {
 export const handlers = [
   http.get(process.env.AUTH_JWKS_URL!, () => {
     return HttpResponse.json(getJwks())
+  }),
+  http.delete(`${authBaseUrl}/users/:userId`, ({ request, params }) => {
+    if (request.headers.get('authorization') !== 'Bearer social-service-token') {
+      return new HttpResponse(null, { status: 401 })
+    }
+    identityDeleteRequests.push(String(params.userId))
+    return new HttpResponse(null, { status: identityDeleteStatus })
   }),
   http.post(`${authBaseUrl}/token`, async ({ request }) => {
     const params = new URLSearchParams(await request.text())
@@ -237,7 +274,7 @@ export const handlers = [
       if (
         tokenRequest.clientId !== CLIENT_ID
         || params.get('client_secret') !== process.env.SOCIAL_CLIENT_SECRET
-        || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.NotificationsWrite)
+        || (tokenRequest.scope !== Scope.AccountingRead && tokenRequest.scope !== Scope.AccountingWrite && tokenRequest.scope !== Scope.NotificationsWrite)
       ) {
         return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
       }
@@ -278,6 +315,14 @@ export const handlers = [
       return HttpResponse.json({ error: 'invalid_token' }, { status: 401 })
     }
     const body = await request.json() as { token?: string; purpose?: string }
+    if (body.purpose === 'memberDeletion') {
+      const action = deletionTokens.get(body.token ?? '')
+      if (!action) {
+        return HttpResponse.json({ error: 'invalid_action_token' }, { status: 400 })
+      }
+      const { userId, memberId } = action
+      return HttpResponse.json({ userId, purpose: 'memberDeletion', data: memberId })
+    }
     if (!body.token || body.purpose !== 'unsubscribe') {
       return HttpResponse.json({ error: 'invalid_request' }, { status: 400 })
     }
@@ -351,6 +396,11 @@ export const handlers = [
     if (nextStatus === 'active' || nextStatus === 'disabled') {
       existing.status = nextStatus
       accountingCurrencies.set(currencyCode, existing)
+      if (nextStatus === 'disabled') {
+        for (const account of accountingAccounts.get(currencyCode)?.values() ?? []) {
+          if (account.status === 'active') account.status = 'disabled'
+        }
+      }
     }
 
     return HttpResponse.json({
@@ -374,7 +424,10 @@ export const handlers = [
     }
 
     existing.status = 'deleted'
-    return new HttpResponse(null, { status: 204 })
+    return new HttpResponse(null, {
+      status: 204,
+      headers: { 'Content-Type': 'application/vnd.api+json' },
+    })
   }),
   http.get(`${accountingBaseUrl}/:currencyCode/accounts`, ({ request, params }) => {
     const unauthorized = requireAccountingAuthorization(request)
@@ -469,6 +522,9 @@ export const handlers = [
       return jsonApiError(404, `Account ${accountId} not found`)
     }
 
+    if (account.balance !== 0) {
+      return jsonApiError(400, 'Account balance must be zero to delete account')
+    }
     account.status = 'deleted'
     return new HttpResponse(null, { status: 204 })
   }),
@@ -476,6 +532,10 @@ export const handlers = [
     const unauthorized = requireAccountingAuthorization(request)
     if (unauthorized) {
       return unauthorized
+    }
+
+    if (accountingAccountPatchStatus !== 200) {
+      return jsonApiError(accountingAccountPatchStatus, accountingAccountPatchDetail)
     }
 
     const currencyCode = String(params.currencyCode)
@@ -494,6 +554,9 @@ export const handlers = [
     }
 
     const nextStatus = body.data?.attributes?.status
+    if (account.status === 'deleted') {
+      return jsonApiError(404, `Account ${accountId} not found`)
+    }
     if (nextStatus === 'active' || nextStatus === 'disabled' || nextStatus === 'suspended' || nextStatus === 'deleted') {
       account.status = nextStatus
     }

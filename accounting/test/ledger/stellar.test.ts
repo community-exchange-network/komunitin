@@ -31,7 +31,7 @@ describe('Creates stellar elements', async () => {
     logger.level = "debug"
     // Create and fund a sponsor account.
     sponsor = Keypair.random()
-    await friendbot(config.STELLAR_FRIENDBOT_URL, sponsor.publicKey())
+    await friendbot(config.STELLAR_FRIENDBOT_URL, config.STELLAR_HORIZON_URL, sponsor.publicKey())
 
     // Instantiate the ledger.
     ledger = await createStellarLedger({
@@ -104,7 +104,9 @@ describe('Creates stellar elements', async () => {
       initialCredit: "1000"
     }, { sponsor, issuer: currencyKeys.issuer, credit: currencyKeys.credit })).key
     const account = await currency.getAccount(accountKey.publicKey())
-    await account.pay({ payeePublicKey: account2Key.publicKey(), amount: "100" }, { account: accountKey, sponsor })
+    const transfer = await account.pay({ payeePublicKey: account2Key.publicKey(), amount: "100" }, { account: accountKey, sponsor })
+    assert.ok(Number.isFinite(transfer.created.getTime()))
+    assert.deepEqual(transfer.created, (await currency.getTransfer(transfer.hash)).created)
     await account.update()
     assert.equal(account.balance(), "900.0000000")
     const account2 = await currency.getAccount(account2Key.publicKey())

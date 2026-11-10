@@ -5,7 +5,6 @@ This file describes how to deploy Komunitin in a production environment.
 To deploy Komunitin in production you need a linux server with:
  - Docker and Docker Compose installed.
  - Git installed.
- - [`jq`](https://jqlang.org/) CLI util installed (only required if adding demo data).
 
 There are no specified minimum hardware requirements, but a minimal VPS server has proven to work as a starting point (eg: 1CPU, 2GB RAM, 20GB HDD).
 
@@ -31,7 +30,7 @@ git clone https://github.com/community-exchange-network/komunitin.git
 ## Reverse proxy 
 The public deployment uses the [Traefik](https://traefik.io) reverse proxy to forward the traffic to the different services. The proxy is provided separately because its configuration may vary depending on the server setup.
 
-If you are using only Komunitin in the server you can use the provided `docker-compose.proxy.yml` file to start Traefik. 
+If you are using only Komunitin in the server you can use the provided `compose.proxy.yml` file to start Traefik.
 
 ```bash
 docker compose -f compose.proxy.yml up -d
@@ -84,13 +83,13 @@ docker system prune -f
 
 ## Database Backups
 
-Both the accounting and notifications databases support automated backups using [WAL-G](https://github.com/wal-g/wal-g) with any S3-compatible storage provider.
+The Auth, Social, Accounting and Notifications PostgreSQL databases use the shared database image and support automated backups using [WAL-G](https://github.com/wal-g/wal-g) with any S3-compatible storage provider.
 
 ### How it works
 - **Continuous WAL archiving**: All PostgreSQL Write-Ahead Log (WAL) files are continuously pushed to S3 storage, enabling point-in-time recovery.
 - **Daily full backups**: A cron job creates a full backup every day at 2:02 AM.
 - **Automatic cleanup**: Old backups are pruned daily at 3:03 AM, retaining the 7 most recent full backups.
-- **Single bucket**: Both databases share the same S3 bucket, organized in separate folders (`db-accounting/` and `db-notifications/`).
+- **Single bucket**: The databases share the same S3 bucket, organized in separate folders (`db-auth/`, `db-social/`, `db-accounting/` and `db-notifications/`).
 
 ### Configuration
 
@@ -110,7 +109,7 @@ To restore with point-in-time recovery to a specific timestamp:
 docker compose run --user postgres --entrypoint /bin/bash db-accounting /usr/local/bin/restore_backup.sh "2025-07-09 10:25:00"
 ```
 
-The same commands work for `db-notifications-ts` by replacing the service name.
+The same commands work for `db-auth`, `db-social` and `db-notifications-ts` by replacing the service name.
 
 ### Manual backup
 

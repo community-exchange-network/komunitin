@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Request } from "miragejs";
 import { JSONAPISerializer } from "miragejs";
-import type { ResourceIdentifierObject, ResourceObject } from "src/store/model";
+import type { ResourceIdentifierObject, ResourceObject } from "@/store/model";
 
 declare module "miragejs/serializer" {
   interface JSONAPISerializer {
@@ -42,14 +42,14 @@ export default class ApiSerializer extends JSONAPISerializer {
       const relationship = model[key];
       const relationshipKey = (this as any).keyForRelationship(key);
       
-      const jsonRelationship = json.relationships[relationshipKey];
+      const jsonRelationship = json.relationships?.[relationshipKey];
       // External relationships have associations but their relationships are deleted
       // from the hash in getHashForIncludedResource(), so this variable may be undefined.
       if (jsonRelationship) {
-        if (this.isExternal(relationshipKey) && jsonRelationship.data) {
+        if ((relationship?.meta?.external || this.isExternal(relationshipKey)) && jsonRelationship.data) {
           jsonRelationship.data.meta = {
             external: true,
-            href: jsonRelationship.links.related
+            href: relationship?.meta?.external ? relationship.meta.href : jsonRelationship.links.related
           }
           delete jsonRelationship.links
         } else if ((this as any).isCollection(relationship)) {
@@ -61,10 +61,10 @@ export default class ApiSerializer extends JSONAPISerializer {
       }
     });
     const serializer = (this as any).serializerFor(model.modelName);
-    const url = serializer.selfLink(model);
+    const url = model.meta?.external ? model.meta.href : serializer.selfLink(model);
     if (url !== undefined) {
       json.links = {
-        self: serializer.selfLink(model)
+        self: url
       }
     }
     return json;
@@ -79,7 +79,7 @@ export default class ApiSerializer extends JSONAPISerializer {
     const computed = super.getHashForIncludedResource(model);
     const hash = computed[0];
 
-    if (this.isExternal(model.modelName)) {
+    if (model.meta?.external || this.isExternal(model.modelName)) {
       hash.included.forEach((resource: any) => {
         const href = resource.links.self
         delete resource.attributes;

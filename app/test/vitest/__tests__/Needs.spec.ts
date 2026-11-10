@@ -3,13 +3,17 @@ import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../utils";
 import { QItem, QSelect, QDialog, QBtn, QInnerLoading } from "quasar";
-import { seeds } from "src/server";
-import SelectCategory from "src/components/SelectCategory.vue";
-import DeleteNeedBtn from "src/components/DeleteNeedBtn.vue";
+import { seeds } from "@/server";
+import SelectCategory from "@/components/SelectCategory.vue";
+import DeleteNeedBtn from "@/components/DeleteNeedBtn.vue";
 
-import NeedCard from "src/components/NeedCard.vue";
-import PageHeader from "src/layouts/PageHeader.vue";
-import type { Category, Member, Need } from "src/store/model";
+import NeedCard from "@/components/NeedCard.vue";
+import PageHeader from "@/layouts/PageHeader.vue";
+import type { Category, Member, Need } from "@/store/model";
+import ContactButton from "@/components/ContactButton.vue";
+import ShareButton from "@/components/ShareButton.vue";
+import MemberHeader from "@/components/MemberHeader.vue";
+import { createPost } from "../utils/posts";
 
 type FullNeed = Need & { member: Member, category: Category };
 type SelectOption = { label: string, value: string };
@@ -22,6 +26,7 @@ describe("Needs", () => {
 
   beforeAll(async () => {
     seeds();
+    createPost('needs', 'Newest-need')
     wrapper = await mountComponent(App, { login: true });
   });
   afterAll(() => wrapper.unmount());
@@ -32,14 +37,15 @@ describe("Needs", () => {
     await wrapper.vm.$nextTick();
     expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
     // Load.
-    await waitFor(() => wrapper.findAllComponents(NeedCard).length, 4, "Should load 4 needs");
+    await waitFor(() => wrapper.findAllComponents(NeedCard).length, 5, "Should load 5 needs");
     const needs = wrapper.findAllComponents(NeedCard).map(card => card.props("need") as FullNeed);
     need = needs[0];
+    expect(need.attributes.code).toBe('Newest-need')
     editableNeed = needs.find(item => item.member.id === wrapper.vm.$store.getters.myMember.id);
     // Infinite loading stops working immediately since we
     // already fetched all data.
     // Category
-    expect(wrapper.findAllComponents(NeedCard)[1].text()).toContain("build");
+    expect(wrapper.findAllComponents(NeedCard).some(card => card.text().includes("build"))).toBe(true);
 
     const search = requireText(
       need.attributes.description.split(/\W+/).find(word => word.length > 4),
@@ -52,7 +58,11 @@ describe("Needs", () => {
   });
 
   it ("Renders single need", async () => {
-    await wrapper.vm.$router.push(`/groups/GRP0/needs/${need.attributes.code}`);
+    const needCard = wrapper.findAllComponents(NeedCard)
+      .find(card => card.props("need").id === need.id)
+    if (!needCard) throw new Error("Need card not found")
+    await needCard.getComponent(MemberHeader).trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/needs/${need.attributes.code}`)
     const description = requireTextExcerpt(need.attributes.description, "Need description");
     await waitFor(() => wrapper.text().includes(description), true, "Need page should load");
     const text = wrapper.text();
@@ -88,10 +98,30 @@ describe("Needs", () => {
     expect(wrapper.vm.$route.path).toBe("/groups/GRP0/needs/I-really-n/preview");
     expect(wrapper.text()).toContain("Updated today");
     expect(wrapper.text()).toContain(selectedCategoryName);
+    expect(wrapper.vm.$store.getters["needs/current"].attributes.status).toBe("draft");
+
+    const memberPath = `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`
+    await wrapper.vm.$router.push({ path: memberPath, hash: "#needs" })
+    await waitFor(
+      () => wrapper.findAllComponents(NeedCard)
+        .some(card => card.props("need").attributes.code === "I-really-n"),
+      true,
+      "Draft want should appear in the member wants tab"
+    )
+    const draftCard = wrapper.findAllComponents(NeedCard)
+      .find(card => card.props("need").attributes.code === "I-really-n")
+    expect(draftCard?.text()).toContain("Draft")
+    expect(draftCard?.classes()).toContain("muted")
+    expect(draftCard?.findComponent(ContactButton).exists()).toBe(false)
+    expect(draftCard?.findComponent(ShareButton).exists()).toBe(false)
+    await draftCard?.trigger("click")
+    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/needs/I-really-n/preview")
+
     await wrapper.get(".q-btn--fab").trigger("click");
     
-    await waitFor(() => wrapper.vm.$route.path, `/groups/GRP0/members/${wrapper.vm.$store.getters.myMember.attributes.code}`);
+    await waitFor(() => wrapper.vm.$route.path, memberPath);
     expect(wrapper.vm.$route.hash).toBe("#needs");
+    expect(wrapper.vm.$store.getters["needs/current"].attributes.status).toBe("published");
     await waitFor(() => wrapper.text().includes("I really need this test to pass."), true, "Need should appear in member page");
   });
 

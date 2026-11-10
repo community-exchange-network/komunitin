@@ -38,6 +38,10 @@ Users can have a whitelist of accounts that will get their requests automaticall
 
 Note that all these transfer methods are configurable and can be enabled at currency or account level depending on your concrete requirements. It is not recommended to leave all them available by default since too many options may cause confusion to users. A good approach is to set a single default way to perform transfers and open additional methods on a per-account basis as required.
 
+## Contributions
+
+When contributions are enabled, members can choose **Contribute** to make a voluntary contribution using an external payment method. The contribution supports the community, and the member receives mutual-credit units according to the community's configured ratio. The app uses **Contribution** in forms, descriptions and settings to reflect this purpose.
+
 ## Account settings
 
 Beyond the code, and the credit and maximum limits accounts have some additional settings governing their behavior. All this settings can be set account by account and they have a default value for all accounts in a currency.

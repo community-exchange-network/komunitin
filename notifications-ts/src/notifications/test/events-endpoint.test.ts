@@ -145,6 +145,8 @@ describe('POST /events', () => {
 
       const response = await post(body, await signServiceJwt('komunitin-social'))
       assert.strictEqual(response.status, 400)
+      assert.strictEqual(response.body.errors[0].code, 'BadRequest')
+      assert.match(response.body.errors[0].detail, /code is required for this event type/)
     })
 
     it('treats source as opaque metadata', async () => {

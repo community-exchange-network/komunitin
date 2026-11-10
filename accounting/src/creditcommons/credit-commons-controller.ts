@@ -112,7 +112,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
       throw unauthorized(`cc-node ${JSON.stringify(ctx.lastHashAuth?.peerNodePath)} is not our trunkward node.`)
     }
     if (record.lastHash !== ctx.lastHashAuth?.lastHash) {
-      throw unauthorized(`value of last-hash header ${JSON.stringify(ctx.lastHashAuth?.lastHash)} does not match our records.`)
+      throw unauthorized('last-hash header does not match our records.')
     }
     const ourNodePathParts = record.ourNodePath.split('/')
     const ourNodeName = ourNodePathParts[ourNodePathParts.length - 1]
@@ -140,7 +140,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     return data as CreditCommonsNode;
   }
   async updateNodeHash(peerNodePath: string, lastHash: string): Promise<void> {
-    logger.info(`Updating hash for CreditCommons node ${peerNodePath} to '${lastHash}'`)
+    logger.info(`Updating hash for CreditCommons node ${peerNodePath}`)
     await this.db().creditCommonsNode.update({
       where: {
         tenantId_peerNodePath: {
@@ -219,7 +219,7 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
 
     // 3. Create the local transfer object.
 
-    // if recipientId is a code like NET20002
+    // if recipientId is a code like BRAM0002
     // then payeeId is an account ID like
     // 2791faf5-4566-4da0-99f6-24c41041c50a
     let payeeId
@@ -318,7 +318,6 @@ export class CreditCommonsControllerImpl extends AbstractCurrencyController impl
     })
     if (response.status !== 201 && response.status !== 200) {
       logger.error(`CreditCommons transaction failed remotely. Response code: ${response.status}`)
-      logger.error(`Response text: ${await response.text()}`)
       throw noTrustPath('CreditCommons transaction failed remotely')
     }
   }

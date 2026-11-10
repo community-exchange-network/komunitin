@@ -36,9 +36,9 @@
               v-for="member of slotProps.resources"
               :key="member.id"
               :member="member"
-              :to="`/groups/${code}/members/${member.attributes.code}`"
+              :to="isFullMember(member) ? `/groups/${code}/members/${member.attributes.code}` : ''"
             >
-              <template v-if="showBalances && member.account?.attributes?.balance" #side>
+              <template v-if="showBalances && member.account?.attributes.balance !== undefined" #side>
                 <div class="column items-end">
                   <div
                     v-if="member.account"
@@ -73,15 +73,18 @@ import PageHeader from "../../layouts/PageHeader.vue";
 import ResourceCards from "../ResourceCards.vue";
 import MemberHeader from "../../components/MemberHeader.vue";
 import { useStore } from "vuex";
-import { useResource } from 'src/composables/useResources';
-import type { Currency, CurrencySettings } from "../../store/model";
+import { useResource } from '@/composables/useResources';
+import type { Currency, CurrencySettings, ResourceObject } from "../../store/model";
 
 const props = defineProps<{
   code: string
 }>();
 
 const store = useStore();
-const { resource: currency } = useResource<Currency & { settings: CurrencySettings }>('currencies', { group: props.code, include: 'settings' });
+// External groups allowing anonymous listing provide a minimal view of members.
+const isFullMember = (member: ResourceObject) => member.attributes && 'status' in member.attributes;
+const options = computed(() => ({ group: props.code, include: 'settings' }));
+const { resource: currency } = useResource<Currency & {settings: CurrencySettings}>('currencies', options);
 
 const showBalances = computed(() => 
   currency.value?.settings?.attributes.defaultHideBalance !== true

@@ -121,17 +121,17 @@
   </div>
 </template>
 <script setup lang="ts">
-import GroupHeader from 'src/components/GroupHeader.vue';
-import SelectGroup from 'src/components/SelectGroup.vue';
-import AmountInput from 'src/components/AmountInput.vue';
-import FormatCurrency from 'src/plugins/FormatCurrency';
-import type { Currency, Group, Trustline } from 'src/store/model';
+import GroupHeader from '@/components/GroupHeader.vue';
+import SelectGroup from '@/components/SelectGroup.vue';
+import AmountInput from '@/components/AmountInput.vue';
+import FormatCurrency from '@/plugins/FormatCurrency';
+import type { Currency, Group, Trustline } from '@/store/model';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import type { DeepPartial } from 'quasar';
 import { useApiFetch } from '../../composables/useApiFetch';
-import { config } from 'src/utils/config';
+import { config } from '@/utils/config';
 
 type ExtendedGroup = Group & {
   currency: Currency

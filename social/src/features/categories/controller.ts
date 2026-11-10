@@ -11,14 +11,14 @@ export const getCategoriesRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const params = getCollectionParams(req, {
-    filter: ['code', 'name', 'access', 'search'],
+    filter: ['code', 'name', 'search'],
     sort: ['created', 'updated', 'name', 'code'],
   })
 
   const result = await listCategories(ctx, code, params)
   
   const payload = await serializeCategories(result.items,
-    getCollectionSerializerOptions(req.url, params, result.total)
+    getCollectionSerializerOptions(req.originalUrl, params, result.total)
   )
 
   res.status(200).json(payload)

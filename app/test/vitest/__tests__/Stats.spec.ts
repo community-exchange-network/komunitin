@@ -46,8 +46,8 @@ describe("Stats", () => {
 
 	beforeAll(async () => {
 		lineChartCalls.length = 0;
-		wrapper = await mountComponent(App, { login: true });
 		seeds();
+		wrapper = await mountComponent(App, { login: true });
 	});
 
 	afterAll(() => wrapper.unmount());

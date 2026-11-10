@@ -13,19 +13,9 @@ describe("Health endpoint", () => {
 
   it("returns 503 when PostgreSQL is unavailable", async (test) => {
     const service = t.app.komunitin.service
-    const db = service.privilegedDb()
-    const privilegedDb = service.privilegedDb
-    const queryRaw = db.$queryRaw
-
-    test.after(() => {
-      db.$queryRaw = queryRaw
-      service.privilegedDb = privilegedDb
-    })
-
-    db.$queryRaw = (async () => {
+    test.mock.method(service, 'privilegedDb', () => {
       throw new Error("Database unavailable")
-    }) as typeof db.$queryRaw
-    service.privilegedDb = () => db
+    })
 
     const response = await t.api.get("/health", undefined, 503, "application/json")
 

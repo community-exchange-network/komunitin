@@ -12,7 +12,7 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
   const ctx = getOptionalAuthContext(req)
   const code = getCode(req)
   const params = getCollectionParams(req, {
-    filter: ['code', 'type', 'status', 'access', 'member', 'category', 'expired', 'search'],
+    filter: ['code', 'type', 'status', 'access', 'member', 'member.status', 'category', 'expired', 'search'],
     compare: ['created', 'expires'],
     sort: ['created', 'updated', 'expires', 'distance'],
     include: [
@@ -29,7 +29,7 @@ export const getPostsRoute: RequestHandler = async (req, res) => {
 
   const payload = await serializePosts(
     result.items,
-    getCollectionSerializerOptions(req.url, params, result.total)
+    getCollectionSerializerOptions(req.originalUrl, params, result.total)
   )
 
   res.status(200).json(payload)

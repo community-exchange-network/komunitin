@@ -16,7 +16,7 @@ export interface ExternalResourceIdentifierObject extends ResourceIdentifierObje
   }
 }
 
-export type Relationship = RelatedResource | RelatedLinkedCollection | RelatedCollection ;
+export type Relationship = NullableRelatedResource | RelatedLinkedCollection | RelatedCollection ;
 export interface ResourceObject extends ResourceIdentifierObject {
   links: {
     self: string;
@@ -79,7 +79,7 @@ export interface ResourceResponseInclude<
  * the future following the GeoJSON spec.
  */
 export interface Location {
-  name: string;
+  name?: string;
   type: "Point";
   coordinates: [number, number]; //longitude and latitude
 }
@@ -136,6 +136,11 @@ export type RelatedResource =
       data: ExternalResourceIdentifierObject
     }
 
+export type NullableRelatedResource = RelatedResource | {
+  data: null
+  links?: { related: string }
+}
+
 /**
  * Extension Resource Object for the inclusion of external relationships.
  * 
@@ -151,20 +156,16 @@ export interface User extends ResourceObject {
   attributes: {
     email: string,
     name?: string,
+    language: string | null,
     created: string,
     updated: string,
-  },
-  relationships: {
-    settings: RelatedResource
   }
 }
 
 export type MailingFrequency = "never" | "weekly" | "monthly";
 
-export interface UserSettings extends ResourceObject {
+export interface MemberUser extends ResourceObject {
   attributes: {
-    language: string
-    komunitin: boolean
     notifications: {
       myAccount: boolean
       group: boolean
@@ -176,6 +177,7 @@ export interface UserSettings extends ResourceObject {
   },
   relationships: {
     user: RelatedResource
+    member: RelatedResource
   }
 }
 
@@ -200,7 +202,7 @@ export interface Group extends ResourceObject {
     description: string;
     image: ImageObject | null;
     access: Access;
-    location: Location;
+    location: Location | null;
     address: Address;
     contacts: Contact[];
     meta: {
@@ -252,7 +254,6 @@ export interface Category extends ResourceObject {
     meta?: {
       description?: string;
     };
-    access: Access;
     created: string;
     updated: string;
   };
@@ -266,11 +267,11 @@ export interface Category extends ResourceObject {
  * Address interface.
  */
 export interface Address {
-  streetAddress: string;
-  addressLocality: string;
-  postalCode: string;
-  addressRegion: string;
-  addressCountry: string;
+  streetAddress?: string;
+  addressLocality?: string;
+  postalCode?: string;
+  addressRegion?: string;
+  addressCountry?: string;
 }
 
 export type MemberStatus = "draft" | "pending" | "active" | "disabled" | "suspended" | "deleted"
@@ -289,7 +290,7 @@ export interface Member extends ResourceObject {
     image: ImageObject | null;
     address: Address;
     contacts: Contact[];
-    location: Location;
+    location: Location | null;
     created: string;
     updated: string;
   };
@@ -462,13 +463,13 @@ export interface Offer extends ResourceObject {
     images: ImageObject[];
     value?: string;
     access: Access;
-    expires: string;
+    expires: string | null;
     created: string;
     updated: string;
     status: OfferStatus;
   };
   relationships: {
-    category: RelatedResource;
+    category: NullableRelatedResource;
     member: RelatedResource;
   };
 }
@@ -486,14 +487,14 @@ export interface Need extends ResourceObject {
     description: string;
     images: ImageObject[];
     access: Access;
-    expires: string;
+    expires: string | null;
     created: string;
     updated: string;
     status: NeedStatus;
     fulfilled?: string;
   };
   relationships: {
-    category: RelatedResource;
+    category: NullableRelatedResource;
     member: RelatedResource;
   };
 }

@@ -26,7 +26,7 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 | **Offer** | A good or service a member provides | |
 | **Want** | A good or service a member is seeking | |
 | **Value** | Price of an offer or want | Was "price" |
-
+| **Contribute / Contribution** | Voluntarily support the community through an external payment method, with mutual-credit units recorded in the member's account | Was "Top up". |
 ## Translations
 
 | English | Catalan (ca) | Spanish (es) | Italian (it) | French (fr) |
@@ -35,11 +35,12 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 | **Currency** | Moneda | Moneda | Valuta | Monnaie |
 | **Member** | Membre | Miembro | Membro | Membre |
 | **Account** | Compte | Cuenta | Conto | Compte |
-| **Balance** | Saldo | Saldo | Saldo | Solde |
+| **Balance** | Balanç | Balance | Bilancio | Bilan |
 | **Transfer** | Moviment | Movimiento | Movimento | Transfert |
 | **Send** | Enviar | Enviar | Inviare | Envoyer |
 | **Receive** | Rebre | Recibir | Ricevere | Recevoir |
 | **Move** | Moure | Mover | Spostare | Déplacer |
+| **Contribute** | Aportar | Aportar | Contribuire | Contribuer |
 | **From / Source** | De / Origen | De / Origen | Da / Origine | De / Origine |
 | **To / Destination** | A / Destinació | A / Destino | A / Destinazione | À / Destination |
 | **Amount** | Quantitat | Cantidad | Importo | Montant |

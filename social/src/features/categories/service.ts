@@ -65,7 +65,7 @@ const getCategoryById = async (code: string, id: string): Promise<Category> => {
 export const listCategories = async (ctx: OptionalAuthContext, code: string, params: CollectionParams): Promise<CollectionResult<SerializableCategory>> => {
   const group = await getGroupByCode(ctx, code)
   const db = tenantDb(prisma, code)
-  const result = await findCategoriesIds(ctx, db, group, params)
+  const result = await findCategoriesIds(db, params)
 
   const categories = await db.category.findMany({
     where: {
@@ -103,7 +103,6 @@ export const createCategory = async (ctx: AuthContext, code: string, input: Crea
     data: {
       code: categoryCode,
       name: input.name,
-      access: input.access ?? group.access,
       icon: input.icon as any,
       meta: input.meta as any,
       groupId: group.id,

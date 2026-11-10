@@ -84,13 +84,13 @@
 <script setup lang="ts">
 import { useStore } from 'vuex'
 import { computed, watch } from 'vue'
-import type { Currency, Group } from 'src/store/model'
+import type { Currency, Group } from '@/store/model'
 import { useI18n } from 'vue-i18n'
 
-import GroupHeader from 'src/components/GroupHeader.vue';
-import PageHeader from 'src/layouts/PageHeader.vue';
-import StatsCard from 'src/components/StatsCard.vue';
-import StatsChart from 'src/components/StatsChart.vue';
+import GroupHeader from '@/components/GroupHeader.vue';
+import PageHeader from '@/layouts/PageHeader.vue';
+import StatsCard from '@/components/StatsCard.vue';
+import StatsChart from '@/components/StatsChart.vue';
 
 const props = defineProps<{
   code: string

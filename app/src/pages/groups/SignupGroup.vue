@@ -45,16 +45,16 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import PageHeader from "src/layouts/PageHeader.vue";
-import SignupCredentialsForm from "src/pages/members/SignupCredentialsForm.vue";
-import SignupVerifyForm from "src/pages/members/SignupVerifyForm.vue";
+import PageHeader from "@/layouts/PageHeader.vue";
+import SignupCredentialsForm from "@/pages/members/SignupCredentialsForm.vue";
+import SignupVerifyForm from "@/pages/members/SignupVerifyForm.vue";
 
 import { ref, shallowRef } from "vue";
-import { useLocale } from "src/boot/i18n";
-import KError, { KErrorCode } from "src/KError";
+import { useLocale } from "@/boot/i18n";
+import KError, { KErrorCode } from "@/KError";
 import { Notify } from "quasar";
 import { useI18n } from "vue-i18n";
-import { Auth } from "src/plugins/Auth";
+import { Auth } from "@/plugins/Auth";
 import { config } from "../../utils/config"
 
 const docsUrl = config.DOCS_URL

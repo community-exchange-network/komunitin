@@ -13,7 +13,7 @@ const postRelationship = <Source extends PostRelationshipSource>(
   type: 'offers' | 'needs',
 ) => new ToManyRelator<Source>(
   type,
-  (source) => `${config.API_BASE_URL}/${source.tenantId}/posts?filter[${filter}]=${source.id}&filter[type]=${type}&filter[status]=published`,
+  (source) => `${config.API_BASE_URL}/${source.tenantId}/posts?filter[${filter}]=${source.id}&filter[type]=${type}&filter[status]=published&filter[expired]=false`,
   (source) => source.relationshipMeta[type]
 )
 

@@ -3,6 +3,8 @@ import { privilegedDb } from '../../src/server/multitenant'
 import prisma, { toNullableJsonInput } from '../../src/utils/prisma'
 import { accountingAccountHref, accountingCurrencyHref } from './accounting'
 import { toUuid } from './utils'
+import { defaultMemberUserSettings } from '../../src/features/member-users/settings'
+import type { GroupSettings } from '../../src/features/groups/schema'
 
 let groupCounter = 0
 let memberCounter = 0
@@ -72,7 +74,6 @@ const defaultCategoryData = () => {
   return {
     code: `category-${categoryCounter}`,
     name: `Test Category ${categoryCounter}`,
-    access: 'public',
   }
 }
 
@@ -121,7 +122,7 @@ export const resetDb = async () => {
   postCounter = 0
   fileCounter = 0
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "File", "Post", "Category", "MemberUser", "GroupAdminUser", "Member", "Group", "User" RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE "MigrationEvent", "Migration", "File", "Post", "Category", "MemberUser", "GroupAdminUser", "Member", "Group", "User" RESTART IDENTITY CASCADE'
   )
 }
 
@@ -131,7 +132,7 @@ export const seedUser = async (data: Partial<User> = {}): Promise<User> => {
   const input = {
     email: data.email ?? defaults.email,
     name: data.name,
-    settings: toNullableJsonInput(data.settings), 
+    language: data.language,
   }
   
   return db().user.upsert({
@@ -159,12 +160,12 @@ export const seedGroup = async (data: SeedGroupInput): Promise<Group> => {
       status: data.status ?? defaults.status,
       access: data.access ?? defaults.access,
       image: toNullableJsonInput(data.image),
-      address: toNullableJsonInput(data.address),
-      contacts: toNullableJsonInput(data.contacts),
+      address: data.address ?? {},
+      contacts: data.contacts ?? [],
       latitude: data.latitude,
       longitude: data.longitude,
       meta: toNullableJsonInput(data.meta),
-      settings: toNullableJsonInput(data.settings ?? defaults.settings),
+      settings: data.settings ?? defaults.settings,
       deleted: data.deleted,
       currencyId: data.currencyId,
       currencyHref,
@@ -223,7 +224,7 @@ export const seedMember = async (data: SeedMemberInput): Promise<Member> => {
       ...(data.id ? { id: toUuid(data.id) } : {}),
       groupId: group.id,
       image: toNullableJsonInput(data.image),
-      address: toNullableJsonInput(data.address),
+      address: data.address ?? {},
       contacts: toNullableJsonInput(data.contacts),
       meta: toNullableJsonInput(data.meta),
       accountId,
@@ -247,6 +248,7 @@ export const seedMemberUser = async (
   }
 ): Promise<MemberUser> => {
   const userId = toUuid(data.userId ?? `seed-member-user-${data.memberId}`)
+  const group = await getGroupByTenant(data.tenantId)
 
   await seedUser({
     id: userId,
@@ -268,7 +270,9 @@ export const seedMemberUser = async (
       tenantId: data.tenantId,
       memberId: toUuid(data.memberId),
       userId,
-      role: data.role ?? 'admin',
+      settings: data.settings ?? defaultMemberUserSettings(
+        (group.settings as GroupSettings).defaultGroupEmailFrequency,
+      ),
     },
   })
 }

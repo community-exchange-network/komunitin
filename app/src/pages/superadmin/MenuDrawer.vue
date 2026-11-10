@@ -1,7 +1,7 @@
 <template>
   <div class="q-pa-md">
     <img
-      src="~assets/logo.svg"
+      src="~@/assets/logo.svg"
       alt="Komunitin"
       style="width:100%"
     >

@@ -2,6 +2,7 @@ import type { AccountClaims, ClaimsParameterMember, FindAccount } from 'oidc-pro
 import { config } from '../config'
 import prisma from '../utils/prisma'
 import bcrypt from 'bcrypt'
+import { hashPassword, isLegacyPasswordHash, verifyPassword } from '../services/passwords'
 import { normalizeEmail } from '../utils/email'
 import { UserStatus } from '../users/status'
 import { SUPERADMIN_SCOPE } from './clients'
@@ -65,8 +66,17 @@ export async function authenticate(email: string, passwordSecret: string) {
     return null
   }
 
-  const isValid = await bcrypt.compare(passwordSecret, user.passwordHash)
+  const isValid = await verifyPassword(passwordSecret, user.passwordHash)
   if (!isValid) return null
+
+  if (isLegacyPasswordHash(user.passwordHash)) {
+    const passwordHash = await hashPassword(passwordSecret)
+    // Do not overwrite a password reset or another login's concurrent upgrade.
+    await prisma.user.updateMany({
+      where: { id: user.id, passwordHash: user.passwordHash },
+      data: { passwordHash },
+    })
+  }
 
   return user
 }

@@ -13,7 +13,7 @@ Quickly check Komunitin in action at [demo.komunitin.org](https://demo.komunitin
 The Komunitin system is made of several microservices:
  - Komunitin app: The client application with user interface. See the [app](app/) folder.
  - Auth service: Identity, login, registration and service authentication. See the [auth](auth/) folder.
- - Social service: Communities, members, marketplace and user settings. See the [social](social/) folder.
+ - Social service: Communities, marketplace, members and preferences. See the [social](social/) folder.
  - Notifications service: The backend service for the messaging system including mails and push notifications. See the [notifications-ts](notifications-ts/) folder.
  - Accounting service: The decentralized backend for the accounting API based on the [Stellar](https://stellar.org) blockchain. See the [accounting](accounting) folder.
 
@@ -21,7 +21,11 @@ The Komunitin system is made of several microservices:
 ### Requirements
 Before starting, be sure you have:
  - [docker](https://docs.docker.com/engine/install/)
- - the cli util [jq](https://jqlang.org/)
+ - [mkcert](https://github.com/FiloSottile/mkcert#installation) for trusted local HTTPS.
+
+```bash
+mkcert -install
+```
 
 Clone Komunitin:
 
@@ -42,7 +46,7 @@ In order to have everything working (mailing, push notifications, backups, analy
 
 ### Start
 Run the start script with `--up` to build and start the containers, `--dev` to
-enable hot reload, debuggers and development utilities, and `--reset` to reset
+enable hot reload, debuggers, development utilities and local certificates, and `--reset` to reset
 the service databases before applying migrations. The configured superadmin is
 bootstrapped after migration.
 
@@ -52,6 +56,13 @@ bootstrapped after migration.
 
 > The first build downloads and compiles everything from scratch — expect it to take some minutes.
 
+#### Demo
+The demo flag resets the service databases and imports the fictional Bramblewick
+community. See [demo overview](shared/demo/README.md).
+
+```bash
+./start.sh --up --dev --demo
+```
 Docker resources are preserved by default. Pass `--prune` explicitly if you
 want to remove unused Docker resources after startup.
 

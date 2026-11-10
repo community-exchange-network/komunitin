@@ -3,7 +3,7 @@ import { LedgerAccount, LedgerExternalTransfer, LedgerTransfer, PathQuote } from
 import { StellarCurrency } from "./currency"
 import { Big } from "big.js"
 import { logger } from "../../utils/logger"
-import { internalError, insufficientBalance } from "../../utils/error"
+import { badRequest, internalError, insufficientBalance } from "../../utils/error"
 
 export class StellarAccount implements LedgerAccount {
   public currency: StellarCurrency
@@ -18,6 +18,27 @@ export class StellarAccount implements LedgerAccount {
   constructor(accountId: string, currency: StellarCurrency) {
     this.accountId = accountId
     this.currency = currency
+  }
+
+  /** 
+   * Validate that the Stellar account has the required signers, thresholds, and trustlines.
+   * 
+   * trustline: Whether to check if this account should have the trustline
+   * admin: The public key of the administrative signer.
+   * */
+  validate({ trustline, admin }: { trustline?: boolean, admin?: string }) {
+    const account = this.account!
+    const weight = (key: string) => account.signers.find(signer => signer.key === key)?.weight ?? 0
+    const master = weight(this.accountId)
+    const administrative = admin ? weight(admin) : master
+    if (master === 0 || master < account.thresholds.med_threshold || administrative === 0
+      || administrative < Math.max(account.thresholds.high_threshold, account.thresholds.med_threshold)) {
+      throw badRequest(`Stellar account ${this.accountId}: incompatible signers or thresholds`)
+    }
+    if (trustline) {
+      const line = this.stellarBalance(this.currency.asset())
+      if (!line || !line.is_authorized) throw badRequest(`Stellar account ${this.accountId}: missing or unauthorized currency trustline`)
+    }
   }
 
   public async update() {
@@ -244,7 +265,8 @@ export class StellarAccount implements LedgerAccount {
       asset: this.currency.asset(),
       payer: this.account?.accountId() as string,
       payee: payment.payeePublicKey,
-      hash: transaction.hash
+      hash: transaction.hash,
+      created: new Date(transaction.created_at)
     }
 
     // This should be done as a reaction to a stream listener on horizon server, but we don't have
@@ -298,6 +320,7 @@ export class StellarAccount implements LedgerAccount {
       payer: this.account?.accountId() as string,
       payee: payment.payeePublicKey,
       hash: transaction.hash,
+      created: new Date(transaction.created_at),
       sourceAsset: payment.path.sourceAsset as Asset,
       // We may need to get the source amount from the result instead of directly
       // take this amount, but in our case of 1:1 exchange rate, it must be the same.

@@ -6,7 +6,8 @@ import { config } from './config'
 import notificationsRouter from './notifications/server/routes'
 import eventsRouter from './events/server/routes'
 import { errorHandler } from './server/errors'
-import { healthRoute } from './server/health'
+import prisma from './utils/prisma'
+import { redis } from './utils/redis'
 import { httpLogger } from './server/http-logger'
 import logger from './utils/logger'
 
@@ -26,17 +27,25 @@ app.use(cors({
   credentials: true,
 }))
 
-app.use(httpLogger)
-
-app.get('/health', healthRoute)
-
 app.use(express.json({
   type: ['application/vnd.api+json', 'application/json']
 }))
 
+app.use(httpLogger)
+
 app.use(notificationsRouter)
 
 app.use(eventsRouter)
+
+app.get('/health', async (_req, res) => {
+  try {
+    if (!redis.isReady) throw new Error('Redis disconnected')
+    await Promise.all([prisma.$queryRaw`SELECT 1`, redis.ping()])
+    res.json({ status: 'ok' })
+  } catch {
+    res.status(503).json({ status: 'error' })
+  }
+})
 
 app.use(errorHandler)
 

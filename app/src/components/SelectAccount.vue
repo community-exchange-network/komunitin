@@ -56,15 +56,15 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import type { Account, Currency, Group, Member } from 'src/store/model';
+import type { Account, Currency, Group, Member } from '@/store/model';
 import AccountHeader from './AccountHeader.vue';
 import SelectGroupExpansion from './SelectGroupExpansion.vue';
 import { useStore } from 'vuex'
 import { QSelect } from 'quasar';
 import { watchDebounced } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
-import { normalizeAccountCode } from 'src/plugins/FormatCurrency';
-import { resolveRelationshipUrl } from 'src/store/relationships';
+import { normalizeAccountCode } from '@/plugins/FormatCurrency';
+import { resolveRelationshipUrl } from '@/store/relationships';
 
 type ExtendedAccount = Account & {member?: ExtendedMember & {group: Group}, currency?: Currency}
 type ExtendedMember = Member & {account?: ExtendedAccount }

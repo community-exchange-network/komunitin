@@ -49,7 +49,7 @@ export default defineComponent({
     to: {
       type: String,
       required: false,
-      default: null
+      default: ""
     },
     clickable: {
       type: Boolean,

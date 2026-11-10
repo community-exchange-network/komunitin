@@ -1,25 +1,32 @@
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { type defineComponent } from 'vue';
 import { flushPromises, mount, type MountingOptions, type VueWrapper } from "@vue/test-utils";
 import { Notify } from "quasar";
 import { quasarPlugin, qComponents } from "./quasar-plugin";
-import store from 'src/store/index';
-import createRouter from 'src/router/index';
+import store from '@/store/index';
+import createRouter from '@/router/index';
 
 
 // Boot files.
 import bootErrors from '../../../src/boot/errors';
 import bootI18n from '../../../src/boot/i18n';
 import '../../../src/boot/mirage';
-import bootAuth from '../../../src/boot/auth';
+import bootAuth, { authReady } from '../../../src/boot/auth';
 import { Auth } from '../../../src/plugins/Auth';
 import { auth } from '../../../src/store/me';
-import { mockToken } from 'src/server/AuthServer';
+import server from '@/server';
+import { mockToken } from '@/server/AuthServer';
 import { type RouteLocationRaw } from 'vue-router';
 
-export async function testLogin() {
+// Finish the background session refresh before the next test or jsdom teardown.
+afterEach(async () => {
+  await authReady
+})
+
+/** Log in as the default seeded admin, or as the supplied user. */
+export async function testLogin(user: { id: string } = server.schema.users.first()) {
   // This call actually saves the mocked token in LocalStorage.
-  await auth.processTokenResponse(mockToken(Auth.SCOPES));
+  await auth.processTokenResponse(mockToken(Auth.SCOPES, { userId: user.id }));
 }
 
 /** Assert that fixture text is usable before matching it against rendered text. */
@@ -34,17 +41,18 @@ export function requireTextExcerpt(value: string, label: string): string {
   return requireText(value.replace(/[*_]/g, "").slice(0, 20), label);
 }
 
+/** Mount with app plugins; login accepts the default admin, a seeded user, or the cached session. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true }): Promise<VueWrapper> {
-  await auth.logout();
-
-  // Login state. We must do that before createStore().
-  if (options?.login) {
-    await testLogin();
+export async function mountComponent(component: ReturnType<typeof defineComponent>, options?: MountingOptions<any, any> & { login?: true | { id: string } | "cached", urlPath?: string }): Promise<VueWrapper> {
+  if (options?.login !== "cached") {
+    await auth.logout();
   }
 
-  // Set the router mode to "history", as we have in our Quasar config file.
-  process.env.VUE_ROUTER_MODE = "history";
+  // Save credentials before mounting so route guards load the selected user.
+  if (options?.login && options.login !== "cached") {
+    await testLogin(options.login === true ? undefined : options.login);
+  }
+
   const router = createRouter();
 
   const mountOptions = {
@@ -75,7 +83,7 @@ export async function mountComponent(component: ReturnType<typeof defineComponen
   const redirect = (url: RouteLocationRaw) => { window.location.href = url.toString() };
   for (const boot of boots) {
     await boot({
-      app, router, urlPath: "", publicPath: "", redirect
+      app, router, urlPath: options?.urlPath ?? "", publicPath: "", redirect
     });
   }
 

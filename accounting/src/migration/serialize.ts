@@ -1,6 +1,6 @@
 import TsJapi from "ts-japi"
 import { projection } from "../server/serialize"
-import { ApiMigration, MigrationData } from "./migration"
+import { ApiMigration } from "./migration"
 
 const { Serializer } = TsJapi
 

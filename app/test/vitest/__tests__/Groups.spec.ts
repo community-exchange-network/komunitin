@@ -5,7 +5,7 @@ import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../uti
 import { QInnerLoading, QCard } from "quasar";
 import SimpleMap from '../../../src/components/SimpleMap.vue';
 import GroupCard from "../../../src/components/GroupCard.vue";
-import { seeds } from "../../../src/server";
+import server, { seeds } from "../../../src/server";
 
 // See also Offers.spec.ts
 describe("Groups", () => {
@@ -14,6 +14,7 @@ describe("Groups", () => {
   beforeAll(async () => {
     wrapper = await mountComponent(App);
     seeds();
+    server.schema.db.groups.update({ code: "GRP6" }, { location: null });
   });
   afterAll(() => wrapper.unmount());
 
@@ -25,6 +26,17 @@ describe("Groups", () => {
     await waitFor(() => wrapper.findAllComponents(GroupCard).length, 7, "Should load 7 groups");
     expect((wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing).toBe(false);
   });
+
+  it("Navigates a focused group card with Enter", async () => {
+    await wrapper.vm.$router.push("/groups");
+    await waitFor(() => wrapper.findAllComponents(GroupCard).length, 7, "Should load group cards");
+    const card = wrapper.getComponent(GroupCard)
+    const code = card.props("group").attributes.code
+    expect(card.attributes("role")).toBe("link")
+    expect(card.attributes("tabindex")).toBe("0")
+    await card.trigger("keyup", { key: "Enter" })
+    await waitFor(() => wrapper.vm.$route.path, `/groups/${code}`)
+  })
 
   it("Renders group page", async () => {
     await wrapper.vm.$router.push("/groups/GRP0");
@@ -59,6 +71,18 @@ describe("Groups", () => {
     });
   });
 
+  it("Renders a group without a location", async () => {
+    await wrapper.vm.$router.push("/groups/GRP6");
+    await waitFor(() => wrapper.text().includes("Group 6"), true, "Group should load");
+    await waitFor(() => wrapper.getComponent(QInnerLoading).props("showing"), false);
+
+    const map = wrapper.getComponent(SimpleMap);
+    expect(map.props("center")).toBeUndefined();
+    expect(map.props("marker")).toBeUndefined();
+    expect(wrapper.findAllComponents({ name: "LMarker" })).toHaveLength(0);
+    expect(wrapper.text()).not.toContain("Unknown user interface error");
+  });
+
   it("Renders group members only for the user's group", async () => {
     // Log in 'manually'
     await wrapper.vm.$router.push("/login-mail");
@@ -72,7 +96,11 @@ describe("Groups", () => {
     
     await wrapper.vm.$router.push("/groups/GRP0");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0");
-    await waitFor(() => wrapper.vm.$store.getters["members/currentList"]?.length === 31, true, "Api should finish loading");
+    await waitFor(
+      () => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing,
+      false,
+      "Group members should finish loading"
+    );
     [
       "/groups/GRP0/members",
       "/groups/GRP0/stats"

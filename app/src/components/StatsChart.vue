@@ -58,9 +58,9 @@
   </q-card>
 </template>
 <script setup lang="ts">
-import type { StatsInterval, StatsValue} from 'src/composables/currencyStats';
-import { roundDate, useCurrencyStats, useCurrencyStatsFormattedValue } from 'src/composables/currencyStats'
-import type { Currency } from 'src/store/model'
+import type { StatsInterval, StatsValue} from '@/composables/currencyStats';
+import { roundDate, useCurrencyStats, useCurrencyStatsFormattedValue } from '@/composables/currencyStats'
+import type { Currency } from '@/store/model'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TimeSeriesChart from './TimeSeriesChart.vue'

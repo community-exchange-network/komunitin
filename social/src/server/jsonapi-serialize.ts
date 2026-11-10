@@ -64,7 +64,7 @@ const getPaginationLinks = (url: string, pagination: PaginationOptions, totalCou
   return { first, prev, self, next, last }
 }
 
-export const getResourceLink = (type: "groups" | "members" | "offers" | "needs" | "categories" | "files" | "group-settings", code: string, id: string) => {
+export const getResourceLink = (type: "groups" | "members" | "member-users" | "offers" | "needs" | "categories" | "files" | "group-settings", code: string, id: string) => {
   const tenantBase = new URL(`${config.API_BASE_URL}/${code}`)
   switch (type) {
     case 'groups':
@@ -73,6 +73,8 @@ export const getResourceLink = (type: "groups" | "members" | "offers" | "needs" 
       return `${tenantBase}/settings`
     case 'members':
       return `${tenantBase}/members/${id}`
+    case 'member-users':
+      return `${tenantBase}/member-users/${id}`
     case 'offers':
     case 'needs':
       return `${tenantBase}/posts/${id}`
@@ -84,7 +86,7 @@ export const getResourceLink = (type: "groups" | "members" | "offers" | "needs" 
 }
 
 /**
- * @param url Use Request.url here to generate correct pagination links.
+ * @param url Use Request.originalUrl to retain mounted community paths and query parameters.
  */
 export const getCollectionSerializerOptions = <T extends Dictionary<any>>(url:string, collectionOptions: CollectionParams, totalCount: number): SerializerOptions<T> => {
   const paginationLinks = getPaginationLinks(url, collectionOptions.pagination, totalCount)

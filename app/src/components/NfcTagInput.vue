@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
 import NfcTagScanner from "./NfcTagScanner.vue"
-import { isNfcAvailable } from "src/composables/webNfc"
+import { isNfcAvailable } from "@/composables/webNfc"
 
 const props = defineProps<{
   modelValue: string

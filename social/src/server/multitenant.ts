@@ -3,6 +3,10 @@ import { Prisma, type PrismaClient } from '../generated/prisma/client'
 export type PrivilegedDbClient = ReturnType<typeof privilegedDb>
 export type TenantDbClient = ReturnType<typeof tenantDb>
 export type DbClient = PrivilegedDbClient | TenantDbClient
+type RlsClient = {
+  $executeRaw: PrismaClient['$executeRaw']
+  $transaction: (...args: any[]) => Promise<any>
+}
 
 export function privilegedDb(prisma: PrismaClient) {
   return prisma.$extends(bypassRLS())
@@ -11,6 +15,22 @@ export function privilegedDb(prisma: PrismaClient) {
 export function tenantDb(prisma: PrismaClient, tenantId: string) {
   return prisma.$extends(forTenant(tenantId))
 }
+
+const transactionWithRls = (
+  prisma: RlsClient,
+  rlsQuery: Prisma.Sql,
+) => ((...args: Parameters<PrismaClient['$transaction']>) => {
+  const [arg, options] = args as [any, any]
+
+  if (Array.isArray(arg)) {
+    return prisma.$transaction([prisma.$executeRaw(rlsQuery), ...arg], options)
+  }
+
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await tx.$executeRaw(rlsQuery)
+    return arg(tx)
+  }, options)
+}) as PrismaClient['$transaction']
 
 function bypassRLS() {
   return Prisma.defineExtension((prisma) =>
@@ -23,6 +43,12 @@ function bypassRLS() {
           ])
           return result
         }
+      },
+      client: {
+        transaction: transactionWithRls(
+          prisma,
+          Prisma.sql`SELECT set_config('app.bypass_rls', 'on', TRUE)`,
+        ),
       },
     })
   )
@@ -42,19 +68,10 @@ function forTenant(tenantId: string) {
       },
       client: {
         tenantId,
-        transaction: ((...args: Parameters<PrismaClient['$transaction']>) => {
-          const rlsQuery = Prisma.sql`SELECT set_config('app.current_tenant_id', ${tenantId}, TRUE)`
-          const [arg, options] = args as [any, any]
-
-          if (Array.isArray(arg)) {
-            return prisma.$transaction([prisma.$executeRaw(rlsQuery), ...arg], options)
-          }
-
-          return prisma.$transaction(async (tx) => {
-            await tx.$executeRaw(rlsQuery)
-            return arg(tx)
-          }, options)
-        }) as PrismaClient['$transaction'],
+        transaction: transactionWithRls(
+          prisma,
+          Prisma.sql`SELECT set_config('app.current_tenant_id', ${tenantId}, TRUE)`,
+        ),
       }
     })
   )

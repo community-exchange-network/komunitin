@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import AccountHeader from './AccountHeader.vue';
 import Avatar from './Avatar.vue';
-import type { Account, Group } from 'src/store/model';
+import type { Account, Group } from '@/store/model';
 
 defineProps<{
   account?: Account,

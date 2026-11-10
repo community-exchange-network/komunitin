@@ -2,9 +2,10 @@
   "extends": "./.quasar/tsconfig.json",
   "compilerOptions": {
     // Extending Quasar's default ["esnext", "dom", "dom.iterable"].
-    "lib": ["esnext", "dom", "dom.iterable", "webworker"],
+    "lib": ["esnext", "dom", "dom.iterable"],
     "types": ["node", "resize-observer-browser", "vite/client", "vitest/globals"],
     "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
     "isolatedModules": true
   },
 }

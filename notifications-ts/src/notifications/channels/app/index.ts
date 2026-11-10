@@ -25,7 +25,7 @@ import {
   EnrichedMemberEvent,
   EnrichedMemberHasNoPostsEvent,
 } from '../../enriched-events';
-import { handleNotificationForUsers } from './utils';
+import { handleNotificationForRecipients } from './utils';
 
 export const initInAppChannel = (): (() => void) => {
   logger.info('Initializing in-app notification channel');
@@ -35,86 +35,94 @@ export const initInAppChannel = (): (() => void) => {
     // Transfer events
     eventBus.on(EVENT_NAME.TransferCommitted, async (event: EnrichedTransferEvent) => {
       const { payer, payee } = event;
-      await handleNotificationForUsers(event, payer.users, (ctx) => 
+      await handleNotificationForRecipients(event, payer.recipients, (ctx) =>
         buildTransferSentMessage(event, ctx)
       );
-      await handleNotificationForUsers(event, payee.users, (ctx) => 
+      await handleNotificationForRecipients(event, payee.recipients, (ctx) =>
         buildTransferReceivedMessage(event, ctx)
       );
     }),
     eventBus.on(EVENT_NAME.TransferPending, async (event: EnrichedTransferEvent) => {
       const { payer } = event;
-      await handleNotificationForUsers(event, payer.users, (ctx) =>
+      await handleNotificationForRecipients(event, payer.recipients, (ctx) =>
         buildTransferPendingMessage(event, ctx)
       );
     }),
     eventBus.on(EVENT_NAME.TransferRejected, async (event: EnrichedTransferEvent) => {
       const { payee } = event;
-      await handleNotificationForUsers(event, payee.users, (ctx) =>
+      await handleNotificationForRecipients(event, payee.recipients, (ctx) =>
         buildTransferRejectedMessage(event, ctx)
       );
     }),
     eventBus.on(EVENT_NAME.TransferStillPending, async (event: EnrichedTransferEvent) => {
       const { payer } = event;
-      await handleNotificationForUsers(event, payer.users, (ctx) =>
+      await handleNotificationForRecipients(event, payer.recipients, (ctx) =>
         buildTransferStillPendingMessage(event, ctx)
       );
     }),
 
     // Post events
     eventBus.on(EVENT_NAME.NeedExpired, async (event: EnrichedPostEvent) => {
-      await handleNotificationForUsers(event, event.users, (ctx) =>
+      await handleNotificationForRecipients(event, event.recipients, (ctx) =>
         buildPostExpiredMessage(event, ctx)
       );
     }),
     eventBus.on(EVENT_NAME.OfferExpired, async (event: EnrichedPostEvent) => {
-      await handleNotificationForUsers(event, event.users, (ctx) =>
+      await handleNotificationForRecipients(event, event.recipients, (ctx) =>
         buildPostExpiredMessage(event, ctx)
       );
     }),
     eventBus.on(EVENT_NAME.PostExpiresSoon, async (event: EnrichedPostEvent) => {
-      await handleNotificationForUsers(event, event.users, (ctx) =>
+      await handleNotificationForRecipients(event, event.recipients, (ctx) =>
         buildPostExpiresSoonMessage(event, ctx)
       );
     }),
     eventBus.on(EVENT_NAME.OfferPublished, async (event: EnrichedPostEvent) => {
       const { post, member } = event;
-      await handleNotificationForUsers(event, event.users, (ctx) =>
-        buildSinglePostPublishedMessage(event, post, member, ctx)
+      await handleNotificationForRecipients(
+        event,
+        event.recipients,
+        (ctx) => buildSinglePostPublishedMessage(event, post, member, ctx),
       );
     }),
     eventBus.on(EVENT_NAME.NeedPublished, async (event: EnrichedPostEvent) => {
       const { post, member } = event;
-      await handleNotificationForUsers(event, event.users, (ctx) =>
-        buildSinglePostPublishedMessage(event, post, member, ctx)
+      await handleNotificationForRecipients(
+        event,
+        event.recipients,
+        (ctx) => buildSinglePostPublishedMessage(event, post, member, ctx),
       );
     }),
     eventBus.on(EVENT_NAME.PostsPublishedDigest, async (event: EnrichedPostsPublishedDigestEvent) => {
-      await handleNotificationForUsers(event, event.users, (ctx) =>
-        buildPostsPublishedDigestMessage(event, ctx)
+      await handleNotificationForRecipients(
+        event,
+        event.recipients,
+        (ctx) => buildPostsPublishedDigestMessage(event, ctx),
       );
     }),
 
     // Member events
     eventBus.on(EVENT_NAME.MemberHasExpiredPosts, async (event: EnrichedMemberHasExpiredPostsEvent) => {
-      await handleNotificationForUsers(event, event.users, (ctx) =>
+      await handleNotificationForRecipients(event, event.recipients, (ctx) =>
         buildMemberHasExpiredPostsMessage(event, ctx)
       );
     }),
     eventBus.on(EVENT_NAME.MembersJoinedDigest, async (event: EnrichedMembersJoinedDigestEvent) => {
-      await handleNotificationForUsers(event, event.users, (ctx) =>
-        buildMembersJoinedDigestMessage(event, ctx)
+      await handleNotificationForRecipients(
+        event,
+        event.recipients,
+        (ctx) => buildMembersJoinedDigestMessage(event, ctx),
       );
     }),
     eventBus.on(EVENT_NAME.MemberJoined, async (event: EnrichedMemberEvent) => {
-      await handleNotificationForUsers(event, event.users, (ctx) => 
+      await handleNotificationForRecipients(event, event.recipients, (ctx) =>
         buildMemberJoinedMessage(event, ctx)
       );
     }),
 
     // Engagement synthetic events
     eventBus.on(EVENT_NAME.MemberHasNoPosts, async (event: EnrichedMemberHasNoPostsEvent) => {
-      await handleNotificationForUsers(event, event.users, (ctx) =>
+      await handleNotificationForRecipients(event, event.recipients, (ctx) =>
         buildMemberHasNoPostsMessage(event, ctx)
       );
     })
@@ -125,4 +133,3 @@ export const initInAppChannel = (): (() => void) => {
     unsubscribers.forEach(unsub => unsub());
   };
 };
-

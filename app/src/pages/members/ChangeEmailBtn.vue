@@ -1,5 +1,7 @@
 <template>
   <dialog-form-btn 
+    no-wrap
+    icon="mail"
     :label="$t('changeEmail')"
     :text="$t('changeEmailText')"
     :valid="!v$.$invalid"
@@ -25,7 +27,7 @@ import { Notify } from "quasar"
 import { useI18n } from 'vue-i18n'
 
 import DialogFormBtn from '../../components/DialogFormBtn.vue';
-import { Auth } from 'src/plugins/Auth';
+import { Auth } from '@/plugins/Auth';
 
 const props = defineProps<{
   modelValue?: string

@@ -13,7 +13,8 @@ let cachedToken: { value: string, expiresAt: number } | undefined
 let pendingToken: Promise<string> | undefined
 
 const requestToken = async () => {
-  const response = await fetch(new URL('/token', config.JWT_ISSUER), {
+  // Use HTTP call to itself to use oidc-provider route
+  const response = await fetch(`http://127.0.0.1:${config.PORT}/token`, {
     method: 'POST',
     headers: {
       Accept: 'application/json',

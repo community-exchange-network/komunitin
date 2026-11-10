@@ -6,23 +6,16 @@
 # Build stage
 
 
-FROM node:22 AS komunitin-app-build
+FROM node:24 AS komunitin-app-build
 
 ARG FLAVOR=komunitin 
 
 WORKDIR /app
 
-# Install mkcert
-RUN apt-get update && apt-get -y install libnss3-tools wget \
-  && wget -O /usr/local/bin/mkcert https://github.com/FiloSottile/mkcert/releases/download/v1.4.3/mkcert-v1.4.3-linux-amd64 \
-  && chmod a+x /usr/local/bin/mkcert \
-  && mkcert -install
-
-# Set local CA ROOT env variable (used from quasar.conf.js) 
-ENV LOCAL_CA_ROOT=/root/.local/share/mkcert/rootCA.pem
-
-# Create self-signed certificates.
-RUN mkdir -p tmp/certs && mkcert -cert-file tmp/certs/localhost.pem -key-file tmp/certs/localhost-key.pem localhost
+# Keep fallback self-signed certificate outside the development source mount.
+RUN mkdir -p /certs && openssl req -x509 -newkey rsa:2048 -noenc -days 365 \
+  -keyout /certs/localhost-key.pem -out /certs/localhost.pem -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost"
 
 # Enable pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
@@ -30,9 +23,11 @@ RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 # Copy just package.json (and pnpm-lock.yaml) so when there's no package changes we don't 
 # need to redo the install step.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY src-pwa/package.json src-pwa/pnpm-lock.yaml src-pwa/pnpm-workspace.yaml ./src-pwa/
+COPY src-ssg/package.json src-ssg/pnpm-lock.yaml src-ssg/pnpm-workspace.yaml ./src-ssg/
 
 # Install dependencies.
-RUN pnpm install
+RUN pnpm install --frozen-lockfile && pnpm --dir src-pwa install --frozen-lockfile && pnpm --dir src-ssg install --frozen-lockfile
 
 # Copy sources 
 COPY . .
@@ -49,7 +44,7 @@ RUN pnpm run build
 FROM nginx:stable-alpine AS komunitin-app
 
 # Copy the built application from Build stage to nginx HTML folder.
-COPY --from=komunitin-app-build /app/dist/pwa /usr/share/nginx/html
+COPY --from=komunitin-app-build /app/dist/ssg /usr/share/nginx/html
 
 # Configure nginx so that load/refresh works with virtual routes
 RUN rm /etc/nginx/conf.d/default.conf
@@ -61,4 +56,4 @@ RUN chmod +x /docker-entrypoint.d/replace_env_vars.sh
 
 EXPOSE 80
 
-HEALTHCHECK CMD wget --no-verbose --tries=1 --spider http://127.0.0.1/health || exit 1
+HEALTHCHECK --start-period=30s --timeout=5s CMD curl -fsS -o /dev/null http://127.0.0.1/health

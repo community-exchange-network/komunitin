@@ -1,5 +1,5 @@
 import { readonly, shallowRef } from "vue"
-import type { ConfirmedAuthUser } from "src/plugins/Auth"
+import type { ConfirmedAuthUser } from "@/plugins/Auth"
 
 const confirmation = shallowRef<ConfirmedAuthUser>()
 

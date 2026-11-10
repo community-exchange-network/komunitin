@@ -20,12 +20,22 @@ const postTable = sqlTable('Post', 'p')
 const postColumn = (column: string) => sqlColumn('p', column)
 const memberTable = sqlTable('Member', 'm')
 const memberColumn = (column: string) => sqlColumn('m', column)
+const categoryTable = sqlTable('Category', 'c')
+const categoryColumn = (column: string) => sqlColumn('c', column)
 
 const postWithMemberFrom = Prisma.sql`
   ${postTable}
   INNER JOIN ${memberTable}
     ON ${memberColumn('id')} = ${postColumn('memberId')}
    AND ${memberColumn('tenantId')} = ${postColumn('tenantId')}
+`
+
+const postWithMemberAndCategoryFrom = Prisma.sql`
+  ${postWithMemberFrom}
+  LEFT JOIN ${categoryTable}
+    ON ${categoryColumn('id')} = ${postColumn('categoryId')}
+   AND ${categoryColumn('tenantId')} = ${postColumn('tenantId')}
+   AND ${categoryColumn('deleted')} IS NULL
 `
 
 const postColumns: SqlColumnMap = {
@@ -35,11 +45,14 @@ const postColumns: SqlColumnMap = {
   status: postColumn('status'),
   access: postColumn('access'),
   member: postColumn('memberId'),
+  'member.status': memberColumn('status'),
   category: postColumn('categoryId'),
   created: postColumn('created'),
   updated: postColumn('updated'),
   expires: postColumn('expires'),
 }
+
+const unexpiredPostWhere = Prisma.sql`(${postColumn('expires')} IS NULL OR ${postColumn('expires')} >= NOW())`
 
 const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): Promise<Prisma.Sql | null> => {
   const live = [
@@ -57,7 +70,9 @@ const buildReadablePostWhere = async (ctx: OptionalAuthContext, group: Group): P
   if (group.status === 'active') {
     const isMember = await isGroupMember(ctx, group)
     readable.push(sqlAnd([
+      Prisma.sql`${memberColumn('status')} = 'active'`,
       Prisma.sql`${postColumn('status')} = 'published'`,
+      unexpiredPostWhere,
       isMember
         ? Prisma.sql`${postColumn('access')} IN ('public', 'group')`
         : Prisma.sql`${postColumn('access')} = 'public'`,
@@ -95,7 +110,7 @@ const buildExpiredWhere = (rawValue: CollectionParams['filters'][string] | undef
 
   return includeExpired
     ? Prisma.sql`${postColumn('expires')} < NOW()`
-    : Prisma.sql`(${postColumn('expires')} IS NULL OR ${postColumn('expires')} >= NOW())`
+    : unexpiredPostWhere
 }
 
 type PostRelationshipCountRow = {
@@ -104,7 +119,7 @@ type PostRelationshipCountRow = {
   count: number
 }
 
-/** Compute visible published offer and need counts for members or categories. */
+/** Count published, unexpired posts accessible to the caller for members or categories. */
 export const findPostRelationshipCounts = async (
   ctx: OptionalAuthContext,
   db: DbClient,
@@ -130,6 +145,7 @@ export const findPostRelationshipCounts = async (
     FROM ${postWithMemberFrom}
     WHERE ${readableWhere}
       AND ${postColumn('status')} = 'published'
+      AND ${unexpiredPostWhere}
       AND ${relatedId} IN (${Prisma.join(uniqueIds)})
     GROUP BY ${relatedId}, ${postColumn('type')}
   `)
@@ -152,10 +168,10 @@ export const findPostsIds = async (ctx: OptionalAuthContext, db: DbClient, group
   const expiredWhere = buildExpiredWhere(expired)
 
   return await findCollectionIds(db, {
-    from: postWithMemberFrom,
+    from: hasSearch ? postWithMemberAndCategoryFrom : postWithMemberFrom,
     columns: postColumns,
     location: postColumn('location'),
-    search: hasSearch ? [postColumn('search'), memberColumn('search')] : postColumn('search'),
+    search: hasSearch ? [postColumn('search'), memberColumn('search'), categoryColumn('search')] : postColumn('search'),
     params: {
       ...params,
       filters,

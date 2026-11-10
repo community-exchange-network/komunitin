@@ -28,7 +28,7 @@ const isUniqueConstraintError = (err: unknown) => {
     && err.code === 'P2002'
 }
 
-router.post('/register', parseBody, rateLimit({ bucket: 'register', limit: 1, windowMs: 60 * 1000 }), async (req, res, next) => {
+router.post('/register', parseBody, rateLimit({ bucket: 'register', limit: 15, windowMs: 15 * 60 * 1000 }), async (req, res, next) => {
   const parsed = registerPayloadSchema.safeParse(req.body)
   if (!parsed.success) {
     return next(badRequest('Missing or invalid registration payload'))

@@ -7,7 +7,6 @@ export const mockRedis = () => {
   const connectMock = mock.fn();
   const disconnectMock = mock.fn<any>();
   const getMock = mock.fn<any>();
-  const pingMock = mock.fn(async () => 'PONG');
   const setMock = mock.fn<any>();
 
   // Internal state for KV cache
@@ -28,7 +27,8 @@ export const mockRedis = () => {
         connect: connectMock,
         disconnect: disconnectMock,
         get: getMock,
-        ping: pingMock,
+        ping: async () => 'PONG',
+        isReady: true,
         set: setMock,
         quit: disconnectMock,
         on: mock.fn(),
@@ -44,14 +44,12 @@ export const mockRedis = () => {
       connectMock.mock.resetCalls();
       disconnectMock.mock.resetCalls();
       getMock.mock.resetCalls();
-      pingMock.mock.resetCalls();
       setMock.mock.resetCalls();
     },
     mocks: {
       connectMock,
       disconnectMock,
       getMock,
-      pingMock,
       setMock,
     }
   }

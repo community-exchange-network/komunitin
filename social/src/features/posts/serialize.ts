@@ -1,10 +1,11 @@
 import TsJapi from 'ts-japi'
+import { PolymorphicSerializer } from '../../utils/polymorphic-serializer'
 import { getResourceLink, relatedResource, SerializerOptions } from '../../server/jsonapi-serialize'
 import { MemberSerializer } from '../members/serialize'
 import type { SerializablePost } from './types'
 import { CategorySerializer } from '../categories/serialize'
 
-const { Relator, Linker, Serializer, PolymorphicSerializer } = TsJapi
+const { Relator, Linker, Serializer } = TsJapi
 
 const postProjection = {
   code: 1,

@@ -33,11 +33,10 @@
           >
             <profile-form
               :change-credentials="false"
+              :debounce="0"
               :member="member"
-              :contacts="member.attributes.contacts"
-              :user="myUser"
-              @update:member="member.attributes = $event.attributes"
-              @update:contacts="member.attributes.contacts = $event"
+              :email="myUser.attributes.email"
+              @update:member="updateMember"
             />
             <q-btn
               class="full-width q-my-lg"
@@ -106,7 +105,7 @@ import OfferForm from "../offers/OfferForm.vue"
 import { computed, ref, shallowRef, watch } from "vue"
 import { useRouter } from "vue-router"
 import { useStore } from "vuex"
-import type { Group, GroupSettings, Member, Offer, User } from "src/store/model"
+import type { Group, GroupSettings, Member, Offer, User } from "@/store/model"
 import type { DeepPartial } from "quasar"
 import { scroll } from "quasar"
 import { useI18n } from "vue-i18n"
@@ -202,6 +201,15 @@ const requireMember = () => {
   }
   return member.value
 }
+
+const updateMember = (value: DeepPartial<Member>) => {
+  const member = requireMember()
+  member.attributes = {
+    ...member.attributes,
+    ...value.attributes as Partial<Member['attributes']>
+  }
+}
+
 const saveMember = async () => {
   const member = requireMember()
   loadingSaveMember.value = true

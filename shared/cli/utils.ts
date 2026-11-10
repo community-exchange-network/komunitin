@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util'
+import { setTimeout as delay } from 'node:timers/promises'
 
 export type TokenResponse = {
   access_token: string
@@ -34,11 +35,13 @@ export const requiredEnv = (name: string) => {
   return value.replace(/^"|"$/g, '')
 }
 
-export const publicApiUrl = (name: string) => {
-  const url = new URL(requiredEnv(name))
-  if (url.hostname === 'localhost') url.hostname = 'host.docker.internal'
+export const apiUrl = (value: string) => {
+  const url = new URL(value)
+  if (process.env.KOMUNITIN_CLI_DOCKER === 'true' && url.hostname === 'localhost') url.hostname = 'host.docker.internal'
   return url.toString()
 }
+
+export const publicApiUrl = (name: string) => apiUrl(requiredEnv(name))
 
 export const parseMailbox = (value: string, source = 'ADMIN_EMAIL') => {
   const address = value.trim()
@@ -65,12 +68,36 @@ export const responseError = async (response: Response) => {
     ?? `${response.status} ${response.statusText}`
 }
 
-export const requestJson = async <T>(description: string, url: URL, init: RequestInit = {}) => {
+export const request = async (description: string, url: URL, init: RequestInit = {}) => {
   const response = await fetch(url, init)
   if (!response.ok) {
     throw new Error(`${description}: ${await responseError(response)}`)
   }
-  return await response.json() as T
+  return response
+}
+
+export const requestJson = async <T>(description: string, url: URL, init: RequestInit = {}) =>
+  await (await request(description, url, init)).json() as T
+
+/** Bound the entire JSON response and retry timed-out reads without replaying writes. */
+export const requestJsonWithTimeout = async (
+  description: string, url: URL, init: RequestInit, timeoutMs: number, onProgress: (message: string) => void,
+) => {
+  const attempts = (init.method ?? 'GET') === 'GET' ? 3 : 1
+  for (let attempt = 1; ; attempt++) {
+    const signal = AbortSignal.timeout(timeoutMs)
+    try {
+      const response = await fetch(url, { ...init, signal })
+      if (!response.ok) throw new Error(`${description} returned HTTP ${response.status}`)
+      return await response.json() as unknown
+    } catch (error) {
+      if (!signal.aborted) throw error
+      const message = `${description} timed out after ${timeoutMs / 1000}s (attempt ${attempt}/${attempts})`
+      if (attempt === attempts) throw new Error(message)
+      onProgress(`${message}; retrying in ${attempt}s`)
+      await delay(attempt * 1000)
+    }
+  }
 }
 
 export const tokenRequest = (authUrl: string, body: Record<string, string>) => requestJson<TokenResponse>(

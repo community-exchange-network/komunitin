@@ -3,7 +3,7 @@ import SelectLang from "../SelectLang.vue";
 
 import { mount, type VueWrapper } from "@vue/test-utils";
 import { mountComponent, waitFor } from "../../../test/vitest/utils";
-import { i18n, setLocale } from "src/boot/i18n";
+import { i18n, setLocale } from "@/boot/i18n";
 import { QItem } from "quasar";
 import DatePicker from "../DateField.vue";
 import { quasarPlugin } from "../../../test/vitest/utils/quasar-plugin";

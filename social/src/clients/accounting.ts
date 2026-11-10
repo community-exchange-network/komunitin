@@ -2,7 +2,7 @@ import { config } from '../config'
 import type { AuthContext } from '../server/context'
 import { Scope } from '../server/scopes'
 import { internalError } from '../utils/error'
-import { exchangeAccountingToken } from './auth'
+import { exchangeAccountingToken, getSocialServiceToken } from './auth'
 import { fetchWithAuth } from './utils'
 
 type JsonApiError = {
@@ -12,10 +12,16 @@ type JsonApiError = {
   detail: string
 }
 
-type JsonApiResource = {
+type JsonApiResourceIdentifier = {
   id: string
   type: string
+}
+
+type JsonApiResource = JsonApiResourceIdentifier & {
   attributes?: Record<string, unknown>
+  relationships?: Record<string, {
+    data?: JsonApiResourceIdentifier | JsonApiResourceIdentifier[] | null
+  }>
   links: {
     self: string
   }
@@ -30,7 +36,7 @@ type RequestOptions = {
   allowNotFound?: boolean
 }
 
-export type CurrencyStatus = "new" | "active" | "disabled" | "deleted"
+export type CurrencyStatus = "active" | "disabled" | "deleted"
 export type Currency = {
   id: string
   href: string
@@ -47,6 +53,7 @@ export type Account = {
   type: "accounts"
   code: string
   status: AccountStatus
+  users: JsonApiResourceIdentifier[]
   balance?: number
   [key: string]: unknown
 }
@@ -68,19 +75,22 @@ const toError = (status: number, errors: JsonApiError[] | undefined, fallback: s
 }
 
 const parseJsonBody = async <T>(response: Response): Promise<T | undefined> => {
-  return response.headers.get('content-type')?.includes('json')
+  return response.status !== 204 && response.headers.get('content-type')?.includes('json')
     ? await response.json() as T
     : undefined
 }
 
-// Merge attributes into top-level of resource for convenience.
+// Merge attributes and relationship data into top-level of resource for convenience.
 const toResource = (data: JsonApiResource | JsonApiResource[] | undefined) => {
   if (Array.isArray(data)) {
     throw internalError('Expected single resource but got an array')
   }
   if (typeof data === 'object' && data !== null && 'id' in data && 'type' in data) {
-    const { id, type, attributes, links } = data as JsonApiResource
-    return { id, type, ...attributes, href: links.self }
+    const { attributes, relationships, links, ...resource } = data as JsonApiResource
+    const relationshipData = Object.fromEntries(
+      Object.entries(relationships ?? {}).map(([name, relationship]) => [name, relationship.data]),
+    )
+    return { ...resource, ...attributes, ...relationshipData, href: links.self }
   }
   return undefined
 }
@@ -88,14 +98,14 @@ const toResource = (data: JsonApiResource | JsonApiResource[] | undefined) => {
 const userMap = (ids: string[]) => ids.map((id) => ({ type: 'users', id }))
 
 class AccountingClient {
-  constructor(readonly ctx: AuthContext) {}
+  constructor(readonly ctx?: AuthContext) {}
 
   private async request(
     path: string,
     init: RequestInit,
     options: RequestOptions = {},
   ): Promise<JsonApiDoc | undefined> {
-    const scope = this.ctx.isSuperadmin
+    const scope = this.ctx?.isSuperadmin
       ? Scope.Superadmin
       : !init.method || init.method === 'GET'
         ? Scope.AccountingRead
@@ -110,7 +120,9 @@ class AccountingClient {
           ...init.headers,
         },
       },
-      (forceRefresh) => exchangeAccountingToken(this.ctx.token, scope, forceRefresh),
+      (forceRefresh) => this.ctx
+        ? exchangeAccountingToken(this.ctx.token, scope, forceRefresh)
+        : getSocialServiceToken(forceRefresh, scope),
     )
 
     if (options.allowNotFound && response.status === 404) {
@@ -271,6 +283,6 @@ class AccountingClient {
   }
 }
 
-export const createAccountingClient = (ctx: AuthContext) => {
+export const createAccountingClient = (ctx?: AuthContext) => {
   return new AccountingClient(ctx)
 }

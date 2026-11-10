@@ -49,12 +49,14 @@ async function requestActionToken({
   purpose,
   email,
   signup,
+  memberId,
 }: {
   userId: string
   purpose: string
   email?: string
   signup?: Record<string, string>
-}) {
+  memberId?: string
+}, expectedStatus = 200) {
   const authRes = await request(app)
     .post('/token')
     .type('form')
@@ -71,6 +73,7 @@ async function requestActionToken({
     purpose,
     ...(email ? { email } : {}),
     ...(signup ? { signup } : {}),
+    memberId,
   }
 
   const tokenRes = await request(app)
@@ -78,7 +81,7 @@ async function requestActionToken({
     .set('Authorization', `Bearer ${authRes.body.access_token}`)
     .type('json')
     .send(body)
-    .expect(200)
+    .expect(expectedStatus)
 
   return tokenRes.body as { token: string; email: string }
 }
@@ -161,29 +164,21 @@ describe('Auth Service Integration Tests', () => {
   })
 
   test('GET /health returns 200 with status ok', async () => {
-    const res = await request(app)
+    await request(app)
       .get('/health')
-      .expect(200)
-
-    assert.deepStrictEqual(res.body, { status: 'ok' })
-    assert.match(res.headers['content-type'], /^application\/json/)
+      .expect('Content-Type', /^application\/json/)
+      .expect(200, { status: 'ok' })
   })
 
   test('GET /health returns 503 when the database is unavailable', async (t) => {
-    const queryRaw = prisma.$queryRaw
-    t.after(() => {
-      prisma.$queryRaw = queryRaw
-    })
-    prisma.$queryRaw = (async () => {
-      throw new Error('Database unavailable')
-    }) as typeof prisma.$queryRaw
+    const findFirst = prisma.signingKey.findFirst
+    t.after(() => { prisma.signingKey.findFirst = findFirst })
+    prisma.signingKey.findFirst = () => { throw new Error('Database unavailable') }
 
-    const res = await request(app)
+    await request(app)
       .get('/health')
-      .expect(503)
-
-    assert.deepStrictEqual(res.body, { status: 'error' })
-    assert.match(res.headers['content-type'], /^application\/json/)
+      .expect('Content-Type', /^application\/json/)
+      .expect(503, { status: 'error' })
   })
 
   test('POST /register creates an unverified user and sends validation email', async () => {
@@ -1015,6 +1010,44 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.errors[0].code, 'BadRequest')
   })
 
+  test('deletion tokens return the member ID and remain replayable until replaced or expired', async () => {
+    const user = await prisma.user.create({ data: {
+      email: 'deletion-token@example.org', passwordHash: await hashPassword('password123'),
+      emailVerified: true, status: UserStatus.Active,
+    } })
+    await requestActionToken({ userId: user.id, purpose: 'memberDeletion' }, 400)
+    await requestActionToken({ userId: user.id, purpose: 'memberDeletion', memberId: 'invalid' }, 400)
+    const memberId = crypto.randomUUID()
+    const issue = () => requestActionToken({ userId: user.id, purpose: 'memberDeletion', memberId })
+    const service = await request(app).post('/token').type('form').send({
+      grant_type: 'client_credentials', client_id: 'komunitin-social',
+      client_secret: 'komunitin-social-secret', scope: 'accounting:read',
+    }).expect(200)
+    const redeem = (token: string) =>
+      request(app).post('/redeem-action-token').set('Authorization', `Bearer ${service.body.access_token}`)
+        .send({ token, purpose: 'memberDeletion' })
+
+    const replaced = await issue()
+    const { token } = await issue()
+    await redeem(replaced.token).expect(400)
+    const password = await requestActionToken({ userId: user.id, purpose: 'passwordReset' })
+    await redeem(password.token).expect(400)
+    await request(app).post('/change-password').send({ token, password: 'newpassword123' }).expect(400)
+    const results = await Promise.all([redeem(token).expect(200), redeem(token).expect(200)])
+    const expected = { userId: user.id, email: user.email, purpose: 'memberDeletion', data: memberId }
+    results.forEach(result => assert.deepStrictEqual(result.body, expected))
+    const retry = await redeem(token).expect(200)
+    assert.deepStrictEqual(retry.body, expected)
+
+    const expired = await issue()
+    await redeem(token).expect(400)
+    await prisma.userActionToken.update({ where: { tokenHash: hashToken(expired.token) }, data: { expiresAt: new Date(0) } })
+    await redeem(expired.token).expect(400)
+    await prisma.user.update({ where: { id: user.id }, data: { email: user.email, emailVerified: false } })
+    const unverified = await issue()
+    assert.deepStrictEqual((await redeem(unverified.token).expect(200)).body, expected)
+  })
+
   test('POST /redeem-action-token resolves unsubscribe tokens repeatedly until expiry', async () => {
     const userId = '31313131-3131-4131-8131-313131313131'
     const passwordHash = await hashPassword('password123')
@@ -1111,7 +1144,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(res.body.errors[0].code, 'Unauthorized')
   })
 
-  test('POST /redeem-action-token refuses purposes other than unsubscribe', async () => {
+  test('POST /redeem-action-token refuses credential token purposes', async () => {
     const userId = '32323232-3232-4232-8232-323232323232'
     const passwordHash = await hashPassword('password123')
     await prisma.user.create({
@@ -1484,6 +1517,9 @@ describe('Auth Service Integration Tests', () => {
       email: 'reset-pwd@example.org',
     })
     const { token } = await requestActionToken({ userId, purpose: 'passwordReset' })
+    const { token: emailToken } = await requestActionToken({
+      userId, purpose: 'emailChange', email: 'staged@example.org',
+    })
 
     const loginRes = await request(app)
       .post('/token')
@@ -1502,6 +1538,8 @@ describe('Auth Service Integration Tests', () => {
       .post('/change-password')
       .send({ token, password: 'new-secure-password' })
       .expect(200)
+
+    await request(app).post('/email/confirm').send({ token: emailToken }).expect(400)
 
     const refreshRes = await request(app)
       .post('/token')
@@ -1973,7 +2011,7 @@ describe('Auth Service Integration Tests', () => {
     assert.strictEqual(confirmRes.body.errors[0].detail, 'Invalid or expired token')
   })
 
-  test('Password reset and email action tokens do not invalidate each other', async () => {
+  test('Email change invalidates pending password reset and email verification tokens', async () => {
     const userId = '67676767-6767-4676-8676-676767676767'
     const passwordHash = await hashPassword('password123')
     await prisma.user.create({
@@ -2027,6 +2065,7 @@ describe('Auth Service Integration Tests', () => {
     })
     const { token: passwordToken } = await requestActionToken({ userId, purpose: 'passwordReset' })
     assert.ok(passwordToken)
+    const { token: verificationToken } = await requestActionToken({ userId, purpose: 'emailVerification' })
 
     await request(app)
       .post('/email/confirm')
@@ -2036,7 +2075,9 @@ describe('Auth Service Integration Tests', () => {
     await request(app)
       .post('/change-password')
       .send({ token: passwordToken, password: 'new-password123' })
-      .expect(200)
+      .expect(400)
+
+    await request(app).post('/email/confirm').send({ token: verificationToken }).expect(400)
 
     await request(app)
       .post('/token')
@@ -2045,9 +2086,14 @@ describe('Auth Service Integration Tests', () => {
         grant_type: 'password',
         client_id: 'komunitin-app',
         username: 'mixed-actions-new@example.org',
-        password: 'new-password123',
+        password: 'password123',
       })
       .expect(200)
+
+    const freshReset = await requestActionToken({ userId, purpose: 'passwordReset' })
+    assert.strictEqual(freshReset.email, 'mixed-actions-new@example.org')
+    await request(app).post('/change-password')
+      .send({ token: freshReset.token, password: 'new-password123' }).expect(200)
   })
 
   test('POST /token with ROPC fails on invalid credentials', async () => {

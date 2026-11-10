@@ -42,7 +42,7 @@ IntegralCES instance.
   ```bash
   docker compose -f compose.yml -f compose.dev.yml up -d
   ```
-
+- Host's mkcert is used for HTTPS.
 - `compose.public.yml` and `compose.proxy.yml` are for production.
 - Service-local compose files `accounting/compose.yaml` and `notifications-ts/compose.yml` are dependency-only stacks for developing locally and testing the service in isolation. Develop this way when you don't need to test service interdependence.
 
@@ -64,7 +64,7 @@ The development template bootstraps the superadmin
 
 ## CI and Deployment Shape
 
-- `.github/workflows/build.yml` runs three parallel PR/master jobs: app Docker build plus lint/test, notifications typecheck/test plus Docker image, and accounting typecheck/reset-db/test plus Docker images.
+- `.github/workflows/build.yml` runs five parallel PR/master build jobs: app Docker build plus lint/test, and Auth, Social, Accounting and Notifications typecheck/test plus Docker images. Backend jobs start their service dependencies and prepare their databases before testing.
 - The same workflow deploys demo, staging, preview, and CES demo servers after successful builds. Host-specific configuration belongs in environment files and deployment secrets, not hardcoded into compose files.
 - `.github/workflows/backup-test.yml` validates WAL-G restore behavior for the shared database image.
 
@@ -87,3 +87,7 @@ The development template bootstraps the superadmin
 - Focus committed tests on service boundaries: HTTP APIs for backend services and user interactions for the app. Test behavior, not implementation. Test only with the boundary inputs and outputs if possible.
 - Keep test code minimal, readable and DRY. Move shared setup and helpers into utility files.
 - Treat unit tests as temporary development and debugging aids. Commit them only for exceptionally complex functions or components. Unit tests do not define product intent and may be freely changed or deleted during refactors.
+
+## Agent Guidelines
+- Prefer the patch tool over scripts for file edits.
+- Copy review comments in chat.
