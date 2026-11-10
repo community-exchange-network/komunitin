@@ -1,4 +1,3 @@
-@use 'sass:map';
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap');
 // App global CSS classes beyond default Quasar classes.
 
@@ -98,11 +97,10 @@ h1, h2, h3, h4, h5, h6 {
   font-family: $heading-font-family;
 }
 
-// Add font family and text transform; Quasar generates the other token properties.
+// Generate our text roles independently of Quasar's native typography classes.
 @each $name, $style in $typography {
   .text-#{$name} {
-    font-family: map.get($style, family);
-    text-transform: map.get($style, text-transform);
+    @include type-style($name);
   }
 }
 

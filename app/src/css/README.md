@@ -50,14 +50,13 @@ with our Lora bold face. Section headings use a roomier 16/28 line height to
 suit Lora and preserve the forms' spacing. Card titles get surrounding layout
 spacing rather than a different type token.
 
-`quasar.variables.scss` maps the scale to Quasar's heading and component
-variables. Its `$headings` map includes the semantic tokens, so Quasar generates
-their `text-<token>` sizes, weights, line heights and letter spacing alongside
-its standard utilities. Native utilities keep Quasar's defaults.
-The separate `$h-tags` map styles HTML headings, including
-member-authored Markdown.
+`quasar.variables.scss` maps the scale to Quasar's component variables and
+styles HTML headings through `$h-tags`, including member-authored Markdown.
+Quasar's `$headings` map keeps its defaults so native typography utilities
+remain available to its components.
 
-`app.scss` adds font families and case, which Quasar's maps do not support.
+`app.scss` generates our `text-<token>` classes using the `type-style()` mixin
+and adds the font family for HTML headings.
 Components with explicit tokens, such as toolbar titles, chips and badges,
 need no global typography overrides.
 `TimeSeriesChart.vue` passes its canvas font and palette values from Sass to JavaScript
