@@ -22,10 +22,10 @@ describe("Groups", () => {
   it("Loads groups", async () => {
     await wrapper.vm.$router.push("/groups");
     await wrapper.vm.$nextTick();
-    expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
+    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true);
     // Load.
     await waitFor(() => wrapper.findAllComponents(GroupCard).length, 7, "Should load 7 groups");
-    expect((wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing).toBe(false);
+    expect(wrapper.find('[role="status"][aria-label="Loading..."]').exists()).toBe(false);
   });
 
   it("Navigates a focused group card with Enter", async () => {

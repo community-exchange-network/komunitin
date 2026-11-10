@@ -4,6 +4,7 @@
       :title="$t('transactions')" 
       search 
       :balance="props.headerBalance"
+      :loading="refreshing"
       @search="query = $event" 
     >
       <template #buttons>
@@ -33,6 +34,7 @@
           :to="toDate"
           :query="query"
           :both-accounts="props.bothAccounts"
+          @refreshing="refreshing = $event"
         />
         <create-transaction-btn />
       </q-page>
@@ -84,6 +86,7 @@ const store = useStore()
 const myMember = computed(() => props.onlyMine ? store.getters.myMember : undefined);
 
 const query = ref("");
+const refreshing = ref(false)
 const filterDrawer = ref(false);
 const startDate = ref<Date | null>(null);
 const endDate = ref<Date | null>(null);

@@ -118,6 +118,14 @@
       </q-toolbar>
     </div>
     <banner />
+    <q-linear-progress
+      v-if="showLoading"
+      indeterminate
+      size="2px"
+      color="primary"
+      class="absolute-bottom"
+      :aria-label="$t('loading')"
+    />
   </q-header>
 </template>
 <script setup lang="ts">
@@ -132,7 +140,7 @@
  * depending on the page content.
  */
 
-import { ref, computed, type MaybeRef, toValue } from "vue";
+import { ref, computed, watch, type MaybeRef, toValue } from "vue";
 import { useStore } from "vuex"
 import { useRoute, useRouter } from "vue-router"
 import FormatCurrency from "../plugins/FormatCurrency";
@@ -144,11 +152,13 @@ const props = withDefaults(defineProps<{
   search?: boolean;
   balance?: boolean;
   back?: string;
+  loading?: boolean
 }>(), {
   title: "",
   search: false,
   balance: false,
   back: "",
+  loading: false,
 })
 
 const emit = defineEmits<{
@@ -157,6 +167,16 @@ const emit = defineEmits<{
 }>()
 
 const store = useStore()
+
+const showLoading = ref(false)
+// Fast refreshes stay silent; cancel the delay when loading ends or the page unmounts.
+watch(() => props.loading, (loading, _, onCleanup) => {
+  showLoading.value = false
+  if (loading) {
+    const timer = setTimeout(() => { showLoading.value = true }, 300)
+    onCleanup(() => clearTimeout(timer))
+  }
+}, { immediate: true })
 
 const searchActive = ref(false)
 const searchText = ref("")

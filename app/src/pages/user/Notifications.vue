@@ -1,6 +1,7 @@
 <template>
   <page-header 
     :title="t('notifications')" 
+    :loading="refreshing"
     balance 
     :back="`/`"
   />
@@ -11,6 +12,7 @@
         :code="myGroup.attributes.code"
         type="notifications"
         class="q-px-md"
+        @refreshing="refreshing = $event"
       >
         <q-list 
           v-if="slotProps.resources"
@@ -42,7 +44,7 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
 import { isToday, isYesterday, isThisWeek, isThisMonth, format } from 'date-fns';
@@ -55,6 +57,7 @@ import PageHeader from "../../layouts/PageHeader.vue";
 
 const { t } = useI18n();
 const store = useStore();
+const refreshing = ref(false)
 
 const myMember = computed(() => store.getters.myMember);
 const myGroup = computed(() => myMember.value.group);

@@ -10,6 +10,7 @@
     :filter="filter"
     :query="props.query"
     @page-loaded="fetchMembers"
+    @refreshing="emit('refreshing', $event)"
   >
     <q-list
       v-if="slotProps.resources"
@@ -43,7 +44,7 @@
       <q-separator />
     </q-list>
   </ResourceCards>
-  <q-inner-loading :showing="currencyLoading" color="icon" />
+  <q-inner-loading :showing="currencyLoading && !currency" color="icon" />
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue"
@@ -80,6 +81,10 @@ const props = defineProps<{
 
 const store = useStore()
 const { resource: currency, loading: currencyLoading } = useResource<Currency>('currencies', () => ({ group: props.code }))
+
+const emit = defineEmits<{
+  (e: 'refreshing', value: boolean): void
+}>()
 
 const account = computed(() => props.member?.account);
 const filter = computed(() => {

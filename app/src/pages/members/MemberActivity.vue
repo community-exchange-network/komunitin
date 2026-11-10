@@ -1,12 +1,12 @@
 <template>
   <Error404 v-if="error?.code === KErrorCode.NotFound" :to="`/groups/${code}/members`" />
   <div v-else>
-    <page-header :title="title" :back="profileUrl">
+    <page-header :title="title" :back="profileUrl" :loading="refreshing || (loading && !!member)">
       <template #buttons />
     </page-header>
     <q-page-container>
       <q-page class="q-pa-md">
-        <q-inner-loading :showing="loading" color="icon" />
+        <q-inner-loading :showing="loading && !member" color="icon" />
         <template v-if="member">
           <q-card class="bg-surface" :class="{ 'q-mb-md': page === 'transfers' }">
             <q-card-section>
@@ -26,7 +26,13 @@
               <member-navigation :code="code" :member="member" :page="page" />
             </q-card-section>
           </q-card>
-          <transaction-items v-if="page === 'transfers'" :key="member.id" :code="code" :member="member" />
+          <transaction-items
+            v-if="page === 'transfers'"
+            :key="member.id"
+            :code="code"
+            :member="member"
+            @refreshing="refreshing = $event"
+          />
           <resource-cards
             v-else
             :key="`${member.id}/${page}`"
@@ -35,6 +41,7 @@
             include="category"
             :filter="filter"
             style="margin: 0 -16px;"
+            @refreshing="refreshing = $event"
           />
           <floating-btn
             v-if="isMe && page !== 'transfers'"
@@ -51,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import Avatar from '@/components/Avatar.vue'
@@ -73,6 +80,7 @@ const props = defineProps<{
 }>()
 
 const store = useStore()
+const refreshing = ref(false)
 const { t } = useI18n()
 const isComplete = computed(() => store.getters.isComplete)
 const { resource: member, loading, error } = useResource<

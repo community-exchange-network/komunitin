@@ -3,7 +3,7 @@ import type { VueWrapper } from "@vue/test-utils";
 import FloatingBtn from '@/components/FloatingBtn.vue';
 import App from "../../../src/App.vue";
 import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../utils";
-import { QItem, QSelect, QDialog, QBtn, QInnerLoading } from "quasar";
+import { QItem, QSelect, QDialog, QBtn } from "quasar";
 import { seeds } from "@/server";
 import SelectCategory from "@/components/SelectCategory.vue";
 import DeleteNeedBtn from "@/components/DeleteNeedBtn.vue";
@@ -28,7 +28,8 @@ describe("Needs", () => {
   beforeAll(async () => {
     seeds();
     createPost('needs', 'Newest-need')
-    wrapper = await mountComponent(App, { login: true });
+    // Start outside Home so needs are uncached when checking the initial loader.
+    wrapper = await mountComponent(App, { login: true, urlPath: '/groups/GRP0' });
   });
   afterAll(() => wrapper.unmount());
 
@@ -36,7 +37,7 @@ describe("Needs", () => {
     await wrapper.vm.$router.push("/groups/GRP0/needs");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/needs");
     await wrapper.vm.$nextTick();
-    expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
+    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true);
     // Load.
     await waitFor(() => wrapper.findAllComponents(NeedCard).length, 5, "Should load 5 needs");
     const needs = wrapper.findAllComponents(NeedCard).map(card => card.props("need") as FullNeed);

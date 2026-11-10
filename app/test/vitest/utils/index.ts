@@ -1,4 +1,4 @@
-import { afterEach, vi } from 'vitest';
+import { afterEach, onTestFinished, vi } from 'vitest';
 import { type defineComponent } from 'vue';
 import { flushPromises, mount, type MountingOptions, type VueWrapper } from "@vue/test-utils";
 import { Notify } from "quasar";
@@ -39,6 +39,22 @@ export function requireText(value: string | undefined, label: string): string {
 /** Return the non-empty excerpt rendered by markdown text components. */
 export function requireTextExcerpt(value: string, label: string): string {
   return requireText(value.replace(/[*_]/g, "").slice(0, 20), label);
+}
+
+/** Pause requests matching a path suffix until resumed or the test finishes. */
+export function pauseRequests(path: string) {
+  const { promise, resolve } = Promise.withResolvers<void>()
+  const fetch = globalThis.fetch
+  const requests = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
+    if (new URL(String(url)).pathname.endsWith(path)) await promise
+    return fetch(url, options)
+  })
+  const resume = () => {
+    requests.mockRestore()
+    resolve()
+  }
+  onTestFinished(resume)
+  return resume
 }
 
 /** Mount with app plugins; login accepts the default admin, a seeded user, or the cached session. */
