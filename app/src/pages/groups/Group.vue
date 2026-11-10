@@ -31,7 +31,7 @@
         <!-- Loading spinner -->
         <q-inner-loading
           :showing="loading"
-          color="icon-dark"
+          color="icon"
         />
         <q-card v-if="group" class="bg-surface">
           <q-card-section
@@ -47,10 +47,10 @@
                 />
               </div>
               <div class="col-12 col-sm" :class="{ 'text-center': $q.screen.xs }">
-                <h1 class="text-h4 text-serif text-bold text-onsurface q-my-none" style="overflow-wrap: anywhere;">
+                <h1 class="text-headline-large text-on-surface q-my-none" style="overflow-wrap: anywhere;">
                   {{ group.attributes.name }}
                 </h1>
-                <div class="text-subtitle2 text-uppercase text-secondary q-mt-xs">
+                <div class="text-label-large-uppercase text-secondary q-mt-xs">
                   {{ group.attributes.code }}
                 </div>
                 <nav v-if="own" class="row q-gutter-sm q-mt-md" :class="{ 'justify-center': $q.screen.xs }">
@@ -70,7 +70,7 @@
             </div>
           </q-card-section>
           <q-card-section>
-            <read-more class="text-body1 text-onsurface-m" :collapsed-height="120">
+            <read-more class="text-body-large text-on-surface-medium" :collapsed-height="120">
               <!-- eslint-disable vue/no-v-html -->
               <div v-html="md2html(group.attributes.description)" />
               <!-- eslint-enable vue/no-v-html -->

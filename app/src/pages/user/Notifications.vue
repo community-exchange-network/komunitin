@@ -20,7 +20,7 @@
             v-for="group of groupNotifications(slotProps.resources)"
             :key="group.title"
           >
-            <q-item-label header class="text-uppercase text-overline">
+            <q-item-label header class="text-label-medium-uppercase">
               {{ group.title }}
             </q-item-label>
               <q-list 

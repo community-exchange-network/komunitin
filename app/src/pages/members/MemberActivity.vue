@@ -6,19 +6,19 @@
     </page-header>
     <q-page-container>
       <q-page class="q-pa-md">
-        <q-inner-loading :showing="loading" color="icon-dark" />
+        <q-inner-loading :showing="loading" color="icon" />
         <template v-if="member">
           <q-card class="bg-surface" :class="{ 'q-mb-md': page === 'transfers' }">
             <q-card-section>
-              <router-link :to="profileUrl" class="row items-center q-col-gutter-md text-onsurface" style="text-decoration: none;">
+              <router-link :to="profileUrl" class="row items-center q-col-gutter-md text-on-surface" style="text-decoration: none;">
                 <div class="col-auto">
                   <avatar size="56px" :text="member.attributes.name" :img-src="member.attributes.image" />
                 </div>
                 <div class="col">
-                  <h1 class="text-h5 text-serif text-bold q-my-none" style="overflow-wrap: anywhere;">
+                  <h1 class="text-headline-small q-my-none" style="overflow-wrap: anywhere;">
                     {{ member.attributes.name }}
                   </h1>
-                  <div v-if="member.account" class="negative-amount text-subtitle2 q-mt-xs">
+                  <div v-if="member.account" class="text-amount-negative text-label-large q-mt-xs">
                     {{ member.account.attributes.code }}
                   </div>
                 </div>
@@ -39,7 +39,7 @@
           <floating-btn
             v-if="isMe && page !== 'transfers'"
             icon="add"
-            :color="page === 'offers' ? 'kblue' : 'kred'"
+            :color="page === 'offers' ? 'offer' : 'want'"
             :to="`/groups/${code}/${page}/new`"
             :label="page === 'offers' ? $t('createOffer') : $t('createNeed')"
           />

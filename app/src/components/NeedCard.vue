@@ -26,10 +26,10 @@
 
     <!-- Need text -->
     <q-card-section>
-      <span class="text-uppercase text-onsurface-m text-overline">{{$t('need')}}</span>
+      <span class="text-on-surface-medium text-label-medium-uppercase">{{$t('need')}}</span>
       <div
         v-clamp="hasImages ? 3 : 13"
-        class="text-body2 text-justify text-onsurface-m"
+        class="text-body-medium text-justify text-on-surface-medium"
       >
         {{ md2txt(need.attributes.description) }}
       </div>
@@ -58,7 +58,7 @@
         icon="share"
         flat
         round
-        color="icon-dark"
+        color="icon"
         :url="url"
         :title="$t('checkThisNeed', { member: need.member.attributes.name })"
         :text="need.attributes.description"
@@ -68,7 +68,7 @@
         icon="edit"
         flat
         round
-        color="icon-dark"
+        color="icon"
         :to="`/groups/${code}/needs/${need.attributes.code}/edit`"
         class="q-ml-none"
         :title="$t('editNeed')"
@@ -77,7 +77,7 @@
         v-if="canEdit"
         :code="code"
         :need="need"
-        color="icon-dark"
+        color="icon"
         class="q-ml-none"
       />
     </q-card-actions>

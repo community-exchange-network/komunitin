@@ -2,10 +2,10 @@
   <q-form @submit="onSubmit" class="q-pa-md bg-surface rounded-borders shadow-2">
     <div class="q-gutter-y-lg">
       <div>
-        <div class="text-subtitle1">
+        <div class="text-title-medium">
           {{ $t('enterNeedData') }}
         </div>
-        <div class="text-onsurface-m">
+        <div class="text-on-surface-medium">
           {{ $t('needFormHelpText') }}
         </div>
       </div>

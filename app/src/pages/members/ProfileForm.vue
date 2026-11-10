@@ -1,10 +1,10 @@
 <template>
   <div class="bg-surface rounded-borders shadow-2">
     <div class="q-pa-md">
-      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+      <div class="text-title-medium text-on-surface">
         {{ $t('enterProfileData') }}
       </div>
-      <div class="text-body2 text-onsurface-m">
+      <div class="text-body-medium text-on-surface-medium">
         {{ $t('editProfileHelpText') }}
       </div>
     </div>
@@ -31,7 +31,6 @@
         <template #append>
           <q-icon
             name="person"
-            color="muted"
           />
         </template>
       </q-input>
@@ -49,7 +48,6 @@
         <template #append>
           <q-icon
             name="notes"
-            color="muted"
           />
         </template>
       </q-input>
@@ -68,7 +66,6 @@
           <template #append>
             <q-icon
               name="email"
-              color="muted"
             />
           </template>
         </q-input>
@@ -91,7 +88,7 @@
     <q-separator />
     <!-- Location -->
     <div class="q-pa-md q-gutter-y-md column">
-      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+      <div class="text-title-medium text-on-surface">
         {{ $t('location') }}
       </div>
       <location-picker
@@ -150,7 +147,7 @@
     <q-separator />
     <!-- Contact -->
     <div class="q-pa-md">
-      <div class="text-subtitle1 text-serif text-bold text-onsurface q-mb-md">
+      <div class="text-title-medium text-on-surface q-mb-md">
         {{ $t('contact') }}
       </div>
       <member-contacts-field v-model="contacts" />

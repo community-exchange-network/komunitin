@@ -17,14 +17,14 @@
       padding 
       class="q-pa-lg"
     > 
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('manageMembersText') }}
       </div>
 
-      <div class="text-overline text-uppercase text-onsurface-m q-pt-lg q-pb-sm">
+      <div class="text-label-medium-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
         {{ $t('memberRequests') }}
       </div>
-      <div v-if="!loadingPending && pending.length === 0" class="text-onsurface-m q-mt-md">
+      <div v-if="!loadingPending && pending.length === 0" class="text-on-surface-medium q-mt-md">
         {{ $t('noMemberRequests') }}
       </div>
       <q-list
@@ -40,7 +40,7 @@
           @click="memberClick(member)"
         >
           <template #extra>
-            <q-item-section class="text-onsurface-m">
+            <q-item-section class="text-on-surface-medium">
               {{ $formatDate(member.attributes.created) }}
             </q-item-section>
           </template>
@@ -70,14 +70,15 @@
 
 
 
-      <div class="text-overline text-uppercase text-onsurface-m q-pt-lg q-pb-sm">
+      <div class="text-label-medium-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
         {{ $t('accounts') }}
       </div>
       <q-table
         ref="tableRef"
         v-model:pagination="pagination"
         :filter="filter"
-        class="full-width text-onsurface shadow-2"
+        class="full-width text-on-surface shadow-2"
+        table-header-class="text-on-surface-medium"
         :columns="columns"
         :rows="members"
         :visible-columns="visibleColumns"
@@ -199,7 +200,7 @@
               flat
               dense
               round
-              color="icon-dark"
+              color="icon"
               icon="edit"
               :to="`/groups/${scope.row.group.attributes.code}/admin/members/${scope.row.attributes.code}/profile`" 
             />
@@ -207,7 +208,7 @@
               flat
               dense
               round
-              color="icon-dark"
+              color="icon"
               icon="settings"
               :to="`/groups/${scope.row.group.attributes.code}/admin/members/${scope.row.attributes.code}/settings`"
             />
@@ -337,11 +338,11 @@ const columns = [
         return (m: ExtendedMember) =>  {
           const setting = m.account.settings.attributes[key as keyof AccountSettings["attributes"]]
           if (setting === undefined) {
-            return 'text-onsurface-d'
+            return 'text-on-surface-low'
           } else if (typeof setting === 'boolean') {
             return setting ? 'text-positive' : 'text-negative'
           } else {
-            return 'text-onsurface'
+            return 'text-on-surface'
           }
         }
       }

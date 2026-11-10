@@ -76,10 +76,10 @@
     />
     <member-contacts-field v-model="contacts" />
     <div>
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('currency') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('editCurrencyText') }}
       </div>
     </div>

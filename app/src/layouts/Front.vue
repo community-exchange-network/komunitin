@@ -12,7 +12,7 @@
           flat
           dense
           round
-          color="onoutside"
+          color="on-outside"
           icon="arrow_back"
           :aria-label="$t('back')"
           @click="goBack"
@@ -22,7 +22,7 @@
     <q-page-container class="narrow">
       <div
         id="title"
-        class="text-onoutside q-mt-md q-mb-xl"
+        class="text-on-outside q-mt-md q-mb-xl"
       >
         <div>
           <img
@@ -33,7 +33,7 @@
         </div>
         <p
           id="slogan"
-          class="text-subtitle1 text-onoutside-m q-pb-md"
+          class="text-body-large text-on-outside-medium q-pb-md"
         >
           <fit-text>{{ $t('openSystemForExchangeCommunities') }}</fit-text>
         </p>
@@ -41,7 +41,7 @@
       <router-view />
     </q-page-container>
 
-    <q-footer class="bg-transparent q-py-md text-center text-onoutside-m">
+    <q-footer class="bg-transparent q-py-md text-center text-on-outside-medium">
       <div class="q-gutter-md">
         <select-lang />
         <q-btn
@@ -65,9 +65,9 @@
         />
       </div>
       <div v-if="privacyUrl || termsUrl || cookiesUrl" class="legal-links row justify-center q-mt-md">
-        <q-btn v-if="privacyUrl" flat no-caps class="text-caption" padding="xs sm" :href="privacyUrl" :label="$t('privacyPolicy')" />
-        <q-btn v-if="termsUrl" flat no-caps class="text-caption" padding="xs sm" :href="termsUrl" :label="$t('terms')" />
-        <q-btn v-if="cookiesUrl" flat no-caps class="text-caption" padding="xs sm" :href="cookiesUrl" :label="$t('cookies')" />
+        <q-btn v-if="privacyUrl" flat no-caps class="text-body-small" padding="xs sm" :href="privacyUrl" :label="$t('privacyPolicy')" />
+        <q-btn v-if="termsUrl" flat no-caps class="text-body-small" padding="xs sm" :href="termsUrl" :label="$t('terms')" />
+        <q-btn v-if="cookiesUrl" flat no-caps class="text-body-small" padding="xs sm" :href="cookiesUrl" :label="$t('cookies')" />
       </div>
     </q-footer>
   </q-layout>

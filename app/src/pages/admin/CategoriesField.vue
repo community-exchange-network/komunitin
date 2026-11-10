@@ -1,6 +1,6 @@
 <template>
   <q-table
-    class="text-onsurface-m"
+    class="text-on-surface-medium"
     :rows="categories"
     :columns="columns"
     flat
@@ -39,11 +39,11 @@
             flat
             round
             icon="edit"
-            color="onsurface-m"
+            color="on-surface-medium"
             @click="edit(slot.row)"
           />
           <delete-btn 
-            color="onsurface-m"
+            color="on-surface-medium"
             @confirm="remove(slot.row)"
           >
             {{ $t('deleteCategoryConfirmation', {name: slot.row.attributes.name}) }}
@@ -68,7 +68,7 @@
     >
       <q-card-section>
         <div class="flex justify-between">
-          <div class="text-h6">
+          <div class="text-title-large">
             {{ actionLabel }}
           </div>
           <q-btn
@@ -87,7 +87,7 @@
           standout
           class="input-standout-light"
         />
-        <div class="text-onsurface-m">
+        <div class="text-on-surface-medium">
           {{ $t('categoryIcon') }}
         </div>
         <AsyncIconPicker

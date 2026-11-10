@@ -20,7 +20,7 @@
         />
     
         <div v-if="isSelf">
-          <div class="text-overline text-uppercase text-onsurface-m q-mb-sm">
+          <div class="text-label-medium-uppercase text-on-surface-medium q-mb-sm">
             {{ $t('app') }}
           </div>
           <q-select
@@ -49,10 +49,10 @@
           v-if="effectiveSettings && effectiveSettings.allowTagPayments"
           class="q-mt-lg"
         >
-          <div class="text-overline text-uppercase text-onsurface-m q-mb-sm">
+          <div class="text-label-medium-uppercase text-on-surface-medium q-mb-sm">
             {{ $t('nfcTags') }}
           </div>
-          <div class="text-body2 text-onsurface-m q-mb-sm">
+          <div class="text-body-medium text-on-surface-medium q-mb-sm">
             {{ $t('nfcTagsText') }}
           </div>
           <nfc-tags-list
@@ -60,10 +60,10 @@
           />
         </div>
         <div class="q-mt-lg">
-          <div class="text-overline text-uppercase text-onsurface-m text-bold">
+          <div class="text-label-medium-uppercase text-on-surface-medium">
             {{ $t('notifications') }}
           </div>
-          <div class="text-body2 text-onsurface-m q-mb-sm">
+          <div class="text-body-medium text-on-surface-medium q-mb-sm">
             {{ $t('notificationsSettingsText') }}
           </div>
     
@@ -91,10 +91,10 @@
           </q-list>
         </div>
         <div class="q-mt-lg">
-          <div class="text-overline text-uppercase text-onsurface-m text-bold">
+          <div class="text-label-medium-uppercase text-on-surface-medium">
             {{ $t('emails') }}
           </div>
-          <div class="text-body2 text-onsurface-m q-mb-sm">
+          <div class="text-body-medium text-on-surface-medium q-mb-sm">
             {{ $t('emailsSettingsText') }}
           </div>
           <q-list>
@@ -116,7 +116,7 @@
           </q-list>  
         </div>
         <div class="q-mt-lg">
-          <div class="text-overline text-uppercase text-onsurface-m text-bold">
+          <div class="text-label-medium-uppercase text-on-surface-medium">
             {{ $t('accountStatus') }}
           </div>
           <member-status-field 
@@ -125,10 +125,10 @@
           />
         </div>
         <div class="q-mt-lg">
-          <div class="text-overline text-uppercase text-onsurface-m text-bold">
+          <div class="text-label-medium-uppercase text-on-surface-medium">
             {{ $t('deleteAccount') }}
           </div>
-          <div class="text-body2 text-onsurface-m q-mb-sm">
+          <div class="text-body-medium text-on-surface-medium q-mb-sm">
             {{ $t('deleteAccountText') }}
           </div>
           <div class="row justify-right q-mt-md">

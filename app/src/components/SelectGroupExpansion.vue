@@ -1,7 +1,7 @@
 <template>
   <group-header
     id="select-group-header"
-    class="bg-light"
+    class="bg-surface-container"
     :group="modelValue"
     clickable
     @click="onClick"
@@ -133,6 +133,7 @@ const checkShowGroup = (group: Group) => {
 </script>
 <style lang="scss" scoped>
 #select-group-header {
-  height: $header-height;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 </style>

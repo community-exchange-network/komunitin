@@ -4,10 +4,10 @@
     @submit="onSubmit"
   >
     <div class="q-pa-md">
-      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+      <div class="text-title-medium text-on-surface">
         {{ $t('enterMultipleTransactions') }}
       </div>
-      <div class="text-body2 text-onsurface-m">
+      <div class="text-body-medium text-on-surface-medium">
         {{ $t('enterMultipleTransactionsText') }}
       </div>
     </div>
@@ -15,7 +15,7 @@
     <div class="q-pa-md">
       <q-toggle
         v-model="copyDescription"
-        class="text-onsurface"
+        class="text-on-surface"
         :label="$t('copyDescription')"
       />
       <q-input
@@ -28,7 +28,7 @@
         required
         :rules="[() => (description !== '') || $t('ErrorDescriptionRequired')]"
       />
-      <div class="q-mt-md k-inset-actions-md">
+      <div class="q-mt-md">
         <create-transaction-load-file-btn
           :direction="direction"
           :code="code"
@@ -40,8 +40,8 @@
     </div>
     <q-separator />
     <q-table
-      class="text-onsurface full-width bg-transparent"
-      table-header-class="text-overline text-uppercase text-onsurface-d"
+      class="text-on-surface full-width bg-transparent"
+      table-header-class="text-label-medium-uppercase text-on-surface-medium"
       :rows="rows"
       :columns="columns"
       :visible-columns="copyDescription ? [] : ['description']"
@@ -126,7 +126,7 @@
       <div class="col-12 col-sm-8 col-md-6">
         <div 
           v-if="invalidRows.length > 0" 
-          class="text-caption text-center text-negative q-mb-md"
+          class="text-body-small text-center text-negative q-mb-md"
         >
           {{ $t('errorInRows', {rows: invalidRows.join(", ")}) }}
         </div>

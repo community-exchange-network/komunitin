@@ -45,7 +45,7 @@
         style="position: relative; min-height: 140px;"
       >
         <div 
-          class="text-onsurface-m q-pa-lg"
+          class="text-on-surface-medium q-pa-lg"
           style="position: absolute"
         >
           {{ noOptionsText }}

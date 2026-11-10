@@ -53,7 +53,7 @@ describe("Member", () => {
     expect(text).toContain('Credit Limit');
     expect(text).toContain('Maximum Balance');
     expect(wrapper.findAll('dd').map(value => value.text())).toEqual(['$100', '$500']);
-    expect(wrapper.getComponent(PageHeader).text()).toContain('Member');
+    expect(wrapper.getComponent(PageHeader).text()).toContain('Your profile');
     expect(wrapper.get('h1').text()).toBe(myMember.attributes.name);
     expect(navigation('Wants').text()).toContain('0');
     expect(navigation('Transfers').attributes('href')).toBe('/groups/GRP0/members/EmilianoLemke57/transfers');

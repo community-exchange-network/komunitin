@@ -26,19 +26,19 @@
 
     <!-- offer title and description -->
     <q-card-section>
-      <span class="text-uppercase text-onsurface-m text-overline">{{$t('offer')}}</span>
-      <div class="text-h6 text-weight-bold">
+      <span class="text-on-surface-medium text-label-medium-uppercase">{{$t('offer')}}</span>
+      <div class="text-title-large q-my-xs">
         {{ offer.attributes.title }}
       </div>
       <!-- TODO: Add price -->
-      <div class="text-subtitle2 q-mb-xs">
-        <span class="text-onsurface-m">{{ $t('price') }}</span>
+      <div class="text-label-large q-mb-xs">
+        <span class="text-on-surface-medium">{{ $t('price') }}</span>
         <span>&nbsp;</span>
-        <span class="negative-amount">{{ price }}</span>
+        <span class="text-amount-negative">{{ price }}</span>
       </div>
       <div
         v-clamp="3"
-        class="text-body2 text-justify text-onsurface-m"
+        class="text-body-medium text-justify text-on-surface-medium"
       >
         {{ md2txt(offer.attributes.description) }}
       </div>
@@ -58,7 +58,7 @@
         icon="edit"
         flat
         round
-        color="icon-dark"
+        color="icon"
         :to="`/groups/${code}/offers/${offer.attributes.code}/edit`"
         class="q-ml-none"
         :title="$t('editOffer')"
@@ -67,7 +67,7 @@
         v-if="canEdit"
         :code="code"
         :offer="offer"
-        color="icon-dark"
+        color="icon"
         class="q-ml-none"
       />
     </q-card-section>

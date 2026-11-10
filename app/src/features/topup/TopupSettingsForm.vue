@@ -1,25 +1,25 @@
 <template>
   <div class="q-gutter-y-lg">
     <div>
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ t('topupSettings') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ t('topupSettingsText') }}
       </div>
     </div>
     <template v-if="account">
-      <div class="text-body2 q-ml-md">{{t('topupSourceAccount') }}</div>
+      <div class="text-body-medium q-ml-md">{{t('topupSourceAccount') }}</div>
       <q-item class="q-mt-sm">
         <account-item-content
           :account="account"
         />
         <q-item-section side>  
           <div
-            class="col currency text-h6"
+            class="col currency text-body-large"
             :class="account.attributes.balance >= 0
-                ? 'positive-amount'
-                : 'negative-amount'
+                ? 'text-amount-positive'
+                : 'text-amount-negative'
             "
           >
             {{
@@ -224,8 +224,3 @@ watchDebounced([enabled, defaultAllowTopup, rateInput, minAmount, maxAmount, mol
 })
 
 </script>
-<style lang="scss" scoped>
-.text-overline {
-  margin-bottom: -16px;
-}
-</style>

@@ -10,7 +10,7 @@
     >
       <div
         v-if="initializationFailed"
-        class="column items-center q-gutter-md q-py-xl text-onsurface-m"
+        class="column items-center q-gutter-md q-py-xl text-on-surface-medium"
       >
         <q-icon
           name="error"
@@ -60,7 +60,7 @@
           />
         </div>
         <div v-else-if="page=='complete'">
-          <div class="text-h6">
+          <div class="text-title-large">
             {{ t('signupComplete') }}
           </div>
           <div>
@@ -68,15 +68,15 @@
               <q-icon
                 name="verified_user"
                 size="100px"
-                color="icon-dark"
+                color="icon"
               />
             </div>
-            <div class="text-body1 text-onsurface-m q-my-md">
+            <div class="text-body-large text-on-surface-medium q-my-md">
               {{ t('signupCompleteText', {
                 group: group.attributes.name
               }) }}
             </div>
-            <div class="text-body1 text-onsurface-m q-my-md">
+            <div class="text-body-large text-on-surface-medium q-my-md">
               {{ t('signupCompleteText2') }}
             </div>
             <div>
@@ -93,7 +93,7 @@
       </template>
       <q-inner-loading
         :showing="initializing"
-        color="icon-dark"
+        color="icon"
       />
     </q-page>
   </q-page-container>

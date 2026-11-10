@@ -3,7 +3,7 @@
   <q-page-container>
     <q-page class="q-pa-md">
 
-      <div class="text-overline text-uppercase text-onsurface-m q-pt-lg q-pb-sm">
+      <div class="text-label-medium-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
         List of groups
       </div>
 
@@ -11,7 +11,8 @@
         :rows="rows" :columns="columns" :loading="loading"
         row-key="id" 
         flat
-        class="full-width text-onsurface shadow-2"
+        class="full-width text-on-surface shadow-2"
+        table-header-class="text-on-surface-medium"
         :binary-state-sort="true"
         :pagination="{
           sortBy: 'status',
@@ -25,7 +26,7 @@
               :color="statusColor(props.row.status)" 
               text-color="white" 
               :label="props.row.status"
-              size="sm"
+              class="text-label-small"
             />
           </q-td>
         </template>
@@ -34,7 +35,7 @@
           <q-td :props="props">
             <q-btn
               icon="edit"
-              color="icon-dark"
+              color="icon"
               flat
               round
               @click="edit(props.row)"
@@ -42,28 +43,28 @@
             <template v-if="props.row.status !== 'pending'">
               <q-btn
                 icon="settings"
-                color="icon-dark"
+                color="icon"
                 flat
                 round
                 @click="settings(props.row)"
               />
               <q-btn
                 icon="manage_accounts"
-                color="icon-dark"
+                color="icon"
                 flat
                 round
                 :to="`/groups/${props.row.code}/admin/accounts`"
               />
               <q-btn
                 icon="list_alt"
-                color="icon-dark"
+                color="icon"
                 flat
                 round
                 :to="`/groups/${props.row.code}/admin/transactions`"
               />
               <q-btn
                 icon="insert_chart"
-                color="icon-dark"
+                color="icon"
                 flat
                 round
                 :to="`/groups/${props.row.code}/stats`"
@@ -73,7 +74,7 @@
               <confirm-btn
                 icon="check_circle"
                 color="green"
-                btn-color="icon-dark"
+                btn-color="icon"
                 flat
                 round
                 label="Activate Group"
@@ -82,7 +83,7 @@
                 Are you sure you want to activate group {{props.row.name}}?
               </confirm-btn>
               <delete-btn
-                color="icon-dark"
+                color="icon"
                 @confirm="deleteGroup(props.row.code, props.row.id)"
               >
                 Are you sure you want to delete group {{props.row.name}}?
@@ -115,7 +116,7 @@ const compareStatus = (a: string, b: string) => {
 }
 
 const columns = [
-  { name: 'code', label: 'Code', field: 'code', align: "left", sortable: true, classes: 'text-overline text-uppercase' },
+  { name: 'code', label: 'Code', field: 'code', align: "left", sortable: true, classes: 'text-label-medium-uppercase' },
   { name: 'name', label: 'Name', field: 'name', align: "left", sortable: true },
   { name: 'status', label: 'Status', field: 'status', align: "left", sortable: true, sort: compareStatus },
   { name: 'created', label: 'Created', field: 'created', align: "left", sortable: true },

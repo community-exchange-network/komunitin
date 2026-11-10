@@ -8,7 +8,7 @@
     <q-page>
       <q-tabs
         v-if="showTabs.length > 1"
-        class="bg-light text-onsurface-m"
+        class="bg-surface-container text-on-surface-medium"
         active-color="primary"
         align="justify"
         inline-label

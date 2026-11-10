@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="text-caption text-weight-medium pill flex items-center" 
+    class="text-label-medium pill flex items-center"
     :class="`bg-${bg} text-${text}`"
   >
     <q-icon v-if="icon" :name="icon" size="xs" class="q-mr-sm" />
@@ -35,6 +35,5 @@ const bg = computed(() => option.value.bg);
   padding: 2px 12px;
   height: 24px;
   border-radius: 16px;
-  letter-spacing: 0.06em;
 }
 </style>

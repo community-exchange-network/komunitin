@@ -12,7 +12,7 @@
       <form @submit.prevent="onSubmit">
         <q-card-section>
           <div class="flex justify-between">
-            <div class="text-h6">
+            <div class="text-title-large">
               {{ label }}
             </div>
             <q-btn
@@ -25,7 +25,7 @@
           </div>
           <div 
             v-if="text"
-            class="q-mt-md text-body2 text-onsurface-m"
+            class="q-mt-md text-body-medium text-on-surface-medium"
           >
             {{ text }}
           </div>

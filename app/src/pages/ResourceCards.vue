@@ -26,7 +26,7 @@
         <div class="row justify-center q-my-md">
           <!-- 42px is the default size of q-inner-loading -->
           <q-spinner
-            color="icon-dark"
+            color="icon"
             size="42px"
           />
         </div>
@@ -34,7 +34,7 @@
     </q-infinite-scroll>
     <q-inner-loading
       :showing="loading"
-      color="icon-dark"
+      color="icon"
     />
   </div>
 </template>

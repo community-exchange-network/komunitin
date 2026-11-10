@@ -1,15 +1,15 @@
 <template>
   <q-card>
     <q-card-section>
-      <div class="row no-wrap items-center text-body2 text-weight-medium text-onsurface-m">
+      <div class="row no-wrap items-center text-label-large text-on-surface-medium">
         <q-icon
           :name="icon"
           size="20px"
-          class="bg-background rounded-borders q-pa-xs q-mr-sm"
+          class="q-pa-xs q-mr-sm"
         />
         {{ title }}
       </div>
-      <div class="text-h4 text-weight-semi-bold text-onsurface q-mt-md">
+      <div class="text-display-small text-on-surface q-mt-md">
         {{ amount }}
       </div>
       <stats-change
@@ -17,7 +17,7 @@
         :change="change"
         :sign="sign"
       />
-      <div class="text-caption text-onsurface-m q-mt-sm">
+      <div class="text-body-small text-on-surface-medium q-mt-sm">
         {{ text }}
       </div>
     </q-card-section>

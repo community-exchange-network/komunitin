@@ -21,7 +21,6 @@
         flat
         round
         icon="delete"
-        color="muted"
         @click="deleteContact(contact)"
       />
     </template>

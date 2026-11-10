@@ -34,7 +34,7 @@
             :img-src="myMember?.attributes.image"
             :text="myMember?.attributes.name || ''"
           />
-          <span class="text-center text-subtitle1 q-mt-md">
+          <span class="text-center text-body-large q-mt-md">
             {{ myMember?.attributes.name }}
           </span>
           <span class="text-center text-grey-7">
@@ -115,6 +115,6 @@ const feedbackURL = config.FEEDBACK_URL;
 </script>
 <style lang="scss" scoped>
 .profile-btn {
-  outline: 1px solid rgba($onprimary, 0.2); 
+  outline: 1px solid rgba($on-primary, 0.2);
 }
 </style>

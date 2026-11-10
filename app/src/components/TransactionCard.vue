@@ -5,20 +5,20 @@
       :class="[$q.screen.gt.xs ? 'q-px-lg' : '']"
     >
       <!-- main section -->
-      <div class="text-overline text-uppercase text-onsurface-d">
+      <div class="text-label-medium-uppercase text-on-surface-low">
         {{ $t("transaction") }}
       </div>
-      <div class="text-body1 text-onsurface q-mt-sm text-weight-medium">
+      <div class="text-body-large text-on-surface q-mt-sm">
         {{ transfer.attributes.meta.description }}
       </div>
       <div
-        class="text-h5 flex justify-between q-mt-xs text-weight-bold"
-        :class="positive ? 'positive-amount' : 'negative-amount'"
+        class="text-display-extra-small flex justify-between q-mt-xs"
+        :class="positive ? 'text-amount-positive' : 'text-amount-negative'"
       >
         <span>{{ FormatCurrency(transfer.attributes.amount, myCurrency) }}</span>
         <span 
           v-if="otherCurrency && otherAmount" 
-          class="text-h6 text-onsurface-m text-weight-regular"
+          class="text-display-extra-small text-on-surface-medium"
         >
           {{ FormatCurrency(otherAmount, otherCurrency) }}
         </span>
@@ -29,7 +29,7 @@
       <div class="relative-position">
         <div class="avatar-connector" />
         <!-- payer -->
-        <div class="text-overline text-uppercase text-onsurface-d q-pl-xl q-ml-sm"  style="margin-bottom: -10px;">
+        <div class="text-label-medium-uppercase text-on-surface-low q-pl-xl q-ml-sm">
           {{ $t("payer") }}
         </div>
         <transaction-card-account
@@ -38,7 +38,7 @@
           :group="otherCurrency ? payerGroup : undefined"
         />
         <!-- payee -->
-        <div class="text-overline text-uppercase text-onsurface-d q-pt-sm q-pl-xl q-ml-sm" style="margin-bottom: -10px;">
+        <div class="text-label-medium-uppercase text-on-surface-low q-pt-sm q-pl-xl q-ml-sm">
           {{ $t("payee") }}
         </div>
         <transaction-card-account
@@ -50,12 +50,12 @@
         </div>
     </q-card-section>
     <q-card-section class="row items-center justify-between q-pt-sm q-pb-lg" :class="[$q.screen.gt.xs ? 'q-px-lg' : 'q-px-md']">
-      <span class="text-caption text-onsurface-m" style="font-size: 14px;">{{ capitalize($formatDate(transfer.attributes.updated)) }}</span>
+      <span class="text-body-small text-on-surface-medium">{{ capitalize($formatDate(transfer.attributes.updated)) }}</span>
 
       <q-badge
         :color="statusColor"
         :text-color="statusTextColor"
-        class="badge-square text-uppercase text-weight-bold"
+        class="badge-square text-label-small"
       >
         {{ statusLabel }}
       </q-badge>

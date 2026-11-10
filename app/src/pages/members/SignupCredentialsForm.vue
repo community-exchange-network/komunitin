@@ -4,10 +4,10 @@
     @submit="emit('submit')"
   >
     <div>
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('signupCredentialsHeader') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('signupCredentialsText') }}
       </div>
     </div>

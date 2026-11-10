@@ -3,33 +3,37 @@
     v-model="draftDate"
     :error="hasInputError"
     name="date"
-    label-slot
+    :label="label"
     :hint="hint"
     :placeholder="localFormat"
-    v-bind="styleProps"
+    :outlined="filter"
+    :standout="!filter"
+    :class="filter ? 'input-outlined-pale' : 'input-standout-light'"
     clear-icon="close"
     required
     @blur="commitDraftDate"
+    @keydown.down.prevent="pickerPopup?.show()"
     @keyup.enter="commitDraftDate"
     @clear="commitDraftDate"
   >
-    <template v-slot:label>
-      <span :class="{ 'text-uppercase text-caption-sm text-muted': filter }">{{ label }}</span>
-    </template>
     <template #append>
-      <q-icon 
-        name="event" 
-        class="cursor-pointer"
-        color="muted"
+      <q-btn
+        flat
+        round
+        dense
+        icon="event"
+        tabindex="-1"
+        :aria-label="label"
       >
         <q-popup-proxy
+          ref="pickerPopup"
           cover
           transition-show="slide-up"
           transition-hide="slide-down"
         >
           <q-date
             flat
-            color="primary-container"
+            color="primary"
             v-model="pickerDate" 
             :mask="pickerMask"
             :options="optionsFn"
@@ -45,12 +49,13 @@
             </div>
           </q-date>
         </q-popup-proxy>
-      </q-icon>
+      </q-btn>
     </template>
   </q-input>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch } from "vue"
+import { computed, ref, useTemplateRef, watch } from "vue"
+import type { QPopupProxy } from "quasar"
 import { getDateLocale } from "../boot/i18n"
 import { format, isValid, parse } from "date-fns"
 import { useI18n } from "vue-i18n"
@@ -62,25 +67,14 @@ const props = defineProps<{
     min?: Date
     max?: Date
   }
-  /**
-   * Use the tinted style shared by filter fields, instead of the regular form field style.
-   */
+  /** Use the shared filter field style instead of the regular form field style. */
   filter?: boolean
 }>()
 const emit = defineEmits<{
   (e: "update:modelValue", value: Date | null): void
 }>()
 const { t } = useI18n()
-
-const styleProps = computed(() => props.filter ? {
-  outlined: true,
-  bgColor: "surface-container-h",
-  inputClass: "text-muted text-weight-medium",
-  class: "input-outlined-pale"
-} : {
-  standout: true,
-  class: "input-standout-light"
-})
+const pickerPopup = useTemplateRef<QPopupProxy>("pickerPopup")
 
 const pickerMask = "YYYY/MM/DD" // this is the format for QDate component
 const pickerFormat = "yyyy/MM/dd" // this is the same format for date-fns
@@ -157,7 +151,7 @@ const optionsFn = (date: string | null) => {
 
 <style lang="scss" scoped>
   .date-picker :deep(.q-date__header-title) {
-    font-family: $display-serif-family;
+    font-family: $heading-font-family;
     font-weight: bold;
   }
 </style>

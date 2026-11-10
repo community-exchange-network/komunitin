@@ -1,10 +1,10 @@
 <template>
   <q-header>
     <div
-      class="header flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-onsurface-m"
+      class="header flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-on-surface-medium"
       :class="[
         showBalance ? 'wrap' : 'q-pt-xs no-wrap',
-        scrollOffset > 0 ? 'bg-background' : 'bg-light'
+        scrollOffset > 0 ? 'bg-surface-container-high' : 'bg-surface-container'
       ]"
       :style="`height: ${computedHeight}px;`"
     >
@@ -38,17 +38,15 @@
       <div
         v-if="showBalance"
         class="col self-center column items-center"
-        style="min-width: 100%; max-width: 100%;"
+        :style="{ minWidth: '100%', maxWidth: '100%', '--balance-scale': toValue(balanceScaleFactor) }"
       > 
         <div 
-          class="text-body2"
-          :style="`font-size: ${0.875*balanceScaleFactor}rem; line-height: ${1.25*balanceScaleFactor}rem;`"
+          class="text-body-medium balance-label"
         >
           {{ $t('balance') }}
         </div>
         <div 
-          class="text-h3"
-          :style="`font-size: ${3*balanceScaleFactor}rem; line-height: ${3.125*balanceScaleFactor}rem`"
+          class="text-display-medium balance-value"
         >
           {{
             FormatCurrency(
@@ -65,7 +63,7 @@
       >
         <q-toolbar-title 
           v-if="!searchActive"
-          class="text-serif text-bold">
+          class="text-title-large">
           {{ title }}
         </q-toolbar-title>
         <q-input
@@ -74,7 +72,7 @@
           dense
           outlined
           rounded
-          bg-color="surface-container-h"
+          bg-color="surface-container-highest"
           class="q-mr-xs search-box input-outlined-borderless"
           type="search" 
           debounce="250"
@@ -189,6 +187,7 @@ const showLogOut = computed(() => store.getters.isLoggedIn && (!store.getters.is
 
 /**
   * Constant value for the thin header height.
+  * Keep in sync with $toolbar-min-height in css/quasar.variables.scss.
   */
 const headerHeight = 64
 let computedHeight: MaybeRef<number> = headerHeight
@@ -264,6 +263,16 @@ const goUp = () => {
 <style lang="scss" scoped>
 .header {
   transition: background-color 0.3s ease-in-out;
+}
+
+// Animate the token sizes as the balance section collapses on scroll.
+.balance-label {
+  font-size: calc(#{type-value('body-medium', size)} * var(--balance-scale));
+  line-height: calc(#{type-value('body-medium', line-height)} * var(--balance-scale));
+}
+.balance-value {
+  font-size: calc(#{type-value('display-medium', size)} * var(--balance-scale));
+  line-height: calc(#{type-value('display-medium', line-height)} * var(--balance-scale));
 }
 
 // Toolbar has a default padding of 12px. That's ok when there's a button,

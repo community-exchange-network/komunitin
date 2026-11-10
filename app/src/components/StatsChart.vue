@@ -2,20 +2,20 @@
   <q-card>
     <q-card-section class="row no-wrap items-start justify-between q-gutter-x-md">
       <div>
-        <div class="row no-wrap items-center text-subtitle1 text-serif text-bold text-onsurface">
+        <div class="row no-wrap items-center text-label-large text-on-surface">
           <q-icon
             :name="icon"
             size="20px"
-            class="bg-background rounded-borders q-pa-xs q-mr-sm text-onsurface-m"
+            class="q-pa-xs q-mr-sm text-on-surface-medium"
           />
           {{ title }}
         </div>
-        <div class="text-caption text-onsurface-m q-mt-xs">
+        <div class="text-body-small text-on-surface-medium q-mt-xs">
           {{ text }}
         </div>
       </div>
       <div class="column items-end">
-        <div class="text-h5 text-weight-semi-bold text-onsurface">
+        <div class="text-display-extra-small text-on-surface">
           {{ amount }}
         </div>
         <stats-change
@@ -35,7 +35,6 @@
           outlined
           dense
           options-dense
-          bg-color="surface-container-h"
           class="input-outlined-pale"
           dropdown-icon="expand_more"
           @update:model-value="updatePeriod"
@@ -47,10 +46,9 @@
           name="interval"
           :options="intervalOptions"
           :label="t('interval')"
-          standout
+          outlined
           dense
           options-dense
-          bg-color="surface-container-h"
           class="input-outlined-pale"
           dropdown-icon="expand_more"
         />

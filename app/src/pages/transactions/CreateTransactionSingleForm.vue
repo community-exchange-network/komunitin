@@ -4,10 +4,10 @@
     @submit="onSubmit"
   >
     <div class="q-pa-md">
-      <div class="text-subtitle1 text-serif text-bold text-onsurface">
+      <div class="text-title-medium text-on-surface">
         {{ $t('enterTransactionData') }}
       </div>
-      <div class="text-body2 text-onsurface-m">
+      <div class="text-body-medium text-on-surface-medium">
         {{ text }}
       </div>
     </div>
@@ -57,7 +57,7 @@
         <template #append>
           <q-icon
             name="notes"
-            color="muted"
+            color="on-surface-variant"
           />
         </template>
       </q-input>
@@ -68,14 +68,14 @@
         :hint="$t('transactionAmountHint')"
         standout
         class="input-standout-light"
-        input-class="text-weight-regular text-onsurface"
+        input-class="text-body-large text-on-surface"
         required
         :rules="[
           () => !v$.amount.$invalid || $t('ErrorInvalidAmount'),
         ]"
       >
         <template #append>
-          <span class="text-h6 text-muted">{{ myCurrency.attributes.symbol }}</span>
+          <span class="text-body-large text-on-surface-variant">{{ myCurrency.attributes.symbol }}</span>
         </template>
       </q-input>
       <q-input
@@ -85,11 +85,11 @@
         disabled
         standout
         class="input-standout-light"
-        input-class="text-weight-regular text-onsurface-m"
+        input-class="text-body-large text-on-surface-medium"
         :label="$t('amountIn', {currency: otherCurrency.attributes.namePlural})"
       >
         <template #append>
-          <span class="text-h6 text-muted">{{ otherCurrency.attributes.symbol }}</span>
+          <span class="text-body-large text-on-surface-variant">{{ otherCurrency.attributes.symbol }}</span>
         </template>
       </q-input>
       <q-btn

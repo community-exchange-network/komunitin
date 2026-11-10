@@ -10,7 +10,7 @@
     >
       <q-card>
         <q-card-section>
-          <div class="text-h6">
+          <div class="text-title-large">
             {{ t('share') }}
           </div>
         </q-card-section>
