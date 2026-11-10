@@ -2,6 +2,7 @@
   "creditLimit": "Maximum Commitment",
   "maximumBalance": "Maximum Accumulation",
   "member": "User",
+  "memberProfile": "User profile",
   "memberOffers": "User offers",
   "memberNeeds": "User wants",
   "memberTransactions": "User trades",

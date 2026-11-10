@@ -1,7 +1,7 @@
 <template>
   <Error404 v-if="error?.code === KErrorCode.NotFound" :to="`/groups/${code}/members`" />
   <div v-else>
-    <page-header :title="$t('member')" :back="isComplete ? `/groups/${code}/members` : '/'">
+    <page-header :title="isMe ? $t('yourProfile') : $t('memberProfile')" :back="isComplete ? `/groups/${code}/members` : '/'">
       <template #buttons>
         <template v-if="member">
           <contact-button
@@ -60,7 +60,7 @@
             >
               <div class="row items-center q-col-gutter-x-lg q-col-gutter-y-md">
                 <div class="member-balance col-12 col-sm-auto">
-                  <div class="text-body-medium text-on-surface-medium q-mb-xs">{{ $t('balance') }}</div>
+                  <div class="text-label-large text-on-surface-medium q-mb-xs">{{ $t('balance') }}</div>
                   <div class="text-display-small">
                     {{ FormatCurrency(account.attributes.balance, currency) }}
                   </div>
