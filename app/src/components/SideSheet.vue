@@ -7,7 +7,7 @@
       side="right"
     >
       <div class="side-sheet full-height bg-surface">
-        <div class="row items-center no-wrap q-px-md q-py-sm text-on-surface">
+        <div class="row items-center no-wrap q-px-md q-py-sm text-on-surface-medium">
           <div class="col text-title-medium">
             {{ title }}
           </div>
