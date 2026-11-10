@@ -29,7 +29,7 @@
         >
           <q-date
             flat
-            color="primary-variant"
+            color="primary"
             v-model="pickerDate" 
             :mask="pickerMask"
             :options="optionsFn"

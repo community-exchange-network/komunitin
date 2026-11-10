@@ -204,6 +204,7 @@ aside.q-drawer--mobile.q-drawer--left {
 // 7. Palette tokens exposed as CSS variables, so scripts (e.g. charts) can read them with Quasar's getCssVar().
 :root {
   --q-on-surface-medium: #{$on-surface-medium};
+  --q-divider: #{$separator-color};
   --q-tooltip-background: #{$tooltip-background};
   --q-tooltip-color: #{$tooltip-color};
 }
