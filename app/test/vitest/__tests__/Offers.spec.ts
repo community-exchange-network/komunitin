@@ -1,8 +1,8 @@
  
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
-import { mountComponent, requireText, waitFor } from "../utils";
-import { QBtn, QInnerLoading, QInfiniteScroll, QSelect, QItem } from "quasar";
+import { mountComponent, pauseRequests, requireText, waitFor } from "../utils";
+import { QBtn, QInfiniteScroll, QLinearProgress, QSelect, QItem } from "quasar";
 import OfferCard from "../../../src/components/OfferCard.vue";
 import FloatingBtn from '@/components/FloatingBtn.vue';
 import PageHeader from "../../../src/layouts/PageHeader.vue";
@@ -28,15 +28,19 @@ describe("Offers", () => {
     createPost('offers', 'Expired-offer', { expires: '2000-01-01T00:00:00Z' })
     createPost('offers', 'Hidden-offer', { status: 'hidden' })
     const nonAdmin = server.schema.users.all().models[1]
-    wrapper = await mountComponent(App, { login: nonAdmin });
+    // Use urlPath to prevent default init page to fill up the cache.
+    wrapper = await mountComponent(App, { login: nonAdmin, urlPath: '/groups/GRP0' });
   });
   afterAll(() => wrapper.unmount());
 
-  it("Loads current published offers, newest first, for a regular user", async () => {
+  it("Loads current published offers, newest first, for a regular user, and checks loading indicators.", async () => {
+    const resumeInitialLoad = pauseRequests('/posts')
     await wrapper.vm.$router.push("/groups/GRP0/offers");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/offers");
     await wrapper.vm.$nextTick();
-    expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
+    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true);
+    expect(wrapper.findComponent(QLinearProgress).exists()).toBe(false)
+    resumeInitialLoad()
     // Initial load.
     await waitFor(
       () => wrapper.findAllComponents(OfferCard).length,
@@ -45,8 +49,15 @@ describe("Offers", () => {
     );
     // Instead of trying to simulate the scroll event, which is very coupled
     // with the tech layer, just call the trigger() function in QInfiniteScroll.
-    await waitFor(() => wrapper.findComponent(QInnerLoading).props('showing'), false);
+    await waitFor(() => wrapper.find('[role="status"][aria-label="Loading..."]').exists(), false);
+    await waitFor(() => wrapper.getComponent(PageHeader).props('loading'), false)
+    const resumeNextPage = pauseRequests('/posts');
     (wrapper.findComponent(QInfiniteScroll).vm as QInfiniteScroll).trigger();
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true)
+    expect(wrapper.getComponent(PageHeader).props('loading')).toBe(false)
+    expect(wrapper.findAllComponents(OfferCard)).toHaveLength(ApiSerializer.DEFAULT_PAGE_SIZE)
+    resumeNextPage()
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 31, "Should load 31 offers after scroll");
     offer = wrapper.findAllComponents(OfferCard)[0].props("offer") as FullOffer;
     expect(offer.attributes.code).toBe('Newest-offer')
@@ -55,6 +66,20 @@ describe("Offers", () => {
     expect(codes).not.toContain('Hidden-offer')
     // Category icon
     expect(wrapper.findAllComponents(OfferCard).some(card => card.text().includes("accessibility_new"))).toBe(true);
+
+    // Returning to cached content keeps the cards visible during revalidation.
+    await wrapper.vm.$router.push('/groups/GRP0/needs')
+    const resumeRefresh = pauseRequests('/posts')
+    await wrapper.vm.$router.push('/groups/GRP0/offers')
+    expect(wrapper.findAllComponents(OfferCard)).toHaveLength(31)
+    expect(wrapper.find('[role="status"][aria-label="Loading..."]').exists()).toBe(false)
+    expect(wrapper.findComponent(QLinearProgress).exists()).toBe(false)
+    await waitFor(() => wrapper.findComponent(QLinearProgress).exists(), true, 'Slow refresh should show the header bar')
+    expect(wrapper.getComponent(QLinearProgress).classes()).toContain('absolute-bottom')
+    expect(wrapper.findAllComponents(OfferCard)).toHaveLength(31)
+    expect(wrapper.find('[role="status"][aria-label="Loading..."]').exists()).toBe(false)
+    resumeRefresh()
+    await waitFor(() => wrapper.findComponent(QLinearProgress).exists(), false, 'Refresh bar should disappear when finished')
   });
 
   it ("searches offers", async () => {
@@ -63,7 +88,7 @@ describe("Offers", () => {
     wrapper.getComponent(PageHeader).vm.$emit("search","pants");
     await wrapper.vm.$nextTick();
     expect(wrapper.findAllComponents(OfferCard).length).toBe(0);
-    expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
+    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true);
     // found 2 results!
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 2, "Should find 2 offers matching 'pants'");
   })

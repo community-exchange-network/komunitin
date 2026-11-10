@@ -2,6 +2,7 @@
   <page-header
       search
       :title="$t('home')"
+      :loading="refreshing"
       balance
       @search="query = $event"
     />
@@ -14,6 +15,7 @@
         sort="-updated"
         :filter="{ status: 'published', expired: 'false' }"
         :query="query"
+        @refreshing="refreshing = $event"
       />
       <floating-btn-menu 
         :actions="actions" 
@@ -33,6 +35,7 @@ import FloatingBtnMenu, { type FABAction } from '../../components/FloatingBtnMen
 
 const store = useStore();
 const query = ref("");
+const refreshing = ref(false)
 
 const code = computed(() => store.getters.myGroup?.attributes.code)
 

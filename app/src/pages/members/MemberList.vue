@@ -3,6 +3,7 @@
     <page-header
       search
       :title="$t('members')"
+      :loading="refreshing"
       @search="query = $event"
     />
     <q-page-container>
@@ -13,6 +14,7 @@
           type="members"
           include="account"
           :query="query"
+          @refreshing="refreshing = $event"
         >
           <q-list
             v-if="slotProps.resources"
@@ -89,4 +91,5 @@ const showBalances = computed(
 );
 
 const query = ref('');
+const refreshing = ref(false)
 </script>
