@@ -1,6 +1,7 @@
 import type { VueWrapper } from '@vue/test-utils'
 import App from '@/App.vue'
 import ReadMore from '@/components/ReadMore.vue'
+import PageHeader from '@/layouts/PageHeader.vue'
 import server, { seeds } from '@/server'
 import { mountComponent, waitFor } from '../utils'
 
@@ -20,9 +21,10 @@ describe('Stored Markdown', () => {
       '<svg onload="alert(1)"></svg>',
       '<script>alert(1)</script>',
     ].join('\n\n') })
-    wrapper = await mountComponent(App, { login: true })
-
-    await wrapper.vm.$router.push(`/groups/GRP0/members/${member.code}`)
+    wrapper = await mountComponent(App, {
+      login: true,
+      urlPath: `/groups/GRP0/members/${member.code}`,
+    })
     await waitFor(() => wrapper.findComponent(ReadMore).exists(), true)
     const profile = wrapper.getComponent(ReadMore)
 
@@ -31,5 +33,7 @@ describe('Stored Markdown', () => {
     expect(profile.find('[onerror], [onload], script').exists()).toBe(false)
     expect(profile.findAll('a').some(link => link.attributes('href')?.startsWith('javascript:'))).toBe(false)
     expect(profile.text()).toContain('Unsafe link')
+    // Wait for all requests before teardown.
+    await waitFor(() => wrapper.getComponent(PageHeader).props('loading'), false)
   })
 })
