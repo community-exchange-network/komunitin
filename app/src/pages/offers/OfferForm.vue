@@ -2,7 +2,7 @@
   <q-form ref="form" @submit="onSubmit" class="q-pa-md bg-surface rounded-borders shadow-2">
     <div class="q-gutter-y-lg">
       <div>
-        <div class="text-subtitle1">
+        <div class="text-title-medium">
           {{ props.header ?? $t('enterOfferData') }}
         </div>
         <div class="text-on-surface-medium">
@@ -64,7 +64,7 @@
         :rules="[(v) => !!v || $t('offerPriceRequired')]"
       >
         <template #append>
-          <span class="text-h6 text-on-surface-medium">{{ currency.attributes.symbol }}</span>
+          <span class="text-body-large text-on-surface-medium">{{ currency.attributes.symbol }}</span>
         </template>
       </q-input>
       <date-field

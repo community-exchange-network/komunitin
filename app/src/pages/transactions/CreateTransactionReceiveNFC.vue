@@ -19,7 +19,7 @@
         class="q-mb-xl"
       >
         <q-card>
-          <q-card-section class="row no-wrap items-center bg-surface-container text-body2 text-on-surface-medium">
+          <q-card-section class="row no-wrap items-center bg-surface-container text-body-medium text-on-surface-medium">
             <q-icon
               name="contactless"
               size="sm"
@@ -40,10 +40,10 @@
           </q-card-section>
           <q-separator inset />
           <q-card-section class="text-center q-pb-lg">
-            <div class="text-h4 text-weight-bold text-amount-positive">
+            <div class="text-display-small text-amount-positive">
               {{ FormatCurrency(editTransfer.attributes.amount, myCurrency) }}
             </div>
-            <div class="text-body1 text-weight-medium text-on-surface q-mt-xs">
+            <div class="text-body-large text-on-surface q-mt-xs">
               {{ editTransfer.attributes.meta.description }}
             </div>
           </q-card-section>

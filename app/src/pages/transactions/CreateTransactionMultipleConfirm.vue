@@ -1,13 +1,13 @@
 <template>
   <div>
-    <div class="text-subtitle1 text-serif text-bold text-on-surface q-pb-md">
+    <div class="text-title-medium text-on-surface q-pb-md">
       {{ $t('confirmTransactions') }}
     </div>
     <q-list
       padding
       class="bg-surface shadow-2 rounded-borders"
     >
-      <div class="row text-overline text-uppercase text-on-surface-low q-px-md q-pb-xs">
+      <div class="row text-label-medium-uppercase text-on-surface-medium q-px-md q-pb-xs">
         <div class="col col-sm-4">{{ $t("account") }}</div>
         <div class="gt-xs q-pl-md">{{ $t("description") }}</div>
         <div class="q-ml-auto">{{ $t("amount") }}</div>

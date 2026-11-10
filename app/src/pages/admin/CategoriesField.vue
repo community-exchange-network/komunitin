@@ -68,7 +68,7 @@
     >
       <q-card-section>
         <div class="flex justify-between">
-          <div class="text-h6">
+          <div class="text-title-large">
             {{ actionLabel }}
           </div>
           <q-btn

@@ -15,10 +15,10 @@
                   <avatar size="56px" :text="member.attributes.name" :img-src="member.attributes.image" />
                 </div>
                 <div class="col">
-                  <h1 class="text-h5 text-serif text-bold q-my-none" style="overflow-wrap: anywhere;">
+                  <h1 class="text-headline-small q-my-none" style="overflow-wrap: anywhere;">
                     {{ member.attributes.name }}
                   </h1>
-                  <div v-if="member.account" class="text-amount-negative text-subtitle2 q-mt-xs">
+                  <div v-if="member.account" class="text-amount-negative text-label-large q-mt-xs">
                     {{ member.account.attributes.code }}
                   </div>
                 </div>

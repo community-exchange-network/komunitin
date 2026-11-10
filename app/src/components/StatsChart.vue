@@ -2,7 +2,7 @@
   <q-card>
     <q-card-section class="row no-wrap items-start justify-between q-gutter-x-md">
       <div>
-        <div class="row no-wrap items-center text-subtitle1 text-serif text-bold text-on-surface">
+        <div class="row no-wrap items-center text-label-large text-on-surface">
           <q-icon
             :name="icon"
             size="20px"
@@ -10,12 +10,12 @@
           />
           {{ title }}
         </div>
-        <div class="text-caption text-on-surface-medium q-mt-xs">
+        <div class="text-body-small text-on-surface-medium q-mt-xs">
           {{ text }}
         </div>
       </div>
       <div class="column items-end">
-        <div class="text-h5 text-weight-semi-bold text-on-surface">
+        <div class="text-display-extra-small text-on-surface">
           {{ amount }}
         </div>
         <stats-change

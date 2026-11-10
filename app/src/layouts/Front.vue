@@ -33,7 +33,7 @@
         </div>
         <p
           id="slogan"
-          class="text-subtitle1 text-on-outside-medium q-pb-md"
+          class="text-body-large text-on-outside-medium q-pb-md"
         >
           <fit-text>{{ $t('openSystemForExchangeCommunities') }}</fit-text>
         </p>
@@ -65,9 +65,9 @@
         />
       </div>
       <div v-if="privacyUrl || termsUrl || cookiesUrl" class="legal-links row justify-center q-mt-md">
-        <q-btn v-if="privacyUrl" flat no-caps class="text-caption" padding="xs sm" :href="privacyUrl" :label="$t('privacyPolicy')" />
-        <q-btn v-if="termsUrl" flat no-caps class="text-caption" padding="xs sm" :href="termsUrl" :label="$t('terms')" />
-        <q-btn v-if="cookiesUrl" flat no-caps class="text-caption" padding="xs sm" :href="cookiesUrl" :label="$t('cookies')" />
+        <q-btn v-if="privacyUrl" flat no-caps class="text-body-small" padding="xs sm" :href="privacyUrl" :label="$t('privacyPolicy')" />
+        <q-btn v-if="termsUrl" flat no-caps class="text-body-small" padding="xs sm" :href="termsUrl" :label="$t('terms')" />
+        <q-btn v-if="cookiesUrl" flat no-caps class="text-body-small" padding="xs sm" :href="cookiesUrl" :label="$t('cookies')" />
       </div>
     </q-footer>
   </q-layout>

@@ -1,14 +1,14 @@
 <template>
   <div class="q-gutter-y-lg">
     <div>
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('signupSettings') }}
       </div>
       <div class="text-on-surface-medium">
         {{ $t('signupSettingsText') }}
       </div>
     </div>
-    <div class="text-overline text-uppercase text-on-surface-medium">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('termsOfUse') }}
     </div>
     <toggle-item
@@ -26,7 +26,7 @@
       :debounce="1000"
       input-style="min-height: 100px;"
     />
-    <div class="text-overline text-uppercase text-on-surface-medium">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('offersAndNeeds') }}
     </div>
     <q-input
@@ -49,7 +49,7 @@
       standout
       class="input-standout-light"
     />
-    <div class="text-overline text-uppercase text-on-surface-medium">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('accountStart') }}
     </div>
     <amount-input
@@ -70,14 +70,14 @@
     />
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('marketplace') }}
       </div>
       <div class="text-on-surface-medium">
         {{ $t('marketplaceText') }}
       </div>
     </div>
-    <div class="text-overline text-uppercase text-on-surface-medium">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('categories') }}
     </div>
     <div class="text-on-surface-medium">
@@ -91,7 +91,7 @@
     />
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('emails') }}
       </div>
     </div>
@@ -113,7 +113,7 @@
     />
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('accountDefaults') }}
       </div>
       <div class="text-on-surface-medium">
@@ -127,14 +127,14 @@
     />
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('externalPayments') }}
       </div>
       <div class="text-on-surface-medium">
         {{ $t('externalPaymentsText') }}
       </div>
     </div>
-    <div class="text-overline text-uppercase text-on-surface-medium">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('settings') }}
     </div>
     <toggle-item
@@ -201,7 +201,7 @@
         />
       </template>
     </input-update>
-    <div class="text-overline text-uppercase text-on-surface-medium">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('trustlines') }}
     </div>
     <div class="text-on-surface-medium">
@@ -236,7 +236,7 @@
 
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('groupStatus') }}
       </div>
       <div class="text-on-surface-medium">
@@ -417,8 +417,3 @@ const externalTraderMaximumBalanceLoading = computed(() => lastCurrencySettingsU
 const featTopup = import.meta.env.FEAT_TOPUP === 'true'
 
 </script>
-<style lang="scss" scoped>
-.text-overline {
-  margin-bottom: -16px;
-}
-</style>

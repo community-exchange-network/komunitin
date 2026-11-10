@@ -18,13 +18,13 @@
         </q-avatar>
       </q-item-section>
       <q-item-section v-if="type === 'contact'">
-        <q-item-label class="text-weight-medium text-on-surface">{{ contactName(key) }}</q-item-label>
+        <q-item-label class="text-title-small text-on-surface">{{ contactName(key) }}</q-item-label>
         <q-item-label caption>
           {{ networkLabel(key) }}
         </q-item-label>
       </q-item-section>
       <q-item-section v-else>
-        <q-item-label class="text-weight-medium text-on-surface">{{ networkLabel(key) }}</q-item-label>
+        <q-item-label class="text-title-small text-on-surface">{{ networkLabel(key) }}</q-item-label>
       </q-item-section>
     </q-item>
   </q-list>

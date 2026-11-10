@@ -13,7 +13,7 @@
     </q-item-section>
 
     <q-item-section>
-      <q-item-label :class="isRead ? '' : 'text-weight-bold'">{{ notification.attributes.title }}</q-item-label>
+      <q-item-label :class="isRead ? '' : 'text-title-small'">{{ notification.attributes.title }}</q-item-label>
       <q-item-label caption lines="3">{{ notification.attributes.body }}</q-item-label>
     </q-item-section>
     <q-item-section side top>

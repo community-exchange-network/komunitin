@@ -3,7 +3,7 @@
     v-model="draftDate"
     :error="hasInputError"
     name="date"
-    label-slot
+    :label="label"
     :hint="hint"
     :placeholder="localFormat"
     v-bind="styleProps"
@@ -13,9 +13,6 @@
     @keyup.enter="commitDraftDate"
     @clear="commitDraftDate"
   >
-    <template v-slot:label>
-      <span :class="{ 'text-uppercase text-caption-sm text-on-surface-variant': filter }">{{ label }}</span>
-    </template>
     <template #append>
       <q-icon 
         name="event" 
@@ -75,7 +72,8 @@ const { t } = useI18n()
 const styleProps = computed(() => props.filter ? {
   outlined: true,
   bgColor: "surface-container-highest",
-  inputClass: "text-on-surface-variant text-weight-medium",
+  labelColor: "on-surface-variant",
+  inputClass: "text-on-surface-variant text-body-large",
   class: "input-outlined-pale"
 } : {
   standout: true,

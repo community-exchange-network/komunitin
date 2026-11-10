@@ -38,17 +38,15 @@
       <div
         v-if="showBalance"
         class="col self-center column items-center"
-        style="min-width: 100%; max-width: 100%;"
+        :style="{ minWidth: '100%', maxWidth: '100%', '--balance-scale': toValue(balanceScaleFactor) }"
       > 
         <div 
-          class="text-body2"
-          :style="`font-size: ${0.875*balanceScaleFactor}rem; line-height: ${1.25*balanceScaleFactor}rem;`"
+          class="text-body-medium balance-label"
         >
           {{ $t('balance') }}
         </div>
         <div 
-          class="text-h3"
-          :style="`font-size: ${3*balanceScaleFactor}rem; line-height: ${3.125*balanceScaleFactor}rem`"
+          class="text-display-medium balance-value"
         >
           {{
             FormatCurrency(
@@ -65,7 +63,7 @@
       >
         <q-toolbar-title 
           v-if="!searchActive"
-          class="text-serif text-bold">
+          class="text-title-large">
           {{ title }}
         </q-toolbar-title>
         <q-input
@@ -265,6 +263,16 @@ const goUp = () => {
 <style lang="scss" scoped>
 .header {
   transition: background-color 0.3s ease-in-out;
+}
+
+// Animate the token sizes as the balance section collapses on scroll.
+.balance-label {
+  font-size: calc(#{type-value('body-medium', size)} * var(--balance-scale));
+  line-height: calc(#{type-value('body-medium', line-height)} * var(--balance-scale));
+}
+.balance-value {
+  font-size: calc(#{type-value('display-medium', size)} * var(--balance-scale));
+  line-height: calc(#{type-value('display-medium', line-height)} * var(--balance-scale));
 }
 
 // Toolbar has a default padding of 12px. That's ok when there's a button,

@@ -4,7 +4,7 @@
     @submit="emit('accept')"
   >
     <div>
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('membershipTerms') }}
       </div>
       <div class="text-on-surface-medium">
@@ -17,7 +17,7 @@
     />
     <!-- eslint-disable vue/no-v-html -->
     <div
-      class="col text-body1 text-on-surface"
+      class="col text-body-large text-on-surface"
       v-html="md2html(terms)"
     />
     <!-- eslint-enable vue/no-v-html -->

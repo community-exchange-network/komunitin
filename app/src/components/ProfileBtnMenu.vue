@@ -34,7 +34,7 @@
             :img-src="myMember?.attributes.image"
             :text="myMember?.attributes.name || ''"
           />
-          <span class="text-center text-subtitle1 q-mt-md">
+          <span class="text-center text-body-large q-mt-md">
             {{ myMember?.attributes.name }}
           </span>
           <span class="text-center text-grey-7">

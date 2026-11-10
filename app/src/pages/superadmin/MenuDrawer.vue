@@ -7,7 +7,7 @@
     >
   </div>
   <q-separator />
-  <div class="text-overline text-on-surface-low q-pl-md q-pt-md text-uppercase">
+  <div class="text-label-medium-uppercase text-on-surface-low q-pl-md q-pt-md">
     {{ $t('administration') }}
   </div>
   <menu-item

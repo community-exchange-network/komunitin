@@ -10,7 +10,7 @@
     >
       <div class="q-pa-md bg-surface rounded-borders shadow-2">
         <div class="q-pb-lg">
-          <div class="text-subtitle1">
+          <div class="text-title-medium">
             {{ $t('setPassword') }}
           </div>
           <div class="text-on-surface-medium">

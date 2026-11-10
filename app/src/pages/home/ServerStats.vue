@@ -7,8 +7,8 @@
       <q-page class="q-pa-md">
         <div class="flex justify-between">
           <div class="text-on-surface-medium">
-            <h2 class="q-mt-md q-mb-xs text-on-surface-medium">{{t('nCommunities', nCommunities)}}</h2>
-            <p class="text-subtitle1">{{t('nCommunitiesText')}}</p>
+            <h2 class="text-display-medium q-mt-md q-mb-xs text-on-surface-medium">{{t('nCommunities', nCommunities)}}</h2>
+            <p class="text-body-large">{{t('nCommunitiesText')}}</p>
           </div>
         </div>
         <q-card 

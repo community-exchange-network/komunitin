@@ -36,7 +36,7 @@
           />
           <div class="q-mb-md">
             <slot name="header" />
-            <div class="text-caption text-on-surface-variant row items-center">
+            <div class="text-body-small text-on-surface-variant row items-center">
               <q-icon name="schedule" size="16px" class="q-mr-xs" />
               <time :datetime="post.attributes.updated">
                 {{ $t('updatedAt', { date: $formatDate(post.attributes.updated) }) }}
@@ -56,7 +56,7 @@
           <q-separator class="q-mb-md" />
           <!-- eslint-disable vue/no-v-html -->
           <div
-            class="text-body1 text-on-surface"
+            class="text-body-large text-on-surface"
             v-html="md2html(post.attributes.description)"
           />
           <!-- eslint-enable vue/no-v-html -->

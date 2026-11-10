@@ -33,12 +33,12 @@
       >
         <post-layout :post="offer" :code="code">
           <template #header>
-            <div class="text-h4 text-bold text-serif q-mb-md">
+            <div class="text-headline-large q-mb-md">
               {{ offer.attributes.title }}
             </div>
             <div class="q-mb-md">
-              <span class="text-caption text-on-surface-variant q-mr-xs">{{ $t('price') }}</span>
-              <span class="text-h5 text-bold text-amount-positive">{{ price }}</span>
+              <span class="text-body-small text-on-surface-variant q-mr-xs">{{ $t('price') }}</span>
+              <span class="text-display-extra-small text-amount-positive">{{ price }}</span>
             </div>
           </template>
           <template #actions>

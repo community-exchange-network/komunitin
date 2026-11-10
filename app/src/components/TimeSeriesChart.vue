@@ -6,8 +6,7 @@
   />
 </template>
 <script setup lang="ts">
-import { computed } from 'vue'
-import { getCssVar } from 'quasar'
+import { computed, useCssModule } from 'vue'
 
 import { Chart, Tooltip, TimeScale, LinearScale, PointElement, LineElement } from 'chart.js'
 import type { ChartData, ChartOptions } from 'chart.js'
@@ -22,15 +21,16 @@ import formatCurrency from '@/plugins/FormatCurrency'
 
 Chart.register(Tooltip, LinearScale, TimeScale, PointElement, LineElement)
 
-// Theme: app font, recessive axes and grid, the series in the primary color and tooltips
-// as the app tooltips. Colors are palette tokens, defined as CSS variables in app.scss.
-const token = (name: string) => getCssVar(name);
-Chart.defaults.font.family = getComputedStyle(document.body).fontFamily || 'sans-serif';
-Chart.defaults.color = token('on-surface-medium') ?? '#000000';
-const gridColor = token('divider')
-const lineColor = token('primary')
-const tooltipBackground = token('tooltip-background')
-const tooltipColor = token('tooltip-color')
+// Chart text uses the same body-small token as captions and tooltips.
+// Convert rem token values to pixels for the canvas API.
+const theme = useCssModule()
+const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
+
+Chart.defaults.font.family = theme.family;
+Chart.defaults.font.size = parseFloat(theme.size) * rootFontSize;
+Chart.defaults.font.weight = Number(theme.weight);
+Chart.defaults.font.lineHeight = parseFloat(theme.lineHeight) / parseFloat(theme.size);
+Chart.defaults.color = theme.textColor;
 
 const props = defineProps<{
   data: number[]
@@ -124,7 +124,7 @@ const options = computed<ChartOptions<"line">>(() => ({
         display: false
       },
       border: {
-        color: gridColor
+        color: theme.gridColor
       },
       // Few, horizontal labels. Major ticks (year boundaries) are kept when skipping labels.
       ticks: {
@@ -149,7 +149,7 @@ const options = computed<ChartOptions<"line">>(() => ({
       },
       grid: {
         drawTicks: false,
-        color: gridColor
+        color: theme.gridColor
       },
       border: {
         display: false
@@ -172,9 +172,9 @@ const options = computed<ChartOptions<"line">>(() => ({
   },
   plugins: {
     tooltip: {
-      backgroundColor: tooltipBackground,
-      titleColor: tooltipColor,
-      bodyColor: tooltipColor,
+      backgroundColor: theme.tooltipBackground,
+      titleColor: theme.tooltipColor,
+      bodyColor: theme.tooltipColor,
       titleFont: { weight: 600 },
       padding: 10,
       cornerRadius: 8,
@@ -192,9 +192,23 @@ type TimePoint = {x: Date, y: number}
 const datasets = computed<ChartData<"line", TimePoint[]>>(() => ({
   datasets: [{
     data: mainData.value,
-    borderColor: lineColor,
-    pointBorderColor: lineColor,
+    borderColor: theme.lineColor,
+    pointBorderColor: theme.lineColor,
     fill: false,
   }]
 }))
 </script>
+<style lang="scss" module>
+// Pass the canvas font and palette values to this component's script.
+:export {
+  family: type-value('body-small', family);
+  size: type-value('body-small', size);
+  weight: type-value('body-small', weight);
+  lineHeight: type-value('body-small', line-height);
+  textColor: $on-surface-medium;
+  gridColor: $separator-color;
+  lineColor: $primary;
+  tooltipBackground: $tooltip-background;
+  tooltipColor: $tooltip-color;
+}
+</style>

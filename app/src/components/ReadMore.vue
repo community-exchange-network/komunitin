@@ -14,7 +14,7 @@
     <div v-if="canToggle" class="row q-mt-sm">
       <button
         type="button"
-        class="read-more-toggle row items-center text-body2 text-weight-regular text-primary bg-transparent no-border q-px-none q-py-xs cursor-pointer"
+        class="read-more-toggle row items-center text-body-medium text-primary bg-transparent no-border q-px-none q-py-xs cursor-pointer"
         style="text-underline-offset: 3px;"
         :aria-expanded="isOpen"
         @click="isOpen = !isOpen"

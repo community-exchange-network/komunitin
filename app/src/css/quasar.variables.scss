@@ -1,3 +1,6 @@
+@use 'sass:map';
+@use 'quasar/src/css/variables' as quasar;
+
 // Quasar Sass (& SCSS) Variables
 // --------------------------------------------------
 // These variables and Quasar's own ones (https://quasar.dev/style/sass-scss-variables) 
@@ -69,12 +72,23 @@ $separator-dark-color : rgba($white, 0.12); // standard dark mode
 
 // ── Typography ───────────────────────────────────────────────
 //
-//  Display / headings: Lora (serif) — loaded via Google Fonts.
-//  Body / UI:          Inter — loaded via Google Fonts.
-//  Quasar exposes a single font-family variable; we set Inter
-//  as the base and apply Lora via component-level overrides.
+@import 'typography.scss';
 
-$typography-font-family: 'Inter', '-apple-system', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+$typography-font-family: $body-font-family;
+$body-line-height: type-value('body-medium', line-height);
+
+// Add our text roles without changing Quasar's native typography classes.
+$headings: map.merge(quasar.$headings, $typography);
+
+// HTML headings also occur in member-authored Markdown.
+$h-tags: (
+  h1: map.get($typography, 'headline-large'),
+  h2: map.get($typography, 'headline-small'),
+  h3: map.get($typography, 'title-large'),
+  h4: map.get($typography, 'title-large'),
+  h5: map.get($typography, 'title-medium'),
+  h6: map.get($typography, 'title-medium')
+);
 
 // ── Border radius ────────────────────────────────────────────
 //
@@ -129,33 +143,24 @@ $shadow-24 : 0 0 102px rgba($shadow-color, 0.08) !default;
 
 $toolbar-min-height         : 64px;
 $toolbar-padding            : 0 20px;
-$toolbar-title-font-size    : 20px;
-$toolbar-title-font-weight  : 600;
-$toolbar-title-letter-spacing: -0.3px;
 $toolbar-title-padding      : 0 14px;
 
 // ── Buttons ──────────────────────────────────────────────────
 
-$button-font-weight  : 600;
 $button-padding      : 12px 18px;
 
 // ── Chips ────────────────────────────────────────────────────
 //
-//  Commons chips: 12px font, pill shape (border-radius 20px),
-//  compact height. Quasar's chip variables map closely.
+//  Chip typography comes from each chip's explicit token class.
 
-$chip-font-size     : 12px;
-$chip-height        : 1.75em;    // ~21px at 12px base — compact but not tiny
+$chip-height        : 1.75em;
 $chip-dense-height  : 1.4em;
 
 // ── Inputs & Fields ──────────────────────────────────────────
 
-$input-font-size    : 16px;   // 16px prevents iOS Safari from zooming in on focus
+$input-font-size    : type-value('body-large', size); // 16px prevents iOS Safari from zooming in on focus
 $input-text-color   : $soil-medium;   // Warm brown, softer than near-black
 $input-label-color  : rgba($soil, 0.6);    // Soil at 60% — on-surface-medium
-
-$field-label-font-size    : 13px;
-$field-bottom-font-size   : 11px;
 
 // ── Avatar ───────────────────────────────────────────────────
 //
@@ -170,6 +175,7 @@ $avatar-content-font-size : 0.41em;  // ~14px at 34px base
 
 $table-hover-background    : rgba($soil, 0.04);  // barely-there warm wash
 $table-selected-background : rgba($primary, 0.08); // faint Ember tint
+$table-tbody-td-font-size  : type-value('body-medium', size);
 
 // ── Menu / Dropdown ──────────────────────────────────────────
 
@@ -181,7 +187,8 @@ $tooltip-background   : $dark;
 $tooltip-color        : $parchment;   // Parchment — warm white text
 $tooltip-border-radius: 8px;
 $tooltip-padding      : 6px 12px;
-$tooltip-fontsize     : 12px;
+$tooltip-fontsize     : type-value('body-small', size);
+$tooltip-mobile-fontsize: $tooltip-fontsize;
 
 // ── Layout ───────────────────────────────────────────────────
 
@@ -214,9 +221,6 @@ $rating-grade-color : $accent;  // Wheat — natural amber star colour
 //  (not Quasar variables, but available as SCSS variables
 //   throughout your component files once this file is loaded)
 // ============================================================
-
-// Heading typography, complementing Quasar's $typography-font-family
-$heading-font-family : 'Lora', Georgia, 'Times New Roman', serif;
 
 // Theme colors
 $primary-variant: $ember-dark;

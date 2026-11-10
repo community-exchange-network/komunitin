@@ -13,7 +13,7 @@
         padding
         class="q-py-md q-px-md col-12 col-sm-8 col-md-6"
       >
-        <div v-if="isPendingMe" class="text-subtitle1 q-pb-lg">
+        <div v-if="isPendingMe" class="text-body-large q-pb-lg">
           {{ $t('pleaseReviewTransfer') }}
         </div>
         <transaction-card :transfer="transfer">

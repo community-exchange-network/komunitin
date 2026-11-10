@@ -9,8 +9,8 @@
     no-caps
   >
     <span :class="stack ? 'q-mt-xs' : 'q-ml-sm'">
-      <span class="text-weight-medium" :class="{ 'text-primary-variant': !active }">{{ label }}</span>
-      <span v-if="count !== undefined" class="text-caption q-ml-sm">
+      <span class="text-label-large" :class="{ 'text-primary-variant': !active }">{{ label }}</span>
+      <span v-if="count !== undefined" class="text-body-small q-ml-sm">
         {{ count }}
       </span>
     </span>

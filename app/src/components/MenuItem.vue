@@ -13,7 +13,7 @@
       />
     </q-item-section>
     <q-item-section
-      class="text-subtitle2"
+      class="text-label-large"
       :class="active ? 'text-primary' : 'text-on-surface-medium'"
     >
       {{ title }}

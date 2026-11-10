@@ -66,8 +66,8 @@
     </q-uploader>
     <div
       v-if="hint" 
-      class="text-on-surface-medium q-pt-sm text-caption"
-      style="padding-left: 12px; line-height: 1;"
+      class="text-on-surface-medium q-pt-sm text-body-small"
+      style="padding-left: 12px;"
     >
       {{ hint }}
     </div>

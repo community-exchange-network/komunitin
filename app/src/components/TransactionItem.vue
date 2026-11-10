@@ -33,7 +33,7 @@
             color="transfer-pending"
             text-color="primary"
             v-if="transfer.attributes.state == 'pending'"
-            class="badge-square text-uppercase text-weight-bold"
+            class="badge-square text-label-small"
             >
             {{ $t("pending") }}
           </q-badge>
@@ -41,7 +41,7 @@
             color="transfer-rejected"
             text-color="on-surface-medium"
             v-else-if="transfer.attributes.state == 'rejected'"
-            class="badge-square text-uppercase text-weight-bold"
+            class="badge-square text-label-small"
             >
             {{ $t("rejected") }}
           </q-badge>
@@ -49,7 +49,7 @@
             color="transfer-failed"
             text-color="on-surface-low"
             v-else-if="transfer.attributes.state == 'failed'"
-            class="badge-square text-uppercase text-weight-bold"
+            class="badge-square text-label-small"
             >
             {{ $t("failed") }}
           </q-badge>
@@ -58,7 +58,7 @@
           </span>
         </q-item-label>
         <div
-          class="col transaction-amount text-subtitle1 text-weight-bold"
+          class="col transaction-amount text-body-large-emphasized"
           :class="
             signedAmount >= 0
               ? 'text-amount-positive'

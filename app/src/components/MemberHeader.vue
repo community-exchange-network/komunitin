@@ -16,7 +16,7 @@
     <q-item-section>
       <q-item-label
         lines="1"
-        class="text-weight-semi-bold text-on-surface"
+        class="text-title-small text-on-surface"
       >
         {{ member.attributes.name }}
       </q-item-label>

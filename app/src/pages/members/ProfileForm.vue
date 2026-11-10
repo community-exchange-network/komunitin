@@ -1,10 +1,10 @@
 <template>
   <div class="bg-surface rounded-borders shadow-2">
     <div class="q-pa-md">
-      <div class="text-subtitle1 text-serif text-bold text-on-surface">
+      <div class="text-title-medium text-on-surface">
         {{ $t('enterProfileData') }}
       </div>
-      <div class="text-body2 text-on-surface-medium">
+      <div class="text-body-medium text-on-surface-medium">
         {{ $t('editProfileHelpText') }}
       </div>
     </div>
@@ -91,7 +91,7 @@
     <q-separator />
     <!-- Location -->
     <div class="q-pa-md q-gutter-y-md column">
-      <div class="text-subtitle1 text-serif text-bold text-on-surface">
+      <div class="text-title-medium text-on-surface">
         {{ $t('location') }}
       </div>
       <location-picker
@@ -150,7 +150,7 @@
     <q-separator />
     <!-- Contact -->
     <div class="q-pa-md">
-      <div class="text-subtitle1 text-serif text-bold text-on-surface q-mb-md">
+      <div class="text-title-medium text-on-surface q-mb-md">
         {{ $t('contact') }}
       </div>
       <member-contacts-field v-model="contacts" />

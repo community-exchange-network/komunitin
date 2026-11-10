@@ -7,7 +7,7 @@
     <q-dialog v-model="contactsView">
       <q-card>
         <q-card-section class="q-pb-none">
-          <div class="text-h6">
+          <div class="text-title-large">
             {{ $t("contact") }}
           </div>
         </q-card-section>

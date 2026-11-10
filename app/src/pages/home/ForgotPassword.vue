@@ -4,10 +4,10 @@
     class="column q-gutter-y-md"
     @submit.prevent="submit"
   >
-    <div class="text-h6 text-on-outside">
+    <div class="text-title-large text-on-outside">
       {{ $t('resetPassword') }}
     </div>
-    <div class="text-body text-on-outside">
+    <div class="text-body-medium text-on-outside">
       {{ $t('resetPasswordText') }}
     </div>
     <q-input
@@ -39,10 +39,10 @@
     />
   </form>
   <div v-if="emailSent">
-    <div class="text-h6 text-on-outside">
+    <div class="text-title-large text-on-outside">
       {{ $t('resetLinkSent') }}
     </div>
-    <div class="text-body text-on-outside">
+    <div class="text-body-medium text-on-outside">
       {{ $t('resetLinkSentText') }}
     </div>
   </div>

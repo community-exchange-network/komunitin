@@ -11,41 +11,41 @@
         <!-- Migration Details Card -->
         <q-card>
           <q-card-section>
-            <div class="text-overline text-uppercase q-mb-md">Migration details</div>
+            <div class="text-label-medium-uppercase q-mb-md">Migration details</div>
             <div class="q-mb-md">
-              <div class="text-caption text-grey-6">Migration</div>
-              <div class="text-weight-medium">{{ migration.id }}</div>
+              <div class="text-body-small text-grey-6">Migration</div>
+              <div class="text-title-small">{{ migration.id }}</div>
             </div>
 
             <div class="q-mb-md">
-              <div class="text-caption text-grey-6">Community</div>
-              <div class="text-weight-bold" style="font-family: monospace;">
+              <div class="text-body-small text-grey-6">Community</div>
+              <div class="text-title-small">
                 {{ migration.code ?? 'Not yet identified' }}
               </div>
             </div>
 
             <div class="q-mb-md">
-              <div class="text-caption text-grey-6">Current Step</div>
-              <div class="text-weight-medium">{{ step }}</div>
+              <div class="text-body-small text-grey-6">Current Step</div>
+              <div class="text-title-small">{{ step }}</div>
             </div>
 
             <div class="q-mb-md">
-              <div class="text-caption text-grey-6">Status</div>
+              <div class="text-body-small text-grey-6">Status</div>
               <q-chip
                 :color="getStatusColor(migration.status)" 
                 text-color="white" 
                 :label="getStatusLabel(migration.status)"
-                size="md"
+                class="text-label-large"
               />
             </div>
 
             <div class="q-mb-md">
-              <div class="text-caption text-grey-6">Created</div>
+              <div class="text-body-small text-grey-6">Created</div>
               <div>{{ formatDate(migration.created) }}</div>
             </div>
 
             <div class="q-mb-md">
-              <div class="text-caption text-grey-6">Last Updated</div>
+              <div class="text-body-small text-grey-6">Last Updated</div>
               <div>{{ formatDate(migration.updated) }}</div>
             </div>
           </q-card-section>
@@ -54,7 +54,7 @@
         <!-- Migration Log Card -->
         <q-card>
           <q-card-section>
-            <div class="text-overline text-uppercase q-mb-md">Migration Log</div>
+            <div class="text-label-medium-uppercase q-mb-md">Migration Log</div>
             <div v-if="!loading && log.length === 0" class="text-grey text-center q-pa-md">
               No log entries yet
             </div>
@@ -69,11 +69,11 @@
                     <q-chip 
                       :color="getLogLevelColor(item.level)"
                       text-color="white"
-                      size="sm"
-                      :label="item.level.toUpperCase()"
+                      class="text-label-small"
+                      :label="item.level"
                     />
-                    <span class="text-caption text-grey">{{ formatDate(item.created) }}</span>
-                    <span class="text-caption text-grey">{{ item.step }}</span>
+                    <span class="text-body-small text-grey">{{ formatDate(item.created) }}</span>
+                    <span class="text-body-small text-grey">{{ item.step }}</span>
                   </div>
                   <div class="q-mt-xs">{{ item.message }}</div>
                 </q-item>
@@ -96,8 +96,8 @@
       <!-- Migration not found -->
       <div v-else-if="!error" class="text-center q-pa-xl">
         <q-icon name="error_outline" size="4em" color="grey" class="q-mb-md" />
-        <div class="text-h6 text-grey">Migration not found</div>
-        <div class="text-subtitle2 text-grey q-mb-lg">
+        <div class="text-title-large text-grey">Migration not found</div>
+        <div class="text-label-large text-grey q-mb-lg">
           The migration with ID "{{ id }}" could not be found.
         </div>
         <q-btn 

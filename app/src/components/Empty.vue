@@ -6,7 +6,7 @@
           <q-avatar color="surface-container" text-color="on-surface-variant" icon="upcoming" size="4rem"/>
         </q-card-section>
         <section class="flex justify-center q-mb-md">
-          <span class="text-h6 text-weight-semi-bold text-on-surface-medium">{{ text || $t('nothingHere') }}</span>
+          <span class="text-title-large text-on-surface-medium">{{ text || $t('nothingHere') }}</span>
         </section>
         <div class="text-center">
           <slot />

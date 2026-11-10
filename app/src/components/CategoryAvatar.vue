@@ -2,7 +2,7 @@
   <div class="q-py-xs">
     <span
       v-if="category && caption && right"
-      class="q-pr-md text-overline text-uppercase text-on-surface-medium"
+      class="q-pr-md text-label-medium-uppercase text-on-surface-medium"
     >{{ category.attributes.name }}</span>
     <q-avatar
       :icon="icon"
@@ -16,7 +16,7 @@
     </q-avatar>
     <span
       v-if="category && caption && !right"
-      class="q-pl-md text-overline text-uppercase text-on-surface-medium"
+      class="q-pl-md text-label-medium-uppercase text-on-surface-medium"
     >{{ category.attributes.name }}</span>
   </div>
 </template>

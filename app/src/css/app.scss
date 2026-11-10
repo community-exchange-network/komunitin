@@ -1,3 +1,4 @@
+@use 'sass:map';
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap');
 // App global CSS classes beyond default Quasar classes.
 
@@ -91,20 +92,18 @@
   fill: $primary;
 }
 
-// 4. Custom typography classes
-.text-serif {
+// 4. Semantic typography utilities and Quasar defaults.
+// Quasar's heading maps do not include font families.
+h1, h2, h3, h4, h5, h6 {
   font-family: $heading-font-family;
 }
-.text-overline {
-  letter-spacing: 1.5px;
-  line-height: 1.5rem;
-}
-.text-caption-sm {
-  font-size: 0.65rem; 
-  line-height: 1rem;
-}
-.text-weight-semi-bold {
-  font-weight: 600;
+
+// Add font family and text transform; Quasar generates the other token properties.
+@each $name, $style in $typography {
+  .text-#{$name} {
+    font-family: map.get($style, family);
+    text-transform: map.get($style, text-transform);
+  }
 }
 
 // 5. Custom icon weights and fills
@@ -121,18 +120,6 @@
     }
     .q-field__control:after {
       border: none !important;
-    }
-  }
-}
-// Warm palette borders for outlined fields, as Quasar hardcodes neutral black ones.
-.input-outlined-soil {
-  .q-field--outlined .q-field__control {
-    &:before {
-      border-color: $soil-light;
-    }
-
-    &:hover:before {
-      border-color: $soil-medium;
     }
   }
 }
@@ -192,36 +179,9 @@
 // Because we set the generic border radius to 8px, we need to override badges to be more square-shaped.
 .badge-square {
   border-radius: 4px;
-  font-size: 0.625rem;
-  line-height: 0.8rem;
 }
 // Round the outer edge of modal navigation drawers.
 aside.q-drawer--mobile.q-drawer--left {
   border-top-right-radius: $generic-border-radius !important;
   border-bottom-right-radius: $generic-border-radius !important;
-}
-
-// 7. Palette tokens exposed as CSS variables, so scripts (e.g. charts) can read them with Quasar's getCssVar().
-:root {
-  --q-on-surface-medium: #{$on-surface-medium};
-  --q-divider: #{$separator-color};
-  --q-tooltip-background: #{$tooltip-background};
-  --q-tooltip-color: #{$tooltip-color};
-}
-
-// 8. General purpose helper classes
-// Align flat button content with the start of the content, as with card action buttons.
-.k-inset-actions-md {
-  margin-left: -8px;
-
-  .q-btn__wrapper {
-    padding: 0 8px;
-  }
-}
-.link {
-  text-decoration: none;
-  font-weight: 500;
-  &.text-on-outside-medium:hover {
-    color: $on-outside;
-  }
 }

@@ -16,10 +16,10 @@
             :img-src="group.attributes.image"
           />
           <div class="q-ml-md">
-            <div class="text-h6 text-serif text-bold text-on-surface">
+            <div class="text-title-large text-on-surface">
               {{ group.attributes.name }}
             </div>
-            <div class="text-body2 text-weight-medium text-on-surface-medium">
+            <div class="text-label-large text-on-surface-medium">
               {{ group.attributes.code }}
             </div>
           </div>

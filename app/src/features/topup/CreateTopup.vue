@@ -16,7 +16,7 @@
           <div class="row justify-center">
             <div class="q-py-lg q-px-md col-12 col-sm-8 col-md-6">
               <div v-if="step === 'form'" class="q-gutter-y-lg column">
-                <div class="text-subtitle1">{{t('topupFormHeader')}}</div>
+                <div class="text-title-medium">{{t('topupFormHeader')}}</div>
                 <div class="text-on-surface-medium">{{t('topupFormText')}}</div>
                 <q-input
                   ref="amountRef"
@@ -33,7 +33,7 @@
                   ]"
                 >
                   <template #append>
-                    <span class="text-h6 text-on-surface-medium">{{ settings.depositCurrency }}</span>
+                    <span class="text-body-large text-on-surface-medium">{{ settings.depositCurrency }}</span>
                   </template>
                 </q-input>
                 <q-input
@@ -45,7 +45,7 @@
                   readonly
                 >
                   <template #append>
-                    <span class="text-h6 text-on-surface-medium">{{ myCurrency.attributes.symbol }}</span>
+                    <span class="text-body-large text-on-surface-medium">{{ myCurrency.attributes.symbol }}</span>
                   </template>
                 </q-input>
                 <q-btn
@@ -57,7 +57,7 @@
                 />
               </div>
               <div v-if="step === 'disclaimer'" class="q-gutter-y-lg column">
-                <div class="text-subtitle1">{{ t('topupDisclaimerHeader', {
+                <div class="text-title-medium">{{ t('topupDisclaimerHeader', {
                   depositCurrency: settings.depositCurrency,
                   receiveCurrency: myCurrency.attributes.namePlural
                 }) }}</div>
@@ -86,7 +86,7 @@
                 </div>
               </div>
               <div v-if="step === 'confirmation'" class="q-gutter-y-lg column">
-                <div class="text-subtitle1">{{ t('topupCheckoutHeader') }}</div>
+                <div class="text-title-medium">{{ t('topupCheckoutHeader') }}</div>
                 <div class="text-on-surface-medium">{{ t('topupCheckoutText') }}</div>
                 <topup-card :topup="topup" :account="myAccount" />
                 <div class="row q-gutter-sm">

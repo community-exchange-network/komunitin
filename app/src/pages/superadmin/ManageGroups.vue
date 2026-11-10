@@ -3,7 +3,7 @@
   <q-page-container>
     <q-page class="q-pa-md">
 
-      <div class="text-overline text-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
+      <div class="text-label-medium-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
         List of groups
       </div>
 
@@ -12,6 +12,7 @@
         row-key="id" 
         flat
         class="full-width text-on-surface shadow-2"
+        table-header-class="text-on-surface-medium"
         :binary-state-sort="true"
         :pagination="{
           sortBy: 'status',
@@ -25,7 +26,7 @@
               :color="statusColor(props.row.status)" 
               text-color="white" 
               :label="props.row.status"
-              size="sm"
+              class="text-label-small"
             />
           </q-td>
         </template>
@@ -115,7 +116,7 @@ const compareStatus = (a: string, b: string) => {
 }
 
 const columns = [
-  { name: 'code', label: 'Code', field: 'code', align: "left", sortable: true, classes: 'text-overline text-uppercase' },
+  { name: 'code', label: 'Code', field: 'code', align: "left", sortable: true, classes: 'text-label-medium-uppercase' },
   { name: 'name', label: 'Name', field: 'name', align: "left", sortable: true },
   { name: 'status', label: 'Status', field: 'status', align: "left", sortable: true, sort: compareStatus },
   { name: 'created', label: 'Created', field: 'created', align: "left", sortable: true },

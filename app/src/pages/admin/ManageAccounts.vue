@@ -21,7 +21,7 @@
         {{ $t('manageMembersText') }}
       </div>
 
-      <div class="text-overline text-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
+      <div class="text-label-medium-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
         {{ $t('memberRequests') }}
       </div>
       <div v-if="!loadingPending && pending.length === 0" class="text-on-surface-medium q-mt-md">
@@ -70,7 +70,7 @@
 
 
 
-      <div class="text-overline text-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
+      <div class="text-label-medium-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
         {{ $t('accounts') }}
       </div>
       <q-table
@@ -78,6 +78,7 @@
         v-model:pagination="pagination"
         :filter="filter"
         class="full-width text-on-surface shadow-2"
+        table-header-class="text-on-surface-medium"
         :columns="columns"
         :rows="members"
         :visible-columns="visibleColumns"

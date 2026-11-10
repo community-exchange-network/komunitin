@@ -60,7 +60,7 @@
           />
         </div>
         <div v-else-if="page=='complete'">
-          <div class="text-h6">
+          <div class="text-title-large">
             {{ t('signupComplete') }}
           </div>
           <div>
@@ -71,12 +71,12 @@
                 color="icon"
               />
             </div>
-            <div class="text-body1 text-on-surface-medium q-my-md">
+            <div class="text-body-large text-on-surface-medium q-my-md">
               {{ t('signupCompleteText', {
                 group: group.attributes.name
               }) }}
             </div>
-            <div class="text-body1 text-on-surface-medium q-my-md">
+            <div class="text-body-large text-on-surface-medium q-my-md">
               {{ t('signupCompleteText2') }}
             </div>
             <div>

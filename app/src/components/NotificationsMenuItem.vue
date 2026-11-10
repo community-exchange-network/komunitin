@@ -6,6 +6,7 @@
   >
     <q-item-section v-if="unreadCount > 0" side>
       <q-badge
+        class="text-label-medium"
         :label="unreadCount > 99 ? '99+' : unreadCount"
         color="primary"
         rounded

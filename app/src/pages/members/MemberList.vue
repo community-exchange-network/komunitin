@@ -19,7 +19,7 @@
             padding
             class="bg-surface shadow-2 rounded-borders"
           >
-            <div class="row justify-between text-overline text-uppercase text-on-surface-low q-px-md q-pb-xs">
+            <div class="row justify-between text-label-medium-uppercase text-on-surface-medium q-px-md q-pb-xs">
               <div>
                 {{ $t('account') }}
               </div>
@@ -47,7 +47,7 @@
                   <div class="column items-end">
                     <div
                       v-if="member.account"
-                      class="col currency text-subtitle1 text-weight-bold"
+                      class="col currency text-body-large-emphasized"
                       :class="member.account.attributes.balance >= 0 ? 'text-amount-positive' : 'text-amount-negative'"
                     >
                       {{ FormatCurrency(member.account.attributes.balance, member.account.currency) }}

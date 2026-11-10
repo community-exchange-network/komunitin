@@ -14,7 +14,7 @@
           @submit="submit"
         >
           <div class="q-pb-lg">
-            <div class="text-subtitle1">
+            <div class="text-title-medium">
               {{ $t('newGroup') }}
             </div>
             <div class="text-on-surface-medium">
@@ -40,7 +40,7 @@
         </q-form>
         <template v-else>
           <div class="q-pb-lg">
-            <div class="text-subtitle1">
+            <div class="text-title-medium">
               {{ $t('newGroup') }}
             </div>
             <div class="text-on-surface-medium">

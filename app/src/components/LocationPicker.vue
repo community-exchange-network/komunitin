@@ -35,7 +35,7 @@
             </div>
           </div>
         </l-map>
-        <div v-if="model" class="text-on-surface-medium text-body2 q-pt-sm">
+        <div v-if="model" class="text-on-surface-medium text-body-medium q-pt-sm">
           <q-icon name="place" />
           {{ $t('lnglat', {lng: model[0].toFixed(4), lat: model[1].toFixed(4)}) }}
         </div>

@@ -1,7 +1,7 @@
 <template>
   <!-- Relative change of a stats value against the previous period. -->
   <div
-    class="row inline no-wrap items-center text-body2 text-weight-semi-bold"
+    class="row inline no-wrap items-center text-title-small"
     :class="sign > 0 ? 'text-amount-positive' : 'text-amount-negative'"
   >
     <q-icon

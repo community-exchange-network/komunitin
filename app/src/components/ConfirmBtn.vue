@@ -16,7 +16,7 @@
             :color="props.color"
             text-color="white"
           />
-          <div class="text-h6">
+          <div class="text-title-large">
             {{ props.label }}
           </div>
         </q-card-section>

@@ -26,10 +26,10 @@
 
     <!-- Need text -->
     <q-card-section>
-      <span class="text-uppercase text-on-surface-medium text-overline">{{$t('need')}}</span>
+      <span class="text-on-surface-medium text-label-medium-uppercase">{{$t('need')}}</span>
       <div
         v-clamp="hasImages ? 3 : 13"
-        class="text-body2 text-justify text-on-surface-medium"
+        class="text-body-medium text-justify text-on-surface-medium"
       >
         {{ md2txt(need.attributes.description) }}
       </div>

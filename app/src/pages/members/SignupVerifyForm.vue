@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="text-h6">
+    <div class="text-title-large">
       {{ $t('signupVerifyEmail') }}
     </div>
     <div>
@@ -11,7 +11,7 @@
           color="icon"
         />
       </div>
-      <div class="text-body1 text-on-surface-medium q-pt-md">
+      <div class="text-body-large text-on-surface-medium q-pt-md">
         {{ $t('signupVerifyEmailText') }}
       </div>
     </div>
