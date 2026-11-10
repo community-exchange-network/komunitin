@@ -32,7 +32,7 @@ describe("Offers", () => {
   });
   afterAll(() => wrapper.unmount());
 
-  it("Loads current published offers, newest first, for a regular user", async () => {
+  it("loads published offers newest first and refreshes each page on revisit", async () => {
     await wrapper.vm.$router.push("/groups/GRP0/offers");
     await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/offers");
     await wrapper.vm.$nextTick();
@@ -48,14 +48,27 @@ describe("Offers", () => {
     await waitFor(() => wrapper.findComponent(QInnerLoading).props('showing'), false);
     (wrapper.findComponent(QInfiniteScroll).vm as QInfiniteScroll).trigger();
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 31, "Should load 31 offers after scroll");
-    offer = wrapper.findAllComponents(OfferCard)[0].props("offer") as FullOffer;
+    const cards = wrapper.findAllComponents(OfferCard)
+    offer = cards[0].props("offer") as FullOffer;
     expect(offer.attributes.code).toBe('Newest-offer')
-    const codes = wrapper.findAllComponents(OfferCard).map(card => card.props('offer').attributes.code)
+    const codes = cards.map(card => card.props('offer').attributes.code)
     expect(codes).not.toContain('Expired-offer')
     expect(codes).not.toContain('Hidden-offer')
     // Category icon
-    expect(wrapper.findAllComponents(OfferCard).some(card => card.text().includes("accessibility_new"))).toBe(true);
-  });
+    expect(cards.some(card => card.text().includes("accessibility_new"))).toBe(true);
+
+    const secondPageOffer = cards[ApiSerializer.DEFAULT_PAGE_SIZE].props('offer')
+    const title = 'Updated offer on page two'
+    server.schema.find('post', secondPageOffer.id).update({ title })
+
+    await wrapper.vm.$router.push(`/groups/GRP0/offers/${offer.attributes.code}`)
+    await wrapper.vm.$router.push('/groups/GRP0/offers')
+    await waitFor(() => wrapper.findAllComponents(OfferCard).length, ApiSerializer.DEFAULT_PAGE_SIZE)
+    await waitFor(() => wrapper.getComponent(QInnerLoading).props('showing'), false)
+
+    wrapper.getComponent(QInfiniteScroll).vm.trigger()
+    await waitFor(() => wrapper.findAllComponents(OfferCard).some(card => card.text().includes(title)), true)
+  })
 
   it ("searches offers", async () => {
     // The user interaction is already tested in PageHeader unit test,

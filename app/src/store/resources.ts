@@ -604,11 +604,10 @@ export class Resources<T extends ResourceObject, S> implements Module<ResourcesS
       _rootState: unknown,
       rootGetters: Record<string, Getter>
     ) => {
-      const queryKey = state.currentQueryKey
-      if (queryKey !== null && queryKey in state.pages && Array.isArray(state.pages[queryKey])) {
-        return ([] as string[]).concat(...(state.pages[queryKey])) // flatten
-          .map(id => state.resources[id])
-          .map(resource => this.relatedGetters(rootGetters, resource))
+      const { currentQueryKey, currentPage } = state
+      if (currentQueryKey !== null && currentPage !== null && Array.isArray(state.pages[currentQueryKey])) {
+        return state.pages[currentQueryKey].slice(0, currentPage + 1).flat()
+          .map(id => this.relatedGetters(rootGetters, state.resources[id]))
       } else {
         return undefined
       }
