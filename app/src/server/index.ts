@@ -19,7 +19,7 @@ const mirageDevEnvironment = config.MOCK_ENVIRONMENT == "development";
 console.debug(`Mocking server responses with MirageJS, mode ${config.MOCK_ENVIRONMENT}.`);
 
 const server = new Server({
-  timing : mirageDevEnvironment ? 200 : 0,
+  timing : mirageDevEnvironment ? 300 : 0,
   //logging: mirageDevEnvironment,
   logging: true,
   environment: config.MOCK_ENVIRONMENT,

@@ -1,7 +1,11 @@
 <template>
   <Error404 v-if="error?.code === KErrorCode.NotFound" :to="`/groups/${code}/members`" />
   <div v-else>
-    <page-header :title="isMe ? $t('yourProfile') : $t('memberProfile')" :back="isComplete ? `/groups/${code}/members` : '/'">
+    <page-header
+      :title="isMe ? $t('yourProfile') : $t('memberProfile')"
+      :back="isComplete ? `/groups/${code}/members` : '/'"
+      :loading="loading && !!member || currencyLoading"
+    >
       <template #buttons>
         <template v-if="member">
           <contact-button
@@ -28,7 +32,10 @@
     </page-header>
     <q-page-container>
       <q-page class="q-pa-md">
-        <q-inner-loading :showing="loading || currencyLoading" color="icon" />
+        <q-inner-loading
+          :showing="loading && !member"
+          color="icon"
+        />
         <q-card v-if="member" class="bg-surface q-mb-md">
           <q-card-section :style="{ padding: $q.screen.gt.xs ? '32px 32px 16px' : '24px 16px 16px' }">
             <div class="row items-center justify-center q-col-gutter-x-lg q-col-gutter-y-md">
