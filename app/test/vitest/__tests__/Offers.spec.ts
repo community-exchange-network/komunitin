@@ -33,54 +33,67 @@ describe("Offers", () => {
   });
   afterAll(() => wrapper.unmount());
 
-  it("Loads current published offers, newest first, for a regular user, and checks loading indicators.", async () => {
+  const offersPath = '/groups/GRP0/offers'
+  const offerCards = () => wrapper.findAllComponents(OfferCard)
+  const loadingSpinner = () => wrapper.find('[role="status"][aria-label="Loading..."]')
+
+  it("shows a spinner while loading published offers and lists the newest first", async () => {
     const resumeInitialLoad = pauseRequests('/posts')
-    await wrapper.vm.$router.push("/groups/GRP0/offers");
-    await waitFor(() => wrapper.vm.$route.path, "/groups/GRP0/offers");
-    await wrapper.vm.$nextTick();
-    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true);
+    await wrapper.vm.$router.push(offersPath)
+    expect(loadingSpinner().isVisible()).toBe(true)
     expect(wrapper.findComponent(QLinearProgress).exists()).toBe(false)
     resumeInitialLoad()
-    // Initial load.
-    await waitFor(
-      () => wrapper.findAllComponents(OfferCard).length,
-      ApiSerializer.DEFAULT_PAGE_SIZE,
-      "Should load initial page of offers"
-    );
-    // Instead of trying to simulate the scroll event, which is very coupled
-    // with the tech layer, just call the trigger() function in QInfiniteScroll.
-    await waitFor(() => wrapper.find('[role="status"][aria-label="Loading..."]').exists(), false);
+    await waitFor(() => offerCards().length, ApiSerializer.DEFAULT_PAGE_SIZE)
+    await waitFor(() => loadingSpinner().exists(), false)
     await waitFor(() => wrapper.getComponent(PageHeader).props('loading'), false)
-    const resumeNextPage = pauseRequests('/posts');
-    (wrapper.findComponent(QInfiniteScroll).vm as QInfiniteScroll).trigger();
+
+    const resumeNextPage = pauseRequests('/posts')
+    wrapper.getComponent(QInfiniteScroll).vm.trigger()
     await wrapper.vm.$nextTick()
-    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true)
+    expect(loadingSpinner().isVisible()).toBe(true)
     expect(wrapper.getComponent(PageHeader).props('loading')).toBe(false)
-    expect(wrapper.findAllComponents(OfferCard)).toHaveLength(ApiSerializer.DEFAULT_PAGE_SIZE)
+    expect(offerCards()).toHaveLength(ApiSerializer.DEFAULT_PAGE_SIZE)
     resumeNextPage()
-    await waitFor(() => wrapper.findAllComponents(OfferCard).length, 31, "Should load 31 offers after scroll");
-    offer = wrapper.findAllComponents(OfferCard)[0].props("offer") as FullOffer;
+    await waitFor(() => offerCards().length, 31)
+
+    const cards = offerCards()
+    offer = cards[0].props("offer") as FullOffer;
     expect(offer.attributes.code).toBe('Newest-offer')
-    const codes = wrapper.findAllComponents(OfferCard).map(card => card.props('offer').attributes.code)
+    const codes = cards.map(card => card.props('offer').attributes.code)
     expect(codes).not.toContain('Expired-offer')
     expect(codes).not.toContain('Hidden-offer')
-    // Category icon
-    expect(wrapper.findAllComponents(OfferCard).some(card => card.text().includes("accessibility_new"))).toBe(true);
+    expect(cards.some(card => card.text().includes("accessibility_new"))).toBe(true)
+  })
 
-    // Returning to cached content keeps the cards visible during revalidation.
+  it("refreshes the first cached page on revisit and the second page on scroll", async () => {
+    await wrapper.vm.$router.push('/groups/GRP0')
+    await wrapper.vm.$router.push(offersPath)
+    await waitFor(() => offerCards().length, ApiSerializer.DEFAULT_PAGE_SIZE)
+    await waitFor(() => loadingSpinner().exists() || wrapper.getComponent(PageHeader).props('loading'), false)
+    wrapper.getComponent(QInfiniteScroll).vm.trigger()
+    await waitFor(() => offerCards().length, 31)
+    await waitFor(() => loadingSpinner().exists(), false)
+
+    const secondPageOffer = offerCards()[ApiSerializer.DEFAULT_PAGE_SIZE].props('offer')
+    const title = 'Updated offer on page two'
+    server.schema.find('post', secondPageOffer.id).update({ title })
     await wrapper.vm.$router.push('/groups/GRP0/needs')
     const resumeRefresh = pauseRequests('/posts')
-    await wrapper.vm.$router.push('/groups/GRP0/offers')
-    expect(wrapper.findAllComponents(OfferCard)).toHaveLength(31)
-    expect(wrapper.find('[role="status"][aria-label="Loading..."]').exists()).toBe(false)
+    await wrapper.vm.$router.push(offersPath)
+    expect(offerCards()).toHaveLength(ApiSerializer.DEFAULT_PAGE_SIZE)
+    expect(loadingSpinner().exists()).toBe(false)
     expect(wrapper.findComponent(QLinearProgress).exists()).toBe(false)
     await waitFor(() => wrapper.findComponent(QLinearProgress).exists(), true, 'Slow refresh should show the header bar')
     expect(wrapper.getComponent(QLinearProgress).classes()).toContain('absolute-bottom')
-    expect(wrapper.findAllComponents(OfferCard)).toHaveLength(31)
-    expect(wrapper.find('[role="status"][aria-label="Loading..."]').exists()).toBe(false)
+    expect(offerCards()).toHaveLength(ApiSerializer.DEFAULT_PAGE_SIZE)
+    expect(loadingSpinner().exists()).toBe(false)
     resumeRefresh()
     await waitFor(() => wrapper.findComponent(QLinearProgress).exists(), false, 'Refresh bar should disappear when finished')
-  });
+    expect(offerCards()).toHaveLength(ApiSerializer.DEFAULT_PAGE_SIZE)
+
+    wrapper.getComponent(QInfiniteScroll).vm.trigger()
+    await waitFor(() => offerCards().some(card => card.text().includes(title)), true)
+  })
 
   it ("searches offers", async () => {
     // The user interaction is already tested in PageHeader unit test,
