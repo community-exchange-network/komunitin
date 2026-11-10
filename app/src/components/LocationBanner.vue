@@ -1,8 +1,5 @@
 <template>
-  <q-banner
-    v-if="show"
-    class="text-on-surface-medium banner"
-  >
+  <q-banner v-if="show">
     <template #avatar>
       <q-icon name="location_on" />
     </template>
