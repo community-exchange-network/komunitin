@@ -77,7 +77,7 @@ set -a
 . .env
 set +a
 
-up_args=()
+up_args=(--remove-orphans)
 # Prepare trusted HTTPS when mkcert is available; containers provide the fallback.
 if [ "$dev" = true ]; then
   export COMPOSE_FILE=compose.yml:compose.dev.yml
@@ -115,6 +115,9 @@ if [ "$up" = true ]; then
   fi
   # Compose waits for each service's database before running Prisma.
   migrate=(run --rm)
+else
+  # Only wait on the existing API containers, including stacks with older database images.
+  up_args=(--no-deps --no-build --no-recreate "${services[@]}")
 fi
 
 for service in "${services[@]}"; do
@@ -126,11 +129,7 @@ for service in "${services[@]}"; do
 done
 
 # Auth and Accounting need the migrated schema before they can serve requests.
-if [ "$up" = true ]; then
-  docker compose up --wait --wait-timeout 300 --remove-orphans "${up_args[@]}"
-else
-  docker compose start --wait --wait-timeout 300 "${services[@]}"
-fi
+docker compose up --wait --wait-timeout 300 "${up_args[@]}"
 
 if [ "$prune" = true ]; then
   docker system prune -f
