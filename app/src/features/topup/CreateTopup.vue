@@ -4,17 +4,12 @@
     balance 
     :back="`/groups/${code}/members/${memberCode}/transactions`"
   />
-  <q-page-container
-    class="row justify-center"
-    >
-    <q-page
-      padding 
-      class="q-py-lg q-px-md col-12 col-sm-8 q-mb-xl"
-    >
-      <q-card>
-        <q-card-section>
-          <div class="row justify-center">
-            <div class="q-py-lg q-px-md col-12 col-sm-8 col-md-6">
+  <q-page-container>
+    <q-page>
+      <div class="row justify-center q-pa-md">
+        <div class="col-12 col-sm-8 col-lg-6">
+          <q-card>
+            <q-card-section>
               <div v-if="step === 'form'" class="q-gutter-y-lg column">
                 <div class="text-title-medium">{{t('topupFormHeader')}}</div>
                 <div class="text-on-surface-medium">{{t('topupFormText')}}</div>
@@ -108,10 +103,10 @@
                   />
                 </div>
               </div>
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
     </q-page>
   </q-page-container>
 </template>
