@@ -35,7 +35,6 @@
           outlined
           dense
           options-dense
-          bg-color="surface-container-highest"
           class="input-outlined-pale"
           dropdown-icon="expand_more"
           @update:model-value="updatePeriod"
@@ -50,7 +49,6 @@
           outlined
           dense
           options-dense
-          bg-color="surface-container-highest"
           class="input-outlined-pale"
           dropdown-icon="expand_more"
         />

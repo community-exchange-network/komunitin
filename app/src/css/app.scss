@@ -112,6 +112,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 // 6. Custom component classes
+.input-standout-light,
+.input-outlined-pale {
+  .q-field__control > .q-field__prepend,
+  .q-field__control > .q-field__append {
+    color: $on-surface-variant;
+  }
+}
+
 // Remove borders from rounded outlined inputs.
 .input-outlined-borderless {
   &.q-field--outlined {
@@ -142,30 +150,24 @@ h1, h2, h3, h4, h5, h6 {
       .q-field__input {
         color: $input-text-color;
       }
-
-      .q-field__prepend,
-      .q-field__append {
-        color: $icon;
-      }
     }
   }
 }
-// 'Commons' input style: no resting border, but custom border on hover and focus. 
-// Quasar doesn't allow us to achieve this style using component api and scss variables only.
+// Pale outlined fields: tinted background, with borders only on hover and focus.
 .input-outlined-pale {
+  &.q-field--outlined .q-field__control {
+    background: $surface-container-highest;
+  }
+
   &.q-field--outlined .q-field__control:before {
     border: 1.5px solid transparent !important;
   }
 
-  /* 2. HOVER STATE: Add your custom color and thickness on hover */
   &.q-field--outlined .q-field__control:hover:before {
-    /* Set your custom thickness and color here */
     border: 1.5px solid $outline-variant !important;
   }
 
-  /* 3. FOCUS STATE: Ensure Quasar's default active indicator matches your design */
   &.q-field--focused.q-field--outlined .q-field__control:after {
-    /* Match your hover thickness and color, or style it completely differently */
     border: 1.5px solid $outline-variant !important;
   }
 }

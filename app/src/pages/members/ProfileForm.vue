@@ -31,7 +31,6 @@
         <template #append>
           <q-icon
             name="person"
-            color="on-surface-variant"
           />
         </template>
       </q-input>
@@ -49,7 +48,6 @@
         <template #append>
           <q-icon
             name="notes"
-            color="on-surface-variant"
           />
         </template>
       </q-input>
@@ -68,7 +66,6 @@
           <template #append>
             <q-icon
               name="email"
-              color="on-surface-variant"
             />
           </template>
         </q-input>

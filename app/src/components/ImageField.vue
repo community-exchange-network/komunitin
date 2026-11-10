@@ -30,6 +30,7 @@
             v-if="scope.canAddFiles && !isProcessing"
             type="a"
             icon="add"
+            color="on-surface-variant"
             round
             dense
             flat
