@@ -295,12 +295,6 @@ const goUp = () => {
   line-height: calc(#{type-value('display-medium', line-height)} * var(--balance-scale));
 }
 
-// Toolbar has a default padding of 12px. That's ok when there's a button,
-// but it is too low when there's the title directly.
-.no-button {
-  padding-left: 16px;
-}
-
 // We need to say that the search box takes all horizontal space, but the
 // quasar class full-width does not work for us because it overwrites the margins.
 .search-box {

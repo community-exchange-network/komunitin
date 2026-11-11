@@ -156,7 +156,6 @@ $h-tags: (
 
 $generic-border-radius        : 8px;   // inputs, dropdowns, tooltips
 $button-border-radius         : 8px;
-$button-push-border-radius    : 14px;
 
 // ── Shadows ──────────────────────────────────────────────────
 //
@@ -243,27 +242,16 @@ $menu-box-shadow  : 0 4px 20px rgba($shadow-color, 0.14);
 
 $tooltip-background   : $dark;
 $tooltip-color        : $parchment;   // Parchment — warm white text
-$tooltip-border-radius: 8px;
 $tooltip-padding      : 6px 12px;
 $tooltip-fontsize     : type-value('body-small', size);
 $tooltip-mobile-fontsize: $tooltip-fontsize;
 
 // ── Layout ───────────────────────────────────────────────────
 
-$layout-border  : 1px solid $separator-color;  // warm divider
 $layout-shadow  : 0 0 10px 2px rgba($shadow-color, 0.08), 0 0 10px rgba($shadow-color, 0.12);
 
-// ── Animation ────────────────────────────────────────────────
-//
-//  Commons uses a 0.3s ease fadeUp for card entrances and
-//  0.15s for micro-interactions (chips, hover states).
-
-$animate-delay    : .15s;
+// ── Transitions ──────────────────────────────────────────────
 
 $generic-hover-transition : .15s cubic-bezier(.25, .8, .5, 1);
-
-// ── Rating ───────────────────────────────────────────────────
-
-$rating-grade-color : $wheat;  // Wheat — natural amber star colour
 
 @import "override.variables.scss";
