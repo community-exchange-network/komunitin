@@ -1,6 +1,7 @@
 <template>
   <div>
     <q-infinite-scroll
+      :disable="!hasNext"
       @load="loadNextResources"
     >
       <empty v-if="isEmpty" />
@@ -119,15 +120,13 @@ const { resources, hasNext, loadNext, load, loading } =  useMergedResources(type
   cache: props.cache
 }, { immediate: false });
 
-const loadNextResources = async (index: number, done: (stop?: boolean) => void) => {
+const loadNextResources = async (index: number, done: () => void) => {
   if (hasNext.value && !loading.value) {
     await loadNext();
     currentPage.value += 1;
     emit("page-loaded", currentPage.value);
   }
-  // Stop loading if there is no next page. Note that we're not
-  // stopping the infinite scrolling if hasNext returns undefined.
-  done(hasNext.value === false);
+  done()
 }
 
 const isEmpty = computed(() => resources.value.length === 0 && !loading.value && hasNext.value === false);
