@@ -9,7 +9,7 @@ Stock photographs illustrate the community and its activities; the names and
 stories do not identify the people photographed.
 
 See the [main README](../../README.md#demo-1) for instructions to start the demo
-with `./start.sh --up --dev --demo`.
+with `./start.sh --dev --demo`.
 
 ## Demo keys
 

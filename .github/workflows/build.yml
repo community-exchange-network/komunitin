@@ -277,7 +277,7 @@ jobs:
         "cd /opt/demo.komunitin.org
         && cd komunitin && git pull
         && docker compose down -v --remove-orphans
-        && ./start.sh --up --demo --public"
+        && ./start.sh --demo --public"
     - name: Deploy preview.komunitin.org
       if: github.event_name == 'pull_request'
       run: > 
@@ -286,7 +286,7 @@ jobs:
         "cd /opt/preview.komunitin.org
         && cd komunitin && git fetch origin && git checkout origin/${{ github.head_ref }}
         && docker compose down -v --remove-orphans
-        && ./start.sh --up --demo --public"
+        && ./start.sh --demo --public"
     - name: Deploy staging.komunitin.org
       if: github.ref == 'refs/heads/master'
       run: > 
@@ -294,7 +294,7 @@ jobs:
         ssh -o ServerAliveInterval=180 -o ServerAliveCountMax=5 deploy@direct.staging.komunitin.org
         "cd /opt/staging.komunitin.org
         && cd komunitin && git pull
-        && ./start.sh --up --public"
+        && ./start.sh --public"
     - name: Deploy ces2demo.community-exchange.org
       if: github.ref == 'refs/heads/master'
       run: > 
@@ -303,4 +303,4 @@ jobs:
         "cd /opt/ces2demo.community-exchange.org
         && cd komunitin && git pull
         && docker compose down -v --remove-orphans
-        && ./start.sh --up --demo --public"
+        && ./start.sh --demo --public"
