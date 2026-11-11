@@ -13,8 +13,8 @@ const STATUS_MAP = {
   submitted: { color: 'transfer-submitted', textColor: 'on-surface-medium', label: (t: T) => t('submitted') },
   committed: { color: 'transfer-committed', textColor: 'positive', label: (t: T) => t('committed') },
   rejected: { color: 'transfer-rejected', textColor: 'on-surface-medium', label: (t: T) => t('rejected') },
-  failed: { color: 'transfer-failed', textColor: 'on-surface-low', label: (t: T) => t('failed') },
-  deleted: { color: 'transfer-deleted', textColor: 'on-surface-low', label: (t: T) => t('deleted') },
+  failed: { color: 'transfer-failed', textColor: 'on-surface-medium', label: (t: T) => t('failed') },
+  deleted: { color: 'transfer-deleted', textColor: 'on-surface-medium', label: (t: T) => t('deleted') },
 }
 
 export const useTransferStatus = (status: MaybeRefOrGetter<TransferState>) => {
