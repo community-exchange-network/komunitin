@@ -107,7 +107,7 @@ importers:
         version: 9.0.8
       express-oas-generator:
         specifier: ^1.0.46
-        version: 1.0.46(bson@4.7.2)(express@4.20.0)(mongoose-to-swagger@1.5.1)(mongoose@6.13.3)
+        version: 1.0.46(bson@4.7.2)(express@4.20.0)(mongoose-to-swagger@1.5.1)(mongoose@6.13.12)
       msw:
         specifier: ^2.12.4
         version: 2.12.4(@types/node@26.1.2)(typescript@5.4.5)
@@ -826,6 +826,9 @@ packages:
   '@smithy/core@3.31.1':
     resolution: {integrity: sha512-CyogUINxvi7C7LDsh8Syo6hVJOT9ckz4rG8dRZfTJ8r91HkMY59PnNooaj7WcHyxEkxPfBAmbgztZU+xTo76lg==}
     engines: {node: '>=18.0.0'}
+    deprecated: |-
+      Deprecated due to a bug in custom logger data redaction. Upgrade to the latest version. If you used a custom logger with this
+        version, review your logs and rotate any credentials or other secrets. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.4.16':
     resolution: {integrity: sha512-QfuLWAkLzptffFW980AFeHZFdqds2B64rpEd3uJ6lgs3xVn9QegGMUgUcj+4d7dRrAsya3r58ZKpku97WcFb4w==}
@@ -1827,16 +1830,16 @@ packages:
   mongoose-to-swagger@1.5.1:
     resolution: {integrity: sha512-gwEr0NhA+DyGswtgypIoV/iR0RGX4jY/SE9zmYYk6qpG2C83urcQfYJWzm7PsDPo3snMm8XjBYiAtLyYAqirXA==}
 
-  mongoose@6.13.3:
-    resolution: {integrity: sha512-TCB/k6ZmkLZGZY/HJ78Ep45Za63591ZuZu5+HCISTe+0lsqbDeomqwezh+Ir7gMLa0wJwIy6CNkl5dxhCXTu9Q==}
+  mongoose@6.13.12:
+    resolution: {integrity: sha512-VljZzIHa///LQAwM15y8V3lgpi2+/+AcLmjb98Dsyxe3sCF0yxb3i+10+rxS5Z0QzVM2/p7ibNITfjnQP47Azw==}
     engines: {node: '>=12.0.0'}
 
   mpath@0.9.0:
     resolution: {integrity: sha512-ikJRQTk8hw5DEoFVxHG1Gn9T/xcjtdnOKIU1JTmGjZZlg9LST2mBLmcX3/ICIbgJydT2GOc15RnNy5mHmzfSew==}
     engines: {node: '>=4.0.0'}
 
-  mquery@4.0.3:
-    resolution: {integrity: sha512-J5heI+P08I6VJ2Ky3+33IpCdAvlYGTSUjwTPxkAr8i8EoduPMBX2OY/wa3IKZIQl7MU4SbFk8ndgSKyB/cl1zA==}
+  mquery@4.0.4:
+    resolution: {integrity: sha512-L98XAumGC8qNT/YgxIvlvvMwxW1ZmbFA9RAlNCVF08iouv2ebWoV1Pyo9tQEMInHHxbW0BQ9GfxEjyDd4v/Uww==}
     engines: {node: '>=12.0.0'}
 
   ms@2.0.0:
@@ -4061,7 +4064,7 @@ snapshots:
 
   express-list-endpoints@3.0.1: {}
 
-  express-oas-generator@1.0.46(bson@4.7.2)(express@4.20.0)(mongoose-to-swagger@1.5.1)(mongoose@6.13.3):
+  express-oas-generator@1.0.46(bson@4.7.2)(express@4.20.0)(mongoose-to-swagger@1.5.1)(mongoose@6.13.12):
     dependencies:
       '@types/express': 4.17.21
       bson: 4.7.2
@@ -4069,7 +4072,7 @@ snapshots:
       generate-schema: 2.6.0
       lodash.merge: 4.6.2
       mkdirp: 1.0.4
-      mongoose: 6.13.3
+      mongoose: 6.13.12
       mongoose-to-swagger: 1.5.1
       openapi-types: 1.3.5
       swagger-ui-express: 4.6.3(express@4.20.0)
@@ -4466,13 +4469,13 @@ snapshots:
 
   mongoose-to-swagger@1.5.1: {}
 
-  mongoose@6.13.3:
+  mongoose@6.13.12:
     dependencies:
       bson: 4.7.2
       kareem: 2.5.1
       mongodb: 4.17.2
       mpath: 0.9.0
-      mquery: 4.0.3
+      mquery: 4.0.4
       ms: 2.1.3
       sift: 16.0.1
     transitivePeerDependencies:
@@ -4480,7 +4483,7 @@ snapshots:
 
   mpath@0.9.0: {}
 
-  mquery@4.0.3:
+  mquery@4.0.4:
     dependencies:
       debug: 4.4.3
     transitivePeerDependencies:
