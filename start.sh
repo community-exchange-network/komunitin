@@ -29,25 +29,12 @@ dev=false
 
 while (( $# > 0 )); do
   case "$1" in
-    --up)
-      up=true
-      ;;
-    --reset)
-      reset=true
-      ;;
-    --demo)
-      demo=true
-      reset=true
-      ;;
-    --public)
-      public=true
-      ;;
-    --dev)
-      dev=true
-      ;;
-    --prune)
-      prune=true
-      ;;
+    --up) up=true ;;
+    --reset) reset=true ;;
+    --demo) demo=true; reset=true ;;
+    --public) public=true ;;
+    --dev) dev=true ;;
+    --prune) prune=true ;;
     -h|--help)
       usage
       exit 0
@@ -77,11 +64,9 @@ set -a
 . .env
 set +a
 
-up_args=(--remove-orphans)
 # Prepare trusted HTTPS when mkcert is available; containers provide the fallback.
 if [ "$dev" = true ]; then
   export COMPOSE_FILE=compose.yml:compose.dev.yml
-  up_args+=(--renew-anon-volumes)
   mkdir -p notifications-ts/tmp
   cert_dir="$PWD/app/tmp/certs"
   mkdir -p "$cert_dir"
@@ -104,32 +89,36 @@ elif [ "$public" = true ]; then
   export COMPOSE_FILE=compose.yml:compose.public.yml
 fi
 
-services=(auth social accounting notifications-ts)
-migrate=(exec)
-if [ "$up" = true ]; then
-  docker compose build
-  if [ "$reset" = true ]; then
-    docker compose stop "${services[@]}"
-    # Social needs a fresh volume to reinstall its PostgreSQL extensions.
-    docker compose down -v db-social
-  fi
-  # Compose waits for each service's database before running Prisma.
-  migrate=(run --rm)
-else
-  # Only wait on the existing API containers, including stacks with older database images.
-  up_args=(--no-deps --no-build --no-recreate "${services[@]}")
+# Social needs a fresh volume to reinstall its PostgreSQL extensions.
+if [ "$reset" = true ]; then
+  docker compose down -v db-social
 fi
 
-for service in "${services[@]}"; do
-  action=(deploy)
-  if [ "$reset" = true ] && [ "$service" != social ]; then
-    action=(reset --force)
+# Start containers before migrations, but wait for application health afterwards.
+if [ "$up" = true ]; then
+  if [ "$dev" = true ]; then
+    docker compose up -d --build --remove-orphans --renew-anon-volumes
+  else
+    docker compose up -d --build --remove-orphans
   fi
-  docker compose "${migrate[@]}" "$service" pnpm prisma migrate "${action[@]}"
-done
+fi
 
-# Auth and Accounting need the migrated schema before they can serve requests.
-docker compose up --wait --wait-timeout 300 "${up_args[@]}"
+# Migrate service databases.
+if [ "$reset" = true ]; then
+  docker compose exec auth pnpm prisma migrate reset --force
+  docker compose exec accounting pnpm prisma migrate reset --force
+  docker compose exec notifications-ts pnpm prisma migrate reset --force
+  # Reload signing keys and accounting state after resetting their databases.
+  docker compose restart auth accounting
+else
+  docker compose exec auth pnpm prisma migrate deploy
+  docker compose exec accounting pnpm prisma migrate deploy
+  docker compose exec notifications-ts pnpm prisma migrate deploy
+fi
+docker compose exec social pnpm prisma migrate deploy
+
+# Wait on existing API containers without recreating services or their dependencies.
+docker compose up --wait --wait-timeout 300 --no-deps --no-build --no-recreate auth social accounting notifications-ts
 
 if [ "$prune" = true ]; then
   docker system prune -f
