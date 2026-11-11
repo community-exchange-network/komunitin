@@ -5,23 +5,37 @@ import { KErrorCode } from '@/KError'
 import type { Category, Need, Offer } from '@/store/model'
 import { useResource } from './useResources'
 
+// That should be just T & { category}, but this is a workaround to a TS behavior
+// that hopefully will get fixed in next releases.
+type PostWithCategory<T> = T extends Offer | Need ? T & { category: Category | null } : never
+
+/** Check post editing access for owners, community admins and superadmins. */
+export const useCanEditPost = (
+  post: MaybeRefOrGetter<Offer | Need | undefined>,
+  code: MaybeRefOrGetter<string>
+) => {
+  const store = useStore()
+  return computed(() => {
+    const currentPost = toValue(post)
+    return Boolean(currentPost && (
+      store.getters.isSuperadmin
+      || currentPost.relationships.member.data.id === store.getters.myMember?.id
+      || (store.getters.isAdmin && store.getters.myGroup?.attributes.code === toValue(code))
+    ))
+  })
+}
+
 /** Load an editable post and apply URL prefills to a copy after checking access. */
-export const useEditablePost = <T extends Need>(
-  type: 'needs' | 'offers',
+export const useEditablePost = <T extends Offer | Need>(
+  type: T['type'],
   options: MaybeRefOrGetter<{ code: string, group: string }>
 ) => {
   const route = useRoute()
-  const store = useStore()
-  const canEdit = (post: Offer | Need, code: string) => Boolean(
-    store.getters.isSuperadmin
-    || post.relationships.member.data.id === store.getters.myMember?.id
-    || (store.getters.isAdmin && store.getters.myGroup?.attributes.code === code)
-  )
-  const { resource, loaded, error, update } = useResource<T & { category: Category | null }>(type, () => ({
+  const { resource, loaded, error, update } = useResource<PostWithCategory<T>>(type, () => ({
     ...toValue(options),
     include: 'category'
   }))
-  const allowed = computed(() => resource.value && canEdit(resource.value, toValue(options).group))
+  const allowed = useCanEditPost(resource, () => toValue(options).group)
   const notFound = computed(() =>
     error.value?.code === KErrorCode.NotFound
     || error.value?.code === KErrorCode.Forbidden

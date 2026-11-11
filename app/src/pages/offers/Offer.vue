@@ -77,7 +77,7 @@ import ShareButton from "../../components/ShareButton.vue";
 import Error404 from "../Error404.vue";
 
 import { formatPrice } from "@/plugins/FormatCurrency";
-import { useStore } from "vuex";
+import { useCanEditPost } from '@/composables/editablePost'
 import { useResource } from "@/composables/useResources";
 import type { Category, Currency, Group, Member, Offer } from "@/store/model";
 import { KErrorCode } from "@/KError";
@@ -91,8 +91,6 @@ const props = defineProps<{
   code: string,
   offerCode: string
 }>()
-
-const store = useStore()
 
 const offerOptions = computed(() => ({
   code: props.offerCode,
@@ -110,7 +108,5 @@ const price = computed(() => {
     ? formatPrice(offer.value.attributes.value ?? '', offer.value.member.group.currency)
     : ''
 })
-const canEdit = computed(() => {
-  return offer.value?.member?.id == store.getters.myMember?.id || store.getters.isAdmin
-})
+const canEdit = useCanEditPost(offer, () => props.code)
 </script>

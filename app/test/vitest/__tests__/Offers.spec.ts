@@ -123,6 +123,7 @@ describe("Offers", () => {
       "Offer should be revalidated"
     )
     await waitFor(() => wrapper.text().includes(title), true, "Offer page should load");
+    expect(wrapper.find(`a[href="/groups/GRP0/offers/${offer.attributes.code}/edit"]`).exists()).toBe(false)
     const text = wrapper.text();
     expect(text).toContain(title);
     expect(text).toContain(requireText(offer.member.attributes.name, "Offer member name"));
@@ -191,6 +192,7 @@ describe("Offers", () => {
     await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/offers/The-Offer')
     await waitFor(() => wrapper.text().includes("The Offer"), true, "Offer page should show");
     expect(wrapper.text()).toContain("$10.00");
+    expect(wrapper.find('a[href="/groups/GRP0/offers/The-Offer/edit"]').exists()).toBe(true)
   })
 
   it('deletes an offer without rendering the removed resource', async () => {

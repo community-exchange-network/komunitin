@@ -75,7 +75,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from "vue"
-import { useStore } from "vuex"
+import { useCanEditPost } from '@/composables/editablePost'
 import type { Category, Currency, Group, Member, Offer } from "@/store/model"
 import { useCardClickTo } from "@/composables/useCardClickTo"
 import vClamp from "../plugins/Clamp"
@@ -105,15 +105,11 @@ const props = defineProps<{
   offer: CardOffer
 }>()
 
-const store = useStore()
 const price = computed(() => {
   const currency = props.offer.member.group.currency
   return currency ? formatPrice(props.offer.attributes.value ?? "", currency) : ""
 })
-const canEdit = computed(() =>
-  props.offer.member.id === store.getters.myMember?.id
-  || store.getters.isAdmin
-)
+const canEdit = useCanEditPost(() => props.offer, () => props.code)
 const isMemberActive = computed(() => props.offer.member.attributes.status === "active")
 const isExpired = computed(() => props.offer.attributes.expires !== null && new Date(props.offer.attributes.expires) < new Date())
 const isMuted = computed(() =>
