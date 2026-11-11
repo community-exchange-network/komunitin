@@ -10,6 +10,7 @@ const STATUS_MAP = {
   new: { color: 'transfer-new', textColor: 'on-surface-medium', label: (t: T) => t('new') },
   pending: { color: 'transfer-pending', textColor: 'info', label: (t: T) => t('pending') },
   accepted: { color: 'transfer-accepted', textColor: 'on-surface-medium', label: (t: T) => t('accepted') },
+  submitted: { color: 'transfer-submitted', textColor: 'on-surface-medium', label: (t: T) => t('submitted') },
   committed: { color: 'transfer-committed', textColor: 'positive', label: (t: T) => t('committed') },
   rejected: { color: 'transfer-rejected', textColor: 'on-surface-medium', label: (t: T) => t('rejected') },
   failed: { color: 'transfer-failed', textColor: 'on-surface-low', label: (t: T) => t('failed') },

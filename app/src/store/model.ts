@@ -411,7 +411,7 @@ export interface AccountSettings extends ResourceObject {
   }
 }
 
-export type TransferState = "new" | "pending" | "accepted" | "committed" | "rejected" | "failed" | "deleted"
+export type TransferState = "new" | "pending" | "accepted" | "submitted" | "committed" | "rejected" | "failed" | "deleted"
 export type AnyJson = string | number | boolean | null | undefined | { [key: string]: AnyJson } | AnyJson[];
 
 export type TransferMeta = {
