@@ -6,7 +6,7 @@ import { errorHandler } from './server/errors'
 import { httpLogger } from './server/http-logger'
 import { config } from './config'
 import logger from './utils/logger'
-import prisma from './utils/prisma'
+import healthRoutes from './server/health'
 import userRoutes from './features/users/routes'
 import migrationRoutes from './features/migrations/routes'
 import { groupsRoutes, tenantGroupRoutes } from './features/groups/routes'
@@ -41,15 +41,7 @@ app.use((req, res, next) => {
 
 app.use(httpLogger)
 
-app.get('/health', async (_req, res) => {
-  res.type('application/json')
-  try {
-    await prisma.$queryRaw`SELECT 1`
-    res.json({ status: 'ok' })
-  } catch {
-    res.status(503).json({ status: 'error' })
-  }
-})
+app.use(healthRoutes)
 
 app.use('/', migrationRoutes)
 app.use('/', userRoutes)

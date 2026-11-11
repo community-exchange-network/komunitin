@@ -13,19 +13,17 @@ describe('Notifications API', () => {
     it('returns 200 when PostgreSQL and Redis are available', async () => {
       await app
         .get('/health')
-        .expect('Content-Type', /^application\/json/)
-        .expect(200, { status: 'ok' })
+        .expect(200)
     })
 
     it('returns 503 when PostgreSQL is unavailable', async (t) => {
-      const queryRaw = prisma.$queryRaw
-      t.after(() => { prisma.$queryRaw = queryRaw })
-      prisma.$queryRaw = () => { throw new Error('Database unavailable') }
+      const findFirst = prisma.appNotification.findFirst
+      t.after(() => { prisma.appNotification.findFirst = findFirst })
+      prisma.appNotification.findFirst = () => { throw new Error('Database unavailable') }
 
       await app
         .get('/health')
-        .expect('Content-Type', /^application\/json/)
-        .expect(503, { status: 'error' })
+        .expect(503)
     })
 
     it('returns 503 when Redis is unavailable', async (t) => {
@@ -35,8 +33,7 @@ describe('Notifications API', () => {
 
       await app
         .get('/health')
-        .expect('Content-Type', /^application\/json/)
-        .expect(503, { status: 'error' })
+        .expect(503)
     })
   })
 

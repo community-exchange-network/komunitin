@@ -23,4 +23,9 @@ const prisma = new PrismaClient({
   ],
 });
 
+/** Check connectivity and access to the application's schema. */
+export async function checkPrismaHealth() {
+  await prisma.appNotification.findFirst({ select: { id: true } })
+}
+
 export default prisma;

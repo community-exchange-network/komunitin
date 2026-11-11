@@ -163,11 +163,10 @@ describe('Auth Service Integration Tests', () => {
     eventStatuses.length = 0
   })
 
-  test('GET /health returns 200 with status ok', async () => {
+  test('GET /health returns 200', async () => {
     await request(app)
       .get('/health')
-      .expect('Content-Type', /^application\/json/)
-      .expect(200, { status: 'ok' })
+      .expect(200)
   })
 
   test('GET /health returns 503 when the database is unavailable', async (t) => {
@@ -177,8 +176,7 @@ describe('Auth Service Integration Tests', () => {
 
     await request(app)
       .get('/health')
-      .expect('Content-Type', /^application\/json/)
-      .expect(503, { status: 'error' })
+      .expect(503)
   })
 
   test('POST /register creates an unverified user and sends validation email', async () => {

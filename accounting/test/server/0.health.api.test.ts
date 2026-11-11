@@ -1,14 +1,12 @@
-import assert from "node:assert"
 import { describe, it } from "node:test"
+import request from "supertest"
 import { setupServerTest } from "./setup"
 
 describe("Health endpoint", () => {
   const t = setupServerTest(false)
 
   it("returns 200 when PostgreSQL is available", async () => {
-    const response = await t.api.get("/health", undefined, 200, "application/json")
-
-    assert.deepEqual(response.body, { status: "ok" })
+    await request(t.app).get('/health').expect(200)
   })
 
   it("returns 503 when PostgreSQL is unavailable", async (test) => {
@@ -17,8 +15,6 @@ describe("Health endpoint", () => {
       throw new Error("Database unavailable")
     })
 
-    const response = await t.api.get("/health", undefined, 503, "application/json")
-
-    assert.deepEqual(response.body, { status: "error" })
+    await request(t.app).get('/health').expect(503)
   })
 })

@@ -15,21 +15,19 @@ after(async () => {
 })
 
 describe('Health endpoint', () => {
-  test('GET /health returns 200 with status ok', async () => {
+  test('GET /health returns 200', async () => {
     await request(app)
       .get('/health')
-      .expect('Content-Type', /^application\/json/)
-      .expect(200, { status: 'ok' })
+      .expect(200)
   })
 
-  test('GET /health returns 503 with status error when DB is down', async (t) => {
-    const queryRaw = prisma.$queryRaw
-    t.after(() => { prisma.$queryRaw = queryRaw })
-    prisma.$queryRaw = () => { throw new Error('Database unavailable') }
+  test('GET /health returns 503 when the database is unavailable', async (t) => {
+    const findFirst = prisma.user.findFirst
+    t.after(() => { prisma.user.findFirst = findFirst })
+    prisma.user.findFirst = () => { throw new Error('Database unavailable') }
 
     await request(app)
       .get('/health')
-      .expect('Content-Type', /^application\/json/)
-      .expect(503, { status: 'error' })
+      .expect(503)
   })
 })

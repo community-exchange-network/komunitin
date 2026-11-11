@@ -1,5 +1,6 @@
 import express from "express"
 import { getRoutes } from "./routes"
+import { getHealthRoutes } from "./health"
 import { getRoutes as getCCRoutes } from "../creditcommons/routes"
 import { getRoutes as getMigrationRoutes } from "../migration/routes"
 import { getRoutes as getTopupRoutes } from "../topup/routes"
@@ -61,15 +62,7 @@ export const setupApp = async (expressApp: express.Express) => {
   app.komunitin = { service }
   
   // Routes
-  app.get('/health', async (_req, res) => {
-    res.type('application/json')
-    try {
-      await service.privilegedDb().$queryRaw`SELECT 1`
-      res.json({ status: 'ok' })
-    } catch {
-      res.status(503).json({ status: 'error' })
-    }
-  })
+  app.use('/', getHealthRoutes(service))
   app.use("/", getRoutes(service))
   app.use("/", getCCRoutes(service))
   app.use("/", getMigrationRoutes(service))

@@ -6,8 +6,7 @@ import { config } from './config'
 import notificationsRouter from './notifications/server/routes'
 import eventsRouter from './events/server/routes'
 import { errorHandler } from './server/errors'
-import prisma from './utils/prisma'
-import { redis } from './utils/redis'
+import healthRoutes from './server/health'
 import { httpLogger } from './server/http-logger'
 import logger from './utils/logger'
 
@@ -37,15 +36,7 @@ app.use(notificationsRouter)
 
 app.use(eventsRouter)
 
-app.get('/health', async (_req, res) => {
-  try {
-    if (!redis.isReady) throw new Error('Redis disconnected')
-    await Promise.all([prisma.$queryRaw`SELECT 1`, redis.ping()])
-    res.json({ status: 'ok' })
-  } catch {
-    res.status(503).json({ status: 'error' })
-  }
-})
+app.use(healthRoutes)
 
 app.use(errorHandler)
 

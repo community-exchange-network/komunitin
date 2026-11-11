@@ -147,8 +147,6 @@ const mockTable = (table: any, name: string = 'test', defaults?: (data: any) => 
 
 
 export const mockDb = () => {
-  prisma.$queryRaw = test.mock.fn(async () => []) as typeof prisma.$queryRaw
-
   return {
     newsletterLog: mockTable(prisma.newsletterLog, 'newsletterLog', (data) => ({
       sentAt: new Date(),
