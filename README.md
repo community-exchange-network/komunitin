@@ -45,8 +45,8 @@ cp .env.dev.template .env
 In order to have everything working (mailing, push notifications, backups, analytics...) you need to carefully configure the environment variables in the `.env` file. You can find more details about the configuration in the `.env.public.template` file.
 
 ### Start
-Run the start script to build and start the containers. Use `--dev` to
-enable hot reload, debuggers, development utilities and local certificates, and `--reset` to clear all its data. The configured superadmin is bootstrapped after migration.
+Run the `start.sh` script to build and start the containers. Use `--dev` to
+enable hot reload, debuggers, development utilities and local certificates, and `--reset` to clear all its data.
 
 ```bash
 ./start.sh --dev --reset
