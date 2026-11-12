@@ -15,9 +15,12 @@
           v-model="drawerState"
           show-if-above
           :width="256"
+          :mini="isNavigationRail"
+          :mini-width="80"
           @on-layout="drawerChange"
         >
-          <menu-drawer v-if="!isSuperadmin"/>
+          <menu-drawer v-if="!isSuperadmin && !isNavigationRail" />
+          <nav-rail v-else-if="isNavigationRail" />
           <superadmin-menu-drawer v-else/>
         </q-drawer>
         <router-view />
@@ -50,17 +53,21 @@
  * using the PageHeader component.
  */
 import MenuDrawer from "../components/MenuDrawer.vue";
+import NavRail from "../components/NavRail.vue";
 //import SuperadminMenuDrawer from "../pages/superadmin/MenuDrawer.vue";
 import { useStore } from "vuex";
 
 import { useI18n } from 'vue-i18n';
 import { useRoute } from "vue-router";
 import { computed, defineAsyncComponent } from "vue"
+import { useQuasar } from "quasar"
 
 const store = useStore()
 const { t } = useI18n();
+const $q = useQuasar()
 
 const isSuperadmin = computed(() => store.getters.isSuperadmin)
+const isNavigationRail = computed(() => !isSuperadmin.value && !$q.screen.lt.md)
 
 const drawerExists = computed(() => store.getters.drawerExists || isSuperadmin.value)
 
