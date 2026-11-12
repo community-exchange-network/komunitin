@@ -13,7 +13,6 @@
     </q-input>
     <q-icon-picker
       v-model="icon"
-      v-model:model-pagination="pagination"
       class="q-mt-md text-on-surface-medium"
       size="lg"
       :icons="icons"
@@ -45,7 +44,6 @@ const icon = computed({
 
 const iconFilter = ref('')
 const icons = iconNames.map(name => ({ name }))
-const pagination = ref({ page: 1, itemsPerPage: 60 })
 
 </script>
 <style src="@quasar/quasar-ui-qiconpicker/dist/index.css"></style>
