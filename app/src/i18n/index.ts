@@ -8,6 +8,8 @@
 import type { Locale } from "date-fns"
 import type { QuasarLanguage } from "quasar"
 
+export const TRANSLATION_REVIEW_DRAFT_KEY = "komunitin:translation-review:nl:v1"
+
 export interface LocaleDefinition {
   label: string,
   fallbackLocale?: string,
@@ -117,6 +119,5 @@ export function normalizeLocale(locale: string): LangName {
 export function getLocaleDefinition(locale: string): LocaleDefinition {
   return langs[normalizeLocale(locale)];
 }
-
 
 
