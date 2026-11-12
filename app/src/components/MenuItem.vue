@@ -14,7 +14,7 @@
     </q-item-section>
     <q-item-section
       class="text-label-large"
-      :class="active ? 'text-primary' : 'text-on-surface-medium'"
+      :class="active ? 'text-primary-variant' : 'text-on-surface-medium'"
     >
       {{ title }}
     </q-item-section>

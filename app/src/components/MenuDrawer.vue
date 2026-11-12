@@ -6,7 +6,7 @@
       id="my-group"
       :clickable="!groupActive"
       :active="groupActive"
-      active-class="bg-active text-primary"
+      active-class="bg-active text-primary-variant"
       :group="myMember.group" 
       @click="$router.push(`/groups/${groupCode}`)"
     />
