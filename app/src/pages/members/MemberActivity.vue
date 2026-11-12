@@ -97,10 +97,8 @@ const title = computed(() => ({
   needs: isMe.value ? t('yourNeeds') : t('memberNeeds'),
   transfers: isMe.value ? t('yourTransactions') : t('memberTransactions')
 })[props.page])
-const canEditPosts = computed(() => isMe.value || store.getters.isAdmin)
+// The API also returns expired, hidden and draft posts when the viewer has access.
 const filter = computed(() => member.value && ({
-  member: member.value.id,
-  expired: canEditPosts.value ? 'false,true' : 'false',
-  status: canEditPosts.value ? 'published,hidden,draft' : 'published'
+  member: member.value.id
 }))
 </script>

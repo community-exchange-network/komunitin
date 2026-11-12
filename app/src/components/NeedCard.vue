@@ -86,7 +86,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { useStore } from "vuex"
+import { useCanEditPost } from '@/composables/editablePost'
 import type { Category, Member, Need } from "@/store/model"
 import { useCardClickTo } from "@/composables/useCardClickTo"
 import vClamp from "../plugins/Clamp"
@@ -113,15 +113,11 @@ const props = defineProps<{
   need: CardNeed
 }>()
 
-const store = useStore()
 const hasImages = computed(() => props.need.attributes.images.length > 0)
 const url = computed(() =>
   `${window.location.origin}/groups/${props.code}/needs/${props.need.attributes.code}`
 )
-const canEdit = computed(() =>
-  props.need.member.id === store.getters.myMember?.id
-  || store.getters.isAdmin
-)
+const canEdit = useCanEditPost(() => props.need, () => props.code)
 const memberActive = computed(() => props.need.member.attributes.status === "active")
 const expired = computed(() => props.need.attributes.expires !== null && new Date(props.need.attributes.expires) < new Date())
 const isAvailable = computed(() =>

@@ -26,9 +26,6 @@
 .bg-want {
   background: $want;
 }
-.bg-icon {
-  background: $icon;
-}
 .bg-transfer-new {
   background: $transfer-new;
 }
@@ -37,6 +34,9 @@
 }
 .bg-transfer-accepted {
   background: $transfer-accepted;
+}
+.bg-transfer-submitted {
+  background: $transfer-submitted;
 }
 .bg-transfer-committed {
   background: $transfer-committed;

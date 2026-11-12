@@ -30,28 +30,12 @@
           class="col"
         >
           <q-badge
-            color="transfer-pending"
-            text-color="primary"
-            v-if="transfer.attributes.state == 'pending'"
+            :color="statusColor"
+            :text-color="statusTextColor"
+            v-if="showTransferStatus"
             class="badge-square text-label-small"
             >
-            {{ $t("pending") }}
-          </q-badge>
-          <q-badge
-            color="transfer-rejected"
-            text-color="on-surface-medium"
-            v-else-if="transfer.attributes.state == 'rejected'"
-            class="badge-square text-label-small"
-            >
-            {{ $t("rejected") }}
-          </q-badge>
-          <q-badge
-            color="transfer-failed"
-            text-color="on-surface-low"
-            v-else-if="transfer.attributes.state == 'failed'"
-            class="badge-square text-label-small"
-            >
-            {{ $t("failed") }}
+            {{ statusLabel }}
           </q-badge>
           <span v-else>
             {{ $formatDate(transfer.attributes.updated) }}
@@ -77,6 +61,7 @@ import type { Account, Currency, ExtendedTransfer } from '@/store/model';
 import FormatCurrency from "../plugins/FormatCurrency";
 import AccountItemContent from "./AccountItemContent.vue";
 import { useQuasar } from 'quasar';
+import { useTransferStatus } from '../composables/transferStatus.ts';
 
 const props = defineProps<{
   /**
@@ -152,6 +137,10 @@ const overrideCaption = computed(() => {
   }
 })
 
+const status = computed(() => props.transfer.attributes.state)
+const {color: statusColor, label: statusLabel, textColor: statusTextColor } = useTransferStatus(status)
+const showTransferStatus = computed(() => ["pending", "rejected", "failed"].includes(status.value))
+
 </script>
 <style lang="scss" scoped>
   /*
@@ -165,7 +154,7 @@ const overrideCaption = computed(() => {
     background-color: $surface-container;
   }
   .rejected, .failed {
-    background: $surface-container;
+    background-color: $surface-container;
     .text-amount-positive, .text-amount-negative {
       color: $on-surface-low;
     }

@@ -95,7 +95,7 @@ describe("Offers", () => {
     await waitFor(() => offerCards().some(card => card.text().includes(title)), true)
   })
 
-  it ("searches offers", async () => {
+  it("searches offers and resumes pagination when the search is cleared", async () => {
     // The user interaction is already tested in PageHeader unit test,
     // here just emit the search event.
     wrapper.getComponent(PageHeader).vm.$emit("search","pants");
@@ -104,6 +104,12 @@ describe("Offers", () => {
     expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true);
     // found 2 results!
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 2, "Should find 2 offers matching 'pants'");
+
+    wrapper.getComponent(PageHeader).vm.$emit('search', '')
+    await waitFor(() => offerCards().length, ApiSerializer.DEFAULT_PAGE_SIZE)
+    await waitFor(() => wrapper.getComponent(PageHeader).props('loading'), false)
+    wrapper.getComponent(QInfiniteScroll).vm.trigger()
+    await waitFor(() => offerCards().length, 31)
   })
 
   it ("renders a cached offer while revalidating", async() => {
@@ -117,6 +123,7 @@ describe("Offers", () => {
       "Offer should be revalidated"
     )
     await waitFor(() => wrapper.text().includes(title), true, "Offer page should load");
+    expect(wrapper.find(`a[href="/groups/GRP0/offers/${offer.attributes.code}/edit"]`).exists()).toBe(false)
     const text = wrapper.text();
     expect(text).toContain(title);
     expect(text).toContain(requireText(offer.member.attributes.name, "Offer member name"));
@@ -185,6 +192,7 @@ describe("Offers", () => {
     await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/offers/The-Offer')
     await waitFor(() => wrapper.text().includes("The Offer"), true, "Offer page should show");
     expect(wrapper.text()).toContain("$10.00");
+    expect(wrapper.find('a[href="/groups/GRP0/offers/The-Offer/edit"]').exists()).toBe(true)
   })
 
   it('deletes an offer without rendering the removed resource', async () => {

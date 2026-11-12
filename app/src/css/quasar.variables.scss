@@ -59,10 +59,10 @@ $dark-page : $soil;         // Soil — darkest text/page bg in dark mode
 
 // ── Semantic / feedback colours ──────────────────────────────
 
-$positive  : $secondary;        // Grove — success maps to our secondary green
-$negative  : $crimson;     // Crimson — negative feedback
-$info      : $primary;        // Ember — info reuses primary (warm, not cold blue)
-$warning   : $accent;        // Wheat — natural amber for warnings
+$positive  : $grove;
+$negative  : $crimson;
+$info      : $ember;
+$warning   : $wheat;
 
 // ── Custom design tokens ──────────────────────────────────────
 // Define app tokens before the Quasar overrides that use them.
@@ -71,8 +71,8 @@ $warning   : $accent;        // Wheat — natural amber for warnings
 $primary-variant: $ember-dark;
 
 // Marketplace colors
-$offer: $secondary;
-$want: $primary;
+$offer: $grove;
+$want: $ember;
 
 // Color for surface elements, such as cards and navbar
 $surface: $white;
@@ -114,11 +114,12 @@ $active: $surface-container-high;
 
 // Transfer status badge backgrounds
 $transfer-new: $surface-container-highest;
-$transfer-pending: rgba($primary, 0.12); // Ember at 12% — pending badge
+$transfer-pending: rgba($ember, 0.12);
 $transfer-accepted: $wheat-light;
+$transfer-submitted: rgba($tide, 0.12);
 $transfer-committed: rgba($moss, 0.12); // Moss at 12% — committed badge
-$transfer-rejected: rgba($negative, 0.12); // Negative red at 12% — rejected badge
-$transfer-failed: rgba($negative, 0.20);   // Negative red at 20% — failed badge
+$transfer-rejected: rgba($negative, 0.12);
+$transfer-failed: rgba($negative, 0.20);
 $transfer-deleted: $surface-container-highest;
 
 // Borders
@@ -156,7 +157,6 @@ $h-tags: (
 
 $generic-border-radius        : 8px;   // inputs, dropdowns, tooltips
 $button-border-radius         : 8px;
-$button-push-border-radius    : 14px;
 
 // ── Shadows ──────────────────────────────────────────────────
 //
@@ -243,27 +243,16 @@ $menu-box-shadow  : 0 4px 20px rgba($shadow-color, 0.14);
 
 $tooltip-background   : $dark;
 $tooltip-color        : $parchment;   // Parchment — warm white text
-$tooltip-border-radius: 8px;
 $tooltip-padding      : 6px 12px;
 $tooltip-fontsize     : type-value('body-small', size);
 $tooltip-mobile-fontsize: $tooltip-fontsize;
 
 // ── Layout ───────────────────────────────────────────────────
 
-$layout-border  : 1px solid $separator-color;  // warm divider
 $layout-shadow  : 0 0 10px 2px rgba($shadow-color, 0.08), 0 0 10px rgba($shadow-color, 0.12);
 
-// ── Animation ────────────────────────────────────────────────
-//
-//  Commons uses a 0.3s ease fadeUp for card entrances and
-//  0.15s for micro-interactions (chips, hover states).
-
-$animate-delay    : .15s;
+// ── Transitions ──────────────────────────────────────────────
 
 $generic-hover-transition : .15s cubic-bezier(.25, .8, .5, 1);
-
-// ── Rating ───────────────────────────────────────────────────
-
-$rating-grade-color : $accent;  // Wheat — natural amber star colour
 
 @import "override.variables.scss";

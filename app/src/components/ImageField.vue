@@ -127,8 +127,4 @@ watch(images, (value) => {
 .q-uploader {
   max-height: none;
 }
-.q-uploader__file--img {
-  aspect-ratio: 4/3;
-  height: auto;
-}
 </style>

@@ -32,4 +32,14 @@ describe('Post details', () => {
     const contacts = wrapper.vm.$store.getters.myMember.attributes.contacts
     expect(wrapper.getComponent(ContactButton).props('contacts')).toEqual(contacts)
   })
+
+  it('shows the edit button to a community admin for another member’s offer', async () => {
+    const member = server.schema.db.members[1]
+    const offer = server.schema.db.posts.findBy({ memberId: member.id, type: 'offers' })
+    const path = `/groups/GRP0/offers/${offer.code}`
+    expect(member.id).not.toBe(wrapper.vm.$store.getters.myMember.id)
+
+    await wrapper.vm.$router.push(path)
+    await waitFor(() => wrapper.find(`a[href="${path}/edit"]`).exists(), true)
+  })
 })

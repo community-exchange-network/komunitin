@@ -58,7 +58,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from "vue";
-import { useStore } from "vuex";
+import { useCanEditPost } from '@/composables/editablePost'
 
 import PostLayout from "../../layouts/PostLayout.vue";
 import PageHeader from "../../layouts/PageHeader.vue";
@@ -83,15 +83,12 @@ const props = defineProps<{
   title?: string
 }>()
 
-const store = useStore()
 const needOptions = computed(() => ({
   code: props.needCode,
   group: props.code,
   include: "category,member,member.account,member.group"
 }))
 const { resource: need, error } = useResource<FullNeed>('needs', needOptions)
-const canEdit = computed(() =>
-  need.value?.member?.id === store.getters.myMember?.id || store.getters.isAdmin
-)
+const canEdit = useCanEditPost(need, () => props.code)
 const isReady = computed(() => Boolean(need.value && need.value.member && need.value.member.group))
 </script>
