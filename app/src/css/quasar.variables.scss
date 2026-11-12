@@ -136,7 +136,7 @@ $separator-dark-color : rgba($white, 0.12); // standard dark mode
 
 // ── Typography ───────────────────────────────────────────────
 
-$typography-font-family: $body-font-family;
+$typography-font-family: $sans-font-family;
 $body-line-height: type-value('body-medium', line-height);
 
 // HTML headings also occur in member-authored Markdown.

@@ -1,27 +1,27 @@
 @use 'sass:map';
 
-$body-font-family: 'Inter', '-apple-system', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-$heading-font-family: 'Lora', Georgia, 'Times New Roman', serif;
+$sans-font-family: 'Inter', '-apple-system', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+$serif-font-family: 'Lora', Georgia, 'Times New Roman', serif;
 
 // Sizes use rem so the scale follows the reader's root font size.
 $typography: (
-  'display-medium': (family: $body-font-family, weight: 400, size: 2.8125rem, line-height: 3.25rem),
-  'display-small': (family: $body-font-family, weight: 600, size: 2.125rem, line-height: 2.5rem),
-  'display-extra-small': (family: $body-font-family, weight: 600, size: 1.5rem, line-height: 2rem),
-  'headline-large': (family: $heading-font-family, weight: 700, size: 2rem, line-height: 2.5rem),
-  'headline-small': (family: $heading-font-family, weight: 700, size: 1.5rem, line-height: 2rem),
-  'title-large': (family: $heading-font-family, weight: 700, size: 1.375rem, line-height: 1.75rem),
-  'title-medium': (family: $heading-font-family, weight: 700, size: 1rem, line-height: 1.75rem),
-  'title-small': (family: $body-font-family, weight: 600, size: .875rem, line-height: 1.25rem),
-  'body-large': (family: $body-font-family, weight: 400, size: 1rem, line-height: 1.5rem),
-  'body-large-emphasized': (family: $body-font-family, weight: 700, size: 1rem, line-height: 1.5rem),
-  'body-medium': (family: $body-font-family, weight: 400, size: .875rem, line-height: 1.25rem),
-  'body-small': (family: $body-font-family, weight: 400, size: .75rem, line-height: 1rem),
-  'label-large': (family: $body-font-family, weight: 500, size: .875rem, line-height: 1.25rem),
-  'label-medium': (family: $body-font-family, weight: 500, size: .75rem, line-height: 1rem),
-  'label-small': (family: $body-font-family, weight: 500, size: .6875rem, line-height: 1rem, text-transform: uppercase),
-  'label-large-uppercase': (family: $body-font-family, weight: 500, size: .875rem, line-height: 1.25rem, text-transform: uppercase),
-  'label-medium-uppercase': (family: $body-font-family, weight: 500, size: .75rem, line-height: 1rem, text-transform: uppercase)
+  'display-medium': (family: $sans-font-family, weight: 400, size: 2.8125rem, line-height: 3.25rem),
+  'display-small': (family: $sans-font-family, weight: 600, size: 2.125rem, line-height: 2.5rem),
+  'display-extra-small': (family: $sans-font-family, weight: 600, size: 1.5rem, line-height: 2rem),
+  'headline-large': (family: $serif-font-family, weight: 700, size: 2rem, line-height: 2.5rem),
+  'headline-small': (family: $serif-font-family, weight: 700, size: 1.5rem, line-height: 2rem),
+  'title-large': (family: $serif-font-family, weight: 700, size: 1.375rem, line-height: 1.75rem),
+  'title-medium': (family: $serif-font-family, weight: 700, size: 1rem, line-height: 1.75rem),
+  'title-small': (family: $sans-font-family, weight: 600, size: .875rem, line-height: 1.25rem),
+  'body-large': (family: $sans-font-family, weight: 400, size: 1rem, line-height: 1.5rem),
+  'body-large-emphasized': (family: $sans-font-family, weight: 700, size: 1rem, line-height: 1.5rem),
+  'body-medium': (family: $sans-font-family, weight: 400, size: .875rem, line-height: 1.25rem),
+  'body-small': (family: $sans-font-family, weight: 400, size: .75rem, line-height: 1rem),
+  'label-large': (family: $sans-font-family, weight: 500, size: .875rem, line-height: 1.25rem),
+  'label-medium': (family: $sans-font-family, weight: 500, size: .75rem, line-height: 1rem),
+  'label-small': (family: $sans-font-family, weight: 500, size: .6875rem, line-height: 1rem, text-transform: uppercase),
+  'label-large-uppercase': (family: $sans-font-family, weight: 500, size: .875rem, line-height: 1.25rem, text-transform: uppercase),
+  'label-medium-uppercase': (family: $sans-font-family, weight: 500, size: .75rem, line-height: 1rem, text-transform: uppercase)
 );
 
 // Apply shared defaults while preserving token-specific overrides.

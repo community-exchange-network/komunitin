@@ -150,8 +150,7 @@ const optionsFn = (date: string | null) => {
 </script>
 
 <style lang="scss" scoped>
-  .date-picker :deep(.q-date__header-title) {
-    font-family: $heading-font-family;
-    font-weight: bold;
+  .date-picker :deep(.q-date__header-title-label) {
+    @include type-style('headline-small');
   }
 </style>
