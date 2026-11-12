@@ -41,6 +41,17 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('../layouts/Layout.vue'),
     children: [
+      ...(import.meta.env.DEV ? [{
+        path: '/translation-review',
+        name: 'TranslationReview',
+        component: () => import('../pages/TranslationReview.vue'),
+        meta: {
+          public: true,
+          rootPage: true,
+          hideDrawer: true,
+          fullWidth: true
+        }
+      }] : []),
       {
         path: '/home',
         name: 'Home',

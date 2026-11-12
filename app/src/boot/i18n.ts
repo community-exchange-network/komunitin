@@ -5,7 +5,12 @@ import { Quasar } from "quasar";
 import { defineBoot } from "#q-app";
 import type { QSsrContext } from "#q-app";
 import type { LangName } from "@/i18n";
-import langs, { DEFAULT_LANG, normalizeLocale } from "@/i18n";
+import langs, {
+  DEFAULT_LANG,
+  normalizeLocale,
+  TRANSLATION_REVIEW_DRAFT_KEY_PREFIX,
+  translationReviewDraftKey
+} from "@/i18n";
 import store, { storeReady } from "@/store";
 import { computed, ref } from "vue";
 import { createI18n } from "vue-i18n";
@@ -79,6 +84,43 @@ const globalLocale = ref(DEFAULT_LANG)
 let localeUpdate = Promise.resolve()
 
 const loadedAdminLocales = new Set<string>();
+
+async function applyTranslationReviewDraft(locale: LangName, rawDraft: string | null) {
+  const loadMessages = langs[locale].loadMessages;
+  if (!import.meta.env.DEV || !loadMessages) {
+    return;
+  }
+
+  try {
+    let parsed: unknown = {};
+    if (rawDraft !== null) {
+      parsed = JSON.parse(rawDraft);
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("The saved translation review draft is not an object.");
+      }
+    }
+
+    const baseMessages = await loadMessages();
+    const loadEnglishMessages = langs["en-us"].loadMessages;
+    if (!loadEnglishMessages) {
+      throw new Error("The English source dictionary is not configured.");
+    }
+    const englishMessages = locale === "en-us" ? {} : await loadEnglishMessages();
+    const draftMessages = Object.fromEntries(
+      Object.entries(parsed).filter(
+        ([key, value]) => Object.hasOwn(baseMessages, key) && typeof value === "string"
+      )
+    );
+    i18n.global.setLocaleMessage(locale, {
+      ...i18n.global.getLocaleMessage(locale),
+      ...englishMessages,
+      ...baseMessages,
+      ...draftMessages
+    });
+  } catch (error) {
+    console.error(`Could not apply the ${locale} translation review draft.`, error);
+  }
+}
 
 /**
  * Return the user locale based on previous session or browser.
@@ -155,6 +197,13 @@ async function setCurrentLocale($q: QSingletonGlobals, locale: LangName, admin=f
     ...(!import.meta.env.QUASAR_SERVER ? [LocalStorage.set(LOCALE_KEY, locale)] : [])
   ])
 
+  if (langs[locale].loadMessages) {
+    await applyTranslationReviewDraft(
+      locale,
+      import.meta.env.QUASAR_SERVER ? null : localStorage.getItem(translationReviewDraftKey(locale))
+    );
+  }
+
   i18n.global.locale.value = locale
   $q.lang.set(quasarLanguage, ssrContext)
   dateLocale = loadedDateLocale
@@ -196,6 +245,24 @@ export default defineBoot(async ({ app, ssrContext }) => {
   ])
   const initialLocale = getUserLocaleState(store.getters, lang)
   await setLocale(initialLocale.lang, initialLocale.admin, ssrContext)
+
+  const isTranslationReviewFrame = !import.meta.env.QUASAR_SERVER
+    && new URLSearchParams(window.location.search).has("translationReview");
+  if (import.meta.env.DEV && isTranslationReviewFrame) {
+    window.addEventListener("storage", event => {
+      if (event.key === "lang" && event.newValue) {
+        const locale = normalizeLocale(event.newValue);
+        if (langs[locale].loadMessages) {
+          void setLocale(locale);
+        }
+      } else if (event.key?.startsWith(TRANSLATION_REVIEW_DRAFT_KEY_PREFIX)) {
+        const localeCode = event.key.slice(TRANSLATION_REVIEW_DRAFT_KEY_PREFIX.length).replace(/:v1$/, "");
+        if (localeCode in langs && langs[localeCode as LangName].loadMessages) {
+          void applyTranslationReviewDraft(localeCode as LangName, event.newValue);
+        }
+      }
+    });
+  }
 
   store.watch((_, getters) => {
     const { user, lang, admin } = getUserLocaleState(getters)

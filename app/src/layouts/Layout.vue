@@ -3,7 +3,7 @@
     <div
       id="container"
       class="q-mx-auto bg-surface"
-      :class="drawerExists ? 'with-drawer' : 'without-drawer'"
+      :class="containerClass"
     >
       <q-layout
         id="layout"
@@ -59,10 +59,16 @@ import { computed, defineAsyncComponent } from "vue"
 
 const store = useStore()
 const { t } = useI18n();
+const route = useRoute()
 
 const isSuperadmin = computed(() => store.getters.isSuperadmin)
 
-const drawerExists = computed(() => store.getters.drawerExists || isSuperadmin.value)
+const drawerExists = computed(() =>
+  route.meta.hideDrawer !== true && (store.getters.drawerExists || isSuperadmin.value)
+)
+const containerClass = computed(() =>
+  drawerExists.value ? "with-drawer" : route.meta.fullWidth === true ? "full-width" : "without-drawer"
+)
 
 const drawerState = computed({
   get: () => store.state.ui.drawerState,
@@ -76,7 +82,6 @@ const groupCode = computed(() => myMember.value?.group.attributes.code)
 // Lazy load the superadmin menu drawer in order to not load it for regular users.
 const SuperadminMenuDrawer = defineAsyncComponent(() => import("../pages/superadmin/MenuDrawer.vue"))
 
-const route = useRoute()
 const isRootPage = computed(() => route.meta.rootPage === true)
 
 </script>
@@ -99,6 +104,11 @@ const isRootPage = computed(() => route.meta.rootPage === true)
   }
   &.without-drawer {
     @include wrap-main-container(1024px);
+  }
+  &.full-width {
+    width: 100%;
+    height: 100%;
+    margin-top: 0;
   }
 }
 

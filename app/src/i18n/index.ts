@@ -8,14 +8,20 @@
 import type { Locale } from "date-fns"
 import type { QuasarLanguage } from "quasar"
 
+export const TRANSLATION_REVIEW_DRAFT_KEY_PREFIX = "komunitin:translation-review:"
+
+export function translationReviewDraftKey(locale: string) {
+  return `${TRANSLATION_REVIEW_DRAFT_KEY_PREFIX}${locale}:v1`
+}
+
 export interface LocaleDefinition {
   label: string,
   fallbackLocale?: string,
-  loadMessages?: () => Promise<never>,
-  loadAdminMessages?: () => Promise<never>,
+  loadMessages?: () => Promise<Record<string, string>>,
+  loadAdminMessages?: () => Promise<Record<string, string>>,
   loadQuasar: () => Promise<QuasarLanguage>,
   loadDateFNS: () => Promise<Locale>,
-  loadCountries: () => Promise<never>
+  loadCountries: () => Promise<unknown>
   features?: Record<string, () => Promise<never>>
 }
 
@@ -117,6 +123,3 @@ export function normalizeLocale(locale: string): LangName {
 export function getLocaleDefinition(locale: string): LocaleDefinition {
   return langs[normalizeLocale(locale)];
 }
-
-
-

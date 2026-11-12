@@ -47,3 +47,17 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 | **Offer** | Oferta | Oferta | Offerta | Offre |
 | **Want** | Necessitat | Necesidad | Necessità | Besoin |
 | **Value** | Valor | Valor | Valore | Valeur |
+
+## Reviewing translations
+
+For a one-key-at-a-time review, start the app in development mode and open
+`/translation-review`. Select a language with a root `index.json` dictionary.
+The page shows each English source beside the selected translation and embeds
+the real app interface. It lists the source components that use the selected
+key and highlights matching text in the current app view. Navigate the embedded
+app to see each use in context; member-only views may require signing in.
+
+Edits are kept in a separate browser draft for each language and applied live to
+the embedded app. Download the selected language's JSON file when finished and
+replace its `index.json`. The review route is available only in development
+builds.
