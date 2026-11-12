@@ -2,19 +2,21 @@
   <q-page-container>
     <q-page padding>
       <div class="translation-review">
-        <div class="row items-center justify-between q-mb-md">
-          <div>
-            <div class="text-h5">{{ selectedLanguageLabel }} translation review</div>
-            <div class="text-caption text-grey-7">
-              Review one key at a time and see its translation in the real app.
-            </div>
+        <div class="row items-center justify-between review-header">
+          <div class="text-subtitle1 text-weight-medium">
+            {{ selectedLanguageLabel }} translation review
           </div>
           <q-btn
+            flat
+            round
+            dense
             color="primary"
             icon="download"
-            :label="`Download ${selectedLocale} index.json`"
+            :aria-label="`Download ${selectedLocale} index.json`"
             @click="downloadTranslations"
-          />
+          >
+            <q-tooltip>Download {{ selectedLocale }} index.json</q-tooltip>
+          </q-btn>
         </div>
   
         <div class="review-columns">
@@ -109,21 +111,17 @@
 
           <section class="context-column">
             <q-card v-if="activeKey" flat bordered class="context-card">
-              <q-card-section class="row items-center justify-between">
-                <div>
-                  <div class="text-h6">In the app</div>
-                  <div class="text-caption text-grey-7">
-                    Navigate the real app. Matching text for this key is highlighted.
-                  </div>
-                </div>
-                <div class="row items-center q-gutter-sm">
+              <q-card-section class="row items-center justify-between context-header">
+                <div class="text-subtitle2">Live app preview</div>
+                <div class="row items-center q-gutter-xs">
                   <span class="text-caption text-grey-7">
-                    {{ contextMatchCount }} visible match{{ contextMatchCount === 1 ? "" : "es" }}
+                    {{ contextMatchCount }} matches
                   </span>
                   <q-btn
                     flat
                     round
                     dense
+                    size="sm"
                     icon="refresh"
                     aria-label="Reload app context"
                     @click="reloadContext"
@@ -131,34 +129,32 @@
                 </div>
               </q-card-section>
 
-              <q-card-section class="q-pt-none">
-                <div class="text-caption text-grey-7 q-mb-xs">Used in</div>
-                <div v-if="activeUsages.length" class="row q-gutter-xs">
-                  <q-chip v-for="usage in activeUsages" :key="usage" dense square>
-                    {{ usage }}
-                  </q-chip>
-                </div>
-                <div v-else class="text-body2 text-grey-7">
-                  No static component usage found. This key may be used dynamically or only in an
-                  optional feature.
-                </div>
-              </q-card-section>
+              <q-expansion-item
+                dense
+                dense-toggle
+                expand-separator
+                :label="`Used in ${activeUsages.length} source locations`"
+                header-class="usage-header"
+              >
+                <q-card-section class="usage-list">
+                  <div v-if="activeUsages.length" class="row q-gutter-xs">
+                    <q-chip v-for="usage in activeUsages" :key="usage" dense square>
+                      {{ usage }}
+                    </q-chip>
+                  </div>
+                  <div v-else class="text-caption text-grey-7">
+                    No static component usage found. This key may be used dynamically or only in an
+                    optional feature.
+                  </div>
+                </q-card-section>
+              </q-expansion-item>
 
-              <q-card-section class="q-pt-none context-body">
-                <q-banner
-                  rounded
-                  class="q-mb-sm"
-                  :class="contextMatchCount ? 'bg-green-1' : 'bg-grey-2'"
-                >
-                  <template v-if="contextMatchCount">
-                    Highlighted {{ contextMatchCount }} match{{ contextMatchCount === 1 ? "" : "es" }}
-                    for this key in the current app screen.
-                  </template>
-                  <template v-else>
-                    This key is not visible on the current screen. Use the embedded app navigation to
-                    reach one of the listed components.
-                  </template>
-                </q-banner>
+              <q-card-section class="context-body">
+                <div class="text-caption context-status q-px-sm q-py-xs">
+                  {{ contextMatchCount
+                    ? "Matching text is outlined in orange."
+                    : "No match on this screen. Navigate the app to a usage of this key." }}
+                </div>
                 <div v-if="contextReady" class="app-context-frame">
                   <iframe
                     :key="contextVersion"
@@ -211,7 +207,6 @@ const messagesByLocale = Object.fromEntries(
 ) as Record<string, Record<string, string>>;
 const languageOptions = Object.keys(messagesByLocale)
   .filter(locale =>
-    locale !== "en-us" &&
     locale in langs &&
     langs[locale as LangName].loadMessages !== undefined
   )
@@ -525,6 +520,11 @@ function discardDraft() {
   width: 100%;
 }
 
+.review-header {
+  min-height: 36px;
+  margin-bottom: 4px;
+}
+
 .review-columns {
   display: grid;
   grid-template-columns: minmax(260px, 24%) minmax(0, 1fr);
@@ -543,8 +543,29 @@ function discardDraft() {
 .context-card {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 180px);
-  min-height: 520px;
+  height: calc(100dvh - 76px);
+  min-height: 300px;
+}
+
+.context-header {
+  min-height: 40px;
+  padding: 4px 12px;
+}
+
+.usage-header {
+  min-height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 12px;
+}
+
+.usage-list {
+  padding: 4px 12px 8px;
+}
+
+.context-status {
+  flex: 0 0 auto;
+  color: #616161;
 }
 
 .context-body {
@@ -552,11 +573,12 @@ function discardDraft() {
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  padding: 4px 8px 8px;
 }
 
 .app-context-frame {
   flex: 1;
-  min-height: 280px;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.18);
   border-radius: 4px;
@@ -574,8 +596,16 @@ iframe {
   }
 
   .context-card {
-    height: 70vh;
+    height: calc(75dvh - 48px);
     min-height: 480px;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 901px) {
+  .context-header {
+    min-height: 32px;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 }
 </style>
