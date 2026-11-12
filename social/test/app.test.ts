@@ -22,9 +22,9 @@ describe('Health endpoint', () => {
   })
 
   test('GET /health returns 503 when the database is unavailable', async (t) => {
-    const findFirst = prisma.user.findFirst
-    t.after(() => { prisma.user.findFirst = findFirst })
-    prisma.user.findFirst = () => { throw new Error('Database unavailable') }
+    const transaction = prisma.$transaction
+    t.after(() => { prisma.$transaction = transaction })
+    prisma.$transaction = () => { throw new Error('Database unavailable') }
 
     await request(app)
       .get('/health')
