@@ -121,6 +121,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 // 6. Custom component classes
+
+// Position snackbar notifications over the bottom navbar.
+@media (max-width: $breakpoint-sm-max) {
+  body:has(#layout .q-footer) .q-notifications__list--bottom {
+    margin-bottom: 82px; // 72px bar height + 10px margin.
+  }
+}
+
 .input-standout-light,
 .input-outlined-pale {
   .q-field__control > .q-field__prepend,
