@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { setTimeout } from 'node:timers/promises'
-import { privilegedDb, PrivilegedPrismaClient } from '../controller/multitenant'
+import { privilegedDb } from '../controller/multitenant'
 import { logger } from './logger'
 
 /** Create a database client once its schema is available. */
@@ -10,19 +10,14 @@ export async function createPrisma() {
   return prisma
 }
 
-/** Check connectivity and access to the application's schema. */
-export async function checkPrismaHealth(prisma: PrivilegedPrismaClient) {
-  await prisma.value.findFirst({ select: { key: true } })
-}
-
 async function waitForPrisma(prisma: PrismaClient) {
   const db = privilegedDb(prisma)
   while (true) {
     try {
-      await checkPrismaHealth(db)
+      await db.value.findFirst({ select: { key: true } })
       return
-    } catch {
-      logger.info('Waiting for database...')
+    } catch (err) {
+      logger.warn({ err }, 'Waiting for database, retrying in 1 second')
       await setTimeout(1000)
     }
   }

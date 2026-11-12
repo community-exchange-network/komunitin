@@ -1,7 +1,6 @@
 import { after, before, describe, test } from 'node:test'
 import request from 'supertest'
 import { setupTestServer, teardownTestServer } from './mocks/server'
-import prisma from '../src/utils/prisma'
 
 let app: any
 
@@ -18,16 +17,7 @@ describe('Health endpoint', () => {
   test('GET /health returns 200', async () => {
     await request(app)
       .get('/health')
-      .expect(200)
-  })
-
-  test('GET /health returns 503 when the database is unavailable', async (t) => {
-    const transaction = prisma.$transaction
-    t.after(() => { prisma.$transaction = transaction })
-    prisma.$transaction = () => { throw new Error('Database unavailable') }
-
-    await request(app)
-      .get('/health')
-      .expect(503)
+      .expect('Content-Type', /application\/json/)
+      .expect(200, { status: 'ok' })
   })
 })

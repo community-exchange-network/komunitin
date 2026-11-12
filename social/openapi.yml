@@ -15,17 +15,17 @@ paths:
   /health:
     get:
       operationId: get_health
-      summary: Check service health
-      description: ''
+      summary: HTTP liveness check
+      description: Returns 200 when the HTTP service is responding, without querying dependencies.
       tags:
       - Health
       security: []
       parameters: []
       responses:
         '200':
-          description: Service is running.
+          description: HTTP service is responding.
           content:
-            application/vnd.api+json:
+            application/json:
               schema:
                 type: object
                 properties:

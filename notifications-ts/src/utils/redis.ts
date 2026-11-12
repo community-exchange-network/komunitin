@@ -8,12 +8,6 @@ export const redis = createClient({ url: redisUrl });
 
 redis.on('error', (err) => logger.error(err, 'Redis client error'));
 
-/** Check that the connected Redis client can serve commands. */
-export async function checkRedisHealth() {
-  if (!redis.isReady) throw new Error('Redis disconnected')
-  await redis.ping()
-}
-
 // Connect function to be called at application startup
 export const connectRedis = async () => {
   while (!redis.isOpen) {

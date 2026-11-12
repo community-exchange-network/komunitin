@@ -2,7 +2,6 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import { signJwt } from '../../mocks/auth'
 import { createNotification, setupNotificationsTest } from './utils'
-import prisma from '../../utils/prisma'
 
 const uid = (c: string) => [8,4,4,4,12].map(len => c.repeat(len)).join('-')
 
@@ -10,30 +9,11 @@ describe('Notifications API', () => {
   const { app, appNotifications } = setupNotificationsTest()
 
   describe('GET /health', () => {
-    it('returns 200 when PostgreSQL and Redis are available', async () => {
+    it('returns 200', async () => {
       await app
         .get('/health')
-        .expect(200)
-    })
-
-    it('returns 503 when PostgreSQL is unavailable', async (t) => {
-      const findFirst = prisma.appNotification.findFirst
-      t.after(() => { prisma.appNotification.findFirst = findFirst })
-      prisma.appNotification.findFirst = () => { throw new Error('Database unavailable') }
-
-      await app
-        .get('/health')
-        .expect(503)
-    })
-
-    it('returns 503 when Redis is unavailable', async (t) => {
-      // Import redis after module mocks have been set up.
-      const { redis } = await import('../../utils/redis')
-      t.mock.method(redis, 'ping', async () => { throw new Error('Redis unavailable') })
-
-      await app
-        .get('/health')
-        .expect(503)
+        .expect('Content-Type', /application\/json/)
+        .expect(200, { status: 'ok' })
     })
   })
 

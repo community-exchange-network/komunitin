@@ -27,8 +27,6 @@ export const mockRedis = () => {
         connect: connectMock,
         disconnect: disconnectMock,
         get: getMock,
-        ping: async () => 'PONG',
-        isReady: true,
         set: setMock,
         quit: disconnectMock,
         on: mock.fn(),

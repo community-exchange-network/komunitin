@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import logger from './utils/logger';
 import { connectRedis } from './utils/redis';
+import { waitForPrisma } from './utils/prisma'
 
 import { runNewsletterWorker } from './newsletter/worker';
 import { runNotificationsWorker } from './notifications/worker';
@@ -10,6 +11,7 @@ const main = async () => {
   logger.info('Starting notifications-ts service...');
 
   await connectRedis();
+  await waitForPrisma()
 
   const { stop: stopNotifications } = await runNotificationsWorker();
   const { stop: stopNewsletter } = await runNewsletterWorker();

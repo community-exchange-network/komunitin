@@ -67,26 +67,16 @@ paths:
   /health:
     get:
       tags: [Health]
-      summary: Health check
+      summary: HTTP liveness check
+      description: Returns 200 when the HTTP service is responding, without querying dependencies.
       operationId: getHealth
       responses:
         '200':
-          description: Service and database are healthy.
+          description: HTTP service is responding.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
-        '503':
-          description: Service is unavailable.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [status]
-                properties:
-                  status:
-                    type: string
-                    enum: [error]
   /register:
     post:
       tags: [Registration]

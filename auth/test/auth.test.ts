@@ -166,17 +166,8 @@ describe('Auth Service Integration Tests', () => {
   test('GET /health returns 200', async () => {
     await request(app)
       .get('/health')
-      .expect(200)
-  })
-
-  test('GET /health returns 503 when the database is unavailable', async (t) => {
-    const findFirst = prisma.signingKey.findFirst
-    t.after(() => { prisma.signingKey.findFirst = findFirst })
-    prisma.signingKey.findFirst = () => { throw new Error('Database unavailable') }
-
-    await request(app)
-      .get('/health')
-      .expect(503)
+      .expect('Content-Type', /application\/json/)
+      .expect(200, { status: 'ok' })
   })
 
   test('POST /register creates an unverified user and sends validation email', async () => {
