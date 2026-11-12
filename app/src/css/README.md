@@ -52,8 +52,8 @@ headlines identify page subjects, titles introduce sections, body styles serve
 reading text, and labels serve compact UI text. Choose a role based on the
 content's purpose, then the size appropriate to its context.
 
-Lora gives displays and larger headings a distinctive serif face. Inter keeps
-body text, labels and small titles readable in dense interfaces. Each token
+Headlines and larger titles use Lora. Displays use Inter, so prominent amounts
+and counts share a typeface with body text, labels and small titles. Each token
 bundles the complete text style, including case, so components do not need to
 assemble font, weight and size independently. Sizes and line heights use `rem`
 to follow the reader's root font size. See [typography.scss](typography.scss)
