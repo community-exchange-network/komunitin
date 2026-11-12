@@ -1,132 +1,179 @@
 <template>
-  <q-list class="navigation-rail">
-    <q-item
-      id="my-group"
-      class="menu-item--rail group-item"
-      :active="groupActive"
-      active-class="menu-item--rail-active"
-      :clickable="!groupActive"
-      :aria-label="myMember.group.attributes.name"
-      @click="$router.push(`/groups/${groupCode}`)"
+  <q-drawer
+    v-model="drawerState"
+    show-if-above
+    :width="256"
+    :mini="!props.expanded"
+    :mini-width="80"
+    :mini-to-overlay="false"
+    @on-layout="drawerChange"
+  >
+    <q-list
+      class="navigation-rail"
+      :class="{ 'navigation-rail--expanded': props.expanded }"
     >
-      <q-item-section avatar>
-        <avatar
-          :img-src="myMember.group.attributes.image"
-          :text="myMember.group.attributes.code"
-          size="32px"
+      <div class="rail-header">
+        <q-btn
+          flat
+          round
+          dense
+          icon="menu"
+          :aria-label="t('menu')"
+          :aria-expanded="props.expanded"
+          @click="emit('update:expanded', !props.expanded)"
         />
-      </q-item-section>
-      <q-item-section
-        class="text-label-medium group-label"
-        :class="groupActive ? 'text-primary-variant' : 'text-on-surface-medium'"
+      </div>
+
+      <q-item
+        id="my-group"
+        class="rail-item group-item"
+        :to="`/groups/${groupCode}`"
+        :active="groupActive"
+        active-class="rail-item--active"
+        :aria-label="myMember.group.attributes.name"
       >
-        {{ myMember.group.attributes.name }}
-      </q-item-section>
-    </q-item>
+        <q-item-section avatar>
+          <avatar
+            :img-src="myMember.group.attributes.image"
+            :text="myMember.group.attributes.code"
+            size="32px"
+          />
+        </q-item-section>
+        <q-item-section
+          class="group-label text-label-medium"
+          :class="groupActive ? 'text-primary-variant' : 'text-on-surface-medium'"
+        >
+          {{ myMember.group.attributes.name }}
+        </q-item-section>
+      </q-item>
 
-    <q-separator />
-
-    <menu-item
-      icon="home"
-      :title="$t('home')"
-      to="/home"
-      rail
-    />
-
-    <menu-item
-      id="menu-transactions"
-      icon="account_balance_wallet"
-      :title="$t('transactions')"
-      :to="`/groups/${groupCode}/members/${myMember.attributes.code}/transactions`"
-      rail
-    />
-
-    <q-separator />
-
-    <menu-item
-      id="menu-needs"
-      icon="loyalty"
-      :title="$t('needs')"
-      :to="`/groups/${groupCode}/needs`"
-      rail
-    />
-    <menu-item
-      id="menu-offers"
-      icon="local_offer"
-      :title="$t('offers')"
-      :to="`/groups/${groupCode}/offers`"
-      rail
-    />
-    <menu-item
-      id="menu-members"
-      icon="people"
-      :title="$t('members')"
-      :to="`/groups/${groupCode}/members`"
-      rail
-    />
-    <menu-item
-      v-if="!isLegacyAccounting"
-      id="menu-stats"
-      icon="insert_chart"
-      :title="$t('statistics')"
-      :to="`/groups/${groupCode}/stats`"
-      rail
-    />
-
-    <template v-if="isAdmin">
-      <q-separator />
-      <menu-item
-        icon="edit"
-        :title="$t('editGroup')"
-        :to="`/groups/${groupCode}/admin/edit`"
-        rail
-      />
-      <menu-item
-        icon="settings"
-        :title="$t('groupSettings')"
-        :to="`/groups/${groupCode}/admin/settings`"
-        rail
-      />
-      <menu-item
-        icon="manage_accounts"
-        :title="$t('manageMembers')"
-        :to="`/groups/${groupCode}/admin/accounts`"
-        rail
-      />
-      <menu-item
-        icon="list_alt"
-        :title="$t('transactions')"
-        :to="`/groups/${groupCode}/admin/transactions`"
-        rail
-      />
-    </template>
-
-    <q-separator />
-
-    <menu-item
-      icon="group_work"
-      :title="$t('otherGroups')"
-      to="/groups"
-      rail
-    />
-  </q-list>
+      <template
+        v-for="item in navigationItems"
+        :key="item.id"
+      >
+        <q-separator v-if="item.separatorBefore" />
+        <q-item
+          :id="item.id"
+          class="rail-item navigation-item"
+          :to="item.to"
+          :active="route.path === item.to"
+          active-class="rail-item--active"
+        >
+          <q-item-section avatar>
+            <q-icon
+              :name="item.icon"
+              :color="route.path === item.to ? 'primary' : 'icon'"
+            />
+          </q-item-section>
+          <q-item-section
+            class="navigation-label text-label-medium"
+            :class="route.path === item.to ? 'text-primary-variant' : 'text-on-surface-medium'"
+          >
+            {{ item.title }}
+          </q-item-section>
+        </q-item>
+      </template>
+    </q-list>
+  </q-drawer>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
 import Avatar from "./Avatar.vue";
-import MenuItem from "./MenuItem.vue";
+
+const props = defineProps<{
+  expanded: boolean
+}>()
+const emit = defineEmits<{
+  (event: "update:expanded", value: boolean): void
+}>()
 
 const store = useStore()
 const route = useRoute()
+const { t } = useI18n()
 
 const myMember = computed(() => store.getters.myMember)
+const drawerState = computed({
+  get: () => store.state.ui.drawerState,
+  set: (value) => store.commit("drawerState", value)
+})
 const groupCode = computed(() => myMember?.value.group.attributes.code)
 const isAdmin = computed(() => store.getters.isAdmin)
 const isLegacyAccounting = computed(() => store.getters.isLegacyAccounting)
 const groupActive = computed(() => route.fullPath === `/groups/${myMember.value.group.attributes.code}`)
+const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
+
+const navigationItems = computed(() => [
+  { id: "menu-home", icon: "home", title: t("home"), to: "/home" },
+  {
+    id: "menu-transactions",
+    icon: "account_balance_wallet",
+    title: t("transactions"),
+    to: `/groups/${groupCode.value}/members/${myMember.value.attributes.code}/transactions`
+  },
+  {
+    id: "menu-needs",
+    icon: "loyalty",
+    title: t("needs"),
+    to: `/groups/${groupCode.value}/needs`,
+    separatorBefore: true
+  },
+  {
+    id: "menu-offers",
+    icon: "local_offer",
+    title: t("offers"),
+    to: `/groups/${groupCode.value}/offers`
+  },
+  {
+    id: "menu-members",
+    icon: "people",
+    title: t("members"),
+    to: `/groups/${groupCode.value}/members`
+  },
+  ...(!isLegacyAccounting.value ? [{
+    id: "menu-stats",
+    icon: "insert_chart",
+    title: t("statistics"),
+    to: `/groups/${groupCode.value}/stats`
+  }] : []),
+  ...(isAdmin.value ? [
+    {
+      id: "menu-edit-group",
+      icon: "edit",
+      title: t("editGroup"),
+      to: `/groups/${groupCode.value}/admin/edit`,
+      separatorBefore: true
+    },
+    {
+      id: "menu-group-settings",
+      icon: "settings",
+      title: t("groupSettings"),
+      to: `/groups/${groupCode.value}/admin/settings`
+    },
+    {
+      id: "menu-manage-members",
+      icon: "manage_accounts",
+      title: t("manageMembers"),
+      to: `/groups/${groupCode.value}/admin/accounts`
+    },
+    {
+      id: "menu-admin-transactions",
+      icon: "list_alt",
+      title: t("transactions"),
+      to: `/groups/${groupCode.value}/admin/transactions`
+    }
+  ] : []),
+  {
+    id: "menu-other-groups",
+    icon: "group_work",
+    title: t("otherGroups"),
+    to: "/groups",
+    separatorBefore: true
+  }
+])
 </script>
 
 <style lang="scss" scoped>
@@ -135,8 +182,11 @@ const groupActive = computed(() => route.fullPath === `/groups/${myMember.value.
   min-width: 80px;
   padding: 8px 0;
 
-  :deep(.q-item) {
-    min-height: 56px;
+  .rail-header {
+    display: flex;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
   }
 
   :deep(.q-separator) {
@@ -144,18 +194,23 @@ const groupActive = computed(() => route.fullPath === `/groups/${myMember.value.
     margin: 8px auto;
   }
 
-  .group-item {
-    padding: 4px 0;
+  .rail-item {
+    min-height: 56px;
+    padding: 2px 0;
     flex-direction: column;
+    align-items: center;
     justify-content: flex-start;
 
     :deep(.q-item__section--avatar) {
       position: relative;
+      flex: none;
       width: 56px;
       min-width: 56px;
       height: 32px;
       align-self: center;
-      padding-right: 0;
+      margin: 0;
+      padding: 0;
+      align-items: center;
       justify-content: center;
     }
 
@@ -165,36 +220,90 @@ const groupActive = computed(() => route.fullPath === `/groups/${myMember.value.
       width: 56px;
       height: 32px;
       border-radius: 16px;
+      pointer-events: none;
       content: "";
     }
 
-    :deep(.q-avatar) {
+    :deep(.q-avatar),
+    :deep(.q-icon) {
       z-index: 1;
     }
 
-    :deep(.q-item__section:not(.q-item__section--avatar)) {
+    :deep(.q-icon) {
+      font-size: 24px;
+    }
+
+    :deep(.q-item__section--main) {
+      position: relative;
+      z-index: 1;
       display: flex;
       flex: none;
       width: 100%;
-      min-height: 14px;
+      min-height: 16px;
+      margin: 4px 0 0;
+      padding: 0;
       align-items: center;
+      justify-content: center;
       text-align: center;
-      line-height: 14px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      line-height: 16px;
+      white-space: normal;
     }
 
-    &.menu-item--rail-active :deep(.q-item__section--avatar::before) {
+    &.rail-item--active :deep(.q-item__section--avatar::before) {
       background: $active;
     }
 
-    &:hover :deep(.q-item__section--avatar::before) {
+    &:hover:not(:focus-visible) :deep(.q-focus-helper) {
+      background: transparent;
+      opacity: 0;
+    }
+
+    :deep(.q-item__section--avatar:hover::before) {
       background: $surface-container-high;
     }
 
-    &.menu-item--rail-active:hover :deep(.q-item__section--avatar::before) {
+    &.rail-item--active :deep(.q-item__section--avatar:hover::before) {
       background: $active;
+    }
+  }
+
+  &.navigation-rail--expanded {
+    width: 256px;
+    min-width: 256px;
+
+    .rail-header {
+      justify-content: flex-start;
+      padding-left: 16px;
+    }
+
+    :deep(.q-separator) {
+      width: calc(100% - 32px);
+      margin: 8px 16px;
+    }
+
+    .rail-item {
+      padding: 4px 16px;
+      flex-direction: row;
+      justify-content: flex-start;
+
+      &.rail-item--active :deep(.q-item__section--avatar::before) {
+        width: 224px;
+        height: 40px;
+        border-radius: 20px;
+      }
+
+      :deep(.q-item__section--avatar) {
+        align-self: auto;
+      }
+
+      :deep(.q-item__section--main) {
+        flex: 1;
+        width: auto;
+        margin: 0 0 0 16px;
+        align-items: flex-start;
+        justify-content: flex-start;
+        text-align: left;
+      }
     }
   }
 }
