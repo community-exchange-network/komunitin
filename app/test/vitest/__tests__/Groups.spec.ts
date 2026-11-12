@@ -5,6 +5,7 @@ import { mountComponent, requireText, requireTextExcerpt, waitFor } from "../uti
 import { QInnerLoading, QCard } from "quasar";
 import SimpleMap from '../../../src/components/SimpleMap.vue';
 import GroupCard from "../../../src/components/GroupCard.vue";
+import PageHeader from "@/layouts/PageHeader.vue";
 import server, { seeds } from "../../../src/server";
 
 // See also Offers.spec.ts
@@ -21,10 +22,10 @@ describe("Groups", () => {
   it("Loads groups", async () => {
     await wrapper.vm.$router.push("/groups");
     await wrapper.vm.$nextTick();
-    expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
+    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true);
     // Load.
     await waitFor(() => wrapper.findAllComponents(GroupCard).length, 7, "Should load 7 groups");
-    expect((wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing).toBe(false);
+    expect(wrapper.find('[role="status"][aria-label="Loading..."]').exists()).toBe(false);
   });
 
   it("Navigates a focused group card with Enter", async () => {
@@ -44,8 +45,8 @@ describe("Groups", () => {
     expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
     await waitFor(() => (wrapper.findComponent(QInnerLoading).vm as QInnerLoading).showing, false, "Should finish loading");
     const text = wrapper.text();
-    // Title
-    expect(text).toContain("Group 0");
+    expect(wrapper.getComponent(PageHeader).props('title')).toBe('Community');
+    expect(wrapper.get('h1').text()).toBe('Group 0');
     // Code
     expect(text).toContain("GRP0");
     const group = wrapper.vm.$store.getters["groups/find"]({ code: "GRP0" });

@@ -10,25 +10,27 @@
       padding
       class="q-py-lg q-px-md col-12 col-sm-8 col-md-6 q-mb-xl"
     >
-      <signup-accept-terms-form
-        v-if="page == 'terms' && needsTerms"
-        :group="group"
-        :terms="settings.terms"
-        @accept="continueSignup"
-      />
-      <signup-credentials-form
-        v-else-if="page == 'credentials'"
-        v-model="credentials"
-        :loading="loading"
-        :has-back="needsTerms"
-        @submit="createUser"        
-        @back="toPage('terms')"
-      />
-      <signup-verify-form
-        v-else-if="page == 'verify'"
-        :loading="loading"
-        @resend="resendEmail"
-      />
+      <div class="q-pa-md bg-surface rounded-borders shadow-2">
+        <signup-accept-terms-form
+          v-if="page == 'terms' && needsTerms"
+          :group="group"
+          :terms="settings.terms"
+          @accept="continueSignup"
+        />
+        <signup-credentials-form
+          v-else-if="page == 'credentials'"
+          v-model="credentials"
+          :loading="loading"
+          :has-back="needsTerms"
+          @submit="createUser"        
+          @back="toPage('terms')"
+        />
+        <signup-verify-form
+          v-else-if="page == 'verify'"
+          :loading="loading"
+          @resend="resendEmail"
+        />
+      </div>
     </q-page>
   </q-page-container>
 </template>

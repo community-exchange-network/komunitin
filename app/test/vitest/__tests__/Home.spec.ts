@@ -2,7 +2,6 @@ import { type VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, waitFor } from "../utils";
 import {
-  QInnerLoading,
   QToolbarTitle,
   QInfiniteScroll,
   QMenu,
@@ -65,7 +64,7 @@ describe("Home", () => {
     wrapper.getComponent(PageHeader).vm.$emit("search", "dolor");
     await wrapper.vm.$nextTick();
     expect(wrapper.findAllComponents(OfferCard).length).toBe(0);
-    expect(wrapper.findComponent(QInnerLoading).isVisible()).toBe(true);
+    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true);
     
     // Wait for search results to load
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 20, "Should find 20 offers matching 'dolor'");
@@ -97,9 +96,9 @@ describe("Home", () => {
     const profileDetails = profileMenu.element.ownerDocument.querySelector('[data-testid="profile-details"]');
     expect(profileDetails.textContent).toContain('Emiliano Lemke');
     
-    const myProfileBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My profile'));
-    const myOffersBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My offers'));
-    const myNeedsBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('My wants'));
+    const myProfileBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Your profile'));
+    const myOffersBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Your offers'));
+    const myNeedsBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Your wants'));
     const logOutBtn = profileMenu.findAllComponents(MenuItem).find(item => item.text().includes('Log out'));
 
     expect(myProfileBtn).toBeDefined();

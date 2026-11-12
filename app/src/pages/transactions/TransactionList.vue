@@ -4,6 +4,7 @@
       :title="$t('transactions')" 
       search 
       :balance="props.headerBalance"
+      :loading="refreshing"
       @search="query = $event" 
     >
       <template #buttons>
@@ -25,7 +26,7 @@
       </template>
     </page-header>
     <q-page-container>
-      <q-page>
+      <q-page class="q-px-md q-pt-md">
         <transaction-items
           :code="props.code"
           :member="myMember"
@@ -33,33 +34,35 @@
           :to="toDate"
           :query="query"
           :both-accounts="props.bothAccounts"
+          @refreshing="refreshing = $event"
         />
         <create-transaction-btn />
       </q-page>
     </q-page-container>
-    <q-drawer 
+    <side-sheet
       v-model="filterDrawer"
-      side="right" 
-      bordered
+      :title="$t('filters')"
       show-if-above
     >
-      <div class="q-pa-md column q-gutter-md">
-        <div class="text-h6 text-onsurface-m">{{ $t("filters") }}</div>
+      <div class="q-pa-md q-gutter-sm">
+        <p class="text-label-medium-uppercase text-on-surface-medium">{{ $t("dateRange") }}</p>
         <date-field
           v-model="startDate"
           :label="$t('startDate')"
           clearable
+          filter
         />
         <date-field
           v-model="endDate"
           :label="$t('endDate')"
           clearable
+          filter
           :options="{
             min: startDate
           }"
         />
-      </div>      
-    </q-drawer>
+      </div>
+    </side-sheet>
   </div>
 </template>
 <script setup lang="ts">
@@ -70,6 +73,7 @@ import PageHeader from "../../layouts/PageHeader.vue";
 import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue";
 import TransactionItems from "./TransactionItems.vue";
 import DateField from "../../components/DateField.vue";
+import SideSheet from "../../components/SideSheet.vue"
 import { useTransfersCsv } from "../../composables/downloadCsv";
 
 const props = defineProps<{
@@ -82,6 +86,7 @@ const store = useStore()
 const myMember = computed(() => props.onlyMine ? store.getters.myMember : undefined);
 
 const query = ref("");
+const refreshing = ref(false)
 const filterDrawer = ref(false);
 const startDate = ref<Date | null>(null);
 const endDate = ref<Date | null>(null);

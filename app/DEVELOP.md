@@ -115,11 +115,10 @@ Keep the following folder structure:
 - `src/plugins`: Custom [Vue plugins](https://vuejs.org/v2/guide/plugins.html).
 
 ### CSS
-We try to write as less CSS as possible in custom components, and most of them don't have CSS at all. Instead, we rely on the standard classes provided by Quasar framework. See [Introduction to Flexbox](https://quasar.dev/layout/grid/introduction-to-flexbox) and [Spacing classes](https://quasar.dev/style/spacing#Syntax) for documentation. Exceptionally, additional app-wide classes may be defined at `src/css/app.sass` file for a feature not provided by Quasar. 
 
-If the component has a non-standard style feature, it will be defined using scoped [SCSS](https://sass-lang.com/documentation/syntax) language.
+Prefer Quasar components and utility classes for layout and spacing. Use shared semantic tokens for color and typography, keeping text role, color and layout separate. Add scoped SCSS only for behavior that the existing utilities cannot express.
 
-Colors are defined as variables and standard classes at `src/css/quasar.variables.sass`. We have, for example, the colors `$primary`, `$secondary`, `$surface` and `$outside` for backgrounds and the corresponding `$onprimary`, `$onsecondary` etc for text on them. We also have `$onsurface-m` for medium emphasis text.
+See the [CSS and design tokens guide](src/css/README.md) for the rationale, usage conventions and definition files for colors, typography and theme customization.
 
 ### Code
 - All code is written in TypeScript.

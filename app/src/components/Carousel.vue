@@ -4,6 +4,7 @@
       v-if="images && images.length"
       v-model="slide"
       v-bind="$attrs"
+      :class="!flat && 'rounded-borders shadow-2'"
       animated
       swipeable
       infinite
@@ -36,7 +37,7 @@
       >
         <img
           :src="image.url"
-          class="thumbnail vertical-bottom cursor-pointer"
+          class="thumbnail vertical-bottom cursor-pointer rounded-borders"
           :class="'thumbnail-' + (slide == i + 1 ? 'active' : 'inactive')"
           @click="slide = i + 1"
         >
@@ -53,9 +54,11 @@ import FitText from "./FitText.vue";
  */
 withDefaults(defineProps<{
   thumbnails?: boolean,
-  images: ImageObject[]
+  images: ImageObject[],
+  flat?: boolean
 }>(), {
-  thumbnails: false
+  thumbnails: false,
+  flat: false
 })
 
 const slide = ref(1)
@@ -63,6 +66,7 @@ const slide = ref(1)
 <style lang="scss" scoped>
 .thumbnail {
   width: 100%;
+  height: 64px;
   max-height: 64px;
   object-fit: cover;
   object-position: center;

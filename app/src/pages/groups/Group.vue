@@ -5,7 +5,7 @@
   />
   <div v-else>
     <page-header
-      :title="group ? group.attributes.name : ''"
+      :title="$t('group')"
       :back="own ? '' : '/groups'"
     >
       <template #buttons>
@@ -31,93 +31,69 @@
         <!-- Loading spinner -->
         <q-inner-loading
           :showing="loading"
-          color="icon-dark"
+          color="icon"
         />
-        <!-- Group view -->
-
-        <div
-          v-if="group"
-          class="row q-col-gutter-md"
-        >
-          <!-- image -->
-          <div class="col-4 q-px-md">
-            <div class="q-mx-auto" style="max-width: 152px; line-height: 0;">
-              <fit-text update>
+        <q-card v-if="group" class="bg-surface">
+          <q-card-section
+            :style="{padding: $q.screen.gt.xs ? '32px 32px 16px' : '24px 16px 16px'}"
+          >
+            <div class="row items-center justify-center q-col-gutter-x-lg q-col-gutter-y-md">
+              <div class="col-auto">
                 <avatar
-                  size="inherit"
+                  class="shadow-2"
+                  size="160px"
                   :text="group.attributes.name"
                   :img-src="group.attributes.image"
                 />
-              </fit-text>
+              </div>
+              <div class="col-12 col-sm" :class="{ 'text-center': $q.screen.xs }">
+                <h1 class="text-headline-large text-on-surface q-my-none" style="overflow-wrap: anywhere;">
+                  {{ group.attributes.name }}
+                </h1>
+                <div class="text-label-large-uppercase text-secondary q-mt-xs">
+                  {{ group.attributes.code }}
+                </div>
+                <nav v-if="own" class="row q-gutter-sm q-mt-md" :class="{ 'justify-center': $q.screen.xs }">
+                  <nav-button
+                    :to="`/groups/${code}/members`"
+                    icon="people"
+                    :label="$t('members')"
+                    :count="group.relationships.members.meta.count"
+                  />
+                  <nav-button
+                    :to="`/groups/${code}/stats`"
+                    icon="bar_chart"
+                    :label="$t('statistics')"
+                  />
+                </nav>
+              </div>
             </div>
-          </div>
-
-          <!-- description -->
-          <div class="col column">
-            <div class="text-h6">
-              {{ group.attributes.code }}
+          </q-card-section>
+          <q-card-section>
+            <read-more class="text-body-large text-on-surface-medium" :collapsed-height="120">
+              <!-- eslint-disable vue/no-v-html -->
+              <div v-html="md2html(group.attributes.description)" />
+              <!-- eslint-enable vue/no-v-html -->
+            </read-more>
+          </q-card-section>
+          <q-card-section class="q-pt-none">
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-md-6">
+                <group-members-map :group="group" />
+              </div>
+              <div class="col-12 col-md-6">
+                <social-network-list
+                  type="contact"
+                  :contacts="group.attributes.contacts"
+                  flat
+                  class="q-py-none"
+                />
+              </div>
             </div>
-            <!-- eslint-disable vue/no-v-html -->
-            <div
-              ref="descriptionRef"
-              class="text-onsurface-m"
-              :class="isDescriptionOpen ? '' : 'ellipsis-3-lines'"
-              v-html="md2html(group.attributes.description)"
-            />
-
-            <q-btn
-              v-if="canToggleDescription"
-              flat
-              round
-              dense
-              :icon="isDescriptionOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
-              style="margin-left:auto;"
-              @click="toggleDescription"
-            />
-          </div>
-        </div>
-        <!-- sub-page navigation -->
-        <nav
-          v-if="group && own"
-          class="row q-col-gutter-md q-py-md"
-        >
-          <router-link
-            :to="`/groups/${code}/members`"
-            style="text-decoration: none; color: inherit; height: fit-content;"
-            class="col-6"
-          >
-            <nav-card
-              icon="people"
-              :label="membersLabel"
-            />
-          </router-link>
-
-          <router-link
-            :to="`/groups/${code}/stats`"
-            style="text-decoration: none; color: inherit; height: fit-content;"
-            class="col-6"
-          >
-            <nav-card
-              icon="insert_chart"
-              :label="$t('statistics')"
-            />
-          </router-link>
-        </nav>
-        <div
-          v-if="group"
-          class="row q-col-gutter-md"
-        >
-          <div class="col-12 col-sm-6 col-lg-8">
-            <group-members-map :group="group" />
-          </div>
-          <div class="col-12 col-sm-6 col-lg-4 relative-position">
-            <social-network-list
-              type="contact"
-              :contacts="group.attributes.contacts"
-            />
-          </div>
+          </q-card-section>
+        </q-card>
+        <div v-if="group && (!isLoggedIn || !myMember)" class="q-pa-xl">
           <floating-btn
-            v-if="!isLoggedIn || !myMember"
             :label="$t('signUp')"
             icon="add"
             color="primary"
@@ -133,68 +109,33 @@
 /**
  * Page for Group details.
  */
-import { computed, shallowRef, watch, nextTick, useTemplateRef } from 'vue';
-import { useStore } from 'vuex';
+import { computed } from 'vue'
+import { useStore } from 'vuex'
 
-import md2html from '../../plugins/Md2html';
+import md2html from '../../plugins/Md2html'
 
-import PageHeader from '../../layouts/PageHeader.vue';
-import Avatar from '../../components/Avatar.vue';
-import ContactButton from '../../components/ContactButton.vue';
-import ShareButton from '../../components/ShareButton.vue';
-import SocialNetworkList from '../../components/SocialNetworkList.vue';
-import FloatingBtn from '../../components/FloatingBtn.vue';
-import FitText from '../../components/FitText.vue';
-import NavCard from '../../components/NavCard.vue';
-import Error404 from '../Error404.vue';
-import GroupMembersMap from './GroupMembersMap.vue';
+import PageHeader from '../../layouts/PageHeader.vue'
+import Avatar from '../../components/Avatar.vue'
+import ContactButton from '../../components/ContactButton.vue'
+import ShareButton from '../../components/ShareButton.vue'
+import SocialNetworkList from '../../components/SocialNetworkList.vue'
+import FloatingBtn from '../../components/FloatingBtn.vue'
+import NavButton from '../../components/NavButton.vue'
+import ReadMore from '../../components/ReadMore.vue'
+import Error404 from '../Error404.vue'
+import GroupMembersMap from './GroupMembersMap.vue'
 
-import type { Group } from '../../store/model';
-import { useResource } from '@/composables/useResources';
-import { useI18n } from 'vue-i18n';
-import { KErrorCode } from '@/KError';
+import type { Group } from '../../store/model'
+import { useResource } from '@/composables/useResources'
+import { KErrorCode } from '@/KError'
 
-const props = defineProps<{ code: string }>();
+const props = defineProps<{ code: string }>()
 
-const store = useStore();
-const { t } = useI18n();
+const store = useStore()
 
-const isDescriptionOpen = shallowRef(false);
-const descriptionRef = useTemplateRef<HTMLElement>('descriptionRef');
-const canToggleDescription = shallowRef(false);
-
-const isLoggedIn = computed(() => store.getters.isLoggedIn);
-const myMember = computed(() => store.getters.myMember);
-const groupOptions = computed(() => ({ group: props.code }));
-const { resource: group, loading, error } = useResource<Group>('groups', groupOptions);
-const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id);
-const memberCount = computed(() => group.value?.relationships.members.meta.count)
-const membersLabel = computed(
-  () => `${t('members')} ${isLoggedIn.value && memberCount.value ? `(${memberCount.value})` : ''}`
-);
-
-
-const toggleDescription = () => {
-  isDescriptionOpen.value = !isDescriptionOpen.value;
-};
-const calculateDescriptionOverflow = async (maxLines = 3) => {
-  await nextTick();
-
-  const el = descriptionRef.value;
-  if (!el) {
-    canToggleDescription.value = false;
-    return;
-  }
-
-  const style = window.getComputedStyle(el);
-  const lineHeight = Number.isFinite(parseFloat(style.lineHeight)) ? parseFloat(style.lineHeight) : 20;
-  const maxHeight = lineHeight * maxLines;
-
-  canToggleDescription.value = el.scrollHeight > maxHeight + 1;
-};
-
-watch(group, async () => {
-  await calculateDescriptionOverflow();
-}, { immediate: true });
-
+const isLoggedIn = computed(() => store.getters.isLoggedIn)
+const myMember = computed(() => store.getters.myMember)
+const groupOptions = computed(() => ({ group: props.code }))
+const { resource: group, loading, error } = useResource<Group>('groups', groupOptions)
+const own = computed(() => !!group.value && group.value.id === myMember.value?.group.id)
 </script>

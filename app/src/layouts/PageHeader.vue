@@ -1,9 +1,11 @@
 <template>
   <q-header>
     <div
-      id="header"
-      class="bg-primary flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md"
-      :class="showBalance ? 'wrap' : 'q-pt-xs no-wrap'"
+      class="header flex row justify-between items-center q-pt-sm q-pb-xs q-pr-md text-on-surface-medium"
+      :class="[
+        showBalance ? 'wrap' : 'q-pt-xs no-wrap',
+        scrollOffset > 0 ? 'bg-surface-container-high' : 'bg-surface-container'
+      ]"
       :style="`height: ${computedHeight}px;`"
     >
         <!-- render back button, menu button, profile button or none -->
@@ -36,17 +38,15 @@
       <div
         v-if="showBalance"
         class="col self-center column items-center"
-        style="min-width: 100%; max-width: 100%;"
+        :style="{ minWidth: '100%', maxWidth: '100%', '--balance-scale': toValue(balanceScaleFactor) }"
       > 
         <div 
-          class="text-body2 text-onprimary-m"
-          :style="`font-size: ${0.875*balanceScaleFactor}rem; line-height: ${1.25*balanceScaleFactor}rem;`"
+          class="text-body-medium balance-label"
         >
           {{ $t('balance') }}
         </div>
         <div 
-          class="text-h3 text-onprimary-m"
-          :style="`font-size: ${3*balanceScaleFactor}rem; line-height: ${3.125*balanceScaleFactor}rem`"
+          class="text-display-medium balance-value"
         >
           {{
             FormatCurrency(
@@ -61,17 +61,20 @@
         style="max-width: none; min-width: 0;flex: 1 1 0%; padding-right: 0;"
         :class="inlineLeftButton ? 'q-pl-none' : 'q-pl-md'"
       >
-        <q-toolbar-title v-if="!searchActive">
+        <q-toolbar-title 
+          v-if="!searchActive"
+          class="text-title-large">
           {{ title }}
         </q-toolbar-title>
         <q-input
           v-if="searchActive"
           v-model="searchText"
-          dark
           dense
-          standout
-          class="q-mr-xs search-box"
-          type="search"
+          outlined
+          rounded
+          bg-color="surface-container-highest"
+          class="q-mr-xs search-box input-outlined-borderless"
+          type="search" 
           debounce="250"
           autofocus
           @update:model-value="onUpdateSearchText"
@@ -110,12 +113,19 @@
           />
         </slot>
         <q-scroll-observer
-          v-if="requireBalance"
           @scroll="scrollHandler"
         />
       </q-toolbar>
     </div>
     <banner />
+    <q-linear-progress
+      v-if="showLoading"
+      indeterminate
+      size="2px"
+      color="primary"
+      class="absolute-bottom"
+      :aria-label="$t('loading')"
+    />
   </q-header>
 </template>
 <script setup lang="ts">
@@ -130,7 +140,7 @@
  * depending on the page content.
  */
 
-import { ref, computed, type MaybeRef, toValue } from "vue";
+import { ref, computed, watch, type MaybeRef, toValue } from "vue";
 import { useStore } from "vuex"
 import { useRoute, useRouter } from "vue-router"
 import FormatCurrency from "../plugins/FormatCurrency";
@@ -142,11 +152,13 @@ const props = withDefaults(defineProps<{
   search?: boolean;
   balance?: boolean;
   back?: string;
+  loading?: boolean
 }>(), {
   title: "",
   search: false,
   balance: false,
   back: "",
+  loading: false,
 })
 
 const emit = defineEmits<{
@@ -155,6 +167,16 @@ const emit = defineEmits<{
 }>()
 
 const store = useStore()
+
+const showLoading = ref(false)
+// Fast refreshes stay silent; cancel the delay when loading ends or the page unmounts.
+watch(() => props.loading, (loading, _, onCleanup) => {
+  showLoading.value = false
+  if (loading) {
+    const timer = setTimeout(() => { showLoading.value = true }, 300)
+    onCleanup(() => clearTimeout(timer))
+  }
+}, { immediate: true })
 
 const searchActive = ref(false)
 const searchText = ref("")
@@ -185,13 +207,24 @@ const showLogOut = computed(() => store.getters.isLoggedIn && (!store.getters.is
 
 /**
   * Constant value for the thin header height.
+  * Keep in sync with $toolbar-min-height in css/quasar.variables.scss.
   */
 const headerHeight = 64
 let computedHeight: MaybeRef<number> = headerHeight
 let requireBalance: MaybeRef<boolean> = false
 let showBalance: MaybeRef<boolean> = false
 let balanceScaleFactor: MaybeRef<number> = 0
-let scrollHandler: (details: {position: {top: number}}) => void | undefined = undefined
+
+// Keep the header darkened while content is scrolled underneath it.
+const scrollHandler = (details: { position: { top: number } }) => {
+  scrollOffset.value = details.position.top
+
+  // If balance feature is enabled, handle balance scaling
+  if (import.meta.env.FEAT_HEADER_BALANCE === 'true') {
+    const originalHeight = toValue(requireBalance) ? 2 * 50 + 70 : headerHeight
+    offset.value = Math.min(details.position.top, originalHeight - headerHeight)
+  }
+}
 
 // This code is stripped out if the feature is disabled
 if (import.meta.env.FEAT_HEADER_BALANCE === 'true') {
@@ -213,12 +246,6 @@ if (import.meta.env.FEAT_HEADER_BALANCE === 'true') {
   computedHeight = computed(() => originalHeight.value - offset.value)
   balanceScaleFactor = computed(() => Math.max(0, 1 - offset.value / balanceHeight))
   showBalance = computed(() => toValue(requireBalance) && offset.value < balanceHeight)
-
-  
-  scrollHandler = (details: { position: { top: number; }; }) => {
-    offset.value = Math.min(details.position.top, originalHeight.value - headerHeight)
-    scrollOffset.value = details.position.top
-  }
 }
 
 // Computes whether there is a button on the left of the title, to help adjusting the title padding.
@@ -254,10 +281,18 @@ const goUp = () => {
 
 </script>
 <style lang="scss" scoped>
-// Toolbar has a default padding of 12px. That's ok when there's a button,
-// but it is too low when there's the title directly.
-.no-button {
-  padding-left: 16px;
+.header {
+  transition: background-color 0.3s ease-in-out;
+}
+
+// Animate the token sizes as the balance section collapses on scroll.
+.balance-label {
+  font-size: calc(#{type-value('body-medium', size)} * var(--balance-scale));
+  line-height: calc(#{type-value('body-medium', line-height)} * var(--balance-scale));
+}
+.balance-value {
+  font-size: calc(#{type-value('display-medium', size)} * var(--balance-scale));
+  line-height: calc(#{type-value('display-medium', line-height)} * var(--balance-scale));
 }
 
 // We need to say that the search box takes all horizontal space, but the

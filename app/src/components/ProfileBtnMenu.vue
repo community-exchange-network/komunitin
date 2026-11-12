@@ -34,7 +34,7 @@
             :img-src="myMember?.attributes.image"
             :text="myMember?.attributes.name || ''"
           />
-          <span class="text-center text-subtitle1 q-mt-md">
+          <span class="text-center text-body-large q-mt-md">
             {{ myMember?.attributes.name }}
           </span>
           <span class="text-center text-grey-7">
@@ -46,19 +46,19 @@
 
         <menu-item
           icon="account_circle"
-          :title="$t('myProfile')"
+          :title="$t('yourProfile')"
           :to="`/groups/${groupCode}/members/${myMember?.attributes.code}`"
         />
         <notifications-menu-item />
         <menu-item
           icon="loyalty"
-          :title="$t('myNeeds')"
-          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#needs`"
+          :title="$t('yourNeeds')"
+          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}/needs`"
         />
         <menu-item
           icon="local_offer"
-          :title="$t('myOffers')"
-          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}#offers`"
+          :title="$t('yourOffers')"
+          :to="`/groups/${groupCode}/members/${myMember?.attributes.code}/offers`"
         />
         <menu-item
           icon="edit"
@@ -115,6 +115,6 @@ const feedbackURL = config.FEEDBACK_URL;
 </script>
 <style lang="scss" scoped>
 .profile-btn {
-  outline: 1px solid rgba($onprimary, 0.2); 
+  outline: 1px solid rgba($on-primary, 0.2);
 }
 </style>

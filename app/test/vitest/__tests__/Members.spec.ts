@@ -2,7 +2,7 @@
 import type { VueWrapper } from "@vue/test-utils";
 import App from "../../../src/App.vue";
 import { mountComponent, requireText, waitFor } from "../utils";
-import { QInnerLoading, QInfiniteScroll, QAvatar } from "quasar";
+import { QInfiniteScroll, QAvatar } from "quasar";
 import MemberHeader from "../../../src/components/MemberHeader.vue";
 import PageHeader from "../../../src/layouts/PageHeader.vue";
 import MemberList from "../../../src/pages/members/MemberList.vue";
@@ -24,7 +24,7 @@ describe("Members", () => {
     // Click members link
     await wrapper.get("#menu-members").trigger("click");
     await waitFor(() => wrapper.vm.$route.fullPath, "/groups/GRP0/members");
-    expect(wrapper.getComponent(QInnerLoading).isVisible()).toBe(true);
+    expect(wrapper.get('[role="status"][aria-label="Loading..."]').isVisible()).toBe(true);
     // Wait for content loading.
     await waitFor(
       () => wrapper.getComponent(MemberList).findAllComponents(MemberHeader).length,

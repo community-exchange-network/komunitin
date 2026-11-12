@@ -3,6 +3,7 @@
     <page-header
       search
       :title="title"
+      :loading="refreshing"
       balance
       @search="query = $event"
     />
@@ -15,6 +16,7 @@
           :filter="props.filter"
           :sort="props.sort"
           :query="query"
+          @refreshing="refreshing = $event"
         />
         <slot name="after" />
       </q-page>
@@ -36,5 +38,6 @@ const props = defineProps<{
 }>()
 
 const query = ref("");
+const refreshing = ref(false)
 
 </script>

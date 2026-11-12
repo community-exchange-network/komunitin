@@ -3,13 +3,14 @@
     v-model="amount"
     name="amount"
     :label="$t('amountIn', {currency: currency.attributes.namePlural})"
-    outlined
+    standout
+    class="input-standout-light"
     required
     :rules="[v => !!v || $t('fieldRequired'), (value: string) => amountValid(value) || $t('ErrorInvalidAmount')]"
     @blur="format"
   >
     <template #append>
-      <span class="text-h6 text-onsurface-m">{{ currency.attributes.symbol }}</span>
+      <span class="text-body-large text-on-surface-medium">{{ currency.attributes.symbol }}</span>
     </template>
   </q-input>
 </template>

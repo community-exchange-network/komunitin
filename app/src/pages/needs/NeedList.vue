@@ -12,7 +12,7 @@
       <floating-btn
         :label="$t('createNeed')"
         icon="add"
-        color="kred"
+        color="want"
         :to="`/groups/${code}/needs/new`"
       />
     </template>

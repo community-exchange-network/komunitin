@@ -1,6 +1,7 @@
 <template>
   <div>
     <q-infinite-scroll
+      :disable="!hasNext"
       @load="loadNextResources"
     >
       <empty v-if="isEmpty" />
@@ -22,25 +23,20 @@
           </div>
         </div>
       </slot>
-      <template #loading>
-        <div class="row justify-center q-my-md">
-          <!-- 42px is the default size of q-inner-loading -->
-          <q-spinner
-            color="icon-dark"
-            size="42px"
-          />
-        </div>
-      </template>
+      <div
+        v-if="loading && !refreshing"
+        class="row justify-center q-my-md"
+        role="status"
+        :aria-label="$t('loading')"
+      >
+        <q-spinner color="icon" size="42px" />
+      </div>
     </q-infinite-scroll>
-    <q-inner-loading
-      :showing="loading"
-      color="icon-dark"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useStore } from "vuex";
 import Empty from "../components/Empty.vue";
 import NeedCard from "../components/NeedCard.vue";
@@ -86,6 +82,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'page-loaded', page: number): void
+  (e: 'refreshing', value: boolean): void
 }>()
 
 // Register components for dynamic usage
@@ -107,6 +104,7 @@ const components = {
 const store = useStore()
 const location = computed(() => store.state.me.location)
 const currentPage = ref(0)
+const loadingList = ref(false)
 
 // If props.moduleName is already an array, just return it, otherwise wrap it in an array
 const types = Array.isArray(props.type) ? props.type : [props.type];
@@ -122,27 +120,36 @@ const { resources, hasNext, loadNext, load, loading } =  useMergedResources(type
   cache: props.cache
 }, { immediate: false });
 
-const loadNextResources = async (index: number, done: (stop?: boolean) => void) => {
+const loadNextResources = async (index: number, done: () => void) => {
   if (hasNext.value && !loading.value) {
     await loadNext();
     currentPage.value += 1;
     emit("page-loaded", currentPage.value);
   }
-  // Stop loading if there is no next page. Note that we're not
-  // stopping the infinite scrolling if hasNext returns undefined.
-  done(hasNext.value === false);
+  done()
 }
 
 const isEmpty = computed(() => resources.value.length === 0 && !loading.value && hasNext.value === false);
 
+// Report first-page loads with cached content to the header.
+const refreshing = computed(() => loadingList.value && resources.value.length > 0)
+watch(refreshing, value => emit('refreshing', value), { immediate: true })
+onBeforeUnmount(() => emit('refreshing', false))
+
 const loadResources = async () => {
-  await load({
-    search: props.query,
-    filter: props.filter,
-    sort: props.sort,
-  });
-  currentPage.value = 0;
-  emit("page-loaded", currentPage.value);
+  loadingList.value = true
+  try {
+    await load({
+      group: props.code,
+      search: props.query,
+      filter: props.filter,
+      sort: props.sort,
+    })
+    currentPage.value = 0
+    emit("page-loaded", currentPage.value)
+  } finally {
+    loadingList.value = false
+  }
 }
 // Refetch resources when any prop changes
 watch([() => [props.query, props.code, props.include, props.sort]], loadResources)

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="text-h6">
+    <div class="text-title-large">
       {{ $t('signupVerifyEmail') }}
     </div>
     <div>
@@ -8,10 +8,10 @@
         <q-icon
           name="forward_to_inbox"
           size="100px"
-          color="icon-dark"
+          color="icon"
         />
       </div>
-      <div class="text-body1 text-onsurface-m q-pt-md">
+      <div class="text-body-large text-on-surface-medium q-pt-md">
         {{ $t('signupVerifyEmailText') }}
       </div>
     </div>

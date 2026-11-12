@@ -2,6 +2,7 @@
   <page-header
       search
       :title="$t('home')"
+      :loading="refreshing"
       balance
       @search="query = $event"
     />
@@ -14,11 +15,10 @@
         sort="-updated"
         :filter="{ status: 'published', expired: 'false' }"
         :query="query"
+        @refreshing="refreshing = $event"
       />
       <floating-btn-menu 
         :actions="actions" 
-        color="white"
-        text-color="primary"
       />
     </q-page>
   </q-page-container>
@@ -35,6 +35,7 @@ import FloatingBtnMenu, { type FABAction } from '../../components/FloatingBtnMen
 
 const store = useStore();
 const query = ref("");
+const refreshing = ref(false)
 
 const code = computed(() => store.getters.myGroup?.attributes.code)
 
@@ -42,12 +43,12 @@ const { t } = useI18n()
 const actions = computed<FABAction[]>(() => [{
   label: t('createNeed'),
   icon: 'loyalty',
-  color: 'kred',
+  color: 'want',
   to: `/groups/${code.value}/needs/new`
 }, {
   label: t('createOffer'),
   icon: 'local_offer',
-  color: 'kblue',
+  color: 'offer',
   to: `/groups/${code.value}/offers/new`
 }])
 

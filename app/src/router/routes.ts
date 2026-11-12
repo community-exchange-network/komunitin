@@ -179,6 +179,24 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/members/Member.vue')
       },
       {
+        path: '/groups/:code/members/:memberCode/offers',
+        props: route => ({ ...route.params, page: 'offers' }),
+        name: 'MemberOffers',
+        component: () => import('../pages/members/MemberActivity.vue')
+      },
+      {
+        path: '/groups/:code/members/:memberCode/needs',
+        props: route => ({ ...route.params, page: 'needs' }),
+        name: 'MemberNeeds',
+        component: () => import('../pages/members/MemberActivity.vue')
+      },
+      {
+        path: '/groups/:code/members/:memberCode/transfers',
+        props: route => ({ ...route.params, page: 'transfers' }),
+        name: 'MemberTransfers',
+        component: () => import('../pages/members/MemberActivity.vue')
+      },
+      {
         path: '/groups/:code/members/:memberCode/transactions',
         props: true,
         name: 'TransactionList',

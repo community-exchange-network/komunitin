@@ -2,13 +2,13 @@
   <line-chart 
     :options="options"
     :data="datasets"
-    style="height: 300px"
+    style="height: 260px"
   />
 </template>
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useCssModule } from 'vue'
 
-import { Chart, Tooltip, TimeScale, LinearScale, PointElement, LineElement, Filler } from 'chart.js'
+import { Chart, Tooltip, TimeScale, LinearScale, PointElement, LineElement } from 'chart.js'
 import type { ChartData, ChartOptions } from 'chart.js'
 import { Line as LineChart } from 'vue-chartjs'
 import "chartjs-adapter-date-fns" //overrides default date adapter as a side effect
@@ -19,7 +19,18 @@ import type { Currency } from '@/store/model'
 import { getDateLocale } from "../boot/i18n"
 import formatCurrency from '@/plugins/FormatCurrency'
 
-Chart.register(Tooltip, Filler, LinearScale, TimeScale, PointElement, LineElement)
+Chart.register(Tooltip, LinearScale, TimeScale, PointElement, LineElement)
+
+// Chart text uses the same body-small token as captions and tooltips.
+// Convert rem token values to pixels for the canvas API.
+const theme = useCssModule()
+const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
+
+Chart.defaults.font.family = theme.family;
+Chart.defaults.font.size = parseFloat(theme.size) * rootFontSize;
+Chart.defaults.font.weight = Number(theme.weight);
+Chart.defaults.font.lineHeight = parseFloat(theme.lineHeight) / parseFloat(theme.size);
+Chart.defaults.color = theme.textColor;
 
 const props = defineProps<{
   data: number[]
@@ -87,12 +98,22 @@ const timeFormat = computed(() => {
 const options = computed<ChartOptions<"line">>(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  // Show the tooltip for the nearest date, not only when hovering the point itself.
+  interaction: {
+    mode: 'index',
+    intersect: false
+  },
   scales: {
     x: {
       type: 'time',
       time: {
         unit: unit.value,
         tooltipFormat: timeFormat.value,
+        // Short month labels; the year is only shown at year boundaries (major ticks).
+        displayFormats: {
+          month: 'MMM',
+          year: 'yyyy'
+        }
       },
       adapters: {
         date: {
@@ -100,10 +121,21 @@ const options = computed<ChartOptions<"line">>(() => ({
         }
       },
       grid: {
-        drawTicks: false
+        display: false
       },
+      border: {
+        color: theme.gridColor
+      },
+      // Few, horizontal labels. Major ticks (year boundaries) are kept when skipping labels.
       ticks: {
-        padding: 10
+        padding: 10,
+        maxRotation: 0,
+        autoSkipPadding: 16,
+        maxTicksLimit: 6,
+        major: {
+          enabled: props.interval === 'P1M'
+        },
+        font: (context) => context.tick?.major ? { weight: 600 } : undefined
       }
     },
     y: {
@@ -112,22 +144,41 @@ const options = computed<ChartOptions<"line">>(() => ({
         callback: props.isCurrency && props.currency ? (value: string|number) => {
           return formatCurrency(value as number, props.currency, {decimals: false})
         } : undefined,
-        padding: 10
+        padding: 10,
+        maxTicksLimit: 5
       },
       grid: {
-        drawTicks: false
+        drawTicks: false,
+        color: theme.gridColor
+      },
+      border: {
+        display: false
       }
     },
   },
   elements: {
     point: {
+      radius: 0,
+      hoverRadius: 5,
       backgroundColor: '#FFFFFF',
       borderWidth: 2,
       hoverBorderWidth: 2,
+    },
+    line: {
+      borderWidth: 2,
+      // Smooth curve that never overshoots the data.
+      cubicInterpolationMode: 'monotone'
     }
   },
   plugins: {
     tooltip: {
+      backgroundColor: theme.tooltipBackground,
+      titleColor: theme.tooltipColor,
+      bodyColor: theme.tooltipColor,
+      titleFont: { weight: 600 },
+      padding: 10,
+      cornerRadius: 8,
+      displayColors: false,
       callbacks: {
         label: (props.isCurrency && props.currency) ? (context) => {
           return formatCurrency(context.parsed.y, props.currency)
@@ -141,8 +192,23 @@ type TimePoint = {x: Date, y: number}
 const datasets = computed<ChartData<"line", TimePoint[]>>(() => ({
   datasets: [{
     data: mainData.value,
-    borderColor: '#2f7989',
-    fill: '#FFFFFF',
+    borderColor: theme.lineColor,
+    pointBorderColor: theme.lineColor,
+    fill: false,
   }]
 }))
 </script>
+<style lang="scss" module>
+// Pass the canvas font and palette values to this component's script.
+:export {
+  family: type-value('body-small', family);
+  size: type-value('body-small', size);
+  weight: type-value('body-small', weight);
+  lineHeight: type-value('body-small', line-height);
+  textColor: $on-surface-medium;
+  gridColor: $separator-color;
+  lineColor: $primary;
+  tooltipBackground: $tooltip-background;
+  tooltipColor: $tooltip-color;
+}
+</style>

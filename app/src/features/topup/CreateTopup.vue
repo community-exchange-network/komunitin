@@ -6,99 +6,105 @@
   />
   <q-page-container>
     <q-page>
-      <div class="row justify-center">
-        <div class="q-py-lg q-px-md col-12 col-sm-8 col-md-6">
-          <div v-if="step === 'form'" class="q-gutter-y-lg column">
-            <div class="text-subtitle1">{{t('topupFormHeader')}}</div>
-            <div class="text-onsurface-m">{{t('topupFormText')}}</div>
-            <q-input
-              ref="amountRef"
-              v-model="amountToDepositInput"
-              :label="t('topupAmountToDeposit')"
-              :hint="t('topupAmountToDepositHint', {currency: settings.depositCurrency})"
-              outlined
-              required
-              :rules="[
-                () => amountToDeposit !== undefined || t('ErrorInvalidAmount'),
-                () => amountToDeposit >= minAmount || t('topupErrorMinAmount', {amount: minAmount / 100}),
-                () => maxAmount === false || amountToDeposit <= maxAmount || t('topupErrorMaxAmount', {amount: maxAmount / 100})
-              ]"
-            >
-              <template #append>
-                <span class="text-h6 text-onsurface-m">{{ settings.depositCurrency }}</span>
-              </template>
-            </q-input>
-            <q-input
-              :model-value="formatCurrency(amountToReceive, myCurrency, {symbol: false})"
-              :label="t('topupAmountToReceive')"
-              :hint="t('topupAmountToReceiveHint', {currency: myCurrency.attributes.namePlural})"
-              outlined
-              readonly
-            >
-              <template #append>
-                <span class="text-h6 text-onsurface-m">{{ myCurrency.attributes.symbol }}</span>
-              </template>
-            </q-input>
-            <q-btn
-              :label="t('topupNext')"
-              type="submit"
-              color="primary"
-              unelevated
-              @click="next"
-            />
-          </div>
-          <div v-if="step === 'disclaimer'" class="q-gutter-y-lg column">
-            <div class="text-subtitle1">{{ t('topupDisclaimerHeader', {
-              depositCurrency: settings.depositCurrency,
-              receiveCurrency: myCurrency.attributes.namePlural
-            }) }}</div>
-            <div class="text-onsurface-m" v-html="md2html(t('topupDisclaimerText',{
-              group: myGroup.attributes.name,
-              receiveCurrency: myCurrency.attributes.namePlural,
-              depositCurrency: settings.depositCurrency,
-              rateDescription
-            }))" />
-            <div class="row q-gutter-sm">
-              <q-btn
-                class="col"
-                :label="t('back')"
-                flat
-                color="primary"
-                @click="back"
-              />
-              <q-btn
-                :label="t('topupAcceptDisclaimer')"
-                type="submit"
-                color="primary"
-                unelevated
-                class="col"
-                @click="next"
-              />
-            </div>
-          </div>
-          <div v-if="step === 'confirmation'" class="q-gutter-y-lg column">
-            <div class="text-subtitle1">{{ t('topupCheckoutHeader') }}</div>
-            <div class="text-onsurface-m">{{ t('topupCheckoutText') }}</div>
-            <topup-card :topup="topup" :account="myAccount" />
-            <div class="row q-gutter-sm">
-              <q-btn
-                :label="t('back')"
-                color="primary"
-                flat
-                class="col"
-                @click="back"
-                :disable="isLoading"
-              />
-              <q-btn
-                :label="t('checkout')"
-                color="primary"
-                unelevated
-                class="col"
-                @click="checkout"
-                :loading="isLoading"
-              />
-            </div>
-          </div>
+      <div class="row justify-center q-pa-md">
+        <div class="col-12 col-sm-8 col-lg-6">
+          <q-card>
+            <q-card-section>
+              <div v-if="step === 'form'" class="q-gutter-y-lg column">
+                <div class="text-title-medium">{{t('topupFormHeader')}}</div>
+                <div class="text-on-surface-medium">{{t('topupFormText')}}</div>
+                <q-input
+                  ref="amountRef"
+                  v-model="amountToDepositInput"
+                  :label="t('topupAmountToDeposit')"
+                  :hint="t('topupAmountToDepositHint', {currency: settings.depositCurrency})"
+                  standout
+                  class="input-standout-light"
+                  required
+                  :rules="[
+                    () => amountToDeposit !== undefined || t('ErrorInvalidAmount'),
+                    () => amountToDeposit >= minAmount || t('topupErrorMinAmount', {amount: minAmount / 100}),
+                    () => maxAmount === false || amountToDeposit <= maxAmount || t('topupErrorMaxAmount', {amount: maxAmount / 100})
+                  ]"
+                >
+                  <template #append>
+                    <span class="text-body-large text-on-surface-medium">{{ settings.depositCurrency }}</span>
+                  </template>
+                </q-input>
+                <q-input
+                  :model-value="formatCurrency(amountToReceive, myCurrency, {symbol: false})"
+                  :label="t('topupAmountToReceive')"
+                  :hint="t('topupAmountToReceiveHint', {currency: myCurrency.attributes.namePlural})"
+                  standout
+                  class="input-standout-light"
+                  readonly
+                >
+                  <template #append>
+                    <span class="text-body-large text-on-surface-medium">{{ myCurrency.attributes.symbol }}</span>
+                  </template>
+                </q-input>
+                <q-btn
+                  :label="t('topupNext')"
+                  type="submit"
+                  color="primary"
+                  unelevated
+                  @click="next"
+                />
+              </div>
+              <div v-if="step === 'disclaimer'" class="q-gutter-y-lg column">
+                <div class="text-title-medium">{{ t('topupDisclaimerHeader', {
+                  depositCurrency: settings.depositCurrency,
+                  receiveCurrency: myCurrency.attributes.namePlural
+                }) }}</div>
+                <div class="text-on-surface-medium" v-html="md2html(t('topupDisclaimerText',{
+                  group: myGroup.attributes.name,
+                  receiveCurrency: myCurrency.attributes.namePlural,
+                  depositCurrency: settings.depositCurrency,
+                  rateDescription
+                }))" />
+                <div class="row q-gutter-sm">
+                  <q-btn
+                    class="col"
+                    :label="t('back')"
+                    flat
+                    color="primary"
+                    @click="back"
+                  />
+                  <q-btn
+                    :label="t('topupAcceptDisclaimer')"
+                    type="submit"
+                    color="primary"
+                    unelevated
+                    class="col"
+                    @click="next"
+                  />
+                </div>
+              </div>
+              <div v-if="step === 'confirmation'" class="q-gutter-y-lg column">
+                <div class="text-title-medium">{{ t('topupCheckoutHeader') }}</div>
+                <div class="text-on-surface-medium">{{ t('topupCheckoutText') }}</div>
+                <topup-card :topup="topup" :account="myAccount" />
+                <div class="row q-gutter-sm">
+                  <q-btn
+                    :label="t('back')"
+                    color="primary"
+                    flat
+                    class="col"
+                    @click="back"
+                    :disable="isLoading"
+                  />
+                  <q-btn
+                    :label="t('checkout')"
+                    color="primary"
+                    unelevated
+                    class="col"
+                    @click="checkout"
+                    :loading="isLoading"
+                  />
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
         </div>
       </div>
     </q-page>

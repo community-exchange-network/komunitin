@@ -5,12 +5,12 @@
   >
     <q-spinner-radio 
       :size="100"
-      :color="dark ? 'onoutside' : 'primary'"
+      :color="dark ? 'on-outside' : 'primary'"
     />
     <div 
       :class="{
-        'text-onoutside': dark,
-        'text-onsurface': !dark
+        'text-on-outside': dark,
+        'text-on-surface': !dark
       }"
     >
       {{ $t('scanningNfc') }}
@@ -18,7 +18,7 @@
     <q-btn
       flat
       :label="$t('cancel')"
-      :color="dark ? 'onoutside' : 'primary'"
+      :color="dark ? 'on-outside' : 'primary'"
       @click="cancel()"
     />
   </div>
@@ -29,7 +29,7 @@
     <q-icon 
       name="warning"
       size="100px" 
-      :color="dark ? 'onoutside' : 'negative'"
+      :color="dark ? 'on-outside' : 'negative'"
     />
     <div>
       {{ !isNfcAvailable ? $t('ErrorNFCUnavailable') : $t("ErrorNFCReadError") }}
@@ -38,7 +38,7 @@
       v-if="isNfcAvailable"
       flat
       :label="$t('scanNfc')"
-      :color="dark ? 'onoutside' : 'primary'"
+      :color="dark ? 'on-outside' : 'primary'"
       @click="startScan()"
     />
   </div>

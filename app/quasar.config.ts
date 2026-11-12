@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url"
 import vitePluginChecker from 'vite-plugin-checker'
 import { vitePluginFlavorPublic } from './build-tools/vite-plugin-flavor-public'
 import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets'
+import { vitePluginMaterialSymbols } from './build-tools/vite-plugin-material-symbols'
 import { vitePluginFlavorOverrideSassVariables } from './build-tools/vite-plugin-flavor-override-sass-variables'
 import { vitePluginFlavorOverrideI18n } from "./build-tools/vite-plugin-flavor-override-i18n"
 import { getThemeColors } from "./build-tools/manifest-utils"
@@ -28,6 +29,7 @@ export default defineConfig((ctx) => {
       "i18n",
       "store",
       { path: "push-notifications", server: false },
+      "icons",
       ...(environment.FEAT_GTM === "true" ? [{ path: "gtm", server: false as const }] : []),
       ...(environment.FEAT_MATOMO === "true" ? [{ path: "matomo", server: false as const }] : []),
       ...(environment.MOCK_ENABLE === "true" ? [{ path: "mirage", server: false as const }] : []),
@@ -37,27 +39,13 @@ export default defineConfig((ctx) => {
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
     css: [
-      "app.sass",
-    ],
-
-    // https://github.com/quasarframework/quasar/tree/dev/extras
-    extras: [
-      // 'ionicons-v4',
-      // 'mdi-v4',
-      // 'fontawesome-v5',
-      // 'eva-icons',
-      // 'themify',
-      // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
-
-      "roboto-font", // optional, you are not bound to it
-      "material-icons" // optional, you are not bound to it
+      "app.scss",
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework
     framework: {
-      iconSet: "material-icons", // Quasar icon set
+      iconSet: "material-symbols-rounded", // app.scss loads the static font for this set.
       lang: "en-US", // Quasar language pack
-
 
       // Quasar plugins
       plugins: ["Notify", "LocalStorage", "Loading"],
@@ -88,6 +76,7 @@ export default defineConfig((ctx) => {
         }
       },
       vitePlugins: [
+        vitePluginMaterialSymbols(ctx.appPaths.resolve.cache('material-symbols')),
         ctx.prod ? ['rollup-plugin-visualizer', { filename: 'dist/stats.html', gzipSize: true }, { server: false }] : null,
         [vitePluginChecker, {
           eslint: {

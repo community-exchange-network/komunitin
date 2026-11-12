@@ -1,14 +1,14 @@
 <template>
   <div class="q-gutter-y-lg">
     <div>
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('signupSettings') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('signupSettingsText') }}
       </div>
     </div>
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('termsOfUse') }}
     </div>
     <toggle-item
@@ -20,12 +20,13 @@
       v-model="terms"
       type="textarea"
       :label="$t('termsOfUse')"
-      outlined
+      standout
+      class="input-standout-light"
       autogrow
       :debounce="1000"
       input-style="min-height: 100px;"
     />
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('offersAndNeeds') }}
     </div>
     <q-input
@@ -35,7 +36,8 @@
       :hint="$t('minOffersHint')"
       min="0"
       max="5"
-      outlined
+      standout
+      class="input-standout-light"
     />
     <q-input
       v-model.number="minNeeds"
@@ -44,9 +46,10 @@
       :hint="$t('minNeedsHint')"
       min="0"
       max="5"
-      outlined
+      standout
+      class="input-standout-light"
     />
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('accountStart') }}
     </div>
     <amount-input
@@ -54,28 +57,30 @@
       :label="$t('initialCredit')"
       :hint="$t('initialCreditHint')"
       :currency="currency"
-      outlined
+      standout
+      class="input-standout-light"
     />
     <amount-input
       v-model="defaultInitialMaximumBalance"
       :label="$t('maximumBalance')"
       :hint="$t('initialMaximumBalanceHint')"
       :currency="currency"
-      outlined
+      standout
+      class="input-standout-light"
     />
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('marketplace') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('marketplaceText') }}
       </div>
     </div>
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('categories') }}
     </div>
-    <div class="text-onsurface-m">
+    <div class="text-on-surface-medium">
       {{ $t('categoriesText') }}
     </div>
     <categories-field
@@ -86,7 +91,7 @@
     />
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('emails') }}
       </div>
     </div>
@@ -108,10 +113,10 @@
     />
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('accountDefaults') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('accountDefaultsText') }}
       </div>
     </div>
@@ -122,14 +127,14 @@
     />
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('externalPayments') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('externalPaymentsText') }}
       </div>
     </div>
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('settings') }}
     </div>
     <toggle-item
@@ -157,7 +162,8 @@
       type="text"
       :label="$t('currencyValue')"
       :hint="$t('currencyValueHint')"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules="[(val: string) => val.match(/^\d+(\/\d+)?$/) || $t('invalidCurrencyValue')]"
       hide-bottom-space
@@ -173,7 +179,8 @@
           :currency="currency"
           :label="$t('externalTraderCreditLimit')"
           :hint="$t('externalTraderCreditLimitHint')"
-          outlined
+          standout
+          class="input-standout-light"
           @update:model-value="updateModelValue"
         />
       </template>
@@ -188,15 +195,16 @@
           :currency="currency"
           :label="$t('externalTraderMaximumBalance')"
           :hint="$t('externalTraderMaximumBalanceHint')"
-          outlined          
+          standout
+          class="input-standout-light"
           @update:model-value="updateModelValue"
         />
       </template>
     </input-update>
-    <div class="text-overline text-uppercase text-onsurface-m">
+    <div class="text-label-medium-uppercase text-on-surface-medium">
       {{ $t('trustlines') }}
     </div>
-    <div class="text-onsurface-m">
+    <div class="text-on-surface-medium">
       {{ $t('trustlinesText') }}
     </div>
     <trustlines-field
@@ -228,10 +236,10 @@
 
     <q-separator class="q-mt-xl" />
     <div class="q-mt-lg">
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ $t('groupStatus') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ $t('groupStatusText') }}
       </div>
     </div>
@@ -409,8 +417,3 @@ const externalTraderMaximumBalanceLoading = computed(() => lastCurrencySettingsU
 const featTopup = import.meta.env.FEAT_TOPUP === 'true'
 
 </script>
-<style lang="scss" scoped>
-.text-overline {
-  margin-bottom: -16px;
-}
-</style>

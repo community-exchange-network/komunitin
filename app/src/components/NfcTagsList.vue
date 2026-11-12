@@ -2,7 +2,7 @@
   <q-list>
     <div 
       v-if="!(modelValue?.length)" 
-      class="q-py-md text-onsurface"
+      class="q-py-md text-on-surface"
     >
       {{ $t('noTags') }}
     </div>
@@ -13,7 +13,7 @@
       <q-item-section avatar>
         <q-icon 
           name="nfc" 
-          color="icon-dark"
+          color="icon"
         />
       </q-item-section>
       <q-item-section>
@@ -55,7 +55,7 @@
     <q-card>
       <q-card-section>
         <div class="flex justify-between">
-          <div class="text-h6">
+          <div class="text-title-large">
             {{ actionLabel }}
           </div>
           <q-btn
@@ -71,13 +71,15 @@
         <q-input
           v-model="tagName"
           :label="$t('name')"
-          outlined
+          standout
+          class="input-standout-light"
         />
         <nfc-tag-input 
           v-model="tagValue"
           :label="$t('nfcTag')"
           :hint="$t('nfcTagHint')"
-          outlined
+          standout
+          class="input-standout-light"
         />
       </q-card-section>
       <q-card-section align="right">

@@ -4,11 +4,10 @@
       ref="uploader"  
       multiple
       accept="image/*"
-      color="white"
-      text-color="onsurface-m"
+      color="surface-container"
+      text-color="on-surface-medium"
       flat
-      bordered
-      class="full-width max-h"
+      class="full-width max-h bg-surface-container"
       hide-upload-btn
       v-bind="uploaderProps"
       v-on="uploaderEvents"
@@ -31,6 +30,7 @@
             v-if="scope.canAddFiles && !isProcessing"
             type="a"
             icon="add"
+            color="on-surface-variant"
             round
             dense
             flat
@@ -67,8 +67,8 @@
     </q-uploader>
     <div
       v-if="hint" 
-      class="text-onsurface-m q-pt-sm text-caption"
-      style="padding-left: 12px; line-height: 1;"
+      class="text-on-surface-medium q-pt-sm text-body-small"
+      style="padding-left: 12px;"
     >
       {{ hint }}
     </div>
@@ -126,9 +126,5 @@ watch(images, (value) => {
 <style lang="scss">
 .q-uploader {
   max-height: none;
-}
-.q-uploader__file--img {
-  aspect-ratio: 4/3;
-  height: auto;
 }
 </style>

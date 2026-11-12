@@ -2,7 +2,7 @@
   <div class="q-gutter-y-md">
     <div 
       v-if="['allowPayments', 'allowPaymentRequests', 'allowExternalPayments', 'allowExternalPaymentRequests'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-label-medium-uppercase text-on-surface-medium"
     >
       {{ $t('transferDirections') }}
     </div>
@@ -44,7 +44,7 @@
     />
     <div 
       v-if="['allowSimplePayments', 'allowSimplePaymentRequests', 'allowQrPayments', 'allowQrPaymentRequests', 'allowTagPayments', 'allowTagPaymentRequests', 'allowMultiplePayments', 'allowMultiplePaymentRequests'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-label-medium-uppercase text-on-surface-medium"
     >
       {{ $t('transferMethods') }}
     </div>
@@ -122,7 +122,7 @@
     />
     <div 
       v-if="['acceptPaymentsAutomatically', 'acceptPaymentsAfter', 'acceptExternalPaymentsAutomatically'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-label-medium-uppercase text-on-surface-medium"
     >
       {{ $t('paymentRequests') }}
     </div>
@@ -155,7 +155,7 @@
     />
     <div 
       v-if="['creditLimit', 'maximumBalance', 'onPaymentCreditLimit'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-label-medium-uppercase text-on-surface-medium"
     >
       {{ $t('limits') }}
     </div>
@@ -171,7 +171,8 @@
           :label="$t('creditLimit')"
           :hint="$t('creditLimitHint')"
           hide-bottom-space
-          outlined
+          standout
+          class="input-standout-light"
           @update:model-value="updateModelValue"
         />
       </template>
@@ -188,7 +189,8 @@
           :label="$t('maximumBalance')"
           :hint="$t('maximumBalanceHint')"
           hide-bottom-space
-          outlined
+          standout
+          class="input-standout-light"
           @update:model-value="updateModelValue"
         />
       </template>
@@ -206,12 +208,13 @@
       v-model="onPaymentCreditLimitValue"
       :currency="currency"
       :label="$t('onPaymentCreditLimit')"
-      outlined
+      standout
+      class="input-standout-light"
       :disable="!enableOnPaymentCreditLimit"
     />
     <div 
       v-if="['hideBalance'].some(show)"
-      class="text-overline text-uppercase text-onsurface-m"
+      class="text-label-medium-uppercase text-on-surface-medium"
     >
       {{ $t('privacy') }}
     </div>

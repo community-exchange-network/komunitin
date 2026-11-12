@@ -22,94 +22,45 @@
           :code="code"
           :offer="offer"          
           :to="`/groups/${code}/offers`"
-          color="white"
+          color="on-surface-medium"
         />
       </template>
     </page-header>
     <q-page-container>
       <q-page
         v-if="offer && isReady"
-        class="q-pa-lg"
+        class="q-pa-md"
       >
-        <offer-layout :num-images="offer.attributes.images.length">
-          <template #member>
-            <member-header
-              :to="`/groups/${code}/members/${offer.member.attributes.code}`"
-              :member="offer.member"
-              class="q-pa-none"
-            />
-          </template>
-          <template #category>
-            <category-avatar
-              type="offer"
-              :category="offer.category"
-              caption
-            />
-          </template>
-          <template #images>
-            <carousel
-              :images="offer.attributes.images"
-              thumbnails
-              height="400px"
-            />
-          </template>
-          <template #content>
-            <div class="text-h4 q-pb-sm">
+        <post-layout :post="offer" :code="code">
+          <template #header>
+            <div class="text-headline-large q-mb-md">
               {{ offer.attributes.title }}
             </div>
-            <div class="text-h6 q-pb-sm">
-              <span class="text-onsurface-m">{{ $t('price') }}</span>
-              <span>&nbsp;</span>
-              <span class="negative-amount">{{ price }}</span>
-            </div>
-            <div class="text-body2 text-onsurface-m q-pb-md">
-              <span>{{ $t('updatedAt', {
-                date: $formatDate(offer.attributes.updated)
-              }) }}</span>
-            </div>
-            <!-- eslint-disable vue/no-v-html -->
-            <div
-              class="col text-body1 text-onsurface"
-              v-html="md2html(offer.attributes.description)"
-            />
-            <!-- eslint-enable vue/no-v-html -->
-            <div v-if="offer.attributes.expires" class="text-body2 text-onsurface-m q-pb-md">
-              <span>{{ $t('expiresAt', {
-                date: $formatDate(offer.attributes.expires)
-              }) }}</span>
-            </div>
-            <div class="q-pb-lg row q-gutter-x-md justify-end">
-              <share-button 
-                flat
-                color="primary"
-                :label="$t('share')"
-                :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
-                :text="`${offer.attributes.title}\n${offer.attributes.description}`"
-              />
-              <contact-button
-                unelevated
-                color="primary"
-                :label="$t('contact')"
-                :contacts="offer.member.attributes.contacts"
-              /> 
+            <div class="q-mb-md">
+              <span class="text-body-small text-on-surface-variant q-mr-xs">{{ $t('price') }}</span>
+              <span class="text-display-extra-small text-amount-positive">{{ price }}</span>
             </div>
           </template>
-          <template #map>
-            <simple-map
-              class="simple-map"
-              :center="offer.member.attributes.location?.coordinates ?? offer.member.group.attributes.location?.coordinates"
-              :marker="offer.member.attributes.location?.coordinates"
+          <template #actions>
+            <contact-button
+              unelevated
+              color="primary"
+              :label="$t('contact')"
+              :contacts="offer.member.attributes.contacts"
             />
-            <div class="text-onsurface-m" v-if="offer.member.attributes.location?.name">
-              <q-icon name="place" />
-              {{ offer.member.attributes.location.name }}
-            </div>
+            <share-button
+              outline
+              color="primary"
+              :label="$t('share')"
+              :title="$t('checkThisOffer', {member: offer.member.attributes.name})"
+              :text="`${offer.attributes.title}\n${offer.attributes.description}`"
+            />
           </template>
-        </offer-layout>
-        <slot 
-          name="after" 
-          :offer="offer" 
-        />
+        </post-layout>
+        <!-- Reserve room for the preview's floating publish action. -->
+        <div v-if="$slots.after" class="q-pa-xl">
+          <slot name="after" :offer="offer" />
+        </div>
       </q-page>
     </q-page-container>
   </div>
@@ -117,22 +68,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import md2html from "../../plugins/Md2html";
-
-import OfferLayout from "../../layouts/OfferLayout.vue";
+import PostLayout from "../../layouts/PostLayout.vue";
 import PageHeader from "../../layouts/PageHeader.vue";
 
-import Carousel from "../../components/Carousel.vue";
-import CategoryAvatar from "../../components/CategoryAvatar.vue";
 import ContactButton from "../../components/ContactButton.vue";
 import DeleteOfferBtn from "../../components/DeleteOfferBtn.vue";
-import MemberHeader from "../../components/MemberHeader.vue";
 import ShareButton from "../../components/ShareButton.vue";
-import SimpleMap from "../../components/SimpleMap.vue";
 import Error404 from "../Error404.vue";
 
 import { formatPrice } from "@/plugins/FormatCurrency";
-import { useStore } from "vuex";
+import { useCanEditPost } from '@/composables/editablePost'
 import { useResource } from "@/composables/useResources";
 import type { Category, Currency, Group, Member, Offer } from "@/store/model";
 import { KErrorCode } from "@/KError";
@@ -146,8 +91,6 @@ const props = defineProps<{
   code: string,
   offerCode: string
 }>()
-
-const store = useStore()
 
 const offerOptions = computed(() => ({
   code: props.offerCode,
@@ -165,7 +108,5 @@ const price = computed(() => {
     ? formatPrice(offer.value.attributes.value ?? '', offer.value.member.group.currency)
     : ''
 })
-const canEdit = computed(() => {
-  return offer.value?.member?.id == store.getters.myMember?.id || store.getters.isAdmin
-})
+const canEdit = useCanEditPost(offer, () => props.code)
 </script>

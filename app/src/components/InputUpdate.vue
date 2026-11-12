@@ -8,7 +8,8 @@
         <q-input
           v-model="value"
           v-bind="$attrs"
-          outlined
+          standout
+          class="input-standout-light"
         />
       </slot>
     </div>

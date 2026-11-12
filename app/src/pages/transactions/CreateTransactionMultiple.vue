@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pa-lg">
+  <div class="q-pa-md">
     <create-transaction-multiple-form 
       v-show="state === 'define'"
       :code="code"

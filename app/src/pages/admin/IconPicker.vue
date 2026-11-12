@@ -3,7 +3,8 @@
     <q-input
       v-model="iconFilter"
       :label="$t('searchIcon')"
-      outlined
+      standout
+      class="input-standout-light"
       debounce="300"
     >
       <template #append>
@@ -12,7 +13,7 @@
     </q-input>
     <q-icon-picker
       v-model="icon"
-      class="q-mt-md text-onsurface-m"
+      class="q-mt-md text-on-surface-medium"
       size="lg"
       :icons="icons"
       tooltips
@@ -26,7 +27,7 @@
  * QIconPicker is a Quasar extension component that allows the user to select an icon from a list of icons. 
  */
 import { computed, ref } from 'vue'
-import { icons } from '@quasar/quasar-ui-qiconpicker/dist/icon-set/material-icons.umd.js'
+import iconNames from '@/assets/fonts/marketplace-icons.json'
 import { QIconPicker } from '@quasar/quasar-ui-qiconpicker';
 
 const props = defineProps<{
@@ -42,6 +43,7 @@ const icon = computed({
 })
 
 const iconFilter = ref('')
+const icons = iconNames.map(name => ({ name }))
 
 </script>
 <style src="@quasar/quasar-ui-qiconpicker/dist/index.css"></style>

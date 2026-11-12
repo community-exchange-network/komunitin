@@ -5,23 +5,25 @@ import { useI18n } from "vue-i18n";
 
 type T = ReturnType<typeof useI18n>['t']
 
+// Badge background and text colors, from the app palette.
 const STATUS_MAP = {
-  new: { color: 'light-blue', label: (t: T) => t('new') },
-  pending: { color: 'orange', label: (t: T) => t('pending') },
-  accepted: { color: 'teal', label: (t: T) => t('accepted') },
-  committed: { color: 'green', label: (t: T) => t('committed') },
-  rejected: { color: 'red', label: (t: T) => t('rejected') },
-  failed: { color: 'deep-orange', label: (t: T) => t('failed') },
-  deleted: { color: 'grey', label: (t: T) => t('deleted') },
+  new: { color: 'transfer-new', textColor: 'on-surface-medium', label: (t: T) => t('new') },
+  pending: { color: 'transfer-pending', textColor: 'info', label: (t: T) => t('pending') },
+  accepted: { color: 'transfer-accepted', textColor: 'on-surface-medium', label: (t: T) => t('accepted') },
+  submitted: { color: 'transfer-submitted', textColor: 'on-surface-medium', label: (t: T) => t('submitted') },
+  committed: { color: 'transfer-committed', textColor: 'positive', label: (t: T) => t('committed') },
+  rejected: { color: 'transfer-rejected', textColor: 'on-surface-medium', label: (t: T) => t('rejected') },
+  failed: { color: 'transfer-failed', textColor: 'on-surface-medium', label: (t: T) => t('failed') },
+  deleted: { color: 'transfer-deleted', textColor: 'on-surface-medium', label: (t: T) => t('deleted') },
 }
 
 export const useTransferStatus = (status: MaybeRefOrGetter<TransferState>) => {
   const { t } = useI18n();
 
   const entry = computed(() => STATUS_MAP[toValue(status)])
-  const color = computed(() => entry.value?.color ?? 'blue-grey')
+  const color = computed(() => entry.value.color)
+  const textColor = computed(() => entry.value.textColor)
+  const label = computed(() => entry.value.label(t))
 
-  const label = computed(() => entry.value?.label(t) ?? toValue(status))
-
-  return { color, label };
+  return { color, textColor, label };
 };

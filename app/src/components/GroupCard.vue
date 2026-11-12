@@ -2,17 +2,15 @@
   <q-card
     v-if="group"
     v-bind="cardClickAttrs"
-    flat
-    bordered
   >
     <!-- Header with group avatar, name and short code -->
-    <group-header :group="group">
+    <group-header :group="group" class="q-pt-md">
       <template #side>
         <share-button
           icon="share"
           flat
           round
-          color="icon-dark"
+          color="icon"
           :title="$t('checkTheExchangeCommunityGroup', { group: group.attributes.name })"
           :text="group.attributes.description"
           :url="url"

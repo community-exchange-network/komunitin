@@ -41,6 +41,23 @@ test('the landing page references built styles and images', () => {
   for (const image of images) assertBuiltAsset(image.src)
 })
 
+test('the PWA manifest uses the same colors as the built app', () => {
+  for (const document of [home, shell]) {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')
+    assert.ok(link, 'The app needs a PWA manifest')
+    const manifest = JSON.parse(read(new URL(link.href).pathname.slice(1)))
+    const css = [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')]
+      .map(style => read(new URL(style.href).pathname.slice(1))).join('\n')
+    const primary = css.match(/--q-primary:\s*([^;}]+)/)?.[1]
+    const background = css.match(/\.bg-surface-container\s*\{\s*background:\s*([^;}]+)/)?.[1]
+
+    assert.ok(primary, 'The built app needs a primary color')
+    assert.ok(background, 'The built app needs a background color')
+    assert.equal(manifest.theme_color.toLowerCase(), primary.toLowerCase())
+    assert.equal(manifest.background_color.toLowerCase(), background.toLowerCase())
+  }
+})
+
 test('both entry pages include the app and runtime configuration', () => {
   for (const [name, document] of [['landing page', home], ['fallback shell', shell]] as const) {
     assert.ok(document.querySelector('#q-app'), `${name}: missing app container`)
@@ -82,4 +99,15 @@ test('the service worker precaches the fallback shell and only deployed assets',
     assertBuiltAsset(url)
     assert.ok(!url.endsWith('.map'), `Source maps should not consume offline storage: ${url}`)
   }
+})
+
+test('the app stylesheet and the offline cache share one subset of Material Symbols', () => {
+  const urls = precacheUrls(read('sw.js'))
+  const fonts = urls.filter(url => /material-symbols-rounded-.*\.woff2$/.test(url))
+  assert.equal(fonts.length, 1)
+  const faces = [...shell.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')]
+    .flatMap(style => read(new URL(style.href).pathname.slice(1)).match(/@font-face\s*\{[^}]*Material Symbols Rounded[^}]*\}/gi) ?? [])
+  assert.equal(faces.length, 1)
+  assert.ok(faces[0].includes(fonts[0]))
+  assert.ok(statSync(resolve(dist, fonts[0])).size < 150_000, 'Icon font exceeds the 150 kB budget')
 })

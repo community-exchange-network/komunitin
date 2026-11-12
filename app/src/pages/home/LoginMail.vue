@@ -2,7 +2,7 @@
   <q-banner
     v-if="confirmation"
     rounded
-    class="text-white q-mb-xl q-py-lg banner"
+    class="text-on-outside q-mb-xl q-py-lg banner"
   >
     <template #avatar>
       <q-icon name="check_circle"/>
@@ -15,8 +15,9 @@
   >
     <q-input
       v-model="email"
-      outlined
-      dark
+      standout
+      class="input-standout-light"
+      bg-color="white"
       type="email"
       :disable="!!confirmation"
       placeholder="example@example.com"
@@ -32,23 +33,25 @@
     </q-input>
     <password-field
       v-model="pass"
-      dark
+      class="input-standout-light"
+      bg-color="white"
     />
     <div class="row q-mt-xs"
     :class="isSuperadmin ? 'justify-between' : 'justify-end'">
-      <div v-if="isSuperadmin" class="text-warning text-weight-medium">Superadmin</div>
+      <div v-if="isSuperadmin" class="text-warning text-label-large">Superadmin</div>
       <router-link
         to="/forgot-password" 
-        class="text-onoutside-m link"
+        class="text-label-large text-on-outside-medium forgot-password"
         @click.prevent="forgotPassword = true"
       >
         {{ $t('forgotPassword') }}
       </router-link>
     </div>
     <q-btn
-      outline
-      color="transparent"
-      text-color="onoutside"
+      unelevated
+      color="primary"
+      text-color="on-primary"
+      class="btn-disabled-solid"
       :label="$t('logIn')"
       icon="account_circle"
       :disabled="loginDisabled"
@@ -121,8 +124,16 @@ const submit = async () => {
 }
 </script>
 <style scoped lang="scss">
+  .forgot-password {
+    text-decoration: none;
+
+    &:hover {
+      color: $on-outside;
+    }
+  }
+
   .banner {
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba($on-outside, 0.2);
+    background-color: rgba($on-outside, 0.1);
   }
 </style>

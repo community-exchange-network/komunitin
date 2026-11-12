@@ -1,176 +1,177 @@
 <template>
-  <Error404
-    v-if="error?.code === KErrorCode.NotFound"
-    :to="`/groups/${code}/members`"
-  />
-  <div v-else-if="member">
-    <page-header 
-      :title="member.attributes.name"
+  <Error404 v-if="error?.code === KErrorCode.NotFound" :to="`/groups/${code}/members`" />
+  <div v-else>
+    <page-header
+      :title="isMe ? $t('yourProfile') : $t('memberProfile')"
       :back="isComplete ? `/groups/${code}/members` : '/'"
+      :loading="loading && !!member || currencyLoading"
     >
       <template #buttons>
-        <contact-button
-          v-if="!isMe && member.attributes.contacts"
-          icon="message"
-          round
-          flat
-          :contacts="member.attributes.contacts"
-        />
-        <share-button
-          icon="share"
-          flat
-          round
-          :title="$t('shareMember', { member: member.attributes.name })"
-          :text="member.attributes.description ?? ''"
-        />
-        <q-btn
-          v-if="canEdit"
-          icon="edit"
-          flat
-          round
-          :to="editProfileUrl"
-        />
-        <q-btn
-          v-if="canEdit"
-          icon="settings"
-          flat
-          round
-          :to="settingsUrl"
-        />
-        <q-btn
-          v-if="isMe && !isComplete"
-          icon="logout"
-          flat
-          round
-          to="/logout"
-        />
+        <template v-if="member">
+          <contact-button
+            v-if="!isMe && member.attributes.contacts?.length"
+            icon="message"
+            round
+            flat
+            :contacts="member.attributes.contacts"
+          />
+          <share-button
+            icon="share"
+            flat
+            round
+            :title="$t('shareMember', { member: member.attributes.name })"
+            :text="member.attributes.description ?? ''"
+          />
+          <template v-if="canEdit">
+            <q-btn icon="edit" flat round :to="isMe ? '/profile' : `${adminUrl}/profile`" :aria-label="$t('editProfile')" />
+            <q-btn icon="settings" flat round :to="isMe ? '/settings' : `${adminUrl}/settings`" :aria-label="$t('settings')" />
+          </template>
+          <q-btn v-if="isMe && !isComplete" icon="logout" flat round to="/logout" :aria-label="$t('logout')" />
+        </template>
       </template>
     </page-header>
     <q-page-container>
-      <q-page>
-        <member-page-header
-          :member="member"
-          :tab="hashTab"
-          :transactions="!isMe"
-          :needs-count="needsCount"
-          :offers-count="offersCount"
-          @tab-change="onTabChange"
+      <q-page class="q-pa-md">
+        <q-inner-loading
+          :showing="loading && !member"
+          color="icon"
         />
-        <q-tab-panels
-          :model-value="hashTab"  
-          @update:model-value="onTabChange"
-        >
-          <q-tab-panel
-            name="profile"
-            keep-alive
-          >
-            <member-profile :member="member" />
-          </q-tab-panel>
-          <q-tab-panel
-            name="needs"
-            keep-alive
-          >
-            <member-needs
-              :member="member"
-              :group-code="code"
-            />
-            <floating-btn
-              v-if="isMe"
-              icon="add"
-              color="kred"
-              :to="`/groups/${code}/needs/new`"
-              :label="$t('createNeed')"
-            />
-          </q-tab-panel>
-          <q-tab-panel
-            name="offers"
-            keep-alive
-          >
-            <member-offers
-              :member="member"
-              :group-code="code"
-            />
-            <floating-btn
-              v-if="isMe"
-              icon="add"
-              color="kblue"
-              :to="`/groups/${code}/offers/new`"
-              :label="$t('createOffer')"
-            />
-          </q-tab-panel>
-          <q-tab-panel
-            v-if="!isMe"
-            name="transactions"
-            keep-alive
-          >
-            <transaction-items
-              :code="code"
-              :member="member"
-            />
-          </q-tab-panel>
-        </q-tab-panels>
-        <create-transaction-btn v-if="!isMe" />
+        <q-card v-if="member" class="bg-surface q-mb-md">
+          <q-card-section :style="{ padding: $q.screen.gt.xs ? '32px 32px 16px' : '24px 16px 16px' }">
+            <div class="row items-center justify-center q-col-gutter-x-lg q-col-gutter-y-md">
+              <div class="col-auto">
+                <avatar
+                  size="160px"
+                  class="shadow-2"
+                  :text="member.attributes.name"
+                  :img-src="member.attributes.image"
+                />
+              </div>
+              <div class="col-12 col-sm" :class="{ 'text-center': $q.screen.xs }">
+                <h1 class="text-headline-large text-on-surface q-my-none" style="overflow-wrap: anywhere;">
+                  {{ member.attributes.name }}
+                </h1>
+                <div v-if="account" class="text-amount-negative text-label-large q-mt-xs">
+                  {{ account.attributes.code }}
+                </div>
+                <member-navigation :code="code" :member="member" />
+              </div>
+            </div>
+          </q-card-section>
+          <q-card-section>
+            <div
+              v-if="currency && account?.attributes.balance !== undefined"
+              class="rounded-borders q-pa-md q-mb-md"
+              :class="account.attributes.balance >= 0 ? 'text-amount-positive' : 'text-amount-negative'"
+              style="background-color: color-mix(in srgb, currentColor 10%, transparent);"
+            >
+              <div class="row items-center q-col-gutter-x-lg q-col-gutter-y-md">
+                <div class="member-balance col-12 col-sm-auto">
+                  <div class="text-label-large text-on-surface-medium q-mb-xs">{{ $t('balance') }}</div>
+                  <div class="text-display-small">
+                    {{ FormatCurrency(account.attributes.balance, currency) }}
+                  </div>
+                </div>
+                <div class="col-12 col-sm-auto">
+                  <dl class="q-ma-none text-body-small text-on-surface-medium">
+                    <div class="row justify-between">
+                      <dt>{{ $t('creditLimit') }}</dt>
+                      <dd class="q-ma-none q-ml-md">{{ FormatCurrency(account.attributes.creditLimit, currency, { decimals: false }) }}</dd>
+                    </div>
+                    <div v-if="typeof account.attributes.maximumBalance === 'number'" class="row justify-between q-mt-sm">
+                      <dt>{{ $t('maximumBalance') }}</dt>
+                      <dd class="q-ma-none q-ml-md">{{ FormatCurrency(account.attributes.maximumBalance, currency, { decimals: false }) }}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+            </div>
+            <read-more
+              v-if="member.attributes.description"
+              class="text-body-large text-on-surface-medium q-mb-md"
+              :collapsed-height="120"
+            >
+              <!-- eslint-disable vue/no-v-html -->
+              <div v-html="md2html(member.attributes.description)" />
+              <!-- eslint-enable vue/no-v-html -->
+            </read-more>
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-md-6">
+                <location-map
+                  height="250px"
+                  :center="mapCenter"
+                  :marker="member.attributes.location?.coordinates"
+                  :name="member.attributes.location?.name"
+                />
+              </div>
+              <div class="col-12 col-md-6">
+                <social-network-list
+                  type="contact"
+                  :contacts="member.attributes.contacts"
+                  flat
+                  class="q-py-none"
+                />
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+        <create-transaction-btn v-if="member && currency && isComplete && !isMe" />
       </q-page>
     </q-page-container>
   </div>
 </template>
+
 <script setup lang="ts">
-import { computed } from "vue"
-import { useStore } from "vuex";
-import { useRoute, useRouter } from "vue-router";
-
-import PageHeader from "../../layouts/PageHeader.vue";
-
-import ContactButton from "../../components/ContactButton.vue";
-import MemberNeeds from "./MemberNeeds.vue";
-import MemberOffers from "./MemberOffers.vue";
-import MemberPageHeader from "./MemberPageHeader.vue";
-import MemberProfile from "./MemberProfile.vue";
-import ShareButton from "../../components/ShareButton.vue";
-import CreateTransactionBtn from "../../components/CreateTransactionBtn.vue";
-import TransactionItems from "../transactions/TransactionItems.vue";
-import FloatingBtn from "@/components/FloatingBtn.vue";
-import Error404 from "../Error404.vue";
-import { useResource } from "@/composables/useResources";
-import type { Member } from "@/store/model";
-import { KErrorCode } from "@/KError";
-
+import { computed } from 'vue'
+import { useStore } from 'vuex'
+import Avatar from '@/components/Avatar.vue'
+import ContactButton from '@/components/ContactButton.vue'
+import ShareButton from '@/components/ShareButton.vue'
+import CreateTransactionBtn from '@/components/CreateTransactionBtn.vue'
+import LocationMap from '@/components/LocationMap.vue'
+import SocialNetworkList from '@/components/SocialNetworkList.vue'
+import ReadMore from '@/components/ReadMore.vue'
+import PageHeader from '@/layouts/PageHeader.vue'
+import MemberNavigation from './MemberNavigation.vue'
+import Error404 from '../Error404.vue'
+import { useResource } from '@/composables/useResources'
+import type { Account, Currency, Group, Member } from '@/store/model'
+import { KErrorCode } from '@/KError'
+import md2html from '@/plugins/Md2html'
+import FormatCurrency from '@/plugins/FormatCurrency'
 
 const props = defineProps<{
-  code: string,
+  code: string
   memberCode: string
 }>()
 
 const store = useStore()
-
-const myMember = computed(() => store.getters.myMember)
 const isComplete = computed(() => store.getters.isComplete)
-
-const memberOptions = computed(() => ({
-  code: props.memberCode,
+const { resource: member, loading, error } = useResource<
+  Member & { group: Group, account?: Account }
+>('members', () => ({
   group: props.code,
-  include: "group" + (isComplete.value ? ",account" : "")
+  code: props.memberCode,
+  include: 'group,account'
 }))
-const { resource: member, error } = useResource<Member>('members', memberOptions)
-const needsCount = computed(() => member.value?.relationships.needs.meta.count ?? 0)
-const offersCount = computed(() => member.value?.relationships.offers.meta.count ?? 0)
-const isMe = computed(() => member.value && myMember.value && member.value.id == myMember.value.id)
+const account = computed(() => member.value?.account)
+const { resource: currency, loading: currencyLoading } = useResource<Currency>('currencies', () => ({
+  group: props.code
+}))
+const isMe = computed(() => !!member.value && member.value.id === store.getters.myMember?.id)
+const mapCenter = computed(() =>
+  member.value?.attributes.location?.coordinates ?? member.value?.group.attributes.location?.coordinates
+)
 const canEdit = computed(() => isMe.value || store.getters.isAdmin || store.getters.isSuperadmin)
-const editProfileUrl = computed(() => isMe.value ? "/profile" : `/groups/${props.code}/admin/members/${props.memberCode}/profile`)
-const settingsUrl = computed(() => isMe.value ? "/settings" : `/groups/${props.code}/admin/members/${props.memberCode}/settings`)
+const adminUrl = computed(() => `/groups/${props.code}/admin/members/${props.memberCode}`)
 
-// Tab and hash navigation.
-const route = useRoute()
-const router = useRouter()
-
-const tabs = ['profile', 'needs', 'offers', 'transactions']
-
-const hashTab = computed(() => {
-  const hash = route.hash.slice(1)
-  return tabs.includes(hash) ? hash : 'profile'
-})
-
-const onTabChange = (tab: string | number) => {  
-  router.replace({hash: `#${tab}`})
-}
 </script>
+
+<style scoped lang="scss">
+@media (min-width: $breakpoint-sm-min) {
+  .member-balance {
+    // Match the avatar's 160px width plus the header's 24px column gutter.
+    min-width: 184px;
+  }
+}
+</style>

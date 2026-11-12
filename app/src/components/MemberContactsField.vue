@@ -5,9 +5,9 @@
     :model-value="contact.value"
     type="text"
     :label="getNetworkLabel(contact.type)"
-    outlined
+    standout
     :disable="contact.type === 'email'"
-    class="q-mb-md"
+    class="input-standout-light q-mb-md"
     @update:model-value="(name) => updateContact(index, name as string)"
   >
     <template #prepend>
@@ -37,7 +37,9 @@
           :label="$t('type')"
           :options="newContactOptions"
           required
-          outlined
+          standout
+          class="input-standout-light"
+          dropdown-icon="expand_more"
           :rules="[v => !!v || $t('fieldRequired')]"
         >
           <template #option="{opt, itemProps}">
@@ -56,9 +58,9 @@
           type="text"
           name="newContactName"
           :label="getNetworkIdLabel(newContactType?.value ?? '')"
-          outlined
+          standout
           required
-          class="q-mt-md"
+          class="input-standout-light q-mt-md"
           :rules="[v => !!v || $t('fieldRequired')]"
         />
       </template>

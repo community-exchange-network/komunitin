@@ -1,0 +1,17 @@
+// This theme sets the primary color to the $moss green from the common palette,
+// defines a dark variant and sightly adapts the surface container tones as 
+// well as the active background.
+
+$moss-dark    : #506B20;
+$oat          : #F3EFE6;
+$oat-dark     : #E4DED0;
+
+$primary        : $moss;
+$primary-variant: $moss-dark;
+$secondary      : $ember;
+
+$surface-container-high   : $oat;
+$surface-container-highest: $oat-dark;
+
+$active                   : rgba($moss, 0.12);
+$table-selected-background: $active;

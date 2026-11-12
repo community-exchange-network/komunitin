@@ -2,8 +2,6 @@
   <q-card
     v-if="offer"
     v-bind="cardClickAttrs"
-    flat
-    bordered
     :class="{ muted: isMuted }"
   >
     <!-- Header -->
@@ -14,7 +12,7 @@
       <template #side>
         <category-avatar
           :category="offer.category"
-          type="offer"
+          :type="offer.type"
         />
       </template>
     </member-header>
@@ -23,23 +21,24 @@
     <carousel
       :images="offer.attributes.images"
       height="200px"
+      flat
     />
 
     <!-- offer title and description -->
     <q-card-section>
-      <span class="text-uppercase text-onsurface-m text-overline">{{$t('offer')}}</span>
-      <div class="text-h6">
+      <span class="text-on-surface-medium text-label-medium-uppercase">{{$t('offer')}}</span>
+      <div class="text-title-large q-my-xs">
         {{ offer.attributes.title }}
       </div>
       <!-- TODO: Add price -->
-      <div class="text-subtitle2 q-mb-xs">
-        <span class="text-onsurface-m">{{ $t('price') }}</span>
+      <div class="text-label-large q-mb-xs">
+        <span class="text-on-surface-medium">{{ $t('price') }}</span>
         <span>&nbsp;</span>
-        <span class="negative-amount">{{ price }}</span>
+        <span class="text-amount-negative">{{ price }}</span>
       </div>
       <div
         v-clamp="3"
-        class="text-body2 text-justify text-onsurface-m"
+        class="text-body-medium text-justify text-on-surface-medium"
       >
         {{ md2txt(offer.attributes.description) }}
       </div>
@@ -59,7 +58,7 @@
         icon="edit"
         flat
         round
-        color="icon-dark"
+        color="icon"
         :to="`/groups/${code}/offers/${offer.attributes.code}/edit`"
         class="q-ml-none"
         :title="$t('editOffer')"
@@ -68,7 +67,7 @@
         v-if="canEdit"
         :code="code"
         :offer="offer"
-        color="icon-dark"
+        color="icon"
         class="q-ml-none"
       />
     </q-card-section>
@@ -76,7 +75,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from "vue"
-import { useStore } from "vuex"
+import { useCanEditPost } from '@/composables/editablePost'
 import type { Category, Currency, Group, Member, Offer } from "@/store/model"
 import { useCardClickTo } from "@/composables/useCardClickTo"
 import vClamp from "../plugins/Clamp"
@@ -106,15 +105,11 @@ const props = defineProps<{
   offer: CardOffer
 }>()
 
-const store = useStore()
 const price = computed(() => {
   const currency = props.offer.member.group.currency
   return currency ? formatPrice(props.offer.attributes.value ?? "", currency) : ""
 })
-const canEdit = computed(() =>
-  props.offer.member.id === store.getters.myMember?.id
-  || store.getters.isAdmin
-)
+const canEdit = useCanEditPost(() => props.offer, () => props.code)
 const isMemberActive = computed(() => props.offer.member.attributes.status === "active")
 const isExpired = computed(() => props.offer.attributes.expires !== null && new Date(props.offer.attributes.expires) < new Date())
 const isMuted = computed(() =>

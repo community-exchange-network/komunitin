@@ -6,28 +6,29 @@
     :zoom="2"
     :center="center"
   >
-    <l-marker
+    <styled-marker
       v-for="marker in groupMarkers"
       :key="marker.group.id"
       :lat-lng="marker.latLng"
     >
       <l-popup :interactive="true" :permanent="false">
         <div>
-          <div class="text-subtitle-2">{{ marker.group.attributes.name }}</div>
-          <div class="text-onsurface-m">{{  marker.group.relationships.members?.meta.count ?? 0 }} {{ $t('members') }}</div>
+          <div class="text-label-large">{{ marker.group.attributes.name }}</div>
+          <div class="text-on-surface-medium">{{  marker.group.relationships.members?.meta.count ?? 0 }} {{ $t('members') }}</div>
           <div><a :href="`/groups/${marker.group.attributes.code}`">Explore</a></div>
         </div>
       </l-popup>
-    </l-marker>
+    </styled-marker>
   </simple-map>
 </template>
 <script setup lang="ts">
 import SimpleMap from "./SimpleMap.vue";
-import { LMarker, LPopup } from "@vue-leaflet/vue-leaflet";
+import { LPopup } from "@vue-leaflet/vue-leaflet";
 import { computed, } from "vue";
 import type { LatLngExpression } from "leaflet";
 import type { Group } from "@/store/model";
 import { getBoundsAroundPoints, getCenterOfBounds, toLeafletLatLng, type LngLat } from "@/composables/leaflet";
+import StyledMarker from './StyledMarker.vue';
 
 const props = defineProps<{
   groups?: Group[]

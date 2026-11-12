@@ -1,4 +1,12 @@
 {
+  "creditLimit": "Maximum Commitment",
+  "maximumBalance": "Maximum Accumulation",
+  "member": "User",
+  "memberProfile": "User profile",
+  "memberOffers": "User offers",
+  "memberNeeds": "User wants",
+  "memberTransactions": "User trades",
+  "yourTransactions": "Your trades",
   "openSystemForExchangeCommunities": "Your Talents are Your Wealth",
   "findYourLocalGroup": "Find your community",
   "balance": "Community Standing",

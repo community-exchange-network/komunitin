@@ -1,6 +1,7 @@
 <template>
   <page-header 
     :title="t('notifications')" 
+    :loading="refreshing"
     balance 
     :back="`/`"
   />
@@ -10,7 +11,8 @@
         v-slot="slotProps"
         :code="myGroup.attributes.code"
         type="notifications"
-
+        class="q-px-md"
+        @refreshing="refreshing = $event"
       >
         <q-list 
           v-if="slotProps.resources"
@@ -20,14 +22,20 @@
             v-for="group of groupNotifications(slotProps.resources)"
             :key="group.title"
           >
-            <q-item-label header class="text-uppercase text-overline">
+            <q-item-label header class="text-label-medium-uppercase">
               {{ group.title }}
             </q-item-label>
-            <notification-item
-              v-for="notification of group.items"
-              :key="notification.id"
-              :notification="notification"
-            />
+              <q-list 
+                v-if="group.items"
+                separator
+                class="bg-surface shadow-2 rounded-borders"
+              >
+                <notification-item
+                  v-for="notification of group.items"
+                  :key="notification.id"
+                  :notification="notification"
+                />
+            </q-list>
           </template>
         </q-list>
         <q-separator />
@@ -36,7 +44,7 @@
   </q-page-container>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
 import { isToday, isYesterday, isThisWeek, isThisMonth, format } from 'date-fns';
@@ -49,6 +57,7 @@ import PageHeader from "../../layouts/PageHeader.vue";
 
 const { t } = useI18n();
 const store = useStore();
+const refreshing = ref(false)
 
 const myMember = computed(() => store.getters.myMember);
 const myGroup = computed(() => myMember.value.group);

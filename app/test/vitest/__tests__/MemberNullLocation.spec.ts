@@ -26,7 +26,10 @@ describe('Member without a location', () => {
     window.history.replaceState({}, '', '/')
   })
 
-  it.each(['needs', 'members', 'offers'])('renders %s with a markerless map centered on the group', async (type) => {
+  it.each([false, true].flatMap(desktop =>
+    ['needs', 'members', 'offers'].map(type => ({ desktop, type }))
+  ))('renders $type with a markerless map centered on the group, desktop: $desktop', async ({ desktop, type }) => {
+    wrapper.vm.$q.screen.gt.sm = desktop
     const member = server.schema.members.first()
     const resource = type === 'members' ? member : member.posts.models.find(post => post.type === type)
     await wrapper.vm.$router.push(`/groups/GRP0/${type}/${resource.code}`)
@@ -38,4 +41,5 @@ describe('Member without a location', () => {
     expect(map.findComponent({ name: 'LMarker' }).exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Unknown user interface error')
   })
+
 })

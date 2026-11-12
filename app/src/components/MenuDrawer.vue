@@ -6,7 +6,7 @@
       id="my-group"
       :clickable="!groupActive"
       :active="groupActive"
-      active-class="bg-active text-primary"
+      active-class="bg-active text-primary-variant"
       :group="myMember.group" 
       @click="$router.push(`/groups/${groupCode}`)"
     />
@@ -57,7 +57,7 @@
     
     <template v-if="isAdmin">
       <q-separator />
-      <div class="text-overline text-onsurface-d q-pl-md q-pt-md text-uppercase">
+      <div class="text-label-medium-uppercase text-on-surface-low q-pl-md q-pt-md">
         {{ $t('administration') }}
       </div>
       <menu-item
@@ -114,8 +114,7 @@ const groupActive = computed(() => (route.fullPath ==`/groups/${myMember.value.g
 </script>
 
 <style lang="scss" scoped>
-#my-member,
 #my-group {
-  height: $header-height;
+  height: $toolbar-min-height;
 }
 </style>

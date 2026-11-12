@@ -2,8 +2,6 @@
   <q-card
     v-if="need"
     v-bind="cardClickAttrs"
-    flat
-    bordered
     :class="{ muted: isMuted }"
   >
     <!-- Header -->
@@ -14,7 +12,7 @@
       <template #side>
         <category-avatar
           :category="need.category"
-          type="need"
+          :type="need.type"
         />
       </template>
     </member-header>
@@ -23,14 +21,15 @@
       v-if="hasImages"
       :images="need.attributes.images"
       height="200px"
+      flat
     />
 
     <!-- Need text -->
     <q-card-section>
-      <span class="text-uppercase text-onsurface-m text-overline">{{$t('need')}}</span>
+      <span class="text-on-surface-medium text-label-medium-uppercase">{{$t('need')}}</span>
       <div
         v-clamp="hasImages ? 3 : 13"
-        class="text-body2 text-justify text-onsurface-m"
+        class="text-body-medium text-justify text-on-surface-medium"
       >
         {{ md2txt(need.attributes.description) }}
       </div>
@@ -59,7 +58,7 @@
         icon="share"
         flat
         round
-        color="icon-dark"
+        color="icon"
         :url="url"
         :title="$t('checkThisNeed', { member: need.member.attributes.name })"
         :text="need.attributes.description"
@@ -69,7 +68,7 @@
         icon="edit"
         flat
         round
-        color="icon-dark"
+        color="icon"
         :to="`/groups/${code}/needs/${need.attributes.code}/edit`"
         class="q-ml-none"
         :title="$t('editNeed')"
@@ -78,7 +77,7 @@
         v-if="canEdit"
         :code="code"
         :need="need"
-        color="icon-dark"
+        color="icon"
         class="q-ml-none"
       />
     </q-card-actions>
@@ -87,7 +86,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { useStore } from "vuex"
+import { useCanEditPost } from '@/composables/editablePost'
 import type { Category, Member, Need } from "@/store/model"
 import { useCardClickTo } from "@/composables/useCardClickTo"
 import vClamp from "../plugins/Clamp"
@@ -114,15 +113,11 @@ const props = defineProps<{
   need: CardNeed
 }>()
 
-const store = useStore()
 const hasImages = computed(() => props.need.attributes.images.length > 0)
 const url = computed(() =>
   `${window.location.origin}/groups/${props.code}/needs/${props.need.attributes.code}`
 )
-const canEdit = computed(() =>
-  props.need.member.id === store.getters.myMember?.id
-  || store.getters.isAdmin
-)
+const canEdit = useCanEditPost(() => props.need, () => props.code)
 const memberActive = computed(() => props.need.member.attributes.status === "active")
 const expired = computed(() => props.need.attributes.expires !== null && new Date(props.need.attributes.expires) < new Date())
 const isAvailable = computed(() =>

@@ -9,12 +9,12 @@
     <q-item-section avatar>
       <q-icon
         :name="icon"
-        :color="active ? 'primary' : 'icon-dark'"
+        :color="active ? 'primary' : 'icon'"
       />
     </q-item-section>
     <q-item-section
-      class="text-subtitle2"
-      :class="active ? 'text-primary' : 'text-onsurface-m'"
+      class="text-label-large"
+      :class="active ? 'text-primary-variant' : 'text-on-surface-medium'"
     >
       {{ title }}
     </q-item-section>

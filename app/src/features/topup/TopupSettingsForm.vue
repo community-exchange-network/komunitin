@@ -1,25 +1,25 @@
 <template>
   <div class="q-gutter-y-lg">
     <div>
-      <div class="text-subtitle1">
+      <div class="text-title-medium">
         {{ t('topupSettings') }}
       </div>
-      <div class="text-onsurface-m">
+      <div class="text-on-surface-medium">
         {{ t('topupSettingsText') }}
       </div>
     </div>
     <template v-if="account">
-      <div class="text-body2 q-ml-md">{{t('topupSourceAccount') }}</div>
+      <div class="text-body-medium q-ml-md">{{t('topupSourceAccount') }}</div>
       <q-item class="q-mt-sm">
         <account-item-content
           :account="account"
         />
         <q-item-section side>  
           <div
-            class="col currency text-h6"
+            class="col currency text-body-large"
             :class="account.attributes.balance >= 0
-                ? 'positive-amount'
-                : 'negative-amount'
+                ? 'text-amount-positive'
+                : 'text-amount-negative'
             "
           >
             {{
@@ -49,7 +49,8 @@
     <q-input
       v-model="depositCurrency"
       :label="t('topupDepositCurrency')"
-      outlined
+      standout
+      class="input-standout-light"
       readonly
       required
     />
@@ -57,7 +58,8 @@
     <q-input
       v-model="paymentProvider"
       :label="t('topupPaymentProvider')"
-      outlined
+      standout
+      class="input-standout-light"
       readonly
       required
     />
@@ -70,7 +72,8 @@
         depositCurrency: depositCurrency,
         receiveCurrency: currency.attributes.symbol
       })"
-      outlined
+      standout
+      class="input-standout-light"
       required
       :rules="[(val: string) => /^\d+(\/\d+)?$/.test(val) || t('topupRateInvalid')]"
       hide-bottom-space
@@ -84,7 +87,8 @@
       v-model="minAmountInput"
       :label="t('topupMinAmount')"
       :hint="t('topupMinAmountHint')"
-      outlined
+      standout
+      class="input-standout-light"
       required
     >
       <template #append>
@@ -96,7 +100,8 @@
       v-model="maxAmountInput"
       :label="t('topupMaxAmount')"
       :hint="t('topupMaxAmountHint')"
-      outlined
+      standout
+      class="input-standout-light"
       required
     >
       <template #append>
@@ -108,7 +113,8 @@
       v-model="mollieApiKey"
       :label="t('topupMollieApiKey')"
       :hint="t('topupMollieApiKeyHint')"
-      outlined
+      standout
+      class="input-standout-light"
       type="password"
     />
       
@@ -218,8 +224,3 @@ watchDebounced([enabled, defaultAllowTopup, rateInput, minAmount, maxAmount, mol
 })
 
 </script>
-<style lang="scss" scoped>
-.text-overline {
-  margin-bottom: -16px;
-}
-</style>

@@ -32,7 +32,6 @@ describe('Not found pages', () => {
 
       const errorPage = wrapper.getComponent(Error404)
       expect(errorPage.text()).toContain('Sorry, nothing here...')
-      expect(errorPage.get('img').attributes('src')).toContain('acorn-512.png')
       expect(errorPage.getComponent(QBtn).props()).toMatchObject({
         label: 'Back',
         to: destination

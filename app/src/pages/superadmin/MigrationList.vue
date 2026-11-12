@@ -5,7 +5,7 @@
       <q-banner v-if="error" class="bg-negative text-white q-mb-md">{{ error }}</q-banner>
         
       <div class="row items-center justify-between q-mb-md">
-        <div class="text-overline text-uppercase">
+        <div class="text-label-medium-uppercase text-on-surface-medium q-pt-lg q-pb-sm">
           List of migrations
         </div>
         <q-btn icon="refresh" label="Refresh" flat :loading="loading" @click="refresh" />
@@ -20,8 +20,10 @@
 
       <q-table
         :rows="migrations" :columns="columns" :loading="loading"
-        row-key="id" flat
-        class="full-width text-onsurface"
+        row-key="id" 
+        flat
+        class="full-width text-on-surface shadow-2"
+        table-header-class="text-on-surface-medium"
         @row-click="onRowClick"
       >
         <!-- Status column template -->
@@ -31,7 +33,7 @@
               :color="getStatusColor(props.value)" 
               text-color="white" 
               :label="getStatusLabel(props.value)"
-              size="sm"
+              class="text-label-small"
             />
           </q-td>
         </template>

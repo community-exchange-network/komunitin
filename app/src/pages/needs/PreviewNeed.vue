@@ -7,7 +7,7 @@
     <template #after="{need}">
       <floating-btn 
         :label="$t('publishNeed')"
-        color="kred"
+        color="want"
         icon="publish"
         @click="publish(need)"
       />
@@ -55,8 +55,7 @@ const publish = async (need: FullNeed) => {
   })
 
   router.push({
-    path:`/groups/${props.code}/members/${need.member.attributes.code}`,
-    hash: '#needs'
+    path: `/groups/${props.code}/members/${need.member.attributes.code}/needs`
   })
 }
 
