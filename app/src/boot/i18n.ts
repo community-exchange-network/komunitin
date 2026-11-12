@@ -5,7 +5,12 @@ import { Quasar } from "quasar";
 import { defineBoot } from "#q-app";
 import type { QSsrContext } from "#q-app";
 import type { LangName } from "@/i18n";
-import langs, { DEFAULT_LANG, normalizeLocale, TRANSLATION_REVIEW_DRAFT_KEY } from "@/i18n";
+import langs, {
+  DEFAULT_LANG,
+  normalizeLocale,
+  TRANSLATION_REVIEW_DRAFT_KEY_PREFIX,
+  translationReviewDraftKey
+} from "@/i18n";
 import store, { storeReady } from "@/store";
 import { computed, ref } from "vue";
 import { createI18n } from "vue-i18n";
@@ -80,8 +85,9 @@ let localeUpdate = Promise.resolve()
 
 const loadedAdminLocales = new Set<string>();
 
-async function applyTranslationReviewDraft(rawDraft: string | null) {
-  if (!import.meta.env.DEV) {
+async function applyTranslationReviewDraft(locale: LangName, rawDraft: string | null) {
+  const loadMessages = langs[locale].loadMessages;
+  if (!import.meta.env.DEV || !loadMessages) {
     return;
   }
 
@@ -94,19 +100,25 @@ async function applyTranslationReviewDraft(rawDraft: string | null) {
       }
     }
 
-    const baseMessages = (await import("@/i18n/nl/index.json")).default;
+    const baseMessages = await loadMessages();
+    const loadEnglishMessages = langs["en-us"].loadMessages;
+    if (!loadEnglishMessages) {
+      throw new Error("The English source dictionary is not configured.");
+    }
+    const englishMessages = locale === "en-us" ? {} : await loadEnglishMessages();
     const draftMessages = Object.fromEntries(
       Object.entries(parsed).filter(
         ([key, value]) => Object.hasOwn(baseMessages, key) && typeof value === "string"
       )
     );
-    i18n.global.setLocaleMessage("nl", {
-      ...i18n.global.getLocaleMessage("nl"),
+    i18n.global.setLocaleMessage(locale, {
+      ...i18n.global.getLocaleMessage(locale),
+      ...englishMessages,
       ...baseMessages,
       ...draftMessages
     });
   } catch (error) {
-    console.error("Could not apply the Dutch translation review draft.", error);
+    console.error(`Could not apply the ${locale} translation review draft.`, error);
   }
 }
 
@@ -185,9 +197,10 @@ async function setCurrentLocale($q: QSingletonGlobals, locale: LangName, admin=f
     ...(!import.meta.env.QUASAR_SERVER ? [LocalStorage.set(LOCALE_KEY, locale)] : [])
   ])
 
-  if (locale === "nl") {
+  if (langs[locale].loadMessages) {
     await applyTranslationReviewDraft(
-      import.meta.env.QUASAR_SERVER ? null : localStorage.getItem(TRANSLATION_REVIEW_DRAFT_KEY)
+      locale,
+      import.meta.env.QUASAR_SERVER ? null : localStorage.getItem(translationReviewDraftKey(locale))
     );
   }
 
@@ -233,10 +246,20 @@ export default defineBoot(async ({ app, ssrContext }) => {
   const initialLocale = getUserLocaleState(store.getters, lang)
   await setLocale(initialLocale.lang, initialLocale.admin, ssrContext)
 
-  if (import.meta.env.DEV && !import.meta.env.QUASAR_SERVER) {
+  const isTranslationReviewFrame = !import.meta.env.QUASAR_SERVER
+    && new URLSearchParams(window.location.search).has("translationReview");
+  if (import.meta.env.DEV && isTranslationReviewFrame) {
     window.addEventListener("storage", event => {
-      if (event.key === TRANSLATION_REVIEW_DRAFT_KEY) {
-        void applyTranslationReviewDraft(event.newValue);
+      if (event.key === "lang" && event.newValue) {
+        const locale = normalizeLocale(event.newValue);
+        if (langs[locale].loadMessages) {
+          void setLocale(locale);
+        }
+      } else if (event.key?.startsWith(TRANSLATION_REVIEW_DRAFT_KEY_PREFIX)) {
+        const localeCode = event.key.slice(TRANSLATION_REVIEW_DRAFT_KEY_PREFIX.length).replace(/:v1$/, "");
+        if (localeCode in langs && langs[localeCode as LangName].loadMessages) {
+          void applyTranslationReviewDraft(localeCode as LangName, event.newValue);
+        }
       }
     });
   }

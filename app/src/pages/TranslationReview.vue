@@ -4,7 +4,7 @@
       <div class="translation-review">
         <div class="row items-center justify-between q-mb-md">
           <div>
-            <div class="text-h5">Dutch translation review</div>
+            <div class="text-h5">{{ selectedLanguageLabel }} translation review</div>
             <div class="text-caption text-grey-7">
               Review one key at a time and see its translation in the real app.
             </div>
@@ -12,7 +12,7 @@
           <q-btn
             color="primary"
             icon="download"
-            label="Download Dutch index.json"
+            :label="`Download ${selectedLocale} index.json`"
             @click="downloadTranslations"
           />
         </div>
@@ -21,12 +21,24 @@
           <section class="editor-column">
             <q-banner rounded class="bg-blue-1 q-mb-md">
               Drafts are saved in this browser and applied live in the app.
-              Download the file when you are done.
+              Download {{ selectedLocale }}-index.json and copy it to
+              <code>src/i18n/{{ selectedLocale }}/index.json</code> when you are done.
             </q-banner>
 
             <div class="text-caption text-grey-7 q-mb-xs">
               {{ currentIndex + 1 }} / {{ filteredKeys.length }} keys · {{ editedCount }} edited
             </div>
+            <q-select
+              v-model="selectedLocale"
+              :options="languageOptions"
+              emit-value
+              map-options
+              dense
+              outlined
+              options-dense
+              label="Language"
+              class="q-mb-sm"
+            />
             <q-input
               v-model="search"
               clearable
@@ -57,7 +69,7 @@
                   type="textarea"
                   autogrow
                   outlined
-                  label="Dutch translation"
+                  label="Translation"
                   @update:model-value="updateTranslation"
                 />
               </q-card-section>
@@ -151,7 +163,7 @@
                   <iframe
                     :key="contextVersion"
                     ref="contextFrame"
-                    src="/"
+                    src="/?translationReview=1"
                     title="Komunitin app translation context"
                     @load="onContextLoad"
                   />
@@ -183,11 +195,34 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useQuasar } from "quasar";
 import enMessages from "@/i18n/en-us/index.json";
-import nlMessages from "@/i18n/nl/index.json";
 import { i18n, setLocale } from "@/boot/i18n";
-import { TRANSLATION_REVIEW_DRAFT_KEY } from "@/i18n";
+import langs, { type LangName, translationReviewDraftKey } from "@/i18n";
 
 const keys = Object.keys(enMessages) as Array<keyof typeof enMessages>;
+const localeFiles = import.meta.glob<Record<string, string>>(
+  "/src/i18n/*/index.json",
+  { eager: true, import: "default" }
+);
+const messagesByLocale = Object.fromEntries(
+  Object.entries(localeFiles).map(([path, messages]) => [
+    path.match(/\/i18n\/([^/]+)\/index\.json$/)?.[1] ?? "",
+    messages
+  ])
+) as Record<string, Record<string, string>>;
+const languageOptions = Object.keys(messagesByLocale)
+  .filter(locale =>
+    locale !== "en-us" &&
+    locale in langs &&
+    langs[locale as LangName].loadMessages !== undefined
+  )
+  .map(locale => ({
+    label: langs[locale as LangName].label,
+    value: locale
+  }));
+const defaultLocale = languageOptions.find(option => option.value === "nl")?.value
+  ?? languageOptions.find(option => option.value === "en-us")?.value
+  ?? languageOptions[0]?.value
+  ?? "en-us";
 const sourceFiles = import.meta.glob<string>(
   [
     "/src/**/*.vue",
@@ -215,6 +250,7 @@ for (const [file, source] of Object.entries(sourceFiles)) {
 }
 
 const search = ref("");
+const selectedLocale = ref(defaultLocale);
 const activeKey = ref<keyof typeof enMessages | null>(keys[0] ?? null);
 const draft = ref<Record<string, string>>({});
 const showDiscardDialog = ref(false);
@@ -225,9 +261,15 @@ const contextMatchCount = ref(0);
 const $q = useQuasar();
 let contextObserver: MutationObserver | undefined;
 
-function loadDraft() {
+const activeMessages = computed(() => messagesByLocale[selectedLocale.value] ?? {});
+const selectedLanguageLabel = computed(() =>
+  languageOptions.find(option => option.value === selectedLocale.value)?.label ?? selectedLocale.value
+);
+
+function loadDraft(locale: string) {
+  draft.value = {};
   try {
-    const saved = localStorage.getItem(TRANSLATION_REVIEW_DRAFT_KEY);
+    const saved = localStorage.getItem(translationReviewDraftKey(locale));
     if (saved === null) {
       return;
     }
@@ -241,11 +283,11 @@ function loadDraft() {
       ([key, value]) =>
         keys.includes(key as keyof typeof enMessages) &&
         typeof value === "string" &&
-        value !== nlMessages[key as keyof typeof enMessages]
+        value !== messagesByLocale[locale]?.[key]
     );
     draft.value = Object.fromEntries(validEntries);
   } catch (error) {
-    console.error("Could not load the saved Dutch translation draft.", error);
+    console.error(`Could not load the saved ${locale} translation draft.`, error);
     $q.notify({
       type: "negative",
       message: "Could not load the saved translation draft. Discard it and try again."
@@ -253,12 +295,12 @@ function loadDraft() {
   }
 }
 
-loadDraft();
+loadDraft(selectedLocale.value);
 
 const filteredKeys = computed(() => {
   const query = search.value.trim().toLocaleLowerCase();
   return keys.filter(key => {
-    const translation = draft.value[key] ?? nlMessages[key];
+    const translation = draft.value[key] ?? activeMessages.value[key] ?? "";
     return !query || [key, enMessages[key], translation].some(
       value => value.toLocaleLowerCase().includes(query)
     );
@@ -271,6 +313,25 @@ watch(filteredKeys, availableKeys => {
   }
 });
 
+watch(selectedLocale, async locale => {
+  loadDraft(locale);
+  try {
+    await setLocale(locale);
+    i18n.global.setLocaleMessage(locale, {
+      ...i18n.global.getLocaleMessage(locale),
+      ...enMessages,
+      ...messagesByLocale[locale],
+      ...draft.value
+    });
+  } catch (error) {
+    console.error(`Could not switch the translation review to ${locale}.`, error);
+    $q.notify({
+      type: "negative",
+      message: `Could not load the ${locale} language.`
+    });
+  }
+});
+
 const currentIndex = computed(() =>
   activeKey.value ? filteredKeys.value.indexOf(activeKey.value) : -1
 );
@@ -279,7 +340,7 @@ const translationText = computed(() => {
   if (!activeKey.value) {
     return "";
   }
-  return draft.value[activeKey.value] ?? nlMessages[activeKey.value];
+  return draft.value[activeKey.value] ?? activeMessages.value[activeKey.value] ?? "";
 });
 const editedCount = computed(() => Object.keys(draft.value).length);
 const activeUsages = computed(() =>
@@ -288,9 +349,9 @@ const activeUsages = computed(() =>
 
 function persistDraft() {
   try {
-    localStorage.setItem(TRANSLATION_REVIEW_DRAFT_KEY, JSON.stringify(draft.value));
+    localStorage.setItem(translationReviewDraftKey(selectedLocale.value), JSON.stringify(draft.value));
   } catch (error) {
-    console.error("Could not save the Dutch translation draft.", error);
+    console.error(`Could not save the ${selectedLocale.value} translation draft.`, error);
     $q.notify({
       type: "negative",
       message: "Could not save the draft in this browser. Download your changes to keep them."
@@ -303,13 +364,13 @@ function updateTranslation(value: string | number | null) {
     return;
   }
 
-  if (value === nlMessages[activeKey.value]) {
+  if (value === activeMessages.value[activeKey.value]) {
     delete draft.value[activeKey.value];
   } else {
     draft.value[activeKey.value] = value;
   }
   draft.value = { ...draft.value };
-  i18n.global.mergeLocaleMessage("nl", { [activeKey.value]: value });
+  i18n.global.mergeLocaleMessage(selectedLocale.value, { [activeKey.value]: value });
   persistDraft();
 }
 
@@ -319,14 +380,14 @@ function selectOffset(offset: number) {
 }
 
 function downloadTranslations() {
-  const updatedMessages = { ...nlMessages, ...draft.value };
+  const updatedMessages = { ...activeMessages.value, ...draft.value };
   const blob = new Blob([`${JSON.stringify(updatedMessages, null, 2)}\n`], {
     type: "application/json"
   });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "index.json";
+  link.download = `${selectedLocale.value}-index.json`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -428,10 +489,11 @@ watch([activeKey, translationText], async () => {
 });
 
 onMounted(async () => {
-  await setLocale("nl");
-  i18n.global.setLocaleMessage("nl", {
-    ...i18n.global.getLocaleMessage("nl"),
-    ...nlMessages,
+  await setLocale(selectedLocale.value);
+  i18n.global.setLocaleMessage(selectedLocale.value, {
+    ...i18n.global.getLocaleMessage(selectedLocale.value),
+    ...enMessages,
+    ...activeMessages.value,
     ...draft.value
   });
   contextReady.value = true;
@@ -442,14 +504,14 @@ onBeforeUnmount(() => contextObserver?.disconnect());
 function discardDraft() {
   draft.value = {};
   activeKey.value = keys[0] ?? null;
-  i18n.global.setLocaleMessage("nl", {
-    ...i18n.global.getLocaleMessage("nl"),
-    ...nlMessages
+  i18n.global.setLocaleMessage(selectedLocale.value, {
+    ...enMessages,
+    ...activeMessages.value
   });
   try {
-    localStorage.removeItem(TRANSLATION_REVIEW_DRAFT_KEY);
+    localStorage.removeItem(translationReviewDraftKey(selectedLocale.value));
   } catch (error) {
-    console.error("Could not discard the saved Dutch translation draft.", error);
+    console.error(`Could not discard the saved ${selectedLocale.value} translation draft.`, error);
     $q.notify({
       type: "negative",
       message: "Could not remove the saved browser draft."

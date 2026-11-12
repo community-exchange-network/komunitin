@@ -48,16 +48,16 @@ We use consistent terminology across the app to ensure clarity and alignment wit
 | **Want** | Necessitat | Necesidad | Necessità | Besoin |
 | **Value** | Valor | Valor | Valore | Valeur |
 
-## Reviewing Dutch translations
+## Reviewing translations
 
 For a one-key-at-a-time review, start the app in development mode and open
-`/translation-review`. The page shows each English source beside its Dutch
-translation and embeds the real app interface. It lists the source components
-that use the selected key and highlights matching text in the current app view.
-Navigate the embedded app to see each use in context; member-only views may
-require signing in.
+`/translation-review`. Select a language with a root `index.json` dictionary.
+The page shows each English source beside the selected translation and embeds
+the real app interface. It lists the source components that use the selected
+key and highlights matching text in the current app view. Navigate the embedded
+app to see each use in context; member-only views may require signing in.
 
-Edits are kept as a draft in the browser's local storage and applied live to the
-embedded app. Download `index.json` from the page when finished and replace
-`nl/index.json` with the download. The review route is available only in
-development builds.
+Edits are kept in a separate browser draft for each language and applied live to
+the embedded app. Download the selected language's JSON file when finished and
+replace its `index.json`. The review route is available only in development
+builds.
