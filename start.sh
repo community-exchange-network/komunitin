@@ -6,8 +6,8 @@ usage() {
   cat <<EOF
 Usage: $0 [OPTIONS]
 
-Build and start the services, migrate the databases and provision the configured
-superadmin.
+Build the images, migrate the databases, start the services and provision the
+configured superadmin.
 
 Options:
   --reset       Recreate the stack with empty Docker volumes
@@ -87,26 +87,26 @@ EOF
   fi
 fi
 
-# Recreate all services and their volumes before applying migrations.
+# Build before changing the running stack.
+docker compose build
+
+# Recreate all services and their volumes when explicitly requested.
 if [ "$reset" = true ]; then
   docker compose down -v
 fi
 
-# Start containers.
-docker compose up -d --build --remove-orphans "${up_args[@]}"
+# Start database containers.
+docker compose up --wait --wait-timeout 300 \
+  db-auth db-accounting db-notifications-ts db-social db-notifications
 
-# Migrate service databases.
-docker compose exec auth pnpm prisma migrate deploy
-docker compose exec accounting pnpm prisma migrate deploy
-docker compose exec notifications-ts pnpm prisma migrate deploy
-docker compose exec social pnpm prisma migrate deploy
+# Apply migrations while old applications are still running.
+docker compose run --rm -T auth pnpm prisma migrate deploy
+docker compose run --rm -T accounting pnpm prisma migrate deploy
+docker compose run --rm -T notifications-ts pnpm prisma migrate deploy
+docker compose run --rm -T social pnpm prisma migrate deploy
 
-if [ "$prune" = true ]; then
-  docker system prune -f
-fi
-
-# Wait for the stack to be ready before bootstrapping.
-docker compose start --wait --wait-timeout 300
+# Update applications.
+docker compose up --wait --wait-timeout 300 --remove-orphans "${up_args[@]}"
 
 # Bootstrap the configured superadmin in Auth and Social.
 ./shared/cli/komunitin admin bootstrap
@@ -115,4 +115,8 @@ if [ "$demo" = true ]; then
   mkdir -p shared/demo/tmp
   ./shared/cli/komunitin admin bundle demo shared/demo/tmp/bramblewick.zip
   ./shared/cli/komunitin admin migrate shared/demo/tmp/bramblewick.zip
+fi
+
+if [ "$prune" = true ]; then
+  docker system prune -f
 fi
