@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url"
 import vitePluginChecker from 'vite-plugin-checker'
 import { vitePluginFlavorPublic } from './build-tools/vite-plugin-flavor-public'
 import { vitePluginFlavorAssets } from './build-tools/vite-plugin-flavor-assets'
+import { vitePluginMaterialSymbols } from './build-tools/vite-plugin-material-symbols'
 import { vitePluginFlavorOverrideSassVariables } from './build-tools/vite-plugin-flavor-override-sass-variables'
 import { vitePluginFlavorOverrideI18n } from "./build-tools/vite-plugin-flavor-override-i18n"
 import { getThemeColors } from "./build-tools/manifest-utils"
@@ -41,22 +42,9 @@ export default defineConfig((ctx) => {
       "app.scss",
     ],
 
-    // https://github.com/quasarframework/quasar/tree/dev/extras
-    extras: [
-      // 'ionicons-v4',
-      // 'mdi-v4',
-      // 'fontawesome-v5',
-      // 'eva-icons',
-      // 'themify',
-      // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
-
-      // "roboto-font", // optional, you are not bound to it
-      "material-symbols-rounded" // optional, you are not bound to it
-    ],
-
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework
     framework: {
-      iconSet: "material-symbols-rounded", // Quasar icon set
+      iconSet: "material-symbols-rounded", // app.scss loads the static font for this set.
       lang: "en-US", // Quasar language pack
       cssAddon: true,
 
@@ -90,6 +78,7 @@ export default defineConfig((ctx) => {
         }
       },
       vitePlugins: [
+        vitePluginMaterialSymbols(ctx.appPaths.resolve.cache('material-symbols')),
         ctx.prod ? ['rollup-plugin-visualizer', { filename: 'dist/stats.html', gzipSize: true }, { server: false }] : null,
         [vitePluginChecker, {
           eslint: {

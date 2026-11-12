@@ -104,9 +104,20 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-// 5. Custom icon weights and fills
+// 5. Icons (app & categories).
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-weight: 700;
+  src: url('komunitin-material-symbols.woff2') format('woff2');
+  font-display: block;
+}
+
 .material-symbols-rounded {
-  font-variation-settings: 'FILL' 1, 'wght' 800, 'opsz' 40 !important;
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 700;
+  // Development serves the variable source. Production pins these axes at build time.
+  font-variation-settings: 'FILL' 1, 'GRAD' 0, 'opsz' 40, 'wght' 700;
 }
 
 // 6. Custom component classes

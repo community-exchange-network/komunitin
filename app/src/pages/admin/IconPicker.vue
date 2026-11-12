@@ -13,6 +13,7 @@
     </q-input>
     <q-icon-picker
       v-model="icon"
+      v-model:model-pagination="pagination"
       class="q-mt-md text-on-surface-medium"
       size="lg"
       :icons="icons"
@@ -27,7 +28,7 @@
  * QIconPicker is a Quasar extension component that allows the user to select an icon from a list of icons. 
  */
 import { computed, ref } from 'vue'
-import { icons } from '@quasar/quasar-ui-qiconpicker/dist/icon-set/material-icons.umd.js'
+import iconNames from '@/assets/fonts/marketplace-icons.json'
 import { QIconPicker } from '@quasar/quasar-ui-qiconpicker';
 
 const props = defineProps<{
@@ -43,6 +44,8 @@ const icon = computed({
 })
 
 const iconFilter = ref('')
+const icons = iconNames.map(name => ({ name }))
+const pagination = ref({ page: 1, itemsPerPage: 60 })
 
 </script>
 <style src="@quasar/quasar-ui-qiconpicker/dist/index.css"></style>
