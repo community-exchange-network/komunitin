@@ -27,7 +27,7 @@
  * QIconPicker is a Quasar extension component that allows the user to select an icon from a list of icons. 
  */
 import { computed, ref } from 'vue'
-import { icons } from '@quasar/quasar-ui-qiconpicker/dist/icon-set/material-icons.umd.js'
+import iconNames from '@/assets/fonts/marketplace-icons.json'
 import { QIconPicker } from '@quasar/quasar-ui-qiconpicker';
 
 const props = defineProps<{
@@ -43,6 +43,7 @@ const icon = computed({
 })
 
 const iconFilter = ref('')
+const icons = iconNames.map(name => ({ name }))
 
 </script>
 <style src="@quasar/quasar-ui-qiconpicker/dist/index.css"></style>

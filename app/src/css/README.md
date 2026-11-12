@@ -73,6 +73,11 @@ also receive theme defaults, so content rendered from Markdown follows the
 same visual hierarchy. Choose HTML heading levels for document structure and
 text classes for appearance.
 
+## Icons
+
+The [Vite plugin](../../build-tools/vite-plugin-material-symbols.ts) builds one WOFF2
+from the *Material Symbols Rounded* font in `@quasar/extras` subsetting the font to icons used in the app and the [marketplace icons](../assets/fonts/marketplace-icons.json) available as marketplace category icons. Development serves the variable source so new icons work with hot reload.
+
 ## Working with Quasar and flavors
 
 Prefer Quasar components and utilities for layout, spacing and interaction.

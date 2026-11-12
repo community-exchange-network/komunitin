@@ -100,3 +100,14 @@ test('the service worker precaches the fallback shell and only deployed assets',
     assert.ok(!url.endsWith('.map'), `Source maps should not consume offline storage: ${url}`)
   }
 })
+
+test('the app stylesheet and the offline cache share one subset of Material Symbols', () => {
+  const urls = precacheUrls(read('sw.js'))
+  const fonts = urls.filter(url => /material-symbols-rounded-.*\.woff2$/.test(url))
+  assert.equal(fonts.length, 1)
+  const faces = [...shell.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')]
+    .flatMap(style => read(new URL(style.href).pathname.slice(1)).match(/@font-face\s*\{[^}]*Material Symbols Rounded[^}]*\}/gi) ?? [])
+  assert.equal(faces.length, 1)
+  assert.ok(faces[0].includes(fonts[0]))
+  assert.ok(statSync(resolve(dist, fonts[0])).size < 150_000, 'Icon font exceeds the 150 kB budget')
+})
