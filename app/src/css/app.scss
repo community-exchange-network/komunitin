@@ -122,10 +122,18 @@ h1, h2, h3, h4, h5, h6 {
 
 // 6. Custom component classes
 
-// Position snackbar notifications over the bottom navbar.
+// Place snackbars above bottom controls, retaining Quasar's 10px gap.
+body:has(#layout .q-btn--fab) .q-notifications__list--bottom {
+  margin-bottom: 90px; // 56px FAB + 24px desktop offset + 10px gap.
+}
+
 @media (max-width: $breakpoint-sm-max) {
-  body:has(#layout .q-footer) .q-notifications__list--bottom {
-    margin-bottom: 82px; // 72px bar height + 10px margin.
+  body:has(#layout .q-footer, #layout .q-btn--fab) .q-notifications__list--bottom {
+    margin-bottom: 82px; // 72px navbar or FAB + 10px gap.
+  }
+
+  body:has(#layout .q-footer):has(#layout .q-btn--fab) .q-notifications__list--bottom {
+    margin-bottom: 154px; // 72px navbar + 72px FAB + 10px gap
   }
 }
 
