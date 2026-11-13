@@ -10,14 +10,19 @@
         view="LHH LpR LFR"
         container
       >
+        <nav-rail
+          v-if="drawerExists && isNavigationRail"
+          :expanded="navRailExpanded"
+          @update:expanded="navRailExpanded = $event"
+        />
         <q-drawer
-          v-if="drawerExists"
+          v-if="drawerExists && !isNavigationRail"
           v-model="drawerState"
           show-if-above
           :width="256"
           @on-layout="drawerChange"
         >
-          <menu-drawer v-if="!isSuperadmin"/>
+          <menu-drawer v-if="!isSuperadmin" />
           <superadmin-menu-drawer v-else/>
         </q-drawer>
         <router-view />
@@ -50,17 +55,22 @@
  * using the PageHeader component.
  */
 import MenuDrawer from "../components/MenuDrawer.vue";
+import NavRail from "../components/NavRail.vue";
 //import SuperadminMenuDrawer from "../pages/superadmin/MenuDrawer.vue";
 import { useStore } from "vuex";
 
 import { useI18n } from 'vue-i18n';
 import { useRoute } from "vue-router";
-import { computed, defineAsyncComponent } from "vue"
+import { computed, defineAsyncComponent, ref } from "vue"
+import { useQuasar } from "quasar"
 
 const store = useStore()
 const { t } = useI18n();
+const $q = useQuasar()
 
 const isSuperadmin = computed(() => store.getters.isSuperadmin)
+const isNavigationRail = computed(() => !isSuperadmin.value && !$q.screen.lt.md)
+const navRailExpanded = ref(false)
 
 const drawerExists = computed(() => store.getters.drawerExists || isSuperadmin.value)
 
