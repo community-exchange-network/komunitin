@@ -6,6 +6,7 @@ import { errorHandler } from './server/errors'
 import { httpLogger } from './server/http-logger'
 import { config } from './config'
 import logger from './utils/logger'
+import healthRoutes from './server/health'
 import userRoutes from './features/users/routes'
 import migrationRoutes from './features/migrations/routes'
 import { groupsRoutes, tenantGroupRoutes } from './features/groups/routes'
@@ -40,9 +41,7 @@ app.use((req, res, next) => {
 
 app.use(httpLogger)
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' })
-})
+app.use(healthRoutes)
 
 app.use('/', migrationRoutes)
 app.use('/', userRoutes)

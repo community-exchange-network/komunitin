@@ -10,17 +10,14 @@ const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 const DB_RETRY_INTERVAL_MS = 1000
 
-export async function checkPrismaHealth() {
-  await prisma.signingKey.findFirst({ select: { id: true } })
-}
-
+/** Wait for the application's schema before initializing the identity provider. */
 export async function waitForPrisma() {
   while (true) {
     try {
-      await checkPrismaHealth()
+      await prisma.signingKey.findFirst({ select: { id: true } })
       return
-    } catch {
-      logger.info('Waiting for database...')
+    } catch (err) {
+      logger.warn({ err }, 'Waiting for database, retrying in 1 second')
       await setTimeout(DB_RETRY_INTERVAL_MS)
     }
   }

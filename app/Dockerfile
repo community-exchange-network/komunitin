@@ -55,3 +55,5 @@ COPY docker/replace_env_vars.sh /docker-entrypoint.d/replace_env_vars.sh
 RUN chmod +x /docker-entrypoint.d/replace_env_vars.sh
 
 EXPOSE 80
+
+HEALTHCHECK --start-period=30s --timeout=5s CMD curl -fsS -o /dev/null http://127.0.0.1/health

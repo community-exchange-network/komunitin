@@ -18,9 +18,6 @@ Komunitin is an open-source system featuring a community currency wallet and a m
 | `shared/` | Incipient admin CLI and shared docker images. |
 | `.github/` | CI workflows |
 
-Explicit migration tooling can still read from an externally managed
-IntegralCES instance.
-
 ## Shared Tooling
 
 - All TypeScript/Node.js projects in this repo use `pnpm`.
@@ -29,11 +26,11 @@ IntegralCES instance.
 ## Docker Compose Orchestration
 
 - Full local stack (may take a few minutes to build and start):
-
   ```bash
   cp .env.dev.template .env
-  ./start.sh --up --dev --reset
+  ./start.sh --dev --reset
   ```
+  Use `--demo` to seed a demo community.
 
 - `compose.yml` is the base stack: app, auth, social, accounting, notifications-ts, PostgreSQL databases, and Redis.
 - `compose.dev.yml` adds hot-reload commands, debugger ports, local utility services, and bind mounts for active development.
@@ -57,7 +54,6 @@ Published local ports in the dev stack:
 | Social | `http://localhost:2028` |
 | Notifications | `http://localhost:2023` |
 | Credit Commons test node | `http://localhost:2024` |
-| Redis Commander | `http://localhost:2027` |
 
 The development template bootstraps the superadmin
 `info@komunitin.org` with password `komunitin`.
@@ -75,8 +71,8 @@ The development template bootstraps the superadmin
 
 ## General Development Guidelines
 
-- Keep the code minimal, simple and elegant. Avoid duplication at all costs.
-- Avoid defensive programming. Use the type system to enforce non-nullable values instead of runtime checks.
+- Keep the code minimal, simple and elegant. Avoid duplication.
+- Avoid defensive programming. Use the type system.
 - Prefer single return statements. Avoid unnecessary early returns just for tiny performance gain.
 - Avoid unnecessary type annotations when the type is correctly inferred (e.g. function return types).
 - Add concise comments for non-obvious or unreadable logic, for public API functions and for orchestration code.
@@ -84,7 +80,7 @@ The development template bootstraps the superadmin
 
 ## Testing Guidelines
 
-- Focus committed tests on service boundaries: HTTP APIs for backend services and user interactions for the app. Test behavior, not implementation. Test only with the boundary inputs and outputs if possible.
+- Test the service boundaries: HTTP APIs for backend services and user interactions for the app. Test behavior, not implementation. Test only with the boundary inputs and outputs if possible.
 - Keep test code minimal, readable and DRY. Move shared setup and helpers into utility files.
 - Treat unit tests as temporary development and debugging aids. Commit them only for exceptionally complex functions or components. Unit tests do not define product intent and may be freely changed or deleted during refactors.
 

@@ -238,7 +238,7 @@ docker stop ces2-prod-integralces-1 ces2-prod-db-integralces-1
 docker rm ces2-prod-integralces-1 ces2-prod-db-integralces-1
 
 cd /opt/app.ces.community/komunitin
-./start.sh --up --public
+./start.sh --public
 docker compose logs --tail 30 auth social accounting notifications-ts
 ```
 
@@ -277,7 +277,7 @@ git pull --ff-only origin master
 
 cd ../komunitin
 docker compose config -q
-./start.sh --up --public --demo
+./start.sh --public --demo
 ```
 
 Test demo login, images and a transfer. Persist these environment settings in the demo redeployment configuration.

@@ -1,5 +1,4 @@
 import { after, before, describe, test } from 'node:test'
-import assert from 'node:assert'
 import request from 'supertest'
 import { setupTestServer, teardownTestServer } from './mocks/server'
 
@@ -15,12 +14,10 @@ after(async () => {
 })
 
 describe('Health endpoint', () => {
-  test('GET /health returns 200 with status ok', async () => {
-    const res = await request(app)
+  test('GET /health returns 200', async () => {
+    await request(app)
       .get('/health')
-      .expect(200)
-
-    assert.strictEqual(res.body.status, 'ok')
-    assert.ok(res.headers['content-type']?.includes('application/vnd.api+json'))
+      .expect('Content-Type', /application\/json/)
+      .expect(200, { status: 'ok' })
   })
 })

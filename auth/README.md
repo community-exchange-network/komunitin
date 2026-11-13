@@ -77,7 +77,7 @@ The OpenAPI contract lives at `openapi/openapi.yml`.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /health` | Checks database connectivity. |
+| `GET /health` | HTTP liveness check; returns 200 without querying dependencies. |
 | `POST /register` | Creates an unverified auth identity and emits a validation email event. |
 | `POST /token` | OAuth token endpoint. |
 | `POST /reset-password` | Creates a password reset action token and emits a notification event if the user exists. |

@@ -6,15 +6,14 @@ usage() {
   cat <<EOF
 Usage: $0 [OPTIONS]
 
-Migrate the databases and provision the configured superadmin. Use --up to
-build and start the services first.
+Build the images, migrate the databases, start the services and provision the
+configured superadmin.
 
 Options:
-  --up          Build and start the services
-  --reset       Reset the service databases before applying migrations
-  --demo        Reset service databases and import the Bramblewick CSV demo bundle
-  --dev         Set up local HTTPS and start with development config (requires --up)
-  --public      Start with production config (requires --up)
+  --reset       Recreate the stack with empty Docker volumes
+  --demo        Reset the stack and import the Bramblewick CSV demo bundle
+  --dev         Set up local HTTPS and start with development config
+  --public      Start with production config
   --prune       Remove unused Docker resources after startup
   -h, --help    Show this help message
 EOF
@@ -23,31 +22,17 @@ EOF
 reset=false
 demo=false
 public=false
-up=false
 prune=false
 dev=false
 
 while (( $# > 0 )); do
   case "$1" in
-    --up)
-      up=true
-      ;;
-    --reset)
-      reset=true
-      ;;
-    --demo)
-      demo=true
-      reset=true
-      ;;
-    --public)
-      public=true
-      ;;
-    --dev)
-      dev=true
-      ;;
-    --prune)
-      prune=true
-      ;;
+    --up) ;;
+    --reset) reset=true ;;
+    --demo) demo=true; reset=true ;;
+    --public) public=true ;;
+    --dev) dev=true ;;
+    --prune) prune=true ;;
     -h|--help)
       usage
       exit 0
@@ -67,15 +52,19 @@ if [ "$dev" = true ] && [ "$public" = true ]; then
   exit 1
 fi
 
-if [ "$up" = false ] && { [ "$reset" = true ] || [ "$dev" = true ] || [ "$public" = true ] || [ "$prune" = true ]; }; then
-  echo "Options --reset, --demo, --dev, --public and --prune require --up." >&2
-  exit 1
-fi
-
 # Load .env file.
 set -a
 . .env
 set +a
+
+# Select Compose files and startup options.
+up_args=()
+if [ "$dev" = true ]; then
+  export COMPOSE_FILE=compose.yml:compose.dev.yml
+  up_args+=(--renew-anon-volumes)
+elif [ "$public" = true ]; then
+  export COMPOSE_FILE=compose.yml:compose.public.yml
+fi
 
 # Prepare trusted HTTPS when mkcert is available; containers provide the fallback.
 if [ "$dev" = true ]; then
@@ -98,49 +87,26 @@ EOF
   fi
 fi
 
-# for social db, prisma reset does not work well so we remove the volume and let docker 
-# compose recreate it.
-if [ "$reset" = true  ]; then
-  docker compose down -v db-social
+# Build before changing the running stack.
+docker compose build
+
+# Recreate all services and their volumes when explicitly requested.
+if [ "$reset" = true ]; then
+  docker compose down -v
 fi
 
+# Start database containers.
+docker compose up --wait --wait-timeout 300 \
+  db-auth db-accounting db-notifications-ts db-social db-notifications
 
-# Start the services
-if [ "$up" = true ]; then
-if [ "$public" = true ]; then
-  docker compose -f compose.yml -f compose.public.yml up -d --build --remove-orphans
-elif [ "$dev" = true ]; then
-  mkdir -p notifications-ts/tmp
-  # Refresh dependencies and generated code from the rebuilt images.
-  docker compose -f compose.yml -f compose.dev.yml up -d --build --remove-orphans --renew-anon-volumes
-else
-  docker compose up -d --build --remove-orphans
-fi
+# Apply migrations while old applications are still running.
+docker compose run --rm -T auth pnpm prisma migrate deploy
+docker compose run --rm -T accounting pnpm prisma migrate deploy
+docker compose run --rm -T notifications-ts pnpm prisma migrate deploy
+docker compose run --rm -T social pnpm prisma migrate deploy
 
-# cleanup old images and volumes
-if [ "$prune" = true ]; then
-  docker system prune -f
-fi
-
-echo "Waiting for the services to start..."
-sleep 10
-
-fi
-
-# Migrate service databases
-if [ "$reset" = true  ]; then
-  docker compose exec auth pnpm prisma migrate reset --force
-  docker compose exec social pnpm prisma migrate deploy
-  docker compose exec accounting pnpm prisma migrate reset --force
-  docker compose exec notifications-ts pnpm prisma migrate reset --force
-  sleep 2
-else
-  docker compose exec auth pnpm prisma migrate deploy
-  docker compose exec social pnpm prisma migrate deploy
-  docker compose exec accounting pnpm prisma migrate deploy
-  docker compose exec notifications-ts pnpm prisma migrate deploy
-  sleep 2
-fi
+# Update applications.
+docker compose up --wait --wait-timeout 300 --remove-orphans "${up_args[@]}"
 
 # Bootstrap the configured superadmin in Auth and Social.
 ./shared/cli/komunitin admin bootstrap
@@ -149,4 +115,8 @@ if [ "$demo" = true ]; then
   mkdir -p shared/demo/tmp
   ./shared/cli/komunitin admin bundle demo shared/demo/tmp/bramblewick.zip
   ./shared/cli/komunitin admin migrate shared/demo/tmp/bramblewick.zip
+fi
+
+if [ "$prune" = true ]; then
+  docker system prune -f
 fi

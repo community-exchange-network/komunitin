@@ -45,7 +45,7 @@ The wrapper builds `shared/cli/Dockerfile` and runs the CLI with the repository 
 
 API URLs and `ICES_DATABASE_URL` containing `localhost` are translated to `host.docker.internal` so the containerized CLI can reach services running on the host. The CLI never prints credentials or tokens.
 
-`./start.sh --up --dev --demo` resets the service databases, bootstraps the superadmin and imports Bramblewick. The demo script writes `shared/demo/tmp/bramblewick.zip`. Stellar is left intact: keeping the same demo seed lets subsequent imports reuse its accounts. IntegralCES is only needed when explicitly exporting from an externally managed installation.
+`./start.sh --dev --demo` resets the service databases, bootstraps the superadmin and imports Bramblewick. The demo script writes `shared/demo/tmp/bramblewick.zip`. Stellar is left intact: keeping the same demo seed lets subsequent imports reuse its accounts. IntegralCES is only needed when explicitly exporting from an externally managed installation.
 
 ## Development
 

@@ -17,4 +17,6 @@ ENV DATABASE_URL=postgresql://auth:auth@localhost:5435/auth?schema=public
 RUN pnpm prisma generate
 RUN pnpm run build
 
+HEALTHCHECK --start-period=60s --timeout=5s CMD curl -fsS -o /dev/null "http://127.0.0.1:${PORT:-2026}/health"
+
 CMD ["node", "dist/index.mjs"]

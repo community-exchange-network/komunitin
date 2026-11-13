@@ -60,4 +60,8 @@ RUN chmod +x /usr/local/bin/*.sh
 
 # Set the entrypoint to the custom script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# The temporary server used for initialization only listens on a Unix socket.
+HEALTHCHECK --start-period=60s --timeout=5s CMD pg_isready -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" || exit 1
+
 CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]

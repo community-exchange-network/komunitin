@@ -4,6 +4,10 @@ services:
     build:
       target: komunitin-app-build
     command: npm run dev
+    healthcheck:
+      test: ["CMD", "curl", "-kfsS", "-o", "/dev/null", "https://localhost:2030/"]
+      start_period: 2m
+      timeout: 5s
     ports: !override
       - 2030:2030
     volumes:
@@ -92,13 +96,6 @@ services:
   db-notifications:
     ports:
       - "6379:6379"
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    restart: unless-stopped
-    environment:
-     - REDIS_HOSTS=local:db-notifications:6379
-    ports:
-     - "2027:8081" 
 
 volumes:
   s3mock-data:

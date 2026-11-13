@@ -163,12 +163,11 @@ describe('Auth Service Integration Tests', () => {
     eventStatuses.length = 0
   })
 
-  test('GET /health returns 200 with status ok', async () => {
-    const res = await request(app)
+  test('GET /health returns 200', async () => {
+    await request(app)
       .get('/health')
-      .expect(200)
-
-    assert.strictEqual(res.body.status, 'ok')
+      .expect('Content-Type', /application\/json/)
+      .expect(200, { status: 'ok' })
   })
 
   test('POST /register creates an unverified user and sends validation email', async () => {

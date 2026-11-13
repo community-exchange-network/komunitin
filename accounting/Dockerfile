@@ -21,5 +21,7 @@ RUN pnpm prisma generate
 # Build App
 RUN pnpm run build
 
+HEALTHCHECK --start-period=60s --timeout=5s CMD curl -fsS -o /dev/null "http://127.0.0.1:${PORT:-2025}/health"
+
 # Run accounting service
 CMD ["node", "dist/index.mjs"]

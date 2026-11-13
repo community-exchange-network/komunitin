@@ -10,6 +10,33 @@
     "description": "API for the Komunitin payments system. This documentation is automatically generated from the serivce test suite."
   },
   "paths": {
+    "/health": {
+      "get": {
+        "summary": "/health",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "ok"
+                }
+              }
+            }
+          }
+        },
+        "tags": [],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
     "/": {
       "get": {
         "summary": "/",

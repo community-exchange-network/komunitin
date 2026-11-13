@@ -8,6 +8,15 @@ const uid = (c: string) => [8,4,4,4,12].map(len => c.repeat(len)).join('-')
 describe('Notifications API', () => {
   const { app, appNotifications } = setupNotificationsTest()
 
+  describe('GET /health', () => {
+    it('returns 200', async () => {
+      await app
+        .get('/health')
+        .expect('Content-Type', /application\/json/)
+        .expect(200, { status: 'ok' })
+    })
+  })
+
   describe('GET /:code/notifications', () => {
     it('Returns notifications for authenticated user', async () => {
       const groupCode = 'GRP1'

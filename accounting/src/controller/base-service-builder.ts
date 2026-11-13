@@ -1,6 +1,6 @@
-import { PrismaClient } from "@prisma/client"
 import { logger } from "../utils/logger"
-import { globalTenantDb, waitForDb } from "./multitenant"
+import { createPrisma } from "../utils/prisma"
+import { globalTenantDb } from "./multitenant"
 import { Store } from "./store"
 import { badConfig } from "../utils/error"
 import { config } from "../config"
@@ -80,8 +80,7 @@ const getMasterKey = async () => {
 
 export async function createBaseService(): Promise<BaseService> {
   // Create DB client.
-  const db = new PrismaClient()
-  await waitForDb(db)
+  const db = await createPrisma()
 
   // Create global key-value store.
   const globalDb = globalTenantDb(db)

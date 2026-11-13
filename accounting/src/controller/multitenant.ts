@@ -1,6 +1,4 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { sleep } from "../utils/sleep";
-import { logger } from "../utils/logger";
 
 export type PrivilegedPrismaClient = ReturnType<typeof privilegedDb>
 export type TenantPrismaClient = ReturnType<typeof tenantDb>
@@ -72,17 +70,6 @@ function forTenant(tenantId: string) {
       }
     })
   );
-}
-
-export const waitForDb = async (db: PrismaClient): Promise<void> => {
-  try {
-    // Do a simple query to check if the DB is ready.
-    await db.value.findFirst()
-  } catch (error) {
-    logger.info(`Waiting for DB...`)
-    await sleep(1000)
-    return waitForDb(db)
-  }
 }
 
 export const nullToPrismaDBNull = <T extends Record<string, unknown>>(obj: T) => {

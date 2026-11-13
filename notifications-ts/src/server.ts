@@ -6,6 +6,7 @@ import { config } from './config'
 import notificationsRouter from './notifications/server/routes'
 import eventsRouter from './events/server/routes'
 import { errorHandler } from './server/errors'
+import healthRoutes from './server/health'
 import { httpLogger } from './server/http-logger'
 import logger from './utils/logger'
 
@@ -35,9 +36,7 @@ app.use(notificationsRouter)
 
 app.use(eventsRouter)
 
-app.get('/health', (req, res) => {
-  res.send('OK')
-})
+app.use(healthRoutes)
 
 app.use(errorHandler)
 

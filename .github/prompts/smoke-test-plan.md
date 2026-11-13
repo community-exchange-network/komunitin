@@ -8,7 +8,7 @@ The output is a test report, evidence bundle, actionable defect list, follow-up 
 
 ## Preparation
 
-- Start from a clean stack with `./start.sh --up --dev --reset` and confirm `KOMUNITIN_APP_MOCK=false`.
+- Start from a clean stack with `./start.sh --dev --reset` and confirm `KOMUNITIN_APP_MOCK=false`.
 - Use the installed **Playwright MCP** as the browser surface for the entire run,
   with a dedicated isolated Chrome profile. Do not switch to the in-app Browser or
   an extension-backed Chrome session: their shared browser state works against the

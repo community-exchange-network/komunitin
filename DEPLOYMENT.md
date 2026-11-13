@@ -43,7 +43,7 @@ Otherwise you can use it as a template to create your own Traefik setup.
 In order to install and start the system for first time run:
 
 ```bash
-./start.sh --up --public
+./start.sh --public
 ```
 
 This command builds and starts all containers with the production network
@@ -53,7 +53,7 @@ configuration, applies migrations and bootstraps the configured superadmin.
 
 To reset all service databases before migration, add `--reset`:
 ```bash
-./start.sh --up --public --reset
+./start.sh --public --reset
 ```
 
 ## Update the system
@@ -62,7 +62,7 @@ To update the system to the latest version, upgrade the code and rebuild and res
 
 ```bash
 git pull
-./start.sh --up --public
+./start.sh --public
 ```
 
 ### Reset
@@ -71,7 +71,7 @@ To wipe the service databases during an update:
 
 ```bash
 git pull
-./start.sh --up --public --reset
+./start.sh --public --reset
 ```
 
 ## Clean up

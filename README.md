@@ -45,23 +45,21 @@ cp .env.dev.template .env
 In order to have everything working (mailing, push notifications, backups, analytics...) you need to carefully configure the environment variables in the `.env` file. You can find more details about the configuration in the `.env.public.template` file.
 
 ### Start
-Run the start script with `--up` to build and start the containers, `--dev` to
-enable hot reload, debuggers, development utilities and local certificates, and `--reset` to reset
-the service databases before applying migrations. The configured superadmin is
-bootstrapped after migration.
+Run the `start.sh` script to build and start the containers. Use `--dev` to
+enable hot reload, debuggers, development utilities and local certificates, and `--reset` to clear all its data.
 
 ```bash
-./start.sh --up --dev --reset
+./start.sh --dev --reset
 ```
 
 > The first build downloads and compiles everything from scratch — expect it to take some minutes.
 
 #### Demo
-The demo flag resets the service databases and imports the fictional Bramblewick
+The demo flag resets the stack and imports the fictional Bramblewick
 community. See [demo overview](shared/demo/README.md).
 
 ```bash
-./start.sh --up --dev --demo
+./start.sh --dev --demo
 ```
 Docker resources are preserved by default. Pass `--prune` explicitly if you
 want to remove unused Docker resources after startup.

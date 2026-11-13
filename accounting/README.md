@@ -125,7 +125,7 @@ From the repository root, start the development stack with demo data:
 
 ```sh
 cp .env.dev.template .env
-./start.sh --up --dev --demo
+./start.sh --dev --demo
 ```
 
 The demo now contains the single Bramblewick community (`BRAM`). Log in at https://localhost:2030 as `mabel@bramblewick.example` (administrator) or `tom@bramblewick.example` (member), with password `komunitin`. See the [demo guide](../shared/demo/README.md) for the full data and login details.

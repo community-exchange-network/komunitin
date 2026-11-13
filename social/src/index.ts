@@ -1,9 +1,12 @@
 import logger from './utils/logger'
 import { startServer } from './app'
 import { startCleanupWorker } from './features/files/worker'
+import { waitForPrisma } from './utils/prisma'
 
 const main = async () => {
   logger.info('Starting social service...')
+  await waitForPrisma()
+
   const { stop: stopServer } = startServer()
   const { stop: stopFileCleanup } = startCleanupWorker()
 
