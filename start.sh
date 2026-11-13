@@ -118,5 +118,5 @@ if [ "$demo" = true ]; then
 fi
 
 if [ "$prune" = true ]; then
-  docker system prune -f
+  docker system prune -f --filter "until=24h"
 fi
