@@ -2,7 +2,7 @@
 import type { MaybeRefOrGetter} from "@vueuse/shared";
 import { toValue } from "@vueuse/shared"
 import type { Account, AccountSettings, Currency, CurrencySettings } from "@/store/model"
-import { computed } from "vue"
+import { computed, ref } from "vue"
 import { useStore } from "vuex"
 
 
@@ -37,6 +37,19 @@ export const accountSettingsToCurrencySettingsAttributes = (attributes: Partial<
     accountDefaults[defaultKey] = attributes[key as keyof AccountSettings["attributes"]]
   }
   return accountDefaults as Partial<CurrencySettings["attributes"]>
+}
+
+/** Edit currency defaults through account fields, saving only changed attributes. */
+export const useAccountDefaultSettings = (
+  currencySettings: CurrencySettings,
+  saveCurrencySettings: (attributes: Partial<CurrencySettings['attributes']>) => Promise<void>
+) => {
+  const accountSettings = ref(currencySettingsToAccountSettingsAttributes(currencySettings.attributes))
+  const updateSettings = (attributes: Partial<AccountSettings['attributes']>) => {
+    Object.assign(accountSettings.value, attributes)
+    return saveCurrencySettings(accountSettingsToCurrencySettingsAttributes(attributes))
+  }
+  return { accountSettings, updateSettings }
 }
 
 export const effectiveSettings = (accountSettings: AccountSettings, currencySettings: CurrencySettings) => {

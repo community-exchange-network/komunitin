@@ -1,26 +1,23 @@
 <template>
   <topup-settings-form
-    v-if="currency && topupSettings"
+    v-if="topupSettings"
     :topup-settings="topupSettings"
-    :currency="currency"
+    :currency="currency!"
     :updating-topup-settings="loadingTopupSettings"
     @update:topup-settings="updateTopupSettings"
   />
-  <save-changes ref="changes" class="q-mt-lg" />
+  <q-inner-loading :showing="!loaded" color="icon" />
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import SaveChanges from '@/components/SaveChanges.vue'
 import { useResource } from '@/composables/useResources'
-import type { Currency } from '@/store/model'
+import type { CommunitySettingsContext } from '@/composables/useCommunitySettings'
 import TopupSettingsForm from './TopupSettingsForm.vue'
 import type { TopupSettings } from './model'
 import type { DeepPartial } from 'quasar'
 
-const { code } = defineProps<{ code: string }>()
-const changes = ref<InstanceType<typeof SaveChanges>>()
-const { resource: currency } = useResource<Currency>('currencies', { group: code })
-const { resource: topupSettings, loading: loadingTopupSettings, update } = useResource<TopupSettings>('topup-settings', { group: code })
-const updateTopupSettings = (settings: DeepPartial<TopupSettings>) => changes.value!.save(() => update(settings))
+const { settingsContext } = defineProps<{ settingsContext: CommunitySettingsContext }>()
+const { code, currency, save } = settingsContext
+const { resource: topupSettings, loaded, loading: loadingTopupSettings, update } = useResource<TopupSettings>('topup-settings', { group: code.value })
+const updateTopupSettings = (settings: DeepPartial<TopupSettings>) => save(() => update(settings))
 </script>

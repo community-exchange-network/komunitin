@@ -1,4 +1,6 @@
 {
+  "accountPermissions": "Account permissions",
+  "accountPreferences": "Account preferences",
   "administration": "Administration",
   "editGroup": "Edit Community",
   "editGroupText": "Define the main attributes of your exchange community.",
@@ -7,7 +9,7 @@
   "invalidCurrencyValue": "Invalid currency value. Please use the notation n/d.",
   "groupSettings": "Community Settings",
   "categories": "Categories",
-  "signupSettings": "Signup Settings",
+  "signupSettings": "Signup",
   "signupSettingsText": "Define some settings for the signup process.",
   "enableTermsOfUse": "Terms of Use",
   "enableTermsOfUseHint": "Require users to accept the terms of use before signing up.",

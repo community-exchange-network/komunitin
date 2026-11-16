@@ -1,4 +1,6 @@
 {
+  "accountPermissions": "Permisos de la cuenta",
+  "accountPreferences": "Preferencias de la cuenta",
   "administration": "Administración",
   "editGroup": "Editar comunidad",
   "editGroupText": "Define los atributos principales de tu comunidad de intercambio.",
@@ -7,7 +9,7 @@
   "invalidCurrencyValue": "Valor de la moneda no válido. Por favor, usa la notación n/d.",
   "groupSettings": "Configuración de la comunidad",
   "categories": "Categorías",
-  "signupSettings": "Configuración de registro",
+  "signupSettings": "Registro",
   "signupSettingsText": "Define algunas configuraciones para el proceso de registro.",
   "enableTermsOfUse": "Condiciones de uso",
   "enableTermsOfUseHint": "Requiere que los usuarios acepten las condiciones de uso antes de registrarse.",

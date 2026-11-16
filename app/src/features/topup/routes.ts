@@ -1,8 +1,16 @@
 import type { RouteRecordRaw } from 'vue-router'
+import type { Composer } from 'vue-i18n'
 
 export const topupRoutes: RouteRecordRaw[] = []
 export const topupSettingsRoutes: RouteRecordRaw[] = []
-export const topupAdminRoutes: RouteRecordRaw[] = []
+
+/** Build the optional settings entry using the current locale. */
+export const getTopupSettingsNav = (t: Composer['t']) => {
+  if (import.meta.env.FEAT_TOPUP === 'true') {
+    return [{ id: 'contributions', label: t('topupSettings'), icon: 'credit_card' }]
+  }
+  return []
+}
 
 if (import.meta.env.FEAT_TOPUP === 'true') {
   topupRoutes.push({
@@ -21,13 +29,6 @@ if (import.meta.env.FEAT_TOPUP === 'true') {
   topupSettingsRoutes.push({
     path: 'contributions',
     name: 'TopupSettings',
-    component: () => import('./TopupSettings.vue'),
-    props: true,
-    meta: { settingsSection: 'contributions' }
-  })
-
-  topupAdminRoutes.push({
-    path: 'topup-settings',
-    redirect: { name: 'TopupSettings' }
+    component: () => import('./TopupSettings.vue')
   })
 }

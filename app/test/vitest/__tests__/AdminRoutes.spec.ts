@@ -15,7 +15,7 @@ describe("admin routes", () => {
   afterAll(() => wrapper.unmount())
 
   it("logs out an ordinary member attempting group and superadmin routes", async () => {
-    for (const path of ["/groups/GRP0/admin/accounts", "/superadmin/groups"]) {
+    for (const path of ["/groups/GRP0/admin/accounts", "/groups/GRP0/admin/settings/signup", "/superadmin/groups"]) {
       await testLogin()
       await wrapper.vm.$router.push(path)
       await waitFor(() => wrapper.vm.$store.getters.isLoggedIn, false)
