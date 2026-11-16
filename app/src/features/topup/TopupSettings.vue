@@ -6,7 +6,7 @@
     :updating-topup-settings="loadingTopupSettings"
     @update:topup-settings="updateTopupSettings"
   />
-  <q-inner-loading :showing="!loaded" color="icon" />
+  <q-inner-loading v-else :showing="!loaded" color="icon" />
 </template>
 
 <script setup lang="ts">

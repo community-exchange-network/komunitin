@@ -21,7 +21,7 @@
       @create:category="create"
       @delete:category="remove"
     />
-    <q-inner-loading :showing="loading" />
+    <q-inner-loading v-else :showing="loading" />
   </div>
 </template>
 
