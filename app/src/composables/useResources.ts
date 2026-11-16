@@ -129,14 +129,14 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     }
   }
 
-  const update = async (data: DeepPartial<T>) => {
+  const mutate = async (action: 'create' | 'update' | 'delete', resource?: DeepPartial<T>, id?: string) => {
     loading.value = true
     error.value = undefined
     try {
-      await store.dispatch(type + '/update', {
-        id: resourceId.value,
+      await store.dispatch(`${type}/${action}`, {
+        id,
         group: toValue(options).group,
-        resource: data
+        resource
       })
     } catch (caught) {
       throw captureError(error, caught)
@@ -145,9 +145,23 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     }
   }
 
+  const update = (data: DeepPartial<T>) => mutate('update', data, data.id ?? resourceId.value)
+  const create = async (data: DeepPartial<T>) => {
+    await mutate('create', data)
+    resourceId.value = store.getters[`${type}/current`].id
+    loaded.value = true
+  }
+  const remove = async (id = resourceId.value) => {
+    await mutate('delete', undefined, id)
+    if (id === resourceId.value) {
+      resourceId.value = undefined
+      loaded.value = false
+    }
+  }
+
   useLoader(options, load, config)
 
-  return { resource, loading, loaded, error, load, update }
+  return { resource, loading, loaded, error, load, update, create, remove }
 
 }
 
