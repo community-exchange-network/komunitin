@@ -1,14 +1,12 @@
 <template>
-  <nav
-    class="q-pa-sm text-on-surface-medium"
-  >
+  <nav class="q-pa-sm text-on-surface-medium">
     <q-item
       v-for="item in items"
       :key="item.id"
       :to="`${indexPath}/${item.id}`"
       :active="isIndex ? wide && item.id === 'signup' : null"
       active-class="bg-active text-primary-variant"
-      class="rounded-borders text-label-large q-pl-md q-pr-sm"
+      class="rounded-borders text-label-large q-pr-sm"
     >
       <q-item-section side>
         <q-icon :name="item.icon" size="20px" color="icon" />

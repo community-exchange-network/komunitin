@@ -4,10 +4,11 @@
     :back="isIndex ? undefined : indexPath"
   />
   <q-page-container>
-    <q-page class="q-px-md q-pt-md q-pb-xl">
-      <div class="q-mx-auto row bg-surface rounded-borders shadow-2 scroll">
+    <q-page class="q-pa-md q-pb-xl" :style-fn="pageStyle">
+      <div class="row bg-surface rounded-borders shadow-2">
         <div class="col-12 col-md-3" v-if="isIndex || wide">
           <community-settings-nav
+            class="settings-nav"
             :index-path="indexPath"
             :wide="wide"
             :is-index="isIndex"
@@ -48,8 +49,23 @@ const wide = computed(() => q.screen.gt.sm)
 const indexPath = computed(() => `/groups/${props.code}/admin/settings`)
 const isIndex = computed(() => route.path === indexPath.value)
 
+// QPage supplies the layout offset, including any banner below the toolbar.
+const pageStyle = (offset: number, height: number) => ({
+  minHeight: `${height - offset}px`,
+  '--page-offset': `${offset}px`
+})
+
 const changes = ref<InstanceType<typeof SaveChanges>>()
 const settingsContext = useCommunitySettingsContext(() => props.code, action => changes.value!.save(action))
 const { loaded } = settingsContext
 
 </script>
+
+<style lang="scss" scoped>
+@media (min-width: $breakpoint-md-min) {
+  .settings-nav {
+    position: sticky;
+    top: calc(var(--page-offset) + #{$space-y-base});
+  }
+}
+</style>
