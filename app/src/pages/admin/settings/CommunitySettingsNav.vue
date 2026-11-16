@@ -4,12 +4,12 @@
       v-for="item in items"
       :key="item.id"
       :to="`${indexPath}/${item.id}`"
-      :active="isIndex ? wide && item.id === 'signup' : null"
+      :active="isActive(item.id)"
       active-class="bg-active text-primary-variant"
       class="rounded-borders text-label-large q-pr-sm"
     >
       <q-item-section side>
-        <q-icon :name="item.icon" size="20px" color="icon" />
+        <q-icon :name="item.icon" size="20px" :color="isActive(item.id) ? 'primary' : 'icon'" />
       </q-item-section>
       <q-item-section>
         {{ item.label }}
@@ -24,15 +24,21 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { getTopupSettingsNav } from '@/features/topup/routes'
 
-defineProps<{
+const props = defineProps<{
   indexPath: string
   wide: boolean
   isIndex: boolean
 }>()
 
 const { t } = useI18n()
+const route = useRoute()
+
+const isActive = (id: string) => props.isIndex
+  ? props.wide && id === 'signup'
+  : route.path === `${props.indexPath}/${id}`
 
 const items = computed(() => [
   { id: 'signup', label: t('signupSettings'), icon: 'person_add' },
@@ -46,4 +52,3 @@ const items = computed(() => [
   { id: 'status', label: t('groupStatus'), icon: 'power_settings_new' }
 ])
 </script>
-
