@@ -1,5 +1,6 @@
 import type { Router } from 'vue-router';
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
+import { scroll } from 'quasar'
 import routes from "./routes";
 import store from '@/store';
 /*
@@ -17,7 +18,13 @@ export default function( ): Router {
     : import.meta.env.QUASAR_VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
 
   const router = createRouter({
-    scrollBehavior: () => ({ left: 0, top: 0 }),
+    scrollBehavior: () => {
+      // Containerized QLayouts scroll independently of the window.
+      const layout = document.querySelector('.q-layout')
+      const target = layout ? scroll.getScrollTarget(layout) : window
+      target.scrollTo({ left: 0, top: 0 })
+      return false
+    },
     routes,
 
     // Leave these as they are and change in quasar.conf.js instead!
