@@ -145,7 +145,7 @@ export const useResource = <T extends ResourceObject = ResourceObject>(type: str
     }
   }
 
-  const update = (data: DeepPartial<T>) => mutate('update', data, data.id ?? resourceId.value)
+  const update = (data: DeepPartial<T> & { id?: string }) => mutate('update', data, data.id ?? resourceId.value)
   const create = async (data: DeepPartial<T>) => {
     await mutate('create', data)
     resourceId.value = store.getters[`${type}/current`].id
