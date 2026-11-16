@@ -6,42 +6,41 @@ import { computed } from "vue"
 import { useStore } from "vuex"
 
 
-export const currencySettingsToAccountSettingsAttributes = (currencySettings: CurrencySettings) => {
-  const vals = currencySettings.attributes
+export const currencySettingsToAccountSettingsAttributes = (attributes: Partial<CurrencySettings['attributes']>) => {
   return {
-    allowPayments: vals.defaultAllowPayments ?? false,
-    allowPaymentRequests: vals.defaultAllowPaymentRequests ?? false,
-    acceptPaymentsAutomatically: vals.defaultAcceptPaymentsAutomatically ?? false,
-    allowSimplePayments: vals.defaultAllowSimplePayments ?? false,
-    allowSimplePaymentRequests: vals.defaultAllowSimplePaymentRequests ?? false,
-    allowQrPayments: vals.defaultAllowQrPayments ?? false,
-    allowQrPaymentRequests: vals.defaultAllowQrPaymentRequests ?? false,
-    allowTagPayments: vals.defaultAllowTagPayments ?? false,
-    allowTagPaymentRequests: vals.defaultAllowTagPaymentRequests ?? false,
-    allowMultiplePayments: vals.defaultAllowMultiplePayments ?? false,
-    allowMultiplePaymentRequests: vals.defaultAllowMultiplePaymentRequests ?? false,
-    acceptPaymentsAfter: vals.defaultAcceptPaymentsAfter ?? false,
-    onPaymentCreditLimit: vals.defaultOnPaymentCreditLimit ?? false,
-    allowExternalPayments: vals.defaultAllowExternalPayments ?? false,
-    allowExternalPaymentRequests: vals.defaultAllowExternalPaymentRequests ?? false,
-    acceptExternalPaymentsAutomatically: vals.defaultAcceptExternalPaymentsAutomatically ?? false,
-    hideBalance: vals.defaultHideBalance ?? false,
+    allowPayments: attributes.defaultAllowPayments ?? false,
+    allowPaymentRequests: attributes.defaultAllowPaymentRequests ?? false,
+    acceptPaymentsAutomatically: attributes.defaultAcceptPaymentsAutomatically ?? false,
+    allowSimplePayments: attributes.defaultAllowSimplePayments ?? false,
+    allowSimplePaymentRequests: attributes.defaultAllowSimplePaymentRequests ?? false,
+    allowQrPayments: attributes.defaultAllowQrPayments ?? false,
+    allowQrPaymentRequests: attributes.defaultAllowQrPaymentRequests ?? false,
+    allowTagPayments: attributes.defaultAllowTagPayments ?? false,
+    allowTagPaymentRequests: attributes.defaultAllowTagPaymentRequests ?? false,
+    allowMultiplePayments: attributes.defaultAllowMultiplePayments ?? false,
+    allowMultiplePaymentRequests: attributes.defaultAllowMultiplePaymentRequests ?? false,
+    acceptPaymentsAfter: attributes.defaultAcceptPaymentsAfter ?? false,
+    onPaymentCreditLimit: attributes.defaultOnPaymentCreditLimit ?? false,
+    allowExternalPayments: attributes.defaultAllowExternalPayments ?? false,
+    allowExternalPaymentRequests: attributes.defaultAllowExternalPaymentRequests ?? false,
+    acceptExternalPaymentsAutomatically: attributes.defaultAcceptExternalPaymentsAutomatically ?? false,
+    hideBalance: attributes.defaultHideBalance ?? false,
   } as AccountSettings["attributes"]
 }
 
-export const accountSettingsToCurrencySettingsAttributes = (accountSettings: AccountSettings) => {
+export const accountSettingsToCurrencySettingsAttributes = (attributes: Partial<AccountSettings['attributes']>) => {
   // Build the attributes for the currency-settings object. The keys are the same
   // as the account settings object but with the "default" prefix.
   const accountDefaults = {} as Record<string, unknown>
-  for (const key of Object.keys(accountSettings.attributes)) {
+  for (const key of Object.keys(attributes)) {
     const defaultKey = "default" + key[0].toUpperCase() + key.slice(1) as keyof CurrencySettings["attributes"]
-    accountDefaults[defaultKey] = accountSettings.attributes[key as keyof AccountSettings["attributes"]]
+    accountDefaults[defaultKey] = attributes[key as keyof AccountSettings["attributes"]]
   }
-  return accountDefaults as CurrencySettings["attributes"]
+  return accountDefaults as Partial<CurrencySettings["attributes"]>
 }
 
 export const effectiveSettings = (accountSettings: AccountSettings, currencySettings: CurrencySettings) => {
-  const defaults = currencySettingsToAccountSettingsAttributes(currencySettings)
+  const defaults = currencySettingsToAccountSettingsAttributes(currencySettings.attributes)
   const vals = accountSettings.attributes
   const attributes = {} as Record<string, unknown>
   
