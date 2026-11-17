@@ -36,7 +36,7 @@
   "topupGoToTransfer": "Aller à l'échange",
   "topupShowPaymentDetails": "Détails",
 
-  "topupSettings": "Paramètres de contribution",
+  "topupSettings": "Contributions",
   "topupSettingsText": "Configurez comment les utilisateurs peuvent contribuer en utilisant des méthodes de paiement externes.",
   "topupEnable": "Activer les contributions",
   "topupEnableHint": "Permettre aux utilisateurs de contribuer. Cette fonctionnalité doit être activée par un super-administrateur.",

@@ -36,7 +36,7 @@
   "topupGoToTransfer": "Go to Transfer",
   "topupShowPaymentDetails": "Details",
 
-  "topupSettings": "Contribution Settings",
+  "topupSettings": "Contributions",
   "topupSettingsText": "Configure how users can contribute using external payment methods.",
   "topupEnable": "Enable Contributions",
   "topupEnableHint": "Allow users to contribute. This feature must be enabled by a superadmin.",

@@ -43,7 +43,7 @@
 <script setup lang="ts">
 import type { Group } from '@/store/model';
 import { useI18n } from 'vue-i18n';
-import ConfirmBtn from '../../components/ConfirmBtn.vue';
+import ConfirmBtn from '@/components/ConfirmBtn.vue';
 import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';

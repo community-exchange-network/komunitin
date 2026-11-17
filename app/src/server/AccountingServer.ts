@@ -514,6 +514,13 @@ export default {
       return currency.topupSettings
     });
 
+    server.patch(`${urlAccounting}/:currency/currency/topup-settings`, (schema: any, request: any) => {
+      const currency = schema.currencies.findBy({code: request.params.currency})
+      const settings = currency.topupSettings
+      settings.update(JSON.parse(request.requestBody).data.attributes)
+      return settings
+    })
+
     server.get(`${urlAccounting}/:currency/accounts/:id/topup-settings`, (schema: any, request: any) => {
       const currency = schema.currencies.findBy({code: request.params.currency});
       const account = schema.accounts.findBy({id: request.params.id, currencyId: currency.id});

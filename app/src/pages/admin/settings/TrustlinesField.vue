@@ -132,7 +132,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import type { DeepPartial } from 'quasar';
-import { useApiFetch } from '../../composables/useApiFetch';
+import { useApiFetch } from '@/composables/useApiFetch';
 import { config } from '@/utils/config';
 
 type ExtendedGroup = Group & {

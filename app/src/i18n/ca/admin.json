@@ -1,4 +1,6 @@
 {
+  "accountPermissions": "Permisos del compte",
+  "accountPreferences": "Preferències del compte",
   "administration": "Administració",
   "editGroup": "Edita comunitat",
   "editGroupText": "Defineix els atributs principals de la teva comunitat d'intercanvi.",
@@ -7,7 +9,7 @@
   "invalidCurrencyValue": "Valor de la moneda no vàlid. Si us plau, usa la notació n/d.",
   "groupSettings": "Configuració de la comunitat",
   "categories": "Categories",
-  "signupSettings": "Configuració de registre",
+  "signupSettings": "Registre",
   "signupSettingsText": "Defineix algunes configuracions per al procés de registre.",
   "enableTermsOfUse": "Condicions d'ús",
   "enableTermsOfUseHint": "Requereix que els usuaris acceptin les condicions d'ús abans de registrar-se.",
