@@ -34,8 +34,8 @@
     "alert_no_location_text": "Si vous ajoutez votre localisation à votre profil, les autres membres sauront où vous êtes et il sera plus facile de se connecter. Elle n'a pas besoin d'être très précise.",
     "alert_expired_offers_title": "Revoyez vos offres expirées",
     "alert_expired_offers_text": "Vous avez {{count}} offres expirées et elles ne sont plus visibles pour les autres membres. Mettez-les à jour si vous souhaitez toujours les offrir, ou masquez-les si elles ne sont plus valides.",
-    "action_create_offer": "CRÉER UNE OFFRE",
-    "action_create_need": "CRÉER UN BESOIN",
+    "action_create_offer": "PUBLIER UNE OFFRE",
+    "action_create_need": "PUBLIER UN BESOIN",
     "action_edit_profile": "MODIFIER LE PROFIL",
     "action_manage_offers": "GÉRER LES OFFRES",
     "stats_title": "Activité dans {{group}} au cours du dernier mois",
@@ -85,7 +85,7 @@
     "welcome_new_member_title": "Bienvenue sur {{groupName}} !",
     "welcome_new_member_body": "Bonjour {{name}}, votre compte est maintenant actif ! Commencez à explorer les offres et besoins dans votre communauté. Bon échange !",
     "member_no_offers_title": "Vous n'avez aucune offre active",
-    "member_no_offers_body": "Créez une offre pour aider les autres et faire avancer votre bilan de {{balance}}. Que pouvez-vous offrir ?",
+    "member_no_offers_body": "Publiez une offre pour aider les autres et faire avancer votre bilan de {{balance}}. Que pouvez-vous offrir ?",
     "member_no_needs_title": "Vous avez un bilan de {{balance}}",
     "member_no_needs_body": "Publiez un besoin pour aider les autres à se connecter avec vous et utiliser votre bilan. De quoi avez-vous besoin ?",
     "action_respond": "Répondre",
@@ -94,8 +94,8 @@
     "action_open": "Ouvrir",
     "action_extend": "Prolonger {{duration, duration}}",
     "action_hide": "Masquer",
-    "action_create_offer": "Créer une offre",
-    "action_create_need": "Créer un besoin"
+    "action_create_offer": "Publier une offre",
+    "action_create_need": "Publier un besoin"
   },
   "emails": {
     "welcome_to": "Bienvenue sur {{name}} !",

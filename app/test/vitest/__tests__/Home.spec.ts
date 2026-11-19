@@ -71,13 +71,15 @@ describe("Home", () => {
     await waitFor(() => wrapper.findAllComponents(NeedCard).length > 0, true, "Should find matching needs");
   });
   
-  it('displays FAB', async () => {
+  it('opens the Post menu with actions for an offer and a want', async () => {
     const fab = wrapper.get('.q-fab');
-    expect(fab.text().includes('Create')).toBe(true);
-    await fab.trigger('click');
+    const toggle = fab.get('[aria-expanded="false"]');
+    expect(toggle.text()).toContain('Post');
+    await toggle.trigger('click');
+    expect(toggle.attributes('aria-expanded')).toBe('true');
     const actions = fab.findAll('.q-btn')
-    const offerBtn = actions.find(action => action.text().includes('Create offer'));
-    const needBtn = actions.find(action => action.text().includes('Create want'));
+    const offerBtn = actions.find(action => action.text().includes('Post offer'));
+    const needBtn = actions.find(action => action.text().includes('Post want'));
     expect(offerBtn).toBeDefined();
     expect(needBtn).toBeDefined();
   })

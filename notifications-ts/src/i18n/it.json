@@ -34,8 +34,8 @@
     "alert_no_location_text": "Se aggiungi la tua posizione al tuo profilo, gli altri membri sapranno dove sei e sarà più facile connettersi. Non deve essere molto precisa.",
     "alert_expired_offers_title": "Rivedi le tue offerte scadute",
     "alert_expired_offers_text": "Hai {{count}} offerte scadute e non sono più visibili agli altri membri. Aggiornale se vuoi ancora offrirle, oppure nascondile se non sono più valide.",
-    "action_create_offer": "CREA OFFERTA",
-    "action_create_need": "CREA NECESSITÀ",
+    "action_create_offer": "PUBBLICA UN'OFFERTA",
+    "action_create_need": "PUBBLICA UNA NECESSITÀ",
     "action_edit_profile": "MODIFICA PROFILO",
     "action_manage_offers": "GESTISCI OFFERTE",
     "stats_title": "Attività in {{group}} nell'ultimo mese",
@@ -85,7 +85,7 @@
     "welcome_new_member_title": "Benvenuto/a a {{groupName}}!",
     "welcome_new_member_body": "Ciao {{name}}, il tuo account è ora attivo! Inizia a esplorare offerte e necessità nella tua comunità. Buono scambio!",
     "member_no_offers_title": "Non hai offerte attive",
-    "member_no_offers_body": "Crea un'offerta per aiutare gli altri e far crescere il tuo bilancio di {{balance}}. Cosa puoi offrire?",
+    "member_no_offers_body": "Pubblica un'offerta per aiutare gli altri e far crescere il tuo bilancio di {{balance}}. Cosa puoi offrire?",
     "member_no_needs_title": "Hai un bilancio di {{balance}}",
     "member_no_needs_body": "Pubblica una necessità per aiutare gli altri a connettersi con te e utilizzare il tuo bilancio. Di cosa hai bisogno?",
     "action_respond": "Rispondi",
@@ -94,8 +94,8 @@
     "action_open": "Apri",
     "action_extend": "Estendi {{duration, duration}}",
     "action_hide": "Nascondi",
-    "action_create_offer": "Crea offerta",
-    "action_create_need": "Crea necessità"
+    "action_create_offer": "Pubblica un'offerta",
+    "action_create_need": "Pubblica una necessità"
   },
   "emails": {
     "welcome_to": "Benvenuto/a su {{name}}!",

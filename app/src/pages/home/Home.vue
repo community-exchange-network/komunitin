@@ -18,7 +18,8 @@
         @refreshing="refreshing = $event"
       />
       <floating-btn-menu 
-        :actions="actions" 
+        :label="t('post')"
+        :actions="actions"
       />
     </q-page>
   </q-page-container>
