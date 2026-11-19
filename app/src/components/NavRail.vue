@@ -2,7 +2,7 @@
   <q-drawer
     v-model="drawerState"
     show-if-above
-    :width="256"
+    :width="230"
     :mini="!props.expanded"
     :mini-width="80"
     :mini-to-overlay="false"
@@ -24,7 +24,7 @@
         />
       </div>
 
-      <NavItem
+      <NavRailItem
         id="my-group"
         :title="myMember.group.attributes.name"
         :to="`/groups/${groupCode}`"
@@ -33,14 +33,14 @@
         :avatar-text="myMember.group.attributes.code"
         :expanded="props.expanded"
       />
-      <NavItem
+      <NavRailItem
         id="menu-home"
         icon="home"
         :title="t('home')"
         to="/home"
         :expanded="props.expanded"
       />
-      <NavItem
+      <NavRailItem
         id="menu-transactions"
         icon="account_balance_wallet"
         :title="t('transactions')"
@@ -50,28 +50,28 @@
 
       <q-separator />
 
-      <NavItem
+      <NavRailItem
         id="menu-needs"
         icon="loyalty"
         :title="t('needs')"
         :to="`/groups/${groupCode}/needs`"
         :expanded="props.expanded"
       />
-      <NavItem
+      <NavRailItem
         id="menu-offers"
         icon="local_offer"
         :title="t('offers')"
         :to="`/groups/${groupCode}/offers`"
         :expanded="props.expanded"
       />
-      <NavItem
+      <NavRailItem
         id="menu-members"
         icon="people"
         :title="t('members')"
         :to="`/groups/${groupCode}/members`"
         :expanded="props.expanded"
       />
-      <NavItem
+      <NavRailItem
         v-if="!isLegacyAccounting"
         id="menu-stats"
         icon="insert_chart"
@@ -82,28 +82,28 @@
 
       <template v-if="isAdmin">
         <q-separator />
-        <NavItem
+        <NavRailItem
           id="menu-edit-group"
           icon="edit"
           :title="t('editGroup')"
           :to="`/groups/${groupCode}/admin/edit`"
           :expanded="props.expanded"
         />
-        <NavItem
+        <NavRailItem
           id="menu-group-settings"
           icon="settings"
           :title="t('groupSettings')"
           :to="`/groups/${groupCode}/admin/settings`"
           :expanded="props.expanded"
         />
-        <NavItem
+        <NavRailItem
           id="menu-manage-members"
           icon="manage_accounts"
           :title="t('manageMembers')"
           :to="`/groups/${groupCode}/admin/accounts`"
           :expanded="props.expanded"
         />
-        <NavItem
+        <NavRailItem
           id="menu-admin-transactions"
           icon="list_alt"
           :title="t('transactions')"
@@ -114,7 +114,7 @@
 
       <q-separator />
 
-      <NavItem
+      <NavRailItem
         id="menu-other-groups"
         icon="group_work"
         :title="t('otherGroups')"
@@ -130,7 +130,7 @@ import { computed } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import NavItem from "./NavItem.vue";
+import NavRailItem from "./NavRailItem.vue";
 
 const props = defineProps<{
   expanded: boolean
@@ -174,12 +174,12 @@ const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
   }
 
   &.navigation-rail--expanded {
-    width: 256px;
-    min-width: 256px;
+    width: 230px;
+    min-width: 230px;
 
     .rail-header {
       justify-content: flex-start;
-      padding-left: 16px;
+      padding-left: 32px;
     }
 
     :deep(.q-separator) {

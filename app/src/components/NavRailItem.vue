@@ -60,8 +60,8 @@ withDefaults(defineProps<{
   :deep(.q-item__section--avatar) {
     position: relative;
     flex: none;
-    width: 56px;
-    min-width: 56px;
+    width: 32px;
+    min-width: 32px;
     height: 32px;
     align-self: center;
     margin: 0;
@@ -133,27 +133,45 @@ withDefaults(defineProps<{
   }
 
   &.nav-item--expanded {
+    width: fit-content;
+    max-width: calc(100% - 32px);
+    margin: 0 16px;
     padding: 4px 16px;
     flex-direction: row;
     justify-content: flex-start;
 
+    &.nav-item--active::before {
+      position: absolute;
+      z-index: 0;
+      top: 8px;
+      right: 0;
+      left: 0;
+      height: 40px;
+      border-radius: 20px;
+      background: $active;
+      pointer-events: none;
+      content: "";
+    }
+
     :deep(.q-item__section--avatar) {
       align-self: auto;
+      align-items: start;
     }
 
     &.nav-item--active :deep(.q-item__section--avatar::before) {
-      width: 224px;
-      height: 40px;
-      border-radius: 20px;
+      display: none;
     }
 
     :deep(.q-item__section--main) {
-      flex: 1;
+      flex: 0 1 auto;
       width: auto;
-      margin: 0 0 0 16px;
+      margin: 0 0 0 8px;
       align-items: flex-start;
       justify-content: flex-start;
       text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 }
