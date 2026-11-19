@@ -11,6 +11,7 @@
     class="bg-surface-container"
   >
     <q-list
+      padding
       class="navigation-rail"
       :class="{ 'navigation-rail--expanded': props.expanded }"
     >
@@ -50,7 +51,7 @@
         :expanded="props.expanded"
       />
 
-      <q-separator />
+      <q-separator spaced="md" />
 
       <NavRailItem
         id="menu-needs"
@@ -83,7 +84,7 @@
       />
 
       <template v-if="isAdmin && props.expanded">
-        <q-separator />
+        <q-separator spaced="md" />
         <NavRailItem
           id="menu-edit-group"
           icon="edit"
@@ -114,7 +115,7 @@
         />
       </template>
 
-      <q-separator />
+      <q-separator spaced="md" />
 
       <NavRailItem
         id="menu-other-groups"
@@ -159,9 +160,7 @@ const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
 
 <style lang="scss" scoped>
 .navigation-rail {
-  width: 100px;
-  min-width: 100px;
-  padding: 8px 0;
+  padding-inline: 16px;
 
   .rail-header {
     display: flex;
@@ -170,23 +169,10 @@ const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
     justify-content: center;
   }
 
-  :deep(.q-separator) {
-    width: 32px;
-    margin: 8px auto;
-  }
-
   &.navigation-rail--expanded {
-    width: 230px;
-    min-width: 230px;
-
     .rail-header {
       justify-content: flex-start;
-      padding-left: 32px;
-    }
-
-    :deep(.q-separator) {
-      width: calc(100% - 32px);
-      margin: 8px 16px;
+      padding-left: 16px;
     }
   }
 }

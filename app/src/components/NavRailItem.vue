@@ -21,7 +21,10 @@
         color="icon"
       />
     </q-item-section>
-    <q-item-section class="nav-item__label text-label-medium text-on-surface-medium">
+    <q-item-section
+      class="nav-item__label text-label-medium text-on-surface-medium"
+      :no-wrap="expanded"
+    >
       {{ title }}
     </q-item-section>
   </q-item>
@@ -102,7 +105,6 @@ withDefaults(defineProps<{
     justify-content: center;
     text-align: center;
     line-height: 16px;
-    white-space: normal;
   }
 
   &.nav-item--active :deep(.q-item__section--avatar::before) {
@@ -134,8 +136,8 @@ withDefaults(defineProps<{
 
   &.nav-item--expanded {
     width: fit-content;
-    max-width: calc(100% - 32px);
-    margin: 0 16px;
+    max-width: 100%;
+    margin: 0;
     padding: 4px 16px;
     flex-direction: row;
     justify-content: flex-start;
@@ -169,7 +171,6 @@ withDefaults(defineProps<{
       align-items: flex-start;
       justify-content: flex-start;
       text-align: left;
-      white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
