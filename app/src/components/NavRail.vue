@@ -1,4 +1,3 @@
-<!-- TODO: add FAB to top of rail on pages that have them -->
 <template>
   <q-drawer
     v-model="drawerState"
