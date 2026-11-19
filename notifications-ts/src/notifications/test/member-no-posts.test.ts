@@ -66,7 +66,7 @@ describe('MemberHasNoPosts notifications', () => {
     assert.equal(notification.title, 'You have no active offers')
     assert.equal(
       notification.body,
-      `Create one to help others and move your balance of ${expectedBalance} forward. What can you offer?`
+      `Post one to help others and move your balance of ${expectedBalance} forward. What can you offer?`
     )
 
     assert.equal(pushQueue.add.mock.callCount(), 1)

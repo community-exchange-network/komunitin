@@ -34,8 +34,8 @@
     "alert_no_location_text": "Si añades tu ubicación a tu perfil, otros miembros podrán saber dónde estás y será más fácil conectar. No hace falta que sea muy precisa.",
     "alert_expired_offers_title": "Revisa tus ofertas caducadas",
     "alert_expired_offers_text": "Tienes {{count}} ofertas caducadas y ya no son visibles para otros miembros. Actualízalas si todavía las quieres ofrecer, o escóndelas si ya no son válidas.",
-    "action_create_offer": "CREAR OFERTA",
-    "action_create_need": "CREAR NECESIDAD",
+    "action_create_offer": "PUBLICA UNA OFERTA",
+    "action_create_need": "PUBLICA UNA NECESIDAD",
     "action_edit_profile": "EDITAR PERFIL",
     "action_manage_offers": "GESTIONAR OFERTAS",
     "stats_title": "Actividad en {{group}} durante el último mes",
@@ -94,8 +94,8 @@
     "action_open": "Abrir",
     "action_extend": "Amplía {{duration, duration}}",
     "action_hide": "Ocultar",
-    "action_create_offer": "Crear oferta",
-    "action_create_need": "Crear necesidad"
+    "action_create_offer": "Publica una oferta",
+    "action_create_need": "Publica una necesidad"
   },
   "emails": {
     "welcome_to": "¡Bienvenido/a a {{name}}!",

@@ -72,7 +72,7 @@ describe("Member", () => {
     await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/members/EmilianoLemke57/needs');
     expect(wrapper.getComponent(PageHeader).text()).toContain('Your wants');
     await waitFor(() => wrapper.findAllComponents(NeedCard).length, 1, "Should show 1 need");
-    expect(wrapper.getComponent(FloatingBtn).text()).toContain('Create want');
+    expect(wrapper.getComponent(FloatingBtn).text()).toContain('Post want');
     expect(wrapper.getComponent(FloatingBtn).getComponent(QBtn).attributes('href')).toBe('/groups/GRP0/needs/new');
     const unavailableNeed = wrapper.getComponent(NeedCard)
     expect(unavailableNeed.text()).toContain("Hidden")
@@ -85,7 +85,7 @@ describe("Member", () => {
     await waitFor(() => wrapper.vm.$route.path, '/groups/GRP0/members/EmilianoLemke57/offers');
     expect(wrapper.getComponent(PageHeader).text()).toContain('Your offers');
     await waitFor(() => wrapper.findAllComponents(OfferCard).length, 3, "Should show 3 offers");
-    expect(wrapper.getComponent(FloatingBtn).text()).toContain('Create offer');
+    expect(wrapper.getComponent(FloatingBtn).text()).toContain('Post offer');
     expect(wrapper.getComponent(FloatingBtn).getComponent(QBtn).attributes('href')).toBe('/groups/GRP0/offers/new');
     const hiddenOffer = wrapper.findAllComponents(OfferCard)
       .find(card => card.text().includes(myOffers[0].title))

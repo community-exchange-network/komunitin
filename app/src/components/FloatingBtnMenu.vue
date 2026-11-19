@@ -32,7 +32,6 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar'
 import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 
 defineOptions({
   inheritAttrs: false,
@@ -47,15 +46,12 @@ export interface FABAction {
   disable?: boolean
 }
 
-const props = defineProps<{
+defineProps<{
   actions: FABAction[]
-  label?: string
+  label: string
 }>()
 
 const q = useQuasar()
-const { t } = useI18n()
-
-const label = props.label ?? t('create')
 const expanded = ref(false)
 
 </script>
