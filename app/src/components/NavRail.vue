@@ -6,9 +6,10 @@
     show-if-above
     :width="230"
     :mini="!props.expanded"
-    :mini-width="80"
+    :mini-width="100"
     :mini-to-overlay="false"
     @on-layout="drawerChange"
+    class="bg-surface-container"
   >
     <q-list
       class="navigation-rail"
@@ -159,8 +160,8 @@ const drawerChange = (state: boolean) => store.commit("drawerPersistent", state)
 
 <style lang="scss" scoped>
 .navigation-rail {
-  width: 80px;
-  min-width: 80px;
+  width: 100px;
+  min-width: 100px;
   padding: 8px 0;
 
   .rail-header {
