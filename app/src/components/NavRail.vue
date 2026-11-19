@@ -1,5 +1,4 @@
 <!-- TODO: add FAB to top of rail on pages that have them -->
-<!-- TODO: only show admin navitems in expanded rail -->
 <template>
   <q-drawer
     v-model="drawerState"
