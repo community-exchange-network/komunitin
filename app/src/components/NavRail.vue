@@ -1,3 +1,5 @@
+<!-- TODO: add FAB to top of rail on pages that have them -->
+<!-- TODO: only show admin navitems in expanded rail -->
 <template>
   <q-drawer
     v-model="drawerState"
@@ -17,7 +19,7 @@
           flat
           round
           dense
-          icon="menu"
+          :icon="props.expanded ? 'menu_open' : 'menu'"
           :aria-label="t('menu')"
           :aria-expanded="props.expanded"
           @click="emit('update:expanded', !props.expanded)"
@@ -80,7 +82,7 @@
         :expanded="props.expanded"
       />
 
-      <template v-if="isAdmin">
+      <template v-if="isAdmin && props.expanded">
         <q-separator />
         <NavRailItem
           id="menu-edit-group"
