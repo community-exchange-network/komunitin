@@ -30,7 +30,7 @@
     "handlebars": "^4.7.10",
     "helmet": "^8.1.0",
     "html-to-text": "^9.0.5",
-    "i18next": "^25.7.3",
+    "i18next": "^26.3.4",
     "i18next-fs-backend": "^2.6.6",
     "node-cron": "^3.0.3",
     "nodemailer": "^10.1.4",
