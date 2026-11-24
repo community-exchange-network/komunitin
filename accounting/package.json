@@ -41,7 +41,7 @@
 		"qs": "^6.15.2",
 		"route-cache": "^0.7.0",
 		"ts-japi": "^1.11.3",
-		"zod": "^4.6.5"
+		"zod": "^4.6.6"
 	},
 	"devDependencies": {
 		"@tsconfig/node22": "^22.0.0",
