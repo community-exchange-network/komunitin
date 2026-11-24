@@ -160,7 +160,7 @@ import SaveChanges from '../../components/SaveChanges.vue';
 import NfcTagsList from '../../components/NfcTagsList.vue';
 import NotificationsBanner from '@/components/NotificationsBanner.vue';
 import AccountHeader from '@/components/AccountHeader.vue';
-import AccountSettingsFields from './AccountSettingsFields.vue';
+import AccountSettingsFields from './account/AccountSettingsFields.vue';
 import DeleteMemberBtn from './DeleteMemberBtn.vue';
 import MemberStatusField from './MemberStatusField.vue';
 
@@ -223,7 +223,7 @@ const currencySettings = computed(() => currency.value?.settings)
 const defaultSettings = computed(() => {
   if (currencySettings.value) {
     return {
-      attributes: currencySettingsToAccountSettingsAttributes(currencySettings.value)
+      attributes: currencySettingsToAccountSettingsAttributes(currencySettings.value.attributes)
     }
   } else {
     return undefined

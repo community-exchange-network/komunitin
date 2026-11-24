@@ -1,6 +1,6 @@
 <template>
   <q-item
-    :clickable="!active"
+    :clickable="to !== route.path"
     active-class="bg-active"
     :active="active"
     :disable="disable"
@@ -22,53 +22,40 @@
   </q-item>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
 /**
  * List item in the left drawer menu.
  */
-export default defineComponent({
-  name: "MenuItem",
-  props: {
-    icon: {
-      type: String,
-      required: true
-    },
-    title: {
-      type: String,
-      required: true
-    },
-    to: {
-      type: String,
-      required: false,
-      default: null
-    },
-    href: {
-      type: String,
-      required: false,
-      default: null
-    },
-    disable: {
-      type: Boolean,
-      required: false,
-      default: false
-    }
-  },
-  emits: ["click"],
-  computed: {
-    active(): boolean {
-      return this.to == this.$route.path
-    },
-  },
-  methods: {
-    itemClick() {
-      if (this.to) {
-        this.$router.push(this.to);
-      } else if (this.href) {
-        window.open(this.href, "_blank");
-      }
-      this.$emit("click");
-    }
+
+const props = withDefaults(defineProps<{
+  icon: string
+  title: string
+  to?: string | null
+  href?: string | null
+  disable?: boolean
+  exact?: boolean
+}>(), {
+  to: null,
+  href: null
+})
+
+const emit = defineEmits<{ click: [] }>()
+const route = useRoute()
+const router = useRouter()
+
+const active = computed(() => !!props.to && (
+  route.path === props.to || (!props.exact && route.path.startsWith(`${props.to}/`))
+))
+
+const itemClick = () => {
+  if (props.to) {
+    router.push(props.to)
+  } else if (props.href) {
+    window.open(props.href, '_blank')
   }
-});
+  emit('click')
+}
 </script>

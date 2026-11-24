@@ -36,7 +36,7 @@
   "topupGoToTransfer": "Ir al movimiento",
   "topupShowPaymentDetails": "Detalles",
 
-  "topupSettings": "Configuración de aportaciones",
+  "topupSettings": "Aportaciones",
   "topupSettingsText": "Configura cómo los usuarios pueden hacer aportaciones utilizando métodos de pago externos.",
   "topupEnable": "Habilitar aportaciones",
   "topupEnableHint": "Permite a los usuarios hacer aportaciones. Esta funcionalidad debe ser habilitada por un superadministrador.",

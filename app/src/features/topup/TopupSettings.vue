@@ -1,79 +1,23 @@
 <template>
-  <page-header 
-    :title="t('topupSettings')" 
-    :back="`/groups/${props.code}/admin/settings`"
+  <topup-settings-form
+    v-if="topupSettings"
+    :topup-settings="topupSettings"
+    :currency="currency!"
+    :updating-topup-settings="loadingTopupSettings"
+    @update:topup-settings="updateTopupSettings"
   />
-  <q-page-container class="row justify-center">
-    <q-page 
-      padding 
-      class="q-py-lg q-px-md col-12 col-sm-8 q-mb-xl"
-    >
-      <q-card>
-        <q-card-section>
-          <topup-settings-form 
-            v-if="ready"
-            :topup-settings="topupSettings"
-            :currency="currency"
-            :updating-topup-settings="updatingTopupSettings"
-            @update:topup-settings="updateTopupSettings"
-          />
-          <save-changes
-            ref="changes"
-            class="q-mt-lg"
-          />
-        </q-card-section>
-      </q-card>
-    </q-page>
-  </q-page-container>
+  <q-inner-loading v-else :showing="!loaded" color="icon" />
 </template>
+
 <script setup lang="ts">
-import SaveChanges from '@/components/SaveChanges.vue';
-import PageHeader from '@/layouts/PageHeader.vue';
-import TopupSettingsForm from './TopupSettingsForm.vue';
+import { useResource } from '@/composables/useResources'
+import type { CommunitySettingsContext } from '@/composables/useCommunitySettings'
+import TopupSettingsForm from './TopupSettingsForm.vue'
+import type { TopupSettings } from './model'
+import type { DeepPartial } from 'quasar'
 
-import type { DeepPartial } from 'quasar';
-import type { TopupSettings } from '@/features/topup/model';
-import type { Currency, ResourceIdentifierObject } from '@/store/model';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useStore } from 'vuex';
-import { useResource } from '../../composables/useResources';
-
-const props = defineProps<{
-  code: string
-}>()
-
-const store = useStore()
-const { t } = useI18n()
-
-const {resource: currency} = useResource<Currency>('currencies', {
-  group: props.code
-})
-
-const {resource: topupSettings} = useResource<TopupSettings>('topup-settings', {
-  group: props.code
-})
-
-const ready = computed(() => {
-  return Boolean(currency.value && topupSettings.value)
-})
-
-const changes = ref<typeof SaveChanges>()
-
-const updatingTopupSettings = ref(false)
-const updateTopupSettings = async (settings: DeepPartial<TopupSettings> & ResourceIdentifierObject) => {
-  try {
-    updatingTopupSettings.value = true
-    await changes.value.save(async () => {
-      await store.dispatch('topup-settings/update', {
-        id: topupSettings.value.id,
-        group: props.code,
-        resource: settings
-      })
-    })
-  } finally {
-    updatingTopupSettings.value = false
-  }
-}
-
+const { settingsContext } = defineProps<{ settingsContext: CommunitySettingsContext }>()
+const { code, currency, save } = settingsContext
+const { resource: topupSettings, loaded, loading: loadingTopupSettings, update } = useResource<TopupSettings>('topup-settings', { group: code.value })
+const updateTopupSettings = (settings: DeepPartial<TopupSettings>) => save(() => update(settings))
 </script>

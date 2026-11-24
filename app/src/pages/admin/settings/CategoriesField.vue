@@ -3,53 +3,36 @@
     class="text-on-surface-medium"
     :rows="categories"
     :columns="columns"
+    row-key="id"
     flat
     hide-bottom
     :pagination="{rowsPerPage: 0}"
   >
-    <template #body="slot">
-      <q-tr :props="slot">
-        <q-td 
-          key="category"  
-          :props="slot"
+    <template #body-cell-category="slot">
+      <q-td :props="slot">
+        <category-avatar
+          type="offers"
+          :category="slot.row"
+          caption
+        />
+      </q-td>
+    </template>
+    <template #body-cell-actions="slot">
+      <q-td :props="slot">
+        <q-btn
+          flat
+          round
+          icon="edit"
+          color="on-surface-medium"
+          @click="edit(slot.row)"
+        />
+        <delete-btn
+          color="on-surface-medium"
+          @confirm="remove(slot.row)"
         >
-          <category-avatar
-            type="offers"
-            :category="slot.row"
-            caption
-          />
-        </q-td>
-        <q-td 
-          key="offers"
-          :props="slot"
-        >
-          {{ slot.row.relationships.offers.meta.count }}
-        </q-td>
-        <q-td 
-          key="needs"
-          :props="slot"
-        >
-          {{ slot.row.relationships.needs.meta.count }}
-        </q-td>
-        <q-td 
-          key="actions"
-          :props="slot"
-        >
-          <q-btn
-            flat
-            round
-            icon="edit"
-            color="on-surface-medium"
-            @click="edit(slot.row)"
-          />
-          <delete-btn 
-            color="on-surface-medium"
-            @confirm="remove(slot.row)"
-          >
-            {{ $t('deleteCategoryConfirmation', {name: slot.row.attributes.name}) }}
-          </delete-btn>
-        </q-td>
-      </q-tr>
+          {{ $t('deleteCategoryConfirmation', {name: slot.row.attributes.name}) }}
+        </delete-btn>
+      </q-td>
     </template>
   </q-table>
   <div class="row justify-end">
@@ -109,10 +92,10 @@
 <script setup lang="ts">
 import CategoryAvatar from '@/components/CategoryAvatar.vue';
 import DeleteBtn from '@/components/DeleteBtn.vue';
-import type { Category } from '@/store/model';
+import type { Category, ResourceIdentifierObject } from '@/store/model';
 import { computed, defineAsyncComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { QSpinner, type DeepPartial } from 'quasar';
+import { QSpinner, type DeepPartial, type QTableColumn } from 'quasar';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps<{
@@ -121,17 +104,17 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'create:category', value: DeepPartial<Category>): void,
-  (e: 'update:category', value: DeepPartial<Category>): void,
-  (e: 'delete:category', value: DeepPartial<Category>): void
+  (e: 'update:category', value: DeepPartial<Category> & ResourceIdentifierObject): void,
+  (e: 'delete:category', value: Category): void
 }>()
 
 const { t } = useI18n()
 
-const columns = [
-  { name: 'category', align: 'left', label: t('category') },
-  { name: 'offers', align: 'right', label: t('offers') },
-  { name: 'needs', align: 'right', label: t('needs') },
-  { name: 'actions', align: 'right', label: "" }
+const columns: QTableColumn<Category>[] = [
+  { name: 'category', align: 'left', label: t('category'), field: row => row.attributes.name },
+  { name: 'offers', align: 'right', label: t('offers'), field: row => row.relationships.offers.meta.count },
+  { name: 'needs', align: 'right', label: t('needs'), field: row => row.relationships.needs.meta.count },
+  { name: 'actions', align: 'right', label: '', field: 'id' }
 ]
 
 const showDialog = ref(false)
@@ -154,7 +137,7 @@ const edit = (category: Category) => {
 }
 
 const remove = (category: Category) => {
-  emit('delete:category', category as DeepPartial<Category>)
+  emit('delete:category', category)
 }
 
 const add = () => {
@@ -182,7 +165,7 @@ const saveCategory = () => {
         name: name.value,
         icon: { type: 'material', value: icon.value }
       }
-    } as DeepPartial<Category>)
+    })
   }
   showDialog.value = false
 }

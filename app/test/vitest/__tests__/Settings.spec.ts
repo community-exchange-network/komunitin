@@ -4,7 +4,7 @@ import App from "@/App.vue"
 import ToggleItem from "@/components/ToggleItem.vue"
 import { i18n } from "@/boot/i18n"
 import EditSettings from "@/pages/settings/EditSettings.vue"
-import AccountSettingsFields from "@/pages/settings/AccountSettingsFields.vue"
+import AccountSettingsFields from "@/pages/settings/account/AccountSettingsFields.vue"
 import server, { seeds } from "@/server"
 import {
   getMockPreferencePatchRequests,
@@ -65,6 +65,21 @@ describe("Member-user settings", () => {
       item => item.props("label") === i18n.global.t("acceptPaymentsAutomatically"),
     )
     expect(automaticPayments?.props("modelValue")).toBe(false)
+  })
+
+  it("saves account permissions and preferences without replacing other settings", async () => {
+    const account = () => wrapper.vm.$store.getters.myAccount
+    const fields = settingsPage().getComponent(AccountSettingsFields)
+    const toggle = (label: string) => fields.findAllComponents(ToggleItem)
+      .find(item => item.props('label') === label)
+      .get('[role="switch"]')
+
+    await toggle(i18n.global.t('allowSimplePayments')).trigger('click')
+    await waitFor(() => account().settings.attributes.allowSimplePayments, true)
+    await toggle(i18n.global.t('hideBalance')).trigger('click')
+    await waitFor(() => account().settings.attributes.hideBalance, true)
+    expect(account().settings.attributes.allowSimplePayments).toBe(true)
+    expect(account().settings.attributes.acceptPaymentsAutomatically).toBe(false)
   })
 
   it("loads identity language and patches self preferences through their owners", async () => {

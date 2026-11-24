@@ -1,4 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router';
+import { adminRoutes } from './admin'
+import { topupRoutes } from '@/features/topup/routes'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -363,92 +365,8 @@ const routes: RouteRecordRaw[] = [
         name: 'Stats',
         component: () => import('../pages/groups/Stats.vue'),
       },
-      {
-        path: '/groups/:code/admin',
-        name: 'GroupAdmin',
-        redirect: { name: 'EditGroup' },
-        meta: {
-          requiresAdmin: 'group'
-        },
-        children: [
-        {
-          path: 'edit',
-          props: true,
-          name: 'EditGroup',
-          component: () => import('../pages/admin/EditGroup.vue'),
-        }, {
-          path: 'settings',
-          props: true,
-          name: 'EditGroupSettings',
-          component: () => import('../pages/admin/EditGroupSettings.vue'),
-        }, {
-          path: 'accounts',
-          props: true,
-          name: 'ManageAccounts',
-          component: () => import('../pages/admin/ManageAccounts.vue'),
-          meta: {
-            rootPage: true
-          }
-        }, {
-          path: 'members/:memberCode/profile',
-          props: true,
-          name: 'AdminEditProfile',
-          component: () => import('../pages/members/EditProfile.vue')
-        }, {
-          path: 'members/:memberCode/settings',
-          props: true,
-          name: 'AdminEditSettings',
-          component: () => import('../pages/settings/EditSettings.vue')
-        }, {
-          path: 'transactions',
-          props: true,
-          name: 'AdminTransactionList',
-          component: () => import('../pages/admin/Transactions.vue'),
-          meta: {
-            rootPage: true
-          }
-        }]
-      },
-      {
-        path: '/superadmin',
-        meta: {
-          requiresAdmin: 'superadmin'
-        },
-        children: [
-        {
-          path: '',
-          redirect: '/superadmin/groups',
-        },
-        {
-          path: 'groups',
-          name: 'ManageGroups',
-          component: () => import('../pages/superadmin/ManageGroups.vue'),
-        },{
-          path: 'migrations',
-          children: [
-            {
-              path: '',
-              name: 'MigrationList',
-              component: () => import('../pages/superadmin/MigrationList.vue'),
-              meta: {
-                rootPage: true
-              }
-            },
-            {
-              path: ':id',
-              props: true,
-              name: 'MigrationDetails',
-              component: () => import('../pages/superadmin/MigrationDetails.vue'),
-            },
-            {
-              path: 'new',
-              props: true,
-              name: 'CreateMigration',
-              component: () => import('../pages/superadmin/CreateMigration.vue'),
-            }
-          ]
-        }]
-      },
+      ...adminRoutes,
+      ...topupRoutes,
       {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
@@ -473,29 +391,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
 ];
-
-if (import.meta.env.FEAT_TOPUP === 'true') {
-  const mainLayout = routes.find(route => route.name === 'MainLayout');
-  mainLayout?.children?.push({
-    path: '/groups/:code/members/:memberCode/topup',
-    props: true,
-    name: 'CreateTopup',
-    component: () => import('../features/topup/CreateTopup.vue'),
-  }, {
-    path: '/groups/:code/topups/:id',
-    props: true,
-    name: 'TopupDetails',
-    component: () => import('../features/topup/TopupDetails.vue'),
-  })
-
-  const adminRoute = mainLayout?.children?.find(route => route.name === 'GroupAdmin');
-  adminRoute?.children?.push({
-    path: 'topup-settings',
-    props: true,
-    name: 'TopupSettings',
-    component: () => import('../features/topup/TopupSettings.vue'),
-  });
-}
 
 export default routes;
 

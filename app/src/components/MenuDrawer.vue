@@ -42,6 +42,7 @@
     />
     <menu-item
       id="menu-members"
+      exact
       icon="people"
       :title="$t('members')"
       :to="`/groups/${groupCode}/members`"
@@ -86,6 +87,7 @@
 
     <menu-item
       icon="group_work"
+      exact
       :title="$t('otherGroups')"
       to="/groups"
     />
