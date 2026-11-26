@@ -6,103 +6,56 @@ on:
 
 permissions: {}
 
-env:
-  S3_PREFIX: ${{ vars.S3_PREFIX || 's3://komunitin' }}
-  AWS_ENDPOINT: ${{ vars.S3_ENDPOINT || 'https://s3.gra.io.cloud.ovh.net' }}
-  AWS_REGION: ${{ vars.S3_REGION || 'gra' }}
-  AWS_S3_FORCE_PATH_STYLE: ${{ vars.S3_FORCE_PATH_STYLE || 'false' }}
-  AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_KEY }}
-
 jobs:
-  test-backup-accounting:
+  test-backup:
+    name: Test ${{ matrix.database }} backup
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - database: accounting
+            query: >
+              SELECT EXISTS (SELECT 1 FROM "Transfer" WHERE created > now() - interval '24 hours')
+          - database: notifications
+            query: >
+              SELECT EXISTS (SELECT 1 FROM "PushSubscription" WHERE "updatedAt" > now() - interval '24 hours')
+                  OR EXISTS (SELECT 1 FROM "AppNotification" WHERE "createdAt" > now() - interval '24 hours')
+          - database: auth
+            query: SELECT EXISTS (SELECT 1 FROM "User")
+          - database: social
+            tag: social
+            query: >
+              SELECT EXISTS (SELECT 1 FROM "Member")
+                 AND postgis_version() IS NOT NULL
+                 AND vector_dims('[1]'::vector) = 1
+    services:
+      restore:
+        image: komunitin/komunitin-db:${{ matrix.tag || 'latest' }}
+        env:
+          WALG_S3_PREFIX: ${{ vars.S3_PREFIX || 's3://komunitin' }}/db-${{ matrix.database }}
+          WALG_COMPRESSION_METHOD: zstd
+          AWS_ENDPOINT: ${{ vars.S3_ENDPOINT || 'https://s3.gra.io.cloud.ovh.net' }}
+          AWS_REGION: ${{ vars.S3_REGION || 'gra' }}
+          AWS_S3_FORCE_PATH_STYLE: ${{ vars.S3_FORCE_PATH_STYLE || 'false' }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_KEY }}
+        options: >-
+          --user postgres
+          --entrypoint /usr/local/bin/restore_backup.sh
+          --health-cmd "psql -Atc 'SELECT NOT pg_is_in_recovery()' | grep -qx t"
+          --health-start-period 10m
     steps:
-    - name: Pull db-accounting image
+    - name: Verify the backup started in the last 24 hours
       run: |
-        docker pull komunitin/komunitin-db:latest
-
-    - name: Restore accounting database from latest backup
-      run: |
-        docker run -d \
-        --name db-accounting \
-        -e POSTGRES_USER=postgres \
-        -e POSTGRES_PASSWORD=postgres \
-        -e WALG_S3_PREFIX=$S3_PREFIX/db-accounting \
-        -e WALG_COMPRESSION_METHOD=zstd \
-        -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-        -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-        -e AWS_ENDPOINT=$AWS_ENDPOINT \
-        -e AWS_REGION=$AWS_REGION \
-        -e AWS_S3_FORCE_PATH_STYLE=$AWS_S3_FORCE_PATH_STYLE \
-        --user postgres \
-        --entrypoint /bin/bash \
-        komunitin/komunitin-db:latest \
-        /usr/local/bin/restore_backup.sh
-
-    - name: Wait for the accounting DB to start and restore
-      run: |
-        sleep 30
-    - name: Print accounting docker logs
-      run: |
-        docker logs db-accounting
-
-    - name: Verify accounting database restoration
-      run: |
-        echo "Checking for recent transfers in the restored database..."
-        count=$(docker exec db-accounting psql -U postgres -d accounting -t -A -c "SELECT COUNT(*) FROM \"Transfer\" WHERE created > NOW() - INTERVAL '24 hours';")
-        if [ "$count" -eq 0 ]; then
-          echo "ERROR: No recent transfers found in restored database"
-          exit 1
-        else
-          echo "SUCCESS: Database restoration verified with $count transfers in the last 24 hours"
-        fi
-
-  test-backup-notifications:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Pull database image
-      run: |
-        docker pull komunitin/komunitin-db:latest
-
-    - name: Restore notifications database from latest backup
-      run: |
-        docker run -d \
-        --name db-notifications \
-        -e POSTGRES_USER=postgres \
-        -e POSTGRES_PASSWORD=postgres \
-        -e WALG_S3_PREFIX=$S3_PREFIX/db-notifications \
-        -e WALG_COMPRESSION_METHOD=zstd \
-        -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-        -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-        -e AWS_ENDPOINT=$AWS_ENDPOINT \
-        -e AWS_REGION=$AWS_REGION \
-        -e AWS_S3_FORCE_PATH_STYLE=$AWS_S3_FORCE_PATH_STYLE \
-        --user postgres \
-        --entrypoint /bin/bash \
-        komunitin/komunitin-db:latest \
-        /usr/local/bin/restore_backup.sh
-
-    - name: Wait for the notifications DB to start and restore
-      run: |
-        sleep 30
-    - name: Print notifications docker logs
-      run: |
-        docker logs db-notifications
-
-    - name: Verify notifications database restoration
-      run: |
-        echo "Checking for recent records in the restored notifications database..."
-        count=$(docker exec db-notifications psql -U postgres -d notifications -t -A -c "
-          SELECT
-            (SELECT COUNT(*) FROM \"PushSubscription\" WHERE \"updatedAt\" > NOW() - INTERVAL '24 hours') +
-            (SELECT COUNT(*) FROM \"AppNotification\" WHERE \"createdAt\" > NOW() - INTERVAL '24 hours');
-        ")
-        if [ "$count" -eq 0 ]; then
-          echo "ERROR: No recent records found in PushSubscription.updatedAt or AppNotification.createdAt within the last 24 hours"
-          exit 1
-        else
-          echo "SUCCESS: Database restoration verified with $count recent records in the last 24 hours"
-        fi
+        label=/var/lib/postgresql/data/backup_label.old
+        started_at=$(docker exec ${{ job.services.restore.id }} sed -n 's/^START TIME: //p' "$label")
+        echo "Backup started at $started_at"
+        test -n "$started_at"
+        cutoff=$(date -d '24 hours ago' +%s)
+        test "$(date -d "$started_at" +%s)" -ge "$cutoff"
+    - name: Verify restored data
+      env:
+        DATABASE: ${{ matrix.database }}
+        QUERY: ${{ matrix.query }}
+      run: docker exec ${{ job.services.restore.id }} psql -d "$DATABASE" -Atc "$QUERY" | grep -qx t

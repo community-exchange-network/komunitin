@@ -30,23 +30,13 @@ if [ -z "$WALG_S3_PREFIX" ]; then
     exit 1
 fi
 
-# Get the point in time to restore to from the first argument. 
-# If not provided, default to the latest backup.
-if [ -z "$1" ]; then
-    echo "No point in time specified. Restoring the latest backup."
-    BACKUP_NAME="LATEST"
-    PITR_TARGET=""
-else
-    # Check if the argument is a timestamp (YYYY-MM-DD HH:MM:SS format) or backup name
-    if [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2} ]]; then
-        echo "Point-in-time recovery to: $1"
-        BACKUP_NAME="LATEST"
-        PITR_TARGET="$1"
-    else
-        echo "Restoring specific backup: $1"
-        BACKUP_NAME="$1"
-        PITR_TARGET=""
-    fi
+backup_name=${1:-LATEST}
+postgres_args=(-c config_file=/etc/postgresql/recovery.conf)
+# A timestamp requests point-in-time recovery from the latest base backup.
+if [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2} ]]; then
+  echo "Point-in-time recovery to: $1"
+  backup_name=LATEST
+  postgres_args+=(-c "recovery_target_time=$1" -c recovery_target_action=promote)
 fi
 
 # Clean up the data directory before restoring
@@ -56,31 +46,14 @@ if [ -d /var/lib/postgresql/data ]; then
 fi
 
 # Restore the base backup using WAL-G
-echo "Fetching base backup: $BACKUP_NAME"
-/usr/local/bin/wal-g backup-fetch /var/lib/postgresql/data "$BACKUP_NAME" 
-
-# Check if the restore command was successful
-if [ $? -ne 0 ]; then
-    echo "Base backup restore failed."
-    exit 1
-else
-    echo "Base backup restore completed successfully."
-fi
-
-# restore_command is already set in the recovery.conf
-cp /etc/postgresql/recovery.conf /etc/postgresql/current_recovery.conf
-
-if [ -n "$PITR_TARGET" ]; then
-    echo "Setting up point-in-time recovery target: $PITR_TARGET"
-    # set the recovery_target_timeline postgres conf var
-    echo "recovery_target_time = '$PITR_TARGET'" >> /etc/postgresql/current_recovery.conf
-    echo "recovery_target_action = 'promote'" >> /etc/postgresql/current_recovery.conf
-fi
+echo "Fetching base backup: $backup_name"
+/usr/local/bin/wal-g backup-fetch /var/lib/postgresql/data "$backup_name"
+echo "Base backup restore completed successfully."
 
 # Create the recovery.signal file
 touch /var/lib/postgresql/data/recovery.signal
 
 # Start PostgreSQL process
 echo "Starting PostgreSQL..."
-exec docker-entrypoint.sh postgres -c config_file=/etc/postgresql/current_recovery.conf
+exec docker-entrypoint.sh postgres "${postgres_args[@]}"
 

@@ -200,6 +200,8 @@ jobs:
       run: |
         docker login -u komunitin -p ${{ secrets.DOCKER_PASS }}
         docker push komunitin/komunitin-social
+        docker tag "$(docker compose images -q db-social)" komunitin/komunitin-db:social
+        docker push komunitin/komunitin-db:social
 
   build-auth:
     runs-on: ubuntu-latest
