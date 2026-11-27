@@ -34,8 +34,8 @@
     "alert_no_location_text": "Si afegeixes la teva ubicació al teu perfil, els altres membres podran saber on estàs i serà més fàcil connectar. No cal que sigui molt precisa.",
     "alert_expired_offers_title": "Revisa les teves ofertes caducades",
     "alert_expired_offers_text": "Tens {{count}} ofertes caducades i ja no són visibles als altres membres. Actualitza-les si encara les vols oferir, o amaga-les si ja no són vàlides.",
-    "action_create_offer": "CREAR OFERTA",
-    "action_create_need": "CREAR NECESSITAT",
+    "action_create_offer": "PUBLICA UNA OFERTA",
+    "action_create_need": "PUBLICA UNA NECESSITAT",
     "action_edit_profile": "EDITAR PERFIL",
     "action_manage_offers": "GESTIONAR OFERTES",
     "stats_title": "Activitat a {{group}} l'últim mes",
@@ -96,8 +96,8 @@
     "action_open": "Obre",
     "action_extend": "Allarga {{duration, duration}}",
     "action_hide": "Amaga",
-    "action_create_offer": "Crea oferta",
-    "action_create_need": "Crea necessitat"
+    "action_create_offer": "Publica una oferta",
+    "action_create_need": "Publica una necessitat"
   },
   "emails": {
     "welcome_to": "Benvingut/da a {{name}}!",

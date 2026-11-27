@@ -34,8 +34,8 @@
     "alert_no_location_text": "If you add your location to your profile, other members will know where you are and it will be easier to connect. It doesn't need to be very precise.",
     "alert_expired_offers_title": "Review your expired offers",
     "alert_expired_offers_text": "You have {{count}} expired offers and they are no longer visible to other members. Update them if you still want to offer them, or hide them if they are no longer valid.",
-    "action_create_offer": "CREATE OFFER",
-    "action_create_need": "CREATE WANT",
+    "action_create_offer": "POST OFFER",
+    "action_create_need": "POST WANT",
     "action_edit_profile": "EDIT PROFILE",
     "action_manage_offers": "MANAGE OFFERS",
     "stats_title": "Activity in {{group}} over the last month",
@@ -85,7 +85,7 @@
     "welcome_new_member_title": "Welcome to {{groupName}}!",
     "welcome_new_member_body": "Hi {{name}}, your account is now active! Start exploring offers and wants in your community. Happy exchange!",
     "member_no_offers_title": "You have no active offers",
-    "member_no_offers_body": "Create one to help others and move your balance of {{balance}} forward. What can you offer?",
+    "member_no_offers_body": "Post one to help others and move your balance of {{balance}} forward. What can you offer?",
     "member_no_needs_title": "You have a balance of {{balance}}",
     "member_no_needs_body": "Post a want to help others connect with you and use your balance. What do you need?",
     "action_respond": "Respond",
@@ -94,8 +94,8 @@
     "action_open": "Open",
     "action_extend": "Extend {{duration, duration}}",
     "action_hide": "Hide",
-    "action_create_offer": "Create offer",
-    "action_create_need": "Create want"
+    "action_create_offer": "Post offer",
+    "action_create_need": "Post want"
   },
   "emails": {
     "welcome_to": "Welcome to {{name}}!",

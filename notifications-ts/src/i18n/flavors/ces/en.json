@@ -30,7 +30,7 @@
     "transfer_still_pending_body": "Trade of {{amount}} with {{name}} is still pending after {{ duration, duration }}. Please accept or reject it as soon as possible.",
     "check_member_profiles_one": "Check their user profile",
     "check_member_profiles_other": "Check their user profiles",
-    "member_no_offers_body": "Create one to help others and improve your standing of {{balance}}. What can you offer?",
+    "member_no_offers_body": "Post one to help others and improve your standing of {{balance}}. What can you offer?",
     "member_no_needs_title": "Your community standing is {{balance}}",
     "member_no_needs_body": "Post a want to help others connect with you and use your standing. What do you need?"
   },
